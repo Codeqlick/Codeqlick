@@ -1,0 +1,22 @@
+.card {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.bordered {
+  border: 1px solid var(--color-line);
+}
+
+.compact {
+  padding: 1.25rem;
+  border-radius: var(--radius-md);
+}
+
+.blush {
+  background: var(--color-blush);
+}

@@ -1,0 +1,459 @@
+{
+  "Metadata": {
+    "siteName": "Codeqlick",
+    "defaultTitle": "Codeqlick — Estudio de software y aplicaciones web",
+    "description": "En Codeqlick diseñamos y desarrollamos software a medida y aplicaciones web que ayudan a las empresas a trabajar mejor. Redefining information technology in society.",
+    "ogTitle": "Codeqlick — Redefining information technology in society",
+    "ogDescription": "Software a medida y aplicaciones web, desde la primera idea hasta el lanzamiento y más allá."
+  },
+  "Common": {
+    "tagline": "Redefining information technology in society",
+    "skipToContent": "Saltar al contenido",
+    "homeLabel": "Inicio de Codeqlick",
+    "back": "Volver",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "saved": "Cambios guardados.",
+    "create": "Crear",
+    "creating": "Creando…",
+    "delete": "Eliminar",
+    "deleting": "Eliminando…",
+    "edit": "Editar",
+    "view": "Ver",
+    "filter": "Filtrar",
+    "all": "Todos",
+    "optional": "opcional",
+    "none": "—",
+    "genericError": "Algo ha fallado. Vuelve a intentarlo.",
+    "unavailable": "Este contenido no está disponible en este momento. Vuelve a intentarlo en unos minutos.",
+    "confirmDelete": "Entiendo que no se puede deshacer."
+  },
+  "Pagination": {
+    "label": "Paginación",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "status": "Página {page} de {totalPages}"
+  },
+  "Nav": {
+    "label": "Principal",
+    "services": "Servicios",
+    "work": "Proyectos",
+    "blog": "Blog",
+    "contact": "Contacto",
+    "startProject": "Empezar un proyecto",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "menu": "Menú"
+  },
+  "LocaleSwitcher": {
+    "label": "Idioma",
+    "en": "English",
+    "es": "Español"
+  },
+  "Footer": {
+    "social": "Codeqlick en redes sociales",
+    "copyright": "© {year} Codeqlick",
+    "login": "Acceso clientes"
+  },
+  "Home": {
+    "hero": {
+      "eyebrow": "Estudio de software y aplicaciones web",
+      "title": "Redefining information technology in society",
+      "sub": "En Codeqlick diseñamos y desarrollamos software a medida y aplicaciones web que ayudan a las empresas a trabajar mejor, desde la primera idea hasta el lanzamiento y más allá.",
+      "primary": "Empezar un proyecto",
+      "secondary": "Ver qué hacemos"
+    },
+    "services": {
+      "eyebrow": "Servicios",
+      "title": "Lo que construimos",
+      "lead": "Productos digitales de principio a fin, pensados para tu negocio y hechos para durar.",
+      "items": {
+        "web": {
+          "title": "Aplicaciones web",
+          "body": "Plataformas SaaS, portales de clientes, paneles de control y herramientas internas preparadas para rendir y crecer."
+        },
+        "custom": {
+          "title": "Software a medida",
+          "body": "Herramientas que se adaptan a tus procesos: automatización, sistemas de gestión interna, APIs e integraciones."
+        },
+        "mobile": {
+          "title": "Móvil y PWA",
+          "body": "Aplicaciones web responsive y progresivas que funcionan de maravilla en cualquier dispositivo."
+        },
+        "design": {
+          "title": "Diseño UI/UX",
+          "body": "Investigación, prototipos y sistemas de diseño para que tu producto sea intuitivo y coherente."
+        },
+        "consulting": {
+          "title": "Consultoría técnica",
+          "body": "Revisiones de arquitectura, elección de tecnología, definición de MVP y modernización de sistemas heredados."
+        },
+        "support": {
+          "title": "Mantenimiento y soporte",
+          "body": "Monitorización, correcciones, actualizaciones de seguridad y mejora continua tras el lanzamiento."
+        }
+      }
+    },
+    "process": {
+      "eyebrow": "Proceso",
+      "title": "De la idea al lanzamiento, paso a paso",
+      "lead": "Sprints de dos semanas con una demo al final de cada uno: siempre ves avances reales.",
+      "steps": {
+        "discovery": {
+          "title": "Descubrimiento",
+          "body": "Objetivos, usuarios y alcance. Recibes un briefing claro y un presupuesto."
+        },
+        "design": {
+          "title": "Diseño",
+          "body": "Flujos, prototipos y la arquitectura adecuada."
+        },
+        "development": {
+          "title": "Desarrollo",
+          "body": "Sprints de dos semanas con una demo al final de cada uno."
+        },
+        "qa": {
+          "title": "QA",
+          "body": "Pruebas automáticas y manuales antes de cada entrega."
+        },
+        "launch": {
+          "title": "Lanzamiento",
+          "body": "Puesta en producción, monitorización y traspaso."
+        },
+        "support": {
+          "title": "Soporte",
+          "body": "Correcciones, actualizaciones y nuevas funciones a medida que creces."
+        }
+      }
+    },
+    "why": {
+      "eyebrow": "Por qué Codeqlick",
+      "title": "Tecnología con propósito",
+      "lead": "Nos centramos en lo que tu software cambia para tu negocio y para las personas que lo usan, no solo en las funcionalidades.",
+      "values": {
+        "endToEnd": {
+          "title": "De principio a fin",
+          "body": "Un solo equipo desde la primera idea hasta el lanzamiento y el soporte."
+        },
+        "quality": {
+          "title": "Calidad de serie",
+          "body": "Código probado, mantenible y seguro sobre el que seguir construyendo."
+        },
+        "transparent": {
+          "title": "Transparencia",
+          "body": "Presupuestos claros, información honesta y sin sorpresas."
+        },
+        "modern": {
+          "title": "Tecnología actual",
+          "body": "Herramientas probadas y al día, elegidas para cada proyecto."
+        }
+      }
+    },
+    "stack": {
+      "eyebrow": "Trabajamos con",
+      "label": "Tecnologías"
+    },
+    "work": {
+      "eyebrow": "Proyectos destacados",
+      "title": "Trabajo reciente",
+      "lead": "Algunos de los productos que hemos diseñado y desarrollado junto a nuestros clientes.",
+      "viewAll": "Ver todos los proyectos"
+    },
+    "contact": {
+      "title": "¿Tienes una idea? Hagámosla realidad.",
+      "body": "Cuéntanos tu proyecto y te responderemos en un día laborable.",
+      "cta": "Empezar un proyecto"
+    }
+  },
+  "Blog": {
+    "metaTitle": "Blog",
+    "metaDescription": "Apuntes del estudio Codeqlick sobre cómo construir software y aplicaciones web.",
+    "eyebrow": "Blog",
+    "title": "Apuntes del estudio",
+    "lead": "Lo que aprendemos diseñando, desarrollando y manteniendo software para nuestros clientes.",
+    "emptyTitle": "Todavía no hay artículos",
+    "emptyBody": "Estamos escribiendo los primeros. Vuelve pronto.",
+    "readMore": "Leer artículo",
+    "back": "Todos los artículos",
+    "publishedOn": "Publicado el {date}"
+  },
+  "Work": {
+    "metaTitle": "Proyectos",
+    "metaDescription": "Casos de éxito de software y aplicaciones web desarrollados por Codeqlick.",
+    "eyebrow": "Proyectos",
+    "title": "Proyectos destacados",
+    "lead": "Productos que hemos diseñado, desarrollado y lanzado, y lo que han cambiado para quienes los usan.",
+    "emptyTitle": "Muy pronto, nuestros casos de éxito",
+    "emptyBody": "Estamos preparando los primeros. Mientras tanto, cuéntanos tu proyecto.",
+    "viewCase": "Ver caso de éxito",
+    "back": "Todos los proyectos",
+    "client": "Cliente",
+    "technologies": "Tecnologías",
+    "visit": "Visitar proyecto"
+  },
+  "Contact": {
+    "metaTitle": "Contacto",
+    "metaDescription": "Cuéntale a Codeqlick tu proyecto. Respondemos en un día laborable.",
+    "eyebrow": "Contacto",
+    "title": "Cuéntanos tu proyecto",
+    "lead": "Con unas líneas es suficiente para empezar. Te responderemos en un día laborable.",
+    "asideTitle": "¿Prefieres el correo?",
+    "asideBody": "Escríbenos directamente y te contestaremos en un día laborable.",
+    "form": {
+      "name": "Nombre",
+      "email": "Correo electrónico",
+      "company": "Empresa",
+      "budget": "Presupuesto",
+      "budgetPlaceholder": "Elige un rango",
+      "message": "Mensaje",
+      "messageHint": "¿Qué quieres construir, para quién y para cuándo?",
+      "website": "Deja este campo vacío",
+      "submit": "Enviar mensaje",
+      "sending": "Enviando…",
+      "successTitle": "¡Gracias! Hemos recibido tu mensaje.",
+      "successBody": "Te responderemos en un día laborable.",
+      "error": "No hemos podido enviar tu mensaje. Revisa el formulario y vuelve a intentarlo.",
+      "rateLimited": "Has enviado demasiados mensajes seguidos. Espera un minuto y vuelve a intentarlo."
+    },
+    "budgets": {
+      "lt-5k": "Menos de 5.000 €",
+      "5k-15k": "5.000 €–15.000 €",
+      "15k-40k": "15.000 €–40.000 €",
+      "gt-40k": "Más de 40.000 €",
+      "not-sure": "Aún no lo sé"
+    }
+  },
+  "Validation": {
+    "required": "Este campo es obligatorio.",
+    "email": "Introduce un correo electrónico válido.",
+    "tooShort": "Es demasiado corto.",
+    "tooLong": "Es demasiado largo.",
+    "url": "Introduce una URL válida que empiece por https://",
+    "slug": "Usa solo minúsculas, números y guiones simples.",
+    "number": "Introduce un número entero.",
+    "progress": "Introduce un número entre 0 y 100.",
+    "password": "Usa al menos 12 caracteres.",
+    "messageTooShort": "Cuéntanos un poco más (mínimo 10 caracteres).",
+    "translationIncomplete": "Rellena título, extracto y contenido, o deja los tres vacíos.",
+    "date": "Introduce una fecha válida.",
+    "choice": "Elige una de las opciones."
+  },
+  "Login": {
+    "metaTitle": "Iniciar sesión",
+    "title": "Iniciar sesión",
+    "subtitle": "Accede a tu portal de cliente o al panel de administración.",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "submit": "Entrar",
+    "submitting": "Entrando…",
+    "invalid": "El correo o la contraseña no son correctos.",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
+    "error": "Ahora mismo no podemos iniciar tu sesión. Vuelve a intentarlo.",
+    "backToSite": "Volver a la web"
+  },
+  "NotFound": {
+    "metaTitle": "Página no encontrada",
+    "eyebrow": "Error 404",
+    "title": "Esta página no llegó a producción.",
+    "body": "Puede que el enlace esté roto o que la página se haya movido.",
+    "cta": "Volver al inicio"
+  },
+  "Error": {
+    "eyebrow": "Error",
+    "title": "Algo ha fallado por nuestra parte.",
+    "body": "Vuelve a intentarlo. Si el problema continúa, escríbenos a hello@codeqlick.com.",
+    "retry": "Reintentar",
+    "home": "Volver al inicio"
+  },
+  "App": {
+    "navLabel": "Secciones",
+    "logout": "Cerrar sesión",
+    "viewSite": "Ver la web",
+    "signedInAs": "Sesión iniciada como {name}"
+  },
+  "Phases": {
+    "DISCOVERY": "Descubrimiento",
+    "DESIGN": "Diseño",
+    "DEVELOPMENT": "Desarrollo",
+    "QA": "QA",
+    "LAUNCHED": "Lanzado",
+    "SUPPORT": "Soporte",
+    "ON_HOLD": "En pausa"
+  },
+  "LeadStatuses": {
+    "NEW": "Nuevo",
+    "CONTACTED": "Contactado",
+    "QUALIFIED": "Cualificado",
+    "WON": "Ganado",
+    "LOST": "Perdido",
+    "ARCHIVED": "Archivado"
+  },
+  "Roles": {
+    "ADMIN": "Administrador",
+    "CLIENT": "Cliente"
+  },
+  "PublishStatuses": {
+    "DRAFT": "Borrador",
+    "PUBLISHED": "Publicado"
+  },
+  "Portal": {
+    "title": "Portal de clientes",
+    "nav": {
+      "projects": "Proyectos"
+    },
+    "projectsTitle": "Tus proyectos",
+    "projectsLead": "Sigue el avance de todo lo que estamos construyendo juntos.",
+    "emptyTitle": "Aún no hay proyectos",
+    "emptyBody": "Cuando empecemos a trabajar juntos, tus proyectos aparecerán aquí.",
+    "phase": "Fase",
+    "progress": "Progreso",
+    "progressValue": "{value} % completado",
+    "startDate": "Fecha de inicio",
+    "dueDate": "Fecha de entrega",
+    "staging": "Entorno de pruebas",
+    "production": "Web en producción",
+    "about": "Sobre este proyecto",
+    "updates": "Novedades",
+    "noUpdates": "Todavía no hay novedades.",
+    "postedBy": "{author} · {date}",
+    "back": "Todos los proyectos",
+    "open": "Abrir proyecto"
+  },
+  "Admin": {
+    "title": "Administración",
+    "nav": {
+      "dashboard": "Panel",
+      "leads": "Contactos",
+      "posts": "Artículos",
+      "portfolio": "Portfolio",
+      "projects": "Proyectos",
+      "users": "Usuarios"
+    },
+    "dashboard": {
+      "title": "Panel",
+      "lead": "Un vistazo rápido a lo que está pasando en Codeqlick.",
+      "newLeads": "Contactos nuevos",
+      "totalLeads": "Contactos totales",
+      "publishedPosts": "Artículos publicados",
+      "draftPosts": "Borradores",
+      "publishedPortfolio": "Casos de éxito publicados",
+      "activeProjects": "Proyectos activos",
+      "clients": "Clientes"
+    },
+    "leads": {
+      "title": "Contactos",
+      "status": "Estado",
+      "search": "Buscar",
+      "searchPlaceholder": "Nombre, correo o empresa",
+      "name": "Nombre",
+      "email": "Correo",
+      "company": "Empresa",
+      "budget": "Presupuesto",
+      "received": "Recibido",
+      "message": "Mensaje",
+      "notes": "Notas internas",
+      "locale": "Idioma",
+      "emptyTitle": "No hay contactos",
+      "emptyBody": "Aquí aparecerán los mensajes que lleguen desde el formulario de contacto.",
+      "back": "Todos los contactos",
+      "reply": "Responder por correo"
+    },
+    "posts": {
+      "title": "Artículos",
+      "new": "Nuevo artículo",
+      "edit": "Editar artículo",
+      "slug": "Slug",
+      "slugHint": "Se usa en la URL, p. ej. building-a-client-portal",
+      "status": "Estado",
+      "coverImageUrl": "URL de la imagen de portada",
+      "updated": "Actualizado",
+      "postTitle": "Título",
+      "excerpt": "Extracto",
+      "content": "Contenido (Markdown)",
+      "translationEn": "Inglés",
+      "translationEs": "Español (opcional)",
+      "emptyTitle": "Aún no hay artículos",
+      "emptyBody": "Escribe el primer artículo del blog.",
+      "back": "Todos los artículos",
+      "deleteTitle": "Eliminar este artículo",
+      "deleteBody": "El artículo y sus traducciones se retirarán del blog."
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "new": "Nuevo caso de éxito",
+      "edit": "Editar caso de éxito",
+      "slug": "Slug",
+      "slugHint": "Se usa en la URL, p. ej. logistics-dashboard",
+      "status": "Estado",
+      "coverImageUrl": "URL de la imagen de portada",
+      "clientName": "Nombre del cliente",
+      "projectUrl": "URL del proyecto",
+      "technologies": "Tecnologías",
+      "technologiesHint": "Separadas por comas, p. ej. Next.js, NestJS, PostgreSQL",
+      "sortOrder": "Orden",
+      "sortOrderHint": "Los números más bajos aparecen primero.",
+      "updated": "Actualizado",
+      "itemTitle": "Título",
+      "summary": "Resumen",
+      "content": "Contenido (Markdown)",
+      "translationEn": "Inglés",
+      "translationEs": "Español (opcional)",
+      "emptyTitle": "Aún no hay casos de éxito",
+      "emptyBody": "Añade el primer proyecto al portfolio.",
+      "back": "Todos los casos de éxito",
+      "deleteTitle": "Eliminar este caso de éxito",
+      "deleteBody": "El caso de éxito y sus traducciones se retirarán de la web."
+    },
+    "projects": {
+      "title": "Proyectos",
+      "new": "Nuevo proyecto",
+      "edit": "Editar proyecto",
+      "client": "Cliente",
+      "clientPlaceholder": "Elige un cliente",
+      "noClients": "Todavía no hay cuentas de cliente. Crea primero un usuario con el rol Cliente.",
+      "name": "Nombre del proyecto",
+      "description": "Descripción",
+      "phase": "Fase",
+      "progress": "Progreso (%)",
+      "startDate": "Fecha de inicio",
+      "dueDate": "Fecha de entrega",
+      "stagingUrl": "URL de pruebas",
+      "productionUrl": "URL de producción",
+      "emptyTitle": "Aún no hay proyectos",
+      "emptyBody": "Crea un proyecto para compartir su avance con un cliente.",
+      "back": "Todos los proyectos",
+      "updatesTitle": "Novedades del proyecto",
+      "updateTitle": "Título",
+      "updateBody": "Novedad (Markdown)",
+      "postUpdate": "Publicar novedad",
+      "posting": "Publicando…",
+      "updatePosted": "Novedad publicada.",
+      "noUpdates": "Todavía no se ha publicado ninguna novedad.",
+      "deleteTitle": "Eliminar este proyecto",
+      "deleteBody": "El proyecto y todas sus novedades se retirarán del portal de clientes."
+    },
+    "users": {
+      "title": "Usuarios",
+      "new": "Nuevo usuario",
+      "edit": "Editar usuario",
+      "name": "Nombre",
+      "email": "Correo",
+      "role": "Rol",
+      "status": "Estado",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "isActive": "Cuenta activa",
+      "isActiveHint": "Al desactivar una cuenta se cierran todas sus sesiones.",
+      "password": "Contraseña",
+      "passwordHint": "Mínimo 12 caracteres. Compártela con el usuario por un canal seguro.",
+      "resetPassword": "Restablecer contraseña",
+      "resetPasswordBody": "Asigna una contraseña nueva a este usuario. Las sesiones abiertas siguen activas hasta que caduquen.",
+      "newPassword": "Nueva contraseña",
+      "passwordReset": "Contraseña actualizada.",
+      "created": "Creado",
+      "emptyTitle": "Aún no hay usuarios",
+      "emptyBody": "Crea aquí las cuentas de administradores y clientes.",
+      "back": "Todos los usuarios",
+      "notFound": "Este usuario no existe."
+    }
+  }
+}
