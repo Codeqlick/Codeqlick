@@ -1,4 +1,16 @@
-# Local development infrastructure. The apps themselves run with `npm run dev`.
+# Local development: the whole platform runs in Docker with hot reload.
+#   docker compose up --build        web :3000 · api :4000 (/docs) · db :5432 · Mailpit inbox :8025
+# Host ports can be changed in a git-ignored `.env` next to this file (WEB_PORT, API_PORT,
+# DB_PORT, SMTP_PORT, MAILPIT_PORT) when they clash with something else on your machine.
+
+# Reinstalls dependencies into the node_modules volume when package-lock.json has changed since
+# the last install (the volume outlives image rebuilds), then runs the arguments as the command.
+x-install-deps: &install-deps |
+  if ! cmp -s package-lock.json node_modules/.installed-lock; then
+    npm install --no-audit --no-fund && cp package-lock.json node_modules/.installed-lock
+  fi
+  exec "$$@"
+
 services:
   db:
     image: postgres:18-alpine
@@ -8,7 +20,7 @@ services:
       POSTGRES_PASSWORD: codeqlick
       POSTGRES_DB: codeqlick
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql
     healthcheck:
@@ -21,8 +33,85 @@ services:
     image: axllent/mailpit:latest
     restart: unless-stopped
     ports:
-      - "1025:1025" # SMTP
-      - "8025:8025" # Web inbox
+      - "${SMTP_PORT:-1025}:1025" # SMTP
+      - "${MAILPIT_PORT:-8025}:8025" # Web inbox
+
+  api:
+    build:
+      context: ./codeqlick-backend
+      target: dev
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    # These win over codeqlick-backend/.env, which only matters when running the API on the host.
+    environment:
+      NODE_ENV: development
+      PORT: "4000"
+      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://codeqlick:codeqlick@db:5432/codeqlick
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-3000}
+      # Development-only placeholder, same as .env.example. Production sets its own secret.
+      JWT_ACCESS_SECRET: change-me-change-me-change-me-change-me-change-me-change-me
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      MAIL_FROM: Codeqlick <hello@codeqlick.com>
+      LEADS_NOTIFY_TO: hello@codeqlick.com
+      SEED_ADMIN_EMAIL: admin@codeqlick.com
+      SEED_ADMIN_PASSWORD: change-me-please-123
+      SEED_ADMIN_NAME: Codeqlick Admin
+    command:
+      - sh
+      - -c
+      - *install-deps
+      - install-deps
+      - sh
+      - -c
+      - npx prisma generate && npx prisma migrate deploy && exec npm run dev
+    ports:
+      - "${API_PORT:-4000}:4000"
+    volumes:
+      - ./codeqlick-backend:/app
+      - api-node-modules:/app/node_modules
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/v1/health > /dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 60s
+
+  web:
+    build:
+      context: ./codeqlick-frontend
+      target: dev
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    # These win over codeqlick-frontend/.env.local, which only matters when running on the host.
+    environment:
+      API_URL: http://api:4000/v1
+      SITE_URL: http://localhost:${WEB_PORT:-3000}
+      NEXT_PUBLIC_SITE_URL: http://localhost:${WEB_PORT:-3000}
+    command:
+      - sh
+      - -c
+      - *install-deps
+      - install-deps
+      - npx
+      - next
+      - dev
+      - --hostname
+      - 0.0.0.0
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - ./codeqlick-frontend:/app
+      - web-node-modules:/app/node_modules
 
 volumes:
   db-data:
+  api-node-modules:
+  web-node-modules:

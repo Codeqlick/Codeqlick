@@ -345,7 +345,7 @@ src/
 
 | Environment | How |
 |---|---|
-| Local | `docker compose up -d` (PostgreSQL + Mailpit), then `npm run dev` in each app |
+| Local | `docker compose up --build -d`: PostgreSQL, Mailpit, `api` and `web` (the `dev` target of each Dockerfile, source bind-mounted for hot reload) |
 | Production | VPS (OVH): `docker compose -f docker-compose.prod.yml up -d --build` in `/srv/codeqlick`, Nginx in front with Let's Encrypt |
 
 Production compose runs `db` (PostgreSQL, volume), `api` (runs `prisma migrate deploy` on start) and `web`. Only Nginx is exposed publicly; `api` and `web` bind to `127.0.0.1`.

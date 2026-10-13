@@ -8,13 +8,16 @@ This README is the practical companion.
 
 ## Quick start
 
+The API normally runs in Docker together with the rest of the platform: `docker compose up --build -d`
+from the repository root (see the [root README](../README.md)). To run it on the host instead:
+
 ```bash
-# from the repository root: PostgreSQL + Mailpit
-docker compose up -d
+# from the repository root: PostgreSQL + Mailpit only
+docker compose up -d db mailpit
 
 cd codeqlick-backend
 cp .env.example .env
-npm install            # first run creates package-lock.json: commit it
+npm ci
 npm run prisma:generate
 npm run db:migrate     # applies prisma/migrations to the local database
 npm run db:seed        # creates the admin from SEED_ADMIN_* in .env
@@ -22,8 +25,7 @@ npm run dev            # http://localhost:4000/v1, OpenAPI UI at http://localhos
 ```
 
 Requires Node.js 24. `.npmrc` enforces `save-exact` and `engine-strict`; every dependency is
-pinned to an exact version on purpose. There is no lockfile in the repository until the first
-`npm install`; **commit the generated `package-lock.json`** so CI and Docker can use `npm ci`.
+pinned to an exact version on purpose.
 
 ## Scripts
 
