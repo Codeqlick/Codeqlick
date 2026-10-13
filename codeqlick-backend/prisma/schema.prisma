@@ -1,0 +1,207 @@
+// Codeqlick data model. See docs/architecture.md section 4.2.
+// The connection URL lives in prisma.config.ts (Prisma 7), not here.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum Locale {
+  EN
+  ES
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ProjectPhase {
+  DISCOVERY
+  DESIGN
+  DEVELOPMENT
+  QA
+  LAUNCHED
+  SUPPORT
+  ON_HOLD
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(CLIENT)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions       Session[]
+  clientProjects ClientProject[]
+  posts          Post[]
+  projectUpdates ProjectUpdate[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  familyId     String    @map("family_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  userAgent    String?   @map("user_agent")
+  ip           String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+model Lead {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String
+  email     String
+  company   String?
+  budget    String?
+  message   String
+  locale    Locale     @default(EN)
+  status    LeadStatus @default(NEW)
+  notes     String?
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@map("leads")
+}
+
+model Post {
+  id            String        @id @default(uuid()) @db.Uuid
+  slug          String        @unique
+  status        PublishStatus @default(DRAFT)
+  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
+  coverImageUrl String?       @map("cover_image_url")
+  authorId      String?       @map("author_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  author       User?             @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  translations PostTranslation[]
+
+  @@index([status, publishedAt])
+  @@map("posts")
+}
+
+model PostTranslation {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  locale    Locale
+  title     String
+  excerpt   String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, locale])
+  @@map("post_translations")
+}
+
+model PortfolioItem {
+  id            String        @id @default(uuid()) @db.Uuid
+  slug          String        @unique
+  status        PublishStatus @default(DRAFT)
+  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
+  coverImageUrl String?       @map("cover_image_url")
+  clientName    String?       @map("client_name")
+  projectUrl    String?       @map("project_url")
+  technologies  String[]
+  sortOrder     Int           @default(0) @map("sort_order")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  translations PortfolioTranslation[]
+
+  @@index([status, sortOrder])
+  @@map("portfolio_items")
+}
+
+model PortfolioTranslation {
+  id              String   @id @default(uuid()) @db.Uuid
+  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
+  locale          Locale
+  title           String
+  summary         String
+  content         String
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioItemId, locale])
+  @@map("portfolio_translations")
+}
+
+model ClientProject {
+  id            String       @id @default(uuid()) @db.Uuid
+  clientId      String       @map("client_id") @db.Uuid
+  name          String
+  description   String?
+  phase         ProjectPhase @default(DISCOVERY)
+  progress      Int          @default(0)
+  startDate     DateTime?    @map("start_date") @db.Timestamptz(3)
+  dueDate       DateTime?    @map("due_date") @db.Timestamptz(3)
+  stagingUrl    String?      @map("staging_url")
+  productionUrl String?      @map("production_url")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client  User            @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  updates ProjectUpdate[]
+
+  @@index([clientId])
+  @@map("client_projects")
+}
+
+model ProjectUpdate {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  authorId  String?  @map("author_id") @db.Uuid
+  title     String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("project_updates")
+}

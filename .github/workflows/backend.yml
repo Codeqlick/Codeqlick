@@ -1,0 +1,92 @@
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'codeqlick-backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'codeqlick-backend/**'
+      - '.github/workflows/backend.yml'
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: codeqlick-backend
+
+jobs:
+  verify:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: codeqlick
+          POSTGRES_PASSWORD: codeqlick
+          POSTGRES_DB: codeqlick
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U codeqlick -d codeqlick"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://codeqlick:codeqlick@localhost:5432/codeqlick
+      JWT_ACCESS_SECRET: ci-dummy-secret-0123456789abcdef0123456789abcdef0123456789abcdef
+      CORS_ORIGINS: http://localhost:3000
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
+      MAIL_FROM: Codeqlick <hello@codeqlick.com>
+      LEADS_NOTIFY_TO: hello@codeqlick.com
+      LOG_LEVEL: silent
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          # setup-node fails when caching without a lockfile, so only cache once it is committed.
+          cache: ${{ hashFiles('codeqlick-backend/package-lock.json') != '' && 'npm' || '' }}
+          cache-dependency-path: codeqlick-backend/package-lock.json
+
+      - name: Install dependencies
+        run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Build
+        run: npm run build
