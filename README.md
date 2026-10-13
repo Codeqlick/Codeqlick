@@ -13,29 +13,39 @@ Read [docs/architecture.md](docs/architecture.md) before contributing — it def
 
 ## Requirements
 
-- Node.js 24 LTS (`nvm use` reads `.nvmrc`)
 - Docker with Compose
+- Node.js 24 LTS (`nvm use` reads `.nvmrc`) — only for editor tooling and running scripts on the host
 
 ## Run locally
 
+Everything runs in Docker with hot reload: the source folders are mounted into the containers.
+
 ```bash
-# 1. Infrastructure: PostgreSQL on :5432, Mailpit (fake SMTP) on :1025 with inbox at http://localhost:8025
-docker compose up -d
-
-# 2. API on http://localhost:4000 (OpenAPI docs at /docs)
-cd codeqlick-backend
-cp .env.example .env
-npm ci
-npx prisma migrate dev
-npx prisma db seed        # creates the first admin from SEED_ADMIN_* in .env
-npm run dev
-
-# 3. Website on http://localhost:3000
-cd ../codeqlick-frontend
-cp .env.example .env.local
-npm ci
-npm run dev
+docker compose up --build -d
+docker compose exec api npx prisma db seed   # first time: creates the admin (SEED_ADMIN_* in docker-compose.yml)
 ```
+
+| Service | URL |
+|---|---|
+| Website | http://localhost:3000 |
+| API | http://localhost:4000/v1 (OpenAPI docs at http://localhost:4000/docs) |
+| Mailpit inbox (fake SMTP) | http://localhost:8025 |
+| PostgreSQL | `localhost:5432` (`codeqlick` / `codeqlick`) |
+
+Migrations are applied when the `api` container starts. Useful commands:
+
+```bash
+docker compose logs -f api web                    # follow the apps
+docker compose exec api npx prisma migrate dev    # create a migration after editing schema.prisma
+docker compose exec api npm test                  # run a script inside a container
+docker compose down                               # stop (add -v to also drop the database)
+```
+
+After changing dependencies, restart the service (`docker compose restart api`): it reinstalls when `package-lock.json` changed.
+
+If a port is taken on your machine, set `WEB_PORT`, `API_PORT`, `DB_PORT`, `SMTP_PORT` or `MAILPIT_PORT` in a git-ignored `.env` next to `docker-compose.yml`.
+
+To run an app on the host instead, see its README; `.env.example` in each app has the settings for that.
 
 ## Deploy
 
