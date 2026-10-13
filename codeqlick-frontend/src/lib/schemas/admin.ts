@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { LEAD_STATUSES, PROJECT_PHASES } from '@/lib/api/types';
-import { optionalDate, optionalUrl, publishStatusSchema, requiredString, slugSchema } from './common';
+import {
+  optionalDate,
+  optionalUrl,
+  publishStatusSchema,
+  requiredString,
+  slugSchema,
+} from './common';
 
 /* Translations: English is required; Spanish is optional but must be complete when started. */
 

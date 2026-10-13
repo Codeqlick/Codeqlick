@@ -6,7 +6,12 @@ export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const requiredString = (max = 200) =>
   z.string().trim().min(1, 'required').max(max, 'tooLong');
 
-export const slugSchema = z.string().trim().min(1, 'required').max(120, 'tooLong').regex(SLUG_PATTERN, 'slug');
+export const slugSchema = z
+  .string()
+  .trim()
+  .min(1, 'required')
+  .max(120, 'tooLong')
+  .regex(SLUG_PATTERN, 'slug');
 
 /** Optional http(s) URL: '' → null. */
 export const optionalUrl = z

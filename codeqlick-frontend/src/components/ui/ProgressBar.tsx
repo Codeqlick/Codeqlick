@@ -13,17 +13,13 @@ export function ProgressBar({
   const clamped = Math.min(100, Math.max(0, Math.round(value)));
   return (
     <div className={styles.wrapper}>
-      <div
+      <progress
         className={styles.track}
-        role="progressbar"
+        value={clamped}
+        max={100}
         aria-label={ariaLabel}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={clamped}
         aria-valuetext={label}
-      >
-        <div className={styles.bar} style={{ width: `${clamped}%` }} />
-      </div>
+      />
       {label ? <span className={styles.label}>{label}</span> : null}
     </div>
   );

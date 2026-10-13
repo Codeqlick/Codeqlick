@@ -30,8 +30,7 @@
     var(--font-display), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-family-body:
     var(--font-body), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-family-mono:
-    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-family-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Spacing scale */
   --space-1: 0.25rem;

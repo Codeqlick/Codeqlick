@@ -83,7 +83,10 @@ export function formBoolean(formData: FormData, name: string): boolean {
 }
 
 /** All string entries of a FormData (files and honeypot excluded), for FormState.values. */
-export function formValues(formData: FormData, exclude: readonly string[] = []): Record<string, string> {
+export function formValues(
+  formData: FormData,
+  exclude: readonly string[] = [],
+): Record<string, string> {
   const values: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
     if (typeof value !== 'string' || key.startsWith('$ACTION') || exclude.includes(key)) continue;

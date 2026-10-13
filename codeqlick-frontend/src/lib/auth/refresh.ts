@@ -36,7 +36,13 @@ export type AuthCookieOptions = {
 
 /** Cookie attributes from architecture 6.2. */
 export function authCookieOptions(maxAge: number, secure: boolean): AuthCookieOptions {
-  return { httpOnly: true, secure, sameSite: 'lax', path: '/', maxAge: Math.max(0, Math.floor(maxAge)) };
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: Math.max(0, Math.floor(maxAge)),
+  };
 }
 
 export function accessCookieOptions(expiresIn: number, secure: boolean) {
@@ -151,7 +157,11 @@ export function serializeCookieHeader(cookies: Iterable<{ name: string; value: s
 
 /** Writes refreshed tokens on an outgoing response. */
 export function setTokenCookies(response: NextResponse, tokens: RefreshedTokens, secure: boolean) {
-  response.cookies.set(ACCESS_COOKIE, tokens.accessToken, accessCookieOptions(tokens.expiresIn, secure));
+  response.cookies.set(
+    ACCESS_COOKIE,
+    tokens.accessToken,
+    accessCookieOptions(tokens.expiresIn, secure),
+  );
   response.cookies.set(REFRESH_COOKIE, tokens.refreshToken, refreshCookieOptions(secure));
 }
 

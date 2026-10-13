@@ -13,12 +13,20 @@ type LogoProps = {
 };
 
 export function Logo({ href, size = 'md', tone = 'dark', label, className }: LogoProps) {
-  const classes = [styles.logo, size === 'sm' ? styles.sm : '', tone === 'light' ? styles.light : '', className ?? '']
+  const classes = [
+    styles.logo,
+    size === 'sm' ? styles.sm : '',
+    tone === 'light' ? styles.light : '',
+    className ?? '',
+  ]
     .filter(Boolean)
     .join(' ');
   const content = (
     <>
-      <BrandSymbol size={size === 'sm' ? 24 : 34} cursorColor={tone === 'light' ? '#FFFFFF' : '#14101F'} />
+      <BrandSymbol
+        size={size === 'sm' ? 24 : 34}
+        cursorColor={tone === 'light' ? '#FFFFFF' : '#14101F'}
+      />
       <span className={styles.wordmark}>codeqlick</span>
     </>
   );

@@ -10,7 +10,9 @@ export function formatDate(value: string | null | undefined, locale: string): st
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat(tag(locale), { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
+  return new Intl.DateTimeFormat(tag(locale), { dateStyle: 'medium', timeZone: 'UTC' }).format(
+    date,
+  );
 }
 
 export function formatDateTime(value: string | null | undefined, locale: string): string {

@@ -21,9 +21,15 @@ export async function getTokens(): Promise<{ accessToken?: string; refreshToken?
 }
 
 /** Server Actions / Route Handlers only (cookies can't be set during rendering). */
-export async function setAuthCookies(tokens: Pick<AuthTokens, 'accessToken' | 'refreshToken' | 'expiresIn'>) {
+export async function setAuthCookies(
+  tokens: Pick<AuthTokens, 'accessToken' | 'refreshToken' | 'expiresIn'>,
+) {
   const store = await cookies();
-  store.set(ACCESS_COOKIE, tokens.accessToken, accessCookieOptions(tokens.expiresIn, env.isProduction));
+  store.set(
+    ACCESS_COOKIE,
+    tokens.accessToken,
+    accessCookieOptions(tokens.expiresIn, env.isProduction),
+  );
   store.set(REFRESH_COOKIE, tokens.refreshToken, refreshCookieOptions(env.isProduction));
 }
 

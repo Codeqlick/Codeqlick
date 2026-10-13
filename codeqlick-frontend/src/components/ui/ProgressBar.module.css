@@ -6,17 +6,29 @@
 }
 
 .track {
+  appearance: none;
+  display: block;
+  width: 100%;
   height: 8px;
+  border: 0;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
   overflow: hidden;
 }
 
-.bar {
-  height: 100%;
+.track::-webkit-progress-bar {
+  background: var(--color-blush);
+}
+
+.track::-webkit-progress-value {
   border-radius: var(--radius-pill);
   background: var(--color-fuchsia);
   transition: width 0.3s ease;
+}
+
+.track::-moz-progress-bar {
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
 }
 
 .label {
