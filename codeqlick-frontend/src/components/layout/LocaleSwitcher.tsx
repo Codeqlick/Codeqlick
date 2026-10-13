@@ -12,7 +12,10 @@ export function LocaleSwitcher({ className }: { className?: string }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label={t('label')} className={[styles.switcher, className ?? ''].filter(Boolean).join(' ')}>
+    <nav
+      aria-label={t('label')}
+      className={[styles.switcher, className ?? ''].filter(Boolean).join(' ')}
+    >
       {routing.locales.map((l) => {
         const active = l === locale;
         return (

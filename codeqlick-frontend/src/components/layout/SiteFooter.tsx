@@ -8,6 +8,8 @@ import styles from './SiteFooter.module.css';
 export async function SiteFooter({ locale }: { locale: AppLocale }) {
   const t = await getTranslations({ locale, namespace: 'Footer' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  // Server Component: rendered once per request (or per revalidation), never re-rendered.
+  // oxlint-disable-next-line react/purity
   const year = new Date().getFullYear();
 
   return (

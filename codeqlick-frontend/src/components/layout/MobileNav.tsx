@@ -6,7 +6,11 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import styles from './MobileNav.module.css';
 
-type Item = { href: string; label: string; /** Already locale-prefixed (hash links). */ raw?: boolean };
+type Item = {
+  href: string;
+  label: string;
+  /** Already locale-prefixed (hash links). */ raw?: boolean;
+};
 
 /** Menu button + panel shown below 720px. The text nav links are hidden at that width. */
 export function MobileNav({
@@ -42,7 +46,15 @@ export function MobileNav({
         aria-label={open ? labels.close : labels.open}
         onClick={() => setOpen(!open)}
       >
-        <svg className={styles.icon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        <svg
+          className={styles.icon}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
           {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
         </svg>
       </button>

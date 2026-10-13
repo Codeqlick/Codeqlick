@@ -15,7 +15,9 @@
     "typescript/no-explicit-any": "warn",
     "unicorn/no-null": "off",
     "unicorn/prefer-node-protocol": "error",
-    "typescript/no-extraneous-class": "off"
+    "typescript/no-extraneous-class": "off",
+    "import/no-unassigned-import": ["warn", { "allow": ["reflect-metadata", "dotenv/config"] }],
+    "vitest/require-mock-type-parameters": "off"
   },
   "overrides": [
     {

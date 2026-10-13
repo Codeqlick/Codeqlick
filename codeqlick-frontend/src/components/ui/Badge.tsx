@@ -12,5 +12,9 @@ export function Badge({
   children: ReactNode;
   className?: string;
 }) {
-  return <span className={[styles.badge, styles[tone], className ?? ''].filter(Boolean).join(' ')}>{children}</span>;
+  return (
+    <span className={[styles.badge, styles[tone], className ?? ''].filter(Boolean).join(' ')}>
+      {children}
+    </span>
+  );
 }

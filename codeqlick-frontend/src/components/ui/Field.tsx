@@ -60,7 +60,16 @@ function FieldShell({
 export type InputProps = FieldBaseProps &
   Omit<ComponentPropsWithoutRef<'input'>, 'className'> & { mono?: boolean };
 
-export function Input({ label, error, hint, optionalLabel, className, id, mono, ...rest }: InputProps) {
+export function Input({
+  label,
+  error,
+  hint,
+  optionalLabel,
+  className,
+  id,
+  mono,
+  ...rest
+}: InputProps) {
   const fieldId = controlId(id, rest.name);
   return (
     <FieldShell
