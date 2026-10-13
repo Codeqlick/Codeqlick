@@ -1,5 +1,5 @@
 import 'server-only';
-import { cookies } from 'next/headers';
+import { cookies, headers as requestHeaders } from 'next/headers';
 import { env } from '@/lib/env';
 import { ACCESS_COOKIE } from '@/lib/auth/constants';
 import { ApiError } from './errors';
@@ -23,6 +23,11 @@ export type ApiFetchOptions = {
   auth?: AuthMode;
   /** Explicit access token (e.g. right after login, before the cookie exists). */
   token?: string;
+  /**
+   * Sends the visitor's IP as `X-Forwarded-For` so the API rate-limits per visitor instead of
+   * per web server (it trusts one proxy hop). Reads request headers: Server Actions only.
+   */
+  forwardClientIp?: boolean;
   /** Fetch cache mode. Defaults to `no-store` for authenticated calls. */
   cache?: RequestCache;
   /** ISR revalidation in seconds for public content (section 6.2: 300). */
@@ -47,6 +52,18 @@ export function buildQuery(query: Record<string, QueryValue> | undefined): strin
 async function readAccessToken(): Promise<string | undefined> {
   const store = await cookies();
   return store.get(ACCESS_COOKIE)?.value || undefined;
+}
+
+/**
+ * The visitor's IP as seen by our own reverse proxy: `X-Real-IP` (set by Nginx), otherwise the
+ * last `X-Forwarded-For` entry, which is the one the nearest proxy appended. Earlier entries are
+ * client-supplied and can't be trusted.
+ */
+async function readClientIp(): Promise<string | undefined> {
+  const store = await requestHeaders();
+  const realIp = store.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+  return store.get('x-forwarded-for')?.split(',').at(-1)?.trim() || undefined;
 }
 
 async function parseProblem(response: Response): Promise<ProblemDetails> {
@@ -78,6 +95,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
   if (body !== undefined) headers.set('Content-Type', 'application/json');
+
+  if (options.forwardClientIp) {
+    const clientIp = await readClientIp();
+    if (clientIp) headers.set('X-Forwarded-For', clientIp);
+  }
 
   const init: RequestInit = {
     method,

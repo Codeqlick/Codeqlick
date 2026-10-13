@@ -3,7 +3,11 @@ import { apiFetch } from './client';
 import type { Lead, LeadInput, LeadStatus, Paginated } from './types';
 
 export function createLead(input: LeadInput) {
-  return apiFetch<{ id: string }>('/leads', { method: 'POST', body: input });
+  return apiFetch<{ id: string }>('/leads', {
+    method: 'POST',
+    body: input,
+    forwardClientIp: true,
+  });
 }
 
 export function adminListLeads(
