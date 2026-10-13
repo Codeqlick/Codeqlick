@@ -1,0 +1,123 @@
+import { getTranslations } from 'next-intl/server';
+import {
+  ActionForm,
+  FormInput,
+  FormSelect,
+  FormTextarea,
+  type FormAction,
+} from '@/components/app/ActionForm';
+import styles from '@/components/app/app.module.css';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import type { AppLocale } from '@/i18n/routing';
+import type { AdminPortfolioItem } from '@/lib/api/types';
+
+const STATUSES = ['DRAFT', 'PUBLISHED'] as const;
+
+/** Create/edit form for a case study with its English and (optional) Spanish translations. */
+export async function PortfolioForm({
+  locale,
+  action,
+  item,
+}: {
+  locale: AppLocale;
+  action: FormAction;
+  item?: AdminPortfolioItem;
+}) {
+  const t = await getTranslations({ locale, namespace: 'Admin.portfolio' });
+  const tc = await getTranslations({ locale, namespace: 'Common' });
+  const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
+
+  return (
+    <ActionForm action={action} className={styles.form}>
+      <div className={styles.row}>
+        <FormInput
+          name="slug"
+          label={t('slug')}
+          hint={t('slugHint')}
+          mono
+          required
+          defaultValue={item?.slug}
+        />
+        <FormSelect
+          name="status"
+          label={t('status')}
+          options={STATUSES.map((value) => ({ value, label: ts(value) }))}
+          defaultValue={item?.status ?? 'DRAFT'}
+        />
+      </div>
+      <div className={styles.row}>
+        <FormInput
+          name="clientName"
+          label={t('clientName')}
+          optionalLabel={tc('optional')}
+          defaultValue={item?.clientName ?? ''}
+        />
+        <FormInput
+          name="projectUrl"
+          type="url"
+          label={t('projectUrl')}
+          optionalLabel={tc('optional')}
+          defaultValue={item?.projectUrl ?? ''}
+        />
+      </div>
+      <FormInput
+        name="coverImageUrl"
+        type="url"
+        label={t('coverImageUrl')}
+        optionalLabel={tc('optional')}
+        defaultValue={item?.coverImageUrl ?? ''}
+      />
+      <div className={styles.row}>
+        <FormInput
+          name="technologies"
+          label={t('technologies')}
+          hint={t('technologiesHint')}
+          defaultValue={item?.technologies.join(', ')}
+        />
+        <FormInput
+          name="sortOrder"
+          type="number"
+          label={t('sortOrder')}
+          hint={t('sortOrderHint')}
+          defaultValue={String(item?.sortOrder ?? 0)}
+        />
+      </div>
+
+      {(['en', 'es'] as const).map((lang) => {
+        const translation = item?.translations.find((entry) => entry.locale === lang);
+        return (
+          <fieldset key={lang} className={styles.fieldset} lang={lang}>
+            <legend>{lang === 'en' ? t('translationEn') : t('translationEs')}</legend>
+            <FormInput
+              name={`${lang}.title`}
+              label={t('itemTitle')}
+              required={lang === 'en'}
+              defaultValue={translation?.title}
+            />
+            <FormTextarea
+              name={`${lang}.summary`}
+              label={t('summary')}
+              rows={3}
+              required={lang === 'en'}
+              defaultValue={translation?.summary}
+            />
+            <FormTextarea
+              name={`${lang}.content`}
+              label={t('content')}
+              rows={16}
+              mono
+              required={lang === 'en'}
+              defaultValue={translation?.content}
+            />
+          </fieldset>
+        );
+      })}
+
+      <div className={styles.actions}>
+        <SubmitButton pendingLabel={item ? tc('saving') : tc('creating')}>
+          {item ? tc('save') : tc('create')}
+        </SubmitButton>
+      </div>
+    </ActionForm>
+  );
+}
