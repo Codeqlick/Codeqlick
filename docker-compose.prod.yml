@@ -1,0 +1,61 @@
+# Production stack for the VPS (see deploy/README.md):
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Settings come from a `.env` file next to this one (template: deploy/.env.example).
+# Nothing is exposed publicly: api and web listen on 127.0.0.1 and the host's Nginx proxies to them.
+name: codeqlick-prod
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeqlick
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: codeqlick
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeqlick -d codeqlick"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./codeqlick-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://codeqlick:${POSTGRES_PASSWORD}@db:5432/codeqlick
+      CORS_ORIGINS: ${SITE_URL:?set SITE_URL in .env}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
+      SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST in .env}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-Codeqlick <hello@codeqlick.com>}
+      LEADS_NOTIFY_TO: ${LEADS_NOTIFY_TO:-hello@codeqlick.com}
+    ports:
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+
+  web:
+    build: ./codeqlick-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      # Server-side calls stay inside the Docker network.
+      API_URL: http://api:4000/v1
+      SITE_URL: ${SITE_URL}
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+
+volumes:
+  db-data:

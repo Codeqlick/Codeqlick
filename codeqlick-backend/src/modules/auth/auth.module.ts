@@ -1,0 +1,25 @@
+import { Module } from '@nestjs/common';
+import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
+import { AppConfigService } from '../../config/app-config.service.js';
+import { AuthController } from './auth.controller.js';
+import { AuthRepository } from './auth.repository.js';
+import { AuthService } from './auth.service.js';
+import { PasswordService } from './password.service.js';
+
+@Module({
+  imports: [
+    JwtModule.registerAsync({
+      inject: [AppConfigService],
+      useFactory: (config: AppConfigService): JwtModuleOptions => ({
+        secret: config.jwtAccessSecret,
+        signOptions: { algorithm: 'HS256', expiresIn: config.jwtAccessTtl },
+        verifyOptions: { algorithms: ['HS256'] },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, AuthRepository, PasswordService],
+  // JwtModule is re-exported for the global JwtAuthGuard registered in AppModule.
+  exports: [JwtModule, PasswordService],
+})
+export class AuthModule {}

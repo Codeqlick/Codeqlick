@@ -1,0 +1,38 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.track {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-blush);
+  overflow: hidden;
+}
+
+.track::-webkit-progress-bar {
+  background: var(--color-blush);
+}
+
+.track::-webkit-progress-value {
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  transition: width 0.3s ease;
+}
+
+.track::-moz-progress-bar {
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+}
+
+.label {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  color: var(--color-slate);
+}

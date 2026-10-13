@@ -1,0 +1,459 @@
+{
+  "Metadata": {
+    "siteName": "Codeqlick",
+    "defaultTitle": "Codeqlick — Software & web apps studio",
+    "description": "Codeqlick designs and builds custom software and web applications that help businesses work better. Redefining information technology in society.",
+    "ogTitle": "Codeqlick — Redefining information technology in society",
+    "ogDescription": "Custom software and web applications, from the first idea to launch and beyond."
+  },
+  "Common": {
+    "tagline": "Redefining information technology in society",
+    "skipToContent": "Skip to content",
+    "homeLabel": "Codeqlick home",
+    "back": "Back",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Changes saved.",
+    "create": "Create",
+    "creating": "Creating…",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "edit": "Edit",
+    "view": "View",
+    "filter": "Filter",
+    "all": "All",
+    "optional": "optional",
+    "none": "—",
+    "genericError": "Something went wrong. Please try again.",
+    "unavailable": "This content is temporarily unavailable. Please try again in a few minutes.",
+    "confirmDelete": "I understand this can't be undone."
+  },
+  "Pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "status": "Page {page} of {totalPages}"
+  },
+  "Nav": {
+    "label": "Main",
+    "services": "Services",
+    "work": "Work",
+    "blog": "Blog",
+    "contact": "Contact",
+    "startProject": "Start a project",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu"
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
+  },
+  "Footer": {
+    "social": "Codeqlick on social media",
+    "copyright": "© {year} Codeqlick",
+    "login": "Client login"
+  },
+  "Home": {
+    "hero": {
+      "eyebrow": "Software & web apps studio",
+      "title": "Redefining information technology in society",
+      "sub": "Codeqlick designs and builds custom software and web applications that help businesses work better — from the first idea to launch and beyond.",
+      "primary": "Start a project",
+      "secondary": "See what we build"
+    },
+    "services": {
+      "eyebrow": "Services",
+      "title": "What we build",
+      "lead": "End-to-end digital products, designed around your business and built to last.",
+      "items": {
+        "web": {
+          "title": "Web applications",
+          "body": "SaaS platforms, client portals, dashboards and internal tools built for performance and scale."
+        },
+        "custom": {
+          "title": "Custom software",
+          "body": "Tailor-made tools that fit your processes: automation, back-office systems, APIs and integrations."
+        },
+        "mobile": {
+          "title": "Mobile & PWA",
+          "body": "Responsive and progressive web apps that work beautifully on any device."
+        },
+        "design": {
+          "title": "UI/UX design",
+          "body": "Research, prototypes and design systems that make products intuitive and consistent."
+        },
+        "consulting": {
+          "title": "Technical consulting",
+          "body": "Architecture reviews, technology choices, MVP scoping and legacy modernization."
+        },
+        "support": {
+          "title": "Maintenance & support",
+          "body": "Monitoring, fixes, security updates and continuous improvement after launch."
+        }
+      }
+    },
+    "process": {
+      "eyebrow": "Process",
+      "title": "From idea to launch, in clear steps",
+      "lead": "Two-week sprints and a demo at the end of each one — you always see real progress.",
+      "steps": {
+        "discovery": {
+          "title": "Discovery",
+          "body": "Goals, users and scope. You get a clear brief and estimate."
+        },
+        "design": {
+          "title": "Design",
+          "body": "Flows, prototypes and the right architecture."
+        },
+        "development": {
+          "title": "Development",
+          "body": "Two-week sprints with a demo at the end of each."
+        },
+        "qa": {
+          "title": "QA",
+          "body": "Automated and manual testing before every release."
+        },
+        "launch": {
+          "title": "Launch",
+          "body": "Production release, monitoring and handover."
+        },
+        "support": {
+          "title": "Support",
+          "body": "Fixes, updates and new features as you grow."
+        }
+      }
+    },
+    "why": {
+      "eyebrow": "Why Codeqlick",
+      "title": "Technology with a purpose",
+      "lead": "We focus on what your software changes for your business and the people who use it — not just on features.",
+      "values": {
+        "endToEnd": {
+          "title": "End-to-end",
+          "body": "One partner from the first idea to launch and support."
+        },
+        "quality": {
+          "title": "Quality by default",
+          "body": "Tested, maintainable and secure code you can build on."
+        },
+        "transparent": {
+          "title": "Transparent",
+          "body": "Clear estimates, honest updates and no surprises."
+        },
+        "modern": {
+          "title": "Modern stack",
+          "body": "Proven, up-to-date technology chosen for each project."
+        }
+      }
+    },
+    "stack": {
+      "eyebrow": "Built with",
+      "label": "Technologies"
+    },
+    "work": {
+      "eyebrow": "Selected work",
+      "title": "Recent projects",
+      "lead": "A few of the products we've designed and built with our clients.",
+      "viewAll": "See all work"
+    },
+    "contact": {
+      "title": "Have an idea? Let's build it.",
+      "body": "Tell us about your project and we'll get back to you within one business day.",
+      "cta": "Start a project"
+    }
+  },
+  "Blog": {
+    "metaTitle": "Blog",
+    "metaDescription": "Notes from the Codeqlick studio on building software and web applications.",
+    "eyebrow": "Blog",
+    "title": "Notes from the studio",
+    "lead": "What we learn while designing, building and running software for our clients.",
+    "emptyTitle": "No articles yet",
+    "emptyBody": "We're writing our first posts. Check back soon.",
+    "readMore": "Read article",
+    "back": "All articles",
+    "publishedOn": "Published on {date}"
+  },
+  "Work": {
+    "metaTitle": "Work",
+    "metaDescription": "Case studies of software and web applications built by Codeqlick.",
+    "eyebrow": "Work",
+    "title": "Selected projects",
+    "lead": "Products we've designed, built and launched — and what they changed for the people using them.",
+    "emptyTitle": "Case studies coming soon",
+    "emptyBody": "We're preparing our first case studies. In the meantime, tell us about your project.",
+    "viewCase": "View case study",
+    "back": "All projects",
+    "client": "Client",
+    "technologies": "Technologies",
+    "visit": "Visit project"
+  },
+  "Contact": {
+    "metaTitle": "Contact",
+    "metaDescription": "Tell Codeqlick about your project. We reply within one business day.",
+    "eyebrow": "Contact",
+    "title": "Tell us about your project",
+    "lead": "A few lines are enough to get started. We'll get back to you within one business day.",
+    "asideTitle": "Prefer email?",
+    "asideBody": "Write to us directly and we'll reply within one business day.",
+    "form": {
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "budget": "Budget",
+      "budgetPlaceholder": "Select a range",
+      "message": "Message",
+      "messageHint": "What are you building, for whom, and by when?",
+      "website": "Leave this field empty",
+      "submit": "Send message",
+      "sending": "Sending…",
+      "successTitle": "Thanks — message received.",
+      "successBody": "We'll get back to you within one business day.",
+      "error": "We couldn't send your message. Please check the form and try again.",
+      "rateLimited": "Too many messages in a short time. Please wait a minute and try again."
+    },
+    "budgets": {
+      "lt-5k": "< €5k",
+      "5k-15k": "€5k–15k",
+      "15k-40k": "€15k–40k",
+      "gt-40k": "> €40k",
+      "not-sure": "Not sure yet"
+    }
+  },
+  "Validation": {
+    "required": "This field is required.",
+    "email": "Enter a valid email address.",
+    "tooShort": "This is too short.",
+    "tooLong": "This is too long.",
+    "url": "Enter a valid URL starting with https://",
+    "slug": "Use lowercase letters, numbers and single hyphens only.",
+    "number": "Enter a whole number.",
+    "progress": "Enter a number between 0 and 100.",
+    "password": "Use at least 12 characters.",
+    "messageTooShort": "Tell us a bit more (at least 10 characters).",
+    "translationIncomplete": "Fill in title, excerpt and content, or leave all three empty.",
+    "date": "Enter a valid date.",
+    "choice": "Choose one of the options."
+  },
+  "Login": {
+    "metaTitle": "Sign in",
+    "title": "Sign in",
+    "subtitle": "Access your client portal or the admin panel.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "invalid": "Incorrect email or password.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "error": "We couldn't sign you in right now. Please try again.",
+    "backToSite": "Back to the website"
+  },
+  "NotFound": {
+    "metaTitle": "Page not found",
+    "eyebrow": "Error 404",
+    "title": "This page didn't make it to production.",
+    "body": "The link may be broken or the page may have moved.",
+    "cta": "Back to home"
+  },
+  "Error": {
+    "eyebrow": "Error",
+    "title": "Something went wrong on our side.",
+    "body": "Please try again. If the problem persists, write to hello@codeqlick.com.",
+    "retry": "Try again",
+    "home": "Back to home"
+  },
+  "App": {
+    "navLabel": "Sections",
+    "logout": "Log out",
+    "viewSite": "View site",
+    "signedInAs": "Signed in as {name}"
+  },
+  "Phases": {
+    "DISCOVERY": "Discovery",
+    "DESIGN": "Design",
+    "DEVELOPMENT": "Development",
+    "QA": "QA",
+    "LAUNCHED": "Launched",
+    "SUPPORT": "Support",
+    "ON_HOLD": "On hold"
+  },
+  "LeadStatuses": {
+    "NEW": "New",
+    "CONTACTED": "Contacted",
+    "QUALIFIED": "Qualified",
+    "WON": "Won",
+    "LOST": "Lost",
+    "ARCHIVED": "Archived"
+  },
+  "Roles": {
+    "ADMIN": "Admin",
+    "CLIENT": "Client"
+  },
+  "PublishStatuses": {
+    "DRAFT": "Draft",
+    "PUBLISHED": "Published"
+  },
+  "Portal": {
+    "title": "Client portal",
+    "nav": {
+      "projects": "Projects"
+    },
+    "projectsTitle": "Your projects",
+    "projectsLead": "Follow the progress of everything we're building together.",
+    "emptyTitle": "No projects yet",
+    "emptyBody": "When we start working together, your projects will show up here.",
+    "phase": "Phase",
+    "progress": "Progress",
+    "progressValue": "{value}% complete",
+    "startDate": "Start date",
+    "dueDate": "Due date",
+    "staging": "Staging",
+    "production": "Live site",
+    "about": "About this project",
+    "updates": "Updates",
+    "noUpdates": "No updates yet.",
+    "postedBy": "{author} · {date}",
+    "back": "All projects",
+    "open": "Open project"
+  },
+  "Admin": {
+    "title": "Admin",
+    "nav": {
+      "dashboard": "Dashboard",
+      "leads": "Leads",
+      "posts": "Posts",
+      "portfolio": "Portfolio",
+      "projects": "Projects",
+      "users": "Users"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "lead": "A quick look at what's happening across Codeqlick.",
+      "newLeads": "New leads",
+      "totalLeads": "Total leads",
+      "publishedPosts": "Published posts",
+      "draftPosts": "Draft posts",
+      "publishedPortfolio": "Published case studies",
+      "activeProjects": "Active projects",
+      "clients": "Clients"
+    },
+    "leads": {
+      "title": "Leads",
+      "status": "Status",
+      "search": "Search",
+      "searchPlaceholder": "Name, email or company",
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "budget": "Budget",
+      "received": "Received",
+      "message": "Message",
+      "notes": "Internal notes",
+      "locale": "Language",
+      "emptyTitle": "No leads found",
+      "emptyBody": "New contact form submissions will appear here.",
+      "back": "All leads",
+      "reply": "Reply by email"
+    },
+    "posts": {
+      "title": "Posts",
+      "new": "New post",
+      "edit": "Edit post",
+      "slug": "Slug",
+      "slugHint": "Used in the URL, e.g. building-a-client-portal",
+      "status": "Status",
+      "coverImageUrl": "Cover image URL",
+      "updated": "Updated",
+      "postTitle": "Title",
+      "excerpt": "Excerpt",
+      "content": "Content (Markdown)",
+      "translationEn": "English",
+      "translationEs": "Spanish (optional)",
+      "emptyTitle": "No posts yet",
+      "emptyBody": "Write the first article for the blog.",
+      "back": "All posts",
+      "deleteTitle": "Delete this post",
+      "deleteBody": "The post and its translations will be removed from the blog."
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "new": "New case study",
+      "edit": "Edit case study",
+      "slug": "Slug",
+      "slugHint": "Used in the URL, e.g. logistics-dashboard",
+      "status": "Status",
+      "coverImageUrl": "Cover image URL",
+      "clientName": "Client name",
+      "projectUrl": "Project URL",
+      "technologies": "Technologies",
+      "technologiesHint": "Comma-separated, e.g. Next.js, NestJS, PostgreSQL",
+      "sortOrder": "Sort order",
+      "sortOrderHint": "Lower numbers appear first.",
+      "updated": "Updated",
+      "itemTitle": "Title",
+      "summary": "Summary",
+      "content": "Content (Markdown)",
+      "translationEn": "English",
+      "translationEs": "Spanish (optional)",
+      "emptyTitle": "No case studies yet",
+      "emptyBody": "Add the first project to the portfolio.",
+      "back": "All case studies",
+      "deleteTitle": "Delete this case study",
+      "deleteBody": "The case study and its translations will be removed from the website."
+    },
+    "projects": {
+      "title": "Projects",
+      "new": "New project",
+      "edit": "Edit project",
+      "client": "Client",
+      "clientPlaceholder": "Select a client",
+      "noClients": "There are no client accounts yet. Create a user with the Client role first.",
+      "name": "Project name",
+      "description": "Description",
+      "phase": "Phase",
+      "progress": "Progress (%)",
+      "startDate": "Start date",
+      "dueDate": "Due date",
+      "stagingUrl": "Staging URL",
+      "productionUrl": "Production URL",
+      "emptyTitle": "No projects yet",
+      "emptyBody": "Create a project to share progress with a client.",
+      "back": "All projects",
+      "updatesTitle": "Progress updates",
+      "updateTitle": "Title",
+      "updateBody": "Update (Markdown)",
+      "postUpdate": "Post update",
+      "posting": "Posting…",
+      "updatePosted": "Update posted.",
+      "noUpdates": "No updates posted yet.",
+      "deleteTitle": "Delete this project",
+      "deleteBody": "The project and all its updates will be removed from the client portal."
+    },
+    "users": {
+      "title": "Users",
+      "new": "New user",
+      "edit": "Edit user",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "isActive": "Account is active",
+      "isActiveHint": "Deactivating an account signs the user out everywhere.",
+      "password": "Password",
+      "passwordHint": "At least 12 characters. Share it with the user through a secure channel.",
+      "resetPassword": "Reset password",
+      "resetPasswordBody": "Set a new password for this user. Existing sessions stay active until they expire.",
+      "newPassword": "New password",
+      "passwordReset": "Password updated.",
+      "created": "Created",
+      "emptyTitle": "No users yet",
+      "emptyBody": "Create admin and client accounts here.",
+      "back": "All users",
+      "notFound": "This user doesn't exist."
+    }
+  }
+}
