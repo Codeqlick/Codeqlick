@@ -60,12 +60,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          # setup-node fails when caching without a lockfile, so only cache once it is committed.
-          cache: ${{ hashFiles('codeqlick-backend/package-lock.json') != '' && 'npm' || '' }}
+          cache: npm
           cache-dependency-path: codeqlick-backend/package-lock.json
 
       - name: Install dependencies
-        run: if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        run: npm ci
 
       - name: Generate Prisma client
         run: npx prisma generate
