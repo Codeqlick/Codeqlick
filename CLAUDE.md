@@ -11,8 +11,8 @@ This repo holds the whole platform:
 | Folder | What | Status |
 |---|---|---|
 | `codeqlick-backend/` | NestJS 12 (ESM) + Prisma 7.10 + PostgreSQL 18 REST API under `/v1` | Running; lint, typecheck, unit and e2e tests and build pass |
-| `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; lint, typecheck and build pass |
-| `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook) | Written and tested locally, **not deployed yet** |
+| `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck and build pass |
+| `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook) | Deployed |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
 
 ## Non-negotiable rules
@@ -52,7 +52,9 @@ container sets `NODE_ENV=development`, which breaks production builds.
 
 ## Next steps (in order)
 
-1. **Landing design.** The landing page was built from the copy in `messages/*.json` and the brand tokens; the approved static design was not available. Compare and adjust `src/app/[locale]/(site)/page.tsx` when it is.
-2. **Content.** Publish the first blog posts and case studies from `/en/admin`.
-3. **Open a PR** from `feat/architecture` to `main` once CI (backend and frontend workflows) is green.
-4. **Deploy** following `deploy/README.md` (`/srv/codeqlick` on the OVH VPS; `/srv/domfeliu` and `/srv/circlesfera` belong to other projects — don't touch them).
+1. **Content.** Publish the first blog posts and case studies from `/en/admin`.
+2. **Outgoing email.** Production runs with a placeholder `SMTP_HOST` in `/srv/codeqlick/.env`; leads are stored but no email is sent until real SMTP settings are set there.
+
+## Production
+
+Live at https://codeqlick.com and https://api.codeqlick.com on the OVH VPS (`/srv/codeqlick`, user `cqadmin`, web on `127.0.0.1:3010`, api on `127.0.0.1:4010`). To release: merge to `main`, then on the server `git pull && docker compose -f docker-compose.prod.yml up -d --build`. `/srv/domfeliu` and `/srv/circlesfera*` belong to other projects — don't touch them. Details in `deploy/README.md`.
