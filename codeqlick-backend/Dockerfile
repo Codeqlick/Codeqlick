@@ -42,6 +42,8 @@ COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/prisma ./prisma
 COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
+# `prisma db seed` (first admin) runs prisma/seed.ts with tsx and imports the generated client.
+COPY --from=build --chown=node:node /app/src/generated ./src/generated
 
 USER node
 EXPOSE 4000

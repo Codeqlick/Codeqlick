@@ -325,6 +325,7 @@ src/
 - **Mutations are Server Actions** that call the API, then `revalidatePath` and `redirect`. Forms use `useActionState` to show field errors returned by the API.
 - **Caching:** public content is fetched with `next: { revalidate: 300 }`; authenticated data with `cache: 'no-store'`.
 - **Auth cookies:** `cq_at` (access token, max-age = `expiresIn`) and `cq_rt` (refresh token, 30 days), both `httpOnly`, `secure` in production, `sameSite: 'lax'`, `path: '/'`.
+- **Client IP:** Server Actions for login and contact forward the visitor's IP (`X-Real-IP` from Nginx) to the API as `X-Forwarded-For`, so the API's per-IP rate limits apply per visitor and not per web server.
 - `proxy.ts` runs next-intl, then for `/[locale]/portal` and `/[locale]/admin`: if `cq_at` is missing but `cq_rt` exists, it calls `/v1/auth/refresh` and sets new cookies; if neither exists, it redirects to `/[locale]/login?next=…`. Role checks happen in the layouts via `requireRole()`.
 - **No secrets in the client bundle.** Only `NEXT_PUBLIC_SITE_URL` is public.
 - **Accessibility:** semantic HTML, labels on every input, visible focus, 4.5:1 contrast, works without JavaScript for reading content.
@@ -348,7 +349,7 @@ src/
 | Local | `docker compose up --build -d`: PostgreSQL, Mailpit, `api` and `web` (the `dev` target of each Dockerfile, source bind-mounted for hot reload) |
 | Production | VPS (OVH): `docker compose -f docker-compose.prod.yml up -d --build` in `/srv/codeqlick`, Nginx in front with Let's Encrypt |
 
-Production compose runs `db` (PostgreSQL, volume), `api` (runs `prisma migrate deploy` on start) and `web`. Only Nginx is exposed publicly; `api` and `web` bind to `127.0.0.1`.
+Production compose runs `db` (PostgreSQL, volume), `api` (runs `prisma migrate deploy` on start) and `web`. Only Nginx is exposed publicly; `api` and `web` bind to `127.0.0.1`. Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
 
 ## 9. Quality gates (CI)
 
