@@ -3,7 +3,11 @@ import { apiFetch } from './client';
 import type { AuthTokens, AuthUser } from './types';
 
 export function login(input: { email: string; password: string }) {
-  return apiFetch<AuthTokens>('/auth/login', { method: 'POST', body: input });
+  return apiFetch<AuthTokens>('/auth/login', {
+    method: 'POST',
+    body: input,
+    forwardClientIp: true,
+  });
 }
 
 export function refresh(refreshToken: string) {
