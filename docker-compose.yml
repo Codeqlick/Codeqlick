@@ -1,0 +1,28 @@
+# Local development infrastructure. The apps themselves run with `npm run dev`.
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeqlick
+      POSTGRES_PASSWORD: codeqlick
+      POSTGRES_DB: codeqlick
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeqlick -d codeqlick"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web inbox
+
+volumes:
+  db-data:

@@ -1,0 +1,111 @@
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { AppConfigService } from '../../config/app-config.service.js';
+import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
+import type { Lead as LeadRow, Prisma } from '../../generated/prisma/client.js';
+import { MailService, type MailMessage } from '../mail/mail.service.js';
+import { leadAcknowledgementEmail, leadNotificationEmail } from './lead-emails.js';
+import { LeadsRepository } from './leads.repository.js';
+import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from './leads.schemas.js';
+
+export interface Lead {
+  id: string;
+  name: string;
+  email: string;
+  company: string | null;
+  budget: string | null;
+  message: string;
+  locale: ApiLocale;
+  status: LeadRow['status'];
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function toLead(row: LeadRow): Lead {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    company: row.company,
+    budget: row.budget,
+    message: row.message,
+    locale: toApiLocale(row.locale),
+    status: row.status,
+    notes: row.notes,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+@Injectable()
+export class LeadsService {
+  private readonly logger = new Logger(LeadsService.name);
+
+  constructor(
+    private readonly repository: LeadsRepository,
+    private readonly mail: MailService,
+    private readonly config: AppConfigService,
+  ) {}
+
+  async create(input: CreateLeadInput): Promise<{ id: string }> {
+    if (input.website && input.website.trim() !== '') {
+      // Honeypot hit: pretend success so bots learn nothing.
+      this.logger.warn('Lead honeypot triggered; submission discarded');
+      return { id: randomUUID() };
+    }
+
+    const row = await this.repository.create({
+      name: input.name,
+      email: input.email.trim().toLowerCase(),
+      company: input.company ?? null,
+      budget: input.budget ?? null,
+      message: input.message,
+      locale: toDbLocale(input.locale),
+    });
+
+    const lead = toLead(row);
+    this.sendInBackground(leadNotificationEmail(this.config.leadsNotifyTo, lead), 'notification');
+    this.sendInBackground(leadAcknowledgementEmail(lead), 'acknowledgement');
+    return { id: row.id };
+  }
+
+  async list(query: ListLeadsQuery): Promise<Paginated<Lead>> {
+    const { skip, take } = pageToSkipTake(query.page, query.pageSize);
+    const { items, total } = await this.repository.list(
+      { status: query.status, q: query.q || undefined },
+      skip,
+      take,
+    );
+    return paginate(items.map(toLead), total, query.page, query.pageSize);
+  }
+
+  async get(id: string): Promise<Lead> {
+    const row = await this.repository.findById(id);
+    if (!row) throw new NotFoundException('Lead not found');
+    return toLead(row);
+  }
+
+  async update(id: string, input: UpdateLeadInput): Promise<Lead> {
+    await this.get(id);
+    const data: Prisma.LeadUpdateInput = {};
+    if (input.status !== undefined) data.status = input.status;
+    if (input.notes !== undefined) data.notes = input.notes;
+    return toLead(await this.repository.update(id, data));
+  }
+
+  /** Fire-and-forget: mail problems are logged and never fail the request. */
+  private sendInBackground(message: MailMessage, kind: string): void {
+    let pending: Promise<void>;
+    try {
+      pending = this.mail.send(message);
+    } catch (error) {
+      pending = Promise.reject(error);
+    }
+    pending.catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send lead ${kind} email: ${reason}`);
+    });
+  }
+}
