@@ -1,0 +1,26 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 8rem;
+}
+
+.track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--color-blush);
+  overflow: hidden;
+}
+
+.bar {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  transition: width 0.3s ease;
+}
+
+.label {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  color: var(--color-slate);
+}
