@@ -1,0 +1,149 @@
+.hero {
+  background: linear-gradient(180deg, var(--color-blush) 0%, var(--color-white) 100%);
+  padding: calc(var(--space-section) + 1rem) 0 var(--space-section);
+}
+
+.heroTitle {
+  font-size: clamp(2.5rem, 7vw, 4.75rem);
+  line-height: 1.05;
+  max-width: 18ch;
+  margin-top: var(--space-4);
+}
+
+.heroSub {
+  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  color: var(--color-slate);
+  max-width: 42rem;
+  margin-top: var(--space-6);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.section {
+  padding: var(--space-section) 0;
+  /* Keeps #services clear of the sticky header. */
+  scroll-margin-top: var(--header-height);
+}
+
+.soft {
+  background: var(--color-surface-app);
+}
+
+.dark {
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+.eyebrowOnDark {
+  color: var(--color-fuchsia-light);
+}
+
+.title {
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  margin-top: var(--space-3);
+  max-width: 24ch;
+}
+
+.lead {
+  font-size: 1.15rem;
+  max-width: 40rem;
+  margin-top: var(--space-4);
+}
+
+.leadOnDark {
+  color: var(--color-muted-on-ink);
+}
+
+.grid {
+  list-style: none;
+  margin: var(--space-12) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-6);
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.cardBody {
+  color: var(--color-slate);
+}
+
+.step {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  color: var(--color-fuchsia-dark);
+}
+
+.values {
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+}
+
+.value {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-top: var(--space-5);
+  border-top: 2px solid var(--color-fuchsia-light);
+  color: var(--color-muted-on-ink);
+}
+
+.value h3 {
+  color: var(--color-white);
+}
+
+.stack {
+  padding: var(--space-10) 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.stackInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-8);
+}
+
+.stackInner h2 {
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+}
+
+.pills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.more {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cta {
+  background: var(--color-blush);
+  border-radius: var(--radius-2xl);
+  padding: clamp(2rem, 6vw, 4rem);
+}
+
+.cta .title {
+  margin-top: 0;
+}
+
+.cta .lead {
+  color: var(--color-slate);
+}
