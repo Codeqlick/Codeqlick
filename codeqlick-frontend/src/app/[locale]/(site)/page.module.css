@@ -1,37 +1,140 @@
+/* Landing page, following the approved "Codeqlick Website" design. */
+
+/* Hero */
 .hero {
-  background: linear-gradient(180deg, var(--color-blush) 0%, var(--color-white) 100%);
-  padding: calc(var(--space-section) + 1rem) 0 var(--space-section);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4rem;
+  padding-top: 6rem;
+  padding-bottom: 5rem;
+}
+
+.heroText {
+  flex: 999 1 30rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.heroEyebrow {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fuchsia);
 }
 
 .heroTitle {
-  font-size: clamp(2.5rem, 7vw, 4.75rem);
-  line-height: 1.05;
-  max-width: 18ch;
-  margin-top: var(--space-4);
+  font-size: clamp(2.75rem, 5.5vw, 5.25rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
 }
 
 .heroSub {
-  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  font-size: 1.25rem;
   color: var(--color-slate);
-  max-width: 42rem;
-  margin-top: var(--space-6);
+  max-width: 34rem;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-8);
+  gap: 0.75rem;
 }
 
+.visual {
+  flex: 1 1 22rem;
+  min-width: 0;
+  position: relative;
+  padding: 1.5rem 0 2.5rem;
+}
+
+.code {
+  background: var(--color-ink);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem 1.75rem 2rem;
+  font-family: var(--font-family-mono);
+  font-size: 0.95rem;
+  line-height: 1.9;
+  color: var(--color-code-text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1.25rem;
+}
+
+.dots span {
+  width: 11px;
+  height: 11px;
+  border-radius: 6px;
+  background: var(--color-code-dot);
+}
+
+.comment {
+  color: var(--color-code-comment);
+}
+
+.keyword {
+  color: var(--color-fuchsia-light);
+}
+
+.literal {
+  color: var(--color-white);
+}
+
+.indent {
+  padding-left: 1.5rem;
+}
+
+.lastLine {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.caret {
+  width: 9px;
+  height: 1.2rem;
+  background: var(--color-fuchsia);
+}
+
+.badge {
+  position: absolute;
+  right: -0.75rem;
+  bottom: 0;
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 26px;
+  background: var(--color-fuchsia);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sections */
 .section {
-  padding: var(--space-section) 0;
-  /* Keeps #services clear of the sticky header. */
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding-top: var(--space-section);
+  padding-bottom: var(--space-section);
+}
+
+/* Keeps anchored sections clear of the sticky header. */
+.soft,
+.dark,
+.section {
   scroll-margin-top: var(--header-height);
 }
 
 .soft {
-  background: var(--color-surface-app);
+  background: var(--color-blush);
 }
 
 .dark {
@@ -39,83 +142,173 @@
   color: var(--color-white);
 }
 
-.eyebrowOnDark {
-  color: var(--color-fuchsia-light);
+.intro,
+.whyIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.intro {
+  max-width: 40rem;
 }
 
 .title {
-  font-size: clamp(1.9rem, 4vw, 2.75rem);
-  margin-top: var(--space-3);
-  max-width: 24ch;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
 }
 
 .lead {
-  font-size: 1.15rem;
-  max-width: 40rem;
-  margin-top: var(--space-4);
+  color: var(--color-slate);
+}
+
+.eyebrowOnDark {
+  color: var(--color-fuchsia-light);
 }
 
 .leadOnDark {
   color: var(--color-muted-on-ink);
 }
 
-.grid {
+/* Services (and the optional recent work cards) */
+.services {
   list-style: none;
-  margin: var(--space-12) 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-  gap: var(--space-6);
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1.25rem;
 }
 
-.cardTitle {
-  font-size: 1.25rem;
-  letter-spacing: -0.02em;
+.service {
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
 }
 
-.cardBody {
+.icon {
+  color: var(--color-fuchsia);
+}
+
+.serviceTitle {
+  margin-top: 0.4rem;
+  font-size: 1.3rem;
+  letter-spacing: normal;
+  line-height: 1.6;
+}
+
+.serviceBody {
   color: var(--color-slate);
+  font-size: 1rem;
+}
+
+/* Process */
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem;
 }
 
 .step {
+  border-top: 2px solid var(--color-ink);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stepNumber {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-fuchsia);
+}
+
+.stepTitle {
+  font-size: 1.2rem;
+  letter-spacing: normal;
+  line-height: 1.6;
+}
+
+.stepBody {
+  color: var(--color-slate);
+  font-size: 0.95rem;
+}
+
+/* Why Codeqlick */
+.why {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3.5rem;
+  padding-top: var(--space-section);
+  padding-bottom: var(--space-section);
+}
+
+.whyIntro {
+  flex: 1 1 20rem;
+  min-width: 0;
 }
 
 .values {
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  flex: 999 1 30rem;
+  min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 2rem 2.5rem;
 }
 
 .value {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding-top: var(--space-5);
-  border-top: 2px solid var(--color-fuchsia-light);
+  gap: 0.4rem;
   color: var(--color-muted-on-ink);
+  font-size: 1rem;
 }
 
-.value h3 {
+.value::before {
+  content: '';
+  width: 2.25rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-fuchsia);
+}
+
+.valueTitle {
+  margin-top: 0.5rem;
+  font-size: 1.25rem;
+  letter-spacing: normal;
+  line-height: 1.6;
   color: var(--color-white);
 }
 
+/* Built with */
 .stack {
-  padding: var(--space-10) 0;
-  border-bottom: 1px solid var(--color-line);
-}
-
-.stackInner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4) var(--space-8);
+  gap: 1.25rem 2rem;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
 }
 
-.stackInner h2 {
+.stackLabel {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
   font-weight: 400;
   line-height: 1.6;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-slate);
 }
 
 .pills {
@@ -124,7 +317,24 @@
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: 0.6rem;
+}
+
+.pill {
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.45rem 1rem;
+  font-family: var(--font-family-mono);
+  font-size: 0.9rem;
+}
+
+/* Recent work: not part of the static design, shown only once case studies are published. */
+.work {
+  padding-top: 1.5rem;
+}
+
+.workItem {
+  border: 1px solid var(--color-line);
 }
 
 .more {
@@ -134,16 +344,80 @@
   text-decoration: none;
 }
 
+/* Closing call to action */
+.ctaSection {
+  padding: 0 var(--gutter) var(--space-section);
+}
+
 .cta {
-  background: var(--color-blush);
+  max-width: calc(var(--wrap) - 2 * var(--gutter));
+  margin: 0 auto;
+  background: var(--color-fuchsia);
+  color: var(--color-white);
   border-radius: var(--radius-2xl);
-  padding: clamp(2rem, 6vw, 4rem);
+  padding: clamp(2.5rem, 6vw, 5rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
 }
 
-.cta .title {
-  margin-top: 0;
+.ctaText {
+  flex: 999 1 26rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.cta .lead {
-  color: var(--color-slate);
+.ctaTitle {
+  font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.ctaBody {
+  font-size: 1.15rem;
+  max-width: 32rem;
+}
+
+.ctaActions {
+  flex: 1 1 16rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ctaEmail,
+.ctaEmail:hover {
+  font-family: var(--font-family-mono);
+  font-size: 0.95rem;
+  text-align: center;
+  color: var(--color-white);
+  text-decoration: none;
+}
+
+.ctaEmail:hover {
+  text-decoration: underline;
+}
+
+/* The global fuchsia focus ring would disappear on the fuchsia panel. */
+.ctaActions a:focus-visible {
+  outline-color: var(--color-white);
+}
+
+@media (max-width: 480px) {
+  .hero {
+    gap: 2.5rem;
+    padding-top: 3.5rem;
+    padding-bottom: 3.5rem;
+  }
+
+  .badge {
+    right: 0;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 20px;
+  }
 }
