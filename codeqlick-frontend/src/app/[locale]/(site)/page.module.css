@@ -333,6 +333,11 @@
   padding-top: 1.5rem;
 }
 
+/* auto-fill keeps empty tracks, so one or two case studies stay card-sized instead of stretching. */
+.workGrid {
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+}
+
 .workItem {
   border: 1px solid var(--color-line);
 }

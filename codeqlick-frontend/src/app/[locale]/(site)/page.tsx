@@ -236,7 +236,7 @@ export default async function HomePage({ params }: PageProps) {
             </h2>
             <p className={styles.lead}>{t('work.lead')}</p>
           </div>
-          <ul className={styles.services}>
+          <ul className={`${styles.services} ${styles.workGrid}`}>
             {work.map((item) => (
               <li key={item.slug} className={`${styles.service} ${styles.workItem}`}>
                 <h3 className={styles.serviceTitle}>{item.title}</h3>
