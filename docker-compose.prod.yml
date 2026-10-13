@@ -41,7 +41,7 @@ services:
       MAIL_FROM: ${MAIL_FROM:-Codeqlick <hello@codeqlick.com>}
       LEADS_NOTIFY_TO: ${LEADS_NOTIFY_TO:-hello@codeqlick.com}
     ports:
-      - "127.0.0.1:${API_PORT:-4000}:4000"
+      - "127.0.0.1:${API_PORT:-4010}:4000"
 
   web:
     build: ./codeqlick-frontend
@@ -55,7 +55,7 @@ services:
       SITE_URL: ${SITE_URL}
       NEXT_PUBLIC_SITE_URL: ${SITE_URL}
     ports:
-      - "127.0.0.1:${WEB_PORT:-3000}:3000"
+      - "127.0.0.1:${WEB_PORT:-3010}:3000"
 
 volumes:
   db-data:

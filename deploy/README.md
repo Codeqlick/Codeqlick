@@ -5,8 +5,8 @@ terminates TLS (Let's Encrypt) and proxies to the containers, which only listen 
 
 | Public host | Proxies to | Container |
 |---|---|---|
-| `codeqlick.com` (`www` redirects to it) | `127.0.0.1:3000` | `web` (Next.js) |
-| `api.codeqlick.com` | `127.0.0.1:4000` | `api` (NestJS) |
+| `codeqlick.com` (`www` redirects to it) | `127.0.0.1:3010` | `web` (Next.js) |
+| `api.codeqlick.com` | `127.0.0.1:4010` | `api` (NestJS) |
 
 PostgreSQL (`db`) is reachable only from inside the Compose network. The other projects on the
 server (`/srv/domfeliu`, `/srv/circlesfera`) are independent: don't touch their folders, containers
@@ -35,7 +35,7 @@ docker compose -f docker-compose.prod.yml ps      # db, api and web should be "h
 
 The `api` container applies pending database migrations every time it starts.
 
-Check which loopback ports are free before starting (`ss -ltnp | grep -E ':(3000|4000)\b'`). If
+Check which loopback ports are free before starting (`ss -ltnp | grep -E ':(3010|4010)\b'`). If
 another project uses them, change `WEB_PORT` / `API_PORT` in `.env` and the matching `proxy_pass`
 lines in `deploy/nginx/*.conf`.
 
