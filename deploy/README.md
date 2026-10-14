@@ -93,19 +93,37 @@ docker compose -f docker-compose.prod.yml down                         # stop (d
 
 ### Backups
 
-The database lives in the `codeqlick-prod_db-data` Docker volume. Dump it regularly and keep the
-copies off the server:
+The database lives in the `codeqlick-prod_db-data` Docker volume. The `backup` service dumps it to
+`/srv/codeqlick/backups` when it starts and then once a day, and deletes dumps older than 14 days
+(`BACKUP_*` settings in `.env`). Before the first start, create the folder and tell the service
+who owns it:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -T db \
-  pg_dump -U codeqlick -d codeqlick --format=custom > "codeqlick-$(date +%F).dump"
+mkdir -m 700 backups
+echo "BACKUP_USER=$(id -u):$(id -g)" >> .env
 ```
 
-Restore into an empty database:
+```bash
+docker compose -f docker-compose.prod.yml ps backup         # "healthy" = a dump from the last two days exists
+docker compose -f docker-compose.prod.yml logs backup       # one line per dump
+docker compose -f docker-compose.prod.yml restart backup    # take a dump now
+```
+
+These dumps sit on the same disk as the database, so they protect against a bad migration or a
+deleted row, not against losing the server. Copy them somewhere else regularly, for example from
+your own machine:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -T db \
-  pg_restore -U codeqlick -d codeqlick --clean --if-exists < codeqlick-2026-10-13.dump
+rsync -a cqadmin@<server>:/srv/codeqlick/backups/ ~/codeqlick-backups/
+```
+
+Restore a dump (it replaces the current data):
+
+```bash
+docker compose -f docker-compose.prod.yml stop api web
+docker compose -f docker-compose.prod.yml exec backup \
+  pg_restore --clean --if-exists --no-owner -d codeqlick /backups/codeqlick-<timestamp>.dump
+docker compose -f docker-compose.prod.yml start api web
 ```
 
 `docker compose -f docker-compose.prod.yml down -v` deletes the volume and with it the database.
