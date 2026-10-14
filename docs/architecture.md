@@ -249,6 +249,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | Method | Path | Body / query |
 |---|---|---|
 | GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients }` |
+| GET | `/admin/stats/timeline` | `?months=12` (1–36) → `{ months: [{ month: 'yyyy-mm', leads, leadsWon, posts, caseStudies }] }`: oldest first, every month present; leads by the month they came in, posts and case studies by the month they went live; months in Madrid time |
 | GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|account&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
 | GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
@@ -338,7 +339,7 @@ src/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password
       portal/                  Client area (role CLIENT or ADMIN): projects, account
-      admin/                   Admin panel (role ADMIN): dashboard (with recent activity), leads, posts, portfolio, projects, media, users, activity, account;
+      admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, recent activity), leads, posts, portfolio, projects, media, users, activity, account;
                                posts and portfolio items have a preview page that renders the saved draft
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx              404 for every URL that matches no route: a full page (header, footer, locale from

@@ -539,7 +539,14 @@
       "clients": "Clients",
       "recentActivity": "Recent activity",
       "allActivity": "See all",
-      "scheduledPosts": "Scheduled posts"
+      "scheduledPosts": "Scheduled posts",
+      "leadsChart": "Leads per month",
+      "leadsWon": "Won",
+      "leadsOther": "Other",
+      "contentChart": "Content published per month",
+      "postsSeries": "Posts",
+      "caseStudiesSeries": "Case studies",
+      "month": "Month"
     },
     "leads": {
       "title": "Leads",

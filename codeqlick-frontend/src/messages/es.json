@@ -539,7 +539,14 @@
       "clients": "Clientes",
       "recentActivity": "Actividad reciente",
       "allActivity": "Ver toda",
-      "scheduledPosts": "Artículos programados"
+      "scheduledPosts": "Artículos programados",
+      "leadsChart": "Contactos por mes",
+      "leadsWon": "Ganados",
+      "leadsOther": "Resto",
+      "contentChart": "Contenido publicado por mes",
+      "postsSeries": "Artículos",
+      "caseStudiesSeries": "Casos de éxito",
+      "month": "Mes"
     },
     "leads": {
       "title": "Contactos",
