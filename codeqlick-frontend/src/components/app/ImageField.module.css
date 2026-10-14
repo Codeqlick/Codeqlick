@@ -38,3 +38,13 @@
   color: var(--color-slate);
   font-size: 0.9rem;
 }
+
+/* Opened through its button; still in the accessibility tree via the button's action. */
+.hiddenFile {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
