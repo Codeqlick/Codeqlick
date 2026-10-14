@@ -20,7 +20,8 @@ services:
       timeout: 3s
       retries: 10
 
-  # Dumps the database to ./backups once a day (see deploy/README.md, "Backups").
+  # Dumps the database and copies the uploaded images to ./backups once a day (see
+  # deploy/README.md, "Backups").
   backup:
     image: postgres:18-alpine
     restart: unless-stopped
@@ -39,6 +40,7 @@ services:
     volumes:
       - ./deploy/backup/backup.sh:/usr/local/bin/backup.sh:ro
       - ${BACKUP_DIR:-./backups}:/backups
+      - uploads-data:/uploads:ro
     entrypoint: ["/usr/local/bin/backup.sh"]
     # Unhealthy when the newest dump is older than two days.
     healthcheck:

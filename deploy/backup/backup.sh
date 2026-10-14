@@ -1,7 +1,8 @@
 #!/bin/sh
 # Dumps the database to /backups on start and then every BACKUP_INTERVAL_HOURS, deleting dumps
-# older than BACKUP_KEEP_DAYS. Runs as the `backup` service of docker-compose.prod.yml; the
-# connection comes from the standard PG* variables.
+# older than BACKUP_KEEP_DAYS, and copies the uploaded images to /backups/uploads. Runs as the
+# `backup` service of docker-compose.prod.yml; the connection comes from the standard PG*
+# variables.
 set -eu
 umask 077
 
@@ -19,6 +20,18 @@ while true; do
   else
     rm -f "$file.tmp"
     echo "backup FAILED" >&2
+  fi
+
+  # Uploaded images never change once written, so new files are added to a mirror instead of
+  # being archived again every day. Nothing is ever removed from it: an image deleted from the
+  # admin panel stays recoverable here.
+  if [ -d /uploads ]; then
+    mkdir -p /backups/uploads
+    if cp -pu /uploads/* /backups/uploads/ 2>/dev/null || [ -z "$(ls -A /uploads)" ]; then
+      echo "uploads mirrored: $(ls /backups/uploads | wc -l) files"
+    else
+      echo "uploads mirror FAILED" >&2
+    fi
   fi
   sleep "$((interval_hours * 3600))"
 done
