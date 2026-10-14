@@ -92,7 +92,8 @@
           "title": "Mantenimiento y soporte",
           "body": "Monitorización, correcciones, actualizaciones de seguridad y mejora continua tras el lanzamiento."
         }
-      }
+      },
+      "learnMore": "Más información"
     },
     "process": {
       "eyebrow": "Proceso",
@@ -162,6 +163,116 @@
       "title": "¿Tienes una idea? Hagámosla realidad.",
       "body": "Cuéntanos tu proyecto y te responderemos en un día laborable.",
       "cta": "Empezar un proyecto"
+    }
+  },
+  "Services": {
+    "metaTitle": "Servicios",
+    "metaDescription": "Aplicaciones web, software a medida, móvil y PWA, diseño UI/UX, consultoría técnica y mantenimiento y soporte de Codeqlick.",
+    "eyebrow": "Servicios",
+    "title": "Lo que construimos",
+    "lead": "Productos digitales desde la primera idea hasta el lanzamiento y más allá, pensados para tu negocio y hechos para durar.",
+    "learnMore": "Más información",
+    "back": "Todos los servicios",
+    "includesTitle": "Qué incluye",
+    "idealTitle": "Encaja contigo si",
+    "processTitle": "Cómo trabajamos",
+    "processBody": "Sprints de dos semanas con una demo al final de cada uno, para que siempre veas avances reales. Antes de empezar a desarrollar recibes un briefing claro y un presupuesto.",
+    "processLink": "Ver nuestro proceso",
+    "ctaTitle": "Hablemos de tu proyecto",
+    "ctaBody": "Cuéntanos qué necesitas y te responderemos en un plazo de dos días laborables con los siguientes pasos.",
+    "ctaButton": "Empezar un proyecto",
+    "otherTitle": "Otros servicios",
+    "items": {
+      "web": {
+        "intro": "Plataformas SaaS, portales de clientes, paneles de control y herramientas internas hechos para ser rápidos, seguros y fáciles de hacer crecer. Nos encargamos de todo, desde la base de datos hasta la interfaz que ven tus usuarios.",
+        "includes": [
+          "Definición del producto y del alcance de una primera versión",
+          "Diseño de interfaz y desarrollo front-end",
+          "APIs, bases de datos e integraciones con las herramientas que ya usas",
+          "Cuentas de usuario, roles y permisos",
+          "Alojamiento, despliegues y monitorización preparados desde el primer día"
+        ],
+        "idealFor": [
+          "Quieres lanzar un producto o servicio digital nuevo",
+          "Las hojas de cálculo y el correo ya no dan abasto con tu operación",
+          "Necesitas un portal donde tus clientes se atiendan solos"
+        ]
+      },
+      "custom": {
+        "intro": "Software que se adapta a cómo funciona tu negocio, y no al revés. Automatizamos el trabajo repetitivo, conectamos sistemas que no se hablan y le damos a tu equipo herramientas hechas para sus procesos.",
+        "includes": [
+          "Análisis del proceso a automatizar con las personas que lo llevan",
+          "Sistemas de gestión interna y herramientas de back-office",
+          "APIs e integraciones entre sistemas existentes",
+          "Migración de datos desde hojas de cálculo o herramientas antiguas",
+          "Documentación y formación para tu equipo"
+        ],
+        "idealFor": [
+          "Tu equipo repite las mismas tareas manuales cada semana",
+          "El software estándar te obliga a dar rodeos",
+          "Tus datos están en varios sitios que nunca coinciden"
+        ]
+      },
+      "mobile": {
+        "intro": "Aplicaciones web responsive y progresivas que se sienten como en casa en móviles, tabletas y ordenadores, instalables desde el navegador y sin pasar por las tiendas de aplicaciones.",
+        "includes": [
+          "Diseño de interfaz pensado primero para el móvil",
+          "Aplicación web progresiva: instalable, rápida y usable con mala conexión",
+          "Notificaciones push donde aportan valor",
+          "Pruebas de accesibilidad y rendimiento en dispositivos reales",
+          "Publicación y actualizaciones sin revisiones de las tiendas"
+        ],
+        "idealFor": [
+          "Tus clientes o tu equipo usan el producto sobre todo en el móvil",
+          "Quieres un solo producto para todos los dispositivos en vez de tres",
+          "Necesitas publicar mejoras con rapidez y a menudo"
+        ]
+      },
+      "design": {
+        "intro": "Investigación, prototipos y sistemas de diseño para que tu producto sea intuitivo y coherente. Diseñamos con contenido real y probamos con usuarios reales antes de escribir una línea de código de producción.",
+        "includes": [
+          "Entrevistas con usuarios y con las personas implicadas",
+          "Flujos de usuario, wireframes y prototipos navegables",
+          "Diseño visual alineado con tu marca",
+          "Un sistema de diseño con componentes reutilizables",
+          "Revisión de accesibilidad (WCAG AA)"
+        ],
+        "idealFor": [
+          "A los usuarios les cuesta orientarse en tu producto",
+          "Vas a construir algo y quieres validarlo antes",
+          "Tu producto ha ido perdiendo coherencia pantalla a pantalla"
+        ]
+      },
+      "consulting": {
+        "intro": "Una mirada externa de ingenieros que construyen y mantienen software cada día. Te ayudamos a tomar decisiones técnicas con seguridad: qué construir, con qué y en qué orden.",
+        "includes": [
+          "Revisiones de arquitectura y de código con un informe por escrito",
+          "Elección de tecnología para un producto nuevo",
+          "Definición de un producto mínimo viable y su hoja de ruta",
+          "Planes para modernizar sistemas heredados paso a paso",
+          "Auditorías de seguridad y rendimiento"
+        ],
+        "idealFor": [
+          "Tienes que tomar una decisión técnica con consecuencias duraderas",
+          "Tu sistema es lento, frágil o difícil de cambiar",
+          "Necesitas un socio técnico antes de contratar un equipo"
+        ]
+      },
+      "support": {
+        "intro": "Lanzar es el principio. Mantenemos tu producto seguro, actualizado y mejorando, con una monitorización que nos avisa antes de que tus usuarios noten nada.",
+        "includes": [
+          "Monitorización de disponibilidad y errores",
+          "Actualizaciones de seguridad de dependencias y servidores",
+          "Copias de seguridad y pruebas de recuperación",
+          "Corrección de errores con tiempos de respuesta acordados",
+          "Una bolsa mensual de horas para mejoras"
+        ],
+        "idealFor": [
+          "Tu producto está en marcha y el negocio depende de él",
+          "El equipo que lo construyó ya no está",
+          "Prefieres mejoras pequeñas y continuas a grandes reescrituras"
+        ]
+      }
     }
   },
   "Blog": {

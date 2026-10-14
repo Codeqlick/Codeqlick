@@ -1,11 +1,19 @@
 import type { MetadataRoute } from 'next';
 import { connection } from 'next/server';
+import { SERVICE_SLUGS } from '@/components/content/services';
 import { routing } from '@/i18n/routing';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
 import { absoluteUrl } from '@/lib/seo';
 
-const STATIC_PATHS = ['', '/work', '/blog', '/contact'];
+const STATIC_PATHS = [
+  '',
+  '/services',
+  ...Object.values(SERVICE_SLUGS).map((slug) => `/services/${slug}`),
+  '/work',
+  '/blog',
+  '/contact',
+];
 
 /** Slugs of published content; an unreachable API must not break the sitemap (or the build). */
 async function contentPaths(): Promise<{ path: string; lastModified?: string }[]> {

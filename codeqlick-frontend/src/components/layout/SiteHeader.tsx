@@ -1,4 +1,3 @@
-import NextLink from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { Logo } from '@/components/brand/Logo';
@@ -12,9 +11,8 @@ export async function SiteHeader({ locale }: { locale: AppLocale }) {
   const t = await getTranslations({ locale, namespace: 'Nav' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
 
-  // `/#services` must stay a same-page hash link on the home page, so it is built by hand.
-  const servicesHref = `/${locale}#services`;
   const links = [
+    { href: '/services', label: t('services') },
     { href: '/work', label: t('work') },
     { href: '/blog', label: t('blog') },
     { href: '/contact', label: t('contact') },
@@ -25,9 +23,6 @@ export async function SiteHeader({ locale }: { locale: AppLocale }) {
       <div className={`wrap ${styles.inner}`}>
         <Logo href="/" label={tc('homeLabel')} />
         <nav className={styles.nav} aria-label={t('label')}>
-          <NextLink href={servicesHref} className={styles.link}>
-            {t('services')}
-          </NextLink>
           {links.map((link) => (
             <Link key={link.href} href={link.href} className={styles.link}>
               {link.label}
@@ -39,7 +34,7 @@ export async function SiteHeader({ locale }: { locale: AppLocale }) {
           </Button>
           <MobileNav
             labels={{ open: t('openMenu'), close: t('closeMenu'), menu: t('menu') }}
-            items={[{ href: servicesHref, label: t('services'), raw: true }, ...links]}
+            items={links}
           />
         </nav>
       </div>

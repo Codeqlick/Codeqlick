@@ -319,6 +319,7 @@ src/
       layout.tsx               <html lang>, fonts, NextIntlClientProvider
       (site)/                  Public website: header + footer
         page.tsx               Landing (hero, services, process, why us, stack, CTA)
+        services/ services/[slug]/  One page per service (static copy from messages, built ahead of time)
         blog/ blog/[slug]/
         work/ work/[slug]/     Portfolio
         contact/               Contact form (server action → POST /v1/leads)
