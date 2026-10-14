@@ -83,7 +83,10 @@ export function formBoolean(formData: FormData, name: string): boolean {
   return value === 'on' || value === 'true' || value === '1';
 }
 
-/** All string entries of a FormData (files and honeypot excluded), for FormState.values. */
+/**
+ * All string entries of a FormData (files and honeypot excluded), for FormState.values. A field
+ * sent several times (a group of checkboxes) keeps every value, joined by newlines.
+ */
 export function formValues(
   formData: FormData,
   exclude: readonly string[] = [],
@@ -91,7 +94,7 @@ export function formValues(
   const values: Record<string, string> = {};
   for (const [key, value] of formData.entries()) {
     if (typeof value !== 'string' || key.startsWith('$ACTION') || exclude.includes(key)) continue;
-    values[key] = value;
+    values[key] = key in values ? `${values[key]}\n${value}` : value;
   }
   return values;
 }

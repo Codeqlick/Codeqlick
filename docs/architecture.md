@@ -131,6 +131,7 @@ erDiagram
 - **PasswordResetToken** — one row per "forgot my password" email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
 - **Lead** — contact form submission: `name`, `email`, `company?`, `budget?`, `message`, `locale`, `status` (`NEW` → `CONTACTED` → `QUALIFIED` → `WON` | `LOST` | `ARCHIVED`), `notes?`.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
+- **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
 - **Scheduling (posts and case studies):** content is live when `status = PUBLISHED` and `publishedAt <= now`. A published item dated in the future is *scheduled*: the public API (lists, detail, so also the sitemap and RSS) hides it until then and it appears on its own, with no job to run, within the public pages' 5-minute revalidation. `publishedAt` is set on the first publish unless one is given; clearing it on a published item means now. The admin panel types it in Madrid time.
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `sortOrder`; translation has `title`, `summary`, `content`.
 - **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`.
@@ -210,7 +211,9 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 |---|---|---|---|
 | GET | `/health` | | Terminus health result |
 | POST | `/leads` | `{ name, email, company?, budget?, message, locale, website? }` (`website` is a honeypot and must be empty) | `201 { id }` — limited to 5/min/IP |
-| GET | `/posts` | `?locale=en&page&pageSize` | Paginated `PostSummary` (published only) |
+| GET | `/posts` | `?locale=en&page&pageSize&tag` | Paginated `PostSummary` (published only) |
+| GET | `/posts/tags` | `?locale=en` → `[{ slug, name, count }]`: tags used by live posts, named in `locale`, by name |
+| GET | `/posts/:slug/related` | `?locale=en&limit=3` (1–6) → `PostSummary[]`: live posts sharing the most tags, newest first among equals, topped up with the latest posts |
 | GET | `/posts/:slug` | `?locale=en` | `PostDetail` or 404 |
 | GET | `/portfolio` | `?locale=en&page&pageSize` | Paginated `PortfolioSummary` (published only, by `sortOrder`) |
 | GET | `/portfolio/:slug` | `?locale=en` | `PortfolioDetail` or 404 |
@@ -256,6 +259,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / PATCH | `/admin/leads/:id` | PATCH `{ status?, notes? }` |
 | GET / POST | `/admin/posts` | POST `PostInput` |
 | GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput` |
+| GET / POST | `/admin/tags` | GET → `AdminTag[]` (`{ id, slug, nameEn, nameEs, postCount }`); POST `{ slug, nameEn, nameEs }`, `409` when the slug is taken |
+| PATCH / DELETE | `/admin/tags/:id` | PATCH partial; DELETE removes the tag from its posts |
 | GET / POST | `/admin/portfolio` | POST `PortfolioInput` |
 | GET / PATCH / DELETE | `/admin/portfolio/:id` | |
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
@@ -276,12 +281,12 @@ type Locale = 'en' | 'es';
 type AuthUser = { id: string; email: string; name: string; role: 'ADMIN' | 'CLIENT' };
 type AuthTokens = { accessToken: string; refreshToken: string; expiresIn: number; user: AuthUser };
 
-type PostSummary = { slug: string; title: string; excerpt: string; coverImageUrl: string | null; publishedAt: string };
+type PostSummary = { slug: string; title: string; excerpt: string; coverImageUrl: string | null; publishedAt: string; tags: { slug: string; name: string }[] };
 type PostDetail = PostSummary & { content: string; locales: Locale[] };
 
 type Translation<T> = { locale: Locale } & T;
 type PostInput = {
-  slug: string; status: 'DRAFT' | 'PUBLISHED'; publishedAt?: string | null /* ISO with offset; future = scheduled */; coverImageUrl?: string | null;
+  slug: string; status: 'DRAFT' | 'PUBLISHED'; publishedAt?: string | null /* ISO with offset; future = scheduled */; tagIds?: string[]; coverImageUrl?: string | null;
   translations: Translation<{ title: string; excerpt: string; content: string }>[]; // at least 'en'
 };
 type AdminPost = Omit<PostInput, 'coverImageUrl'> & { id: string; coverImageUrl: string | null; publishedAt: string | null; createdAt: string; updatedAt: string };

@@ -1,20 +1,21 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
-import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
+import { PostCard } from '@/components/content/PostCard';
+import { TagLinks } from '@/components/content/TagLinks';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { listPosts } from '@/lib/api/posts';
-import type { Paginated, PostSummary } from '@/lib/api/types';
-import { formatDate, parsePage } from '@/lib/format';
+import { listPosts, listTags } from '@/lib/api/posts';
+import type { Paginated, PostSummary, PublicTag } from '@/lib/api/types';
+import { firstParam, parsePage } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import styles from '../site.module.css';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ page?: string | string[] }>;
+  searchParams: Promise<{ page?: string | string[]; tag?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -40,20 +41,32 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Blog' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
-  const page = parsePage((await searchParams).page);
+  const query = await searchParams;
+  const page = parsePage(query.page);
+  const tagSlug = firstParam(query.tag)?.trim() || undefined;
 
   let posts: Paginated<PostSummary> | null = null;
+  let tags: (PublicTag & { count: number })[] = [];
   try {
-    posts = await listPosts({ locale, page, pageSize: 12 });
+    [posts, tags] = await Promise.all([
+      listPosts({ locale, page, pageSize: 12, tag: tagSlug }),
+      listTags(locale),
+    ]);
   } catch {
     // Rendered below as a notice: a failing API shouldn't take the whole page down.
   }
+  const activeTag = tags.find((tag) => tag.slug === tagSlug);
 
   return (
     <section className={`wrap ${styles.page}`}>
       <p className="eyebrow">{t('eyebrow')}</p>
       <h1 className={styles.title}>{t('title')}</h1>
       <p className={`lead ${styles.lead}`}>{t('lead')}</p>
+      {tags.length > 0 ? (
+        <div className={styles.topics}>
+          <TagLinks tags={tags} active={tagSlug} label={t('topics')} all={t('allTopics')} />
+        </div>
+      ) : null}
 
       {posts === null ? (
         <div className={styles.listBlock}>
@@ -61,36 +74,32 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
         </div>
       ) : posts.items.length === 0 ? (
         <div className={styles.listBlock}>
-          <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
+          {tagSlug ? (
+            <EmptyState
+              title={t('emptyTagTitle')}
+              body={t('emptyTagBody')}
+              action={<Link href="/blog">{t('allTopics')}</Link>}
+            />
+          ) : (
+            <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
+          )}
         </div>
       ) : (
         <>
+          {activeTag ? (
+            <h2 className={styles.listHeading}>{t('postsAbout', { tag: activeTag.name })}</h2>
+          ) : null}
           <ul className={styles.list}>
             {posts.items.map((post) => (
-              <Card as="li" bordered key={post.slug}>
-                {post.coverImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-                  <img src={post.coverImageUrl} alt="" className={styles.cover} loading="lazy" />
-                ) : null}
-                <p className={styles.meta}>
-                  <time dateTime={post.publishedAt}>{formatDate(post.publishedAt, locale)}</time>
-                </p>
-                <h2 className={styles.itemTitle}>
-                  <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-                </h2>
-                <p className={styles.excerpt}>{post.excerpt}</p>
-                <Link
-                  href={`/blog/${post.slug}`}
-                  className={styles.more}
-                  aria-hidden="true"
-                  tabIndex={-1}
-                >
-                  {t('readMore')}
-                </Link>
-              </Card>
+              <PostCard key={post.slug} post={post} locale={locale} />
             ))}
           </ul>
-          <Pagination page={posts.page} totalPages={posts.totalPages} pathname="/blog" />
+          <Pagination
+            page={posts.page}
+            totalPages={posts.totalPages}
+            pathname="/blog"
+            query={{ tag: tagSlug }}
+          />
         </>
       )}
     </section>

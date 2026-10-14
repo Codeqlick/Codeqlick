@@ -26,13 +26,28 @@ export type Paginated<T> = {
 
 export type PublishStatus = 'DRAFT' | 'PUBLISHED';
 
+/** A blog tag as the public site shows it, named in the requested language. */
+export type PublicTag = { slug: string; name: string };
+
 export type PostSummary = {
   slug: string;
   title: string;
   excerpt: string;
   coverImageUrl: string | null;
   publishedAt: string;
+  tags: PublicTag[];
 };
+
+/** `GET /admin/tags`. */
+export type AdminTag = {
+  id: string;
+  slug: string;
+  nameEn: string;
+  nameEs: string;
+  postCount: number;
+};
+
+export type TagInput = { slug: string; nameEn: string; nameEs: string };
 
 export type PostDetail = PostSummary & { content: string; locales: Locale[] };
 
@@ -45,12 +60,14 @@ export type PostInput = {
   status: PublishStatus;
   /** ISO instant; in the future it schedules the post. `null`: now when published. */
   publishedAt?: string | null;
+  tagIds?: string[];
   coverImageUrl?: string | null;
   translations: Translation<PostTranslationFields>[]; // at least 'en'
 };
 
-export type AdminPost = Omit<PostInput, 'coverImageUrl'> & {
+export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds'> & {
   id: string;
+  tagIds: string[];
   coverImageUrl: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -262,6 +279,7 @@ export const ACTIVITY_TARGETS = [
   'lead',
   'user',
   'media',
+  'tag',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];

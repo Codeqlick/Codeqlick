@@ -12,6 +12,7 @@ import {
   type SelectProps,
   type TextareaProps,
 } from '@/components/ui/Field';
+import fieldStyles from '@/components/ui/Field.module.css';
 import { initialFormState, type FormState } from '@/lib/forms';
 
 export type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
@@ -63,6 +64,47 @@ export function FormTextarea(props: Omit<TextareaProps, 'error'>) {
 export function FormSelect(props: Omit<SelectProps, 'error'>) {
   const { error, submitted } = useField(props.name);
   return <Select {...props} error={error} defaultValue={submitted ?? props.defaultValue} />;
+}
+
+/**
+ * Checkboxes sharing one `name` (FormData gets one entry per ticked box). After a failed submit
+ * the ticked ones come back from the action's echoed values.
+ */
+export function FormCheckboxGroup({
+  name,
+  legend,
+  options,
+  defaultValues = [],
+  className,
+}: {
+  name: string;
+  legend: string;
+  options: { value: string; label: string }[];
+  defaultValues?: string[];
+  className?: string;
+}) {
+  const { error, submitted, values } = useField(name);
+  const ticked = new Set(values ? (submitted?.split('\n') ?? []) : defaultValues);
+  return (
+    <fieldset className={className}>
+      <legend>{legend}</legend>
+      {options.map((option) => (
+        <Checkbox
+          key={option.value}
+          id={`${name}-${option.value}`}
+          name={name}
+          value={option.value}
+          label={option.label}
+          defaultChecked={ticked.has(option.value)}
+        />
+      ))}
+      {error ? (
+        <p role="alert" className={fieldStyles.error}>
+          {error}
+        </p>
+      ) : null}
+    </fieldset>
+  );
 }
 
 export function FormCheckbox(props: Omit<CheckboxProps, 'error'>) {

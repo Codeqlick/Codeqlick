@@ -9,6 +9,7 @@ export const ACTIVITY_TARGETS = [
   'user',
   'lead',
   'media',
+  'tag',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
@@ -36,6 +37,9 @@ export const ACTIVITY_ACTIONS = [
   'user.created',
   'user.updated',
   'lead.updated',
+  'tag.created',
+  'tag.updated',
+  'tag.deleted',
   'media.uploaded',
   'media.deleted',
   'account.password_changed',
