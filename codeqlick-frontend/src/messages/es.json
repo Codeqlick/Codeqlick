@@ -431,6 +431,16 @@
       "deleteTitle": "Eliminar este proyecto",
       "deleteBody": "El proyecto y todas sus novedades se retirarán del portal de clientes."
     },
+    "media": {
+      "choose": "Archivo de imagen",
+      "upload": "Subir imagen",
+      "uploading": "Subiendo…",
+      "hint": "Pega una URL o sube una imagen (PNG, JPEG, WebP o GIF, hasta 5 MB).",
+      "missing": "Elige primero una imagen.",
+      "tooLarge": "La imagen pesa más de 5 MB.",
+      "unsupported": "Solo se aceptan imágenes PNG, JPEG, WebP y GIF.",
+      "failed": "No se ha podido subir la imagen. Inténtalo de nuevo."
+    },
     "users": {
       "title": "Usuarios",
       "new": "Nuevo usuario",

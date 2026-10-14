@@ -11,7 +11,7 @@ export type QueryValue = string | number | boolean | null | undefined;
 
 export type ApiFetchOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
-  /** JSON-encoded when present. */
+  /** JSON-encoded when present; a FormData is sent as multipart (file uploads). */
   body?: unknown;
   /** Query string params; null/undefined/'' values are skipped. */
   query?: Record<string, QueryValue>;
@@ -94,7 +94,9 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  if (body !== undefined) headers.set('Content-Type', 'application/json');
+  // fetch sets the multipart Content-Type (with its boundary) itself.
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers.set('Content-Type', 'application/json');
 
   if (options.forwardClientIp) {
     const clientIp = await readClientIp();
@@ -104,7 +106,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const init: RequestInit = {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || isForm ? body : JSON.stringify(body),
     signal: signal ?? AbortSignal.timeout(DEFAULT_TIMEOUT_MS),
   };
 

@@ -80,7 +80,7 @@ describe('Codeqlick API (e2e)', () => {
     expect(res.body.status).toBe(401);
   });
 
-  it('runs an admin flow: login, me, stats, users, posts, projects, refresh, logout', async () => {
+  it('runs an admin flow: login, me, stats, users, posts, projects, media, refresh, logout', async () => {
     const server = app.getHttpServer();
 
     const login = await request(server)
@@ -159,6 +159,47 @@ describe('Codeqlick API (e2e)', () => {
       .expect(200);
     expect(detail.body.updates).toHaveLength(1);
     await request(server).get('/v1/admin/stats').set(clientAuth).expect(403);
+
+    // 1x1 transparent PNG.
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    const upload = await request(server)
+      .post('/v1/admin/media')
+      .set(auth)
+      .attach('file', png, 'pixel.png')
+      .expect(201);
+    expect(upload.body).toMatchObject({ contentType: 'image/png', size: png.length });
+    expect(upload.body.filename).toMatch(/^[0-9a-f-]{36}\.png$/);
+    const served = await request(server)
+      .get(`/v1/media/${upload.body.filename as string}`)
+      .expect(200);
+    expect(served.headers['content-type']).toBe('image/png');
+    expect(served.headers['cache-control']).toContain('immutable');
+    expect(Buffer.compare(served.body as Buffer, png)).toBe(0);
+
+    // The content decides, not the name or the declared type.
+    await request(server)
+      .post('/v1/admin/media')
+      .set(auth)
+      .attach('file', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'), {
+        filename: 'fake.png',
+        contentType: 'image/png',
+      })
+      .expect(400);
+    await request(server)
+      .post('/v1/admin/media')
+      .set(auth)
+      .attach('file', Buffer.alloc(5 * 1024 * 1024 + 1), 'big.png')
+      .expect(413);
+    await request(server)
+      .post('/v1/admin/media')
+      .set(clientAuth)
+      .attach('file', png, 'pixel.png')
+      .expect(403);
+    await request(server).get('/v1/media/..%2F..%2Fpackage.json').expect(404);
+    await request(server).get(`/v1/media/${randomUUID()}.png`).expect(404);
 
     const refreshed = await request(server)
       .post('/v1/auth/refresh')

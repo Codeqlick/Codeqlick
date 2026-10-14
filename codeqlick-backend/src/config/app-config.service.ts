@@ -77,6 +77,10 @@ export class AppConfigService {
     return this.get('LEADS_NOTIFY_TO');
   }
 
+  get uploadsDir(): string {
+    return this.get('UPLOADS_DIR');
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }

@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { LeadsModule } from './modules/leads/leads.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
+import { MediaModule } from './modules/media/media.module.js';
 import { PortfolioModule } from './modules/portfolio/portfolio.module.js';
 import { PostsModule } from './modules/posts/posts.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
@@ -35,6 +36,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PostsModule,
     PortfolioModule,
     ProjectsModule,
+    MediaModule,
     StatsModule,
   ],
   providers: [
