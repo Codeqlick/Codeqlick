@@ -8,6 +8,7 @@ import {
 } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { ImageField } from '@/components/app/ImageField';
+import { MarkdownImageButton } from '@/components/app/MarkdownImageButton';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
 import { MAX_IMAGE_BYTES } from '@/lib/api/media';
@@ -121,6 +122,19 @@ export async function PortfolioForm({
               mono
               required={lang === 'en'}
               defaultValue={translation?.content}
+            />
+            <MarkdownImageButton
+              target={`${lang}.content`}
+              upload={uploadImageAction.bind(null, locale)}
+              maxBytes={MAX_IMAGE_BYTES}
+              labels={{
+                insert: tm('insert'),
+                uploading: tm('uploading'),
+                choose: tm('choose'),
+                altPlaceholder: tm('altPlaceholder'),
+                tooLarge: tm('tooLarge'),
+                failed: tm('failed'),
+              }}
             />
           </fieldset>
         );

@@ -499,7 +499,9 @@
       "inUseHint": "Remove it from that content before deleting it.",
       "inUse": "This image is still used by an article or a case study.",
       "deleted": "Image deleted.",
-      "uploadHint": "PNG, JPEG, WebP or GIF, up to 5 MB."
+      "uploadHint": "PNG, JPEG, WebP or GIF, up to 5 MB.",
+      "insert": "Insert image",
+      "altPlaceholder": "image description"
     },
     "preview": {
       "button": "Preview",

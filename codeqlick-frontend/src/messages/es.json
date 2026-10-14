@@ -499,7 +499,9 @@
       "inUseHint": "Quítala de ese contenido antes de eliminarla.",
       "inUse": "Esta imagen todavía se usa en un artículo o un caso de éxito.",
       "deleted": "Imagen eliminada.",
-      "uploadHint": "PNG, JPEG, WebP o GIF, hasta 5 MB."
+      "uploadHint": "PNG, JPEG, WebP o GIF, hasta 5 MB.",
+      "insert": "Insertar imagen",
+      "altPlaceholder": "descripción de la imagen"
     },
     "preview": {
       "button": "Vista previa",

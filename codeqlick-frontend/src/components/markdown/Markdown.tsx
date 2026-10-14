@@ -4,6 +4,10 @@ import styles from './Markdown.module.css';
 const SAFE_PROTOCOL = /^(https?:|mailto:|\/|#)/i;
 
 const components: Components = {
+  img({ alt, node: _node, ...rest }) {
+    // eslint-disable-next-line @next/next/no-img-element -- arbitrary URLs from the content
+    return <img {...rest} alt={alt ?? ''} loading="lazy" decoding="async" />;
+  },
   a({ href, children, node: _node, ...rest }) {
     const safeHref = href && SAFE_PROTOCOL.test(href) ? href : undefined;
     const external = safeHref ? /^https?:/i.test(safeHref) : false;
