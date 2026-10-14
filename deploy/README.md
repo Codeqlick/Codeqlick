@@ -128,9 +128,10 @@ docker compose -f docker-compose.prod.yml exec backup \
 docker compose -f docker-compose.prod.yml start api web
 ```
 
-Images uploaded from the admin panel live in the `codeqlick-prod_uploads-data` volume. The same
-service copies new ones to `backups/uploads/` on every run. That folder only grows: an image
-deleted from the admin panel stays there. To restore them all:
+Images and project files uploaded from the admin panel live in the `codeqlick-prod_uploads-data`
+volume (project files in its `project-files/` folder). The same service copies new ones to
+`backups/uploads/` on every run. That folder only grows: a file deleted from the admin panel stays
+there. To restore them all:
 
 ```bash
 docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/

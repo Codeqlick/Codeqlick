@@ -1,9 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import type { ReadStream } from 'node:fs';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import {
   Role,
   type Prisma,
+  type ProjectFile,
   type ProjectPhase,
   type ProjectUpdate,
 } from '../../generated/prisma/client.js';
@@ -12,6 +15,8 @@ import {
   type ProjectWithClient,
   type ProjectWithUpdates,
 } from './projects.repository.js';
+import { cleanContentType, cleanFileName } from './project-file-name.js';
+import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
   CreateProjectInput,
   CreateProjectUpdateInput,
@@ -27,6 +32,29 @@ export interface ProjectUpdateView {
   author: { name: string };
 }
 
+/** Largest file accepted for a project, in bytes. */
+export const MAX_PROJECT_FILE_BYTES = 25 * 1024 * 1024;
+
+export interface ProjectFileView {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+}
+
+export interface UploadedProjectFile {
+  buffer: Buffer;
+  originalname?: string;
+  mimetype?: string;
+}
+
+export interface ProjectFileDownload {
+  stream: ReadStream;
+  name: string;
+  size: number;
+}
+
 export interface ClientProjectView {
   id: string;
   name: string;
@@ -39,6 +67,7 @@ export interface ClientProjectView {
   productionUrl: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdateView[];
+  files?: ProjectFileView[];
   createdAt: string;
   updatedAt: string;
 }
@@ -52,6 +81,16 @@ function toUpdateView(
     body: update.body,
     createdAt: update.createdAt.toISOString(),
     author: { name: update.author?.name ?? 'Codeqlick' },
+  };
+}
+
+function toFileView(file: ProjectFile): ProjectFileView {
+  return {
+    id: file.id,
+    name: file.name,
+    contentType: file.contentType,
+    size: file.size,
+    createdAt: file.createdAt.toISOString(),
   };
 }
 
@@ -71,6 +110,7 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
     updatedAt: project.updatedAt.toISOString(),
   };
   if ('updates' in project) view.updates = project.updates.map(toUpdateView);
+  if ('files' in project) view.files = project.files.map(toFileView);
   return view;
 }
 
@@ -82,7 +122,10 @@ function toDate(value: string | null | undefined): Date | null | undefined {
 
 @Injectable()
 export class ProjectsService {
-  constructor(private readonly repository: ProjectsRepository) {}
+  constructor(
+    private readonly repository: ProjectsRepository,
+    private readonly storage: ProjectFilesStorage,
+  ) {}
 
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
 
@@ -92,12 +135,18 @@ export class ProjectsService {
   }
 
   async getForCaller(caller: AuthUser, id: string): Promise<ClientProjectView> {
-    const project = await this.repository.findById(id);
-    // Clients only see their own projects; admins may look at any project.
-    if (!project || (caller.role !== 'ADMIN' && project.clientId !== caller.id)) {
-      throw new NotFoundException('Project not found');
-    }
-    return toView(project);
+    return toView(await this.findForCallerOrThrow(caller, id));
+  }
+
+  async downloadFile(
+    caller: AuthUser,
+    projectId: string,
+    fileId: string,
+  ): Promise<ProjectFileDownload> {
+    await this.findForCallerOrThrow(caller, projectId);
+    const file = await this.repository.findFile(projectId, fileId);
+    if (!file) throw new NotFoundException('File not found');
+    return { stream: this.storage.read(file.id), name: file.name, size: file.size };
   }
 
   // ---- Admin --------------------------------------------------------------------------
@@ -151,8 +200,45 @@ export class ProjectsService {
   }
 
   async delete(id: string): Promise<void> {
-    await this.findOrThrow(id);
+    const project = await this.findOrThrow(id);
     await this.repository.delete(id);
+    // The rows went with the project (cascade); the content goes once they are gone.
+    await Promise.all(project.files.map((file) => this.storage.remove(file.id)));
+  }
+
+  async addFile(
+    uploader: AuthUser,
+    projectId: string,
+    upload: UploadedProjectFile | undefined,
+  ): Promise<ProjectFileView> {
+    if (!upload || upload.buffer.length === 0) {
+      throw new BadRequestException('Send the file in a multipart field called "file"');
+    }
+    await this.findOrThrow(projectId);
+
+    const id = randomUUID();
+    await this.storage.write(id, upload.buffer);
+    try {
+      const file = await this.repository.addFile({
+        id,
+        projectId,
+        uploadedById: uploader.id,
+        name: cleanFileName(upload.originalname),
+        contentType: cleanContentType(upload.mimetype),
+        size: upload.buffer.length,
+      });
+      return toFileView(file);
+    } catch (error) {
+      await this.storage.remove(id);
+      throw error;
+    }
+  }
+
+  async deleteFile(projectId: string, fileId: string): Promise<void> {
+    const file = await this.repository.findFile(projectId, fileId);
+    if (!file) throw new NotFoundException('File not found');
+    await this.repository.deleteFile(file.id);
+    await this.storage.remove(file.id);
   }
 
   async addUpdate(
@@ -163,6 +249,15 @@ export class ProjectsService {
     await this.findOrThrow(projectId);
     const update = await this.repository.addUpdate(projectId, author.id, input.title, input.body);
     return toUpdateView(update);
+  }
+
+  private async findForCallerOrThrow(caller: AuthUser, id: string): Promise<ProjectWithUpdates> {
+    const project = await this.repository.findById(id);
+    // Clients only see their own projects; admins may look at any project.
+    if (!project || (caller.role !== 'ADMIN' && project.clientId !== caller.id)) {
+      throw new NotFoundException('Project not found');
+    }
+    return project;
   }
 
   private async findOrThrow(id: string): Promise<ProjectWithUpdates> {

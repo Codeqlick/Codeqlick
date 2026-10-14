@@ -69,6 +69,7 @@ model User {
   clientProjects ClientProject[]
   posts          Post[]
   projectUpdates ProjectUpdate[]
+  projectFiles   ProjectFile[]
 
   @@map("users")
 }
@@ -209,6 +210,7 @@ model ClientProject {
 
   client  User            @relation(fields: [clientId], references: [id], onDelete: Restrict)
   updates ProjectUpdate[]
+  files   ProjectFile[]
 
   @@index([clientId])
   @@map("client_projects")
@@ -228,4 +230,24 @@ model ProjectUpdate {
 
   @@index([projectId, createdAt])
   @@map("project_updates")
+}
+
+/// A file shared with the client of a project (deliverables, documents). The content lives on disk
+/// under UPLOADS_DIR/project-files/<id>; only signed-in users who can see the project download it.
+model ProjectFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @map("project_id") @db.Uuid
+  uploadedById String?  @map("uploaded_by_id") @db.Uuid
+  /// The original file name, cleaned up; used when downloading.
+  name         String
+  /// As sent by the uploader's browser. Informational only: downloads are always attachments.
+  contentType  String   @map("content_type")
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project    ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("project_files")
 }

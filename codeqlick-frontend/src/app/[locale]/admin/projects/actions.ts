@@ -4,11 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
+import { isApiError } from '@/lib/api/errors';
 import { failedState, invalidState, savedState, unconfirmedDelete } from '@/lib/actions';
 import {
   adminCreateProject,
   adminCreateProjectUpdate,
   adminDeleteProject,
+  adminDeleteProjectFile,
   adminUpdateProject,
 } from '@/lib/api/projects';
 import { formObject, type FormState } from '@/lib/forms';
@@ -107,4 +109,26 @@ export async function deleteProjectAction(
 
   revalidateProjects(locale);
   redirect(`/${locale}/admin/projects`);
+}
+
+export async function deleteProjectFileAction(
+  locale: AppLocale,
+  id: string,
+  fileId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const unconfirmed = await unconfirmedDelete(locale, formData);
+  if (unconfirmed) return unconfirmed;
+
+  try {
+    await adminDeleteProjectFile(id, fileId);
+  } catch (error) {
+    // Already gone (deleted from another tab): refreshing the list is all that is left to do.
+    if (!(isApiError(error) && error.status === 404)) return failedState(error, locale, formData);
+  }
+
+  revalidateProjects(locale);
+  const t = await getTranslations({ locale, namespace: 'Admin.projects' });
+  return { status: 'success', message: t('fileDeleted') };
 }

@@ -398,7 +398,10 @@
     "noUpdates": "Todavía no hay novedades.",
     "postedBy": "{author} · {date}",
     "back": "Todos los proyectos",
-    "open": "Abrir proyecto"
+    "open": "Abrir proyecto",
+    "files": "Archivos",
+    "noFiles": "Todavía no se ha compartido ningún archivo.",
+    "fileMeta": "{size} · {date}"
   },
   "Admin": {
     "title": "Administración",
@@ -513,7 +516,19 @@
       "updatePosted": "Novedad publicada.",
       "noUpdates": "Todavía no se ha publicado ninguna novedad.",
       "deleteTitle": "Eliminar este proyecto",
-      "deleteBody": "El proyecto y todas sus novedades se retirarán del portal de clientes."
+      "deleteBody": "El proyecto, sus novedades y sus archivos se retirarán del portal de clientes.",
+      "filesTitle": "Archivos",
+      "filesLead": "Entregables y documentos para el cliente. Solo el cliente de este proyecto y los administradores pueden descargarlos.",
+      "chooseFile": "Elige un archivo",
+      "uploadFile": "Subir archivo",
+      "uploadingFile": "Subiendo… {percent} %",
+      "fileHint": "Cualquier tipo de archivo, hasta 25 MB.",
+      "fileUploaded": "Archivo subido.",
+      "fileTooLarge": "El archivo pesa más de 25 MB.",
+      "fileFailed": "La subida ha fallado. Vuelve a intentarlo.",
+      "fileSignedOut": "Tu sesión ha caducado. Vuelve a iniciar sesión y repite la subida.",
+      "noFiles": "Todavía no se ha subido ningún archivo.",
+      "fileDeleted": "Archivo eliminado."
     },
     "media": {
       "choose": "Archivo de imagen",

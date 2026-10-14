@@ -1,9 +1,9 @@
 import { hasLocale } from 'next-intl';
-import { NextResponse } from 'next/server';
 import { routing } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import { adminExportLeadsCsv } from '@/lib/api/leads';
 import { LEAD_STATUSES, type LeadStatus } from '@/lib/api/types';
+import { redirectTo } from '@/lib/redirect';
 
 /**
  * Downloads the leads as CSV with the list's filters (`?status=&q=`). The proxy has already
@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ loca
     csv = await adminExportLeadsCsv({ status, q });
   } catch (error) {
     if (isApiError(error) && (error.status === 401 || error.status === 403)) {
-      return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
+      return redirectTo(`/${locale}/login`);
     }
     return new Response('The export failed. Please try again.', { status: 502 });
   }

@@ -120,6 +120,14 @@ export type ProjectUpdate = {
   author: { name: string };
 };
 
+export type ProjectFile = {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+};
+
 export type ClientProject = {
   id: string;
   name: string;
@@ -132,6 +140,7 @@ export type ClientProject = {
   productionUrl: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdate[];
+  files?: ProjectFile[];
   createdAt: string;
   updatedAt: string;
 };

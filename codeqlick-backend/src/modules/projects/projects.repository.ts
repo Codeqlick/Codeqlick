@@ -3,6 +3,7 @@ import type {
   ClientProject,
   Prisma,
   ProjectPhase,
+  ProjectFile,
   ProjectUpdate,
   User,
 } from '../../generated/prisma/client.js';
@@ -12,13 +13,18 @@ type ClientRef = Pick<User, 'id' | 'name' | 'email'>;
 type UpdateWithAuthor = ProjectUpdate & { author: Pick<User, 'name'> | null };
 
 export type ProjectWithClient = ClientProject & { client: ClientRef };
-export type ProjectWithUpdates = ProjectWithClient & { updates: UpdateWithAuthor[] };
+export type ProjectWithUpdates = ProjectWithClient & {
+  updates: UpdateWithAuthor[];
+  files: ProjectFile[];
+};
 
 const clientSelect = { select: { id: true, name: true, email: true } } as const;
 const updatesInclude = {
   orderBy: { createdAt: 'desc' },
   include: { author: { select: { name: true } } },
 } as const;
+const filesInclude = { orderBy: { createdAt: 'desc' } } as const;
+const detailInclude = { client: clientSelect, updates: updatesInclude, files: filesInclude };
 
 export interface ProjectFilter {
   clientId?: string;
@@ -65,14 +71,14 @@ export class ProjectsRepository {
   findById(id: string): Promise<ProjectWithUpdates | null> {
     return this.prisma.clientProject.findUnique({
       where: { id },
-      include: { client: clientSelect, updates: updatesInclude },
+      include: detailInclude,
     });
   }
 
   create(data: Prisma.ClientProjectUncheckedCreateInput): Promise<ProjectWithUpdates> {
     return this.prisma.clientProject.create({
       data,
-      include: { client: clientSelect, updates: updatesInclude },
+      include: detailInclude,
     });
   }
 
@@ -80,12 +86,32 @@ export class ProjectsRepository {
     return this.prisma.clientProject.update({
       where: { id },
       data,
-      include: { client: clientSelect, updates: updatesInclude },
+      include: detailInclude,
     });
   }
 
   async delete(id: string): Promise<void> {
     await this.prisma.clientProject.delete({ where: { id } });
+  }
+
+  findFile(projectId: string, fileId: string): Promise<ProjectFile | null> {
+    return this.prisma.projectFile.findFirst({ where: { id: fileId, projectId } });
+  }
+
+  /** Records an uploaded file and bumps the project's updatedAt. */
+  async addFile(data: Prisma.ProjectFileUncheckedCreateInput): Promise<ProjectFile> {
+    return this.prisma.$transaction(async (tx) => {
+      const file = await tx.projectFile.create({ data });
+      await tx.clientProject.update({
+        where: { id: data.projectId },
+        data: { updatedAt: new Date() },
+      });
+      return file;
+    });
+  }
+
+  async deleteFile(id: string): Promise<void> {
+    await this.prisma.projectFile.delete({ where: { id } });
   }
 
   /** Adds a progress update and bumps the project's updatedAt. */

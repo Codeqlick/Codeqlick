@@ -66,3 +66,6 @@ export const listProjectsQuerySchema = paginationSchema.extend({
   phase: projectPhaseSchema.optional(),
 });
 export type ListProjectsQuery = z.infer<typeof listProjectsQuerySchema>;
+
+export const projectFileParamSchema = z.object({ id: z.uuid(), fileId: z.uuid() });
+export type ProjectFileParam = z.infer<typeof projectFileParamSchema>;

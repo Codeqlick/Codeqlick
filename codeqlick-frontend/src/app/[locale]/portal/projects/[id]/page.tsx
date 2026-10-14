@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { ProjectFiles } from '@/components/app/ProjectFiles';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Markdown } from '@/components/markdown/Markdown';
 import { Badge } from '@/components/ui/Badge';
@@ -87,6 +88,18 @@ export default async function PortalProjectPage({
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('about')}</h2>
           <Markdown compact>{project.description}</Markdown>
+        </section>
+      ) : null}
+
+      {project.files && project.files.length > 0 ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('files')}</h2>
+          <ProjectFiles
+            projectId={project.id}
+            files={project.files}
+            locale={locale}
+            empty={t('noFiles')}
+          />
         </section>
       ) : null}
 
