@@ -31,6 +31,7 @@ describe('StatsService.timeline', () => {
       { month: '2026-10', leads: 0, leadsWon: 0, posts: 0, caseStudies: 0 },
     ]);
     // Queried from a day before the first month, to cover Madrid's earlier midnight.
-    expect((monthly.mock.calls[0]?.[0] as Date).toISOString()).toBe('2026-07-31T00:00:00.000Z');
+    const [since] = monthly.mock.calls[0] as [Date];
+    expect(since.toISOString()).toBe('2026-07-31T00:00:00.000Z');
   });
 });
