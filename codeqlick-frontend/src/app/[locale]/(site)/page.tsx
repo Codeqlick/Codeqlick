@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 import { BrandSymbol } from '@/components/brand/Symbol';
 import { Button } from '@/components/ui/Button';
@@ -117,6 +118,9 @@ async function featuredWork(locale: Locale): Promise<PortfolioSummary[]> {
 export default async function HomePage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
+  // Rendered per request, not at build time: the image is built without the API, and that
+  // prerender (no recent work) would be served until it revalidated. The API call stays cached.
+  await connection();
   const t = await getTranslations({ locale, namespace: 'Home' });
   const tw = await getTranslations({ locale, namespace: 'Work' });
   const work = await featuredWork(locale);
