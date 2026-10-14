@@ -17,6 +17,7 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   const user = await requireRole(locale, ['ADMIN'], `/${locale}/admin`);
   const t = await getTranslations({ locale, namespace: 'Admin' });
+  const ta = await getTranslations({ locale, namespace: 'Account' });
 
   const items = [
     { href: '/admin', label: t('nav.dashboard'), exact: true },
@@ -25,6 +26,7 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
     { href: '/admin/portfolio', label: t('nav.portfolio') },
     { href: '/admin/projects', label: t('nav.projects') },
     { href: '/admin/users', label: t('nav.users') },
+    { href: '/admin/account', label: ta('nav') },
   ];
 
   return (

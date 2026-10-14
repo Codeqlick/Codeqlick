@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { hashRefreshToken } from '../src/modules/auth/auth.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 const suffix = randomUUID().slice(0, 8);
@@ -80,7 +81,7 @@ describe('Codeqlick API (e2e)', () => {
     expect(res.body.status).toBe(401);
   });
 
-  it('runs an admin flow: login, me, stats, users, posts, projects, media, refresh, logout', async () => {
+  it('runs an admin flow: login, me, stats, users, posts, projects, media, password, refresh, logout', async () => {
     const server = app.getHttpServer();
 
     const login = await request(server)
@@ -200,6 +201,45 @@ describe('Codeqlick API (e2e)', () => {
       .expect(403);
     await request(server).get('/v1/media/..%2F..%2Fpackage.json').expect(404);
     await request(server).get(`/v1/media/${randomUUID()}.png`).expect(404);
+
+    // Changing the password keeps the calling session and signs out the others.
+    const otherDevice = await request(server)
+      .post('/v1/auth/login')
+      .send({ email: clientEmail, password: 'client-password-1234' })
+      .expect(200);
+    const wrongCurrent = await request(server)
+      .post('/v1/auth/password')
+      .set(clientAuth)
+      .send({
+        currentPassword: 'not-my-password',
+        newPassword: 'client-password-5678',
+        refreshToken: clientLogin.body.refreshToken,
+      })
+      .expect(400);
+    expect(wrongCurrent.body.errors).toEqual([
+      { path: 'currentPassword', message: 'Current password is incorrect' },
+    ]);
+    await request(server)
+      .post('/v1/auth/password')
+      .set(clientAuth)
+      .send({
+        currentPassword: 'client-password-1234',
+        newPassword: 'client-password-5678',
+        refreshToken: clientLogin.body.refreshToken,
+      })
+      .expect(204);
+    // Read from the database: /auth/refresh is rate limited and this flow already uses it.
+    const activeSessions = await prisma.session.findMany({
+      where: { user: { email: clientEmail }, revokedAt: null },
+    });
+    expect(activeSessions.map((session) => session.tokenHash)).toEqual([
+      hashRefreshToken(clientLogin.body.refreshToken as string),
+    ]);
+    expect(otherDevice.body.refreshToken).not.toBe(clientLogin.body.refreshToken);
+    await request(server)
+      .post('/v1/auth/login')
+      .send({ email: clientEmail, password: 'client-password-1234' })
+      .expect(401);
 
     const refreshed = await request(server)
       .post('/v1/auth/refresh')

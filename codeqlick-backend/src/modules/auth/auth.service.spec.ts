@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
@@ -48,6 +48,7 @@ describe('AuthService', () => {
     rotateSession: ReturnType<typeof vi.fn>;
     revokeSession: ReturnType<typeof vi.fn>;
     revokeFamily: ReturnType<typeof vi.fn>;
+    changePassword: ReturnType<typeof vi.fn>;
   };
   let passwords: {
     hash: ReturnType<typeof vi.fn>;
@@ -66,6 +67,7 @@ describe('AuthService', () => {
       rotateSession: vi.fn().mockResolvedValue(true),
       revokeSession: vi.fn().mockResolvedValue(undefined),
       revokeFamily: vi.fn().mockResolvedValue(undefined),
+      changePassword: vi.fn().mockResolvedValue(undefined),
     };
     passwords = {
       hash: vi.fn(),
@@ -180,6 +182,52 @@ describe('AuthService', () => {
       repository.findSessionByTokenHash.mockResolvedValue(session);
       await expect(service.refresh('old-token')).rejects.toBeInstanceOf(UnauthorizedException);
       expect(repository.rotateSession).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('changePassword', () => {
+    it('stores the new hash and keeps only the calling session', async () => {
+      const user = makeUser();
+      repository.findUserById.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(true);
+      passwords.hash.mockResolvedValue('$argon2id$new');
+
+      await service.changePassword(user.id, 'old password 123', 'new password 456', 'my-token');
+
+      expect(passwords.verify).toHaveBeenCalledWith(user.passwordHash, 'old password 123');
+      expect(repository.changePassword).toHaveBeenCalledWith(
+        user.id,
+        '$argon2id$new',
+        hashRefreshToken('my-token'),
+      );
+    });
+
+    it('rejects a wrong current password without changing anything', async () => {
+      repository.findUserById.mockResolvedValue(makeUser());
+      passwords.verify.mockResolvedValue(false);
+
+      await expect(
+        service.changePassword('id', 'wrong', 'new password 456', 'my-token'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repository.changePassword).not.toHaveBeenCalled();
+    });
+
+    it('rejects reusing the current password', async () => {
+      repository.findUserById.mockResolvedValue(makeUser());
+      passwords.verify.mockResolvedValue(true);
+
+      await expect(
+        service.changePassword('id', 'same password 123', 'same password 123', 'my-token'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repository.changePassword).not.toHaveBeenCalled();
+    });
+
+    it('rejects a disabled account', async () => {
+      repository.findUserById.mockResolvedValue(makeUser({ isActive: false }));
+
+      await expect(
+        service.changePassword('id', 'old password 123', 'new password 456', 'my-token'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });
 });
