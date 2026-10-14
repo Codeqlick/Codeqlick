@@ -7,13 +7,17 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
 import {
   changePasswordSchema,
+  confirmPasswordResetSchema,
   loginSchema,
   logoutSchema,
   refreshSchema,
+  requestPasswordResetSchema,
   type ChangePasswordInput,
+  type ConfirmPasswordResetInput,
   type LoginInput,
   type LogoutInput,
   type RefreshInput,
+  type RequestPasswordResetInput,
 } from './auth.schemas.js';
 import { AuthService, type AuthTokens, type ClientInfo } from './auth.service.js';
 
@@ -49,6 +53,27 @@ export class AuthController {
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
     return this.auth.refresh(body.refreshToken, clientInfo(request));
+  }
+
+  /** Always 202, whether or not the email belongs to an account. */
+  @Public()
+  @Throttle(STRICT_LIMIT)
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async requestPasswordReset(
+    @Body({ schema: requestPasswordResetSchema }) body: RequestPasswordResetInput,
+  ): Promise<void> {
+    await this.auth.requestPasswordReset(body.email, body.locale);
+  }
+
+  @Public()
+  @Throttle(STRICT_LIMIT)
+  @Post('password-reset/confirm')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async confirmPasswordReset(
+    @Body({ schema: confirmPasswordResetSchema }) body: ConfirmPasswordResetInput,
+  ): Promise<void> {
+    await this.auth.confirmPasswordReset(body.token, body.newPassword);
   }
 
   @ApiBearerAuth()

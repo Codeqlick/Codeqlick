@@ -116,6 +116,7 @@ Dependency direction: **controller → service → repository → PrismaService*
 ```mermaid
 erDiagram
   User ||--o{ Session : has
+  User ||--o{ PasswordResetToken : has
   User ||--o{ ClientProject : "owns (client)"
   User ||--o{ Post : authors
   ClientProject ||--o{ ProjectUpdate : has
@@ -126,6 +127,7 @@ erDiagram
 
 - **User** — `email` (unique, lower-cased), `passwordHash` (Argon2id), `name`, `role` (`ADMIN` | `CLIENT`), `isActive`.
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
+- **PasswordResetToken** — one row per "forgot my password" email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
 - **Lead** — contact form submission: `name`, `email`, `company?`, `budget?`, `message`, `locale`, `status` (`NEW` → `CONTACTED` → `QUALIFIED` → `WON` | `LOST` | `ARCHIVED`), `notes?`.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `sortOrder`; translation has `title`, `summary`, `content`.
@@ -174,6 +176,7 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `PORT` | `4000` | |
 | `DATABASE_URL` | `postgresql://codeqlick:…@localhost:5432/codeqlick` | |
 | `CORS_ORIGINS` | `https://codeqlick.com` | Comma-separated |
+| `SITE_URL` | `https://codeqlick.com` | Public URL of the website, for links in emails |
 | `JWT_ACCESS_SECRET` | 64+ random chars | Required, min 32 |
 | `JWT_ACCESS_TTL` | `900` | Seconds |
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | |
@@ -207,6 +210,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/media/:filename` | | The uploaded image, cacheable forever (names are never reused); 404 otherwise |
 | POST | `/auth/login` | `{ email, password }` | `200 AuthTokens` — limited to 5/min/IP |
 | POST | `/auth/refresh` | `{ refreshToken }` | `200 AuthTokens` |
+| POST | `/auth/password-reset/request` | `{ email, locale }` | `202` always, whether or not the account exists. An active account is emailed a link to `SITE_URL/{locale}/reset-password?token=…` — limited to 5/min/IP |
+| POST | `/auth/password-reset/confirm` | `{ token, newPassword }` | `204`: password set, token spent, every session of the user revoked. `400` when the token is unknown, used or expired — limited to 5/min/IP |
 
 ### Authenticated (any role)
 
@@ -304,6 +309,8 @@ src/
         work/ work/[slug]/     Portfolio
         contact/               Contact form (server action → POST /v1/leads)
       login/
+      forgot-password/         Asks for a reset email
+      reset-password/          Landing page of the emailed link: choose a new password
       portal/                  Client area (role CLIENT or ADMIN): projects, account
       admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users, account;
                                posts and portfolio items have a preview page that renders the saved draft

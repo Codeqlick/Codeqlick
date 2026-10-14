@@ -72,6 +72,49 @@ export class AuthRepository {
     ]);
   }
 
+  /** Replaces any unused reset token of the user with a new one: only the latest link works. */
+  async replacePasswordResetToken(
+    userId: string,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.passwordResetToken.deleteMany({ where: { userId, usedAt: null } }),
+      this.prisma.passwordResetToken.create({ data: { userId, tokenHash, expiresAt } }),
+    ]);
+  }
+
+  /**
+   * Spends a reset token: marks it used (only if unused and not expired), stores the new password
+   * hash and revokes every session of the user. Returns false when the token can't be used.
+   */
+  async resetPassword(tokenHash: string, hashPassword: () => Promise<string>): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const token = await tx.passwordResetToken.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+      if (!token || !token.user.isActive) return false;
+      // Conditional update: two requests with the same token can't both win.
+      const spent = await tx.passwordResetToken.updateMany({
+        where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (spent.count !== 1) return false;
+
+      await tx.user.update({
+        where: { id: token.userId },
+        data: { passwordHash: await hashPassword() },
+      });
+      await tx.session.updateMany({
+        where: { userId: token.userId, revokedAt: null },
+        data: { revokedAt: now },
+      });
+      return true;
+    });
+  }
+
   async revokeFamily(familyId: string): Promise<void> {
     await this.prisma.session.updateMany({
       where: { familyId, revokedAt: null },

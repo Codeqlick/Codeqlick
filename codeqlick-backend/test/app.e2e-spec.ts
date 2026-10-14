@@ -76,6 +76,88 @@ describe('Codeqlick API (e2e)', () => {
     expect(res.headers['content-type']).toContain('application/problem+json');
   });
 
+  it('resets a forgotten password with a one-time token', async () => {
+    const server = app.getHttpServer();
+    const email = `e2e-reset-${suffix}@codeqlick.test`;
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name: 'E2E Reset',
+        role: Role.CLIENT,
+        passwordHash: await argon2.hash('forgotten-password-1', { type: argon2.argon2id }),
+      },
+    });
+    try {
+      // Same answer whether or not the account exists.
+      await request(server)
+        .post('/v1/auth/password-reset/request')
+        .send({ email: `nobody-${suffix}@codeqlick.test`, locale: 'es' })
+        .expect(202);
+      await request(server)
+        .post('/v1/auth/password-reset/request')
+        .send({ email, locale: 'es' })
+        .expect(202);
+      const issued = await prisma.passwordResetToken.findMany({ where: { userId: user.id } });
+      expect(issued).toHaveLength(1);
+      expect(issued[0]?.usedAt).toBeNull();
+
+      // The emailed token never reaches the test, so plant one with a known value.
+      const token = `e2e-token-${randomUUID()}`;
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashRefreshToken(token),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+      const expired = `e2e-expired-${randomUUID()}`;
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashRefreshToken(expired),
+          expiresAt: new Date(Date.now() - 1000),
+        },
+      });
+      // A session opened with the old password. Created directly: /auth/login is rate limited
+      // and the admin flow below needs its attempts.
+      const session = await prisma.session.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashRefreshToken(`e2e-session-${randomUUID()}`),
+          familyId: randomUUID(),
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+
+      await request(server)
+        .post('/v1/auth/password-reset/confirm')
+        .send({ token: expired, newPassword: 'brand-new-password-2' })
+        .expect(400);
+      await request(server)
+        .post('/v1/auth/password-reset/confirm')
+        .send({ token, newPassword: 'short' })
+        .expect(400);
+      await request(server)
+        .post('/v1/auth/password-reset/confirm')
+        .send({ token, newPassword: 'brand-new-password-2' })
+        .expect(204);
+      // One use only.
+      await request(server)
+        .post('/v1/auth/password-reset/confirm')
+        .send({ token, newPassword: 'another-password-3' })
+        .expect(400);
+
+      const after = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        include: { sessions: true },
+      });
+      expect(await argon2.verify(after.passwordHash, 'brand-new-password-2')).toBe(true);
+      expect(after.sessions.find((item) => item.id === session.id)?.revokedAt).not.toBeNull();
+    } finally {
+      await prisma.user.delete({ where: { id: user.id } });
+    }
+  });
+
   it('rejects admin routes without a token', async () => {
     const res = await request(app.getHttpServer()).get('/v1/admin/stats').expect(401);
     expect(res.body.status).toBe(401);

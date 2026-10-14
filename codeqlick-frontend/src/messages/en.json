@@ -249,7 +249,33 @@
     "invalid": "Incorrect email or password.",
     "rateLimited": "Too many attempts. Please wait a minute and try again.",
     "error": "We couldn't sign you in right now. Please try again.",
-    "backToSite": "Back to the website"
+    "backToSite": "Back to the website",
+    "forgot": "Forgot your password?",
+    "passwordReset": "Your password has been changed. Sign in with the new one."
+  },
+  "ForgotPassword": {
+    "metaTitle": "Forgot your password",
+    "title": "Forgot your password?",
+    "subtitle": "Enter your account's email and we'll send you a link to choose a new password.",
+    "email": "Email",
+    "submit": "Send me the link",
+    "submitting": "Sending…",
+    "sent": "If an account exists for that email, we've sent a link to reset the password. It works for 60 minutes.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "backToLogin": "Back to sign in"
+  },
+  "ResetPassword": {
+    "metaTitle": "Choose a new password",
+    "title": "Choose a new password",
+    "subtitle": "You'll be signed out on every device and can sign in with the new password.",
+    "newPassword": "New password",
+    "newPasswordHint": "At least 12 characters.",
+    "confirmPassword": "Repeat the new password",
+    "submit": "Change password",
+    "submitting": "Saving…",
+    "invalidLink": "This link is invalid or has expired. Reset links work once and for 60 minutes.",
+    "requestNew": "Request a new link",
+    "rateLimited": "Too many attempts. Please wait a minute and try again."
   },
   "Account": {
     "nav": "Account",

@@ -29,6 +29,7 @@ export default defineConfig({
       JWT_ACCESS_TTL: env('JWT_ACCESS_TTL', '900'),
       REFRESH_TOKEN_TTL_DAYS: env('REFRESH_TOKEN_TTL_DAYS', '30'),
       CORS_ORIGINS: env('CORS_ORIGINS', 'http://localhost:3000'),
+      SITE_URL: env('SITE_URL', 'http://localhost:3000'),
       SMTP_HOST: env('SMTP_HOST', 'localhost'),
       SMTP_PORT: env('SMTP_PORT', '1025'),
       SMTP_SECURE: env('SMTP_SECURE', 'false'),

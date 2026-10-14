@@ -249,7 +249,33 @@
     "invalid": "El correo o la contraseña no son correctos.",
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
     "error": "Ahora mismo no podemos iniciar tu sesión. Vuelve a intentarlo.",
-    "backToSite": "Volver a la web"
+    "backToSite": "Volver a la web",
+    "forgot": "¿Has olvidado tu contraseña?",
+    "passwordReset": "Tu contraseña se ha cambiado. Inicia sesión con la nueva."
+  },
+  "ForgotPassword": {
+    "metaTitle": "Recuperar contraseña",
+    "title": "¿Has olvidado tu contraseña?",
+    "subtitle": "Escribe el correo de tu cuenta y te enviaremos un enlace para elegir una contraseña nueva.",
+    "email": "Correo electrónico",
+    "submit": "Enviarme el enlace",
+    "submitting": "Enviando…",
+    "sent": "Si existe una cuenta con ese correo, hemos enviado un enlace para restablecer la contraseña. Funciona durante 60 minutos.",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
+    "backToLogin": "Volver a iniciar sesión"
+  },
+  "ResetPassword": {
+    "metaTitle": "Elige una contraseña nueva",
+    "title": "Elige una contraseña nueva",
+    "subtitle": "Se cerrará la sesión en todos tus dispositivos y podrás entrar con la nueva contraseña.",
+    "newPassword": "Nueva contraseña",
+    "newPasswordHint": "Al menos 12 caracteres.",
+    "confirmPassword": "Repite la nueva contraseña",
+    "submit": "Cambiar contraseña",
+    "submitting": "Guardando…",
+    "invalidLink": "Este enlace no es válido o ha caducado. Los enlaces sirven una sola vez y durante 60 minutos.",
+    "requestNew": "Pedir un enlace nuevo",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
   },
   "Account": {
     "nav": "Cuenta",

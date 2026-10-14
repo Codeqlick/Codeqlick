@@ -60,6 +60,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       DATABASE_URL: postgresql://codeqlick:${POSTGRES_PASSWORD}@db:5432/codeqlick
       CORS_ORIGINS: ${SITE_URL:?set SITE_URL in .env}
+      SITE_URL: ${SITE_URL}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
       SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST in .env}
       SMTP_PORT: ${SMTP_PORT:-587}
