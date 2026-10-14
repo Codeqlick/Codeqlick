@@ -188,7 +188,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Body({ schema: logoutSchema }) body: LogoutInput,
   ): Promise<void> {
-    await this.auth.revokeOtherSessions(user.id, body.refreshToken);
+    await this.auth.revokeOtherSessions(user, body.refreshToken);
   }
 
   @ApiBearerAuth()
@@ -198,7 +198,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<void> {
-    await this.auth.revokeSession(user.id, params.id);
+    await this.auth.revokeSession(user, params.id);
   }
 
   @ApiBearerAuth()

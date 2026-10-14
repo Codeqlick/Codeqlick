@@ -12,8 +12,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { paginationSchema, type PaginationQuery } from '../../common/schemas/common.schemas.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
   MAX_IMAGE_BYTES,
@@ -36,8 +38,8 @@ export class AdminMediaController {
 
   @Delete(':filename')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('filename') filename: string): Promise<void> {
-    await this.media.remove(filename);
+  async remove(@CurrentUser() user: AuthUser, @Param('filename') filename: string): Promise<void> {
+    await this.media.remove(user, filename);
   }
 
   @Post()
@@ -47,7 +49,10 @@ export class AdminMediaController {
   })
   // No storage option: the file stays in memory until its content has been checked.
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMAGE_BYTES, files: 1 } }))
-  upload(@UploadedFile() file: { buffer: Buffer } | undefined): Promise<UploadedMedia> {
-    return this.media.upload(file?.buffer);
+  upload(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+  ): Promise<UploadedMedia> {
+    return this.media.upload(user, file?.buffer);
   }
 }

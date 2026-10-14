@@ -7,7 +7,9 @@ import {
 import { randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
 import { detectImageType, IMAGE_TYPES, type ImageExtension } from './image-type.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import { paginate, type Paginated } from '../../common/types/paginated.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { MediaRepository, type MediaUsage } from './media.repository.js';
 import { MediaStorage } from './media.storage.js';
 
@@ -41,9 +43,10 @@ export class MediaService {
   constructor(
     private readonly storage: MediaStorage,
     private readonly repository: MediaRepository,
+    private readonly activity: ActivityService,
   ) {}
 
-  async upload(data: Buffer | undefined): Promise<UploadedMedia> {
+  async upload(actor: AuthUser, data: Buffer | undefined): Promise<UploadedMedia> {
     if (!data || data.length === 0) {
       throw new BadRequestException('Send the image in a multipart field called "file"');
     }
@@ -53,6 +56,7 @@ export class MediaService {
 
     const filename = `${randomUUID()}.${extension}`;
     await this.storage.write(filename, data);
+    await this.activity.record(actor, { action: 'media.uploaded', targetLabel: filename });
     return { filename, contentType: IMAGE_TYPES[extension], size: data.length };
   }
 
@@ -78,7 +82,7 @@ export class MediaService {
   }
 
   /** Deletes an image nothing uses. One that is still referenced would leave a broken page. */
-  async remove(filename: string): Promise<void> {
+  async remove(actor: AuthUser, filename: string): Promise<void> {
     const exists =
       FILENAME_PATTERN.test(filename) && (await this.storage.size(filename)) !== undefined;
     if (!exists) throw new NotFoundException('File not found');
@@ -89,6 +93,7 @@ export class MediaService {
       throw new ConflictException(`This image is still used by ${where}`);
     }
     await this.storage.remove(filename);
+    await this.activity.record(actor, { action: 'media.deleted', targetLabel: filename });
   }
 
   async open(filename: string): Promise<MediaFile> {

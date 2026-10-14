@@ -238,3 +238,25 @@ export type ActiveSession = {
 };
 
 export type TwoFactorSetup = { secret: string; otpauthUrl: string };
+
+/** What an activity log entry can be about (`GET /admin/activity?targetType=`). */
+export const ACTIVITY_TARGETS = [
+  'post',
+  'portfolio',
+  'project',
+  'lead',
+  'user',
+  'media',
+  'account',
+] as const;
+export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
+
+/** One change in the activity log. `action` is `<target>.<verb>`, e.g. `post.published`. */
+export type ActivityEntry = {
+  id: string;
+  action: string;
+  actor: { id: string | null; name: string };
+  target: { type: string; id: string | null; label: string | null };
+  details: Record<string, unknown> | null;
+  createdAt: string;
+};

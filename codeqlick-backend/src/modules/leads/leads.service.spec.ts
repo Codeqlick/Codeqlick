@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ActivityService } from '../activity/activity.service.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { Lead } from '../../generated/prisma/client.js';
 import type { MailService } from '../mail/mail.service.js';
@@ -47,6 +48,7 @@ describe('LeadsService', () => {
       repository as unknown as LeadsRepository,
       mail as unknown as MailService,
       config,
+      { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
     );
   });
 

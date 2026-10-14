@@ -523,7 +523,8 @@
       "portfolio": "Portfolio",
       "media": "Imágenes",
       "projects": "Proyectos",
-      "users": "Usuarios"
+      "users": "Usuarios",
+      "activity": "Actividad"
     },
     "dashboard": {
       "title": "Panel",
@@ -534,7 +535,9 @@
       "draftPosts": "Borradores",
       "publishedPortfolio": "Casos de éxito publicados",
       "activeProjects": "Proyectos activos",
-      "clients": "Clientes"
+      "clients": "Clientes",
+      "recentActivity": "Actividad reciente",
+      "allActivity": "Ver toda"
     },
     "leads": {
       "title": "Contactos",
@@ -700,6 +703,76 @@
       "emptyBody": "Crea aquí las cuentas de administradores y clientes.",
       "back": "Todos los usuarios",
       "notFound": "Este usuario no existe."
+    },
+    "activity": {
+      "title": "Actividad",
+      "lead": "Quién ha cambiado qué en el panel y en las cuentas, de lo más reciente a lo más antiguo.",
+      "type": "Sobre",
+      "emptyTitle": "Sin actividad",
+      "emptyBody": "Aquí aparecerán los cambios en cuanto alguien edite contenido, proyectos o usuarios.",
+      "types": {
+        "post": "Artículos",
+        "portfolio": "Casos de éxito",
+        "project": "Proyectos",
+        "lead": "Contactos",
+        "user": "Usuarios",
+        "media": "Imágenes",
+        "account": "Cuentas"
+      },
+      "actions": {
+        "post": {
+          "created": "creó el artículo <target>{label}</target>",
+          "updated": "editó el artículo <target>{label}</target>",
+          "published": "publicó el artículo <target>{label}</target>",
+          "unpublished": "pasó a borrador el artículo <target>{label}</target>",
+          "deleted": "borró el artículo <target>{label}</target>"
+        },
+        "portfolio": {
+          "created": "creó el caso de éxito <target>{label}</target>",
+          "updated": "editó el caso de éxito <target>{label}</target>",
+          "published": "publicó el caso de éxito <target>{label}</target>",
+          "unpublished": "pasó a borrador el caso de éxito <target>{label}</target>",
+          "deleted": "borró el caso de éxito <target>{label}</target>"
+        },
+        "project": {
+          "created": "creó el proyecto <target>{label}</target>",
+          "updated": "actualizó el proyecto <target>{label}</target>",
+          "deleted": "borró el proyecto <target>{label}</target>",
+          "update_posted": "publicó una novedad en <target>{label}</target>",
+          "file_uploaded": "subió un archivo a <target>{label}</target>",
+          "file_deleted": "borró un archivo de <target>{label}</target>"
+        },
+        "user": {
+          "created": "creó el usuario <target>{label}</target>",
+          "updated": "modificó el usuario <target>{label}</target>"
+        },
+        "lead": {
+          "updated": "actualizó el contacto <target>{label}</target>"
+        },
+        "media": {
+          "uploaded": "subió la imagen <target>{label}</target>",
+          "deleted": "borró la imagen <target>{label}</target>"
+        },
+        "account": {
+          "password_changed": "cambió su contraseña",
+          "two_factor_enabled": "activó la verificación en dos pasos",
+          "two_factor_disabled": "desactivó la verificación en dos pasos",
+          "sessions_revoked": "{scope, select, one {cerró la sesión de otro de sus dispositivos} other {cerró la sesión en todos sus demás dispositivos}}"
+        },
+        "unknown": "hizo un cambio ({action})"
+      },
+      "details": {
+        "status": "Estado: {value}",
+        "phase": "Fase: {value}",
+        "progress": "Progreso: {value} %",
+        "file": "Archivo: {value}",
+        "title": "«{value}»",
+        "name": "Nombre: {value}",
+        "role": "Rol: {value}",
+        "activated": "Cuenta activada",
+        "deactivated": "Cuenta desactivada",
+        "passwordReset": "Contraseña restablecida"
+      }
     }
   },
   "Sessions": {

@@ -45,7 +45,7 @@ export class AdminPostsController {
     @CurrentUser() user: AuthUser,
     @Body({ schema: createPostSchema }) body: CreatePostInput,
   ): Promise<AdminPost> {
-    return this.posts.create(body, user.id);
+    return this.posts.create(user, body);
   }
 
   @Get(':id')
@@ -55,15 +55,19 @@ export class AdminPostsController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: updatePostSchema }) body: UpdatePostInput,
   ): Promise<AdminPost> {
-    return this.posts.update(params.id, body);
+    return this.posts.update(user, params.id, body);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param({ schema: idParamSchema }) params: IdParam): Promise<void> {
-    await this.posts.delete(params.id);
+  async delete(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.posts.delete(user, params.id);
   }
 }

@@ -15,6 +15,7 @@ import {
   type ProjectWithClient,
   type ProjectWithUpdates,
 } from './projects.repository.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
@@ -125,6 +126,7 @@ export class ProjectsService {
   constructor(
     private readonly repository: ProjectsRepository,
     private readonly storage: ProjectFilesStorage,
+    private readonly activity: ActivityService,
   ) {}
 
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
@@ -165,7 +167,7 @@ export class ProjectsService {
     return toView(await this.findOrThrow(id));
   }
 
-  async create(input: CreateProjectInput): Promise<ClientProjectView> {
+  async create(actor: AuthUser, input: CreateProjectInput): Promise<ClientProjectView> {
     await this.assertClient(input.clientId);
     const project = await this.repository.create({
       clientId: input.clientId,
@@ -178,11 +180,16 @@ export class ProjectsService {
       stagingUrl: input.stagingUrl ?? null,
       productionUrl: input.productionUrl ?? null,
     });
+    await this.activity.record(actor, {
+      action: 'project.created',
+      targetId: project.id,
+      targetLabel: project.name,
+    });
     return toView(project);
   }
 
-  async update(id: string, input: UpdateProjectInput): Promise<ClientProjectView> {
-    await this.findOrThrow(id);
+  async update(actor: AuthUser, id: string, input: UpdateProjectInput): Promise<ClientProjectView> {
+    const existing = await this.findOrThrow(id);
     if (input.clientId !== undefined) await this.assertClient(input.clientId);
 
     const data: Prisma.ClientProjectUncheckedUpdateInput = {};
@@ -196,14 +203,32 @@ export class ProjectsService {
     if (input.stagingUrl !== undefined) data.stagingUrl = input.stagingUrl;
     if (input.productionUrl !== undefined) data.productionUrl = input.productionUrl;
 
-    return toView(await this.repository.update(id, data));
+    const project = await this.repository.update(id, data);
+    // The client sees phase and progress first: worth spelling out when they move.
+    const details: Record<string, unknown> = {};
+    if (input.phase !== undefined && input.phase !== existing.phase) details.phase = input.phase;
+    if (input.progress !== undefined && input.progress !== existing.progress) {
+      details.progress = input.progress;
+    }
+    await this.activity.record(actor, {
+      action: 'project.updated',
+      targetId: id,
+      targetLabel: project.name,
+      details: Object.keys(details).length > 0 ? details : undefined,
+    });
+    return toView(project);
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(actor: AuthUser, id: string): Promise<void> {
     const project = await this.findOrThrow(id);
     await this.repository.delete(id);
     // The rows went with the project (cascade); the content goes once they are gone.
     await Promise.all(project.files.map((file) => this.storage.remove(file.id)));
+    await this.activity.record(actor, {
+      action: 'project.deleted',
+      targetId: id,
+      targetLabel: project.name,
+    });
   }
 
   async addFile(
@@ -214,7 +239,7 @@ export class ProjectsService {
     if (!upload || upload.buffer.length === 0) {
       throw new BadRequestException('Send the file in a multipart field called "file"');
     }
-    await this.findOrThrow(projectId);
+    const project = await this.findOrThrow(projectId);
 
     const id = randomUUID();
     await this.storage.write(id, upload.buffer);
@@ -227,6 +252,12 @@ export class ProjectsService {
         contentType: cleanContentType(upload.mimetype),
         size: upload.buffer.length,
       });
+      await this.activity.record(uploader, {
+        action: 'project.file_uploaded',
+        targetId: projectId,
+        targetLabel: project.name,
+        details: { file: file.name },
+      });
       return toFileView(file);
     } catch (error) {
       await this.storage.remove(id);
@@ -234,11 +265,18 @@ export class ProjectsService {
     }
   }
 
-  async deleteFile(projectId: string, fileId: string): Promise<void> {
+  async deleteFile(actor: AuthUser, projectId: string, fileId: string): Promise<void> {
+    const project = await this.findOrThrow(projectId);
     const file = await this.repository.findFile(projectId, fileId);
     if (!file) throw new NotFoundException('File not found');
     await this.repository.deleteFile(file.id);
     await this.storage.remove(file.id);
+    await this.activity.record(actor, {
+      action: 'project.file_deleted',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { file: file.name },
+    });
   }
 
   async addUpdate(
@@ -246,8 +284,14 @@ export class ProjectsService {
     projectId: string,
     input: CreateProjectUpdateInput,
   ): Promise<ProjectUpdateView> {
-    await this.findOrThrow(projectId);
+    const project = await this.findOrThrow(projectId);
     const update = await this.repository.addUpdate(projectId, author.id, input.title, input.body);
+    await this.activity.record(author, {
+      action: 'project.update_posted',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { title: input.title },
+    });
     return toUpdateView(update);
   }
 

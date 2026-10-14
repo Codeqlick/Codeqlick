@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ActivityService } from '../activity/activity.service.js';
 import type { PostTranslation } from '../../generated/prisma/client.js';
 import type { PostsRepository, PostWithTranslations } from './posts.repository.js';
 import { PostsService } from './posts.service.js';
@@ -33,6 +34,8 @@ function post(translations: PostTranslation[]): PostWithTranslations {
   } as PostWithTranslations;
 }
 
+const actor = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as const;
+
 describe('PostsService', () => {
   let repository: {
     findPublishedBySlug: ReturnType<typeof vi.fn>;
@@ -49,7 +52,10 @@ describe('PostsService', () => {
       findById: vi.fn(),
       update: vi.fn(),
     };
-    service = new PostsService(repository as unknown as PostsRepository);
+    service = new PostsService(
+      repository as unknown as PostsRepository,
+      { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+    );
   });
 
   it('returns the requested locale when it exists', async () => {
@@ -117,7 +123,7 @@ describe('PostsService', () => {
     repository.findById.mockResolvedValue(draft);
     repository.update.mockResolvedValue({ ...draft, status: 'PUBLISHED', publishedAt });
 
-    await service.update('p1', { status: 'PUBLISHED' });
+    await service.update(actor, 'p1', { status: 'PUBLISHED' });
 
     const data = repository.update.mock.calls[0]?.[1] as { publishedAt?: Date };
     expect(data.publishedAt).toBeInstanceOf(Date);
@@ -125,14 +131,14 @@ describe('PostsService', () => {
     repository.update.mockClear();
     repository.findById.mockResolvedValue(post([translation('EN', 'Hello')]));
     repository.update.mockResolvedValue(post([translation('EN', 'Hello')]));
-    await service.update('p1', { status: 'PUBLISHED' });
+    await service.update(actor, 'p1', { status: 'PUBLISHED' });
     const second = repository.update.mock.calls[0]?.[1] as { publishedAt?: Date };
     expect(second.publishedAt).toBeUndefined();
   });
 
   it('throws NotFound when updating a missing post', async () => {
     repository.findById.mockResolvedValue(null);
-    await expect(service.update('nope', { status: 'DRAFT' })).rejects.toBeInstanceOf(
+    await expect(service.update(actor, 'nope', { status: 'DRAFT' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });

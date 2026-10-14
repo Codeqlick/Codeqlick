@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Header, Param, Patch, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
   exportLeadsQuerySchema,
@@ -41,9 +43,10 @@ export class AdminLeadsController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: updateLeadSchema }) body: UpdateLeadInput,
   ): Promise<Lead> {
-    return this.leads.update(params.id, body);
+    return this.leads.update(user, params.id, body);
   }
 }

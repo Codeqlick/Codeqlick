@@ -7,6 +7,7 @@ import {
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import type { Prisma, User } from '../../generated/prisma/client.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import { UsersRepository } from './users.repository.js';
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.schemas.js';
@@ -29,6 +30,7 @@ export class UsersService {
   constructor(
     private readonly repository: UsersRepository,
     private readonly passwords: PasswordService,
+    private readonly activity: ActivityService,
   ) {}
 
   async list(query: ListUsersQuery): Promise<Paginated<AdminUser>> {
@@ -37,7 +39,7 @@ export class UsersService {
     return paginate(items.map(toAdminUser), total, query.page, query.pageSize);
   }
 
-  async create(input: CreateUserInput): Promise<AdminUser> {
+  async create(actor: AuthUser, input: CreateUserInput): Promise<AdminUser> {
     const email = input.email.trim().toLowerCase();
     if (await this.repository.findByEmail(email)) {
       throw new ConflictException('A user with this email already exists');
@@ -47,6 +49,12 @@ export class UsersService {
       name: input.name,
       role: input.role,
       passwordHash: await this.passwords.hash(input.password),
+    });
+    await this.activity.record(actor, {
+      action: 'user.created',
+      targetId: user.id,
+      targetLabel: user.email,
+      details: { role: user.role },
     });
     return toAdminUser(user);
   }
@@ -75,6 +83,20 @@ export class UsersService {
       (input.role !== undefined && input.role !== existing.role);
 
     const user = await this.repository.update(id, data, revokeSessions);
+    // What changed, without the password itself.
+    const details: Record<string, unknown> = {};
+    if (input.name !== undefined && input.name !== existing.name) details.name = input.name;
+    if (input.role !== undefined && input.role !== existing.role) details.role = input.role;
+    if (input.isActive !== undefined && input.isActive !== existing.isActive) {
+      details.isActive = input.isActive;
+    }
+    if (input.password !== undefined) details.passwordReset = true;
+    await this.activity.record(actor, {
+      action: 'user.updated',
+      targetId: id,
+      targetLabel: user.email,
+      details: Object.keys(details).length > 0 ? details : undefined,
+    });
     return toAdminUser(user);
   }
 }

@@ -1,9 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
+import { ActivityList } from '@/components/app/ActivityList';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { adminListActivity } from '@/lib/api/activity';
 import { getAdminStats } from '@/lib/api/stats';
 
 export default async function AdminDashboardPage({
@@ -14,7 +16,10 @@ export default async function AdminDashboardPage({
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Admin.dashboard' });
   const ta = await getTranslations({ locale, namespace: 'App' });
-  const stats = await getAdminStats();
+  const [stats, activity] = await Promise.all([
+    getAdminStats(),
+    adminListActivity({ pageSize: 6 }),
+  ]);
 
   const cards = [
     { href: '/admin/leads?status=NEW', label: t('newLeads'), value: stats.leads.new },
@@ -37,16 +42,28 @@ export default async function AdminDashboardPage({
           </Button>
         }
       />
-      <ul className={styles.stats}>
-        {cards.map((card) => (
-          <li key={card.label}>
-            <Link href={card.href} className={`${styles.panel} ${styles.stat}`}>
-              <span className={styles.statValue}>{card.value}</span>
-              <span className={styles.statLabel}>{card.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className={styles.stack}>
+        <ul className={styles.stats}>
+          {cards.map((card) => (
+            <li key={card.label}>
+              <Link href={card.href} className={`${styles.panel} ${styles.stat}`}>
+                <span className={styles.statValue}>{card.value}</span>
+                <span className={styles.statLabel}>{card.label}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+
+        {activity.items.length > 0 ? (
+          <section className={styles.panel}>
+            <div className={styles.panelHeader}>
+              <h2 className={styles.panelTitle}>{t('recentActivity')}</h2>
+              <Link href="/admin/activity">{t('allActivity')}</Link>
+            </div>
+            <ActivityList entries={activity.items} locale={locale} />
+          </section>
+        ) : null}
+      </div>
     </>
   );
 }

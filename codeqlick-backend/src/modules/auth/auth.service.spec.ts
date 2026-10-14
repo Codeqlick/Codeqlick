@@ -1,10 +1,11 @@
 import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ActivityService } from '../activity/activity.service.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { Session, User } from '../../generated/prisma/client.js';
 import type { AuthRepository, SessionWithUser } from './auth.repository.js';
-import { AuthService, hashRefreshToken, type AuthTokens } from './auth.service.js';
+import { AuthService, hashRefreshToken, toAuthUser, type AuthTokens } from './auth.service.js';
 import { totpCode } from './totp.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { PasswordService } from './password.service.js';
@@ -119,6 +120,7 @@ describe('AuthService', () => {
       jwt as unknown as JwtService,
       config,
       mail as unknown as MailService,
+      { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
     );
   });
 
@@ -524,7 +526,9 @@ describe('AuthService', () => {
 
     it('answers 404 for a session that is not the caller', async () => {
       repository.revokeUserFamily.mockResolvedValue(false);
-      await expect(service.revokeSession('u', 'f')).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.revokeSession(toAuthUser(makeUser({ id: 'u' })), 'f'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('signs out the other sessions, keeping the one of the refresh token', async () => {
@@ -532,15 +536,15 @@ describe('AuthService', () => {
       const session = makeSession(user);
       repository.findSessionByTokenHash.mockResolvedValue(session);
 
-      await service.revokeOtherSessions(user.id, 'old-token');
+      await service.revokeOtherSessions(toAuthUser(user), 'old-token');
       expect(repository.revokeOtherFamilies).toHaveBeenCalledWith(user.id, session.familyId);
     });
 
     it("refuses to keep a session that isn't the caller's", async () => {
       repository.findSessionByTokenHash.mockResolvedValue(makeSession(makeUser({ id: 'other' })));
-      await expect(service.revokeOtherSessions('me', 'old-token')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(
+        service.revokeOtherSessions(toAuthUser(makeUser({ id: 'me' })), 'old-token'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(repository.revokeOtherFamilies).not.toHaveBeenCalled();
     });
   });

@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { PublishStatus } from '../../generated/prisma/client.js';
+import { ActivityService, contentLabel, publishVerb } from '../activity/activity.service.js';
 import {
   PortfolioRepository,
   type PortfolioTranslationData,
@@ -75,7 +77,10 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
 
 @Injectable()
 export class PortfolioService {
-  constructor(private readonly repository: PortfolioRepository) {}
+  constructor(
+    private readonly repository: PortfolioRepository,
+    private readonly activity: ActivityService,
+  ) {}
 
   // ---- Public -------------------------------------------------------------------------
 
@@ -117,7 +122,7 @@ export class PortfolioService {
     return toAdminItem(await this.findOrThrow(id));
   }
 
-  async create(input: CreatePortfolioInput): Promise<AdminPortfolioItem> {
+  async create(actor: AuthUser, input: CreatePortfolioInput): Promise<AdminPortfolioItem> {
     const item = await this.repository.create({
       slug: input.slug,
       status: input.status,
@@ -129,10 +134,21 @@ export class PortfolioService {
       sortOrder: input.sortOrder,
       translations: input.translations.map(toTranslationData),
     });
-    return toAdminItem(item);
+    const created = toAdminItem(item);
+    await this.activity.record(actor, {
+      action: 'portfolio.created',
+      targetId: created.id,
+      targetLabel: contentLabel(created),
+      details: { status: created.status },
+    });
+    return created;
   }
 
-  async update(id: string, input: UpdatePortfolioInput): Promise<AdminPortfolioItem> {
+  async update(
+    actor: AuthUser,
+    id: string,
+    input: UpdatePortfolioInput,
+  ): Promise<AdminPortfolioItem> {
     const existing = await this.findOrThrow(id);
     const data: PortfolioUpdateData = {};
     if (input.slug !== undefined) data.slug = input.slug;
@@ -150,12 +166,23 @@ export class PortfolioService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
-    return toAdminItem(await this.repository.update(id, data));
+    const updated = toAdminItem(await this.repository.update(id, data));
+    await this.activity.record(actor, {
+      action: `portfolio.${publishVerb(existing.status, input.status)}`,
+      targetId: id,
+      targetLabel: contentLabel(updated),
+    });
+    return updated;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.findOrThrow(id);
+  async delete(actor: AuthUser, id: string): Promise<void> {
+    const existing = toAdminItem(await this.findOrThrow(id));
     await this.repository.delete(id);
+    await this.activity.record(actor, {
+      action: 'portfolio.deleted',
+      targetId: id,
+      targetLabel: contentLabel(existing),
+    });
   }
 
   private async findOrThrow(id: string): Promise<PortfolioWithTranslations> {

@@ -13,6 +13,7 @@ import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
 import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { passwordResetEmail } from './auth-emails.js';
 import { PasswordService } from './password.service.js';
@@ -110,6 +111,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: AppConfigService,
     private readonly mail: MailService,
+    private readonly activity: ActivityService,
   ) {
     this.secrets = new SecretBox(config.jwtAccessSecret);
     this.challengeKey = Buffer.from(
@@ -191,19 +193,31 @@ export class AuthService {
   }
 
   /** Signs out one of the caller's sessions (possibly the current one). */
-  async revokeSession(userId: string, familyId: string): Promise<void> {
-    if (!(await this.repository.revokeUserFamily(userId, familyId))) {
+  async revokeSession(user: AuthUser, familyId: string): Promise<void> {
+    if (!(await this.repository.revokeUserFamily(user.id, familyId))) {
       throw new NotFoundException('Session not found');
     }
+    await this.activity.record(user, {
+      action: 'account.sessions_revoked',
+      targetId: user.id,
+      targetLabel: user.email,
+      details: { scope: 'one' },
+    });
   }
 
   /** Signs out every other session; the one that owns `refreshToken` stays signed in. */
-  async revokeOtherSessions(userId: string, refreshToken: string): Promise<void> {
+  async revokeOtherSessions(user: AuthUser, refreshToken: string): Promise<void> {
     const session = await this.repository.findSessionByTokenHash(hashRefreshToken(refreshToken));
-    if (!session || session.userId !== userId || session.revokedAt) {
+    if (!session || session.userId !== user.id || session.revokedAt) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    await this.repository.revokeOtherFamilies(userId, session.familyId);
+    await this.repository.revokeOtherFamilies(user.id, session.familyId);
+    await this.activity.record(user, {
+      action: 'account.sessions_revoked',
+      targetId: user.id,
+      targetLabel: user.email,
+      details: { scope: 'others' },
+    });
   }
 
   async me(userId: string): Promise<AuthUser> {
@@ -242,6 +256,11 @@ export class AuthService {
       await this.passwords.hash(newPassword),
       hashRefreshToken(refreshToken),
     );
+    await this.activity.record(toAuthUser(user), {
+      action: 'account.password_changed',
+      targetId: user.id,
+      targetLabel: user.email,
+    });
   }
 
   /**
@@ -330,6 +349,11 @@ export class AuthService {
     }
     const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
     await this.repository.enableTotp(user.id, step, recoveryCodes.map(hashRecoveryCode));
+    await this.activity.record(toAuthUser(user), {
+      action: 'account.two_factor_enabled',
+      targetId: user.id,
+      targetLabel: user.email,
+    });
     return { recoveryCodes };
   }
 
@@ -346,6 +370,11 @@ export class AuthService {
       throw new BadRequestException({ errors: [{ path: 'code', message: 'Invalid code' }] });
     }
     await this.repository.disableTotp(user.id);
+    await this.activity.record(toAuthUser(user), {
+      action: 'account.two_factor_disabled',
+      targetId: user.id,
+      targetLabel: user.email,
+    });
   }
 
   private async activeUser(userId: string): Promise<User> {
