@@ -3,14 +3,15 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { connection } from 'next/server';
 import type { ReactNode } from 'react';
 import { BrandSymbol } from '@/components/brand/Symbol';
+import { JsonLd } from '@/components/seo/JsonLd';
 import { Button } from '@/components/ui/Button';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { listPortfolio } from '@/lib/api/portfolio';
 import type { Locale, PortfolioSummary } from '@/lib/api/types';
-import { localeAlternates } from '@/lib/seo';
-import { CONTACT_EMAIL, STACK } from '@/lib/site';
+import { absoluteUrl, localeAlternates } from '@/lib/seo';
+import { CONTACT_EMAIL, SITE_NAME, SOCIAL_LINKS, STACK, TAGLINE } from '@/lib/site';
 import styles from './page.module.css';
 
 const STEPS = ['discovery', 'design', 'development', 'qa', 'launch', 'support'] as const;
@@ -127,6 +128,18 @@ export default async function HomePage({ params }: PageProps) {
 
   return (
     <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: SITE_NAME,
+          url: absoluteUrl('/'),
+          logo: absoluteUrl('/favicon-512.png'),
+          slogan: TAGLINE,
+          email: CONTACT_EMAIL,
+          sameAs: SOCIAL_LINKS.map((link) => link.href),
+        }}
+      />
       <section className={`wrap ${styles.hero}`}>
         <div className={styles.heroText}>
           <p className={styles.heroEyebrow}>{t('hero.eyebrow')}</p>
