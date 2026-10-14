@@ -253,6 +253,18 @@
     "forgot": "Forgot your password?",
     "passwordReset": "Your password has been changed. Sign in with the new one."
   },
+  "TwoFactorLogin": {
+    "title": "Two-step verification",
+    "subtitle": "Enter the 6-digit code from your authenticator app.",
+    "code": "Code",
+    "codeHint": "Lost your phone? Enter one of your recovery codes instead.",
+    "submit": "Verify",
+    "submitting": "Verifying…",
+    "invalid": "That code is not valid. Check the time on your phone and try again.",
+    "expired": "The sign-in took too long. Go back and enter your password again.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "backToLogin": "Back to sign in"
+  },
   "ForgotPassword": {
     "metaTitle": "Forgot your password",
     "title": "Forgot your password?",
@@ -291,6 +303,33 @@
     "changed": "Password changed. Your other devices have been signed out.",
     "wrongCurrent": "The current password is not correct.",
     "samePassword": "Choose a password you are not already using.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again."
+  },
+  "TwoFactor": {
+    "title": "Two-step verification",
+    "offBody": "Ask for a code from an authenticator app (such as Google Authenticator, 1Password or Microsoft Authenticator) every time you sign in, in addition to your password.",
+    "start": "Set up",
+    "starting": "Preparing…",
+    "scan": "1. Scan this QR code with your authenticator app.",
+    "manual": "Can't scan it? Enter this key instead:",
+    "confirm": "2. Enter the 6-digit code the app shows.",
+    "code": "Code",
+    "enable": "Turn on",
+    "enabling": "Turning on…",
+    "invalidCode": "That code is not valid. Check the time on your phone and try again.",
+    "recoveryTitle": "Two-step verification is on. Save your recovery codes",
+    "recoveryBody": "Each code signs you in once if you lose your phone. Keep them somewhere safe, like a password manager: they won't be shown again.",
+    "done": "I've saved them",
+    "onBody": "On. You'll be asked for a code from your authenticator app at every sign-in.",
+    "recoveryLeft": "{count, plural, =0 {No recovery codes left: turn it off and on again to get new ones.} one {# recovery code left.} other {# recovery codes left.}}",
+    "disableTitle": "Turn off",
+    "disableBody": "Confirm with your password and a current code (or a recovery code).",
+    "password": "Current password",
+    "disableCode": "Code",
+    "disable": "Turn off",
+    "disabling": "Turning off…",
+    "disabled": "Two-step verification is off.",
+    "wrongPassword": "The password is not correct.",
     "rateLimited": "Too many attempts. Please wait a minute and try again."
   },
   "NotFound": {

@@ -45,3 +45,26 @@ export const confirmPasswordResetSchema = z
   })
   .strict();
 export type ConfirmPasswordResetInput = z.infer<typeof confirmPasswordResetSchema>;
+
+/** A 6-digit authenticator code or a recovery code (`xxxx-xxxx`). */
+const twoFactorCodeSchema = z.string().trim().min(6).max(32);
+
+export const verifyTwoFactorSchema = z
+  .object({ challengeToken: z.string().min(1).max(2048), code: twoFactorCodeSchema })
+  .strict();
+export type VerifyTwoFactorInput = z.infer<typeof verifyTwoFactorSchema>;
+
+export const enableTwoFactorSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/),
+  })
+  .strict();
+export type EnableTwoFactorInput = z.infer<typeof enableTwoFactorSchema>;
+
+export const disableTwoFactorSchema = z
+  .object({ password: z.string().min(1).max(1024), code: twoFactorCodeSchema })
+  .strict();
+export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;

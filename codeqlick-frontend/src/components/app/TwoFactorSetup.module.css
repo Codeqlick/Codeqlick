@@ -1,0 +1,33 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 34rem;
+}
+
+.qr {
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+}
+
+.muted {
+  color: var(--color-slate);
+}
+
+.secret {
+  font-family: var(--font-family-mono);
+  word-break: break-all;
+}
+
+.codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding: var(--space-4) var(--space-4) var(--space-4) 2.5rem;
+  background: var(--color-blush);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-mono);
+}

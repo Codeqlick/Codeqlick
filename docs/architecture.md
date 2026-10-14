@@ -157,6 +157,7 @@ sequenceDiagram
 - **Logout** revokes the current session.
 - **Brute force:** login is limited to 5 attempts per minute per IP; the service runs an Argon2 verify even when the email doesn't exist, so timing doesn't reveal accounts.
 - Deactivating a user (`isActive=false`) revokes all their sessions.
+- **Two-step verification (optional, per user):** an RFC 6238 authenticator app (TOTP, SHA-1, 30 s, 6 digits, ±1 step). With it on, a correct password returns `{ twoFactorRequired, challengeToken }` instead of tokens; the challenge is a 5-minute JWT signed with its own key (so it never passes as an access token) and the web app keeps it in the httpOnly cookie `cq_2fa` until the code is entered at `/[locale]/login/verify`. The secret is stored encrypted (AES-256-GCM, key derived from `JWT_ACCESS_SECRET`: rotating that secret means setting two-step verification up again). An accepted time step can't be reused. Ten single-use recovery codes (`xxxx-xxxx`, stored as SHA-256) replace the app when the phone is lost.
 
 ### 4.4 Errors
 
@@ -208,7 +209,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/portfolio` | `?locale=en&page&pageSize` | Paginated `PortfolioSummary` (published only, by `sortOrder`) |
 | GET | `/portfolio/:slug` | `?locale=en` | `PortfolioDetail` or 404 |
 | GET | `/media/:filename` | | The uploaded image, cacheable forever (names are never reused); 404 otherwise |
-| POST | `/auth/login` | `{ email, password }` | `200 AuthTokens` — limited to 5/min/IP |
+| POST | `/auth/login` | `{ email, password }` | `200 AuthTokens`, or `200 { twoFactorRequired: true, challengeToken }` when two-step verification is on — limited to 5/min/IP |
+| POST | `/auth/2fa/verify` | `{ challengeToken, code }` (authenticator or recovery code) | `200 AuthTokens`; `401` for a wrong code or an expired challenge — limited to 5/min/IP |
 | POST | `/auth/refresh` | `{ refreshToken }` | `200 AuthTokens` |
 | POST | `/auth/password-reset/request` | `{ email, locale }` | `202` always, whether or not the account exists. An active account is emailed a link to `SITE_URL/{locale}/reset-password?token=…` — limited to 5/min/IP |
 | POST | `/auth/password-reset/confirm` | `{ token, newPassword }` | `204`: password set, token spent, every session of the user revoked. `400` when the token is unknown, used or expired — limited to 5/min/IP |
@@ -219,6 +221,10 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 |---|---|---|
 | POST | `/auth/logout` | `{ refreshToken }` → `204` |
 | GET | `/auth/me` | `AuthUser` |
+| GET | `/auth/2fa` | `{ enabled, recoveryCodesLeft }` |
+| POST | `/auth/2fa/setup` | `{ secret, otpauthUrl }`: a new secret, pending until confirmed; `409` when already on |
+| POST | `/auth/2fa/enable` | `{ code }` → `{ recoveryCodes }` (shown once); `400` for a wrong code — limited to 5/min/IP |
+| POST | `/auth/2fa/disable` | `{ password, code }` → `204`; `400` with a field error for a wrong password or code — limited to 5/min/IP |
 | POST | `/auth/password` | `{ currentPassword, newPassword, refreshToken }` → `204`. Revokes the caller's other sessions; the one owning `refreshToken` stays signed in. `400` with a field error when `currentPassword` is wrong or `newPassword` (min 12 chars) equals it — limited to 5/min/IP |
 
 ### Client portal (role `CLIENT`; admins may also call)

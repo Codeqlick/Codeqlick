@@ -138,6 +138,17 @@ docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 
 `docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
+### Locked out of two-step verification
+
+If someone lost both their phone and their recovery codes, turn two-step verification off for
+them; they sign in with their password and can set it up again from their account page:
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T db psql -U codeqlick -d codeqlick -c \
+  "UPDATE users SET totp_secret = NULL, totp_enabled_at = NULL, totp_last_step = NULL,
+   totp_recovery_hashes = '{}' WHERE email = 'person@example.com';"
+```
+
 ## Notes
 
 - The OpenAPI UI (`/docs`) is disabled in production.

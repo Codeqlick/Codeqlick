@@ -115,6 +115,51 @@ export class AuthRepository {
     });
   }
 
+  /** Stores a new, not yet confirmed, authenticator secret (replacing an unconfirmed one). */
+  async setPendingTotp(userId: string, sealedSecret: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        totpSecret: sealedSecret,
+        totpEnabledAt: null,
+        totpLastStep: null,
+        totpRecoveryHashes: [],
+      },
+    });
+  }
+
+  async enableTotp(userId: string, step: number, recoveryHashes: string[]): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totpEnabledAt: new Date(), totpLastStep: step, totpRecoveryHashes: recoveryHashes },
+    });
+  }
+
+  async disableTotp(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totpSecret: null, totpEnabledAt: null, totpLastStep: null, totpRecoveryHashes: [] },
+    });
+  }
+
+  /** Records `step` as used. False when it (or a later one) already was: a replayed code. */
+  async useTotpStep(userId: string, step: number): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, OR: [{ totpLastStep: null }, { totpLastStep: { lt: step } }] },
+      data: { totpLastStep: step },
+    });
+    return result.count === 1;
+  }
+
+  /** Removes a recovery code. False when the user doesn't have it (anymore). */
+  async useRecoveryCode(userId: string, hash: string, remaining: string[]): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({
+      where: { id: userId, totpRecoveryHashes: { has: hash } },
+      data: { totpRecoveryHashes: remaining },
+    });
+    return result.count === 1;
+  }
+
   async revokeFamily(familyId: string): Promise<void> {
     await this.prisma.session.updateMany({
       where: { familyId, revokedAt: null },

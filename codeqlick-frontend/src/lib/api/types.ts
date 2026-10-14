@@ -211,3 +211,12 @@ export type MediaUsage = { type: 'post' | 'portfolio'; id: string; slug: string 
 
 /** One row of `GET /admin/media`. */
 export type MediaItem = UploadedMedia & { createdAt: string; usedBy: MediaUsage[] };
+
+/** `POST /auth/login` when the account has two-step verification on: the code comes next. */
+export type TwoFactorChallenge = { twoFactorRequired: true; challengeToken: string };
+
+export type LoginResult = AuthTokens | TwoFactorChallenge;
+
+export type TwoFactorStatus = { enabled: boolean; recoveryCodesLeft: number };
+
+export type TwoFactorSetup = { secret: string; otpauthUrl: string };

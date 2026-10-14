@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { Session, User } from '../../generated/prisma/client.js';
 import type { AuthRepository, SessionWithUser } from './auth.repository.js';
-import { AuthService, hashRefreshToken } from './auth.service.js';
+import { AuthService, hashRefreshToken, type AuthTokens } from './auth.service.js';
+import { totpCode } from './totp.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { PasswordService } from './password.service.js';
 
@@ -16,6 +17,10 @@ function makeUser(overrides: Partial<User> = {}): User {
     name: 'Ada',
     role: 'ADMIN',
     isActive: true,
+    totpSecret: null,
+    totpEnabledAt: null,
+    totpLastStep: null,
+    totpRecoveryHashes: [],
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
@@ -52,13 +57,18 @@ describe('AuthService', () => {
     changePassword: ReturnType<typeof vi.fn>;
     replacePasswordResetToken: ReturnType<typeof vi.fn>;
     resetPassword: ReturnType<typeof vi.fn>;
+    setPendingTotp: ReturnType<typeof vi.fn>;
+    enableTotp: ReturnType<typeof vi.fn>;
+    disableTotp: ReturnType<typeof vi.fn>;
+    useTotpStep: ReturnType<typeof vi.fn>;
+    useRecoveryCode: ReturnType<typeof vi.fn>;
   };
   let passwords: {
     hash: ReturnType<typeof vi.fn>;
     verify: ReturnType<typeof vi.fn>;
     verifyDummy: ReturnType<typeof vi.fn>;
   };
-  let jwt: { signAsync: ReturnType<typeof vi.fn> };
+  let jwt: { signAsync: ReturnType<typeof vi.fn>; verifyAsync: ReturnType<typeof vi.fn> };
   let mail: { send: ReturnType<typeof vi.fn> };
   let service: AuthService;
 
@@ -74,18 +84,27 @@ describe('AuthService', () => {
       changePassword: vi.fn().mockResolvedValue(undefined),
       replacePasswordResetToken: vi.fn().mockResolvedValue(undefined),
       resetPassword: vi.fn().mockResolvedValue(true),
+      setPendingTotp: vi.fn().mockResolvedValue(undefined),
+      enableTotp: vi.fn().mockResolvedValue(undefined),
+      disableTotp: vi.fn().mockResolvedValue(undefined),
+      useTotpStep: vi.fn().mockResolvedValue(true),
+      useRecoveryCode: vi.fn().mockResolvedValue(true),
     };
     passwords = {
       hash: vi.fn(),
       verify: vi.fn(),
       verifyDummy: vi.fn().mockResolvedValue(undefined),
     };
-    jwt = { signAsync: vi.fn().mockResolvedValue('signed.jwt.token') };
+    jwt = {
+      signAsync: vi.fn().mockResolvedValue('signed.jwt.token'),
+      verifyAsync: vi.fn(),
+    };
     mail = { send: vi.fn().mockResolvedValue(undefined) };
     const config = {
       jwtAccessTtl: 900,
       refreshTokenTtlDays: 30,
       siteUrl: 'https://codeqlick.com',
+      jwtAccessSecret: 'unit-test-secret-unit-test-secret-1234',
     } as AppConfigService;
 
     service = new AuthService(
@@ -103,7 +122,7 @@ describe('AuthService', () => {
       repository.findUserByEmail.mockResolvedValue(user);
       passwords.verify.mockResolvedValue(true);
 
-      const result = await service.login('  ADA@codeqlick.com ', 'correct horse');
+      const result = (await service.login('  ADA@codeqlick.com ', 'correct horse')) as AuthTokens;
 
       expect(repository.findUserByEmail).toHaveBeenCalledWith('ada@codeqlick.com');
       expect(result.accessToken).toBe('signed.jwt.token');
@@ -314,6 +333,145 @@ describe('AuthService', () => {
       await expect(
         service.confirmPasswordReset('bad-token', 'new password 456'),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('two-step verification', () => {
+    /** Runs the setup through the service and returns the user as stored afterwards. */
+    // oxlint-disable-next-line unicorn/consistent-function-scoping -- uses the mocks of the enclosing beforeEach
+    async function enrolledUser(): Promise<{
+      user: User;
+      secret: string;
+      recoveryCodes: string[];
+    }> {
+      const pending = makeUser();
+      repository.findUserById.mockResolvedValue(pending);
+      const { secret, otpauthUrl } = await service.startTwoFactorSetup(pending.id);
+      expect(otpauthUrl).toContain(`secret=${secret}`);
+      const sealed = repository.setPendingTotp.mock.calls[0]?.[1] as string;
+      expect(sealed).not.toContain(secret);
+
+      repository.findUserById.mockResolvedValue({ ...pending, totpSecret: sealed });
+      const step = Math.floor(Date.now() / 30_000);
+      const { recoveryCodes } = await service.enableTwoFactor(pending.id, totpCode(secret, step));
+      const hashes = repository.enableTotp.mock.calls[0]?.[2] as string[];
+      return {
+        user: {
+          ...pending,
+          totpSecret: sealed,
+          totpEnabledAt: new Date(),
+          totpLastStep: step - 5,
+          totpRecoveryHashes: hashes,
+        },
+        secret,
+        recoveryCodes,
+      };
+    }
+
+    it('enables with a valid code and hands out ten recovery codes once', async () => {
+      const { recoveryCodes } = await enrolledUser();
+      expect(recoveryCodes).toHaveLength(10);
+      expect(new Set(recoveryCodes).size).toBe(10);
+      for (const code of recoveryCodes) expect(code).toMatch(/^[a-z2-9]{4}-[a-z2-9]{4}$/);
+      const hashes = repository.enableTotp.mock.calls[0]?.[2] as string[];
+      expect(hashes).not.toContain(recoveryCodes[0]);
+    });
+
+    it('rejects a wrong first code', async () => {
+      const pending = makeUser();
+      repository.findUserById.mockResolvedValue(pending);
+      await service.startTwoFactorSetup(pending.id);
+      const sealed = repository.setPendingTotp.mock.calls[0]?.[1] as string;
+      repository.findUserById.mockResolvedValue({ ...pending, totpSecret: sealed });
+
+      await expect(service.enableTwoFactor(pending.id, '000000')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(repository.enableTotp).not.toHaveBeenCalled();
+    });
+
+    it('answers a correct password with a challenge instead of tokens', async () => {
+      const { user } = await enrolledUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(true);
+      jwt.signAsync.mockResolvedValue('challenge.jwt');
+
+      const result = await service.login(user.email, 'correct horse');
+
+      expect(result).toEqual({ twoFactorRequired: true, challengeToken: 'challenge.jwt' });
+      expect(repository.createSession).not.toHaveBeenCalled();
+      const options = jwt.signAsync.mock.calls.at(-1)?.[1] as { secret: string; expiresIn: number };
+      expect(options.expiresIn).toBe(300);
+      expect(options.secret).not.toBe('unit-test-secret-unit-test-secret-1234');
+    });
+
+    it('finishes the sign-in with an authenticator code', async () => {
+      const { user, secret } = await enrolledUser();
+      repository.findUserById.mockResolvedValue(user);
+      jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
+      jwt.signAsync.mockResolvedValue('signed.jwt.token');
+
+      const step = Math.floor(Date.now() / 30_000);
+      const tokens = await service.verifyTwoFactor('challenge.jwt', totpCode(secret, step));
+
+      expect(tokens.accessToken).toBe('signed.jwt.token');
+      expect(repository.useTotpStep).toHaveBeenCalledWith(user.id, step);
+      expect(repository.createSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses a replayed code, a wrong code and a token for another purpose', async () => {
+      const { user, secret } = await enrolledUser();
+      repository.findUserById.mockResolvedValue(user);
+      jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
+      const code = totpCode(secret, Math.floor(Date.now() / 30_000));
+
+      repository.useTotpStep.mockResolvedValue(false);
+      await expect(service.verifyTwoFactor('c', code)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      await expect(service.verifyTwoFactor('c', '123456')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      jwt.verifyAsync.mockResolvedValue({ sub: user.id, role: 'ADMIN' });
+      await expect(service.verifyTwoFactor('c', code)).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(repository.createSession).not.toHaveBeenCalled();
+    });
+
+    it('accepts each recovery code once', async () => {
+      const { user, recoveryCodes } = await enrolledUser();
+      repository.findUserById.mockResolvedValue(user);
+      jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
+
+      await service.verifyTwoFactor('c', recoveryCodes[0]!.toUpperCase());
+
+      const [, hash, remaining] = repository.useRecoveryCode.mock.calls[0] as [
+        string,
+        string,
+        string[],
+      ];
+      expect(remaining).toHaveLength(9);
+      expect(remaining).not.toContain(hash);
+    });
+
+    it('turns it off only with the password and a valid code', async () => {
+      const { user, secret } = await enrolledUser();
+      repository.findUserById.mockResolvedValue(user);
+      const code = totpCode(secret, Math.floor(Date.now() / 30_000));
+
+      passwords.verify.mockResolvedValue(false);
+      await expect(service.disableTwoFactor(user.id, 'wrong', code)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      passwords.verify.mockResolvedValue(true);
+      await expect(service.disableTwoFactor(user.id, 'right', '000000')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(repository.disableTotp).not.toHaveBeenCalled();
+
+      await service.disableTwoFactor(user.id, 'right', code);
+      expect(repository.disableTotp).toHaveBeenCalledWith(user.id);
     });
   });
 });

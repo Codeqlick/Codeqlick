@@ -253,6 +253,18 @@
     "forgot": "¿Has olvidado tu contraseña?",
     "passwordReset": "Tu contraseña se ha cambiado. Inicia sesión con la nueva."
   },
+  "TwoFactorLogin": {
+    "title": "Verificación en dos pasos",
+    "subtitle": "Escribe el código de 6 cifras de tu app de autenticación.",
+    "code": "Código",
+    "codeHint": "¿Has perdido el móvil? Escribe uno de tus códigos de recuperación.",
+    "submit": "Verificar",
+    "submitting": "Verificando…",
+    "invalid": "Ese código no es válido. Revisa la hora del móvil y vuelve a intentarlo.",
+    "expired": "El inicio de sesión ha tardado demasiado. Vuelve atrás y escribe de nuevo tu contraseña.",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
+    "backToLogin": "Volver a iniciar sesión"
+  },
   "ForgotPassword": {
     "metaTitle": "Recuperar contraseña",
     "title": "¿Has olvidado tu contraseña?",
@@ -291,6 +303,33 @@
     "changed": "Contraseña cambiada. Se ha cerrado la sesión en tus otros dispositivos.",
     "wrongCurrent": "La contraseña actual no es correcta.",
     "samePassword": "Elige una contraseña que no estés usando ya.",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
+  },
+  "TwoFactor": {
+    "title": "Verificación en dos pasos",
+    "offBody": "Pide un código de una app de autenticación (como Google Authenticator, 1Password o Microsoft Authenticator) cada vez que inicias sesión, además de la contraseña.",
+    "start": "Configurar",
+    "starting": "Preparando…",
+    "scan": "1. Escanea este código QR con tu app de autenticación.",
+    "manual": "¿No puedes escanearlo? Escribe esta clave:",
+    "confirm": "2. Escribe el código de 6 cifras que muestra la app.",
+    "code": "Código",
+    "enable": "Activar",
+    "enabling": "Activando…",
+    "invalidCode": "Ese código no es válido. Revisa la hora del móvil y vuelve a intentarlo.",
+    "recoveryTitle": "La verificación en dos pasos está activada. Guarda tus códigos de recuperación",
+    "recoveryBody": "Cada código te permite entrar una vez si pierdes el móvil. Guárdalos en un sitio seguro, como un gestor de contraseñas: no se volverán a mostrar.",
+    "done": "Ya los he guardado",
+    "onBody": "Activada. Te pediremos un código de tu app de autenticación cada vez que inicies sesión.",
+    "recoveryLeft": "{count, plural, =0 {No te quedan códigos de recuperación: desactívala y vuelve a activarla para tener nuevos.} one {Te queda # código de recuperación.} other {Te quedan # códigos de recuperación.}}",
+    "disableTitle": "Desactivar",
+    "disableBody": "Confirma con tu contraseña y un código actual (o un código de recuperación).",
+    "password": "Contraseña actual",
+    "disableCode": "Código",
+    "disable": "Desactivar",
+    "disabling": "Desactivando…",
+    "disabled": "La verificación en dos pasos está desactivada.",
+    "wrongPassword": "La contraseña no es correcta.",
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
   },
   "NotFound": {
