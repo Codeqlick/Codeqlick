@@ -131,6 +131,7 @@ erDiagram
 - **PasswordResetToken** — one row per "forgot my password" email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
 - **Lead** — contact form submission: `name`, `email`, `company?`, `budget?`, `message`, `locale`, `status` (`NEW` → `CONTACTED` → `QUALIFIED` → `WON` | `LOST` | `ARCHIVED`), `notes?`.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
+- **Scheduling (posts and case studies):** content is live when `status = PUBLISHED` and `publishedAt <= now`. A published item dated in the future is *scheduled*: the public API (lists, detail, so also the sitemap and RSS) hides it until then and it appears on its own, with no job to run, within the public pages' 5-minute revalidation. `publishedAt` is set on the first publish unless one is given; clearing it on a published item means now. The admin panel types it in Madrid time.
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `sortOrder`; translation has `title`, `summary`, `content`.
 - **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`.
@@ -247,7 +248,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 
 | Method | Path | Body / query |
 |---|---|---|
-| GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts }, portfolio: { published }, projects: { active }, clients }` |
+| GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients }` |
 | GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|account&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
 | GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
@@ -279,7 +280,7 @@ type PostDetail = PostSummary & { content: string; locales: Locale[] };
 
 type Translation<T> = { locale: Locale } & T;
 type PostInput = {
-  slug: string; status: 'DRAFT' | 'PUBLISHED'; coverImageUrl?: string | null;
+  slug: string; status: 'DRAFT' | 'PUBLISHED'; publishedAt?: string | null /* ISO with offset; future = scheduled */; coverImageUrl?: string | null;
   translations: Translation<{ title: string; excerpt: string; content: string }>[]; // at least 'en'
 };
 type AdminPost = Omit<PostInput, 'coverImageUrl'> & { id: string; coverImageUrl: string | null; publishedAt: string | null; createdAt: string; updatedAt: string };
@@ -287,7 +288,7 @@ type AdminPost = Omit<PostInput, 'coverImageUrl'> & { id: string; coverImageUrl:
 type PortfolioSummary = { slug: string; title: string; summary: string; clientName: string | null; coverImageUrl: string | null; technologies: string[] };
 type PortfolioDetail = PortfolioSummary & { content: string; projectUrl: string | null; locales: Locale[] };
 type PortfolioInput = {
-  slug: string; status: 'DRAFT' | 'PUBLISHED'; clientName?: string | null; projectUrl?: string | null;
+  slug: string; status: 'DRAFT' | 'PUBLISHED'; publishedAt?: string | null; clientName?: string | null; projectUrl?: string | null;
   coverImageUrl?: string | null; technologies: string[]; sortOrder: number;
   translations: Translation<{ title: string; summary: string; content: string }>[];
 };

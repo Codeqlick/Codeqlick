@@ -3,6 +3,7 @@ import {
   localeQuerySchema,
   localeSchema,
   nullableUrlSchema,
+  publishedAtSchema,
   paginationSchema,
   slugSchema,
   translationsArray,
@@ -26,6 +27,7 @@ export const createPostSchema = z
     status: publishStatusSchema,
     coverImageUrl: nullableUrlSchema,
     translations: translationsArray(postTranslationSchema),
+    publishedAt: publishedAtSchema,
   })
   .strict();
 export type CreatePostInput = z.infer<typeof createPostSchema>;
@@ -36,6 +38,7 @@ export const updatePostSchema = z
     status: publishStatusSchema.optional(),
     coverImageUrl: nullableUrlSchema,
     translations: translationsArray(postTranslationSchema).optional(),
+    publishedAt: publishedAtSchema,
   })
   .strict();
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;

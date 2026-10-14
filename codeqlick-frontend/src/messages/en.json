@@ -486,7 +486,8 @@
   },
   "PublishStatuses": {
     "DRAFT": "Draft",
-    "PUBLISHED": "Published"
+    "PUBLISHED": "Published",
+    "SCHEDULED": "Scheduled"
   },
   "Portal": {
     "title": "Client portal",
@@ -537,7 +538,8 @@
       "activeProjects": "Active projects",
       "clients": "Clients",
       "recentActivity": "Recent activity",
-      "allActivity": "See all"
+      "allActivity": "See all",
+      "scheduledPosts": "Scheduled posts"
     },
     "leads": {
       "title": "Leads",
@@ -576,7 +578,9 @@
       "emptyBody": "Write the first article for the blog.",
       "back": "All posts",
       "deleteTitle": "Delete this post",
-      "deleteBody": "The post and its translations will be removed from the blog."
+      "deleteBody": "The post and its translations will be removed from the blog.",
+      "publishedAt": "Publication date",
+      "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -602,7 +606,9 @@
       "emptyBody": "Add the first project to the portfolio.",
       "back": "All case studies",
       "deleteTitle": "Delete this case study",
-      "deleteBody": "The case study and its translations will be removed from the website."
+      "deleteBody": "The case study and its translations will be removed from the website.",
+      "publishedAt": "Publication date",
+      "publishedAtHint": "In the future, the case study goes live on its own at that time (Madrid time). Empty: when you publish it."
     },
     "projects": {
       "title": "Projects",
@@ -725,14 +731,16 @@
           "updated": "edited the post <target>{label}</target>",
           "published": "published the post <target>{label}</target>",
           "unpublished": "moved the post <target>{label}</target> back to draft",
-          "deleted": "deleted the post <target>{label}</target>"
+          "deleted": "deleted the post <target>{label}</target>",
+          "scheduled": "scheduled the post <target>{label}</target>"
         },
         "portfolio": {
           "created": "created the case study <target>{label}</target>",
           "updated": "edited the case study <target>{label}</target>",
           "published": "published the case study <target>{label}</target>",
           "unpublished": "moved the case study <target>{label}</target> back to draft",
-          "deleted": "deleted the case study <target>{label}</target>"
+          "deleted": "deleted the case study <target>{label}</target>",
+          "scheduled": "scheduled the case study <target>{label}</target>"
         },
         "project": {
           "created": "created the project <target>{label}</target>",
@@ -771,7 +779,8 @@
         "role": "Role: {value}",
         "activated": "Account activated",
         "deactivated": "Account deactivated",
-        "passwordReset": "Password reset"
+        "passwordReset": "Password reset",
+        "publishedAt": "Goes live on {value}"
       }
     }
   },

@@ -11,6 +11,7 @@ import { ImageField } from '@/components/app/ImageField';
 import { MarkdownImageButton } from '@/components/app/MarkdownImageButton';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
+import { toDateTimeInput } from '@/lib/format';
 import { MAX_IMAGE_BYTES } from '@/lib/api/media';
 import type { AdminPortfolioItem } from '@/lib/api/types';
 import { uploadImageAction } from '../actions';
@@ -48,6 +49,16 @@ export async function PortfolioForm({
           label={t('status')}
           options={STATUSES.map((value) => ({ value, label: ts(value) }))}
           defaultValue={item?.status ?? 'DRAFT'}
+        />
+      </div>
+      <div className={styles.row}>
+        <FormInput
+          name="publishedAt"
+          type="datetime-local"
+          label={t('publishedAt')}
+          optionalLabel={tc('optional')}
+          hint={t('publishedAtHint')}
+          defaultValue={toDateTimeInput(item?.publishedAt)}
         />
       </div>
       <div className={styles.row}>

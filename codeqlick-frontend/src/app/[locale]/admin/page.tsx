@@ -26,6 +26,7 @@ export default async function AdminDashboardPage({
     { href: '/admin/leads', label: t('totalLeads'), value: stats.leads.total },
     { href: '/admin/posts', label: t('publishedPosts'), value: stats.posts.published },
     { href: '/admin/posts', label: t('draftPosts'), value: stats.posts.drafts },
+    { href: '/admin/posts', label: t('scheduledPosts'), value: stats.posts.scheduled },
     { href: '/admin/portfolio', label: t('publishedPortfolio'), value: stats.portfolio.published },
     { href: '/admin/projects', label: t('activeProjects'), value: stats.projects.active },
     { href: '/admin/users', label: t('clients'), value: stats.clients },

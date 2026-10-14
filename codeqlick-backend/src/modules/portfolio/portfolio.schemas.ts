@@ -3,6 +3,7 @@ import {
   localeQuerySchema,
   localeSchema,
   nullableUrlSchema,
+  publishedAtSchema,
   paginationSchema,
   slugSchema,
   translationsArray,
@@ -33,6 +34,7 @@ export const createPortfolioSchema = z
     technologies: technologiesSchema,
     sortOrder: sortOrderSchema,
     translations: translationsArray(portfolioTranslationSchema),
+    publishedAt: publishedAtSchema,
   })
   .strict();
 export type CreatePortfolioInput = z.infer<typeof createPortfolioSchema>;
@@ -47,6 +49,7 @@ export const updatePortfolioSchema = z
     technologies: technologiesSchema.optional(),
     sortOrder: sortOrderSchema.optional(),
     translations: translationsArray(portfolioTranslationSchema).optional(),
+    publishedAt: publishedAtSchema,
   })
   .strict();
 export type UpdatePortfolioInput = z.infer<typeof updatePortfolioSchema>;

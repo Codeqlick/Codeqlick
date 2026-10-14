@@ -58,10 +58,35 @@ describe('contentLabel', () => {
 });
 
 describe('publishVerb', () => {
+  const now = new Date('2026-10-14T12:00:00Z');
+  const draft = { status: 'DRAFT', publishedAt: null };
+  const live = { status: 'PUBLISHED', publishedAt: '2026-10-01T09:00:00.000Z' };
+  const future = { status: 'PUBLISHED', publishedAt: '2026-10-20T09:00:00.000Z' };
+
   it('names status changes and leaves other edits as updates', () => {
-    expect(publishVerb('DRAFT', 'PUBLISHED')).toBe('published');
-    expect(publishVerb('PUBLISHED', 'DRAFT')).toBe('unpublished');
-    expect(publishVerb('PUBLISHED', 'PUBLISHED')).toBe('updated');
-    expect(publishVerb('DRAFT', undefined)).toBe('updated');
+    expect(publishVerb(draft, live, { status: 'PUBLISHED' }, now)).toBe('published');
+    expect(publishVerb(live, { ...live, status: 'DRAFT' }, { status: 'DRAFT' }, now)).toBe(
+      'unpublished',
+    );
+    expect(publishVerb(live, live, { status: 'PUBLISHED' }, now)).toBe('updated');
+    expect(publishVerb(draft, draft, {}, now)).toBe('updated');
+  });
+
+  it('calls publishing for a future date, or moving that date, scheduling', () => {
+    expect(
+      publishVerb(draft, future, { status: 'PUBLISHED', publishedAt: future.publishedAt }, now),
+    ).toBe('scheduled');
+    expect(
+      publishVerb(
+        future,
+        { ...future, publishedAt: '2026-10-21T09:00:00.000Z' },
+        {
+          publishedAt: '2026-10-21T09:00:00.000Z',
+        },
+        now,
+      ),
+    ).toBe('scheduled');
+    // Saving a scheduled item without touching its date is an ordinary edit.
+    expect(publishVerb(future, future, { publishedAt: future.publishedAt }, now)).toBe('updated');
   });
 });

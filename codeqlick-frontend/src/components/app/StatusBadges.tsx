@@ -14,6 +14,16 @@ export function LeadStatusBadge({ status, label }: { status: LeadStatus; label: 
   return <Badge tone={LEAD_TONES[status]}>{label}</Badge>;
 }
 
-export function PublishStatusBadge({ status, label }: { status: PublishStatus; label: string }) {
-  return <Badge tone={status === 'PUBLISHED' ? 'success' : 'neutral'}>{label}</Badge>;
+/** Published, draft, or scheduled (published with a date still to come). */
+export function PublishStatusBadge({
+  status,
+  scheduled = false,
+  label,
+}: {
+  status: PublishStatus;
+  scheduled?: boolean;
+  label: string;
+}) {
+  const tone = scheduled ? 'warning' : status === 'PUBLISHED' ? 'success' : 'neutral';
+  return <Badge tone={tone}>{label}</Badge>;
 }

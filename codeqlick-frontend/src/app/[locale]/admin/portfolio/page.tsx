@@ -8,7 +8,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListPortfolio } from '@/lib/api/portfolio';
-import { formatDateTime, parsePage } from '@/lib/format';
+import { formatDateTime, isScheduled, parsePage } from '@/lib/format';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -53,7 +53,11 @@ export default async function AdminPortfolioPage({ params, searchParams }: PageP
                     </th>
                     <td>{item.clientName ?? tc('none')}</td>
                     <td>
-                      <PublishStatusBadge status={item.status} label={ts(item.status)} />
+                      <PublishStatusBadge
+                        status={item.status}
+                        scheduled={isScheduled(item)}
+                        label={isScheduled(item) ? ts('SCHEDULED') : ts(item.status)}
+                      />
                     </td>
                     <td>{item.sortOrder}</td>
                     <td>{formatDateTime(item.updatedAt, locale)}</td>

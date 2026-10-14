@@ -8,7 +8,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListPosts } from '@/lib/api/posts';
-import { formatDateTime, parsePage } from '@/lib/format';
+import { formatDateTime, isScheduled, parsePage } from '@/lib/format';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -48,7 +48,11 @@ export default async function AdminPostsPage({ params, searchParams }: PageProps
                       <span className={styles.sub}>/{post.slug}</span>
                     </th>
                     <td>
-                      <PublishStatusBadge status={post.status} label={ts(post.status)} />
+                      <PublishStatusBadge
+                        status={post.status}
+                        scheduled={isScheduled(post)}
+                        label={isScheduled(post) ? ts('SCHEDULED') : ts(post.status)}
+                      />
                     </td>
                     <td>{formatDateTime(post.updatedAt, locale)}</td>
                   </tr>

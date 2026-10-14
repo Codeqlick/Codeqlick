@@ -25,6 +25,7 @@ function parsePost(formData: FormData) {
   const parsed = postFormSchema.safeParse({
     slug: formString(formData, 'slug'),
     status: formString(formData, 'status'),
+    publishedAt: formString(formData, 'publishedAt'),
     coverImageUrl: formString(formData, 'coverImageUrl'),
     en: translationFields(formData, 'en'),
     es: translationFields(formData, 'es'),
