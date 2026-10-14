@@ -1,9 +1,16 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { AuthTokens, AuthUser, Locale } from './types';
+import type {
+  AuthTokens,
+  AuthUser,
+  Locale,
+  LoginResult,
+  TwoFactorSetup,
+  TwoFactorStatus,
+} from './types';
 
 export function login(input: { email: string; password: string }) {
-  return apiFetch<AuthTokens>('/auth/login', {
+  return apiFetch<LoginResult>('/auth/login', {
     method: 'POST',
     body: input,
     forwardClientIp: true,
@@ -55,4 +62,39 @@ export function confirmPasswordReset(input: { token: string; newPassword: string
 
 export function me(token?: string) {
   return apiFetch<AuthUser>('/auth/me', { auth: 'required', token });
+}
+
+/** Second step of a login with two-step verification. */
+export function verifyTwoFactor(input: { challengeToken: string; code: string }) {
+  return apiFetch<AuthTokens>('/auth/2fa/verify', {
+    method: 'POST',
+    body: input,
+    forwardClientIp: true,
+  });
+}
+
+export function getTwoFactorStatus() {
+  return apiFetch<TwoFactorStatus>('/auth/2fa', { auth: 'required' });
+}
+
+export function startTwoFactorSetup() {
+  return apiFetch<TwoFactorSetup>('/auth/2fa/setup', { method: 'POST', auth: 'required' });
+}
+
+export function enableTwoFactor(code: string) {
+  return apiFetch<{ recoveryCodes: string[] }>('/auth/2fa/enable', {
+    method: 'POST',
+    body: { code },
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
+export function disableTwoFactor(input: { password: string; code: string }) {
+  return apiFetch<void>('/auth/2fa/disable', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+    forwardClientIp: true,
+  });
 }

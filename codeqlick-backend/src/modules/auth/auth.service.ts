@@ -1,6 +1,12 @@
-import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
@@ -9,12 +15,54 @@ import { AuthRepository, type CreateSessionData } from './auth.repository.js';
 import { MailService } from '../mail/mail.service.js';
 import { passwordResetEmail } from './auth-emails.js';
 import { PasswordService } from './password.service.js';
+import { SecretBox } from './secret-box.js';
+import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
 
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
   user: AuthUser;
+}
+
+/** Answer to a correct password when the account has two-step verification on. */
+export interface TwoFactorChallenge {
+  twoFactorRequired: true;
+  /** Short-lived token to send back with the code to `POST /auth/2fa/verify`. */
+  challengeToken: string;
+}
+
+export type LoginResult = AuthTokens | TwoFactorChallenge;
+
+export interface TwoFactorStatus {
+  enabled: boolean;
+  recoveryCodesLeft: number;
+}
+
+export interface TwoFactorSetup {
+  secret: string;
+  otpauthUrl: string;
+}
+
+/** How long the step between password and code may take. */
+const CHALLENGE_TTL_SECONDS = 300;
+const RECOVERY_CODE_COUNT = 10;
+const RECOVERY_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+function normalizeRecoveryCode(code: string): string {
+  return code.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function hashRecoveryCode(code: string): string {
+  return createHash('sha256').update(normalizeRecoveryCode(code)).digest('hex');
+}
+
+/** `xxxx-xxxx` from an alphabet without look-alike characters. */
+function generateRecoveryCode(): string {
+  const chars = [...randomBytes(8)].map(
+    (byte) => RECOVERY_ALPHABET[byte % RECOVERY_ALPHABET.length],
+  );
+  return `${chars.slice(0, 4).join('')}-${chars.slice(4).join('')}`;
 }
 
 export interface ClientInfo {
@@ -39,15 +87,24 @@ export function toAuthUser(user: Pick<User, 'id' | 'email' | 'name' | 'role'>): 
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  private readonly secrets: SecretBox;
+  /** Challenge tokens use their own key, so they can never pass as access tokens. */
+  private readonly challengeKey: string;
+
   constructor(
     private readonly repository: AuthRepository,
     private readonly passwords: PasswordService,
     private readonly jwt: JwtService,
     private readonly config: AppConfigService,
     private readonly mail: MailService,
-  ) {}
+  ) {
+    this.secrets = new SecretBox(config.jwtAccessSecret);
+    this.challengeKey = Buffer.from(
+      hkdfSync('sha256', config.jwtAccessSecret, 'codeqlick', 'two-factor-challenge-v1', 32),
+    ).toString('base64');
+  }
 
-  async login(email: string, password: string, client: ClientInfo = {}): Promise<AuthTokens> {
+  async login(email: string, password: string, client: ClientInfo = {}): Promise<LoginResult> {
     const user = await this.repository.findUserByEmail(email.trim().toLowerCase());
     if (!user) {
       await this.passwords.verifyDummy(password);
@@ -56,6 +113,14 @@ export class AuthService {
     const valid = await this.passwords.verify(user.passwordHash, password);
     if (!valid || !user.isActive) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (user.totpEnabledAt) {
+      const challengeToken = await this.jwt.signAsync(
+        { sub: user.id, purpose: '2fa' },
+        { secret: this.challengeKey, expiresIn: CHALLENGE_TTL_SECONDS },
+      );
+      return { twoFactorRequired: true, challengeToken };
     }
 
     const refreshToken = this.generateRefreshToken();
@@ -168,6 +233,108 @@ export class AuthService {
       this.passwords.hash(newPassword),
     );
     if (!done) throw new BadRequestException('This reset link is invalid or has expired');
+  }
+
+  /** Second step of a login with two-step verification: the code finishes the sign-in. */
+  async verifyTwoFactor(
+    challengeToken: string,
+    code: string,
+    client: ClientInfo = {},
+  ): Promise<AuthTokens> {
+    let payload: { sub?: unknown; purpose?: unknown };
+    try {
+      payload = await this.jwt.verifyAsync(challengeToken, { secret: this.challengeKey });
+    } catch {
+      throw new UnauthorizedException('The sign-in expired, start again');
+    }
+    if (payload.purpose !== '2fa' || typeof payload.sub !== 'string') {
+      throw new UnauthorizedException('The sign-in expired, start again');
+    }
+    const user = await this.repository.findUserById(payload.sub);
+    if (!user || !user.isActive || !user.totpEnabledAt) {
+      throw new UnauthorizedException('The sign-in expired, start again');
+    }
+    if (!(await this.checkSecondFactor(user, code))) {
+      throw new UnauthorizedException('Invalid code');
+    }
+
+    const refreshToken = this.generateRefreshToken();
+    await this.repository.createSession(
+      this.buildSession(user.id, refreshToken, randomUUID(), client),
+    );
+    return this.issueTokens(user, refreshToken);
+  }
+
+  async twoFactorStatus(userId: string): Promise<TwoFactorStatus> {
+    const user = await this.activeUser(userId);
+    return {
+      enabled: Boolean(user.totpEnabledAt),
+      recoveryCodesLeft: user.totpEnabledAt ? user.totpRecoveryHashes.length : 0,
+    };
+  }
+
+  /** Starts (or restarts) setting up an authenticator app. Nothing changes for sign-in yet. */
+  async startTwoFactorSetup(userId: string): Promise<TwoFactorSetup> {
+    const user = await this.activeUser(userId);
+    if (user.totpEnabledAt) throw new ConflictException('Two-step verification is already on');
+    const secret = generateTotpSecret();
+    await this.repository.setPendingTotp(user.id, this.secrets.seal(secret));
+    return { secret, otpauthUrl: otpauthUri(secret, user.email, 'Codeqlick') };
+  }
+
+  /** Confirms the setup with a first code. Returns the recovery codes: shown once, never again. */
+  async enableTwoFactor(userId: string, code: string): Promise<{ recoveryCodes: string[] }> {
+    const user = await this.activeUser(userId);
+    if (user.totpEnabledAt) throw new ConflictException('Two-step verification is already on');
+    if (!user.totpSecret) throw new BadRequestException('Start the setup first');
+
+    const step = verifyTotp(this.secrets.open(user.totpSecret), code, Date.now());
+    if (step === undefined) {
+      throw new BadRequestException({ errors: [{ path: 'code', message: 'Invalid code' }] });
+    }
+    const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, generateRecoveryCode);
+    await this.repository.enableTotp(user.id, step, recoveryCodes.map(hashRecoveryCode));
+    return { recoveryCodes };
+  }
+
+  /** Turns it off. Needs the password and a current code (or a recovery code). */
+  async disableTwoFactor(userId: string, password: string, code: string): Promise<void> {
+    const user = await this.activeUser(userId);
+    if (!user.totpEnabledAt) throw new ConflictException('Two-step verification is already off');
+    if (!(await this.passwords.verify(user.passwordHash, password))) {
+      throw new BadRequestException({
+        errors: [{ path: 'password', message: 'Current password is incorrect' }],
+      });
+    }
+    if (!(await this.checkSecondFactor(user, code))) {
+      throw new BadRequestException({ errors: [{ path: 'code', message: 'Invalid code' }] });
+    }
+    await this.repository.disableTotp(user.id);
+  }
+
+  private async activeUser(userId: string): Promise<User> {
+    const user = await this.repository.findUserById(userId);
+    if (!user || !user.isActive) throw new UnauthorizedException('Account not available');
+    return user;
+  }
+
+  /** An authenticator code (not replayed) or an unused recovery code, which is then spent. */
+  private async checkSecondFactor(user: User, code: string): Promise<boolean> {
+    const trimmed = code.trim();
+    if (/^\d{6}$/.test(trimmed)) {
+      if (!user.totpSecret) return false;
+      const step = verifyTotp(
+        this.secrets.open(user.totpSecret),
+        trimmed,
+        Date.now(),
+        user.totpLastStep,
+      );
+      return step !== undefined && (await this.repository.useTotpStep(user.id, step));
+    }
+    const hash = hashRecoveryCode(trimmed);
+    if (!user.totpRecoveryHashes.includes(hash)) return false;
+    const remaining = user.totpRecoveryHashes.filter((item) => item !== hash);
+    return this.repository.useRecoveryCode(user.id, hash, remaining);
   }
 
   private async issueTokens(user: User, refreshToken: string): Promise<AuthTokens> {

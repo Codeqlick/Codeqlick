@@ -1,11 +1,14 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { login } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
-import type { AuthTokens } from '@/lib/api/types';
+import type { LoginResult } from '@/lib/api/types';
+import { TWO_FACTOR_COOKIE, TWO_FACTOR_MAX_AGE } from '@/lib/auth/constants';
+import { authCookieOptions, isSecureCookieEnv } from '@/lib/auth/refresh';
 import { invalidState } from '@/lib/actions';
 import { homeForRole, safeNextPath, setAuthCookies } from '@/lib/auth/session';
 import { formString, type FormState } from '@/lib/forms';
@@ -23,9 +26,9 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
     return { ...(await invalidState(parsed.error, locale, formData)), values: { email } };
   }
 
-  let tokens: AuthTokens;
+  let result: LoginResult;
   try {
-    tokens = await login(parsed.data);
+    result = await login(parsed.data);
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
     const message =
@@ -37,6 +40,18 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
     return { status: 'error', message, values: { email } };
   }
 
-  await setAuthCookies(tokens);
-  redirect(safeNextPath(formData.get('next'), locale) ?? homeForRole(locale, tokens.user.role));
+  const next = safeNextPath(formData.get('next'), locale);
+  if ('twoFactorRequired' in result) {
+    // The password was right; the code is asked on the next page.
+    const store = await cookies();
+    store.set(
+      TWO_FACTOR_COOKIE,
+      result.challengeToken,
+      authCookieOptions(TWO_FACTOR_MAX_AGE, isSecureCookieEnv()),
+    );
+    redirect(`/${locale}/login/verify${next ? `?next=${encodeURIComponent(next)}` : ''}`);
+  }
+
+  await setAuthCookies(result);
+  redirect(next ?? homeForRole(locale, result.user.role));
 }

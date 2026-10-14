@@ -1,10 +1,18 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
-import { changePassword, logout } from '@/lib/api/auth';
+import QRCode from 'qrcode';
+import {
+  changePassword,
+  disableTwoFactor,
+  enableTwoFactor,
+  logout,
+  startTwoFactorSetup,
+} from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import { zodFieldErrors, type FormState } from '@/lib/forms';
 import { changePasswordSchema } from '@/lib/schemas/auth';
@@ -72,4 +80,75 @@ export async function changePasswordAction(
   }
 
   return { status: 'success', message: t('changed') };
+}
+
+export type TwoFactorSetupResult = { secret: string; qrCode: string } | { error: string };
+
+/** Starts setting up an authenticator app: a new secret and its QR code (an SVG data URL). */
+export async function startTwoFactorAction(locale: AppLocale): Promise<TwoFactorSetupResult> {
+  try {
+    const { secret, otpauthUrl } = await startTwoFactorSetup();
+    const svg = await QRCode.toString(otpauthUrl, { type: 'svg', margin: 1 });
+    return { secret, qrCode: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}` };
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    const tc = await getTranslations({ locale, namespace: 'Common' });
+    return { error: tc('genericError') };
+  }
+}
+
+export type EnableTwoFactorResult = { recoveryCodes: string[] } | { error: string };
+
+/** Confirms the setup with the first code; returns the recovery codes to show once. */
+export async function enableTwoFactorAction(
+  locale: AppLocale,
+  code: string,
+): Promise<EnableTwoFactorResult> {
+  const t = await getTranslations({ locale, namespace: 'TwoFactor' });
+  const clean = code.replace(/\s+/g, '');
+  if (!/^\d{6}$/.test(clean)) return { error: t('invalidCode') };
+  try {
+    const { recoveryCodes } = await enableTwoFactor(clean);
+    return { recoveryCodes };
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    if (isApiError(error) && error.status === 400) return { error: t('invalidCode') };
+    if (isApiError(error) && error.status === 429) return { error: t('rateLimited') };
+    const tc = await getTranslations({ locale, namespace: 'Common' });
+    return { error: tc('genericError') };
+  }
+}
+
+/** Turns two-step verification off. Never echoes the password or the code back. */
+export async function disableTwoFactorAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'TwoFactor' });
+  const tv = await getTranslations({ locale, namespace: 'Validation' });
+  const password = String(formData.get('password') ?? '');
+  const code = String(formData.get('code') ?? '').replace(/\s+/g, '');
+  const fieldErrors: Record<string, string> = {};
+  if (!password) fieldErrors.password = tv('required');
+  if (code.length < 6) fieldErrors.code = t('invalidCode');
+  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors };
+
+  try {
+    await disableTwoFactor({ password, code });
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    if (isApiError(error) && error.status === 429) {
+      return { status: 'error', message: t('rateLimited') };
+    }
+    if (isApiError(error) && error.status === 400) {
+      if (error.fieldErrors.password)
+        return { status: 'error', fieldErrors: { password: t('wrongPassword') } };
+      return { status: 'error', fieldErrors: { code: t('invalidCode') } };
+    }
+    const tc = await getTranslations({ locale, namespace: 'Common' });
+    return { status: 'error', message: tc('genericError') };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  return { status: 'success', message: t('disabled') };
 }
