@@ -30,8 +30,11 @@ export class AdminUsersController {
   }
 
   @Post()
-  create(@Body({ schema: createUserSchema }) body: CreateUserInput): Promise<AdminUser> {
-    return this.users.create(body);
+  create(
+    @CurrentUser() actor: AuthUser,
+    @Body({ schema: createUserSchema }) body: CreateUserInput,
+  ): Promise<AdminUser> {
+    return this.users.create(actor, body);
   }
 
   @Patch(':id')

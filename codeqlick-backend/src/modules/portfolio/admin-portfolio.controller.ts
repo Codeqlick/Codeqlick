@@ -11,8 +11,10 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
   createPortfolioSchema,
@@ -40,9 +42,10 @@ export class AdminPortfolioController {
 
   @Post()
   create(
+    @CurrentUser() user: AuthUser,
     @Body({ schema: createPortfolioSchema }) body: CreatePortfolioInput,
   ): Promise<AdminPortfolioItem> {
-    return this.portfolio.create(body);
+    return this.portfolio.create(user, body);
   }
 
   @Get(':id')
@@ -52,15 +55,19 @@ export class AdminPortfolioController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: updatePortfolioSchema }) body: UpdatePortfolioInput,
   ): Promise<AdminPortfolioItem> {
-    return this.portfolio.update(params.id, body);
+    return this.portfolio.update(user, params.id, body);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param({ schema: idParamSchema }) params: IdParam): Promise<void> {
-    await this.portfolio.delete(params.id);
+  async delete(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.portfolio.delete(user, params.id);
   }
 }

@@ -2,8 +2,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import type { Lead as LeadRow, Prisma } from '../../generated/prisma/client.js';
+import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { leadsToCsv } from './leads-csv.js';
 import { leadAcknowledgementEmail, leadNotificationEmail } from './lead-emails.js';
@@ -51,6 +53,7 @@ export class LeadsService {
     private readonly repository: LeadsRepository,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly activity: ActivityService,
   ) {}
 
   async create(input: CreateLeadInput): Promise<{ id: string }> {
@@ -100,12 +103,22 @@ export class LeadsService {
     return toLead(row);
   }
 
-  async update(id: string, input: UpdateLeadInput): Promise<Lead> {
-    await this.get(id);
+  async update(actor: AuthUser, id: string, input: UpdateLeadInput): Promise<Lead> {
+    const existing = await this.get(id);
     const data: Prisma.LeadUpdateInput = {};
     if (input.status !== undefined) data.status = input.status;
     if (input.notes !== undefined) data.notes = input.notes;
-    return toLead(await this.repository.update(id, data));
+    const lead = toLead(await this.repository.update(id, data));
+    await this.activity.record(actor, {
+      action: 'lead.updated',
+      targetId: id,
+      targetLabel: lead.name,
+      details:
+        input.status !== undefined && input.status !== existing.status
+          ? { status: input.status }
+          : undefined,
+    });
+    return lead;
   }
 
   /** Fire-and-forget: mail problems are logged and never fail the request. */

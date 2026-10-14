@@ -75,7 +75,7 @@ describe('Active sessions (e2e)', () => {
         .expect(200)
     ).body as Tokens;
     const sessions = await list(refreshed);
-    expect(sessions.map((s) => s.userAgent).sort()).toEqual([
+    expect(sessions.map((s) => s.userAgent).toSorted()).toEqual([
       'Laptop browser',
       'Phone browser',
       'Tablet browser',
@@ -96,7 +96,7 @@ describe('Active sessions (e2e)', () => {
       .post('/v1/auth/refresh')
       .send({ refreshToken: phone.refreshToken })
       .expect(401);
-    expect((await list(refreshed)).map((s) => s.userAgent).sort()).toEqual([
+    expect((await list(refreshed)).map((s) => s.userAgent).toSorted()).toEqual([
       'Laptop browser',
       'Tablet browser',
     ]);

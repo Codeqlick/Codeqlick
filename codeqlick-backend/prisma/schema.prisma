@@ -47,12 +47,12 @@ enum ProjectPhase {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Uuid
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  name         String
-  role         Role     @default(CLIENT)
-  isActive     Boolean  @default(true) @map("is_active")
+  id                 String    @id @default(uuid()) @db.Uuid
+  email              String    @unique
+  passwordHash       String    @map("password_hash")
+  name               String
+  role               Role      @default(CLIENT)
+  isActive           Boolean   @default(true) @map("is_active")
   /// Two-step verification: the authenticator secret, encrypted (see secret-box.ts). Set while
   /// setting it up; it only counts once `totpEnabledAt` is set.
   totpSecret         String?   @map("totp_secret")
@@ -61,8 +61,8 @@ model User {
   totpLastStep       Int?      @map("totp_last_step")
   /// SHA-256 of each unused recovery code.
   totpRecoveryHashes String[]  @default([]) @map("totp_recovery_hashes")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   sessions       Session[]
   passwordResets PasswordResetToken[]
@@ -70,6 +70,7 @@ model User {
   posts          Post[]
   projectUpdates ProjectUpdate[]
   projectFiles   ProjectFile[]
+  activity       ActivityLog[]
 
   @@map("users")
 }
@@ -250,4 +251,26 @@ model ProjectFile {
 
   @@index([projectId, createdAt])
   @@map("project_files")
+}
+
+/// Who changed what: one row per change made from the admin panel or to one's own account.
+/// Actor name and target label are copied at the time, so entries survive renames and deletes.
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String?  @map("actor_id") @db.Uuid
+  actorName   String   @map("actor_name")
+  /// `<target>.<verb>`, e.g. `post.published` (see ACTIVITY_ACTIONS in the activity module).
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String?  @map("target_id")
+  targetLabel String?  @map("target_label")
+  /// Extra facts about the change, e.g. `{ "status": "WON" }` or the fields that changed.
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, createdAt])
+  @@map("activity_log")
 }

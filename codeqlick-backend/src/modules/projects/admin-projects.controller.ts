@@ -56,9 +56,10 @@ export class AdminProjectsController {
 
   @Post()
   create(
+    @CurrentUser() user: AuthUser,
     @Body({ schema: createProjectSchema }) body: CreateProjectInput,
   ): Promise<ClientProjectView> {
-    return this.projects.create(body);
+    return this.projects.create(user, body);
   }
 
   @Get(':id')
@@ -68,16 +69,20 @@ export class AdminProjectsController {
 
   @Patch(':id')
   update(
+    @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: updateProjectSchema }) body: UpdateProjectInput,
   ): Promise<ClientProjectView> {
-    return this.projects.update(params.id, body);
+    return this.projects.update(user, params.id, body);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param({ schema: idParamSchema }) params: IdParam): Promise<void> {
-    await this.projects.delete(params.id);
+  async delete(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.projects.delete(user, params.id);
   }
 
   @Post(':id/updates')
@@ -112,8 +117,9 @@ export class AdminProjectsController {
   @Delete(':id/files/:fileId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteFile(
+    @CurrentUser() user: AuthUser,
     @Param({ schema: projectFileParamSchema }) params: ProjectFileParam,
   ): Promise<void> {
-    await this.projects.deleteFile(params.id, params.fileId);
+    await this.projects.deleteFile(user, params.id, params.fileId);
   }
 }

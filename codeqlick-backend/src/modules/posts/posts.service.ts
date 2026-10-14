@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { PublishStatus } from '../../generated/prisma/client.js';
+import { ActivityService, contentLabel, publishVerb } from '../activity/activity.service.js';
 import {
   PostsRepository,
   type PostTranslationData,
@@ -65,7 +67,10 @@ function toAdminPost(post: PostWithTranslations): AdminPost {
 
 @Injectable()
 export class PostsService {
-  constructor(private readonly repository: PostsRepository) {}
+  constructor(
+    private readonly repository: PostsRepository,
+    private readonly activity: ActivityService,
+  ) {}
 
   // ---- Public -------------------------------------------------------------------------
 
@@ -105,7 +110,8 @@ export class PostsService {
     return toAdminPost(await this.findOrThrow(id));
   }
 
-  async create(input: CreatePostInput, authorId: string | null): Promise<AdminPost> {
+  async create(actor: AuthUser, input: CreatePostInput): Promise<AdminPost> {
+    const authorId = actor.id;
     const post = await this.repository.create({
       slug: input.slug,
       status: input.status,
@@ -114,10 +120,17 @@ export class PostsService {
       authorId,
       translations: input.translations.map(toTranslationData),
     });
-    return toAdminPost(post);
+    const created = toAdminPost(post);
+    await this.activity.record(actor, {
+      action: 'post.created',
+      targetId: created.id,
+      targetLabel: contentLabel(created),
+      details: { status: created.status },
+    });
+    return created;
   }
 
-  async update(id: string, input: UpdatePostInput): Promise<AdminPost> {
+  async update(actor: AuthUser, id: string, input: UpdatePostInput): Promise<AdminPost> {
     const existing = await this.findOrThrow(id);
     const data: PostUpdateData = {};
     if (input.slug !== undefined) data.slug = input.slug;
@@ -132,12 +145,23 @@ export class PostsService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
-    return toAdminPost(await this.repository.update(id, data));
+    const updated = toAdminPost(await this.repository.update(id, data));
+    await this.activity.record(actor, {
+      action: `post.${publishVerb(existing.status, input.status)}`,
+      targetId: id,
+      targetLabel: contentLabel(updated),
+    });
+    return updated;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.findOrThrow(id);
+  async delete(actor: AuthUser, id: string): Promise<void> {
+    const existing = toAdminPost(await this.findOrThrow(id));
     await this.repository.delete(id);
+    await this.activity.record(actor, {
+      action: 'post.deleted',
+      targetId: id,
+      targetLabel: contentLabel(existing),
+    });
   }
 
   private async findOrThrow(id: string): Promise<PostWithTranslations> {

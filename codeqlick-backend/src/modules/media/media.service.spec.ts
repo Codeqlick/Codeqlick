@@ -1,11 +1,14 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ActivityService } from '../activity/activity.service.js';
 import type { MediaRepository } from './media.repository.js';
 import { MediaService } from './media.service.js';
 import type { MediaStorage } from './media.storage.js';
 
 const OLD = '11111111-1111-4111-8111-111111111111.png';
 const NEW = '22222222-2222-4222-8222-222222222222.jpg';
+
+const actor = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as const;
 
 describe('MediaService', () => {
   let storage: {
@@ -30,6 +33,7 @@ describe('MediaService', () => {
     service = new MediaService(
       storage as unknown as MediaStorage,
       repository as unknown as MediaRepository,
+      { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
     );
   });
 
@@ -55,7 +59,7 @@ describe('MediaService', () => {
   it('deletes an image nothing uses', async () => {
     repository.findUsage.mockResolvedValue(new Map([[OLD, []]]));
 
-    await service.remove(OLD);
+    await service.remove(actor, OLD);
 
     expect(storage.remove).toHaveBeenCalledWith(OLD);
   });
@@ -65,14 +69,16 @@ describe('MediaService', () => {
       new Map([[OLD, [{ type: 'portfolio', id: 'c1', slug: 'circlesfera' }]]]),
     );
 
-    await expect(service.remove(OLD)).rejects.toBeInstanceOf(ConflictException);
+    await expect(service.remove(actor, OLD)).rejects.toBeInstanceOf(ConflictException);
     expect(storage.remove).not.toHaveBeenCalled();
   });
 
   it('never touches names it did not generate', async () => {
-    await expect(service.remove('../../package.json')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.remove(actor, '../../package.json')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
     storage.size.mockResolvedValue(undefined);
-    await expect(service.remove(OLD)).rejects.toBeInstanceOf(NotFoundException);
+    await expect(service.remove(actor, OLD)).rejects.toBeInstanceOf(NotFoundException);
     expect(storage.remove).not.toHaveBeenCalled();
   });
 });

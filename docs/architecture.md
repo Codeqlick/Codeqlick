@@ -135,6 +135,7 @@ erDiagram
 - **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`.
 - **ProjectFile** — a file shared with the project's client: `name` (original name, cleaned), `contentType` (as sent by the uploader; informational), `size`, `uploadedById?`. The content is stored on disk at `UPLOADS_DIR/project-files/<id>`, never under a public URL.
+- **ActivityLog** — who changed what: `actorId?` (null once the user is deleted) and `actorName` copied at the time, `action` (`<target>.<verb>`, e.g. `post.published`), `targetType`, `targetId?`, `targetLabel?` (title, name or email at the time), `details?` (JSON: what changed, e.g. `{ phase, progress }`). Written by the services after each admin change and each change to one's own account (password, two-step verification, signing out devices); a failed write is logged and never fails the change.
 
 All ids are UUIDs. All tables have `createdAt`/`updatedAt`. `Locale` is an enum `EN` | `ES`; the HTTP API uses lowercase `en` | `es`.
 
@@ -247,6 +248,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | Method | Path | Body / query |
 |---|---|---|
 | GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts }, portfolio: { published }, projects: { active }, clients }` |
+| GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|account&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
 | GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
 | GET / PATCH | `/admin/leads/:id` | PATCH `{ status?, notes? }` |
@@ -335,7 +337,7 @@ src/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password
       portal/                  Client area (role CLIENT or ADMIN): projects, account
-      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, media, users, account;
+      admin/                   Admin panel (role ADMIN): dashboard (with recent activity), leads, posts, portfolio, projects, media, users, activity, account;
                                posts and portfolio items have a preview page that renders the saved draft
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx              404 for every URL that matches no route: a full page (header, footer, locale from

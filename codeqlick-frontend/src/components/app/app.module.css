@@ -332,3 +332,15 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.activityTarget {
+  font-weight: 600;
+}
+
+.panelHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}

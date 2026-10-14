@@ -523,7 +523,8 @@
       "portfolio": "Portfolio",
       "media": "Images",
       "projects": "Projects",
-      "users": "Users"
+      "users": "Users",
+      "activity": "Activity"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -534,7 +535,9 @@
       "draftPosts": "Draft posts",
       "publishedPortfolio": "Published case studies",
       "activeProjects": "Active projects",
-      "clients": "Clients"
+      "clients": "Clients",
+      "recentActivity": "Recent activity",
+      "allActivity": "See all"
     },
     "leads": {
       "title": "Leads",
@@ -700,6 +703,76 @@
       "emptyBody": "Create admin and client accounts here.",
       "back": "All users",
       "notFound": "This user doesn't exist."
+    },
+    "activity": {
+      "title": "Activity",
+      "lead": "Who changed what in the admin panel and in accounts, most recent first.",
+      "type": "About",
+      "emptyTitle": "No activity yet",
+      "emptyBody": "Changes will show up here as soon as someone edits content, projects or users.",
+      "types": {
+        "post": "Posts",
+        "portfolio": "Case studies",
+        "project": "Projects",
+        "lead": "Leads",
+        "user": "Users",
+        "media": "Images",
+        "account": "Accounts"
+      },
+      "actions": {
+        "post": {
+          "created": "created the post <target>{label}</target>",
+          "updated": "edited the post <target>{label}</target>",
+          "published": "published the post <target>{label}</target>",
+          "unpublished": "moved the post <target>{label}</target> back to draft",
+          "deleted": "deleted the post <target>{label}</target>"
+        },
+        "portfolio": {
+          "created": "created the case study <target>{label}</target>",
+          "updated": "edited the case study <target>{label}</target>",
+          "published": "published the case study <target>{label}</target>",
+          "unpublished": "moved the case study <target>{label}</target> back to draft",
+          "deleted": "deleted the case study <target>{label}</target>"
+        },
+        "project": {
+          "created": "created the project <target>{label}</target>",
+          "updated": "updated the project <target>{label}</target>",
+          "deleted": "deleted the project <target>{label}</target>",
+          "update_posted": "posted an update on <target>{label}</target>",
+          "file_uploaded": "uploaded a file to <target>{label}</target>",
+          "file_deleted": "deleted a file from <target>{label}</target>"
+        },
+        "user": {
+          "created": "created the user <target>{label}</target>",
+          "updated": "changed the user <target>{label}</target>"
+        },
+        "lead": {
+          "updated": "updated the lead <target>{label}</target>"
+        },
+        "media": {
+          "uploaded": "uploaded the image <target>{label}</target>",
+          "deleted": "deleted the image <target>{label}</target>"
+        },
+        "account": {
+          "password_changed": "changed their password",
+          "two_factor_enabled": "turned on two-step verification",
+          "two_factor_disabled": "turned off two-step verification",
+          "sessions_revoked": "{scope, select, one {signed out one of their other devices} other {signed out all their other devices}}"
+        },
+        "unknown": "made a change ({action})"
+      },
+      "details": {
+        "status": "Status: {value}",
+        "phase": "Phase: {value}",
+        "progress": "Progress: {value}%",
+        "file": "File: {value}",
+        "title": "“{value}”",
+        "name": "Name: {value}",
+        "role": "Role: {value}",
+        "activated": "Account activated",
+        "deactivated": "Account deactivated",
+        "passwordReset": "Password reset"
+      }
     }
   },
   "Sessions": {
