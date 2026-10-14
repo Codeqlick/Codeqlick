@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService } from './auth.service.js';
 import { PasswordService } from './password.service.js';
+import { TokenCleanupService } from './token-cleanup.service.js';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { PasswordService } from './password.service.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, PasswordService],
+  providers: [AuthService, AuthRepository, PasswordService, TokenCleanupService],
   // JwtModule is re-exported for the global JwtAuthGuard registered in AppModule.
   exports: [JwtModule, PasswordService],
 })

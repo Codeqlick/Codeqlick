@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { connection } from 'next/server';
 import { Card } from '@/components/ui/Card';
 import { resolveLocale } from '@/i18n/locale';
 import { pageMetadata } from '@/lib/seo';
@@ -20,10 +21,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
+/** Time of this request; rendered per request so the form carries when it was served. */
+async function requestTime(): Promise<number> {
+  await connection();
+  return Date.now();
+}
+
 export default async function ContactPage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Contact' });
+  const renderedAt = await requestTime();
 
   return (
     <section className={`wrap ${styles.page}`}>
@@ -32,7 +40,7 @@ export default async function ContactPage({ params }: PageProps) {
       <p className={`lead ${styles.lead}`}>{t('lead')}</p>
 
       <div className={styles.split}>
-        <ContactForm />
+        <ContactForm renderedAt={renderedAt} />
         <Card as="aside" tone="blush">
           <h2 className={styles.itemTitle}>{t('asideTitle')}</h2>
           <p>{t('asideBody')}</p>
