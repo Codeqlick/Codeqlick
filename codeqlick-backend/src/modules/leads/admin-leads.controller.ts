@@ -1,11 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Patch, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
+  exportLeadsQuerySchema,
   listLeadsQuerySchema,
   updateLeadSchema,
+  type ExportLeadsQuery,
   type ListLeadsQuery,
   type UpdateLeadInput,
 } from './leads.schemas.js';
@@ -21,6 +23,15 @@ export class AdminLeadsController {
   @Get()
   list(@Query({ schema: listLeadsQuerySchema }) query: ListLeadsQuery): Promise<Paginated<Lead>> {
     return this.leads.list(query);
+  }
+
+  /** Declared before `:id` so the path isn't read as an id. */
+  @Get('export.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="codeqlick-leads.csv"')
+  @Header('Cache-Control', 'no-store')
+  exportCsv(@Query({ schema: exportLeadsQuerySchema }) query: ExportLeadsQuery): Promise<string> {
+    return this.leads.exportCsv(query);
   }
 
   @Get(':id')

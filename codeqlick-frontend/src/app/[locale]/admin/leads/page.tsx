@@ -28,10 +28,25 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
   const status = LEAD_STATUSES.find((value) => value === rawStatus) as LeadStatus | undefined;
   const q = firstParam(query.q)?.trim() || undefined;
   const leads = await adminListLeads({ status, q, page: parsePage(query.page) });
+  const exportQuery = new URLSearchParams(
+    Object.entries({ status, q }).filter((entry): entry is [string, string] => Boolean(entry[1])),
+  ).toString();
 
   return (
     <>
-      <PageHeader title={t('title')} />
+      <PageHeader
+        title={t('title')}
+        actions={
+          // A plain link: the browser downloads the file, the current filters go with it.
+          <a
+            href={`/${locale}/admin/leads/export${exportQuery ? `?${exportQuery}` : ''}`}
+            className={buttonClassName({ variant: 'outline', size: 'sm' })}
+            download
+          >
+            {t('exportCsv')}
+          </a>
+        }
+      />
 
       <form method="get" className={styles.filters}>
         <Select

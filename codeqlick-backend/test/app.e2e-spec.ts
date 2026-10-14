@@ -243,6 +243,28 @@ describe('Codeqlick API (e2e)', () => {
     expect(detail.body.updates).toHaveLength(1);
     await request(server).get('/v1/admin/stats').set(clientAuth).expect(403);
 
+    // CSV export of the leads, filtered like the list.
+    const leadEmail = `e2e-lead-${suffix}@codeqlick.test`;
+    await prisma.lead.create({
+      data: { name: '=HYPERLINK("x")', email: leadEmail, message: 'Hello, "world"' },
+    });
+    try {
+      const csv = await request(server)
+        .get('/v1/admin/leads/export.csv')
+        .query({ q: leadEmail })
+        .set(auth)
+        .expect(200);
+      expect(csv.headers['content-type']).toContain('text/csv');
+      expect(csv.headers['content-disposition']).toContain('attachment');
+      const lines = csv.text.trim().split('\r\n');
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toContain(`"'=HYPERLINK(""x"")",${leadEmail},`);
+      expect(lines[1]).toContain('"Hello, ""world"""');
+      await request(server).get('/v1/admin/leads/export.csv').set(clientAuth).expect(403);
+    } finally {
+      await prisma.lead.deleteMany({ where: { email: leadEmail } });
+    }
+
     // 1x1 transparent PNG.
     const png = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',

@@ -45,3 +45,9 @@ export const updateLeadSchema = z
   })
   .strict();
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;
+
+export const exportLeadsQuerySchema = z.object({
+  status: leadStatusSchema.optional(),
+  q: z.string().trim().max(200).optional(),
+});
+export type ExportLeadsQuery = z.infer<typeof exportLeadsQuerySchema>;
