@@ -57,4 +57,4 @@ container sets `NODE_ENV=development`, which breaks production builds.
 
 ## Production
 
-Live at https://codeqlick.com and https://api.codeqlick.com on the OVH VPS (`/srv/codeqlick`, user `cqadmin`, web on `127.0.0.1:3010`, api on `127.0.0.1:4010`). To release: merge to `main`, then on the server `git pull && docker compose -f docker-compose.prod.yml up -d --build`. `/srv/domfeliu` and `/srv/circlesfera*` belong to other projects — don't touch them. Details in `deploy/README.md`.
+Live at https://codeqlick.com and https://api.codeqlick.com on the OVH VPS (`/srv/codeqlick`, user `cqadmin`, web on `127.0.0.1:3010`, api on `127.0.0.1:4010`). To release: merge to `main`, then on the server run `./deploy/deploy.sh` as `cqadmin` (pulls, builds, restarts and verifies; non-zero exit when the site isn't serving). `/srv/domfeliu` and `/srv/circlesfera*` belong to other projects — don't touch them. Details in `deploy/README.md`.
