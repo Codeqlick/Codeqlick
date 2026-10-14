@@ -10,7 +10,8 @@ import { BUDGET_VALUES } from '@/lib/schemas/contact';
 import { submitContact } from './actions';
 import styles from './ContactForm.module.css';
 
-export function ContactForm() {
+/** `renderedAt`: when the server rendered the form, sent back so too-fast submissions are spotted. */
+export function ContactForm({ renderedAt }: { renderedAt: number }) {
   const t = useTranslations('Contact');
   const tc = useTranslations('Common');
   const locale = useLocale();
@@ -31,6 +32,7 @@ export function ContactForm() {
     <form action={formAction} className={styles.form} noValidate>
       {state.message ? <Alert tone="error">{state.message}</Alert> : null}
       <input type="hidden" name="locale" value={locale} />
+      <input type="hidden" name="renderedAt" value={renderedAt} />
 
       <div className={styles.row}>
         <Input

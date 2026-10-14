@@ -157,6 +157,7 @@ sequenceDiagram
 - **Access token:** JWT (HS256), 15 minutes, claims `sub`, `role`, `email`.
 - **Refresh token:** 48 random bytes, base64url, 30 days. Only its SHA-256 hash is stored. Each refresh **rotates** the token (old one revoked, `replacedById` set). Presenting an already-rotated token is treated as theft: the whole `familyId` is revoked.
 - **Logout** revokes the current session.
+- **Cleanup:** sessions and password reset tokens are deleted 30 days after they expire (the API checks twice a day). The 30 days keep reuse detection working for a rotated token that comes back shortly after expiring.
 - **Brute force:** login is limited to 5 attempts per minute per IP; the service runs an Argon2 verify even when the email doesn't exist, so timing doesn't reveal accounts.
 - Deactivating a user (`isActive=false`) revokes all their sessions.
 - **Two-step verification (optional, per user):** an RFC 6238 authenticator app (TOTP, SHA-1, 30 s, 6 digits, ±1 step). With it on, a correct password returns `{ twoFactorRequired, challengeToken }` instead of tokens; the challenge is a 5-minute JWT signed with its own key (so it never passes as an access token) and the web app keeps it in the httpOnly cookie `cq_2fa` until the code is entered at `/[locale]/login/verify`. The secret is stored encrypted (AES-256-GCM, key derived from `JWT_ACCESS_SECRET`: rotating that secret means setting two-step verification up again). An accepted time step can't be reused. Ten single-use recovery codes (`xxxx-xxxx`, stored as SHA-256) replace the app when the phone is lost.
@@ -322,7 +323,10 @@ src/
         services/ services/[slug]/  One page per service (static copy from messages, built ahead of time)
         blog/ blog/[slug]/
         work/ work/[slug]/     Portfolio
-        contact/               Contact form (server action → POST /v1/leads)
+        contact/               Contact form (server action → POST /v1/leads). Bots are dropped silently: a
+                               honeypot field, and submissions made less than 3 s after the form was served
+        not-found.tsx          Boundary for notFound() in site pages (unknown post or case study). Next.js 16.4
+                               sends those 404s as an empty document and draws this boundary in the browser
       login/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password
@@ -330,7 +334,8 @@ src/
       admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, media, users, account;
                                posts and portfolio items have a preview page that renders the saved draft
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
-    not-found.tsx
+    not-found.tsx              404 for every URL that matches no route: a full page (header, footer, locale from
+                               the proxy), rendered on the server
     robots.ts, sitemap.ts
   components/
     brand/                     Logo, Symbol
@@ -360,6 +365,7 @@ src/
 - **Project files:** uploads are a plain multipart form posted to the route handler `/[locale]/admin/projects/[id]/files`, which checks the origin and streams the body to `POST /v1/admin/projects/:id/files` without buffering it (Server Actions cap bodies at 6 MB). Downloads go through `/[locale]/portal/projects/[id]/files/[fileId]`, which streams the API response.
 - **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images.
 - **No secrets in the client bundle.** Only `NEXT_PUBLIC_SITE_URL` is public.
+- **Security headers** (`next.config.ts`): nosniff, referrer policy, `X-Frame-Options`, permissions policy; in production also a Content Security Policy (scripts, styles, fonts and connections from the site only; scripts need `'unsafe-inline'` for the Next.js bootstrap, since a nonce would make every page dynamic) and HSTS for a year.
 - **Accessibility:** semantic HTML, labels on every input, visible focus, 4.5:1 contrast, works without JavaScript for reading content.
 
 ## 7. Brand tokens

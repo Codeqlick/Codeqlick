@@ -166,4 +166,13 @@ export class AuthRepository {
       data: { revokedAt: new Date() },
     });
   }
+
+  /** Deletes sessions and password reset tokens that expired before `before`. */
+  async deleteExpired(before: Date): Promise<{ sessions: number; resetTokens: number }> {
+    const [sessions, resetTokens] = await this.prisma.$transaction([
+      this.prisma.session.deleteMany({ where: { expiresAt: { lt: before } } }),
+      this.prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: before } } }),
+    ]);
+    return { sessions: sessions.count, resetTokens: resetTokens.count };
+  }
 }

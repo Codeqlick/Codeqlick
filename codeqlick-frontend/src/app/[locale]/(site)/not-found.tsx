@@ -1,19 +1,10 @@
-import { getTranslations } from 'next-intl/server';
-import { Button } from '@/components/ui/Button';
-import styles from './site.module.css';
+import { getLocale } from 'next-intl/server';
+import { localeOrDefault } from '@/i18n/locale';
+import { NotFoundContent } from './NotFoundContent';
 
+// Reached when a site page calls notFound() (an unknown post or case study). Next.js 16.4 sends
+// that response as an empty document and draws this boundary in the browser; unknown URLs get the
+// server-rendered app/not-found.tsx instead.
 export default async function NotFound() {
-  const t = await getTranslations('NotFound');
-
-  return (
-    <section className={`wrap ${styles.page} ${styles.narrow}`}>
-      <title>{t('metaTitle')}</title>
-      <p className="eyebrow">{t('eyebrow')}</p>
-      <h1 className={styles.title}>{t('title')}</h1>
-      <p className={`lead ${styles.lead}`}>{t('body')}</p>
-      <div className={styles.actions}>
-        <Button href="/">{t('cta')}</Button>
-      </div>
-    </section>
-  );
+  return <NotFoundContent locale={localeOrDefault(await getLocale())} />;
 }
