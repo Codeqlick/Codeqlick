@@ -33,3 +33,8 @@
   border-radius: var(--radius-md);
   object-fit: cover;
 }
+
+.hint {
+  color: var(--color-slate);
+  font-size: 0.9rem;
+}

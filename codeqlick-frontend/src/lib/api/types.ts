@@ -205,3 +205,9 @@ export type ProblemDetails = {
 
 /** Result of `POST /admin/media`. The image is served by the website at `/media/<filename>`. */
 export type UploadedMedia = { filename: string; contentType: string; size: number };
+
+/** Content that uses an uploaded image, as a cover or inside its Markdown. */
+export type MediaUsage = { type: 'post' | 'portfolio'; id: string; slug: string };
+
+/** One row of `GET /admin/media`. */
+export type MediaItem = UploadedMedia & { createdAt: string; usedBy: MediaUsage[] };
