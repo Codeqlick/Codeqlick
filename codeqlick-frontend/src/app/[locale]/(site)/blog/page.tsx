@@ -20,12 +20,19 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Blog' });
-  return pageMetadata({
+  const metadata = pageMetadata({
     locale,
     path: '/blog',
     title: t('metaTitle'),
     description: t('metaDescription'),
   });
+  return {
+    ...metadata,
+    alternates: {
+      ...metadata.alternates,
+      types: { 'application/rss+xml': `/${locale}/blog/feed.xml` },
+    },
+  };
 }
 
 export default async function BlogPage({ params, searchParams }: PageProps) {

@@ -3,13 +3,15 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { cache } from 'react';
 import { Markdown } from '@/components/markdown/Markdown';
+import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getPost } from '@/lib/api/posts';
 import type { Locale } from '@/lib/api/types';
 import { formatDate } from '@/lib/format';
-import { pageMetadata } from '@/lib/seo';
+import { absoluteUrl, DEFAULT_OG_IMAGE, pageMetadata } from '@/lib/seo';
+import { SITE_NAME } from '@/lib/site';
 import styles from '../../site.module.css';
 
 type PageProps = { params: Promise<{ locale: string; slug: string }> };
@@ -46,6 +48,24 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <article className={`wrap ${styles.page} ${styles.narrow}`}>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: post.title,
+          description: post.excerpt,
+          datePublished: post.publishedAt,
+          inLanguage: locale,
+          image: post.coverImageUrl ?? absoluteUrl(DEFAULT_OG_IMAGE.url),
+          mainEntityOfPage: absoluteUrl(`/${locale}/blog/${post.slug}`),
+          author: { '@type': 'Organization', name: SITE_NAME, url: absoluteUrl('/') },
+          publisher: {
+            '@type': 'Organization',
+            name: SITE_NAME,
+            logo: { '@type': 'ImageObject', url: absoluteUrl('/favicon-512.png') },
+          },
+        }}
+      />
       <Link href="/blog" className={styles.back}>
         ← {t('back')}
       </Link>
