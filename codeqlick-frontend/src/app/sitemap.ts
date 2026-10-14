@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { connection } from 'next/server';
 import { routing } from '@/i18n/routing';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
@@ -26,6 +27,8 @@ async function contentPaths(): Promise<{ path: string; lastModified?: string }[]
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Generated per request: a build-time sitemap has no API to read the content slugs from.
+  await connection();
   const entries = [...STATIC_PATHS.map((path) => ({ path })), ...(await contentPaths())];
 
   return entries.flatMap(({ path, lastModified }: { path: string; lastModified?: string }) =>
