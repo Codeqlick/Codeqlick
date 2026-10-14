@@ -4,7 +4,13 @@ import { availableLocales, pickTranslation } from '../../common/translations.js'
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { PublishStatus } from '../../generated/prisma/client.js';
-import { ActivityService, contentLabel, publishVerb } from '../activity/activity.service.js';
+import {
+  ActivityService,
+  contentLabel,
+  publishVerb,
+  scheduledDetails,
+} from '../activity/activity.service.js';
+import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PortfolioRepository,
   type PortfolioTranslationData,
@@ -126,7 +132,7 @@ export class PortfolioService {
     const item = await this.repository.create({
       slug: input.slug,
       status: input.status,
-      publishedAt: input.status === PublishStatus.PUBLISHED ? new Date() : null,
+      publishedAt: publishedAtOnCreate(input.status, input.publishedAt),
       clientName: input.clientName ?? null,
       projectUrl: input.projectUrl ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
@@ -139,7 +145,7 @@ export class PortfolioService {
       action: 'portfolio.created',
       targetId: created.id,
       targetLabel: contentLabel(created),
-      details: { status: created.status },
+      details: { status: created.status, ...scheduledDetails(created) },
     });
     return created;
   }
@@ -157,18 +163,15 @@ export class PortfolioService {
     if (input.coverImageUrl !== undefined) data.coverImageUrl = input.coverImageUrl;
     if (input.technologies !== undefined) data.technologies = input.technologies;
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
-    if (input.status !== undefined) {
-      data.status = input.status;
-      if (input.status === PublishStatus.PUBLISHED && !existing.publishedAt) {
-        data.publishedAt = new Date();
-      }
-    }
+    if (input.status !== undefined) data.status = input.status;
+    const publishedAt = publishedAtOnUpdate(existing, input.status, input.publishedAt);
+    if (publishedAt !== undefined) data.publishedAt = publishedAt;
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
     const updated = toAdminItem(await this.repository.update(id, data));
     await this.activity.record(actor, {
-      action: `portfolio.${publishVerb(existing.status, input.status)}`,
+      action: `portfolio.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
     });

@@ -29,6 +29,7 @@ function parseItem(formData: FormData) {
   const parsed = portfolioFormSchema.safeParse({
     slug: formString(formData, 'slug'),
     status: formString(formData, 'status'),
+    publishedAt: formString(formData, 'publishedAt'),
     coverImageUrl: formString(formData, 'coverImageUrl'),
     clientName: formString(formData, 'clientName'),
     projectUrl: formString(formData, 'projectUrl'),

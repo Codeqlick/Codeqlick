@@ -4,7 +4,13 @@ import { availableLocales, pickTranslation } from '../../common/translations.js'
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { PublishStatus } from '../../generated/prisma/client.js';
-import { ActivityService, contentLabel, publishVerb } from '../activity/activity.service.js';
+import {
+  ActivityService,
+  contentLabel,
+  publishVerb,
+  scheduledDetails,
+} from '../activity/activity.service.js';
+import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PostsRepository,
   type PostTranslationData,
@@ -115,7 +121,7 @@ export class PostsService {
     const post = await this.repository.create({
       slug: input.slug,
       status: input.status,
-      publishedAt: input.status === PublishStatus.PUBLISHED ? new Date() : null,
+      publishedAt: publishedAtOnCreate(input.status, input.publishedAt),
       coverImageUrl: input.coverImageUrl ?? null,
       authorId,
       translations: input.translations.map(toTranslationData),
@@ -125,7 +131,7 @@ export class PostsService {
       action: 'post.created',
       targetId: created.id,
       targetLabel: contentLabel(created),
-      details: { status: created.status },
+      details: { status: created.status, ...scheduledDetails(created) },
     });
     return created;
   }
@@ -135,19 +141,15 @@ export class PostsService {
     const data: PostUpdateData = {};
     if (input.slug !== undefined) data.slug = input.slug;
     if (input.coverImageUrl !== undefined) data.coverImageUrl = input.coverImageUrl;
-    if (input.status !== undefined) {
-      data.status = input.status;
-      // publishedAt is set the first time a post is published and kept afterwards.
-      if (input.status === PublishStatus.PUBLISHED && !existing.publishedAt) {
-        data.publishedAt = new Date();
-      }
-    }
+    if (input.status !== undefined) data.status = input.status;
+    const publishedAt = publishedAtOnUpdate(existing, input.status, input.publishedAt);
+    if (publishedAt !== undefined) data.publishedAt = publishedAt;
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
     const updated = toAdminPost(await this.repository.update(id, data));
     await this.activity.record(actor, {
-      action: `post.${publishVerb(existing.status, input.status)}`,
+      action: `post.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
     });

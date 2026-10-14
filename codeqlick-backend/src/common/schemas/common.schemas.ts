@@ -33,6 +33,9 @@ export type SlugParam = z.infer<typeof slugParamSchema>;
 /** Optional nullable absolute URL (`undefined` = not provided, `null` = clear it). */
 export const nullableUrlSchema = z.url().max(2048).nullable().optional();
 
+/** Publication date with its offset; in the future it schedules the item. `null` means now. */
+export const publishedAtSchema = z.iso.datetime({ offset: true }).nullable().optional();
+
 export function toDbLocale(locale: ApiLocale): Locale {
   return locale === 'es' ? Locale.ES : Locale.EN;
 }

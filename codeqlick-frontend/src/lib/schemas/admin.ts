@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { LEAD_STATUSES, PROJECT_PHASES } from '@/lib/api/types';
 import {
   optionalDate,
+  optionalDateTime,
   optionalUrl,
   publishStatusSchema,
   requiredString,
@@ -55,6 +56,7 @@ export const PORTFOLIO_TRANSLATION_FIELDS = ['title', 'summary', 'content'] as c
 export const postFormSchema = z.object({
   slug: slugSchema,
   status: publishStatusSchema,
+  publishedAt: optionalDateTime,
   coverImageUrl: optionalUrl,
   en: postTranslation(true),
   es: postTranslation(false),
@@ -63,6 +65,7 @@ export const postFormSchema = z.object({
 export const portfolioFormSchema = z.object({
   slug: slugSchema,
   status: publishStatusSchema,
+  publishedAt: optionalDateTime,
   coverImageUrl: optionalUrl,
   clientName: z
     .string()

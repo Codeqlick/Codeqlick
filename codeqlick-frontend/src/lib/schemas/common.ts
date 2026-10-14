@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fromDateTimeInput } from '@/lib/format';
 
 /** Slugs match the API rule: ^[a-z0-9]+(?:-[a-z0-9]+)*$ */
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -27,5 +28,15 @@ export const optionalDate = z
   .trim()
   .refine((value) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value), 'date')
   .transform((value) => (value === '' ? null : value));
+
+/**
+ * Optional date-time typed in the site's time zone (`yyyy-mm-ddThh:mm`): '' → null, otherwise
+ * the ISO instant.
+ */
+export const optionalDateTime = z
+  .string()
+  .trim()
+  .refine((value) => value === '' || fromDateTimeInput(value) !== null, 'date')
+  .transform((value) => (value === '' ? null : fromDateTimeInput(value)));
 
 export const publishStatusSchema = z.enum(['DRAFT', 'PUBLISHED'], 'choice');

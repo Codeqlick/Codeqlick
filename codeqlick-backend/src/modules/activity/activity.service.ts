@@ -33,14 +33,40 @@ export function contentLabel(item: {
   );
 }
 
-/** `published` / `unpublished` when a status change is part of an update, otherwise `updated`. */
+interface Publishable {
+  status: string;
+  publishedAt: Date | string | null;
+}
+
+function isFuture(item: Publishable, now: Date): boolean {
+  return item.status === 'PUBLISHED' && !!item.publishedAt && new Date(item.publishedAt) > now;
+}
+
+/** `{ publishedAt }` for an item scheduled in the future, to show when it goes live. */
+export function scheduledDetails(item: Publishable, now = new Date()): { publishedAt?: string } {
+  return isFuture(item, now)
+    ? { publishedAt: new Date(item.publishedAt as string).toISOString() }
+    : {};
+}
+
+/**
+ * Verb for an update of a post or case study: `scheduled` when it now waits for a future date
+ * (newly published or re-dated), `published` / `unpublished` for status changes, else `updated`.
+ */
 export function publishVerb(
-  before: string,
-  after: string | undefined,
-): 'published' | 'unpublished' | 'updated' {
-  if (after === undefined || after === before) return 'updated';
-  if (after === 'PUBLISHED') return 'published';
-  return before === 'PUBLISHED' ? 'unpublished' : 'updated';
+  before: Publishable,
+  after: Publishable,
+  input: { status?: string; publishedAt?: string | null },
+  now = new Date(),
+): 'published' | 'unpublished' | 'scheduled' | 'updated' {
+  const statusChanged = input.status !== undefined && input.status !== before.status;
+  const dateChanged =
+    input.publishedAt !== undefined &&
+    new Date(after.publishedAt ?? 0).getTime() !== new Date(before.publishedAt ?? 0).getTime();
+  if (isFuture(after, now) && (statusChanged || dateChanged)) return 'scheduled';
+  if (!statusChanged) return 'updated';
+  if (after.status === 'PUBLISHED') return 'published';
+  return before.status === 'PUBLISHED' ? 'unpublished' : 'updated';
 }
 
 function toEntry(row: ActivityLog): ActivityEntry {

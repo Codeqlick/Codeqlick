@@ -6,6 +6,7 @@ import {
   type PostTranslation,
   type Prisma,
 } from '../../generated/prisma/client.js';
+import { liveWhere } from '../../common/publishing.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type PostWithTranslations = Post & { translations: PostTranslation[] };
@@ -44,7 +45,7 @@ export class PostsRepository {
     skip: number,
     take: number,
   ): Promise<{ items: PostWithTranslations[]; total: number }> {
-    const where: Prisma.PostWhereInput = { status: PublishStatus.PUBLISHED };
+    const where: Prisma.PostWhereInput = liveWhere();
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where,
@@ -60,7 +61,7 @@ export class PostsRepository {
 
   findPublishedBySlug(slug: string): Promise<PostWithTranslations | null> {
     return this.prisma.post.findFirst({
-      where: { slug, status: PublishStatus.PUBLISHED },
+      where: { slug, ...liveWhere() },
       include: withTranslations,
     });
   }

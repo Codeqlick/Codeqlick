@@ -43,6 +43,8 @@ export type PostTranslationFields = { title: string; excerpt: string; content: s
 export type PostInput = {
   slug: string;
   status: PublishStatus;
+  /** ISO instant; in the future it schedules the post. `null`: now when published. */
+  publishedAt?: string | null;
   coverImageUrl?: string | null;
   translations: Translation<PostTranslationFields>[]; // at least 'en'
 };
@@ -75,6 +77,8 @@ export type PortfolioTranslationFields = { title: string; summary: string; conte
 export type PortfolioInput = {
   slug: string;
   status: PublishStatus;
+  /** ISO instant; in the future it schedules the case study. `null`: now when published. */
+  publishedAt?: string | null;
   clientName?: string | null;
   projectUrl?: string | null;
   coverImageUrl?: string | null;
@@ -193,7 +197,7 @@ export type UserPatch = { name?: string; password?: string; isActive?: boolean; 
 
 export type AdminStats = {
   leads: { new: number; total: number };
-  posts: { published: number; drafts: number };
+  posts: { published: number; drafts: number; scheduled: number };
   portfolio: { published: number };
   projects: { active: number };
   clients: number;

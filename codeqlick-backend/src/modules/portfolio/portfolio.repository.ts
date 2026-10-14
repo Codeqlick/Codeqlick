@@ -6,6 +6,7 @@ import {
   type PortfolioTranslation,
   type Prisma,
 } from '../../generated/prisma/client.js';
+import { liveWhere } from '../../common/publishing.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type PortfolioWithTranslations = PortfolioItem & { translations: PortfolioTranslation[] };
@@ -51,7 +52,7 @@ export class PortfolioRepository {
     skip: number,
     take: number,
   ): Promise<{ items: PortfolioWithTranslations[]; total: number }> {
-    const where: Prisma.PortfolioItemWhereInput = { status: PublishStatus.PUBLISHED };
+    const where: Prisma.PortfolioItemWhereInput = liveWhere();
     const [items, total] = await this.prisma.$transaction([
       this.prisma.portfolioItem.findMany({
         where,
@@ -67,7 +68,7 @@ export class PortfolioRepository {
 
   findPublishedBySlug(slug: string): Promise<PortfolioWithTranslations | null> {
     return this.prisma.portfolioItem.findFirst({
-      where: { slug, status: PublishStatus.PUBLISHED },
+      where: { slug, ...liveWhere() },
       include: withTranslations,
     });
   }

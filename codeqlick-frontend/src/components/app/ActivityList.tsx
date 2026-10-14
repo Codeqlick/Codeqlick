@@ -54,6 +54,9 @@ export async function ActivityList({
       notes.push(t('details.phase', { value: tp(text(details.phase) as never) }));
     if ('progress' in details)
       notes.push(t('details.progress', { value: Number(details.progress) }));
+    if (typeof details.publishedAt === 'string') {
+      notes.push(t('details.publishedAt', { value: formatDateTime(details.publishedAt, locale) }));
+    }
     if ('file' in details) notes.push(t('details.file', { value: text(details.file) }));
     if ('title' in details) notes.push(t('details.title', { value: text(details.title) }));
     if ('name' in details) notes.push(t('details.name', { value: text(details.name) }));
