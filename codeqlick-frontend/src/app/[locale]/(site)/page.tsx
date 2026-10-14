@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { connection } from 'next/server';
-import type { ReactNode } from 'react';
 import { BrandSymbol } from '@/components/brand/Symbol';
+import { SERVICE_SLUGS, SERVICES, ServiceIcon } from '@/components/content/services';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Button } from '@/components/ui/Button';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -16,52 +16,6 @@ import styles from './page.module.css';
 
 const STEPS = ['discovery', 'design', 'development', 'qa', 'launch', 'support'] as const;
 const VALUES = ['endToEnd', 'quality', 'transparent', 'modern'] as const;
-
-/** Services with their icon paths (24×24, stroked), in the order of the approved design. */
-const SERVICES: readonly { key: ServiceKey; icon: ReactNode }[] = [
-  {
-    key: 'web',
-    icon: (
-      <>
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <path d="M3 9h18M8 14l-2 2 2 2M16 14l2 2-2 2" />
-      </>
-    ),
-  },
-  { key: 'custom', icon: <path d="M8 6l-6 6 6 6M16 6l6 6-6 6M14 4l-4 16" /> },
-  {
-    key: 'mobile',
-    icon: (
-      <>
-        <rect x="7" y="2" width="10" height="20" rx="2" />
-        <path d="M11 18h2" />
-      </>
-    ),
-  },
-  {
-    key: 'design',
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 3v18M3 12h18" />
-      </>
-    ),
-  },
-  {
-    key: 'consulting',
-    icon: (
-      <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z" />
-    ),
-  },
-  {
-    key: 'support',
-    icon: (
-      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z" />
-    ),
-  },
-];
-
-type ServiceKey = 'web' | 'custom' | 'mobile' | 'design' | 'consulting' | 'support';
 
 /** Decorative editor window from the approved design. It is code, so it is not translated. */
 function CodeWindow() {
@@ -167,23 +121,13 @@ export default async function HomePage({ params }: PageProps) {
           <ul className={styles.services}>
             {SERVICES.map(({ key, icon }) => (
               <li key={key} className={styles.service}>
-                <svg
-                  className={styles.icon}
-                  width="30"
-                  height="30"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                  focusable="false"
-                >
-                  {icon}
-                </svg>
+                <ServiceIcon icon={icon} className={styles.icon} />
                 <h3 className={styles.serviceTitle}>{t(`services.items.${key}.title`)}</h3>
                 <p className={styles.serviceBody}>{t(`services.items.${key}.body`)}</p>
+                <Link href={`/services/${SERVICE_SLUGS[key]}`} className={styles.more}>
+                  {t('services.learnMore')}
+                  <span className="visually-hidden"> — {t(`services.items.${key}.title`)}</span>
+                </Link>
               </li>
             ))}
           </ul>

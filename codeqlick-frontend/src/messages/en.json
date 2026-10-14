@@ -92,7 +92,8 @@
           "title": "Maintenance & support",
           "body": "Monitoring, fixes, security updates and continuous improvement after launch."
         }
-      }
+      },
+      "learnMore": "Learn more"
     },
     "process": {
       "eyebrow": "Process",
@@ -162,6 +163,116 @@
       "title": "Have an idea? Let's build it.",
       "body": "Tell us about your project and we'll get back to you within one business day.",
       "cta": "Start a project"
+    }
+  },
+  "Services": {
+    "metaTitle": "Services",
+    "metaDescription": "Web applications, custom software, mobile and PWA, UI/UX design, technical consulting, and maintenance and support by Codeqlick.",
+    "eyebrow": "Services",
+    "title": "What we build",
+    "lead": "Digital products from first idea to launch and beyond, designed for your business and built to last.",
+    "learnMore": "Learn more",
+    "back": "All services",
+    "includesTitle": "What's included",
+    "idealTitle": "A good fit if",
+    "processTitle": "How we work",
+    "processBody": "Two-week sprints with a demo at the end of each one, so you always see real progress. You get a clear brief and an estimate before any development starts.",
+    "processLink": "See our process",
+    "ctaTitle": "Let's talk about your project",
+    "ctaBody": "Tell us what you need and we'll reply within two business days with next steps.",
+    "ctaButton": "Start a project",
+    "otherTitle": "Other services",
+    "items": {
+      "web": {
+        "intro": "SaaS platforms, client portals, dashboards and internal tools, built to be fast, secure and easy to grow. We take care of the whole stack, from the database to the interface your users see.",
+        "includes": [
+          "Product definition and scope for a first release",
+          "Interface design and front-end development",
+          "APIs, databases and integrations with the tools you already use",
+          "User accounts, roles and permissions",
+          "Hosting, deployments and monitoring set up from day one"
+        ],
+        "idealFor": [
+          "You want to launch a new product or digital service",
+          "Spreadsheets and email no longer keep up with your operations",
+          "You need a portal where your customers can serve themselves"
+        ]
+      },
+      "custom": {
+        "intro": "Software that adapts to how your business works, instead of the other way round. We automate repetitive work, connect systems that don't talk to each other and give your team tools built for its processes.",
+        "includes": [
+          "Mapping the process to automate with the people who run it",
+          "Internal management systems and back-office tools",
+          "APIs and integrations between existing systems",
+          "Data migration from spreadsheets or legacy tools",
+          "Documentation and training for your team"
+        ],
+        "idealFor": [
+          "Your team repeats the same manual tasks every week",
+          "Off-the-shelf software forces you into workarounds",
+          "Your data lives in several places that never agree"
+        ]
+      },
+      "mobile": {
+        "intro": "Responsive and progressive web apps that feel at home on phones, tablets and desktops, installable from the browser and without going through the app stores.",
+        "includes": [
+          "Mobile-first interface design",
+          "Progressive web app: installable, fast and usable on weak connections",
+          "Push notifications where they add value",
+          "Accessibility and performance testing on real devices",
+          "Publishing and updates without app-store reviews"
+        ],
+        "idealFor": [
+          "Your customers or staff use your product mostly on their phones",
+          "You want one product for every device instead of three",
+          "You need to ship updates quickly and often"
+        ]
+      },
+      "design": {
+        "intro": "Research, prototypes and design systems that make your product intuitive and consistent. We design with real content and test with real users before a line of production code is written.",
+        "includes": [
+          "User and stakeholder interviews",
+          "User flows, wireframes and clickable prototypes",
+          "Visual design aligned with your brand",
+          "A design system of reusable components",
+          "Accessibility review (WCAG AA)"
+        ],
+        "idealFor": [
+          "Users struggle to find their way around your product",
+          "You're about to build something and want to validate it first",
+          "Your product has grown inconsistent screen by screen"
+        ]
+      },
+      "consulting": {
+        "intro": "An outside view from engineers who build and run software every day. We help you make technical decisions with confidence: what to build, with what, and in which order.",
+        "includes": [
+          "Architecture and code reviews with a written report",
+          "Technology choice for a new product",
+          "Defining a minimum viable product and its roadmap",
+          "Plans to modernise legacy systems step by step",
+          "Security and performance audits"
+        ],
+        "idealFor": [
+          "You have to make a technical decision with lasting consequences",
+          "Your system is slow, fragile or hard to change",
+          "You need a technical partner before hiring a team"
+        ]
+      },
+      "support": {
+        "intro": "Launching is the beginning. We keep your product secure, up to date and improving, with monitoring that warns us before your users notice anything.",
+        "includes": [
+          "Uptime and error monitoring",
+          "Security updates for dependencies and servers",
+          "Backups and recovery tests",
+          "Bug fixes with agreed response times",
+          "A monthly budget of hours for improvements"
+        ],
+        "idealFor": [
+          "Your product is live and the business depends on it",
+          "The team that built it is no longer around",
+          "You want small, continuous improvements instead of big rewrites"
+        ]
+      }
     }
   },
   "Blog": {
