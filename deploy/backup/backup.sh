@@ -24,10 +24,12 @@ while true; do
 
   # Uploaded files (images, and project files in project-files/) never change once written, so
   # new ones are added to a mirror instead of being archived again every day. Nothing is ever
-  # removed from it: a file deleted from the admin panel stays recoverable here.
+  # removed from it: a file deleted from the admin panel stays recoverable here. No `-p`: this
+  # container runs as another user than the API that owns the files, so preserving ownership
+  # would print a warning per file; a copy is always newer than its source, which `-u` needs.
   if [ -d /uploads ]; then
     mkdir -p /backups/uploads
-    if cp -pRu /uploads/. /backups/uploads/; then
+    if cp -Ru /uploads/. /backups/uploads/; then
       echo "uploads mirrored: $(find /backups/uploads -type f | wc -l) files"
     else
       echo "uploads mirror FAILED" >&2
