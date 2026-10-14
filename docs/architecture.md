@@ -120,6 +120,7 @@ erDiagram
   User ||--o{ ClientProject : "owns (client)"
   User ||--o{ Post : authors
   ClientProject ||--o{ ProjectUpdate : has
+  ClientProject ||--o{ ProjectFile : has
   Post ||--|{ PostTranslation : "en / es"
   PortfolioItem ||--|{ PortfolioTranslation : "en / es"
   Lead
@@ -133,6 +134,7 @@ erDiagram
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `sortOrder`; translation has `title`, `summary`, `content`.
 - **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`.
+- **ProjectFile** — a file shared with the project's client: `name` (original name, cleaned), `contentType` (as sent by the uploader; informational), `size`, `uploadedById?`. The content is stored on disk at `UPLOADS_DIR/project-files/<id>`, never under a public URL.
 
 All ids are UUIDs. All tables have `createdAt`/`updatedAt`. `Locale` is an enum `EN` | `ES`; the HTTP API uses lowercase `en` | `es`.
 
@@ -232,7 +234,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | Method | Path | Response |
 |---|---|---|
 | GET | `/portal/projects` | `ClientProject[]` owned by the caller |
-| GET | `/portal/projects/:id` | `ClientProject` with `updates[]` (newest first); 404 if not the caller's |
+| GET | `/portal/projects/:id` | `ClientProject` with `updates[]` and `files[]` (`{ id, name, contentType, size, createdAt }`), newest first; 404 if not the caller's |
+| GET | `/portal/projects/:id/files/:fileId` | The file, always as `application/octet-stream` with `Content-Disposition: attachment` (UTF-8 name); 404 if the project isn't the caller's |
 
 ### Admin (role `ADMIN`)
 
@@ -249,6 +252,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
 | GET / PATCH / DELETE | `/admin/projects/:id` | |
 | POST | `/admin/projects/:id/updates` | `{ title, body }` |
+| POST | `/admin/projects/:id/files` | `multipart/form-data` with one `file` (any type, max 25 MB) → `201 { id, name, contentType, size, createdAt }`; 413 when too large |
+| DELETE | `/admin/projects/:id/files/:fileId` | `204`; removes the row and the content. Deleting a project removes its files too |
 | POST | `/admin/media` | `multipart/form-data` with one `file` (PNG, JPEG, WebP or GIF, detected from its content; max 5 MB) → `201 { filename, contentType, size }`; 400 for other content, 413 when too large |
 | GET | `/admin/media` | `?page&pageSize` → paginated `{ filename, contentType, size, createdAt, usedBy: { type: 'post' \| 'portfolio', id, slug }[] }`, newest first. `usedBy` lists content that has the image as its cover or in its Markdown |
 | DELETE | `/admin/media/:filename` | `204`; `409` while any content still uses the image; `404` for an unknown name |
@@ -351,6 +356,7 @@ src/
 - **Auth cookies:** `cq_at` (access token, max-age = `expiresIn`) and `cq_rt` (refresh token, 30 days), both `httpOnly`, `secure` in production, `sameSite: 'lax'`, `path: '/'`.
 - **Client IP:** Server Actions for login and contact forward the visitor's IP (`X-Real-IP` from Nginx) to the API as `X-Forwarded-For`, so the API's per-IP rate limits apply per visitor and not per web server.
 - `proxy.ts` runs next-intl, then for `/[locale]/portal` and `/[locale]/admin`: if `cq_at` is missing but `cq_rt` exists, it calls `/v1/auth/refresh` and sets new cookies; if neither exists, it redirects to `/[locale]/login?next=…`. Role checks happen in the layouts via `requireRole()`.
+- **Project files:** uploads are a plain multipart form posted to the route handler `/[locale]/admin/projects/[id]/files`, which checks the origin and streams the body to `POST /v1/admin/projects/:id/files` without buffering it (Server Actions cap bodies at 6 MB). Downloads go through `/[locale]/portal/projects/[id]/files/[fileId]`, which streams the API response.
 - **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images.
 - **No secrets in the client bundle.** Only `NEXT_PUBLIC_SITE_URL` is public.
 - **Accessibility:** semantic HTML, labels on every input, visible focus, 4.5:1 contrast, works without JavaScript for reading content.

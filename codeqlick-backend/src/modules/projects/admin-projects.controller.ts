@@ -9,8 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
@@ -20,16 +23,21 @@ import {
   createProjectSchema,
   createProjectUpdateSchema,
   listProjectsQuerySchema,
+  projectFileParamSchema,
   updateProjectSchema,
   type CreateProjectInput,
   type CreateProjectUpdateInput,
   type ListProjectsQuery,
+  type ProjectFileParam,
   type UpdateProjectInput,
 } from './projects.schemas.js';
 import {
+  MAX_PROJECT_FILE_BYTES,
   ProjectsService,
   type ClientProjectView,
+  type ProjectFileView,
   type ProjectUpdateView,
+  type UploadedProjectFile,
 } from './projects.service.js';
 
 @ApiTags('admin/projects')
@@ -79,5 +87,33 @@ export class AdminProjectsController {
     @Body({ schema: createProjectUpdateSchema }) body: CreateProjectUpdateInput,
   ): Promise<ProjectUpdateView> {
     return this.projects.addUpdate(user, params.id, body);
+  }
+
+  @Post(':id/files')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_PROJECT_FILE_BYTES, files: 1 },
+      // Browsers send UTF-8 file names; multer would otherwise read them as Latin-1.
+      defParamCharset: 'utf8',
+    }),
+  )
+  addFile(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @UploadedFile() file: UploadedProjectFile | undefined,
+  ): Promise<ProjectFileView> {
+    return this.projects.addFile(user, params.id, file);
+  }
+
+  @Delete(':id/files/:fileId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteFile(
+    @Param({ schema: projectFileParamSchema }) params: ProjectFileParam,
+  ): Promise<void> {
+    await this.projects.deleteFile(params.id, params.fileId);
   }
 }

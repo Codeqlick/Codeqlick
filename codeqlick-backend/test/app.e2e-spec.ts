@@ -243,6 +243,51 @@ describe('Codeqlick API (e2e)', () => {
     expect(detail.body.updates).toHaveLength(1);
     await request(server).get('/v1/admin/stats').set(clientAuth).expect(403);
 
+    // Project files: the admin uploads, the project's client downloads.
+    const projectPath = `/v1/admin/projects/${project.body.id as string}`;
+    const uploaded = await request(server)
+      .post(`${projectPath}/files`)
+      .set(auth)
+      .attach('file', Buffer.from('<h1>deliverable</h1>'), {
+        filename: 'Diseño final.html',
+        contentType: 'text/html',
+      })
+      .expect(201);
+    expect(uploaded.body).toMatchObject({ name: 'Diseño final.html', contentType: 'text/html' });
+    await request(server)
+      .post(`${projectPath}/files`)
+      .set(clientAuth)
+      .attach('file', Buffer.from('x'), 'x.txt')
+      .expect(403);
+    const withFiles = await request(server)
+      .get(`/v1/portal/projects/${project.body.id as string}`)
+      .set(clientAuth)
+      .expect(200);
+    expect(withFiles.body.files).toHaveLength(1);
+    const filePath = `/v1/portal/projects/${project.body.id as string}/files/${uploaded.body.id as string}`;
+    const download = await request(server)
+      .get(filePath)
+      .set(clientAuth)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    expect((download.body as Buffer).toString()).toBe('<h1>deliverable</h1>');
+    expect(download.headers['content-type']).toBe('application/octet-stream');
+    expect(download.headers['content-disposition']).toContain("filename*=UTF-8''Dise%C3%B1o");
+    await request(server)
+      .get(`/v1/portal/projects/${project.body.id as string}/files/${randomUUID()}`)
+      .set(clientAuth)
+      .expect(404);
+    await request(server)
+      .delete(`${projectPath}/files/${uploaded.body.id as string}`)
+      .set(auth)
+      .expect(204);
+    await request(server).get(filePath).set(clientAuth).expect(404);
+
     // CSV export of the leads, filtered like the list.
     const leadEmail = `e2e-lead-${suffix}@codeqlick.test`;
     await prisma.lead.create({

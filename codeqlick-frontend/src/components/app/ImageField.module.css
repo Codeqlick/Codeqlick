@@ -22,8 +22,20 @@
   font-size: 0.9rem;
 }
 
-.error:empty {
+.error:empty,
+.success:empty {
   display: none;
+}
+
+.success {
+  color: var(--color-success);
+  font-size: 0.9rem;
+}
+
+.progress {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: var(--color-fuchsia);
 }
 
 .preview {

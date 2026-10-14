@@ -398,7 +398,10 @@
     "noUpdates": "No updates yet.",
     "postedBy": "{author} · {date}",
     "back": "All projects",
-    "open": "Open project"
+    "open": "Open project",
+    "files": "Files",
+    "noFiles": "No files shared yet.",
+    "fileMeta": "{size} · {date}"
   },
   "Admin": {
     "title": "Admin",
@@ -513,7 +516,19 @@
       "updatePosted": "Update posted.",
       "noUpdates": "No updates posted yet.",
       "deleteTitle": "Delete this project",
-      "deleteBody": "The project and all its updates will be removed from the client portal."
+      "deleteBody": "The project, its updates and its files will be removed from the client portal.",
+      "filesTitle": "Files",
+      "filesLead": "Deliverables and documents for the client. Only the client of this project and admins can download them.",
+      "chooseFile": "Choose a file",
+      "uploadFile": "Upload file",
+      "uploadingFile": "Uploading… {percent}%",
+      "fileHint": "Any type of file, up to 25 MB.",
+      "fileUploaded": "File uploaded.",
+      "fileTooLarge": "The file is larger than 25 MB.",
+      "fileFailed": "The upload failed. Please try again.",
+      "fileSignedOut": "Your session has expired. Sign in again and repeat the upload.",
+      "noFiles": "No files uploaded yet.",
+      "fileDeleted": "File deleted."
     },
     "media": {
       "choose": "Image file",
