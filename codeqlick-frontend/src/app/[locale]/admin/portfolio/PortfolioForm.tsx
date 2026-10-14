@@ -7,9 +7,12 @@ import {
   type FormAction,
 } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { ImageField } from '@/components/app/ImageField';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
+import { MAX_IMAGE_BYTES } from '@/lib/api/media';
 import type { AdminPortfolioItem } from '@/lib/api/types';
+import { uploadImageAction } from '../actions';
 
 const STATUSES = ['DRAFT', 'PUBLISHED'] as const;
 
@@ -25,6 +28,7 @@ export async function PortfolioForm({
 }) {
   const t = await getTranslations({ locale, namespace: 'Admin.portfolio' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  const tm = await getTranslations({ locale, namespace: 'Admin.media' });
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
 
   return (
@@ -60,12 +64,21 @@ export async function PortfolioForm({
           defaultValue={item?.projectUrl ?? ''}
         />
       </div>
-      <FormInput
+      <ImageField
         name="coverImageUrl"
-        type="url"
         label={t('coverImageUrl')}
         optionalLabel={tc('optional')}
         defaultValue={item?.coverImageUrl ?? ''}
+        upload={uploadImageAction.bind(null, locale)}
+        maxBytes={MAX_IMAGE_BYTES}
+        labels={{
+          choose: tm('choose'),
+          upload: tm('upload'),
+          uploading: tm('uploading'),
+          hint: tm('hint'),
+          tooLarge: tm('tooLarge'),
+          failed: tm('failed'),
+        }}
       />
       <div className={styles.row}>
         <FormInput

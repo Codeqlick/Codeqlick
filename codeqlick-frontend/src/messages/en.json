@@ -431,6 +431,16 @@
       "deleteTitle": "Delete this project",
       "deleteBody": "The project and all its updates will be removed from the client portal."
     },
+    "media": {
+      "choose": "Image file",
+      "upload": "Upload image",
+      "uploading": "Uploading…",
+      "hint": "Paste a URL or upload an image (PNG, JPEG, WebP or GIF, up to 5 MB).",
+      "missing": "Choose an image first.",
+      "tooLarge": "The image is larger than 5 MB.",
+      "unsupported": "Only PNG, JPEG, WebP and GIF images are accepted.",
+      "failed": "The image could not be uploaded. Please try again."
+    },
     "users": {
       "title": "Users",
       "new": "New user",

@@ -202,3 +202,6 @@ export type ProblemDetails = {
   errors?: ProblemFieldError[];
   requestId?: string;
 };
+
+/** Result of `POST /admin/media`. The image is served by the website at `/media/<filename>`. */
+export type UploadedMedia = { filename: string; contentType: string; size: number };

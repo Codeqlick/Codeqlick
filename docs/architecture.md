@@ -87,6 +87,7 @@ src/
     posts/                   Blog (EN/ES translations)
     portfolio/               Case studies (EN/ES translations)
     projects/                Client projects + progress updates (admin writes, client reads own)
+    media/                   Image uploads (admin) stored on disk and served publicly
 prisma/
   schema.prisma
   migrations/
@@ -108,7 +109,7 @@ modules/posts/
   posts.service.spec.ts        Unit tests with a mocked repository
 ```
 
-Dependency direction: **controller → service → repository → PrismaService**. Never skip a layer, never go backwards.
+Dependency direction: **controller → service → repository → PrismaService**. Never skip a layer, never go backwards. The `media` module has no database table: its `media.storage.ts` plays the repository's role over the file system.
 
 ### 4.2 Data model
 
@@ -179,6 +180,7 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASSWORD` | OVH SMTP | |
 | `MAIL_FROM` | `Codeqlick <hello@codeqlick.com>` | |
 | `LEADS_NOTIFY_TO` | `hello@codeqlick.com` | Where new leads are emailed |
+| `UPLOADS_DIR` | `./uploads` | Folder for uploaded images (a Docker volume in production) |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | | Only used by `prisma db seed` |
 | `LOG_LEVEL` | `info` | |
 
@@ -202,6 +204,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/posts/:slug` | `?locale=en` | `PostDetail` or 404 |
 | GET | `/portfolio` | `?locale=en&page&pageSize` | Paginated `PortfolioSummary` (published only, by `sortOrder`) |
 | GET | `/portfolio/:slug` | `?locale=en` | `PortfolioDetail` or 404 |
+| GET | `/media/:filename` | | The uploaded image, cacheable forever (names are never reused); 404 otherwise |
 | POST | `/auth/login` | `{ email, password }` | `200 AuthTokens` — limited to 5/min/IP |
 | POST | `/auth/refresh` | `{ refreshToken }` | `200 AuthTokens` |
 
@@ -233,6 +236,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
 | GET / PATCH / DELETE | `/admin/projects/:id` | |
 | POST | `/admin/projects/:id/updates` | `{ title, body }` |
+| POST | `/admin/media` | `multipart/form-data` with one `file` (PNG, JPEG, WebP or GIF, detected from its content; max 5 MB) → `201 { filename, contentType, size }`; 400 for other content, 413 when too large |
 | GET / POST | `/admin/users` | POST `{ email, name, password, role }`; GET `?role` |
 | PATCH | `/admin/users/:id` | `{ name?, password?, isActive?, role? }` |
 
@@ -301,6 +305,7 @@ src/
       login/
       portal/                  Client area (role CLIENT or ADMIN)
       admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users
+    media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx
     robots.ts, sitemap.ts
   components/
@@ -327,6 +332,7 @@ src/
 - **Auth cookies:** `cq_at` (access token, max-age = `expiresIn`) and `cq_rt` (refresh token, 30 days), both `httpOnly`, `secure` in production, `sameSite: 'lax'`, `path: '/'`.
 - **Client IP:** Server Actions for login and contact forward the visitor's IP (`X-Real-IP` from Nginx) to the API as `X-Forwarded-For`, so the API's per-IP rate limits apply per visitor and not per web server.
 - `proxy.ts` runs next-intl, then for `/[locale]/portal` and `/[locale]/admin`: if `cq_at` is missing but `cq_rt` exists, it calls `/v1/auth/refresh` and sets new cookies; if neither exists, it redirects to `/[locale]/login?next=…`. Role checks happen in the layouts via `requireRole()`.
+- **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images.
 - **No secrets in the client bundle.** Only `NEXT_PUBLIC_SITE_URL` is public.
 - **Accessibility:** semantic HTML, labels on every input, visible focus, 4.5:1 contrast, works without JavaScript for reading content.
 
@@ -349,7 +355,7 @@ src/
 | Local | `docker compose up --build -d`: PostgreSQL, Mailpit, `api` and `web` (the `dev` target of each Dockerfile, source bind-mounted for hot reload) |
 | Production | VPS (OVH): `docker compose -f docker-compose.prod.yml up -d --build` in `/srv/codeqlick`, Nginx in front with Let's Encrypt |
 
-Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept), `api` (runs `prisma migrate deploy` on start) and `web`. Only Nginx is exposed publicly; `api` and `web` bind to `127.0.0.1`. Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
+Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept), `api` (runs `prisma migrate deploy` on start, keeps uploaded images in the `uploads-data` volume) and `web`. Only Nginx is exposed publicly; `api` and `web` bind to `127.0.0.1`. Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
 
 ## 9. Quality gates (CI)
 
@@ -373,3 +379,4 @@ A pull request can't be merged unless both pass.
 | 7 | Node 24 LTS | Node 26 isn't LTS until late October 2026 |
 | 8 | CSS Modules + tokens over a CSS framework | Small surface, no runtime, brand-driven design |
 | 9 | Markdown content stored in PostgreSQL | Simple authoring, versionable later, no external CMS |
+| 10 | Uploaded images on the API's disk, not in object storage | One VPS and few files: a Docker volume is enough and adds no service or credentials; the URL shape (`/media/<filename>`) would survive a later move |

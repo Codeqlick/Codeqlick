@@ -126,7 +126,15 @@ docker compose -f docker-compose.prod.yml exec backup \
 docker compose -f docker-compose.prod.yml start api web
 ```
 
-`docker compose -f docker-compose.prod.yml down -v` deletes the volume and with it the database.
+Images uploaded from the admin panel live in the `codeqlick-prod_uploads-data` volume and are not
+part of the database dumps. Archive them next to the dumps with:
+
+```bash
+docker run --rm -v codeqlick-prod_uploads-data:/uploads:ro -v "$PWD/backups":/backups \
+  --user "$(id -u):$(id -g)" alpine tar -czf "/backups/uploads-$(date +%F).tar.gz" -C /uploads .
+```
+
+`docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
 ## Notes
 
