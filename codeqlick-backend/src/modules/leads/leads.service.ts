@@ -5,9 +5,13 @@ import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/co
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import type { Lead as LeadRow, Prisma } from '../../generated/prisma/client.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
+import { leadsToCsv } from './leads-csv.js';
 import { leadAcknowledgementEmail, leadNotificationEmail } from './lead-emails.js';
 import { LeadsRepository } from './leads.repository.js';
 import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from './leads.schemas.js';
+
+/** Most rows a CSV export returns. */
+export const EXPORT_LIMIT = 10_000;
 
 export interface Lead {
   id: string;
@@ -79,6 +83,15 @@ export class LeadsService {
       take,
     );
     return paginate(items.map(toLead), total, query.page, query.pageSize);
+  }
+
+  /** All leads matching the list filters as CSV (capped at EXPORT_LIMIT rows). */
+  async exportCsv(query: Pick<ListLeadsQuery, 'status' | 'q'>): Promise<string> {
+    const rows = await this.repository.listAll(
+      { status: query.status, q: query.q || undefined },
+      EXPORT_LIMIT,
+    );
+    return leadsToCsv(rows.map(toLead));
   }
 
   async get(id: string): Promise<Lead> {

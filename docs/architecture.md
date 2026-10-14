@@ -234,6 +234,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 |---|---|---|
 | GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts }, portfolio: { published }, projects: { active }, clients }` |
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
+| GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
 | GET / PATCH | `/admin/leads/:id` | PATCH `{ status?, notes? }` |
 | GET / POST | `/admin/posts` | POST `PostInput` |
 | GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput` |

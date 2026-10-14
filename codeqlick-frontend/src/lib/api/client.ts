@@ -32,6 +32,8 @@ export type ApiFetchOptions = {
   cache?: RequestCache;
   /** ISR revalidation in seconds for public content (section 6.2: 300). */
   revalidate?: number | false;
+  /** `text` returns the body as a string instead of parsing JSON (e.g. CSV downloads). */
+  responseType?: 'json' | 'text';
   /** Aborts the request; defaults to a 10 s timeout so a slow API can't hang a render or build. */
   signal?: AbortSignal;
 };
@@ -135,6 +137,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (response.status === 204) return undefined as T;
 
   const text = await response.text();
+  if (options.responseType === 'text') return text as T;
   if (!text) return undefined as T;
   return JSON.parse(text) as T;
 }

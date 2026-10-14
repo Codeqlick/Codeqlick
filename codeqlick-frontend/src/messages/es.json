@@ -399,7 +399,8 @@
       "emptyTitle": "No hay contactos",
       "emptyBody": "Aquí aparecerán los mensajes que lleguen desde el formulario de contacto.",
       "back": "Todos los contactos",
-      "reply": "Responder por correo"
+      "reply": "Responder por correo",
+      "exportCsv": "Exportar CSV"
     },
     "posts": {
       "title": "Artículos",

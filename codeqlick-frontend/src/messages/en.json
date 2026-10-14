@@ -399,7 +399,8 @@
       "emptyTitle": "No leads found",
       "emptyBody": "New contact form submissions will appear here.",
       "back": "All leads",
-      "reply": "Reply by email"
+      "reply": "Reply by email",
+      "exportCsv": "Export CSV"
     },
     "posts": {
       "title": "Posts",

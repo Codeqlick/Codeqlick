@@ -20,21 +20,21 @@ export class LeadsRepository {
     skip: number,
     take: number,
   ): Promise<{ items: Lead[]; total: number }> {
-    const where: Prisma.LeadWhereInput = {};
-    if (filter.status) where.status = filter.status;
-    if (filter.q) {
-      where.OR = [
-        { name: { contains: filter.q, mode: 'insensitive' } },
-        { email: { contains: filter.q, mode: 'insensitive' } },
-        { company: { contains: filter.q, mode: 'insensitive' } },
-        { message: { contains: filter.q, mode: 'insensitive' } },
-      ];
-    }
+    const where = toWhere(filter);
     const [items, total] = await this.prisma.$transaction([
       this.prisma.lead.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
       this.prisma.lead.count({ where }),
     ]);
     return { items, total };
+  }
+
+  /** Every matching lead, newest first, up to `limit` rows (for exports). */
+  listAll(filter: LeadFilter, limit: number): Promise<Lead[]> {
+    return this.prisma.lead.findMany({
+      where: toWhere(filter),
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
   }
 
   findById(id: string): Promise<Lead | null> {
@@ -44,4 +44,18 @@ export class LeadsRepository {
   update(id: string, data: Prisma.LeadUpdateInput): Promise<Lead> {
     return this.prisma.lead.update({ where: { id }, data });
   }
+}
+
+function toWhere(filter: LeadFilter): Prisma.LeadWhereInput {
+  const where: Prisma.LeadWhereInput = {};
+  if (filter.status) where.status = filter.status;
+  if (filter.q) {
+    where.OR = [
+      { name: { contains: filter.q, mode: 'insensitive' } },
+      { email: { contains: filter.q, mode: 'insensitive' } },
+      { company: { contains: filter.q, mode: 'insensitive' } },
+      { message: { contains: filter.q, mode: 'insensitive' } },
+    ];
+  }
+  return where;
 }

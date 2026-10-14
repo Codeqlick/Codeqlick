@@ -10,6 +10,17 @@ export function createLead(input: LeadInput) {
   });
 }
 
+/** Every lead matching the filters, as CSV text. */
+export function adminExportLeadsCsv(params: { status?: LeadStatus; q?: string } = {}) {
+  return apiFetch<string>('/admin/leads/export.csv', {
+    auth: 'required',
+    query: { status: params.status, q: params.q },
+    responseType: 'text',
+    // Exports can be large; give them longer than the default 10 s.
+    signal: AbortSignal.timeout(60_000),
+  });
+}
+
 export function adminListLeads(
   params: { status?: LeadStatus; q?: string; page?: number; pageSize?: number } = {},
 ) {
