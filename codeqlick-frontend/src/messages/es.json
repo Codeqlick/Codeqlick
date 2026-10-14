@@ -701,5 +701,20 @@
       "back": "Todos los usuarios",
       "notFound": "Este usuario no existe."
     }
+  },
+  "Sessions": {
+    "title": "Sesiones abiertas",
+    "lead": "Dispositivos y navegadores donde has iniciado sesión. Si no reconoces alguno, cierra su sesión y cambia tu contraseña.",
+    "browserOnOs": "{browser} en {os}",
+    "unknownDevice": "Dispositivo desconocido",
+    "thisDevice": "Este dispositivo",
+    "meta": "Última actividad: {date} · IP {ip}",
+    "unknownIp": "desconocida",
+    "signOut": "Cerrar sesión",
+    "signOutOthers": "Cerrar sesión en los demás dispositivos",
+    "signingOut": "Cerrando…",
+    "signedOut": "Sesión cerrada en ese dispositivo.",
+    "signedOutOthers": "Sesión cerrada en los demás dispositivos.",
+    "delay": "Un dispositivo desconectado puede seguir dentro hasta 15 minutos, mientras dure su acceso actual."
   }
 }

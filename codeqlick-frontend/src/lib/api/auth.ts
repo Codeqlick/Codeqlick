@@ -1,6 +1,7 @@
 import 'server-only';
 import { apiFetch } from './client';
 import type {
+  ActiveSession,
   AuthTokens,
   AuthUser,
   Locale,
@@ -96,5 +97,25 @@ export function disableTwoFactor(input: { password: string; code: string }) {
     body: input,
     auth: 'required',
     forwardClientIp: true,
+  });
+}
+
+export function listSessions() {
+  return apiFetch<ActiveSession[]>('/auth/sessions', { auth: 'required' });
+}
+
+export function revokeSession(id: string) {
+  return apiFetch<void>(`/auth/sessions/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+/** Signs out every other device; `refreshToken` is the session that stays signed in. */
+export function revokeOtherSessions(refreshToken: string) {
+  return apiFetch<void>('/auth/sessions/revoke-others', {
+    method: 'POST',
+    body: { refreshToken },
+    auth: 'required',
   });
 }

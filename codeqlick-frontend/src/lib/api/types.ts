@@ -228,4 +228,13 @@ export type LoginResult = AuthTokens | TwoFactorChallenge;
 
 export type TwoFactorStatus = { enabled: boolean; recoveryCodesLeft: number };
 
+/** A signed-in device (`GET /auth/sessions`). `id` is stable across token refreshes. */
+export type ActiveSession = {
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  lastActiveAt: string;
+  current: boolean;
+};
+
 export type TwoFactorSetup = { secret: string; otpauthUrl: string };

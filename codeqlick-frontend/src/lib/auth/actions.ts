@@ -11,6 +11,8 @@ import {
   disableTwoFactor,
   enableTwoFactor,
   logout,
+  revokeOtherSessions,
+  revokeSession,
   startTwoFactorSetup,
 } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
@@ -151,4 +153,47 @@ export async function disableTwoFactorAction(
   }
   revalidatePath(`/${locale}`, 'layout');
   return { status: 'success', message: t('disabled') };
+}
+
+/** Signs out one device from the sessions list (never the current one: the page has no button). */
+export async function revokeSessionAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  try {
+    await revokeSession(id);
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    // Already signed out (expired, or from another tab): refreshing the list is all that is left.
+    if (!(isApiError(error) && error.status === 404)) {
+      const tc = await getTranslations({ locale, namespace: 'Common' });
+      return { status: 'error', message: tc('genericError') };
+    }
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  const t = await getTranslations({ locale, namespace: 'Sessions' });
+  return { status: 'success', message: t('signedOut') };
+}
+
+/** Signs out every device except this one. */
+export async function revokeOtherSessionsAction(
+  locale: AppLocale,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const { refreshToken } = await getTokens();
+  if (!refreshToken) redirect(`/${locale}/login`);
+
+  try {
+    await revokeOtherSessions(refreshToken);
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    const tc = await getTranslations({ locale, namespace: 'Common' });
+    return { status: 'error', message: tc('genericError') };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  const t = await getTranslations({ locale, namespace: 'Sessions' });
+  return { status: 'success', message: t('signedOutOthers') };
 }

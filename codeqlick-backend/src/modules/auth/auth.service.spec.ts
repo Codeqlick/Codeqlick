@@ -1,4 +1,4 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import type { JwtService } from '@nestjs/jwt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
@@ -62,6 +62,9 @@ describe('AuthService', () => {
     disableTotp: ReturnType<typeof vi.fn>;
     useTotpStep: ReturnType<typeof vi.fn>;
     useRecoveryCode: ReturnType<typeof vi.fn>;
+    listActiveSessions: ReturnType<typeof vi.fn>;
+    revokeUserFamily: ReturnType<typeof vi.fn>;
+    revokeOtherFamilies: ReturnType<typeof vi.fn>;
   };
   let passwords: {
     hash: ReturnType<typeof vi.fn>;
@@ -89,6 +92,9 @@ describe('AuthService', () => {
       disableTotp: vi.fn().mockResolvedValue(undefined),
       useTotpStep: vi.fn().mockResolvedValue(true),
       useRecoveryCode: vi.fn().mockResolvedValue(true),
+      listActiveSessions: vi.fn().mockResolvedValue([]),
+      revokeUserFamily: vi.fn().mockResolvedValue(true),
+      revokeOtherFamilies: vi.fn().mockResolvedValue(undefined),
     };
     passwords = {
       hash: vi.fn(),
@@ -129,15 +135,18 @@ describe('AuthService', () => {
       expect(result.expiresIn).toBe(900);
       expect(result.refreshToken).toMatch(/^[\w-]{64}$/);
       expect(result.user).toEqual({ id: user.id, email: user.email, name: 'Ada', role: 'ADMIN' });
+      expect(repository.createSession).toHaveBeenCalledTimes(1);
+      const session = repository.createSession.mock.calls[0]?.[0] as {
+        tokenHash: string;
+        familyId: string;
+      };
       expect(jwt.signAsync).toHaveBeenCalledWith({
         sub: user.id,
         email: user.email,
         name: 'Ada',
         role: 'ADMIN',
+        sid: session.familyId,
       });
-
-      expect(repository.createSession).toHaveBeenCalledTimes(1);
-      const session = repository.createSession.mock.calls[0]?.[0] as { tokenHash: string };
       expect(session.tokenHash).toBe(hashRefreshToken(result.refreshToken));
       expect(session.tokenHash).not.toBe(result.refreshToken);
     });
@@ -195,12 +204,33 @@ describe('AuthService', () => {
     });
 
     it('revokes the whole family when a rotated token is reused', async () => {
-      const session = makeSession(makeUser(), { revokedAt: new Date() });
+      const session = makeSession(makeUser(), {
+        revokedAt: new Date(),
+        replacedById: 'a1a1a1a1-0000-4000-8000-000000000002',
+      });
       repository.findSessionByTokenHash.mockResolvedValue(session);
 
       await expect(service.refresh('old-token')).rejects.toBeInstanceOf(UnauthorizedException);
       expect(repository.revokeFamily).toHaveBeenCalledWith(session.familyId);
       expect(repository.rotateSession).not.toHaveBeenCalled();
+    });
+
+    it('rejects a signed-out session without treating it as theft', async () => {
+      const session = makeSession(makeUser(), { revokedAt: new Date(), replacedById: null });
+      repository.findSessionByTokenHash.mockResolvedValue(session);
+
+      await expect(service.refresh('old-token')).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(repository.revokeFamily).not.toHaveBeenCalled();
+    });
+
+    it('keeps the family id in the new access token', async () => {
+      const session = makeSession(makeUser());
+      repository.findSessionByTokenHash.mockResolvedValue(session);
+
+      await service.refresh('old-token');
+      expect(jwt.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ sid: session.familyId }),
+      );
     });
 
     it('rejects an unknown refresh token', async () => {
@@ -472,6 +502,46 @@ describe('AuthService', () => {
 
       await service.disableTwoFactor(user.id, 'right', code);
       expect(repository.disableTotp).toHaveBeenCalledWith(user.id);
+    });
+  });
+
+  describe('sessions', () => {
+    it('lists live sessions by family and marks the current one', async () => {
+      const user = makeUser();
+      repository.listActiveSessions.mockResolvedValue([
+        makeSession(user, { familyId: 'f1', userAgent: 'Firefox', ip: '1.2.3.4' }),
+        makeSession(user, { familyId: 'f2' }),
+      ]);
+
+      const sessions = await service.listSessions(user.id, 'f2');
+
+      expect(sessions.map((s) => [s.id, s.current])).toEqual([
+        ['f1', false],
+        ['f2', true],
+      ]);
+      expect(sessions[0]).toMatchObject({ userAgent: 'Firefox', ip: '1.2.3.4' });
+    });
+
+    it('answers 404 for a session that is not the caller', async () => {
+      repository.revokeUserFamily.mockResolvedValue(false);
+      await expect(service.revokeSession('u', 'f')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('signs out the other sessions, keeping the one of the refresh token', async () => {
+      const user = makeUser();
+      const session = makeSession(user);
+      repository.findSessionByTokenHash.mockResolvedValue(session);
+
+      await service.revokeOtherSessions(user.id, 'old-token');
+      expect(repository.revokeOtherFamilies).toHaveBeenCalledWith(user.id, session.familyId);
+    });
+
+    it("refuses to keep a session that isn't the caller's", async () => {
+      repository.findSessionByTokenHash.mockResolvedValue(makeSession(makeUser({ id: 'other' })));
+      await expect(service.revokeOtherSessions('me', 'old-token')).rejects.toBeInstanceOf(
+        UnauthorizedException,
+      );
+      expect(repository.revokeOtherFamilies).not.toHaveBeenCalled();
     });
   });
 });

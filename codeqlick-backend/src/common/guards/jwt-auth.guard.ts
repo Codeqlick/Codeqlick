@@ -51,6 +51,7 @@ export class JwtAuthGuard implements CanActivate {
       email: payload.email,
       name: typeof payload.name === 'string' ? payload.name : '',
       role: payload.role,
+      sessionId: typeof payload.sid === 'string' ? payload.sid : undefined,
     };
     return true;
   }

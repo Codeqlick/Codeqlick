@@ -129,15 +129,31 @@ export function parseTokens(data: unknown): RefreshedTokens | null {
 }
 
 /** POST {apiUrl}/auth/refresh. Returns null on any failure (network, 4xx, 5xx, bad body). */
+/**
+ * The visitor's IP and browser, taken from the incoming request, for calls the API records against
+ * a session. The IP is `X-Real-IP` (set by Nginx), otherwise the last `X-Forwarded-For` entry: the
+ * one the nearest proxy appended (earlier entries are client-supplied).
+ */
+export function clientHeaders(incoming: Headers): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const ip =
+    incoming.get('x-real-ip')?.trim() || incoming.get('x-forwarded-for')?.split(',').at(-1)?.trim();
+  if (ip) headers['X-Forwarded-For'] = ip;
+  const userAgent = incoming.get('user-agent');
+  if (userAgent) headers['User-Agent'] = userAgent;
+  return headers;
+}
+
 export async function requestTokenRefresh(
   apiUrl: string,
   refreshToken: string,
+  client: Record<string, string> = {},
   fetchImpl: typeof fetch = fetch,
 ): Promise<RefreshedTokens | null> {
   try {
     const response = await fetchImpl(`${apiUrl}/auth/refresh`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { ...client, 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ refreshToken }),
       cache: 'no-store',
     });
