@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -70,6 +71,18 @@ export interface ClientInfo {
   ip?: string | null;
 }
 
+/** A signed-in device: one refresh-token family, described by its latest rotation. */
+export interface ActiveSession {
+  /** The family id: stable across refreshes. */
+  id: string;
+  userAgent: string | null;
+  ip: string | null;
+  /** When the session was last refreshed (about every 15 minutes while in use). */
+  lastActiveAt: string;
+  /** Whether this is the session the request was made with. */
+  current: boolean;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** How long a password reset link works. */
@@ -123,19 +136,19 @@ export class AuthService {
       return { twoFactorRequired: true, challengeToken };
     }
 
-    const refreshToken = this.generateRefreshToken();
-    await this.repository.createSession(
-      this.buildSession(user.id, refreshToken, randomUUID(), client),
-    );
-    return this.issueTokens(user, refreshToken);
+    return this.startSession(user, client);
   }
 
   async refresh(refreshToken: string, client: ClientInfo = {}): Promise<AuthTokens> {
     const session = await this.repository.findSessionByTokenHash(hashRefreshToken(refreshToken));
     if (!session) throw new UnauthorizedException('Invalid refresh token');
 
+    if (session.revokedAt && !session.replacedById) {
+      // Signed out (logout, password change, or from the sessions list): not a stolen token.
+      throw new UnauthorizedException('Session ended');
+    }
     if (session.revokedAt) {
-      // An already-rotated (or revoked) token came back: assume theft, kill the family.
+      // An already-rotated token came back: assume theft, kill the family.
       this.logger.warn(`Refresh token reuse detected for family ${session.familyId}`);
       await this.repository.revokeFamily(session.familyId);
       throw new UnauthorizedException('Refresh token reuse detected');
@@ -156,7 +169,7 @@ export class AuthService {
       await this.repository.revokeFamily(session.familyId);
       throw new UnauthorizedException('Refresh token reuse detected');
     }
-    return this.issueTokens(session.user, nextToken);
+    return this.issueTokens(session.user, nextToken, session.familyId);
   }
 
   async logout(userId: string, refreshToken: string): Promise<void> {
@@ -164,6 +177,33 @@ export class AuthService {
     if (session && session.userId === userId) {
       await this.repository.revokeSession(session.id);
     }
+  }
+
+  async listSessions(userId: string, currentFamilyId?: string): Promise<ActiveSession[]> {
+    const rows = await this.repository.listActiveSessions(userId, new Date());
+    return rows.map((row) => ({
+      id: row.familyId,
+      userAgent: row.userAgent,
+      ip: row.ip,
+      lastActiveAt: row.createdAt.toISOString(),
+      current: row.familyId === currentFamilyId,
+    }));
+  }
+
+  /** Signs out one of the caller's sessions (possibly the current one). */
+  async revokeSession(userId: string, familyId: string): Promise<void> {
+    if (!(await this.repository.revokeUserFamily(userId, familyId))) {
+      throw new NotFoundException('Session not found');
+    }
+  }
+
+  /** Signs out every other session; the one that owns `refreshToken` stays signed in. */
+  async revokeOtherSessions(userId: string, refreshToken: string): Promise<void> {
+    const session = await this.repository.findSessionByTokenHash(hashRefreshToken(refreshToken));
+    if (!session || session.userId !== userId || session.revokedAt) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    await this.repository.revokeOtherFamilies(userId, session.familyId);
   }
 
   async me(userId: string): Promise<AuthUser> {
@@ -258,11 +298,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid code');
     }
 
-    const refreshToken = this.generateRefreshToken();
-    await this.repository.createSession(
-      this.buildSession(user.id, refreshToken, randomUUID(), client),
-    );
-    return this.issueTokens(user, refreshToken);
+    return this.startSession(user, client);
   }
 
   async twoFactorStatus(userId: string): Promise<TwoFactorStatus> {
@@ -337,12 +373,25 @@ export class AuthService {
     return this.repository.useRecoveryCode(user.id, hash, remaining);
   }
 
-  private async issueTokens(user: User, refreshToken: string): Promise<AuthTokens> {
+  /** New session family for a completed sign-in. */
+  private async startSession(user: User, client: ClientInfo): Promise<AuthTokens> {
+    const refreshToken = this.generateRefreshToken();
+    const familyId = randomUUID();
+    await this.repository.createSession(this.buildSession(user.id, refreshToken, familyId, client));
+    return this.issueTokens(user, refreshToken, familyId);
+  }
+
+  private async issueTokens(
+    user: User,
+    refreshToken: string,
+    familyId: string,
+  ): Promise<AuthTokens> {
     const payload: AccessTokenPayload = {
       sub: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
+      sid: familyId,
     };
     const accessToken = await this.jwt.signAsync(payload);
     return {

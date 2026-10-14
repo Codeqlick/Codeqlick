@@ -10,6 +10,7 @@ import { ACCESS_COOKIE, REFRESH_COOKIE } from './lib/auth/constants';
 import {
   apiBaseUrl,
   clearTokenCookies,
+  clientHeaders,
   isSecureCookieEnv,
   loginRedirectUrl,
   needsRefresh,
@@ -41,7 +42,12 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Refresh FIRST, so the request seen by next-intl (and the render) already has the new token.
-  const tokens = await requestTokenRefresh(apiBaseUrl(), refreshToken);
+  // The visitor's IP and browser are recorded on the rotated session (the account's sessions list).
+  const tokens = await requestTokenRefresh(
+    apiBaseUrl(),
+    refreshToken,
+    clientHeaders(request.headers),
+  );
   if (!tokens) {
     if (stillValid) return handleI18nRouting(request);
     const response = NextResponse.redirect(loginRedirectUrl(request.url, locale, pathname, search));

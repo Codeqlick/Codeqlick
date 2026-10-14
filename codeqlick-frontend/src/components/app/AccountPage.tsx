@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
+import { ActiveSessions } from '@/components/app/ActiveSessions';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TwoFactorSetup } from '@/components/app/TwoFactorSetup';
@@ -113,6 +114,8 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
           </>
         )}
       </section>
+
+      <ActiveSessions locale={locale} />
     </div>
   );
 }

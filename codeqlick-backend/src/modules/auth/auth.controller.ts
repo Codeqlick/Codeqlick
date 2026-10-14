@@ -1,8 +1,19 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
 import {
@@ -27,6 +38,7 @@ import {
 } from './auth.schemas.js';
 import {
   AuthService,
+  type ActiveSession,
   type AuthTokens,
   type ClientInfo,
   type LoginResult,
@@ -160,6 +172,33 @@ export class AuthController {
       body.newPassword,
       body.refreshToken,
     );
+  }
+
+  @ApiBearerAuth()
+  @Get('sessions')
+  sessions(@CurrentUser() user: AuthUser): Promise<ActiveSession[]> {
+    return this.auth.listSessions(user.id, user.sessionId);
+  }
+
+  /** Signs out every other device; `refreshToken` is the session that stays signed in. */
+  @ApiBearerAuth()
+  @Post('sessions/revoke-others')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeOtherSessions(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: logoutSchema }) body: LogoutInput,
+  ): Promise<void> {
+    await this.auth.revokeOtherSessions(user.id, body.refreshToken);
+  }
+
+  @ApiBearerAuth()
+  @Delete('sessions/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeSession(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.auth.revokeSession(user.id, params.id);
   }
 
   @ApiBearerAuth()

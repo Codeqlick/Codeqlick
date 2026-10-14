@@ -160,6 +160,31 @@ export class AuthRepository {
     return result.count === 1;
   }
 
+  /** The user's live sessions: one row per family (the latest rotation), newest first. */
+  listActiveSessions(userId: string, now: Date): Promise<Session[]> {
+    return this.prisma.session.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: now } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** Signs out one of the user's sessions. Returns false when it isn't theirs or already ended. */
+  async revokeUserFamily(userId: string, familyId: string): Promise<boolean> {
+    const result = await this.prisma.session.updateMany({
+      where: { userId, familyId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return result.count > 0;
+  }
+
+  /** Signs out every session of the user except the family `keepFamilyId`. */
+  async revokeOtherFamilies(userId: string, keepFamilyId: string): Promise<void> {
+    await this.prisma.session.updateMany({
+      where: { userId, revokedAt: null, familyId: { not: keepFamilyId } },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   async revokeFamily(familyId: string): Promise<void> {
     await this.prisma.session.updateMany({
       where: { familyId, revokedAt: null },

@@ -701,5 +701,20 @@
       "back": "All users",
       "notFound": "This user doesn't exist."
     }
+  },
+  "Sessions": {
+    "title": "Where you're signed in",
+    "lead": "Devices and browsers signed in to your account. If you don't recognise one, sign it out and change your password.",
+    "browserOnOs": "{browser} on {os}",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "This device",
+    "meta": "Last active: {date} · IP {ip}",
+    "unknownIp": "unknown",
+    "signOut": "Sign out",
+    "signOutOthers": "Sign out all other devices",
+    "signingOut": "Signing out…",
+    "signedOut": "That device has been signed out.",
+    "signedOutOthers": "All other devices have been signed out.",
+    "delay": "A device you sign out may stay in for up to 15 minutes, until its current access expires."
   }
 }
