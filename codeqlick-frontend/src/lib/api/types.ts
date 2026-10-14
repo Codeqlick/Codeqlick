@@ -203,6 +203,17 @@ export type AdminStats = {
   clients: number;
 };
 
+/** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
+export type AdminTimeline = {
+  months: {
+    month: string;
+    leads: number;
+    leadsWon: number;
+    posts: number;
+    caseStudies: number;
+  }[];
+};
+
 /** One entry of the RFC 9457 `errors` extension used by the API for validation failures. */
 export type ProblemFieldError = { path: string; message: string };
 
