@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { Logo } from '@/components/brand/Logo';
+import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -15,7 +16,7 @@ import { loginAction } from './actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ next?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; reset?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -31,6 +32,7 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
 
   const user = await getCurrentUser();
   if (user) redirect(homeForRole(locale, user.role));
+  const query = await searchParams;
 
   return (
     <main className={styles.login}>
@@ -39,9 +41,10 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
         <Card bordered>
           <h1 className={styles.title}>{t('title')}</h1>
           <p className={styles.muted}>{t('subtitle')}</p>
+          {query.reset ? <Alert tone="success">{t('passwordReset')}</Alert> : null}
           <ActionForm action={loginAction} className={styles.form}>
             <input type="hidden" name="locale" value={locale} />
-            <input type="hidden" name="next" value={firstParam((await searchParams).next) ?? ''} />
+            <input type="hidden" name="next" value={firstParam(query.next) ?? ''} />
             <FormInput
               name="email"
               type="email"
@@ -60,6 +63,9 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
               {t('submit')}
             </SubmitButton>
           </ActionForm>
+          <p>
+            <Link href="/forgot-password">{t('forgot')}</Link>
+          </p>
         </Card>
         <Link href="/" className={styles.back}>
           ← {t('backToSite')}

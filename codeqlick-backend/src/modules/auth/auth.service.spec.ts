@@ -5,6 +5,7 @@ import type { AppConfigService } from '../../config/app-config.service.js';
 import type { Session, User } from '../../generated/prisma/client.js';
 import type { AuthRepository, SessionWithUser } from './auth.repository.js';
 import { AuthService, hashRefreshToken } from './auth.service.js';
+import type { MailService } from '../mail/mail.service.js';
 import type { PasswordService } from './password.service.js';
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -49,6 +50,8 @@ describe('AuthService', () => {
     revokeSession: ReturnType<typeof vi.fn>;
     revokeFamily: ReturnType<typeof vi.fn>;
     changePassword: ReturnType<typeof vi.fn>;
+    replacePasswordResetToken: ReturnType<typeof vi.fn>;
+    resetPassword: ReturnType<typeof vi.fn>;
   };
   let passwords: {
     hash: ReturnType<typeof vi.fn>;
@@ -56,6 +59,7 @@ describe('AuthService', () => {
     verifyDummy: ReturnType<typeof vi.fn>;
   };
   let jwt: { signAsync: ReturnType<typeof vi.fn> };
+  let mail: { send: ReturnType<typeof vi.fn> };
   let service: AuthService;
 
   beforeEach(() => {
@@ -68,6 +72,8 @@ describe('AuthService', () => {
       revokeSession: vi.fn().mockResolvedValue(undefined),
       revokeFamily: vi.fn().mockResolvedValue(undefined),
       changePassword: vi.fn().mockResolvedValue(undefined),
+      replacePasswordResetToken: vi.fn().mockResolvedValue(undefined),
+      resetPassword: vi.fn().mockResolvedValue(true),
     };
     passwords = {
       hash: vi.fn(),
@@ -75,13 +81,19 @@ describe('AuthService', () => {
       verifyDummy: vi.fn().mockResolvedValue(undefined),
     };
     jwt = { signAsync: vi.fn().mockResolvedValue('signed.jwt.token') };
-    const config = { jwtAccessTtl: 900, refreshTokenTtlDays: 30 } as AppConfigService;
+    mail = { send: vi.fn().mockResolvedValue(undefined) };
+    const config = {
+      jwtAccessTtl: 900,
+      refreshTokenTtlDays: 30,
+      siteUrl: 'https://codeqlick.com',
+    } as AppConfigService;
 
     service = new AuthService(
       repository as unknown as AuthRepository,
       passwords as unknown as PasswordService,
       jwt as unknown as JwtService,
       config,
+      mail as unknown as MailService,
     );
   });
 
@@ -228,6 +240,80 @@ describe('AuthService', () => {
       await expect(
         service.changePassword('id', 'old password 123', 'new password 456', 'my-token'),
       ).rejects.toBeInstanceOf(UnauthorizedException);
+    });
+  });
+
+  describe('requestPasswordReset', () => {
+    it('stores only the hash of the token and emails the link in the requested language', async () => {
+      const user = makeUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+
+      await service.requestPasswordReset(' ADA@codeqlick.com ', 'es');
+
+      expect(repository.findUserByEmail).toHaveBeenCalledWith('ada@codeqlick.com');
+      const [userId, tokenHash, expiresAt] = repository.replacePasswordResetToken.mock.calls[0] as [
+        string,
+        string,
+        Date,
+      ];
+      expect(userId).toBe(user.id);
+      expect(expiresAt.getTime()).toBeGreaterThan(Date.now() + 59 * 60_000);
+
+      const message = mail.send.mock.calls[0]?.[0] as { to: string; subject: string; text: string };
+      expect(message.to).toBe(user.email);
+      expect(message.subject).toContain('Restablece');
+      const token = /https:\/\/codeqlick\.com\/es\/reset-password\?token=([\w-]+)/.exec(
+        message.text,
+      )?.[1];
+      expect(token).toBeDefined();
+      expect(hashRefreshToken(token as string)).toBe(tokenHash);
+      expect(message.text).not.toContain(tokenHash);
+    });
+
+    it('does nothing, silently, for an unknown or disabled account', async () => {
+      repository.findUserByEmail.mockResolvedValue(null);
+      await expect(service.requestPasswordReset('nobody@x.com', 'en')).resolves.toBeUndefined();
+
+      repository.findUserByEmail.mockResolvedValue(makeUser({ isActive: false }));
+      await expect(
+        service.requestPasswordReset('ada@codeqlick.com', 'en'),
+      ).resolves.toBeUndefined();
+
+      expect(repository.replacePasswordResetToken).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it('still succeeds when the email cannot be sent', async () => {
+      repository.findUserByEmail.mockResolvedValue(makeUser());
+      mail.send.mockRejectedValue(new Error('smtp down'));
+
+      await expect(
+        service.requestPasswordReset('ada@codeqlick.com', 'en'),
+      ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('confirmPasswordReset', () => {
+    it('spends the token by its hash', async () => {
+      passwords.hash.mockResolvedValue('$argon2id$new');
+
+      await service.confirmPasswordReset('emailed-token', 'new password 456');
+
+      const [tokenHash, hashPassword] = repository.resetPassword.mock.calls[0] as [
+        string,
+        () => Promise<string>,
+      ];
+      expect(tokenHash).toBe(hashRefreshToken('emailed-token'));
+      await expect(hashPassword()).resolves.toBe('$argon2id$new');
+      expect(passwords.hash).toHaveBeenCalledWith('new password 456');
+    });
+
+    it('rejects a token that is unknown, used or expired', async () => {
+      repository.resetPassword.mockResolvedValue(false);
+
+      await expect(
+        service.confirmPasswordReset('bad-token', 'new password 456'),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

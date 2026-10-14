@@ -40,6 +40,11 @@ export class AppConfigService {
     return this.get('CORS_ORIGINS');
   }
 
+  /** Public URL of the website, without a trailing slash. */
+  get siteUrl(): string {
+    return this.get('SITE_URL');
+  }
+
   get jwtAccessSecret(): string {
     return this.get('JWT_ACCESS_SECRET');
   }

@@ -2,9 +2,12 @@ import { BadRequestException, Injectable, Logger, UnauthorizedException } from '
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
+import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
 import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
+import { MailService } from '../mail/mail.service.js';
+import { passwordResetEmail } from './auth-emails.js';
 import { PasswordService } from './password.service.js';
 
 export interface AuthTokens {
@@ -20,6 +23,9 @@ export interface ClientInfo {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How long a password reset link works. */
+export const PASSWORD_RESET_TTL_MINUTES = 60;
 
 export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -38,6 +44,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly jwt: JwtService,
     private readonly config: AppConfigService,
+    private readonly mail: MailService,
   ) {}
 
   async login(email: string, password: string, client: ClientInfo = {}): Promise<AuthTokens> {
@@ -130,6 +137,37 @@ export class AuthService {
       await this.passwords.hash(newPassword),
       hashRefreshToken(refreshToken),
     );
+  }
+
+  /**
+   * Emails a reset link when `email` belongs to an active account. It never tells the caller
+   * whether it does, and the email is sent in the background so timing doesn't either.
+   */
+  async requestPasswordReset(email: string, locale: ApiLocale): Promise<void> {
+    const user = await this.repository.findUserByEmail(email.trim().toLowerCase());
+    if (!user || !user.isActive) return;
+
+    const token = this.generateRefreshToken();
+    await this.repository.replacePasswordResetToken(
+      user.id,
+      hashRefreshToken(token),
+      new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60_000),
+    );
+
+    const link = `${this.config.siteUrl}/${locale}/reset-password?token=${token}`;
+    const message = passwordResetEmail(user, link, locale, PASSWORD_RESET_TTL_MINUTES);
+    this.mail.send(message).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send password reset email: ${reason}`);
+    });
+  }
+
+  /** Sets a new password with the token from the email and signs the user out everywhere. */
+  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    const done = await this.repository.resetPassword(hashRefreshToken(token), () =>
+      this.passwords.hash(newPassword),
+    );
+    if (!done) throw new BadRequestException('This reset link is invalid or has expired');
   }
 
   private async issueTokens(user: User, refreshToken: string): Promise<AuthTokens> {

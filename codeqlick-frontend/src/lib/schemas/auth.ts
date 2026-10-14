@@ -15,3 +15,17 @@ export const changePasswordSchema = z
     path: ['confirmPassword'],
     message: 'passwordMismatch',
   });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().min(1, 'required').pipe(z.email('email')),
+});
+
+export const resetPasswordSchema = z
+  .object({
+    newPassword: z.string().min(12, 'password').max(256, 'tooLong'),
+    confirmPassword: z.string(),
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'passwordMismatch',
+  });

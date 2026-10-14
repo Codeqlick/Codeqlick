@@ -53,6 +53,7 @@ services:
       LOG_LEVEL: debug
       DATABASE_URL: postgresql://codeqlick:codeqlick@db:5432/codeqlick
       CORS_ORIGINS: http://localhost:${WEB_PORT:-3000}
+      SITE_URL: http://localhost:${WEB_PORT:-3000}
       # Development-only placeholder, same as .env.example. Production sets its own secret.
       JWT_ACCESS_SECRET: change-me-change-me-change-me-change-me-change-me-change-me
       SMTP_HOST: mailpit
