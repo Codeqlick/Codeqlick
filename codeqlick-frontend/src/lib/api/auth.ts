@@ -22,6 +22,20 @@ export function logout(refreshToken: string) {
   });
 }
 
+/** Changes the signed-in user's password; `refreshToken` is the session that stays signed in. */
+export function changePassword(input: {
+  currentPassword: string;
+  newPassword: string;
+  refreshToken: string;
+}) {
+  return apiFetch<void>('/auth/password', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
 export function me(token?: string) {
   return apiFetch<AuthUser>('/auth/me', { auth: 'required', token });
 }

@@ -232,6 +232,7 @@
     "number": "Enter a whole number.",
     "progress": "Enter a number between 0 and 100.",
     "password": "Use at least 12 characters.",
+    "passwordMismatch": "The two passwords don't match.",
     "messageTooShort": "Tell us a bit more (at least 10 characters).",
     "translationIncomplete": "Fill in title, excerpt and content, or leave all three empty.",
     "date": "Enter a valid date.",
@@ -249,6 +250,22 @@
     "rateLimited": "Too many attempts. Please wait a minute and try again.",
     "error": "We couldn't sign you in right now. Please try again.",
     "backToSite": "Back to the website"
+  },
+  "Account": {
+    "nav": "Account",
+    "title": "Your account",
+    "signedInAs": "Signed in as {email}",
+    "changePassword": "Change password",
+    "changePasswordBody": "After changing it, every other device where you are signed in will be signed out.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "newPasswordHint": "At least 12 characters.",
+    "confirmPassword": "Repeat the new password",
+    "submit": "Change password",
+    "changed": "Password changed. Your other devices have been signed out.",
+    "wrongCurrent": "The current password is not correct.",
+    "samePassword": "Choose a password you are not already using.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again."
   },
   "NotFound": {
     "metaTitle": "Page not found",

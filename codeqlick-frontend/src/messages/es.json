@@ -232,6 +232,7 @@
     "number": "Introduce un número entero.",
     "progress": "Introduce un número entre 0 y 100.",
     "password": "Usa al menos 12 caracteres.",
+    "passwordMismatch": "Las dos contraseñas no coinciden.",
     "messageTooShort": "Cuéntanos un poco más (mínimo 10 caracteres).",
     "translationIncomplete": "Rellena título, extracto y contenido, o deja los tres vacíos.",
     "date": "Introduce una fecha válida.",
@@ -249,6 +250,22 @@
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
     "error": "Ahora mismo no podemos iniciar tu sesión. Vuelve a intentarlo.",
     "backToSite": "Volver a la web"
+  },
+  "Account": {
+    "nav": "Cuenta",
+    "title": "Tu cuenta",
+    "signedInAs": "Sesión iniciada como {email}",
+    "changePassword": "Cambiar contraseña",
+    "changePasswordBody": "Al cambiarla, se cerrará la sesión en el resto de dispositivos donde la tengas abierta.",
+    "currentPassword": "Contraseña actual",
+    "newPassword": "Nueva contraseña",
+    "newPasswordHint": "Al menos 12 caracteres.",
+    "confirmPassword": "Repite la nueva contraseña",
+    "submit": "Cambiar contraseña",
+    "changed": "Contraseña cambiada. Se ha cerrado la sesión en tus otros dispositivos.",
+    "wrongCurrent": "La contraseña actual no es correcta.",
+    "samePassword": "Elige una contraseña que no estés usando ya.",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
   },
   "NotFound": {
     "metaTitle": "Página no encontrada",

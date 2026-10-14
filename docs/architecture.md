@@ -214,6 +214,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 |---|---|---|
 | POST | `/auth/logout` | `{ refreshToken }` → `204` |
 | GET | `/auth/me` | `AuthUser` |
+| POST | `/auth/password` | `{ currentPassword, newPassword, refreshToken }` → `204`. Revokes the caller's other sessions; the one owning `refreshToken` stays signed in. `400` with a field error when `currentPassword` is wrong or `newPassword` (min 12 chars) equals it — limited to 5/min/IP |
 
 ### Client portal (role `CLIENT`; admins may also call)
 
@@ -303,8 +304,8 @@ src/
         work/ work/[slug]/     Portfolio
         contact/               Contact form (server action → POST /v1/leads)
       login/
-      portal/                  Client area (role CLIENT or ADMIN)
-      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users
+      portal/                  Client area (role CLIENT or ADMIN): projects, account
+      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users, account
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx
     robots.ts, sitemap.ts

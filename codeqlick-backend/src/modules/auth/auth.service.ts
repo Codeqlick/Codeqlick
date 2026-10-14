@@ -1,4 +1,4 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
@@ -98,6 +98,38 @@ export class AuthService {
     const user = await this.repository.findUserById(userId);
     if (!user || !user.isActive) throw new UnauthorizedException('Account not available');
     return toAuthUser(user);
+  }
+
+  /**
+   * Changes the caller's own password. Sessions on other devices are revoked; the one that owns
+   * `refreshToken` stays signed in.
+   */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    refreshToken: string,
+  ): Promise<void> {
+    const user = await this.repository.findUserById(userId);
+    if (!user || !user.isActive) throw new UnauthorizedException('Account not available');
+
+    // 400 with a field error, not 401: the caller is signed in, they just mistyped a form field.
+    if (!(await this.passwords.verify(user.passwordHash, currentPassword))) {
+      throw new BadRequestException({
+        errors: [{ path: 'currentPassword', message: 'Current password is incorrect' }],
+      });
+    }
+    if (newPassword === currentPassword) {
+      throw new BadRequestException({
+        errors: [{ path: 'newPassword', message: 'Choose a password you are not already using' }],
+      });
+    }
+
+    await this.repository.changePassword(
+      user.id,
+      await this.passwords.hash(newPassword),
+      hashRefreshToken(refreshToken),
+    );
   }
 
   private async issueTokens(user: User, refreshToken: string): Promise<AuthTokens> {

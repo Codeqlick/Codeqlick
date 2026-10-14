@@ -17,3 +17,13 @@ export type RefreshInput = z.infer<typeof refreshSchema>;
 
 export const logoutSchema = refreshSchema;
 export type LogoutInput = RefreshInput;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(1024),
+    newPassword: z.string().min(12).max(256),
+    /** The caller's own session, which stays signed in; every other session is revoked. */
+    refreshToken: z.string().min(1).max(512),
+  })
+  .strict();
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

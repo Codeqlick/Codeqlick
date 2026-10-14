@@ -6,9 +6,11 @@ import { Public } from '../../common/decorators/public.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
 import {
+  changePasswordSchema,
   loginSchema,
   logoutSchema,
   refreshSchema,
+  type ChangePasswordInput,
   type LoginInput,
   type LogoutInput,
   type RefreshInput,
@@ -57,6 +59,22 @@ export class AuthController {
     @Body({ schema: logoutSchema }) body: LogoutInput,
   ): Promise<void> {
     await this.auth.logout(user.id, body.refreshToken);
+  }
+
+  @ApiBearerAuth()
+  @Throttle(STRICT_LIMIT)
+  @Post('password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: changePasswordSchema }) body: ChangePasswordInput,
+  ): Promise<void> {
+    await this.auth.changePassword(
+      user.id,
+      body.currentPassword,
+      body.newPassword,
+      body.refreshToken,
+    );
   }
 
   @ApiBearerAuth()

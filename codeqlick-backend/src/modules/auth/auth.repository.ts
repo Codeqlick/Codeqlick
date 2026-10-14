@@ -58,6 +58,20 @@ export class AuthRepository {
     });
   }
 
+  /**
+   * Stores the new password hash and revokes the user's active sessions, except the one whose
+   * refresh token hash is `keepTokenHash`.
+   */
+  async changePassword(userId: string, passwordHash: string, keepTokenHash: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.session.updateMany({
+        where: { userId, revokedAt: null, tokenHash: { not: keepTokenHash } },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+  }
+
   async revokeFamily(familyId: string): Promise<void> {
     await this.prisma.session.updateMany({
       where: { familyId, revokedAt: null },

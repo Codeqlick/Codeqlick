@@ -33,6 +33,7 @@ const VALIDATION_KEYS: ReadonlySet<string> = new Set<ValidationKey>([
   'number',
   'progress',
   'password',
+  'passwordMismatch',
   'messageTooShort',
   'translationIncomplete',
   'date',
