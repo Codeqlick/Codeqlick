@@ -75,13 +75,15 @@ https://api.codeqlick.com/v1/health.
 
 ```bash
 cd /srv/codeqlick
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
-docker image prune -f
+./deploy/deploy.sh
 ```
 
-Images are rebuilt on the server and containers are replaced one service at a time; expect a few
-seconds of downtime while `api` and `web` restart.
+The script pulls `main`, builds the images while the old containers keep serving, restarts the
+stack and waits until every service is healthy and the site and the API answer. If they don't, it
+starts the stack once more (Docker can fail to replace a container, which leaves `api` and `web`
+stopped) and checks again. It exits with an error, printing the container status and the last
+logs, when the release still isn't serving. Expect a few seconds of downtime while `api` and `web`
+restart. `./deploy/deploy.sh --no-pull` rebuilds and restarts the current checkout.
 
 ## Operations
 
