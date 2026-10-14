@@ -2,14 +2,13 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { cache } from 'react';
-import { Markdown } from '@/components/markdown/Markdown';
+import { PostArticle } from '@/components/content/PostArticle';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getPost } from '@/lib/api/posts';
 import type { Locale } from '@/lib/api/types';
-import { formatDate } from '@/lib/format';
 import { absoluteUrl, DEFAULT_OG_IMAGE, pageMetadata } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
 import styles from '../../site.module.css';
@@ -47,7 +46,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const post = await loadPost(slug, locale);
 
   return (
-    <article className={`wrap ${styles.page} ${styles.narrow}`}>
+    <PostArticle post={post} locale={locale}>
       <JsonLd
         data={{
           '@context': 'https://schema.org',
@@ -69,20 +68,6 @@ export default async function BlogPostPage({ params }: PageProps) {
       <Link href="/blog" className={styles.back}>
         ← {t('back')}
       </Link>
-      <p className={styles.meta}>
-        <time dateTime={post.publishedAt}>
-          {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
-        </time>
-      </p>
-      <h1 className={styles.title}>{post.title}</h1>
-      <p className={`lead ${styles.lead}`}>{post.excerpt}</p>
-      {post.coverImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img src={post.coverImageUrl} alt="" className={`${styles.cover} ${styles.hero}`} />
-      ) : null}
-      <div className={styles.content}>
-        <Markdown>{post.content}</Markdown>
-      </div>
-    </article>
+    </PostArticle>
   );
 }

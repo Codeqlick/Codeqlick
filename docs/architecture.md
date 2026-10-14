@@ -305,7 +305,8 @@ src/
         contact/               Contact form (server action → POST /v1/leads)
       login/
       portal/                  Client area (role CLIENT or ADMIN): projects, account
-      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users, account
+      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users, account;
+                               posts and portfolio items have a preview page that renders the saved draft
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx
     robots.ts, sitemap.ts
@@ -314,6 +315,7 @@ src/
     layout/                    SiteHeader, SiteFooter, LocaleSwitcher, AppShell (portal/admin)
     ui/                        Button, Field, Select, Textarea, Badge, Card, Pagination, EmptyState
     markdown/                  Markdown renderer (react-markdown, no raw HTML)
+    content/                   PostArticle, CaseStudyArticle: shared by the public pages and the admin previews
   lib/
     api/client.ts              Typed fetch wrapper (server-only): base URL, auth header, problem+json errors
     api/types.ts               Types from the API contract (section 5)

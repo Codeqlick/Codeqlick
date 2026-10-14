@@ -20,6 +20,7 @@ export default async function EditPortfolioPage({
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.portfolio' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  const tp = await getTranslations({ locale, namespace: 'Admin.preview' });
 
   let item: AdminPortfolioItem;
   try {
@@ -35,11 +36,16 @@ export default async function EditPortfolioPage({
         title={t('edit')}
         back={{ href: '/admin/portfolio', label: t('back') }}
         actions={
-          item.status === 'PUBLISHED' ? (
-            <Button href={`/work/${item.slug}`} variant="outline" size="sm">
-              {tc('view')}
+          <>
+            <Button href={`/admin/portfolio/${item.id}/preview`} variant="outline" size="sm">
+              {tp('button')}
             </Button>
-          ) : undefined
+            {item.status === 'PUBLISHED' ? (
+              <Button href={`/work/${item.slug}`} variant="outline" size="sm">
+                {tc('view')}
+              </Button>
+            ) : null}
+          </>
         }
       />
       <section className={styles.panel}>

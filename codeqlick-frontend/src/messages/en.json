@@ -458,6 +458,15 @@
       "unsupported": "Only PNG, JPEG, WebP and GIF images are accepted.",
       "failed": "The image could not be uploaded. Please try again."
     },
+    "preview": {
+      "button": "Preview",
+      "title": "Preview",
+      "back": "Back to editing",
+      "noticeDraft": "This is a draft, shown in {language}. Only you can see it.",
+      "noticePublished": "This is the published version, shown in {language}.",
+      "unsaved": "It shows what is saved: save your changes before previewing them.",
+      "otherLanguages": "Also available in:"
+    },
     "users": {
       "title": "Users",
       "new": "New user",

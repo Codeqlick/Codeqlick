@@ -20,6 +20,7 @@ export default async function EditPostPage({
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.posts' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  const tp = await getTranslations({ locale, namespace: 'Admin.preview' });
 
   let post: AdminPost;
   try {
@@ -35,11 +36,16 @@ export default async function EditPostPage({
         title={t('edit')}
         back={{ href: '/admin/posts', label: t('back') }}
         actions={
-          post.status === 'PUBLISHED' ? (
-            <Button href={`/blog/${post.slug}`} variant="outline" size="sm">
-              {tc('view')}
+          <>
+            <Button href={`/admin/posts/${post.id}/preview`} variant="outline" size="sm">
+              {tp('button')}
             </Button>
-          ) : undefined
+            {post.status === 'PUBLISHED' ? (
+              <Button href={`/blog/${post.slug}`} variant="outline" size="sm">
+                {tc('view')}
+              </Button>
+            ) : null}
+          </>
         }
       />
       <section className={styles.panel}>
