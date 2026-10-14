@@ -109,7 +109,7 @@ modules/posts/
   posts.service.spec.ts        Unit tests with a mocked repository
 ```
 
-Dependency direction: **controller → service → repository → PrismaService**. Never skip a layer, never go backwards. The `media` module has no database table: its `media.storage.ts` plays the repository's role over the file system.
+Dependency direction: **controller → service → repository → PrismaService**. Never skip a layer, never go backwards. The `media` module has no database table: its `media.storage.ts` plays the repository's role over the file system, and `media.repository.ts` only reads which posts and case studies use an image.
 
 ### 4.2 Data model
 
@@ -243,6 +243,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / PATCH / DELETE | `/admin/projects/:id` | |
 | POST | `/admin/projects/:id/updates` | `{ title, body }` |
 | POST | `/admin/media` | `multipart/form-data` with one `file` (PNG, JPEG, WebP or GIF, detected from its content; max 5 MB) → `201 { filename, contentType, size }`; 400 for other content, 413 when too large |
+| GET | `/admin/media` | `?page&pageSize` → paginated `{ filename, contentType, size, createdAt, usedBy: { type: 'post' \| 'portfolio', id, slug }[] }`, newest first. `usedBy` lists content that has the image as its cover or in its Markdown |
+| DELETE | `/admin/media/:filename` | `204`; `409` while any content still uses the image; `404` for an unknown name |
 | GET / POST | `/admin/users` | POST `{ email, name, password, role }`; GET `?role` |
 | PATCH | `/admin/users/:id` | `{ name?, password?, isActive?, role? }` |
 
@@ -312,7 +314,7 @@ src/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password
       portal/                  Client area (role CLIENT or ADMIN): projects, account
-      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, users, account;
+      admin/                   Admin panel (role ADMIN): dashboard, leads, posts, portfolio, projects, media, users, account;
                                posts and portfolio items have a preview page that renders the saved draft
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx

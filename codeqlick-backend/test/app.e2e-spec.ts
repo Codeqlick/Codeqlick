@@ -198,7 +198,7 @@ describe('Codeqlick API (e2e)', () => {
       .send({ email: clientEmail, name: 'Dup', password: 'client-password-1234', role: 'CLIENT' })
       .expect(409);
 
-    await request(server)
+    const createdPost = await request(server)
       .post('/v1/admin/posts')
       .set(auth)
       .send({
@@ -261,6 +261,39 @@ describe('Codeqlick API (e2e)', () => {
     expect(served.headers['content-type']).toBe('image/png');
     expect(served.headers['cache-control']).toContain('immutable');
     expect(Buffer.compare(served.body as Buffer, png)).toBe(0);
+
+    // Library: listed with what uses it; deletable only once nothing does.
+    const filename = upload.body.filename as string;
+    await request(server)
+      .patch(`/v1/admin/posts/${createdPost.body.id as string}`)
+      .set(auth)
+      .send({ coverImageUrl: `http://localhost:3000/media/${filename}` })
+      .expect(200);
+    const library = await request(server)
+      .get('/v1/admin/media')
+      .query({ pageSize: 100 })
+      .set(auth)
+      .expect(200);
+    const listed = (library.body.items as { filename: string; usedBy: unknown[] }[]).find(
+      (item) => item.filename === filename,
+    );
+    expect(listed).toMatchObject({
+      contentType: 'image/png',
+      size: png.length,
+      usedBy: [{ type: 'post', id: createdPost.body.id, slug: postSlug }],
+    });
+    const inUse = await request(server).delete(`/v1/admin/media/${filename}`).set(auth).expect(409);
+    expect(inUse.body.detail).toContain(postSlug);
+    await request(server)
+      .patch(`/v1/admin/posts/${createdPost.body.id as string}`)
+      .set(auth)
+      .send({ coverImageUrl: null })
+      .expect(200);
+    await request(server).delete(`/v1/admin/media/${filename}`).set(clientAuth).expect(403);
+    await request(server).delete(`/v1/admin/media/${filename}`).set(auth).expect(204);
+    await request(server).get(`/v1/media/${filename}`).expect(404);
+    await request(server).delete(`/v1/admin/media/${filename}`).set(auth).expect(404);
+    await request(server).delete('/v1/admin/media/..%2F..%2Fpackage.json').set(auth).expect(404);
 
     // The content decides, not the name or the declared type.
     await request(server)

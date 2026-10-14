@@ -368,6 +368,7 @@
       "leads": "Leads",
       "posts": "Posts",
       "portfolio": "Portfolio",
+      "media": "Images",
       "projects": "Projects",
       "users": "Users"
     },
@@ -482,7 +483,22 @@
       "missing": "Choose an image first.",
       "tooLarge": "The image is larger than 5 MB.",
       "unsupported": "Only PNG, JPEG, WebP and GIF images are accepted.",
-      "failed": "The image could not be uploaded. Please try again."
+      "failed": "The image could not be uploaded. Please try again.",
+      "title": "Images",
+      "lead": "Every image uploaded from this panel, newest first.",
+      "emptyTitle": "No images yet",
+      "emptyBody": "Upload one here, or from the cover field of an article or case study.",
+      "uploaded": "Uploaded {date}",
+      "url": "URL",
+      "usedBy": "Used by",
+      "unused": "Not used by any article or case study.",
+      "post": "Article",
+      "portfolio": "Case study",
+      "delete": "Delete image",
+      "inUseHint": "Remove it from that content before deleting it.",
+      "inUse": "This image is still used by an article or a case study.",
+      "deleted": "Image deleted.",
+      "uploadHint": "PNG, JPEG, WebP or GIF, up to 5 MB."
     },
     "preview": {
       "button": "Preview",

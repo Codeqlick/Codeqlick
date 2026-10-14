@@ -42,3 +42,11 @@ export function parsePage(value: string | string[] | undefined): number {
 export function firstParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
+/** File size for people: 870 B, 12 KB, 1.4 MB. */
+export function formatBytes(bytes: number, locale: string): string {
+  const number = new Intl.NumberFormat(tag(locale), { maximumFractionDigits: 1 });
+  if (bytes < 1024) return `${number.format(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${number.format(Math.round(bytes / 1024))} KB`;
+  return `${number.format(bytes / (1024 * 1024))} MB`;
+}

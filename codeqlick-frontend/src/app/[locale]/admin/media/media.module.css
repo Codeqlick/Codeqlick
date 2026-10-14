@@ -1,0 +1,30 @@
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: var(--color-blush);
+  border-radius: var(--radius-md);
+}
+
+.url {
+  width: 100%;
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem;
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  background: var(--color-white);
+}
+
+.usage {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.95rem;
+}
