@@ -1,0 +1,79 @@
+name: Deploy
+
+# Releases `main` to the VPS once its CI has passed. Backend and Frontend only run when their app
+# changed; each one finishing triggers this, and it deploys when no CI run of that commit failed
+# or is still running (the last one to finish does the release). Run it by hand to redeploy.
+on:
+  workflow_run:
+    workflows: [Backend, Frontend]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  deploy:
+    name: Release to production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Only pushes to this repository's main: a fork's pull request from a branch called `main`
+    # also triggers workflow_run, and must never deploy.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+
+    steps:
+      - name: Check every CI run of this commit
+        id: gate
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          runs=$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$SHA&per_page=50" \
+            --jq '[.workflow_runs[] | select(.name == "Backend" or .name == "Frontend")
+                   | {name, status, conclusion}]')
+          echo "$runs"
+          if echo "$runs" | jq -e 'any(.[]; .status == "completed" and .conclusion != "success")' > /dev/null; then
+            echo "::error::A CI run of this commit failed: not deploying"
+            exit 1
+          fi
+          if echo "$runs" | jq -e 'any(.[]; .status != "completed")' > /dev/null; then
+            echo "Another CI run of this commit is still going; it will deploy when it finishes."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy over SSH
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.deploy == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TARGET }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The server runs deploy/ci-deploy.sh whatever the command (forced by the key).
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 "$DEPLOY_TARGET" deploy
+
+      - name: Check the public site
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.deploy == 'true'
+        run: |
+          for url in https://codeqlick.com/en https://api.codeqlick.com/v1/health; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url")
+            echo "$url $code"
+            [ "$code" = "200" ]
+          done

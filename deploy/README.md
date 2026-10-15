@@ -85,6 +85,25 @@ stopped) and checks again. It exits with an error, printing the container status
 logs, when the release still isn't serving. Expect a few seconds of downtime while `api` and `web`
 restart. `./deploy/deploy.sh --no-pull` rebuilds and restarts the current checkout.
 
+### Automatic deploys
+
+Merging to `main` releases on its own: when the Backend and/or Frontend CI of that commit
+pass, `.github/workflows/deploy.yml` connects as the deploy user and runs `deploy/ci-deploy.sh`,
+which takes a lock (one release at a time) and runs `deploy/deploy.sh`; then it checks the public
+site and API. A failed CI run means no release. Changes that trigger no CI (only `deploy/` or docs)
+aren't released: run the workflow by hand (Actions → Deploy → Run workflow) or deploy as above.
+
+How it is wired:
+
+- A dedicated SSH key (comment `github-actions-deploy@codeqlick`). Its public half is in
+  `~cqadmin/.ssh/authorized_keys`, pinned to the release:
+  `command="/srv/codeqlick/deploy/ci-deploy.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty`.
+  Whatever command the client sends, that key can only run a release.
+- GitHub secrets: `DEPLOY_SSH_KEY` (the private key), `DEPLOY_KNOWN_HOSTS` (the server's host keys,
+  from `ssh-keyscan`) and `DEPLOY_TARGET` (`cqadmin@<server>`).
+- To revoke it, delete that line from `authorized_keys`. To rotate it, generate a new key and
+  replace both the line and the `DEPLOY_SSH_KEY` secret.
+
 ## Operations
 
 ```bash
