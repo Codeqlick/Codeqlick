@@ -148,7 +148,7 @@ docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 - disk use (alerts at 90%);
 - the TLS certificates (alerts at 14 days left).
 
-It emails `ALERT_TO` (in production `admin@codeqlick.com`; default: `LEADS_NOTIFY_TO`) through the site's SMTP account with `curl`, so it still works when the containers don't. It writes only when the result changes, with a reminder every 6 hours while something stays broken, and a "Resolved" email at the end. State and a log of alerts live in `~/.codeqlick-monitor/`.
+It emails `ALERT_TO` (in production `admin@codeqlick.com`; default: `LEADS_NOTIFY_TO`) through the site's SMTP account with `curl`, so it still works when the containers don't. It writes only when the result changes, with no reminders in between. A problem must show up in two checks in a row (10 minutes) before the alert email goes out, so a deploy's restart doesn't trigger one. A "Resolved" email follows when everything is back. State and a log of alerts live in `~/.codeqlick-monitor/`.
 
 ```bash
 crontab -l                                  # */5 * * * * /srv/codeqlick/deploy/monitor/monitor.sh
