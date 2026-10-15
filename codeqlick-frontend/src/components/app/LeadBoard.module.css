@@ -1,0 +1,124 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.error {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+/* Columns side by side, scrolling sideways on narrow screens. */
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(15rem, 1fr);
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 12rem;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.over {
+  border-color: var(--color-fuchsia);
+  background: var(--color-blush);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.count {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  color: var(--color-slate);
+}
+
+.value {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  color: var(--color-fuchsia-dark);
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-slate);
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-app);
+  border: 1px solid var(--color-line);
+  cursor: grab;
+}
+
+.card:active {
+  cursor: grabbing;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.name:hover {
+  color: var(--color-fuchsia-dark);
+}
+
+.meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-slate);
+}
+
+.move select {
+  width: 100%;
+  margin-top: var(--space-1);
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-white);
+  font-size: 0.8rem;
+  color: var(--color-ink);
+}

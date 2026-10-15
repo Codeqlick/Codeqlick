@@ -37,14 +37,22 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
       <PageHeader
         title={t('title')}
         actions={
-          // A plain link: the browser downloads the file, the current filters go with it.
-          <a
-            href={`/${locale}/admin/leads/export${exportQuery ? `?${exportQuery}` : ''}`}
-            className={buttonClassName({ variant: 'outline', size: 'sm' })}
-            download
-          >
-            {t('exportCsv')}
-          </a>
+          <>
+            <Link
+              href="/admin/leads/board"
+              className={buttonClassName({ variant: 'outline', size: 'sm' })}
+            >
+              {t('viewBoard')}
+            </Link>
+            {/* A plain link: the browser downloads the file, the current filters go with it. */}
+            <a
+              href={`/${locale}/admin/leads/export${exportQuery ? `?${exportQuery}` : ''}`}
+              className={buttonClassName({ variant: 'outline', size: 'sm' })}
+              download
+            >
+              {t('exportCsv')}
+            </a>
+          </>
         }
       />
 
