@@ -7,7 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { Input, Select, Textarea } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { initialFormState } from '@/lib/forms';
-import { BUDGET_VALUES } from '@/lib/schemas/contact';
+import { BUDGET_VALUES } from '@/lib/contact-options';
 import { submitContact } from './actions';
 import styles from './ContactForm.module.css';
 

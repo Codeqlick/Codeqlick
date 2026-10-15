@@ -1,8 +1,7 @@
 import { z } from 'zod';
+import { BUDGET_VALUES } from '@/lib/contact-options';
 
-/** Stable budget values sent to the API; labels live in messages (Contact.budgets). */
-export const BUDGET_VALUES = ['lt-5k', '5k-15k', '15k-40k', 'gt-40k', 'not-sure'] as const;
-export type BudgetValue = (typeof BUDGET_VALUES)[number];
+export { BUDGET_VALUES, type BudgetValue } from '@/lib/contact-options';
 
 /**
  * Mirrors POST /v1/leads validation for instant feedback. The API remains the source of truth.
