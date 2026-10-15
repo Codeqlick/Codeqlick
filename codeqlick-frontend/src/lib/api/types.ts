@@ -397,3 +397,6 @@ export type SiteVisits = {
   countries: { code: string; visitors: number }[];
   contactsSent: number;
 };
+
+/** `GET /admin/saved-replies`: a reusable text; `{name}` and `{project}` are filled in on insert. */
+export type SavedReply = { id: string; title: string; body: string; updatedAt: string };

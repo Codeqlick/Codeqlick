@@ -169,6 +169,11 @@ export const milestoneSchema = z.object({
   dueDate: optionalDate,
 });
 
+export const savedReplySchema = z.object({
+  title: requiredString(120),
+  body: z.string().trim().min(1, 'required').max(10000, 'tooLong'),
+});
+
 export const ROLES = ['ADMIN', 'CLIENT'] as const;
 
 /** Languages a welcome email can be written in. */

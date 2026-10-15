@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Markdown } from '@/components/markdown/Markdown';
 import { Badge } from '@/components/ui/Badge';
@@ -19,12 +20,15 @@ export async function ProjectUpdates({
   empty,
   commentAction,
   approveAction,
+  commentTools,
 }: {
   updates: ProjectUpdate[];
   locale: AppLocale;
   empty: string;
   commentAction?: (updateId: string) => FormAction;
   approveAction?: (updateId: string) => FormAction;
+  /** Shown above each comment box (the admin's saved replies). */
+  commentTools?: ReactNode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Portal' });
   if (updates.length === 0) return <p className={styles.muted}>{empty}</p>;
@@ -88,6 +92,7 @@ export async function ProjectUpdates({
                 <details className={styles.commentForm}>
                   <summary>{t('writeComment')}</summary>
                   <ActionForm action={commentAction(update.id)} className={styles.form}>
+                    {commentTools}
                     <FormTextarea
                       id={`comment-${update.id}`}
                       name="body"

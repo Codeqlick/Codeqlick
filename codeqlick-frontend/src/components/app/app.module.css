@@ -390,6 +390,12 @@
   margin-bottom: var(--space-3);
 }
 
+/* "Insert a saved reply" menu above a reply box. */
+.replyPicker {
+  display: block;
+  max-width: 22rem;
+}
+
 /* Milestones (admin controls under each step of the timeline) */
 .milestoneControls {
   display: flex;

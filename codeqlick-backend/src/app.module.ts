@@ -16,6 +16,7 @@ import { MediaModule } from './modules/media/media.module.js';
 import { PortfolioModule } from './modules/portfolio/portfolio.module.js';
 import { PostsModule } from './modules/posts/posts.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
+import { SavedRepliesModule } from './modules/saved-replies/saved-replies.module.js';
 import { StatsModule } from './modules/stats/stats.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -39,6 +40,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PortfolioModule,
     ProjectsModule,
     MediaModule,
+    SavedRepliesModule,
     StatsModule,
   ],
   providers: [

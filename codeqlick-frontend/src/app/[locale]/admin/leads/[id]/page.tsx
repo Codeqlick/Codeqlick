@@ -3,11 +3,13 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { adminGetLead, adminListLeadReplies } from '@/lib/api/leads';
+import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import { LEAD_STATUSES, type Lead, type LeadReply } from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format';
 import { BUDGET_VALUES, type BudgetValue } from '@/lib/schemas/contact';
@@ -25,6 +27,9 @@ export default async function AdminLeadPage({
   const ts = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tb = await getTranslations({ locale, namespace: 'Contact.budgets' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
+  const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
+  // Optional: the reply box works without them.
+  const savedReplies = await adminListSavedReplies().catch(() => []);
 
   let lead: Lead;
   let replies: LeadReply[];
@@ -116,6 +121,13 @@ export default async function AdminLeadPage({
                   ? 'Re: tu mensaje a Codeqlick'
                   : 'Re: your message to Codeqlick'
               }
+            />
+            <SavedReplyPicker
+              target="body"
+              replies={savedReplies}
+              values={{ name: lead.name }}
+              label={tsr('insert')}
+              placeholder={tsr('insertPlaceholder')}
             />
             <FormTextarea
               name="body"
