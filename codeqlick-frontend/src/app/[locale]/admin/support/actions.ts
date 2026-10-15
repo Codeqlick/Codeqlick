@@ -6,7 +6,8 @@ import { getTranslations } from 'next-intl/server';
 import { failedState, invalidState, savedState, unconfirmedDelete } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
 import { adminDeleteTicketFile, adminReplyToTicket, adminUpdateTicket } from '@/lib/api/support';
-import { formObject, type FormState } from '@/lib/forms';
+import { adminTaskFromTicket } from '@/lib/api/tasks';
+import { formObject, formString, type FormState } from '@/lib/forms';
 import { adminTicketMessageSchema, adminTicketUpdateSchema } from '@/lib/schemas/admin';
 
 function revalidateSupport(locale: AppLocale) {
@@ -72,4 +73,21 @@ export async function adminDeleteTicketFileAction(
   revalidateSupport(locale);
   const t = await getTranslations({ locale, namespace: 'Support' });
   return { status: 'success', message: t('fileDeleted') };
+}
+
+export async function taskFromTicketAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const projectId = formString(formData, 'projectId') || undefined;
+  try {
+    await adminTaskFromTicket(id, { projectId });
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateSupport(locale);
+  const t = await getTranslations({ locale, namespace: 'Tasks' });
+  return { status: 'success', message: t('createdFromRequest') };
 }

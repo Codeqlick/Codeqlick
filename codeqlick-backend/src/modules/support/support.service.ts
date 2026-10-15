@@ -12,7 +12,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { TicketStatus } from '../../generated/prisma/client.js';
-import { ActivityService } from '../activity/activity.service.js';
+import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { cleanContentType, cleanFileName } from '../projects/project-file-name.js';
 import type { UploadedProjectFile } from '../projects/projects.service.js';
@@ -77,6 +77,8 @@ export const MAX_TICKET_FILE_BYTES = 25 * 1024 * 1024;
 export type TicketDetail = TicketSummary & {
   messages: TicketMessageView[];
   files: TicketFileView[];
+  /** Project tasks made from this request. */
+  tasks: { id: string; title: string; status: string; project: { id: string; name: string } }[];
 };
 
 function toSummary(row: TicketSummaryRow): TicketSummary {
@@ -122,7 +124,12 @@ function toFile(file: AttachmentWithUploader): TicketFileView {
 }
 
 function toDetail(row: TicketDetailRow): TicketDetail {
-  return { ...toSummary(row), messages: row.messages.map(toMessage), files: row.files.map(toFile) };
+  return {
+    ...toSummary(row),
+    messages: row.messages.map(toMessage),
+    files: row.files.map(toFile),
+    tasks: row.tasks,
+  };
 }
 
 /**
@@ -337,7 +344,7 @@ export class SupportService {
     return toDetail(row);
   }
 
-  async update(author: AuthUser, id: string, input: UpdateTicketInput): Promise<TicketDetail> {
+  async update(author: ActivityActor, id: string, input: UpdateTicketInput): Promise<TicketDetail> {
     const existing = await this.findOrThrow(id);
     const row = await this.repository.update(id, input);
     if (input.status && input.status !== existing.status) {

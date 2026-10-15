@@ -61,10 +61,12 @@ export function adminAddUpdateComment(id: string, updateId: string, body: string
   );
 }
 
-export function adminListProjects(params: { page?: number; pageSize?: number } = {}) {
+export function adminListProjects(
+  params: { page?: number; pageSize?: number; clientId?: string } = {},
+) {
   return apiFetch<Paginated<ClientProject>>('/admin/projects', {
     auth: 'required',
-    query: { page: params.page, pageSize: params.pageSize },
+    query: { page: params.page, pageSize: params.pageSize, clientId: params.clientId },
   });
 }
 
