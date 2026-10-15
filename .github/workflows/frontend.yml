@@ -24,7 +24,7 @@ defaults:
 
 jobs:
   verify:
-    name: Lint, typecheck, build
+    name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -55,6 +55,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
 
       - name: Build
         run: npm run build

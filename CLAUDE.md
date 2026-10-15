@@ -11,7 +11,7 @@ This repo holds the whole platform:
 | Folder | What | Status |
 |---|---|---|
 | `codeqlick-backend/` | NestJS 12 (ESM) + Prisma 7.10 + PostgreSQL 18 REST API under `/v1` | Running; lint, typecheck, unit and e2e tests and build pass |
-| `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck and build pass |
+| `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck, unit tests and build pass |
 | `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook) | Deployed |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
 

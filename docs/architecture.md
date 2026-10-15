@@ -52,6 +52,7 @@ They share **no code**. The contract between them is the HTTP API (section 5), d
 | Health | `@nestjs/terminus` | `GET /v1/health` checks the database |
 | Email | Nodemailer (SMTP) | Mailpit in development |
 | Backend tests | Vitest + `unplugin-swc` + Supertest | |
+| Frontend tests | Vitest (node) | Unit tests next to the code (`src/**/*.test.ts(x)`): helpers, form schemas and plain components rendered with `react-dom/server`. Pages and Server Actions are checked in a browser |
 | Frontend framework | Next.js 16 (App Router) + React 19 | `proxy.ts` (formerly middleware) |
 | i18n | `next-intl` 4 | `/en/...` and `/es/...`, English default |
 | Styling | CSS Modules + design tokens | Brand tokens in `src/styles/tokens.css` |
