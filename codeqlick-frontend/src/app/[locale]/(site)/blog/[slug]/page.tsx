@@ -10,7 +10,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getPost, getRelatedPosts } from '@/lib/api/posts';
 import type { Locale, PostSummary } from '@/lib/api/types';
-import { absoluteUrl, DEFAULT_OG_IMAGE, pageMetadata } from '@/lib/seo';
+import { absoluteUrl, pageMetadata, shareImage } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
 import styles from '../../site.module.css';
 
@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path: `/blog/${post.slug}`,
     title: post.title,
     description: post.excerpt,
-    images: post.coverImageUrl ? [post.coverImageUrl] : undefined,
+    images: [shareImage(post.coverImageUrl, `/${locale}/blog/${post.slug}/og`, post.title)],
   });
 }
 
@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             description: post.excerpt,
             datePublished: post.publishedAt,
             inLanguage: locale,
-            image: post.coverImageUrl ?? absoluteUrl(DEFAULT_OG_IMAGE.url),
+            image: post.coverImageUrl ?? absoluteUrl(`/${locale}/blog/${post.slug}/og`),
             mainEntityOfPage: absoluteUrl(`/${locale}/blog/${post.slug}`),
             author: { '@type': 'Organization', name: SITE_NAME, url: absoluteUrl('/') },
             publisher: {

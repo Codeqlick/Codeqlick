@@ -10,6 +10,21 @@ export const DEFAULT_OG_IMAGE = {
   alt: 'Codeqlick — Redefining information technology in society',
 };
 
+/** An image for `og:image`: a URL, or a URL with its size and alt text. */
+export type OgImage = string | { url: string; width: number; height: number; alt: string };
+
+/**
+ * The image to share a page with: its cover when it has one, otherwise the preview generated at
+ * `generatedPath` (a route rendering the title with `renderOgImage`).
+ */
+export function shareImage(
+  coverImageUrl: string | null,
+  generatedPath: string,
+  alt: string,
+): OgImage {
+  return coverImageUrl ?? { url: generatedPath, width: 1200, height: 630, alt };
+}
+
 /** Absolute URL on this site, e.g. absoluteUrl('/en/blog') → https://codeqlick.com/en/blog */
 export function absoluteUrl(path: string): string {
   return `${env.SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;
@@ -40,7 +55,7 @@ export function pageMetadata({
   title?: string;
   description?: string;
   noindex?: boolean;
-  images?: string[];
+  images?: OgImage[];
 }): Metadata {
   return {
     title,

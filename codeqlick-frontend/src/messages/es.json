@@ -292,7 +292,8 @@
     "postsAbout": "Artículos sobre {tag}",
     "emptyTagTitle": "Nada sobre este tema todavía",
     "emptyTagBody": "No hay artículos publicados con esta etiqueta.",
-    "related": "Sigue leyendo"
+    "related": "Sigue leyendo",
+    "ogEyebrow": "Blog · {date}"
   },
   "Work": {
     "metaTitle": "Proyectos",
@@ -306,7 +307,9 @@
     "back": "Todos los proyectos",
     "client": "Cliente",
     "technologies": "Tecnologías",
-    "visit": "Visitar proyecto"
+    "visit": "Visitar proyecto",
+    "ogEyebrow": "Caso de éxito",
+    "ogEyebrowClient": "Caso de éxito · {client}"
   },
   "Contact": {
     "metaTitle": "Contacto",
