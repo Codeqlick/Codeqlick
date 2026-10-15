@@ -1,0 +1,94 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--color-slate);
+  font-size: 0.85rem;
+  margin-left: 0.35rem;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: var(--color-slate);
+}
+
+.error {
+  font-size: 0.875rem;
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.control {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.7rem 0.9rem;
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: 1rem;
+  line-height: 1.4;
+  transition: border-color var(--transition-fast);
+}
+
+.control:hover {
+  border-color: #cfc6d3;
+}
+
+.control:focus-visible {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: 1px;
+  border-color: var(--color-fuchsia);
+}
+
+.control[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.textarea {
+  min-height: 9rem;
+  resize: vertical;
+}
+
+.mono {
+  font-family: var(--font-family-mono);
+  font-size: 0.9rem;
+}
+
+.select {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-ink) 50%),
+    linear-gradient(135deg, var(--color-ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.15rem) 50%,
+    calc(100% - 0.8rem) 50%;
+  background-size: 0.35rem 0.35rem;
+  background-repeat: no-repeat;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+  accent-color: var(--color-fuchsia);
+  flex-shrink: 0;
+}

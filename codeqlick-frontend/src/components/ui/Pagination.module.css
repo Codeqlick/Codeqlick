@@ -1,0 +1,24 @@
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.status {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  color: var(--color-slate);
+}
+
+.links {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}

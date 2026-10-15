@@ -1,0 +1,154 @@
+# Production stack for the VPS (see deploy/README.md):
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Settings come from a `.env` file next to this one (template: deploy/.env.example).
+# Nothing is exposed publicly: api and web listen on 127.0.0.1 and the host's Nginx proxies to them.
+name: codeqlick-prod
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeqlick
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: codeqlick
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeqlick -d codeqlick"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # Dumps the database and copies the uploaded images to ./backups once a day (see
+  # deploy/README.md, "Backups").
+  backup:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # The owner of the dump files on the host: set it to the deploy user (`id -u`:`id -g`).
+    user: ${BACKUP_USER:-1000:1000}
+    environment:
+      PGHOST: db
+      PGUSER: codeqlick
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: codeqlick
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./deploy/backup/backup.sh:/usr/local/bin/backup.sh:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+      - uploads-data:/uploads:ro
+    entrypoint: ["/usr/local/bin/backup.sh"]
+    # Unhealthy when the newest dump is older than two days.
+    healthcheck:
+      test: ["CMD-SHELL", "find /backups -name 'codeqlick-*.dump' -mmin -2880 | grep -q ."]
+      interval: 1h
+      timeout: 10s
+      start_period: 2m
+      start_interval: 10s
+
+  api:
+    build: ./codeqlick-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://codeqlick:${POSTGRES_PASSWORD}@db:5432/codeqlick
+      CORS_ORIGINS: ${SITE_URL:?set SITE_URL in .env}
+      SITE_URL: ${SITE_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
+      SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST in .env}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-Codeqlick <hello@codeqlick.com>}
+      LEADS_NOTIFY_TO: ${LEADS_NOTIFY_TO:-hello@codeqlick.com}
+      # Admins must turn on two-step verification before they can use the admin panel.
+      ADMIN_TWO_FACTOR_REQUIRED: ${ADMIN_TWO_FACTOR_REQUIRED:-true}
+      # Visit numbers on the admin dashboard, read from Umami with its dashboard account.
+      UMAMI_URL: http://umami:3000
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      UMAMI_PASSWORD: ${UMAMI_ADMIN_PASSWORD:-}
+    volumes:
+      - uploads-data:/app/uploads
+    ports:
+      - "127.0.0.1:${API_PORT:-4010}:4000"
+
+  web:
+    build:
+      context: ./codeqlick-frontend
+      # Statically rendered pages are built with the tracker tag, so it needs these at build time.
+      args:
+        UMAMI_URL: http://umami:3000
+        UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+        LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
+        LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
+        LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      # Server-side calls stay inside the Docker network.
+      API_URL: http://api:4000/v1
+      SITE_URL: ${SITE_URL}
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+      # Analytics: the site proxies the tracker to Umami (see "Analytics" in deploy/README.md).
+      UMAMI_URL: http://umami:3000
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      # Legal notice and privacy policy: hidden until LEGAL_OWNER_NAME is set.
+      LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
+      LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
+      LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3010}:3000"
+
+  # Cookieless analytics (Umami), with its own database. The site reaches it inside the Docker
+  # network; its dashboard listens on 127.0.0.1 only (Nginx site or an SSH tunnel).
+  umami-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env}
+      POSTGRES_DB: umami
+    volumes:
+      - umami-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.0
+    restart: unless-stopped
+    init: true
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in .env}
+      DISABLE_TELEMETRY: "1"
+    ports:
+      - "127.0.0.1:${UMAMI_PORT:-3020}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/heartbeat > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      start_period: 1m
+
+volumes:
+  db-data:
+  # Images uploaded from the admin panel.
+  uploads-data:
+  umami-db-data:

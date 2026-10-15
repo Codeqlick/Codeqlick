@@ -1,0 +1,493 @@
+// Codeqlick data model. See docs/architecture.md section 4.2.
+// The connection URL lives in prisma.config.ts (Prisma 7), not here.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+enum Locale {
+  EN
+  ES
+}
+
+/// The sales process (wiki: Client Engagement): first contact, talking, discovery call, proposal,
+/// then won or lost. SPAM is not a stage: it takes noise off the board.
+enum LeadStatus {
+  NEW
+  TALKING
+  CALL
+  PROPOSAL
+  WON
+  LOST
+  SPAM
+}
+
+enum LeadLostReason {
+  PRICE
+  NO_RESPONSE
+  NOT_A_FIT
+  CHOSE_OTHER
+  TIMING
+  OTHER
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ProjectPhase {
+  DISCOVERY
+  DESIGN
+  DEVELOPMENT
+  QA
+  LAUNCHED
+  SUPPORT
+  ON_HOLD
+}
+
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  email              String    @unique
+  passwordHash       String    @map("password_hash")
+  name               String
+  role               Role      @default(CLIENT)
+  isActive           Boolean   @default(true) @map("is_active")
+  /// Language of the emails the platform sends this user (welcome, project updates).
+  locale             Locale    @default(EN)
+  /// Two-step verification: the authenticator secret, encrypted (see secret-box.ts). Set while
+  /// setting it up; it only counts once `totpEnabledAt` is set.
+  totpSecret         String?   @map("totp_secret")
+  totpEnabledAt      DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  /// Last accepted time step, so a code can't be used twice.
+  totpLastStep       Int?      @map("totp_last_step")
+  /// SHA-256 of each unused recovery code.
+  totpRecoveryHashes String[]  @default([]) @map("totp_recovery_hashes")
+  /// Clients get a Monday summary of their projects unless they turn it off.
+  weeklyDigest       Boolean   @default(true) @map("weekly_digest")
+  /// When the last summary went out, so each client gets one per week even across restarts.
+  lastDigestAt       DateTime? @map("last_digest_at") @db.Timestamptz(3)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions        Session[]
+  passwordResets  PasswordResetToken[]
+  clientProjects  ClientProject[]
+  posts           Post[]
+  projectUpdates  ProjectUpdate[]        @relation("ProjectUpdateAuthor")
+  approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
+  updateComments  ProjectUpdateComment[]
+  leadsConverted  Lead[]                 @relation("LeadClient")
+  tickets         SupportTicket[]
+  ticketMessages  TicketMessage[]
+  ticketFiles     TicketAttachment[]
+  projectFiles    ProjectFile[]
+  activity        ActivityLog[]
+  leadReplies     LeadReply[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  familyId     String    @map("family_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  userAgent    String?   @map("user_agent")
+  ip           String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+/// One row per "forgot my password" email. Only the SHA-256 of the emailed token is stored.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model Lead {
+  id         String          @id @default(uuid()) @db.Uuid
+  name       String
+  email      String
+  company    String?
+  budget     String?
+  message    String
+  locale     Locale          @default(EN)
+  status     LeadStatus      @default(NEW)
+  notes      String?
+  /// Why it didn't go ahead (status LOST).
+  lostReason LeadLostReason? @map("lost_reason")
+  /// When to get back to them; the board flags it once it has passed.
+  followUpOn DateTime?       @map("follow_up_on") @db.Date
+  /// The client account it became ("Convert to client").
+  clientId   String?         @map("client_id") @db.Uuid
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  replies LeadReply[]
+  client  User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("leads")
+}
+
+/// An email answer sent to a lead from the admin panel. Only stored once the email went out.
+model LeadReply {
+  id         String   @id @default(uuid()) @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  authorId   String?  @map("author_id") @db.Uuid
+  /// Copied at the time, so the history keeps it after the author's account is deleted.
+  authorName String   @map("author_name")
+  subject    String
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@map("lead_replies")
+}
+
+model Post {
+  id            String        @id @default(uuid()) @db.Uuid
+  slug          String        @unique
+  status        PublishStatus @default(DRAFT)
+  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
+  coverImageUrl String?       @map("cover_image_url")
+  authorId      String?       @map("author_id") @db.Uuid
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  author       User?             @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  translations PostTranslation[]
+  tags         PostTag[]
+
+  @@index([status, publishedAt])
+  @@map("posts")
+}
+
+/// A blog topic, shared by both languages: one slug for URLs, a name per language.
+model Tag {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  nameEn    String   @map("name_en")
+  nameEs    String   @map("name_es")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String @map("post_id") @db.Uuid
+  tagId  String @map("tag_id") @db.Uuid
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("post_tags")
+}
+
+model PostTranslation {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  locale    Locale
+  title     String
+  excerpt   String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, locale])
+  @@map("post_translations")
+}
+
+model PortfolioItem {
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
+  status            PublishStatus @default(DRAFT)
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(3)
+  coverImageUrl     String?       @map("cover_image_url")
+  clientName        String?       @map("client_name")
+  projectUrl        String?       @map("project_url")
+  technologies      String[]
+  /// Service lines the work covered (the website's service keys: web, custom, mobile, design...).
+  services          String[]      @default([])
+  sortOrder         Int           @default(0) @map("sort_order")
+  /// Who gave the testimonial; the quote and their role are per language (translations).
+  testimonialAuthor String?       @map("testimonial_author")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  translations PortfolioTranslation[]
+
+  @@index([status, sortOrder])
+  @@map("portfolio_items")
+}
+
+model PortfolioTranslation {
+  id               String   @id @default(uuid()) @db.Uuid
+  portfolioItemId  String   @map("portfolio_item_id") @db.Uuid
+  locale           Locale
+  title            String
+  summary          String
+  content          String
+  testimonialQuote String?  @map("testimonial_quote")
+  testimonialRole  String?  @map("testimonial_role")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+
+  @@unique([portfolioItemId, locale])
+  @@map("portfolio_translations")
+}
+
+model ClientProject {
+  id            String       @id @default(uuid()) @db.Uuid
+  clientId      String       @map("client_id") @db.Uuid
+  name          String
+  description   String?
+  phase         ProjectPhase @default(DISCOVERY)
+  progress      Int          @default(0)
+  startDate     DateTime?    @map("start_date") @db.Timestamptz(3)
+  dueDate       DateTime?    @map("due_date") @db.Timestamptz(3)
+  stagingUrl    String?      @map("staging_url")
+  productionUrl String?      @map("production_url")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client     User               @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  updates    ProjectUpdate[]
+  files      ProjectFile[]
+  milestones ProjectMilestone[]
+  tickets    SupportTicket[]
+
+  @@index([clientId])
+  @@map("client_projects")
+}
+
+/// A step of a client project the client sees on a timeline, in `position` order.
+model ProjectMilestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date") @db.Timestamptz(3)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  position    Int
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, position])
+  @@map("project_milestones")
+}
+
+/// A comment on a project update, by the client or the team.
+model ProjectUpdateComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  updateId  String   @map("update_id") @db.Uuid
+  authorId  String?  @map("author_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  update ProjectUpdate @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  author User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([updateId, createdAt])
+  @@map("project_update_comments")
+}
+
+model ProjectUpdate {
+  id                String    @id @default(uuid()) @db.Uuid
+  projectId         String    @map("project_id") @db.Uuid
+  authorId          String?   @map("author_id") @db.Uuid
+  title             String
+  body              String
+  /// The client is asked to approve it; `approvedAt` is set when they do.
+  approvalRequested Boolean   @default(false) @map("approval_requested")
+  approvedAt        DateTime? @map("approved_at") @db.Timestamptz(3)
+  approvedById      String?   @map("approved_by_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project    ClientProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author     User?                  @relation("ProjectUpdateAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  approvedBy User?                  @relation("ProjectUpdateApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  comments   ProjectUpdateComment[]
+
+  @@index([projectId, createdAt])
+  @@map("project_updates")
+}
+
+/// A file shared with the client of a project (deliverables, documents). The content lives on disk
+/// under UPLOADS_DIR/project-files/<id>; only signed-in users who can see the project download it.
+model ProjectFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @map("project_id") @db.Uuid
+  uploadedById String?  @map("uploaded_by_id") @db.Uuid
+  /// The original file name, cleaned up; used when downloading.
+  name         String
+  /// As sent by the uploader's browser. Informational only: downloads are always attachments.
+  contentType  String   @map("content_type")
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project    ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("project_files")
+}
+
+/// Who changed what: one row per change made from the admin panel or to one's own account.
+/// Actor name and target label are copied at the time, so entries survive renames and deletes.
+model ActivityLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String?  @map("actor_id") @db.Uuid
+  actorName   String   @map("actor_name")
+  /// `<target>.<verb>`, e.g. `post.published` (see ACTIVITY_ACTIONS in the activity module).
+  action      String
+  targetType  String   @map("target_type")
+  targetId    String?  @map("target_id")
+  targetLabel String?  @map("target_label")
+  /// Extra facts about the change, e.g. `{ "status": "WON" }` or the fields that changed.
+  details     Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([targetType, createdAt])
+  @@map("activity_log")
+}
+
+/// A reusable text for lead replies and project comments; `{name}` and `{project}` are filled in
+/// by the admin panel when it is inserted.
+model SavedReply {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("saved_replies")
+}
+
+enum TicketType {
+  BUG
+  CHANGE
+  QUESTION
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CLIENT
+  RESOLVED
+  CLOSED
+}
+
+/// A support request a client opens from the portal: a bug, a change or a question.
+model SupportTicket {
+  id         String         @id @default(uuid()) @db.Uuid
+  /// Short reference shown to people (#12).
+  number     Int            @unique @default(autoincrement())
+  clientId   String         @map("client_id") @db.Uuid
+  projectId  String?        @map("project_id") @db.Uuid
+  type       TicketType
+  priority   TicketPriority @default(NORMAL)
+  status     TicketStatus   @default(OPEN)
+  title      String
+  resolvedAt DateTime?      @map("resolved_at") @db.Timestamptz(3)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client   User               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project  ClientProject?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages TicketMessage[]
+  files    TicketAttachment[]
+
+  @@index([status, updatedAt])
+  @@index([clientId, updatedAt])
+  @@map("support_tickets")
+}
+
+/// A message in a support request's conversation; the first one is the description.
+model TicketMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  authorId  String?  @map("author_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_messages")
+}
+
+/// A file added to a support request by the client or the team (a screenshot, a log...). Stored
+/// on disk at UPLOADS_DIR/ticket-files/<id>, like project files.
+model TicketAttachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  ticketId     String   @map("ticket_id") @db.Uuid
+  uploadedById String?  @map("uploaded_by_id") @db.Uuid
+  name         String
+  contentType  String   @map("content_type")
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploadedBy User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_attachments")
+}
