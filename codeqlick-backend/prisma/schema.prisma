@@ -48,6 +48,12 @@ enum PublishStatus {
   PUBLISHED
 }
 
+/// Where a release went: the preview (staging) or the live site.
+enum ReleaseEnvironment {
+  STAGING
+  PRODUCTION
+}
+
 enum ProjectPhase {
   DISCOVERY
   DESIGN
@@ -284,20 +290,23 @@ model PortfolioTranslation {
 }
 
 model ClientProject {
-  id            String       @id @default(uuid()) @db.Uuid
-  clientId      String       @map("client_id") @db.Uuid
-  name          String
-  description   String?
-  phase         ProjectPhase @default(DISCOVERY)
-  progress      Int          @default(0)
-  startDate     DateTime?    @map("start_date") @db.Timestamptz(3)
-  dueDate       DateTime?    @map("due_date") @db.Timestamptz(3)
-  stagingUrl    String?      @map("staging_url")
-  productionUrl String?      @map("production_url")
+  id                    String       @id @default(uuid()) @db.Uuid
+  clientId              String       @map("client_id") @db.Uuid
+  name                  String
+  description           String?
+  phase                 ProjectPhase @default(DISCOVERY)
+  progress              Int          @default(0)
+  startDate             DateTime?    @map("start_date") @db.Timestamptz(3)
+  dueDate               DateTime?    @map("due_date") @db.Timestamptz(3)
+  stagingUrl            String?      @map("staging_url")
+  productionUrl         String?      @map("production_url")
   /// The client sees the hours logged on it (a monthly summary and the entries) in the portal.
-  showHours     Boolean      @default(false) @map("show_hours")
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  showHours             Boolean      @default(false) @map("show_hours")
+  /// SHA-256 of the project's release key, which a deploy pipeline uses to publish releases.
+  releaseTokenHash      String?      @unique @map("release_token_hash")
+  releaseTokenCreatedAt DateTime?    @map("release_token_created_at") @db.Timestamptz(3)
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   client     User               @relation(fields: [clientId], references: [id], onDelete: Restrict)
   updates    ProjectUpdate[]
@@ -345,17 +354,21 @@ model ProjectUpdateComment {
 }
 
 model ProjectUpdate {
-  id                String    @id @default(uuid()) @db.Uuid
-  projectId         String    @map("project_id") @db.Uuid
-  authorId          String?   @map("author_id") @db.Uuid
+  id                String              @id @default(uuid()) @db.Uuid
+  projectId         String              @map("project_id") @db.Uuid
+  authorId          String?             @map("author_id") @db.Uuid
   title             String
   body              String
   /// The client is asked to approve it; `approvedAt` is set when they do.
-  approvalRequested Boolean   @default(false) @map("approval_requested")
-  approvedAt        DateTime? @map("approved_at") @db.Timestamptz(3)
-  approvedById      String?   @map("approved_by_id") @db.Uuid
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  approvalRequested Boolean             @default(false) @map("approval_requested")
+  approvedAt        DateTime?           @map("approved_at") @db.Timestamptz(3)
+  approvedById      String?             @map("approved_by_id") @db.Uuid
+  /// A release: the version deployed, where, and its address. Null on plain updates.
+  version           String?
+  environment       ReleaseEnvironment?
+  url               String?
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project    ClientProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author     User?                  @relation("ProjectUpdateAuthor", fields: [authorId], references: [id], onDelete: SetNull)

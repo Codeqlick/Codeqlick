@@ -1,6 +1,12 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormCheckbox, FormInput, FormTextarea } from '@/components/app/ActionForm';
+import {
+  ActionForm,
+  FormCheckbox,
+  FormInput,
+  FormSelect,
+  FormTextarea,
+} from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
@@ -18,14 +24,18 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { adminGetProject, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
-import type { ClientProject } from '@/lib/api/types';
-import { firstParam, madridToday } from '@/lib/format';
+import { RELEASE_ENVIRONMENTS, type ClientProject } from '@/lib/api/types';
+import { firstParam, formatDateTime, madridToday } from '@/lib/format';
+import { env } from '@/lib/env';
+import { ReleaseKeyReveal } from '@/components/app/ReleaseKeyReveal';
 import { adminGetProjectTime } from '@/lib/api/time';
 import {
   addMilestoneAction,
+  createReleaseKeyAction,
   deleteProjectAction,
   deleteProjectFileAction,
   postProjectUpdateAction,
+  revokeReleaseKeyAction,
   teamCommentAction,
   updateProjectAction,
 } from '../actions';
@@ -56,6 +66,7 @@ export default async function EditProjectPage({
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.projects' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  const te = await getTranslations({ locale, namespace: 'ReleaseEnvironments' });
 
   let project: ClientProject;
   try {
@@ -158,6 +169,36 @@ export default async function EditProjectPage({
               compact
               previewLabels={await markdownPreviewLabels(locale)}
             />
+            <details className={styles.commentForm}>
+              <summary>{t('asRelease')}</summary>
+              <div className={styles.form}>
+                <p className={styles.muted}>{t('asReleaseHint')}</p>
+                <div className={styles.row}>
+                  <FormInput
+                    name="version"
+                    label={t('releaseVersion')}
+                    hint={t('releaseVersionHint')}
+                    maxLength={40}
+                  />
+                  <FormSelect
+                    name="environment"
+                    label={t('releaseEnvironment')}
+                    options={RELEASE_ENVIRONMENTS.map((value) => ({
+                      value,
+                      label: te(value),
+                    }))}
+                    defaultValue="STAGING"
+                  />
+                </div>
+                <FormInput
+                  name="url"
+                  type="url"
+                  label={t('releaseUrl')}
+                  optionalLabel={tc('optional')}
+                  hint={t('releaseUrlHint')}
+                />
+              </div>
+            </details>
             <FormCheckbox
               name="notifyClient"
               label={t('notifyClient')}
@@ -180,6 +221,45 @@ export default async function EditProjectPage({
             commentAction={(updateId) => teamCommentAction.bind(null, locale, project.id, updateId)}
             commentTools={picker}
           />
+        </div>
+      </section>
+
+      <section className={styles.panel} id="release-key" aria-labelledby="release-key-heading">
+        <h2 id="release-key-heading" className={styles.panelTitle}>
+          {t('releaseKeyTitle')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{t('releaseKeyLead')}</p>
+          <p>
+            {project.releaseKeyCreatedAt
+              ? t('releaseKeyActive', { date: formatDateTime(project.releaseKeyCreatedAt, locale) })
+              : t('releaseKeyNone')}
+          </p>
+          <ActionForm
+            action={createReleaseKeyAction.bind(null, locale, project.id)}
+            className={styles.form}
+          >
+            <ReleaseKeyReveal
+              endpoint={`${env.PUBLIC_API_URL}/releases`}
+              labels={{
+                copy: t('releaseKeyCopy'),
+                copied: t('releaseKeyCopied'),
+                example: t('releaseKeyExample'),
+              }}
+            />
+            <div className={styles.actions}>
+              <SubmitButton variant="outline" size="sm" pendingLabel={t('releaseKeyCreating')}>
+                {project.releaseKeyCreatedAt ? t('releaseKeyReplace') : t('releaseKeyCreate')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+          {project.releaseKeyCreatedAt ? (
+            <ActionForm action={revokeReleaseKeyAction.bind(null, locale, project.id)}>
+              <SubmitButton variant="ghost" size="sm" pendingLabel={t('releaseKeyRevoking')}>
+                {t('releaseKeyRevoke')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
         </div>
       </section>
 

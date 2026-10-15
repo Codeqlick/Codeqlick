@@ -44,6 +44,8 @@ export default async function PortalProjectPage({
     ? await getMyProjectTime(project.id).catch(() => undefined)
     : undefined;
   const milestones = project.milestones ?? [];
+  const releases = (project.updates ?? []).filter((update) => update.release);
+  const te = await getTranslations({ locale, namespace: 'ReleaseEnvironments' });
   const next = nextMilestone(milestones);
 
   return (
@@ -114,6 +116,34 @@ export default async function PortalProjectPage({
           ) : null}
         </dl>
       </section>
+
+      {releases.length > 0 ? (
+        <section className={styles.panel} aria-labelledby="releases-heading">
+          <h2 id="releases-heading" className={styles.panelTitle}>
+            {t('releases')}
+          </h2>
+          <ul className={styles.files}>
+            {releases.slice(0, 5).map((update) => (
+              <li key={update.id} className={styles.fileRow}>
+                <div className={styles.fileInfo}>
+                  <a href={`#update-${update.id}`} className={styles.fileName}>
+                    {update.release!.version} — {update.title}
+                  </a>
+                  <span className={styles.muted}>
+                    {te(update.release!.environment)} · {formatDate(update.createdAt, locale)}
+                  </span>
+                </div>
+                {update.release!.url ? (
+                  <a href={update.release!.url} target="_blank" rel="noopener noreferrer">
+                    {t('openRelease')}
+                    <span className="visually-hidden"> {update.release!.version}</span>
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {project.description ? (
         <section className={styles.panel}>

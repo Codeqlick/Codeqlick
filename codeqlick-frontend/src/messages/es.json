@@ -587,7 +587,9 @@
     "commentLabel": "Comentario",
     "sendComment": "Enviar comentario",
     "sending": "Enviando…",
-    "askSupport": "Abrir una petición"
+    "askSupport": "Abrir una petición",
+    "releases": "Entregas",
+    "openRelease": "Abrir esta versión"
   },
   "Admin": {
     "title": "Administración",
@@ -813,7 +815,28 @@
       "requestApprovalHint": "El cliente verá un botón para aprobar esta novedad desde su área, y te avisaremos por correo cuando lo haga.",
       "commentNotNotified": "Comentario publicado, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada).",
       "showHours": "Mostrar las horas al cliente",
-      "showHoursHint": "El cliente verá en su área privada el total por mes y cada registro con su descripción."
+      "showHoursHint": "El cliente verá en su área privada el total por mes y cada registro con su descripción.",
+      "asRelease": "Publicar como entrega (una versión desplegada)",
+      "asReleaseHint": "Con versión, la novedad se muestra como entrega: con su versión, el entorno y el enlace para probarla. El enlace pasa a ser la dirección de pruebas o de producción del proyecto.",
+      "releaseVersion": "Versión",
+      "releaseVersionHint": "Por ejemplo v1.2.0. Déjala vacía para una novedad normal.",
+      "releaseEnvironment": "Entorno",
+      "releaseUrl": "Enlace para probarla",
+      "releaseUrlHint": "Dónde puede verla el cliente.",
+      "releaseKeyTitle": "Despliegue automático",
+      "releaseKeyLead": "Con una clave de despliegue, el pipeline del proyecto publica cada entrega aquí al desplegar (POST /v1/releases), sin pasar por el panel.",
+      "releaseKeyActive": "Hay una clave activa, creada el {date}.",
+      "releaseKeyNone": "Este proyecto no tiene clave de despliegue.",
+      "releaseKeyCreate": "Crear clave de despliegue",
+      "releaseKeyReplace": "Crear una clave nueva (anula la actual)",
+      "releaseKeyCreating": "Creando…",
+      "releaseKeyRevoke": "Anular la clave",
+      "releaseKeyRevoking": "Anulando…",
+      "releaseKeyCreated": "Clave creada. Cópiala ahora: no se volverá a mostrar.",
+      "releaseKeyCopy": "Copiar",
+      "releaseKeyCopied": "Copiada",
+      "releaseKeyExample": "Guárdala como secreto del pipeline y publica cada despliegue así:",
+      "releasePosted": "Entrega publicada."
     },
     "media": {
       "choose": "Elige una imagen",
@@ -944,7 +967,10 @@
           "update_approved": "aprobó una novedad de <target>{label}</target>",
           "comment_added": "comentó una novedad de <target>{label}</target>",
           "time_logged": "registró horas en el proyecto <target>{label}</target>",
-          "time_deleted": "borró un registro de horas del proyecto <target>{label}</target>"
+          "time_deleted": "borró un registro de horas del proyecto <target>{label}</target>",
+          "release_published": "publicó una entrega en <target>{label}</target>",
+          "release_key_created": "creó una clave de despliegue para <target>{label}</target>",
+          "release_key_revoked": "anuló la clave de despliegue de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1406,5 +1432,9 @@
     "entries": "Registros",
     "clientTitle": "Horas dedicadas",
     "clientEmpty": "Todavía no hemos registrado horas en este proyecto."
+  },
+  "ReleaseEnvironments": {
+    "STAGING": "Pruebas",
+    "PRODUCTION": "Producción"
   }
 }

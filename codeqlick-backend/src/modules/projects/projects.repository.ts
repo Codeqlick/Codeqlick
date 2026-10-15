@@ -7,6 +7,7 @@ import type {
   ProjectMilestone,
   ProjectUpdate,
   ProjectUpdateComment,
+  ReleaseEnvironment,
   User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -136,20 +137,44 @@ export class ProjectsRepository {
   }
 
   /** Adds a progress update and bumps the project's updatedAt. */
+  /**
+   * Posts an update (a release when `release` is given) and bumps the project's updatedAt; a
+   * release with a URL also becomes the project's staging or production address.
+   */
   async addUpdate(
     projectId: string,
-    authorId: string,
+    authorId: string | null,
     title: string,
     body: string,
     approvalRequested: boolean,
+    release?: { version: string; environment: ReleaseEnvironment; url: string | null },
   ): Promise<UpdateWithAuthor> {
     return this.prisma.$transaction(async (tx) => {
       const update = await tx.projectUpdate.create({
-        data: { projectId, authorId, title, body, approvalRequested },
+        data: { projectId, authorId, title, body, approvalRequested, ...release },
         include: updateInclude,
       });
-      await tx.clientProject.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
+      const project: Prisma.ClientProjectUpdateInput = { updatedAt: new Date() };
+      if (release?.url) {
+        if (release.environment === 'PRODUCTION') project.productionUrl = release.url;
+        else project.stagingUrl = release.url;
+      }
+      await tx.clientProject.update({ where: { id: projectId }, data: project });
       return update;
+    });
+  }
+
+  findByReleaseTokenHash(hash: string): Promise<ProjectWithUpdates | null> {
+    return this.prisma.clientProject.findUnique({
+      where: { releaseTokenHash: hash },
+      include: detailInclude,
+    });
+  }
+
+  async setReleaseToken(id: string, hash: string | null): Promise<void> {
+    await this.prisma.clientProject.update({
+      where: { id },
+      data: { releaseTokenHash: hash, releaseTokenCreatedAt: hash ? new Date() : null },
     });
   }
 

@@ -22,6 +22,8 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
   createMilestoneSchema,
+  createReleaseSchema,
+  type CreateReleaseInput,
   createUpdateCommentSchema,
   updateParamSchema,
   type CreateUpdateCommentInput,
@@ -118,6 +120,33 @@ export class AdminProjectsController {
     @Body({ schema: createProjectUpdateSchema }) body: CreateProjectUpdateInput,
   ): Promise<PostedProjectUpdate> {
     return this.projects.addUpdate(user, params.id, body);
+  }
+
+  @Post(':id/releases')
+  addRelease(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: createReleaseSchema }) body: CreateReleaseInput,
+  ): Promise<PostedProjectUpdate> {
+    return this.projects.addRelease(user, params.id, body);
+  }
+
+  /** A new key for the project's deploy pipeline (replaces the previous one); shown once. */
+  @Post(':id/release-key')
+  createReleaseKey(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<{ key: string }> {
+    return this.projects.createReleaseKey(user, params.id);
+  }
+
+  @Delete(':id/release-key')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeReleaseKey(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.projects.revokeReleaseKey(user, params.id);
   }
 
   @Post(':id/updates/:updateId/comments')
