@@ -1,16 +1,25 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
-import type { Lead as LeadRow, Prisma } from '../../generated/prisma/client.js';
+import type {
+  LeadReply as LeadReplyRow,
+  Lead as LeadRow,
+  Prisma,
+} from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { leadsToCsv } from './leads-csv.js';
-import { leadAcknowledgementEmail, leadNotificationEmail } from './lead-emails.js';
+import { leadAcknowledgementEmail, leadNotificationEmail, leadReplyEmail } from './lead-emails.js';
 import { LeadsRepository } from './leads.repository.js';
-import type { CreateLeadInput, ListLeadsQuery, UpdateLeadInput } from './leads.schemas.js';
+import type {
+  CreateLeadInput,
+  CreateLeadReplyInput,
+  ListLeadsQuery,
+  UpdateLeadInput,
+} from './leads.schemas.js';
 
 /** Most rows a CSV export returns. */
 export const EXPORT_LIMIT = 10_000;
@@ -42,6 +51,30 @@ export function toLead(row: LeadRow): Lead {
     notes: row.notes,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export interface LeadReply {
+  id: string;
+  subject: string;
+  body: string;
+  author: { name: string };
+  createdAt: string;
+}
+
+/** A sent reply, with the lead's status afterwards (a first reply moves NEW to CONTACTED). */
+export interface SentLeadReply {
+  reply: LeadReply;
+  lead: Lead;
+}
+
+function toLeadReply(row: LeadReplyRow): LeadReply {
+  return {
+    id: row.id,
+    subject: row.subject,
+    body: row.body,
+    author: { name: row.authorName },
+    createdAt: row.createdAt.toISOString(),
   };
 }
 
@@ -122,6 +155,40 @@ export class LeadsService {
           : undefined,
     });
     return lead;
+  }
+
+  async listReplies(id: string): Promise<LeadReply[]> {
+    await this.get(id);
+    return (await this.repository.listReplies(id)).map(toLeadReply);
+  }
+
+  /**
+   * Emails an answer to the lead from MAIL_FROM and keeps it in the lead's history. Nothing is
+   * stored when the email can't be sent, so the history only shows what the visitor received.
+   */
+  async reply(actor: AuthUser, id: string, input: CreateLeadReplyInput): Promise<SentLeadReply> {
+    const lead = await this.get(id);
+    try {
+      await this.mail.send(leadReplyEmail(lead, input, this.config.siteUrl));
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send the reply to a lead: ${reason}`);
+      throw new ServiceUnavailableException('The reply could not be sent');
+    }
+    const saved = await this.repository.addReply({
+      leadId: id,
+      authorId: actor.id,
+      authorName: actor.name,
+      subject: input.subject,
+      body: input.body,
+    });
+    await this.activity.record(actor, {
+      action: 'lead.replied',
+      targetId: id,
+      targetLabel: lead.name,
+      details: { subject: input.subject },
+    });
+    return { reply: toLeadReply(saved.reply), lead: toLead(saved.lead) };
   }
 
   /** Fire-and-forget: mail problems are logged and never fail the request. */

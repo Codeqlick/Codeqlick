@@ -123,13 +123,14 @@ erDiagram
   ClientProject ||--o{ ProjectFile : has
   Post ||--|{ PostTranslation : "en / es"
   PortfolioItem ||--|{ PortfolioTranslation : "en / es"
-  Lead
+  Lead ||--o{ LeadReply : has
 ```
 
 - **User** — `email` (unique, lower-cased), `passwordHash` (Argon2id), `name`, `role` (`ADMIN` | `CLIENT`), `isActive`, `locale` (`EN` | `ES`, default `EN`: language of the emails the platform sends them).
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
 - **PasswordResetToken** — one row per "forgot my password" email or welcome email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes for a reset, 7 days for a welcome email), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
 - **Lead** — contact form submission: `name`, `email`, `company?`, `budget?`, `message`, `locale`, `status` (`NEW` → `CONTACTED` → `QUALIFIED` → `WON` | `LOST` | `ARCHIVED`), `notes?`.
+- **LeadReply** — an email answer sent to a lead from the admin panel: `leadId`, `authorId?` (null once the user is deleted), `authorName` copied at the time, `subject`, `body`. Only stored once the email was accepted by the SMTP server.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
 - **Scheduling (posts and case studies):** content is live when `status = PUBLISHED` and `publishedAt <= now`. A published item dated in the future is *scheduled*: the public API (lists, detail, so also the sitemap and RSS) hides it until then and it appears on its own, with no job to run, within the public pages' 5-minute revalidation. `publishedAt` is set on the first publish unless one is given; clearing it on a published item means now. The admin panel types it in Madrid time.
@@ -257,6 +258,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
 | GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
 | GET / PATCH | `/admin/leads/:id` | PATCH `{ status?, notes? }` |
+| GET / POST | `/admin/leads/:id/replies` | GET → `LeadReply[]` (`{ id, subject, body, author: { name }, createdAt }`, oldest first). POST `{ subject, body }` emails the answer to the lead from `MAIL_FROM` (branded layout in the lead's language, their message quoted) → `201 { reply, lead }`; a lead still `NEW` becomes `CONTACTED`. `503` when the email can't be sent, and then nothing is stored |
 | GET / POST | `/admin/posts` | POST `PostInput` |
 | GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput` |
 | GET / POST | `/admin/tags` | GET → `AdminTag[]` (`{ id, slug, nameEn, nameEs, postCount }`); POST `{ slug, nameEn, nameEs }`, `409` when the slug is taken |

@@ -68,3 +68,33 @@ export function leadAcknowledgementEmail(lead: LeadForEmail, siteUrl: string): M
     ),
   };
 }
+
+/**
+ * An answer written in the admin panel. The text goes out as written (paragraphs split on blank
+ * lines), with the visitor's original message quoted below it.
+ */
+export function leadReplyEmail(
+  lead: Pick<LeadForEmail, 'email' | 'message' | 'locale'>,
+  reply: { subject: string; body: string },
+  siteUrl: string,
+): MailMessage {
+  const es = lead.locale === 'es';
+  const paragraphs = reply.body
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  return {
+    to: lead.email,
+    subject: reply.subject,
+    ...renderEmail(
+      {
+        locale: lead.locale,
+        preheader: paragraphs[0]?.slice(0, 120) ?? reply.subject,
+        intro: paragraphs,
+        quote: { title: es ? 'Tu mensaje' : 'Your message', body: lead.message },
+        signoff: [],
+      },
+      siteUrl,
+    ),
+  };
+}

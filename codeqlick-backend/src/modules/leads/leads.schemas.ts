@@ -46,6 +46,15 @@ export const updateLeadSchema = z
   .strict();
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;
 
+export const createLeadReplySchema = z
+  .object({
+    subject: z.string().trim().min(1).max(200),
+    /** Plain text; blank lines separate paragraphs. */
+    body: z.string().trim().min(1).max(20_000),
+  })
+  .strict();
+export type CreateLeadReplyInput = z.infer<typeof createLeadReplySchema>;
+
 export const exportLeadsQuerySchema = z.object({
   status: leadStatusSchema.optional(),
   q: z.string().trim().max(200).optional(),

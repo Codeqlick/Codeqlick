@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Lead, LeadStatus, Prisma } from '../../generated/prisma/client.js';
+import type { Lead, LeadReply, LeadStatus, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface LeadFilter {
@@ -43,6 +43,29 @@ export class LeadsRepository {
 
   update(id: string, data: Prisma.LeadUpdateInput): Promise<Lead> {
     return this.prisma.lead.update({ where: { id }, data });
+  }
+
+  /** Replies to a lead, oldest first: the order of the conversation. */
+  listReplies(leadId: string): Promise<LeadReply[]> {
+    return this.prisma.leadReply.findMany({ where: { leadId }, orderBy: { createdAt: 'asc' } });
+  }
+
+  /**
+   * Stores a sent reply and, for a lead nobody had answered yet, moves it to CONTACTED.
+   * Returns the reply and the lead as it is afterwards.
+   */
+  async addReply(
+    data: Prisma.LeadReplyUncheckedCreateInput,
+  ): Promise<{ reply: LeadReply; lead: Lead }> {
+    return this.prisma.$transaction(async (tx) => {
+      const reply = await tx.leadReply.create({ data });
+      await tx.lead.updateMany({
+        where: { id: data.leadId, status: 'NEW' },
+        data: { status: 'CONTACTED' },
+      });
+      const lead = await tx.lead.findUniqueOrThrow({ where: { id: data.leadId } });
+      return { reply, lead };
+    });
   }
 }
 

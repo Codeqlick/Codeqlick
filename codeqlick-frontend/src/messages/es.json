@@ -577,8 +577,17 @@
       "emptyTitle": "No hay contactos",
       "emptyBody": "Aquí aparecerán los mensajes que lleguen desde el formulario de contacto.",
       "back": "Todos los contactos",
-      "reply": "Responder por correo",
-      "exportCsv": "Exportar CSV"
+      "reply": "Responder",
+      "exportCsv": "Exportar CSV",
+      "replies": "Respuestas",
+      "repliedBy": "{author} · {date}",
+      "replySubject": "Asunto",
+      "replyBody": "Respuesta",
+      "replyHint": "Se envía a {email} desde el correo de Codeqlick, con el diseño de la marca y su mensaje citado debajo; el idioma de la plantilla es {language}. Separa los párrafos con una línea en blanco y firma al final. Si es la primera respuesta, el estado pasa a «Contactado».",
+      "replySend": "Enviar respuesta",
+      "replySending": "Enviando…",
+      "replySent": "Respuesta enviada a {email}.",
+      "replyFailed": "No se pudo enviar la respuesta; no se ha guardado nada. Revisa la configuración de SMTP del servidor y vuelve a intentarlo."
     },
     "posts": {
       "title": "Artículos",
@@ -795,7 +804,8 @@
           "invited": "envió un correo de bienvenida a <target>{label}</target>"
         },
         "lead": {
-          "updated": "actualizó el contacto <target>{label}</target>"
+          "updated": "actualizó el contacto <target>{label}</target>",
+          "replied": "respondió al contacto <target>{label}</target>"
         },
         "media": {
           "uploaded": "subió la imagen <target>{label}</target>",

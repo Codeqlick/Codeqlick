@@ -98,6 +98,11 @@ export const portfolioFormSchema = z.object({
   es: portfolioTranslation(false),
 });
 
+export const leadReplySchema = z.object({
+  subject: requiredString(200),
+  body: z.string().trim().min(1, 'required').max(20000, 'tooLong'),
+});
+
 export const leadUpdateSchema = z.object({
   status: z.enum(LEAD_STATUSES, 'choice'),
   notes: z
