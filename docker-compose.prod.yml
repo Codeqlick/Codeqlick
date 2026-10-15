@@ -83,6 +83,9 @@ services:
       args:
         UMAMI_URL: http://umami:3000
         UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+        LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
+        LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
+        LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
     restart: unless-stopped
     depends_on:
       api:
@@ -95,6 +98,10 @@ services:
       # Analytics: the site proxies the tracker to Umami (see "Analytics" in deploy/README.md).
       UMAMI_URL: http://umami:3000
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      # Legal notice and privacy policy: hidden until LEGAL_OWNER_NAME is set.
+      LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
+      LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
+      LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
     ports:
       - "127.0.0.1:${WEB_PORT:-3010}:3000"
 

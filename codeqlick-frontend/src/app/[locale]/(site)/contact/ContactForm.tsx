@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import { useActionState, useEffect } from 'react';
 import { Alert } from '@/components/ui/Alert';
+import { Link } from '@/i18n/navigation';
 import { Input, Select, Textarea } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { initialFormState } from '@/lib/forms';
@@ -10,8 +11,17 @@ import { BUDGET_VALUES } from '@/lib/schemas/contact';
 import { submitContact } from './actions';
 import styles from './ContactForm.module.css';
 
-/** `renderedAt`: when the server rendered the form, sent back so too-fast submissions are spotted. */
-export function ContactForm({ renderedAt }: { renderedAt: number }) {
+/**
+ * `renderedAt`: when the server rendered the form, sent back so too-fast submissions are spotted.
+ * `showPrivacyNote`: the privacy policy is published, so the form links to it.
+ */
+export function ContactForm({
+  renderedAt,
+  showPrivacyNote = false,
+}: {
+  renderedAt: number;
+  showPrivacyNote?: boolean;
+}) {
   const t = useTranslations('Contact');
   const tc = useTranslations('Common');
   const locale = useLocale();
@@ -93,6 +103,13 @@ export function ContactForm({ renderedAt }: { renderedAt: number }) {
         <input id="contact-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
 
+      {showPrivacyNote ? (
+        <p className={styles.privacy}>
+          {t.rich('form.privacyNote', {
+            link: (chunks) => <Link href="/privacy">{chunks}</Link>,
+          })}
+        </p>
+      ) : null}
       <div>
         <SubmitButton pendingLabel={t('form.sending')}>{t('form.submit')}</SubmitButton>
       </div>

@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { Logo } from '@/components/brand/Logo';
 import { Link } from '@/i18n/navigation';
+import { legalOwner } from '@/lib/env';
 import { SOCIAL_LINKS } from '@/lib/site';
 import styles from './SiteFooter.module.css';
 
@@ -28,6 +29,16 @@ export async function SiteFooter({ locale }: { locale: AppLocale }) {
         </ul>
         <div className={styles.meta}>
           <p>{t('copyright', { year })}</p>
+          {legalOwner ? (
+            <>
+              <Link href="/legal" className={styles.login}>
+                {t('legal')}
+              </Link>
+              <Link href="/privacy" className={styles.login}>
+                {t('privacy')}
+              </Link>
+            </>
+          ) : null}
           <Link href="/login" className={styles.login}>
             {t('login')}
           </Link>
