@@ -21,9 +21,17 @@ export function listPosts(params: {
   pageSize?: number;
   /** Only posts with this tag (its slug). */
   tag?: string;
+  /** Text to look for (title, excerpt, content; case and accents don't matter). */
+  q?: string;
 }) {
   return apiFetch<Paginated<PostSummary>>('/posts', {
-    query: { locale: params.locale, page: params.page, pageSize: params.pageSize, tag: params.tag },
+    query: {
+      locale: params.locale,
+      page: params.page,
+      pageSize: params.pageSize,
+      tag: params.tag,
+      q: params.q,
+    },
     revalidate: PUBLIC_REVALIDATE,
   });
 }

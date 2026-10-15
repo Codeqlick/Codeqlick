@@ -51,13 +51,14 @@ export class PostsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async listPublished(
-    tag: string | undefined,
+    filter: { tag?: string; ids?: string[] },
     skip: number,
     take: number,
   ): Promise<{ items: PostWithTranslations[]; total: number }> {
     const where: Prisma.PostWhereInput = {
       ...liveWhere(),
-      ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
+      ...(filter.tag ? { tags: { some: { tag: { slug: filter.tag } } } } : {}),
+      ...(filter.ids ? { id: { in: filter.ids } } : {}),
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
@@ -70,6 +71,22 @@ export class PostsRepository {
       this.prisma.post.count({ where }),
     ]);
     return { items, total };
+  }
+
+  /**
+   * Ids of posts whose title, excerpt or content contains `text` in one of `locales`, ignoring
+   * case and accents (Postgres `unaccent`). Publication is filtered by the caller.
+   */
+  async searchPostIds(text: string, locales: Locale[]): Promise<string[]> {
+    // `%` and `_` typed by the reader are literal characters, not wildcards.
+    const pattern = `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+    const rows = await this.prisma.$queryRaw<{ post_id: string }[]>`
+      SELECT DISTINCT post_id FROM post_translations
+      WHERE locale::text = ANY(${locales})
+        AND (unaccent(title) ILIKE unaccent(${pattern})
+          OR unaccent(excerpt) ILIKE unaccent(${pattern})
+          OR unaccent(content) ILIKE unaccent(${pattern}))`;
+    return rows.map((row) => row.post_id);
   }
 
   findPublishedBySlug(slug: string): Promise<PostWithTranslations | null> {

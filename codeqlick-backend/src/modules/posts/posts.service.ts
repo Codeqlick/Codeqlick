@@ -3,7 +3,7 @@ import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/co
 import { availableLocales, pickTranslation } from '../../common/translations.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
-import { PublishStatus } from '../../generated/prisma/client.js';
+import { Locale, PublishStatus } from '../../generated/prisma/client.js';
 import {
   ActivityService,
   contentLabel,
@@ -91,7 +91,17 @@ export class PostsService {
 
   async listPublished(query: ListPublicPostsQuery): Promise<Paginated<PostSummary>> {
     const { skip, take } = pageToSkipTake(query.page, query.pageSize);
-    const { items, total } = await this.repository.listPublished(query.tag, skip, take);
+    // The summary falls back to English, so a search covers that language too.
+    const ids = query.q
+      ? await this.repository.searchPostIds(query.q, [
+          ...new Set([toDbLocale(query.locale), Locale.EN]),
+        ])
+      : undefined;
+    const { items, total } = await this.repository.listPublished(
+      { tag: query.tag, ids },
+      skip,
+      take,
+    );
     const summaries = items
       .map((post) => this.toSummary(post, query.locale))
       .filter((summary): summary is PostSummary => summary !== undefined);

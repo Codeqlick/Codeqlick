@@ -19,9 +19,13 @@ test.describe('public site', () => {
     );
   });
 
-  test('blog list and an unknown page', async ({ page }) => {
+  test('blog list, search and an unknown page', async ({ page }) => {
     await page.goto('/es/blog');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.getByRole('searchbox', { name: 'Buscar en el blog' }).fill('palabra-que-no-existe');
+    await page.getByRole('button', { name: 'Buscar' }).click();
+    await expect(page).toHaveURL(/\/es\/blog\?q=palabra-que-no-existe/);
+    await expect(page.getByText('Nada para «palabra-que-no-existe»')).toBeVisible();
     const response = await page.goto('/es/does-not-exist');
     expect(response?.status()).toBe(404);
   });

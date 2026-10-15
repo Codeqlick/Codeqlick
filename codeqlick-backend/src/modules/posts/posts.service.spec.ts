@@ -116,7 +116,11 @@ describe('PostsService', () => {
 
     const page = await service.listPublished({ page: 2, pageSize: 20, locale: 'es' });
 
-    expect(repository.listPublished).toHaveBeenCalledWith(undefined, 20, 20);
+    expect(repository.listPublished).toHaveBeenCalledWith(
+      { tag: undefined, ids: undefined },
+      20,
+      20,
+    );
     expect(page).toEqual({
       items: [
         {

@@ -145,6 +145,26 @@
   margin-top: var(--space-6);
 }
 
+/* Blog search: the box and its button on one line. */
+.search {
+  display: flex;
+  gap: var(--space-2);
+  max-width: 34rem;
+  margin-top: var(--space-8);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.clear {
+  font-family: var(--font-family-body);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
 .listHeading {
   margin-top: var(--space-12);
   font-size: 1.5rem;

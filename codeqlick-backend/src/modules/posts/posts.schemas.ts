@@ -50,6 +50,13 @@ export const listPublicPostsQuerySchema = paginationSchema.extend({
   ...localeQuerySchema.shape,
   /** Only posts with this tag (its slug). */
   tag: slugSchema.optional(),
+  /** Text to look for in the title, excerpt or content (ignoring case and accents). */
+  q: z
+    .string()
+    .trim()
+    .max(100)
+    .transform((value) => value || undefined)
+    .optional(),
 });
 
 export const relatedPostsQuerySchema = localeQuerySchema.extend({
