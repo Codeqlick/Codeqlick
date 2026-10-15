@@ -589,7 +589,8 @@
       "projects": "Projects",
       "users": "Users",
       "activity": "Activity",
-      "tags": "Tags"
+      "tags": "Tags",
+      "replies": "Saved replies"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -963,6 +964,21 @@
       "referrers": "Where they come from",
       "countries": "Countries",
       "none": "No data yet."
+    },
+    "savedReplies": {
+      "title": "Saved replies",
+      "lead": "Texts you often repeat when answering leads or commenting on projects. When inserted, '{name}' and '{project}' become the person's and the project's names.",
+      "new": "New saved reply",
+      "replyTitle": "Title",
+      "replyTitleHint": "Only you see it, in the menu to insert it.",
+      "body": "Text",
+      "bodyHint": "Use '{name}' for the person's name and '{project}' for the project's.",
+      "saved": "{count, plural, =0 {Saved} one {# saved} other {# saved}}",
+      "empty": "You have no saved replies yet.",
+      "editOrDelete": "Edit or delete",
+      "created": "Reply saved.",
+      "insert": "Insert a saved reply",
+      "insertPlaceholder": "Insert a saved reply…"
     }
   },
   "Sessions": {

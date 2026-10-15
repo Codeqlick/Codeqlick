@@ -6,6 +6,7 @@ import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ProjectFileUpload } from '@/components/app/ProjectFileUpload';
 import { MarkdownField } from '@/components/app/MarkdownField';
+import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
 import { ProjectTimeline } from '@/components/app/ProjectTimeline';
@@ -15,6 +16,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { adminGetProject, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
+import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import type { ClientProject } from '@/lib/api/types';
 import { firstParam } from '@/lib/format';
 import {
@@ -61,6 +63,18 @@ export default async function EditProjectPage({
   }
 
   const milestones = project.milestones ?? [];
+  const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
+  // Optional: the boxes work without them.
+  const savedReplies = await adminListSavedReplies().catch(() => []);
+  const picker = (
+    <SavedReplyPicker
+      target="body"
+      replies={savedReplies}
+      values={{ name: project.client.name, project: project.name }}
+      label={tsr('insert')}
+      placeholder={tsr('insertPlaceholder')}
+    />
+  );
 
   return (
     <div className={styles.stack}>
@@ -129,6 +143,7 @@ export default async function EditProjectPage({
             className={styles.form}
           >
             <FormInput name="title" label={t('updateTitle')} required />
+            {picker}
             <MarkdownField
               name="body"
               label={t('updateBody')}
@@ -158,6 +173,7 @@ export default async function EditProjectPage({
             locale={locale}
             empty={t('noUpdates')}
             commentAction={(updateId) => teamCommentAction.bind(null, locale, project.id, updateId)}
+            commentTools={picker}
           />
         </div>
       </section>

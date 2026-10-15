@@ -589,7 +589,8 @@
       "projects": "Proyectos",
       "users": "Usuarios",
       "activity": "Actividad",
-      "tags": "Etiquetas"
+      "tags": "Etiquetas",
+      "replies": "Respuestas"
     },
     "dashboard": {
       "title": "Panel",
@@ -963,6 +964,21 @@
       "referrers": "De dónde llegan",
       "countries": "Países",
       "none": "Todavía sin datos."
+    },
+    "savedReplies": {
+      "title": "Respuestas guardadas",
+      "lead": "Textos que repites a menudo al responder contactos o comentar en proyectos. Al insertarlos, '{name}' y '{project}' se cambian por el nombre de la persona y del proyecto.",
+      "new": "Nueva respuesta",
+      "replyTitle": "Título",
+      "replyTitleHint": "Solo lo ves tú, en el menú para insertarla.",
+      "body": "Texto",
+      "bodyHint": "Usa '{name}' para el nombre de la persona y '{project}' para el del proyecto.",
+      "saved": "{count, plural, =0 {Guardadas} one {# guardada} other {# guardadas}}",
+      "empty": "Todavía no tienes respuestas guardadas.",
+      "editOrDelete": "Editar o eliminar",
+      "created": "Respuesta guardada.",
+      "insert": "Insertar respuesta guardada",
+      "insertPlaceholder": "Insertar respuesta guardada…"
     }
   },
   "Sessions": {
