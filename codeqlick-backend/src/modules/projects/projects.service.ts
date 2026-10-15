@@ -1,7 +1,13 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
@@ -11,27 +17,37 @@ import {
   type ProjectFile,
   type ProjectMilestone,
   type ProjectPhase,
-  type ProjectUpdate,
 } from '../../generated/prisma/client.js';
 import {
   ProjectsRepository,
+  type CommentWithAuthor,
   type ProjectWithClient,
   type ProjectWithUpdates,
+  type UpdateWithAuthor,
 } from './projects.repository.js';
 import { ActivityService } from '../activity/activity.service.js';
-import { MailService } from '../mail/mail.service.js';
-import { projectUpdateEmail } from './project-emails.js';
+import { MailService, type MailMessage } from '../mail/mail.service.js';
+import { clientActivityEmail, projectUpdateEmail, teamCommentEmail } from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
   CreateMilestoneInput,
   CreateProjectInput,
   CreateProjectUpdateInput,
+  CreateUpdateCommentInput,
   ListProjectsQuery,
   ReorderMilestonesInput,
   UpdateMilestoneInput,
   UpdateProjectInput,
 } from './projects.schemas.js';
+
+export interface UpdateCommentView {
+  id: string;
+  body: string;
+  createdAt: string;
+  /** `team`: written by Codeqlick (an admin); otherwise by the client. */
+  author: { name: string; team: boolean };
+}
 
 export interface ProjectUpdateView {
   id: string;
@@ -39,7 +55,14 @@ export interface ProjectUpdateView {
   body: string;
   createdAt: string;
   author: { name: string };
+  approvalRequested: boolean;
+  approvedAt: string | null;
+  approvedBy: { name: string } | null;
+  comments: UpdateCommentView[];
 }
+
+/** A comment posted by the team; `clientNotified` says whether the client was emailed it. */
+export type PostedTeamComment = UpdateCommentView & { clientNotified: boolean };
 
 /** A posted update; `clientNotified` only when the client was to be emailed. */
 export type PostedProjectUpdate = ProjectUpdateView & { clientNotified?: boolean };
@@ -93,15 +116,30 @@ export interface ClientProjectView {
   updatedAt: string;
 }
 
-function toUpdateView(
-  update: ProjectUpdate & { author: { name: string } | null },
-): ProjectUpdateView {
+function toCommentView(comment: CommentWithAuthor): UpdateCommentView {
+  return {
+    id: comment.id,
+    body: comment.body,
+    createdAt: comment.createdAt.toISOString(),
+    author: {
+      name: comment.author?.name ?? 'Codeqlick',
+      // A deleted author was most likely a team member: clients are deactivated, not deleted.
+      team: comment.author ? comment.author.role === Role.ADMIN : true,
+    },
+  };
+}
+
+function toUpdateView(update: UpdateWithAuthor): ProjectUpdateView {
   return {
     id: update.id,
     title: update.title,
     body: update.body,
     createdAt: update.createdAt.toISOString(),
     author: { name: update.author?.name ?? 'Codeqlick' },
+    approvalRequested: update.approvalRequested,
+    approvedAt: update.approvedAt?.toISOString() ?? null,
+    approvedBy: update.approvedAt ? { name: update.approvedBy?.name ?? '—' } : null,
+    comments: update.comments.map(toCommentView),
   };
 }
 
@@ -401,10 +439,19 @@ export class ProjectsService {
     input: CreateProjectUpdateInput,
   ): Promise<PostedProjectUpdate> {
     const project = await this.findOrThrow(projectId);
-    const update = await this.repository.addUpdate(projectId, author.id, input.title, input.body);
+    const update = await this.repository.addUpdate(
+      projectId,
+      author.id,
+      input.title,
+      input.body,
+      input.requestApproval,
+    );
     const view = toUpdateView(update);
     const clientNotified = input.notifyClient
-      ? await this.notifyClient(project, input).then(
+      ? await this.notifyClient(project, {
+          ...input,
+          approvalRequested: input.requestApproval,
+        }).then(
           () => true,
           (error: unknown) => {
             const reason = error instanceof Error ? error.message : String(error);
@@ -417,14 +464,145 @@ export class ProjectsService {
       action: 'project.update_posted',
       targetId: projectId,
       targetLabel: project.name,
-      details: { title: input.title, ...(clientNotified !== undefined && { clientNotified }) },
+      details: {
+        title: input.title,
+        ...(input.requestApproval && { approvalRequested: true }),
+        ...(clientNotified !== undefined && { clientNotified }),
+      },
     });
     return clientNotified === undefined ? view : { ...view, clientNotified };
   }
 
+  // ---- Comments and approvals ----------------------------------------------------------
+
+  /** A comment from the portal: the project's client (or an admin looking at the portal). */
+  async addClientComment(
+    caller: AuthUser,
+    projectId: string,
+    updateId: string,
+    input: CreateUpdateCommentInput,
+  ): Promise<UpdateCommentView> {
+    const project = await this.findForCallerOrThrow(caller, projectId);
+    const update = await this.findUpdateOrThrow(projectId, updateId);
+    const comment = await this.repository.addComment(projectId, updateId, caller.id, input.body);
+    if (caller.role === 'CLIENT') {
+      this.notifyTeam(project, update, { kind: 'comment', body: input.body });
+    }
+    await this.activity.record(caller, {
+      action: 'project.comment_added',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { title: update.title },
+    });
+    return toCommentView(comment);
+  }
+
+  /** A comment from the admin panel; the client is emailed it in their language. */
+  async addTeamComment(
+    author: AuthUser,
+    projectId: string,
+    updateId: string,
+    input: CreateUpdateCommentInput,
+  ): Promise<PostedTeamComment> {
+    const project = await this.findOrThrow(projectId);
+    const update = await this.findUpdateOrThrow(projectId, updateId);
+    const comment = await this.repository.addComment(projectId, updateId, author.id, input.body);
+    const view = toCommentView(comment);
+    const clientNotified = await this.emailClient(project, (link, locale) =>
+      teamCommentEmail(
+        project.client,
+        project,
+        update,
+        { body: input.body, authorName: view.author.name },
+        `${link}#update-${updateId}`,
+        locale,
+        this.config.siteUrl,
+      ),
+    );
+    await this.activity.record(author, {
+      action: 'project.comment_added',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { title: update.title, clientNotified },
+    });
+    return { ...view, clientNotified };
+  }
+
+  /** The project's client approves an update the team asked them to approve. */
+  async approveUpdate(
+    caller: AuthUser,
+    projectId: string,
+    updateId: string,
+  ): Promise<ProjectUpdateView> {
+    // Approving is the client's call: admins can see the portal but not sign off for them.
+    if (caller.role !== 'CLIENT') throw new ForbiddenException('Only the client can approve');
+    const project = await this.findForCallerOrThrow(caller, projectId);
+    const update = await this.findUpdateOrThrow(projectId, updateId);
+    if (!update.approvalRequested) {
+      throw new BadRequestException("This update doesn't need an approval");
+    }
+    if (update.approvedAt) return toUpdateView(update);
+
+    const approved = await this.repository.approveUpdate(updateId, caller.id);
+    this.notifyTeam(project, update, { kind: 'approval' });
+    await this.activity.record(caller, {
+      action: 'project.update_approved',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { title: update.title },
+    });
+    return toUpdateView(approved);
+  }
+
+  /** Fire-and-forget email to the team inbox; mail problems are logged, never thrown. */
+  private notifyTeam(
+    project: ProjectWithClient,
+    update: { id: string; title: string },
+    event: { kind: 'comment'; body: string } | { kind: 'approval' },
+  ): void {
+    const link = `${this.config.siteUrl}/es/admin/projects/${project.id}#update-${update.id}`;
+    const message = clientActivityEmail(
+      this.config.leadsNotifyTo,
+      project.client,
+      project,
+      update,
+      event,
+      link,
+      this.config.siteUrl,
+    );
+    this.mail.send(message).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to email the team about a client ${event.kind}: ${reason}`);
+    });
+  }
+
+  /** Emails the client (built with their portal link and language); false when it failed. */
+  private async emailClient(
+    project: ProjectWithClient,
+    build: (link: string, locale: ApiLocale) => MailMessage,
+  ): Promise<boolean> {
+    try {
+      if (!project.client.isActive) throw new Error('the client account is deactivated');
+      const locale = toApiLocale(project.client.locale);
+      const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
+      await this.mail.send(build(link, locale));
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to email the client: ${reason}`);
+      return false;
+    }
+  }
+
+  private async findUpdateOrThrow(projectId: string, updateId: string): Promise<UpdateWithAuthor> {
+    const update = await this.repository.findUpdate(projectId, updateId);
+    if (!update) throw new NotFoundException('Update not found');
+    return update;
+  }
+
   private async notifyClient(
     project: ProjectWithClient,
-    update: { title: string; body: string },
+    update: { title: string; body: string; approvalRequested?: boolean },
   ): Promise<void> {
     // A deactivated client can't sign in to read it.
     if (!project.client.isActive) throw new Error('the client account is deactivated');

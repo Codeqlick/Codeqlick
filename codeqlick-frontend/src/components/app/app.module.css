@@ -310,6 +310,86 @@
   margin: var(--space-1) 0 var(--space-3);
 }
 
+/* Approval and comments under a project update */
+.approval {
+  margin: 0 0 var(--space-3);
+}
+
+/* The badge carries a name and a date: let it wrap on narrow screens. */
+.approval > span {
+  white-space: normal;
+}
+
+.approveBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--color-line);
+}
+
+.comments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.comment {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-app);
+}
+
+.commentTeam {
+  background: var(--color-blush);
+}
+
+.commentMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0 0 var(--space-1);
+  font-size: 0.85rem;
+  color: var(--color-slate);
+}
+
+.commentMeta strong {
+  color: var(--color-ink);
+}
+
+.commentBody {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.commentForm > summary {
+  cursor: pointer;
+  width: fit-content;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-fuchsia-dark);
+}
+
+.commentForm[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
 /* Milestones (admin controls under each step of the timeline) */
 .milestoneControls {
   display: flex;

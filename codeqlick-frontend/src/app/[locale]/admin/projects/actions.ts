@@ -7,6 +7,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import { failedState, invalidState, savedState, unconfirmedDelete } from '@/lib/actions';
 import {
+  adminAddUpdateComment,
   adminCreateMilestone,
   adminCreateProject,
   adminCreateProjectUpdate,
@@ -18,7 +19,12 @@ import {
   adminUpdateProject,
 } from '@/lib/api/projects';
 import { formBoolean, formObject, type FormState } from '@/lib/forms';
-import { milestoneSchema, projectFormSchema, projectUpdateSchema } from '@/lib/schemas/admin';
+import {
+  milestoneSchema,
+  projectFormSchema,
+  projectUpdateSchema,
+  updateCommentSchema,
+} from '@/lib/schemas/admin';
 
 const MILESTONE_FIELDS = ['title', 'description', 'dueDate'] as const;
 
@@ -87,6 +93,7 @@ export async function postProjectUpdateAction(
   const parsed = projectUpdateSchema.safeParse({
     ...formObject(formData, ['title', 'body']),
     notifyClient: formBoolean(formData, 'notifyClient'),
+    requestApproval: formBoolean(formData, 'requestApproval'),
   });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 
@@ -244,4 +251,28 @@ export async function deleteMilestoneAction(
 
   revalidateProjects(locale);
   return { status: 'idle' };
+}
+
+/** The team answers on an update; the client is emailed the comment. */
+export async function teamCommentAction(
+  locale: AppLocale,
+  id: string,
+  updateId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = updateCommentSchema.safeParse(formObject(formData, ['body']));
+  if (!parsed.success) return invalidState(parsed.error, locale, formData);
+
+  let clientNotified: boolean;
+  try {
+    ({ clientNotified } = await adminAddUpdateComment(id, updateId, parsed.data.body));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+
+  revalidateProjects(locale);
+  if (clientNotified) return { status: 'idle' };
+  const t = await getTranslations({ locale, namespace: 'Admin.projects' });
+  return { status: 'error', message: t('commentNotNotified') };
 }

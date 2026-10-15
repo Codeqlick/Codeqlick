@@ -59,6 +59,8 @@ export const createProjectUpdateSchema = z
     body: z.string().min(1).max(50_000),
     /** Email the client a summary with a link to the project in the portal. */
     notifyClient: z.boolean().default(false),
+    /** Ask the client to approve this update from the portal. */
+    requestApproval: z.boolean().default(false),
   })
   .strict();
 export type CreateProjectUpdateInput = z.infer<typeof createProjectUpdateSchema>;
@@ -101,6 +103,14 @@ export const listProjectsQuerySchema = paginationSchema.extend({
   phase: projectPhaseSchema.optional(),
 });
 export type ListProjectsQuery = z.infer<typeof listProjectsQuerySchema>;
+
+export const createUpdateCommentSchema = z
+  .object({ body: z.string().trim().min(1).max(5000) })
+  .strict();
+export type CreateUpdateCommentInput = z.infer<typeof createUpdateCommentSchema>;
+
+export const updateParamSchema = z.object({ id: z.uuid(), updateId: z.uuid() });
+export type UpdateParam = z.infer<typeof updateParamSchema>;
 
 export const projectFileParamSchema = z.object({ id: z.uuid(), fileId: z.uuid() });
 export type ProjectFileParam = z.infer<typeof projectFileParamSchema>;

@@ -22,6 +22,7 @@ import {
   deleteProjectAction,
   deleteProjectFileAction,
   postProjectUpdateAction,
+  teamCommentAction,
   updateProjectAction,
 } from '../actions';
 import { MilestoneControls } from '../MilestoneControls';
@@ -143,11 +144,21 @@ export default async function EditProjectPage({
               hint={t('notifyClientHint', { email: project.client.email })}
               defaultChecked
             />
+            <FormCheckbox
+              name="requestApproval"
+              label={t('requestApproval')}
+              hint={t('requestApprovalHint')}
+            />
             <div className={styles.actions}>
               <SubmitButton pendingLabel={t('posting')}>{t('postUpdate')}</SubmitButton>
             </div>
           </ActionForm>
-          <ProjectUpdates updates={project.updates ?? []} locale={locale} empty={t('noUpdates')} />
+          <ProjectUpdates
+            updates={project.updates ?? []}
+            locale={locale}
+            empty={t('noUpdates')}
+            commentAction={(updateId) => teamCommentAction.bind(null, locale, project.id, updateId)}
+          />
         </div>
       </section>
 

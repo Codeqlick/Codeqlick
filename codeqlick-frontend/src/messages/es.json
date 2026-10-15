@@ -544,7 +544,17 @@
       "dueOn": "previsto para el {date}",
       "noDate": "sin fecha",
       "overdue": "con retraso"
-    }
+    },
+    "approvalPending": "Pendiente de aprobación",
+    "approvedBy": "Aprobado por {name} · {date}",
+    "approveHint": "Si te parece bien, apruébalo y seguimos adelante. Si quieres cambiar algo, déjanos un comentario.",
+    "approve": "Aprobar",
+    "approving": "Aprobando…",
+    "comments": "Comentarios",
+    "writeComment": "Escribir un comentario",
+    "commentLabel": "Comentario",
+    "sendComment": "Enviar comentario",
+    "sending": "Enviando…"
   },
   "Admin": {
     "title": "Administración",
@@ -723,7 +733,10 @@
       "milestoneUp": "↑ Subir",
       "milestoneDown": "↓ Bajar",
       "milestoneEdit": "Editar o eliminar",
-      "milestoneDelete": "Eliminar hito"
+      "milestoneDelete": "Eliminar hito",
+      "requestApproval": "Pedir aprobación al cliente",
+      "requestApprovalHint": "El cliente verá un botón para aprobar esta novedad desde su área, y te avisaremos por correo cuando lo haga.",
+      "commentNotNotified": "Comentario publicado, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada)."
     },
     "media": {
       "choose": "Archivo de imagen",
@@ -840,7 +853,9 @@
           "milestone_added": "añadió un hito a <target>{label}</target>",
           "milestone_updated": "editó un hito de <target>{label}</target>",
           "milestone_completed": "completó un hito de <target>{label}</target>",
-          "milestone_deleted": "borró un hito de <target>{label}</target>"
+          "milestone_deleted": "borró un hito de <target>{label}</target>",
+          "update_approved": "aprobó una novedad de <target>{label}</target>",
+          "comment_added": "comentó una novedad de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",

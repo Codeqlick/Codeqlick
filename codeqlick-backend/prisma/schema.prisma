@@ -66,14 +66,16 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions       Session[]
-  passwordResets PasswordResetToken[]
-  clientProjects ClientProject[]
-  posts          Post[]
-  projectUpdates ProjectUpdate[]
-  projectFiles   ProjectFile[]
-  activity       ActivityLog[]
-  leadReplies    LeadReply[]
+  sessions        Session[]
+  passwordResets  PasswordResetToken[]
+  clientProjects  ClientProject[]
+  posts           Post[]
+  projectUpdates  ProjectUpdate[]        @relation("ProjectUpdateAuthor")
+  approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
+  updateComments  ProjectUpdateComment[]
+  projectFiles    ProjectFile[]
+  activity        ActivityLog[]
+  leadReplies     LeadReply[]
 
   @@map("users")
 }
@@ -290,17 +292,38 @@ model ProjectMilestone {
   @@map("project_milestones")
 }
 
-model ProjectUpdate {
+/// A comment on a project update, by the client or the team.
+model ProjectUpdateComment {
   id        String   @id @default(uuid()) @db.Uuid
-  projectId String   @map("project_id") @db.Uuid
+  updateId  String   @map("update_id") @db.Uuid
   authorId  String?  @map("author_id") @db.Uuid
-  title     String
   body      String
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  author  User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  update ProjectUpdate @relation(fields: [updateId], references: [id], onDelete: Cascade)
+  author User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([updateId, createdAt])
+  @@map("project_update_comments")
+}
+
+model ProjectUpdate {
+  id                String    @id @default(uuid()) @db.Uuid
+  projectId         String    @map("project_id") @db.Uuid
+  authorId          String?   @map("author_id") @db.Uuid
+  title             String
+  body              String
+  /// The client is asked to approve it; `approvedAt` is set when they do.
+  approvalRequested Boolean   @default(false) @map("approval_requested")
+  approvedAt        DateTime? @map("approved_at") @db.Timestamptz(3)
+  approvedById      String?   @map("approved_by_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project    ClientProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author     User?                  @relation("ProjectUpdateAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  approvedBy User?                  @relation("ProjectUpdateApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  comments   ProjectUpdateComment[]
 
   @@index([projectId, createdAt])
   @@map("project_updates")

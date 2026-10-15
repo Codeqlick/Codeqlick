@@ -10,6 +10,7 @@ import type {
   ProjectInput,
   ProjectMilestone,
   ProjectUpdate,
+  UpdateComment,
 } from './types';
 
 /** Largest project file the API accepts, in bytes. */
@@ -27,7 +28,36 @@ export function getMyProject(id: string) {
   });
 }
 
+function updatePath(scope: 'portal' | 'admin', id: string, updateId: string) {
+  return `/${scope}/projects/${encodeURIComponent(id)}/updates/${encodeURIComponent(updateId)}`;
+}
+
+/** The client (or an admin in the portal) comments on an update. */
+export function addUpdateComment(id: string, updateId: string, body: string) {
+  return apiFetch<UpdateComment>(`${updatePath('portal', id, updateId)}/comments`, {
+    method: 'POST',
+    body: { body },
+    auth: 'required',
+  });
+}
+
+/** The client approves an update that asks for it. */
+export function approveUpdate(id: string, updateId: string) {
+  return apiFetch<ProjectUpdate>(`${updatePath('portal', id, updateId)}/approval`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
 /* Admin. */
+
+/** The team answers on an update; `clientNotified` says whether the client was emailed. */
+export function adminAddUpdateComment(id: string, updateId: string, body: string) {
+  return apiFetch<UpdateComment & { clientNotified: boolean }>(
+    `${updatePath('admin', id, updateId)}/comments`,
+    { method: 'POST', body: { body }, auth: 'required' },
+  );
+}
 
 export function adminListProjects(params: { page?: number; pageSize?: number } = {}) {
   return apiFetch<Paginated<ClientProject>>('/admin/projects', {
@@ -68,7 +98,7 @@ export function adminDeleteProject(id: string) {
 /** With `notifyClient`, `clientNotified` in the answer says whether the client was emailed. */
 export function adminCreateProjectUpdate(
   id: string,
-  input: { title: string; body: string; notifyClient: boolean },
+  input: { title: string; body: string; notifyClient: boolean; requestApproval: boolean },
 ) {
   return apiFetch<ProjectUpdate & { clientNotified?: boolean }>(
     `/admin/projects/${encodeURIComponent(id)}/updates`,
