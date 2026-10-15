@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { FormInput } from '@/components/app/ActionForm';
 import { Button } from '@/components/ui/Button';
+import { clearFileInput, FilePicker } from '@/components/ui/FilePicker';
 import type { InputProps } from '@/components/ui/Field';
 import styles from './ImageField.module.css';
 
@@ -64,7 +65,7 @@ export function ImageField({
       const urlInput = wrapper.current?.querySelector<HTMLInputElement>('input[type="url"]');
       if (urlInput) urlInput.value = result.url;
       setPreview(result.url);
-      if (fileInput.current) fileInput.current.value = '';
+      clearFileInput(fileInput.current);
     });
   }
 
@@ -72,12 +73,10 @@ export function ImageField({
     <div ref={wrapper} className={styles.wrapper}>
       <FormInput {...input} type="url" hint={labels.hint} />
       <div className={styles.upload}>
-        <input
-          ref={fileInput}
-          type="file"
+        <FilePicker
+          inputRef={fileInput}
           accept="image/png,image/jpeg,image/webp,image/gif"
-          aria-label={labels.choose}
-          className={styles.file}
+          label={labels.choose}
         />
         <Button variant="outline" size="sm" onClick={onUpload} disabled={pending}>
           {pending ? labels.uploading : labels.upload}

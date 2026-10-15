@@ -26,7 +26,9 @@
     "none": "—",
     "genericError": "Something went wrong. Please try again.",
     "unavailable": "This content is temporarily unavailable. Please try again in a few minutes.",
-    "confirmDelete": "I understand this can't be undone."
+    "confirmDelete": "I understand this can't be undone.",
+    "changeFile": "Change file",
+    "dropFile": "or drop it here"
   },
   "Pagination": {
     "label": "Pagination",
@@ -806,7 +808,7 @@
       "commentNotNotified": "Comment posted, but the client couldn't be emailed (check the server's SMTP settings or whether their account is deactivated)."
     },
     "media": {
-      "choose": "Image file",
+      "choose": "Choose an image",
       "upload": "Upload image",
       "uploading": "Uploading…",
       "hint": "Paste a URL or upload an image (PNG, JPEG, WebP or GIF, up to 5 MB).",
