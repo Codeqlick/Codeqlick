@@ -159,8 +159,8 @@ describe('Draft updates (e2e)', () => {
       .expect(404);
 
     // The other one is discarded.
-    const other = drafts.body[1].id as string;
-    await request(server).delete(`${projectPath}/drafts/${other}`).set(adminAuth).expect(204);
+    const otherDraft = drafts.body[1].id as string;
+    await request(server).delete(`${projectPath}/drafts/${otherDraft}`).set(adminAuth).expect(204);
     const left = await request(server).get(`${projectPath}/drafts`).set(adminAuth).expect(200);
     expect(left.body).toEqual([]);
     const after = await request(server)

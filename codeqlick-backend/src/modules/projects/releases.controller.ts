@@ -2,6 +2,7 @@ import { Body, Controller, Headers, Post } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { bearerKey } from './release-key.js';
 import { createReleaseSchema, type CreateReleaseInput } from './projects.schemas.js';
 import { ProjectsService, type PostedProjectUpdate } from './projects.service.js';
 
@@ -22,7 +23,6 @@ export class ReleasesController {
     @Headers('authorization') authorization: string | undefined,
     @Body({ schema: createReleaseSchema }) body: CreateReleaseInput,
   ): Promise<PostedProjectUpdate> {
-    const key = /^Bearer\s+(\S+)$/i.exec(authorization ?? '')?.[1] ?? '';
-    return this.projects.publishWithKey(key, body);
+    return this.projects.publishWithKey(bearerKey(authorization), body);
   }
 }
