@@ -43,7 +43,8 @@
     "startProject": "Empezar un proyecto",
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
-    "menu": "Menú"
+    "menu": "Menú",
+    "about": "Nosotros"
   },
   "LocaleSwitcher": {
     "label": "Idioma",
@@ -941,5 +942,74 @@
   },
   "Legal": {
     "updated": "Última actualización: {date}"
+  },
+  "About": {
+    "metaTitle": "Sobre nosotros",
+    "metaDescription": "Quién está detrás de Codeqlick, por qué existe y cómo trabajamos: software a medida y aplicaciones web con calidad, claridad y trato directo.",
+    "eyebrow": "Sobre nosotros",
+    "title": "Software que resuelve problemas reales",
+    "lead": "Codeqlick es un estudio de software a medida y aplicaciones web. Trabajamos con startups, pymes y empresas consolidadas para convertir ideas y necesidades de negocio en productos digitales fiables y preparados para crecer.",
+    "founder": {
+      "eyebrow": "Quién está detrás",
+      "title": "Un estudio pequeño, con trato directo",
+      "p1": "Codeqlick lo dirige su fundador, Luis Feliu Gomez Polo. Cuando trabajas con nosotros hablas directamente con quien diseña, construye y mantiene tu producto: sin intermediarios ni mensajes que se pierden por el camino.",
+      "p2": "Nuestro lema, «Redefining information technology in society», resume la ambición: que la tecnología mejore la vida de las personas y de las empresas. Con ese propósito construimos cada proyecto."
+    },
+    "purpose": {
+      "eyebrow": "Propósito",
+      "title": "Para qué existimos",
+      "mission": {
+        "title": "Misión",
+        "body": "Ayudar a nuestros clientes a crecer con software que resuelve problemas reales, entregado con claridad, calidad y rapidez."
+      },
+      "vision": {
+        "title": "Visión",
+        "body": "Ser el socio tecnológico en quien confían las empresas cuando necesitan productos digitales innovadores y fiables."
+      }
+    },
+    "values": {
+      "eyebrow": "Valores",
+      "title": "Lo que nos guía",
+      "items": {
+        "innovation": {
+          "title": "Innovación",
+          "body": "Nos mantenemos curiosos y adoptamos tecnología nueva cuando aporta valor real, no solo porque sea nueva."
+        },
+        "quality": {
+          "title": "Calidad",
+          "body": "Entregamos software del que estamos orgullosos: probado, mantenible y seguro por defecto."
+        },
+        "partnership": {
+          "title": "Compromiso",
+          "body": "Tratamos el producto de cada cliente como si fuera nuestro y nos comunicamos con franqueza."
+        },
+        "transparency": {
+          "title": "Transparencia",
+          "body": "Presupuestos claros, avances honestos y sin sorpresas."
+        }
+      }
+    },
+    "different": {
+      "eyebrow": "Qué nos diferencia",
+      "title": "Cómo trabajamos",
+      "items": {
+        "endToEnd": {
+          "title": "De principio a fin",
+          "body": "Del descubrimiento y el diseño al desarrollo, el lanzamiento y el soporte."
+        },
+        "product": {
+          "title": "Mentalidad de producto",
+          "body": "Nos centramos en los resultados de negocio, no solo en las funcionalidades."
+        },
+        "stack": {
+          "title": "Tecnología actual",
+          "body": "Herramientas probadas y al día, elegidas para cada proyecto."
+        },
+        "iterative": {
+          "title": "Ciclos cortos",
+          "body": "Iteraciones de dos semanas con demos frecuentes y tu opinión en cada paso."
+        }
+      }
+    }
   }
 }

@@ -1,0 +1,37 @@
+.founder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+}
+
+.prose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 44rem;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: var(--color-ink);
+}
+
+.prose p {
+  margin: 0;
+}
+
+.purpose {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-6);
+}
+
+@media (min-width: 64rem) {
+  .founder {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
+}
+
+/* On a white section the service cards need an outline (on blush they stand out on their own). */
+.card {
+  border: 1px solid var(--color-line);
+}

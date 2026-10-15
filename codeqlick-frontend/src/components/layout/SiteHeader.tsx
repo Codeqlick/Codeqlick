@@ -15,6 +15,7 @@ export async function SiteHeader({ locale }: { locale: AppLocale }) {
     { href: '/services', label: t('services') },
     { href: '/work', label: t('work') },
     { href: '/blog', label: t('blog') },
+    { href: '/about', label: t('about') },
     { href: '/contact', label: t('contact') },
   ];
 
