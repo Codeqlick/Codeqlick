@@ -10,5 +10,6 @@ import { UsersModule } from '../users/users.module.js';
   imports: [UsersModule, ProjectsModule],
   controllers: [LeadsController, AdminLeadsController],
   providers: [LeadsService, LeadsRepository],
+  exports: [LeadsService],
 })
 export class LeadsModule {}

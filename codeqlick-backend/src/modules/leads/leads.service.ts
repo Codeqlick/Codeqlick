@@ -10,10 +10,11 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
-import type {
-  LeadReply as LeadReplyRow,
-  Lead as LeadRow,
-  Prisma,
+import {
+  LeadStatus,
+  type LeadReply as LeadReplyRow,
+  type Lead as LeadRow,
+  type Prisma,
 } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
@@ -179,6 +180,37 @@ export class LeadsService {
       'notification',
     );
     this.sendInBackground(leadAcknowledgementEmail(lead, this.config.siteUrl), 'acknowledgement');
+    return { id: row.id };
+  }
+
+  /**
+   * A call booked from the website: the open lead with that email moves to the CALL stage (or a
+   * new one starts there), with the call's day as its follow-up. No emails: the booking sends its own.
+   */
+  async fromBooking(input: {
+    name: string;
+    email: string;
+    company: string | null;
+    message: string | null;
+    locale: ApiLocale;
+    day: string;
+  }): Promise<{ id: string }> {
+    const email = input.email.trim().toLowerCase();
+    const followUpOn = new Date(`${input.day}T00:00:00Z`);
+    const open = await this.repository.findOpenByEmail(email);
+    if (open) {
+      await this.repository.update(open.id, { status: LeadStatus.CALL, followUpOn });
+      return { id: open.id };
+    }
+    const row = await this.repository.create({
+      name: input.name,
+      email,
+      company: input.company,
+      message: input.message ?? '(Call booked from the website)',
+      locale: toDbLocale(input.locale),
+      status: LeadStatus.CALL,
+      followUpOn,
+    });
     return { id: row.id };
   }
 
