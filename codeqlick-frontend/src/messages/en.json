@@ -1042,5 +1042,47 @@
         }
       }
     }
+  },
+  "Faq": {
+    "eyebrow": "FAQ",
+    "title": "What people usually ask us",
+    "items": {
+      "start": {
+        "q": "How do we start working together?",
+        "a": "You tell us about your idea or need and we see whether we're a good fit. Then we have a call to understand goals, users, scope, timeline and budget range. With that we send you a proposal with the scope, approach, timeline and price; if you accept it, we sign the agreement and start with a kick-off meeting."
+      },
+      "cost": {
+        "q": "How much does a project cost?",
+        "a": "It depends on the scope, so we don't quote fixed prices without knowing it. We work with a fixed scope and budget for well-defined projects and MVPs, by the hour for products whose priorities change, with a dedicated team for long-term development, or with a monthly allocation of hours for maintenance. After the first call we send you a proposal with the price."
+      },
+      "time": {
+        "q": "How long does it take?",
+        "a": "That depends on the scope too: the timeline is in the proposal. We work in two-week cycles and at the end of each one we show you working software, so you see progress from the start, not only at the end."
+      },
+      "progress": {
+        "q": "How do I follow the project's progress?",
+        "a": "We send you a weekly summary and run a demo by video call every two weeks. You also get a client area where you see your project's phase, milestones, updates and files, and where you can comment on and approve deliveries."
+      },
+      "changes": {
+        "q": "What if I want to change something halfway through?",
+        "a": "That's normal. You describe the change, we assess how it affects scope, timeline and cost, and once you approve it in writing we plan it into the next cycle."
+      },
+      "maintenance": {
+        "q": "Do you take care of maintenance after launch?",
+        "a": "Yes. We offer maintenance and support plans with monitoring, bug fixing, security updates and continuous improvement, usually as a monthly allocation of hours."
+      },
+      "ownership": {
+        "q": "Do I own the code?",
+        "a": "When the project closes we hand over the code, the documentation and every access and credential."
+      },
+      "response": {
+        "q": "How quickly do you reply?",
+        "a": "We reply to messages within one business day at most. For urgent issues during a project we agree on a direct channel."
+      },
+      "nda": {
+        "q": "Do you sign a non-disclosure agreement?",
+        "a": "Yes, when needed we sign an NDA before going into the details of your project."
+      }
+    }
   }
 }

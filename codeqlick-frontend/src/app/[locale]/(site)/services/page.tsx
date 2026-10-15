@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Faq } from '@/components/content/Faq';
 import { SERVICE_SLUGS, SERVICES, ServiceIcon } from '@/components/content/services';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -55,7 +56,9 @@ export default async function ServicesPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className={styles.beforeCta} />
+      <div className={`wrap ${home.section}`}>
+        <Faq locale={locale} />
+      </div>
       <ContactCta locale={locale} />
     </>
   );

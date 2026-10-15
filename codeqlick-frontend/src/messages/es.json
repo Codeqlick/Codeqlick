@@ -1042,5 +1042,47 @@
         }
       }
     }
+  },
+  "Faq": {
+    "eyebrow": "Preguntas frecuentes",
+    "title": "Lo que suelen preguntarnos",
+    "items": {
+      "start": {
+        "q": "¿Cómo empezamos a trabajar juntos?",
+        "a": "Nos cuentas tu idea o tu necesidad y vemos si encajamos. Después tenemos una llamada para entender objetivos, usuarios, alcance, plazos y rango de presupuesto. Con eso te enviamos una propuesta con el alcance, el enfoque, el calendario y el precio; si la aceptas, firmamos el acuerdo y arrancamos con una reunión de inicio."
+      },
+      "cost": {
+        "q": "¿Cuánto cuesta un proyecto?",
+        "a": "Depende del alcance, así que no damos precios cerrados sin conocerlo. Trabajamos con alcance y presupuesto cerrados para proyectos bien definidos y MVPs, por horas para productos cuyas prioridades cambian, con un equipo dedicado para desarrollos largos o con una bolsa mensual de horas para mantenimiento. Tras la primera llamada te enviamos una propuesta con el precio."
+      },
+      "time": {
+        "q": "¿Cuánto se tarda?",
+        "a": "También depende del alcance: el calendario va en la propuesta. Trabajamos en ciclos de dos semanas y al final de cada uno te enseñamos software funcionando, así que ves avances desde el principio y no solo al final."
+      },
+      "progress": {
+        "q": "¿Cómo sigo el avance del proyecto?",
+        "a": "Te enviamos un resumen semanal y cada dos semanas hacemos una demo por videollamada. Además tienes un área de cliente donde ves la fase, los hitos, las novedades y los archivos de tu proyecto, y donde puedes comentar y aprobar entregas."
+      },
+      "changes": {
+        "q": "¿Y si quiero cambiar algo a mitad del proyecto?",
+        "a": "Es normal. Nos describes el cambio, valoramos cómo afecta al alcance, al calendario y al coste, y cuando lo apruebas por escrito lo planificamos en el siguiente ciclo."
+      },
+      "maintenance": {
+        "q": "¿Os encargáis del mantenimiento después del lanzamiento?",
+        "a": "Sí. Ofrecemos planes de mantenimiento y soporte con monitorización, corrección de errores, actualizaciones de seguridad y mejoras continuas, normalmente como una bolsa mensual de horas."
+      },
+      "ownership": {
+        "q": "¿Me quedo con el código?",
+        "a": "Al cerrar el proyecto te entregamos el código, la documentación y todos los accesos y credenciales."
+      },
+      "response": {
+        "q": "¿Cuánto tardáis en responder?",
+        "a": "Respondemos a los mensajes en un día laborable como mucho. Para incidencias urgentes durante un proyecto acordamos un canal directo."
+      },
+      "nda": {
+        "q": "¿Firmáis un acuerdo de confidencialidad?",
+        "a": "Sí, cuando hace falta firmamos un NDA antes de entrar en detalles de tu proyecto."
+      }
+    }
   }
 }
