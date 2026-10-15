@@ -983,7 +983,10 @@
           "release_key_created": "creó una clave de despliegue para <target>{label}</target>",
           "release_key_revoked": "anuló la clave de despliegue de <target>{label}</target>",
           "draft_received": "recibió un borrador de novedad para <target>{label}</target>",
-          "draft_discarded": "descartó un borrador de novedad de <target>{label}</target>"
+          "draft_discarded": "descartó un borrador de novedad de <target>{label}</target>",
+          "task_created": "creó una tarea en <target>{label}</target>",
+          "task_updated": "cambió una tarea de <target>{label}</target>",
+          "task_deleted": "borró una tarea de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1043,7 +1046,8 @@
         "publishedAt": "Se publica el {value}",
         "milestone": "Hito: {value}",
         "project": "Proyecto: {value}",
-        "minutes": "Tiempo: {value}"
+        "minutes": "Tiempo: {value}",
+        "taskStatus": "Estado: {value}"
       }
     },
     "tags": {
@@ -1449,5 +1453,41 @@
   "ReleaseEnvironments": {
     "STAGING": "Pruebas",
     "PRODUCTION": "Producción"
+  },
+  "Tasks": {
+    "title": "Tareas",
+    "empty": "No hay tareas en este proyecto.",
+    "add": "Añadir una tarea",
+    "taskTitle": "Tarea",
+    "description": "Detalles",
+    "descriptionHint": "Solo para el equipo; el cliente ve el título y el estado.",
+    "adding": "Añadiendo…",
+    "addButton": "Añadir tarea",
+    "saving": "Guardando…",
+    "delete": "Borrar",
+    "deleting": "Borrando…",
+    "addedOn": "Añadida el {date}",
+    "doneOn": "Hecha el {date}",
+    "requestRef": "de la petición #{number}",
+    "move": {
+      "TODO": "Empezar",
+      "IN_PROGRESS": "Marcar como hecha",
+      "DONE": "Reabrir"
+    },
+    "statuses": {
+      "TODO": "Pendiente",
+      "IN_PROGRESS": "En curso",
+      "DONE": "Hecha"
+    },
+    "clientTitle": "Trabajo en curso",
+    "clientLead": "Lo que tenemos pendiente y en marcha en tu proyecto, incluidos los cambios que nos has pedido.",
+    "fromRequestTitle": "Tarea",
+    "fromRequestLead": "Convierte esta petición en una tarea del proyecto. La petición pasa a «En curso» y, cuando la tarea esté hecha, se resolverá y avisaremos al cliente.",
+    "project": "Proyecto",
+    "fromRequest": "Convertir en tarea",
+    "fromRequestAnother": "Crear otra tarea",
+    "noProjects": "El cliente no tiene proyectos todavía.",
+    "createdFromRequest": "Tarea creada. La petición está en curso.",
+    "clientRequestTitle": "En qué está tu petición"
   }
 }

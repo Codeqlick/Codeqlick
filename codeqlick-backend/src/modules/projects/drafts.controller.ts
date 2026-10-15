@@ -2,6 +2,7 @@ import { Body, Controller, Headers, Post } from '@nestjs/common';
 import { ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { bearerKey } from './release-key.js';
 import { createDraftSchema, type CreateDraftInput } from './projects.schemas.js';
 import { ProjectsService, type UpdateDraftView } from './projects.service.js';
 
@@ -22,7 +23,6 @@ export class DraftsController {
     @Headers('authorization') authorization: string | undefined,
     @Body({ schema: createDraftSchema }) body: CreateDraftInput,
   ): Promise<UpdateDraftView> {
-    const key = /^Bearer\s+(\S+)$/i.exec(authorization ?? '')?.[1] ?? '';
-    return this.projects.receiveDraft(key, body);
+    return this.projects.receiveDraft(bearerKey(authorization), body);
   }
 }
