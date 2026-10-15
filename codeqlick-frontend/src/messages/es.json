@@ -615,7 +615,8 @@
       "support": "Soporte",
       "proposals": "Propuestas",
       "time": "Horas",
-      "calculator": "Calculadora"
+      "calculator": "Calculadora",
+      "bookings": "Llamadas"
     },
     "dashboard": {
       "title": "Panel",
@@ -641,7 +642,8 @@
       "lostReasonsEmpty": "Todavía no hay contactos perdidos.",
       "activeTickets": "Peticiones abiertas",
       "sentProposals": "Propuestas por responder",
-      "pendingDrafts": "Borradores por revisar"
+      "pendingDrafts": "Borradores por revisar",
+      "upcomingCalls": "Próximas llamadas"
     },
     "leads": {
       "title": "Contactos",
@@ -966,7 +968,8 @@
         "tag": "Etiquetas",
         "support": "Soporte",
         "proposal": "Propuestas",
-        "settings": "Ajustes"
+        "settings": "Ajustes",
+        "booking": "Llamadas"
       },
       "actions": {
         "post": {
@@ -1053,7 +1056,12 @@
           "deleted": "borró la propuesta <target>{label}</target>"
         },
         "settings": {
-          "calculator_updated": "cambió los precios de la <target>calculadora</target>"
+          "calculator_updated": "cambió los precios de la <target>calculadora</target>",
+          "booking_updated": "cambió la configuración de las <target>llamadas</target>"
+        },
+        "booking": {
+          "created": "reservó una llamada (<target>{label}</target>)",
+          "cancelled": "canceló la llamada de <target>{label}</target>"
         }
       },
       "details": {
@@ -1207,6 +1215,36 @@
       "extra": "Extra",
       "enabled": "Publicar la calculadora en la web",
       "enabledHint": "Aparece en la página «Calcula tu proyecto», enlazada desde contacto y desde los servicios. Hace falta el precio de al menos un tipo."
+    },
+    "bookings": {
+      "title": "Llamadas",
+      "lead": "Las videollamadas reservadas desde la web y tu disponibilidad. Cada reserva crea el contacto en la etapa «Llamada».",
+      "view": "Ver la página de reservas",
+      "showPast": "Ver las pasadas",
+      "showUpcoming": "Ver las próximas",
+      "upcomingTitle": "Próximas llamadas",
+      "pastTitle": "Llamadas pasadas",
+      "emptyTitle": "No hay llamadas",
+      "emptyBody": "Cuando alguien reserve, aparecerá aquí y te llegará un correo con la invitación.",
+      "emptyDisabled": "La reserva de llamadas aún no está publicada: configúrala abajo.",
+      "cancelled": "Cancelada",
+      "cancel": "Cancelar",
+      "cancelling": "Cancelando…",
+      "settingsTitle": "Configuración",
+      "meetingUrl": "Enlace de la videollamada",
+      "meetingUrlHint": "Un enlace fijo de Google Meet: en Google Calendar o meet.google.com, «Crear una reunión para más tarde», y copia el enlace.",
+      "duration": "Duración",
+      "minutes": "{value} minutos",
+      "notice": "Antelación mínima (horas)",
+      "noticeHint": "Nadie puede reservar con menos antelación.",
+      "horizon": "Hasta cuántos días vista",
+      "horizonHint": "Entre 1 y 90.",
+      "hoursTitle": "Horas disponibles (hora de Madrid)",
+      "hoursLead": "Para cada día, los tramos libres separados por comas, por ejemplo «09:00-13:00, 16:00-18:00». Déjalo vacío si ese día no hay llamadas.",
+      "hoursError": "No entiendo las horas del {day}. Escríbelas como 09:00-13:00, 16:00-18:00.",
+      "hoursErrorTitle": "Revisa las horas disponibles.",
+      "enabled": "Publicar la reserva de llamadas en la web",
+      "enabledHint": "Aparece la página «Reserva una llamada», enlazada desde contacto y servicios. Hacen falta el enlace y alguna hora disponible."
     }
   },
   "Sessions": {
@@ -1576,5 +1614,52 @@
     "ctaLink": "Calcula tu proyecto",
     "asideTitle": "¿Quieres una cifra orientativa?",
     "asideBody": "Responde tres preguntas en la calculadora."
+  },
+  "Weekdays": {
+    "mon": "Lunes",
+    "tue": "Martes",
+    "wed": "Miércoles",
+    "thu": "Jueves",
+    "fri": "Viernes",
+    "sat": "Sábado",
+    "sun": "Domingo"
+  },
+  "Book": {
+    "metaTitle": "Reserva una llamada",
+    "metaDescription": "Elige un hueco y hablamos 30 minutos por videollamada sobre tu proyecto.",
+    "eyebrow": "Llamada",
+    "title": "Reserva una llamada",
+    "lead": "Elige el día y la hora que mejor te vengan y hablamos {minutes} minutos por videollamada (Google Meet) sobre tu proyecto. Sin compromiso.",
+    "dayQuestion": "Elige un día",
+    "timeQuestion": "Elige la hora",
+    "madridTime": "hora de Madrid",
+    "freeCount": "{count, plural, one {# hueco} other {# huecos}}",
+    "yourTime": "{time} en tu hora",
+    "chosen": "Has elegido: {when}",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "company": "Empresa",
+    "message": "¿De qué quieres hablar?",
+    "messageHint": "Unas líneas nos ayudan a preparar la llamada.",
+    "book": "Reservar la llamada",
+    "booking": "Reservando…",
+    "pickTime": "Elige una hora.",
+    "error": "Revisa los datos marcados.",
+    "taken": "Esa hora se acaba de ocupar. Elige otra, por favor.",
+    "tooMany": "Demasiados intentos seguidos. Espera un minuto y vuelve a probar.",
+    "failed": "No hemos podido completar la reserva. Inténtalo de nuevo o escríbenos.",
+    "doneTitle": "¡Reservada!",
+    "doneBody": "Te esperamos el {when} (hora de Madrid). Te hemos enviado un correo con el enlace de la videollamada y la invitación para tu calendario.",
+    "doneBodyShort": "Te hemos enviado un correo con los detalles.",
+    "noSlots": "Ahora mismo no quedan huecos libres. Escríbenos y buscamos un momento.",
+    "cancelTitle": "Cancelar la llamada",
+    "cancelLead": "Si al final no puedes, cancélala aquí y el hueco quedará libre. Puedes reservar otra cuando quieras.",
+    "cancelButton": "Cancelar la llamada",
+    "cancelling": "Cancelando…",
+    "cancelled": "Llamada cancelada. Gracias por avisarnos.",
+    "cancelNotFound": "Esta llamada ya estaba cancelada o el enlace no es válido.",
+    "ctaLink": "Reserva una llamada",
+    "asideTitle": "¿Prefieres hablarlo?",
+    "asideBody": "Elige un hueco y lo vemos por videollamada."
   }
 }

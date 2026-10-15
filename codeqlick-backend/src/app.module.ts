@@ -20,6 +20,7 @@ import { SavedRepliesModule } from './modules/saved-replies/saved-replies.module
 import { StatsModule } from './modules/stats/stats.module.js';
 import { ProposalsModule } from './modules/proposals/proposals.module.js';
 import { SupportModule } from './modules/support/support.module.js';
+import { BookingsModule } from './modules/bookings/bookings.module.js';
 import { CalculatorModule } from './modules/calculator/calculator.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
 import { TimeModule } from './modules/time/time.module.js';
@@ -52,6 +53,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     TimeModule,
     TasksModule,
     CalculatorModule,
+    BookingsModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.
