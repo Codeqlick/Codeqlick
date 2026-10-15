@@ -125,11 +125,12 @@ describe('Lead pipeline (e2e)', () => {
       },
     });
     try {
-      await request(server)
+      const refused = await request(server)
         .post(`/v1/admin/leads/${lead.id}/convert`)
         .set(auth)
         .send({})
         .expect(409);
+      expect(refused.body.detail).toBe('This email belongs to an admin account');
     } finally {
       await prisma.lead.delete({ where: { id: lead.id } });
     }
