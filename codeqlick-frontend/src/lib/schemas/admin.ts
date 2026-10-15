@@ -136,6 +136,16 @@ export const projectUpdateSchema = z.object({
   notifyClient: z.boolean(),
 });
 
+export const milestoneSchema = z.object({
+  title: requiredString(200),
+  description: z
+    .string()
+    .trim()
+    .max(2000, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+  dueDate: optionalDate,
+});
+
 export const ROLES = ['ADMIN', 'CLIENT'] as const;
 
 /** Languages a welcome email can be written in. */

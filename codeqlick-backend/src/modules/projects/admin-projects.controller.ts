@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UploadedFile,
   UseInterceptors,
@@ -20,15 +21,23 @@ import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
+  createMilestoneSchema,
   createProjectSchema,
   createProjectUpdateSchema,
   listProjectsQuerySchema,
+  milestoneParamSchema,
   projectFileParamSchema,
+  reorderMilestonesSchema,
+  updateMilestoneSchema,
   updateProjectSchema,
+  type CreateMilestoneInput,
   type CreateProjectInput,
   type CreateProjectUpdateInput,
   type ListProjectsQuery,
+  type MilestoneParam,
   type ProjectFileParam,
+  type ReorderMilestonesInput,
+  type UpdateMilestoneInput,
   type UpdateProjectInput,
 } from './projects.schemas.js';
 import {
@@ -36,6 +45,7 @@ import {
   ProjectsService,
   type ClientProjectView,
   type ProjectFileView,
+  type ProjectMilestoneView,
   type PostedProjectUpdate,
   type UploadedProjectFile,
 } from './projects.service.js';
@@ -92,6 +102,42 @@ export class AdminProjectsController {
     @Body({ schema: createProjectUpdateSchema }) body: CreateProjectUpdateInput,
   ): Promise<PostedProjectUpdate> {
     return this.projects.addUpdate(user, params.id, body);
+  }
+
+  @Post(':id/milestones')
+  addMilestone(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: createMilestoneSchema }) body: CreateMilestoneInput,
+  ): Promise<ProjectMilestoneView> {
+    return this.projects.addMilestone(user, params.id, body);
+  }
+
+  // Declared before ':id/milestones/:milestoneId' so "order" isn't read as a milestone id.
+  @Put(':id/milestones/order')
+  reorderMilestones(
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: reorderMilestonesSchema }) body: ReorderMilestonesInput,
+  ): Promise<ProjectMilestoneView[]> {
+    return this.projects.reorderMilestones(params.id, body);
+  }
+
+  @Patch(':id/milestones/:milestoneId')
+  updateMilestone(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: milestoneParamSchema }) params: MilestoneParam,
+    @Body({ schema: updateMilestoneSchema }) body: UpdateMilestoneInput,
+  ): Promise<ProjectMilestoneView> {
+    return this.projects.updateMilestone(user, params.id, params.milestoneId, body);
+  }
+
+  @Delete(':id/milestones/:milestoneId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteMilestone(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: milestoneParamSchema }) params: MilestoneParam,
+  ): Promise<void> {
+    await this.projects.deleteMilestone(user, params.id, params.milestoneId);
   }
 
   @Post(':id/files')

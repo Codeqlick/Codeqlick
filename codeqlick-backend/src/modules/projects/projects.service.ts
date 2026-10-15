@@ -9,6 +9,7 @@ import {
   Role,
   type Prisma,
   type ProjectFile,
+  type ProjectMilestone,
   type ProjectPhase,
   type ProjectUpdate,
 } from '../../generated/prisma/client.js';
@@ -23,9 +24,12 @@ import { projectUpdateEmail } from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
+  CreateMilestoneInput,
   CreateProjectInput,
   CreateProjectUpdateInput,
   ListProjectsQuery,
+  ReorderMilestonesInput,
+  UpdateMilestoneInput,
   UpdateProjectInput,
 } from './projects.schemas.js';
 
@@ -63,6 +67,14 @@ export interface ProjectFileDownload {
   size: number;
 }
 
+export interface ProjectMilestoneView {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  completedAt: string | null;
+}
+
 export interface ClientProjectView {
   id: string;
   name: string;
@@ -76,6 +88,7 @@ export interface ClientProjectView {
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdateView[];
   files?: ProjectFileView[];
+  milestones?: ProjectMilestoneView[];
   createdAt: string;
   updatedAt: string;
 }
@@ -102,6 +115,16 @@ function toFileView(file: ProjectFile): ProjectFileView {
   };
 }
 
+function toMilestoneView(milestone: ProjectMilestone): ProjectMilestoneView {
+  return {
+    id: milestone.id,
+    title: milestone.title,
+    description: milestone.description,
+    dueDate: milestone.dueDate?.toISOString() ?? null,
+    completedAt: milestone.completedAt?.toISOString() ?? null,
+  };
+}
+
 function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectView {
   const view: ClientProjectView = {
     id: project.id,
@@ -119,6 +142,7 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
   };
   if ('updates' in project) view.updates = project.updates.map(toUpdateView);
   if ('files' in project) view.files = project.files.map(toFileView);
+  if ('milestones' in project) view.milestones = project.milestones.map(toMilestoneView);
   return view;
 }
 
@@ -288,6 +312,83 @@ export class ProjectsService {
       targetLabel: project.name,
       details: { file: file.name },
     });
+  }
+
+  async addMilestone(
+    actor: AuthUser,
+    projectId: string,
+    input: CreateMilestoneInput,
+  ): Promise<ProjectMilestoneView> {
+    const project = await this.findOrThrow(projectId);
+    const milestone = await this.repository.addMilestone({
+      projectId,
+      title: input.title,
+      description: input.description || null,
+      dueDate: toDate(input.dueDate) ?? null,
+    });
+    await this.activity.record(actor, {
+      action: 'project.milestone_added',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { milestone: milestone.title },
+    });
+    return toMilestoneView(milestone);
+  }
+
+  async updateMilestone(
+    actor: AuthUser,
+    projectId: string,
+    milestoneId: string,
+    input: UpdateMilestoneInput,
+  ): Promise<ProjectMilestoneView> {
+    const project = await this.findOrThrow(projectId);
+    const existing = await this.repository.findMilestone(projectId, milestoneId);
+    if (!existing) throw new NotFoundException('Milestone not found');
+
+    const data: Prisma.ProjectMilestoneUncheckedUpdateInput = {};
+    if (input.title !== undefined) data.title = input.title;
+    if (input.description !== undefined) data.description = input.description || null;
+    if (input.dueDate !== undefined) data.dueDate = toDate(input.dueDate);
+    if (input.completed !== undefined) {
+      data.completedAt = input.completed ? (existing.completedAt ?? new Date()) : null;
+    }
+    const milestone = await this.repository.updateMilestone(milestoneId, data);
+
+    // Ticking a milestone off is what the client cares about; other edits are housekeeping.
+    const completedNow = !existing.completedAt && milestone.completedAt;
+    await this.activity.record(actor, {
+      action: completedNow ? 'project.milestone_completed' : 'project.milestone_updated',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { milestone: milestone.title },
+    });
+    return toMilestoneView(milestone);
+  }
+
+  async deleteMilestone(actor: AuthUser, projectId: string, milestoneId: string): Promise<void> {
+    const project = await this.findOrThrow(projectId);
+    const milestone = await this.repository.findMilestone(projectId, milestoneId);
+    if (!milestone) throw new NotFoundException('Milestone not found');
+    await this.repository.deleteMilestone(milestone.id);
+    await this.activity.record(actor, {
+      action: 'project.milestone_deleted',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { milestone: milestone.title },
+    });
+  }
+
+  async reorderMilestones(
+    projectId: string,
+    input: ReorderMilestonesInput,
+  ): Promise<ProjectMilestoneView[]> {
+    const project = await this.findOrThrow(projectId);
+    const current = new Set(project.milestones.map((milestone) => milestone.id));
+    if (input.ids.length !== current.size || input.ids.some((id) => !current.has(id))) {
+      throw new BadRequestException('ids must list every milestone of the project once');
+    }
+    const milestones = await this.repository.reorderMilestones(projectId, input.ids);
+    return milestones.map(toMilestoneView);
   }
 
   /**

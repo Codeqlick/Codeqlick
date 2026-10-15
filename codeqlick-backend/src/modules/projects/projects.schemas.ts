@@ -63,6 +63,39 @@ export const createProjectUpdateSchema = z
   .strict();
 export type CreateProjectUpdateInput = z.infer<typeof createProjectUpdateSchema>;
 
+const milestoneFields = {
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).nullable().optional(),
+  dueDate: nullableDateSchema,
+};
+
+export const createMilestoneSchema = z.object(milestoneFields).strict();
+export type CreateMilestoneInput = z.infer<typeof createMilestoneSchema>;
+
+export const updateMilestoneSchema = z
+  .object({
+    title: milestoneFields.title.optional(),
+    description: milestoneFields.description,
+    dueDate: milestoneFields.dueDate,
+    /** `true` marks it done now (keeping an earlier date if it was done already). */
+    completed: z.boolean().optional(),
+  })
+  .strict();
+export type UpdateMilestoneInput = z.infer<typeof updateMilestoneSchema>;
+
+/** Every milestone of the project, once each, in the new order. */
+export const reorderMilestonesSchema = z
+  .object({ ids: z.array(z.uuid()).max(200) })
+  .strict()
+  .refine((value) => new Set(value.ids).size === value.ids.length, {
+    message: 'Duplicate milestone ids',
+    path: ['ids'],
+  });
+export type ReorderMilestonesInput = z.infer<typeof reorderMilestonesSchema>;
+
+export const milestoneParamSchema = z.object({ id: z.uuid(), milestoneId: z.uuid() });
+export type MilestoneParam = z.infer<typeof milestoneParamSchema>;
+
 export const listProjectsQuerySchema = paginationSchema.extend({
   clientId: z.uuid().optional(),
   phase: projectPhaseSchema.optional(),

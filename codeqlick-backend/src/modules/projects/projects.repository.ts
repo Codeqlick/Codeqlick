@@ -4,6 +4,7 @@ import type {
   Prisma,
   ProjectPhase,
   ProjectFile,
+  ProjectMilestone,
   ProjectUpdate,
   User,
 } from '../../generated/prisma/client.js';
@@ -16,6 +17,7 @@ export type ProjectWithClient = ClientProject & { client: ClientRef };
 export type ProjectWithUpdates = ProjectWithClient & {
   updates: UpdateWithAuthor[];
   files: ProjectFile[];
+  milestones: ProjectMilestone[];
 };
 
 const clientSelect = {
@@ -26,7 +28,13 @@ const updatesInclude = {
   include: { author: { select: { name: true } } },
 } as const;
 const filesInclude = { orderBy: { createdAt: 'desc' } } as const;
-const detailInclude = { client: clientSelect, updates: updatesInclude, files: filesInclude };
+const milestonesInclude = { orderBy: { position: 'asc' } } as const;
+const detailInclude = {
+  client: clientSelect,
+  updates: updatesInclude,
+  files: filesInclude,
+  milestones: milestonesInclude,
+};
 
 export interface ProjectFilter {
   clientId?: string;
@@ -130,6 +138,59 @@ export class ProjectsRepository {
       });
       await tx.clientProject.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
       return update;
+    });
+  }
+
+  findMilestone(projectId: string, milestoneId: string): Promise<ProjectMilestone | null> {
+    return this.prisma.projectMilestone.findFirst({ where: { id: milestoneId, projectId } });
+  }
+
+  /** Appends a milestone after the last one and bumps the project's updatedAt. */
+  async addMilestone(
+    data: Omit<Prisma.ProjectMilestoneUncheckedCreateInput, 'position'>,
+  ): Promise<ProjectMilestone> {
+    return this.prisma.$transaction(async (tx) => {
+      const last = await tx.projectMilestone.findFirst({
+        where: { projectId: data.projectId },
+        orderBy: { position: 'desc' },
+        select: { position: true },
+      });
+      const milestone = await tx.projectMilestone.create({
+        data: { ...data, position: (last?.position ?? -1) + 1 },
+      });
+      await tx.clientProject.update({
+        where: { id: data.projectId },
+        data: { updatedAt: new Date() },
+      });
+      return milestone;
+    });
+  }
+
+  async updateMilestone(
+    id: string,
+    data: Prisma.ProjectMilestoneUncheckedUpdateInput,
+  ): Promise<ProjectMilestone> {
+    return this.prisma.$transaction(async (tx) => {
+      const milestone = await tx.projectMilestone.update({ where: { id }, data });
+      await tx.clientProject.update({
+        where: { id: milestone.projectId },
+        data: { updatedAt: new Date() },
+      });
+      return milestone;
+    });
+  }
+
+  async deleteMilestone(id: string): Promise<void> {
+    await this.prisma.projectMilestone.delete({ where: { id } });
+  }
+
+  /** Gives each milestone its index in `ids` as its position. */
+  async reorderMilestones(projectId: string, ids: string[]): Promise<ProjectMilestone[]> {
+    return this.prisma.$transaction(async (tx) => {
+      for (const [position, id] of ids.entries()) {
+        await tx.projectMilestone.update({ where: { id, projectId }, data: { position } });
+      }
+      return tx.projectMilestone.findMany({ where: { projectId }, orderBy: { position: 'asc' } });
     });
   }
 }

@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
+import { nextMilestone, ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Markdown } from '@/components/markdown/Markdown';
 import { Badge } from '@/components/ui/Badge';
@@ -31,6 +32,9 @@ export default async function PortalProjectPage({
     throw error;
   }
 
+  const milestones = project.milestones ?? [];
+  const next = nextMilestone(milestones);
+
   return (
     <div className={styles.stack}>
       <PageHeader title={project.name} back={{ href: '/portal', label: t('back') }} />
@@ -53,6 +57,14 @@ export default async function PortalProjectPage({
               />
             </dd>
           </div>
+          {next ? (
+            <div>
+              <dt>{t('nextMilestone')}</dt>
+              <dd>
+                <a href="#milestones">{next.title}</a>
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('startDate')}</dt>
             <dd>{formatDate(project.startDate, locale)}</dd>
@@ -88,6 +100,13 @@ export default async function PortalProjectPage({
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('about')}</h2>
           <Markdown compact>{project.description}</Markdown>
+        </section>
+      ) : null}
+
+      {milestones.length > 0 ? (
+        <section className={styles.panel} id="milestones">
+          <h2 className={styles.panelTitle}>{t('milestones')}</h2>
+          <ProjectTimeline milestones={milestones} locale={locale} empty="" />
         </section>
       ) : null}
 

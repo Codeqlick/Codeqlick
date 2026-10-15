@@ -525,7 +525,18 @@
     "open": "Abrir proyecto",
     "files": "Archivos",
     "noFiles": "Todavía no se ha compartido ningún archivo.",
-    "fileMeta": "{size} · {date}"
+    "fileMeta": "{size} · {date}",
+    "milestones": "Hitos",
+    "nextMilestone": "Siguiente hito",
+    "timeline": {
+      "done": "Hecho",
+      "current": "Siguiente",
+      "upcoming": "Pendiente",
+      "completedOn": "el {date}",
+      "dueOn": "previsto para el {date}",
+      "noDate": "sin fecha",
+      "overdue": "con retraso"
+    }
   },
   "Admin": {
     "title": "Administración",
@@ -683,7 +694,22 @@
       "notifyClient": "Avisar al cliente por correo",
       "notifyClientHint": "Le enviaremos la novedad a {email}, en su idioma, con un enlace a su área de cliente.",
       "updatePostedNotified": "Novedad publicada y enviada por correo al cliente.",
-      "updatePostedNotNotified": "Novedad publicada, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada)."
+      "updatePostedNotNotified": "Novedad publicada, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada).",
+      "milestonesTitle": "Hitos",
+      "milestonesLead": "Los pasos del proyecto en orden. El cliente los ve como una línea de tiempo en su área, con el siguiente destacado.",
+      "noMilestones": "Todavía no hay hitos. Añade el primero para que el cliente vea qué viene.",
+      "milestoneNew": "Nuevo hito",
+      "milestoneTitle": "Título del hito",
+      "milestoneDueDate": "Fecha prevista",
+      "milestoneDescription": "Descripción",
+      "milestoneAdd": "Añadir hito",
+      "milestoneAdded": "Hito añadido.",
+      "milestoneMarkDone": "Marcar como hecho",
+      "milestoneReopen": "Reabrir",
+      "milestoneUp": "↑ Subir",
+      "milestoneDown": "↓ Bajar",
+      "milestoneEdit": "Editar o eliminar",
+      "milestoneDelete": "Eliminar hito"
     },
     "media": {
       "choose": "Archivo de imagen",
@@ -796,7 +822,11 @@
           "deleted": "borró el proyecto <target>{label}</target>",
           "update_posted": "publicó una novedad en <target>{label}</target>",
           "file_uploaded": "subió un archivo a <target>{label}</target>",
-          "file_deleted": "borró un archivo de <target>{label}</target>"
+          "file_deleted": "borró un archivo de <target>{label}</target>",
+          "milestone_added": "añadió un hito a <target>{label}</target>",
+          "milestone_updated": "editó un hito de <target>{label}</target>",
+          "milestone_completed": "completó un hito de <target>{label}</target>",
+          "milestone_deleted": "borró un hito de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -835,7 +865,8 @@
         "activated": "Cuenta activada",
         "deactivated": "Cuenta desactivada",
         "passwordReset": "Contraseña restablecida",
-        "publishedAt": "Se publica el {value}"
+        "publishedAt": "Se publica el {value}",
+        "milestone": "Hito: {value}"
       }
     },
     "tags": {

@@ -525,7 +525,18 @@
     "open": "Open project",
     "files": "Files",
     "noFiles": "No files shared yet.",
-    "fileMeta": "{size} · {date}"
+    "fileMeta": "{size} · {date}",
+    "milestones": "Milestones",
+    "nextMilestone": "Next milestone",
+    "timeline": {
+      "done": "Done",
+      "current": "Next",
+      "upcoming": "Upcoming",
+      "completedOn": "on {date}",
+      "dueOn": "due {date}",
+      "noDate": "no date yet",
+      "overdue": "overdue"
+    }
   },
   "Admin": {
     "title": "Admin",
@@ -683,7 +694,22 @@
       "notifyClient": "Email the client",
       "notifyClientHint": "We'll send the update to {email}, in their language, with a link to their client portal.",
       "updatePostedNotified": "Update posted and emailed to the client.",
-      "updatePostedNotNotified": "Update posted, but the client couldn't be emailed (check the server's SMTP settings, or whether their account is deactivated)."
+      "updatePostedNotNotified": "Update posted, but the client couldn't be emailed (check the server's SMTP settings, or whether their account is deactivated).",
+      "milestonesTitle": "Milestones",
+      "milestonesLead": "The steps of the project, in order. The client sees them as a timeline in their area, with the next one highlighted.",
+      "noMilestones": "No milestones yet. Add the first one so the client can see what is coming.",
+      "milestoneNew": "New milestone",
+      "milestoneTitle": "Milestone title",
+      "milestoneDueDate": "Due date",
+      "milestoneDescription": "Description",
+      "milestoneAdd": "Add milestone",
+      "milestoneAdded": "Milestone added.",
+      "milestoneMarkDone": "Mark as done",
+      "milestoneReopen": "Reopen",
+      "milestoneUp": "↑ Move up",
+      "milestoneDown": "↓ Move down",
+      "milestoneEdit": "Edit or delete",
+      "milestoneDelete": "Delete milestone"
     },
     "media": {
       "choose": "Image file",
@@ -796,7 +822,11 @@
           "deleted": "deleted the project <target>{label}</target>",
           "update_posted": "posted an update on <target>{label}</target>",
           "file_uploaded": "uploaded a file to <target>{label}</target>",
-          "file_deleted": "deleted a file from <target>{label}</target>"
+          "file_deleted": "deleted a file from <target>{label}</target>",
+          "milestone_added": "added a milestone to <target>{label}</target>",
+          "milestone_updated": "edited a milestone of <target>{label}</target>",
+          "milestone_completed": "completed a milestone of <target>{label}</target>",
+          "milestone_deleted": "deleted a milestone of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -835,7 +865,8 @@
         "activated": "Account activated",
         "deactivated": "Account deactivated",
         "passwordReset": "Password reset",
-        "publishedAt": "Goes live on {value}"
+        "publishedAt": "Goes live on {value}",
+        "milestone": "Milestone: {value}"
       }
     },
     "tags": {

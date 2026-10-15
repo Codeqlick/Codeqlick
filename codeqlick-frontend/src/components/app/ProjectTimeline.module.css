@@ -1,0 +1,116 @@
+.empty {
+  margin: 0;
+  color: var(--color-slate);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+
+.step:last-child {
+  padding-bottom: 0;
+}
+
+/* The rail between two markers: fuchsia once the step above it is done. */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 1.75rem;
+  bottom: 0.25rem;
+  left: calc(0.75rem - 1px);
+  width: 2px;
+  border-radius: 999px;
+  background: var(--color-line-strong);
+}
+
+.done:not(:last-child)::before {
+  background: var(--color-fuchsia);
+}
+
+.marker {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.1rem;
+  border-radius: 50%;
+  border: 2px solid var(--color-line-strong);
+  background: var(--color-white);
+  color: var(--color-white);
+}
+
+.done .marker {
+  border-color: var(--color-fuchsia);
+  background: var(--color-fuchsia);
+}
+
+.current .marker {
+  border: 5px solid var(--color-fuchsia);
+  box-shadow: 0 0 0 4px var(--color-blush);
+}
+
+.body {
+  min-width: 0;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  color: var(--color-slate);
+}
+
+.state {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.done .state {
+  color: var(--color-success);
+}
+
+.current .state {
+  color: var(--color-fuchsia-dark);
+}
+
+.overdue {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.upcoming .title {
+  color: var(--color-slate);
+}
+
+.description {
+  margin: var(--space-2) 0 0;
+  color: var(--color-slate);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

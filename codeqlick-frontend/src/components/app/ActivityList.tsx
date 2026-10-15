@@ -59,6 +59,9 @@ export async function ActivityList({
       notes.push(t('details.publishedAt', { value: formatDateTime(details.publishedAt, locale) }));
     }
     if ('file' in details) notes.push(t('details.file', { value: text(details.file) }));
+    if ('milestone' in details) {
+      notes.push(t('details.milestone', { value: text(details.milestone) }));
+    }
     if ('title' in details) notes.push(t('details.title', { value: text(details.title) }));
     if ('name' in details) notes.push(t('details.name', { value: text(details.name) }));
     if ('role' in details)

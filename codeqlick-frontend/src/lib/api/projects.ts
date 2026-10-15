@@ -3,7 +3,14 @@ import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/constants';
 import { env } from '@/lib/env';
 import { apiFetch } from './client';
-import type { ClientProject, Paginated, ProjectInput, ProjectUpdate } from './types';
+import type {
+  ClientProject,
+  MilestoneInput,
+  Paginated,
+  ProjectInput,
+  ProjectMilestone,
+  ProjectUpdate,
+} from './types';
 
 /** Largest project file the API accepts, in bytes. */
 export const MAX_PROJECT_FILE_BYTES = 25 * 1024 * 1024;
@@ -71,6 +78,44 @@ export function adminCreateProjectUpdate(
       auth: 'required',
     },
   );
+}
+
+function milestonesPath(id: string, milestoneId?: string) {
+  const base = `/admin/projects/${encodeURIComponent(id)}/milestones`;
+  return milestoneId ? `${base}/${encodeURIComponent(milestoneId)}` : base;
+}
+
+export function adminCreateMilestone(id: string, input: MilestoneInput) {
+  return apiFetch<ProjectMilestone>(milestonesPath(id), {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+  });
+}
+
+export function adminUpdateMilestone(
+  id: string,
+  milestoneId: string,
+  input: Partial<MilestoneInput> & { completed?: boolean },
+) {
+  return apiFetch<ProjectMilestone>(milestonesPath(id, milestoneId), {
+    method: 'PATCH',
+    body: input,
+    auth: 'required',
+  });
+}
+
+export function adminDeleteMilestone(id: string, milestoneId: string) {
+  return apiFetch<void>(milestonesPath(id, milestoneId), { method: 'DELETE', auth: 'required' });
+}
+
+/** `ids` lists every milestone of the project once, in the new order. */
+export function adminReorderMilestones(id: string, ids: string[]) {
+  return apiFetch<ProjectMilestone[]>(`${milestonesPath(id)}/order`, {
+    method: 'PUT',
+    body: { ids },
+    auth: 'required',
+  });
 }
 
 export function adminDeleteProjectFile(id: string, fileId: string) {
