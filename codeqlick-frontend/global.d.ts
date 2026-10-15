@@ -7,3 +7,10 @@ declare module 'next-intl' {
     Messages: typeof messages;
   }
 }
+
+declare global {
+  interface Window {
+    /** Umami's tracker, when analytics is set up (see components/layout/Analytics). */
+    umami?: { track: (event: string, data?: Record<string, string | number>) => void };
+  }
+}

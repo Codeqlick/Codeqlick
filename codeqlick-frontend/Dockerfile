@@ -21,6 +21,10 @@ CMD ["npx", "next", "dev", "--hostname", "0.0.0.0"]
 # ---- Build stage ---------------------------------------------------------------------------
 FROM deps AS build
 ENV NEXT_TELEMETRY_DISABLED=1
+# Analytics (optional): pages rendered at build time include the tracker tag when both are set.
+ARG UMAMI_URL=""
+ARG UMAMI_WEBSITE_ID=""
+ENV UMAMI_URL=$UMAMI_URL UMAMI_WEBSITE_ID=$UMAMI_WEBSITE_ID
 
 COPY . .
 # Public content is fetched at request time (ISR); an unreachable API during the build is fine.
