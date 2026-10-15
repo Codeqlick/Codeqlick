@@ -11,6 +11,14 @@ export interface LeadFilter {
 export class LeadsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** The latest lead with this email still in progress (not won, lost or spam). */
+  findOpenByEmail(email: string): Promise<Lead | null> {
+    return this.prisma.lead.findFirst({
+      where: { email, status: { in: ['NEW', 'TALKING', 'CALL', 'PROPOSAL'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   create(data: Prisma.LeadCreateInput): Promise<Lead> {
     return this.prisma.lead.create({ data });
   }

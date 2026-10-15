@@ -615,7 +615,8 @@
       "support": "Support",
       "proposals": "Proposals",
       "time": "Hours",
-      "calculator": "Calculator"
+      "calculator": "Calculator",
+      "bookings": "Calls"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -641,7 +642,8 @@
       "lostReasonsEmpty": "No lost leads yet.",
       "activeTickets": "Open requests",
       "sentProposals": "Proposals awaiting answer",
-      "pendingDrafts": "Drafts to review"
+      "pendingDrafts": "Drafts to review",
+      "upcomingCalls": "Upcoming calls"
     },
     "leads": {
       "title": "Leads",
@@ -966,7 +968,8 @@
         "tag": "Tags",
         "support": "Support",
         "proposal": "Proposals",
-        "settings": "Settings"
+        "settings": "Settings",
+        "booking": "Calls"
       },
       "actions": {
         "post": {
@@ -1053,7 +1056,12 @@
           "deleted": "deleted the proposal <target>{label}</target>"
         },
         "settings": {
-          "calculator_updated": "changed the prices of the <target>calculator</target>"
+          "calculator_updated": "changed the prices of the <target>calculator</target>",
+          "booking_updated": "changed the <target>call</target> settings"
+        },
+        "booking": {
+          "created": "booked a call (<target>{label}</target>)",
+          "cancelled": "cancelled the call with <target>{label}</target>"
         }
       },
       "details": {
@@ -1207,6 +1215,36 @@
       "extra": "Extra",
       "enabled": "Publish the calculator on the website",
       "enabledHint": "It shows on the \"Estimate your project\" page, linked from the contact and service pages. At least one type needs a price."
+    },
+    "bookings": {
+      "title": "Calls",
+      "lead": "Video calls booked from the website and your availability. Each booking creates the lead at the \"Call\" stage.",
+      "view": "View the booking page",
+      "showPast": "Show past ones",
+      "showUpcoming": "Show upcoming",
+      "upcomingTitle": "Upcoming calls",
+      "pastTitle": "Past calls",
+      "emptyTitle": "No calls",
+      "emptyBody": "When someone books, it shows up here and you get an email with the invitation.",
+      "emptyDisabled": "Call booking is not published yet: set it up below.",
+      "cancelled": "Cancelled",
+      "cancel": "Cancel",
+      "cancelling": "Cancelling…",
+      "settingsTitle": "Settings",
+      "meetingUrl": "Video-call link",
+      "meetingUrlHint": "A fixed Google Meet link: in Google Calendar or meet.google.com, \"Create a meeting for later\", and copy the link.",
+      "duration": "Length",
+      "minutes": "{value} minutes",
+      "notice": "Minimum notice (hours)",
+      "noticeHint": "Nobody can book with less notice.",
+      "horizon": "How many days ahead",
+      "horizonHint": "Between 1 and 90.",
+      "hoursTitle": "Free hours (Madrid time)",
+      "hoursLead": "For each day, the free ranges separated by commas, e.g. \"09:00-13:00, 16:00-18:00\". Leave it empty for no calls that day.",
+      "hoursError": "I can't read the hours for {day}. Type them as 09:00-13:00, 16:00-18:00.",
+      "hoursErrorTitle": "Check the free hours.",
+      "enabled": "Publish call booking on the website",
+      "enabledHint": "The \"Book a call\" page appears, linked from the contact and service pages. It needs the link and some free hours."
     }
   },
   "Sessions": {
@@ -1576,5 +1614,52 @@
     "ctaLink": "Estimate your project",
     "asideTitle": "Want a ballpark figure?",
     "asideBody": "Answer three questions in the calculator."
+  },
+  "Weekdays": {
+    "mon": "Monday",
+    "tue": "Tuesday",
+    "wed": "Wednesday",
+    "thu": "Thursday",
+    "fri": "Friday",
+    "sat": "Saturday",
+    "sun": "Sunday"
+  },
+  "Book": {
+    "metaTitle": "Book a call",
+    "metaDescription": "Pick a time and we talk about your project for 30 minutes over video.",
+    "eyebrow": "Call",
+    "title": "Book a call",
+    "lead": "Pick the day and time that suit you and we'll talk about your project for {minutes} minutes over video (Google Meet). No strings attached.",
+    "dayQuestion": "Pick a day",
+    "timeQuestion": "Pick a time",
+    "madridTime": "Madrid time",
+    "freeCount": "{count, plural, one {# slot} other {# slots}}",
+    "yourTime": "{time} your time",
+    "chosen": "You picked: {when}",
+    "name": "Name",
+    "email": "Email",
+    "company": "Company",
+    "message": "What would you like to talk about?",
+    "messageHint": "A few lines help us prepare the call.",
+    "book": "Book the call",
+    "booking": "Booking…",
+    "pickTime": "Pick a time.",
+    "error": "Check the highlighted fields.",
+    "taken": "That time was just taken. Please pick another one.",
+    "tooMany": "Too many attempts in a row. Wait a minute and try again.",
+    "failed": "We couldn't complete the booking. Try again or write to us.",
+    "doneTitle": "Booked!",
+    "doneBody": "See you on {when} (Madrid time). We've emailed you the video-call link and an invitation for your calendar.",
+    "doneBodyShort": "We've emailed you the details.",
+    "noSlots": "There are no free times right now. Write to us and we'll find one.",
+    "cancelTitle": "Cancel the call",
+    "cancelLead": "If you can't make it after all, cancel it here and the time becomes free again. You can book another one whenever you like.",
+    "cancelButton": "Cancel the call",
+    "cancelling": "Cancelling…",
+    "cancelled": "Call cancelled. Thanks for letting us know.",
+    "cancelNotFound": "This call was already cancelled or the link is not valid.",
+    "ctaLink": "Book a call",
+    "asideTitle": "Rather talk it through?",
+    "asideBody": "Pick a time and we'll meet over video."
   }
 }

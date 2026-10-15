@@ -14,6 +14,7 @@ export const ACTIVITY_TARGETS = [
   'support',
   'proposal',
   'settings',
+  'booking',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -73,6 +74,9 @@ export const ACTIVITY_ACTIONS = [
   'proposal.declined',
   'proposal.deleted',
   'settings.calculator_updated',
+  'settings.booking_updated',
+  'booking.created',
+  'booking.cancelled',
   'tag.created',
   'tag.updated',
   'tag.deleted',

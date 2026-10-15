@@ -170,8 +170,9 @@ model Lead {
   createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  replies LeadReply[]
-  client  User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  replies  LeadReply[]
+  client   User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  bookings Booking[]
 
   @@index([status, createdAt])
   @@map("leads")
@@ -654,4 +655,36 @@ model Setting {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("settings")
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+/// A video call booked from the website in one of the team's free slots.
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String
+  email           String
+  company         String?
+  message         String?
+  locale          Locale        @default(EN)
+  startsAt        DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime      @map("ends_at") @db.Timestamptz(3)
+  status          BookingStatus @default(CONFIRMED)
+  /// The start while confirmed, null once cancelled: two confirmed calls can't share a start.
+  slotKey         DateTime?     @unique @map("slot_key") @db.Timestamptz(3)
+  /// SHA-256 of the token in the visitor's cancel link.
+  cancelTokenHash String        @unique @map("cancel_token_hash")
+  /// Calendar invitation revision (bumped when it is cancelled).
+  sequence        Int           @default(0)
+  leadId          String?       @map("lead_id") @db.Uuid
+  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([status, startsAt])
+  @@map("bookings")
 }
