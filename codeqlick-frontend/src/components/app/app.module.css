@@ -496,3 +496,35 @@
   border-bottom: 0;
   padding-bottom: 0;
 }
+
+/* A secret shown once (release keys) and a code sample. */
+.secret {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-blush);
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.code {
+  margin: 0;
+  padding: var(--space-4);
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-ink);
+  color: var(--color-white);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+/* Version, environment and link of a release, above its title. */
+.release {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-2);
+  font-size: 0.9rem;
+}
