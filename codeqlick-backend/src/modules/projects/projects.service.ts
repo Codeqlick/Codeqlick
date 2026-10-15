@@ -329,7 +329,9 @@ export class ProjectsService {
     if (!project.client.isActive) throw new Error('the client account is deactivated');
     const locale = toApiLocale(project.client.locale);
     const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
-    await this.mail.send(projectUpdateEmail(project.client, project, update, link, locale));
+    await this.mail.send(
+      projectUpdateEmail(project.client, project, update, link, locale, this.config.siteUrl),
+    );
   }
 
   private async findForCallerOrThrow(caller: AuthUser, id: string): Promise<ProjectWithUpdates> {

@@ -53,7 +53,8 @@ container sets `NODE_ENV=development`, which breaks production builds.
 ## Next steps (in order)
 
 1. **Content.** Publish the first blog posts and case studies from `/en/admin`.
-2. **Outgoing email.** Production runs with a placeholder `SMTP_HOST` in `/srv/codeqlick/.env`; leads are stored but no email is sent until real SMTP settings are set there.
+
+Outgoing email in production goes through OVH's SMTP (`ssl0.ovh.net:465`) as `hello@codeqlick.com`; the settings live in `/srv/codeqlick/.env`. Every email is plain text plus branded HTML (`codeqlick-backend/src/modules/mail/email-layout.ts`).
 
 ## Production
 

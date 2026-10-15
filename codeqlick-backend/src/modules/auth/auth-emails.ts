@@ -1,4 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
 /** "Forgot my password" email with the reset link, in the language the request came from. */
@@ -7,42 +8,33 @@ export function passwordResetEmail(
   link: string,
   locale: ApiLocale,
   ttlMinutes: number,
+  siteUrl: string,
 ): MailMessage {
-  if (locale === 'es') {
-    return {
-      to: user.email,
-      subject: 'Restablece tu contraseña — Codeqlick',
-      text: [
-        `Hola ${user.name}:`,
-        '',
-        'Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de Codeqlick. Abre este enlace para elegir una nueva:',
-        '',
-        link,
-        '',
-        `El enlace caduca en ${ttlMinutes} minutos y solo se puede usar una vez.`,
-        'Si no lo has pedido tú, ignora este correo: tu contraseña no cambia.',
-        '',
-        'Un saludo,',
-        'El equipo de Codeqlick',
-      ].join('\n'),
-    };
-  }
+  const es = locale === 'es';
   return {
     to: user.email,
-    subject: 'Reset your password — Codeqlick',
-    text: [
-      `Hi ${user.name},`,
-      '',
-      'We received a request to reset the password of your Codeqlick account. Open this link to choose a new one:',
-      '',
-      link,
-      '',
-      `The link expires in ${ttlMinutes} minutes and can only be used once.`,
-      "If you didn't ask for it, ignore this email: your password stays the same.",
-      '',
-      'Best regards,',
-      'The Codeqlick team',
-    ].join('\n'),
+    subject: es ? 'Restablece tu contraseña — Codeqlick' : 'Reset your password — Codeqlick',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? `El enlace para elegir una contraseña nueva caduca en ${ttlMinutes} minutos.`
+          : `The link to choose a new password expires in ${ttlMinutes} minutes.`,
+        greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
+        intro: [
+          es
+            ? 'Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de Codeqlick. Abre este enlace para elegir una nueva:'
+            : 'We received a request to reset the password of your Codeqlick account. Open this link to choose a new one:',
+        ],
+        button: { label: es ? 'Elegir contraseña nueva' : 'Choose a new password', url: link },
+        outro: [
+          es
+            ? `El enlace caduca en ${ttlMinutes} minutos y solo se puede usar una vez. Si no lo has pedido tú, ignora este correo: tu contraseña no cambia.`
+            : `The link expires in ${ttlMinutes} minutes and can only be used once. If you didn't ask for it, ignore this email: your password stays the same.`,
+        ],
+      },
+      siteUrl,
+    ),
   };
 }
 
@@ -52,43 +44,37 @@ export function invitationEmail(
   link: string,
   locale: ApiLocale,
   ttlDays: number,
+  siteUrl: string,
 ): MailMessage {
-  if (locale === 'es') {
-    return {
-      to: user.email,
-      subject: 'Bienvenido a Codeqlick — crea tu contraseña',
-      text: [
-        `Hola ${user.name}:`,
-        '',
-        'Te hemos creado una cuenta en Codeqlick. Desde ella podrás seguir tus proyectos, sus novedades y sus archivos.',
-        '',
-        'Abre este enlace para elegir tu contraseña:',
-        '',
-        link,
-        '',
-        `El enlace caduca en ${ttlDays} días y solo se puede usar una vez. Después entrarás con este correo (${user.email}) y la contraseña que elijas.`,
-        '',
-        'Un saludo,',
-        'El equipo de Codeqlick',
-      ].join('\n'),
-    };
-  }
+  const es = locale === 'es';
   return {
     to: user.email,
-    subject: 'Welcome to Codeqlick — choose your password',
-    text: [
-      `Hi ${user.name},`,
-      '',
-      "We've created a Codeqlick account for you. With it you can follow your projects, their updates and their files.",
-      '',
-      'Open this link to choose your password:',
-      '',
-      link,
-      '',
-      `The link expires in ${ttlDays} days and can only be used once. After that, sign in with this email (${user.email}) and the password you chose.`,
-      '',
-      'Best regards,',
-      'The Codeqlick team',
-    ].join('\n'),
+    subject: es
+      ? 'Bienvenido a Codeqlick — crea tu contraseña'
+      : 'Welcome to Codeqlick — choose your password',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? 'Tu cuenta está lista: elige tu contraseña para entrar.'
+          : 'Your account is ready: choose your password to sign in.',
+        greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
+        intro: [
+          es
+            ? 'Te hemos creado una cuenta en Codeqlick. Desde ella podrás seguir tus proyectos, sus novedades y sus archivos.'
+            : "We've created a Codeqlick account for you. With it you can follow your projects, their updates and their files.",
+          es
+            ? 'Abre este enlace para elegir tu contraseña:'
+            : 'Open this link to choose your password:',
+        ],
+        button: { label: es ? 'Crear mi contraseña' : 'Choose my password', url: link },
+        outro: [
+          es
+            ? `El enlace caduca en ${ttlDays} días y solo se puede usar una vez. Después entrarás con este correo (${user.email}) y la contraseña que elijas.`
+            : `The link expires in ${ttlDays} days and can only be used once. After that, sign in with this email (${user.email}) and the password you chose.`,
+        ],
+      },
+      siteUrl,
+    ),
   };
 }

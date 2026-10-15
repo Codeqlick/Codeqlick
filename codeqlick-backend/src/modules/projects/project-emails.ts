@@ -1,4 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
 /** Longest part of an update's text quoted in the email; the portal has the rest. */
@@ -17,45 +18,29 @@ export function projectUpdateEmail(
   update: { title: string; body: string },
   link: string,
   locale: ApiLocale,
+  siteUrl: string,
 ): MailMessage {
-  if (locale === 'es') {
-    return {
-      to: client.email,
-      subject: `${project.name}: ${update.title}`,
-      text: [
-        `Hola ${client.name}:`,
-        '',
-        `Hay una novedad en tu proyecto ${project.name}.`,
-        '',
-        update.title,
-        '',
-        excerpt(update.body),
-        '',
-        'Puedes verla, junto con el estado y los archivos del proyecto, en tu área de cliente:',
-        link,
-        '',
-        'Un saludo,',
-        'El equipo de Codeqlick',
-      ].join('\n'),
-    };
-  }
+  const es = locale === 'es';
   return {
     to: client.email,
     subject: `${project.name}: ${update.title}`,
-    text: [
-      `Hi ${client.name},`,
-      '',
-      `There's a new update on your project ${project.name}.`,
-      '',
-      update.title,
-      '',
-      excerpt(update.body),
-      '',
-      "You can see it, along with the project's status and files, in your client portal:",
-      link,
-      '',
-      'Best regards,',
-      'The Codeqlick team',
-    ].join('\n'),
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? `Novedad en ${project.name}: ${update.title}`
+          : `Update on ${project.name}: ${update.title}`,
+        greeting: es ? `Hola ${client.name}:` : `Hi ${client.name},`,
+        intro: [
+          es
+            ? `Hay una novedad en tu proyecto ${project.name}.`
+            : `There's a new update on your project ${project.name}.`,
+        ],
+        quote: { title: update.title, body: excerpt(update.body) },
+        outro: [],
+        button: { label: es ? 'Ver el proyecto' : 'View the project', url: link },
+      },
+      siteUrl,
+    ),
   };
 }

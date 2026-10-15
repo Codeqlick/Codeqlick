@@ -282,7 +282,13 @@ export class AuthService {
     );
 
     const link = `${this.config.siteUrl}/${locale}/reset-password?token=${token}`;
-    const message = passwordResetEmail(user, link, locale, PASSWORD_RESET_TTL_MINUTES);
+    const message = passwordResetEmail(
+      user,
+      link,
+      locale,
+      PASSWORD_RESET_TTL_MINUTES,
+      this.config.siteUrl,
+    );
     this.mail.send(message).catch((error: unknown) => {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to send password reset email: ${reason}`);
@@ -305,7 +311,9 @@ export class AuthService {
       new Date(Date.now() + INVITATION_TTL_DAYS * DAY_MS),
     );
     const link = `${this.config.siteUrl}/${locale}/reset-password?token=${token}&welcome=1`;
-    await this.mail.send(invitationEmail(user, link, locale, INVITATION_TTL_DAYS));
+    await this.mail.send(
+      invitationEmail(user, link, locale, INVITATION_TTL_DAYS, this.config.siteUrl),
+    );
   }
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */
