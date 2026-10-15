@@ -3,10 +3,28 @@ import { apiFetch } from './client';
 import { isApiError } from './errors';
 import type { AdminUser, CreatedUser, Paginated, Role, UserInput, UserPatch } from './types';
 
-export function adminListUsers(params: { role?: Role; page?: number; pageSize?: number } = {}) {
+/**
+ * `memberOf`: the people of a client company. `accounts`: client accounts only, without their
+ * people (e.g. to pick a project's client).
+ */
+export function adminListUsers(
+  params: {
+    role?: Role;
+    page?: number;
+    pageSize?: number;
+    memberOf?: string;
+    accounts?: boolean;
+  } = {},
+) {
   return apiFetch<Paginated<AdminUser>>('/admin/users', {
     auth: 'required',
-    query: { role: params.role, page: params.page, pageSize: params.pageSize },
+    query: {
+      role: params.role,
+      page: params.page,
+      pageSize: params.pageSize,
+      memberOf: params.memberOf,
+      accounts: params.accounts ? 'true' : undefined,
+    },
   });
 }
 
