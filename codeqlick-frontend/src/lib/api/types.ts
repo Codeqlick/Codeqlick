@@ -327,6 +327,8 @@ export type AdminStats = {
   clients: number;
   /** Support requests not resolved or closed yet. */
   support: { active: number };
+  /** Proposals sent and waiting for the client's answer. */
+  proposals: { sent: number };
 };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
@@ -395,6 +397,7 @@ export const ACTIVITY_TARGETS = [
   'media',
   'tag',
   'support',
+  'proposal',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
@@ -474,3 +477,48 @@ export type TicketMessage = {
 export type TicketFile = ProjectFile & { author: { name: string; team: boolean } };
 
 export type TicketDetail = Ticket & { messages: TicketMessage[]; files: TicketFile[] };
+
+export const PROPOSAL_STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'] as const;
+export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
+
+/** A line of a proposal; amounts in cents. */
+export type ProposalItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+};
+
+/** A proposal or quote (`/portal/proposals`, `/admin/proposals`); amounts in cents. */
+export type Proposal = {
+  id: string;
+  number: number;
+  title: string;
+  summary: string;
+  terms: string | null;
+  currency: string;
+  validUntil: string | null;
+  status: ProposalStatus;
+  /** Sent and past its last valid day: it can't be accepted any more. */
+  expired: boolean;
+  sentAt: string | null;
+  respondedAt: string | null;
+  acceptedName: string | null;
+  declineReason: string | null;
+  client: { id: string; name: string; email: string };
+  project: { id: string; name: string } | null;
+  items: ProposalItem[];
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProposalInput = {
+  title: string;
+  summary: string;
+  terms: string | null;
+  validUntil: string | null;
+  projectId: string | null;
+  items: { description: string; quantity: number; unitPrice: number }[];
+};

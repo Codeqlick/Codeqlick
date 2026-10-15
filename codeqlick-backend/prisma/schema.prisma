@@ -93,6 +93,8 @@ model User {
   tickets         SupportTicket[]
   ticketMessages  TicketMessage[]
   ticketFiles     TicketAttachment[]
+  proposals       Proposal[]             @relation("ProposalClient")
+  proposalsMade   Proposal[]             @relation("ProposalAuthor")
   projectFiles    ProjectFile[]
   activity        ActivityLog[]
   leadReplies     LeadReply[]
@@ -299,6 +301,7 @@ model ClientProject {
   files      ProjectFile[]
   milestones ProjectMilestone[]
   tickets    SupportTicket[]
+  proposals  Proposal[]
 
   @@index([clientId])
   @@map("client_projects")
@@ -490,4 +493,64 @@ model TicketAttachment {
 
   @@index([ticketId, createdAt])
   @@map("ticket_attachments")
+}
+
+/// DRAFT: only the team sees it. SENT: the client can accept or decline it (until `validUntil`).
+/// WITHDRAWN: the team took it back after sending it.
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+/// A proposal or quote for a client: what will be done, item by item with prices, and the terms.
+model Proposal {
+  id            String         @id @default(uuid()) @db.Uuid
+  /// Short reference shown to people (#7).
+  number        Int            @unique @default(autoincrement())
+  clientId      String         @map("client_id") @db.Uuid
+  projectId     String?        @map("project_id") @db.Uuid
+  createdById   String?        @map("created_by_id") @db.Uuid
+  title         String
+  /// Markdown: the scope, what is included and what isn't.
+  summary       String
+  /// Markdown: payment schedule, deadlines, conditions.
+  terms         String?
+  currency      String         @default("EUR")
+  /// Last day the client can accept it.
+  validUntil    DateTime?      @map("valid_until") @db.Date
+  status        ProposalStatus @default(DRAFT)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
+  respondedAt   DateTime?      @map("responded_at") @db.Timestamptz(3)
+  /// The full name the client typed to accept it.
+  acceptedName  String?        @map("accepted_name")
+  declineReason String?        @map("decline_reason")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client    User           @relation("ProposalClient", fields: [clientId], references: [id], onDelete: Cascade)
+  project   ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("ProposalAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  items     ProposalItem[]
+
+  @@index([status, updatedAt])
+  @@index([clientId, updatedAt])
+  @@map("proposals")
+}
+
+/// A line of a proposal; amounts in cents.
+model ProposalItem {
+  id          String @id @default(uuid()) @db.Uuid
+  proposalId  String @map("proposal_id") @db.Uuid
+  position    Int
+  description String
+  quantity    Int
+  unitPrice   Int    @map("unit_price")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, position])
+  @@map("proposal_items")
 }

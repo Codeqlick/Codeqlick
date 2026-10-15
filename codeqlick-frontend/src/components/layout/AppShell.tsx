@@ -31,7 +31,7 @@ export async function AppShell({
       <a className="skip-link" href="#app-main">
         {tc('skipToContent')}
       </a>
-      <aside className={styles.sidebar}>
+      <aside className={styles.sidebar} data-print="hide">
         <div className={styles.brandRow}>
           <Logo href="/" size="sm" label={tc('homeLabel')} />
           <span className={styles.area}>{areaLabel}</span>
