@@ -12,7 +12,9 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMyProject } from '@/lib/api/projects';
 import type { ClientProject } from '@/lib/api/types';
+import { getCurrentUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
+import { approveAction, commentAction } from '../actions';
 
 export default async function PortalProjectPage({
   params,
@@ -32,6 +34,7 @@ export default async function PortalProjectPage({
     throw error;
   }
 
+  const user = await getCurrentUser();
   const milestones = project.milestones ?? [];
   const next = nextMilestone(milestones);
 
@@ -124,7 +127,18 @@ export default async function PortalProjectPage({
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('updates')}</h2>
-        <ProjectUpdates updates={project.updates ?? []} locale={locale} empty={t('noUpdates')} />
+        <ProjectUpdates
+          updates={project.updates ?? []}
+          locale={locale}
+          empty={t('noUpdates')}
+          commentAction={(updateId) => commentAction.bind(null, locale, project.id, updateId)}
+          // Approving is the client's call; admins looking at the portal only comment.
+          approveAction={
+            user?.role === 'CLIENT'
+              ? (updateId) => approveAction.bind(null, locale, project.id, updateId)
+              : undefined
+          }
+        />
       </section>
     </div>
   );

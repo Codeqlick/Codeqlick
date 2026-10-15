@@ -145,12 +145,24 @@ export const PROJECT_PHASES = [
 
 export type ProjectPhase = (typeof PROJECT_PHASES)[number];
 
+export type UpdateComment = {
+  id: string;
+  body: string;
+  createdAt: string;
+  /** `team`: written by Codeqlick; otherwise by the client. */
+  author: { name: string; team: boolean };
+};
+
 export type ProjectUpdate = {
   id: string;
   title: string;
   body: string;
   createdAt: string;
   author: { name: string };
+  approvalRequested: boolean;
+  approvedAt: string | null;
+  approvedBy: { name: string } | null;
+  comments: UpdateComment[];
 };
 
 export type ProjectMilestone = {

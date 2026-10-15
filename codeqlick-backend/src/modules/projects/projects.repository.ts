@@ -6,12 +6,20 @@ import type {
   ProjectFile,
   ProjectMilestone,
   ProjectUpdate,
+  ProjectUpdateComment,
   User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive'>;
-type UpdateWithAuthor = ProjectUpdate & { author: Pick<User, 'name'> | null };
+export type CommentWithAuthor = ProjectUpdateComment & {
+  author: Pick<User, 'name' | 'role'> | null;
+};
+export type UpdateWithAuthor = ProjectUpdate & {
+  author: Pick<User, 'name'> | null;
+  approvedBy: Pick<User, 'name'> | null;
+  comments: CommentWithAuthor[];
+};
 
 export type ProjectWithClient = ClientProject & { client: ClientRef };
 export type ProjectWithUpdates = ProjectWithClient & {
@@ -23,10 +31,13 @@ export type ProjectWithUpdates = ProjectWithClient & {
 const clientSelect = {
   select: { id: true, name: true, email: true, locale: true, isActive: true },
 } as const;
-const updatesInclude = {
-  orderBy: { createdAt: 'desc' },
-  include: { author: { select: { name: true } } },
+const commentInclude = { author: { select: { name: true, role: true } } } as const;
+const updateInclude = {
+  author: { select: { name: true } },
+  approvedBy: { select: { name: true } },
+  comments: { orderBy: { createdAt: 'asc' }, include: commentInclude },
 } as const;
+const updatesInclude = { orderBy: { createdAt: 'desc' }, include: updateInclude } as const;
 const filesInclude = { orderBy: { createdAt: 'desc' } } as const;
 const milestonesInclude = { orderBy: { position: 'asc' } } as const;
 const detailInclude = {
@@ -130,11 +141,12 @@ export class ProjectsRepository {
     authorId: string,
     title: string,
     body: string,
+    approvalRequested: boolean,
   ): Promise<UpdateWithAuthor> {
     return this.prisma.$transaction(async (tx) => {
       const update = await tx.projectUpdate.create({
-        data: { projectId, authorId, title, body },
-        include: { author: { select: { name: true } } },
+        data: { projectId, authorId, title, body, approvalRequested },
+        include: updateInclude,
       });
       await tx.clientProject.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
       return update;
@@ -191,6 +203,42 @@ export class ProjectsRepository {
         await tx.projectMilestone.update({ where: { id, projectId }, data: { position } });
       }
       return tx.projectMilestone.findMany({ where: { projectId }, orderBy: { position: 'asc' } });
+    });
+  }
+
+  findUpdate(projectId: string, updateId: string): Promise<UpdateWithAuthor | null> {
+    return this.prisma.projectUpdate.findFirst({
+      where: { id: updateId, projectId },
+      include: updateInclude,
+    });
+  }
+
+  /** Adds a comment to an update and bumps the project's updatedAt. */
+  async addComment(
+    projectId: string,
+    updateId: string,
+    authorId: string,
+    body: string,
+  ): Promise<CommentWithAuthor> {
+    return this.prisma.$transaction(async (tx) => {
+      const comment = await tx.projectUpdateComment.create({
+        data: { updateId, authorId, body },
+        include: commentInclude,
+      });
+      await tx.clientProject.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
+      return comment;
+    });
+  }
+
+  /** Records the approval; an update approved already keeps its first approval. */
+  async approveUpdate(updateId: string, userId: string): Promise<UpdateWithAuthor> {
+    await this.prisma.projectUpdate.updateMany({
+      where: { id: updateId, approvedAt: null },
+      data: { approvedAt: new Date(), approvedById: userId },
+    });
+    return this.prisma.projectUpdate.findUniqueOrThrow({
+      where: { id: updateId },
+      include: updateInclude,
     });
   }
 }

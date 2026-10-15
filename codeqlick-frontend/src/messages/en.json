@@ -544,7 +544,17 @@
       "dueOn": "due {date}",
       "noDate": "no date yet",
       "overdue": "overdue"
-    }
+    },
+    "approvalPending": "Waiting for approval",
+    "approvedBy": "Approved by {name} · {date}",
+    "approveHint": "If it looks good, approve it and we'll move on. If you'd like changes, leave us a comment.",
+    "approve": "Approve",
+    "approving": "Approving…",
+    "comments": "Comments",
+    "writeComment": "Write a comment",
+    "commentLabel": "Comment",
+    "sendComment": "Send comment",
+    "sending": "Sending…"
   },
   "Admin": {
     "title": "Admin",
@@ -723,7 +733,10 @@
       "milestoneUp": "↑ Move up",
       "milestoneDown": "↓ Move down",
       "milestoneEdit": "Edit or delete",
-      "milestoneDelete": "Delete milestone"
+      "milestoneDelete": "Delete milestone",
+      "requestApproval": "Ask the client to approve it",
+      "requestApprovalHint": "The client gets a button to approve this update from their area, and we'll email you when they do.",
+      "commentNotNotified": "Comment posted, but the client couldn't be emailed (check the server's SMTP settings or whether their account is deactivated)."
     },
     "media": {
       "choose": "Image file",
@@ -840,7 +853,9 @@
           "milestone_added": "added a milestone to <target>{label}</target>",
           "milestone_updated": "edited a milestone of <target>{label}</target>",
           "milestone_completed": "completed a milestone of <target>{label}</target>",
-          "milestone_deleted": "deleted a milestone of <target>{label}</target>"
+          "milestone_deleted": "deleted a milestone of <target>{label}</target>",
+          "update_approved": "approved an update of <target>{label}</target>",
+          "comment_added": "commented on an update of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",

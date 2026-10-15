@@ -32,6 +32,8 @@ export const ACTIVITY_ACTIONS = [
   'project.updated',
   'project.deleted',
   'project.update_posted',
+  'project.update_approved',
+  'project.comment_added',
   'project.file_uploaded',
   'project.file_deleted',
   'project.milestone_added',

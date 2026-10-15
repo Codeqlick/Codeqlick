@@ -22,6 +22,10 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
   createMilestoneSchema,
+  createUpdateCommentSchema,
+  updateParamSchema,
+  type CreateUpdateCommentInput,
+  type UpdateParam,
   createProjectSchema,
   createProjectUpdateSchema,
   listProjectsQuerySchema,
@@ -47,6 +51,7 @@ import {
   type ProjectFileView,
   type ProjectMilestoneView,
   type PostedProjectUpdate,
+  type PostedTeamComment,
   type UploadedProjectFile,
 } from './projects.service.js';
 
@@ -102,6 +107,15 @@ export class AdminProjectsController {
     @Body({ schema: createProjectUpdateSchema }) body: CreateProjectUpdateInput,
   ): Promise<PostedProjectUpdate> {
     return this.projects.addUpdate(user, params.id, body);
+  }
+
+  @Post(':id/updates/:updateId/comments')
+  addComment(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: updateParamSchema }) params: UpdateParam,
+    @Body({ schema: createUpdateCommentSchema }) body: CreateUpdateCommentInput,
+  ): Promise<PostedTeamComment> {
+    return this.projects.addTeamComment(user, params.id, params.updateId, body);
   }
 
   @Post(':id/milestones')

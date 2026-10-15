@@ -152,6 +152,11 @@ export const projectUpdateSchema = z.object({
   title: requiredString(160),
   body: z.string().trim().min(1, 'required').max(20000, 'tooLong'),
   notifyClient: z.boolean(),
+  requestApproval: z.boolean(),
+});
+
+export const updateCommentSchema = z.object({
+  body: z.string().trim().min(1, 'required').max(5000, 'tooLong'),
 });
 
 export const milestoneSchema = z.object({
