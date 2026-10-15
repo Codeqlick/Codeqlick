@@ -25,6 +25,12 @@ import type {
   UpdatePortfolioInput,
 } from './portfolio.schemas.js';
 
+export interface Testimonial {
+  quote: string;
+  author: string;
+  role: string | null;
+}
+
 export interface PortfolioSummary {
   slug: string;
   title: string;
@@ -32,6 +38,7 @@ export interface PortfolioSummary {
   clientName: string | null;
   coverImageUrl: string | null;
   technologies: string[];
+  testimonial: Testimonial | null;
 }
 
 export interface PortfolioDetail extends PortfolioSummary {
@@ -45,6 +52,7 @@ export interface AdminPortfolioItem {
   slug: string;
   status: PublishStatus;
   clientName: string | null;
+  testimonialAuthor: string | null;
   projectUrl: string | null;
   coverImageUrl: string | null;
   technologies: string[];
@@ -56,7 +64,27 @@ export interface AdminPortfolioItem {
 }
 
 function toTranslationData(t: PortfolioTranslationInput): PortfolioTranslationData {
-  return { locale: toDbLocale(t.locale), title: t.title, summary: t.summary, content: t.content };
+  return {
+    locale: toDbLocale(t.locale),
+    title: t.title,
+    summary: t.summary,
+    content: t.content,
+    testimonialQuote: t.testimonialQuote || null,
+    testimonialRole: t.testimonialRole || null,
+  };
+}
+
+/** The testimonial in one language: needs an author and a quote in that language. */
+function toTestimonial(
+  item: PortfolioWithTranslations,
+  translation: PortfolioWithTranslations['translations'][number],
+): Testimonial | null {
+  if (!item.testimonialAuthor || !translation.testimonialQuote) return null;
+  return {
+    quote: translation.testimonialQuote,
+    author: item.testimonialAuthor,
+    role: translation.testimonialRole,
+  };
 }
 
 function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
@@ -65,6 +93,7 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
     slug: item.slug,
     status: item.status,
     clientName: item.clientName,
+    testimonialAuthor: item.testimonialAuthor,
     projectUrl: item.projectUrl,
     coverImageUrl: item.coverImageUrl,
     technologies: item.technologies,
@@ -74,6 +103,8 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
       title: t.title,
       summary: t.summary,
       content: t.content,
+      testimonialQuote: t.testimonialQuote,
+      testimonialRole: t.testimonialRole,
     })),
     publishedAt: item.publishedAt?.toISOString() ?? null,
     createdAt: item.createdAt.toISOString(),
@@ -92,7 +123,11 @@ export class PortfolioService {
 
   async listPublished(query: ListPublicPortfolioQuery): Promise<Paginated<PortfolioSummary>> {
     const { skip, take } = pageToSkipTake(query.page, query.pageSize);
-    const { items, total } = await this.repository.listPublished(skip, take);
+    const { items, total } = await this.repository.listPublished(
+      skip,
+      take,
+      query.testimonials ? toDbLocale(query.locale) : undefined,
+    );
     const summaries = items
       .map((item) => this.toSummary(item, query.locale))
       .filter((summary): summary is PortfolioSummary => summary !== undefined);
@@ -110,6 +145,7 @@ export class PortfolioService {
       clientName: item.clientName,
       coverImageUrl: item.coverImageUrl,
       technologies: item.technologies,
+      testimonial: toTestimonial(item, translation),
       content: translation.content,
       projectUrl: item.projectUrl,
       locales: availableLocales(item.translations),
@@ -134,6 +170,7 @@ export class PortfolioService {
       status: input.status,
       publishedAt: publishedAtOnCreate(input.status, input.publishedAt),
       clientName: input.clientName ?? null,
+      testimonialAuthor: input.testimonialAuthor ?? null,
       projectUrl: input.projectUrl ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       technologies: input.technologies,
@@ -159,6 +196,7 @@ export class PortfolioService {
     const data: PortfolioUpdateData = {};
     if (input.slug !== undefined) data.slug = input.slug;
     if (input.clientName !== undefined) data.clientName = input.clientName;
+    if (input.testimonialAuthor !== undefined) data.testimonialAuthor = input.testimonialAuthor;
     if (input.projectUrl !== undefined) data.projectUrl = input.projectUrl;
     if (input.coverImageUrl !== undefined) data.coverImageUrl = input.coverImageUrl;
     if (input.technologies !== undefined) data.technologies = input.technologies;
@@ -207,6 +245,7 @@ export class PortfolioService {
       clientName: item.clientName,
       coverImageUrl: item.coverImageUrl,
       technologies: item.technologies,
+      testimonial: toTestimonial(item, translation),
     };
   }
 }

@@ -15,12 +15,17 @@ import {
  * Superrefine for a translation fieldset: when `required` every field must be filled; otherwise the
  * fieldset may be left completely empty, but once started it must be complete.
  */
-function completeTranslation(required: boolean) {
+/**
+ * Every field is required once the translation is started (always, when `required`), except the
+ * `optional` ones, which still count as starting it.
+ */
+function completeTranslation(required: boolean, optional: readonly string[] = []) {
   return (value: Record<string, string>, ctx: z.RefinementCtx) => {
     const entries = Object.entries(value).map(([field, v]) => [field, v.trim()] as const);
     const anyFilled = entries.some(([, v]) => v !== '');
     if (!required && !anyFilled) return;
     for (const [field, v] of entries) {
+      if (optional.includes(field)) continue;
       if (v === '') {
         ctx.addIssue({
           code: 'custom',
@@ -47,11 +52,19 @@ const portfolioTranslation = (required: boolean) =>
       title: z.string().max(200, 'tooLong'),
       summary: z.string().max(500, 'tooLong'),
       content: z.string().max(100000, 'tooLong'),
+      testimonialQuote: z.string().max(1000, 'tooLong'),
+      testimonialRole: z.string().max(160, 'tooLong'),
     })
-    .superRefine(completeTranslation(required));
+    .superRefine(completeTranslation(required, ['testimonialQuote', 'testimonialRole']));
 
 export const POST_TRANSLATION_FIELDS = ['title', 'excerpt', 'content'] as const;
-export const PORTFOLIO_TRANSLATION_FIELDS = ['title', 'summary', 'content'] as const;
+export const PORTFOLIO_TRANSLATION_FIELDS = [
+  'title',
+  'summary',
+  'content',
+  'testimonialQuote',
+  'testimonialRole',
+] as const;
 
 export const postFormSchema = z.object({
   slug: slugSchema,
@@ -77,6 +90,11 @@ export const portfolioFormSchema = z.object({
     .string()
     .trim()
     .max(120, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+  testimonialAuthor: z
+    .string()
+    .trim()
+    .max(160, 'tooLong')
     .transform((value) => (value === '' ? null : value)),
   projectUrl: optionalUrl,
   technologies: z

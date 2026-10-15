@@ -74,6 +74,8 @@ export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds'> & {
   updatedAt: string;
 };
 
+export type Testimonial = { quote: string; author: string; role: string | null };
+
 export type PortfolioSummary = {
   slug: string;
   title: string;
@@ -81,6 +83,7 @@ export type PortfolioSummary = {
   clientName: string | null;
   coverImageUrl: string | null;
   technologies: string[];
+  testimonial: Testimonial | null;
 };
 
 export type PortfolioDetail = PortfolioSummary & {
@@ -89,7 +92,13 @@ export type PortfolioDetail = PortfolioSummary & {
   locales: Locale[];
 };
 
-export type PortfolioTranslationFields = { title: string; summary: string; content: string };
+export type PortfolioTranslationFields = {
+  title: string;
+  summary: string;
+  content: string;
+  testimonialQuote?: string | null;
+  testimonialRole?: string | null;
+};
 
 export type PortfolioInput = {
   slug: string;
@@ -97,6 +106,8 @@ export type PortfolioInput = {
   /** ISO instant; in the future it schedules the case study. `null`: now when published. */
   publishedAt?: string | null;
   clientName?: string | null;
+  /** Who gave the testimonial; its quote and role are per translation. */
+  testimonialAuthor?: string | null;
   projectUrl?: string | null;
   coverImageUrl?: string | null;
   technologies: string[];
@@ -110,10 +121,11 @@ export type PortfolioInput = {
  */
 export type AdminPortfolioItem = Omit<
   PortfolioInput,
-  'clientName' | 'projectUrl' | 'coverImageUrl'
+  'clientName' | 'testimonialAuthor' | 'projectUrl' | 'coverImageUrl'
 > & {
   id: string;
   clientName: string | null;
+  testimonialAuthor: string | null;
   projectUrl: string | null;
   coverImageUrl: string | null;
   publishedAt: string | null;

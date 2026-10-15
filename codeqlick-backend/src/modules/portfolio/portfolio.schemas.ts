@@ -16,6 +16,10 @@ export const portfolioTranslationSchema = z
     title: z.string().trim().min(1).max(200),
     summary: z.string().trim().min(1).max(1000),
     content: z.string().min(1).max(200_000),
+    /** The client's words in this language; shown when the item has a `testimonialAuthor`. */
+    testimonialQuote: z.string().trim().max(1000).nullable().optional(),
+    /** The author's position in this language, e.g. "Founder, CircleSfera". */
+    testimonialRole: z.string().trim().max(160).nullable().optional(),
   })
   .strict();
 export type PortfolioTranslationInput = z.infer<typeof portfolioTranslationSchema>;
@@ -23,12 +27,14 @@ export type PortfolioTranslationInput = z.infer<typeof portfolioTranslationSchem
 const technologiesSchema = z.array(z.string().trim().min(1).max(60)).max(50);
 const sortOrderSchema = z.number().int().min(-100_000).max(100_000);
 const clientNameSchema = z.string().trim().min(1).max(160).nullable().optional();
+const testimonialAuthorSchema = z.string().trim().min(1).max(160).nullable().optional();
 
 export const createPortfolioSchema = z
   .object({
     slug: slugSchema,
     status: publishStatusSchema,
     clientName: clientNameSchema,
+    testimonialAuthor: testimonialAuthorSchema,
     projectUrl: nullableUrlSchema,
     coverImageUrl: nullableUrlSchema,
     technologies: technologiesSchema,
@@ -44,6 +50,7 @@ export const updatePortfolioSchema = z
     slug: slugSchema.optional(),
     status: publishStatusSchema.optional(),
     clientName: clientNameSchema,
+    testimonialAuthor: testimonialAuthorSchema,
     projectUrl: nullableUrlSchema,
     coverImageUrl: nullableUrlSchema,
     technologies: technologiesSchema.optional(),
@@ -54,7 +61,14 @@ export const updatePortfolioSchema = z
   .strict();
 export type UpdatePortfolioInput = z.infer<typeof updatePortfolioSchema>;
 
-export const listPublicPortfolioQuerySchema = paginationSchema.extend(localeQuerySchema.shape);
+export const listPublicPortfolioQuerySchema = paginationSchema.extend({
+  ...localeQuerySchema.shape,
+  /** `true`: only case studies with a testimonial in the requested language. */
+  testimonials: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((value) => value === 'true'),
+});
 export type ListPublicPortfolioQuery = z.infer<typeof listPublicPortfolioQuerySchema>;
 
 export const listAdminPortfolioQuerySchema = paginationSchema.extend({

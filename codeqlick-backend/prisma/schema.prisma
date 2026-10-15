@@ -211,17 +211,19 @@ model PostTranslation {
 }
 
 model PortfolioItem {
-  id            String        @id @default(uuid()) @db.Uuid
-  slug          String        @unique
-  status        PublishStatus @default(DRAFT)
-  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
-  coverImageUrl String?       @map("cover_image_url")
-  clientName    String?       @map("client_name")
-  projectUrl    String?       @map("project_url")
-  technologies  String[]
-  sortOrder     Int           @default(0) @map("sort_order")
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                String        @id @default(uuid()) @db.Uuid
+  slug              String        @unique
+  status            PublishStatus @default(DRAFT)
+  publishedAt       DateTime?     @map("published_at") @db.Timestamptz(3)
+  coverImageUrl     String?       @map("cover_image_url")
+  clientName        String?       @map("client_name")
+  projectUrl        String?       @map("project_url")
+  technologies      String[]
+  sortOrder         Int           @default(0) @map("sort_order")
+  /// Who gave the testimonial; the quote and their role are per language (translations).
+  testimonialAuthor String?       @map("testimonial_author")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   translations PortfolioTranslation[]
 
@@ -230,14 +232,16 @@ model PortfolioItem {
 }
 
 model PortfolioTranslation {
-  id              String   @id @default(uuid()) @db.Uuid
-  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
-  locale          Locale
-  title           String
-  summary         String
-  content         String
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id               String   @id @default(uuid()) @db.Uuid
+  portfolioItemId  String   @map("portfolio_item_id") @db.Uuid
+  locale           Locale
+  title            String
+  summary          String
+  content          String
+  testimonialQuote String?  @map("testimonial_quote")
+  testimonialRole  String?  @map("testimonial_role")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
 
@@ -259,7 +263,7 @@ model ClientProject {
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  client  User            @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  client     User               @relation(fields: [clientId], references: [id], onDelete: Restrict)
   updates    ProjectUpdate[]
   files      ProjectFile[]
   milestones ProjectMilestone[]

@@ -5,6 +5,8 @@ import { Markdown } from '@/components/markdown/Markdown';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import type { AppLocale } from '@/i18n/routing';
+import type { Testimonial } from '@/lib/api/types';
+import { TestimonialQuote } from './TestimonialQuote';
 
 export type CaseStudyContent = {
   title: string;
@@ -14,6 +16,7 @@ export type CaseStudyContent = {
   projectUrl: string | null;
   coverImageUrl: string | null;
   technologies: string[];
+  testimonial: Testimonial | null;
 };
 
 /** A case study as visitors see it. Shared by the public page and the admin preview. */
@@ -65,6 +68,11 @@ export async function CaseStudyArticle({
       <div className={styles.content}>
         <Markdown>{item.content}</Markdown>
       </div>
+      {item.testimonial ? (
+        <section className={styles.testimonial} aria-label={t('testimonial')}>
+          <TestimonialQuote testimonial={item.testimonial} />
+        </section>
+      ) : null}
       {item.projectUrl ? (
         <div className={styles.actions}>
           <Button href={item.projectUrl} external target="_blank" rel="noopener noreferrer">

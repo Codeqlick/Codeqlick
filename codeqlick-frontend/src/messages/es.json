@@ -163,6 +163,10 @@
       "title": "¿Tienes una idea? Hagámosla realidad.",
       "body": "Cuéntanos tu proyecto y te responderemos en un día laborable.",
       "cta": "Empezar un proyecto"
+    },
+    "testimonials": {
+      "eyebrow": "Testimonios",
+      "title": "Lo que dicen nuestros clientes"
     }
   },
   "Services": {
@@ -309,7 +313,8 @@
     "technologies": "Tecnologías",
     "visit": "Visitar proyecto",
     "ogEyebrow": "Caso de éxito",
-    "ogEyebrowClient": "Caso de éxito · {client}"
+    "ogEyebrowClient": "Caso de éxito · {client}",
+    "testimonial": "Testimonio del cliente"
   },
   "Contact": {
     "metaTitle": "Contacto",
@@ -653,7 +658,13 @@
       "deleteTitle": "Eliminar este caso de éxito",
       "deleteBody": "El caso de éxito y sus traducciones se retirarán de la web.",
       "publishedAt": "Fecha de publicación",
-      "publishedAtHint": "Si es futura, el caso de éxito aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo."
+      "publishedAtHint": "Si es futura, el caso de éxito aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo.",
+      "testimonialAuthor": "Autor del testimonio",
+      "testimonialAuthorHint": "Nombre de quien da el testimonio. La cita y su cargo van en cada idioma; sin autor no se muestra.",
+      "testimonialQuote": "Testimonio",
+      "testimonialQuoteHint": "Las palabras del cliente en este idioma. Se muestran en el caso de éxito y en la portada.",
+      "testimonialRole": "Cargo del autor",
+      "testimonialRoleHint": "Por ejemplo: Fundadora, CircleSfera."
     },
     "projects": {
       "title": "Proyectos",

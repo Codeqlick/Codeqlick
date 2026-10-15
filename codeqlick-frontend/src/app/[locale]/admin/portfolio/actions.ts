@@ -32,6 +32,7 @@ function parseItem(formData: FormData) {
     publishedAt: formString(formData, 'publishedAt'),
     coverImageUrl: formString(formData, 'coverImageUrl'),
     clientName: formString(formData, 'clientName'),
+    testimonialAuthor: formString(formData, 'testimonialAuthor'),
     projectUrl: formString(formData, 'projectUrl'),
     technologies: formString(formData, 'technologies'),
     sortOrder: formString(formData, 'sortOrder'),
@@ -41,8 +42,14 @@ function parseItem(formData: FormData) {
   if (!parsed.success) return { error: parsed.error };
 
   const { en, es, ...rest } = parsed.data;
-  const input: PortfolioInput = { ...rest, translations: [{ locale: 'en', ...en }] };
-  if (es.title.trim() !== '') input.translations.push({ locale: 'es', ...es });
+  // Empty testimonial fields are sent as null, which clears them.
+  const translation = (fields: typeof en) => ({
+    ...fields,
+    testimonialQuote: fields.testimonialQuote.trim() || null,
+    testimonialRole: fields.testimonialRole.trim() || null,
+  });
+  const input: PortfolioInput = { ...rest, translations: [{ locale: 'en', ...translation(en) }] };
+  if (es.title.trim() !== '') input.translations.push({ locale: 'es', ...translation(es) });
   return { input };
 }
 

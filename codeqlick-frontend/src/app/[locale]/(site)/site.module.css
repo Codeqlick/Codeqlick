@@ -122,6 +122,10 @@
   margin-top: var(--space-10);
 }
 
+.testimonial {
+  margin-top: var(--space-10);
+}
+
 .split {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);

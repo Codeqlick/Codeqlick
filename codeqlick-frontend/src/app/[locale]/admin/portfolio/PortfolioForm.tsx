@@ -94,6 +94,15 @@ export async function PortfolioForm({
       />
       <div className={styles.row}>
         <FormInput
+          name="testimonialAuthor"
+          label={t('testimonialAuthor')}
+          optionalLabel={tc('optional')}
+          hint={t('testimonialAuthorHint')}
+          defaultValue={item?.testimonialAuthor ?? ''}
+        />
+      </div>
+      <div className={styles.row}>
+        <FormInput
           name="technologies"
           label={t('technologies')}
           hint={t('technologiesHint')}
@@ -146,6 +155,21 @@ export async function PortfolioForm({
                 tooLarge: tm('tooLarge'),
                 failed: tm('failed'),
               }}
+            />
+            <FormTextarea
+              name={`${lang}.testimonialQuote`}
+              label={t('testimonialQuote')}
+              optionalLabel={tc('optional')}
+              hint={t('testimonialQuoteHint')}
+              rows={3}
+              defaultValue={translation?.testimonialQuote ?? ''}
+            />
+            <FormInput
+              name={`${lang}.testimonialRole`}
+              label={t('testimonialRole')}
+              optionalLabel={tc('optional')}
+              hint={t('testimonialRoleHint')}
+              defaultValue={translation?.testimonialRole ?? ''}
             />
           </fieldset>
         );

@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { connection } from 'next/server';
 import { BrandSymbol } from '@/components/brand/Symbol';
 import { SERVICE_SLUGS, SERVICES, ServiceIcon } from '@/components/content/services';
+import { TestimonialQuote } from '@/components/content/TestimonialQuote';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Button } from '@/components/ui/Button';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -70,6 +71,15 @@ async function featuredWork(locale: Locale): Promise<PortfolioSummary[]> {
   }
 }
 
+/** Case studies with a testimonial in this language; the section is left out without any. */
+async function testimonials(locale: Locale): Promise<PortfolioSummary[]> {
+  try {
+    return (await listPortfolio({ locale, pageSize: 3, testimonials: true })).items;
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
@@ -78,7 +88,7 @@ export default async function HomePage({ params }: PageProps) {
   await connection();
   const t = await getTranslations({ locale, namespace: 'Home' });
   const tw = await getTranslations({ locale, namespace: 'Work' });
-  const work = await featuredWork(locale);
+  const [work, quotes] = await Promise.all([featuredWork(locale), testimonials(locale)]);
 
   return (
     <>
@@ -214,6 +224,37 @@ export default async function HomePage({ params }: PageProps) {
               {t('work.viewAll')}
             </Button>
           </div>
+        </section>
+      ) : null}
+
+      {quotes.length > 0 ? (
+        <section
+          className={`wrap ${styles.section} ${styles.testimonials}`}
+          aria-labelledby="testimonials-title"
+        >
+          <div className={styles.intro}>
+            <p className="eyebrow">{t('testimonials.eyebrow')}</p>
+            <h2 id="testimonials-title" className={styles.title}>
+              {t('testimonials.title')}
+            </h2>
+          </div>
+          <ul className={styles.testimonialList}>
+            {quotes.map((item) =>
+              item.testimonial ? (
+                <li key={item.slug}>
+                  <TestimonialQuote
+                    testimonial={item.testimonial}
+                    className={styles.testimonialCard}
+                  >
+                    <Link href={`/work/${item.slug}`} className={styles.more}>
+                      {tw('viewCase')}
+                      <span className="visually-hidden"> — {item.title}</span>
+                    </Link>
+                  </TestimonialQuote>
+                </li>
+              ) : null,
+            )}
+          </ul>
         </section>
       ) : null}
 
