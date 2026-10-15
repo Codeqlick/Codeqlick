@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import {
   ActionForm,
+  FormCheckboxGroup,
   FormInput,
   FormSelect,
   FormTextarea,
@@ -16,6 +17,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { toDateTimeInput } from '@/lib/format';
 import { MAX_IMAGE_BYTES } from '@/lib/api/media';
 import type { AdminPortfolioItem } from '@/lib/api/types';
+import { SERVICES } from '@/components/content/services';
 import { uploadImageAction } from '../actions';
 
 const STATUSES = ['DRAFT', 'PUBLISHED'] as const;
@@ -35,6 +37,7 @@ export async function PortfolioForm({
   const tm = await getTranslations({ locale, namespace: 'Admin.media' });
   const previewLabels = await markdownPreviewLabels(locale);
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
+  const th = await getTranslations({ locale, namespace: 'Home' });
 
   return (
     <ActionForm action={action} className={styles.form}>
@@ -94,6 +97,16 @@ export async function PortfolioForm({
           tooLarge: tm('tooLarge'),
           failed: tm('failed'),
         }}
+      />
+      <FormCheckboxGroup
+        name="services"
+        legend={t('services')}
+        className={`${styles.fieldset} ${styles.tagChoices}`}
+        options={SERVICES.map(({ key }) => ({
+          value: key,
+          label: th(`services.items.${key}.title`),
+        }))}
+        defaultValues={item?.services}
       />
       <div className={styles.row}>
         <FormInput

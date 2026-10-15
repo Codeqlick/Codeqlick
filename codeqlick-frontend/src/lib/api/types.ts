@@ -83,7 +83,17 @@ export type PortfolioSummary = {
   clientName: string | null;
   coverImageUrl: string | null;
   technologies: string[];
+  /** Service lines the work covered (keys of components/content/services). */
+  services: ServiceKey[];
   testimonial: Testimonial | null;
+};
+
+export type ServiceKey = 'web' | 'custom' | 'mobile' | 'design' | 'consulting' | 'support';
+
+/** `GET /portfolio/filters`: what the case study list can be filtered by, with counts. */
+export type PortfolioFilters = {
+  technologies: { name: string; count: number }[];
+  services: { key: ServiceKey; count: number }[];
 };
 
 export type PortfolioDetail = PortfolioSummary & {
@@ -111,6 +121,7 @@ export type PortfolioInput = {
   projectUrl?: string | null;
   coverImageUrl?: string | null;
   technologies: string[];
+  services: ServiceKey[];
   sortOrder: number;
   translations: Translation<PortfolioTranslationFields>[];
 };

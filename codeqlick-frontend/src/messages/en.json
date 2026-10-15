@@ -325,7 +325,15 @@
     "visit": "Visit project",
     "ogEyebrow": "Case study",
     "ogEyebrowClient": "Case study · {client}",
-    "testimonial": "Client testimonial"
+    "testimonial": "Client testimonial",
+    "services": "Services",
+    "filterServices": "Filter by service",
+    "filterTechnologies": "Filter by technology",
+    "allServices": "All services",
+    "allTechnologies": "All technologies",
+    "emptyFilteredTitle": "No projects with these filters",
+    "emptyFilteredBody": "Try another combination or see all projects.",
+    "clearFilters": "Clear filters"
   },
   "Contact": {
     "metaTitle": "Contact",
@@ -688,7 +696,8 @@
       "testimonialQuote": "Testimonial",
       "testimonialQuoteHint": "The client's words in this language. Shown on the case study and on the home page.",
       "testimonialRole": "Author's role",
-      "testimonialRoleHint": "For example: Founder, CircleSfera."
+      "testimonialRoleHint": "For example: Founder, CircleSfera.",
+      "services": "Services in this project"
     },
     "projects": {
       "title": "Projects",

@@ -53,6 +53,7 @@ export default async function PortfolioPreviewPage({
             projectUrl: item.projectUrl,
             coverImageUrl: item.coverImageUrl,
             technologies: item.technologies,
+            services: item.services,
             testimonial:
               item.testimonialAuthor && translation.testimonialQuote
                 ? {

@@ -25,6 +25,14 @@ export const portfolioTranslationSchema = z
 export type PortfolioTranslationInput = z.infer<typeof portfolioTranslationSchema>;
 
 const technologiesSchema = z.array(z.string().trim().min(1).max(60)).max(50);
+
+/** The website's service lines (codeqlick-frontend/src/components/content/services.tsx). */
+export const SERVICE_KEYS = ['web', 'custom', 'mobile', 'design', 'consulting', 'support'] as const;
+export const serviceKeySchema = z.enum(SERVICE_KEYS);
+const servicesSchema = z
+  .array(serviceKeySchema)
+  .max(SERVICE_KEYS.length)
+  .transform((list) => [...new Set(list)]);
 const sortOrderSchema = z.number().int().min(-100_000).max(100_000);
 const clientNameSchema = z.string().trim().min(1).max(160).nullable().optional();
 const testimonialAuthorSchema = z.string().trim().min(1).max(160).nullable().optional();
@@ -38,6 +46,7 @@ export const createPortfolioSchema = z
     projectUrl: nullableUrlSchema,
     coverImageUrl: nullableUrlSchema,
     technologies: technologiesSchema,
+    services: servicesSchema.default([]),
     sortOrder: sortOrderSchema,
     translations: translationsArray(portfolioTranslationSchema),
     publishedAt: publishedAtSchema,
@@ -54,6 +63,7 @@ export const updatePortfolioSchema = z
     projectUrl: nullableUrlSchema,
     coverImageUrl: nullableUrlSchema,
     technologies: technologiesSchema.optional(),
+    services: servicesSchema.optional(),
     sortOrder: sortOrderSchema.optional(),
     translations: translationsArray(portfolioTranslationSchema).optional(),
     publishedAt: publishedAtSchema,
@@ -63,6 +73,10 @@ export type UpdatePortfolioInput = z.infer<typeof updatePortfolioSchema>;
 
 export const listPublicPortfolioQuerySchema = paginationSchema.extend({
   ...localeQuerySchema.shape,
+  /** Only case studies that list this technology (exact name, as shown). */
+  technology: z.string().trim().min(1).max(60).optional(),
+  /** Only case studies that covered this service. */
+  service: serviceKeySchema.optional(),
   /** `true`: only case studies with a testimonial in the requested language. */
   testimonials: z
     .enum(['true', 'false'])

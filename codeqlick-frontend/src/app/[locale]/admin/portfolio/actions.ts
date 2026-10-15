@@ -14,7 +14,7 @@ import {
   adminDeletePortfolioItem,
   adminUpdatePortfolioItem,
 } from '@/lib/api/portfolio';
-import type { PortfolioInput } from '@/lib/api/types';
+import type { PortfolioInput, ServiceKey } from '@/lib/api/types';
 import { formString, formText, type FormState } from '@/lib/forms';
 import { PORTFOLIO_TRANSLATION_FIELDS, portfolioFormSchema } from '@/lib/schemas/admin';
 
@@ -48,7 +48,15 @@ function parseItem(formData: FormData) {
     testimonialQuote: fields.testimonialQuote.trim() || null,
     testimonialRole: fields.testimonialRole.trim() || null,
   });
-  const input: PortfolioInput = { ...rest, translations: [{ locale: 'en', ...translation(en) }] };
+  // The API rejects unknown keys; the checkboxes only offer known ones.
+  const services = formData
+    .getAll('services')
+    .filter((value): value is ServiceKey => typeof value === 'string');
+  const input: PortfolioInput = {
+    ...rest,
+    services,
+    translations: [{ locale: 'en', ...translation(en) }],
+  };
   if (es.title.trim() !== '') input.translations.push({ locale: 'es', ...translation(es) });
   return { input };
 }

@@ -184,3 +184,11 @@
   margin-top: var(--space-section);
   max-width: 48rem;
 }
+
+/* Case study filters: one row of chips per facet. */
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}

@@ -17,6 +17,7 @@ import {
   type PortfolioUpdateData,
   type PortfolioWithTranslations,
 } from './portfolio.repository.js';
+import { SERVICE_KEYS } from './portfolio.schemas.js';
 import type {
   CreatePortfolioInput,
   ListAdminPortfolioQuery,
@@ -24,6 +25,8 @@ import type {
   PortfolioTranslationInput,
   UpdatePortfolioInput,
 } from './portfolio.schemas.js';
+
+type ServiceKey = (typeof SERVICE_KEYS)[number];
 
 export interface Testimonial {
   quote: string;
@@ -38,7 +41,13 @@ export interface PortfolioSummary {
   clientName: string | null;
   coverImageUrl: string | null;
   technologies: string[];
+  services: string[];
   testimonial: Testimonial | null;
+}
+
+export interface PortfolioFilters {
+  technologies: Array<{ name: string; count: number }>;
+  services: Array<{ key: ServiceKey; count: number }>;
 }
 
 export interface PortfolioDetail extends PortfolioSummary {
@@ -56,6 +65,7 @@ export interface AdminPortfolioItem {
   projectUrl: string | null;
   coverImageUrl: string | null;
   technologies: string[];
+  services: string[];
   sortOrder: number;
   translations: PortfolioTranslationInput[];
   publishedAt: string | null;
@@ -97,6 +107,7 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
     projectUrl: item.projectUrl,
     coverImageUrl: item.coverImageUrl,
     technologies: item.technologies,
+    services: item.services,
     sortOrder: item.sortOrder,
     translations: item.translations.map((t) => ({
       locale: toApiLocale(t.locale),
@@ -112,6 +123,13 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
   };
 }
 
+/** How many times each value appears. */
+function countValues(values: string[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return counts;
+}
+
 @Injectable()
 export class PortfolioService {
   constructor(
@@ -123,15 +141,31 @@ export class PortfolioService {
 
   async listPublished(query: ListPublicPortfolioQuery): Promise<Paginated<PortfolioSummary>> {
     const { skip, take } = pageToSkipTake(query.page, query.pageSize);
-    const { items, total } = await this.repository.listPublished(
-      skip,
-      take,
-      query.testimonials ? toDbLocale(query.locale) : undefined,
-    );
+    const { items, total } = await this.repository.listPublished(skip, take, {
+      testimonialLocale: query.testimonials ? toDbLocale(query.locale) : undefined,
+      technology: query.technology,
+      service: query.service,
+    });
     const summaries = items
       .map((item) => this.toSummary(item, query.locale))
       .filter((summary): summary is PortfolioSummary => summary !== undefined);
     return paginate(summaries, total, query.page, query.pageSize);
+  }
+
+  /** The filters the case study list offers: technologies and services in use, with counts. */
+  async filters(): Promise<PortfolioFilters> {
+    const rows = await this.repository.listLiveFacets();
+    const technologies = countValues(rows.flatMap((row) => row.technologies));
+    const services = countValues(rows.flatMap((row) => row.services));
+    return {
+      technologies: [...technologies]
+        .map(([name, items]) => ({ name, count: items }))
+        .toSorted((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+      services: SERVICE_KEYS.filter((key) => services.has(key)).map((key) => ({
+        key,
+        count: services.get(key) ?? 0,
+      })),
+    };
   }
 
   async getPublishedBySlug(slug: string, locale: ApiLocale): Promise<PortfolioDetail> {
@@ -145,6 +179,7 @@ export class PortfolioService {
       clientName: item.clientName,
       coverImageUrl: item.coverImageUrl,
       technologies: item.technologies,
+      services: item.services,
       testimonial: toTestimonial(item, translation),
       content: translation.content,
       projectUrl: item.projectUrl,
@@ -174,6 +209,7 @@ export class PortfolioService {
       projectUrl: input.projectUrl ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       technologies: input.technologies,
+      services: input.services,
       sortOrder: input.sortOrder,
       translations: input.translations.map(toTranslationData),
     });
@@ -200,6 +236,7 @@ export class PortfolioService {
     if (input.projectUrl !== undefined) data.projectUrl = input.projectUrl;
     if (input.coverImageUrl !== undefined) data.coverImageUrl = input.coverImageUrl;
     if (input.technologies !== undefined) data.technologies = input.technologies;
+    if (input.services !== undefined) data.services = input.services;
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder;
     if (input.status !== undefined) data.status = input.status;
     const publishedAt = publishedAtOnUpdate(existing, input.status, input.publishedAt);
@@ -245,6 +282,7 @@ export class PortfolioService {
       clientName: item.clientName,
       coverImageUrl: item.coverImageUrl,
       technologies: item.technologies,
+      services: item.services,
       testimonial: toTestimonial(item, translation),
     };
   }
