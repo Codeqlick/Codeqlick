@@ -126,7 +126,7 @@ export default async function PortalProjectPage({
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('files')}</h2>
           <ProjectFiles
-            projectId={project.id}
+            fileHref={(fileId) => `/${locale}/portal/projects/${project.id}/files/${fileId}`}
             files={project.files}
             locale={locale}
             empty={t('noFiles')}

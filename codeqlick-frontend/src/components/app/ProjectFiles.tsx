@@ -7,17 +7,17 @@ import { ActionForm, FormCheckbox, type FormAction } from './ActionForm';
 import styles from './app.module.css';
 
 /**
- * Files of a client project, newest first, each a download link. The admin panel passes
- * `deleteAction` to add a delete control per file.
+ * Shared files (of a client project or a support request), each a download link to
+ * `fileHref(id)`. The admin panel passes `deleteAction` to add a delete control per file.
  */
 export async function ProjectFiles({
-  projectId,
+  fileHref,
   files,
   locale,
   empty,
   deleteAction,
 }: {
-  projectId: string;
+  fileHref: (fileId: string) => string;
   files: ProjectFile[];
   locale: AppLocale;
   empty: string;
@@ -33,11 +33,7 @@ export async function ProjectFiles({
         <li key={file.id} className={styles.fileRow}>
           <div className={styles.fileInfo}>
             {/* A route handler, not a page: plain link, and `download` keeps the page in place. */}
-            <a
-              href={`/${locale}/portal/projects/${projectId}/files/${file.id}`}
-              download={file.name}
-              className={styles.fileName}
-            >
+            <a href={fileHref(file.id)} download={file.name} className={styles.fileName}>
               {file.name}
             </a>
             <span className={styles.muted}>

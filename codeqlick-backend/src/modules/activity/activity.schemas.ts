@@ -51,6 +51,8 @@ export const ACTIVITY_ACTIONS = [
   'support.replied',
   'support.updated',
   'support.closed',
+  'support.file_added',
+  'support.file_deleted',
   'tag.created',
   'tag.updated',
   'tag.deleted',

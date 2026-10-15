@@ -471,4 +471,6 @@ export type TicketMessage = {
   author: { name: string; team: boolean };
 };
 
-export type TicketDetail = Ticket & { messages: TicketMessage[] };
+export type TicketFile = ProjectFile & { author: { name: string; team: boolean } };
+
+export type TicketDetail = Ticket & { messages: TicketMessage[]; files: TicketFile[] };

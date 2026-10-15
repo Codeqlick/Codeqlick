@@ -12,8 +12,11 @@ import { AppConfigService } from '../../config/app-config.service.js';
 export class ProjectFilesStorage {
   constructor(private readonly config: AppConfigService) {}
 
+  /** Folder inside UPLOADS_DIR; support requests keep theirs apart (TicketFilesStorage). */
+  protected readonly folder: string = 'project-files';
+
   private get dir(): string {
-    return join(this.config.uploadsDir, 'project-files');
+    return join(this.config.uploadsDir, this.folder);
   }
 
   async write(id: string, data: Buffer): Promise<void> {

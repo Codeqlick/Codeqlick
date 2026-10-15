@@ -5,6 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import type { ReadStream } from 'node:fs';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
@@ -12,9 +14,13 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import type { TicketStatus } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
+import { cleanContentType, cleanFileName } from '../projects/project-file-name.js';
+import type { UploadedProjectFile } from '../projects/projects.service.js';
 import { ticketClientEmail, ticketTeamEmail } from './support-emails.js';
+import { TicketFilesStorage } from './ticket-files.storage.js';
 import {
   SupportRepository,
+  type AttachmentWithUploader,
   type MessageWithAuthor,
   type TicketDetailRow,
   type TicketSummaryRow,
@@ -49,7 +55,29 @@ export interface TicketMessageView {
   author: { name: string; team: boolean };
 }
 
-export type TicketDetail = TicketSummary & { messages: TicketMessageView[] };
+export interface TicketFileView {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+  /** Who added it; `team` as for messages. */
+  author: { name: string; team: boolean };
+}
+
+export interface TicketFileDownload {
+  stream: ReadStream;
+  name: string;
+  size: number;
+}
+
+/** Largest file accepted on a support request, in bytes (as for project files). */
+export const MAX_TICKET_FILE_BYTES = 25 * 1024 * 1024;
+
+export type TicketDetail = TicketSummary & {
+  messages: TicketMessageView[];
+  files: TicketFileView[];
+};
 
 function toSummary(row: TicketSummaryRow): TicketSummary {
   return {
@@ -79,8 +107,22 @@ function toMessage(message: MessageWithAuthor): TicketMessageView {
   };
 }
 
+function toFile(file: AttachmentWithUploader): TicketFileView {
+  return {
+    id: file.id,
+    name: file.name,
+    contentType: file.contentType,
+    size: file.size,
+    createdAt: file.createdAt.toISOString(),
+    author: {
+      name: file.uploadedBy?.name ?? 'Codeqlick',
+      team: file.uploadedBy ? file.uploadedBy.role === 'ADMIN' : true,
+    },
+  };
+}
+
 function toDetail(row: TicketDetailRow): TicketDetail {
-  return { ...toSummary(row), messages: row.messages.map(toMessage) };
+  return { ...toSummary(row), messages: row.messages.map(toMessage), files: row.files.map(toFile) };
 }
 
 /**
@@ -96,6 +138,7 @@ export class SupportService {
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly activity: ActivityService,
+    private readonly storage: TicketFilesStorage,
   ) {}
 
   // ---- Portal ---------------------------------------------------------------------------
@@ -187,6 +230,66 @@ export class SupportService {
     return toDetail(row);
   }
 
+  /**
+   * The client or the team adds a file to an open request. A client's file emails the team, as a
+   * reply would.
+   */
+  async addFile(
+    caller: AuthUser,
+    id: string,
+    upload: UploadedProjectFile | undefined,
+  ): Promise<TicketDetail> {
+    if (!upload || upload.buffer.length === 0) {
+      throw new BadRequestException('Send the file in a multipart field called "file"');
+    }
+    const ticket = await this.findForCaller(caller, id);
+    if (ticket.status === 'CLOSED') throw new ConflictException('This request is closed');
+
+    const fileId = randomUUID();
+    await this.storage.write(fileId, upload.buffer);
+    let name: string;
+    try {
+      ({ name } = await this.repository.addFile({
+        id: fileId,
+        ticketId: id,
+        uploadedById: caller.id,
+        name: cleanFileName(upload.originalname),
+        contentType: cleanContentType(upload.mimetype),
+        size: upload.buffer.length,
+      }));
+    } catch (error) {
+      await this.storage.remove(fileId);
+      throw error;
+    }
+    const row = await this.findOrThrow(id);
+    if (caller.role === 'CLIENT') {
+      this.notify(
+        ticketTeamEmail(
+          this.config.leadsNotifyTo,
+          row.client,
+          row,
+          { kind: 'replied', body: `Attached a file: ${name}` },
+          this.adminLink(row.id),
+          this.config.siteUrl,
+        ),
+      );
+    }
+    await this.activity.record(caller, {
+      action: 'support.file_added',
+      targetId: id,
+      targetLabel: `#${row.number} ${row.title}`,
+      details: { file: name },
+    });
+    return toDetail(row);
+  }
+
+  async downloadFile(caller: AuthUser, id: string, fileId: string): Promise<TicketFileDownload> {
+    await this.findForCaller(caller, id);
+    const file = await this.repository.findFile(id, fileId);
+    if (!file) throw new NotFoundException('File not found');
+    return { stream: this.storage.read(file.id), name: file.name, size: file.size };
+  }
+
   // ---- Admin ----------------------------------------------------------------------------
 
   async list(query: ListTicketsQuery): Promise<Paginated<TicketSummary>> {
@@ -252,6 +355,21 @@ export class SupportService {
       });
     }
     return toDetail(row);
+  }
+
+  /** Removes a file (e.g. one shared by mistake). */
+  async deleteFile(actor: AuthUser, id: string, fileId: string): Promise<void> {
+    const ticket = await this.findOrThrow(id);
+    const file = await this.repository.findFile(id, fileId);
+    if (!file) throw new NotFoundException('File not found');
+    await this.repository.deleteFile(file.id);
+    await this.storage.remove(file.id);
+    await this.activity.record(actor, {
+      action: 'support.file_deleted',
+      targetId: id,
+      targetLabel: `#${ticket.number} ${ticket.title}`,
+      details: { file: file.name },
+    });
   }
 
   countActive(): Promise<number> {

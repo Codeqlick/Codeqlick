@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   Prisma,
   SupportTicket,
+  TicketAttachment,
   TicketMessage,
   TicketPriority,
   TicketStatus,
@@ -16,7 +17,13 @@ export type TicketSummaryRow = SupportTicket & {
   client: Person;
   project: { id: string; name: string } | null;
 };
-export type TicketDetailRow = TicketSummaryRow & { messages: MessageWithAuthor[] };
+export type AttachmentWithUploader = TicketAttachment & {
+  uploadedBy: Pick<User, 'name' | 'role'> | null;
+};
+export type TicketDetailRow = TicketSummaryRow & {
+  messages: MessageWithAuthor[];
+  files: AttachmentWithUploader[];
+};
 
 const personSelect = {
   select: { id: true, name: true, email: true, role: true, locale: true, isActive: true },
@@ -25,6 +32,17 @@ const projectSelect = { select: { id: true, name: true } } as const;
 const messagesInclude = {
   orderBy: { createdAt: 'asc' },
   include: { author: { select: { name: true, role: true } } },
+} as const;
+
+const filesInclude = {
+  orderBy: { createdAt: 'asc' },
+  include: { uploadedBy: { select: { name: true, role: true } } },
+} as const;
+const detailInclude = {
+  client: personSelect,
+  project: projectSelect,
+  messages: messagesInclude,
+  files: filesInclude,
 } as const;
 
 const OPEN_STATUSES: TicketStatus[] = ['OPEN', 'IN_PROGRESS', 'WAITING_CLIENT'];
@@ -58,7 +76,7 @@ export class SupportRepository {
   findById(id: string): Promise<TicketDetailRow | null> {
     return this.prisma.supportTicket.findUnique({
       where: { id },
-      include: { client: personSelect, project: projectSelect, messages: messagesInclude },
+      include: detailInclude,
     });
   }
 
@@ -81,7 +99,7 @@ export class SupportRepository {
     const { body, ...ticket } = data;
     return this.prisma.supportTicket.create({
       data: { ...ticket, messages: { create: { authorId: data.clientId, body } } },
-      include: { client: personSelect, project: projectSelect, messages: messagesInclude },
+      include: detailInclude,
     });
   }
 
@@ -100,7 +118,7 @@ export class SupportRepository {
       });
       return tx.supportTicket.findUniqueOrThrow({
         where: { id: ticketId },
-        include: { client: personSelect, project: projectSelect, messages: messagesInclude },
+        include: detailInclude,
       });
     });
   }
@@ -115,8 +133,35 @@ export class SupportRepository {
         ...(data.priority ? { priority: data.priority } : {}),
         ...(data.status ? statusData(data.status) : {}),
       },
-      include: { client: personSelect, project: projectSelect, messages: messagesInclude },
+      include: detailInclude,
     });
+  }
+
+  /** Adds a file and counts it as activity on the request. */
+  async addFile(data: {
+    id: string;
+    ticketId: string;
+    uploadedById: string;
+    name: string;
+    contentType: string;
+    size: number;
+  }): Promise<TicketAttachment> {
+    const [file] = await this.prisma.$transaction([
+      this.prisma.ticketAttachment.create({ data }),
+      this.prisma.supportTicket.update({
+        where: { id: data.ticketId },
+        data: { updatedAt: new Date() },
+      }),
+    ]);
+    return file;
+  }
+
+  findFile(ticketId: string, fileId: string): Promise<TicketAttachment | null> {
+    return this.prisma.ticketAttachment.findFirst({ where: { id: fileId, ticketId } });
+  }
+
+  async deleteFile(id: string): Promise<void> {
+    await this.prisma.ticketAttachment.delete({ where: { id } });
   }
 
   countActive(): Promise<number> {
