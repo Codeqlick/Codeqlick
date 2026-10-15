@@ -33,7 +33,10 @@ export const createLeadSchema = z
     name: z.string().trim().min(1).max(120),
     email: z.email().max(254),
     company: optionalText(160),
+    /** Left from the old form (cached pages may still send it). */
     budget: optionalText(80),
+    /** What they need: web, custom, mobile, design, support or not-sure. */
+    projectType: optionalText(40),
     message: z.string().trim().min(10).max(5000),
     locale: localeSchema,
     /** Honeypot: humans never see this field, bots fill it in. */

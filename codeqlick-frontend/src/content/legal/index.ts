@@ -93,7 +93,7 @@ ${ownerLines(owner, locale)}
 
 ## Qué datos tratamos y para qué
 
-**Formulario de contacto.** Tu nombre, tu correo electrónico y, si los indicas, tu empresa, tu presupuesto aproximado y tu mensaje, además del idioma en que nos escribes. Los usamos para responderte y, si te interesa, preparar una propuesta. La base legal es tu solicitud y la aplicación de medidas precontractuales (artículo 6.1.b del RGPD).
+**Formulario de contacto.** Tu nombre, tu correo electrónico y, si los indicas, tu empresa, el tipo de proyecto que necesitas y tu mensaje, además del idioma en que nos escribes. Los usamos para responderte y, si te interesa, preparar una propuesta. La base legal es tu solicitud y la aplicación de medidas precontractuales (artículo 6.1.b del RGPD).
 
 **Área de clientes.** Si eres cliente, tu nombre, tu correo electrónico, tu contraseña (guardada cifrada, nunca en claro), el idioma en que prefieres los correos, los comentarios y aprobaciones que dejas en tus proyectos y, por seguridad, la dirección IP y el navegador de cada sesión iniciada. Los usamos para darte acceso y prestarte el servicio contratado (artículo 6.1.b del RGPD) y para proteger tu cuenta (interés legítimo, artículo 6.1.f).
 
@@ -128,7 +128,7 @@ ${ownerLines(owner, locale)}
 
 ## What data we process and why
 
-**Contact form.** Your name, your email address and, if you give them, your company, your approximate budget and your message, plus the language you write in. We use them to answer you and, if you are interested, to prepare a proposal. The legal basis is your request and steps taken before a contract (article 6.1.b GDPR).
+**Contact form.** Your name, your email address and, if you give them, your company, the kind of project you need and your message, plus the language you write in. We use them to answer you and, if you are interested, to prepare a proposal. The legal basis is your request and steps taken before a contract (article 6.1.b GDPR).
 
 **Client area.** If you are a client: your name, your email address, your password (stored hashed, never in plain text), the language you prefer for emails, the comments and approvals you leave on your projects and, for security, the IP address and browser of each session. We use them to give you access and provide the contracted service (article 6.1.b GDPR) and to protect your account (legitimate interest, article 6.1.f).
 
