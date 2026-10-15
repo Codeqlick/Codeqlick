@@ -234,3 +234,52 @@ export const adminTicketUpdateSchema = z.object({
   status: z.enum(TICKET_STATUSES, 'choice'),
   priority: z.enum(TICKET_PRIORITIES, 'choice'),
 });
+
+/* Proposals. Prices are typed in euros and sent in cents. */
+
+const MAX_UNIT_PRICE_CENTS = 1_000_000_000;
+
+const proposalItemSchema = z.object({
+  description: requiredString(500),
+  quantity: z.coerce.number('number').int('number').min(1, 'number').max(10000, 'number'),
+  unitPrice: z
+    .string()
+    .trim()
+    .transform((value) =>
+      value === '' ? Number.NaN : Math.round(Number(value.replace(',', '.')) * 100),
+    )
+    .refine(
+      (cents) => Number.isFinite(cents) && cents >= 0 && cents <= MAX_UNIT_PRICE_CENTS,
+      'price',
+    ),
+});
+
+export const proposalFormSchema = z.object({
+  title: requiredString(200),
+  summary: z.string().trim().min(1, 'required').max(50000, 'tooLong'),
+  terms: z
+    .string()
+    .trim()
+    .max(20000, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+  validUntil: optionalDate,
+  projectId: z.string().transform((value) => (value === '' ? null : value)),
+  items: z.array(proposalItemSchema).min(1, 'required').max(100, 'tooLong'),
+});
+
+export const proposalCreateSchema = proposalFormSchema.extend({
+  clientId: z.string().uuid('choice'),
+});
+
+export const proposalAcceptSchema = z.object({
+  name: z.string().trim().min(2, 'required').max(200, 'tooLong'),
+  confirm: z.literal('on', 'required'),
+});
+
+export const proposalDeclineSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .max(2000, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+});

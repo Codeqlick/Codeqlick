@@ -144,3 +144,15 @@ kbd {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Printing (proposals saved as PDF): only the document, on white. */
+@media print {
+  [data-print='hide'],
+  .skip-link {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+}
