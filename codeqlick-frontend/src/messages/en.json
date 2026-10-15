@@ -614,7 +614,8 @@
       "replies": "Saved replies",
       "support": "Support",
       "proposals": "Proposals",
-      "time": "Hours"
+      "time": "Hours",
+      "calculator": "Calculator"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -964,7 +965,8 @@
         "account": "Accounts",
         "tag": "Tags",
         "support": "Support",
-        "proposal": "Proposals"
+        "proposal": "Proposals",
+        "settings": "Settings"
       },
       "actions": {
         "post": {
@@ -1049,6 +1051,9 @@
           "accepted": "accepted the proposal <target>{label}</target>",
           "declined": "declined the proposal <target>{label}</target>",
           "deleted": "deleted the proposal <target>{label}</target>"
+        },
+        "settings": {
+          "calculator_updated": "changed the prices of the <target>calculator</target>"
         }
       },
       "details": {
@@ -1183,6 +1188,25 @@
       "deleteTitle": "Delete the draft",
       "deleteBody": "Only drafts can be deleted. This can't be undone.",
       "newForClient": "New proposal"
+    },
+    "calculator": {
+      "title": "Cost calculator",
+      "lead": "The prices the website calculator uses. Type them in euros, without taxes, for a medium-sized project; types with a maximum of 0 are not offered.",
+      "view": "View the calculator",
+      "typesTitle": "By project type",
+      "typesLead": "Price range and weeks of work for a medium size.",
+      "type": "Type",
+      "min": "Minimum (€)",
+      "max": "Maximum (€)",
+      "weeksMin": "Min. weeks",
+      "weeksMax": "Max. weeks",
+      "sizesTitle": "Size",
+      "sizesLead": "They multiply the type's price and weeks. Usually: small 0.6 · medium 1 · large 1.8.",
+      "extrasTitle": "Extras",
+      "extrasLead": "What each extra adds to the price. Those with a maximum of 0 are not offered.",
+      "extra": "Extra",
+      "enabled": "Publish the calculator on the website",
+      "enabledHint": "It shows on the \"Estimate your project\" page, linked from the contact and service pages. At least one type needs a price."
     }
   },
   "Sessions": {
@@ -1508,5 +1532,49 @@
     "noProjects": "The client doesn't have any projects yet.",
     "createdFromRequest": "Task created. The request is in progress.",
     "clientRequestTitle": "Where your request stands"
+  },
+  "Calculator": {
+    "metaTitle": "Estimate your project",
+    "metaDescription": "A ballpark figure for your website, application or mobile app in a minute.",
+    "eyebrow": "Calculator",
+    "title": "Estimate your project",
+    "lead": "Answer three questions and we'll give you a ballpark figure and a timeline. Then, if you like, tell us the details.",
+    "typeQuestion": "What do you need?",
+    "sizeQuestion": "How big?",
+    "extrasQuestion": "Does it need any of these?",
+    "sizes": {
+      "small": {
+        "label": "Small",
+        "hint": "A few screens or pages, one main feature."
+      },
+      "medium": {
+        "label": "Medium",
+        "hint": "Several sections and features, the usual."
+      },
+      "large": {
+        "label": "Large",
+        "hint": "Many screens, roles or processes."
+      }
+    },
+    "extras": {
+      "languages": "Several languages",
+      "accounts": "User accounts",
+      "payments": "Online payments",
+      "admin": "Panel to manage the content",
+      "integrations": "Connection to other systems"
+    },
+    "resultLabel": "Ballpark estimate",
+    "weeksOne": "About {weeks} weeks of work",
+    "weeksRange": "Between {min} and {max} weeks of work",
+    "note": "A ballpark figure, without taxes. The final price depends on the details; we put it in a proposal.",
+    "cta": "Ask for a proposal",
+    "summaryIntro": "Coming from the calculator:",
+    "typeLabel": "Type",
+    "sizeLabel": "Size",
+    "extrasLabel": "Extras",
+    "estimateLabel": "Estimate",
+    "ctaLink": "Estimate your project",
+    "asideTitle": "Want a ballpark figure?",
+    "asideBody": "Answer three questions in the calculator."
   }
 }
