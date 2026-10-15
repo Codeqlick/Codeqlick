@@ -7,7 +7,8 @@
 # `backup` service is unhealthy when there is no dump from the last two days), free disk space
 # and how long the TLS certificates have left. When the result changes it emails ALERT_TO
 # (default: LEADS_NOTIFY_TO) through the same SMTP account as the site, with curl, so it works
-# even when the containers don't; while something stays broken it reminds every 6 hours.
+# even when the containers don't: one email when something has
+# been broken for two runs in a row (10 minutes), one when it is back.
 #
 #   ./deploy/monitor/monitor.sh --test   send a test email and exit
 set -u
@@ -29,7 +30,6 @@ COMPOSE="docker compose -f docker-compose.prod.yml"
 SERVICES="db api web backup umami"
 DISK_LIMIT="${MONITOR_DISK_LIMIT:-90}"
 CERT_DAYS=14
-REMIND_SECONDS=21600
 
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" >> "$LOG"; }
 
@@ -101,22 +101,22 @@ for url in "$SITE_URL" "$API_URL"; do
   fi
 done
 
-# Alert on changes, and remind while it stays broken.
-now="$(date +%s)"
-# Both through $(...), which drops trailing newlines, so they compare equal when nothing changed.
-problems="$(printf '%s' "$problems")"
-previous="$(cat "$STATE_DIR/problems" 2>/dev/null)"
-last_sent="$(cat "$STATE_DIR/last_sent" 2>/dev/null || echo 0)"
+# Email only when the result changes, and only once a problem shows up in two runs in a row: a
+# deploy's restart or a network blip doesn't get an alert. `alerted` is what the last alert said.
+problems="$(printf '%s' "$problems")" # $(...) drops trailing newlines, like the reads below
+last_run="$(cat "$STATE_DIR/last_run" 2>/dev/null)"
+alerted="$(cat "$STATE_DIR/alerted" 2>/dev/null)"
 if [ -n "$problems" ]; then
-  if [ "$problems" != "$previous" ] || [ $((now - last_sent)) -ge "$REMIND_SECONDS" ]; then
+  if [ "$problems" = "$last_run" ] && [ "$problems" != "$alerted" ]; then
     printf 'Something is wrong on the Codeqlick server:\n\n%s\n\nStatus: %s ps\nLogs:   %s logs --tail 100 <service>\n' \
-      "$problems" "$COMPOSE" "$COMPOSE" | send_mail "[codeqlick] ALERT: $(printf '%s' "$problems" | head -n 1 | cut -c3-)" &&
-      echo "$now" > "$STATE_DIR/last_sent"
+      "$problems" "$COMPOSE" "$COMPOSE" |
+      send_mail "[codeqlick] ALERT: $(printf '%s' "$problems" | head -n 1 | cut -c3-)" &&
+      printf '%s' "$problems" > "$STATE_DIR/alerted"
     log "ALERT $(printf '%s' "$problems" | tr '\n' ' ')"
   fi
-elif [ -n "$previous" ]; then
-  printf 'Everything is back to normal. It was:\n\n%s\n' "$previous" |
-    send_mail "[codeqlick] Resolved" && echo 0 > "$STATE_DIR/last_sent"
+elif [ -n "$alerted" ]; then
+  printf 'Everything is back to normal. It was:\n\n%s\n' "$alerted" |
+    send_mail "[codeqlick] Resolved" && : > "$STATE_DIR/alerted"
   log "RESOLVED"
 fi
-printf '%s' "$problems" > "$STATE_DIR/problems"
+printf '%s' "$problems" > "$STATE_DIR/last_run"
