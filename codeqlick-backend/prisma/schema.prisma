@@ -73,6 +73,7 @@ model User {
   projectUpdates ProjectUpdate[]
   projectFiles   ProjectFile[]
   activity       ActivityLog[]
+  leadReplies    LeadReply[]
 
   @@map("users")
 }
@@ -125,8 +126,28 @@ model Lead {
   createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  replies LeadReply[]
+
   @@index([status, createdAt])
   @@map("leads")
+}
+
+/// An email answer sent to a lead from the admin panel. Only stored once the email went out.
+model LeadReply {
+  id         String   @id @default(uuid()) @db.Uuid
+  leadId     String   @map("lead_id") @db.Uuid
+  authorId   String?  @map("author_id") @db.Uuid
+  /// Copied at the time, so the history keeps it after the author's account is deleted.
+  authorName String   @map("author_name")
+  subject    String
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@map("lead_replies")
 }
 
 model Post {

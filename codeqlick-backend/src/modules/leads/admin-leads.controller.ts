@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Header, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -6,14 +6,16 @@ import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
+  createLeadReplySchema,
   exportLeadsQuerySchema,
   listLeadsQuerySchema,
   updateLeadSchema,
+  type CreateLeadReplyInput,
   type ExportLeadsQuery,
   type ListLeadsQuery,
   type UpdateLeadInput,
 } from './leads.schemas.js';
-import { LeadsService, type Lead } from './leads.service.js';
+import { LeadsService, type Lead, type LeadReply, type SentLeadReply } from './leads.service.js';
 
 @ApiTags('admin/leads')
 @ApiBearerAuth()
@@ -48,5 +50,19 @@ export class AdminLeadsController {
     @Body({ schema: updateLeadSchema }) body: UpdateLeadInput,
   ): Promise<Lead> {
     return this.leads.update(user, params.id, body);
+  }
+
+  @Get(':id/replies')
+  listReplies(@Param({ schema: idParamSchema }) params: IdParam): Promise<LeadReply[]> {
+    return this.leads.listReplies(params.id);
+  }
+
+  @Post(':id/replies')
+  reply(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: createLeadReplySchema }) body: CreateLeadReplyInput,
+  ): Promise<SentLeadReply> {
+    return this.leads.reply(user, params.id, body);
   }
 }

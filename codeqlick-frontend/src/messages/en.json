@@ -577,8 +577,17 @@
       "emptyTitle": "No leads found",
       "emptyBody": "New contact form submissions will appear here.",
       "back": "All leads",
-      "reply": "Reply by email",
-      "exportCsv": "Export CSV"
+      "reply": "Reply",
+      "exportCsv": "Export CSV",
+      "replies": "Replies",
+      "repliedBy": "{author} · {date}",
+      "replySubject": "Subject",
+      "replyBody": "Reply",
+      "replyHint": "Sent to {email} from Codeqlick's address, in the brand layout with their message quoted below; the template's language is {language}. Separate paragraphs with a blank line and sign at the end. A first reply moves the status to \"Contacted\".",
+      "replySend": "Send reply",
+      "replySending": "Sending…",
+      "replySent": "Reply sent to {email}.",
+      "replyFailed": "The reply couldn't be sent, and nothing was stored. Check the server's SMTP settings and try again."
     },
     "posts": {
       "title": "Posts",
@@ -795,7 +804,8 @@
           "invited": "sent a welcome email to <target>{label}</target>"
         },
         "lead": {
-          "updated": "updated the lead <target>{label}</target>"
+          "updated": "updated the lead <target>{label}</target>",
+          "replied": "replied to the lead <target>{label}</target>"
         },
         "media": {
           "uploaded": "uploaded the image <target>{label}</target>",

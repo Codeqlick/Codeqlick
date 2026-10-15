@@ -196,6 +196,15 @@ export type Lead = {
   updatedAt: string;
 };
 
+/** An email answer sent to a lead from the admin panel. */
+export type LeadReply = {
+  id: string;
+  subject: string;
+  body: string;
+  author: { name: string };
+  createdAt: string;
+};
+
 export type LeadInput = {
   name: string;
   email: string;

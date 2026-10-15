@@ -38,6 +38,7 @@ export const ACTIVITY_ACTIONS = [
   'user.updated',
   'user.invited',
   'lead.updated',
+  'lead.replied',
   'tag.created',
   'tag.updated',
   'tag.deleted',
