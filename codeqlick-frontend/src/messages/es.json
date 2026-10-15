@@ -642,7 +642,24 @@
       "replySend": "Enviar respuesta",
       "replySending": "Enviando…",
       "replySent": "Respuesta enviada a {email}.",
-      "replyFailed": "No se pudo enviar la respuesta; no se ha guardado nada. Revisa la configuración de SMTP del servidor y vuelve a intentarlo."
+      "replyFailed": "No se pudo enviar la respuesta; no se ha guardado nada. Revisa la configuración de SMTP del servidor y vuelve a intentarlo.",
+      "viewBoard": "Ver tablero",
+      "viewList": "Ver lista",
+      "boardTitle": "Tablero de contactos",
+      "boardLead": "Arrastra cada contacto a su estado (o usa su menú «Mover a»). Los archivados solo aparecen en la lista.",
+      "moveTo": "Mover a",
+      "boardEmpty": "Ninguno.",
+      "boardEstimate": "≈",
+      "boardEstimateHint": "Estimación según el presupuesto que indicó cada contacto (el punto medio de su rango).",
+      "boardFailed": "No se pudo guardar el cambio. Recarga la página y vuelve a intentarlo.",
+      "boardMore": "Y {count} más en la lista.",
+      "boardHints": {
+        "NEW": "Te ha escrito y aún no le has respondido.",
+        "CONTACTED": "Ya le has respondido.",
+        "QUALIFIED": "Hay interés real y encaja: habéis hablado o preparas propuesta.",
+        "WON": "Ha aceptado: es cliente.",
+        "LOST": "No sale adelante."
+      }
     },
     "posts": {
       "title": "Artículos",

@@ -642,7 +642,24 @@
       "replySend": "Send reply",
       "replySending": "Sending…",
       "replySent": "Reply sent to {email}.",
-      "replyFailed": "The reply couldn't be sent, and nothing was stored. Check the server's SMTP settings and try again."
+      "replyFailed": "The reply couldn't be sent, and nothing was stored. Check the server's SMTP settings and try again.",
+      "viewBoard": "Board view",
+      "viewList": "List view",
+      "boardTitle": "Lead board",
+      "boardLead": "Drag each lead to its status (or use its “Move to” menu). Archived leads only show in the list.",
+      "moveTo": "Move to",
+      "boardEmpty": "None.",
+      "boardEstimate": "≈",
+      "boardEstimateHint": "Estimate from the budget each lead picked (the middle of its range).",
+      "boardFailed": "The change couldn't be saved. Reload the page and try again.",
+      "boardMore": "And {count} more in the list.",
+      "boardHints": {
+        "NEW": "Wrote to you; not answered yet.",
+        "CONTACTED": "You've answered them.",
+        "QUALIFIED": "Real interest and a good fit: you've talked or are preparing a proposal.",
+        "WON": "Accepted: they're a client.",
+        "LOST": "Not going ahead."
+      }
     },
     "posts": {
       "title": "Posts",
