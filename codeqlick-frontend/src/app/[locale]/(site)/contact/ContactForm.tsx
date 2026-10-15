@@ -18,9 +18,12 @@ import styles from './ContactForm.module.css';
 export function ContactForm({
   renderedAt,
   showPrivacyNote = false,
+  initial = {},
 }: {
   renderedAt: number;
   showPrivacyNote?: boolean;
+  /** Starting values (from the calculator): the project type and the message. */
+  initial?: { projectType?: string; message?: string };
 }) {
   const t = useTranslations('Contact');
   const tc = useTranslations('Common');
@@ -83,7 +86,7 @@ export function ContactForm({
           optionalLabel={tc('optional')}
           placeholder={t('form.projectTypePlaceholder')}
           options={PROJECT_TYPES.map((value) => ({ value, label: t(`projectTypes.${value}`) }))}
-          defaultValue={values.projectType ?? ''}
+          defaultValue={values.projectType ?? initial.projectType ?? ''}
           error={errors.projectType}
         />
       </div>
@@ -93,7 +96,7 @@ export function ContactForm({
         hint={t('form.messageHint')}
         rows={7}
         required
-        defaultValue={values.message}
+        defaultValue={values.message ?? initial.message}
         error={errors.message}
       />
 
