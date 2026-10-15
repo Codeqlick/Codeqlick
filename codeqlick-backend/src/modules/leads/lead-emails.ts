@@ -26,6 +26,7 @@ export function leadNotificationEmail(
       {
         locale: 'en',
         preheader: lead.message.slice(0, 120),
+        title: `New lead: ${lead.name}`,
         intro: ['Someone filled in the contact form. Reply to this email to answer them.'],
         details: [
           ['Name', lead.name],
@@ -56,11 +57,12 @@ export function leadAcknowledgementEmail(lead: LeadForEmail, siteUrl: string): M
         preheader: es
           ? 'Te responderemos en un plazo de dos días laborables.'
           : 'We will get back to you within two business days.',
+        title: es ? 'Hemos recibido tu mensaje' : 'We received your message',
         greeting: es ? `Hola ${lead.name}:` : `Hi ${lead.name},`,
         intro: [
           es
-            ? 'Gracias por escribirnos. Hemos recibido tu mensaje y te responderemos en un plazo de dos días laborables.'
-            : 'Thanks for reaching out. We have received your message and will get back to you within two business days.',
+            ? 'Gracias por escribirnos. Te responderemos en un plazo de dos días laborables. Mientras tanto, esto es lo que nos has enviado:'
+            : "Thanks for reaching out. We'll get back to you within two business days. In the meantime, here is what you sent us:",
         ],
         quote: { title: es ? 'Tu mensaje' : 'Your message', body: lead.message },
       },

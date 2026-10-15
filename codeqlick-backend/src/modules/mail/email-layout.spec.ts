@@ -9,16 +9,20 @@ describe('renderEmail', () => {
       {
         locale: 'es',
         preheader: 'Preview',
+        title: 'Titular',
         greeting: 'Hola Ada:',
         intro: ['Primer párrafo.'],
         quote: { title: 'Título', body: 'Cuerpo' },
         button: { label: 'Abrir', url: 'https://codeqlick.com/es/x' },
         outro: ['Último párrafo.'],
+        note: 'Nota.',
       },
       siteUrl,
     );
     expect(text).toBe(
       [
+        'Titular',
+        '',
         'Hola Ada:',
         '',
         'Primer párrafo.',
@@ -31,6 +35,8 @@ describe('renderEmail', () => {
         '',
         'Último párrafo.',
         '',
+        'Nota.',
+        '',
         'Un saludo,',
         'El equipo de Codeqlick',
       ].join('\n'),
@@ -42,7 +48,9 @@ describe('renderEmail', () => {
       {
         locale: 'en',
         preheader: 'Your account is ready',
+        title: 'Welcome to Codeqlick',
         intro: ['Hello.'],
+        note: 'The link expires in 7 days.',
         button: { label: 'Choose my password', url: 'https://codeqlick.com/en/reset?token=a&b=1' },
       },
       siteUrl,
@@ -54,6 +62,9 @@ describe('renderEmail', () => {
     expect(html).toContain('>Choose my password</a>');
     expect(html).toContain('Redefining information technology in society');
     expect(html).toContain('#D9177E');
+    expect(html).toContain('>Welcome to Codeqlick</h1>');
+    expect(html).toContain('The link expires in 7 days.</td>');
+    expect(html).toContain(`© ${new Date().getFullYear()} Codeqlick`);
   });
 
   it('escapes everything that comes from users', () => {
@@ -61,6 +72,7 @@ describe('renderEmail', () => {
       {
         locale: 'en',
         preheader: '<b>pre</b>',
+        title: 'New lead: <Ada>',
         greeting: 'Hi <script>alert(1)</script>,',
         intro: ['"quoted" & <i>tagged</i>'],
         quote: { body: 'line one\n<img src=x onerror=alert(1)>' },
@@ -69,6 +81,7 @@ describe('renderEmail', () => {
       siteUrl,
     );
     expect(html).not.toContain('<script>');
+    expect(html).toContain('New lead: &lt;Ada&gt;</h1>');
     expect(html).not.toContain('<img src=x');
     expect(html).not.toContain('<i>tagged</i>');
     expect(html).toContain('Hi &lt;script&gt;alert(1)&lt;/script&gt;,');
