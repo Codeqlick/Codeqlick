@@ -11,6 +11,7 @@ export const ACTIVITY_TARGETS = [
   'media',
   'tag',
   'account',
+  'support',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -46,6 +47,10 @@ export const ACTIVITY_ACTIONS = [
   'lead.updated',
   'lead.replied',
   'lead.converted',
+  'support.opened',
+  'support.replied',
+  'support.updated',
+  'support.closed',
   'tag.created',
   'tag.updated',
   'tag.deleted',

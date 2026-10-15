@@ -8,6 +8,8 @@ export interface AdminStats {
   portfolio: { published: number };
   projects: { active: number };
   clients: number;
+  /** Support requests not resolved or closed yet. */
+  support: { active: number };
 }
 
 export interface AdminTimeline {
@@ -46,6 +48,7 @@ export class StatsService {
       portfolio: { published: c.portfolioPublished },
       projects: { active: c.projectsActive },
       clients: c.clients,
+      support: { active: c.ticketsActive },
     };
   }
 

@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { LEAD_STATUSES, LOST_REASONS, PROJECT_PHASES } from '@/lib/api/types';
+import {
+  LEAD_STATUSES,
+  LOST_REASONS,
+  PROJECT_PHASES,
+  TICKET_PRIORITIES,
+  TICKET_STATUSES,
+  TICKET_TYPES,
+} from '@/lib/api/types';
 import {
   optionalDate,
   optionalDateTime,
@@ -203,3 +210,27 @@ export const userUpdateSchema = z.object({
 });
 
 export const passwordResetSchema = z.object({ password: passwordSchema });
+
+/* Support requests (portal and admin). */
+
+const ticketBody = z.string().trim().min(1, 'required').max(20000, 'tooLong');
+
+export const ticketCreateSchema = z.object({
+  type: z.enum(TICKET_TYPES, 'choice'),
+  priority: z.enum(TICKET_PRIORITIES, 'choice'),
+  title: requiredString(200),
+  body: ticketBody,
+  projectId: z.string().transform((value) => (value === '' ? null : value)),
+});
+
+export const ticketMessageSchema = z.object({ body: ticketBody });
+
+export const adminTicketMessageSchema = z.object({
+  body: ticketBody,
+  status: z.enum(TICKET_STATUSES, 'choice'),
+});
+
+export const adminTicketUpdateSchema = z.object({
+  status: z.enum(TICKET_STATUSES, 'choice'),
+  priority: z.enum(TICKET_PRIORITIES, 'choice'),
+});

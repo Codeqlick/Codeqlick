@@ -12,6 +12,7 @@ export interface StatsCounts {
   portfolioPublished: number;
   projectsActive: number;
   clients: number;
+  ticketsActive: number;
 }
 
 export interface MonthlyCounts {
@@ -49,6 +50,7 @@ export class StatsRepository {
       portfolioPublished,
       projectsActive,
       clients,
+      ticketsActive,
     ] = await this.prisma.$transaction([
       this.prisma.lead.count({ where: { status: LeadStatus.NEW } }),
       this.prisma.lead.count(),
@@ -61,6 +63,9 @@ export class StatsRepository {
       this.prisma.portfolioItem.count({ where: liveWhere(now) }),
       this.prisma.clientProject.count({ where: { phase: { in: ACTIVE_PHASES } } }),
       this.prisma.user.count({ where: { role: Role.CLIENT, isActive: true } }),
+      this.prisma.supportTicket.count({
+        where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_CLIENT'] } },
+      }),
     ]);
     return {
       leadsNew,
@@ -71,6 +76,7 @@ export class StatsRepository {
       portfolioPublished,
       projectsActive,
       clients,
+      ticketsActive,
     };
   }
 

@@ -538,7 +538,8 @@
   "Portal": {
     "title": "Client portal",
     "nav": {
-      "projects": "Projects"
+      "projects": "Projects",
+      "support": "Support"
     },
     "projectsTitle": "Your projects",
     "projectsLead": "Follow the progress of everything we're building together.",
@@ -580,7 +581,8 @@
     "writeComment": "Write a comment",
     "commentLabel": "Comment",
     "sendComment": "Send comment",
-    "sending": "Sending…"
+    "sending": "Sending…",
+    "askSupport": "Open a request"
   },
   "Admin": {
     "title": "Admin",
@@ -594,7 +596,8 @@
       "users": "Users",
       "activity": "Activity",
       "tags": "Tags",
-      "replies": "Saved replies"
+      "replies": "Saved replies",
+      "support": "Support"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -617,7 +620,8 @@
       "caseStudiesSeries": "Case studies",
       "month": "Month",
       "lostReasons": "Why leads are lost",
-      "lostReasonsEmpty": "No lost leads yet."
+      "lostReasonsEmpty": "No lost leads yet.",
+      "activeTickets": "Open requests"
     },
     "leads": {
       "title": "Leads",
@@ -895,7 +899,8 @@
         "user": "Users",
         "media": "Images",
         "account": "Accounts",
-        "tag": "Tags"
+        "tag": "Tags",
+        "support": "Support"
       },
       "actions": {
         "post": {
@@ -953,6 +958,12 @@
           "created": "created the tag <target>{label}</target>",
           "updated": "edited the tag <target>{label}</target>",
           "deleted": "deleted the tag <target>{label}</target>"
+        },
+        "support": {
+          "opened": "opened the request <target>{label}</target>",
+          "replied": "replied on the request <target>{label}</target>",
+          "updated": "changed the request <target>{label}</target>",
+          "closed": "closed the request <target>{label}</target>"
         }
       },
       "details": {
@@ -1166,5 +1177,65 @@
     "CHOSE_OTHER": "Chose someone else",
     "TIMING": "Not the right time",
     "OTHER": "Other"
+  },
+  "Support": {
+    "title": "Support",
+    "lead": "Report a bug, ask for a change or ask us anything. We answer here and by email.",
+    "adminLead": "Requests clients send from their private area.",
+    "new": "New request",
+    "newLead": "The more specific you are, the sooner we sort it out: what happened, where and how to reproduce it.",
+    "back": "Back to support",
+    "emptyTitle": "You haven't opened any requests yet",
+    "emptyBody": "Whenever you need something, open a request and we will follow it up here.",
+    "adminEmptyTitle": "No requests",
+    "adminEmptyBody": "Requests clients open from their private area will show up here.",
+    "request": "Request",
+    "project": "Project",
+    "client": "Client",
+    "status": "Status",
+    "priority": "Priority",
+    "type": "Type",
+    "updated": "Last activity",
+    "opened": "Opened",
+    "number": "Number",
+    "noProject": "None in particular",
+    "titleLabel": "Subject",
+    "description": "Description",
+    "descriptionHint": "For a bug, include the page, what you expected and what happened.",
+    "priorityHint": "Urgent: something in production is not working.",
+    "send": "Send request",
+    "sending": "Sending…",
+    "conversation": "Conversation",
+    "replyLabel": "Your reply",
+    "reply": "Reply",
+    "reopenHint": "Replying reopens the request.",
+    "adminReplyHint": "An email notice goes to {email}.",
+    "statusAfterReply": "Status after replying",
+    "statusHint": "Marking it resolved or closed lets the client know.",
+    "closedNotice": "This request is closed. If you need anything else, open a new one.",
+    "closeTitle": "All sorted?",
+    "closeBody": "Close it if you don't need anything else. You won't be able to reply afterwards.",
+    "close": "Close request",
+    "closing": "Closing…",
+    "activeFilter": "Pending",
+    "types": {
+      "BUG": "Bug",
+      "CHANGE": "Change",
+      "QUESTION": "Question"
+    },
+    "priorities": {
+      "LOW": "Low",
+      "NORMAL": "Normal",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "WAITING_CLIENT": "Waiting for the client",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    },
+    "waitingYou": "Waiting for your reply"
   }
 }

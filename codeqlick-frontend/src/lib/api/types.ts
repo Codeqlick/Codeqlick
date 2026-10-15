@@ -325,6 +325,8 @@ export type AdminStats = {
   portfolio: { published: number };
   projects: { active: number };
   clients: number;
+  /** Support requests not resolved or closed yet. */
+  support: { active: number };
 };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
@@ -392,6 +394,7 @@ export const ACTIVITY_TARGETS = [
   'user',
   'media',
   'tag',
+  'support',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
@@ -431,3 +434,41 @@ export type SiteVisits = {
 
 /** `GET /admin/saved-replies`: a reusable text; `{name}` and `{project}` are filled in on insert. */
 export type SavedReply = { id: string; title: string; body: string; updatedAt: string };
+
+export const TICKET_TYPES = ['BUG', 'CHANGE', 'QUESTION'] as const;
+export const TICKET_PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'] as const;
+export const TICKET_STATUSES = [
+  'OPEN',
+  'IN_PROGRESS',
+  'WAITING_CLIENT',
+  'RESOLVED',
+  'CLOSED',
+] as const;
+export type TicketType = (typeof TICKET_TYPES)[number];
+export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
+export type TicketStatus = (typeof TICKET_STATUSES)[number];
+
+/** A support request (`/portal/tickets`, `/admin/tickets`). */
+export type Ticket = {
+  id: string;
+  number: number;
+  type: TicketType;
+  priority: TicketPriority;
+  status: TicketStatus;
+  title: string;
+  client: { id: string; name: string; email: string };
+  project: { id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+};
+
+export type TicketMessage = {
+  id: string;
+  body: string;
+  createdAt: string;
+  /** `team`: written by Codeqlick; otherwise by the client. */
+  author: { name: string; team: boolean };
+};
+
+export type TicketDetail = Ticket & { messages: TicketMessage[] };
