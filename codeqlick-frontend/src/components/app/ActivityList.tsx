@@ -19,6 +19,7 @@ function targetHref(entry: ActivityEntry): string | undefined {
   if (entry.action.endsWith('.deleted')) return undefined;
   const { type, id } = entry.target;
   if (type === 'media') return '/admin/media';
+  if (type === 'tag') return '/admin/tags';
   const section = ADMIN_SECTIONS[type];
   return section && id ? `/admin/${section}/${id}` : undefined;
 }

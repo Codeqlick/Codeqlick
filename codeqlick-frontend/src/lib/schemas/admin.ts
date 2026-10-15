@@ -62,6 +62,12 @@ export const postFormSchema = z.object({
   es: postTranslation(false),
 });
 
+export const tagFormSchema = z.object({
+  slug: slugSchema,
+  nameEs: requiredString(40),
+  nameEn: requiredString(40),
+});
+
 export const portfolioFormSchema = z.object({
   slug: slugSchema,
   status: publishStatusSchema,

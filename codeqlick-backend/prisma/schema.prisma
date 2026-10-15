@@ -139,9 +139,36 @@ model Post {
 
   author       User?             @relation(fields: [authorId], references: [id], onDelete: SetNull)
   translations PostTranslation[]
+  tags         PostTag[]
 
   @@index([status, publishedAt])
   @@map("posts")
+}
+
+/// A blog topic, shared by both languages: one slug for URLs, a name per language.
+model Tag {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  nameEn    String   @map("name_en")
+  nameEs    String   @map("name_es")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String @map("post_id") @db.Uuid
+  tagId  String @map("tag_id") @db.Uuid
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("post_tags")
 }
 
 model PostTranslation {

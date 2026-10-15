@@ -350,3 +350,36 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
   gap: var(--space-4);
 }
+
+/* Tag checkboxes: several per line on wide screens. */
+.tagChoices {
+  flex-flow: row wrap;
+  gap: var(--space-3) var(--space-6);
+}
+
+.tagChoices > * {
+  margin: 0;
+}
+
+.tagFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-4);
+}
+
+.tagRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.tagRow:first-child {
+  padding-top: 0;
+}
+
+.tagRow:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}

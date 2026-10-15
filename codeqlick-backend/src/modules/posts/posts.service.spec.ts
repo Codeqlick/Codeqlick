@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ActivityService } from '../activity/activity.service.js';
+import type { TagsService } from './tags.service.js';
 import type { PostTranslation } from '../../generated/prisma/client.js';
 import type { PostsRepository, PostWithTranslations } from './posts.repository.js';
 import { PostsService } from './posts.service.js';
@@ -20,7 +21,16 @@ function translation(locale: 'EN' | 'ES', title: string): PostTranslation {
   } as PostTranslation;
 }
 
-function post(translations: PostTranslation[]): PostWithTranslations {
+function tag(slug: string) {
+  return {
+    tag: { id: `t-${slug}`, slug, nameEn: slug.toUpperCase(), nameEs: `es-${slug}` },
+  } as PostWithTranslations['tags'][number];
+}
+
+function post(
+  translations: PostTranslation[],
+  extra: Partial<PostWithTranslations> = {},
+): PostWithTranslations {
   return {
     id: 'p1',
     slug: 'hello-world',
@@ -31,6 +41,8 @@ function post(translations: PostTranslation[]): PostWithTranslations {
     createdAt: publishedAt,
     updatedAt: publishedAt,
     translations,
+    tags: [],
+    ...extra,
   } as PostWithTranslations;
 }
 
@@ -42,6 +54,7 @@ describe('PostsService', () => {
     listPublished: ReturnType<typeof vi.fn>;
     findById: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    findLiveCandidates: ReturnType<typeof vi.fn>;
   };
   let service: PostsService;
 
@@ -51,10 +64,12 @@ describe('PostsService', () => {
       listPublished: vi.fn(),
       findById: vi.fn(),
       update: vi.fn(),
+      findLiveCandidates: vi.fn().mockResolvedValue([]),
     };
     service = new PostsService(
       repository as unknown as PostsRepository,
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+      { assertExist: vi.fn().mockResolvedValue(undefined) } as unknown as TagsService,
     );
   });
 
@@ -73,6 +88,7 @@ describe('PostsService', () => {
       coverImageUrl: null,
       publishedAt: publishedAt.toISOString(),
       locales: ['en', 'es'],
+      tags: [],
     });
   });
 
@@ -100,7 +116,7 @@ describe('PostsService', () => {
 
     const page = await service.listPublished({ page: 2, pageSize: 20, locale: 'es' });
 
-    expect(repository.listPublished).toHaveBeenCalledWith(20, 20);
+    expect(repository.listPublished).toHaveBeenCalledWith(undefined, 20, 20);
     expect(page).toEqual({
       items: [
         {
@@ -109,6 +125,7 @@ describe('PostsService', () => {
           excerpt: 'Hello excerpt',
           coverImageUrl: null,
           publishedAt: publishedAt.toISOString(),
+          tags: [],
         },
       ],
       page: 2,
@@ -141,5 +158,37 @@ describe('PostsService', () => {
     await expect(service.update(actor, 'nope', { status: 'DRAFT' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  describe('related', () => {
+    const en = [translation('EN', 'Hello')];
+    const current = post(en, { id: 'p1', tags: [tag('nestjs'), tag('prisma')] });
+    const one = post(en, { id: 'p2', slug: 'one-shared', tags: [tag('nestjs')] });
+    const two = post(en, { id: 'p3', slug: 'two-shared', tags: [tag('nestjs'), tag('prisma')] });
+    const latest = post(en, { id: 'p4', slug: 'latest' });
+
+    it('puts the posts sharing the most tags first and names tags in the locale', async () => {
+      repository.findPublishedBySlug.mockResolvedValue(current);
+      repository.findLiveCandidates.mockResolvedValueOnce([one, two]);
+
+      const related = await service.related('hello-world', 'es', 2);
+
+      expect(related.map((item) => item.slug)).toEqual(['two-shared', 'one-shared']);
+      expect(related[0]?.tags).toEqual([
+        { slug: 'nestjs', name: 'es-nestjs' },
+        { slug: 'prisma', name: 'es-prisma' },
+      ]);
+    });
+
+    it('tops up with the latest posts, without repeating one', async () => {
+      repository.findPublishedBySlug.mockResolvedValue(current);
+      repository.findLiveCandidates
+        .mockResolvedValueOnce([one])
+        .mockResolvedValueOnce([one, latest]);
+
+      const related = await service.related('hello-world', 'en', 3);
+
+      expect(related.map((item) => item.slug)).toEqual(['one-shared', 'latest']);
+    });
   });
 });

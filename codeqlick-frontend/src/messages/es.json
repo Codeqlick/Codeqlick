@@ -285,7 +285,14 @@
     "emptyBody": "Estamos escribiendo los primeros. Vuelve pronto.",
     "readMore": "Leer artículo",
     "back": "Todos los artículos",
-    "publishedOn": "Publicado el {date}"
+    "publishedOn": "Publicado el {date}",
+    "tagsLabel": "Etiquetas",
+    "topics": "Temas",
+    "allTopics": "Todos los temas",
+    "postsAbout": "Artículos sobre {tag}",
+    "emptyTagTitle": "Nada sobre este tema todavía",
+    "emptyTagBody": "No hay artículos publicados con esta etiqueta.",
+    "related": "Sigue leyendo"
   },
   "Work": {
     "metaTitle": "Proyectos",
@@ -525,7 +532,8 @@
       "media": "Imágenes",
       "projects": "Proyectos",
       "users": "Usuarios",
-      "activity": "Actividad"
+      "activity": "Actividad",
+      "tags": "Etiquetas"
     },
     "dashboard": {
       "title": "Panel",
@@ -587,7 +595,9 @@
       "deleteTitle": "Eliminar este artículo",
       "deleteBody": "El artículo y sus traducciones se retirarán del blog.",
       "publishedAt": "Fecha de publicación",
-      "publishedAtHint": "Si es futura, el artículo aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo."
+      "publishedAtHint": "Si es futura, el artículo aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo.",
+      "tags": "Etiquetas",
+      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -730,7 +740,8 @@
         "lead": "Contactos",
         "user": "Usuarios",
         "media": "Imágenes",
-        "account": "Cuentas"
+        "account": "Cuentas",
+        "tag": "Etiquetas"
       },
       "actions": {
         "post": {
@@ -774,7 +785,12 @@
           "two_factor_disabled": "desactivó la verificación en dos pasos",
           "sessions_revoked": "{scope, select, one {cerró la sesión de otro de sus dispositivos} other {cerró la sesión en todos sus demás dispositivos}}"
         },
-        "unknown": "hizo un cambio ({action})"
+        "unknown": "hizo un cambio ({action})",
+        "tag": {
+          "created": "creó la etiqueta <target>{label}</target>",
+          "updated": "editó la etiqueta <target>{label}</target>",
+          "deleted": "borró la etiqueta <target>{label}</target>"
+        }
       },
       "details": {
         "status": "Estado: {value}",
@@ -789,6 +805,22 @@
         "passwordReset": "Contraseña restablecida",
         "publishedAt": "Se publica el {value}"
       }
+    },
+    "tags": {
+      "title": "Etiquetas",
+      "lead": "Temas del blog. Cada etiqueta tiene un nombre en cada idioma y un slug para su dirección.",
+      "newTag": "Nueva etiqueta",
+      "existing": "Etiquetas",
+      "nameEs": "Nombre en español",
+      "nameEn": "Nombre en inglés",
+      "slug": "Slug",
+      "slugHint": "Va en la dirección: /blog?tag=slug",
+      "postCount": "{count, plural, =0 {Sin artículos} one {# artículo} other {# artículos}}",
+      "created": "Etiqueta creada.",
+      "saved": "Etiqueta guardada.",
+      "slugTaken": "Ya hay una etiqueta con este slug.",
+      "emptyTitle": "Aún no hay etiquetas",
+      "emptyBody": "Crea la primera arriba y asígnala desde el formulario de cada artículo."
     }
   },
   "Sessions": {

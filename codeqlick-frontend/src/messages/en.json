@@ -285,7 +285,14 @@
     "emptyBody": "We're writing our first posts. Check back soon.",
     "readMore": "Read article",
     "back": "All articles",
-    "publishedOn": "Published on {date}"
+    "publishedOn": "Published on {date}",
+    "tagsLabel": "Tags",
+    "topics": "Topics",
+    "allTopics": "All topics",
+    "postsAbout": "Posts about {tag}",
+    "emptyTagTitle": "Nothing on this topic yet",
+    "emptyTagBody": "There are no published posts with this tag.",
+    "related": "Keep reading"
   },
   "Work": {
     "metaTitle": "Work",
@@ -525,7 +532,8 @@
       "media": "Images",
       "projects": "Projects",
       "users": "Users",
-      "activity": "Activity"
+      "activity": "Activity",
+      "tags": "Tags"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -587,7 +595,9 @@
       "deleteTitle": "Delete this post",
       "deleteBody": "The post and its translations will be removed from the blog.",
       "publishedAt": "Publication date",
-      "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it."
+      "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it.",
+      "tags": "Tags",
+      "noTags": "No tags yet. <link>Create some</link> to sort your posts."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -730,7 +740,8 @@
         "lead": "Leads",
         "user": "Users",
         "media": "Images",
-        "account": "Accounts"
+        "account": "Accounts",
+        "tag": "Tags"
       },
       "actions": {
         "post": {
@@ -774,7 +785,12 @@
           "two_factor_disabled": "turned off two-step verification",
           "sessions_revoked": "{scope, select, one {signed out one of their other devices} other {signed out all their other devices}}"
         },
-        "unknown": "made a change ({action})"
+        "unknown": "made a change ({action})",
+        "tag": {
+          "created": "created the tag <target>{label}</target>",
+          "updated": "edited the tag <target>{label}</target>",
+          "deleted": "deleted the tag <target>{label}</target>"
+        }
       },
       "details": {
         "status": "Status: {value}",
@@ -789,6 +805,22 @@
         "passwordReset": "Password reset",
         "publishedAt": "Goes live on {value}"
       }
+    },
+    "tags": {
+      "title": "Tags",
+      "lead": "Blog topics. Each tag has a name in each language and a slug for its address.",
+      "newTag": "New tag",
+      "existing": "Tags",
+      "nameEs": "Spanish name",
+      "nameEn": "English name",
+      "slug": "Slug",
+      "slugHint": "Used in the address: /blog?tag=slug",
+      "postCount": "{count, plural, =0 {No posts} one {# post} other {# posts}}",
+      "created": "Tag created.",
+      "saved": "Tag saved.",
+      "slugTaken": "There is already a tag with this slug.",
+      "emptyTitle": "No tags yet",
+      "emptyBody": "Create the first one above and assign it from each post's form."
     }
   },
   "Sessions": {

@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import {
   ActionForm,
+  FormCheckboxGroup,
   FormInput,
   FormSelect,
   FormTextarea,
@@ -10,9 +11,11 @@ import styles from '@/components/app/app.module.css';
 import { ImageField } from '@/components/app/ImageField';
 import { MarkdownImageButton } from '@/components/app/MarkdownImageButton';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import { toDateTimeInput } from '@/lib/format';
 import { MAX_IMAGE_BYTES } from '@/lib/api/media';
+import { adminListTags } from '@/lib/api/posts';
 import type { AdminPost } from '@/lib/api/types';
 import { uploadImageAction } from '../actions';
 
@@ -32,6 +35,7 @@ export async function PostForm({
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tm = await getTranslations({ locale, namespace: 'Admin.media' });
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
+  const tags = await adminListTags();
 
   return (
     <ActionForm action={action} className={styles.form}>
@@ -77,6 +81,22 @@ export async function PostForm({
           failed: tm('failed'),
         }}
       />
+      {tags.length > 0 ? (
+        <FormCheckboxGroup
+          name="tagIds"
+          legend={t('tags')}
+          className={`${styles.fieldset} ${styles.tagChoices}`}
+          options={tags.map((tag) => ({
+            value: tag.id,
+            label: locale === 'es' ? tag.nameEs : tag.nameEn,
+          }))}
+          defaultValues={post?.tagIds}
+        />
+      ) : (
+        <p className={styles.muted}>
+          {t.rich('noTags', { link: (chunks) => <Link href="/admin/tags">{chunks}</Link> })}
+        </p>
+      )}
 
       {(['en', 'es'] as const).map((lang) => {
         const translation = post?.translations.find((item) => item.locale === lang);

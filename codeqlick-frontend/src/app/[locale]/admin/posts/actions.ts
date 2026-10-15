@@ -33,7 +33,8 @@ function parsePost(formData: FormData) {
   if (!parsed.success) return { error: parsed.error };
 
   const { en, es, ...rest } = parsed.data;
-  const input: PostInput = { ...rest, translations: [{ locale: 'en', ...en }] };
+  const tagIds = formData.getAll('tagIds').filter((value) => typeof value === 'string');
+  const input: PostInput = { ...rest, tagIds, translations: [{ locale: 'en', ...en }] };
   if (es.title.trim() !== '') input.translations.push({ locale: 'es', ...es });
   return { input };
 }
