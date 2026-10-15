@@ -72,6 +72,12 @@
 }
 
 .processLink {
+  /* The section is blush: the regular fuchsia only reaches 4.2:1 on it (WCAG AA needs 4.5). */
+  color: var(--color-fuchsia-dark);
   font-weight: 600;
   text-decoration: none;
+}
+
+.processLink:hover {
+  text-decoration: underline;
 }
