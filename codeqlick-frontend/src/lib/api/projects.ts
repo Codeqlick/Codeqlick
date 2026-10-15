@@ -11,6 +11,7 @@ import type {
   ProjectMilestone,
   ProjectUpdate,
   ReleaseEnvironment,
+  UpdateDraft,
   UpdateComment,
 } from './types';
 
@@ -129,6 +130,42 @@ export function adminRevokeReleaseKey(id: string) {
     method: 'DELETE',
     auth: 'required',
   });
+}
+
+/** Drafts waiting for review: one project's, or every project's. */
+export function adminListDrafts(projectId?: string) {
+  return apiFetch<UpdateDraft[]>(
+    projectId
+      ? `/admin/projects/${encodeURIComponent(projectId)}/drafts`
+      : '/admin/projects/drafts',
+    { auth: 'required' },
+  );
+}
+
+export function adminPublishDraft(
+  projectId: string,
+  draftId: string,
+  input: {
+    title: string;
+    body: string;
+    version: string | null;
+    environment: ReleaseEnvironment | null;
+    url: string | null;
+    notifyClient: boolean;
+    requestApproval: boolean;
+  },
+) {
+  return apiFetch<ProjectUpdate & { clientNotified?: boolean }>(
+    `/admin/projects/${encodeURIComponent(projectId)}/drafts/${encodeURIComponent(draftId)}/publish`,
+    { method: 'POST', body: input, auth: 'required' },
+  );
+}
+
+export function adminDiscardDraft(projectId: string, draftId: string) {
+  return apiFetch<void>(
+    `/admin/projects/${encodeURIComponent(projectId)}/drafts/${encodeURIComponent(draftId)}`,
+    { method: 'DELETE', auth: 'required' },
+  );
 }
 
 export function adminCreateProjectUpdate(

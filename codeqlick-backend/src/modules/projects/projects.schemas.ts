@@ -73,6 +73,46 @@ export const createReleaseSchema = z
   .strict();
 export type CreateReleaseInput = z.infer<typeof createReleaseSchema>;
 
+/**
+ * A draft update sent with the project's release key (a pipeline, or a summary of the work done):
+ * the team reviews and publishes it. With a version it will be a release.
+ */
+export const createDraftSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200),
+    body: z.string().min(1).max(50_000),
+    version: z.string().trim().min(1).max(40).nullable().optional(),
+    environment: z.enum(['STAGING', 'PRODUCTION']).nullable().optional(),
+    url: z.url().max(2048).nullable().optional(),
+  })
+  .strict()
+  .refine((draft) => !draft.version || draft.environment, {
+    message: 'A version needs its environment',
+    path: ['environment'],
+  });
+export type CreateDraftInput = z.infer<typeof createDraftSchema>;
+
+/** Publishing a draft: its final content (as reviewed) and who to tell. */
+export const publishDraftSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200),
+    body: z.string().min(1).max(50_000),
+    version: z.string().trim().min(1).max(40).nullable().optional(),
+    environment: z.enum(['STAGING', 'PRODUCTION']).nullable().optional(),
+    url: z.url().max(2048).nullable().optional(),
+    notifyClient: z.boolean().default(false),
+    requestApproval: z.boolean().default(false),
+  })
+  .strict()
+  .refine((draft) => !draft.version || draft.environment, {
+    message: 'A version needs its environment',
+    path: ['environment'],
+  });
+export type PublishDraftInput = z.infer<typeof publishDraftSchema>;
+
+export const draftParamSchema = z.object({ id: z.uuid(), draftId: z.uuid() });
+export type DraftParam = z.infer<typeof draftParamSchema>;
+
 export const createProjectUpdateSchema = z
   .object({
     title: z.string().trim().min(1).max(200),

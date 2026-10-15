@@ -315,6 +315,7 @@ model ClientProject {
   tickets    SupportTicket[]
   proposals  Proposal[]
   time       TimeEntry[]
+  drafts     UpdateDraft[]
 
   @@index([clientId])
   @@map("client_projects")
@@ -588,4 +589,23 @@ model TimeEntry {
   @@index([projectId, date])
   @@index([date])
   @@map("time_entries")
+}
+
+/// An update prepared outside the panel (a deploy pipeline, a summary of the work done) waiting for
+/// the team to review it. Publishing it creates the ProjectUpdate and removes the draft.
+model UpdateDraft {
+  id          String              @id @default(uuid()) @db.Uuid
+  projectId   String              @map("project_id") @db.Uuid
+  title       String
+  body        String
+  /// Set when it is a release.
+  version     String?
+  environment ReleaseEnvironment?
+  url         String?
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("update_drafts")
 }

@@ -23,7 +23,11 @@ import type { Paginated } from '../../common/types/paginated.js';
 import {
   createMilestoneSchema,
   createReleaseSchema,
+  draftParamSchema,
+  publishDraftSchema,
   type CreateReleaseInput,
+  type DraftParam,
+  type PublishDraftInput,
   createUpdateCommentSchema,
   updateParamSchema,
   type CreateUpdateCommentInput,
@@ -55,6 +59,7 @@ import {
   type ProjectMilestoneView,
   type PostedProjectUpdate,
   type PostedTeamComment,
+  type UpdateDraftView,
   type UploadedProjectFile,
 } from './projects.service.js';
 
@@ -88,6 +93,12 @@ export class AdminProjectsController {
     @Body({ schema: createProjectSchema }) body: CreateProjectInput,
   ): Promise<ClientProjectView> {
     return this.projects.create(user, body);
+  }
+
+  /** Every project's drafts waiting for review (before `:id`, which would take "drafts"). */
+  @Get('drafts')
+  allDrafts(): Promise<UpdateDraftView[]> {
+    return this.projects.listDrafts();
   }
 
   @Get(':id')
@@ -129,6 +140,29 @@ export class AdminProjectsController {
     @Body({ schema: createReleaseSchema }) body: CreateReleaseInput,
   ): Promise<PostedProjectUpdate> {
     return this.projects.addRelease(user, params.id, body);
+  }
+
+  @Get(':id/drafts')
+  drafts(@Param({ schema: idParamSchema }) params: IdParam): Promise<UpdateDraftView[]> {
+    return this.projects.listDrafts(params.id);
+  }
+
+  @Post(':id/drafts/:draftId/publish')
+  publishDraft(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: draftParamSchema }) params: DraftParam,
+    @Body({ schema: publishDraftSchema }) body: PublishDraftInput,
+  ): Promise<PostedProjectUpdate> {
+    return this.projects.publishDraft(user, params.id, params.draftId, body);
+  }
+
+  @Delete(':id/drafts/:draftId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async discardDraft(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: draftParamSchema }) params: DraftParam,
+  ): Promise<void> {
+    await this.projects.discardDraft(user, params.id, params.draftId);
   }
 
   /** A new key for the project's deploy pipeline (replaces the previous one); shown once. */

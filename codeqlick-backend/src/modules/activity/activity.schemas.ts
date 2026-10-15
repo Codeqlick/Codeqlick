@@ -41,6 +41,8 @@ export const ACTIVITY_ACTIONS = [
   'project.release_published',
   'project.release_key_created',
   'project.release_key_revoked',
+  'project.draft_received',
+  'project.draft_discarded',
   'project.time_logged',
   'project.time_deleted',
   'project.milestone_added',
