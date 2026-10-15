@@ -22,7 +22,7 @@ import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
-import { adminGetProject, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
+import { adminGetProject, adminListDrafts, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import { RELEASE_ENVIRONMENTS, type ClientProject } from '@/lib/api/types';
 import { firstParam, formatDateTime, madridToday } from '@/lib/format';
@@ -39,6 +39,7 @@ import {
   teamCommentAction,
   updateProjectAction,
 } from '../actions';
+import { DraftReview } from '../DraftReview';
 import { MilestoneControls } from '../MilestoneControls';
 import { deleteTimeAction, logTimeAction } from '../time-actions';
 import { ProjectForm } from '../ProjectForm';
@@ -78,7 +79,10 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const time = await adminGetProjectTime(project.id);
+  const [time, drafts] = await Promise.all([
+    adminGetProjectTime(project.id),
+    adminListDrafts(project.id),
+  ]);
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
   // Optional: the boxes work without them.
   const savedReplies = await adminListSavedReplies().catch(() => []);
@@ -150,6 +154,15 @@ export default async function EditProjectPage({
           </ActionForm>
         </div>
       </section>
+
+      {drafts.length > 0 ? (
+        <DraftReview
+          drafts={drafts}
+          projectId={project.id}
+          clientEmail={project.client.email}
+          locale={locale}
+        />
+      ) : null}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('updatesTitle')}</h2>

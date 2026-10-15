@@ -339,6 +339,8 @@ export type AdminStats = {
   support: { active: number };
   /** Proposals sent and waiting for the client's answer. */
   proposals: { sent: number };
+  /** Draft updates waiting for the team's review. */
+  drafts: { pending: number };
 };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
@@ -557,4 +559,16 @@ export type MonthTime = {
   totalMinutes: number;
   projects: { id: string; name: string; client: { id: string; name: string }; minutes: number }[];
   entries: TimeEntry[];
+};
+
+/** An update sent with a project's release key, waiting for the team's review. */
+export type UpdateDraft = {
+  id: string;
+  project: { id: string; name: string };
+  title: string;
+  body: string;
+  version: string | null;
+  environment: ReleaseEnvironment | null;
+  url: string | null;
+  createdAt: string;
 };

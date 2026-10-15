@@ -631,7 +631,8 @@
       "lostReasons": "Why leads are lost",
       "lostReasonsEmpty": "No lost leads yet.",
       "activeTickets": "Open requests",
-      "sentProposals": "Proposals awaiting answer"
+      "sentProposals": "Proposals awaiting answer",
+      "pendingDrafts": "Drafts to review"
     },
     "leads": {
       "title": "Leads",
@@ -836,7 +837,17 @@
       "releaseKeyCopy": "Copy",
       "releaseKeyCopied": "Copied",
       "releaseKeyExample": "Store it as a pipeline secret and publish each deploy like this:",
-      "releasePosted": "Release published."
+      "releasePosted": "Release published.",
+      "draftsTitle": "{count, plural, one {# draft to review} other {# drafts to review}}",
+      "draftsLead": "Updates prepared from the work done in the repository. The client sees nothing until you publish them: review the text, adjust it if needed and publish it.",
+      "draftReceived": "Received {date}",
+      "publishDraft": "Publish",
+      "discardDraft": "Discard draft",
+      "discarding": "Discarding…",
+      "draftPublished": "Draft published.",
+      "draftsPageTitle": "Drafts to review",
+      "draftsEmptyTitle": "No drafts waiting",
+      "draftsEmptyBody": "When a summary of the work done on a project comes in, it shows up here for you to review."
     },
     "media": {
       "choose": "Choose an image",
@@ -970,7 +981,9 @@
           "time_deleted": "deleted a time entry from the project <target>{label}</target>",
           "release_published": "published a release on <target>{label}</target>",
           "release_key_created": "created a release key for <target>{label}</target>",
-          "release_key_revoked": "revoked the release key of <target>{label}</target>"
+          "release_key_revoked": "revoked the release key of <target>{label}</target>",
+          "draft_received": "received a draft update for <target>{label}</target>",
+          "draft_discarded": "discarded a draft update for <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",

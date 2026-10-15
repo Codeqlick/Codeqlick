@@ -8,6 +8,7 @@ import type {
   ProjectUpdate,
   ProjectUpdateComment,
   ReleaseEnvironment,
+  UpdateDraft,
   User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -22,6 +23,7 @@ export type UpdateWithAuthor = ProjectUpdate & {
   comments: CommentWithAuthor[];
 };
 
+export type DraftWithProject = UpdateDraft & { project: { id: string; name: string } };
 export type ProjectWithClient = ClientProject & { client: ClientRef };
 export type ProjectWithUpdates = ProjectWithClient & {
   updates: UpdateWithAuthor[];
@@ -265,6 +267,27 @@ export class ProjectsRepository {
       where: { id: updateId },
       include: updateInclude,
     });
+  }
+
+  createDraft(data: Prisma.UpdateDraftUncheckedCreateInput): Promise<UpdateDraft> {
+    return this.prisma.updateDraft.create({ data });
+  }
+
+  /** Drafts waiting for review, oldest first; all projects' when `projectId` is left out. */
+  listDrafts(projectId?: string): Promise<DraftWithProject[]> {
+    return this.prisma.updateDraft.findMany({
+      where: projectId ? { projectId } : {},
+      orderBy: { createdAt: 'asc' },
+      include: { project: { select: { id: true, name: true } } },
+    });
+  }
+
+  findDraft(projectId: string, draftId: string): Promise<UpdateDraft | null> {
+    return this.prisma.updateDraft.findFirst({ where: { id: draftId, projectId } });
+  }
+
+  async deleteDraft(id: string): Promise<void> {
+    await this.prisma.updateDraft.delete({ where: { id } });
   }
 
   /** Active clients who want the summary and haven't had this week's one. */
