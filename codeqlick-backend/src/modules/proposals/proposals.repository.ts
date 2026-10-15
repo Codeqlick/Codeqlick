@@ -55,7 +55,11 @@ export class ProposalsRepository {
   }
 
   findClient(id: string) {
-    return this.prisma.user.findFirst({ where: { id, role: 'CLIENT' }, select: { id: true } });
+    // The company's main account, not one of its people.
+    return this.prisma.user.findFirst({
+      where: { id, role: 'CLIENT', memberOfId: null },
+      select: { id: true },
+    });
   }
 
   findClientProject(clientId: string, projectId: string) {

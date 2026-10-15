@@ -35,7 +35,7 @@ export async function ProposalForm({
   const [clients, projects] = await Promise.all([
     proposal
       ? Promise.resolve([])
-      : adminListUsers({ role: 'CLIENT', pageSize: 100 }).then((r) => r.items),
+      : adminListUsers({ role: 'CLIENT', accounts: true, pageSize: 100 }).then((r) => r.items),
     adminListProjects({ pageSize: 100 }).then((r) => r.items),
   ]);
   if (!proposal && clients.length === 0) return <Alert>{t('noClients')}</Alert>;
