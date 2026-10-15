@@ -28,6 +28,8 @@ const projectFields = {
   dueDate: nullableDateSchema,
   stagingUrl: nullableUrlSchema,
   productionUrl: nullableUrlSchema,
+  /** The client sees the hours logged on it. */
+  showHours: z.boolean().optional(),
 };
 
 export const createProjectSchema = z
@@ -49,6 +51,7 @@ export const updateProjectSchema = z
     dueDate: projectFields.dueDate,
     stagingUrl: projectFields.stagingUrl,
     productionUrl: projectFields.productionUrl,
+    showHours: projectFields.showHours,
   })
   .strict();
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;

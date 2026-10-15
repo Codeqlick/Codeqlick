@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { ActivityEntry } from '@/lib/api/types';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatMinutes } from '@/lib/format';
 import styles from './app.module.css';
 
 const ADMIN_SECTIONS: Record<string, string> = {
@@ -74,6 +74,9 @@ export async function ActivityList({
       notes.push(t('details.publishedAt', { value: formatDateTime(details.publishedAt, locale) }));
     }
     if ('file' in details) notes.push(t('details.file', { value: text(details.file) }));
+    if (typeof details.minutes === 'number') {
+      notes.push(t('details.minutes', { value: formatMinutes(details.minutes) }));
+    }
     if ('milestone' in details) {
       notes.push(t('details.milestone', { value: text(details.milestone) }));
     }

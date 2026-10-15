@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatBytes,
+  formatMinutes,
   fromDateTimeInput,
   isScheduled,
   parsePage,
@@ -52,5 +53,13 @@ describe('format helpers', () => {
     );
     expect(isScheduled({ status: 'DRAFT', publishedAt: '2026-10-16T00:00:00Z' }, now)).toBe(false);
     expect(isScheduled({ status: 'PUBLISHED', publishedAt: null }, now)).toBe(false);
+  });
+});
+
+describe('formatMinutes', () => {
+  it('shows hours and minutes', () => {
+    expect(formatMinutes(45)).toBe('45 min');
+    expect(formatMinutes(180)).toBe('3 h');
+    expect(formatMinutes(95)).toBe('1 h 35 min');
   });
 });

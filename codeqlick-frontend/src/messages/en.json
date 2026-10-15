@@ -385,7 +385,8 @@
     "translationIncomplete": "Fill in title, excerpt and content, or leave all three empty.",
     "date": "Enter a valid date.",
     "choice": "Choose one of the options.",
-    "price": "Enter a valid amount, for example 1250 or 1250.50."
+    "price": "Enter a valid amount, for example 1250 or 1250.50.",
+    "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours)."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -602,7 +603,8 @@
       "tags": "Tags",
       "replies": "Saved replies",
       "support": "Support",
-      "proposals": "Proposals"
+      "proposals": "Proposals",
+      "time": "Hours"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -809,7 +811,9 @@
       "milestoneDelete": "Delete milestone",
       "requestApproval": "Ask the client to approve it",
       "requestApprovalHint": "The client gets a button to approve this update from their area, and we'll email you when they do.",
-      "commentNotNotified": "Comment posted, but the client couldn't be emailed (check the server's SMTP settings or whether their account is deactivated)."
+      "commentNotNotified": "Comment posted, but the client couldn't be emailed (check the server's SMTP settings or whether their account is deactivated).",
+      "showHours": "Show the hours to the client",
+      "showHoursHint": "The client will see the total per month and each entry with its description in their private area."
     },
     "media": {
       "choose": "Choose an image",
@@ -938,7 +942,9 @@
           "milestone_completed": "completed a milestone of <target>{label}</target>",
           "milestone_deleted": "deleted a milestone of <target>{label}</target>",
           "update_approved": "approved an update of <target>{label}</target>",
-          "comment_added": "commented on an update of <target>{label}</target>"
+          "comment_added": "commented on an update of <target>{label}</target>",
+          "time_logged": "logged hours on the project <target>{label}</target>",
+          "time_deleted": "deleted a time entry from the project <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -997,7 +1003,8 @@
         "passwordReset": "Password reset",
         "publishedAt": "Goes live on {value}",
         "milestone": "Milestone: {value}",
-        "project": "Project: {value}"
+        "project": "Project: {value}",
+        "minutes": "Time: {value}"
       }
     },
     "tags": {
@@ -1373,5 +1380,31 @@
       "DECLINED": "Declined",
       "WITHDRAWN": "Withdrawn"
     }
+  },
+  "Hours": {
+    "title": "Hours",
+    "shownToClient": "The client sees these hours in their private area.",
+    "hiddenFromClient": "Only the team sees them. You can show them to the client from “Edit project”.",
+    "date": "Date",
+    "duration": "Time",
+    "durationHint": "For example 1:30, 1.5 or 45m.",
+    "description": "What was done",
+    "log": "Log hours",
+    "logging": "Logging…",
+    "empty": "No hours logged yet.",
+    "total": "Total",
+    "actions": "Actions",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "pageTitle": "Hours",
+    "pageLead": "Hours logged on every project, month by month.",
+    "monthTotal": "{month}: {total}",
+    "monthEmptyTitle": "No hours this month",
+    "monthEmptyBody": "Log hours from each project page.",
+    "project": "Project",
+    "client": "Client",
+    "entries": "Entries",
+    "clientTitle": "Time spent",
+    "clientEmpty": "We haven't logged any hours on this project yet."
   }
 }
