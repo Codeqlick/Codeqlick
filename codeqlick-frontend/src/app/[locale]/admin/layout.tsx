@@ -43,6 +43,7 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   const items = [
     { href: '/admin', label: t('nav.dashboard'), exact: true },
     { href: '/admin/leads', label: t('nav.leads') },
+    { href: '/admin/proposals', label: t('nav.proposals') },
     { href: '/admin/support', label: t('nav.support') },
     { href: '/admin/posts', label: t('nav.posts') },
     { href: '/admin/tags', label: t('nav.tags') },

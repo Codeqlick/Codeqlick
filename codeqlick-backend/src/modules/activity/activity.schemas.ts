@@ -12,6 +12,7 @@ export const ACTIVITY_TARGETS = [
   'tag',
   'account',
   'support',
+  'proposal',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -53,6 +54,13 @@ export const ACTIVITY_ACTIONS = [
   'support.closed',
   'support.file_added',
   'support.file_deleted',
+  'proposal.created',
+  'proposal.updated',
+  'proposal.sent',
+  'proposal.withdrawn',
+  'proposal.accepted',
+  'proposal.declined',
+  'proposal.deleted',
   'tag.created',
   'tag.updated',
   'tag.deleted',

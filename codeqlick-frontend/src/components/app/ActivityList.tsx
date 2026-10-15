@@ -13,6 +13,7 @@ const ADMIN_SECTIONS: Record<string, string> = {
   lead: 'leads',
   user: 'users',
   support: 'support',
+  proposal: 'proposals',
 };
 
 /** Admin page of the thing an entry is about, while it can still exist. */

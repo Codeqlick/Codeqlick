@@ -1,5 +1,11 @@
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
-import type { LeadStatus, PublishStatus, TicketPriority, TicketStatus } from '@/lib/api/types';
+import type {
+  LeadStatus,
+  ProposalStatus,
+  PublishStatus,
+  TicketPriority,
+  TicketStatus,
+} from '@/lib/api/types';
 
 const LEAD_TONES: Record<LeadStatus, BadgeTone> = {
   NEW: 'brand',
@@ -51,4 +57,25 @@ export function TicketPriorityBadge({
 }) {
   const tone = priority === 'URGENT' ? 'danger' : priority === 'HIGH' ? 'warning' : 'neutral';
   return <Badge tone={tone}>{label}</Badge>;
+}
+
+const PROPOSAL_TONES: Record<ProposalStatus, BadgeTone> = {
+  DRAFT: 'neutral',
+  SENT: 'brand',
+  ACCEPTED: 'success',
+  DECLINED: 'danger',
+  WITHDRAWN: 'neutral',
+};
+
+/** A sent proposal past its valid date shows as expired. */
+export function ProposalStatusBadge({
+  status,
+  expired,
+  label,
+}: {
+  status: ProposalStatus;
+  expired: boolean;
+  label: string;
+}) {
+  return <Badge tone={expired ? 'warning' : PROPOSAL_TONES[status]}>{label}</Badge>;
 }
