@@ -103,8 +103,12 @@ export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-export function toAuthUser(user: Pick<User, 'id' | 'email' | 'name' | 'role'>): AuthUser {
-  return { id: user.id, email: user.email, name: user.name, role: user.role };
+export function toAuthUser(
+  user: Pick<User, 'id' | 'email' | 'name' | 'role'> & { memberOfId?: string | null },
+): AuthUser {
+  const base: AuthUser = { id: user.id, email: user.email, name: user.name, role: user.role };
+  // Clients act for a client account: their own, or their company's.
+  return user.role === 'CLIENT' ? { ...base, accountId: user.memberOfId ?? user.id } : base;
 }
 
 @Injectable()
@@ -478,6 +482,7 @@ export class AuthService {
       name: user.name,
       role: user.role,
       sid: familyId,
+      ...(user.memberOfId ? { acc: user.memberOfId } : {}),
     };
     const accessToken = await this.jwt.signAsync(payload);
     return {

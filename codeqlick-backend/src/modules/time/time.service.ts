@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { AuthUser } from '../../common/types/auth-user.js';
+import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { TimeRepository, type EntryRow } from './time.repository.js';
 import type { CreateTimeEntryInput } from './time.schemas.js';
@@ -77,7 +77,8 @@ export class TimeService {
   async forClient(caller: AuthUser, projectId: string): Promise<ProjectTime> {
     const project = await this.repository.findProject(projectId);
     const visible =
-      project && (caller.role === 'ADMIN' || (project.clientId === caller.id && project.showHours));
+      project &&
+      (caller.role === 'ADMIN' || (project.clientId === accountOf(caller) && project.showHours));
     if (!visible) throw new NotFoundException('Project not found');
     return this.summary(projectId);
   }

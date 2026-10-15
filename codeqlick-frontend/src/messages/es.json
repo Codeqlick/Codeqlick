@@ -894,7 +894,7 @@
       "role": "Rol",
       "status": "Estado",
       "active": "Activo",
-      "inactive": "Inactivo",
+      "inactive": "Desactivada",
       "isActive": "Cuenta activa",
       "isActiveHint": "Al desactivar una cuenta se cierran todas sus sesiones.",
       "password": "Contraseña",
@@ -927,7 +927,17 @@
       "digestSend": "Enviar resumen ahora",
       "digestSending": "Enviando…",
       "digestSent": "Resumen enviado.",
-      "digestNoNews": "No se ha enviado: esta semana no hay novedades ni nada pendiente en sus proyectos."
+      "digestNoNews": "No se ha enviado: esta semana no hay novedades ni nada pendiente en sus proyectos.",
+      "memberOf": "Persona de la cuenta de",
+      "companyAccount": "su empresa",
+      "peopleTitle": "Personas de la empresa",
+      "peopleLead": "Cada persona entra con su propio correo y ve todo lo de esta cuenta: proyectos, propuestas, peticiones, horas y tareas. También recibe los mismos avisos por correo.",
+      "addPerson": "Añadir una persona",
+      "personLocaleHint": "Idioma de sus correos.",
+      "personAdding": "Añadiendo…",
+      "addPersonButton": "Añadir y enviar invitación",
+      "personAdded": "Persona añadida. Le hemos enviado el correo para elegir su contraseña.",
+      "personAddedNoEmail": "Persona añadida, pero el correo de invitación no ha salido. Envíalo desde su ficha."
     },
     "activity": {
       "title": "Actividad",

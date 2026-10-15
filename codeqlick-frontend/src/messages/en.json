@@ -894,7 +894,7 @@
       "role": "Role",
       "status": "Status",
       "active": "Active",
-      "inactive": "Inactive",
+      "inactive": "Deactivated",
       "isActive": "Account is active",
       "isActiveHint": "Deactivating an account signs the user out everywhere.",
       "password": "Password",
@@ -927,7 +927,17 @@
       "digestSend": "Send summary now",
       "digestSending": "Sending…",
       "digestSent": "Summary sent.",
-      "digestNoNews": "Not sent: there's no news and nothing pending on their projects this week."
+      "digestNoNews": "Not sent: there's no news and nothing pending on their projects this week.",
+      "memberOf": "Person of the account of",
+      "companyAccount": "their company",
+      "peopleTitle": "People of the company",
+      "peopleLead": "Each person signs in with their own email and sees everything on this account: projects, proposals, requests, hours and tasks. They also get the same emails.",
+      "addPerson": "Add a person",
+      "personLocaleHint": "Language of their emails.",
+      "personAdding": "Adding…",
+      "addPersonButton": "Add and send the invitation",
+      "personAdded": "Person added. We have emailed them a link to choose their password.",
+      "personAddedNoEmail": "Person added, but the invitation email didn't go out. Send it from their page."
     },
     "activity": {
       "title": "Activity",

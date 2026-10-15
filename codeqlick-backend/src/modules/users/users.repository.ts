@@ -7,11 +7,14 @@ export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(
-    role: Role | undefined,
+    filter: { role?: Role; memberOf?: string; accounts?: boolean },
     skip: number,
     take: number,
   ): Promise<{ items: User[]; total: number }> {
-    const where: Prisma.UserWhereInput = role ? { role } : {};
+    const where: Prisma.UserWhereInput = {};
+    if (filter.role) where.role = filter.role;
+    if (filter.memberOf) where.memberOfId = filter.memberOf;
+    else if (filter.accounts) where.memberOfId = null;
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
       this.prisma.user.count({ where }),
@@ -27,7 +30,7 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  create(data: Prisma.UserCreateInput): Promise<User> {
+  create(data: Prisma.UserUncheckedCreateInput): Promise<User> {
     return this.prisma.user.create({ data });
   }
 
