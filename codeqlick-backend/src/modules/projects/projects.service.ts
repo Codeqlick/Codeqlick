@@ -4,8 +4,9 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
 import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -17,6 +18,7 @@ import {
   type ProjectFile,
   type ProjectMilestone,
   type ProjectPhase,
+  type ReleaseEnvironment,
 } from '../../generated/prisma/client.js';
 import {
   ProjectsRepository,
@@ -25,7 +27,7 @@ import {
   type ProjectWithUpdates,
   type UpdateWithAuthor,
 } from './projects.repository.js';
-import { ActivityService } from '../activity/activity.service.js';
+import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { clientActivityEmail, projectUpdateEmail, teamCommentEmail } from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
@@ -34,6 +36,7 @@ import type {
   CreateMilestoneInput,
   CreateProjectInput,
   CreateProjectUpdateInput,
+  CreateReleaseInput,
   CreateUpdateCommentInput,
   ListProjectsQuery,
   ReorderMilestonesInput,
@@ -59,6 +62,8 @@ export interface ProjectUpdateView {
   approvedAt: string | null;
   approvedBy: { name: string } | null;
   comments: UpdateCommentView[];
+  /** Set on releases: the version, where it went and its address. */
+  release: { version: string; environment: 'STAGING' | 'PRODUCTION'; url: string | null } | null;
 }
 
 /** A comment posted by the team; `clientNotified` says whether the client was emailed it. */
@@ -109,6 +114,8 @@ export interface ClientProjectView {
   stagingUrl: string | null;
   productionUrl: string | null;
   showHours: boolean;
+  /** When the current release key was made; null without one. */
+  releaseKeyCreatedAt: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdateView[];
   files?: ProjectFileView[];
@@ -141,6 +148,10 @@ function toUpdateView(update: UpdateWithAuthor): ProjectUpdateView {
     approvedAt: update.approvedAt?.toISOString() ?? null,
     approvedBy: update.approvedAt ? { name: update.approvedBy?.name ?? '—' } : null,
     comments: update.comments.map(toCommentView),
+    release:
+      update.version && update.environment
+        ? { version: update.version, environment: update.environment, url: update.url }
+        : null,
   };
 }
 
@@ -176,6 +187,7 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
     stagingUrl: project.stagingUrl,
     productionUrl: project.productionUrl,
     showHours: project.showHours,
+    releaseKeyCreatedAt: project.releaseTokenCreatedAt?.toISOString() ?? null,
     client: { id: project.client.id, name: project.client.name, email: project.client.email },
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -184,6 +196,15 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
   if ('files' in project) view.files = project.files.map(toFileView);
   if ('milestones' in project) view.milestones = project.milestones.map(toMilestoneView);
   return view;
+}
+
+function releaseOf(input: CreateReleaseInput) {
+  return { version: input.version, environment: input.environment, url: input.url ?? null };
+}
+
+/** Release keys are stored hashed, like passwords: a database leak doesn't leak them. */
+function hashKey(key: string): string {
+  return createHash('sha256').update(key).digest('hex');
 }
 
 function toDate(value: string | null | undefined): Date | null | undefined {
@@ -442,19 +463,72 @@ export class ProjectsService {
     projectId: string,
     input: CreateProjectUpdateInput,
   ): Promise<PostedProjectUpdate> {
+    return this.post(author, await this.findOrThrow(projectId), input);
+  }
+
+  /** A release from the admin panel. */
+  async addRelease(
+    author: AuthUser,
+    projectId: string,
+    input: CreateReleaseInput,
+  ): Promise<PostedProjectUpdate> {
+    return this.post(author, await this.findOrThrow(projectId), input, releaseOf(input));
+  }
+
+  /**
+   * A release from a deploy pipeline, authenticated by the project's release key (no user). 401
+   * for an unknown key, so a wrong one says nothing about which projects exist.
+   */
+  async publishWithKey(key: string, input: CreateReleaseInput): Promise<PostedProjectUpdate> {
+    const project = key ? await this.repository.findByReleaseTokenHash(hashKey(key)) : null;
+    if (!project) throw new UnauthorizedException('Unknown release key');
+    return this.post({ id: null, name: 'Despliegue automático' }, project, input, releaseOf(input));
+  }
+
+  /** A new release key for the project, replacing the previous one; shown only this once. */
+  async createReleaseKey(actor: AuthUser, projectId: string): Promise<{ key: string }> {
     const project = await this.findOrThrow(projectId);
+    const key = `cqr_${randomBytes(32).toString('base64url')}`;
+    await this.repository.setReleaseToken(projectId, hashKey(key));
+    await this.activity.record(actor, {
+      action: 'project.release_key_created',
+      targetId: projectId,
+      targetLabel: project.name,
+    });
+    return { key };
+  }
+
+  async revokeReleaseKey(actor: AuthUser, projectId: string): Promise<void> {
+    const project = await this.findOrThrow(projectId);
+    await this.repository.setReleaseToken(projectId, null);
+    await this.activity.record(actor, {
+      action: 'project.release_key_revoked',
+      targetId: projectId,
+      targetLabel: project.name,
+    });
+  }
+
+  private async post(
+    author: ActivityActor,
+    project: ProjectWithUpdates,
+    input: CreateProjectUpdateInput,
+    release?: { version: string; environment: ReleaseEnvironment; url: string | null },
+  ): Promise<PostedProjectUpdate> {
+    const projectId = project.id;
     const update = await this.repository.addUpdate(
       projectId,
       author.id,
       input.title,
       input.body,
       input.requestApproval,
+      release,
     );
     const view = toUpdateView(update);
     const clientNotified = input.notifyClient
       ? await this.notifyClient(project, {
           ...input,
           approvalRequested: input.requestApproval,
+          release,
         }).then(
           () => true,
           (error: unknown) => {
@@ -465,11 +539,11 @@ export class ProjectsService {
         )
       : undefined;
     await this.activity.record(author, {
-      action: 'project.update_posted',
+      action: release ? 'project.release_published' : 'project.update_posted',
       targetId: projectId,
       targetLabel: project.name,
       details: {
-        title: input.title,
+        title: release ? `${release.version} · ${input.title}` : input.title,
         ...(input.requestApproval && { approvalRequested: true }),
         ...(clientNotified !== undefined && { clientNotified }),
       },
@@ -606,7 +680,7 @@ export class ProjectsService {
 
   private async notifyClient(
     project: ProjectWithClient,
-    update: { title: string; body: string; approvalRequested?: boolean },
+    update: Parameters<typeof projectUpdateEmail>[2],
   ): Promise<void> {
     // A deactivated client can't sign in to read it.
     if (!project.client.isActive) throw new Error('the client account is deactivated');

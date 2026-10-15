@@ -3,6 +3,7 @@ import {
   LEAD_STATUSES,
   LOST_REASONS,
   PROJECT_PHASES,
+  RELEASE_ENVIRONMENTS,
   TICKET_PRIORITIES,
   TICKET_STATUSES,
   TICKET_TYPES,
@@ -169,6 +170,17 @@ export const projectUpdateSchema = z.object({
   body: z.string().trim().min(1, 'required').max(20000, 'tooLong'),
   notifyClient: z.boolean(),
   requestApproval: z.boolean(),
+});
+
+/** The optional release fields of the update form: a version makes it a release. */
+export const releaseFieldsSchema = z.object({
+  version: z
+    .string()
+    .trim()
+    .max(40, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+  environment: z.enum(RELEASE_ENVIRONMENTS, 'choice'),
+  url: optionalUrl,
 });
 
 export const updateCommentSchema = z.object({
