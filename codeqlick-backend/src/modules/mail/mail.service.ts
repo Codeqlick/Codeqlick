@@ -6,6 +6,8 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** Branded alternative to `text` (see email-layout.ts). */
+  html?: string;
   replyTo?: string;
 }
 
@@ -16,6 +18,7 @@ interface MailTransport {
     to: string;
     subject: string;
     text: string;
+    html?: string;
     replyTo?: string;
   }): Promise<unknown>;
 }
@@ -48,6 +51,7 @@ export class MailService {
       to: message.to,
       subject: message.subject,
       text: message.text,
+      html: message.html,
       replyTo: message.replyTo,
     });
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);

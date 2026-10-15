@@ -1,4 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
 interface LeadForEmail {
@@ -11,51 +12,59 @@ interface LeadForEmail {
   locale: ApiLocale;
 }
 
-/** Internal notification for the Codeqlick team. */
-export function leadNotificationEmail(to: string, lead: LeadForEmail): MailMessage {
+/** Internal notification for the Codeqlick team, with a link to the lead in the admin panel. */
+export function leadNotificationEmail(
+  to: string,
+  lead: LeadForEmail,
+  siteUrl: string,
+): MailMessage {
   return {
     to,
     replyTo: lead.email,
     subject: `New lead: ${lead.name}${lead.company ? ` (${lead.company})` : ''}`,
-    text: [
-      `Name: ${lead.name}`,
-      `Email: ${lead.email}`,
-      `Company: ${lead.company ?? '-'}`,
-      `Budget: ${lead.budget ?? '-'}`,
-      `Locale: ${lead.locale}`,
-      `Lead id: ${lead.id}`,
-      '',
-      lead.message,
-    ].join('\n'),
+    ...renderEmail(
+      {
+        locale: 'en',
+        preheader: lead.message.slice(0, 120),
+        intro: ['Someone filled in the contact form. Reply to this email to answer them.'],
+        details: [
+          ['Name', lead.name],
+          ['Email', lead.email],
+          ['Company', lead.company ?? '-'],
+          ['Budget', lead.budget ?? '-'],
+          ['Locale', lead.locale],
+          ['Lead id', lead.id],
+        ],
+        quote: { body: lead.message },
+        button: { label: 'Open in the admin panel', url: `${siteUrl}/es/admin/leads/${lead.id}` },
+        signoff: [],
+      },
+      siteUrl,
+    ),
   };
 }
 
 /** Acknowledgement for the person who filled in the contact form, in their language. */
-export function leadAcknowledgementEmail(lead: LeadForEmail): MailMessage {
-  if (lead.locale === 'es') {
-    return {
-      to: lead.email,
-      subject: 'Hemos recibido tu mensaje — Codeqlick',
-      text: [
-        `Hola ${lead.name}:`,
-        '',
-        'Gracias por escribirnos. Hemos recibido tu mensaje y te responderemos en un plazo de dos días laborables.',
-        '',
-        'Un saludo,',
-        'El equipo de Codeqlick',
-      ].join('\n'),
-    };
-  }
+export function leadAcknowledgementEmail(lead: LeadForEmail, siteUrl: string): MailMessage {
+  const es = lead.locale === 'es';
   return {
     to: lead.email,
-    subject: 'We received your message — Codeqlick',
-    text: [
-      `Hi ${lead.name},`,
-      '',
-      'Thanks for reaching out. We have received your message and will get back to you within two business days.',
-      '',
-      'Best regards,',
-      'The Codeqlick team',
-    ].join('\n'),
+    subject: es ? 'Hemos recibido tu mensaje — Codeqlick' : 'We received your message — Codeqlick',
+    ...renderEmail(
+      {
+        locale: lead.locale,
+        preheader: es
+          ? 'Te responderemos en un plazo de dos días laborables.'
+          : 'We will get back to you within two business days.',
+        greeting: es ? `Hola ${lead.name}:` : `Hi ${lead.name},`,
+        intro: [
+          es
+            ? 'Gracias por escribirnos. Hemos recibido tu mensaje y te responderemos en un plazo de dos días laborables.'
+            : 'Thanks for reaching out. We have received your message and will get back to you within two business days.',
+        ],
+        quote: { title: es ? 'Tu mensaje' : 'Your message', body: lead.message },
+      },
+      siteUrl,
+    ),
   };
 }

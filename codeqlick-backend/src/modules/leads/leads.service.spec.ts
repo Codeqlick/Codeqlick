@@ -43,7 +43,10 @@ describe('LeadsService', () => {
   beforeEach(() => {
     repository = { create: vi.fn().mockResolvedValue(leadRow()) };
     mail = { send: vi.fn().mockResolvedValue(undefined) };
-    const config = { leadsNotifyTo: 'hello@codeqlick.com' } as AppConfigService;
+    const config = {
+      leadsNotifyTo: 'hello@codeqlick.com',
+      siteUrl: 'https://codeqlick.com',
+    } as AppConfigService;
     service = new LeadsService(
       repository as unknown as LeadsRepository,
       mail as unknown as MailService,

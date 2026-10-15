@@ -73,8 +73,11 @@ export class LeadsService {
     });
 
     const lead = toLead(row);
-    this.sendInBackground(leadNotificationEmail(this.config.leadsNotifyTo, lead), 'notification');
-    this.sendInBackground(leadAcknowledgementEmail(lead), 'acknowledgement');
+    this.sendInBackground(
+      leadNotificationEmail(this.config.leadsNotifyTo, lead, this.config.siteUrl),
+      'notification',
+    );
+    this.sendInBackground(leadAcknowledgementEmail(lead, this.config.siteUrl), 'acknowledgement');
     return { id: row.id };
   }
 

@@ -82,7 +82,7 @@ src/
     health/
     auth/                    login, refresh (rotation + reuse detection), logout, me
     users/                   Admin management of admin/client accounts
-    mail/                    MailService abstraction over Nodemailer
+    mail/                    MailService abstraction over Nodemailer; email-layout.ts renders every email as plain text plus branded HTML
     leads/                   Public contact form + admin pipeline
     posts/                   Blog (EN/ES translations)
     portfolio/               Case studies (EN/ES translations)
@@ -184,7 +184,7 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `PORT` | `4000` | |
 | `DATABASE_URL` | `postgresql://codeqlick:…@localhost:5432/codeqlick` | |
 | `CORS_ORIGINS` | `https://codeqlick.com` | Comma-separated |
-| `SITE_URL` | `https://codeqlick.com` | Public URL of the website, for links in emails |
+| `SITE_URL` | `https://codeqlick.com` | Public URL of the website, for links in emails and the email logo (`/email/logo.png`, served by the frontend) |
 | `JWT_ACCESS_SECRET` | 64+ random chars | Required, min 32 |
 | `JWT_ACCESS_TTL` | `900` | Seconds |
 | `REFRESH_TOKEN_TTL_DAYS` | `30` | |
