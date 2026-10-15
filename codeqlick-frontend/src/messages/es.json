@@ -473,7 +473,9 @@
     "disabling": "Desactivando…",
     "disabled": "La verificación en dos pasos está desactivada.",
     "wrongPassword": "La contraseña no es correcta.",
-    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
+    "requiredNotice": "Para usar el panel de administración tienes que activar la verificación en dos pasos. Actívala aquí abajo: en cuanto la confirmes, tendrás acceso a todo.",
+    "requiredCantDisable": "Las cuentas de administración deben tenerla activada, así que no se puede desactivar."
   },
   "NotFound": {
     "metaTitle": "Página no encontrada",

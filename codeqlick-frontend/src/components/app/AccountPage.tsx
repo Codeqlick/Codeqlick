@@ -67,29 +67,36 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
             <p className={styles.muted}>
               {tf('recoveryLeft', { count: twoFactor.recoveryCodesLeft })}
             </p>
-            <ActionForm action={disableTwoFactorAction.bind(null, locale)} className={styles.form}>
-              <h3>{tf('disableTitle')}</h3>
-              <p className={styles.muted}>{tf('disableBody')}</p>
-              <FormInput
-                name="password"
-                type="password"
-                label={tf('password')}
-                autoComplete="current-password"
-                required
-              />
-              <FormInput
-                name="code"
-                label={tf('disableCode')}
-                autoComplete="one-time-code"
-                mono
-                required
-              />
-              <div className={styles.actions}>
-                <SubmitButton variant="outline" pendingLabel={tf('disabling')}>
-                  {tf('disable')}
-                </SubmitButton>
-              </div>
-            </ActionForm>
+            {twoFactor.required ? (
+              <p className={styles.muted}>{tf('requiredCantDisable')}</p>
+            ) : (
+              <ActionForm
+                action={disableTwoFactorAction.bind(null, locale)}
+                className={styles.form}
+              >
+                <h3>{tf('disableTitle')}</h3>
+                <p className={styles.muted}>{tf('disableBody')}</p>
+                <FormInput
+                  name="password"
+                  type="password"
+                  label={tf('password')}
+                  autoComplete="current-password"
+                  required
+                />
+                <FormInput
+                  name="code"
+                  label={tf('disableCode')}
+                  autoComplete="one-time-code"
+                  mono
+                  required
+                />
+                <div className={styles.actions}>
+                  <SubmitButton variant="outline" pendingLabel={tf('disabling')}>
+                    {tf('disable')}
+                  </SubmitButton>
+                </div>
+              </ActionForm>
+            )}
           </>
         ) : (
           <>

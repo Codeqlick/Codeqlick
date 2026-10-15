@@ -1,5 +1,7 @@
 import 'server-only';
 import { cookies, headers as requestHeaders } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { getLocale } from 'next-intl/server';
 import { env } from '@/lib/env';
 import { ACCESS_COOKIE } from '@/lib/auth/constants';
 import { clientHeaders } from '@/lib/auth/refresh';
@@ -7,6 +9,9 @@ import { ApiError } from './errors';
 import type { ProblemDetails } from './types';
 
 export type AuthMode = 'required' | 'optional' | 'none';
+
+/** The API's 403 detail for an admin who must turn on two-step verification first. */
+const TWO_FACTOR_REQUIRED = 'Two-step verification is required for admin accounts';
 
 export type QueryValue = string | number | boolean | null | undefined;
 
@@ -122,7 +127,13 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, await parseProblem(response));
+    const problem = await parseProblem(response);
+    // An admin without two-step verification, where the server requires it: every admin page
+    // sends them to their account, which shows the setup (see the admin layout).
+    if (response.status === 403 && problem.detail === TWO_FACTOR_REQUIRED) {
+      redirect(`/${await getLocale()}/admin/account`);
+    }
+    throw new ApiError(response.status, problem);
   }
 
   if (response.status === 204) return undefined as T;

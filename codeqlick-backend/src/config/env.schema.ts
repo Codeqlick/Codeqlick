@@ -44,6 +44,8 @@ export const envSchema = z.object({
   SEED_ADMIN_EMAIL: optionalString,
   SEED_ADMIN_PASSWORD: optionalString,
   SEED_ADMIN_NAME: optionalString,
+  /** Admins must have two-step verification on to use the admin API (production: true). */
+  ADMIN_TWO_FACTOR_REQUIRED: booleanString,
   /** Umami (analytics) for the admin dashboard's visit numbers; unset: no visit numbers. */
   UMAMI_URL: z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
