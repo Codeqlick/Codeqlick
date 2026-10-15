@@ -48,6 +48,8 @@ export function MarkdownImageButton({
       before === '' || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n';
     const markdown = `${lead}![${labels.altPlaceholder}](${url})\n\n`;
     textarea.value = before + markdown + value.slice(selectionEnd);
+    // Setting `value` fires no event: tell listeners (the live preview) it changed.
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
     const altStart = selectionStart + lead.length + 2;
     textarea.focus();
     textarea.setSelectionRange(altStart, altStart + labels.altPlaceholder.length);

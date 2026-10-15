@@ -9,7 +9,9 @@ import {
 } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { ImageField } from '@/components/app/ImageField';
+import { MarkdownField } from '@/components/app/MarkdownField';
 import { MarkdownImageButton } from '@/components/app/MarkdownImageButton';
+import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
@@ -34,6 +36,7 @@ export async function PostForm({
   const t = await getTranslations({ locale, namespace: 'Admin.posts' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tm = await getTranslations({ locale, namespace: 'Admin.media' });
+  const previewLabels = await markdownPreviewLabels(locale);
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
   const tags = await adminListTags();
 
@@ -116,13 +119,14 @@ export async function PostForm({
               required={lang === 'en'}
               defaultValue={translation?.excerpt}
             />
-            <FormTextarea
+            <MarkdownField
               name={`${lang}.content`}
               label={t('content')}
               rows={16}
               mono
               required={lang === 'en'}
               defaultValue={translation?.content}
+              previewLabels={previewLabels}
             />
             <MarkdownImageButton
               target={`${lang}.content`}

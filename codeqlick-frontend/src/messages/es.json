@@ -898,6 +898,12 @@
       "slugTaken": "Ya hay una etiqueta con este slug.",
       "emptyTitle": "Aún no hay etiquetas",
       "emptyBody": "Crea la primera arriba y asígnala desde el formulario de cada artículo."
+    },
+    "markdownPreview": {
+      "show": "Ver vista previa",
+      "hide": "Ocultar vista previa",
+      "title": "Vista previa",
+      "empty": "Escribe algo para verlo aquí como en la web."
     }
   },
   "Sessions": {

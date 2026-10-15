@@ -5,6 +5,8 @@ import styles from '@/components/app/app.module.css';
 import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ProjectFileUpload } from '@/components/app/ProjectFileUpload';
+import { MarkdownField } from '@/components/app/MarkdownField';
+import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
 import { ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
@@ -126,7 +128,15 @@ export default async function EditProjectPage({
             className={styles.form}
           >
             <FormInput name="title" label={t('updateTitle')} required />
-            <FormTextarea name="body" label={t('updateBody')} rows={6} mono required />
+            <MarkdownField
+              name="body"
+              label={t('updateBody')}
+              rows={6}
+              mono
+              required
+              compact
+              previewLabels={await markdownPreviewLabels(locale)}
+            />
             <FormCheckbox
               name="notifyClient"
               label={t('notifyClient')}

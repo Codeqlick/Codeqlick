@@ -354,7 +354,9 @@ src/
       reset-password/          Landing page of the emailed link: choose a new password (worded as a first password with `welcome=1`)
       portal/                  Client area (role CLIENT or ADMIN): projects, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, recent activity), leads, posts, portfolio, projects, media, users, activity, account;
-                               posts and portfolio items have a preview page that renders the saved draft
+                               posts and portfolio items have a preview page that renders the saved draft; Markdown
+                               fields (post and case-study content, project description and updates) have a live
+                               preview next to the editor (MarkdownField, client-side, same renderer as the site)
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx              404 for every URL that matches no route: a full page (header, footer, locale from
                                the proxy), rendered on the server
