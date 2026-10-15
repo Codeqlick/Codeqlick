@@ -12,10 +12,13 @@ export async function PostCard({
   post,
   locale,
   headingLevel = 2,
+  priority = false,
 }: {
   post: PostSummary;
   locale: AppLocale;
   headingLevel?: 2 | 3;
+  /** The first cards on screen: their cover is the page's largest paint, so load it now. */
+  priority?: boolean;
 }) {
   const t = await getTranslations({ locale, namespace: 'Blog' });
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
@@ -24,7 +27,13 @@ export async function PostCard({
     <Card as="li" bordered>
       {post.coverImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img src={post.coverImageUrl} alt="" className={styles.cover} loading="lazy" />
+        <img
+          src={post.coverImageUrl}
+          alt=""
+          className={styles.cover}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : undefined}
+        />
       ) : null}
       <p className={styles.meta}>
         <time dateTime={post.publishedAt}>{formatDate(post.publishedAt, locale)}</time>
