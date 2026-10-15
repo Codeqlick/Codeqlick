@@ -45,6 +45,7 @@ export async function saveBookingSettingsAction(
   const config: BookingConfig = {
     enabled: formBoolean(formData, 'enabled'),
     meetingUrl: formString(formData, 'meetingUrl'),
+    calendarEmail: formString(formData, 'calendarEmail'),
     durationMinutes: whole(formData, 'durationMinutes', 30),
     minNoticeHours: whole(formData, 'minNoticeHours', 24),
     horizonDays: whole(formData, 'horizonDays', 21),

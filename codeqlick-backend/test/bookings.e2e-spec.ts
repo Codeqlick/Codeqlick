@@ -115,6 +115,7 @@ describe('Booked calls (e2e)', () => {
         ...defaults.body,
         enabled: true,
         meetingUrl: 'https://meet.google.com/abc-defg-hij',
+        calendarEmail: 'owner@calendar.test',
         minNoticeHours: 0,
         horizonDays: 7,
         weekly: {
@@ -160,11 +161,19 @@ describe('Booked calls (e2e)', () => {
       startsAt,
       meetingUrl: 'https://meet.google.com/abc-defg-hij',
     });
-    await vi.waitFor(() => expect(sent.length).toBe(before + 2));
+    // The visitor, the team inbox and the owner's calendar address.
+    await vi.waitFor(() => expect(sent.length).toBe(before + 3));
     const [toVisitor, toTeam] = [
       sent.slice(before).find((m) => m.to === 'ana@booking.test')!,
-      sent.slice(before).find((m) => m.to !== 'ana@booking.test')!,
+      sent
+        .slice(before)
+        .find((m) => m.to !== 'ana@booking.test' && m.to !== 'owner@calendar.test')!,
     ];
+    expect(sent.slice(before).find((m) => m.to === 'owner@calendar.test')?.icalEvent).toMatchObject(
+      {
+        method: 'REQUEST',
+      },
+    );
     expect(toVisitor.subject).toMatch(/^Llamada con Codeqlick: /);
     expect(toVisitor.text).toContain('https://meet.google.com/abc-defg-hij');
     expect(toVisitor.icalEvent).toMatchObject({ method: 'REQUEST' });
@@ -209,7 +218,17 @@ describe('Booked calls (e2e)', () => {
       .post(`/v1/admin/bookings/${again.body.id as string}/cancel`)
       .set(adminAuth)
       .expect(200);
-    await vi.waitFor(() => expect(sent.at(-1)?.subject).toMatch(/^Llamada cancelada: /));
-    expect(sent.at(-1)?.to).toBe('ana@booking.test');
+    await vi.waitFor(() =>
+      expect(
+        sent.some(
+          (m) => m.to === 'ana@booking.test' && m.subject.startsWith('Llamada cancelada: '),
+        ),
+      ).toBe(true),
+    );
+    await vi.waitFor(() =>
+      expect(
+        sent.some((m) => m.to === 'owner@calendar.test' && m.icalEvent?.method === 'CANCEL'),
+      ).toBe(true),
+    );
   });
 });

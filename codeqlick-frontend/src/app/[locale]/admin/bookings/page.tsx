@@ -115,6 +115,15 @@ export default async function AdminBookingsPage({
             placeholder="https://meet.google.com/abc-defg-hij"
             defaultValue={config.meetingUrl}
           />
+          <FormInput
+            name="calendarEmail"
+            type="email"
+            label={t('calendarEmail')}
+            optionalLabel={tc('optional')}
+            hint={t('calendarEmailHint')}
+            placeholder="tu.cuenta@gmail.com"
+            defaultValue={config.calendarEmail ?? ''}
+          />
           <div className={styles.row}>
             <FormSelect
               name="durationMinutes"
