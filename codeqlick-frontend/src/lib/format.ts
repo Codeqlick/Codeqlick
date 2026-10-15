@@ -106,3 +106,8 @@ export function isScheduled(
 ): boolean {
   return item.status === 'PUBLISHED' && !!item.publishedAt && Date.parse(item.publishedAt) > now;
 }
+
+/** Cents as money: "1250,00 €" in Spanish, "€1,250.00" in English. */
+export function formatMoney(cents: number, currency: string, locale: string): string {
+  return new Intl.NumberFormat(tag(locale), { style: 'currency', currency }).format(cents / 100);
+}
