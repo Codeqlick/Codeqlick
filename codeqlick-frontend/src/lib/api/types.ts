@@ -174,7 +174,12 @@ export type ProjectUpdate = {
   approvedAt: string | null;
   approvedBy: { name: string } | null;
   comments: UpdateComment[];
+  /** Set on releases: the version, where it went and its address. */
+  release: { version: string; environment: ReleaseEnvironment; url: string | null } | null;
 };
+
+export const RELEASE_ENVIRONMENTS = ['STAGING', 'PRODUCTION'] as const;
+export type ReleaseEnvironment = (typeof RELEASE_ENVIRONMENTS)[number];
 
 export type ProjectMilestone = {
   id: string;
@@ -210,6 +215,8 @@ export type ClientProject = {
   productionUrl: string | null;
   /** The client sees the hours logged on it. */
   showHours: boolean;
+  /** When the current release key (for deploy pipelines) was made; null without one. */
+  releaseKeyCreatedAt: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdate[];
   files?: ProjectFile[];

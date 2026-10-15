@@ -56,6 +56,23 @@ export const updateProjectSchema = z
   .strict();
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
+/** A release: an update that says which version went where. */
+export const createReleaseSchema = z
+  .object({
+    /** e.g. `v1.4.0` or a short commit hash. */
+    version: z.string().trim().min(1).max(40),
+    environment: z.enum(['STAGING', 'PRODUCTION']),
+    /** Where the client can try it; also becomes the project's staging or production URL. */
+    url: z.url().max(2048).nullable().optional(),
+    title: z.string().trim().min(1).max(200),
+    /** Markdown: what changed. */
+    body: z.string().min(1).max(50_000),
+    notifyClient: z.boolean().default(false),
+    requestApproval: z.boolean().default(false),
+  })
+  .strict();
+export type CreateReleaseInput = z.infer<typeof createReleaseSchema>;
+
 export const createProjectUpdateSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
