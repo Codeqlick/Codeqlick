@@ -614,7 +614,8 @@
       "replies": "Respuestas",
       "support": "Soporte",
       "proposals": "Propuestas",
-      "time": "Horas"
+      "time": "Horas",
+      "calculator": "Calculadora"
     },
     "dashboard": {
       "title": "Panel",
@@ -964,7 +965,8 @@
         "account": "Cuentas",
         "tag": "Etiquetas",
         "support": "Soporte",
-        "proposal": "Propuestas"
+        "proposal": "Propuestas",
+        "settings": "Ajustes"
       },
       "actions": {
         "post": {
@@ -1049,6 +1051,9 @@
           "accepted": "aceptó la propuesta <target>{label}</target>",
           "declined": "rechazó la propuesta <target>{label}</target>",
           "deleted": "borró la propuesta <target>{label}</target>"
+        },
+        "settings": {
+          "calculator_updated": "cambió los precios de la <target>calculadora</target>"
         }
       },
       "details": {
@@ -1183,6 +1188,25 @@
       "deleteTitle": "Borrar el borrador",
       "deleteBody": "Solo se pueden borrar los borradores. Esta acción no se puede deshacer.",
       "newForClient": "Nueva propuesta"
+    },
+    "calculator": {
+      "title": "Calculadora de coste",
+      "lead": "Los precios que usa la calculadora de la web. Escríbelos en euros, sin impuestos, para un proyecto de tamaño medio; los tipos con máximo 0 no se ofrecen.",
+      "view": "Ver la calculadora",
+      "typesTitle": "Por tipo de proyecto",
+      "typesLead": "Rango de precio y semanas de trabajo para un tamaño medio.",
+      "type": "Tipo",
+      "min": "Mínimo (€)",
+      "max": "Máximo (€)",
+      "weeksMin": "Semanas mín.",
+      "weeksMax": "Semanas máx.",
+      "sizesTitle": "Tamaño",
+      "sizesLead": "Multiplican el precio y las semanas del tipo. Lo normal: pequeño 0,6 · medio 1 · grande 1,8.",
+      "extrasTitle": "Extras",
+      "extrasLead": "Lo que suma cada extra al precio. Los que tengan máximo 0 no se ofrecen.",
+      "extra": "Extra",
+      "enabled": "Publicar la calculadora en la web",
+      "enabledHint": "Aparece en la página «Calcula tu proyecto», enlazada desde contacto y desde los servicios. Hace falta el precio de al menos un tipo."
     }
   },
   "Sessions": {
@@ -1508,5 +1532,49 @@
     "noProjects": "El cliente no tiene proyectos todavía.",
     "createdFromRequest": "Tarea creada. La petición está en curso.",
     "clientRequestTitle": "En qué está tu petición"
+  },
+  "Calculator": {
+    "metaTitle": "Calcula tu proyecto",
+    "metaDescription": "Una cifra orientativa para tu web, aplicación o app móvil en un minuto.",
+    "eyebrow": "Calculadora",
+    "title": "Calcula tu proyecto",
+    "lead": "Responde tres preguntas y te damos una cifra orientativa y un plazo. Luego, si quieres, nos cuentas los detalles.",
+    "typeQuestion": "¿Qué necesitas?",
+    "sizeQuestion": "¿De qué tamaño?",
+    "extrasQuestion": "¿Necesita alguna de estas cosas?",
+    "sizes": {
+      "small": {
+        "label": "Pequeño",
+        "hint": "Pocas pantallas o páginas, una función principal."
+      },
+      "medium": {
+        "label": "Mediano",
+        "hint": "Varias secciones y funciones, lo habitual."
+      },
+      "large": {
+        "label": "Grande",
+        "hint": "Muchas pantallas, roles o procesos."
+      }
+    },
+    "extras": {
+      "languages": "Varios idiomas",
+      "accounts": "Usuarios con acceso propio",
+      "payments": "Pagos online",
+      "admin": "Panel para gestionar el contenido",
+      "integrations": "Conexión con otros sistemas"
+    },
+    "resultLabel": "Estimación orientativa",
+    "weeksOne": "Unas {weeks} semanas de trabajo",
+    "weeksRange": "Entre {min} y {max} semanas de trabajo",
+    "note": "Es una cifra orientativa, sin impuestos. El precio final depende de los detalles; te lo concretamos en una propuesta.",
+    "cta": "Pedir una propuesta",
+    "summaryIntro": "Vengo de la calculadora:",
+    "typeLabel": "Tipo",
+    "sizeLabel": "Tamaño",
+    "extrasLabel": "Extras",
+    "estimateLabel": "Estimación",
+    "ctaLink": "Calcula tu proyecto",
+    "asideTitle": "¿Quieres una cifra orientativa?",
+    "asideBody": "Responde tres preguntas en la calculadora."
   }
 }
