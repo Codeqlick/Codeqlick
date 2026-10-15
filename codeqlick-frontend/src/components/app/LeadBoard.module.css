@@ -129,3 +129,14 @@
   line-height: 1.4;
   color: var(--color-slate);
 }
+
+.due {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-size: 0.8rem;
+  font-weight: 600;
+}

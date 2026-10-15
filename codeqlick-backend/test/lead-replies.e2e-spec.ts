@@ -78,7 +78,7 @@ describe('Replies to leads (e2e)', () => {
         body: 'Hola Marta:\n\nGracias por escribirnos.\nTe propongo una llamada el martes.\n\nLuis',
       })
       .expect(201);
-    expect(first.body.lead.status).toBe('CONTACTED');
+    expect(first.body.lead.status).toBe('TALKING');
     expect(first.body.reply).toMatchObject({
       subject: 'Re: tu tienda online',
       author: { name: 'Luis' },
@@ -92,13 +92,13 @@ describe('Replies to leads (e2e)', () => {
     expect(sent[0]?.html).toContain('Queremos una tienda &lt;online&gt;.');
 
     // A later reply leaves a status the admin set by hand alone.
-    await prisma.lead.update({ where: { id: lead.id }, data: { status: 'QUALIFIED' } });
+    await prisma.lead.update({ where: { id: lead.id }, data: { status: 'CALL' } });
     const second = await request(server)
       .post(url)
       .set('Authorization', auth)
       .send({ subject: 'Presupuesto', body: 'Te adjunto el presupuesto.' })
       .expect(201);
-    expect(second.body.lead.status).toBe('QUALIFIED');
+    expect(second.body.lead.status).toBe('CALL');
 
     // Nothing is stored when the email fails.
     vi.mocked(app.get(MailService).send).mockRejectedValueOnce(new Error('smtp down'));

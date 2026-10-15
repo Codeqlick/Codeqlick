@@ -519,11 +519,12 @@
   },
   "LeadStatuses": {
     "NEW": "Nuevo",
-    "CONTACTED": "Contactado",
-    "QUALIFIED": "Cualificado",
+    "TALKING": "En conversación",
+    "CALL": "Llamada",
+    "PROPOSAL": "Propuesta enviada",
     "WON": "Ganado",
     "LOST": "Perdido",
-    "ARCHIVED": "Archivado"
+    "SPAM": "Spam / descartado"
   },
   "Roles": {
     "ADMIN": "Administrador",
@@ -614,7 +615,9 @@
       "contentChart": "Contenido publicado por mes",
       "postsSeries": "Artículos",
       "caseStudiesSeries": "Casos de éxito",
-      "month": "Mes"
+      "month": "Mes",
+      "lostReasons": "Por qué se pierden los contactos",
+      "lostReasonsEmpty": "Todavía no hay contactos perdidos."
     },
     "leads": {
       "title": "Contactos",
@@ -646,7 +649,7 @@
       "viewBoard": "Ver tablero",
       "viewList": "Ver lista",
       "boardTitle": "Tablero de contactos",
-      "boardLead": "Arrastra cada contacto a su estado (o usa su menú «Mover a»). Los archivados solo aparecen en la lista.",
+      "boardLead": "Arrastra cada contacto a su etapa (o usa su menú «Mover a»). Los marcados como spam solo aparecen en la lista.",
       "moveTo": "Mover a",
       "boardEmpty": "Ninguno.",
       "boardEstimate": "≈",
@@ -655,11 +658,28 @@
       "boardMore": "Y {count} más en la lista.",
       "boardHints": {
         "NEW": "Te ha escrito y aún no le has respondido.",
-        "CONTACTED": "Ya le has respondido.",
-        "QUALIFIED": "Hay interés real y encaja: habéis hablado o preparas propuesta.",
+        "TALKING": "Le has respondido y estáis hablando.",
+        "CALL": "Llamada de descubrimiento agendada o hecha.",
+        "PROPOSAL": "Le has enviado la propuesta con el presupuesto.",
         "WON": "Ha aceptado: es cliente.",
         "LOST": "No sale adelante."
-      }
+      },
+      "lostReason": "Motivo de pérdida",
+      "lostReasonHint": "Solo cuenta si el estado es «Perdido».",
+      "noReason": "Sin indicar",
+      "followUpOn": "Próximo seguimiento",
+      "followUpOnHint": "Cuándo volver a escribirle. El tablero lo marca cuando llega la fecha.",
+      "convertTitle": "Convertir en cliente",
+      "convertBody": "Crea su cuenta de cliente (le llega el correo de bienvenida para elegir contraseña; si ya tenía cuenta, se usa esa), abre un proyecto en fase de Descubrimiento y marca el contacto como Ganado.",
+      "projectName": "Nombre del proyecto",
+      "convert": "Convertir en cliente",
+      "converting": "Convirtiendo…",
+      "convertedTitle": "Ya es cliente",
+      "convertedBody": "Este contacto se convirtió en cliente.",
+      "viewClient": "Ver su cuenta",
+      "followUpDue": "Seguimiento vencido",
+      "followUp": "Seguir el {date}",
+      "lostWithoutReason": "Sin motivo"
     },
     "posts": {
       "title": "Artículos",
@@ -916,7 +936,8 @@
         },
         "lead": {
           "updated": "actualizó el contacto <target>{label}</target>",
-          "replied": "respondió al contacto <target>{label}</target>"
+          "replied": "respondió al contacto <target>{label}</target>",
+          "converted": "convirtió en cliente el contacto <target>{label}</target>"
         },
         "media": {
           "uploaded": "subió la imagen <target>{label}</target>",
@@ -947,7 +968,8 @@
         "deactivated": "Cuenta desactivada",
         "passwordReset": "Contraseña restablecida",
         "publishedAt": "Se publica el {value}",
-        "milestone": "Hito: {value}"
+        "milestone": "Hito: {value}",
+        "project": "Proyecto: {value}"
       }
     },
     "tags": {
@@ -1137,5 +1159,13 @@
         "a": "Sí, cuando hace falta firmamos un NDA antes de entrar en detalles de tu proyecto."
       }
     }
+  },
+  "LostReasons": {
+    "PRICE": "Precio",
+    "NO_RESPONSE": "Dejó de responder",
+    "NOT_A_FIT": "No encaja con lo que hacemos",
+    "CHOSE_OTHER": "Eligió a otro",
+    "TIMING": "No es el momento",
+    "OTHER": "Otro motivo"
   }
 }

@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { SITE_TIME_ZONE, StatsRepository, type MonthlyCounts } from './stats.repository.js';
 
 export interface AdminStats {
-  leads: { new: number; total: number };
+  /** `lostReasons`: why lost leads didn't go ahead (`null`: no reason given). */
+  leads: { new: number; total: number; lostReasons: { reason: string | null; count: number }[] };
   posts: { published: number; drafts: number; scheduled: number };
   portfolio: { published: number };
   projects: { active: number };
@@ -35,9 +36,12 @@ export class StatsService {
   constructor(private readonly repository: StatsRepository) {}
 
   async get(): Promise<AdminStats> {
-    const c = await this.repository.counts();
+    const [c, lostReasons] = await Promise.all([
+      this.repository.counts(),
+      this.repository.lostReasons(),
+    ]);
     return {
-      leads: { new: c.leadsNew, total: c.leadsTotal },
+      leads: { new: c.leadsNew, total: c.leadsTotal, lostReasons },
       posts: { published: c.postsPublished, drafts: c.postsDrafts, scheduled: c.postsScheduled },
       portfolio: { published: c.portfolioPublished },
       projects: { active: c.projectsActive },

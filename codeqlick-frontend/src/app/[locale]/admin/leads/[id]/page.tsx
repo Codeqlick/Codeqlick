@@ -10,10 +10,11 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { adminGetLead, adminListLeadReplies } from '@/lib/api/leads';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
-import { LEAD_STATUSES, type Lead, type LeadReply } from '@/lib/api/types';
+import { LEAD_STATUSES, LOST_REASONS, type Lead, type LeadReply } from '@/lib/api/types';
+import { Link } from '@/i18n/navigation';
 import { formatDateTime } from '@/lib/format';
 import { BUDGET_VALUES, type BudgetValue } from '@/lib/schemas/contact';
-import { replyToLeadAction, updateLeadAction } from '../actions';
+import { convertLeadAction, replyToLeadAction, updateLeadAction } from '../actions';
 
 export default async function AdminLeadPage({
   params,
@@ -27,6 +28,7 @@ export default async function AdminLeadPage({
   const ts = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tb = await getTranslations({ locale, namespace: 'Contact.budgets' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
+  const tr = await getTranslations({ locale, namespace: 'LostReasons' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
   // Optional: the reply box works without them.
   const savedReplies = await adminListSavedReplies().catch(() => []);
@@ -147,7 +149,7 @@ export default async function AdminLeadPage({
       </section>
 
       <section className={styles.panel}>
-        {/* Keyed by status: a first reply moves NEW to CONTACTED, and the select must show it. */}
+        {/* Keyed by status: a first reply moves NEW to TALKING, and the select must show it. */}
         <ActionForm
           key={lead.status}
           action={updateLeadAction.bind(null, locale, lead.id)}
@@ -159,6 +161,24 @@ export default async function AdminLeadPage({
             options={LEAD_STATUSES.map((value) => ({ value, label: ts(value) }))}
             defaultValue={lead.status}
           />
+          <div className={styles.row}>
+            <FormSelect
+              name="lostReason"
+              label={t('lostReason')}
+              hint={t('lostReasonHint')}
+              placeholder={t('noReason')}
+              options={LOST_REASONS.map((value) => ({ value, label: tr(value) }))}
+              defaultValue={lead.lostReason ?? ''}
+            />
+            <FormInput
+              name="followUpOn"
+              type="date"
+              label={t('followUpOn')}
+              optionalLabel={tc('optional')}
+              hint={t('followUpOnHint')}
+              defaultValue={lead.followUpOn ?? ''}
+            />
+          </div>
           <FormTextarea
             name="notes"
             label={t('notes')}
@@ -171,6 +191,35 @@ export default async function AdminLeadPage({
           </div>
         </ActionForm>
       </section>
+
+      {lead.clientId ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('convertedTitle')}</h2>
+          <p className={styles.muted}>{t('convertedBody')}</p>
+          <p>
+            <Link href={`/admin/users/${lead.clientId}`}>{t('viewClient')}</Link>
+          </p>
+        </section>
+      ) : lead.status !== 'SPAM' ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('convertTitle')}</h2>
+          <ActionForm
+            action={convertLeadAction.bind(null, locale, lead.id)}
+            className={styles.form}
+          >
+            <p className={styles.muted}>{t('convertBody')}</p>
+            <FormInput
+              name="projectName"
+              label={t('projectName')}
+              defaultValue={lead.company ?? lead.name}
+              required
+            />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={t('converting')}>{t('convert')}</SubmitButton>
+            </div>
+          </ActionForm>
+        </section>
+      ) : null}
     </div>
   );
 }

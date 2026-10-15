@@ -74,6 +74,19 @@ export class StatsRepository {
     };
   }
 
+  /** Lost leads by reason (no reason: `null`), most frequent first. */
+  async lostReasons(): Promise<{ reason: string | null; count: number }[]> {
+    const rows = await this.prisma.lead.findMany({
+      where: { status: LeadStatus.LOST },
+      select: { lostReason: true },
+    });
+    const counts = new Map<string | null, number>();
+    for (const row of rows) counts.set(row.lostReason, (counts.get(row.lostReason) ?? 0) + 1);
+    return [...counts]
+      .map(([reason, count]) => ({ reason, count }))
+      .toSorted((a, b) => b.count - a.count);
+  }
+
   /**
    * Leads (and won leads) by the month they came in, and posts and case studies by the month
    * they went live, from `since` on. Months are `yyyy-mm` in the studio's time zone.

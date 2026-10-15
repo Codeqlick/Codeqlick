@@ -91,6 +91,25 @@ export class UsersService {
     return { ...toAdminUser(user), invitationSent };
   }
 
+  /**
+   * The client account for an email: an existing client's, or a new one (with the welcome email
+   * to choose a password). An email that belongs to an admin is refused.
+   */
+  async findOrCreateClient(
+    actor: AuthUser,
+    input: { email: string; name: string; locale: ApiLocale },
+  ): Promise<{ id: string; created: boolean; invitationSent?: boolean }> {
+    const existing = await this.repository.findByEmail(input.email.trim().toLowerCase());
+    if (existing) {
+      if (existing.role !== 'CLIENT') {
+        throw new ConflictException('This email belongs to an admin account');
+      }
+      return { id: existing.id, created: false };
+    }
+    const user = await this.create(actor, { ...input, role: 'CLIENT' });
+    return { id: user.id, created: true, invitationSent: user.invitationSent };
+  }
+
   /** Sends (again) the welcome email with a link to choose a password. */
   async sendInvitation(actor: AuthUser, id: string, locale?: ApiLocale): Promise<void> {
     const user = await this.repository.findById(id);

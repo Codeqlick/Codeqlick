@@ -8,5 +8,6 @@ import { UsersService } from './users.service.js';
   imports: [AuthModule],
   controllers: [AdminUsersController],
   providers: [UsersService, UsersRepository],
+  exports: [UsersService],
 })
 export class UsersModule {}

@@ -33,6 +33,8 @@ export default async function AdminDashboardPage({
   const days: VisitRange = VISIT_RANGES.find((range) => range === requested) ?? 30;
   const t = await getTranslations({ locale, namespace: 'Admin.dashboard' });
   const ta = await getTranslations({ locale, namespace: 'App' });
+  const tr = await getTranslations({ locale, namespace: 'LostReasons' });
+  const tl = await getTranslations({ locale, namespace: 'Admin.leads' });
   const [stats, activity, timeline, visits] = await Promise.all([
     getAdminStats(),
     adminListActivity({ pageSize: 6 }),
@@ -132,6 +134,20 @@ export default async function AdminDashboardPage({
             />
           </section>
         </div>
+
+        {stats.leads.lostReasons.length > 0 ? (
+          <section className={styles.panel}>
+            <h2 className={styles.panelTitle}>{t('lostReasons')}</h2>
+            <ul className={styles.files}>
+              {stats.leads.lostReasons.map((entry) => (
+                <li key={entry.reason ?? 'none'} className={styles.fileRow}>
+                  <span>{entry.reason ? tr(entry.reason) : tl('noReason')}</span>
+                  <strong>{entry.count}</strong>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {activity.items.length > 0 ? (
           <section className={styles.panel}>
