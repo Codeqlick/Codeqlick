@@ -38,6 +38,8 @@ export const ACTIVITY_ACTIONS = [
   'project.comment_added',
   'project.file_uploaded',
   'project.file_deleted',
+  'project.time_logged',
+  'project.time_deleted',
   'project.milestone_added',
   'project.milestone_updated',
   'project.milestone_completed',

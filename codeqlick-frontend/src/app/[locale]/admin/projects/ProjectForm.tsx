@@ -1,5 +1,11 @@
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormInput, FormSelect, type FormAction } from '@/components/app/ActionForm';
+import {
+  ActionForm,
+  FormCheckbox,
+  FormInput,
+  FormSelect,
+  type FormAction,
+} from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { MarkdownField } from '@/components/app/MarkdownField';
 import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
@@ -109,6 +115,12 @@ export async function ProjectForm({
           defaultValue={project?.productionUrl ?? ''}
         />
       </div>
+      <FormCheckbox
+        name="showHours"
+        label={t('showHours')}
+        hint={t('showHoursHint')}
+        defaultChecked={project?.showHours ?? false}
+      />
       <div className={styles.actions}>
         <SubmitButton pendingLabel={project ? tc('saving') : tc('creating')}>
           {project ? tc('save') : tc('create')}
