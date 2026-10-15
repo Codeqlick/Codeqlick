@@ -166,7 +166,7 @@
     },
     "contact": {
       "title": "¿Tienes una idea? Hagámosla realidad.",
-      "body": "Cuéntanos tu proyecto y te responderemos en un día laborable.",
+      "body": "Cuéntanos tu proyecto y te responderemos en un plazo de dos días laborables.",
       "cta": "Empezar un proyecto"
     },
     "testimonials": {
@@ -339,12 +339,12 @@
   },
   "Contact": {
     "metaTitle": "Contacto",
-    "metaDescription": "Cuéntale a Codeqlick tu proyecto. Respondemos en un día laborable.",
+    "metaDescription": "Cuéntale a Codeqlick tu proyecto. Respondemos en un plazo de dos días laborables.",
     "eyebrow": "Contacto",
     "title": "Cuéntanos tu proyecto",
-    "lead": "Con unas líneas es suficiente para empezar. Te responderemos en un día laborable.",
+    "lead": "Con unas líneas es suficiente para empezar. Te responderemos en un plazo de dos días laborables.",
     "asideTitle": "¿Prefieres el correo?",
-    "asideBody": "Escríbenos directamente y te contestaremos en un día laborable.",
+    "asideBody": "Escríbenos directamente y te contestaremos en un plazo de dos días laborables.",
     "form": {
       "name": "Nombre",
       "email": "Correo electrónico",
@@ -355,7 +355,7 @@
       "submit": "Enviar mensaje",
       "sending": "Enviando…",
       "successTitle": "¡Gracias! Hemos recibido tu mensaje.",
-      "successBody": "Te responderemos en un día laborable.",
+      "successBody": "Te responderemos en un plazo de dos días laborables.",
       "error": "No hemos podido enviar tu mensaje. Revisa el formulario y vuelve a intentarlo.",
       "rateLimited": "Has enviado demasiados mensajes seguidos. Espera un minuto y vuelve a intentarlo.",
       "privacyNote": "Al enviar el formulario, usaremos tus datos solo para responderte. Más información en la <link>política de privacidad</link>.",
@@ -1306,7 +1306,7 @@
       },
       "response": {
         "q": "¿Cuánto tardáis en responder?",
-        "a": "Respondemos a los mensajes en un día laborable como mucho. Para incidencias urgentes durante un proyecto acordamos un canal directo."
+        "a": "Respondemos a los mensajes en un plazo de dos días laborables como mucho. Para incidencias urgentes durante un proyecto acordamos un canal directo."
       },
       "nda": {
         "q": "¿Firmáis un acuerdo de confidencialidad?",
