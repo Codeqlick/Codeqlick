@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
+import { ProjectHours } from '@/components/app/ProjectHours';
 import { nextMilestone, ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Markdown } from '@/components/markdown/Markdown';
@@ -12,6 +13,7 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMyProject } from '@/lib/api/projects';
+import { getMyProjectTime } from '@/lib/api/time';
 import type { ClientProject } from '@/lib/api/types';
 import { getCurrentUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
@@ -36,6 +38,11 @@ export default async function PortalProjectPage({
   }
 
   const user = await getCurrentUser();
+  const th = await getTranslations({ locale, namespace: 'Hours' });
+  // Optional: the project page works without it.
+  const time = project.showHours
+    ? await getMyProjectTime(project.id).catch(() => undefined)
+    : undefined;
   const milestones = project.milestones ?? [];
   const next = nextMilestone(milestones);
 
@@ -131,6 +138,13 @@ export default async function PortalProjectPage({
             locale={locale}
             empty={t('noFiles')}
           />
+        </section>
+      ) : null}
+
+      {time ? (
+        <section className={styles.panel} id="time">
+          <h2 className={styles.panelTitle}>{th('clientTitle')}</h2>
+          <ProjectHours time={time} locale={locale} empty={th('clientEmpty')} />
         </section>
       ) : null}
 

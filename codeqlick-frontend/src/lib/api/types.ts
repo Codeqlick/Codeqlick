@@ -208,6 +208,8 @@ export type ClientProject = {
   dueDate: string | null;
   stagingUrl: string | null;
   productionUrl: string | null;
+  /** The client sees the hours logged on it. */
+  showHours: boolean;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdate[];
   files?: ProjectFile[];
@@ -226,6 +228,7 @@ export type ProjectInput = {
   dueDate?: string | null;
   stagingUrl?: string | null;
   productionUrl?: string | null;
+  showHours?: boolean;
 };
 
 /** The sales process: first contact, talking, discovery call, proposal, then won or lost. */
@@ -521,4 +524,30 @@ export type ProposalInput = {
   validUntil: string | null;
   projectId: string | null;
   items: { description: string; quantity: number; unitPrice: number }[];
+};
+
+/** Time logged on a client project (`/admin/projects/:id/time`). */
+export type TimeEntry = {
+  id: string;
+  /** `yyyy-mm-dd`. */
+  date: string;
+  minutes: number;
+  description: string;
+  author: { name: string };
+  project: { id: string; name: string; client: { id: string; name: string } };
+};
+
+/** A project's hours: total, per month (newest first) and the entries (newest first). */
+export type ProjectTime = {
+  totalMinutes: number;
+  months: { month: string; minutes: number }[];
+  entries: TimeEntry[];
+};
+
+/** Every project's hours in one month (`/admin/time`). */
+export type MonthTime = {
+  month: string;
+  totalMinutes: number;
+  projects: { id: string; name: string; client: { id: string; name: string }; minutes: number }[];
+  entries: TimeEntry[];
 };
