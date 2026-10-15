@@ -148,7 +148,7 @@ docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 - disk use (alerts at 90%);
 - the TLS certificates (alerts at 14 days left).
 
-It emails `ALERT_TO` (default: `LEADS_NOTIFY_TO`) through the site's SMTP account with `curl`, so it still works when the containers don't. It writes only when the result changes, with a reminder every 6 hours while something stays broken, and a "Resolved" email at the end. State and a log of alerts live in `~/.codeqlick-monitor/`.
+It emails `ALERT_TO` (in production `admin@codeqlick.com`; default: `LEADS_NOTIFY_TO`) through the site's SMTP account with `curl`, so it still works when the containers don't. It writes only when the result changes, with a reminder every 6 hours while something stays broken, and a "Resolved" email at the end. State and a log of alerts live in `~/.codeqlick-monitor/`.
 
 ```bash
 crontab -l                                  # */5 * * * * /srv/codeqlick/deploy/monitor/monitor.sh
@@ -172,8 +172,18 @@ each) and deploy. Then sign in to the dashboard (first login `admin` / `umami`),
 password**, add the website `codeqlick.com`, copy its id to `UMAMI_WEBSITE_ID` in `.env` and
 deploy again (the pages are rebuilt with the tracker).
 
-The dashboard listens on `127.0.0.1:3020`. Until it has its own Nginx site, open it through an SSH
-tunnel and browse to http://localhost:3020:
+The dashboard is at https://stats.codeqlick.com (user `admin`, password `UMAMI_ADMIN_PASSWORD` in
+`.env`). It needs a DNS `A` record for `stats` and its Nginx site, installed once with sudo:
+
+```bash
+sudo cp /srv/codeqlick/deploy/nginx/stats.codeqlick.com.conf /etc/nginx/sites-available/
+sudo ln -s /etc/nginx/sites-available/stats.codeqlick.com.conf /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d stats.codeqlick.com
+```
+
+Without it, open the dashboard (it listens on `127.0.0.1:3020`) through an SSH tunnel at
+http://localhost:3020:
 
 ```bash
 ssh -N -L 3020:127.0.0.1:3020 cqadmin@<server>
