@@ -36,6 +36,11 @@ export interface TwoFactorChallenge {
 
 export type LoginResult = AuthTokens | TwoFactorChallenge;
 
+export interface Preferences {
+  /** The Monday summary of the user's projects (clients). */
+  weeklyDigest: boolean;
+}
+
 export interface TwoFactorStatus {
   enabled: boolean;
   recoveryCodesLeft: number;
@@ -223,6 +228,18 @@ export class AuthService {
       targetLabel: user.email,
       details: { scope: 'others' },
     });
+  }
+
+  /** The caller's own email preferences. */
+  async preferences(userId: string): Promise<Preferences> {
+    const user = await this.activeUser(userId);
+    return { weeklyDigest: user.weeklyDigest };
+  }
+
+  async updatePreferences(userId: string, input: Preferences): Promise<Preferences> {
+    await this.activeUser(userId);
+    await this.repository.setWeeklyDigest(userId, input.weeklyDigest);
+    return input;
   }
 
   async me(userId: string): Promise<AuthUser> {

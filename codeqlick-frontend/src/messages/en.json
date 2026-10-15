@@ -454,7 +454,10 @@
     "changed": "Password changed. Your other devices have been signed out.",
     "wrongCurrent": "The current password is not correct.",
     "samePassword": "Choose a password you are not already using.",
-    "rateLimited": "Too many attempts. Please wait a minute and try again."
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "emails": "Emails",
+    "weeklyDigest": "Weekly summary of my projects",
+    "weeklyDigestHint": "Every Monday, if there's news or something waiting for your approval, we email you a summary."
   },
   "TwoFactor": {
     "title": "Two-step verification",
@@ -832,7 +835,15 @@
       "invitationSent": "Email sent.",
       "invitationFailed": "The email couldn't be sent. Check the server's SMTP settings.",
       "locale": "Language of emails",
-      "localeHint": "The welcome email and the notices about their projects' updates are sent in this language."
+      "localeHint": "The welcome email and the notices about their projects' updates are sent in this language.",
+      "weeklyDigest": "Weekly summary by email",
+      "weeklyDigestHint": "Every Monday, if there's news or something to approve, we email them a summary of their projects.",
+      "digest": "Weekly summary",
+      "digestBody": "Send this week's summary now (in {language}) to check how it looks to them. With no news and nothing pending, nothing is sent.",
+      "digestSend": "Send summary now",
+      "digestSending": "Sending…",
+      "digestSent": "Summary sent.",
+      "digestNoNews": "Not sent: there's no news and nothing pending on their projects this week."
     },
     "activity": {
       "title": "Activity",

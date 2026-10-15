@@ -241,4 +241,53 @@ export class ProjectsRepository {
       include: updateInclude,
     });
   }
+
+  /** Active clients who want the summary and haven't had this week's one. */
+  listDigestRecipients(weekStart: Date): Promise<ClientRef[]> {
+    return this.prisma.user.findMany({
+      where: {
+        role: 'CLIENT',
+        isActive: true,
+        weeklyDigest: true,
+        OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: weekStart } }],
+      },
+      select: clientSelect.select,
+    });
+  }
+
+  findClient(id: string): Promise<(ClientRef & { role: string }) | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: { ...clientSelect.select, role: true },
+    });
+  }
+
+  /** A client's projects with what the summary needs: activity since `since`, and what's open. */
+  projectsForDigest(clientId: string, since: Date) {
+    return this.prisma.clientProject.findMany({
+      where: { clientId },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        phase: true,
+        progress: true,
+        updates: {
+          where: {
+            OR: [{ createdAt: { gte: since } }, { approvalRequested: true, approvedAt: null }],
+          },
+          orderBy: { createdAt: 'asc' },
+          select: { title: true, createdAt: true, approvalRequested: true, approvedAt: true },
+        },
+        milestones: {
+          orderBy: { position: 'asc' },
+          select: { title: true, dueDate: true, completedAt: true },
+        },
+      },
+    });
+  }
+
+  async markDigestSent(userId: string, at: Date): Promise<void> {
+    await this.prisma.user.update({ where: { id: userId }, data: { lastDigestAt: at } });
+  }
 }

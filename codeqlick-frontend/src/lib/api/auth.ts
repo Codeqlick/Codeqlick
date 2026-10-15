@@ -7,6 +7,7 @@ import type {
   Locale,
   LoginResult,
   TwoFactorSetup,
+  Preferences,
   TwoFactorStatus,
 } from './types';
 
@@ -71,6 +72,18 @@ export function verifyTwoFactor(input: { challengeToken: string; code: string })
     method: 'POST',
     body: input,
     forwardClientIp: true,
+  });
+}
+
+export function getPreferences() {
+  return apiFetch<Preferences>('/auth/preferences', { auth: 'required' });
+}
+
+export function updatePreferences(input: Preferences) {
+  return apiFetch<Preferences>('/auth/preferences', {
+    method: 'PATCH',
+    body: input,
+    auth: 'required',
   });
 }
 

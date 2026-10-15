@@ -6,7 +6,12 @@ import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { failedState, invalidState, savedState } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
-import { adminCreateUser, adminSendInvitation, adminUpdateUser } from '@/lib/api/users';
+import {
+  adminCreateUser,
+  adminSendInvitation,
+  adminSendWeeklyDigest,
+  adminUpdateUser,
+} from '@/lib/api/users';
 import { formBoolean, formString, type FormState } from '@/lib/forms';
 import { passwordResetSchema, userCreateSchema, userUpdateSchema } from '@/lib/schemas/admin';
 
@@ -74,6 +79,7 @@ export async function updateUserAction(
     role: formString(formData, 'role'),
     isActive: formBoolean(formData, 'isActive'),
     locale: formString(formData, 'locale'),
+    weeklyDigest: formBoolean(formData, 'weeklyDigest'),
   });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 
@@ -104,4 +110,22 @@ export async function resetPasswordAction(
 
   const t = await getTranslations({ locale, namespace: 'Admin.users' });
   return { status: 'success', message: t('passwordReset') };
+}
+
+export async function sendWeeklyDigestAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  let result: { sent: boolean };
+  try {
+    result = await adminSendWeeklyDigest(id);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  const t = await getTranslations({ locale, namespace: 'Admin.users' });
+  return result.sent
+    ? { status: 'success', message: t('digestSent') }
+    : { status: 'error', message: t('digestNoNews') };
 }

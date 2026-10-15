@@ -14,9 +14,10 @@ import {
   revokeOtherSessions,
   revokeSession,
   startTwoFactorSetup,
+  updatePreferences,
 } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
-import { zodFieldErrors, type FormState } from '@/lib/forms';
+import { formBoolean, zodFieldErrors, type FormState } from '@/lib/forms';
 import { changePasswordSchema } from '@/lib/schemas/auth';
 import { clearAuthCookies, getTokens } from './session';
 
@@ -196,4 +197,22 @@ export async function revokeOtherSessionsAction(
   revalidatePath(`/${locale}`, 'layout');
   const t = await getTranslations({ locale, namespace: 'Sessions' });
   return { status: 'success', message: t('signedOutOthers') };
+}
+
+/** The caller's email preferences (clients: the weekly summary). */
+export async function updatePreferencesAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await updatePreferences({ weeklyDigest: formBoolean(formData, 'weeklyDigest') });
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    const tc = await getTranslations({ locale, namespace: 'Common' });
+    return { status: 'error', message: tc('genericError') };
+  }
+  revalidatePath(`/${locale}/portal`, 'layout');
+  const tc = await getTranslations({ locale, namespace: 'Common' });
+  return { status: 'success', message: tc('saved') };
 }

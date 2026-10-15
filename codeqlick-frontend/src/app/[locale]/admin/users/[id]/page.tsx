@@ -7,7 +7,12 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { adminGetUser } from '@/lib/api/users';
 import { EMAIL_LOCALES, ROLES } from '@/lib/schemas/admin';
-import { resetPasswordAction, sendInvitationAction, updateUserAction } from '../actions';
+import {
+  resetPasswordAction,
+  sendInvitationAction,
+  sendWeeklyDigestAction,
+  updateUserAction,
+} from '../actions';
 
 export default async function EditUserPage({
   params,
@@ -61,11 +66,38 @@ export default async function EditUserPage({
             hint={t('isActiveHint')}
             defaultChecked={user.isActive}
           />
+          {user.role === 'CLIENT' ? (
+            <FormCheckbox
+              name="weeklyDigest"
+              label={t('weeklyDigest')}
+              hint={t('weeklyDigestHint')}
+              defaultChecked={user.weeklyDigest}
+            />
+          ) : (
+            <input type="hidden" name="weeklyDigest" value={user.weeklyDigest ? 'on' : ''} />
+          )}
           <div className={styles.actions}>
             <SubmitButton pendingLabel={tc('saving')}>{tc('save')}</SubmitButton>
           </div>
         </ActionForm>
       </section>
+
+      {user.isActive && user.role === 'CLIENT' ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('digest')}</h2>
+          <ActionForm
+            action={sendWeeklyDigestAction.bind(null, locale, user.id)}
+            className={styles.form}
+          >
+            <p className={styles.muted}>{t('digestBody', { language: tl(user.locale) })}</p>
+            <div className={styles.actions}>
+              <SubmitButton variant="outline" pendingLabel={t('digestSending')}>
+                {t('digestSend')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </section>
+      ) : null}
 
       {user.isActive && (
         <section className={styles.panel}>

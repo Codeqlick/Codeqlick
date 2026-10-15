@@ -454,7 +454,10 @@
     "changed": "Contraseña cambiada. Se ha cerrado la sesión en tus otros dispositivos.",
     "wrongCurrent": "La contraseña actual no es correcta.",
     "samePassword": "Elige una contraseña que no estés usando ya.",
-    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
+    "emails": "Correos",
+    "weeklyDigest": "Resumen semanal de mis proyectos",
+    "weeklyDigestHint": "Cada lunes, si hay novedades o algo pendiente de tu aprobación, te enviamos un resumen."
   },
   "TwoFactor": {
     "title": "Verificación en dos pasos",
@@ -832,7 +835,15 @@
       "invitationSent": "Correo enviado.",
       "invitationFailed": "No se pudo enviar el correo. Revisa la configuración de SMTP del servidor.",
       "locale": "Idioma de los correos",
-      "localeHint": "En este idioma le llegarán el correo de bienvenida y los avisos de novedades de sus proyectos."
+      "localeHint": "En este idioma le llegarán el correo de bienvenida y los avisos de novedades de sus proyectos.",
+      "weeklyDigest": "Resumen semanal por correo",
+      "weeklyDigestHint": "Cada lunes, si hay novedades o algo pendiente de aprobar, le enviamos un resumen de sus proyectos.",
+      "digest": "Resumen semanal",
+      "digestBody": "Envía ahora el resumen de esta semana (en {language}) para comprobar cómo le llega. Si no hay novedades ni nada pendiente, no se envía.",
+      "digestSend": "Enviar resumen ahora",
+      "digestSending": "Enviando…",
+      "digestSent": "Resumen enviado.",
+      "digestNoNews": "No se ha enviado: esta semana no hay novedades ni nada pendiente en sus proyectos."
     },
     "activity": {
       "title": "Actividad",

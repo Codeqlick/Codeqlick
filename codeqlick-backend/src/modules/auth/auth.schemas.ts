@@ -68,3 +68,6 @@ export const disableTwoFactorSchema = z
   .object({ password: z.string().min(1).max(1024), code: twoFactorCodeSchema })
   .strict();
 export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;
+
+export const preferencesSchema = z.object({ weeklyDigest: z.boolean() }).strict();
+export type PreferencesInput = z.infer<typeof preferencesSchema>;

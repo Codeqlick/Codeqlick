@@ -195,6 +195,7 @@ export const userUpdateSchema = z.object({
   role: z.enum(ROLES, 'choice'),
   isActive: z.boolean(),
   locale: z.enum(EMAIL_LOCALES, 'choice'),
+  weeklyDigest: z.boolean(),
 });
 
 export const passwordResetSchema = z.object({ password: passwordSchema });

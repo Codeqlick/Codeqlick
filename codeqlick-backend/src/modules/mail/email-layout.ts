@@ -14,8 +14,8 @@ export interface EmailContent {
   greeting?: string;
   /** Paragraphs before the button. */
   intro: string[];
-  /** A highlighted block: the update or message the email is about. */
-  quote?: { title?: string; body: string };
+  /** A highlighted block (or several): the update or message the email is about. */
+  quote?: EmailQuote | EmailQuote[];
   /** Label/value rows, e.g. the fields of a contact request. */
   details?: Array<[label: string, value: string]>;
   /** The main action. In the text version the bare URL is printed after `intro`. */
@@ -26,6 +26,11 @@ export interface EmailContent {
   note?: string;
   /** Closing lines; defaults to the team's signature. */
   signoff?: string[];
+}
+
+export interface EmailQuote {
+  title?: string;
+  body: string;
 }
 
 export interface RenderedEmail {
@@ -81,6 +86,11 @@ function multiline(value: string): string {
   return escapeHtml(value).replaceAll('\n', '<br>');
 }
 
+function quotes(content: EmailContent): EmailQuote[] {
+  if (!content.quote) return [];
+  return Array.isArray(content.quote) ? content.quote : [content.quote];
+}
+
 function renderText(content: EmailContent): string {
   const lines: string[] = [];
   const block = (...parts: string[]) => {
@@ -91,9 +101,9 @@ function renderText(content: EmailContent): string {
   if (content.title) block(content.title);
   if (content.greeting) block(content.greeting);
   for (const text of content.intro) block(text);
-  if (content.quote) {
-    if (content.quote.title) block(content.quote.title);
-    block(content.quote.body);
+  for (const quote of quotes(content)) {
+    if (quote.title) block(quote.title);
+    block(quote.body);
   }
   if (content.details) block(...content.details.map(([label, value]) => `${label}: ${value}`));
   if (content.button) block(content.button.url);
@@ -129,13 +139,13 @@ function renderHtml(content: EmailContent, siteUrl: string): string {
   }
   for (const text of content.intro) rows.push(row(paragraph(text)));
 
-  if (content.quote) {
-    const title = content.quote.title
-      ? `<p style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:17px;line-height:22px;font-weight:700;color:${BRAND.ink};">${escapeHtml(content.quote.title)}</p>`
+  for (const quote of quotes(content)) {
+    const title = quote.title
+      ? `<p style="margin:0 0 8px;font-family:${FONT_DISPLAY};font-size:17px;line-height:22px;font-weight:700;color:${BRAND.ink};">${escapeHtml(quote.title)}</p>`
       : '';
     rows.push(
       row(
-        `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="${BRAND.blush}" style="background-color:${BRAND.blush};border-left:4px solid ${BRAND.fuchsia};border-radius:12px;padding:18px 20px;">${title}<p style="margin:0;font-family:${FONT_BODY};font-size:15px;line-height:24px;color:${BRAND.body};">${multiline(content.quote.body)}</p></td></tr></table>`,
+        `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="${BRAND.blush}" style="background-color:${BRAND.blush};border-left:4px solid ${BRAND.fuchsia};border-radius:12px;padding:18px 20px;">${title}<p style="margin:0;font-family:${FONT_BODY};font-size:15px;line-height:24px;color:${BRAND.body};">${multiline(quote.body)}</p></td></tr></table>`,
         '4px 0 20px 0',
       ),
     );

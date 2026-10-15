@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -23,6 +24,7 @@ import {
   enableTwoFactorSchema,
   loginSchema,
   logoutSchema,
+  preferencesSchema,
   refreshSchema,
   requestPasswordResetSchema,
   verifyTwoFactorSchema,
@@ -32,6 +34,7 @@ import {
   type EnableTwoFactorInput,
   type LoginInput,
   type LogoutInput,
+  type PreferencesInput,
   type RefreshInput,
   type RequestPasswordResetInput,
   type VerifyTwoFactorInput,
@@ -42,6 +45,7 @@ import {
   type AuthTokens,
   type ClientInfo,
   type LoginResult,
+  type Preferences,
   type TwoFactorSetup,
   type TwoFactorStatus,
 } from './auth.service.js';
@@ -199,6 +203,21 @@ export class AuthController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<void> {
     await this.auth.revokeSession(user, params.id);
+  }
+
+  @ApiBearerAuth()
+  @Get('preferences')
+  preferences(@CurrentUser() user: AuthUser): Promise<Preferences> {
+    return this.auth.preferences(user.id);
+  }
+
+  @ApiBearerAuth()
+  @Patch('preferences')
+  updatePreferences(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: preferencesSchema }) body: PreferencesInput,
+  ): Promise<Preferences> {
+    return this.auth.updatePreferences(user.id, body);
   }
 
   @ApiBearerAuth()
