@@ -165,12 +165,54 @@ describe('Support requests (e2e)', () => {
       .expect(200);
     expect(active.body.items.map((t: { id: string }) => t.id)).not.toContain(id);
 
-    // The client closes it; a closed request takes no more messages.
+    // Files: the client adds one (the team is told), another client can't read it, the team
+    // can download and remove it.
+    const withFile = await request(server)
+      .post(`/v1/portal/tickets/${id}/files`)
+      .set(clientAuth)
+      .attach('file', Buffer.from('<h1>error</h1>'), {
+        filename: 'Captura de pantalla.html',
+        contentType: 'text/html',
+      })
+      .expect(201);
+    expect(withFile.body.files).toEqual([
+      expect.objectContaining({
+        name: 'Captura de pantalla.html',
+        author: { name: 'Grace', team: false },
+      }),
+    ]);
+    await vi.waitFor(() => expect(sent.at(-1)?.text).toContain('Captura de pantalla.html'));
+    const filePath = `/v1/portal/tickets/${id}/files/${withFile.body.files[0].id as string}`;
+    await request(server).get(filePath).set(otherAuth).expect(404);
+    const download = await request(server)
+      .get(filePath)
+      .set(adminAuth)
+      .buffer(true)
+      .parse((res, done) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => done(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    expect((download.body as Buffer).toString()).toBe('<h1>error</h1>');
+    expect(download.headers['content-type']).toBe('application/octet-stream');
+    await request(server)
+      .delete(`/v1/admin/tickets/${id}/files/${withFile.body.files[0].id as string}`)
+      .set(adminAuth)
+      .expect(204);
+    await request(server).get(filePath).set(clientAuth).expect(404);
+
+    // The client closes it; a closed request takes no more messages or files.
     await request(server).post(`/v1/portal/tickets/${id}/close`).set(clientAuth).expect(200);
     await request(server)
       .post(`/v1/portal/tickets/${id}/messages`)
       .set(clientAuth)
       .send({ body: 'Una cosa más' })
+      .expect(409);
+    await request(server)
+      .post(`/v1/portal/tickets/${id}/files`)
+      .set(clientAuth)
+      .attach('file', Buffer.from('x'), 'x.txt')
       .expect(409);
     const mine = await request(server).get('/v1/portal/tickets').set(clientAuth).expect(200);
     expect(mine.body.items).toEqual([expect.objectContaining({ id, status: 'CLOSED' })]);

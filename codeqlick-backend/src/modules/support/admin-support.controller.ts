@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -8,6 +19,8 @@ import type { Paginated } from '../../common/types/paginated.js';
 import {
   adminTicketMessageSchema,
   listTicketsQuerySchema,
+  ticketFileParamSchema,
+  type TicketFileParam,
   updateTicketSchema,
   type AdminTicketMessageInput,
   type ListTicketsQuery,
@@ -50,5 +63,14 @@ export class AdminSupportController {
     @Body({ schema: adminTicketMessageSchema }) body: AdminTicketMessageInput,
   ): Promise<TicketDetail> {
     return this.support.replyAsTeam(user, params.id, body);
+  }
+
+  @Delete(':id/files/:fileId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteFile(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: ticketFileParamSchema }) params: TicketFileParam,
+  ): Promise<void> {
+    await this.support.deleteFile(user, params.id, params.fileId);
   }
 }

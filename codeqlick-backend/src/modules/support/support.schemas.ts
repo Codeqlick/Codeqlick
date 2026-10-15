@@ -39,6 +39,9 @@ export const updateTicketSchema = z
   .strict();
 export type UpdateTicketInput = z.infer<typeof updateTicketSchema>;
 
+export const ticketFileParamSchema = z.object({ id: z.uuid(), fileId: z.uuid() });
+export type TicketFileParam = z.infer<typeof ticketFileParamSchema>;
+
 export const listTicketsQuerySchema = paginationSchema.extend({
   status: ticketStatusSchema.optional(),
   /** `true`: only requests still open (not resolved or closed). */

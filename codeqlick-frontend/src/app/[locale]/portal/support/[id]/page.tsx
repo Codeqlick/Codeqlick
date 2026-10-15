@@ -4,6 +4,7 @@ import { ActionForm, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TicketPriorityBadge, TicketStatusBadge } from '@/components/app/StatusBadges';
+import { TicketFiles } from '@/components/app/TicketFiles';
 import { TicketThread } from '@/components/app/TicketThread';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -11,13 +12,15 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMyTicket } from '@/lib/api/support';
 import type { TicketDetail } from '@/lib/api/types';
-import { formatDateTime } from '@/lib/format';
+import { firstParam, formatDateTime } from '@/lib/format';
 import { closeTicketAction, replyToTicketAction } from '../actions';
 
 export default async function PortalTicketPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ files?: string | string[] }>;
 }) {
   const { locale: rawLocale, id } = await params;
   const locale = resolveLocale(rawLocale);
@@ -111,6 +114,13 @@ export default async function PortalTicketPage({
           )}
         </div>
       </section>
+
+      <TicketFiles
+        ticket={ticket}
+        locale={locale}
+        from="portal"
+        uploadResult={firstParam((await searchParams).files)}
+      />
 
       {closed ? null : (
         <section className={styles.panel}>

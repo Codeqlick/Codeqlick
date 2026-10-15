@@ -963,7 +963,9 @@
           "opened": "opened the request <target>{label}</target>",
           "replied": "replied on the request <target>{label}</target>",
           "updated": "changed the request <target>{label}</target>",
-          "closed": "closed the request <target>{label}</target>"
+          "closed": "closed the request <target>{label}</target>",
+          "file_added": "attached a file to the request <target>{label}</target>",
+          "file_deleted": "deleted a file from the request <target>{label}</target>"
         }
       },
       "details": {
@@ -1236,6 +1238,17 @@
       "RESOLVED": "Resolved",
       "CLOSED": "Closed"
     },
-    "waitingYou": "Waiting for your reply"
+    "waitingYou": "Waiting for your reply",
+    "filesTitle": "Files",
+    "chooseFile": "Choose a file",
+    "uploadFile": "Attach file",
+    "uploadingFile": "Uploading… {percent}%",
+    "fileHint": "Screenshots, logs or documents: any type of file, up to 25 MB.",
+    "fileUploaded": "File attached.",
+    "fileTooLarge": "The file is larger than 25 MB.",
+    "fileFailed": "The upload failed. Please try again.",
+    "fileSignedOut": "Your session has expired. Sign in again and repeat the upload.",
+    "noFiles": "No files yet.",
+    "fileDeleted": "File deleted."
   }
 }

@@ -198,7 +198,7 @@ export default async function EditProjectPage({
             }}
           />
           <ProjectFiles
-            projectId={project.id}
+            fileHref={(fileId) => `/${locale}/portal/projects/${project.id}/files/${fileId}`}
             files={project.files ?? []}
             locale={locale}
             empty={t('noFiles')}

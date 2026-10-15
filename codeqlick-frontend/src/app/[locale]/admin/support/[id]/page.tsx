@@ -5,6 +5,7 @@ import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { TicketPriorityBadge, TicketStatusBadge } from '@/components/app/StatusBadges';
+import { TicketFiles } from '@/components/app/TicketFiles';
 import { TicketThread } from '@/components/app/TicketThread';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -13,13 +14,19 @@ import { isNotFound } from '@/lib/api/errors';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import { adminGetTicket } from '@/lib/api/support';
 import { TICKET_PRIORITIES, TICKET_STATUSES, type TicketDetail } from '@/lib/api/types';
-import { formatDateTime } from '@/lib/format';
-import { adminReplyToTicketAction, adminUpdateTicketAction } from '../actions';
+import { firstParam, formatDateTime } from '@/lib/format';
+import {
+  adminDeleteTicketFileAction,
+  adminReplyToTicketAction,
+  adminUpdateTicketAction,
+} from '../actions';
 
 export default async function AdminTicketPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ files?: string | string[] }>;
 }) {
   const { locale: rawLocale, id } = await params;
   const locale = resolveLocale(rawLocale);
@@ -131,6 +138,14 @@ export default async function AdminTicketPage({
           </ActionForm>
         </div>
       </section>
+
+      <TicketFiles
+        ticket={ticket}
+        locale={locale}
+        from="admin"
+        uploadResult={firstParam((await searchParams).files)}
+        deleteAction={(fileId) => adminDeleteTicketFileAction.bind(null, locale, ticket.id, fileId)}
+      />
 
       <section className={styles.panel}>
         <ActionForm

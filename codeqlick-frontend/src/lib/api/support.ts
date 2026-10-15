@@ -1,5 +1,7 @@
 import 'server-only';
+import { env } from '@/lib/env';
 import { apiFetch } from './client';
+import { authHeader } from './projects';
 import type {
   Paginated,
   Ticket,
@@ -87,6 +89,50 @@ export function adminUpdateTicket(
   return apiFetch<TicketDetail>(path('admin', id), {
     method: 'PATCH',
     body: input,
+    auth: 'required',
+  });
+}
+
+/* Files: uploads are streamed by a route handler (as project files), for the client or an admin. */
+
+/** Largest file the API accepts on a request, in bytes. */
+export const MAX_TICKET_FILE_BYTES = 25 * 1024 * 1024;
+
+export async function uploadTicketFile(
+  id: string,
+  body: ReadableStream<Uint8Array>,
+  contentType: string,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  return fetch(`${env.API_URL}${path('portal', id)}/files`, {
+    method: 'POST',
+    headers: { Authorization: authorization, 'Content-Type': contentType },
+    body,
+    // Required by Node's fetch for a streamed request body.
+    duplex: 'half',
+    cache: 'no-store',
+    // The body arrives at the visitor's upload speed.
+    signal: AbortSignal.timeout(15 * 60_000),
+  } as RequestInit);
+}
+
+/** The API's download response for a request's file (its client, or an admin). */
+export async function downloadTicketFile(
+  id: string,
+  fileId: string,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  return fetch(`${env.API_URL}${path('portal', id)}/files/${encodeURIComponent(fileId)}`, {
+    headers: { Authorization: authorization },
+    cache: 'no-store',
+  });
+}
+
+export function adminDeleteTicketFile(id: string, fileId: string) {
+  return apiFetch<void>(`${path('admin', id)}/files/${encodeURIComponent(fileId)}`, {
+    method: 'DELETE',
     auth: 'required',
   });
 }

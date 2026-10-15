@@ -92,6 +92,7 @@ model User {
   leadsConverted  Lead[]                 @relation("LeadClient")
   tickets         SupportTicket[]
   ticketMessages  TicketMessage[]
+  ticketFiles     TicketAttachment[]
   projectFiles    ProjectFile[]
   activity        ActivityLog[]
   leadReplies     LeadReply[]
@@ -448,9 +449,10 @@ model SupportTicket {
   createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  client   User            @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  project  ClientProject?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  client   User               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project  ClientProject?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   messages TicketMessage[]
+  files    TicketAttachment[]
 
   @@index([status, updatedAt])
   @@index([clientId, updatedAt])
@@ -470,4 +472,22 @@ model TicketMessage {
 
   @@index([ticketId, createdAt])
   @@map("ticket_messages")
+}
+
+/// A file added to a support request by the client or the team (a screenshot, a log...). Stored
+/// on disk at UPLOADS_DIR/ticket-files/<id>, like project files.
+model TicketAttachment {
+  id           String   @id @default(uuid()) @db.Uuid
+  ticketId     String   @map("ticket_id") @db.Uuid
+  uploadedById String?  @map("uploaded_by_id") @db.Uuid
+  name         String
+  contentType  String   @map("content_type")
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  uploadedBy User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_attachments")
 }

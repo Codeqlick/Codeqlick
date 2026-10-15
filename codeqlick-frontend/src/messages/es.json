@@ -963,7 +963,9 @@
           "opened": "abrió la petición <target>{label}</target>",
           "replied": "respondió en la petición <target>{label}</target>",
           "updated": "cambió la petición <target>{label}</target>",
-          "closed": "cerró la petición <target>{label}</target>"
+          "closed": "cerró la petición <target>{label}</target>",
+          "file_added": "adjuntó un archivo a la petición <target>{label}</target>",
+          "file_deleted": "eliminó un archivo de la petición <target>{label}</target>"
         }
       },
       "details": {
@@ -1236,6 +1238,17 @@
       "RESOLVED": "Resuelta",
       "CLOSED": "Cerrada"
     },
-    "waitingYou": "Esperando tu respuesta"
+    "waitingYou": "Esperando tu respuesta",
+    "filesTitle": "Archivos",
+    "chooseFile": "Elige un archivo",
+    "uploadFile": "Adjuntar archivo",
+    "uploadingFile": "Subiendo… {percent} %",
+    "fileHint": "Capturas, registros o documentos: cualquier tipo de archivo, hasta 25 MB.",
+    "fileUploaded": "Archivo adjuntado.",
+    "fileTooLarge": "El archivo pesa más de 25 MB.",
+    "fileFailed": "La subida ha fallado. Vuelve a intentarlo.",
+    "fileSignedOut": "Tu sesión ha caducado. Vuelve a iniciar sesión y repite la subida.",
+    "noFiles": "Todavía no hay archivos.",
+    "fileDeleted": "Archivo eliminado."
   }
 }

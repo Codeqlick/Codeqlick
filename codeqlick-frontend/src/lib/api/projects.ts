@@ -160,7 +160,8 @@ export function adminDeleteProjectFile(id: string, fileId: string) {
  * through apiFetch (which reads whole bodies). Both resolve to undefined without a session.
  */
 
-async function authHeader(): Promise<string | undefined> {
+/** Shared with the support request uploads (lib/api/support.ts). */
+export async function authHeader(): Promise<string | undefined> {
   const token = (await cookies()).get(ACCESS_COOKIE)?.value;
   return token ? `Bearer ${token}` : undefined;
 }
