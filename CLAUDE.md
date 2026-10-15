@@ -58,4 +58,4 @@ Outgoing email in production goes through OVH's SMTP (`ssl0.ovh.net:465`) as `he
 
 ## Production
 
-Live at https://codeqlick.com and https://api.codeqlick.com on the OVH VPS (`/srv/codeqlick`, user `cqadmin`, web on `127.0.0.1:3010`, api on `127.0.0.1:4010`). To release: merge to `main`, then on the server run `./deploy/deploy.sh` as `cqadmin` (pulls, builds, restarts and verifies; non-zero exit when the site isn't serving). `/srv/domfeliu` and `/srv/circlesfera*` belong to other projects — don't touch them. Details in `deploy/README.md`.
+Live at https://codeqlick.com and https://api.codeqlick.com on the OVH VPS (`/srv/codeqlick`, user `cqadmin`, web on `127.0.0.1:3010`, api on `127.0.0.1:4010`). To release: merge to `main`. Once that commit's CI passes, the Deploy workflow (`.github/workflows/deploy.yml`) runs `./deploy/deploy.sh` on the server (pulls, builds, restarts and verifies; fails when the site isn't serving). Changes that trigger no CI (only `deploy/` or docs) need the workflow run by hand, or `./deploy/deploy.sh` as `cqadmin`. `/srv/domfeliu` and `/srv/circlesfera*` belong to other projects — don't touch them. Details in `deploy/README.md`.
