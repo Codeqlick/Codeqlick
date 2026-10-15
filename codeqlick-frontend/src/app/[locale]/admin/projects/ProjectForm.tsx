@@ -30,7 +30,7 @@ export async function ProjectForm({
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tp = await getTranslations({ locale, namespace: 'Phases' });
 
-  const clients = (await adminListUsers({ role: 'CLIENT', pageSize: 100 })).items;
+  const clients = (await adminListUsers({ role: 'CLIENT', accounts: true, pageSize: 100 })).items;
   const options = clients.map((client) => ({
     value: client.id,
     label: `${client.name} (${client.email})`,

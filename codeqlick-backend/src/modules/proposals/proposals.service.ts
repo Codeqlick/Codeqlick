@@ -6,11 +6,11 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
-import type { AuthUser } from '../../common/types/auth-user.js';
+import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { Prisma, ProposalStatus } from '../../generated/prisma/client.js';
+import { AccountsService } from '../accounts/accounts.service.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { proposalAnsweredEmail, proposalSentEmail } from './proposal-emails.js';
@@ -115,13 +115,17 @@ export class ProposalsService {
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly activity: ActivityService,
+    private readonly accounts: AccountsService,
   ) {}
 
   // ---- Portal ---------------------------------------------------------------------------
 
   /** The caller's proposals, drafts left out. */
   async listMine(caller: AuthUser, query: ListProposalsQuery): Promise<Paginated<ProposalView>> {
-    return this.listWhere({ clientId: caller.id, status: query.status ?? { not: 'DRAFT' } }, query);
+    return this.listWhere(
+      { clientId: accountOf(caller), status: query.status ?? { not: 'DRAFT' } },
+      query,
+    );
   }
 
   async getMine(caller: AuthUser, id: string): Promise<ProposalView> {
@@ -220,23 +224,23 @@ export class ProposalsService {
     });
     if (!row) throw new ConflictException('Only drafts can be sent');
     const view = toView(row);
+    // Every active person of the client account, each in their language.
     let clientNotified = false;
-    if (row.client.isActive) {
-      const locale = toApiLocale(row.client.locale);
+    for (const person of await this.accounts.people(row.clientId)) {
       try {
         await this.mail.send(
           proposalSentEmail(
-            row.client,
+            person,
             view,
-            `${this.config.siteUrl}/${locale}/portal/proposals/${row.id}`,
-            locale,
+            `${this.config.siteUrl}/${person.locale}/portal/proposals/${row.id}`,
+            person.locale,
             this.config.siteUrl,
           ),
         );
         clientNotified = true;
       } catch (error) {
         const reason = error instanceof Error ? error.message : String(error);
-        this.logger.error(`Proposal email to ${row.client.email} failed: ${reason}`);
+        this.logger.error(`Proposal email to ${person.email} failed: ${reason}`);
       }
     }
     await this.activity.record(author, {
@@ -342,7 +346,9 @@ export class ProposalsService {
   private async findForClient(caller: AuthUser, id: string): Promise<ProposalRow> {
     const row = await this.repository.findById(id);
     const visible =
-      row && row.status !== 'DRAFT' && (caller.role === 'ADMIN' || row.clientId === caller.id);
+      row &&
+      row.status !== 'DRAFT' &&
+      (caller.role === 'ADMIN' || row.clientId === accountOf(caller));
     if (!visible) throw new NotFoundException('Proposal not found');
     return row;
   }
@@ -362,7 +368,7 @@ export class ProposalsService {
     this.notify(
       proposalAnsweredEmail(
         this.config.leadsNotifyTo,
-        row.client,
+        { name: caller.name, email: caller.email },
         view,
         answer,
         `${this.config.siteUrl}/es/admin/proposals/${row.id}`,

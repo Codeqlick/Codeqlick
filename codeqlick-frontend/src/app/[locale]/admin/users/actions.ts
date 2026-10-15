@@ -129,3 +129,32 @@ export async function sendWeeklyDigestAction(
     ? { status: 'success', message: t('digestSent') }
     : { status: 'error', message: t('digestNoNews') };
 }
+
+/** Adds a person to a client company's account; they get the welcome email to choose a password. */
+export async function addCompanyPersonAction(
+  locale: AppLocale,
+  accountId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = userCreateSchema.safeParse({
+    name: formString(formData, 'name'),
+    email: formString(formData, 'email'),
+    role: 'CLIENT',
+    password: '',
+    locale: formString(formData, 'locale'),
+  });
+  if (!parsed.success) return invalidState(parsed.error, locale, formData);
+
+  let invitationSent: boolean | undefined;
+  try {
+    ({ invitationSent } = await adminCreateUser({ ...parsed.data, memberOfId: accountId }));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidatePath(`/${locale}/admin`, 'layout');
+  const t = await getTranslations({ locale, namespace: 'Admin.users' });
+  return invitationSent === false
+    ? { status: 'error', message: t('personAddedNoEmail') }
+    : { status: 'success', message: t('personAdded') };
+}

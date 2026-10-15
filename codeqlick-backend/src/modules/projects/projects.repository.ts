@@ -13,7 +13,7 @@ import type {
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive'>;
+type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive' | 'memberOfId'>;
 export type CommentWithAuthor = ProjectUpdateComment & {
   author: Pick<User, 'name' | 'role'> | null;
 };
@@ -32,7 +32,8 @@ export type ProjectWithUpdates = ProjectWithClient & {
 };
 
 const clientSelect = {
-  select: { id: true, name: true, email: true, locale: true, isActive: true },
+  // memberOfId: people of a client company see its account's projects (weekly summary included).
+  select: { id: true, name: true, email: true, locale: true, isActive: true, memberOfId: true },
 } as const;
 const commentInclude = { author: { select: { name: true, role: true } } } as const;
 const updateInclude = {

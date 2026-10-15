@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
-import type { AuthUser } from '../../common/types/auth-user.js';
+import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { TicketStatus } from '../../generated/prisma/client.js';
+import { AccountsService, type AccountPerson } from '../accounts/accounts.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { cleanContentType, cleanFileName } from '../projects/project-file-name.js';
@@ -146,6 +146,7 @@ export class SupportService {
     private readonly config: AppConfigService,
     private readonly activity: ActivityService,
     private readonly storage: TicketFilesStorage,
+    private readonly accounts: AccountsService,
   ) {}
 
   // ---- Portal ---------------------------------------------------------------------------
@@ -153,7 +154,7 @@ export class SupportService {
   async listMine(caller: AuthUser, query: ListTicketsQuery): Promise<Paginated<TicketSummary>> {
     const { skip, take } = pageToSkipTake(query.page, query.pageSize);
     const { items, total } = await this.repository.list(
-      { clientId: caller.id, status: query.status, active: query.active },
+      { clientId: accountOf(caller), status: query.status, active: query.active },
       skip,
       take,
     );
@@ -166,13 +167,17 @@ export class SupportService {
 
   async open(caller: AuthUser, input: CreateTicketInput): Promise<TicketDetail> {
     if (caller.role !== 'CLIENT') throw new BadRequestException('Requests are opened by clients');
-    if (input.projectId && !(await this.repository.findClientProject(caller.id, input.projectId))) {
+    if (
+      input.projectId &&
+      !(await this.repository.findClientProject(accountOf(caller), input.projectId))
+    ) {
       throw new BadRequestException({
         errors: [{ path: 'projectId', message: 'Unknown project' }],
       });
     }
     const row = await this.repository.create({
-      clientId: caller.id,
+      clientId: accountOf(caller),
+      authorId: caller.id,
       projectId: input.projectId ?? null,
       type: input.type,
       priority: input.priority,
@@ -182,7 +187,7 @@ export class SupportService {
     this.notify(
       ticketTeamEmail(
         this.config.leadsNotifyTo,
-        row.client,
+        { name: caller.name, email: caller.email },
         row,
         { kind: 'opened', body: input.body },
         this.adminLink(row.id),
@@ -214,7 +219,7 @@ export class SupportService {
       this.notify(
         ticketTeamEmail(
           this.config.leadsNotifyTo,
-          row.client,
+          { name: caller.name, email: caller.email },
           row,
           { kind: 'replied', body: input.body },
           this.adminLink(row.id),
@@ -273,7 +278,7 @@ export class SupportService {
       this.notify(
         ticketTeamEmail(
           this.config.leadsNotifyTo,
-          row.client,
+          { name: caller.name, email: caller.email },
           row,
           { kind: 'replied', body: `Attached a file: ${name}` },
           this.adminLink(row.id),
@@ -326,9 +331,9 @@ export class SupportService {
       input.body,
       input.status ?? 'WAITING_CLIENT',
     );
-    this.emailClient(row, (link, locale) =>
+    this.emailClient(row, (person, link, locale) =>
       ticketClientEmail(
-        row.client,
+        person,
         row,
         { kind: 'replied', body: input.body, authorName: author.name || 'Codeqlick' },
         link,
@@ -350,8 +355,8 @@ export class SupportService {
     if (input.status && input.status !== existing.status) {
       // Telling the client matters when their request is done (or reopened); not for every hop.
       if (['RESOLVED', 'CLOSED'].includes(input.status) || existing.resolvedAt) {
-        this.emailClient(row, (link, locale) =>
-          ticketClientEmail(row.client, row, { kind: 'status' }, link, locale, this.config.siteUrl),
+        this.emailClient(row, (person, link, locale) =>
+          ticketClientEmail(person, row, { kind: 'status' }, link, locale, this.config.siteUrl),
         );
       }
       await this.activity.record(author, {
@@ -388,7 +393,7 @@ export class SupportService {
   private async findForCaller(caller: AuthUser, id: string): Promise<TicketDetailRow> {
     const ticket = await this.repository.findById(id);
     // Clients only see their own requests; admins may look at any.
-    if (!ticket || (caller.role !== 'ADMIN' && ticket.clientId !== caller.id)) {
+    if (!ticket || (caller.role !== 'ADMIN' && ticket.clientId !== accountOf(caller))) {
       throw new NotFoundException('Request not found');
     }
     return ticket;
@@ -404,13 +409,22 @@ export class SupportService {
     return `${this.config.siteUrl}/es/admin/support/${id}`;
   }
 
+  /** Emails every active person of the client account, each in their language. */
   private emailClient(
     row: TicketDetailRow,
-    build: (link: string, locale: 'en' | 'es') => MailMessage,
+    build: (person: AccountPerson, link: string, locale: 'en' | 'es') => MailMessage,
   ): void {
-    if (!row.client.isActive) return;
-    const locale = toApiLocale(row.client.locale);
-    this.notify(build(`${this.config.siteUrl}/${locale}/portal/support/${row.id}`, locale));
+    void this.accounts.people(row.clientId).then((people) => {
+      for (const person of people) {
+        this.notify(
+          build(
+            person,
+            `${this.config.siteUrl}/${person.locale}/portal/support/${row.id}`,
+            person.locale,
+          ),
+        );
+      }
+    });
   }
 
   /** Fire-and-forget: mail problems are logged and never fail the request. */

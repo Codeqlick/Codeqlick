@@ -102,6 +102,11 @@ model User {
   proposals       Proposal[]             @relation("ProposalClient")
   proposalsMade   Proposal[]             @relation("ProposalAuthor")
   timeEntries     TimeEntry[]
+  /// A person of a client company: they see and act on the account of `memberOf` (the company's
+  /// main client account), which owns the projects, requests and proposals.
+  memberOfId      String?                @map("member_of_id") @db.Uuid
+  memberOf        User?                  @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
+  members         User[]                 @relation("ClientTeam")
   projectFiles    ProjectFile[]
   activity        ActivityLog[]
   leadReplies     LeadReply[]
