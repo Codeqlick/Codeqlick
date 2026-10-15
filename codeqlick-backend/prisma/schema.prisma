@@ -646,3 +646,12 @@ model ProjectTask {
   @@index([ticketId])
   @@map("project_tasks")
 }
+
+/// Site settings edited in the admin panel, one JSON document per key (e.g. `calculator`).
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("settings")
+}

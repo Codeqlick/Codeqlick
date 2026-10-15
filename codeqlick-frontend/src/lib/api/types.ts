@@ -417,6 +417,7 @@ export const ACTIVITY_TARGETS = [
   'tag',
   'support',
   'proposal',
+  'settings',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];

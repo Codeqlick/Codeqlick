@@ -7,10 +7,16 @@ import { resolveLocale } from '@/i18n/locale';
 import { legalOwner } from '@/lib/env';
 import { pageMetadata } from '@/lib/seo';
 import { CONTACT_EMAIL } from '@/lib/site';
+import { Link } from '@/i18n/navigation';
+import { getCalculator } from '@/lib/api/calculator';
+import { firstParam } from '@/lib/format';
 import { ContactForm } from './ContactForm';
 import styles from '../site.module.css';
 
-type PageProps = { params: Promise<{ locale: string }> };
+type PageProps = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
@@ -29,11 +35,19 @@ async function requestTime(): Promise<number> {
   return Date.now();
 }
 
-export default async function ContactPage({ params }: PageProps) {
+export default async function ContactPage({ params, searchParams }: PageProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Contact' });
   const renderedAt = await requestTime();
+  // Coming from the calculator: the project type and a message with the estimate.
+  const query = await searchParams;
+  const initial = {
+    projectType: firstParam(query.type)?.slice(0, 40),
+    message: firstParam(query.message)?.slice(0, 2000),
+  };
+  const calculator = await getCalculator();
+  const tcalc = await getTranslations({ locale, namespace: 'Calculator' });
 
   return (
     <section className={`wrap ${styles.page}`}>
@@ -42,13 +56,21 @@ export default async function ContactPage({ params }: PageProps) {
       <p className={`lead ${styles.lead}`}>{t('lead')}</p>
 
       <div className={styles.split}>
-        <ContactForm renderedAt={renderedAt} showPrivacyNote={!!legalOwner} />
+        <ContactForm renderedAt={renderedAt} showPrivacyNote={!!legalOwner} initial={initial} />
         <Card as="aside" tone="blush">
           <h2 className={styles.itemTitle}>{t('asideTitle')}</h2>
           <p>{t('asideBody')}</p>
           <p>
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </p>
+          {calculator ? (
+            <>
+              <h2 className={styles.itemTitle}>{tcalc('asideTitle')}</h2>
+              <p>
+                {tcalc('asideBody')} <Link href="/calculator">{tcalc('ctaLink')}</Link>
+              </p>
+            </>
+          ) : null}
         </Card>
       </div>
 
