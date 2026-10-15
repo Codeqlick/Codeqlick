@@ -898,6 +898,12 @@
       "slugTaken": "There is already a tag with this slug.",
       "emptyTitle": "No tags yet",
       "emptyBody": "Create the first one above and assign it from each post's form."
+    },
+    "markdownPreview": {
+      "show": "Show preview",
+      "hide": "Hide preview",
+      "title": "Preview",
+      "empty": "Type something to see it here as it will look on the site."
     }
   },
   "Sessions": {

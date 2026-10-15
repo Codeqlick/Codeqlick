@@ -8,7 +8,9 @@ import {
 } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { ImageField } from '@/components/app/ImageField';
+import { MarkdownField } from '@/components/app/MarkdownField';
 import { MarkdownImageButton } from '@/components/app/MarkdownImageButton';
+import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
 import { toDateTimeInput } from '@/lib/format';
@@ -31,6 +33,7 @@ export async function PortfolioForm({
   const t = await getTranslations({ locale, namespace: 'Admin.portfolio' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tm = await getTranslations({ locale, namespace: 'Admin.media' });
+  const previewLabels = await markdownPreviewLabels(locale);
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
 
   return (
@@ -135,13 +138,14 @@ export async function PortfolioForm({
               required={lang === 'en'}
               defaultValue={translation?.summary}
             />
-            <FormTextarea
+            <MarkdownField
               name={`${lang}.content`}
               label={t('content')}
               rows={16}
               mono
               required={lang === 'en'}
               defaultValue={translation?.content}
+              previewLabels={previewLabels}
             />
             <MarkdownImageButton
               target={`${lang}.content`}

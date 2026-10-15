@@ -1,12 +1,8 @@
 import { getTranslations } from 'next-intl/server';
-import {
-  ActionForm,
-  FormInput,
-  FormSelect,
-  FormTextarea,
-  type FormAction,
-} from '@/components/app/ActionForm';
+import { ActionForm, FormInput, FormSelect, type FormAction } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { MarkdownField } from '@/components/app/MarkdownField';
+import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
@@ -55,12 +51,14 @@ export async function ProjectForm({
           defaultValue={project?.client.id ?? ''}
         />
       </div>
-      <FormTextarea
+      <MarkdownField
         name="description"
         label={t('description')}
         optionalLabel={tc('optional')}
         rows={5}
         defaultValue={project?.description ?? ''}
+        compact
+        previewLabels={await markdownPreviewLabels(locale)}
       />
       <div className={styles.row}>
         <FormSelect
