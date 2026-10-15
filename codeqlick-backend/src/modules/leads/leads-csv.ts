@@ -5,6 +5,7 @@ const COLUMNS: [header: string, value: (lead: Lead) => string | null][] = [
   ['name', (lead) => lead.name],
   ['email', (lead) => lead.email],
   ['company', (lead) => lead.company],
+  ['project_type', (lead) => lead.projectType],
   ['budget', (lead) => lead.budget],
   ['status', (lead) => lead.status],
   ['lost_reason', (lead) => lead.lostReason],

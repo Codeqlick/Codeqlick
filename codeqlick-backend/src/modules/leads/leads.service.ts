@@ -39,6 +39,7 @@ export interface Lead {
   email: string;
   company: string | null;
   budget: string | null;
+  projectType: string | null;
   message: string;
   locale: ApiLocale;
   status: LeadRow['status'];
@@ -59,6 +60,7 @@ export function toLead(row: LeadRow): Lead {
     email: row.email,
     company: row.company,
     budget: row.budget,
+    projectType: row.projectType,
     message: row.message,
     locale: toApiLocale(row.locale),
     status: row.status,
@@ -166,6 +168,7 @@ export class LeadsService {
       email: input.email.trim().toLowerCase(),
       company: input.company ?? null,
       budget: input.budget ?? null,
+      projectType: input.projectType ?? null,
       message: input.message,
       locale: toDbLocale(input.locale),
     });

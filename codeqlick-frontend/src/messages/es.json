@@ -349,8 +349,6 @@
       "name": "Nombre",
       "email": "Correo electrónico",
       "company": "Empresa",
-      "budget": "Presupuesto",
-      "budgetPlaceholder": "Elige un rango",
       "message": "Mensaje",
       "messageHint": "¿Qué quieres construir, para quién y para cuándo?",
       "website": "Deja este campo vacío",
@@ -360,13 +358,23 @@
       "successBody": "Te responderemos en un día laborable.",
       "error": "No hemos podido enviar tu mensaje. Revisa el formulario y vuelve a intentarlo.",
       "rateLimited": "Has enviado demasiados mensajes seguidos. Espera un minuto y vuelve a intentarlo.",
-      "privacyNote": "Al enviar el formulario, usaremos tus datos solo para responderte. Más información en la <link>política de privacidad</link>."
+      "privacyNote": "Al enviar el formulario, usaremos tus datos solo para responderte. Más información en la <link>política de privacidad</link>.",
+      "projectType": "¿Qué necesitas?",
+      "projectTypePlaceholder": "Elige una opción"
     },
     "budgets": {
       "lt-5k": "Menos de 5.000 €",
       "5k-15k": "5.000 €–15.000 €",
       "15k-40k": "15.000 €–40.000 €",
       "gt-40k": "Más de 40.000 €",
+      "not-sure": "Aún no lo sé"
+    },
+    "projectTypes": {
+      "web": "Una web",
+      "custom": "Una aplicación a medida",
+      "mobile": "Una app móvil",
+      "design": "Diseño",
+      "support": "Mantenimiento o mejoras",
       "not-sure": "Aún no lo sé"
     }
   },
@@ -693,7 +701,8 @@
       "followUpDue": "Seguimiento vencido",
       "followUp": "Seguir el {date}",
       "lostWithoutReason": "Sin motivo",
-      "boardFollowUpsDue": "{count} por seguir hoy"
+      "boardFollowUpsDue": "{count} por seguir hoy",
+      "projectType": "Tipo de proyecto"
     },
     "posts": {
       "title": "Artículos",
