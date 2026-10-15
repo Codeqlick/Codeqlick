@@ -5,6 +5,7 @@ import { routing } from '@/i18n/routing';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
 import { getCalculator } from '@/lib/api/calculator';
+import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
 
@@ -42,9 +43,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
   const calculator = (await getCalculator()) ? [{ path: '/calculator' }] : [];
+  const booking = (await getBookingSlots()) ? [{ path: '/book' }] : [];
   const entries = [
     ...STATIC_PATHS.map((path) => ({ path })),
     ...calculator,
+    ...booking,
     ...(await contentPaths()),
   ];
 

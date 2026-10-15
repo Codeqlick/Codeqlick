@@ -9,6 +9,8 @@ export interface MailMessage {
   /** Branded alternative to `text` (see email-layout.ts). */
   html?: string;
   replyTo?: string;
+  /** A calendar invitation (iCalendar text), shown by mail apps as "add to calendar". */
+  icalEvent?: { method: 'REQUEST' | 'CANCEL'; content: string };
 }
 
 /** The subset of a Nodemailer transporter we rely on (avoids its generic types). */
@@ -20,6 +22,7 @@ interface MailTransport {
     text: string;
     html?: string;
     replyTo?: string;
+    icalEvent?: { method: string; content: string; filename: string };
   }): Promise<unknown>;
 }
 
@@ -53,6 +56,7 @@ export class MailService {
       text: message.text,
       html: message.html,
       replyTo: message.replyTo,
+      icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
     });
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);
   }

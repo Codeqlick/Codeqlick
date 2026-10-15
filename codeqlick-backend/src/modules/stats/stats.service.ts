@@ -14,6 +14,8 @@ export interface AdminStats {
   proposals: { sent: number };
   /** Draft updates waiting for the team's review. */
   drafts: { pending: number };
+  /** Calls booked from the website, still to happen. */
+  bookings: { upcoming: number };
 }
 
 export interface AdminTimeline {
@@ -55,6 +57,7 @@ export class StatsService {
       support: { active: c.ticketsActive },
       proposals: { sent: c.proposalsSent },
       drafts: { pending: c.draftsPending },
+      bookings: { upcoming: c.bookingsUpcoming },
     };
   }
 

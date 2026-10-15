@@ -9,6 +9,7 @@ import { pageMetadata } from '@/lib/seo';
 import { CONTACT_EMAIL } from '@/lib/site';
 import { Link } from '@/i18n/navigation';
 import { getCalculator } from '@/lib/api/calculator';
+import { getBookingSlots } from '@/lib/api/bookings';
 import { firstParam } from '@/lib/format';
 import { ContactForm } from './ContactForm';
 import styles from '../site.module.css';
@@ -46,7 +47,8 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
     projectType: firstParam(query.type)?.slice(0, 40),
     message: firstParam(query.message)?.slice(0, 2000),
   };
-  const calculator = await getCalculator();
+  const [calculator, booking] = await Promise.all([getCalculator(), getBookingSlots()]);
+  const tbook = await getTranslations({ locale, namespace: 'Book' });
   const tcalc = await getTranslations({ locale, namespace: 'Calculator' });
 
   return (
@@ -63,6 +65,14 @@ export default async function ContactPage({ params, searchParams }: PageProps) {
           <p>
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </p>
+          {booking ? (
+            <>
+              <h2 className={styles.itemTitle}>{tbook('asideTitle')}</h2>
+              <p>
+                {tbook('asideBody')} <Link href="/book">{tbook('ctaLink')}</Link>
+              </p>
+            </>
+          ) : null}
           {calculator ? (
             <>
               <h2 className={styles.itemTitle}>{tcalc('asideTitle')}</h2>
