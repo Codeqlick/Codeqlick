@@ -348,6 +348,8 @@ export type AdminStats = {
   proposals: { sent: number };
   /** Draft updates waiting for the team's review. */
   drafts: { pending: number };
+  /** Calls booked from the website, still to happen. */
+  bookings: { upcoming: number };
 };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
@@ -418,6 +420,7 @@ export const ACTIVITY_TARGETS = [
   'support',
   'proposal',
   'settings',
+  'booking',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];

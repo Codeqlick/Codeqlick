@@ -15,6 +15,7 @@ export interface StatsCounts {
   ticketsActive: number;
   proposalsSent: number;
   draftsPending: number;
+  bookingsUpcoming: number;
 }
 
 export interface MonthlyCounts {
@@ -55,6 +56,7 @@ export class StatsRepository {
       ticketsActive,
       proposalsSent,
       draftsPending,
+      bookingsUpcoming,
     ] = await this.prisma.$transaction([
       this.prisma.lead.count({ where: { status: LeadStatus.NEW } }),
       this.prisma.lead.count(),
@@ -72,6 +74,7 @@ export class StatsRepository {
       }),
       this.prisma.proposal.count({ where: { status: 'SENT' } }),
       this.prisma.updateDraft.count(),
+      this.prisma.booking.count({ where: { status: 'CONFIRMED', endsAt: { gt: now } } }),
     ]);
     return {
       leadsNew,
@@ -85,6 +88,7 @@ export class StatsRepository {
       ticketsActive,
       proposalsSent,
       draftsPending,
+      bookingsUpcoming,
     };
   }
 
