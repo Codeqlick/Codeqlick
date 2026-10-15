@@ -62,8 +62,7 @@ export default async function LeadBoardPage({ params }: { params: Promise<{ loca
           followUpDue: t('followUpDue'),
           moveTo: t('moveTo'),
           empty: t('boardEmpty'),
-          estimate: t('boardEstimate'),
-          estimateHint: t('boardEstimateHint'),
+          followUpsDue: t('boardFollowUpsDue', { count: '{count}' }),
           failed: t('boardFailed'),
           more: t('boardMore', { count: '{count}' }),
         }}

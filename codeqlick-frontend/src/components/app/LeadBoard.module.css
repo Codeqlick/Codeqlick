@@ -58,13 +58,6 @@
   color: var(--color-slate);
 }
 
-.value {
-  margin: 0;
-  font-family: var(--font-family-mono);
-  font-size: 0.8rem;
-  color: var(--color-fuchsia-dark);
-}
-
 .empty {
   margin: 0;
   font-size: 0.85rem;
@@ -139,4 +132,12 @@
   color: var(--color-warning);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.dueCount {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-warning);
 }

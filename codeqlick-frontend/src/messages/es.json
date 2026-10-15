@@ -652,8 +652,6 @@
       "boardLead": "Arrastra cada contacto a su etapa (o usa su menú «Mover a»). Los marcados como spam solo aparecen en la lista.",
       "moveTo": "Mover a",
       "boardEmpty": "Ninguno.",
-      "boardEstimate": "≈",
-      "boardEstimateHint": "Estimación según el presupuesto que indicó cada contacto (el punto medio de su rango).",
       "boardFailed": "No se pudo guardar el cambio. Recarga la página y vuelve a intentarlo.",
       "boardMore": "Y {count} más en la lista.",
       "boardHints": {
@@ -679,7 +677,8 @@
       "viewClient": "Ver su cuenta",
       "followUpDue": "Seguimiento vencido",
       "followUp": "Seguir el {date}",
-      "lostWithoutReason": "Sin motivo"
+      "lostWithoutReason": "Sin motivo",
+      "boardFollowUpsDue": "{count} por seguir hoy"
     },
     "posts": {
       "title": "Artículos",
