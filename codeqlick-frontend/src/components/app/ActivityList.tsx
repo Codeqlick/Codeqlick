@@ -25,6 +25,13 @@ function targetHref(entry: ActivityEntry): string | undefined {
 }
 
 /** "Ada published the post «Hello»", newest first, with what changed underneath. */
+/** Lead statuses as they were called before the stages followed the sales process. */
+const LEGACY_LEAD_STATUSES: Record<string, string> = {
+  CONTACTED: 'TALKING',
+  QUALIFIED: 'CALL',
+  ARCHIVED: 'SPAM',
+};
+
 export async function ActivityList({
   entries,
   locale,
@@ -44,13 +51,15 @@ export async function ActivityList({
     const notes: string[] = [];
     const text = (value: unknown) => (typeof value === 'string' ? value : String(value));
     if ('status' in details) {
-      const status = text(details.status);
+      // Entries from before the lead stages were renamed carry the old names.
+      const status = LEGACY_LEAD_STATUSES[text(details.status)] ?? text(details.status);
       notes.push(
         t('details.status', {
           value: entry.target.type === 'lead' ? tl(status as never) : ts(status as never),
         }),
       );
     }
+    if ('project' in details) notes.push(t('details.project', { value: text(details.project) }));
     if ('phase' in details)
       notes.push(t('details.phase', { value: tp(text(details.phase) as never) }));
     if ('progress' in details)

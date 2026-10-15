@@ -7,6 +7,8 @@ const COLUMNS: [header: string, value: (lead: Lead) => string | null][] = [
   ['company', (lead) => lead.company],
   ['budget', (lead) => lead.budget],
   ['status', (lead) => lead.status],
+  ['lost_reason', (lead) => lead.lostReason],
+  ['follow_up_on', (lead) => lead.followUpOn],
   ['locale', (lead) => lead.locale],
   ['message', (lead) => lead.message],
   ['notes', (lead) => lead.notes],

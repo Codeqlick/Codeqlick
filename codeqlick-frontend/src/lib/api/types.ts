@@ -228,7 +228,18 @@ export type ProjectInput = {
   productionUrl?: string | null;
 };
 
-export const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'WON', 'LOST', 'ARCHIVED'] as const;
+/** The sales process: first contact, talking, discovery call, proposal, then won or lost. */
+export const LEAD_STATUSES = ['NEW', 'TALKING', 'CALL', 'PROPOSAL', 'WON', 'LOST', 'SPAM'] as const;
+
+export const LOST_REASONS = [
+  'PRICE',
+  'NO_RESPONSE',
+  'NOT_A_FIT',
+  'CHOSE_OTHER',
+  'TIMING',
+  'OTHER',
+] as const;
+export type LostReason = (typeof LOST_REASONS)[number];
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
@@ -242,6 +253,11 @@ export type Lead = {
   locale: Locale;
   status: LeadStatus;
   notes: string | null;
+  lostReason: LostReason | null;
+  /** `yyyy-mm-dd`: when to get back to them. */
+  followUpOn: string | null;
+  /** The client account it became ("Convert to client"). */
+  clientId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -299,7 +315,12 @@ export type UserPatch = {
 };
 
 export type AdminStats = {
-  leads: { new: number; total: number };
+  leads: {
+    new: number;
+    total: number;
+    /** Why lost leads didn't go ahead (`null`: no reason given). */
+    lostReasons: { reason: LostReason | null; count: number }[];
+  };
   posts: { published: number; drafts: number; scheduled: number };
   portfolio: { published: number };
   projects: { active: number };

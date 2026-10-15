@@ -6,16 +6,24 @@ import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
+  convertLeadSchema,
   createLeadReplySchema,
   exportLeadsQuerySchema,
   listLeadsQuerySchema,
   updateLeadSchema,
+  type ConvertLeadInput,
   type CreateLeadReplyInput,
   type ExportLeadsQuery,
   type ListLeadsQuery,
   type UpdateLeadInput,
 } from './leads.schemas.js';
-import { LeadsService, type Lead, type LeadReply, type SentLeadReply } from './leads.service.js';
+import {
+  LeadsService,
+  type ConvertedLead,
+  type Lead,
+  type LeadReply,
+  type SentLeadReply,
+} from './leads.service.js';
 
 @ApiTags('admin/leads')
 @ApiBearerAuth()
@@ -50,6 +58,15 @@ export class AdminLeadsController {
     @Body({ schema: updateLeadSchema }) body: UpdateLeadInput,
   ): Promise<Lead> {
     return this.leads.update(user, params.id, body);
+  }
+
+  @Post(':id/convert')
+  convert(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: convertLeadSchema }) body: ConvertLeadInput,
+  ): Promise<ConvertedLead> {
+    return this.leads.convert(user, params.id, body);
   }
 
   @Get(':id/replies')

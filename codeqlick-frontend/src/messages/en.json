@@ -519,11 +519,12 @@
   },
   "LeadStatuses": {
     "NEW": "New",
-    "CONTACTED": "Contacted",
-    "QUALIFIED": "Qualified",
+    "TALKING": "Talking",
+    "CALL": "Call",
+    "PROPOSAL": "Proposal sent",
     "WON": "Won",
     "LOST": "Lost",
-    "ARCHIVED": "Archived"
+    "SPAM": "Spam / discarded"
   },
   "Roles": {
     "ADMIN": "Admin",
@@ -614,7 +615,9 @@
       "contentChart": "Content published per month",
       "postsSeries": "Posts",
       "caseStudiesSeries": "Case studies",
-      "month": "Month"
+      "month": "Month",
+      "lostReasons": "Why leads are lost",
+      "lostReasonsEmpty": "No lost leads yet."
     },
     "leads": {
       "title": "Leads",
@@ -646,7 +649,7 @@
       "viewBoard": "Board view",
       "viewList": "List view",
       "boardTitle": "Lead board",
-      "boardLead": "Drag each lead to its status (or use its “Move to” menu). Archived leads only show in the list.",
+      "boardLead": "Drag each lead to its stage (or use its “Move to” menu). Leads marked as spam only show in the list.",
       "moveTo": "Move to",
       "boardEmpty": "None.",
       "boardEstimate": "≈",
@@ -655,11 +658,28 @@
       "boardMore": "And {count} more in the list.",
       "boardHints": {
         "NEW": "Wrote to you; not answered yet.",
-        "CONTACTED": "You've answered them.",
-        "QUALIFIED": "Real interest and a good fit: you've talked or are preparing a proposal.",
+        "TALKING": "You've answered and you're talking.",
+        "CALL": "Discovery call booked or done.",
+        "PROPOSAL": "You've sent the proposal with the quote.",
         "WON": "Accepted: they're a client.",
         "LOST": "Not going ahead."
-      }
+      },
+      "lostReason": "Why it was lost",
+      "lostReasonHint": "Only counts when the status is “Lost”.",
+      "noReason": "Not given",
+      "followUpOn": "Next follow-up",
+      "followUpOnHint": "When to write to them again. The board flags it once the date arrives.",
+      "convertTitle": "Convert to client",
+      "convertBody": "Creates their client account (they get the welcome email to choose a password; an existing client account is reused), opens a project in Discovery and marks the lead as Won.",
+      "projectName": "Project name",
+      "convert": "Convert to client",
+      "converting": "Converting…",
+      "convertedTitle": "Already a client",
+      "convertedBody": "This lead became a client.",
+      "viewClient": "See their account",
+      "followUpDue": "Follow-up due",
+      "followUp": "Follow up on {date}",
+      "lostWithoutReason": "No reason"
     },
     "posts": {
       "title": "Posts",
@@ -916,7 +936,8 @@
         },
         "lead": {
           "updated": "updated the lead <target>{label}</target>",
-          "replied": "replied to the lead <target>{label}</target>"
+          "replied": "replied to the lead <target>{label}</target>",
+          "converted": "turned the lead <target>{label}</target> into a client"
         },
         "media": {
           "uploaded": "uploaded the image <target>{label}</target>",
@@ -947,7 +968,8 @@
         "deactivated": "Account deactivated",
         "passwordReset": "Password reset",
         "publishedAt": "Goes live on {value}",
-        "milestone": "Milestone: {value}"
+        "milestone": "Milestone: {value}",
+        "project": "Project: {value}"
       }
     },
     "tags": {
@@ -1137,5 +1159,13 @@
         "a": "Yes, when needed we sign an NDA before going into the details of your project."
       }
     }
+  },
+  "LostReasons": {
+    "PRICE": "Price",
+    "NO_RESPONSE": "Stopped replying",
+    "NOT_A_FIT": "Not a fit for what we do",
+    "CHOSE_OTHER": "Chose someone else",
+    "TIMING": "Not the right time",
+    "OTHER": "Other"
   }
 }

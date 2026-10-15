@@ -1,6 +1,6 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { Lead, LeadInput, LeadReply, LeadStatus, Paginated } from './types';
+import type { Lead, LeadInput, LeadReply, LeadStatus, LostReason, Paginated } from './types';
 
 export function createLead(input: LeadInput) {
   return apiFetch<{ id: string }>('/leads', {
@@ -49,9 +49,30 @@ export function adminReplyToLead(id: string, input: { subject: string; body: str
   );
 }
 
-export function adminUpdateLead(id: string, input: { status?: LeadStatus; notes?: string | null }) {
+export function adminUpdateLead(
+  id: string,
+  input: {
+    status?: LeadStatus;
+    notes?: string | null;
+    lostReason?: LostReason | null;
+    followUpOn?: string | null;
+  },
+) {
   return apiFetch<Lead>(`/admin/leads/${encodeURIComponent(id)}`, {
     method: 'PATCH',
+    body: input,
+    auth: 'required',
+  });
+}
+
+/** "Convert to client": a client account (welcome email), a project in Discovery, the lead won. */
+export function adminConvertLead(id: string, input: { projectName?: string }) {
+  return apiFetch<{
+    lead: Lead;
+    client: { id: string; created: boolean; invitationSent?: boolean };
+    project: { id: string; name: string };
+  }>(`/admin/leads/${encodeURIComponent(id)}/convert`, {
+    method: 'POST',
     body: input,
     auth: 'required',
   });

@@ -22,13 +22,25 @@ enum Locale {
   ES
 }
 
+/// The sales process (wiki: Client Engagement): first contact, talking, discovery call, proposal,
+/// then won or lost. SPAM is not a stage: it takes noise off the board.
 enum LeadStatus {
   NEW
-  CONTACTED
-  QUALIFIED
+  TALKING
+  CALL
+  PROPOSAL
   WON
   LOST
-  ARCHIVED
+  SPAM
+}
+
+enum LeadLostReason {
+  PRICE
+  NO_RESPONSE
+  NOT_A_FIT
+  CHOSE_OTHER
+  TIMING
+  OTHER
 }
 
 enum PublishStatus {
@@ -77,6 +89,7 @@ model User {
   projectUpdates  ProjectUpdate[]        @relation("ProjectUpdateAuthor")
   approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
   updateComments  ProjectUpdateComment[]
+  leadsConverted  Lead[]                 @relation("LeadClient")
   projectFiles    ProjectFile[]
   activity        ActivityLog[]
   leadReplies     LeadReply[]
@@ -120,19 +133,26 @@ model PasswordResetToken {
 }
 
 model Lead {
-  id        String     @id @default(uuid()) @db.Uuid
-  name      String
-  email     String
-  company   String?
-  budget    String?
-  message   String
-  locale    Locale     @default(EN)
-  status    LeadStatus @default(NEW)
-  notes     String?
-  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id         String          @id @default(uuid()) @db.Uuid
+  name       String
+  email      String
+  company    String?
+  budget     String?
+  message    String
+  locale     Locale          @default(EN)
+  status     LeadStatus      @default(NEW)
+  notes      String?
+  /// Why it didn't go ahead (status LOST).
+  lostReason LeadLostReason? @map("lost_reason")
+  /// When to get back to them; the board flags it once it has passed.
+  followUpOn DateTime?       @map("follow_up_on") @db.Date
+  /// The client account it became ("Convert to client").
+  clientId   String?         @map("client_id") @db.Uuid
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   replies LeadReply[]
+  client  User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@map("leads")

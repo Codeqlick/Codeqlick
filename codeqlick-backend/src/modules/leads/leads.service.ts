@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
@@ -13,9 +19,12 @@ import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { leadsToCsv } from './leads-csv.js';
 import { leadAcknowledgementEmail, leadNotificationEmail, leadReplyEmail } from './lead-emails.js';
+import { ProjectsService } from '../projects/projects.service.js';
+import { UsersService } from '../users/users.service.js';
 import { LeadsRepository } from './leads.repository.js';
 import type {
   CreateLeadInput,
+  ConvertLeadInput,
   CreateLeadReplyInput,
   ListLeadsQuery,
   UpdateLeadInput,
@@ -34,6 +43,11 @@ export interface Lead {
   locale: ApiLocale;
   status: LeadRow['status'];
   notes: string | null;
+  lostReason: LeadRow['lostReason'];
+  /** `yyyy-mm-dd`, or null. */
+  followUpOn: string | null;
+  /** The client account it became, once converted. */
+  clientId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,9 +63,18 @@ export function toLead(row: LeadRow): Lead {
     locale: toApiLocale(row.locale),
     status: row.status,
     notes: row.notes,
+    lostReason: row.lostReason,
+    followUpOn: row.followUpOn?.toISOString().slice(0, 10) ?? null,
+    clientId: row.clientId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+export interface ConvertedLead {
+  lead: Lead;
+  client: { id: string; created: boolean; invitationSent?: boolean };
+  project: { id: string; name: string };
 }
 
 export interface LeadReply {
@@ -62,7 +85,7 @@ export interface LeadReply {
   createdAt: string;
 }
 
-/** A sent reply, with the lead's status afterwards (a first reply moves NEW to CONTACTED). */
+/** A sent reply, with the lead's status afterwards (a first reply moves NEW to TALKING). */
 export interface SentLeadReply {
   reply: LeadReply;
   lead: Lead;
@@ -87,7 +110,49 @@ export class LeadsService {
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly activity: ActivityService,
+    private readonly users: UsersService,
+    private readonly projects: ProjectsService,
   ) {}
+
+  /**
+   * "Convert to client": the lead's person gets a client account (welcome email to choose a
+   * password; an existing client account is reused), a project is opened for them in Discovery,
+   * and the lead is marked WON and linked to the account.
+   */
+  async convert(actor: AuthUser, id: string, input: ConvertLeadInput): Promise<ConvertedLead> {
+    const existing = await this.get(id);
+    if (existing.clientId) throw new ConflictException('This lead is already a client');
+    const client = await this.users.findOrCreateClient(actor, {
+      email: existing.email,
+      name: existing.name,
+      locale: existing.locale,
+    });
+    const project = await this.projects.create(actor, {
+      clientId: client.id,
+      name: input.projectName ?? existing.company ?? existing.name,
+      phase: 'DISCOVERY',
+      progress: 0,
+    });
+    const lead = toLead(
+      await this.repository.update(id, {
+        status: 'WON',
+        lostReason: null,
+        followUpOn: null,
+        client: { connect: { id: client.id } },
+      }),
+    );
+    await this.activity.record(actor, {
+      action: 'lead.converted',
+      targetId: id,
+      targetLabel: lead.name,
+      details: { project: project.name },
+    });
+    return {
+      lead,
+      client: { id: client.id, created: client.created, invitationSent: client.invitationSent },
+      project: { id: project.id, name: project.name },
+    };
+  }
 
   async create(input: CreateLeadInput): Promise<{ id: string }> {
     if (input.website && input.website.trim() !== '') {
@@ -144,6 +209,14 @@ export class LeadsService {
     const data: Prisma.LeadUpdateInput = {};
     if (input.status !== undefined) data.status = input.status;
     if (input.notes !== undefined) data.notes = input.notes;
+    if (input.followUpOn !== undefined) {
+      data.followUpOn =
+        input.followUpOn === null ? null : new Date(`${input.followUpOn}T00:00:00Z`);
+    }
+    // A reason only means something while the lead is lost.
+    const status = input.status ?? existing.status;
+    if (status !== 'LOST') data.lostReason = null;
+    else if (input.lostReason !== undefined) data.lostReason = input.lostReason;
     const lead = toLead(await this.repository.update(id, data));
     await this.activity.record(actor, {
       action: 'lead.updated',

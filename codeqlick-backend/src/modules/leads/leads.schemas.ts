@@ -3,11 +3,21 @@ import { localeSchema, paginationSchema } from '../../common/schemas/common.sche
 
 export const leadStatusSchema = z.enum([
   'NEW',
-  'CONTACTED',
-  'QUALIFIED',
+  'TALKING',
+  'CALL',
+  'PROPOSAL',
   'WON',
   'LOST',
-  'ARCHIVED',
+  'SPAM',
+]);
+
+export const lostReasonSchema = z.enum([
+  'PRICE',
+  'NO_RESPONSE',
+  'NOT_A_FIT',
+  'CHOSE_OTHER',
+  'TIMING',
+  'OTHER',
 ]);
 
 const optionalText = (max: number) =>
@@ -42,6 +52,10 @@ export const updateLeadSchema = z
   .object({
     status: leadStatusSchema.optional(),
     notes: z.string().max(10_000).nullable().optional(),
+    /** Kept only while the lead is LOST. */
+    lostReason: lostReasonSchema.nullable().optional(),
+    /** `yyyy-mm-dd`; null clears it. */
+    followUpOn: z.iso.date().nullable().optional(),
   })
   .strict();
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;
@@ -60,3 +74,11 @@ export const exportLeadsQuerySchema = z.object({
   q: z.string().trim().max(200).optional(),
 });
 export type ExportLeadsQuery = z.infer<typeof exportLeadsQuerySchema>;
+
+export const convertLeadSchema = z
+  .object({
+    /** Name of the project to open; defaults to the lead's company or name. */
+    projectName: z.string().trim().min(1).max(200).optional(),
+  })
+  .strict();
+export type ConvertLeadInput = z.infer<typeof convertLeadSchema>;

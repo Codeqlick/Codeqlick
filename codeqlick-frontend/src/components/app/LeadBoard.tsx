@@ -8,6 +8,11 @@ import styles from './LeadBoard.module.css';
 
 export type BoardLabels = {
   statuses: Record<LeadStatus, string>;
+  lostReasons: Record<string, string>;
+  lostWithoutReason: string;
+  /** With `{date}`. */
+  followUp: string;
+  followUpDue: string;
   /** What each status means, under its column title. */
   hints: Partial<Record<LeadStatus, string>>;
   budgets: Record<string, string>;
@@ -19,7 +24,10 @@ export type BoardLabels = {
   more: string;
 };
 
-type Card = Pick<Lead, 'id' | 'name' | 'company' | 'budget' | 'status' | 'createdAt'>;
+type Card = Pick<
+  Lead,
+  'id' | 'name' | 'company' | 'budget' | 'status' | 'createdAt' | 'lostReason' | 'followUpOn'
+>;
 
 /**
  * Leads as a board, one column per status. Cards move by drag and drop or with their "Move to"
@@ -48,6 +56,10 @@ export function LeadBoard({
   );
   const [, startTransition] = useTransition();
   const [error, setError] = useState(false);
+  // Follow-ups are dates: compared as `yyyy-mm-dd` in Madrid.
+  const [today] = useState(() =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date()),
+  );
   const [over, setOver] = useState<LeadStatus>();
 
   const money = new Intl.NumberFormat(locale, {
@@ -139,6 +151,23 @@ export function LeadBoard({
                       {card.budget ? `${labels.budgets[card.budget] ?? card.budget} · ` : ''}
                       {date.format(new Date(card.createdAt))}
                     </p>
+                    {card.status === 'LOST' ? (
+                      <p className={styles.meta}>
+                        {card.lostReason
+                          ? labels.lostReasons[card.lostReason]
+                          : labels.lostWithoutReason}
+                      </p>
+                    ) : null}
+                    {card.followUpOn && card.status !== 'WON' && card.status !== 'LOST' ? (
+                      <p className={card.followUpOn <= today ? styles.due : styles.meta}>
+                        {card.followUpOn <= today
+                          ? labels.followUpDue
+                          : labels.followUp.replace(
+                              '{date}',
+                              date.format(new Date(`${card.followUpOn}T12:00:00Z`)),
+                            )}
+                      </p>
+                    ) : null}
                     <label className={styles.move}>
                       <span className="visually-hidden">
                         {labels.moveTo} — {card.name}

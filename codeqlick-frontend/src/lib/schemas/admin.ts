@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LEAD_STATUSES, PROJECT_PHASES } from '@/lib/api/types';
+import { LEAD_STATUSES, LOST_REASONS, PROJECT_PHASES } from '@/lib/api/types';
 import {
   optionalDate,
   optionalDateTime,
@@ -127,6 +127,10 @@ export const leadUpdateSchema = z.object({
     .string()
     .max(5000, 'tooLong')
     .transform((value) => (value.trim() === '' ? null : value)),
+  lostReason: z
+    .union([z.enum(LOST_REASONS, 'choice'), z.literal('')])
+    .transform((value) => (value === '' ? null : value)),
+  followUpOn: optionalDate,
 });
 
 export const projectFormSchema = z.object({

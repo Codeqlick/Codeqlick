@@ -3,11 +3,12 @@ import type { LeadStatus, PublishStatus } from '@/lib/api/types';
 
 const LEAD_TONES: Record<LeadStatus, BadgeTone> = {
   NEW: 'brand',
-  CONTACTED: 'warning',
-  QUALIFIED: 'ink',
+  TALKING: 'warning',
+  CALL: 'warning',
+  PROPOSAL: 'ink',
   WON: 'success',
   LOST: 'danger',
-  ARCHIVED: 'neutral',
+  SPAM: 'neutral',
 };
 
 export function LeadStatusBadge({ status, label }: { status: LeadStatus; label: string }) {

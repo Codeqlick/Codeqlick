@@ -5,6 +5,8 @@ import type { Lead } from '../../generated/prisma/client.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { LeadsRepository } from './leads.repository.js';
 import type { CreateLeadInput } from './leads.schemas.js';
+import type { ProjectsService } from '../projects/projects.service.js';
+import type { UsersService } from '../users/users.service.js';
 import { LeadsService } from './leads.service.js';
 
 const input: CreateLeadInput = {
@@ -52,6 +54,8 @@ describe('LeadsService', () => {
       mail as unknown as MailService,
       config,
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+      {} as UsersService,
+      {} as ProjectsService,
     );
   });
 

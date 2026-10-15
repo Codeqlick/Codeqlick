@@ -51,7 +51,7 @@ export class LeadsRepository {
   }
 
   /**
-   * Stores a sent reply and, for a lead nobody had answered yet, moves it to CONTACTED.
+   * Stores a sent reply and, for a lead nobody had answered yet, moves it to TALKING.
    * Returns the reply and the lead as it is afterwards.
    */
   async addReply(
@@ -61,7 +61,7 @@ export class LeadsRepository {
       const reply = await tx.leadReply.create({ data });
       await tx.lead.updateMany({
         where: { id: data.leadId, status: 'NEW' },
-        data: { status: 'CONTACTED' },
+        data: { status: 'TALKING' },
       });
       const lead = await tx.lead.findUniqueOrThrow({ where: { id: data.leadId } });
       return { reply, lead };
