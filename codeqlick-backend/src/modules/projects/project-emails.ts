@@ -15,13 +15,28 @@ function excerpt(body: string): string {
 export function projectUpdateEmail(
   client: { name: string; email: string },
   project: { name: string },
-  update: { title: string; body: string; approvalRequested?: boolean },
+  update: {
+    title: string;
+    body: string;
+    approvalRequested?: boolean;
+    release?: { version: string; environment: 'STAGING' | 'PRODUCTION'; url: string | null };
+  },
   link: string,
   locale: ApiLocale,
   siteUrl: string,
 ): MailMessage {
   const es = locale === 'es';
   const approval = update.approvalRequested === true;
+  const release = update.release;
+  const where = release
+    ? release.environment === 'PRODUCTION'
+      ? es
+        ? 'en producción'
+        : 'live'
+      : es
+        ? 'en el entorno de pruebas'
+        : 'on the preview site'
+    : '';
   return {
     to: client.email,
     subject: approval
@@ -35,13 +50,24 @@ export function projectUpdateEmail(
         preheader: es
           ? `Novedad en ${project.name}: ${update.title}`
           : `Update on ${project.name}: ${update.title}`,
-        title: es ? `Novedad en ${project.name}` : `Update on ${project.name}`,
+        title: release
+          ? es
+            ? `Nueva versión de ${project.name}`
+            : `New version of ${project.name}`
+          : es
+            ? `Novedad en ${project.name}`
+            : `Update on ${project.name}`,
         greeting: es ? `Hola ${client.name}:` : `Hi ${client.name},`,
         intro: [
-          es
-            ? 'Hemos publicado una novedad en tu proyecto:'
-            : "We've posted an update on your project:",
+          release
+            ? es
+              ? `Hemos publicado la versión ${release.version} ${where}. Esto es lo que cambia:`
+              : `We've released version ${release.version} ${where}. Here's what changed:`
+            : es
+              ? 'Hemos publicado una novedad en tu proyecto:'
+              : "We've posted an update on your project:",
         ],
+        details: release?.url ? [[es ? 'Pruébala aquí' : 'Try it here', release.url]] : undefined,
         quote: { title: update.title, body: excerpt(update.body) },
         button: approval
           ? { label: es ? 'Revisar y aprobar' : 'Review and approve', url: link }
