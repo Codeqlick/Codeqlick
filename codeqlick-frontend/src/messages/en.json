@@ -300,7 +300,15 @@
     "emptyTagTitle": "Nothing on this topic yet",
     "emptyTagBody": "There are no published posts with this tag.",
     "related": "Keep reading",
-    "ogEyebrow": "Blog · {date}"
+    "ogEyebrow": "Blog · {date}",
+    "searchLabel": "Search the blog",
+    "searchPlaceholder": "Search posts…",
+    "search": "Search",
+    "results": "{count, plural, one {# result} other {# results}} for “{q}”",
+    "clearSearch": "Clear search",
+    "noResultsTitle": "Nothing for “{q}”",
+    "noResultsBody": "Try other words or browse all posts.",
+    "allPosts": "See all posts"
   },
   "Work": {
     "metaTitle": "Work",

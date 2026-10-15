@@ -300,7 +300,15 @@
     "emptyTagTitle": "Nada sobre este tema todavía",
     "emptyTagBody": "No hay artículos publicados con esta etiqueta.",
     "related": "Sigue leyendo",
-    "ogEyebrow": "Blog · {date}"
+    "ogEyebrow": "Blog · {date}",
+    "searchLabel": "Buscar en el blog",
+    "searchPlaceholder": "Buscar artículos…",
+    "search": "Buscar",
+    "results": "{count, plural, one {# resultado} other {# resultados}} para «{q}»",
+    "clearSearch": "Quitar búsqueda",
+    "noResultsTitle": "Nada para «{q}»",
+    "noResultsBody": "Prueba con otras palabras o mira todos los artículos.",
+    "allPosts": "Ver todos los artículos"
   },
   "Work": {
     "metaTitle": "Proyectos",

@@ -218,7 +218,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 |---|---|---|---|
 | GET | `/health` | | Terminus health result |
 | POST | `/leads` | `{ name, email, company?, budget?, message, locale, website? }` (`website` is a honeypot and must be empty) | `201 { id }` — limited to 5/min/IP |
-| GET | `/posts` | `?locale=en&page&pageSize&tag` | Paginated `PostSummary` (published only) |
+| GET | `/posts` | `?locale=en&page&pageSize&tag&q` | Paginated `PostSummary` (published only). `q` (max 100 characters) keeps posts whose title, excerpt or content contains it in the requested locale or English, ignoring case and accents (Postgres `unaccent`); `%` and `_` are literal |
 | GET | `/posts/tags` | `?locale=en` → `[{ slug, name, count }]`: tags used by live posts, named in `locale`, by name |
 | GET | `/posts/:slug/related` | `?locale=en&limit=3` (1–6) → `PostSummary[]`: live posts sharing the most tags, newest first among equals, topped up with the latest posts |
 | GET | `/posts/:slug` | `?locale=en` | `PostDetail` or 404 |
