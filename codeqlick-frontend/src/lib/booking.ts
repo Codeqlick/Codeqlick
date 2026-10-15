@@ -8,6 +8,8 @@ export type Interval = { start: string; end: string };
 export type BookingConfig = {
   enabled: boolean;
   meetingUrl: string;
+  /** Also gets the invitations, so calls land in that calendar (e.g. a Gmail address). */
+  calendarEmail: string;
   durationMinutes: number;
   minNoticeHours: number;
   horizonDays: number;
