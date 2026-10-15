@@ -1,0 +1,92 @@
+.picker {
+  position: relative;
+  display: flex;
+  flex: 1 1 16rem;
+  min-width: 0;
+  border: 1.5px dashed color-mix(in srgb, var(--color-slate) 40%, transparent);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.picker:hover,
+.dragging {
+  border-color: var(--color-fuchsia);
+  background: var(--color-blush);
+}
+
+.chosen {
+  border-style: solid;
+  border-color: var(--color-fuchsia);
+}
+
+.picker:focus-within {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.label {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: 0.15rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.disabled {
+  opacity: 0.6;
+}
+
+.disabled .label {
+  cursor: not-allowed;
+}
+
+/* Visually hidden, still focusable and part of the form. */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.icon {
+  display: grid;
+  grid-row: span 2;
+  flex: none;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-blush);
+  color: var(--color-fuchsia);
+}
+
+.dragging .icon,
+.picker:hover .icon {
+  background: var(--color-white);
+}
+
+.action {
+  align-self: end;
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.detail {
+  align-self: start;
+  overflow: hidden;
+  color: var(--color-slate);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

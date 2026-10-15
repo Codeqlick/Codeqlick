@@ -1,0 +1,169 @@
+.shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  background: var(--color-surface-app);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem;
+  background: var(--color-white);
+  border-right: 1px solid var(--color-line);
+}
+
+.brandRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 0.5rem;
+}
+
+.area {
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fuchsia-dark);
+}
+
+.nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.navLink:hover {
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+}
+
+.active,
+.active:hover {
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+  box-shadow: inset 3px 0 0 var(--color-fuchsia);
+}
+
+.userBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0.5rem 0;
+  border-top: 1px solid var(--color-line);
+  font-size: 0.875rem;
+  color: var(--color-slate);
+}
+
+.userName {
+  color: var(--color-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.userActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.main {
+  min-width: 0;
+  padding: 2rem clamp(1rem, 3vw, 2.5rem) 4rem;
+}
+
+.content {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.75rem 1rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .brandRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0;
+  }
+
+  .nav {
+    order: 3;
+    flex: 1 0 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .list {
+    flex-direction: row;
+    gap: 0.25rem;
+  }
+
+  .navLink {
+    white-space: nowrap;
+  }
+
+  .active,
+  .active:hover {
+    box-shadow: inset 0 -3px 0 var(--color-fuchsia);
+  }
+
+  .userBox {
+    margin-left: auto;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    border-top: 0;
+  }
+
+  .userName {
+    display: none;
+  }
+
+  .main {
+    padding-top: 1.5rem;
+  }
+}

@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Builds
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Generated
+codeqlick-backend/src/generated/
+next-env.d.ts
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Images uploaded from the admin panel in development
+codeqlick-backend/uploads/
+
+# Database dumps written by the production `backup` service
+/backups/
+
+# Logs & OS
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Playwright (codeqlick-frontend)
+test-results/
+playwright-report/

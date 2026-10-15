@@ -1,0 +1,281 @@
+import type { Metadata } from 'next';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { connection } from 'next/server';
+import { BrandSymbol } from '@/components/brand/Symbol';
+import { SERVICE_SLUGS, SERVICES, ServiceIcon } from '@/components/content/services';
+import { TestimonialQuote } from '@/components/content/TestimonialQuote';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { Button } from '@/components/ui/Button';
+import { buttonClassName } from '@/components/ui/buttonStyles';
+import { Link } from '@/i18n/navigation';
+import { resolveLocale } from '@/i18n/locale';
+import { listPortfolio } from '@/lib/api/portfolio';
+import type { Locale, PortfolioSummary } from '@/lib/api/types';
+import { absoluteUrl, localeAlternates } from '@/lib/seo';
+import { CONTACT_EMAIL, SITE_NAME, SOCIAL_LINKS, STACK, TAGLINE } from '@/lib/site';
+import styles from './page.module.css';
+
+const STEPS = ['discovery', 'design', 'development', 'qa', 'launch', 'support'] as const;
+const VALUES = ['endToEnd', 'quality', 'transparent', 'modern'] as const;
+
+/** Decorative editor window from the approved design. It is code, so it is not translated. */
+function CodeWindow() {
+  return (
+    <div className={styles.visual} aria-hidden="true">
+      <div className={styles.code}>
+        <div className={styles.dots}>
+          <span />
+          <span />
+          <span />
+        </div>
+        <div className={styles.comment}>{'// your-next-product.ts'}</div>
+        <div>
+          <span className={styles.keyword}>const</span> idea ={' '}
+          <span className={styles.keyword}>await</span> discover(you);
+        </div>
+        <div>
+          <span className={styles.keyword}>const</span> app = build(idea, {'{'}
+        </div>
+        <div className={styles.indent}>
+          quality: <span className={styles.literal}>&quot;high&quot;</span>,
+        </div>
+        <div className={styles.indent}>
+          sprints: <span className={styles.literal}>2</span> {'/* weeks */'}
+        </div>
+        <div>{'});'}</div>
+        <div className={styles.lastLine}>
+          ship(app);
+          <span className={styles.caret} />
+        </div>
+      </div>
+      <div className={styles.badge}>
+        <BrandSymbol size={62} ringColor="#FFFFFF" />
+      </div>
+    </div>
+  );
+}
+
+type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  return { alternates: localeAlternates(locale) };
+}
+
+/** The "Recent projects" section is optional: without published work (or API) it is left out. */
+async function featuredWork(locale: Locale): Promise<PortfolioSummary[]> {
+  try {
+    return (await listPortfolio({ locale, pageSize: 3 })).items;
+  } catch {
+    return [];
+  }
+}
+
+/** Case studies with a testimonial in this language; the section is left out without any. */
+async function testimonials(locale: Locale): Promise<PortfolioSummary[]> {
+  try {
+    return (await listPortfolio({ locale, pageSize: 3, testimonials: true })).items;
+  } catch {
+    return [];
+  }
+}
+
+export default async function HomePage({ params }: PageProps) {
+  const locale = resolveLocale((await params).locale);
+  setRequestLocale(locale);
+  // Rendered per request, not at build time: the image is built without the API, and that
+  // prerender (no recent work) would be served until it revalidated. The API call stays cached.
+  await connection();
+  const t = await getTranslations({ locale, namespace: 'Home' });
+  const tw = await getTranslations({ locale, namespace: 'Work' });
+  const [work, quotes] = await Promise.all([featuredWork(locale), testimonials(locale)]);
+
+  return (
+    <>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: SITE_NAME,
+          url: absoluteUrl('/'),
+          logo: absoluteUrl('/favicon-512.png'),
+          slogan: TAGLINE,
+          email: CONTACT_EMAIL,
+          sameAs: SOCIAL_LINKS.map((link) => link.href),
+        }}
+      />
+      <section className={`wrap ${styles.hero}`}>
+        <div className={styles.heroText}>
+          <p className={styles.heroEyebrow}>{t('hero.eyebrow')}</p>
+          <h1 className={styles.heroTitle}>{t('hero.title')}</h1>
+          <p className={styles.heroSub}>{t('hero.sub')}</p>
+          <div className={styles.actions}>
+            <Button href="/contact">{t('hero.primary')}</Button>
+            <a href="#services" className={buttonClassName({ variant: 'outline' })}>
+              {t('hero.secondary')}
+            </a>
+          </div>
+        </div>
+        <CodeWindow />
+      </section>
+
+      <section id="services" className={styles.soft} aria-labelledby="services-title">
+        <div className={`wrap ${styles.section}`}>
+          <div className={styles.intro}>
+            <p className="eyebrow">{t('services.eyebrow')}</p>
+            <h2 id="services-title" className={styles.title}>
+              {t('services.title')}
+            </h2>
+            <p className={styles.lead}>{t('services.lead')}</p>
+          </div>
+          <ul className={styles.services}>
+            {SERVICES.map(({ key, icon }) => (
+              <li key={key} className={styles.service}>
+                <ServiceIcon icon={icon} className={styles.icon} />
+                <h3 className={styles.serviceTitle}>{t(`services.items.${key}.title`)}</h3>
+                <p className={styles.serviceBody}>{t(`services.items.${key}.body`)}</p>
+                <Link href={`/services/${SERVICE_SLUGS[key]}`} className={styles.more}>
+                  {t('services.learnMore')}
+                  <span className="visually-hidden"> — {t(`services.items.${key}.title`)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section id="process" className={`wrap ${styles.section}`} aria-labelledby="process-title">
+        <div className={styles.intro}>
+          <p className="eyebrow">{t('process.eyebrow')}</p>
+          <h2 id="process-title" className={styles.title}>
+            {t('process.title')}
+          </h2>
+          <p className={styles.lead}>{t('process.lead')}</p>
+        </div>
+        <ol className={styles.steps}>
+          {STEPS.map((key, index) => (
+            <li key={key} className={styles.step}>
+              <span className={styles.stepNumber} aria-hidden="true">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <h3 className={styles.stepTitle}>{t(`process.steps.${key}.title`)}</h3>
+              <p className={styles.stepBody}>{t(`process.steps.${key}.body`)}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section id="why" className={styles.dark} aria-labelledby="why-title">
+        <div className={`wrap ${styles.why}`}>
+          <div className={styles.whyIntro}>
+            <p className={`eyebrow ${styles.eyebrowOnDark}`}>{t('why.eyebrow')}</p>
+            <h2 id="why-title" className={styles.title}>
+              {t('why.title')}
+            </h2>
+            <p className={styles.leadOnDark}>{t('why.lead')}</p>
+          </div>
+          <ul className={styles.values}>
+            {VALUES.map((key) => (
+              <li key={key} className={styles.value}>
+                <h3 className={styles.valueTitle}>{t(`why.values.${key}.title`)}</h3>
+                <p>{t(`why.values.${key}.body`)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className={`wrap ${styles.stack}`} aria-labelledby="stack-title">
+        <h2 id="stack-title" className={styles.stackLabel}>
+          {t('stack.eyebrow')}
+        </h2>
+        <ul className={styles.pills} aria-label={t('stack.label')}>
+          {STACK.map((name) => (
+            <li key={name} className={styles.pill}>
+              {name}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {work.length > 0 ? (
+        <section className={`wrap ${styles.section} ${styles.work}`} aria-labelledby="work-title">
+          <div className={styles.intro}>
+            <p className="eyebrow">{t('work.eyebrow')}</p>
+            <h2 id="work-title" className={styles.title}>
+              {t('work.title')}
+            </h2>
+            <p className={styles.lead}>{t('work.lead')}</p>
+          </div>
+          <ul className={`${styles.services} ${styles.workGrid}`}>
+            {work.map((item) => (
+              <li key={item.slug} className={`${styles.service} ${styles.workItem}`}>
+                <h3 className={styles.serviceTitle}>{item.title}</h3>
+                <p className={styles.serviceBody}>{item.summary}</p>
+                <Link href={`/work/${item.slug}`} className={styles.more}>
+                  {tw('viewCase')}
+                  <span className="visually-hidden"> — {item.title}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div>
+            <Button href="/work" variant="outline">
+              {t('work.viewAll')}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {quotes.length > 0 ? (
+        <section
+          className={`wrap ${styles.section} ${styles.testimonials}`}
+          aria-labelledby="testimonials-title"
+        >
+          <div className={styles.intro}>
+            <p className="eyebrow">{t('testimonials.eyebrow')}</p>
+            <h2 id="testimonials-title" className={styles.title}>
+              {t('testimonials.title')}
+            </h2>
+          </div>
+          <ul className={styles.testimonialList}>
+            {quotes.map((item) =>
+              item.testimonial ? (
+                <li key={item.slug}>
+                  <TestimonialQuote
+                    testimonial={item.testimonial}
+                    className={styles.testimonialCard}
+                  >
+                    <Link href={`/work/${item.slug}`} className={styles.more}>
+                      {tw('viewCase')}
+                      <span className="visually-hidden"> — {item.title}</span>
+                    </Link>
+                  </TestimonialQuote>
+                </li>
+              ) : null,
+            )}
+          </ul>
+        </section>
+      ) : null}
+
+      <section className={styles.ctaSection} aria-labelledby="cta-title">
+        <div className={styles.cta}>
+          <div className={styles.ctaText}>
+            <h2 id="cta-title" className={styles.ctaTitle}>
+              {t('contact.title')}
+            </h2>
+            <p className={styles.ctaBody}>{t('contact.body')}</p>
+          </div>
+          <div className={styles.ctaActions}>
+            <Button href="/contact" variant="ink" block>
+              {t('contact.cta')}
+            </Button>
+            <a href={`mailto:${CONTACT_EMAIL}`} className={styles.ctaEmail}>
+              {CONTACT_EMAIL}
+            </a>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
