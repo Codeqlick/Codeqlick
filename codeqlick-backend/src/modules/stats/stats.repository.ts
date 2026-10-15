@@ -13,6 +13,7 @@ export interface StatsCounts {
   projectsActive: number;
   clients: number;
   ticketsActive: number;
+  proposalsSent: number;
 }
 
 export interface MonthlyCounts {
@@ -51,6 +52,7 @@ export class StatsRepository {
       projectsActive,
       clients,
       ticketsActive,
+      proposalsSent,
     ] = await this.prisma.$transaction([
       this.prisma.lead.count({ where: { status: LeadStatus.NEW } }),
       this.prisma.lead.count(),
@@ -66,6 +68,7 @@ export class StatsRepository {
       this.prisma.supportTicket.count({
         where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_CLIENT'] } },
       }),
+      this.prisma.proposal.count({ where: { status: 'SENT' } }),
     ]);
     return {
       leadsNew,
@@ -77,6 +80,7 @@ export class StatsRepository {
       projectsActive,
       clients,
       ticketsActive,
+      proposalsSent,
     };
   }
 

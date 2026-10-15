@@ -44,6 +44,11 @@ export function ActionForm({
   );
 }
 
+/** The surrounding ActionForm's last result, for custom fields (errors and echoed values). */
+export function useFormState(): FormState {
+  return useContext(FormStateContext);
+}
+
 /** Field error and echoed value (after a failed submit) for the control called `name`. */
 function useField(name: string | undefined) {
   const state = useContext(FormStateContext);

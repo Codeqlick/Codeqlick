@@ -384,7 +384,8 @@
     "messageTooShort": "Tell us a bit more (at least 10 characters).",
     "translationIncomplete": "Fill in title, excerpt and content, or leave all three empty.",
     "date": "Enter a valid date.",
-    "choice": "Choose one of the options."
+    "choice": "Choose one of the options.",
+    "price": "Enter a valid amount, for example 1250 or 1250.50."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -541,7 +542,8 @@
     "title": "Client portal",
     "nav": {
       "projects": "Projects",
-      "support": "Support"
+      "support": "Support",
+      "proposals": "Proposals"
     },
     "projectsTitle": "Your projects",
     "projectsLead": "Follow the progress of everything we're building together.",
@@ -599,7 +601,8 @@
       "activity": "Activity",
       "tags": "Tags",
       "replies": "Saved replies",
-      "support": "Support"
+      "support": "Support",
+      "proposals": "Proposals"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -623,7 +626,8 @@
       "month": "Month",
       "lostReasons": "Why leads are lost",
       "lostReasonsEmpty": "No lost leads yet.",
-      "activeTickets": "Open requests"
+      "activeTickets": "Open requests",
+      "sentProposals": "Proposals awaiting answer"
     },
     "leads": {
       "title": "Leads",
@@ -902,7 +906,8 @@
         "media": "Images",
         "account": "Accounts",
         "tag": "Tags",
-        "support": "Support"
+        "support": "Support",
+        "proposal": "Proposals"
       },
       "actions": {
         "post": {
@@ -968,6 +973,15 @@
           "closed": "closed the request <target>{label}</target>",
           "file_added": "attached a file to the request <target>{label}</target>",
           "file_deleted": "deleted a file from the request <target>{label}</target>"
+        },
+        "proposal": {
+          "created": "created the proposal <target>{label}</target>",
+          "updated": "edited the proposal <target>{label}</target>",
+          "sent": "sent the proposal <target>{label}</target>",
+          "withdrawn": "withdrew the proposal <target>{label}</target>",
+          "accepted": "accepted the proposal <target>{label}</target>",
+          "declined": "declined the proposal <target>{label}</target>",
+          "deleted": "deleted the proposal <target>{label}</target>"
         }
       },
       "details": {
@@ -1043,6 +1057,63 @@
       "created": "Reply saved.",
       "insert": "Insert a saved reply",
       "insertPlaceholder": "Insert a saved reply…"
+    },
+    "proposals": {
+      "title": "Proposals",
+      "lead": "Quotes for clients: prepare them as drafts, send them and follow their answer.",
+      "new": "New proposal",
+      "back": "Back to proposals",
+      "emptyTitle": "No proposals",
+      "emptyBody": "Create the first one with “New proposal”.",
+      "proposal": "Proposal",
+      "client": "Client",
+      "status": "Status",
+      "updated": "Last activity",
+      "noClients": "Add the client in Users first.",
+      "clientPlaceholder": "Choose a client",
+      "titleLabel": "Title",
+      "titleHint": "For example: “Online shop — design and development”.",
+      "project": "Project",
+      "projectHint": "Only if it is about one of the client's projects.",
+      "noProject": "None",
+      "validUntil": "Valid until",
+      "validUntilHint": "After this day the client can no longer accept it.",
+      "summary": "Scope",
+      "summaryHint": "What's included and what isn't, phases, deliverables. Markdown supported.",
+      "items": "Quote lines",
+      "itemsHint": "Prices in euros, per unit. The total adds up on its own.",
+      "itemDescription": "Item",
+      "itemQuantity": "Qty",
+      "itemPrice": "Price (€)",
+      "itemAmount": "Amount",
+      "addItem": "Add line",
+      "removeItem": "Remove line {n}",
+      "line": "line {n}",
+      "total": "Total",
+      "terms": "Terms",
+      "termsHint": "Payment, deadlines, warranty… Markdown supported.",
+      "createDraft": "Create draft",
+      "edit": "Edit the draft",
+      "preview": "Preview: how the client will see it",
+      "sendTitle": "Send to the client",
+      "sendBody": "The client will see it in their private area and get a notice at {email}. It can't be edited afterwards.",
+      "send": "Send proposal",
+      "sending": "Sending…",
+      "sent": "Proposal sent. The client has been emailed.",
+      "sentNoEmail": "Proposal sent, but the email didn't go out. Let the client know another way.",
+      "sentAt": "Sent",
+      "respondedAt": "Answered",
+      "acceptedName": "Accepted by",
+      "declineReason": "Reason for declining",
+      "nextVersionTitle": "Changes",
+      "nextVersionBody": "A sent proposal can't be edited: duplicate it to prepare a new version.",
+      "withdraw": "Withdraw proposal",
+      "withdrawing": "Withdrawing…",
+      "duplicate": "Duplicate as draft",
+      "duplicating": "Duplicating…",
+      "deleteTitle": "Delete the draft",
+      "deleteBody": "Only drafts can be deleted. This can't be undone.",
+      "newForClient": "New proposal"
     }
   },
   "Sessions": {
@@ -1252,5 +1323,55 @@
     "fileSignedOut": "Your session has expired. Sign in again and repeat the upload.",
     "noFiles": "No files yet.",
     "fileDeleted": "File deleted."
+  },
+  "Proposals": {
+    "title": "Proposals",
+    "lead": "The quotes we've prepared for you. Review them at your own pace and accept them here.",
+    "emptyTitle": "You don't have any proposals yet",
+    "emptyBody": "When we send you a quote, it will show up here.",
+    "back": "Back to proposals",
+    "proposal": "Proposal",
+    "status": "Status",
+    "total": "Total",
+    "validUntil": "Valid until",
+    "number": "Number",
+    "preparedFor": "For",
+    "date": "Date",
+    "project": "Project",
+    "items": "Quote",
+    "description": "Item",
+    "quantity": "Quantity",
+    "unitPrice": "Unit price",
+    "amount": "Amount",
+    "terms": "Terms",
+    "acceptedBy": "Accepted by {name} on {date}.",
+    "print": "Print or save as PDF",
+    "expired": "Expired",
+    "waitingYou": "Awaiting your answer",
+    "acceptedNotice": "You accepted this proposal on {date}. We'll be in touch about the next steps.",
+    "declinedNotice": "You declined this proposal. Thanks for letting us know.",
+    "withdrawnNotice": "We withdrew this proposal; if needed, we'll send you a new version.",
+    "expiredNotice": "This proposal has expired. Write to us if you're still interested and we'll update it.",
+    "acceptTitle": "Accept the proposal",
+    "acceptBody": "If you agree with the scope, the amount ({total}) and the terms, type your full name to accept it.",
+    "acceptName": "Your full name",
+    "acceptNameHint": "It is recorded with the date as your acceptance.",
+    "acceptConfirm": "I've read the proposal and accept the scope, the amount of {total} and the terms.",
+    "accept": "Accept proposal",
+    "accepting": "Accepting…",
+    "declineTitle": "Not quite right? Decline the proposal",
+    "declineReason": "Reason",
+    "declineReasonHint": "Optional, but it helps us improve or prepare another version.",
+    "decline": "Decline proposal",
+    "declining": "Sending…",
+    "pendingBanner": "You have a proposal awaiting your answer: {title}.",
+    "pendingLink": "See the proposal",
+    "statuses": {
+      "DRAFT": "Draft",
+      "SENT": "Sent",
+      "ACCEPTED": "Accepted",
+      "DECLINED": "Declined",
+      "WITHDRAWN": "Withdrawn"
+    }
   }
 }

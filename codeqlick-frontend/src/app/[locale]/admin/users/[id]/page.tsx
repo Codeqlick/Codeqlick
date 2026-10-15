@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
@@ -23,6 +24,7 @@ export default async function EditUserPage({
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.users' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  const tpr = await getTranslations({ locale, namespace: 'Admin.proposals' });
   const tr = await getTranslations({ locale, namespace: 'Roles' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
   const back = { href: '/admin/users', label: t('back') };
@@ -39,7 +41,18 @@ export default async function EditUserPage({
 
   return (
     <div className={styles.stack}>
-      <PageHeader title={user.name} lead={user.email} back={back} />
+      <PageHeader
+        title={user.name}
+        lead={user.email}
+        back={back}
+        actions={
+          user.role === 'CLIENT' ? (
+            <Button href={`/admin/proposals/new?client=${user.id}`} variant="outline" size="sm">
+              {tpr('newForClient')}
+            </Button>
+          ) : undefined
+        }
+      />
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('edit')}</h2>

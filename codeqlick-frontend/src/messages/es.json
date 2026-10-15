@@ -384,7 +384,8 @@
     "messageTooShort": "Cuéntanos un poco más (mínimo 10 caracteres).",
     "translationIncomplete": "Rellena título, extracto y contenido, o deja los tres vacíos.",
     "date": "Introduce una fecha válida.",
-    "choice": "Elige una de las opciones."
+    "choice": "Elige una de las opciones.",
+    "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -541,7 +542,8 @@
     "title": "Portal de clientes",
     "nav": {
       "projects": "Proyectos",
-      "support": "Soporte"
+      "support": "Soporte",
+      "proposals": "Propuestas"
     },
     "projectsTitle": "Tus proyectos",
     "projectsLead": "Sigue el avance de todo lo que estamos construyendo juntos.",
@@ -599,7 +601,8 @@
       "activity": "Actividad",
       "tags": "Etiquetas",
       "replies": "Respuestas",
-      "support": "Soporte"
+      "support": "Soporte",
+      "proposals": "Propuestas"
     },
     "dashboard": {
       "title": "Panel",
@@ -623,7 +626,8 @@
       "month": "Mes",
       "lostReasons": "Por qué se pierden los contactos",
       "lostReasonsEmpty": "Todavía no hay contactos perdidos.",
-      "activeTickets": "Peticiones abiertas"
+      "activeTickets": "Peticiones abiertas",
+      "sentProposals": "Propuestas por responder"
     },
     "leads": {
       "title": "Contactos",
@@ -902,7 +906,8 @@
         "media": "Imágenes",
         "account": "Cuentas",
         "tag": "Etiquetas",
-        "support": "Soporte"
+        "support": "Soporte",
+        "proposal": "Propuestas"
       },
       "actions": {
         "post": {
@@ -968,6 +973,15 @@
           "closed": "cerró la petición <target>{label}</target>",
           "file_added": "adjuntó un archivo a la petición <target>{label}</target>",
           "file_deleted": "eliminó un archivo de la petición <target>{label}</target>"
+        },
+        "proposal": {
+          "created": "creó la propuesta <target>{label}</target>",
+          "updated": "editó la propuesta <target>{label}</target>",
+          "sent": "envió la propuesta <target>{label}</target>",
+          "withdrawn": "retiró la propuesta <target>{label}</target>",
+          "accepted": "aceptó la propuesta <target>{label}</target>",
+          "declined": "rechazó la propuesta <target>{label}</target>",
+          "deleted": "borró la propuesta <target>{label}</target>"
         }
       },
       "details": {
@@ -1043,6 +1057,63 @@
       "created": "Respuesta guardada.",
       "insert": "Insertar respuesta guardada",
       "insertPlaceholder": "Insertar respuesta guardada…"
+    },
+    "proposals": {
+      "title": "Propuestas",
+      "lead": "Presupuestos para clientes: prepáralos como borrador, envíalos y sigue su respuesta.",
+      "new": "Nueva propuesta",
+      "back": "Volver a propuestas",
+      "emptyTitle": "No hay propuestas",
+      "emptyBody": "Crea la primera con «Nueva propuesta».",
+      "proposal": "Propuesta",
+      "client": "Cliente",
+      "status": "Estado",
+      "updated": "Última actividad",
+      "noClients": "Primero da de alta al cliente en Usuarios.",
+      "clientPlaceholder": "Elige un cliente",
+      "titleLabel": "Título",
+      "titleHint": "Por ejemplo: «Tienda online — diseño y desarrollo».",
+      "project": "Proyecto",
+      "projectHint": "Solo si es sobre uno de los proyectos del cliente.",
+      "noProject": "Ninguno",
+      "validUntil": "Válida hasta",
+      "validUntilHint": "Después de este día el cliente ya no puede aceptarla.",
+      "summary": "Alcance",
+      "summaryHint": "Qué incluye y qué no, fases, entregables. Admite Markdown.",
+      "items": "Líneas del presupuesto",
+      "itemsHint": "Precios en euros, por unidad. El total se calcula solo.",
+      "itemDescription": "Concepto",
+      "itemQuantity": "Cant.",
+      "itemPrice": "Precio (€)",
+      "itemAmount": "Importe",
+      "addItem": "Añadir línea",
+      "removeItem": "Quitar la línea {n}",
+      "line": "línea {n}",
+      "total": "Total",
+      "terms": "Condiciones",
+      "termsHint": "Forma de pago, plazos, garantía… Admite Markdown.",
+      "createDraft": "Crear borrador",
+      "edit": "Editar el borrador",
+      "preview": "Vista previa: así la verá el cliente",
+      "sendTitle": "Enviar al cliente",
+      "sendBody": "El cliente podrá verla en su área privada y recibirá un aviso en {email}. Después ya no se puede editar.",
+      "send": "Enviar propuesta",
+      "sending": "Enviando…",
+      "sent": "Propuesta enviada. El cliente ha recibido el aviso por correo.",
+      "sentNoEmail": "Propuesta enviada, pero el correo no ha salido. Avisa al cliente por otra vía.",
+      "sentAt": "Enviada",
+      "respondedAt": "Respondida",
+      "acceptedName": "Aceptada por",
+      "declineReason": "Motivo del rechazo",
+      "nextVersionTitle": "Cambios",
+      "nextVersionBody": "Una propuesta enviada ya no se edita: duplícala para preparar una nueva versión.",
+      "withdraw": "Retirar propuesta",
+      "withdrawing": "Retirando…",
+      "duplicate": "Duplicar como borrador",
+      "duplicating": "Duplicando…",
+      "deleteTitle": "Borrar el borrador",
+      "deleteBody": "Solo se pueden borrar los borradores. Esta acción no se puede deshacer.",
+      "newForClient": "Nueva propuesta"
     }
   },
   "Sessions": {
@@ -1252,5 +1323,55 @@
     "fileSignedOut": "Tu sesión ha caducado. Vuelve a iniciar sesión y repite la subida.",
     "noFiles": "Todavía no hay archivos.",
     "fileDeleted": "Archivo eliminado."
+  },
+  "Proposals": {
+    "title": "Propuestas",
+    "lead": "Los presupuestos que te hemos preparado. Revísalos con calma y acéptalos desde aquí.",
+    "emptyTitle": "Aún no tienes propuestas",
+    "emptyBody": "Cuando te enviemos un presupuesto, lo verás aquí.",
+    "back": "Volver a propuestas",
+    "proposal": "Propuesta",
+    "status": "Estado",
+    "total": "Total",
+    "validUntil": "Válida hasta",
+    "number": "Número",
+    "preparedFor": "Para",
+    "date": "Fecha",
+    "project": "Proyecto",
+    "items": "Presupuesto",
+    "description": "Concepto",
+    "quantity": "Cantidad",
+    "unitPrice": "Precio unitario",
+    "amount": "Importe",
+    "terms": "Condiciones",
+    "acceptedBy": "Aceptada por {name} el {date}.",
+    "print": "Imprimir o guardar en PDF",
+    "expired": "Caducada",
+    "waitingYou": "Pendiente de tu respuesta",
+    "acceptedNotice": "Aceptaste esta propuesta el {date}. Nos pondremos en contacto contigo para los siguientes pasos.",
+    "declinedNotice": "Rechazaste esta propuesta. Gracias por decírnoslo.",
+    "withdrawnNotice": "Retiramos esta propuesta; si es necesario, te enviaremos una nueva versión.",
+    "expiredNotice": "Esta propuesta ha caducado. Escríbenos si sigues interesado y te la actualizamos.",
+    "acceptTitle": "Aceptar la propuesta",
+    "acceptBody": "Si estás de acuerdo con el alcance, el importe ({total}) y las condiciones, escribe tu nombre completo para aceptarla.",
+    "acceptName": "Tu nombre completo",
+    "acceptNameHint": "Queda registrado junto con la fecha como tu aceptación.",
+    "acceptConfirm": "He leído la propuesta y acepto el alcance, el importe de {total} y las condiciones.",
+    "accept": "Aceptar propuesta",
+    "accepting": "Aceptando…",
+    "declineTitle": "¿No te encaja? Rechazar la propuesta",
+    "declineReason": "Motivo",
+    "declineReasonHint": "Opcional, pero nos ayuda a mejorar o a prepararte otra versión.",
+    "decline": "Rechazar propuesta",
+    "declining": "Enviando…",
+    "pendingBanner": "Tienes una propuesta pendiente de respuesta: {title}.",
+    "pendingLink": "Ver la propuesta",
+    "statuses": {
+      "DRAFT": "Borrador",
+      "SENT": "Enviada",
+      "ACCEPTED": "Aceptada",
+      "DECLINED": "Rechazada",
+      "WITHDRAWN": "Retirada"
+    }
   }
 }
