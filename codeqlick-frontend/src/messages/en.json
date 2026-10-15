@@ -1244,7 +1244,9 @@
       "hoursError": "I can't read the hours for {day}. Type them as 09:00-13:00, 16:00-18:00.",
       "hoursErrorTitle": "Check the free hours.",
       "enabled": "Publish call booking on the website",
-      "enabledHint": "The \"Book a call\" page appears, linked from the contact and service pages. It needs the link and some free hours."
+      "enabledHint": "The \"Book a call\" page appears, linked from the contact and service pages. It needs the link and some free hours.",
+      "calendarEmail": "Your calendar email",
+      "calendarEmailHint": "Your Gmail: every booking (and cancellation) also reaches it as an invitation, so it shows in your Google Calendar. The usual copy still goes to the team inbox."
     }
   },
   "Sessions": {

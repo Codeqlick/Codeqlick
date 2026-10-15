@@ -10,6 +10,7 @@ import { MailService, type MailMessage } from '../mail/mail.service.js';
 import {
   bookingCancelledEmail,
   bookingConfirmedEmail,
+  bookingRemovedFromCalendarEmail,
   bookingTeamEmail,
 } from './booking-emails.js';
 import { freeSlots, madridDay, TIME_ZONE } from './booking-time.js';
@@ -152,15 +153,17 @@ export class BookingsService {
         this.invitation(row, config.meetingUrl, 'REQUEST', input.locale),
       ),
     );
-    this.send(
-      bookingTeamEmail(
-        this.config.leadsNotifyTo,
-        row,
-        `${this.config.siteUrl}/es/admin/bookings`,
-        this.config.siteUrl,
-        this.invitation(row, config.meetingUrl, 'REQUEST', 'en'),
-      ),
-    );
+    for (const to of this.teamInboxes(config)) {
+      this.send(
+        bookingTeamEmail(
+          to,
+          row,
+          `${this.config.siteUrl}/es/admin/bookings`,
+          this.config.siteUrl,
+          this.invitation(row, config.meetingUrl, 'REQUEST', 'en'),
+        ),
+      );
+    }
     await this.activity.record(
       { id: null, name: row.name },
       { action: 'booking.created', targetId: row.id, targetLabel: row.name },
@@ -177,16 +180,18 @@ export class BookingsService {
     const row = await this.repository.cancel(booking.id);
     if (!row) throw new NotFoundException('No booked call for this link');
     const config = await this.getConfig();
-    this.send(
-      bookingCancelledEmail(
-        { email: this.config.leadsNotifyTo, name: 'Codeqlick' },
-        row,
-        true,
-        'en',
-        this.config.siteUrl,
-        this.invitation(row, config.meetingUrl, 'CANCEL', 'en'),
-      ),
-    );
+    for (const to of this.teamInboxes(config)) {
+      this.send(
+        bookingCancelledEmail(
+          { email: to, name: 'Codeqlick' },
+          row,
+          true,
+          'en',
+          this.config.siteUrl,
+          this.invitation(row, config.meetingUrl, 'CANCEL', 'en'),
+        ),
+      );
+    }
     await this.activity.record(
       { id: null, name: row.name },
       { action: 'booking.cancelled', targetId: row.id, targetLabel: row.name },
@@ -210,6 +215,18 @@ export class BookingsService {
         this.invitation(row, config.meetingUrl, 'CANCEL', locale),
       ),
     );
+    // Off the owner's calendar too (the team inbox needs no notice: the team cancelled it).
+    const calendar = this.teamInboxes(config).slice(1);
+    for (const to of calendar) {
+      this.send(
+        bookingRemovedFromCalendarEmail(
+          to,
+          row,
+          this.config.siteUrl,
+          this.invitation(row, config.meetingUrl, 'CANCEL', 'en'),
+        ),
+      );
+    }
     await this.activity.record(actor, {
       action: 'booking.cancelled',
       targetId: row.id,
@@ -227,6 +244,13 @@ export class BookingsService {
   }
 
   // ---- Helpers --------------------------------------------------------------------------
+
+  /** The team inbox, plus the calendar address when it is a different one. */
+  private teamInboxes(config: BookingConfig): string[] {
+    const inbox = this.config.leadsNotifyTo;
+    const calendar = config.calendarEmail.trim().toLowerCase();
+    return calendar && calendar !== inbox.toLowerCase() ? [inbox, calendar] : [inbox];
+  }
 
   private async publishedConfig(): Promise<BookingConfig> {
     const config = await this.getConfig();
