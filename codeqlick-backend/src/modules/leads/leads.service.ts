@@ -20,6 +20,7 @@ import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { leadsToCsv } from './leads-csv.js';
 import { leadAcknowledgementEmail, leadNotificationEmail, leadReplyEmail } from './lead-emails.js';
+import { BriefsService } from '../briefs/briefs.service.js';
 import { ProjectsService } from '../projects/projects.service.js';
 import { UsersService } from '../users/users.service.js';
 import { LeadsRepository } from './leads.repository.js';
@@ -115,6 +116,7 @@ export class LeadsService {
     private readonly activity: ActivityService,
     private readonly users: UsersService,
     private readonly projects: ProjectsService,
+    private readonly briefs: BriefsService,
   ) {}
 
   /**
@@ -136,6 +138,8 @@ export class LeadsService {
       phase: 'DISCOVERY',
       progress: 0,
     });
+    // The new project asks for its brief: the portal shows it, the welcome email brings them in.
+    await this.briefs.request(actor, project.id, false);
     const lead = toLead(
       await this.repository.update(id, {
         status: 'WON',

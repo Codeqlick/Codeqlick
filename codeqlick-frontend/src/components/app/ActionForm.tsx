@@ -68,7 +68,16 @@ export function FormTextarea(props: Omit<TextareaProps, 'error'>) {
 
 export function FormSelect(props: Omit<SelectProps, 'error'>) {
   const { error, submitted } = useField(props.name);
-  return <Select {...props} error={error} defaultValue={submitted ?? props.defaultValue} />;
+  // React doesn't re-apply a select's defaultValue: after a failed submit the form reset would
+  // put back the first value. Keyed by the echoed value, it remounts showing what was sent.
+  return (
+    <Select
+      key={submitted ?? '\u0000initial'}
+      {...props}
+      error={error}
+      defaultValue={submitted ?? props.defaultValue}
+    />
+  );
 }
 
 /**

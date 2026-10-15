@@ -30,6 +30,9 @@ import { env } from '@/lib/env';
 import { ReleaseKeyReveal } from '@/components/app/ReleaseKeyReveal';
 import { adminGetProjectTime } from '@/lib/api/time';
 import { adminListTasks } from '@/lib/api/tasks';
+import { adminGetBrief } from '@/lib/api/briefs';
+import { BriefSummary } from '@/components/app/BriefSummary';
+import { requestBriefAction } from '../brief-actions';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
 import {
   addMilestoneAction,
@@ -82,11 +85,13 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks] = await Promise.all([
+  const [time, drafts, tasks, brief] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
     adminListTasks(project.id),
+    adminGetBrief(project.id),
   ]);
+  const tb = await getTranslations({ locale, namespace: 'Brief' });
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
   // Optional: the boxes work without them.
@@ -157,6 +162,29 @@ export default async function EditProjectPage({
               <SubmitButton pendingLabel={tc('creating')}>{t('milestoneAdd')}</SubmitButton>
             </div>
           </ActionForm>
+        </div>
+      </section>
+
+      <section className={styles.panel} id="brief" aria-labelledby="brief-heading">
+        <h2 id="brief-heading" className={styles.panelTitle}>
+          {tb('adminTitle')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>
+            {brief.status === 'SUBMITTED' && brief.submittedAt
+              ? tb('adminSubmitted', { date: formatDateTime(brief.submittedAt, locale) })
+              : brief.status === 'REQUESTED'
+                ? tb('adminRequested')
+                : tb('adminNone')}
+          </p>
+          {brief.status !== 'NONE' ? <BriefSummary brief={brief} locale={locale} /> : null}
+          {brief.status !== 'SUBMITTED' ? (
+            <ActionForm action={requestBriefAction.bind(null, locale, project.id)}>
+              <SubmitButton variant="outline" size="sm" pendingLabel={tb('requesting')}>
+                {brief.status === 'REQUESTED' ? tb('remind') : tb('request')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
         </div>
       </section>
 
