@@ -42,13 +42,13 @@ export async function submitContact(_previous: FormState, formData: FormData): P
     };
   }
 
-  const { name, email, company, budget, message } = parsed.data;
+  const { name, email, company, projectType, message } = parsed.data;
   try {
     await createLead({
       name,
       email,
       company: company || undefined,
-      budget: budget || undefined,
+      projectType: projectType || undefined,
       message,
       locale,
     });

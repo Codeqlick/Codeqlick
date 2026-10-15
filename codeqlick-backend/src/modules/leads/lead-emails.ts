@@ -2,12 +2,23 @@ import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
+/** Labels of the contact form's project types (keys sent by the form), for the team's email. */
+const PROJECT_TYPES: Record<string, string> = {
+  web: 'A website',
+  custom: 'A custom application',
+  mobile: 'A mobile app',
+  design: 'Design',
+  support: 'Maintenance or improvements',
+  'not-sure': 'Not sure yet',
+};
+
 interface LeadForEmail {
   id: string;
   name: string;
   email: string;
   company: string | null;
   budget: string | null;
+  projectType: string | null;
   message: string;
   locale: ApiLocale;
 }
@@ -32,7 +43,11 @@ export function leadNotificationEmail(
           ['Name', lead.name],
           ['Email', lead.email],
           ['Company', lead.company ?? '-'],
-          ['Budget', lead.budget ?? '-'],
+          [
+            'Project type',
+            lead.projectType ? (PROJECT_TYPES[lead.projectType] ?? lead.projectType) : '-',
+          ],
+          ...(lead.budget ? ([['Budget', lead.budget]] as Array<[string, string]>) : []),
           ['Locale', lead.locale],
           ['Lead id', lead.id],
         ],
