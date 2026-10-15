@@ -13,7 +13,7 @@ import {
   adminDeleteProjectFile,
   adminUpdateProject,
 } from '@/lib/api/projects';
-import { formObject, type FormState } from '@/lib/forms';
+import { formBoolean, formObject, type FormState } from '@/lib/forms';
 import { projectFormSchema, projectUpdateSchema } from '@/lib/schemas/admin';
 
 const PROJECT_FIELDS = [
@@ -78,18 +78,27 @@ export async function postProjectUpdateAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const parsed = projectUpdateSchema.safeParse(formObject(formData, ['title', 'body']));
+  const parsed = projectUpdateSchema.safeParse({
+    ...formObject(formData, ['title', 'body']),
+    notifyClient: formBoolean(formData, 'notifyClient'),
+  });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 
+  let clientNotified: boolean | undefined;
   try {
-    await adminCreateProjectUpdate(id, parsed.data);
+    ({ clientNotified } = await adminCreateProjectUpdate(id, parsed.data));
   } catch (error) {
     return failedState(error, locale, formData);
   }
 
   revalidateProjects(locale);
   const t = await getTranslations({ locale, namespace: 'Admin.projects' });
-  return { status: 'success', message: t('updatePosted') };
+  // The update is posted either way; only the email can have failed.
+  if (clientNotified === false) return { status: 'error', message: t('updatePostedNotNotified') };
+  return {
+    status: 'success',
+    message: clientNotified ? t('updatePostedNotified') : t('updatePosted'),
+  };
 }
 
 export async function deleteProjectAction(

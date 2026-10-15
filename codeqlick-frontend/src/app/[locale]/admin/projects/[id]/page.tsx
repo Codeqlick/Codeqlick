@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm';
+import { ActionForm, FormCheckbox, FormInput, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
@@ -75,6 +75,12 @@ export default async function EditProjectPage({
           >
             <FormInput name="title" label={t('updateTitle')} required />
             <FormTextarea name="body" label={t('updateBody')} rows={6} mono required />
+            <FormCheckbox
+              name="notifyClient"
+              label={t('notifyClient')}
+              hint={t('notifyClientHint', { email: project.client.email })}
+              defaultChecked
+            />
             <div className={styles.actions}>
               <SubmitButton pendingLabel={t('posting')}>{t('postUpdate')}</SubmitButton>
             </div>

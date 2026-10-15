@@ -53,6 +53,8 @@ model User {
   name               String
   role               Role      @default(CLIENT)
   isActive           Boolean   @default(true) @map("is_active")
+  /// Language of the emails the platform sends this user (welcome, project updates).
+  locale             Locale    @default(EN)
   /// Two-step verification: the authenticator secret, encrypted (see secret-box.ts). Set while
   /// setting it up; it only counts once `totpEnabledAt` is set.
   totpSecret         String?   @map("totp_secret")

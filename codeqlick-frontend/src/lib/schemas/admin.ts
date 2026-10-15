@@ -128,6 +128,7 @@ export const projectFormSchema = z.object({
 export const projectUpdateSchema = z.object({
   title: requiredString(160),
   body: z.string().trim().min(1, 'required').max(20000, 'tooLong'),
+  notifyClient: z.boolean(),
 });
 
 export const ROLES = ['ADMIN', 'CLIENT'] as const;
@@ -150,8 +151,7 @@ export const userUpdateSchema = z.object({
   name: requiredString(120),
   role: z.enum(ROLES, 'choice'),
   isActive: z.boolean(),
+  locale: z.enum(EMAIL_LOCALES, 'choice'),
 });
 
 export const passwordResetSchema = z.object({ password: passwordSchema });
-
-export const invitationSchema = z.object({ locale: z.enum(EMAIL_LOCALES, 'choice') });

@@ -206,9 +206,10 @@ export type LeadInput = {
   website?: string;
 };
 
-export type AdminUser = AuthUser & { isActive: boolean; createdAt: string };
+/** `locale`: language of the emails the platform sends the user. */
+export type AdminUser = AuthUser & { isActive: boolean; locale: 'en' | 'es'; createdAt: string };
 
-/** Without `password`, the user is emailed a link to choose one, in `locale`. */
+/** Without `password`, the user is emailed a link to choose one. `locale`: language of their emails. */
 export type UserInput = {
   email: string;
   name: string;
@@ -220,7 +221,13 @@ export type UserInput = {
 /** `invitationSent` is only there when a welcome email was due (no password given). */
 export type CreatedUser = AdminUser & { invitationSent?: boolean };
 
-export type UserPatch = { name?: string; password?: string; isActive?: boolean; role?: Role };
+export type UserPatch = {
+  name?: string;
+  password?: string;
+  isActive?: boolean;
+  role?: Role;
+  locale?: 'en' | 'es';
+};
 
 export type AdminStats = {
   leads: { new: number; total: number };

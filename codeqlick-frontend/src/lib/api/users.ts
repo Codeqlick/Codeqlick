@@ -36,11 +36,11 @@ export function adminCreateUser(input: UserInput) {
   return apiFetch<CreatedUser>('/admin/users', { method: 'POST', body: input, auth: 'required' });
 }
 
-/** Sends (again) the welcome email with a link to choose a password. */
-export function adminSendInvitation(id: string, locale: 'en' | 'es') {
+/** Sends (again) the welcome email with a link to choose a password, in the user's language. */
+export function adminSendInvitation(id: string) {
   return apiFetch<void>(`/admin/users/${encodeURIComponent(id)}/invitation`, {
     method: 'POST',
-    body: { locale },
+    body: {},
     auth: 'required',
   });
 }

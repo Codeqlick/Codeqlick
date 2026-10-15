@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
+import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { AppConfigService } from '../../config/app-config.service.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import {
   Role,
@@ -16,6 +18,8 @@ import {
   type ProjectWithUpdates,
 } from './projects.repository.js';
 import { ActivityService } from '../activity/activity.service.js';
+import { MailService } from '../mail/mail.service.js';
+import { projectUpdateEmail } from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
@@ -32,6 +36,9 @@ export interface ProjectUpdateView {
   createdAt: string;
   author: { name: string };
 }
+
+/** A posted update; `clientNotified` only when the client was to be emailed. */
+export type PostedProjectUpdate = ProjectUpdateView & { clientNotified?: boolean };
 
 /** Largest file accepted for a project, in bytes. */
 export const MAX_PROJECT_FILE_BYTES = 25 * 1024 * 1024;
@@ -123,10 +130,14 @@ function toDate(value: string | null | undefined): Date | null | undefined {
 
 @Injectable()
 export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+
   constructor(
     private readonly repository: ProjectsRepository,
     private readonly storage: ProjectFilesStorage,
     private readonly activity: ActivityService,
+    private readonly mail: MailService,
+    private readonly config: AppConfigService,
   ) {}
 
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
@@ -279,20 +290,46 @@ export class ProjectsService {
     });
   }
 
+  /**
+   * Posts an update. With `notifyClient`, the client is emailed it in their language;
+   * `clientNotified` then says whether that worked (a failed email keeps the update).
+   */
   async addUpdate(
     author: AuthUser,
     projectId: string,
     input: CreateProjectUpdateInput,
-  ): Promise<ProjectUpdateView> {
+  ): Promise<PostedProjectUpdate> {
     const project = await this.findOrThrow(projectId);
     const update = await this.repository.addUpdate(projectId, author.id, input.title, input.body);
+    const view = toUpdateView(update);
+    const clientNotified = input.notifyClient
+      ? await this.notifyClient(project, input).then(
+          () => true,
+          (error: unknown) => {
+            const reason = error instanceof Error ? error.message : String(error);
+            this.logger.error(`Failed to email the project update: ${reason}`);
+            return false;
+          },
+        )
+      : undefined;
     await this.activity.record(author, {
       action: 'project.update_posted',
       targetId: projectId,
       targetLabel: project.name,
-      details: { title: input.title },
+      details: { title: input.title, ...(clientNotified !== undefined && { clientNotified }) },
     });
-    return toUpdateView(update);
+    return clientNotified === undefined ? view : { ...view, clientNotified };
+  }
+
+  private async notifyClient(
+    project: ProjectWithClient,
+    update: { title: string; body: string },
+  ): Promise<void> {
+    // A deactivated client can't sign in to read it.
+    if (!project.client.isActive) throw new Error('the client account is deactivated');
+    const locale = toApiLocale(project.client.locale);
+    const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
+    await this.mail.send(projectUpdateEmail(project.client, project, update, link, locale));
   }
 
   private async findForCallerOrThrow(caller: AuthUser, id: string): Promise<ProjectWithUpdates> {

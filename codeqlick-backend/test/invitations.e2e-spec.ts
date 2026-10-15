@@ -59,6 +59,7 @@ describe('Welcome emails (e2e)', () => {
       .send({ email: invitedEmail, name: 'Grace', role: 'CLIENT', locale: 'es' })
       .expect(201);
     expect(created.body.invitationSent).toBe(true);
+    expect(created.body.locale).toBe('es');
     const userId = created.body.id as string;
 
     expect(sent).toHaveLength(1);
@@ -102,6 +103,14 @@ describe('Welcome emails (e2e)', () => {
       'user.invited',
     ]);
 
+    // Without a language, the email follows the one stored on the account at creation.
+    await request(server)
+      .post(`/v1/admin/users/${userId}/invitation`)
+      .set('Authorization', auth)
+      .send({})
+      .expect(204);
+    expect(sent[2]?.subject).toContain('Bienvenido');
+
     // Nothing is sent to a deactivated account, and an unknown one is a 404.
     await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
     await request(server)
@@ -114,7 +123,7 @@ describe('Welcome emails (e2e)', () => {
       .set('Authorization', auth)
       .send({ locale: 'en' })
       .expect(404);
-    expect(sent).toHaveLength(2);
+    expect(sent).toHaveLength(3);
   });
 
   it('keeps the account and tells the admin when the email fails', async () => {

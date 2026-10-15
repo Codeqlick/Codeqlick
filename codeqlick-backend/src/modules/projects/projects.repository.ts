@@ -9,7 +9,7 @@ import type {
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-type ClientRef = Pick<User, 'id' | 'name' | 'email'>;
+type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive'>;
 type UpdateWithAuthor = ProjectUpdate & { author: Pick<User, 'name'> | null };
 
 export type ProjectWithClient = ClientProject & { client: ClientRef };
@@ -18,7 +18,9 @@ export type ProjectWithUpdates = ProjectWithClient & {
   files: ProjectFile[];
 };
 
-const clientSelect = { select: { id: true, name: true, email: true } } as const;
+const clientSelect = {
+  select: { id: true, name: true, email: true, locale: true, isActive: true },
+} as const;
 const updatesInclude = {
   orderBy: { createdAt: 'desc' },
   include: { author: { select: { name: true } } },

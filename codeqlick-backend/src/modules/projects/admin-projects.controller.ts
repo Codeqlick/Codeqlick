@@ -36,7 +36,7 @@ import {
   ProjectsService,
   type ClientProjectView,
   type ProjectFileView,
-  type ProjectUpdateView,
+  type PostedProjectUpdate,
   type UploadedProjectFile,
 } from './projects.service.js';
 
@@ -90,7 +90,7 @@ export class AdminProjectsController {
     @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: createProjectUpdateSchema }) body: CreateProjectUpdateInput,
-  ): Promise<ProjectUpdateView> {
+  ): Promise<PostedProjectUpdate> {
     return this.projects.addUpdate(user, params.id, body);
   }
 

@@ -670,7 +670,11 @@
       "fileFailed": "La subida ha fallado. Vuelve a intentarlo.",
       "fileSignedOut": "Tu sesión ha caducado. Vuelve a iniciar sesión y repite la subida.",
       "noFiles": "Todavía no se ha subido ningún archivo.",
-      "fileDeleted": "Archivo eliminado."
+      "fileDeleted": "Archivo eliminado.",
+      "notifyClient": "Avisar al cliente por correo",
+      "notifyClientHint": "Le enviaremos la novedad a {email}, en su idioma, con un enlace a su área de cliente.",
+      "updatePostedNotified": "Novedad publicada y enviada por correo al cliente.",
+      "updatePostedNotNotified": "Novedad publicada, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada)."
     },
     "media": {
       "choose": "Archivo de imagen",
@@ -733,15 +737,16 @@
       "notFound": "Este usuario no existe.",
       "passwordOptional": "Contraseña (opcional)",
       "passwordOptionalHint": "Déjala vacía y le enviaremos un correo de bienvenida con un enlace para elegirla (válido 7 días). Si la pones tú, mínimo 12 caracteres, y compártela por un canal seguro.",
-      "emailLocale": "Idioma del correo de bienvenida",
       "createdInvited": "Usuario creado. Le hemos enviado un correo de bienvenida para que elija su contraseña.",
       "createdInvitationFailed": "Usuario creado, pero no se pudo enviar el correo de bienvenida. Vuelve a enviarlo desde su ficha.",
       "invitation": "Correo de bienvenida",
-      "invitationBody": "Envía a este usuario un enlace para elegir su contraseña, válido 7 días. Sirve también si el anterior caducó o se perdió: solo funciona el último enlace enviado.",
+      "invitationBody": "Envía a este usuario un enlace para elegir su contraseña, válido 7 días (en {language}). Sirve también si el anterior caducó o se perdió: solo funciona el último enlace enviado.",
       "invitationSend": "Enviar enlace",
       "invitationSending": "Enviando…",
       "invitationSent": "Correo enviado.",
-      "invitationFailed": "No se pudo enviar el correo. Revisa la configuración de SMTP del servidor."
+      "invitationFailed": "No se pudo enviar el correo. Revisa la configuración de SMTP del servidor.",
+      "locale": "Idioma de los correos",
+      "localeHint": "En este idioma le llegarán el correo de bienvenida y los avisos de novedades de sus proyectos."
     },
     "activity": {
       "title": "Actividad",
