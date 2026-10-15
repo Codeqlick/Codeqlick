@@ -20,6 +20,7 @@ export function passwordResetEmail(
         preheader: es
           ? `El enlace para elegir una contraseña nueva caduca en ${ttlMinutes} minutos.`
           : `The link to choose a new password expires in ${ttlMinutes} minutes.`,
+        title: es ? 'Restablece tu contraseña' : 'Reset your password',
         greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
         intro: [
           es
@@ -27,11 +28,9 @@ export function passwordResetEmail(
             : 'We received a request to reset the password of your Codeqlick account. Open this link to choose a new one:',
         ],
         button: { label: es ? 'Elegir contraseña nueva' : 'Choose a new password', url: link },
-        outro: [
-          es
-            ? `El enlace caduca en ${ttlMinutes} minutos y solo se puede usar una vez. Si no lo has pedido tú, ignora este correo: tu contraseña no cambia.`
-            : `The link expires in ${ttlMinutes} minutes and can only be used once. If you didn't ask for it, ignore this email: your password stays the same.`,
-        ],
+        note: es
+          ? `El enlace caduca en ${ttlMinutes} minutos y solo se puede usar una vez. Si no lo has pedido tú, ignora este correo: tu contraseña no cambia.`
+          : `The link expires in ${ttlMinutes} minutes and can only be used once. If you didn't ask for it, ignore this email: your password stays the same.`,
       },
       siteUrl,
     ),
@@ -58,6 +57,7 @@ export function invitationEmail(
         preheader: es
           ? 'Tu cuenta está lista: elige tu contraseña para entrar.'
           : 'Your account is ready: choose your password to sign in.',
+        title: es ? 'Bienvenido a Codeqlick' : 'Welcome to Codeqlick',
         greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
         intro: [
           es
@@ -68,11 +68,9 @@ export function invitationEmail(
             : 'Open this link to choose your password:',
         ],
         button: { label: es ? 'Crear mi contraseña' : 'Choose my password', url: link },
-        outro: [
-          es
-            ? `El enlace caduca en ${ttlDays} días y solo se puede usar una vez. Después entrarás con este correo (${user.email}) y la contraseña que elijas.`
-            : `The link expires in ${ttlDays} days and can only be used once. After that, sign in with this email (${user.email}) and the password you chose.`,
-        ],
+        note: es
+          ? `El enlace caduca en ${ttlDays} días y solo se puede usar una vez. Después entrarás con este correo (${user.email}) y la contraseña que elijas.`
+          : `The link expires in ${ttlDays} days and can only be used once. After that, sign in with this email (${user.email}) and the password you chose.`,
       },
       siteUrl,
     ),

@@ -30,14 +30,14 @@ export function projectUpdateEmail(
         preheader: es
           ? `Novedad en ${project.name}: ${update.title}`
           : `Update on ${project.name}: ${update.title}`,
+        title: es ? `Novedad en ${project.name}` : `Update on ${project.name}`,
         greeting: es ? `Hola ${client.name}:` : `Hi ${client.name},`,
         intro: [
           es
-            ? `Hay una novedad en tu proyecto ${project.name}.`
-            : `There's a new update on your project ${project.name}.`,
+            ? 'Hemos publicado una novedad en tu proyecto:'
+            : "We've posted an update on your project:",
         ],
         quote: { title: update.title, body: excerpt(update.body) },
-        outro: [],
         button: { label: es ? 'Ver el proyecto' : 'View the project', url: link },
       },
       siteUrl,
