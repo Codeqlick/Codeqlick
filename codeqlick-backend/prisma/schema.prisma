@@ -325,6 +325,7 @@ model ClientProject {
   time       TimeEntry[]
   drafts     UpdateDraft[]
   tasks      ProjectTask[]
+  brief      ProjectBrief?
 
   @@index([clientId])
   @@map("client_projects")
@@ -687,4 +688,26 @@ model Booking {
 
   @@index([status, startsAt])
   @@map("bookings")
+}
+
+enum BriefStatus {
+  REQUESTED
+  SUBMITTED
+}
+
+/// The client's answers to the project questionnaire (goals, audience, must-haves, brand...), one
+/// per project. Saved as they go (REQUESTED) until they send it (SUBMITTED); they can edit it after.
+model ProjectBrief {
+  id          String      @id @default(uuid()) @db.Uuid
+  projectId   String      @unique @map("project_id") @db.Uuid
+  status      BriefStatus @default(REQUESTED)
+  /// The answers, by question key (see briefs.schemas.ts).
+  answers     Json        @default("{}")
+  requestedAt DateTime    @default(now()) @map("requested_at") @db.Timestamptz(3)
+  submittedAt DateTime?   @map("submitted_at") @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_briefs")
 }

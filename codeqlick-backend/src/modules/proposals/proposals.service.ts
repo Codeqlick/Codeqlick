@@ -11,6 +11,7 @@ import { pageToSkipTake, paginate, type Paginated } from '../../common/types/pag
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { Prisma, ProposalStatus } from '../../generated/prisma/client.js';
 import { AccountsService } from '../accounts/accounts.service.js';
+import { BriefsService } from '../briefs/briefs.service.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { proposalAnsweredEmail, proposalSentEmail } from './proposal-emails.js';
@@ -116,6 +117,7 @@ export class ProposalsService {
     private readonly config: AppConfigService,
     private readonly activity: ActivityService,
     private readonly accounts: AccountsService,
+    private readonly briefs: BriefsService,
   ) {}
 
   // ---- Portal ---------------------------------------------------------------------------
@@ -142,6 +144,8 @@ export class ProposalsService {
       acceptedName: input.name,
     });
     if (!row) throw new ConflictException('This proposal has already been answered');
+    // Work starts: the project's brief is asked for (unless it was sent already).
+    if (row.projectId) await this.briefs.request(caller, row.projectId, true);
     return this.answered(caller, row, { kind: 'accepted', name: input.name });
   }
 

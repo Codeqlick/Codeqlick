@@ -7,6 +7,7 @@ import type { LeadsRepository } from './leads.repository.js';
 import type { CreateLeadInput } from './leads.schemas.js';
 import type { ProjectsService } from '../projects/projects.service.js';
 import type { UsersService } from '../users/users.service.js';
+import type { BriefsService } from '../briefs/briefs.service.js';
 import { LeadsService } from './leads.service.js';
 
 const input: CreateLeadInput = {
@@ -58,6 +59,7 @@ describe('LeadsService', () => {
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
       {} as UsersService,
       {} as ProjectsService,
+      {} as BriefsService,
     );
   });
 

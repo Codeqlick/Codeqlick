@@ -1010,7 +1010,10 @@
           "draft_discarded": "descartó un borrador de novedad de <target>{label}</target>",
           "task_created": "creó una tarea en <target>{label}</target>",
           "task_updated": "cambió una tarea de <target>{label}</target>",
-          "task_deleted": "borró una tarea de <target>{label}</target>"
+          "task_deleted": "borró una tarea de <target>{label}</target>",
+          "brief_requested": "pidió el brief de <target>{label}</target>",
+          "brief_submitted": "envió el brief de <target>{label}</target>",
+          "brief_updated": "actualizó el brief de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1663,5 +1666,160 @@
     "ctaLink": "Reserva una llamada",
     "asideTitle": "¿Prefieres hablarlo?",
     "asideBody": "Elige un hueco y lo vemos por videollamada."
+  },
+  "Brief": {
+    "title": "Cuéntanos tu proyecto",
+    "lead": "Estas preguntas nos ayudan a preparar {project} a tu medida. Se guarda lo que escribes: puedes responder en varias veces y enviarlo cuando esté listo.",
+    "choose": "Elige una opción",
+    "actionsHint": "Las preguntas marcadas sin «opcional» son necesarias para enviarlo.",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "send": "Enviar",
+    "sendAgain": "Enviar los cambios",
+    "sending": "Enviando…",
+    "saved": "Guardado. Puedes seguir cuando quieras.",
+    "sent": "¡Enviado! Lo revisamos y te escribimos si necesitamos algo más.",
+    "missing": "Hemos guardado lo que llevas, pero para enviarlo faltan algunas respuestas.",
+    "required": "Necesitamos esta respuesta para empezar.",
+    "submittedNotice": "Lo enviaste el {date}. Puedes cambiar cualquier respuesta y volver a enviarlo.",
+    "bannerTitle": "Cuéntanos tu proyecto.",
+    "bannerBody": "Unas preguntas sobre objetivos, público, funciones y marca para empezar con buen pie.",
+    "bannerLink": "Responder ahora",
+    "factLabel": "Brief",
+    "factLink": "Ver o editar",
+    "adminTitle": "Brief del proyecto",
+    "adminNone": "Aún no se le ha pedido al cliente.",
+    "adminRequested": "Pedido al cliente; todavía no lo ha enviado. Abajo, lo que lleva guardado.",
+    "adminSubmitted": "Enviado por el cliente el {date}.",
+    "request": "Pedir el brief al cliente",
+    "remind": "Recordárselo por correo",
+    "requesting": "Enviando…",
+    "requested": "Le hemos pedido el brief por correo.",
+    "empty": "Todavía no hay respuestas.",
+    "sections": {
+      "business": {
+        "title": "Tu negocio",
+        "lead": "A qué te dedicas y qué te diferencia."
+      },
+      "goals": {
+        "title": "Objetivos",
+        "lead": "Qué quieres conseguir con este proyecto."
+      },
+      "audience": {
+        "title": "Público",
+        "lead": "Quién lo va a usar."
+      },
+      "features": {
+        "title": "Funciones",
+        "lead": "Lo que no puede faltar y lo que estaría bien tener."
+      },
+      "references": {
+        "title": "Referencias",
+        "lead": "Webs o apps que te gustan (o no) y por qué."
+      },
+      "brand": {
+        "title": "Marca",
+        "lead": "Cómo es tu imagen y cómo quieres sonar."
+      },
+      "content": {
+        "title": "Contenidos",
+        "lead": "Textos, fotos e imágenes."
+      },
+      "technical": {
+        "title": "Dominio y servicios",
+        "lead": "Lo técnico que ya tienes o necesitarás."
+      },
+      "timing": {
+        "title": "Plazos",
+        "lead": "Para cuándo lo necesitas."
+      },
+      "other": {
+        "title": "Algo más",
+        "lead": "Cualquier cosa que debamos saber."
+      }
+    },
+    "fields": {
+      "business": {
+        "label": "¿A qué se dedica tu negocio?",
+        "hint": "Qué ofreces, a quién y qué te hace diferente."
+      },
+      "goals": {
+        "label": "¿Qué quieres conseguir con el proyecto?",
+        "hint": "Por ejemplo: vender online, recibir reservas, ahorrar trabajo manual…"
+      },
+      "success": {
+        "label": "¿Cómo sabremos que ha funcionado?",
+        "hint": "Una cifra o una señal: más ventas, menos llamadas, X reservas al mes…"
+      },
+      "audience": {
+        "label": "¿Quién lo va a usar?",
+        "hint": "Tipo de personas, edad, desde qué dispositivo, qué necesitan."
+      },
+      "mustHave": {
+        "label": "Funciones imprescindibles",
+        "hint": "Una por línea: lo que tiene que hacer sí o sí desde el principio."
+      },
+      "niceToHave": {
+        "label": "Estaría bien tener",
+        "hint": "Lo que puede esperar a una segunda fase."
+      },
+      "references": {
+        "label": "Webs o apps de referencia",
+        "hint": "Enlaces y qué te gusta de cada una."
+      },
+      "brandStatus": {
+        "label": "¿Tienes marca (logo, colores)?"
+      },
+      "brandColors": {
+        "label": "Colores",
+        "hint": "Nombres o códigos, por ejemplo #D9177E."
+      },
+      "brandTone": {
+        "label": "Tono"
+      },
+      "brandAssetsUrl": {
+        "label": "Enlace a tu logo y materiales",
+        "hint": "Una carpeta de Drive, Dropbox o similar."
+      },
+      "content": {
+        "label": "¿Quién prepara los textos y las imágenes?"
+      },
+      "domain": {
+        "label": "Dominio",
+        "hint": "El que ya tienes (ejemplo.com) o el que te gustaría."
+      },
+      "services": {
+        "label": "Servicios y cuentas que necesitará",
+        "hint": "Pagos, correo, estadísticas, otros programas con los que conectar…"
+      },
+      "deadline": {
+        "label": "Fecha deseada"
+      },
+      "deadlineReason": {
+        "label": "¿Por qué esa fecha?",
+        "hint": "Un lanzamiento, una feria, una temporada…"
+      },
+      "other": {
+        "label": "¿Algo más que debamos saber?"
+      }
+    },
+    "options": {
+      "brandStatus": {
+        "none": "No, hay que crearla",
+        "partial": "Algo tengo (logo, pero sin guía)",
+        "complete": "Sí, completa"
+      },
+      "brandTone": {
+        "formal": "Formal",
+        "friendly": "Cercano",
+        "technical": "Técnico",
+        "playful": "Desenfadado"
+      },
+      "content": {
+        "client": "Los preparo yo",
+        "codeqlick": "Que los preparéis vosotros",
+        "both": "Entre los dos"
+      }
+    }
   }
 }

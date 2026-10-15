@@ -1010,7 +1010,10 @@
           "draft_discarded": "discarded a draft update for <target>{label}</target>",
           "task_created": "created a task on <target>{label}</target>",
           "task_updated": "changed a task on <target>{label}</target>",
-          "task_deleted": "deleted a task from <target>{label}</target>"
+          "task_deleted": "deleted a task from <target>{label}</target>",
+          "brief_requested": "asked for the brief of <target>{label}</target>",
+          "brief_submitted": "sent the brief of <target>{label}</target>",
+          "brief_updated": "updated the brief of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1663,5 +1666,160 @@
     "ctaLink": "Book a call",
     "asideTitle": "Rather talk it through?",
     "asideBody": "Pick a time and we'll meet over video."
+  },
+  "Brief": {
+    "title": "Tell us about your project",
+    "lead": "These questions help us shape {project} around you. What you type is saved: answer in several goes and send it when it's ready.",
+    "choose": "Choose an option",
+    "actionsHint": "Questions not marked \"optional\" are needed to send it.",
+    "save": "Save",
+    "saving": "Saving…",
+    "send": "Send",
+    "sendAgain": "Send the changes",
+    "sending": "Sending…",
+    "saved": "Saved. Carry on whenever you like.",
+    "sent": "Sent! We'll review it and write to you if we need anything else.",
+    "missing": "We've saved what you have, but a few answers are missing to send it.",
+    "required": "We need this answer to start.",
+    "submittedNotice": "You sent it on {date}. You can change any answer and send it again.",
+    "bannerTitle": "Tell us about your project.",
+    "bannerBody": "A few questions about goals, audience, features and brand to get off to a good start.",
+    "bannerLink": "Answer now",
+    "factLabel": "Brief",
+    "factLink": "View or edit",
+    "adminTitle": "Project brief",
+    "adminNone": "The client hasn't been asked for it yet.",
+    "adminRequested": "Asked for; the client hasn't sent it yet. Below, what they've saved so far.",
+    "adminSubmitted": "Sent by the client on {date}.",
+    "request": "Ask the client for the brief",
+    "remind": "Remind them by email",
+    "requesting": "Sending…",
+    "requested": "We've asked them for the brief by email.",
+    "empty": "No answers yet.",
+    "sections": {
+      "business": {
+        "title": "Your business",
+        "lead": "What you do and what sets you apart."
+      },
+      "goals": {
+        "title": "Goals",
+        "lead": "What you want this project to achieve."
+      },
+      "audience": {
+        "title": "Audience",
+        "lead": "Who's going to use it."
+      },
+      "features": {
+        "title": "Features",
+        "lead": "What it can't do without, and what would be nice."
+      },
+      "references": {
+        "title": "References",
+        "lead": "Sites or apps you like (or don't) and why."
+      },
+      "brand": {
+        "title": "Brand",
+        "lead": "What your image is like and how you want to sound."
+      },
+      "content": {
+        "title": "Content",
+        "lead": "Texts, photos and images."
+      },
+      "technical": {
+        "title": "Domain and services",
+        "lead": "The technical things you have or will need."
+      },
+      "timing": {
+        "title": "Timing",
+        "lead": "When you need it."
+      },
+      "other": {
+        "title": "Anything else",
+        "lead": "Anything we should know."
+      }
+    },
+    "fields": {
+      "business": {
+        "label": "What does your business do?",
+        "hint": "What you offer, to whom, and what makes you different."
+      },
+      "goals": {
+        "label": "What do you want the project to achieve?",
+        "hint": "For example: sell online, take bookings, save manual work…"
+      },
+      "success": {
+        "label": "How will we know it worked?",
+        "hint": "A number or a sign: more sales, fewer calls, X bookings a month…"
+      },
+      "audience": {
+        "label": "Who's going to use it?",
+        "hint": "What kind of people, age, on which devices, what they need."
+      },
+      "mustHave": {
+        "label": "Must-have features",
+        "hint": "One per line: what it has to do from day one."
+      },
+      "niceToHave": {
+        "label": "Nice to have",
+        "hint": "What can wait for a second phase."
+      },
+      "references": {
+        "label": "Reference sites or apps",
+        "hint": "Links, and what you like about each."
+      },
+      "brandStatus": {
+        "label": "Do you have a brand (logo, colours)?"
+      },
+      "brandColors": {
+        "label": "Colours",
+        "hint": "Names or codes, for example #D9177E."
+      },
+      "brandTone": {
+        "label": "Tone"
+      },
+      "brandAssetsUrl": {
+        "label": "Link to your logo and material",
+        "hint": "A Drive, Dropbox or similar folder."
+      },
+      "content": {
+        "label": "Who prepares the texts and images?"
+      },
+      "domain": {
+        "label": "Domain",
+        "hint": "The one you have (example.com) or the one you'd like."
+      },
+      "services": {
+        "label": "Services and accounts it will need",
+        "hint": "Payments, email, analytics, other software to connect to…"
+      },
+      "deadline": {
+        "label": "Target date"
+      },
+      "deadlineReason": {
+        "label": "Why that date?",
+        "hint": "A launch, a trade fair, a season…"
+      },
+      "other": {
+        "label": "Anything else we should know?"
+      }
+    },
+    "options": {
+      "brandStatus": {
+        "none": "No, it needs creating",
+        "partial": "Some (a logo, but no guidelines)",
+        "complete": "Yes, complete"
+      },
+      "brandTone": {
+        "formal": "Formal",
+        "friendly": "Friendly",
+        "technical": "Technical",
+        "playful": "Playful"
+      },
+      "content": {
+        "client": "I'll prepare them",
+        "codeqlick": "You prepare them",
+        "both": "Together"
+      }
+    }
   }
 }
