@@ -50,6 +50,15 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
                     <th scope="row">
                       <Link href={`/admin/users/${user.id}`}>{user.name}</Link>
                       <span className={styles.sub}>{user.email}</span>
+                      {user.memberOfId ? (
+                        <span className={styles.sub}>
+                          {t('memberOf')}{' '}
+                          <Link href={`/admin/users/${user.memberOfId}`}>
+                            {users.items.find((other) => other.id === user.memberOfId)?.name ??
+                              t('companyAccount')}
+                          </Link>
+                        </span>
+                      ) : null}
                     </th>
                     <td>
                       <Badge tone={user.role === 'ADMIN' ? 'ink' : 'brand'}>{tr(user.role)}</Badge>
