@@ -16,6 +16,8 @@ export const bookingConfigSchema = z
   .object({
     enabled: z.boolean(),
     meetingUrl: z.url().max(500).or(z.literal('')),
+    /** Also gets the team's invitation, so calls land in that calendar (e.g. the owner's Gmail). */
+    calendarEmail: z.email().max(254).or(z.literal('')).default(''),
     durationMinutes: z.number().int().min(15).max(120),
     minNoticeHours: z
       .number()
@@ -45,6 +47,7 @@ export type BookingConfig = z.infer<typeof bookingConfigSchema>;
 export const DEFAULT_BOOKING: BookingConfig = {
   enabled: false,
   meetingUrl: '',
+  calendarEmail: '',
   durationMinutes: 30,
   minNoticeHours: 24,
   horizonDays: 21,

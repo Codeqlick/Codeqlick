@@ -144,3 +144,30 @@ export function bookingCancelledEmail(
     ),
   };
 }
+
+/** To the owner's calendar address when the team cancelled: removes the call from it. */
+export function bookingRemovedFromCalendarEmail(
+  to: string,
+  call: Call,
+  siteUrl: string,
+  ics: string,
+): MailMessage {
+  const when = callTime(call.startsAt, 'en');
+  return {
+    to,
+    subject: `Call cancelled: ${call.name}, ${when}`,
+    icalEvent: { method: 'CANCEL', content: ics },
+    ...renderEmail(
+      {
+        locale: 'en',
+        preheader: `The call with ${call.name} on ${when} was cancelled.`,
+        title: 'Call cancelled',
+        intro: [
+          `The call with ${call.name} on ${when} was cancelled from the admin panel; ${call.name} has been told.`,
+        ],
+        signoff: [],
+      },
+      siteUrl,
+    ),
+  };
+}
