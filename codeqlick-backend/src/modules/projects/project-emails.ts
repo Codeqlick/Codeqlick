@@ -153,3 +153,32 @@ export function clientActivityEmail(
     ),
   };
 }
+
+/** Tells the team (in English) that a draft update is waiting for review. */
+export function draftReadyEmail(
+  to: string,
+  project: { name: string },
+  draft: { title: string; body: string; version: string | null },
+  link: string,
+  siteUrl: string,
+): MailMessage {
+  const title = draft.version ? `${draft.version} · ${draft.title}` : draft.title;
+  return {
+    to,
+    subject: `${project.name}: draft ready to review — ${title}`,
+    ...renderEmail(
+      {
+        locale: 'en',
+        preheader: excerpt(draft.body).slice(0, 120),
+        title: 'A draft update is ready',
+        intro: [
+          `A draft update for ${project.name} came in. Nothing has been sent to the client: review it, edit it if needed and publish it from the project page.`,
+        ],
+        quote: { title, body: excerpt(draft.body) },
+        button: { label: 'Review the draft', url: link },
+        signoff: [],
+      },
+      siteUrl,
+    ),
+  };
+}

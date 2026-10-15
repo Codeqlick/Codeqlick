@@ -23,22 +23,30 @@ import {
 import {
   ProjectsRepository,
   type CommentWithAuthor,
+  type DraftWithProject,
   type ProjectWithClient,
   type ProjectWithUpdates,
   type UpdateWithAuthor,
 } from './projects.repository.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
-import { clientActivityEmail, projectUpdateEmail, teamCommentEmail } from './project-emails.js';
+import {
+  clientActivityEmail,
+  draftReadyEmail,
+  projectUpdateEmail,
+  teamCommentEmail,
+} from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
   CreateMilestoneInput,
   CreateProjectInput,
   CreateProjectUpdateInput,
+  CreateDraftInput,
   CreateReleaseInput,
   CreateUpdateCommentInput,
   ListProjectsQuery,
+  PublishDraftInput,
   ReorderMilestonesInput,
   UpdateMilestoneInput,
   UpdateProjectInput,
@@ -196,6 +204,33 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
   if ('files' in project) view.files = project.files.map(toFileView);
   if ('milestones' in project) view.milestones = project.milestones.map(toMilestoneView);
   return view;
+}
+
+/** Who acts when a request comes with a release key instead of a session. */
+const PIPELINE = { id: null, name: 'Despliegue automático' } as const;
+
+export interface UpdateDraftView {
+  id: string;
+  project: { id: string; name: string };
+  title: string;
+  body: string;
+  version: string | null;
+  environment: 'STAGING' | 'PRODUCTION' | null;
+  url: string | null;
+  createdAt: string;
+}
+
+function toDraftView(draft: DraftWithProject): UpdateDraftView {
+  return {
+    id: draft.id,
+    project: draft.project,
+    title: draft.title,
+    body: draft.body,
+    version: draft.version,
+    environment: draft.environment,
+    url: draft.url,
+    createdAt: draft.createdAt.toISOString(),
+  };
 }
 
 function releaseOf(input: CreateReleaseInput) {
@@ -482,7 +517,83 @@ export class ProjectsService {
   async publishWithKey(key: string, input: CreateReleaseInput): Promise<PostedProjectUpdate> {
     const project = key ? await this.repository.findByReleaseTokenHash(hashKey(key)) : null;
     if (!project) throw new UnauthorizedException('Unknown release key');
-    return this.post({ id: null, name: 'Despliegue automático' }, project, input, releaseOf(input));
+    return this.post(PIPELINE, project, input, releaseOf(input));
+  }
+
+  /**
+   * A draft sent with the project's release key: stored for review and the team is emailed.
+   * Nothing reaches the client until it is published.
+   */
+  async receiveDraft(key: string, input: CreateDraftInput): Promise<UpdateDraftView> {
+    const project = key ? await this.repository.findByReleaseTokenHash(hashKey(key)) : null;
+    if (!project) throw new UnauthorizedException('Unknown release key');
+    const draft = await this.repository.createDraft({
+      projectId: project.id,
+      title: input.title,
+      body: input.body,
+      version: input.version ?? null,
+      environment: input.version ? (input.environment ?? null) : null,
+      url: input.url ?? null,
+    });
+    this.mail
+      .send(
+        draftReadyEmail(
+          this.config.leadsNotifyTo,
+          project,
+          draft,
+          `${this.config.siteUrl}/es/admin/projects/${project.id}#drafts`,
+          this.config.siteUrl,
+        ),
+      )
+      .catch((error: unknown) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to email the team about a draft: ${reason}`);
+      });
+    await this.activity.record(PIPELINE, {
+      action: 'project.draft_received',
+      targetId: project.id,
+      targetLabel: project.name,
+      details: { title: draft.title },
+    });
+    return toDraftView({ ...draft, project: { id: project.id, name: project.name } });
+  }
+
+  /** Drafts waiting for review: one project's, or every project's. */
+  async listDrafts(projectId?: string): Promise<UpdateDraftView[]> {
+    if (projectId) await this.findOrThrow(projectId);
+    return (await this.repository.listDrafts(projectId)).map(toDraftView);
+  }
+
+  /** Publishes a draft as reviewed (an update, or a release with a version) and removes it. */
+  async publishDraft(
+    author: AuthUser,
+    projectId: string,
+    draftId: string,
+    input: PublishDraftInput,
+  ): Promise<PostedProjectUpdate> {
+    const project = await this.findOrThrow(projectId);
+    const draft = await this.repository.findDraft(projectId, draftId);
+    if (!draft) throw new NotFoundException('Draft not found');
+    const release =
+      input.version && input.environment
+        ? { version: input.version, environment: input.environment, url: input.url ?? null }
+        : undefined;
+    const posted = await this.post(author, project, input, release);
+    await this.repository.deleteDraft(draft.id);
+    return posted;
+  }
+
+  async discardDraft(author: AuthUser, projectId: string, draftId: string): Promise<void> {
+    const project = await this.findOrThrow(projectId);
+    const draft = await this.repository.findDraft(projectId, draftId);
+    if (!draft) throw new NotFoundException('Draft not found');
+    await this.repository.deleteDraft(draft.id);
+    await this.activity.record(author, {
+      action: 'project.draft_discarded',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { title: draft.title },
+    });
   }
 
   /** A new release key for the project, replacing the previous one; shown only this once. */

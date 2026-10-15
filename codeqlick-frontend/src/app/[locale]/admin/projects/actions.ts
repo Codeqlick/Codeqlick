@@ -15,6 +15,8 @@ import {
   adminDeleteMilestone,
   adminDeleteProject,
   adminDeleteProjectFile,
+  adminDiscardDraft,
+  adminPublishDraft,
   adminPublishRelease,
   adminReorderMilestones,
   adminRevokeReleaseKey,
@@ -130,6 +132,58 @@ export async function postProjectUpdateAction(
         ? t('releasePosted')
         : t('updatePosted'),
   };
+}
+
+export async function publishDraftAction(
+  locale: AppLocale,
+  projectId: string,
+  draftId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = projectUpdateSchema.safeParse({
+    ...formObject(formData, ['title', 'body']),
+    notifyClient: formBoolean(formData, 'notifyClient'),
+    requestApproval: formBoolean(formData, 'requestApproval'),
+  });
+  const release = releaseFieldsSchema.safeParse(
+    formObject(formData, ['version', 'environment', 'url']),
+  );
+  if (!parsed.success) return invalidState(parsed.error, locale, formData);
+  if (!release.success) return invalidState(release.error, locale, formData);
+
+  const { version, environment, url } = release.data;
+  let clientNotified: boolean | undefined;
+  try {
+    ({ clientNotified } = await adminPublishDraft(projectId, draftId, {
+      ...parsed.data,
+      version,
+      environment: version ? environment : null,
+      url,
+    }));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateProjects(locale);
+  const t = await getTranslations({ locale, namespace: 'Admin.projects' });
+  if (clientNotified === false) return { status: 'error', message: t('updatePostedNotNotified') };
+  return { status: 'success', message: t('draftPublished') };
+}
+
+export async function discardDraftAction(
+  locale: AppLocale,
+  projectId: string,
+  draftId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await adminDiscardDraft(projectId, draftId);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateProjects(locale);
+  return { status: 'idle' };
 }
 
 export async function createReleaseKeyAction(
