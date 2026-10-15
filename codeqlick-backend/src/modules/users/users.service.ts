@@ -2,17 +2,25 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
+import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { Prisma, User } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
+import { AuthService } from '../auth/auth.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import { UsersRepository } from './users.repository.js';
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.schemas.js';
 
 export type AdminUser = AuthUser & { isActive: boolean; createdAt: string };
+
+/** A created user; `invitationSent` only when no password was given and a welcome email was due. */
+export type CreatedUser = AdminUser & { invitationSent?: boolean };
 
 export function toAdminUser(user: User): AdminUser {
   return {
@@ -27,9 +35,12 @@ export function toAdminUser(user: User): AdminUser {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly repository: UsersRepository,
     private readonly passwords: PasswordService,
+    private readonly auth: AuthService,
     private readonly activity: ActivityService,
   ) {}
 
@@ -39,16 +50,22 @@ export class UsersService {
     return paginate(items.map(toAdminUser), total, query.page, query.pageSize);
   }
 
-  async create(actor: AuthUser, input: CreateUserInput): Promise<AdminUser> {
+  /**
+   * Creates an account. Without a password it gets a random one nobody knows and the user is
+   * emailed a link to choose their own; a failed email doesn't undo the account, the admin can
+   * send it again.
+   */
+  async create(actor: AuthUser, input: CreateUserInput): Promise<CreatedUser> {
     const email = input.email.trim().toLowerCase();
     if (await this.repository.findByEmail(email)) {
       throw new ConflictException('A user with this email already exists');
     }
+    const password = input.password ?? randomBytes(32).toString('base64url');
     const user = await this.repository.create({
       email,
       name: input.name,
       role: input.role,
-      passwordHash: await this.passwords.hash(input.password),
+      passwordHash: await this.passwords.hash(password),
     });
     await this.activity.record(actor, {
       action: 'user.created',
@@ -56,7 +73,38 @@ export class UsersService {
       targetLabel: user.email,
       details: { role: user.role },
     });
-    return toAdminUser(user);
+    if (input.password !== undefined) return toAdminUser(user);
+
+    const invitationSent = await this.invite(actor, user, input.locale).then(
+      () => true,
+      () => false,
+    );
+    return { ...toAdminUser(user), invitationSent };
+  }
+
+  /** Sends (again) the welcome email with a link to choose a password. */
+  async sendInvitation(actor: AuthUser, id: string, locale: ApiLocale): Promise<void> {
+    const user = await this.repository.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.isActive) throw new BadRequestException('This account is deactivated');
+    await this.invite(actor, user, locale).catch(() => {
+      throw new ServiceUnavailableException('The welcome email could not be sent');
+    });
+  }
+
+  private async invite(actor: AuthUser, user: User, locale: ApiLocale): Promise<void> {
+    try {
+      await this.auth.sendInvitation(user, locale);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send the welcome email: ${reason}`);
+      throw error;
+    }
+    await this.activity.record(actor, {
+      action: 'user.invited',
+      targetId: user.id,
+      targetLabel: user.email,
+    });
   }
 
   async update(actor: AuthUser, id: string, input: UpdateUserInput): Promise<AdminUser> {

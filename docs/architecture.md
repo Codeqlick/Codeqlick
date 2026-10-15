@@ -128,7 +128,7 @@ erDiagram
 
 - **User** — `email` (unique, lower-cased), `passwordHash` (Argon2id), `name`, `role` (`ADMIN` | `CLIENT`), `isActive`.
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
-- **PasswordResetToken** — one row per "forgot my password" email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
+- **PasswordResetToken** — one row per "forgot my password" email or welcome email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes for a reset, 7 days for a welcome email), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
 - **Lead** — contact form submission: `name`, `email`, `company?`, `budget?`, `message`, `locale`, `status` (`NEW` → `CONTACTED` → `QUALIFIED` → `WON` | `LOST` | `ARCHIVED`), `notes?`.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
@@ -253,7 +253,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 |---|---|---|
 | GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients }` |
 | GET | `/admin/stats/timeline` | `?months=12` (1–36) → `{ months: [{ month: 'yyyy-mm', leads, leadsWon, posts, caseStudies }] }`: oldest first, every month present; leads by the month they came in, posts and case studies by the month they went live; months in Madrid time |
-| GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|account&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
+| GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|tag|account&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
 | GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
 | GET / PATCH | `/admin/leads/:id` | PATCH `{ status?, notes? }` |
@@ -271,8 +271,9 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/admin/media` | `multipart/form-data` with one `file` (PNG, JPEG, WebP or GIF, detected from its content; max 5 MB) → `201 { filename, contentType, size }`; 400 for other content, 413 when too large |
 | GET | `/admin/media` | `?page&pageSize` → paginated `{ filename, contentType, size, createdAt, usedBy: { type: 'post' \| 'portfolio', id, slug }[] }`, newest first. `usedBy` lists content that has the image as its cover or in its Markdown |
 | DELETE | `/admin/media/:filename` | `204`; `409` while any content still uses the image; `404` for an unknown name |
-| GET / POST | `/admin/users` | POST `{ email, name, password, role }`; GET `?role` |
+| GET / POST | `/admin/users` | POST `{ email, name, password?, role, locale? }`; GET `?role`. Without `password` the account gets a random one nobody knows and the user is emailed (in `locale`, default `en`) a link to `SITE_URL/{locale}/reset-password?token=…&welcome=1`, valid 7 days; the answer then carries `invitationSent: boolean` (a failed email keeps the account) |
 | PATCH | `/admin/users/:id` | `{ name?, password?, isActive?, role? }` |
+| POST | `/admin/users/:id/invitation` | `{ locale }` → `204`: sends the welcome email again, replacing any earlier link. `400` for a deactivated account, `503` when the email can't be sent |
 
 ### Shapes
 
@@ -342,7 +343,7 @@ src/
                                sends those 404s as an empty document and draws this boundary in the browser
       login/
       forgot-password/         Asks for a reset email
-      reset-password/          Landing page of the emailed link: choose a new password
+      reset-password/          Landing page of the emailed link: choose a new password (worded as a first password with `welcome=1`)
       portal/                  Client area (role CLIENT or ADMIN): projects, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, recent activity), leads, posts, portfolio, projects, media, users, activity, account;
                                posts and portfolio items have a preview page that renders the saved draft

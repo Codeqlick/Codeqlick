@@ -344,6 +344,36 @@ describe('AuthService', () => {
     });
   });
 
+  describe('sendInvitation', () => {
+    it('emails a week-long set-your-password link to the reset page', async () => {
+      const user = makeUser();
+
+      await service.sendInvitation(user, 'en');
+
+      const [userId, tokenHash, expiresAt] = repository.replacePasswordResetToken.mock.calls[0] as [
+        string,
+        string,
+        Date,
+      ];
+      expect(userId).toBe(user.id);
+      expect(expiresAt.getTime()).toBeGreaterThan(Date.now() + 6.9 * 24 * 60 * 60_000);
+
+      const message = mail.send.mock.calls[0]?.[0] as { to: string; subject: string; text: string };
+      expect(message.to).toBe(user.email);
+      expect(message.subject).toContain('Welcome');
+      const token = /https:\/\/codeqlick\.com\/en\/reset-password\?token=([\w-]+)&welcome=1/.exec(
+        message.text,
+      )?.[1];
+      expect(token).toBeDefined();
+      expect(hashRefreshToken(token as string)).toBe(tokenHash);
+    });
+
+    it('reports a failed send', async () => {
+      mail.send.mockRejectedValue(new Error('smtp down'));
+      await expect(service.sendInvitation(makeUser(), 'es')).rejects.toThrow('smtp down');
+    });
+  });
+
   describe('confirmPasswordReset', () => {
     it('spends the token by its hash', async () => {
       passwords.hash.mockResolvedValue('$argon2id$new');

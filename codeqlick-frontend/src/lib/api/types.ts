@@ -208,7 +208,17 @@ export type LeadInput = {
 
 export type AdminUser = AuthUser & { isActive: boolean; createdAt: string };
 
-export type UserInput = { email: string; name: string; password: string; role: Role };
+/** Without `password`, the user is emailed a link to choose one, in `locale`. */
+export type UserInput = {
+  email: string;
+  name: string;
+  password?: string;
+  role: Role;
+  locale: 'en' | 'es';
+};
+
+/** `invitationSent` is only there when a welcome email was due (no password given). */
+export type CreatedUser = AdminUser & { invitationSent?: boolean };
 
 export type UserPatch = { name?: string; password?: string; isActive?: boolean; role?: Role };
 

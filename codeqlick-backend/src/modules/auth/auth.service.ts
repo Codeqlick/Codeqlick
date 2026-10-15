@@ -15,7 +15,7 @@ import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { passwordResetEmail } from './auth-emails.js';
+import { invitationEmail, passwordResetEmail } from './auth-emails.js';
 import { PasswordService } from './password.service.js';
 import { SecretBox } from './secret-box.js';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
@@ -88,6 +88,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** How long a password reset link works. */
 export const PASSWORD_RESET_TTL_MINUTES = 60;
+
+/** How long the set-your-password link of a welcome email works. */
+export const INVITATION_TTL_DAYS = 7;
 
 export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -284,6 +287,25 @@ export class AuthService {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to send password reset email: ${reason}`);
     });
+  }
+
+  /**
+   * Emails a welcome message with a link to choose a password: the same kind of token as a reset
+   * (so the same page spends it), valid for days instead of an hour. Unlike a reset it reports a
+   * failed send, so the admin who asked for it knows.
+   */
+  async sendInvitation(
+    user: Pick<User, 'id' | 'name' | 'email'>,
+    locale: ApiLocale,
+  ): Promise<void> {
+    const token = this.generateRefreshToken();
+    await this.repository.replacePasswordResetToken(
+      user.id,
+      hashRefreshToken(token),
+      new Date(Date.now() + INVITATION_TTL_DAYS * DAY_MS),
+    );
+    const link = `${this.config.siteUrl}/${locale}/reset-password?token=${token}&welcome=1`;
+    await this.mail.send(invitationEmail(user, link, locale, INVITATION_TTL_DAYS));
   }
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */

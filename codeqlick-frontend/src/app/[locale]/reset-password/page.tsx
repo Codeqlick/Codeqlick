@@ -14,7 +14,7 @@ import { resetPasswordAction } from './actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ token?: string | string[] }>;
+  searchParams: Promise<{ token?: string | string[]; welcome?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -23,25 +23,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return pageMetadata({ locale, path: '/reset-password', title: t('metaTitle'), noindex: true });
 }
 
-/** Landing page of the link in the reset email. The token is only checked when the form is sent. */
+/**
+ * Landing page of the link in the reset email, and of the one in the welcome email of an account an
+ * admin created (`welcome=1`, worded as choosing a first password). The token is only checked when
+ * the form is sent.
+ */
 export default async function ResetPasswordPage({ params, searchParams }: PageProps) {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'ResetPassword' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
-  const token = firstParam((await searchParams).token);
+  const query = await searchParams;
+  const token = firstParam(query.token);
+  const welcome = firstParam(query.welcome) === '1';
 
   return (
     <main className={styles.login}>
       <div className={styles.loginCard}>
         <Logo href="/" label={tc('homeLabel')} />
         <Card bordered>
-          <h1 className={styles.title}>{t('title')}</h1>
+          <h1 className={styles.title}>{welcome ? t('welcomeTitle') : t('title')}</h1>
           {token ? (
             <>
-              <p className={styles.muted}>{t('subtitle')}</p>
+              <p className={styles.muted}>{welcome ? t('welcomeSubtitle') : t('subtitle')}</p>
               <ActionForm action={resetPasswordAction} className={styles.form}>
                 <input type="hidden" name="locale" value={locale} />
                 <input type="hidden" name="token" value={token} />
+                {welcome && <input type="hidden" name="welcome" value="1" />}
                 <FormInput
                   name="newPassword"
                   type="password"
@@ -58,12 +65,12 @@ export default async function ResetPasswordPage({ params, searchParams }: PagePr
                   required
                 />
                 <SubmitButton block pendingLabel={t('submitting')}>
-                  {t('submit')}
+                  {welcome ? t('welcomeSubmit') : t('submit')}
                 </SubmitButton>
               </ActionForm>
             </>
           ) : (
-            <Alert tone="error">{t('invalidLink')}</Alert>
+            <Alert tone="error">{welcome ? t('welcomeInvalidLink') : t('invalidLink')}</Alert>
           )}
           <p>
             <Link href="/forgot-password">{t('requestNew')}</Link>
