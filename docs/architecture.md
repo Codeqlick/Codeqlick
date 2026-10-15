@@ -342,8 +342,8 @@ src/
       (site)/                  Public website: header + footer
         page.tsx               Landing (hero, services, process, why us, stack, CTA)
         services/ services/[slug]/  One page per service (static copy from messages, built ahead of time)
-        blog/ blog/[slug]/
-        work/ work/[slug]/     Portfolio
+        blog/ blog/[slug]/     blog/[slug]/og: the post's social preview image (route handler)
+        work/ work/[slug]/     Portfolio; work/[slug]/og: the case study's social preview image
         contact/               Contact form (server action → POST /v1/leads). Bots are dropped silently: a
                                honeypot field, and submissions made less than 3 s after the form was served
         not-found.tsx          Boundary for notFound() in site pages (unknown post or case study). Next.js 16.4
@@ -384,6 +384,7 @@ src/
 - **Client IP and browser:** Server Actions for login and contact, and the proxy's token refresh, forward the visitor's IP (`X-Real-IP` from Nginx) to the API as `X-Forwarded-For` and their `User-Agent`, so per-IP rate limits apply per visitor and not per web server, and sessions record the real device.
 - `proxy.ts` runs next-intl, then for `/[locale]/portal` and `/[locale]/admin`: if `cq_at` is missing but `cq_rt` exists, it calls `/v1/auth/refresh` and sets new cookies; if neither exists, it redirects to `/[locale]/login?next=…`. Role checks happen in the layouts via `requireRole()`.
 - **Project files:** uploads are a plain multipart form posted to the route handler `/[locale]/admin/projects/[id]/files`, which checks the origin and streams the body to `POST /v1/admin/projects/:id/files` without buffering it (Server Actions cap bodies at 6 MB). Downloads go through `/[locale]/portal/projects/[id]/files/[fileId]`, which streams the API response.
+- **Social preview images:** a post or case study is shared with its cover. Without one, `og:image` points to `/[locale]/blog/[slug]/og` (or `/work/[slug]/og`), a 1200×630 PNG drawn on request with `next/og` from the title, a label (date or client) and the brand mark, in the brand fonts read from `public/og-fonts/` (WOFF). Pages with neither use `/og-image.png`.
 - **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images.
 - **No secrets in the client bundle.** Only `NEXT_PUBLIC_SITE_URL` is public.
 - **Security headers** (`next.config.ts`): nosniff, referrer policy, `X-Frame-Options`, permissions policy; in production also a Content Security Policy (scripts, styles, fonts and connections from the site only; scripts need `'unsafe-inline'` for the Next.js bootstrap, since a nonce would make every page dynamic) and HSTS for a year.

@@ -8,7 +8,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getPortfolioItem } from '@/lib/api/portfolio';
 import type { Locale } from '@/lib/api/types';
-import { pageMetadata } from '@/lib/seo';
+import { pageMetadata, shareImage } from '@/lib/seo';
 import styles from '../../site.module.css';
 
 type PageProps = { params: Promise<{ locale: string; slug: string }> };
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     path: `/work/${item.slug}`,
     title: item.title,
     description: item.summary,
-    images: item.coverImageUrl ? [item.coverImageUrl] : undefined,
+    images: [shareImage(item.coverImageUrl, `/${locale}/work/${item.slug}/og`, item.title)],
   });
 }
 
