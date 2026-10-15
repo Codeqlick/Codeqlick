@@ -9,6 +9,7 @@ import { MarkdownField } from '@/components/app/MarkdownField';
 import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
+import { ProjectHours } from '@/components/app/ProjectHours';
 import { ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Alert } from '@/components/ui/Alert';
@@ -18,7 +19,8 @@ import { isNotFound } from '@/lib/api/errors';
 import { adminGetProject, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import type { ClientProject } from '@/lib/api/types';
-import { firstParam } from '@/lib/format';
+import { firstParam, madridToday } from '@/lib/format';
+import { adminGetProjectTime } from '@/lib/api/time';
 import {
   addMilestoneAction,
   deleteProjectAction,
@@ -28,6 +30,7 @@ import {
   updateProjectAction,
 } from '../actions';
 import { MilestoneControls } from '../MilestoneControls';
+import { deleteTimeAction, logTimeAction } from '../time-actions';
 import { ProjectForm } from '../ProjectForm';
 
 /** Result of an upload made without JavaScript (the route handler redirects back with it). */
@@ -63,6 +66,8 @@ export default async function EditProjectPage({
   }
 
   const milestones = project.milestones ?? [];
+  const th = await getTranslations({ locale, namespace: 'Hours' });
+  const time = await adminGetProjectTime(project.id);
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
   // Optional: the boxes work without them.
   const savedReplies = await adminListSavedReplies().catch(() => []);
@@ -205,6 +210,50 @@ export default async function EditProjectPage({
             deleteAction={(fileId) =>
               deleteProjectFileAction.bind(null, locale, project.id, fileId)
             }
+          />
+        </div>
+      </section>
+
+      <section className={styles.panel} id="time" aria-labelledby="time-heading">
+        <h2 id="time-heading" className={styles.panelTitle}>
+          {th('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>
+            {project.showHours ? th('shownToClient') : th('hiddenFromClient')}
+          </p>
+          {/* Keyed by the number of entries: a logged entry empties the form. */}
+          <ActionForm
+            key={time.entries.length}
+            action={logTimeAction.bind(null, locale, project.id)}
+            className={styles.form}
+          >
+            <div className={styles.row}>
+              <FormInput
+                name="date"
+                type="date"
+                label={th('date')}
+                required
+                defaultValue={madridToday()}
+              />
+              <FormInput
+                name="minutes"
+                label={th('duration')}
+                hint={th('durationHint')}
+                inputMode="decimal"
+                required
+              />
+            </div>
+            <FormInput name="description" label={th('description')} maxLength={500} required />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={th('logging')}>{th('log')}</SubmitButton>
+            </div>
+          </ActionForm>
+          <ProjectHours
+            time={time}
+            locale={locale}
+            empty={th('empty')}
+            deleteAction={(entryId) => deleteTimeAction.bind(null, locale, project.id, entryId)}
           />
         </div>
       </section>

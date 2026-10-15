@@ -385,7 +385,8 @@
     "translationIncomplete": "Rellena título, extracto y contenido, o deja los tres vacíos.",
     "date": "Introduce una fecha válida.",
     "choice": "Elige una de las opciones.",
-    "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50."
+    "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50.",
+    "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas)."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -602,7 +603,8 @@
       "tags": "Etiquetas",
       "replies": "Respuestas",
       "support": "Soporte",
-      "proposals": "Propuestas"
+      "proposals": "Propuestas",
+      "time": "Horas"
     },
     "dashboard": {
       "title": "Panel",
@@ -809,7 +811,9 @@
       "milestoneDelete": "Eliminar hito",
       "requestApproval": "Pedir aprobación al cliente",
       "requestApprovalHint": "El cliente verá un botón para aprobar esta novedad desde su área, y te avisaremos por correo cuando lo haga.",
-      "commentNotNotified": "Comentario publicado, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada)."
+      "commentNotNotified": "Comentario publicado, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada).",
+      "showHours": "Mostrar las horas al cliente",
+      "showHoursHint": "El cliente verá en su área privada el total por mes y cada registro con su descripción."
     },
     "media": {
       "choose": "Elige una imagen",
@@ -938,7 +942,9 @@
           "milestone_completed": "completó un hito de <target>{label}</target>",
           "milestone_deleted": "borró un hito de <target>{label}</target>",
           "update_approved": "aprobó una novedad de <target>{label}</target>",
-          "comment_added": "comentó una novedad de <target>{label}</target>"
+          "comment_added": "comentó una novedad de <target>{label}</target>",
+          "time_logged": "registró horas en el proyecto <target>{label}</target>",
+          "time_deleted": "borró un registro de horas del proyecto <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -997,7 +1003,8 @@
         "passwordReset": "Contraseña restablecida",
         "publishedAt": "Se publica el {value}",
         "milestone": "Hito: {value}",
-        "project": "Proyecto: {value}"
+        "project": "Proyecto: {value}",
+        "minutes": "Tiempo: {value}"
       }
     },
     "tags": {
@@ -1373,5 +1380,31 @@
       "DECLINED": "Rechazada",
       "WITHDRAWN": "Retirada"
     }
+  },
+  "Hours": {
+    "title": "Horas",
+    "shownToClient": "El cliente ve estas horas en su área privada.",
+    "hiddenFromClient": "Solo las ve el equipo. Puedes mostrárselas al cliente desde «Editar proyecto».",
+    "date": "Fecha",
+    "duration": "Tiempo",
+    "durationHint": "Por ejemplo 1:30, 1,5 o 45m.",
+    "description": "Qué se hizo",
+    "log": "Registrar horas",
+    "logging": "Registrando…",
+    "empty": "Todavía no hay horas registradas.",
+    "total": "Total",
+    "actions": "Acciones",
+    "delete": "Borrar",
+    "deleting": "Borrando…",
+    "pageTitle": "Horas",
+    "pageLead": "Las horas registradas en todos los proyectos, mes a mes.",
+    "monthTotal": "{month}: {total}",
+    "monthEmptyTitle": "Sin horas este mes",
+    "monthEmptyBody": "Registra horas desde la ficha de cada proyecto.",
+    "project": "Proyecto",
+    "client": "Cliente",
+    "entries": "Registros",
+    "clientTitle": "Horas dedicadas",
+    "clientEmpty": "Todavía no hemos registrado horas en este proyecto."
   }
 }
