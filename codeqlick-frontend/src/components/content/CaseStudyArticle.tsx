@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import type { AppLocale } from '@/i18n/routing';
 import { Link } from '@/i18n/navigation';
 import type { ServiceKey, Testimonial } from '@/lib/api/types';
+import { CoverImage } from './CoverImage';
 import { SERVICE_SLUGS } from './services';
 import { TestimonialQuote } from './TestimonialQuote';
 
@@ -84,12 +85,11 @@ export async function CaseStudyArticle({
       </dl>
 
       {item.coverImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img
+        <CoverImage
           src={item.coverImageUrl}
-          alt=""
           className={`${styles.cover} ${styles.hero}`}
-          fetchPriority="high"
+          variant="hero"
+          priority
         />
       ) : null}
       <div className={styles.content}>

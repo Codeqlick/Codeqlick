@@ -1,4 +1,4 @@
-import { MEDIA_FILENAME } from '@/lib/api/media';
+import { MEDIA_FILENAME } from '@/lib/media-path';
 import { env } from '@/lib/env';
 
 /**

@@ -9,7 +9,13 @@ export type LegalOwner = {
   address?: string;
 };
 
-export type LegalDocument = { title: string; updated: string; markdown: string };
+export type LegalDocument = {
+  title: string;
+  /** The page's meta description. */
+  description: string;
+  updated: string;
+  markdown: string;
+};
 export type LegalPage = 'legal' | 'privacy';
 
 const UPDATED = { es: '15 de octubre de 2026', en: '15 October 2026' } as const;
@@ -167,11 +173,17 @@ export function legalDocument(
   return page === 'legal'
     ? {
         title: es ? 'Aviso legal' : 'Legal notice',
+        description: es
+          ? 'Quién es el titular de codeqlick.com, cómo contactar y las condiciones de uso del sitio.'
+          : 'Who owns codeqlick.com, how to get in touch and the terms for using the site.',
         updated: UPDATED[locale],
         markdown: legalNotice(owner, locale),
       }
     : {
         title: es ? 'Política de privacidad' : 'Privacy policy',
+        description: es
+          ? 'Qué datos personales trata Codeqlick, para qué, cuánto tiempo los guarda y cómo ejercer tus derechos.'
+          : 'What personal data Codeqlick handles, why, how long it keeps it and how to exercise your rights.',
         updated: UPDATED[locale],
         markdown: privacyPolicy(owner, locale),
       };
