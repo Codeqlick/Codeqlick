@@ -1,11 +1,11 @@
 name: Deploy
 
-# Releases `main` to the VPS once its CI has passed. Backend and Frontend only run when their app
-# changed; each one finishing triggers this, and it deploys when no CI run of that commit failed
-# or is still running (the last one to finish does the release). Run it by hand to redeploy.
+# Releases `main` to the VPS once its CI has passed. Backend, Frontend and E2E only run when the
+# apps changed; each one finishing triggers this, and it deploys when no CI run of that commit
+# failed or is still running (the last one to finish does the release). Run it by hand to redeploy.
 on:
   workflow_run:
-    workflows: [Backend, Frontend]
+    workflows: [Backend, Frontend, E2E]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
           SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           runs=$(gh api "repos/${{ github.repository }}/actions/runs?head_sha=$SHA&per_page=50" \
-            --jq '[.workflow_runs[] | select(.name == "Backend" or .name == "Frontend")
+            --jq '[.workflow_runs[] | select(.name == "Backend" or .name == "Frontend" or .name == "E2E")
                    | {name, status, conclusion}]')
           echo "$runs"
           if echo "$runs" | jq -e 'any(.[]; .status == "completed" and .conclusion != "success")' > /dev/null; then
