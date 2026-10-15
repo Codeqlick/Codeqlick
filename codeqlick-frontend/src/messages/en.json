@@ -473,7 +473,9 @@
     "disabling": "Turning off…",
     "disabled": "Two-step verification is off.",
     "wrongPassword": "The password is not correct.",
-    "rateLimited": "Too many attempts. Please wait a minute and try again."
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "requiredNotice": "To use the admin panel you need two-step verification on. Turn it on below: as soon as you confirm it, you'll have access to everything.",
+    "requiredCantDisable": "Admin accounts must keep it on, so it can't be turned off."
   },
   "NotFound": {
     "metaTitle": "Page not found",

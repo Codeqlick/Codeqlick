@@ -39,6 +39,8 @@ export type LoginResult = AuthTokens | TwoFactorChallenge;
 export interface TwoFactorStatus {
   enabled: boolean;
   recoveryCodesLeft: number;
+  /** This account can't use its area without it (admins, with ADMIN_TWO_FACTOR_REQUIRED). */
+  required: boolean;
 }
 
 export interface TwoFactorSetup {
@@ -355,7 +357,12 @@ export class AuthService {
     return {
       enabled: Boolean(user.totpEnabledAt),
       recoveryCodesLeft: user.totpEnabledAt ? user.totpRecoveryHashes.length : 0,
+      required: this.twoFactorRequired(user.role),
     };
+  }
+
+  private twoFactorRequired(role: string): boolean {
+    return role === 'ADMIN' && this.config.adminTwoFactorRequired;
   }
 
   /** Starts (or restarts) setting up an authenticator app. Nothing changes for sign-in yet. */
@@ -391,6 +398,9 @@ export class AuthService {
   async disableTwoFactor(userId: string, password: string, code: string): Promise<void> {
     const user = await this.activeUser(userId);
     if (!user.totpEnabledAt) throw new ConflictException('Two-step verification is already off');
+    if (this.twoFactorRequired(user.role)) {
+      throw new ConflictException('Two-step verification is required for admin accounts');
+    }
     if (!(await this.passwords.verify(user.passwordHash, password))) {
       throw new BadRequestException({
         errors: [{ path: 'password', message: 'Current password is incorrect' }],

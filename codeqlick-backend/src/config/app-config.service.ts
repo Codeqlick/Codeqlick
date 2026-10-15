@@ -92,6 +92,10 @@ export class AppConfigService {
     };
   }
 
+  get adminTwoFactorRequired(): boolean {
+    return this.get('ADMIN_TWO_FACTOR_REQUIRED');
+  }
+
   get leadsNotifyTo(): string {
     return this.get('LEADS_NOTIFY_TO');
   }

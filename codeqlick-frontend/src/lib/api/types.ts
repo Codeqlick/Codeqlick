@@ -323,7 +323,12 @@ export type TwoFactorChallenge = { twoFactorRequired: true; challengeToken: stri
 
 export type LoginResult = AuthTokens | TwoFactorChallenge;
 
-export type TwoFactorStatus = { enabled: boolean; recoveryCodesLeft: number };
+export type TwoFactorStatus = {
+  enabled: boolean;
+  recoveryCodesLeft: number;
+  /** The account can't use its area without it (admins, when the server requires it). */
+  required: boolean;
+};
 
 /** A signed-in device (`GET /auth/sessions`). `id` is stable across token refreshes. */
 export type ActiveSession = {

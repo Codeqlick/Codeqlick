@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { AccountPage } from '@/components/app/AccountPage';
 import { AppShell } from '@/components/layout/AppShell';
+import { Alert } from '@/components/ui/Alert';
+import { getTwoFactorStatus } from '@/lib/api/auth';
 import { resolveLocale } from '@/i18n/locale';
 import { requireRole } from '@/lib/auth/session';
 
@@ -18,6 +21,24 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   const user = await requireRole(locale, ['ADMIN'], `/${locale}/admin`);
   const t = await getTranslations({ locale, namespace: 'Admin' });
   const ta = await getTranslations({ locale, namespace: 'Account' });
+  const tf = await getTranslations({ locale, namespace: 'TwoFactor' });
+  const twoFactor = await getTwoFactorStatus();
+
+  // The API refuses admin calls until two-step verification is on: only the account page,
+  // with the setup, is shown until then (whatever admin URL was opened).
+  if (twoFactor.required && !twoFactor.enabled) {
+    return (
+      <AppShell
+        locale={locale}
+        user={user}
+        areaLabel={t('title')}
+        items={[{ href: '/admin/account', label: ta('nav') }]}
+      >
+        <Alert tone="info">{tf('requiredNotice')}</Alert>
+        <AccountPage locale={locale} />
+      </AppShell>
+    );
+  }
 
   const items = [
     { href: '/admin', label: t('nav.dashboard'), exact: true },

@@ -50,6 +50,7 @@ describe('Two-step verification (e2e)', () => {
     await request(server).get('/v1/auth/2fa').set(auth).expect(200, {
       enabled: false,
       recoveryCodesLeft: 0,
+      required: false,
     });
 
     const setup = await request(server).post('/v1/auth/2fa/setup').set(auth).expect(200);
@@ -95,6 +96,7 @@ describe('Two-step verification (e2e)', () => {
     await request(server).get('/v1/auth/2fa').set(auth).expect(200, {
       enabled: true,
       recoveryCodesLeft: 9,
+      required: false,
     });
 
     // A recovery code works once.
