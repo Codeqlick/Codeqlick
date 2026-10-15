@@ -631,7 +631,8 @@
       "lostReasons": "Por qué se pierden los contactos",
       "lostReasonsEmpty": "Todavía no hay contactos perdidos.",
       "activeTickets": "Peticiones abiertas",
-      "sentProposals": "Propuestas por responder"
+      "sentProposals": "Propuestas por responder",
+      "pendingDrafts": "Borradores por revisar"
     },
     "leads": {
       "title": "Contactos",
@@ -836,7 +837,17 @@
       "releaseKeyCopy": "Copiar",
       "releaseKeyCopied": "Copiada",
       "releaseKeyExample": "Guárdala como secreto del pipeline y publica cada despliegue así:",
-      "releasePosted": "Entrega publicada."
+      "releasePosted": "Entrega publicada.",
+      "draftsTitle": "{count, plural, one {# borrador por revisar} other {# borradores por revisar}}",
+      "draftsLead": "Novedades preparadas a partir del trabajo hecho en el repositorio. El cliente no ve nada hasta que las publicas: revisa el texto, ajústalo si hace falta y publícalo.",
+      "draftReceived": "Recibido el {date}",
+      "publishDraft": "Publicar",
+      "discardDraft": "Descartar borrador",
+      "discarding": "Descartando…",
+      "draftPublished": "Borrador publicado.",
+      "draftsPageTitle": "Borradores por revisar",
+      "draftsEmptyTitle": "No hay borradores pendientes",
+      "draftsEmptyBody": "Cuando llegue un resumen del trabajo hecho en un proyecto, aparecerá aquí para que lo revises."
     },
     "media": {
       "choose": "Elige una imagen",
@@ -970,7 +981,9 @@
           "time_deleted": "borró un registro de horas del proyecto <target>{label}</target>",
           "release_published": "publicó una entrega en <target>{label}</target>",
           "release_key_created": "creó una clave de despliegue para <target>{label}</target>",
-          "release_key_revoked": "anuló la clave de despliegue de <target>{label}</target>"
+          "release_key_revoked": "anuló la clave de despliegue de <target>{label}</target>",
+          "draft_received": "recibió un borrador de novedad para <target>{label}</target>",
+          "draft_discarded": "descartó un borrador de novedad de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
