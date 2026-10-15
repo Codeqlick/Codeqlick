@@ -7,7 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { Input, Select, Textarea } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { initialFormState } from '@/lib/forms';
-import { BUDGET_VALUES } from '@/lib/contact-options';
+import { PROJECT_TYPES } from '@/lib/contact-options';
 import { submitContact } from './actions';
 import styles from './ContactForm.module.css';
 
@@ -78,13 +78,13 @@ export function ContactForm({
           error={errors.company}
         />
         <Select
-          name="budget"
-          label={t('form.budget')}
+          name="projectType"
+          label={t('form.projectType')}
           optionalLabel={tc('optional')}
-          placeholder={t('form.budgetPlaceholder')}
-          options={BUDGET_VALUES.map((value) => ({ value, label: t(`budgets.${value}`) }))}
-          defaultValue={values.budget ?? ''}
-          error={errors.budget}
+          placeholder={t('form.projectTypePlaceholder')}
+          options={PROJECT_TYPES.map((value) => ({ value, label: t(`projectTypes.${value}`) }))}
+          defaultValue={values.projectType ?? ''}
+          error={errors.projectType}
         />
       </div>
       <Textarea

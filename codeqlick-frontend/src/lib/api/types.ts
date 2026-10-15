@@ -259,6 +259,8 @@ export type Lead = {
   email: string;
   company: string | null;
   budget: string | null;
+  /** What they need (PROJECT_TYPES); older leads have a budget instead. */
+  projectType: string | null;
   message: string;
   locale: Locale;
   status: LeadStatus;
@@ -286,6 +288,7 @@ export type LeadInput = {
   email: string;
   company?: string;
   budget?: string;
+  projectType?: string;
   message: string;
   locale: Locale;
   website?: string;
