@@ -4,6 +4,7 @@ import { SERVICE_SLUGS } from '@/components/content/services';
 import { routing } from '@/i18n/routing';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
+import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
 
 const STATIC_PATHS = [
@@ -13,6 +14,7 @@ const STATIC_PATHS = [
   '/work',
   '/blog',
   '/contact',
+  ...(legalOwner ? ['/legal', '/privacy'] : []),
 ];
 
 /** Slugs of published content; an unreachable API must not break the sitemap (or the build). */

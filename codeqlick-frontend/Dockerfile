@@ -25,6 +25,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG UMAMI_URL=""
 ARG UMAMI_WEBSITE_ID=""
 ENV UMAMI_URL=$UMAMI_URL UMAMI_WEBSITE_ID=$UMAMI_WEBSITE_ID
+# Legal pages' owner: the footer of statically rendered pages links to them once it is set.
+ARG LEGAL_OWNER_NAME=""
+ARG LEGAL_OWNER_TAX_ID=""
+ARG LEGAL_OWNER_ADDRESS=""
+ENV LEGAL_OWNER_NAME=$LEGAL_OWNER_NAME LEGAL_OWNER_TAX_ID=$LEGAL_OWNER_TAX_ID LEGAL_OWNER_ADDRESS=$LEGAL_OWNER_ADDRESS
 
 COPY . .
 # Public content is fetched at request time (ISR); an unreachable API during the build is fine.

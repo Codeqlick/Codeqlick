@@ -53,7 +53,9 @@
   "Footer": {
     "social": "Codeqlick en redes sociales",
     "copyright": "© {year} Codeqlick",
-    "login": "Acceso clientes"
+    "login": "Acceso clientes",
+    "legal": "Aviso legal",
+    "privacy": "Privacidad"
   },
   "Home": {
     "hero": {
@@ -338,7 +340,8 @@
       "successTitle": "¡Gracias! Hemos recibido tu mensaje.",
       "successBody": "Te responderemos en un día laborable.",
       "error": "No hemos podido enviar tu mensaje. Revisa el formulario y vuelve a intentarlo.",
-      "rateLimited": "Has enviado demasiados mensajes seguidos. Espera un minuto y vuelve a intentarlo."
+      "rateLimited": "Has enviado demasiados mensajes seguidos. Espera un minuto y vuelve a intentarlo.",
+      "privacyNote": "Al enviar el formulario, usaremos tus datos solo para responderte. Más información en la <link>política de privacidad</link>."
     },
     "budgets": {
       "lt-5k": "Menos de 5.000 €",
@@ -935,5 +938,8 @@
     "signedOut": "Sesión cerrada en ese dispositivo.",
     "signedOutOthers": "Sesión cerrada en los demás dispositivos.",
     "delay": "Un dispositivo desconectado puede seguir dentro hasta 15 minutos, mientras dure su acceso actual."
+  },
+  "Legal": {
+    "updated": "Última actualización: {date}"
   }
 }

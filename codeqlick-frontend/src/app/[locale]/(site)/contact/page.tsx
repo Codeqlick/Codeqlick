@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { connection } from 'next/server';
 import { Card } from '@/components/ui/Card';
 import { resolveLocale } from '@/i18n/locale';
+import { legalOwner } from '@/lib/env';
 import { pageMetadata } from '@/lib/seo';
 import { CONTACT_EMAIL } from '@/lib/site';
 import { ContactForm } from './ContactForm';
@@ -40,7 +41,7 @@ export default async function ContactPage({ params }: PageProps) {
       <p className={`lead ${styles.lead}`}>{t('lead')}</p>
 
       <div className={styles.split}>
-        <ContactForm renderedAt={renderedAt} />
+        <ContactForm renderedAt={renderedAt} showPrivacyNote={!!legalOwner} />
         <Card as="aside" tone="blush">
           <h2 className={styles.itemTitle}>{t('asideTitle')}</h2>
           <p>{t('asideBody')}</p>

@@ -53,7 +53,9 @@
   "Footer": {
     "social": "Codeqlick on social media",
     "copyright": "© {year} Codeqlick",
-    "login": "Client login"
+    "login": "Client login",
+    "legal": "Legal notice",
+    "privacy": "Privacy"
   },
   "Home": {
     "hero": {
@@ -338,7 +340,8 @@
       "successTitle": "Thanks — message received.",
       "successBody": "We'll get back to you within one business day.",
       "error": "We couldn't send your message. Please check the form and try again.",
-      "rateLimited": "Too many messages in a short time. Please wait a minute and try again."
+      "rateLimited": "Too many messages in a short time. Please wait a minute and try again.",
+      "privacyNote": "We'll only use the details you send to answer you. More in the <link>privacy policy</link>."
     },
     "budgets": {
       "lt-5k": "< €5k",
@@ -935,5 +938,8 @@
     "signedOut": "That device has been signed out.",
     "signedOutOthers": "All other devices have been signed out.",
     "delay": "A device you sign out may stay in for up to 15 minutes, until its current access expires."
+  },
+  "Legal": {
+    "updated": "Última actualización: {date}"
   }
 }
