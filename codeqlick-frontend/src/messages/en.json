@@ -587,7 +587,9 @@
     "commentLabel": "Comment",
     "sendComment": "Send comment",
     "sending": "Sending…",
-    "askSupport": "Open a request"
+    "askSupport": "Open a request",
+    "releases": "Releases",
+    "openRelease": "Open this version"
   },
   "Admin": {
     "title": "Admin",
@@ -813,7 +815,28 @@
       "requestApprovalHint": "The client gets a button to approve this update from their area, and we'll email you when they do.",
       "commentNotNotified": "Comment posted, but the client couldn't be emailed (check the server's SMTP settings or whether their account is deactivated).",
       "showHours": "Show the hours to the client",
-      "showHoursHint": "The client will see the total per month and each entry with its description in their private area."
+      "showHoursHint": "The client will see the total per month and each entry with its description in their private area.",
+      "asRelease": "Publish as a release (a deployed version)",
+      "asReleaseHint": "With a version, the update shows as a release: its version, the environment and the link to try it. The link becomes the project's preview or production address.",
+      "releaseVersion": "Version",
+      "releaseVersionHint": "For example v1.2.0. Leave it empty for a plain update.",
+      "releaseEnvironment": "Environment",
+      "releaseUrl": "Link to try it",
+      "releaseUrlHint": "Where the client can see it.",
+      "releaseKeyTitle": "Automatic deploys",
+      "releaseKeyLead": "With a release key, the project's pipeline publishes each release here when it deploys (POST /v1/releases), without the admin panel.",
+      "releaseKeyActive": "A key is active, made on {date}.",
+      "releaseKeyNone": "This project has no release key.",
+      "releaseKeyCreate": "Create a release key",
+      "releaseKeyReplace": "Create a new key (revokes the current one)",
+      "releaseKeyCreating": "Creating…",
+      "releaseKeyRevoke": "Revoke the key",
+      "releaseKeyRevoking": "Revoking…",
+      "releaseKeyCreated": "Key created. Copy it now: it won't be shown again.",
+      "releaseKeyCopy": "Copy",
+      "releaseKeyCopied": "Copied",
+      "releaseKeyExample": "Store it as a pipeline secret and publish each deploy like this:",
+      "releasePosted": "Release published."
     },
     "media": {
       "choose": "Choose an image",
@@ -944,7 +967,10 @@
           "update_approved": "approved an update of <target>{label}</target>",
           "comment_added": "commented on an update of <target>{label}</target>",
           "time_logged": "logged hours on the project <target>{label}</target>",
-          "time_deleted": "deleted a time entry from the project <target>{label}</target>"
+          "time_deleted": "deleted a time entry from the project <target>{label}</target>",
+          "release_published": "published a release on <target>{label}</target>",
+          "release_key_created": "created a release key for <target>{label}</target>",
+          "release_key_revoked": "revoked the release key of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1406,5 +1432,9 @@
     "entries": "Entries",
     "clientTitle": "Time spent",
     "clientEmpty": "We haven't logged any hours on this project yet."
+  },
+  "ReleaseEnvironments": {
+    "STAGING": "Preview",
+    "PRODUCTION": "Production"
   }
 }

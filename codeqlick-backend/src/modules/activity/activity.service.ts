@@ -15,6 +15,9 @@ export interface ActivityEntry {
   createdAt: string;
 }
 
+/** Who did it: a signed-in user, or a system actor (`id: null`) such as a deploy pipeline. */
+export type ActivityActor = AuthUser | { id: null; name: string; email?: undefined };
+
 export interface ActivityRecord {
   action: ActivityAction;
   targetId?: string | null;
@@ -91,11 +94,11 @@ export class ActivityService {
    * Records a change that has already happened. Never throws: losing a log line must not turn a
    * successful change into an error for the user.
    */
-  async record(actor: AuthUser, entry: ActivityRecord): Promise<void> {
+  async record(actor: ActivityActor, entry: ActivityRecord): Promise<void> {
     try {
       await this.repository.create({
         actorId: actor.id,
-        actorName: actor.name || actor.email,
+        actorName: actor.name || actor.email || 'Codeqlick',
         action: entry.action,
         targetType: entry.action.split('.')[0] ?? entry.action,
         targetId: entry.targetId ?? null,
