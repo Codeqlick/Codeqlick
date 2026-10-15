@@ -670,7 +670,11 @@
       "fileFailed": "The upload failed. Please try again.",
       "fileSignedOut": "Your session has expired. Sign in again and repeat the upload.",
       "noFiles": "No files uploaded yet.",
-      "fileDeleted": "File deleted."
+      "fileDeleted": "File deleted.",
+      "notifyClient": "Email the client",
+      "notifyClientHint": "We'll send the update to {email}, in their language, with a link to their client portal.",
+      "updatePostedNotified": "Update posted and emailed to the client.",
+      "updatePostedNotNotified": "Update posted, but the client couldn't be emailed (check the server's SMTP settings, or whether their account is deactivated)."
     },
     "media": {
       "choose": "Image file",
@@ -733,15 +737,16 @@
       "notFound": "This user doesn't exist.",
       "passwordOptional": "Password (optional)",
       "passwordOptionalHint": "Leave it empty and we'll send a welcome email with a link to choose it (valid for 7 days). If you set it, at least 12 characters, and share it through a secure channel.",
-      "emailLocale": "Language of the welcome email",
       "createdInvited": "User created. We sent them a welcome email to choose their password.",
       "createdInvitationFailed": "User created, but the welcome email couldn't be sent. Send it again from their page.",
       "invitation": "Welcome email",
-      "invitationBody": "Send this user a link to choose their password, valid for 7 days. Also useful when the previous one expired or got lost: only the latest link works.",
+      "invitationBody": "Send this user a link to choose their password, valid for 7 days (in {language}). Also useful when the previous one expired or got lost: only the latest link works.",
       "invitationSend": "Send link",
       "invitationSending": "Sending…",
       "invitationSent": "Email sent.",
-      "invitationFailed": "The email couldn't be sent. Check the server's SMTP settings."
+      "invitationFailed": "The email couldn't be sent. Check the server's SMTP settings.",
+      "locale": "Language of emails",
+      "localeHint": "The welcome email and the notices about their projects' updates are sent in this language."
     },
     "activity": {
       "title": "Activity",

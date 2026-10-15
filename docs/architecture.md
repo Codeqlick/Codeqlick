@@ -126,7 +126,7 @@ erDiagram
   Lead
 ```
 
-- **User** — `email` (unique, lower-cased), `passwordHash` (Argon2id), `name`, `role` (`ADMIN` | `CLIENT`), `isActive`.
+- **User** — `email` (unique, lower-cased), `passwordHash` (Argon2id), `name`, `role` (`ADMIN` | `CLIENT`), `isActive`, `locale` (`EN` | `ES`, default `EN`: language of the emails the platform sends them).
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
 - **PasswordResetToken** — one row per "forgot my password" email or welcome email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes for a reset, 7 days for a welcome email), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
 - **Lead** — contact form submission: `name`, `email`, `company?`, `budget?`, `message`, `locale`, `status` (`NEW` → `CONTACTED` → `QUALIFIED` → `WON` | `LOST` | `ARCHIVED`), `notes?`.
@@ -265,15 +265,15 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / PATCH / DELETE | `/admin/portfolio/:id` | |
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
 | GET / PATCH / DELETE | `/admin/projects/:id` | |
-| POST | `/admin/projects/:id/updates` | `{ title, body }` |
+| POST | `/admin/projects/:id/updates` | `{ title, body, notifyClient? }`. With `notifyClient: true` the client is emailed the update (title, first 1500 characters, link to `SITE_URL/{locale}/portal/projects/:id`) in their `locale`, and the answer carries `clientNotified: boolean`; a failed email or a deactivated client gives `false` and keeps the update |
 | POST | `/admin/projects/:id/files` | `multipart/form-data` with one `file` (any type, max 25 MB) → `201 { id, name, contentType, size, createdAt }`; 413 when too large |
 | DELETE | `/admin/projects/:id/files/:fileId` | `204`; removes the row and the content. Deleting a project removes its files too |
 | POST | `/admin/media` | `multipart/form-data` with one `file` (PNG, JPEG, WebP or GIF, detected from its content; max 5 MB) → `201 { filename, contentType, size }`; 400 for other content, 413 when too large |
 | GET | `/admin/media` | `?page&pageSize` → paginated `{ filename, contentType, size, createdAt, usedBy: { type: 'post' \| 'portfolio', id, slug }[] }`, newest first. `usedBy` lists content that has the image as its cover or in its Markdown |
 | DELETE | `/admin/media/:filename` | `204`; `409` while any content still uses the image; `404` for an unknown name |
-| GET / POST | `/admin/users` | POST `{ email, name, password?, role, locale? }`; GET `?role`. Without `password` the account gets a random one nobody knows and the user is emailed (in `locale`, default `en`) a link to `SITE_URL/{locale}/reset-password?token=…&welcome=1`, valid 7 days; the answer then carries `invitationSent: boolean` (a failed email keeps the account) |
-| PATCH | `/admin/users/:id` | `{ name?, password?, isActive?, role? }` |
-| POST | `/admin/users/:id/invitation` | `{ locale }` → `204`: sends the welcome email again, replacing any earlier link. `400` for a deactivated account, `503` when the email can't be sent |
+| GET / POST | `/admin/users` | POST `{ email, name, password?, role, locale? }`; GET `?role`. `locale` (default `en`) is stored as the user's email language. Without `password` the account gets a random one nobody knows and the user is emailed (in that language) a link to `SITE_URL/{locale}/reset-password?token=…&welcome=1`, valid 7 days; the answer then carries `invitationSent: boolean` (a failed email keeps the account) |
+| PATCH | `/admin/users/:id` | `{ name?, password?, isActive?, role?, locale? }` |
+| POST | `/admin/users/:id/invitation` | `{ locale? }` (default: the user's) → `204`: sends the welcome email again, replacing any earlier link. `400` for a deactivated account, `503` when the email can't be sent |
 
 ### Shapes
 

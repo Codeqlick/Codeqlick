@@ -57,6 +57,8 @@ export const createProjectUpdateSchema = z
   .object({
     title: z.string().trim().min(1).max(200),
     body: z.string().min(1).max(50_000),
+    /** Email the client a summary with a link to the project in the portal. */
+    notifyClient: z.boolean().default(false),
   })
   .strict();
 export type CreateProjectUpdateInput = z.infer<typeof createProjectUpdateSchema>;

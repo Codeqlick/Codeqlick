@@ -9,9 +9,10 @@ export const createUserSchema = z
   .object({
     email: z.email().max(254),
     name: z.string().trim().min(1).max(120),
-    /** Without one, the user is emailed a link to choose it (in `locale`). */
+    /** Without one, the user is emailed a link to choose it. */
     password: passwordSchema.optional(),
     role: roleSchema,
+    /** Language of the emails the platform sends this user. */
     locale: localeSchema.default('en'),
   })
   .strict();
@@ -23,11 +24,13 @@ export const updateUserSchema = z
     password: passwordSchema.optional(),
     isActive: z.boolean().optional(),
     role: roleSchema.optional(),
+    locale: localeSchema.optional(),
   })
   .strict();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
-export const invitationSchema = z.object({ locale: localeSchema }).strict();
+/** Without `locale`, the email goes out in the user's language. */
+export const invitationSchema = z.object({ locale: localeSchema.optional() }).strict();
 export type InvitationInput = z.infer<typeof invitationSchema>;
 
 export const listUsersQuerySchema = paginationSchema.extend({

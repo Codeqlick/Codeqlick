@@ -8,12 +8,7 @@ import { failedState, invalidState, savedState } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
 import { adminCreateUser, adminSendInvitation, adminUpdateUser } from '@/lib/api/users';
 import { formBoolean, formString, type FormState } from '@/lib/forms';
-import {
-  invitationSchema,
-  passwordResetSchema,
-  userCreateSchema,
-  userUpdateSchema,
-} from '@/lib/schemas/admin';
+import { passwordResetSchema, userCreateSchema, userUpdateSchema } from '@/lib/schemas/admin';
 
 /** Never echo a submitted password back into the form. */
 function withoutPassword(state: FormState): FormState {
@@ -32,7 +27,7 @@ export async function createUserAction(
     email: formString(formData, 'email'),
     role: formString(formData, 'role'),
     password: formData.get('password') ?? '',
-    locale: formString(formData, 'emailLocale'),
+    locale: formString(formData, 'locale'),
   });
   if (!parsed.success) return withoutPassword(await invalidState(parsed.error, locale, formData));
 
@@ -55,12 +50,10 @@ export async function sendInvitationAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const parsed = invitationSchema.safeParse({ locale: formString(formData, 'emailLocale') });
-  if (!parsed.success) return invalidState(parsed.error, locale, formData);
-
   const t = await getTranslations({ locale, namespace: 'Admin.users' });
   try {
-    await adminSendInvitation(id, parsed.data.locale);
+    // In the user's own language.
+    await adminSendInvitation(id);
   } catch (error) {
     if (isApiError(error) && error.status === 503) {
       return { status: 'error', message: t('invitationFailed') };
@@ -80,6 +73,7 @@ export async function updateUserAction(
     name: formString(formData, 'name'),
     role: formString(formData, 'role'),
     isActive: formBoolean(formData, 'isActive'),
+    locale: formString(formData, 'locale'),
   });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 

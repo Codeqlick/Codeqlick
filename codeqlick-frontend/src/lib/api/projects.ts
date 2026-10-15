@@ -58,12 +58,19 @@ export function adminDeleteProject(id: string) {
   });
 }
 
-export function adminCreateProjectUpdate(id: string, input: { title: string; body: string }) {
-  return apiFetch<ProjectUpdate>(`/admin/projects/${encodeURIComponent(id)}/updates`, {
-    method: 'POST',
-    body: input,
-    auth: 'required',
-  });
+/** With `notifyClient`, `clientNotified` in the answer says whether the client was emailed. */
+export function adminCreateProjectUpdate(
+  id: string,
+  input: { title: string; body: string; notifyClient: boolean },
+) {
+  return apiFetch<ProjectUpdate & { clientNotified?: boolean }>(
+    `/admin/projects/${encodeURIComponent(id)}/updates`,
+    {
+      method: 'POST',
+      body: input,
+      auth: 'required',
+    },
+  );
 }
 
 export function adminDeleteProjectFile(id: string, fileId: string) {

@@ -48,6 +48,13 @@ export default async function EditUserPage({
               defaultValue={user.role}
             />
           </div>
+          <FormSelect
+            name="locale"
+            label={t('locale')}
+            hint={t('localeHint')}
+            options={EMAIL_LOCALES.map((value) => ({ value, label: tl(value) }))}
+            defaultValue={user.locale}
+          />
           <FormCheckbox
             name="isActive"
             label={t('isActive')}
@@ -67,13 +74,7 @@ export default async function EditUserPage({
             action={sendInvitationAction.bind(null, locale, user.id)}
             className={styles.form}
           >
-            <p className={styles.muted}>{t('invitationBody')}</p>
-            <FormSelect
-              name="emailLocale"
-              label={t('emailLocale')}
-              options={EMAIL_LOCALES.map((value) => ({ value, label: tl(value) }))}
-              defaultValue={locale}
-            />
+            <p className={styles.muted}>{t('invitationBody', { language: tl(user.locale) })}</p>
             <div className={styles.actions}>
               <SubmitButton variant="outline" pendingLabel={t('invitationSending')}>
                 {t('invitationSend')}

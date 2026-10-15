@@ -31,8 +31,9 @@ export default async function NewUserPage({ params }: { params: Promise<{ locale
               defaultValue="CLIENT"
             />
             <FormSelect
-              name="emailLocale"
-              label={t('emailLocale')}
+              name="locale"
+              label={t('locale')}
+              hint={t('localeHint')}
               options={EMAIL_LOCALES.map((value) => ({ value, label: tl(value) }))}
               defaultValue={locale}
             />
