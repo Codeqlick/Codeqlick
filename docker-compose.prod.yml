@@ -71,6 +71,10 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-Codeqlick <hello@codeqlick.com>}
       LEADS_NOTIFY_TO: ${LEADS_NOTIFY_TO:-hello@codeqlick.com}
+      # Visit numbers on the admin dashboard, read from Umami with its dashboard account.
+      UMAMI_URL: http://umami:3000
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      UMAMI_PASSWORD: ${UMAMI_ADMIN_PASSWORD:-}
     volumes:
       - uploads-data:/app/uploads
     ports:

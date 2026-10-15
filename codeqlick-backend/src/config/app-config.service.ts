@@ -78,6 +78,20 @@ export class AppConfigService {
     return this.get('MAIL_FROM');
   }
 
+  /** Umami's API and the site's id in it; undefined while analytics isn't set up. */
+  get umami(): { url: string; websiteId: string; username: string; password: string } | undefined {
+    const url = this.get('UMAMI_URL');
+    const websiteId = this.get('UMAMI_WEBSITE_ID');
+    const password = this.get('UMAMI_PASSWORD');
+    if (!url || !websiteId || !password) return undefined;
+    return {
+      url: url.replace(/\/+$/, ''),
+      websiteId,
+      username: this.get('UMAMI_USERNAME'),
+      password,
+    };
+  }
+
   get leadsNotifyTo(): string {
     return this.get('LEADS_NOTIFY_TO');
   }
