@@ -29,6 +29,8 @@ import { firstParam, formatDateTime, madridToday } from '@/lib/format';
 import { env } from '@/lib/env';
 import { ReleaseKeyReveal } from '@/components/app/ReleaseKeyReveal';
 import { adminGetProjectTime } from '@/lib/api/time';
+import { adminListTasks } from '@/lib/api/tasks';
+import { ProjectTasks } from '@/components/app/ProjectTasks';
 import {
   addMilestoneAction,
   createReleaseKeyAction,
@@ -42,6 +44,7 @@ import {
 import { DraftReview } from '../DraftReview';
 import { MilestoneControls } from '../MilestoneControls';
 import { deleteTimeAction, logTimeAction } from '../time-actions';
+import { createTaskAction, deleteTaskAction, setTaskStatusAction } from '../task-actions';
 import { ProjectForm } from '../ProjectForm';
 
 /** Result of an upload made without JavaScript (the route handler redirects back with it). */
@@ -79,10 +82,12 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts] = await Promise.all([
+  const [time, drafts, tasks] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
+    adminListTasks(project.id),
   ]);
+  const tt = await getTranslations({ locale, namespace: 'Tasks' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
   // Optional: the boxes work without them.
   const savedReplies = await adminListSavedReplies().catch(() => []);
@@ -152,6 +157,52 @@ export default async function EditProjectPage({
               <SubmitButton pendingLabel={tc('creating')}>{t('milestoneAdd')}</SubmitButton>
             </div>
           </ActionForm>
+        </div>
+      </section>
+
+      <section className={styles.panel} id="tasks" aria-labelledby="tasks-heading">
+        <h2 id="tasks-heading" className={styles.panelTitle}>
+          {tt('title')}
+        </h2>
+        <div className={styles.stack}>
+          <ProjectTasks
+            items={tasks}
+            locale={locale}
+            empty={tt('empty')}
+            statusAction={(taskId, status) =>
+              setTaskStatusAction.bind(null, locale, project.id, taskId, status)
+            }
+            deleteAction={(taskId) => deleteTaskAction.bind(null, locale, project.id, taskId)}
+            ticketHref={(ticketId) => `/${locale}/admin/support/${ticketId}`}
+          />
+          <details className={styles.commentForm}>
+            <summary>{tt('add')}</summary>
+            {/* Keyed by the number of tasks: an added task empties the form. */}
+            <ActionForm
+              key={tasks.length}
+              action={createTaskAction.bind(null, locale, project.id)}
+              className={styles.form}
+            >
+              <FormInput
+                id="task-title"
+                name="title"
+                label={tt('taskTitle')}
+                maxLength={200}
+                required
+              />
+              <FormTextarea
+                id="task-description"
+                name="description"
+                label={tt('description')}
+                optionalLabel={tc('optional')}
+                hint={tt('descriptionHint')}
+                rows={3}
+              />
+              <div className={styles.actions}>
+                <SubmitButton pendingLabel={tt('adding')}>{tt('addButton')}</SubmitButton>
+              </div>
+            </ActionForm>
+          </details>
         </div>
       </section>
 

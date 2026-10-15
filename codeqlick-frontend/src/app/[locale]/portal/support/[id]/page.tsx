@@ -25,6 +25,8 @@ export default async function PortalTicketPage({
   const { locale: rawLocale, id } = await params;
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Support' });
+  const tt = await getTranslations({ locale, namespace: 'Tasks' });
+  const tts = await getTranslations({ locale, namespace: 'Tasks.statuses' });
 
   let ticket: TicketDetail;
   try {
@@ -85,6 +87,20 @@ export default async function PortalTicketPage({
           </div>
         </dl>
       </section>
+
+      {ticket.tasks.length > 0 ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{tt('clientRequestTitle')}</h2>
+          <ul className={styles.files}>
+            {ticket.tasks.map((task) => (
+              <li key={task.id} className={styles.fileRow}>
+                <span>{task.title}</span>
+                <span className={styles.muted}>{tts(task.status)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className={styles.panel} aria-labelledby="thread-heading">
         <h2 id="thread-heading" className={styles.panelTitle}>
