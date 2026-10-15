@@ -163,6 +163,10 @@
       "title": "Have an idea? Let's build it.",
       "body": "Tell us about your project and we'll get back to you within one business day.",
       "cta": "Start a project"
+    },
+    "testimonials": {
+      "eyebrow": "Testimonials",
+      "title": "What our clients say"
     }
   },
   "Services": {
@@ -309,7 +313,8 @@
     "technologies": "Technologies",
     "visit": "Visit project",
     "ogEyebrow": "Case study",
-    "ogEyebrowClient": "Case study · {client}"
+    "ogEyebrowClient": "Case study · {client}",
+    "testimonial": "Client testimonial"
   },
   "Contact": {
     "metaTitle": "Contact",
@@ -653,7 +658,13 @@
       "deleteTitle": "Delete this case study",
       "deleteBody": "The case study and its translations will be removed from the website.",
       "publishedAt": "Publication date",
-      "publishedAtHint": "In the future, the case study goes live on its own at that time (Madrid time). Empty: when you publish it."
+      "publishedAtHint": "In the future, the case study goes live on its own at that time (Madrid time). Empty: when you publish it.",
+      "testimonialAuthor": "Testimonial author",
+      "testimonialAuthorHint": "Who gave the testimonial. The quote and their role go in each language; without an author it isn't shown.",
+      "testimonialQuote": "Testimonial",
+      "testimonialQuoteHint": "The client's words in this language. Shown on the case study and on the home page.",
+      "testimonialRole": "Author's role",
+      "testimonialRoleHint": "For example: Founder, CircleSfera."
     },
     "projects": {
       "title": "Projects",

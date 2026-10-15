@@ -10,9 +10,20 @@ import type {
   PortfolioSummary,
 } from './types';
 
-export function listPortfolio(params: { locale: Locale; page?: number; pageSize?: number }) {
+/** With `testimonials`, only case studies with a testimonial in `locale`. */
+export function listPortfolio(params: {
+  locale: Locale;
+  page?: number;
+  pageSize?: number;
+  testimonials?: boolean;
+}) {
   return apiFetch<Paginated<PortfolioSummary>>('/portfolio', {
-    query: { locale: params.locale, page: params.page, pageSize: params.pageSize },
+    query: {
+      locale: params.locale,
+      page: params.page,
+      pageSize: params.pageSize,
+      testimonials: params.testimonials ? 'true' : undefined,
+    },
     revalidate: PUBLIC_REVALIDATE,
   });
 }

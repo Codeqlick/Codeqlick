@@ -16,6 +16,8 @@ export interface PortfolioTranslationData {
   title: string;
   summary: string;
   content: string;
+  testimonialQuote: string | null;
+  testimonialRole: string | null;
 }
 
 export interface PortfolioCreateData {
@@ -23,6 +25,7 @@ export interface PortfolioCreateData {
   status: PublishStatus;
   publishedAt: Date | null;
   clientName: string | null;
+  testimonialAuthor: string | null;
   projectUrl: string | null;
   coverImageUrl: string | null;
   technologies: string[];
@@ -35,6 +38,7 @@ export interface PortfolioUpdateData {
   status?: PublishStatus;
   publishedAt?: Date | null;
   clientName?: string | null;
+  testimonialAuthor?: string | null;
   projectUrl?: string | null;
   coverImageUrl?: string | null;
   technologies?: string[];
@@ -48,11 +52,21 @@ const withTranslations = { translations: { orderBy: { locale: 'asc' } } } as con
 export class PortfolioRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** With `testimonialLocale`, only items with a testimonial (author, and a quote in it). */
   async listPublished(
     skip: number,
     take: number,
+    testimonialLocale?: Locale,
   ): Promise<{ items: PortfolioWithTranslations[]; total: number }> {
-    const where: Prisma.PortfolioItemWhereInput = liveWhere();
+    const where: Prisma.PortfolioItemWhereInput = testimonialLocale
+      ? {
+          ...liveWhere(),
+          testimonialAuthor: { not: null },
+          translations: {
+            some: { locale: testimonialLocale, testimonialQuote: { not: null, notIn: [''] } },
+          },
+        }
+      : liveWhere();
     const [items, total] = await this.prisma.$transaction([
       this.prisma.portfolioItem.findMany({
         where,

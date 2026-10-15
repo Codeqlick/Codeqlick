@@ -349,6 +349,28 @@
   text-decoration: none;
 }
 
+/* Testimonials: shown only once a case study has one in this language. */
+.testimonials {
+  padding-top: 1.5rem;
+}
+
+.testimonialList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-8) var(--space-6);
+}
+
+.testimonialList > li {
+  display: flex;
+}
+
+.testimonialCard {
+  flex: 1;
+}
+
 /* Closing call to action */
 .ctaSection {
   padding: 0 var(--gutter) var(--space-section);
