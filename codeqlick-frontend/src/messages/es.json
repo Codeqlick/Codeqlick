@@ -1244,7 +1244,9 @@
       "hoursError": "No entiendo las horas del {day}. Escríbelas como 09:00-13:00, 16:00-18:00.",
       "hoursErrorTitle": "Revisa las horas disponibles.",
       "enabled": "Publicar la reserva de llamadas en la web",
-      "enabledHint": "Aparece la página «Reserva una llamada», enlazada desde contacto y servicios. Hacen falta el enlace y alguna hora disponible."
+      "enabledHint": "Aparece la página «Reserva una llamada», enlazada desde contacto y servicios. Hacen falta el enlace y alguna hora disponible.",
+      "calendarEmail": "Correo de tu calendario",
+      "calendarEmailHint": "Tu Gmail: cada reserva (y cada cancelación) te llega también ahí como invitación, así aparece en tu Google Calendar. La copia normal sigue yendo al buzón del equipo."
     }
   },
   "Sessions": {
