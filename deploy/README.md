@@ -139,6 +139,27 @@ docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 
 `docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
+### Monitoring
+
+`deploy/monitor/monitor.sh` runs from the deploy user's crontab every 5 minutes. It checks:
+
+- the public site and API (through Nginx and TLS);
+- the Docker health of `db`, `api`, `web`, `backup` and `umami` (`backup` is unhealthy without a dump from the last two days);
+- disk use (alerts at 90%);
+- the TLS certificates (alerts at 14 days left).
+
+It emails `ALERT_TO` (default: `LEADS_NOTIFY_TO`) through the site's SMTP account with `curl`, so it still works when the containers don't. It writes only when the result changes, with a reminder every 6 hours while something stays broken, and a "Resolved" email at the end. State and a log of alerts live in `~/.codeqlick-monitor/`.
+
+```bash
+crontab -l                                  # */5 * * * * /srv/codeqlick/deploy/monitor/monitor.sh
+./deploy/monitor/monitor.sh --test          # send a test email
+cat ~/.codeqlick-monitor/monitor.log        # past alerts
+```
+
+It runs on the server itself, so it can't report the whole server going down. An external check
+(e.g. UptimeRobot on `https://codeqlick.com/en` and `https://api.codeqlick.com/v1/health`) covers
+that.
+
 ### Analytics (Umami)
 
 Cookieless visit statistics, no consent banner needed. `umami` and its database `umami-db` run
