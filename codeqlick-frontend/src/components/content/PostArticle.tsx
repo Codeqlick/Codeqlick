@@ -50,7 +50,12 @@ export async function PostArticle({
       ) : null}
       {post.coverImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img src={post.coverImageUrl} alt="" className={`${styles.cover} ${styles.hero}`} />
+        <img
+          src={post.coverImageUrl}
+          alt=""
+          className={`${styles.cover} ${styles.hero}`}
+          fetchPriority="high"
+        />
       ) : null}
       <div className={styles.content}>
         <Markdown>{post.content}</Markdown>

@@ -66,11 +66,18 @@ export default async function WorkPage({ params, searchParams }: PageProps) {
       ) : (
         <>
           <ul className={styles.list}>
-            {portfolio.items.map((item) => (
+            {portfolio.items.map((item, index) => (
               <Card as="li" bordered key={item.slug}>
                 {item.coverImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-                  <img src={item.coverImageUrl} alt="" className={styles.cover} loading="lazy" />
+                  <img
+                    src={item.coverImageUrl}
+                    alt=""
+                    className={styles.cover}
+                    // The first covers are on screen at once: the page's largest paint.
+                    loading={index < 3 ? 'eager' : 'lazy'}
+                    fetchPriority={index < 3 ? 'high' : undefined}
+                  />
                 ) : null}
                 {item.clientName ? <p className={styles.meta}>{item.clientName}</p> : null}
                 <h2 className={styles.itemTitle}>

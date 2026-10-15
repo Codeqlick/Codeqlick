@@ -63,7 +63,12 @@ export async function CaseStudyArticle({
 
       {item.coverImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img src={item.coverImageUrl} alt="" className={`${styles.cover} ${styles.hero}`} />
+        <img
+          src={item.coverImageUrl}
+          alt=""
+          className={`${styles.cover} ${styles.hero}`}
+          fetchPriority="high"
+        />
       ) : null}
       <div className={styles.content}>
         <Markdown>{item.content}</Markdown>

@@ -138,8 +138,8 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
             <h2 className={styles.listHeading}>{t('postsAbout', { tag: activeTag.name })}</h2>
           ) : null}
           <ul className={styles.list}>
-            {posts.items.map((post) => (
-              <PostCard key={post.slug} post={post} locale={locale} />
+            {posts.items.map((post, index) => (
+              <PostCard key={post.slug} post={post} locale={locale} priority={index < 3} />
             ))}
           </ul>
           <Pagination
