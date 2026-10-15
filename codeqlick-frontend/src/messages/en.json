@@ -1,0 +1,1254 @@
+{
+  "Metadata": {
+    "siteName": "Codeqlick",
+    "defaultTitle": "Codeqlick — Software & web apps studio",
+    "description": "Codeqlick designs and builds custom software and web applications that help businesses work better. Redefining information technology in society.",
+    "ogTitle": "Codeqlick — Redefining information technology in society",
+    "ogDescription": "Custom software and web applications, from the first idea to launch and beyond."
+  },
+  "Common": {
+    "tagline": "Redefining information technology in society",
+    "skipToContent": "Skip to content",
+    "homeLabel": "Codeqlick home",
+    "back": "Back",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saved": "Changes saved.",
+    "create": "Create",
+    "creating": "Creating…",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "edit": "Edit",
+    "view": "View",
+    "filter": "Filter",
+    "all": "All",
+    "optional": "optional",
+    "none": "—",
+    "genericError": "Something went wrong. Please try again.",
+    "unavailable": "This content is temporarily unavailable. Please try again in a few minutes.",
+    "confirmDelete": "I understand this can't be undone."
+  },
+  "Pagination": {
+    "label": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "status": "Page {page} of {totalPages}"
+  },
+  "Nav": {
+    "label": "Main",
+    "services": "Services",
+    "work": "Work",
+    "blog": "Blog",
+    "contact": "Contact",
+    "startProject": "Start a project",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "menu": "Menu",
+    "about": "About"
+  },
+  "LocaleSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "es": "Español"
+  },
+  "Footer": {
+    "social": "Codeqlick on social media",
+    "copyright": "© {year} Codeqlick",
+    "login": "Client login",
+    "legal": "Legal notice",
+    "privacy": "Privacy"
+  },
+  "Home": {
+    "hero": {
+      "eyebrow": "Software & web apps studio",
+      "title": "Redefining information technology in society",
+      "sub": "Codeqlick designs and builds custom software and web applications that help businesses work better — from the first idea to launch and beyond.",
+      "primary": "Start a project",
+      "secondary": "See what we build"
+    },
+    "services": {
+      "eyebrow": "Services",
+      "title": "What we build",
+      "lead": "End-to-end digital products, designed around your business and built to last.",
+      "items": {
+        "web": {
+          "title": "Web applications",
+          "body": "SaaS platforms, client portals, dashboards and internal tools built for performance and scale."
+        },
+        "custom": {
+          "title": "Custom software",
+          "body": "Tailor-made tools that fit your processes: automation, back-office systems, APIs and integrations."
+        },
+        "mobile": {
+          "title": "Mobile & PWA",
+          "body": "Responsive and progressive web apps that work beautifully on any device."
+        },
+        "design": {
+          "title": "UI/UX design",
+          "body": "Research, prototypes and design systems that make products intuitive and consistent."
+        },
+        "consulting": {
+          "title": "Technical consulting",
+          "body": "Architecture reviews, technology choices, MVP scoping and legacy modernization."
+        },
+        "support": {
+          "title": "Maintenance & support",
+          "body": "Monitoring, fixes, security updates and continuous improvement after launch."
+        }
+      },
+      "learnMore": "Learn more"
+    },
+    "process": {
+      "eyebrow": "Process",
+      "title": "From idea to launch, in clear steps",
+      "lead": "Two-week sprints and a demo at the end of each one — you always see real progress.",
+      "steps": {
+        "discovery": {
+          "title": "Discovery",
+          "body": "Goals, users and scope. You get a clear brief and estimate."
+        },
+        "design": {
+          "title": "Design",
+          "body": "Flows, prototypes and the right architecture."
+        },
+        "development": {
+          "title": "Development",
+          "body": "Two-week sprints with a demo at the end of each."
+        },
+        "qa": {
+          "title": "QA",
+          "body": "Automated and manual testing before every release."
+        },
+        "launch": {
+          "title": "Launch",
+          "body": "Production release, monitoring and handover."
+        },
+        "support": {
+          "title": "Support",
+          "body": "Fixes, updates and new features as you grow."
+        }
+      }
+    },
+    "why": {
+      "eyebrow": "Why Codeqlick",
+      "title": "Technology with a purpose",
+      "lead": "We focus on what your software changes for your business and the people who use it — not just on features.",
+      "values": {
+        "endToEnd": {
+          "title": "End-to-end",
+          "body": "One partner from the first idea to launch and support."
+        },
+        "quality": {
+          "title": "Quality by default",
+          "body": "Tested, maintainable and secure code you can build on."
+        },
+        "transparent": {
+          "title": "Transparent",
+          "body": "Clear estimates, honest updates and no surprises."
+        },
+        "modern": {
+          "title": "Modern stack",
+          "body": "Proven, up-to-date technology chosen for each project."
+        }
+      }
+    },
+    "stack": {
+      "eyebrow": "Built with",
+      "label": "Technologies"
+    },
+    "work": {
+      "eyebrow": "Selected work",
+      "title": "Recent projects",
+      "lead": "A few of the products we've designed and built with our clients.",
+      "viewAll": "See all work"
+    },
+    "contact": {
+      "title": "Have an idea? Let's build it.",
+      "body": "Tell us about your project and we'll get back to you within one business day.",
+      "cta": "Start a project"
+    },
+    "testimonials": {
+      "eyebrow": "Testimonials",
+      "title": "What our clients say"
+    }
+  },
+  "Services": {
+    "metaTitle": "Services",
+    "metaDescription": "Web applications, custom software, mobile and PWA, UI/UX design, technical consulting, and maintenance and support by Codeqlick.",
+    "eyebrow": "Services",
+    "title": "What we build",
+    "lead": "Digital products from first idea to launch and beyond, designed for your business and built to last.",
+    "learnMore": "Learn more",
+    "back": "All services",
+    "includesTitle": "What's included",
+    "idealTitle": "A good fit if",
+    "processTitle": "How we work",
+    "processBody": "Two-week sprints with a demo at the end of each one, so you always see real progress. You get a clear brief and an estimate before any development starts.",
+    "processLink": "See our process",
+    "ctaTitle": "Let's talk about your project",
+    "ctaBody": "Tell us what you need and we'll reply within two business days with next steps.",
+    "ctaButton": "Start a project",
+    "otherTitle": "Other services",
+    "items": {
+      "web": {
+        "intro": "SaaS platforms, client portals, dashboards and internal tools, built to be fast, secure and easy to grow. We take care of the whole stack, from the database to the interface your users see.",
+        "includes": [
+          "Product definition and scope for a first release",
+          "Interface design and front-end development",
+          "APIs, databases and integrations with the tools you already use",
+          "User accounts, roles and permissions",
+          "Hosting, deployments and monitoring set up from day one"
+        ],
+        "idealFor": [
+          "You want to launch a new product or digital service",
+          "Spreadsheets and email no longer keep up with your operations",
+          "You need a portal where your customers can serve themselves"
+        ]
+      },
+      "custom": {
+        "intro": "Software that adapts to how your business works, instead of the other way round. We automate repetitive work, connect systems that don't talk to each other and give your team tools built for its processes.",
+        "includes": [
+          "Mapping the process to automate with the people who run it",
+          "Internal management systems and back-office tools",
+          "APIs and integrations between existing systems",
+          "Data migration from spreadsheets or legacy tools",
+          "Documentation and training for your team"
+        ],
+        "idealFor": [
+          "Your team repeats the same manual tasks every week",
+          "Off-the-shelf software forces you into workarounds",
+          "Your data lives in several places that never agree"
+        ]
+      },
+      "mobile": {
+        "intro": "Responsive and progressive web apps that feel at home on phones, tablets and desktops, installable from the browser and without going through the app stores.",
+        "includes": [
+          "Mobile-first interface design",
+          "Progressive web app: installable, fast and usable on weak connections",
+          "Push notifications where they add value",
+          "Accessibility and performance testing on real devices",
+          "Publishing and updates without app-store reviews"
+        ],
+        "idealFor": [
+          "Your customers or staff use your product mostly on their phones",
+          "You want one product for every device instead of three",
+          "You need to ship updates quickly and often"
+        ]
+      },
+      "design": {
+        "intro": "Research, prototypes and design systems that make your product intuitive and consistent. We design with real content and test with real users before a line of production code is written.",
+        "includes": [
+          "User and stakeholder interviews",
+          "User flows, wireframes and clickable prototypes",
+          "Visual design aligned with your brand",
+          "A design system of reusable components",
+          "Accessibility review (WCAG AA)"
+        ],
+        "idealFor": [
+          "Users struggle to find their way around your product",
+          "You're about to build something and want to validate it first",
+          "Your product has grown inconsistent screen by screen"
+        ]
+      },
+      "consulting": {
+        "intro": "An outside view from engineers who build and run software every day. We help you make technical decisions with confidence: what to build, with what, and in which order.",
+        "includes": [
+          "Architecture and code reviews with a written report",
+          "Technology choice for a new product",
+          "Defining a minimum viable product and its roadmap",
+          "Plans to modernise legacy systems step by step",
+          "Security and performance audits"
+        ],
+        "idealFor": [
+          "You have to make a technical decision with lasting consequences",
+          "Your system is slow, fragile or hard to change",
+          "You need a technical partner before hiring a team"
+        ]
+      },
+      "support": {
+        "intro": "Launching is the beginning. We keep your product secure, up to date and improving, with monitoring that warns us before your users notice anything.",
+        "includes": [
+          "Uptime and error monitoring",
+          "Security updates for dependencies and servers",
+          "Backups and recovery tests",
+          "Bug fixes with agreed response times",
+          "A monthly budget of hours for improvements"
+        ],
+        "idealFor": [
+          "Your product is live and the business depends on it",
+          "The team that built it is no longer around",
+          "You want small, continuous improvements instead of big rewrites"
+        ]
+      }
+    }
+  },
+  "Blog": {
+    "metaTitle": "Blog",
+    "metaDescription": "Notes from the Codeqlick studio on building software and web applications.",
+    "eyebrow": "Blog",
+    "title": "Notes from the studio",
+    "lead": "What we learn while designing, building and running software for our clients.",
+    "emptyTitle": "No articles yet",
+    "emptyBody": "We're writing our first posts. Check back soon.",
+    "readMore": "Read article",
+    "back": "All articles",
+    "publishedOn": "Published on {date}",
+    "tagsLabel": "Tags",
+    "topics": "Topics",
+    "allTopics": "All topics",
+    "postsAbout": "Posts about {tag}",
+    "emptyTagTitle": "Nothing on this topic yet",
+    "emptyTagBody": "There are no published posts with this tag.",
+    "related": "Keep reading",
+    "ogEyebrow": "Blog · {date}",
+    "searchLabel": "Search the blog",
+    "searchPlaceholder": "Search posts…",
+    "search": "Search",
+    "results": "{count, plural, one {# result} other {# results}} for “{q}”",
+    "clearSearch": "Clear search",
+    "noResultsTitle": "Nothing for “{q}”",
+    "noResultsBody": "Try other words or browse all posts.",
+    "allPosts": "See all posts"
+  },
+  "Work": {
+    "metaTitle": "Work",
+    "metaDescription": "Case studies of software and web applications built by Codeqlick.",
+    "eyebrow": "Work",
+    "title": "Selected projects",
+    "lead": "Products we've designed, built and launched — and what they changed for the people using them.",
+    "emptyTitle": "Case studies coming soon",
+    "emptyBody": "We're preparing our first case studies. In the meantime, tell us about your project.",
+    "viewCase": "View case study",
+    "back": "All projects",
+    "client": "Client",
+    "technologies": "Technologies",
+    "visit": "Visit project",
+    "ogEyebrow": "Case study",
+    "ogEyebrowClient": "Case study · {client}",
+    "testimonial": "Client testimonial",
+    "services": "Services",
+    "filterServices": "Filter by service",
+    "filterTechnologies": "Filter by technology",
+    "allServices": "All services",
+    "allTechnologies": "All technologies",
+    "emptyFilteredTitle": "No projects with these filters",
+    "emptyFilteredBody": "Try another combination or see all projects.",
+    "clearFilters": "Clear filters"
+  },
+  "Contact": {
+    "metaTitle": "Contact",
+    "metaDescription": "Tell Codeqlick about your project. We reply within one business day.",
+    "eyebrow": "Contact",
+    "title": "Tell us about your project",
+    "lead": "A few lines are enough to get started. We'll get back to you within one business day.",
+    "asideTitle": "Prefer email?",
+    "asideBody": "Write to us directly and we'll reply within one business day.",
+    "form": {
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "budget": "Budget",
+      "budgetPlaceholder": "Select a range",
+      "message": "Message",
+      "messageHint": "What are you building, for whom, and by when?",
+      "website": "Leave this field empty",
+      "submit": "Send message",
+      "sending": "Sending…",
+      "successTitle": "Thanks — message received.",
+      "successBody": "We'll get back to you within one business day.",
+      "error": "We couldn't send your message. Please check the form and try again.",
+      "rateLimited": "Too many messages in a short time. Please wait a minute and try again.",
+      "privacyNote": "We'll only use the details you send to answer you. More in the <link>privacy policy</link>."
+    },
+    "budgets": {
+      "lt-5k": "< €5k",
+      "5k-15k": "€5k–15k",
+      "15k-40k": "€15k–40k",
+      "gt-40k": "> €40k",
+      "not-sure": "Not sure yet"
+    }
+  },
+  "Validation": {
+    "required": "This field is required.",
+    "email": "Enter a valid email address.",
+    "tooShort": "This is too short.",
+    "tooLong": "This is too long.",
+    "url": "Enter a valid URL starting with https://",
+    "slug": "Use lowercase letters, numbers and single hyphens only.",
+    "number": "Enter a whole number.",
+    "progress": "Enter a number between 0 and 100.",
+    "password": "Use at least 12 characters.",
+    "passwordMismatch": "The two passwords don't match.",
+    "messageTooShort": "Tell us a bit more (at least 10 characters).",
+    "translationIncomplete": "Fill in title, excerpt and content, or leave all three empty.",
+    "date": "Enter a valid date.",
+    "choice": "Choose one of the options."
+  },
+  "Login": {
+    "metaTitle": "Sign in",
+    "title": "Sign in",
+    "subtitle": "Access your client portal or the admin panel.",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "invalid": "Incorrect email or password.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "error": "We couldn't sign you in right now. Please try again.",
+    "backToSite": "Back to the website",
+    "forgot": "Forgot your password?",
+    "passwordReset": "Your password has been changed. Sign in with the new one.",
+    "passwordCreated": "Password created. You can now sign in with your email and the password you chose."
+  },
+  "TwoFactorLogin": {
+    "title": "Two-step verification",
+    "subtitle": "Enter the 6-digit code from your authenticator app.",
+    "code": "Code",
+    "codeHint": "Lost your phone? Enter one of your recovery codes instead.",
+    "submit": "Verify",
+    "submitting": "Verifying…",
+    "invalid": "That code is not valid. Check the time on your phone and try again.",
+    "expired": "The sign-in took too long. Go back and enter your password again.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "backToLogin": "Back to sign in"
+  },
+  "ForgotPassword": {
+    "metaTitle": "Forgot your password",
+    "title": "Forgot your password?",
+    "subtitle": "Enter your account's email and we'll send you a link to choose a new password.",
+    "email": "Email",
+    "submit": "Send me the link",
+    "submitting": "Sending…",
+    "sent": "If an account exists for that email, we've sent a link to reset the password. It works for 60 minutes.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "backToLogin": "Back to sign in"
+  },
+  "ResetPassword": {
+    "metaTitle": "Choose a new password",
+    "title": "Choose a new password",
+    "subtitle": "You'll be signed out on every device and can sign in with the new password.",
+    "newPassword": "New password",
+    "newPasswordHint": "At least 12 characters.",
+    "confirmPassword": "Repeat the new password",
+    "submit": "Change password",
+    "submitting": "Saving…",
+    "invalidLink": "This link is invalid or has expired. Reset links work once and for 60 minutes.",
+    "requestNew": "Request a new link",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "welcomeTitle": "Welcome to Codeqlick",
+    "welcomeSubtitle": "Choose the password you'll sign in with.",
+    "welcomeSubmit": "Create password",
+    "welcomeInvalidLink": "This link is invalid or has expired. Welcome links work once and for 7 days. Ask for a new one below with your email."
+  },
+  "Account": {
+    "nav": "Account",
+    "title": "Your account",
+    "signedInAs": "Signed in as {email}",
+    "changePassword": "Change password",
+    "changePasswordBody": "After changing it, every other device where you are signed in will be signed out.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "newPasswordHint": "At least 12 characters.",
+    "confirmPassword": "Repeat the new password",
+    "submit": "Change password",
+    "changed": "Password changed. Your other devices have been signed out.",
+    "wrongCurrent": "The current password is not correct.",
+    "samePassword": "Choose a password you are not already using.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "emails": "Emails",
+    "weeklyDigest": "Weekly summary of my projects",
+    "weeklyDigestHint": "Every Monday, if there's news or something waiting for your approval, we email you a summary."
+  },
+  "TwoFactor": {
+    "title": "Two-step verification",
+    "offBody": "Ask for a code from an authenticator app (such as Google Authenticator, 1Password or Microsoft Authenticator) every time you sign in, in addition to your password.",
+    "start": "Set up",
+    "starting": "Preparing…",
+    "scan": "1. Scan this QR code with your authenticator app.",
+    "manual": "Can't scan it? Enter this key instead:",
+    "confirm": "2. Enter the 6-digit code the app shows.",
+    "code": "Code",
+    "enable": "Turn on",
+    "enabling": "Turning on…",
+    "invalidCode": "That code is not valid. Check the time on your phone and try again.",
+    "recoveryTitle": "Two-step verification is on. Save your recovery codes",
+    "recoveryBody": "Each code signs you in once if you lose your phone. Keep them somewhere safe, like a password manager: they won't be shown again.",
+    "done": "I've saved them",
+    "onBody": "On. You'll be asked for a code from your authenticator app at every sign-in.",
+    "recoveryLeft": "{count, plural, =0 {No recovery codes left: turn it off and on again to get new ones.} one {# recovery code left.} other {# recovery codes left.}}",
+    "disableTitle": "Turn off",
+    "disableBody": "Confirm with your password and a current code (or a recovery code).",
+    "password": "Current password",
+    "disableCode": "Code",
+    "disable": "Turn off",
+    "disabling": "Turning off…",
+    "disabled": "Two-step verification is off.",
+    "wrongPassword": "The password is not correct.",
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "requiredNotice": "To use the admin panel you need two-step verification on. Turn it on below: as soon as you confirm it, you'll have access to everything.",
+    "requiredCantDisable": "Admin accounts must keep it on, so it can't be turned off."
+  },
+  "NotFound": {
+    "metaTitle": "Page not found",
+    "eyebrow": "Error 404",
+    "title": "This page didn't make it to production.",
+    "body": "The link may be broken or the page may have moved.",
+    "cta": "Back to home"
+  },
+  "Error": {
+    "eyebrow": "Error",
+    "title": "Something went wrong on our side.",
+    "body": "Please try again. If the problem persists, write to hello@codeqlick.com.",
+    "retry": "Try again",
+    "home": "Back to home"
+  },
+  "App": {
+    "navLabel": "Sections",
+    "logout": "Log out",
+    "viewSite": "View site",
+    "signedInAs": "Signed in as {name}"
+  },
+  "Phases": {
+    "DISCOVERY": "Discovery",
+    "DESIGN": "Design",
+    "DEVELOPMENT": "Development",
+    "QA": "QA",
+    "LAUNCHED": "Launched",
+    "SUPPORT": "Support",
+    "ON_HOLD": "On hold"
+  },
+  "LeadStatuses": {
+    "NEW": "New",
+    "TALKING": "Talking",
+    "CALL": "Call",
+    "PROPOSAL": "Proposal sent",
+    "WON": "Won",
+    "LOST": "Lost",
+    "SPAM": "Spam / discarded"
+  },
+  "Roles": {
+    "ADMIN": "Admin",
+    "CLIENT": "Client"
+  },
+  "PublishStatuses": {
+    "DRAFT": "Draft",
+    "PUBLISHED": "Published",
+    "SCHEDULED": "Scheduled"
+  },
+  "Portal": {
+    "title": "Client portal",
+    "nav": {
+      "projects": "Projects",
+      "support": "Support"
+    },
+    "projectsTitle": "Your projects",
+    "projectsLead": "Follow the progress of everything we're building together.",
+    "emptyTitle": "No projects yet",
+    "emptyBody": "When we start working together, your projects will show up here.",
+    "phase": "Phase",
+    "progress": "Progress",
+    "progressValue": "{value}% complete",
+    "startDate": "Start date",
+    "dueDate": "Due date",
+    "staging": "Staging",
+    "production": "Live site",
+    "about": "About this project",
+    "updates": "Updates",
+    "noUpdates": "No updates yet.",
+    "postedBy": "{author} · {date}",
+    "back": "All projects",
+    "open": "Open project",
+    "files": "Files",
+    "noFiles": "No files shared yet.",
+    "fileMeta": "{size} · {date}",
+    "milestones": "Milestones",
+    "nextMilestone": "Next milestone",
+    "timeline": {
+      "done": "Done",
+      "current": "Next",
+      "upcoming": "Upcoming",
+      "completedOn": "on {date}",
+      "dueOn": "due {date}",
+      "noDate": "no date yet",
+      "overdue": "overdue"
+    },
+    "approvalPending": "Waiting for approval",
+    "approvedBy": "Approved by {name} · {date}",
+    "approveHint": "If it looks good, approve it and we'll move on. If you'd like changes, leave us a comment.",
+    "approve": "Approve",
+    "approving": "Approving…",
+    "comments": "Comments",
+    "writeComment": "Write a comment",
+    "commentLabel": "Comment",
+    "sendComment": "Send comment",
+    "sending": "Sending…",
+    "askSupport": "Open a request"
+  },
+  "Admin": {
+    "title": "Admin",
+    "nav": {
+      "dashboard": "Dashboard",
+      "leads": "Leads",
+      "posts": "Posts",
+      "portfolio": "Portfolio",
+      "media": "Images",
+      "projects": "Projects",
+      "users": "Users",
+      "activity": "Activity",
+      "tags": "Tags",
+      "replies": "Saved replies",
+      "support": "Support"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "lead": "A quick look at what's happening across Codeqlick.",
+      "newLeads": "New leads",
+      "totalLeads": "Total leads",
+      "publishedPosts": "Published posts",
+      "draftPosts": "Draft posts",
+      "publishedPortfolio": "Published case studies",
+      "activeProjects": "Active projects",
+      "clients": "Clients",
+      "recentActivity": "Recent activity",
+      "allActivity": "See all",
+      "scheduledPosts": "Scheduled posts",
+      "leadsChart": "Leads per month",
+      "leadsWon": "Won",
+      "leadsOther": "Other",
+      "contentChart": "Content published per month",
+      "postsSeries": "Posts",
+      "caseStudiesSeries": "Case studies",
+      "month": "Month",
+      "lostReasons": "Why leads are lost",
+      "lostReasonsEmpty": "No lost leads yet.",
+      "activeTickets": "Open requests"
+    },
+    "leads": {
+      "title": "Leads",
+      "status": "Status",
+      "search": "Search",
+      "searchPlaceholder": "Name, email or company",
+      "name": "Name",
+      "email": "Email",
+      "company": "Company",
+      "budget": "Budget",
+      "received": "Received",
+      "message": "Message",
+      "notes": "Internal notes",
+      "locale": "Language",
+      "emptyTitle": "No leads found",
+      "emptyBody": "New contact form submissions will appear here.",
+      "back": "All leads",
+      "reply": "Reply",
+      "exportCsv": "Export CSV",
+      "replies": "Replies",
+      "repliedBy": "{author} · {date}",
+      "replySubject": "Subject",
+      "replyBody": "Reply",
+      "replyHint": "Sent to {email} from Codeqlick's address, in the brand layout with their message quoted below; the template's language is {language}. Separate paragraphs with a blank line and sign at the end. A first reply moves the status to \"Contacted\".",
+      "replySend": "Send reply",
+      "replySending": "Sending…",
+      "replySent": "Reply sent to {email}.",
+      "replyFailed": "The reply couldn't be sent, and nothing was stored. Check the server's SMTP settings and try again.",
+      "viewBoard": "Board view",
+      "viewList": "List view",
+      "boardTitle": "Lead board",
+      "boardLead": "Drag each lead to its stage (or use its “Move to” menu). Leads marked as spam only show in the list.",
+      "moveTo": "Move to",
+      "boardEmpty": "None.",
+      "boardFailed": "The change couldn't be saved. Reload the page and try again.",
+      "boardMore": "And {count} more in the list.",
+      "boardHints": {
+        "NEW": "Wrote to you; not answered yet.",
+        "TALKING": "You've answered and you're talking.",
+        "CALL": "Discovery call booked or done.",
+        "PROPOSAL": "You've sent the proposal with the quote.",
+        "WON": "Accepted: they're a client.",
+        "LOST": "Not going ahead."
+      },
+      "lostReason": "Why it was lost",
+      "lostReasonHint": "Only counts when the status is “Lost”.",
+      "noReason": "Not given",
+      "followUpOn": "Next follow-up",
+      "followUpOnHint": "When to write to them again. The board flags it once the date arrives.",
+      "convertTitle": "Convert to client",
+      "convertBody": "Creates their client account (they get the welcome email to choose a password; an existing client account is reused), opens a project in Discovery and marks the lead as Won.",
+      "projectName": "Project name",
+      "convert": "Convert to client",
+      "converting": "Converting…",
+      "convertedTitle": "Already a client",
+      "convertedBody": "This lead became a client.",
+      "viewClient": "See their account",
+      "followUpDue": "Follow-up due",
+      "followUp": "Follow up on {date}",
+      "lostWithoutReason": "No reason",
+      "boardFollowUpsDue": "{count} to follow up"
+    },
+    "posts": {
+      "title": "Posts",
+      "new": "New post",
+      "edit": "Edit post",
+      "slug": "Slug",
+      "slugHint": "Used in the URL, e.g. building-a-client-portal",
+      "status": "Status",
+      "coverImageUrl": "Cover image URL",
+      "updated": "Updated",
+      "postTitle": "Title",
+      "excerpt": "Excerpt",
+      "content": "Content (Markdown)",
+      "translationEn": "English",
+      "translationEs": "Spanish (optional)",
+      "emptyTitle": "No posts yet",
+      "emptyBody": "Write the first article for the blog.",
+      "back": "All posts",
+      "deleteTitle": "Delete this post",
+      "deleteBody": "The post and its translations will be removed from the blog.",
+      "publishedAt": "Publication date",
+      "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it.",
+      "tags": "Tags",
+      "noTags": "No tags yet. <link>Create some</link> to sort your posts."
+    },
+    "portfolio": {
+      "title": "Portfolio",
+      "new": "New case study",
+      "edit": "Edit case study",
+      "slug": "Slug",
+      "slugHint": "Used in the URL, e.g. logistics-dashboard",
+      "status": "Status",
+      "coverImageUrl": "Cover image URL",
+      "clientName": "Client name",
+      "projectUrl": "Project URL",
+      "technologies": "Technologies",
+      "technologiesHint": "Comma-separated, e.g. Next.js, NestJS, PostgreSQL",
+      "sortOrder": "Sort order",
+      "sortOrderHint": "Lower numbers appear first.",
+      "updated": "Updated",
+      "itemTitle": "Title",
+      "summary": "Summary",
+      "content": "Content (Markdown)",
+      "translationEn": "English",
+      "translationEs": "Spanish (optional)",
+      "emptyTitle": "No case studies yet",
+      "emptyBody": "Add the first project to the portfolio.",
+      "back": "All case studies",
+      "deleteTitle": "Delete this case study",
+      "deleteBody": "The case study and its translations will be removed from the website.",
+      "publishedAt": "Publication date",
+      "publishedAtHint": "In the future, the case study goes live on its own at that time (Madrid time). Empty: when you publish it.",
+      "testimonialAuthor": "Testimonial author",
+      "testimonialAuthorHint": "Who gave the testimonial. The quote and their role go in each language; without an author it isn't shown.",
+      "testimonialQuote": "Testimonial",
+      "testimonialQuoteHint": "The client's words in this language. Shown on the case study and on the home page.",
+      "testimonialRole": "Author's role",
+      "testimonialRoleHint": "For example: Founder, CircleSfera.",
+      "services": "Services in this project"
+    },
+    "projects": {
+      "title": "Projects",
+      "new": "New project",
+      "edit": "Edit project",
+      "client": "Client",
+      "clientPlaceholder": "Select a client",
+      "noClients": "There are no client accounts yet. Create a user with the Client role first.",
+      "name": "Project name",
+      "description": "Description",
+      "phase": "Phase",
+      "progress": "Progress (%)",
+      "startDate": "Start date",
+      "dueDate": "Due date",
+      "stagingUrl": "Staging URL",
+      "productionUrl": "Production URL",
+      "emptyTitle": "No projects yet",
+      "emptyBody": "Create a project to share progress with a client.",
+      "back": "All projects",
+      "updatesTitle": "Progress updates",
+      "updateTitle": "Title",
+      "updateBody": "Update (Markdown)",
+      "postUpdate": "Post update",
+      "posting": "Posting…",
+      "updatePosted": "Update posted.",
+      "noUpdates": "No updates posted yet.",
+      "deleteTitle": "Delete this project",
+      "deleteBody": "The project, its updates and its files will be removed from the client portal.",
+      "filesTitle": "Files",
+      "filesLead": "Deliverables and documents for the client. Only the client of this project and admins can download them.",
+      "chooseFile": "Choose a file",
+      "uploadFile": "Upload file",
+      "uploadingFile": "Uploading… {percent}%",
+      "fileHint": "Any type of file, up to 25 MB.",
+      "fileUploaded": "File uploaded.",
+      "fileTooLarge": "The file is larger than 25 MB.",
+      "fileFailed": "The upload failed. Please try again.",
+      "fileSignedOut": "Your session has expired. Sign in again and repeat the upload.",
+      "noFiles": "No files uploaded yet.",
+      "fileDeleted": "File deleted.",
+      "notifyClient": "Email the client",
+      "notifyClientHint": "We'll send the update to {email}, in their language, with a link to their client portal.",
+      "updatePostedNotified": "Update posted and emailed to the client.",
+      "updatePostedNotNotified": "Update posted, but the client couldn't be emailed (check the server's SMTP settings, or whether their account is deactivated).",
+      "milestonesTitle": "Milestones",
+      "milestonesLead": "The steps of the project, in order. The client sees them as a timeline in their area, with the next one highlighted.",
+      "noMilestones": "No milestones yet. Add the first one so the client can see what is coming.",
+      "milestoneNew": "New milestone",
+      "milestoneTitle": "Milestone title",
+      "milestoneDueDate": "Due date",
+      "milestoneDescription": "Description",
+      "milestoneAdd": "Add milestone",
+      "milestoneAdded": "Milestone added.",
+      "milestoneMarkDone": "Mark as done",
+      "milestoneReopen": "Reopen",
+      "milestoneUp": "↑ Move up",
+      "milestoneDown": "↓ Move down",
+      "milestoneEdit": "Edit or delete",
+      "milestoneDelete": "Delete milestone",
+      "requestApproval": "Ask the client to approve it",
+      "requestApprovalHint": "The client gets a button to approve this update from their area, and we'll email you when they do.",
+      "commentNotNotified": "Comment posted, but the client couldn't be emailed (check the server's SMTP settings or whether their account is deactivated)."
+    },
+    "media": {
+      "choose": "Image file",
+      "upload": "Upload image",
+      "uploading": "Uploading…",
+      "hint": "Paste a URL or upload an image (PNG, JPEG, WebP or GIF, up to 5 MB).",
+      "missing": "Choose an image first.",
+      "tooLarge": "The image is larger than 5 MB.",
+      "unsupported": "Only PNG, JPEG, WebP and GIF images are accepted.",
+      "failed": "The image could not be uploaded. Please try again.",
+      "title": "Images",
+      "lead": "Every image uploaded from this panel, newest first.",
+      "emptyTitle": "No images yet",
+      "emptyBody": "Upload one here, or from the cover field of an article or case study.",
+      "uploaded": "Uploaded {date}",
+      "url": "URL",
+      "usedBy": "Used by",
+      "unused": "Not used by any article or case study.",
+      "post": "Article",
+      "portfolio": "Case study",
+      "delete": "Delete image",
+      "inUseHint": "Remove it from that content before deleting it.",
+      "inUse": "This image is still used by an article or a case study.",
+      "deleted": "Image deleted.",
+      "uploadHint": "PNG, JPEG, WebP or GIF, up to 5 MB.",
+      "insert": "Insert image",
+      "altPlaceholder": "image description"
+    },
+    "preview": {
+      "button": "Preview",
+      "title": "Preview",
+      "back": "Back to editing",
+      "noticeDraft": "This is a draft, shown in {language}. Only you can see it.",
+      "noticePublished": "This is the published version, shown in {language}.",
+      "unsaved": "It shows what is saved: save your changes before previewing them.",
+      "otherLanguages": "Also available in:"
+    },
+    "users": {
+      "title": "Users",
+      "new": "New user",
+      "edit": "Edit user",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "isActive": "Account is active",
+      "isActiveHint": "Deactivating an account signs the user out everywhere.",
+      "password": "Password",
+      "passwordHint": "At least 12 characters. Share it with the user through a secure channel.",
+      "resetPassword": "Reset password",
+      "resetPasswordBody": "Set a new password for this user. All of their open sessions are closed.",
+      "newPassword": "New password",
+      "passwordReset": "Password updated.",
+      "created": "Created",
+      "emptyTitle": "No users yet",
+      "emptyBody": "Create admin and client accounts here.",
+      "back": "All users",
+      "notFound": "This user doesn't exist.",
+      "passwordOptional": "Password (optional)",
+      "passwordOptionalHint": "Leave it empty and we'll send a welcome email with a link to choose it (valid for 7 days). If you set it, at least 12 characters, and share it through a secure channel.",
+      "createdInvited": "User created. We sent them a welcome email to choose their password.",
+      "createdInvitationFailed": "User created, but the welcome email couldn't be sent. Send it again from their page.",
+      "invitation": "Welcome email",
+      "invitationBody": "Send this user a link to choose their password, valid for 7 days (in {language}). Also useful when the previous one expired or got lost: only the latest link works.",
+      "invitationSend": "Send link",
+      "invitationSending": "Sending…",
+      "invitationSent": "Email sent.",
+      "invitationFailed": "The email couldn't be sent. Check the server's SMTP settings.",
+      "locale": "Language of emails",
+      "localeHint": "The welcome email and the notices about their projects' updates are sent in this language.",
+      "weeklyDigest": "Weekly summary by email",
+      "weeklyDigestHint": "Every Monday, if there's news or something to approve, we email them a summary of their projects.",
+      "digest": "Weekly summary",
+      "digestBody": "Send this week's summary now (in {language}) to check how it looks to them. With no news and nothing pending, nothing is sent.",
+      "digestSend": "Send summary now",
+      "digestSending": "Sending…",
+      "digestSent": "Summary sent.",
+      "digestNoNews": "Not sent: there's no news and nothing pending on their projects this week."
+    },
+    "activity": {
+      "title": "Activity",
+      "lead": "Who changed what in the admin panel and in accounts, most recent first.",
+      "type": "About",
+      "emptyTitle": "No activity yet",
+      "emptyBody": "Changes will show up here as soon as someone edits content, projects or users.",
+      "types": {
+        "post": "Posts",
+        "portfolio": "Case studies",
+        "project": "Projects",
+        "lead": "Leads",
+        "user": "Users",
+        "media": "Images",
+        "account": "Accounts",
+        "tag": "Tags",
+        "support": "Support"
+      },
+      "actions": {
+        "post": {
+          "created": "created the post <target>{label}</target>",
+          "updated": "edited the post <target>{label}</target>",
+          "published": "published the post <target>{label}</target>",
+          "unpublished": "moved the post <target>{label}</target> back to draft",
+          "deleted": "deleted the post <target>{label}</target>",
+          "scheduled": "scheduled the post <target>{label}</target>"
+        },
+        "portfolio": {
+          "created": "created the case study <target>{label}</target>",
+          "updated": "edited the case study <target>{label}</target>",
+          "published": "published the case study <target>{label}</target>",
+          "unpublished": "moved the case study <target>{label}</target> back to draft",
+          "deleted": "deleted the case study <target>{label}</target>",
+          "scheduled": "scheduled the case study <target>{label}</target>"
+        },
+        "project": {
+          "created": "created the project <target>{label}</target>",
+          "updated": "updated the project <target>{label}</target>",
+          "deleted": "deleted the project <target>{label}</target>",
+          "update_posted": "posted an update on <target>{label}</target>",
+          "file_uploaded": "uploaded a file to <target>{label}</target>",
+          "file_deleted": "deleted a file from <target>{label}</target>",
+          "milestone_added": "added a milestone to <target>{label}</target>",
+          "milestone_updated": "edited a milestone of <target>{label}</target>",
+          "milestone_completed": "completed a milestone of <target>{label}</target>",
+          "milestone_deleted": "deleted a milestone of <target>{label}</target>",
+          "update_approved": "approved an update of <target>{label}</target>",
+          "comment_added": "commented on an update of <target>{label}</target>"
+        },
+        "user": {
+          "created": "created the user <target>{label}</target>",
+          "updated": "changed the user <target>{label}</target>",
+          "invited": "sent a welcome email to <target>{label}</target>"
+        },
+        "lead": {
+          "updated": "updated the lead <target>{label}</target>",
+          "replied": "replied to the lead <target>{label}</target>",
+          "converted": "turned the lead <target>{label}</target> into a client"
+        },
+        "media": {
+          "uploaded": "uploaded the image <target>{label}</target>",
+          "deleted": "deleted the image <target>{label}</target>"
+        },
+        "account": {
+          "password_changed": "changed their password",
+          "two_factor_enabled": "turned on two-step verification",
+          "two_factor_disabled": "turned off two-step verification",
+          "sessions_revoked": "{scope, select, one {signed out one of their other devices} other {signed out all their other devices}}"
+        },
+        "unknown": "made a change ({action})",
+        "tag": {
+          "created": "created the tag <target>{label}</target>",
+          "updated": "edited the tag <target>{label}</target>",
+          "deleted": "deleted the tag <target>{label}</target>"
+        },
+        "support": {
+          "opened": "opened the request <target>{label}</target>",
+          "replied": "replied on the request <target>{label}</target>",
+          "updated": "changed the request <target>{label}</target>",
+          "closed": "closed the request <target>{label}</target>",
+          "file_added": "attached a file to the request <target>{label}</target>",
+          "file_deleted": "deleted a file from the request <target>{label}</target>"
+        }
+      },
+      "details": {
+        "status": "Status: {value}",
+        "phase": "Phase: {value}",
+        "progress": "Progress: {value}%",
+        "file": "File: {value}",
+        "title": "“{value}”",
+        "name": "Name: {value}",
+        "role": "Role: {value}",
+        "activated": "Account activated",
+        "deactivated": "Account deactivated",
+        "passwordReset": "Password reset",
+        "publishedAt": "Goes live on {value}",
+        "milestone": "Milestone: {value}",
+        "project": "Project: {value}"
+      }
+    },
+    "tags": {
+      "title": "Tags",
+      "lead": "Blog topics. Each tag has a name in each language and a slug for its address.",
+      "newTag": "New tag",
+      "existing": "Tags",
+      "nameEs": "Spanish name",
+      "nameEn": "English name",
+      "slug": "Slug",
+      "slugHint": "Used in the address: /blog?tag=slug",
+      "postCount": "{count, plural, =0 {No posts} one {# post} other {# posts}}",
+      "created": "Tag created.",
+      "saved": "Tag saved.",
+      "slugTaken": "There is already a tag with this slug.",
+      "emptyTitle": "No tags yet",
+      "emptyBody": "Create the first one above and assign it from each post's form."
+    },
+    "markdownPreview": {
+      "show": "Show preview",
+      "hide": "Hide preview",
+      "title": "Preview",
+      "empty": "Type something to see it here as it will look on the site."
+    },
+    "visits": {
+      "title": "Website visits",
+      "range": "Period",
+      "days": "{days} days",
+      "openUmami": "Open Umami ↗",
+      "unavailable": "Couldn't load the visits: Umami isn't answering. The rest of the dashboard works as usual.",
+      "visitors": "Visitors",
+      "pageviews": "Page views",
+      "contactsSent": "Contact requests",
+      "bounceRate": "Bounce rate",
+      "avgVisit": "Average visit",
+      "change": "{value} vs the previous period",
+      "chartDaily": "Visitors per day",
+      "chartWeekly": "Visitors per week",
+      "day": "Day",
+      "week": "Week",
+      "topPages": "Top pages",
+      "referrers": "Where they come from",
+      "countries": "Countries",
+      "none": "No data yet."
+    },
+    "savedReplies": {
+      "title": "Saved replies",
+      "lead": "Texts you often repeat when answering leads or commenting on projects. When inserted, '{name}' and '{project}' become the person's and the project's names.",
+      "new": "New saved reply",
+      "replyTitle": "Title",
+      "replyTitleHint": "Only you see it, in the menu to insert it.",
+      "body": "Text",
+      "bodyHint": "Use '{name}' for the person's name and '{project}' for the project's.",
+      "saved": "{count, plural, =0 {Saved} one {# saved} other {# saved}}",
+      "empty": "You have no saved replies yet.",
+      "editOrDelete": "Edit or delete",
+      "created": "Reply saved.",
+      "insert": "Insert a saved reply",
+      "insertPlaceholder": "Insert a saved reply…"
+    }
+  },
+  "Sessions": {
+    "title": "Where you're signed in",
+    "lead": "Devices and browsers signed in to your account. If you don't recognise one, sign it out and change your password.",
+    "browserOnOs": "{browser} on {os}",
+    "unknownDevice": "Unknown device",
+    "thisDevice": "This device",
+    "meta": "Last active: {date} · IP {ip}",
+    "unknownIp": "unknown",
+    "signOut": "Sign out",
+    "signOutOthers": "Sign out all other devices",
+    "signingOut": "Signing out…",
+    "signedOut": "That device has been signed out.",
+    "signedOutOthers": "All other devices have been signed out.",
+    "delay": "A device you sign out may stay in for up to 15 minutes, until its current access expires."
+  },
+  "Legal": {
+    "updated": "Última actualización: {date}"
+  },
+  "About": {
+    "metaTitle": "About us",
+    "metaDescription": "Who is behind Codeqlick, why it exists and how we work: custom software and web apps built with quality, clarity and a direct line to the person doing the work.",
+    "eyebrow": "About us",
+    "title": "Software that solves real problems",
+    "lead": "Codeqlick is a custom software and web app studio. We work with startups, small businesses and established companies to turn ideas and business needs into reliable digital products that are ready to grow.",
+    "founder": {
+      "eyebrow": "Who is behind it",
+      "title": "A small studio, with a direct line",
+      "p1": "Codeqlick is run by its founder, Luis Feliu Gomez Polo. When you work with us you talk directly to the person who designs, builds and maintains your product: no middlemen, no messages lost along the way.",
+      "p2": "Our tagline, \"Redefining information technology in society\", sums up the ambition: technology should make people's and businesses' lives better. We build every project with that purpose."
+    },
+    "purpose": {
+      "eyebrow": "Purpose",
+      "title": "Why we exist",
+      "mission": {
+        "title": "Mission",
+        "body": "To help our clients grow by building software that solves real problems, delivered with clarity, quality and speed."
+      },
+      "vision": {
+        "title": "Vision",
+        "body": "To be the technology partner companies trust when they need innovative, dependable digital products."
+      }
+    },
+    "values": {
+      "eyebrow": "Values",
+      "title": "What guides us",
+      "items": {
+        "innovation": {
+          "title": "Innovation",
+          "body": "We stay curious and adopt new technology when it creates real value, not just because it's new."
+        },
+        "quality": {
+          "title": "Quality",
+          "body": "We ship software we're proud of: tested, maintainable and secure by default."
+        },
+        "partnership": {
+          "title": "Partnership",
+          "body": "We treat every client's product as if it were our own and communicate openly."
+        },
+        "transparency": {
+          "title": "Transparency",
+          "body": "Clear estimates, honest progress updates and no surprises."
+        }
+      }
+    },
+    "different": {
+      "eyebrow": "What makes us different",
+      "title": "How we work",
+      "items": {
+        "endToEnd": {
+          "title": "End to end",
+          "body": "From discovery and design to development, launch and support."
+        },
+        "product": {
+          "title": "Product mindset",
+          "body": "We focus on business outcomes, not just features."
+        },
+        "stack": {
+          "title": "Modern stack",
+          "body": "Proven, up-to-date technology chosen for each project."
+        },
+        "iterative": {
+          "title": "Short cycles",
+          "body": "Two-week iterations, frequent demos and your feedback at every step."
+        }
+      }
+    }
+  },
+  "Faq": {
+    "eyebrow": "FAQ",
+    "title": "What people usually ask us",
+    "items": {
+      "start": {
+        "q": "How do we start working together?",
+        "a": "You tell us about your idea or need and we see whether we're a good fit. Then we have a call to understand goals, users, scope, timeline and budget range. With that we send you a proposal with the scope, approach, timeline and price; if you accept it, we sign the agreement and start with a kick-off meeting."
+      },
+      "cost": {
+        "q": "How much does a project cost?",
+        "a": "It depends on the scope, so we don't quote fixed prices without knowing it. We work with a fixed scope and budget for well-defined projects and MVPs, by the hour for products whose priorities change, with a dedicated team for long-term development, or with a monthly allocation of hours for maintenance. After the first call we send you a proposal with the price."
+      },
+      "time": {
+        "q": "How long does it take?",
+        "a": "That depends on the scope too: the timeline is in the proposal. We work in two-week cycles and at the end of each one we show you working software, so you see progress from the start, not only at the end."
+      },
+      "progress": {
+        "q": "How do I follow the project's progress?",
+        "a": "We send you a weekly summary and run a demo by video call every two weeks. You also get a client area where you see your project's phase, milestones, updates and files, and where you can comment on and approve deliveries."
+      },
+      "changes": {
+        "q": "What if I want to change something halfway through?",
+        "a": "That's normal. You describe the change, we assess how it affects scope, timeline and cost, and once you approve it in writing we plan it into the next cycle."
+      },
+      "maintenance": {
+        "q": "Do you take care of maintenance after launch?",
+        "a": "Yes. We offer maintenance and support plans with monitoring, bug fixing, security updates and continuous improvement, usually as a monthly allocation of hours."
+      },
+      "ownership": {
+        "q": "Do I own the code?",
+        "a": "When the project closes we hand over the code, the documentation and every access and credential."
+      },
+      "response": {
+        "q": "How quickly do you reply?",
+        "a": "We reply to messages within one business day at most. For urgent issues during a project we agree on a direct channel."
+      },
+      "nda": {
+        "q": "Do you sign a non-disclosure agreement?",
+        "a": "Yes, when needed we sign an NDA before going into the details of your project."
+      }
+    }
+  },
+  "LostReasons": {
+    "PRICE": "Price",
+    "NO_RESPONSE": "Stopped replying",
+    "NOT_A_FIT": "Not a fit for what we do",
+    "CHOSE_OTHER": "Chose someone else",
+    "TIMING": "Not the right time",
+    "OTHER": "Other"
+  },
+  "Support": {
+    "title": "Support",
+    "lead": "Report a bug, ask for a change or ask us anything. We answer here and by email.",
+    "adminLead": "Requests clients send from their private area.",
+    "new": "New request",
+    "newLead": "The more specific you are, the sooner we sort it out: what happened, where and how to reproduce it.",
+    "back": "Back to support",
+    "emptyTitle": "You haven't opened any requests yet",
+    "emptyBody": "Whenever you need something, open a request and we will follow it up here.",
+    "adminEmptyTitle": "No requests",
+    "adminEmptyBody": "Requests clients open from their private area will show up here.",
+    "request": "Request",
+    "project": "Project",
+    "client": "Client",
+    "status": "Status",
+    "priority": "Priority",
+    "type": "Type",
+    "updated": "Last activity",
+    "opened": "Opened",
+    "number": "Number",
+    "noProject": "None in particular",
+    "titleLabel": "Subject",
+    "description": "Description",
+    "descriptionHint": "For a bug, include the page, what you expected and what happened.",
+    "priorityHint": "Urgent: something in production is not working.",
+    "send": "Send request",
+    "sending": "Sending…",
+    "conversation": "Conversation",
+    "replyLabel": "Your reply",
+    "reply": "Reply",
+    "reopenHint": "Replying reopens the request.",
+    "adminReplyHint": "An email notice goes to {email}.",
+    "statusAfterReply": "Status after replying",
+    "statusHint": "Marking it resolved or closed lets the client know.",
+    "closedNotice": "This request is closed. If you need anything else, open a new one.",
+    "closeTitle": "All sorted?",
+    "closeBody": "Close it if you don't need anything else. You won't be able to reply afterwards.",
+    "close": "Close request",
+    "closing": "Closing…",
+    "activeFilter": "Pending",
+    "types": {
+      "BUG": "Bug",
+      "CHANGE": "Change",
+      "QUESTION": "Question"
+    },
+    "priorities": {
+      "LOW": "Low",
+      "NORMAL": "Normal",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
+    "statuses": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In progress",
+      "WAITING_CLIENT": "Waiting for the client",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    },
+    "waitingYou": "Waiting for your reply",
+    "filesTitle": "Files",
+    "chooseFile": "Choose a file",
+    "uploadFile": "Attach file",
+    "uploadingFile": "Uploading… {percent}%",
+    "fileHint": "Screenshots, logs or documents: any type of file, up to 25 MB.",
+    "fileUploaded": "File attached.",
+    "fileTooLarge": "The file is larger than 25 MB.",
+    "fileFailed": "The upload failed. Please try again.",
+    "fileSignedOut": "Your session has expired. Sign in again and repeat the upload.",
+    "noFiles": "No files yet.",
+    "fileDeleted": "File deleted."
+  }
+}

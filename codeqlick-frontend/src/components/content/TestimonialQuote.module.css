@@ -1,0 +1,57 @@
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  padding: var(--space-6) var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--color-blush);
+}
+
+/* Only the top half of the glyph has ink: the negative margin takes up the empty half. */
+.mark {
+  height: 2.2rem;
+  margin-bottom: calc(-1 * var(--space-3));
+  font-family: var(--font-family-display);
+  font-size: 4.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-fuchsia);
+}
+
+.quote {
+  margin: 0;
+}
+
+.quote p {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: clamp(1.15rem, 2.2vw, 1.4rem);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  white-space: pre-line;
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.author {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.role {
+  font-size: 0.95rem;
+  color: var(--color-slate);
+}
+
+@media (max-width: 40rem) {
+  .figure {
+    padding: var(--space-5);
+  }
+}
