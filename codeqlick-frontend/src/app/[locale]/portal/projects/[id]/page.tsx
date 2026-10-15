@@ -7,6 +7,7 @@ import { nextMilestone, ProjectTimeline } from '@/components/app/ProjectTimeline
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Markdown } from '@/components/markdown/Markdown';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
@@ -40,7 +41,15 @@ export default async function PortalProjectPage({
 
   return (
     <div className={styles.stack}>
-      <PageHeader title={project.name} back={{ href: '/portal', label: t('back') }} />
+      <PageHeader
+        title={project.name}
+        back={{ href: '/portal', label: t('back') }}
+        actions={
+          <Button href={`/portal/support/new?project=${project.id}`} variant="outline" size="sm">
+            {t('askSupport')}
+          </Button>
+        }
+      />
 
       <section className={styles.panel}>
         <dl className={styles.facts}>

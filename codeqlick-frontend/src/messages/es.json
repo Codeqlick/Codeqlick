@@ -538,7 +538,8 @@
   "Portal": {
     "title": "Portal de clientes",
     "nav": {
-      "projects": "Proyectos"
+      "projects": "Proyectos",
+      "support": "Soporte"
     },
     "projectsTitle": "Tus proyectos",
     "projectsLead": "Sigue el avance de todo lo que estamos construyendo juntos.",
@@ -580,7 +581,8 @@
     "writeComment": "Escribir un comentario",
     "commentLabel": "Comentario",
     "sendComment": "Enviar comentario",
-    "sending": "Enviando…"
+    "sending": "Enviando…",
+    "askSupport": "Abrir una petición"
   },
   "Admin": {
     "title": "Administración",
@@ -594,7 +596,8 @@
       "users": "Usuarios",
       "activity": "Actividad",
       "tags": "Etiquetas",
-      "replies": "Respuestas"
+      "replies": "Respuestas",
+      "support": "Soporte"
     },
     "dashboard": {
       "title": "Panel",
@@ -617,7 +620,8 @@
       "caseStudiesSeries": "Casos de éxito",
       "month": "Mes",
       "lostReasons": "Por qué se pierden los contactos",
-      "lostReasonsEmpty": "Todavía no hay contactos perdidos."
+      "lostReasonsEmpty": "Todavía no hay contactos perdidos.",
+      "activeTickets": "Peticiones abiertas"
     },
     "leads": {
       "title": "Contactos",
@@ -895,7 +899,8 @@
         "user": "Usuarios",
         "media": "Imágenes",
         "account": "Cuentas",
-        "tag": "Etiquetas"
+        "tag": "Etiquetas",
+        "support": "Soporte"
       },
       "actions": {
         "post": {
@@ -953,6 +958,12 @@
           "created": "creó la etiqueta <target>{label}</target>",
           "updated": "editó la etiqueta <target>{label}</target>",
           "deleted": "borró la etiqueta <target>{label}</target>"
+        },
+        "support": {
+          "opened": "abrió la petición <target>{label}</target>",
+          "replied": "respondió en la petición <target>{label}</target>",
+          "updated": "cambió la petición <target>{label}</target>",
+          "closed": "cerró la petición <target>{label}</target>"
         }
       },
       "details": {
@@ -1166,5 +1177,65 @@
     "CHOSE_OTHER": "Eligió a otro",
     "TIMING": "No es el momento",
     "OTHER": "Otro motivo"
+  },
+  "Support": {
+    "title": "Soporte",
+    "lead": "Cuéntanos un fallo, pide un cambio o pregúntanos lo que necesites. Te respondemos aquí y por correo.",
+    "adminLead": "Peticiones de los clientes desde su área privada.",
+    "new": "Nueva petición",
+    "newLead": "Cuanto más concreto seas, antes lo resolvemos: qué ha pasado, dónde y cómo reproducirlo.",
+    "back": "Volver a soporte",
+    "emptyTitle": "Aún no has abierto ninguna petición",
+    "emptyBody": "Cuando necesites algo, abre una petición y la seguiremos desde aquí.",
+    "adminEmptyTitle": "No hay peticiones",
+    "adminEmptyBody": "Aquí aparecerán las peticiones que abran los clientes desde su área privada.",
+    "request": "Petición",
+    "project": "Proyecto",
+    "client": "Cliente",
+    "status": "Estado",
+    "priority": "Prioridad",
+    "type": "Tipo",
+    "updated": "Última actividad",
+    "opened": "Abierta",
+    "number": "Número",
+    "noProject": "Ninguno en concreto",
+    "titleLabel": "Asunto",
+    "description": "Descripción",
+    "descriptionHint": "Si es un fallo, incluye la página, lo que esperabas y lo que ocurrió.",
+    "priorityHint": "Urgente: algo en producción no funciona.",
+    "send": "Enviar petición",
+    "sending": "Enviando…",
+    "conversation": "Conversación",
+    "replyLabel": "Tu respuesta",
+    "reply": "Responder",
+    "reopenHint": "Si respondes, la petición se vuelve a abrir.",
+    "adminReplyHint": "Se envía un aviso por correo a {email}.",
+    "statusAfterReply": "Estado tras responder",
+    "statusHint": "Al marcarla como resuelta o cerrada se avisa al cliente.",
+    "closedNotice": "Esta petición está cerrada. Si necesitas algo más, abre una nueva.",
+    "closeTitle": "¿Ya está solucionado?",
+    "closeBody": "Ciérrala si ya no necesitas nada más. No podrás responder después.",
+    "close": "Cerrar petición",
+    "closing": "Cerrando…",
+    "activeFilter": "Pendientes",
+    "types": {
+      "BUG": "Fallo",
+      "CHANGE": "Cambio",
+      "QUESTION": "Consulta"
+    },
+    "priorities": {
+      "LOW": "Baja",
+      "NORMAL": "Normal",
+      "HIGH": "Alta",
+      "URGENT": "Urgente"
+    },
+    "statuses": {
+      "OPEN": "Abierta",
+      "IN_PROGRESS": "En curso",
+      "WAITING_CLIENT": "Esperando al cliente",
+      "RESOLVED": "Resuelta",
+      "CLOSED": "Cerrada"
+    },
+    "waitingYou": "Esperando tu respuesta"
   }
 }

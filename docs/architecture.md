@@ -89,6 +89,7 @@ src/
     posts/                   Blog (EN/ES translations)
     portfolio/               Case studies (EN/ES translations)
     projects/                Client projects + progress updates (admin writes, client reads own)
+    support/                 Support requests: clients open and answer them in the portal, the team in the admin panel
     media/                   Image uploads (admin) stored on disk and served publicly
 prisma/
   schema.prisma
@@ -144,6 +145,8 @@ erDiagram
 - **ProjectUpdateComment** — a comment on an update by the client or the team: `body` (plain text, max 5000), `authorId?`, `createdAt`. Comments by an ADMIN are shown as the team's.
 - **ProjectMilestone** — a step of the project shown to the client as a timeline: `title`, `description?` (plain text, max 2000), `dueDate?`, `completedAt?` (set when the admin marks it done; null while open), `position` (order set by the admin, 0-based). The first milestone not done is the "next" one.
 - **ProjectFile** — a file shared with the project's client: `name` (original name, cleaned), `contentType` (as sent by the uploader; informational), `size`, `uploadedById?`. The content is stored on disk at `UPLOADS_DIR/project-files/<id>`, never under a public URL.
+- **SupportTicket** — a request a client opens from the portal: `number` (sequential, shown as `#12`), `clientId`, `projectId?` (one of the client's projects), `type` (`BUG` | `CHANGE` | `QUESTION`), `priority` (`LOW` | `NORMAL` | `HIGH` | `URGENT`), `status` (`OPEN` | `IN_PROGRESS` | `WAITING_CLIENT` | `RESOLVED` | `CLOSED`), `title`, `resolvedAt?` (set when it becomes RESOLVED or CLOSED, cleared when it is reopened).
+- **TicketMessage** — the request's conversation, oldest first: `body` (plain text, max 20 000), `authorId?`. The first message is the client's description; messages by an ADMIN are shown as the team's.
 - **SavedReply** — a reusable text for lead replies and project comments: `title` (only the admin sees it) and `body`. The admin panel puts `{name}` (lead or client) and `{project}` in when it inserts the text.
 - **ActivityLog** — who changed what: `actorId?` (null once the user is deleted) and `actorName` copied at the time, `action` (`<target>.<verb>`, e.g. `post.published`), `targetType`, `targetId?`, `targetLabel?` (title, name or email at the time), `details?` (JSON: what changed, e.g. `{ phase, progress }`). Written by the services after each admin change and each change to one's own account (password, two-step verification, signing out devices); a failed write is logged and never fails the change.
 
@@ -260,13 +263,20 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/portal/projects/:id/updates/:updateId/comments` | `{ body }` → `201 UpdateComment` (`{ id, body, createdAt, author: { name, team } }`). A client's comment emails the team inbox (`LEADS_NOTIFY_TO`, reply-to the client) |
 | POST | `/portal/projects/:id/updates/:updateId/approval` | Role CLIENT only (403 for admins) → `ProjectUpdate` with `approvedAt`; 400 when the update doesn't ask for approval; approving again keeps the first approval. Emails the team inbox |
 | GET | `/portal/projects/:id/files/:fileId` | The file, always as `application/octet-stream` with `Content-Disposition: attachment` (UTF-8 name); 404 if the project isn't the caller's |
+| GET / POST | `/portal/tickets` | GET `?page&pageSize` → `Paginated<Ticket>` of the caller's requests, latest activity first. POST (role CLIENT only) `{ type, priority?, title, body, projectId? }` → `201 TicketDetail`; 400 when `projectId` isn't one of the caller's projects. Emails the team inbox (`LEADS_NOTIFY_TO`, reply-to the client) |
+| GET | `/portal/tickets/:id` | `TicketDetail`; 404 if it isn't the caller's |
+| POST | `/portal/tickets/:id/messages` | `{ body }` → `TicketDetail`. A request `WAITING_CLIENT` or `RESOLVED` goes back to `IN_PROGRESS`; 409 when it is `CLOSED`. Emails the team inbox |
+| POST | `/portal/tickets/:id/close` | → `TicketDetail` with status `CLOSED` (no more replies) |
 
 ### Admin (role `ADMIN`)
 
 | Method | Path | Body / query |
 |---|---|---|
-| GET | `/admin/stats` | `{ leads: { new, total }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients }` |
+| GET | `/admin/stats` | `{ leads: { new, total, lostReasons }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients, support: { active } }` (`support.active`: requests not resolved or closed) |
 | GET | `/admin/stats/timeline` | `?months=12` (1–36) → `{ months: [{ month: 'yyyy-mm', leads, leadsWon, posts, caseStudies }] }`: oldest first, every month present; leads by the month they came in, posts and case studies by the month they went live; months in Madrid time |
+| GET | `/admin/tickets` | `?status&active=true&page&pageSize` → `Paginated<Ticket>`, latest activity first; `active=true` leaves out RESOLVED and CLOSED |
+| GET / PATCH | `/admin/tickets/:id` | `TicketDetail` / `{ status?, priority? }`. Moving it to RESOLVED or CLOSED, or reopening a resolved one, emails the client |
+| POST | `/admin/tickets/:id/messages` | `{ body, status? }` (default `WAITING_CLIENT`) → `TicketDetail`; emails the client the answer in their language, with a link to `SITE_URL/{locale}/portal/support/:id` |
 | GET / POST | `/admin/saved-replies` | List (by title) / create `{ title, body }` |
 | PATCH / DELETE | `/admin/saved-replies/:id` | `{ title?, body? }` / `204` |
 | POST | `/admin/projects/weekly-digest/:clientId` | Sends that client's weekly summary now → `{ sent: true }`, or `{ sent: false, reason: 'no-news' }` |
@@ -336,6 +346,13 @@ type ClientProject = {
 };
 
 type Lead = { id: string; name: string; email: string; company: string | null; budget: string | null; message: string; locale: Locale; status: 'NEW' | 'TALKING' | 'CALL' | 'PROPOSAL' | 'WON' | 'LOST' | 'SPAM'; notes: string | null; lostReason: 'PRICE' | 'NO_RESPONSE' | 'NOT_A_FIT' | 'CHOSE_OTHER' | 'TIMING' | 'OTHER' | null; followUpOn: string | null; clientId: string | null; createdAt: string; updatedAt: string };
+type Ticket = {
+  id: string; number: number; type: 'BUG' | 'CHANGE' | 'QUESTION'; priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  status: 'OPEN' | 'IN_PROGRESS' | 'WAITING_CLIENT' | 'RESOLVED' | 'CLOSED'; title: string;
+  client: { id: string; name: string; email: string }; project: { id: string; name: string } | null;
+  createdAt: string; updatedAt: string; resolvedAt: string | null;
+};
+type TicketDetail = Ticket & { messages: { id: string; body: string; createdAt: string; author: { name: string; team: boolean } }[] };
 type AdminUser = AuthUser & { isActive: boolean; createdAt: string };
 ```
 
@@ -371,8 +388,8 @@ src/
       login/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password (worded as a first password with `welcome=1`)
-      portal/                  Client area (role CLIENT or ADMIN): projects, account
-      admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, recent activity), leads, posts, portfolio, projects, media, users, activity, account;
+      portal/                  Client area (role CLIENT or ADMIN): projects, support requests, account
+      admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, recent activity), leads, support, posts, portfolio, projects, media, users, activity, account;
                                posts and portfolio items have a preview page that renders the saved draft; Markdown
                                fields (post and case-study content, project description and updates) have a live
                                preview next to the editor (MarkdownField, client-side, same renderer as the site)
@@ -389,7 +406,7 @@ src/
   lib/
     api/client.ts              Typed fetch wrapper (server-only): base URL, auth header, problem+json errors
     api/types.ts               Types from the API contract (section 5)
-    api/*.ts                   One file per resource: posts, portfolio, leads, projects, users, auth, stats
+    api/*.ts                   One file per resource: posts, portfolio, leads, projects, support, users, auth, stats
     auth/session.ts            Cookie names, read/write tokens, getCurrentUser(), requireRole()
     env.ts                     Server env validated with Zod (API_URL, SITE_URL)
   styles/

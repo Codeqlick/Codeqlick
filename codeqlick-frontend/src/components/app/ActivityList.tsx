@@ -12,6 +12,7 @@ const ADMIN_SECTIONS: Record<string, string> = {
   project: 'projects',
   lead: 'leads',
   user: 'users',
+  support: 'support',
 };
 
 /** Admin page of the thing an entry is about, while it can still exist. */
@@ -44,6 +45,7 @@ export async function ActivityList({
   const tl = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tr = await getTranslations({ locale, namespace: 'Roles' });
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
+  const tt = await getTranslations({ locale, namespace: 'Support.statuses' });
 
   /** Short notes on what changed, in the reader's language. Unknown keys are skipped. */
   function detailNotes(entry: ActivityEntry): string[] {
@@ -53,11 +55,14 @@ export async function ActivityList({
     if ('status' in details) {
       // Entries from before the lead stages were renamed carry the old names.
       const status = LEGACY_LEAD_STATUSES[text(details.status)] ?? text(details.status);
-      notes.push(
-        t('details.status', {
-          value: entry.target.type === 'lead' ? tl(status as never) : ts(status as never),
-        }),
-      );
+      const type = entry.target.type;
+      const label =
+        type === 'lead'
+          ? tl(status as never)
+          : type === 'support'
+            ? tt(status as never)
+            : ts(status as never);
+      notes.push(t('details.status', { value: label }));
     }
     if ('project' in details) notes.push(t('details.project', { value: text(details.project) }));
     if ('phase' in details)

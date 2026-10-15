@@ -24,6 +24,7 @@ export default async function PortalLayout({ children, params }: LayoutProps) {
   const items: AppNavItem[] = [
     // Exact: /portal/account must not highlight it too.
     { href: '/portal', label: t('nav.projects'), exact: true },
+    { href: '/portal/support', label: t('nav.support') },
     { href: '/portal/account', label: tc('nav') },
   ];
   if (user.role === 'ADMIN') items.push({ href: '/admin', label: ta('title') });

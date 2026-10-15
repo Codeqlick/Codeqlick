@@ -90,6 +90,8 @@ model User {
   approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
   updateComments  ProjectUpdateComment[]
   leadsConverted  Lead[]                 @relation("LeadClient")
+  tickets         SupportTicket[]
+  ticketMessages  TicketMessage[]
   projectFiles    ProjectFile[]
   activity        ActivityLog[]
   leadReplies     LeadReply[]
@@ -295,6 +297,7 @@ model ClientProject {
   updates    ProjectUpdate[]
   files      ProjectFile[]
   milestones ProjectMilestone[]
+  tickets    SupportTicket[]
 
   @@index([clientId])
   @@map("client_projects")
@@ -407,4 +410,64 @@ model SavedReply {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("saved_replies")
+}
+
+enum TicketType {
+  BUG
+  CHANGE
+  QUESTION
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CLIENT
+  RESOLVED
+  CLOSED
+}
+
+/// A support request a client opens from the portal: a bug, a change or a question.
+model SupportTicket {
+  id         String         @id @default(uuid()) @db.Uuid
+  /// Short reference shown to people (#12).
+  number     Int            @unique @default(autoincrement())
+  clientId   String         @map("client_id") @db.Uuid
+  projectId  String?        @map("project_id") @db.Uuid
+  type       TicketType
+  priority   TicketPriority @default(NORMAL)
+  status     TicketStatus   @default(OPEN)
+  title      String
+  resolvedAt DateTime?      @map("resolved_at") @db.Timestamptz(3)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client   User            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project  ClientProject?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  messages TicketMessage[]
+
+  @@index([status, updatedAt])
+  @@index([clientId, updatedAt])
+  @@map("support_tickets")
+}
+
+/// A message in a support request's conversation; the first one is the description.
+model TicketMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  authorId  String?  @map("author_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_messages")
 }
