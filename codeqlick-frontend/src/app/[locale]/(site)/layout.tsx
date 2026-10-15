@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { Analytics } from '@/components/layout/Analytics';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { resolveLocale } from '@/i18n/locale';
@@ -23,6 +24,7 @@ export default async function SiteLayout({
       <SiteHeader locale={locale} />
       <main id="main">{children}</main>
       <SiteFooter locale={locale} />
+      <Analytics />
     </>
   );
 }

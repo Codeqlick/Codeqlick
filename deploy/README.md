@@ -139,6 +139,27 @@ docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 
 `docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
+### Analytics (Umami)
+
+Cookieless visit statistics, no consent banner needed. `umami` and its database `umami-db` run
+next to the site. Visitors' browsers never reach Umami: the site serves the tracker and forwards
+its events at `/api/stats/*`. Admin and portal pages are not tracked; neither are visitors with
+"Do Not Track" on. Sent contact requests are counted as the `contact-sent` event.
+
+Set-up (once): put `UMAMI_DB_PASSWORD` and `UMAMI_APP_SECRET` in `.env` (`openssl rand -hex 24`
+each) and deploy. Then sign in to the dashboard (first login `admin` / `umami`), **change that
+password**, add the website `codeqlick.com`, copy its id to `UMAMI_WEBSITE_ID` in `.env` and
+deploy again (the pages are rebuilt with the tracker).
+
+The dashboard listens on `127.0.0.1:3020`. Until it has its own Nginx site, open it through an SSH
+tunnel and browse to http://localhost:3020:
+
+```bash
+ssh -N -L 3020:127.0.0.1:3020 cqadmin@<server>
+```
+
+Analytics is not part of the daily backups: losing it loses statistics, nothing else.
+
 ### Locked out of two-step verification
 
 If someone lost both their phone and their recovery codes, turn two-step verification off for

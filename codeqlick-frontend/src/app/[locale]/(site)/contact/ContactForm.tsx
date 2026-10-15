@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Input, Select, Textarea } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -16,6 +16,11 @@ export function ContactForm({ renderedAt }: { renderedAt: number }) {
   const tc = useTranslations('Common');
   const locale = useLocale();
   const [state, formAction] = useActionState(submitContact, initialFormState);
+
+  // Counts sent contact requests in the analytics (when Umami is loaded), tied to the page.
+  useEffect(() => {
+    if (state.status === 'success') window.umami?.track('contact-sent');
+  }, [state.status]);
 
   if (state.status === 'success') {
     return (

@@ -77,7 +77,12 @@ services:
       - "127.0.0.1:${API_PORT:-4010}:4000"
 
   web:
-    build: ./codeqlick-frontend
+    build:
+      context: ./codeqlick-frontend
+      # Statically rendered pages are built with the tracker tag, so it needs these at build time.
+      args:
+        UMAMI_URL: http://umami:3000
+        UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     restart: unless-stopped
     depends_on:
       api:
@@ -87,10 +92,50 @@ services:
       API_URL: http://api:4000/v1
       SITE_URL: ${SITE_URL}
       NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+      # Analytics: the site proxies the tracker to Umami (see "Analytics" in deploy/README.md).
+      UMAMI_URL: http://umami:3000
+      UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
     ports:
       - "127.0.0.1:${WEB_PORT:-3010}:3000"
+
+  # Cookieless analytics (Umami), with its own database. The site reaches it inside the Docker
+  # network; its dashboard listens on 127.0.0.1 only (Nginx site or an SSH tunnel).
+  umami-db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env}
+      POSTGRES_DB: umami
+    volumes:
+      - umami-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.0
+    restart: unless-stopped
+    init: true
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in .env}
+      DISABLE_TELEMETRY: "1"
+    ports:
+      - "127.0.0.1:${UMAMI_PORT:-3020}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/heartbeat > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      start_period: 1m
 
 volumes:
   db-data:
   # Images uploaded from the admin panel.
   uploads-data:
+  umami-db-data:
