@@ -652,8 +652,6 @@
       "boardLead": "Drag each lead to its stage (or use its “Move to” menu). Leads marked as spam only show in the list.",
       "moveTo": "Move to",
       "boardEmpty": "None.",
-      "boardEstimate": "≈",
-      "boardEstimateHint": "Estimate from the budget each lead picked (the middle of its range).",
       "boardFailed": "The change couldn't be saved. Reload the page and try again.",
       "boardMore": "And {count} more in the list.",
       "boardHints": {
@@ -679,7 +677,8 @@
       "viewClient": "See their account",
       "followUpDue": "Follow-up due",
       "followUp": "Follow up on {date}",
-      "lostWithoutReason": "No reason"
+      "lostWithoutReason": "No reason",
+      "boardFollowUpsDue": "{count} to follow up"
     },
     "posts": {
       "title": "Posts",

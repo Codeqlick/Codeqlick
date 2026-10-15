@@ -3,7 +3,6 @@
 import { useOptimistic, useState, useTransition, type DragEvent } from 'react';
 import { Link } from '@/i18n/navigation';
 import type { Lead, LeadStatus } from '@/lib/api/types';
-import { estimatedValue } from '@/lib/lead-value';
 import styles from './LeadBoard.module.css';
 
 export type BoardLabels = {
@@ -18,8 +17,8 @@ export type BoardLabels = {
   budgets: Record<string, string>;
   moveTo: string;
   empty: string;
-  estimate: string;
-  estimateHint: string;
+  /** With `{count}`: leads in the column whose follow-up date has arrived. */
+  followUpsDue: string;
   failed: string;
   more: string;
 };
@@ -28,6 +27,13 @@ type Card = Pick<
   Lead,
   'id' | 'name' | 'company' | 'budget' | 'status' | 'createdAt' | 'lostReason' | 'followUpOn'
 >;
+
+/** An open lead whose follow-up date has arrived (dates compared as `yyyy-mm-dd`). */
+function isDue(card: Card, today: string): boolean {
+  return (
+    !!card.followUpOn && card.status !== 'WON' && card.status !== 'LOST' && card.followUpOn <= today
+  );
+}
 
 /**
  * Leads as a board, one column per status. Cards move by drag and drop or with their "Move to"
@@ -62,11 +68,6 @@ export function LeadBoard({
   );
   const [over, setOver] = useState<LeadStatus>();
 
-  const money = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  });
   // Same zone on the server and in the browser, so the first render matches.
   const date = new Intl.DateTimeFormat(locale, {
     day: 'numeric',
@@ -100,7 +101,7 @@ export function LeadBoard({
       <div className={styles.board}>
         {columns.map((status) => {
           const inColumn = cards.filter((card) => card.status === status);
-          const value = inColumn.reduce((sum, card) => sum + estimatedValue(card.budget), 0);
+          const due = inColumn.filter((card) => isDue(card, today)).length;
           const hidden = (totals[status] ?? inColumn.length) - inColumn.length;
           return (
             // Drag and drop is a mouse shortcut; every card's "Move to" menu does the same for
@@ -124,9 +125,9 @@ export function LeadBoard({
                 {labels.hints[status] ? (
                   <p className={styles.hint}>{labels.hints[status]}</p>
                 ) : null}
-                {value > 0 ? (
-                  <p className={styles.value} title={labels.estimateHint}>
-                    {labels.estimate} {money.format(value)}
+                {due > 0 ? (
+                  <p className={styles.dueCount}>
+                    {labels.followUpsDue.replace('{count}', String(due))}
                   </p>
                 ) : null}
               </header>
@@ -159,8 +160,8 @@ export function LeadBoard({
                       </p>
                     ) : null}
                     {card.followUpOn && card.status !== 'WON' && card.status !== 'LOST' ? (
-                      <p className={card.followUpOn <= today ? styles.due : styles.meta}>
-                        {card.followUpOn <= today
+                      <p className={isDue(card, today) ? styles.due : styles.meta}>
+                        {isDue(card, today)
                           ? labels.followUpDue
                           : labels.followUp.replace(
                               '{date}',
