@@ -166,7 +166,7 @@
     },
     "contact": {
       "title": "Have an idea? Let's build it.",
-      "body": "Tell us about your project and we'll get back to you within one business day.",
+      "body": "Tell us about your project and we'll get back to you within two business days.",
       "cta": "Start a project"
     },
     "testimonials": {
@@ -339,12 +339,12 @@
   },
   "Contact": {
     "metaTitle": "Contact",
-    "metaDescription": "Tell Codeqlick about your project. We reply within one business day.",
+    "metaDescription": "Tell Codeqlick about your project. We reply within two business days.",
     "eyebrow": "Contact",
     "title": "Tell us about your project",
-    "lead": "A few lines are enough to get started. We'll get back to you within one business day.",
+    "lead": "A few lines are enough to get started. We'll get back to you within two business days.",
     "asideTitle": "Prefer email?",
-    "asideBody": "Write to us directly and we'll reply within one business day.",
+    "asideBody": "Write to us directly and we'll reply within two business days.",
     "form": {
       "name": "Name",
       "email": "Email",
@@ -355,7 +355,7 @@
       "submit": "Send message",
       "sending": "Sending…",
       "successTitle": "Thanks — message received.",
-      "successBody": "We'll get back to you within one business day.",
+      "successBody": "We'll get back to you within two business days.",
       "error": "We couldn't send your message. Please check the form and try again.",
       "rateLimited": "Too many messages in a short time. Please wait a minute and try again.",
       "privacyNote": "We'll only use the details you send to answer you. More in the <link>privacy policy</link>.",
@@ -1306,7 +1306,7 @@
       },
       "response": {
         "q": "How quickly do you reply?",
-        "a": "We reply to messages within one business day at most. For urgent issues during a project we agree on a direct channel."
+        "a": "We reply to messages within two business days at most. For urgent issues during a project we agree on a direct channel."
       },
       "nda": {
         "q": "Do you sign a non-disclosure agreement?",
