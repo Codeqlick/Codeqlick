@@ -55,7 +55,7 @@ They share **no code**. The contract between them is the HTTP API (section 5), d
 | Frontend framework | Next.js 16 (App Router) + React 19 | `proxy.ts` (formerly middleware) |
 | i18n | `next-intl` 4 | `/en/...` and `/es/...`, English default |
 | Styling | CSS Modules + design tokens | Brand tokens in `src/styles/tokens.css` |
-| Fonts | `next/font/google` | Downloaded at build time, served from our domain (no Google requests at runtime) |
+| Fonts | `next/font/local` | Latin subset of each variable font (OFL, from Fontsource) in `src/assets/fonts`, served from our domain; neither builds nor visitors reach Google |
 | Lint / format | oxlint + Prettier | Both apps |
 | CI | GitHub Actions | Lint, typecheck, test, build per app |
 
