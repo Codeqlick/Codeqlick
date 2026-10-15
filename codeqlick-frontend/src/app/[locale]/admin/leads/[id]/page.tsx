@@ -13,7 +13,12 @@ import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import { LEAD_STATUSES, LOST_REASONS, type Lead, type LeadReply } from '@/lib/api/types';
 import { Link } from '@/i18n/navigation';
 import { formatDateTime } from '@/lib/format';
-import { BUDGET_VALUES, type BudgetValue } from '@/lib/schemas/contact';
+import {
+  BUDGET_VALUES,
+  PROJECT_TYPES,
+  type BudgetValue,
+  type ProjectType,
+} from '@/lib/schemas/contact';
 import { convertLeadAction, replyToLeadAction, updateLeadAction } from '../actions';
 
 export default async function AdminLeadPage({
@@ -27,6 +32,7 @@ export default async function AdminLeadPage({
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const ts = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tb = await getTranslations({ locale, namespace: 'Contact.budgets' });
+  const tpt = await getTranslations({ locale, namespace: 'Contact.projectTypes' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
   const tr = await getTranslations({ locale, namespace: 'LostReasons' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
@@ -42,6 +48,8 @@ export default async function AdminLeadPage({
     throw error;
   }
 
+  const knownType = PROJECT_TYPES.find((value) => value === lead.projectType) as
+    ProjectType | undefined;
   const knownBudget = BUDGET_VALUES.find((value) => value === lead.budget) as
     BudgetValue | undefined;
 
@@ -70,9 +78,16 @@ export default async function AdminLeadPage({
             <dd>{lead.company ?? tc('none')}</dd>
           </div>
           <div>
-            <dt>{t('budget')}</dt>
-            <dd>{knownBudget ? tb(knownBudget) : (lead.budget ?? tc('none'))}</dd>
+            <dt>{t('projectType')}</dt>
+            <dd>{knownType ? tpt(knownType) : (lead.projectType ?? tc('none'))}</dd>
           </div>
+          {/* Only older leads have one: the form asked for a budget before. */}
+          {lead.budget ? (
+            <div>
+              <dt>{t('budget')}</dt>
+              <dd>{knownBudget ? tb(knownBudget) : lead.budget}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('locale')}</dt>
             <dd>{tl(lead.locale)}</dd>

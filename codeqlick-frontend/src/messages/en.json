@@ -349,8 +349,6 @@
       "name": "Name",
       "email": "Email",
       "company": "Company",
-      "budget": "Budget",
-      "budgetPlaceholder": "Select a range",
       "message": "Message",
       "messageHint": "What are you building, for whom, and by when?",
       "website": "Leave this field empty",
@@ -360,13 +358,23 @@
       "successBody": "We'll get back to you within one business day.",
       "error": "We couldn't send your message. Please check the form and try again.",
       "rateLimited": "Too many messages in a short time. Please wait a minute and try again.",
-      "privacyNote": "We'll only use the details you send to answer you. More in the <link>privacy policy</link>."
+      "privacyNote": "We'll only use the details you send to answer you. More in the <link>privacy policy</link>.",
+      "projectType": "What do you need?",
+      "projectTypePlaceholder": "Choose an option"
     },
     "budgets": {
       "lt-5k": "< €5k",
       "5k-15k": "€5k–15k",
       "15k-40k": "€15k–40k",
       "gt-40k": "> €40k",
+      "not-sure": "Not sure yet"
+    },
+    "projectTypes": {
+      "web": "A website",
+      "custom": "A custom application",
+      "mobile": "A mobile app",
+      "design": "Design",
+      "support": "Maintenance or improvements",
       "not-sure": "Not sure yet"
     }
   },
@@ -693,7 +701,8 @@
       "followUpDue": "Follow-up due",
       "followUp": "Follow up on {date}",
       "lostWithoutReason": "No reason",
-      "boardFollowUpsDue": "{count} to follow up"
+      "boardFollowUpsDue": "{count} to follow up",
+      "projectType": "Project type"
     },
     "posts": {
       "title": "Posts",
