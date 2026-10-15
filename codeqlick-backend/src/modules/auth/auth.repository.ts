@@ -23,6 +23,10 @@ export class AuthRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
+  async setWeeklyDigest(id: string, weeklyDigest: boolean): Promise<void> {
+    await this.prisma.user.update({ where: { id }, data: { weeklyDigest } });
+  }
+
   findUserById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }

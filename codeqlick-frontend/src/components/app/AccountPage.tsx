@@ -1,14 +1,15 @@
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormInput } from '@/components/app/ActionForm';
+import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
 import { ActiveSessions } from '@/components/app/ActiveSessions';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TwoFactorSetup } from '@/components/app/TwoFactorSetup';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
-import { getTwoFactorStatus } from '@/lib/api/auth';
+import { getPreferences, getTwoFactorStatus } from '@/lib/api/auth';
 import {
   changePasswordAction,
+  updatePreferencesAction,
   disableTwoFactorAction,
   enableTwoFactorAction,
   startTwoFactorAction,
@@ -21,7 +22,7 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
   const t = await getTranslations({ locale, namespace: 'Account' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tf = await getTranslations({ locale, namespace: 'TwoFactor' });
-  const twoFactor = await getTwoFactorStatus();
+  const [twoFactor, preferences] = await Promise.all([getTwoFactorStatus(), getPreferences()]);
 
   return (
     <div className={styles.stack}>
@@ -121,6 +122,23 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
           </>
         )}
       </section>
+
+      {user.role === 'CLIENT' ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('emails')}</h2>
+          <ActionForm action={updatePreferencesAction.bind(null, locale)} className={styles.form}>
+            <FormCheckbox
+              name="weeklyDigest"
+              label={t('weeklyDigest')}
+              hint={t('weeklyDigestHint')}
+              defaultChecked={preferences.weeklyDigest}
+            />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={tc('saving')}>{tc('save')}</SubmitButton>
+            </div>
+          </ActionForm>
+        </section>
+      ) : null}
 
       <ActiveSessions locale={locale} />
     </div>

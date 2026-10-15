@@ -52,3 +52,11 @@ export function adminUpdateUser(id: string, input: UserPatch) {
     auth: 'required',
   });
 }
+
+/** Sends a client their weekly summary now; `sent: false` when they have no news this week. */
+export function adminSendWeeklyDigest(id: string) {
+  return apiFetch<{ sent: boolean; reason?: string }>(
+    `/admin/projects/weekly-digest/${encodeURIComponent(id)}`,
+    { method: 'POST', auth: 'required' },
+  );
+}

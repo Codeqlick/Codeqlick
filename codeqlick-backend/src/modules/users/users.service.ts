@@ -17,7 +17,13 @@ import { PasswordService } from '../auth/password.service.js';
 import { UsersRepository } from './users.repository.js';
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.schemas.js';
 
-export type AdminUser = AuthUser & { isActive: boolean; locale: ApiLocale; createdAt: string };
+export type AdminUser = AuthUser & {
+  isActive: boolean;
+  locale: ApiLocale;
+  /** Clients: whether they get the Monday summary of their projects. */
+  weeklyDigest: boolean;
+  createdAt: string;
+};
 
 /** A created user; `invitationSent` only when no password was given and a welcome email was due. */
 export type CreatedUser = AdminUser & { invitationSent?: boolean };
@@ -30,6 +36,7 @@ export function toAdminUser(user: User): AdminUser {
     role: user.role,
     isActive: user.isActive,
     locale: toApiLocale(user.locale),
+    weeklyDigest: user.weeklyDigest,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -126,6 +133,7 @@ export class UsersService {
     if (input.role !== undefined) data.role = input.role;
     if (input.isActive !== undefined) data.isActive = input.isActive;
     if (input.locale !== undefined) data.locale = toDbLocale(input.locale);
+    if (input.weeklyDigest !== undefined) data.weeklyDigest = input.weeklyDigest;
     if (input.password !== undefined) data.passwordHash = await this.passwords.hash(input.password);
 
     // Deactivation, a password reset or a role change ends every existing session.

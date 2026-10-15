@@ -63,6 +63,10 @@ model User {
   totpLastStep       Int?      @map("totp_last_step")
   /// SHA-256 of each unused recovery code.
   totpRecoveryHashes String[]  @default([]) @map("totp_recovery_hashes")
+  /// Clients get a Monday summary of their projects unless they turn it off.
+  weeklyDigest       Boolean   @default(true) @map("weekly_digest")
+  /// When the last summary went out, so each client gets one per week even across restarts.
+  lastDigestAt       DateTime? @map("last_digest_at") @db.Timestamptz(3)
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 

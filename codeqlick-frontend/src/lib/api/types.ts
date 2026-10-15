@@ -266,7 +266,16 @@ export type LeadInput = {
 };
 
 /** `locale`: language of the emails the platform sends the user. */
-export type AdminUser = AuthUser & { isActive: boolean; locale: 'en' | 'es'; createdAt: string };
+export type AdminUser = AuthUser & {
+  isActive: boolean;
+  locale: 'en' | 'es';
+  /** Clients: the Monday summary of their projects. */
+  weeklyDigest: boolean;
+  createdAt: string;
+};
+
+/** `GET /auth/preferences`: the caller's email preferences. */
+export type Preferences = { weeklyDigest: boolean };
 
 /** Without `password`, the user is emailed a link to choose one. `locale`: language of their emails. */
 export type UserInput = {
@@ -286,6 +295,7 @@ export type UserPatch = {
   isActive?: boolean;
   role?: Role;
   locale?: 'en' | 'es';
+  weeklyDigest?: boolean;
 };
 
 export type AdminStats = {

@@ -44,6 +44,7 @@ import {
   type UpdateMilestoneInput,
   type UpdateProjectInput,
 } from './projects.schemas.js';
+import { WeeklyDigestService, type DigestResult } from './weekly-digest.service.js';
 import {
   MAX_PROJECT_FILE_BYTES,
   ProjectsService,
@@ -60,7 +61,17 @@ import {
 @Roles('ADMIN')
 @Controller('admin/projects')
 export class AdminProjectsController {
-  constructor(private readonly projects: ProjectsService) {}
+  constructor(
+    private readonly projects: ProjectsService,
+    private readonly digest: WeeklyDigestService,
+  ) {}
+
+  /** Sends a client their weekly summary now (to check it); `sent: false` when there's no news. */
+  @Post('weekly-digest/:id')
+  @HttpCode(HttpStatus.OK)
+  sendDigest(@Param({ schema: idParamSchema }) params: IdParam): Promise<DigestResult> {
+    return this.digest.sendNow(params.id);
+  }
 
   @Get()
   list(

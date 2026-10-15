@@ -25,6 +25,7 @@ export const updateUserSchema = z
     isActive: z.boolean().optional(),
     role: roleSchema.optional(),
     locale: localeSchema.optional(),
+    weeklyDigest: z.boolean().optional(),
   })
   .strict();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
