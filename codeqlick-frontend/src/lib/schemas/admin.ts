@@ -132,13 +132,18 @@ export const projectUpdateSchema = z.object({
 
 export const ROLES = ['ADMIN', 'CLIENT'] as const;
 
+/** Languages a welcome email can be written in. */
+export const EMAIL_LOCALES = ['es', 'en'] as const;
+
 export const passwordSchema = z.string().min(12, 'password').max(256, 'tooLong');
 
 export const userCreateSchema = z.object({
   name: requiredString(120),
   email: z.string().trim().min(1, 'required').pipe(z.email('email')),
   role: z.enum(ROLES, 'choice'),
-  password: passwordSchema,
+  // Left empty, the user is emailed a link to choose it.
+  password: z.preprocess((value) => (value === '' ? undefined : value), passwordSchema.optional()),
+  locale: z.enum(EMAIL_LOCALES, 'choice'),
 });
 
 export const userUpdateSchema = z.object({
@@ -148,3 +153,5 @@ export const userUpdateSchema = z.object({
 });
 
 export const passwordResetSchema = z.object({ password: passwordSchema });
+
+export const invitationSchema = z.object({ locale: z.enum(EMAIL_LOCALES, 'choice') });

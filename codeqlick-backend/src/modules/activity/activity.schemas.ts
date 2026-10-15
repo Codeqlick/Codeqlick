@@ -36,6 +36,7 @@ export const ACTIVITY_ACTIONS = [
   'project.file_deleted',
   'user.created',
   'user.updated',
+  'user.invited',
   'lead.updated',
   'tag.created',
   'tag.updated',

@@ -4,7 +4,7 @@ import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
-import { ROLES } from '@/lib/schemas/admin';
+import { EMAIL_LOCALES, ROLES } from '@/lib/schemas/admin';
 import { createUserAction } from '../actions';
 
 export default async function NewUserPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -12,6 +12,7 @@ export default async function NewUserPage({ params }: { params: Promise<{ locale
   const t = await getTranslations({ locale, namespace: 'Admin.users' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tr = await getTranslations({ locale, namespace: 'Roles' });
+  const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
 
   return (
     <>
@@ -29,15 +30,20 @@ export default async function NewUserPage({ params }: { params: Promise<{ locale
               options={ROLES.map((value) => ({ value, label: tr(value) }))}
               defaultValue="CLIENT"
             />
-            <FormInput
-              name="password"
-              type="password"
-              label={t('password')}
-              hint={t('passwordHint')}
-              autoComplete="new-password"
-              required
+            <FormSelect
+              name="emailLocale"
+              label={t('emailLocale')}
+              options={EMAIL_LOCALES.map((value) => ({ value, label: tl(value) }))}
+              defaultValue={locale}
             />
           </div>
+          <FormInput
+            name="password"
+            type="password"
+            label={t('passwordOptional')}
+            hint={t('passwordOptionalHint')}
+            autoComplete="new-password"
+          />
           <div className={styles.actions}>
             <SubmitButton pendingLabel={tc('creating')}>{tc('create')}</SubmitButton>
           </div>

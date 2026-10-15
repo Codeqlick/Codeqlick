@@ -16,7 +16,11 @@ import { loginAction } from './actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ next?: string | string[]; reset?: string | string[] }>;
+  searchParams: Promise<{
+    next?: string | string[];
+    reset?: string | string[];
+    welcome?: string | string[];
+  }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -42,6 +46,7 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
           <h1 className={styles.title}>{t('title')}</h1>
           <p className={styles.muted}>{t('subtitle')}</p>
           {query.reset ? <Alert tone="success">{t('passwordReset')}</Alert> : null}
+          {query.welcome ? <Alert tone="success">{t('passwordCreated')}</Alert> : null}
           <ActionForm action={loginAction} className={styles.form}>
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="next" value={firstParam(query.next) ?? ''} />

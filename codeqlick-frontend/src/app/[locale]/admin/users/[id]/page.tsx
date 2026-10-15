@@ -6,8 +6,8 @@ import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { adminGetUser } from '@/lib/api/users';
-import { ROLES } from '@/lib/schemas/admin';
-import { resetPasswordAction, updateUserAction } from '../actions';
+import { EMAIL_LOCALES, ROLES } from '@/lib/schemas/admin';
+import { resetPasswordAction, sendInvitationAction, updateUserAction } from '../actions';
 
 export default async function EditUserPage({
   params,
@@ -19,6 +19,7 @@ export default async function EditUserPage({
   const t = await getTranslations({ locale, namespace: 'Admin.users' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const tr = await getTranslations({ locale, namespace: 'Roles' });
+  const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
   const back = { href: '/admin/users', label: t('back') };
 
   const user = await adminGetUser(id);
@@ -58,6 +59,29 @@ export default async function EditUserPage({
           </div>
         </ActionForm>
       </section>
+
+      {user.isActive && (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('invitation')}</h2>
+          <ActionForm
+            action={sendInvitationAction.bind(null, locale, user.id)}
+            className={styles.form}
+          >
+            <p className={styles.muted}>{t('invitationBody')}</p>
+            <FormSelect
+              name="emailLocale"
+              label={t('emailLocale')}
+              options={EMAIL_LOCALES.map((value) => ({ value, label: tl(value) }))}
+              defaultValue={locale}
+            />
+            <div className={styles.actions}>
+              <SubmitButton variant="outline" pendingLabel={t('invitationSending')}>
+                {t('invitationSend')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </section>
+      )}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('resetPassword')}</h2>

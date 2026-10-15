@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { paginationSchema } from '../../common/schemas/common.schemas.js';
+import { localeSchema, paginationSchema } from '../../common/schemas/common.schemas.js';
 
 export const roleSchema = z.enum(['ADMIN', 'CLIENT']);
 
@@ -9,8 +9,10 @@ export const createUserSchema = z
   .object({
     email: z.email().max(254),
     name: z.string().trim().min(1).max(120),
-    password: passwordSchema,
+    /** Without one, the user is emailed a link to choose it (in `locale`). */
+    password: passwordSchema.optional(),
     role: roleSchema,
+    locale: localeSchema.default('en'),
   })
   .strict();
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -24,6 +26,9 @@ export const updateUserSchema = z
   })
   .strict();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+export const invitationSchema = z.object({ locale: localeSchema }).strict();
+export type InvitationInput = z.infer<typeof invitationSchema>;
 
 export const listUsersQuerySchema = paginationSchema.extend({
   role: roleSchema.optional(),

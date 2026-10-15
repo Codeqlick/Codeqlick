@@ -29,6 +29,7 @@ export async function resetPasswordAction(
     return { status: 'error', fieldErrors: zodFieldErrors(parsed.error, (key) => tv(key)) };
   }
 
+  const welcome = formData.get('welcome') === '1';
   try {
     await confirmPasswordReset({
       token: formString(formData, 'token'),
@@ -36,7 +37,9 @@ export async function resetPasswordAction(
     });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
-    if (status === 400) return { status: 'error', message: t('invalidLink') };
+    if (status === 400) {
+      return { status: 'error', message: welcome ? t('welcomeInvalidLink') : t('invalidLink') };
+    }
     if (status === 429) return { status: 'error', message: t('rateLimited') };
     const tc = await getTranslations({ locale, namespace: 'Common' });
     return { status: 'error', message: tc('genericError') };
@@ -44,5 +47,5 @@ export async function resetPasswordAction(
 
   // The API revoked every session of the account, including one this browser may hold.
   await clearAuthCookies();
-  redirect(`/${locale}/login?reset=1`);
+  redirect(`/${locale}/login?${welcome ? 'welcome' : 'reset'}=1`);
 }

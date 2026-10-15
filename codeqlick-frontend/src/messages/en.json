@@ -369,7 +369,8 @@
     "error": "We couldn't sign you in right now. Please try again.",
     "backToSite": "Back to the website",
     "forgot": "Forgot your password?",
-    "passwordReset": "Your password has been changed. Sign in with the new one."
+    "passwordReset": "Your password has been changed. Sign in with the new one.",
+    "passwordCreated": "Password created. You can now sign in with your email and the password you chose."
   },
   "TwoFactorLogin": {
     "title": "Two-step verification",
@@ -405,7 +406,11 @@
     "submitting": "Saving…",
     "invalidLink": "This link is invalid or has expired. Reset links work once and for 60 minutes.",
     "requestNew": "Request a new link",
-    "rateLimited": "Too many attempts. Please wait a minute and try again."
+    "rateLimited": "Too many attempts. Please wait a minute and try again.",
+    "welcomeTitle": "Welcome to Codeqlick",
+    "welcomeSubtitle": "Choose the password you'll sign in with.",
+    "welcomeSubmit": "Create password",
+    "welcomeInvalidLink": "This link is invalid or has expired. Welcome links work once and for 7 days. Ask for a new one below with your email."
   },
   "Account": {
     "nav": "Account",
@@ -718,14 +723,25 @@
       "password": "Password",
       "passwordHint": "At least 12 characters. Share it with the user through a secure channel.",
       "resetPassword": "Reset password",
-      "resetPasswordBody": "Set a new password for this user. Existing sessions stay active until they expire.",
+      "resetPasswordBody": "Set a new password for this user. All of their open sessions are closed.",
       "newPassword": "New password",
       "passwordReset": "Password updated.",
       "created": "Created",
       "emptyTitle": "No users yet",
       "emptyBody": "Create admin and client accounts here.",
       "back": "All users",
-      "notFound": "This user doesn't exist."
+      "notFound": "This user doesn't exist.",
+      "passwordOptional": "Password (optional)",
+      "passwordOptionalHint": "Leave it empty and we'll send a welcome email with a link to choose it (valid for 7 days). If you set it, at least 12 characters, and share it through a secure channel.",
+      "emailLocale": "Language of the welcome email",
+      "createdInvited": "User created. We sent them a welcome email to choose their password.",
+      "createdInvitationFailed": "User created, but the welcome email couldn't be sent. Send it again from their page.",
+      "invitation": "Welcome email",
+      "invitationBody": "Send this user a link to choose their password, valid for 7 days. Also useful when the previous one expired or got lost: only the latest link works.",
+      "invitationSend": "Send link",
+      "invitationSending": "Sending…",
+      "invitationSent": "Email sent.",
+      "invitationFailed": "The email couldn't be sent. Check the server's SMTP settings."
     },
     "activity": {
       "title": "Activity",
@@ -770,7 +786,8 @@
         },
         "user": {
           "created": "created the user <target>{label}</target>",
-          "updated": "changed the user <target>{label}</target>"
+          "updated": "changed the user <target>{label}</target>",
+          "invited": "sent a welcome email to <target>{label}</target>"
         },
         "lead": {
           "updated": "updated the lead <target>{label}</target>"

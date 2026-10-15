@@ -369,7 +369,8 @@
     "error": "Ahora mismo no podemos iniciar tu sesión. Vuelve a intentarlo.",
     "backToSite": "Volver a la web",
     "forgot": "¿Has olvidado tu contraseña?",
-    "passwordReset": "Tu contraseña se ha cambiado. Inicia sesión con la nueva."
+    "passwordReset": "Tu contraseña se ha cambiado. Inicia sesión con la nueva.",
+    "passwordCreated": "Contraseña creada. Ya puedes entrar con tu correo y la contraseña que has elegido."
   },
   "TwoFactorLogin": {
     "title": "Verificación en dos pasos",
@@ -405,7 +406,11 @@
     "submitting": "Guardando…",
     "invalidLink": "Este enlace no es válido o ha caducado. Los enlaces sirven una sola vez y durante 60 minutos.",
     "requestNew": "Pedir un enlace nuevo",
-    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
+    "welcomeTitle": "Bienvenido a Codeqlick",
+    "welcomeSubtitle": "Elige la contraseña con la que entrarás a tu cuenta.",
+    "welcomeSubmit": "Crear contraseña",
+    "welcomeInvalidLink": "Este enlace no es válido o ha caducado. Los enlaces de bienvenida sirven una sola vez y durante 7 días. Pide uno nuevo aquí abajo con tu correo."
   },
   "Account": {
     "nav": "Cuenta",
@@ -718,14 +723,25 @@
       "password": "Contraseña",
       "passwordHint": "Mínimo 12 caracteres. Compártela con el usuario por un canal seguro.",
       "resetPassword": "Restablecer contraseña",
-      "resetPasswordBody": "Asigna una contraseña nueva a este usuario. Las sesiones abiertas siguen activas hasta que caduquen.",
+      "resetPasswordBody": "Asigna una contraseña nueva a este usuario. Se cerrarán todas sus sesiones abiertas.",
       "newPassword": "Nueva contraseña",
       "passwordReset": "Contraseña actualizada.",
       "created": "Creado",
       "emptyTitle": "Aún no hay usuarios",
       "emptyBody": "Crea aquí las cuentas de administradores y clientes.",
       "back": "Todos los usuarios",
-      "notFound": "Este usuario no existe."
+      "notFound": "Este usuario no existe.",
+      "passwordOptional": "Contraseña (opcional)",
+      "passwordOptionalHint": "Déjala vacía y le enviaremos un correo de bienvenida con un enlace para elegirla (válido 7 días). Si la pones tú, mínimo 12 caracteres, y compártela por un canal seguro.",
+      "emailLocale": "Idioma del correo de bienvenida",
+      "createdInvited": "Usuario creado. Le hemos enviado un correo de bienvenida para que elija su contraseña.",
+      "createdInvitationFailed": "Usuario creado, pero no se pudo enviar el correo de bienvenida. Vuelve a enviarlo desde su ficha.",
+      "invitation": "Correo de bienvenida",
+      "invitationBody": "Envía a este usuario un enlace para elegir su contraseña, válido 7 días. Sirve también si el anterior caducó o se perdió: solo funciona el último enlace enviado.",
+      "invitationSend": "Enviar enlace",
+      "invitationSending": "Enviando…",
+      "invitationSent": "Correo enviado.",
+      "invitationFailed": "No se pudo enviar el correo. Revisa la configuración de SMTP del servidor."
     },
     "activity": {
       "title": "Actividad",
@@ -770,7 +786,8 @@
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
-          "updated": "modificó el usuario <target>{label}</target>"
+          "updated": "modificó el usuario <target>{label}</target>",
+          "invited": "envió un correo de bienvenida a <target>{label}</target>"
         },
         "lead": {
           "updated": "actualizó el contacto <target>{label}</target>"

@@ -5,9 +5,15 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { failedState, invalidState, savedState } from '@/lib/actions';
-import { adminCreateUser, adminUpdateUser } from '@/lib/api/users';
+import { isApiError } from '@/lib/api/errors';
+import { adminCreateUser, adminSendInvitation, adminUpdateUser } from '@/lib/api/users';
 import { formBoolean, formString, type FormState } from '@/lib/forms';
-import { passwordResetSchema, userCreateSchema, userUpdateSchema } from '@/lib/schemas/admin';
+import {
+  invitationSchema,
+  passwordResetSchema,
+  userCreateSchema,
+  userUpdateSchema,
+} from '@/lib/schemas/admin';
 
 /** Never echo a submitted password back into the form. */
 function withoutPassword(state: FormState): FormState {
@@ -26,17 +32,42 @@ export async function createUserAction(
     email: formString(formData, 'email'),
     role: formString(formData, 'role'),
     password: formData.get('password') ?? '',
+    locale: formString(formData, 'emailLocale'),
   });
   if (!parsed.success) return withoutPassword(await invalidState(parsed.error, locale, formData));
 
+  let invitationSent: boolean | undefined;
   try {
-    await adminCreateUser(parsed.data);
+    ({ invitationSent } = await adminCreateUser(parsed.data));
   } catch (error) {
-    return failedState(error, locale, formData);
+    return withoutPassword(await failedState(error, locale, formData));
   }
 
   revalidatePath(`/${locale}/admin`, 'layout');
-  redirect(`/${locale}/admin/users`);
+  const invitation =
+    invitationSent === undefined ? '' : `?invitation=${invitationSent ? 'sent' : 'failed'}`;
+  redirect(`/${locale}/admin/users${invitation}`);
+}
+
+export async function sendInvitationAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = invitationSchema.safeParse({ locale: formString(formData, 'emailLocale') });
+  if (!parsed.success) return invalidState(parsed.error, locale, formData);
+
+  const t = await getTranslations({ locale, namespace: 'Admin.users' });
+  try {
+    await adminSendInvitation(id, parsed.data.locale);
+  } catch (error) {
+    if (isApiError(error) && error.status === 503) {
+      return { status: 'error', message: t('invitationFailed') };
+    }
+    return failedState(error, locale, formData);
+  }
+  return { status: 'success', message: t('invitationSent') };
 }
 
 export async function updateUserAction(

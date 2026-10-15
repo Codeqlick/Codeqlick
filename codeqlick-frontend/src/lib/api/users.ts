@@ -1,7 +1,7 @@
 import 'server-only';
 import { apiFetch } from './client';
 import { isApiError } from './errors';
-import type { AdminUser, Paginated, Role, UserInput, UserPatch } from './types';
+import type { AdminUser, CreatedUser, Paginated, Role, UserInput, UserPatch } from './types';
 
 export function adminListUsers(params: { role?: Role; page?: number; pageSize?: number } = {}) {
   return apiFetch<Paginated<AdminUser>>('/admin/users', {
@@ -33,7 +33,16 @@ export async function adminGetUser(id: string): Promise<AdminUser | null> {
 }
 
 export function adminCreateUser(input: UserInput) {
-  return apiFetch<AdminUser>('/admin/users', { method: 'POST', body: input, auth: 'required' });
+  return apiFetch<CreatedUser>('/admin/users', { method: 'POST', body: input, auth: 'required' });
+}
+
+/** Sends (again) the welcome email with a link to choose a password. */
+export function adminSendInvitation(id: string, locale: 'en' | 'es') {
+  return apiFetch<void>(`/admin/users/${encodeURIComponent(id)}/invitation`, {
+    method: 'POST',
+    body: { locale },
+    auth: 'required',
+  });
 }
 
 export function adminUpdateUser(id: string, input: UserPatch) {

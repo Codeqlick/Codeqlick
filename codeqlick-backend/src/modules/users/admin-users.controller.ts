@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -7,13 +7,15 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
   createUserSchema,
+  invitationSchema,
   listUsersQuerySchema,
   updateUserSchema,
   type CreateUserInput,
+  type InvitationInput,
   type ListUsersQuery,
   type UpdateUserInput,
 } from './users.schemas.js';
-import { UsersService, type AdminUser } from './users.service.js';
+import { UsersService, type AdminUser, type CreatedUser } from './users.service.js';
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
@@ -33,8 +35,18 @@ export class AdminUsersController {
   create(
     @CurrentUser() actor: AuthUser,
     @Body({ schema: createUserSchema }) body: CreateUserInput,
-  ): Promise<AdminUser> {
+  ): Promise<CreatedUser> {
     return this.users.create(actor, body);
+  }
+
+  @Post(':id/invitation')
+  @HttpCode(204)
+  sendInvitation(
+    @CurrentUser() actor: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: invitationSchema }) body: InvitationInput,
+  ): Promise<void> {
+    return this.users.sendInvitation(actor, params.id, body.locale);
   }
 
   @Patch(':id')
