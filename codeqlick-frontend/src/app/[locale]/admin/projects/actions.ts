@@ -38,6 +38,7 @@ const PROJECT_FIELDS = [
   'dueDate',
   'stagingUrl',
   'productionUrl',
+  'showHours',
 ] as const;
 
 /** Portal and admin pages both show project data. */

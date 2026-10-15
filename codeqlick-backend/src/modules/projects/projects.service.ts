@@ -108,6 +108,7 @@ export interface ClientProjectView {
   dueDate: string | null;
   stagingUrl: string | null;
   productionUrl: string | null;
+  showHours: boolean;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdateView[];
   files?: ProjectFileView[];
@@ -174,6 +175,7 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
     dueDate: project.dueDate?.toISOString() ?? null,
     stagingUrl: project.stagingUrl,
     productionUrl: project.productionUrl,
+    showHours: project.showHours,
     client: { id: project.client.id, name: project.client.name, email: project.client.email },
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -252,6 +254,7 @@ export class ProjectsService {
       dueDate: toDate(input.dueDate) ?? null,
       stagingUrl: input.stagingUrl ?? null,
       productionUrl: input.productionUrl ?? null,
+      showHours: input.showHours ?? false,
     });
     await this.activity.record(actor, {
       action: 'project.created',
@@ -275,6 +278,7 @@ export class ProjectsService {
     if (input.dueDate !== undefined) data.dueDate = toDate(input.dueDate);
     if (input.stagingUrl !== undefined) data.stagingUrl = input.stagingUrl;
     if (input.productionUrl !== undefined) data.productionUrl = input.productionUrl;
+    if (input.showHours !== undefined) data.showHours = input.showHours;
 
     const project = await this.repository.update(id, data);
     // The client sees phase and progress first: worth spelling out when they move.

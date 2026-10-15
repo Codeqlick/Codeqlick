@@ -39,6 +39,7 @@ const VALIDATION_KEYS: ReadonlySet<string> = new Set<ValidationKey>([
   'date',
   'choice',
   'price',
+  'duration',
 ]);
 
 export function isValidationKey(value: string): value is ValidationKey {
