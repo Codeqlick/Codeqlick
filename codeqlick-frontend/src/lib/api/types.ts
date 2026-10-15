@@ -141,6 +141,20 @@ export type ProjectUpdate = {
   author: { name: string };
 };
 
+export type ProjectMilestone = {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  completedAt: string | null;
+};
+
+export type MilestoneInput = {
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+};
+
 export type ProjectFile = {
   id: string;
   name: string;
@@ -162,6 +176,7 @@ export type ClientProject = {
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdate[];
   files?: ProjectFile[];
+  milestones?: ProjectMilestone[];
   createdAt: string;
   updatedAt: string;
 };

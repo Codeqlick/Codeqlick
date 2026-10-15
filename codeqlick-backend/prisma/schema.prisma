@@ -260,11 +260,30 @@ model ClientProject {
   updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   client  User            @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  updates ProjectUpdate[]
-  files   ProjectFile[]
+  updates    ProjectUpdate[]
+  files      ProjectFile[]
+  milestones ProjectMilestone[]
 
   @@index([clientId])
   @@map("client_projects")
+}
+
+/// A step of a client project the client sees on a timeline, in `position` order.
+model ProjectMilestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date") @db.Timestamptz(3)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  position    Int
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, position])
+  @@map("project_milestones")
 }
 
 model ProjectUpdate {

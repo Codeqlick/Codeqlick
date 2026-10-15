@@ -6,6 +6,7 @@ import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ProjectFileUpload } from '@/components/app/ProjectFileUpload';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
+import { ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -15,11 +16,13 @@ import { adminGetProject, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
 import type { ClientProject } from '@/lib/api/types';
 import { firstParam } from '@/lib/format';
 import {
+  addMilestoneAction,
   deleteProjectAction,
   deleteProjectFileAction,
   postProjectUpdateAction,
   updateProjectAction,
 } from '../actions';
+import { MilestoneControls } from '../MilestoneControls';
 import { ProjectForm } from '../ProjectForm';
 
 /** Result of an upload made without JavaScript (the route handler redirects back with it). */
@@ -44,6 +47,7 @@ export default async function EditProjectPage({
       : undefined;
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.projects' });
+  const tc = await getTranslations({ locale, namespace: 'Common' });
 
   let project: ClientProject;
   try {
@@ -52,6 +56,8 @@ export default async function EditProjectPage({
     if (isNotFound(error)) notFound();
     throw error;
   }
+
+  const milestones = project.milestones ?? [];
 
   return (
     <div className={styles.stack}>
@@ -64,6 +70,52 @@ export default async function EditProjectPage({
           action={updateProjectAction.bind(null, locale, project.id)}
           project={project}
         />
+      </section>
+
+      <section className={styles.panel} id="milestones">
+        <h2 className={styles.panelTitle}>{t('milestonesTitle')}</h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{t('milestonesLead')}</p>
+          <ProjectTimeline
+            milestones={milestones}
+            locale={locale}
+            empty={t('noMilestones')}
+            showOverdue
+            controls={(milestone, index) => (
+              <MilestoneControls
+                locale={locale}
+                projectId={project.id}
+                milestone={milestone}
+                index={index}
+                ids={milestones.map((item) => item.id)}
+              />
+            )}
+          />
+          <ActionForm
+            action={addMilestoneAction.bind(null, locale, project.id)}
+            className={styles.form}
+          >
+            <h3 className={styles.updateTitle}>{t('milestoneNew')}</h3>
+            <div className={styles.row}>
+              <FormInput name="title" label={t('milestoneTitle')} required />
+              <FormInput
+                name="dueDate"
+                type="date"
+                label={t('milestoneDueDate')}
+                optionalLabel={tc('optional')}
+              />
+            </div>
+            <FormTextarea
+              name="description"
+              label={t('milestoneDescription')}
+              optionalLabel={tc('optional')}
+              rows={3}
+            />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={tc('creating')}>{t('milestoneAdd')}</SubmitButton>
+            </div>
+          </ActionForm>
+        </div>
       </section>
 
       <section className={styles.panel}>
