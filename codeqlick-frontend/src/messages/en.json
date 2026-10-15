@@ -923,6 +923,27 @@
       "hide": "Hide preview",
       "title": "Preview",
       "empty": "Type something to see it here as it will look on the site."
+    },
+    "visits": {
+      "title": "Website visits",
+      "range": "Period",
+      "days": "{days} days",
+      "openUmami": "Open Umami ↗",
+      "unavailable": "Couldn't load the visits: Umami isn't answering. The rest of the dashboard works as usual.",
+      "visitors": "Visitors",
+      "pageviews": "Page views",
+      "contactsSent": "Contact requests",
+      "bounceRate": "Bounce rate",
+      "avgVisit": "Average visit",
+      "change": "{value} vs the previous period",
+      "chartDaily": "Visitors per day",
+      "chartWeekly": "Visitors per week",
+      "day": "Day",
+      "week": "Week",
+      "topPages": "Top pages",
+      "referrers": "Where they come from",
+      "countries": "Countries",
+      "none": "No data yet."
     }
   },
   "Sessions": {

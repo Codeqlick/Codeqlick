@@ -3,24 +3,41 @@ import styles from '@/components/app/app.module.css';
 import { ActivityList } from '@/components/app/ActivityList';
 import { BarChart } from '@/components/app/BarChart';
 import { PageHeader } from '@/components/app/PageHeader';
+import { SiteVisits, VISIT_RANGES, type VisitRange } from '@/components/app/SiteVisits';
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListActivity } from '@/lib/api/activity';
-import { getAdminStats, getAdminTimeline } from '@/lib/api/stats';
+import type { SiteVisits as Visits } from '@/lib/api/types';
+import { getAdminStats, getAdminTimeline, getSiteVisits } from '@/lib/api/stats';
+import { firstParam } from '@/lib/format';
+
+/** Visits are optional: an API error there must not take the dashboard down. */
+async function loadVisits(days: VisitRange): Promise<Visits | undefined> {
+  try {
+    return await getSiteVisits(days);
+  } catch {
+    return undefined;
+  }
+}
 
 export default async function AdminDashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ days?: string | string[] }>;
 }) {
   const locale = resolveLocale((await params).locale);
+  const requested = Number(firstParam((await searchParams).days));
+  const days: VisitRange = VISIT_RANGES.find((range) => range === requested) ?? 30;
   const t = await getTranslations({ locale, namespace: 'Admin.dashboard' });
   const ta = await getTranslations({ locale, namespace: 'App' });
-  const [stats, activity, timeline] = await Promise.all([
+  const [stats, activity, timeline, visits] = await Promise.all([
     getAdminStats(),
     adminListActivity({ pageSize: 6 }),
     getAdminTimeline(12),
+    loadVisits(days),
   ]);
 
   // `yyyy-mm` → "oct" on the axis, "octubre de 2026" in the table read by screen readers.
@@ -68,6 +85,8 @@ export default async function AdminDashboardPage({
             </li>
           ))}
         </ul>
+
+        {visits ? <SiteVisits visits={visits} locale={locale} /> : null}
 
         <div className={styles.charts}>
           <section className={styles.panel}>

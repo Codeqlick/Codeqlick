@@ -44,6 +44,14 @@ export const envSchema = z.object({
   SEED_ADMIN_EMAIL: optionalString,
   SEED_ADMIN_PASSWORD: optionalString,
   SEED_ADMIN_NAME: optionalString,
+  /** Umami (analytics) for the admin dashboard's visit numbers; unset: no visit numbers. */
+  UMAMI_URL: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.url().optional(),
+  ),
+  UMAMI_WEBSITE_ID: optionalString,
+  UMAMI_USERNAME: z.string().min(1).default('admin'),
+  UMAMI_PASSWORD: optionalString,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

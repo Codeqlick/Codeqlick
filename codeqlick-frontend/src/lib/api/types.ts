@@ -358,3 +358,26 @@ export type ActivityEntry = {
   details: Record<string, unknown> | null;
   createdAt: string;
 };
+
+/** `GET /admin/stats/visits`: the public site's numbers from Umami. */
+export type SiteVisits = {
+  /** False when analytics isn't set up (development). */
+  enabled: boolean;
+  /** False when Umami didn't answer. */
+  available: boolean;
+  days: number;
+  totals: {
+    visitors: number;
+    visits: number;
+    pageviews: number;
+    /** 0–1 */
+    bounceRate: number;
+    avgVisitSeconds: number;
+  };
+  previousVisitors: number;
+  daily: { date: string; pageviews: number; visitors: number }[];
+  topPages: { path: string; visitors: number }[];
+  referrers: { source: string; visitors: number }[];
+  countries: { code: string; visitors: number }[];
+  contactsSent: number;
+};

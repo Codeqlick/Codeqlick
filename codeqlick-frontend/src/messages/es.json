@@ -923,6 +923,27 @@
       "hide": "Ocultar vista previa",
       "title": "Vista previa",
       "empty": "Escribe algo para verlo aquí como en la web."
+    },
+    "visits": {
+      "title": "Visitas a la web",
+      "range": "Periodo",
+      "days": "{days} días",
+      "openUmami": "Abrir Umami ↗",
+      "unavailable": "No se han podido cargar las visitas: Umami no responde. El resto del panel funciona con normalidad.",
+      "visitors": "Visitantes",
+      "pageviews": "Páginas vistas",
+      "contactsSent": "Contactos enviados",
+      "bounceRate": "Rebote",
+      "avgVisit": "Duración media",
+      "change": "{value} que el periodo anterior",
+      "chartDaily": "Visitantes por día",
+      "chartWeekly": "Visitantes por semana",
+      "day": "Día",
+      "week": "Semana",
+      "topPages": "Páginas más vistas",
+      "referrers": "De dónde llegan",
+      "countries": "Países",
+      "none": "Todavía sin datos."
     }
   },
   "Sessions": {
