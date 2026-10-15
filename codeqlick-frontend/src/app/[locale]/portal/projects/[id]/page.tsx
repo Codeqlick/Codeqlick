@@ -15,6 +15,9 @@ import { isNotFound } from '@/lib/api/errors';
 import { getMyProject } from '@/lib/api/projects';
 import { getMyProjectTime } from '@/lib/api/time';
 import { listMyProjectTasks } from '@/lib/api/tasks';
+import { getMyBrief } from '@/lib/api/briefs';
+import { Alert } from '@/components/ui/Alert';
+import { Link } from '@/i18n/navigation';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
 import type { ClientProject } from '@/lib/api/types';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -44,6 +47,8 @@ export default async function PortalProjectPage({
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
   // Optional: the project page works without it.
   const tasks = await listMyProjectTasks(project.id).catch(() => []);
+  const brief = await getMyBrief(project.id).catch(() => undefined);
+  const tbr = await getTranslations({ locale, namespace: 'Brief' });
   // Optional: the project page works without it.
   const time = project.showHours
     ? await getMyProjectTime(project.id).catch(() => undefined)
@@ -65,8 +70,23 @@ export default async function PortalProjectPage({
         }
       />
 
+      {brief?.status === 'REQUESTED' ? (
+        <Alert tone="info">
+          <strong>{tbr('bannerTitle')}</strong> {tbr('bannerBody')}{' '}
+          <Link href={`/portal/projects/${project.id}/brief`}>{tbr('bannerLink')}</Link>
+        </Alert>
+      ) : null}
+
       <section className={styles.panel}>
         <dl className={styles.facts}>
+          {brief?.status === 'SUBMITTED' ? (
+            <div>
+              <dt>{tbr('factLabel')}</dt>
+              <dd>
+                <Link href={`/portal/projects/${project.id}/brief`}>{tbr('factLink')}</Link>
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('phase')}</dt>
             <dd>
