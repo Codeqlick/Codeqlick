@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { connection } from 'next/server';
+import { Faq } from '@/components/content/Faq';
 import { Card } from '@/components/ui/Card';
 import { resolveLocale } from '@/i18n/locale';
 import { legalOwner } from '@/lib/env';
@@ -49,6 +50,10 @@ export default async function ContactPage({ params }: PageProps) {
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
           </p>
         </Card>
+      </div>
+
+      <div className={styles.contactFaq}>
+        <Faq locale={locale} keys={['cost', 'time', 'start', 'response', 'nda']} />
       </div>
     </section>
   );

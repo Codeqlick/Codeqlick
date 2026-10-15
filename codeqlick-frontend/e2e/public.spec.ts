@@ -19,6 +19,14 @@ test.describe('public site', () => {
     );
   });
 
+  test('frequently asked questions open and close', async ({ page }) => {
+    await page.goto('/es/contact');
+    const answer = page.getByText('Respondemos a los mensajes en un día laborable');
+    await expect(answer).toBeHidden();
+    await page.getByText('¿Cuánto tardáis en responder?').click();
+    await expect(answer).toBeVisible();
+  });
+
   test('blog list, search and an unknown page', async ({ page }) => {
     await page.goto('/es/blog');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();

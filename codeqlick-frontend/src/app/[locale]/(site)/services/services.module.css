@@ -4,10 +4,6 @@
   padding-bottom: var(--space-12);
 }
 
-.beforeCta {
-  height: var(--space-section);
-}
-
 .detail {
   display: flex;
   flex-direction: column;
