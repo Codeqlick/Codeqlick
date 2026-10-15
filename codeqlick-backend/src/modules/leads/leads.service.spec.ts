@@ -14,6 +14,7 @@ const input: CreateLeadInput = {
   email: 'Grace@Example.com',
   company: 'Navy',
   budget: '10k-25k',
+  projectType: 'web',
   message: 'We need a web app for our team.',
   locale: 'es',
 };
@@ -25,6 +26,7 @@ function leadRow(): Lead {
     email: 'grace@example.com',
     company: 'Navy',
     budget: '10k-25k',
+    projectType: 'web',
     message: 'We need a web app for our team.',
     locale: 'ES',
     status: 'NEW',

@@ -150,23 +150,25 @@ model PasswordResetToken {
 }
 
 model Lead {
-  id         String          @id @default(uuid()) @db.Uuid
-  name       String
-  email      String
-  company    String?
-  budget     String?
-  message    String
-  locale     Locale          @default(EN)
-  status     LeadStatus      @default(NEW)
-  notes      String?
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String
+  email       String
+  company     String?
+  budget      String?
+  /// What they need (web, custom, mobile, design, support, not-sure); replaced budget on the form.
+  projectType String?         @map("project_type")
+  message     String
+  locale      Locale          @default(EN)
+  status      LeadStatus      @default(NEW)
+  notes       String?
   /// Why it didn't go ahead (status LOST).
-  lostReason LeadLostReason? @map("lost_reason")
+  lostReason  LeadLostReason? @map("lost_reason")
   /// When to get back to them; the board flags it once it has passed.
-  followUpOn DateTime?       @map("follow_up_on") @db.Date
+  followUpOn  DateTime?       @map("follow_up_on") @db.Date
   /// The client account it became ("Convert to client").
-  clientId   String?         @map("client_id") @db.Uuid
-  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  clientId    String?         @map("client_id") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   replies LeadReply[]
   client  User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
