@@ -35,6 +35,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   reactStrictMode: true,
+  images: {
+    // Only uploads from the admin panel (served by app/media) are resized and re-encoded.
+    localPatterns: [{ pathname: '/media/**', search: '' }],
+    formats: ['image/webp'],
+  },
   experimental: {
     // The site's CSS is small (~12 KB): inlined in the HTML, no stylesheet blocks the first paint.
     inlineCss: true,
