@@ -36,6 +36,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   experimental: {
+    // The site's CSS is small (~12 KB): inlined in the HTML, no stylesheet blocks the first paint.
+    inlineCss: true,
     // Image uploads from the admin panel go through a Server Action (API limit: 5 MB).
     serverActions: { bodySizeLimit: '6mb' },
     // The proxy buffers request bodies up to this size and cuts the rest: project file uploads

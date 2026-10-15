@@ -158,6 +158,19 @@ docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 
 `docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
+### HTTP/2
+
+The Nginx sites of this project have `http2 on;` (nginx 1.25 or later). On a server set up before that
+was added, turn it on in the installed files and reload:
+
+```bash
+sudo sed -i --follow-symlinks '/listen 443 ssl; # managed by Certbot/a\    http2 on;' \
+  /etc/nginx/sites-enabled/codeqlick.com.conf /etc/nginx/sites-enabled/api.codeqlick.com.conf \
+  /etc/nginx/sites-enabled/stats.codeqlick.com.conf
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI --http2 https://codeqlick.com/en | head -1   # HTTP/2 200
+```
+
 ### Monitoring
 
 `deploy/monitor/monitor.sh` runs from the deploy user's crontab every 5 minutes. It checks:

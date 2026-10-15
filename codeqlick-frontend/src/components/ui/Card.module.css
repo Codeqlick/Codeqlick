@@ -20,3 +20,8 @@
 .blush {
   background: var(--color-blush);
 }
+
+/* Fuchsia on blush is 4.2:1, under the 4.5:1 that text needs: links use the darker fuchsia. */
+.blush a:not([class]) {
+  color: var(--color-fuchsia-dark);
+}
