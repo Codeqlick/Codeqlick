@@ -15,6 +15,7 @@ import {
 import {
   PortfolioService,
   type PortfolioDetail,
+  type PortfolioFilters,
   type PortfolioSummary,
 } from './portfolio.service.js';
 
@@ -29,6 +30,12 @@ export class PortfolioController {
     @Query({ schema: listPublicPortfolioQuerySchema }) query: ListPublicPortfolioQuery,
   ): Promise<Paginated<PortfolioSummary>> {
     return this.portfolio.listPublished(query);
+  }
+
+  /** Declared before ':slug' so "filters" isn't read as a slug. */
+  @Get('filters')
+  filters(): Promise<PortfolioFilters> {
+    return this.portfolio.filters();
   }
 
   @Get(':slug')

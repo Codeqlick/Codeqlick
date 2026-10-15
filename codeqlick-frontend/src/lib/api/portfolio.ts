@@ -6,6 +6,7 @@ import type {
   Locale,
   Paginated,
   PortfolioDetail,
+  PortfolioFilters,
   PortfolioInput,
   PortfolioSummary,
 } from './types';
@@ -16,6 +17,8 @@ export function listPortfolio(params: {
   page?: number;
   pageSize?: number;
   testimonials?: boolean;
+  technology?: string;
+  service?: string;
 }) {
   return apiFetch<Paginated<PortfolioSummary>>('/portfolio', {
     query: {
@@ -23,9 +26,16 @@ export function listPortfolio(params: {
       page: params.page,
       pageSize: params.pageSize,
       testimonials: params.testimonials ? 'true' : undefined,
+      technology: params.technology,
+      service: params.service,
     },
     revalidate: PUBLIC_REVALIDATE,
   });
+}
+
+/** Technologies and services used by the published case studies, for the list's filters. */
+export function getPortfolioFilters() {
+  return apiFetch<PortfolioFilters>('/portfolio/filters', { revalidate: PUBLIC_REVALIDATE });
 }
 
 export function getPortfolioItem(slug: string, locale: Locale) {

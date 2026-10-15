@@ -221,6 +221,8 @@ model PortfolioItem {
   clientName        String?       @map("client_name")
   projectUrl        String?       @map("project_url")
   technologies      String[]
+  /// Service lines the work covered (the website's service keys: web, custom, mobile, design...).
+  services          String[]      @default([])
   sortOrder         Int           @default(0) @map("sort_order")
   /// Who gave the testimonial; the quote and their role are per language (translations).
   testimonialAuthor String?       @map("testimonial_author")
