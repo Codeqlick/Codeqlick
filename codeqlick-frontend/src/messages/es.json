@@ -26,7 +26,9 @@
     "none": "—",
     "genericError": "Algo ha fallado. Vuelve a intentarlo.",
     "unavailable": "Este contenido no está disponible en este momento. Vuelve a intentarlo en unos minutos.",
-    "confirmDelete": "Entiendo que no se puede deshacer."
+    "confirmDelete": "Entiendo que no se puede deshacer.",
+    "changeFile": "Cambiar archivo",
+    "dropFile": "o arrástralo aquí"
   },
   "Pagination": {
     "label": "Paginación",
@@ -806,7 +808,7 @@
       "commentNotNotified": "Comentario publicado, pero no se pudo avisar al cliente por correo (revisa el SMTP del servidor o si su cuenta está desactivada)."
     },
     "media": {
-      "choose": "Archivo de imagen",
+      "choose": "Elige una imagen",
       "upload": "Subir imagen",
       "uploading": "Subiendo…",
       "hint": "Pega una URL o sube una imagen (PNG, JPEG, WebP o GIF, hasta 5 MB).",

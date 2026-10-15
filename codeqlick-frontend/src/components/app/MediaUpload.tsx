@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/Button';
+import { clearFileInput, FilePicker } from '@/components/ui/FilePicker';
 import { useRouter } from '@/i18n/navigation';
 import type { ImageFieldLabels } from './ImageField';
 import styles from './ImageField.module.css';
@@ -45,7 +46,7 @@ export function MediaUpload({
         setError(result.error);
         return;
       }
-      if (fileInput.current) fileInput.current.value = '';
+      clearFileInput(fileInput.current);
       router.refresh();
     });
   }
@@ -53,12 +54,10 @@ export function MediaUpload({
   return (
     <div className={styles.wrapper}>
       <div className={styles.upload}>
-        <input
-          ref={fileInput}
-          type="file"
+        <FilePicker
+          inputRef={fileInput}
           accept="image/png,image/jpeg,image/webp,image/gif"
-          aria-label={labels.choose}
-          className={styles.file}
+          label={labels.choose}
         />
         <Button variant="outline" size="sm" onClick={onUpload} disabled={pending}>
           {pending ? labels.uploading : labels.upload}

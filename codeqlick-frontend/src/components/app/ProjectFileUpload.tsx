@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
+import { FilePicker } from '@/components/ui/FilePicker';
 import { useRouter } from '@/i18n/navigation';
 import styles from './ImageField.module.css';
 
@@ -95,14 +96,7 @@ export function ProjectFileUpload({
       className={styles.wrapper}
     >
       <div className={styles.upload}>
-        <input
-          type="file"
-          name="file"
-          required
-          aria-label={labels.choose}
-          className={styles.file}
-          disabled={busy}
-        />
+        <FilePicker name="file" required label={labels.choose} disabled={busy} />
         <Button type="submit" variant="outline" size="sm" disabled={busy}>
           {busy ? labels.uploading.replace('{percent}', String(percent)) : labels.upload}
         </Button>
