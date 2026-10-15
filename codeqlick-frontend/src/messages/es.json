@@ -652,7 +652,14 @@
       "boardEstimate": "≈",
       "boardEstimateHint": "Estimación según el presupuesto que indicó cada contacto (el punto medio de su rango).",
       "boardFailed": "No se pudo guardar el cambio. Recarga la página y vuelve a intentarlo.",
-      "boardMore": "Y {count} más en la lista."
+      "boardMore": "Y {count} más en la lista.",
+      "boardHints": {
+        "NEW": "Te ha escrito y aún no le has respondido.",
+        "CONTACTED": "Ya le has respondido.",
+        "QUALIFIED": "Hay interés real y encaja: habéis hablado o preparas propuesta.",
+        "WON": "Ha aceptado: es cliente.",
+        "LOST": "No sale adelante."
+      }
     },
     "posts": {
       "title": "Artículos",

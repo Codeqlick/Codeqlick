@@ -8,6 +8,8 @@ import styles from './LeadBoard.module.css';
 
 export type BoardLabels = {
   statuses: Record<LeadStatus, string>;
+  /** What each status means, under its column title. */
+  hints: Partial<Record<LeadStatus, string>>;
   budgets: Record<string, string>;
   moveTo: string;
   empty: string;
@@ -107,6 +109,9 @@ export function LeadBoard({
                 <h2 className={styles.title}>
                   {labels.statuses[status]} <span className={styles.count}>{inColumn.length}</span>
                 </h2>
+                {labels.hints[status] ? (
+                  <p className={styles.hint}>{labels.hints[status]}</p>
+                ) : null}
                 {value > 0 ? (
                   <p className={styles.value} title={labels.estimateHint}>
                     {labels.estimate} {money.format(value)}

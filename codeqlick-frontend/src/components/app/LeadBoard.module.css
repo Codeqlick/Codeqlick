@@ -122,3 +122,10 @@
   font-size: 0.8rem;
   color: var(--color-ink);
 }
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--color-slate);
+}

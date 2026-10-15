@@ -652,7 +652,14 @@
       "boardEstimate": "≈",
       "boardEstimateHint": "Estimate from the budget each lead picked (the middle of its range).",
       "boardFailed": "The change couldn't be saved. Reload the page and try again.",
-      "boardMore": "And {count} more in the list."
+      "boardMore": "And {count} more in the list.",
+      "boardHints": {
+        "NEW": "Wrote to you; not answered yet.",
+        "CONTACTED": "You've answered them.",
+        "QUALIFIED": "Real interest and a good fit: you've talked or are preparing a proposal.",
+        "WON": "Accepted: they're a client.",
+        "LOST": "Not going ahead."
+      }
     },
     "posts": {
       "title": "Posts",

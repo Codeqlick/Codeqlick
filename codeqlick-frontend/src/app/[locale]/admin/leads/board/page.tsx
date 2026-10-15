@@ -47,6 +47,7 @@ export default async function LeadBoardPage({ params }: { params: Promise<{ loca
             string
           >,
           budgets: Object.fromEntries(BUDGET_VALUES.map((value) => [value, tb(value)])),
+          hints: Object.fromEntries(COLUMNS.map((status) => [status, t(`boardHints.${status}`)])),
           moveTo: t('moveTo'),
           empty: t('boardEmpty'),
           estimate: t('boardEstimate'),
