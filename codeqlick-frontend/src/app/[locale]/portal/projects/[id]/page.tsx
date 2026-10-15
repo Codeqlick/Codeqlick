@@ -14,6 +14,8 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMyProject } from '@/lib/api/projects';
 import { getMyProjectTime } from '@/lib/api/time';
+import { listMyProjectTasks } from '@/lib/api/tasks';
+import { ProjectTasks } from '@/components/app/ProjectTasks';
 import type { ClientProject } from '@/lib/api/types';
 import { getCurrentUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
@@ -39,6 +41,9 @@ export default async function PortalProjectPage({
 
   const user = await getCurrentUser();
   const th = await getTranslations({ locale, namespace: 'Hours' });
+  const tt = await getTranslations({ locale, namespace: 'Tasks' });
+  // Optional: the project page works without it.
+  const tasks = await listMyProjectTasks(project.id).catch(() => []);
   // Optional: the project page works without it.
   const time = project.showHours
     ? await getMyProjectTime(project.id).catch(() => undefined)
@@ -167,6 +172,20 @@ export default async function PortalProjectPage({
             files={project.files}
             locale={locale}
             empty={t('noFiles')}
+          />
+        </section>
+      ) : null}
+
+      {tasks.length > 0 ? (
+        <section className={styles.panel} id="tasks">
+          <h2 className={styles.panelTitle}>{tt('clientTitle')}</h2>
+          <p className={styles.muted}>{tt('clientLead')}</p>
+          <ProjectTasks
+            items={tasks}
+            locale={locale}
+            empty=""
+            doneLimit={5}
+            ticketHref={(ticketId) => `/${locale}/portal/support/${ticketId}`}
           />
         </section>
       ) : null}

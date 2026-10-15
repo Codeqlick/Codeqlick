@@ -488,7 +488,12 @@ export type TicketMessage = {
 
 export type TicketFile = ProjectFile & { author: { name: string; team: boolean } };
 
-export type TicketDetail = Ticket & { messages: TicketMessage[]; files: TicketFile[] };
+export type TicketDetail = Ticket & {
+  messages: TicketMessage[];
+  files: TicketFile[];
+  /** Project tasks made from the request. */
+  tasks: { id: string; title: string; status: TaskStatus; project: { id: string; name: string } }[];
+};
 
 export const PROPOSAL_STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
@@ -571,4 +576,21 @@ export type UpdateDraft = {
   environment: ReleaseEnvironment | null;
   url: string | null;
   createdAt: string;
+};
+
+export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE'] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+/** Work on a client project (`/admin/projects/:id/tasks`); open first, done last. */
+export type ProjectTask = {
+  id: string;
+  title: string;
+  /** For the team; absent in the client's view. */
+  description?: string | null;
+  status: TaskStatus;
+  /** The support request it came from. */
+  ticket: { id: string; number: number } | null;
+  doneAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

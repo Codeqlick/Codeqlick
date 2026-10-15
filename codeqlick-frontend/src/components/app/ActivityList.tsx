@@ -47,6 +47,7 @@ export async function ActivityList({
   const tr = await getTranslations({ locale, namespace: 'Roles' });
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
   const tt = await getTranslations({ locale, namespace: 'Support.statuses' });
+  const tk = await getTranslations({ locale, namespace: 'Tasks.statuses' });
 
   /** Short notes on what changed, in the reader's language. Unknown keys are skipped. */
   function detailNotes(entry: ActivityEntry): string[] {
@@ -74,6 +75,9 @@ export async function ActivityList({
       notes.push(t('details.publishedAt', { value: formatDateTime(details.publishedAt, locale) }));
     }
     if ('file' in details) notes.push(t('details.file', { value: text(details.file) }));
+    if (typeof details.taskStatus === 'string') {
+      notes.push(t('details.taskStatus', { value: tk(details.taskStatus as never) }));
+    }
     if (typeof details.minutes === 'number') {
       notes.push(t('details.minutes', { value: formatMinutes(details.minutes) }));
     }
