@@ -43,7 +43,8 @@
     "startProject": "Start a project",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "menu": "Menu"
+    "menu": "Menu",
+    "about": "About"
   },
   "LocaleSwitcher": {
     "label": "Language",
@@ -941,5 +942,74 @@
   },
   "Legal": {
     "updated": "Última actualización: {date}"
+  },
+  "About": {
+    "metaTitle": "About us",
+    "metaDescription": "Who is behind Codeqlick, why it exists and how we work: custom software and web apps built with quality, clarity and a direct line to the person doing the work.",
+    "eyebrow": "About us",
+    "title": "Software that solves real problems",
+    "lead": "Codeqlick is a custom software and web app studio. We work with startups, small businesses and established companies to turn ideas and business needs into reliable digital products that are ready to grow.",
+    "founder": {
+      "eyebrow": "Who is behind it",
+      "title": "A small studio, with a direct line",
+      "p1": "Codeqlick is run by its founder, Luis Feliu Gomez Polo. When you work with us you talk directly to the person who designs, builds and maintains your product: no middlemen, no messages lost along the way.",
+      "p2": "Our tagline, \"Redefining information technology in society\", sums up the ambition: technology should make people's and businesses' lives better. We build every project with that purpose."
+    },
+    "purpose": {
+      "eyebrow": "Purpose",
+      "title": "Why we exist",
+      "mission": {
+        "title": "Mission",
+        "body": "To help our clients grow by building software that solves real problems, delivered with clarity, quality and speed."
+      },
+      "vision": {
+        "title": "Vision",
+        "body": "To be the technology partner companies trust when they need innovative, dependable digital products."
+      }
+    },
+    "values": {
+      "eyebrow": "Values",
+      "title": "What guides us",
+      "items": {
+        "innovation": {
+          "title": "Innovation",
+          "body": "We stay curious and adopt new technology when it creates real value, not just because it's new."
+        },
+        "quality": {
+          "title": "Quality",
+          "body": "We ship software we're proud of: tested, maintainable and secure by default."
+        },
+        "partnership": {
+          "title": "Partnership",
+          "body": "We treat every client's product as if it were our own and communicate openly."
+        },
+        "transparency": {
+          "title": "Transparency",
+          "body": "Clear estimates, honest progress updates and no surprises."
+        }
+      }
+    },
+    "different": {
+      "eyebrow": "What makes us different",
+      "title": "How we work",
+      "items": {
+        "endToEnd": {
+          "title": "End to end",
+          "body": "From discovery and design to development, launch and support."
+        },
+        "product": {
+          "title": "Product mindset",
+          "body": "We focus on business outcomes, not just features."
+        },
+        "stack": {
+          "title": "Modern stack",
+          "body": "Proven, up-to-date technology chosen for each project."
+        },
+        "iterative": {
+          "title": "Short cycles",
+          "body": "Two-week iterations, frequent demos and your feedback at every step."
+        }
+      }
+    }
   }
 }

@@ -13,6 +13,7 @@ const STATIC_PATHS = [
   ...Object.values(SERVICE_SLUGS).map((slug) => `/services/${slug}`),
   '/work',
   '/blog',
+  '/about',
   '/contact',
   ...(legalOwner ? ['/legal', '/privacy'] : []),
 ];

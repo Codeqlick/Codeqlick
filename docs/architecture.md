@@ -351,6 +351,8 @@ src/
         services/ services/[slug]/  One page per service (static copy from messages, built ahead of time)
         blog/ blog/[slug]/     blog/[slug]/og: the post's social preview image (route handler)
         work/ work/[slug]/     Portfolio; work/[slug]/og: the case study's social preview image
+        about/                 Who is behind Codeqlick (from the company overview in the Notion wiki)
+        legal/ privacy/        Legal notice and privacy policy (shown once LEGAL_OWNER_NAME is set)
         contact/               Contact form (server action → POST /v1/leads). Bots are dropped silently: a
                                honeypot field, and submissions made less than 3 s after the form was served
         not-found.tsx          Boundary for notFound() in site pages (unknown post or case study). Next.js 16.4
