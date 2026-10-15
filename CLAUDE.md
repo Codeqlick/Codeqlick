@@ -47,7 +47,8 @@ docker compose exec api npx prisma migrate dev  # after editing schema.prisma
 
 Host ports can be overridden in a git-ignored root `.env` (`WEB_PORT`, `API_PORT`, `DB_PORT`, …).
 Run checks with `npm run lint`, `npm run typecheck`, `npm test` in each app (host or
-`docker compose exec`). Run `next build` on the host, not inside the `web` dev container: that
+`docker compose exec`). Browser tests: `npm run test:e2e` in `codeqlick-frontend` against the
+running dev stack (`E2E_BASE_URL=http://localhost:<WEB_PORT>`); they also run in CI. Run `next build` on the host, not inside the `web` dev container: that
 container sets `NODE_ENV=development`, which breaks production builds.
 
 ## Next steps (in order)

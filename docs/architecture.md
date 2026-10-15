@@ -58,7 +58,8 @@ They share **no code**. The contract between them is the HTTP API (section 5), d
 | Styling | CSS Modules + design tokens | Brand tokens in `src/styles/tokens.css` |
 | Fonts | `next/font/local` | Latin subset of each variable font (OFL, from Fontsource) in `src/assets/fonts`, served from our domain; neither builds nor visitors reach Google |
 | Lint / format | oxlint + Prettier | Both apps |
-| CI | GitHub Actions | Lint, typecheck, test, build per app |
+| Browser tests | Playwright (Chromium) | `codeqlick-frontend/e2e`: public pages, the contact form, and the portal flow (client comments and approves, the team answers), against the whole stack. The E2E workflow builds it from the commit; locally they run against the Docker dev stack (`npm run test:e2e`) |
+| CI | GitHub Actions | Lint, typecheck, test, build per app; E2E browser tests; deploy to the VPS once all of a commit's CI has passed |
 
 ## 4. Backend (`codeqlick-backend`)
 

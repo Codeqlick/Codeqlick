@@ -33,3 +33,7 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Playwright (codeqlick-frontend)
+test-results/
+playwright-report/

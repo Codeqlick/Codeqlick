@@ -87,7 +87,7 @@ restart. `./deploy/deploy.sh --no-pull` rebuilds and restarts the current checko
 
 ### Automatic deploys
 
-Merging to `main` releases on its own: when the Backend and/or Frontend CI of that commit
+Merging to `main` releases on its own: when the Backend, Frontend and E2E runs of that commit
 pass, `.github/workflows/deploy.yml` connects as the deploy user and runs `deploy/ci-deploy.sh`,
 which takes a lock (one release at a time) and runs `deploy/deploy.sh`; then it checks the public
 site and API. A failed CI run means no release. Changes that trigger no CI (only `deploy/` or docs)

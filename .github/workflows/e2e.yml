@@ -1,0 +1,121 @@
+name: E2E
+
+# Browser tests of the key flows (codeqlick-frontend/e2e) against the whole stack built from this
+# commit: Postgres, the API and the production build of the website.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'codeqlick-backend/**'
+      - 'codeqlick-frontend/**'
+      - '.github/workflows/e2e.yml'
+  pull_request:
+    paths:
+      - 'codeqlick-backend/**'
+      - 'codeqlick-frontend/**'
+      - '.github/workflows/e2e.yml'
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Browser flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: codeqlick
+          POSTGRES_PASSWORD: codeqlick
+          POSTGRES_DB: codeqlick
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U codeqlick -d codeqlick"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      E2E_ADMIN_EMAIL: admin@codeqlick.test
+      E2E_ADMIN_PASSWORD: e2e-admin-password-1
+      E2E_BASE_URL: http://localhost:3000
+      E2E_API_URL: http://localhost:4000/v1
+      NEXT_TELEMETRY_DISABLED: '1'
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            codeqlick-backend/package-lock.json
+            codeqlick-frontend/package-lock.json
+
+      - name: Start the API
+        working-directory: codeqlick-backend
+        env:
+          # `test` only keeps emails from being sent.
+          NODE_ENV: test
+          PORT: '4000'
+          DATABASE_URL: postgresql://codeqlick:codeqlick@localhost:5432/codeqlick
+          JWT_ACCESS_SECRET: ci-dummy-secret-0123456789abcdef0123456789abcdef0123456789abcdef
+          CORS_ORIGINS: http://localhost:3000
+          SITE_URL: http://localhost:3000
+          SEED_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+          SEED_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
+          LOG_LEVEL: warn
+        run: |
+          npm ci
+          npx prisma generate
+          npx prisma migrate deploy
+          npx prisma db seed
+          npm run build
+          nohup node dist/main.js > ../api.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs http://localhost:4000/v1/health && exit 0; sleep 2; done
+          cat ../api.log; exit 1
+
+      - name: Build and start the website
+        working-directory: codeqlick-frontend
+        env:
+          API_URL: http://localhost:4000/v1
+          SITE_URL: http://localhost:3000
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+        run: |
+          npm ci
+          npm run build
+          cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/
+          (cd .next/standalone && PORT=3000 HOSTNAME=127.0.0.1 nohup node server.js > ../../../web.log 2>&1 &)
+          for i in $(seq 1 30); do curl -fs -o /dev/null http://localhost:3000/en && exit 0; sleep 2; done
+          cat ../web.log; exit 1
+
+      - name: Install Chromium
+        working-directory: codeqlick-frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser tests
+        working-directory: codeqlick-frontend
+        env:
+          CI: 'true'
+        run: npm run test:e2e
+
+      - name: Keep the report and server logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            codeqlick-frontend/playwright-report/
+            codeqlick-frontend/test-results/
+            api.log
+            web.log
+          retention-days: 7
