@@ -57,6 +57,7 @@ export default async function AdminDashboardPage({
   const cards = [
     { href: '/admin/leads?status=NEW', label: t('newLeads'), value: stats.leads.new },
     { href: '/admin/leads', label: t('totalLeads'), value: stats.leads.total },
+    { href: '/admin/bookings', label: t('upcomingCalls'), value: stats.bookings.upcoming },
     { href: '/admin/drafts', label: t('pendingDrafts'), value: stats.drafts.pending },
     {
       href: '/admin/proposals?status=SENT',
