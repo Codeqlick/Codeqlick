@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
-import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
-import type { AuthUser } from '../../common/types/auth-user.js';
+import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import {
@@ -28,6 +28,7 @@ import {
   type ProjectWithUpdates,
   type UpdateWithAuthor,
 } from './projects.repository.js';
+import { AccountsService, type AccountPerson } from '../accounts/accounts.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import {
@@ -252,6 +253,7 @@ export class ProjectsService {
     private readonly repository: ProjectsRepository,
     private readonly storage: ProjectFilesStorage,
     private readonly activity: ActivityService,
+    private readonly accounts: AccountsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
   ) {}
@@ -259,7 +261,7 @@ export class ProjectsService {
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
 
   async listForCaller(caller: AuthUser): Promise<ClientProjectView[]> {
-    const projects = await this.repository.listByClient(caller.id);
+    const projects = await this.repository.listByClient(accountOf(caller));
     return projects.map(toView);
   }
 
@@ -671,7 +673,7 @@ export class ProjectsService {
     const update = await this.findUpdateOrThrow(projectId, updateId);
     const comment = await this.repository.addComment(projectId, updateId, caller.id, input.body);
     if (caller.role === 'CLIENT') {
-      this.notifyTeam(project, update, { kind: 'comment', body: input.body });
+      this.notifyTeam(caller, project, update, { kind: 'comment', body: input.body });
     }
     await this.activity.record(caller, {
       action: 'project.comment_added',
@@ -693,9 +695,9 @@ export class ProjectsService {
     const update = await this.findUpdateOrThrow(projectId, updateId);
     const comment = await this.repository.addComment(projectId, updateId, author.id, input.body);
     const view = toCommentView(comment);
-    const clientNotified = await this.emailClient(project, (link, locale) =>
+    const clientNotified = await this.emailClient(project, (person, link, locale) =>
       teamCommentEmail(
-        project.client,
+        person,
         project,
         update,
         { body: input.body, authorName: view.author.name },
@@ -729,7 +731,7 @@ export class ProjectsService {
     if (update.approvedAt) return toUpdateView(update);
 
     const approved = await this.repository.approveUpdate(updateId, caller.id);
-    this.notifyTeam(project, update, { kind: 'approval' });
+    this.notifyTeam(caller, project, update, { kind: 'approval' });
     await this.activity.record(caller, {
       action: 'project.update_approved',
       targetId: projectId,
@@ -741,6 +743,7 @@ export class ProjectsService {
 
   /** Fire-and-forget email to the team inbox; mail problems are logged, never thrown. */
   private notifyTeam(
+    person: { name: string; email: string },
     project: ProjectWithClient,
     update: { id: string; title: string },
     event: { kind: 'comment'; body: string } | { kind: 'approval' },
@@ -748,7 +751,7 @@ export class ProjectsService {
     const link = `${this.config.siteUrl}/es/admin/projects/${project.id}#update-${update.id}`;
     const message = clientActivityEmail(
       this.config.leadsNotifyTo,
-      project.client,
+      person,
       project,
       update,
       event,
@@ -762,21 +765,34 @@ export class ProjectsService {
   }
 
   /** Emails the client (built with their portal link and language); false when it failed. */
+  /**
+   * Emails every active person of the client account (owner and members), each in their language;
+   * true when at least one email went out.
+   */
   private async emailClient(
     project: ProjectWithClient,
-    build: (link: string, locale: ApiLocale) => MailMessage,
+    build: (person: AccountPerson, link: string, locale: ApiLocale) => MailMessage,
   ): Promise<boolean> {
-    try {
-      if (!project.client.isActive) throw new Error('the client account is deactivated');
-      const locale = toApiLocale(project.client.locale);
-      const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
-      await this.mail.send(build(link, locale));
-      return true;
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to email the client: ${reason}`);
-      return false;
+    const people = await this.accounts.people(project.clientId);
+    const results = await Promise.allSettled(
+      people.map((person) =>
+        this.mail.send(
+          build(
+            person,
+            `${this.config.siteUrl}/${person.locale}/portal/projects/${project.id}`,
+            person.locale,
+          ),
+        ),
+      ),
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        const reason =
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
+        this.logger.error(`Failed to email the client: ${reason}`);
+      }
     }
+    return results.some((result) => result.status === 'fulfilled');
   }
 
   private async findUpdateOrThrow(projectId: string, updateId: string): Promise<UpdateWithAuthor> {
@@ -785,23 +801,21 @@ export class ProjectsService {
     return update;
   }
 
+  /** Emails an update to every person of the client account; throws when nobody got it. */
   private async notifyClient(
     project: ProjectWithClient,
     update: Parameters<typeof projectUpdateEmail>[2],
   ): Promise<void> {
-    // A deactivated client can't sign in to read it.
-    if (!project.client.isActive) throw new Error('the client account is deactivated');
-    const locale = toApiLocale(project.client.locale);
-    const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
-    await this.mail.send(
-      projectUpdateEmail(project.client, project, update, link, locale, this.config.siteUrl),
+    const sent = await this.emailClient(project, (person, link, locale) =>
+      projectUpdateEmail(person, project, update, link, locale, this.config.siteUrl),
     );
+    if (!sent) throw new Error('no active person of the client account could be emailed');
   }
 
   private async findForCallerOrThrow(caller: AuthUser, id: string): Promise<ProjectWithUpdates> {
     const project = await this.repository.findById(id);
     // Clients only see their own projects; admins may look at any project.
-    if (!project || (caller.role !== 'ADMIN' && project.clientId !== caller.id)) {
+    if (!project || (caller.role !== 'ADMIN' && project.clientId !== accountOf(caller))) {
       throw new NotFoundException('Project not found');
     }
     return project;
@@ -817,6 +831,12 @@ export class ProjectsService {
     const user = await this.repository.findUserById(clientId);
     if (!user || user.role !== Role.CLIENT) {
       throw new BadRequestException('clientId must reference an existing CLIENT user');
+    }
+    // Projects belong to the company's account; its members see them through it.
+    if (user.memberOfId) {
+      throw new BadRequestException(
+        'clientId must be the main client account, not one of its people',
+      );
     }
   }
 }

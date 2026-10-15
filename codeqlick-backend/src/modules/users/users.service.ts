@@ -22,6 +22,8 @@ export type AdminUser = AuthUser & {
   locale: ApiLocale;
   /** Clients: whether they get the Monday summary of their projects. */
   weeklyDigest: boolean;
+  /** A person of a client company: the company's main client account. */
+  memberOfId: string | null;
   createdAt: string;
 };
 
@@ -37,6 +39,7 @@ export function toAdminUser(user: User): AdminUser {
     isActive: user.isActive,
     locale: toApiLocale(user.locale),
     weeklyDigest: user.weeklyDigest,
+    memberOfId: user.memberOfId,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -54,7 +57,11 @@ export class UsersService {
 
   async list(query: ListUsersQuery): Promise<Paginated<AdminUser>> {
     const { skip, take } = pageToSkipTake(query.page, query.pageSize);
-    const { items, total } = await this.repository.list(query.role, skip, take);
+    const { items, total } = await this.repository.list(
+      { role: query.role, memberOf: query.memberOf, accounts: query.accounts },
+      skip,
+      take,
+    );
     return paginate(items.map(toAdminUser), total, query.page, query.pageSize);
   }
 
@@ -68,11 +75,13 @@ export class UsersService {
     if (await this.repository.findByEmail(email)) {
       throw new ConflictException('A user with this email already exists');
     }
+    if (input.memberOfId) await this.assertCompanyAccount(input.role, input.memberOfId);
     const password = input.password ?? randomBytes(32).toString('base64url');
     const user = await this.repository.create({
       email,
       name: input.name,
       role: input.role,
+      memberOfId: input.memberOfId ?? null,
       locale: toDbLocale(input.locale),
       passwordHash: await this.passwords.hash(password),
     });
@@ -80,7 +89,7 @@ export class UsersService {
       action: 'user.created',
       targetId: user.id,
       targetLabel: user.email,
-      details: { role: user.role },
+      details: { role: user.role, ...(user.memberOfId ? { memberOf: user.memberOfId } : {}) },
     });
     if (input.password !== undefined) return toAdminUser(user);
 
@@ -180,5 +189,15 @@ export class UsersService {
       details: Object.keys(details).length > 0 ? details : undefined,
     });
     return toAdminUser(user);
+  }
+
+  /** Members join a client's main account: a client, and not a member of another one. */
+  private async assertCompanyAccount(role: string, accountId: string): Promise<void> {
+    const account = await this.repository.findById(accountId);
+    if (role !== 'CLIENT' || !account || account.role !== 'CLIENT' || account.memberOfId) {
+      throw new BadRequestException({
+        errors: [{ path: 'memberOfId', message: 'Not a client account people can be added to' }],
+      });
+    }
   }
 }

@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
-import { adminGetUser } from '@/lib/api/users';
+import { adminGetUser, adminListUsers } from '@/lib/api/users';
+import { Link } from '@/i18n/navigation';
 import { EMAIL_LOCALES, ROLES } from '@/lib/schemas/admin';
 import {
+  addCompanyPersonAction,
   resetPasswordAction,
   sendInvitationAction,
   sendWeeklyDigestAction,
@@ -39,6 +41,15 @@ export default async function EditUserPage({
     );
   }
 
+  // A client's main account lists its people; a person links back to it.
+  const isAccount = user.role === 'CLIENT' && !user.memberOfId;
+  const [people, account] = await Promise.all([
+    isAccount
+      ? adminListUsers({ memberOf: user.id, pageSize: 100 }).then((page) => page.items)
+      : Promise.resolve([]),
+    user.memberOfId ? adminGetUser(user.memberOfId) : Promise.resolve(undefined),
+  ]);
+
   return (
     <div className={styles.stack}>
       <PageHeader
@@ -46,13 +57,77 @@ export default async function EditUserPage({
         lead={user.email}
         back={back}
         actions={
-          user.role === 'CLIENT' ? (
+          isAccount ? (
             <Button href={`/admin/proposals/new?client=${user.id}`} variant="outline" size="sm">
               {tpr('newForClient')}
             </Button>
           ) : undefined
         }
       />
+
+      {account ? (
+        <Alert tone="info">
+          {t('memberOf')} <Link href={`/admin/users/${account.id}`}>{account.name}</Link>
+        </Alert>
+      ) : null}
+
+      {isAccount ? (
+        <section className={styles.panel} id="people" aria-labelledby="people-heading">
+          <h2 id="people-heading" className={styles.panelTitle}>
+            {t('peopleTitle')}
+          </h2>
+          <div className={styles.stack}>
+            <p className={styles.muted}>{t('peopleLead')}</p>
+            {people.length > 0 ? (
+              <ul className={styles.files}>
+                {people.map((person) => (
+                  <li key={person.id} className={styles.fileRow}>
+                    <div className={styles.fileInfo}>
+                      <Link href={`/admin/users/${person.id}`} className={styles.fileName}>
+                        {person.name}
+                      </Link>
+                      <span className={styles.muted}>{person.email}</span>
+                    </div>
+                    {person.isActive ? null : <span className={styles.muted}>{t('inactive')}</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <details className={styles.commentForm}>
+              <summary>{t('addPerson')}</summary>
+              <ActionForm
+                key={people.length}
+                action={addCompanyPersonAction.bind(null, locale, user.id)}
+                className={styles.form}
+              >
+                <div className={styles.row}>
+                  <FormInput id="person-name" name="name" label={t('name')} required />
+                  <FormInput
+                    id="person-email"
+                    name="email"
+                    type="email"
+                    label={t('email')}
+                    required
+                  />
+                </div>
+                <FormSelect
+                  id="person-locale"
+                  name="locale"
+                  label={t('locale')}
+                  hint={t('personLocaleHint')}
+                  options={EMAIL_LOCALES.map((value) => ({ value, label: tl(value) }))}
+                  defaultValue={user.locale}
+                />
+                <div className={styles.actions}>
+                  <SubmitButton pendingLabel={t('personAdding')}>
+                    {t('addPersonButton')}
+                  </SubmitButton>
+                </div>
+              </ActionForm>
+            </details>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('edit')}</h2>

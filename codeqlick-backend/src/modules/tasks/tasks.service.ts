@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { AuthUser } from '../../common/types/auth-user.js';
+import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { hashKey } from '../projects/release-key.js';
 import { SupportService } from '../support/support.service.js';
@@ -73,7 +73,7 @@ export class TasksService {
   /** The client's view of their project's tasks. */
   async listForClient(caller: AuthUser, projectId: string): Promise<ClientTaskView[]> {
     const project = await this.repository.findProject(projectId);
-    if (!project || (caller.role !== 'ADMIN' && project.clientId !== caller.id)) {
+    if (!project || (caller.role !== 'ADMIN' && project.clientId !== accountOf(caller))) {
       throw new NotFoundException('Project not found');
     }
     return (await this.repository.list(projectId)).map(toClientView);

@@ -294,6 +294,8 @@ export type LeadInput = {
 /** `locale`: language of the emails the platform sends the user. */
 export type AdminUser = AuthUser & {
   isActive: boolean;
+  /** A person of a client company: the company's main client account. */
+  memberOfId: string | null;
   locale: 'en' | 'es';
   /** Clients: the Monday summary of their projects. */
   weeklyDigest: boolean;
@@ -310,6 +312,8 @@ export type UserInput = {
   password?: string;
   role: Role;
   locale: 'en' | 'es';
+  /** A person of a client company: the company's main client account. */
+  memberOfId?: string;
 };
 
 /** `invitationSent` is only there when a welcome email was due (no password given). */

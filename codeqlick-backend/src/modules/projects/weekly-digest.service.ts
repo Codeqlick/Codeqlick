@@ -80,12 +80,13 @@ export class WeeklyDigestService implements OnApplicationBootstrap, OnApplicatio
 
   /** `scheduled`: the Monday run, which also records a week with nothing to tell. */
   private async sendTo(
-    client: { id: string; name: string; email: string; locale: Locale },
+    client: { id: string; name: string; email: string; locale: Locale; memberOfId: string | null },
     now: Date,
     scheduled: boolean,
   ): Promise<DigestResult> {
     const since = new Date(now.getTime() - WEEK_MS);
-    const rows = await this.repository.projectsForDigest(client.id, since);
+    // A member of a client company gets the summary of the company account's projects.
+    const rows = await this.repository.projectsForDigest(client.memberOfId ?? client.id, since);
     const projects: DigestProject[] = rows.map((project) => {
       const next = project.milestones.find((m) => !m.completedAt);
       return {

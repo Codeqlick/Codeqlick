@@ -92,18 +92,19 @@ export class SupportRepository {
     });
   }
 
-  /** Opens a request with its description as the first message. */
+  /** Opens a request with its description as the first message, by `authorId`. */
   create(data: {
     clientId: string;
+    authorId: string;
     projectId: string | null;
     type: TicketType;
     priority: TicketPriority;
     title: string;
     body: string;
   }): Promise<TicketDetailRow> {
-    const { body, ...ticket } = data;
+    const { body, authorId, ...ticket } = data;
     return this.prisma.supportTicket.create({
-      data: { ...ticket, messages: { create: { authorId: data.clientId, body } } },
+      data: { ...ticket, messages: { create: { authorId, body } } },
       include: detailInclude,
     });
   }
