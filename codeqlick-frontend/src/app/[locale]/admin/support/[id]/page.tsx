@@ -13,9 +13,11 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import { adminGetTicket } from '@/lib/api/support';
+import { adminListProjects } from '@/lib/api/projects';
 import { TICKET_PRIORITIES, TICKET_STATUSES, type TicketDetail } from '@/lib/api/types';
 import { firstParam, formatDateTime } from '@/lib/format';
 import {
+  taskFromTicketAction,
   adminDeleteTicketFileAction,
   adminReplyToTicketAction,
   adminUpdateTicketAction,
@@ -43,6 +45,13 @@ export default async function AdminTicketPage({
     if (isNotFound(error)) notFound();
     throw error;
   }
+  const tt = await getTranslations({ locale, namespace: 'Tasks' });
+  const ts = await getTranslations({ locale, namespace: 'Tasks.statuses' });
+  const clientProjects = (
+    await adminListProjects({ clientId: ticket.client.id, pageSize: 100 }).catch(() => ({
+      items: [],
+    }))
+  ).items;
   const statusOptions = TICKET_STATUSES.map((value) => ({
     value,
     label: t(`statuses.${value}`),
@@ -136,6 +145,53 @@ export default async function AdminTicketPage({
               <SubmitButton pendingLabel={t('sending')}>{t('reply')}</SubmitButton>
             </div>
           </ActionForm>
+        </div>
+      </section>
+
+      <section className={styles.panel} id="task" aria-labelledby="task-heading">
+        <h2 id="task-heading" className={styles.panelTitle}>
+          {tt('fromRequestTitle')}
+        </h2>
+        <div className={styles.stack}>
+          {ticket.tasks.length > 0 ? (
+            <ul className={styles.files}>
+              {ticket.tasks.map((task) => (
+                <li key={task.id} className={styles.fileRow}>
+                  <Link href={`/admin/projects/${task.project.id}#tasks`}>{task.title}</Link>
+                  <span className={styles.muted}>
+                    {task.project.name} · {ts(task.status)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={styles.muted}>{tt('fromRequestLead')}</p>
+          )}
+          {clientProjects.length > 0 ? (
+            <ActionForm
+              key={ticket.tasks.length}
+              action={taskFromTicketAction.bind(null, locale, ticket.id)}
+              className={styles.form}
+            >
+              <FormSelect
+                id="task-project"
+                name="projectId"
+                label={tt('project')}
+                options={clientProjects.map((project) => ({
+                  value: project.id,
+                  label: project.name,
+                }))}
+                defaultValue={ticket.project?.id ?? clientProjects[0]?.id ?? ''}
+              />
+              <div className={styles.actions}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={tt('adding')}>
+                  {ticket.tasks.length > 0 ? tt('fromRequestAnother') : tt('fromRequest')}
+                </SubmitButton>
+              </div>
+            </ActionForm>
+          ) : (
+            <p className={styles.muted}>{tt('noProjects')}</p>
+          )}
         </div>
       </section>
 

@@ -983,7 +983,10 @@
           "release_key_created": "created a release key for <target>{label}</target>",
           "release_key_revoked": "revoked the release key of <target>{label}</target>",
           "draft_received": "received a draft update for <target>{label}</target>",
-          "draft_discarded": "discarded a draft update for <target>{label}</target>"
+          "draft_discarded": "discarded a draft update for <target>{label}</target>",
+          "task_created": "created a task on <target>{label}</target>",
+          "task_updated": "changed a task on <target>{label}</target>",
+          "task_deleted": "deleted a task from <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1043,7 +1046,8 @@
         "publishedAt": "Goes live on {value}",
         "milestone": "Milestone: {value}",
         "project": "Project: {value}",
-        "minutes": "Time: {value}"
+        "minutes": "Time: {value}",
+        "taskStatus": "Status: {value}"
       }
     },
     "tags": {
@@ -1449,5 +1453,41 @@
   "ReleaseEnvironments": {
     "STAGING": "Preview",
     "PRODUCTION": "Production"
+  },
+  "Tasks": {
+    "title": "Tasks",
+    "empty": "No tasks on this project.",
+    "add": "Add a task",
+    "taskTitle": "Task",
+    "description": "Details",
+    "descriptionHint": "For the team only; the client sees the title and the status.",
+    "adding": "Adding…",
+    "addButton": "Add task",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "addedOn": "Added {date}",
+    "doneOn": "Done {date}",
+    "requestRef": "from request #{number}",
+    "move": {
+      "TODO": "Start",
+      "IN_PROGRESS": "Mark as done",
+      "DONE": "Reopen"
+    },
+    "statuses": {
+      "TODO": "To do",
+      "IN_PROGRESS": "In progress",
+      "DONE": "Done"
+    },
+    "clientTitle": "Work in progress",
+    "clientLead": "What's planned and under way on your project, including the changes you've asked for.",
+    "fromRequestTitle": "Task",
+    "fromRequestLead": "Turn this request into a project task. The request moves to “In progress” and, when the task is done, it is resolved and the client is told.",
+    "project": "Project",
+    "fromRequest": "Turn into a task",
+    "fromRequestAnother": "Create another task",
+    "noProjects": "The client doesn't have any projects yet.",
+    "createdFromRequest": "Task created. The request is in progress.",
+    "clientRequestTitle": "Where your request stands"
   }
 }

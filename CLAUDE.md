@@ -14,7 +14,7 @@ This repo holds the whole platform:
 | `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck, unit tests and build pass |
 | `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook) | Deployed |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
-| `tools/` | `codeqlick-draft.sh`: sends a client project's work summary as a draft update (architecture 8.1) | Ready |
+| `tools/` | Scripts for client projects' repositories (architecture 8.1): `codeqlick-draft.sh` sends a work summary as a draft update, `codeqlick-tasks.sh` reads and closes the project's tasks | Ready |
 
 ## Non-negotiable rules
 

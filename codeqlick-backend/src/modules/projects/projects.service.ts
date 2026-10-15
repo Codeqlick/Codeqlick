@@ -6,7 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
 import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -37,6 +37,7 @@ import {
   teamCommentEmail,
 } from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
+import { hashKey } from './release-key.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
   CreateMilestoneInput,
@@ -235,11 +236,6 @@ function toDraftView(draft: DraftWithProject): UpdateDraftView {
 
 function releaseOf(input: CreateReleaseInput) {
   return { version: input.version, environment: input.environment, url: input.url ?? null };
-}
-
-/** Release keys are stored hashed, like passwords: a database leak doesn't leak them. */
-function hashKey(key: string): string {
-  return createHash('sha256').update(key).digest('hex');
 }
 
 function toDate(value: string | null | undefined): Date | null | undefined {
