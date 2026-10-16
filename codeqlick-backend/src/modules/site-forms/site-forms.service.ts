@@ -126,6 +126,11 @@ export class SiteFormsService {
     return answer(true);
   }
 
+  /** Messages per Madrid day since `since`, for the visits chart. */
+  messagesByDay(projectId: string, since: Date): Promise<Map<string, number>> {
+    return this.repository.messagesByDay(projectId, since);
+  }
+
   private async findProject(id: string) {
     const project = await this.repository.findProject(id);
     if (!project) throw new NotFoundException('Project not found');

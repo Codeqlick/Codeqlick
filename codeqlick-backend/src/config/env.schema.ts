@@ -56,6 +56,8 @@ export const envSchema = z.object({
   UMAMI_WEBSITE_ID: optionalString,
   UMAMI_USERNAME: z.string().min(1).default('admin'),
   UMAMI_PASSWORD: optionalString,
+  /** The tracker managed client sites load (Umami's script, served by its public dashboard). */
+  UMAMI_SCRIPT_URL: z.url().default('https://stats.codeqlick.com/script.js'),
   /** The site builder (codeqlick-sites/builder); unset: managed sites can't be built. */
   SITE_BUILDER_URL: z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
