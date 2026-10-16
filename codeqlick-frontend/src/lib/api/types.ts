@@ -689,3 +689,16 @@ export type PlanSummary = {
   usedMinutes: number;
   percent: number;
 };
+
+/** A starting point for new proposals (amounts in cents). */
+export type ProposalTemplate = {
+  id: string;
+  name: string;
+  title: string;
+  summary: string;
+  terms: string | null;
+  /** Days a proposal made from it stays open. */
+  validDays: number | null;
+  items: { description: string; quantity: number; unitPrice: number }[];
+  updatedAt: string;
+};

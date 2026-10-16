@@ -9,7 +9,10 @@ import { Pagination } from '@/components/ui/Pagination';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { adminListProposals } from '@/lib/api/proposals';
+import { ActionForm } from '@/components/app/ActionForm';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { adminListProposals, adminListProposalTemplates } from '@/lib/api/proposals';
+import { deleteTemplateAction } from './template-actions';
 import { PROPOSAL_STATUSES, type ProposalStatus } from '@/lib/api/types';
 import { firstParam, formatDateTime, formatMoney, parsePage } from '@/lib/format';
 
@@ -29,7 +32,10 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
   const rawStatus = firstParam(query.status);
   const status = PROPOSAL_STATUSES.find((value) => value === rawStatus) as
     ProposalStatus | undefined;
-  const proposals = await adminListProposals({ status, page: parsePage(query.page) });
+  const [proposals, templates] = await Promise.all([
+    adminListProposals({ status, page: parsePage(query.page) }),
+    adminListProposalTemplates(),
+  ]);
 
   return (
     <>
@@ -104,6 +110,45 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
           />
         </>
       )}
+
+      <section className={styles.panel} aria-labelledby="templates-heading">
+        <h2 id="templates-heading" className={styles.panelTitle}>
+          {t('templates')}
+        </h2>
+        <p className={styles.muted}>{t('templatesLead')}</p>
+        {templates.length === 0 ? (
+          <p className={styles.muted}>{t('noTemplates')}</p>
+        ) : (
+          <ul className={styles.simpleList}>
+            {templates.map((template) => (
+              <li key={template.id}>
+                <span>
+                  <Link
+                    href={{ pathname: '/admin/proposals/new', query: { template: template.id } }}
+                  >
+                    {template.name}
+                  </Link>
+                  <span className={styles.sub}>
+                    {formatMoney(
+                      template.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0),
+                      'EUR',
+                      locale,
+                    )}
+                  </span>
+                </span>
+                <ActionForm action={deleteTemplateAction.bind(null, locale, template.id)}>
+                  <SubmitButton variant="ghost" size="sm" pendingLabel={t('deletingTemplate')}>
+                    <span aria-hidden="true">{tc('delete')}</span>
+                    <span className="visually-hidden">
+                      {t('deleteTemplate', { name: template.name })}
+                    </span>
+                  </SubmitButton>
+                </ActionForm>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   );
 }
