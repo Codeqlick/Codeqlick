@@ -2156,7 +2156,12 @@
     "domainChecked": "Domain checked on {date}.",
     "domainNotChecked": "The domain has not been checked yet.",
     "checkDomain": "Check domain",
-    "checkingDomain": "Checking…"
+    "checkingDomain": "Checking…",
+    "mailStates": {
+      "NONE": "No email",
+      "OVH": "Email at OVH",
+      "OTHER": "Email elsewhere"
+    }
   },
   "PortalSite": {
     "title": "Your website",
@@ -2239,7 +2244,7 @@
     "domainChange": "Change or remove the domain",
     "domainChangeHint": "Leave it empty to remove it; your site stays at the preview address.",
     "domainLive": "Your website is live at {url}.",
-    "domainStepRegister": "Register it in your business’s name at <link>OVHcloud</link>: search for {domain} and buy it (about €10 a year). The domain is yours and you pay OVH directly.",
+    "domainStepRegister": "Register it in your business’s name at <link>OVHcloud</link>: search for {domain} and buy it (about €10 a year). Keep the free “Zimbra Starter” option ticked: it is your email on the domain. The domain is yours and you pay OVH directly.",
     "domainRegistered": "The domain is already registered.",
     "domainStepContact": "In your OVH customer area, open the domain, go to “Contact management” and set <code>{nic}</code> as the technical contact. That lets us connect it and watch its renewal without your password.",
     "domainOtherRegistrar": "Is it with another provider? Add two A records, for @ and for www, pointing to <code>{ip}</code>.",
@@ -2249,7 +2254,14 @@
     "domainReserved": "That domain can’t be used.",
     "domainSaved": "Domain saved.",
     "domainRemoved": "Domain removed: your site stays at the preview address.",
-    "domainSaving": "Saving…"
+    "domainSaving": "Saving…",
+    "mailTitle": "Your email",
+    "mailCreate": "It doesn’t receive email yet. Create <code>{address}</code> in your OVH customer area (Web Cloud → Emails → your domain → Create an account). If you kept the “Zimbra Starter” option when buying the domain, it is free.",
+    "mailOvh": "Your domain already receives email at OVH. Read it in the <link>webmail</link> with your address and its password.",
+    "mailOther": "Your domain already receives email with another provider.",
+    "mailPhone": "To have it on your phone, add an IMAP account: incoming server <code>ssl0.ovh.net</code> (port 993) and outgoing <code>ssl0.ovh.net</code> (port 465), with your full address as the user.",
+    "mailUse": "Use {address} on my website",
+    "mailUsed": "Done: your website shows {address} as its contact email."
   },
   "SiteRequest": {
     "metaTitle": "Request your basic website",

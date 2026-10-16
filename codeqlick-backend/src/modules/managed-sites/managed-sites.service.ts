@@ -33,6 +33,8 @@ export interface SiteView {
   /** Where the domain stands (architecture 8.2); null without one or before its first check. */
   domainState: 'UNREGISTERED' | 'ELSEWHERE' | 'LIVE' | null;
   domainCheckedAt: string | null;
+  /** Where the domain's email goes (architecture 11.1); null without a registered domain. */
+  mailState: 'NONE' | 'OVH' | 'OTHER' | null;
   previewUrl: string;
   /** The live address: the domain once it serves the site, the preview until then. */
   url: string;
@@ -177,7 +179,7 @@ export class ManagedSitesService {
     const changed = input.domain !== site.domain;
     const row = await this.repository.update(site.id, {
       domain: input.domain,
-      ...(changed ? { domainState: null, domainCheckedAt: null } : {}),
+      ...(changed ? { domainState: null, domainCheckedAt: null, mailState: null } : {}),
     });
     await this.syncProject(row);
     await this.activity.record(actor, {
@@ -334,6 +336,7 @@ export class ManagedSitesService {
       domain: row.domain,
       domainState: row.domainState,
       domainCheckedAt: row.domainCheckedAt?.toISOString() ?? null,
+      mailState: row.mailState,
       previewUrl: this.previewUrlOf(row),
       url: this.urlOf(row),
       status: row.status,
