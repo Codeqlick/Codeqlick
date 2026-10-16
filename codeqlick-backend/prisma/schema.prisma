@@ -169,6 +169,8 @@ model Lead {
   followUpOn  DateTime?       @map("follow_up_on") @db.Date
   /// The client account it became ("Convert to client").
   clientId    String?         @map("client_id") @db.Uuid
+  /// A basic-website request from /basic-website/request (architecture 11.5): style, business details.
+  siteRequest Json?       @map("site_request")
   createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
