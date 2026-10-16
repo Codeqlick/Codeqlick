@@ -27,6 +27,7 @@ export default async function ServicesPage({ params }: PageProps) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Services' });
   const th = await getTranslations({ locale, namespace: 'Home' });
+  const tw = await getTranslations({ locale, namespace: 'BasicWebsite' });
 
   return (
     <>
@@ -35,6 +36,11 @@ export default async function ServicesPage({ params }: PageProps) {
           <p className="eyebrow">{t('eyebrow')}</p>
           <h1 className={home.title}>{t('title')}</h1>
           <p className={home.lead}>{t('lead')}</p>
+          <p>
+            <Link href="/basic-website" className={home.more}>
+              {tw('servicesBanner')}
+            </Link>
+          </p>
         </div>
       </header>
 

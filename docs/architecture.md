@@ -505,6 +505,8 @@ src/
         legal/ privacy/        Legal notice and privacy policy (shown once LEGAL_OWNER_NAME is set)
         book/                  Book a call (free slots, POST /v1/bookings) and cancel from the emailed link
         calculator/            Cost calculator (prices from GET /v1/calculator; 404 until published)
+        basic-website/         The basic website offer: price (messages), what is included, the demos
+                               (covers in public/demos, links to <demo>.demo.codeqlick.com), steps, FAQ
         contact/               Contact form (server action → POST /v1/leads). Bots are dropped silently: a
                                honeypot field, and submissions made less than 3 s after the form was served
         not-found.tsx          Boundary for notFound() in site pages (unknown post or case study). Next.js 16.4
@@ -646,12 +648,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
 above (data model, API contract, frontend) when it ships.
 
-### 11.2 Basic website page (public)
-
-`/[locale]/basic-website`: what it is, the price ("desde 200 €", in the messages files), what is
-included and what is an extra, the three demos (cover, link to `<demo>.demo.codeqlick.com`),
-how it works (request → preview → changes → live), FAQ, and the button to request it (11.4).
-Linked from the services page and the footer; in the sitemap.
 
 ### 11.3 Managed sites (platform, admin)
 
