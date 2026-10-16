@@ -73,6 +73,14 @@ export function adminRemoveLeadPreview(id: string) {
   });
 }
 
+/** Drafts the proposal of a website request for the email's client account; the lead moves to PROPOSAL. */
+export function adminProposeFromRequest(id: string) {
+  return apiFetch<{
+    proposalId: string;
+    client: { id: string; created: boolean; invitationSent?: boolean };
+  }>(`/admin/leads/${encodeURIComponent(id)}/proposal`, { method: 'POST', auth: 'required' });
+}
+
 /** "Convert to client": a client account (welcome email), a project in Discovery, the lead won. */
 export function adminConvertLead(id: string, input: { projectName?: string }) {
   return apiFetch<{

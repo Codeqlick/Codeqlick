@@ -39,6 +39,8 @@ export type LoginResult = AuthTokens | TwoFactorChallenge;
 export interface Preferences {
   /** The Monday summary of the user's projects (clients). */
   weeklyDigest: boolean;
+  /** The monthly report of their managed website (clients). */
+  monthlyReport: boolean;
 }
 
 export interface TwoFactorStatus {
@@ -237,13 +239,13 @@ export class AuthService {
   /** The caller's own email preferences. */
   async preferences(userId: string): Promise<Preferences> {
     const user = await this.activeUser(userId);
-    return { weeklyDigest: user.weeklyDigest };
+    return { weeklyDigest: user.weeklyDigest, monthlyReport: user.monthlyReport };
   }
 
-  async updatePreferences(userId: string, input: Preferences): Promise<Preferences> {
+  async updatePreferences(userId: string, input: Partial<Preferences>): Promise<Preferences> {
     await this.activeUser(userId);
-    await this.repository.setWeeklyDigest(userId, input.weeklyDigest);
-    return input;
+    const user = await this.repository.setPreferences(userId, input);
+    return { weeklyDigest: user.weeklyDigest, monthlyReport: user.monthlyReport };
   }
 
   async me(userId: string): Promise<AuthUser> {
