@@ -861,6 +861,7 @@ model SiteForm {
   updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  days    SiteFormDay[]
 
   @@map("site_forms")
 }
@@ -907,6 +908,8 @@ model ManagedSite {
   lastBuildAt    DateTime?       @map("last_build_at") @db.Timestamptz(3)
   lastBuildError String?         @map("last_build_error")
   release        String?
+  /// Its website in Umami (cookieless visit statistics), created on its first build.
+  umamiWebsiteId String?         @map("umami_website_id")
   createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -929,4 +932,16 @@ model ManagedSiteRevision {
 
   @@index([siteId, createdAt])
   @@map("managed_site_revisions")
+}
+
+/// Messages a site form relayed on a day (Madrid), for the client's visits chart.
+model SiteFormDay {
+  formId String   @map("form_id") @db.Uuid
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  form SiteForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@id([formId, day])
+  @@map("site_form_days")
 }
