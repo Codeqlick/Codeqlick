@@ -23,6 +23,7 @@ import { SupportModule } from './modules/support/support.module.js';
 import { BookingsModule } from './modules/bookings/bookings.module.js';
 import { BriefsModule } from './modules/briefs/briefs.module.js';
 import { CredentialsModule } from './modules/credentials/credentials.module.js';
+import { ReviewsModule } from './modules/reviews/reviews.module.js';
 import { MonitoringModule } from './modules/monitoring/monitoring.module.js';
 import { CalculatorModule } from './modules/calculator/calculator.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
@@ -60,6 +61,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     BriefsModule,
     MonitoringModule,
     CredentialsModule,
+    ReviewsModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.

@@ -1,3 +1,4 @@
+import { ReviewsModule } from '../reviews/reviews.module.js';
 import { AccountsModule } from '../accounts/accounts.module.js';
 import { Module } from '@nestjs/common';
 import { AdminProjectsController } from './admin-projects.controller.js';
@@ -10,7 +11,7 @@ import { WeeklyDigestService } from './weekly-digest.service.js';
 import { ProjectsService } from './projects.service.js';
 
 @Module({
-  imports: [AccountsModule],
+  imports: [AccountsModule, ReviewsModule],
   controllers: [
     PortalProjectsController,
     AdminProjectsController,
