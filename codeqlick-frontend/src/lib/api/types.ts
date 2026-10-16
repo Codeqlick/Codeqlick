@@ -652,3 +652,28 @@ export type ClientReview = {
 
 /** A published review, as the website shows it. */
 export type PublicReview = Testimonial & { rating: number };
+
+/** A project's monthly hour allowance and this month's use. */
+export type MaintenancePlan = {
+  active: boolean;
+  name: string;
+  monthlyMinutes: number;
+  alertPercent: number;
+  /** `yyyy-mm` (Madrid). */
+  month: string;
+  usedMinutes: number;
+  remainingMinutes: number;
+  /** Whole percent; can pass 100. */
+  percent: number;
+  /** The last 4 months, newest first. */
+  months: { month: string; minutes: number }[];
+};
+
+export type PlanSummary = {
+  project: { id: string; name: string };
+  client: { id: string; name: string };
+  name: string;
+  monthlyMinutes: number;
+  usedMinutes: number;
+  percent: number;
+};
