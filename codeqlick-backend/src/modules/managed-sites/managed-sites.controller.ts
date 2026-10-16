@@ -34,6 +34,8 @@ import {
 } from './managed-sites.service.js';
 import { SiteDomainsService } from './site-domains.service.js';
 import { SitePreviewsService } from './site-previews.service.js';
+import { SiteProposalsService, type RequestProposalResult } from './site-proposals.service.js';
+import { SiteReportsService } from './site-reports.service.js';
 import { SiteOnboardingService, type OnboardResult } from './site-onboarding.service.js';
 
 @ApiTags('admin/sites')
@@ -46,6 +48,8 @@ export class ManagedSitesController {
     private readonly onboarding: SiteOnboardingService,
     private readonly siteDomains: SiteDomainsService,
     private readonly previews: SitePreviewsService,
+    private readonly requestProposals: SiteProposalsService,
+    private readonly reports: SiteReportsService,
   ) {}
 
   /** A basic-website client in one step (account, project, site, form, monitor, first build). */
@@ -63,6 +67,23 @@ export class ManagedSitesController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<{ status: 'REMOVED' | null }> {
     return { status: await this.previews.remove(params.id) };
+  }
+
+  /** Drafts the proposal for a website request (architecture 8.2). */
+  @Post('leads/:id/proposal')
+  @HttpCode(HttpStatus.CREATED)
+  proposeFromRequest(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<RequestProposalResult> {
+    return this.requestProposals.draft(user, params.id);
+  }
+
+  /** Sends last month's website report of the project's site now (architecture 8.2). */
+  @Post('projects/:id/site/report')
+  @HttpCode(HttpStatus.OK)
+  async sendReport(@Param({ schema: idParamSchema }) params: IdParam): Promise<{ sent: number }> {
+    return { sent: await this.reports.sendNow(params.id) };
   }
 
   @Get('sites')

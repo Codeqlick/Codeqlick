@@ -470,7 +470,9 @@
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
     "emails": "Correos",
     "weeklyDigest": "Resumen semanal de mis proyectos",
-    "weeklyDigestHint": "Cada lunes, si hay novedades o algo pendiente de tu aprobación, te enviamos un resumen."
+    "weeklyDigestHint": "Cada lunes, si hay novedades o algo pendiente de tu aprobación, te enviamos un resumen.",
+    "monthlyReport": "Informe mensual de mi web",
+    "monthlyReportHint": "El día 1 de cada mes te enviamos las visitas, los mensajes del formulario y el tiempo en línea de tu web."
   },
   "TwoFactor": {
     "title": "Verificación en dos pasos",
@@ -717,7 +719,13 @@
         "REMOVED": "Retirada"
       },
       "previewRemove": "Quitar vista previa",
-      "previewRemoving": "Quitando…"
+      "previewRemoving": "Quitando…",
+      "previewFollowUp": "Le preguntamos qué le parecía el {date}.",
+      "proposalTitle": "Propuesta",
+      "proposalBody": "Prepara el borrador con el precio, lo que incluye y lo que pidió (estilo, dominio, deseos). Si aún no tiene cuenta de cliente, se crea y le llega el email de bienvenida. Lo revisas antes de enviarlo.",
+      "proposalCreate": "Preparar propuesta",
+      "proposalCreating": "Preparando…",
+      "proposalOpen": "Ver la propuesta"
     },
     "posts": {
       "title": "Artículos",
@@ -947,6 +955,8 @@
       "localeHint": "En este idioma le llegarán el correo de bienvenida y los avisos de novedades de sus proyectos.",
       "weeklyDigest": "Resumen semanal por correo",
       "weeklyDigestHint": "Cada lunes, si hay novedades o algo pendiente de aprobar, le enviamos un resumen de sus proyectos.",
+      "monthlyReport": "Informe mensual de su web",
+      "monthlyReportHint": "El día 1 de cada mes le enviamos las visitas, los mensajes del formulario y el tiempo en línea de su web básica.",
       "digest": "Resumen semanal",
       "digestBody": "Envía ahora el resumen de esta semana (en {language}) para comprobar cómo le llega. Si no hay novedades ni nada pendiente, no se envía.",
       "digestSend": "Enviar resumen ahora",
@@ -2137,6 +2147,12 @@
     "footerLink": "Web básica"
   },
   "ManagedSite": {
+    "reportHint": "El día 1 de cada mes, cuando la web ya se ve en su dominio, el cliente recibe el informe del mes anterior: visitas, mensajes del formulario y tiempo en línea.",
+    "reportSend": "Enviar el informe del mes pasado",
+    "reportSending": "Enviando…",
+    "reportSent": "Informe enviado a {count, plural, one {# persona} other {# personas}}.",
+    "reportNobody": "Nadie de la cuenta quiere recibir el informe mensual.",
+
     "title": "Web gestionada",
     "lead": "Una web básica cuyo contenido vive aquí: se compila desde la plantilla cada vez que cambia y se publica en su vista previa y en su dominio.",
     "none": "Este proyecto todavía no tiene web gestionada.",

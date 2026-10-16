@@ -50,6 +50,50 @@ export class ManagedSitesRepository {
     return this.prisma.managedSite.findMany({ where: { domain: { not: null } }, include });
   }
 
+  /** Sites live on their domain whose report for `month` (`yyyy-mm`) hasn't gone out. */
+  reportsDue(month: string): Promise<SiteRow[]> {
+    return this.prisma.managedSite.findMany({
+      where: {
+        domainState: 'LIVE',
+        OR: [{ reportedMonth: null }, { reportedMonth: { lt: month } }],
+      },
+      include,
+    });
+  }
+
+  /** The active people of a client account who want the monthly report. */
+  reportRecipients(accountId: string) {
+    return this.prisma.user.findMany({
+      where: {
+        OR: [{ id: accountId }, { memberOfId: accountId }],
+        isActive: true,
+        monthlyReport: true,
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { name: true, email: true, locale: true },
+    });
+  }
+
+  /** The project's uptime checks in [from, to). */
+  checksBetween(projectId: string, from: Date, to: Date) {
+    return this.prisma.siteCheck.findMany({
+      where: { monitor: { projectId }, checkedAt: { gte: from, lt: to } },
+      select: { ok: true },
+    });
+  }
+
+  /** Messages sent through the project's form between two `yyyy-mm-dd` days, both included. */
+  async formMessagesBetween(projectId: string, first: string, last: string): Promise<number> {
+    const days = await this.prisma.siteFormDay.findMany({
+      where: {
+        form: { projectId },
+        day: { gte: new Date(`${first}T00:00:00Z`), lte: new Date(`${last}T00:00:00Z`) },
+      },
+      select: { count: true },
+    });
+    return days.reduce((sum, day) => sum + day.count, 0);
+  }
+
   list(): Promise<SiteRow[]> {
     return this.prisma.managedSite.findMany({ include, orderBy: { createdAt: 'desc' } });
   }

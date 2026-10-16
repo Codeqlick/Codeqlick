@@ -22,6 +22,8 @@ export type AdminUser = AuthUser & {
   locale: ApiLocale;
   /** Clients: whether they get the Monday summary of their projects. */
   weeklyDigest: boolean;
+  /** Clients: whether they get the monthly report of their managed website. */
+  monthlyReport: boolean;
   /** A person of a client company: the company's main client account. */
   memberOfId: string | null;
   createdAt: string;
@@ -39,6 +41,7 @@ export function toAdminUser(user: User): AdminUser {
     isActive: user.isActive,
     locale: toApiLocale(user.locale),
     weeklyDigest: user.weeklyDigest,
+    monthlyReport: user.monthlyReport,
     memberOfId: user.memberOfId,
     createdAt: user.createdAt.toISOString(),
   };
@@ -162,6 +165,7 @@ export class UsersService {
     if (input.isActive !== undefined) data.isActive = input.isActive;
     if (input.locale !== undefined) data.locale = toDbLocale(input.locale);
     if (input.weeklyDigest !== undefined) data.weeklyDigest = input.weeklyDigest;
+    if (input.monthlyReport !== undefined) data.monthlyReport = input.monthlyReport;
     if (input.password !== undefined) data.passwordHash = await this.passwords.hash(input.password);
 
     // Deactivation, a password reset or a role change ends every existing session.

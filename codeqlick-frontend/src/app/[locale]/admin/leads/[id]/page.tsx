@@ -22,6 +22,7 @@ import {
 } from '@/lib/schemas/contact';
 import {
   convertLeadAction,
+  proposeFromRequestAction,
   removeLeadPreviewAction,
   replyToLeadAction,
   updateLeadAction,
@@ -126,11 +127,36 @@ export default async function AdminLeadPage({
               </a>
             ) : null}
           </p>
+          {lead.preview.followUpAt ? (
+            <p className={styles.muted}>
+              {t('previewFollowUp', { date: formatDateTime(lead.preview.followUpAt, locale) })}
+            </p>
+          ) : null}
           {lead.preview.status === 'REMOVED' ? null : (
             <ActionForm action={removeLeadPreviewAction.bind(null, locale, lead.id)}>
               <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRemoving')}>
                 {t('previewRemove')}
               </SubmitButton>
+            </ActionForm>
+          )}
+        </section>
+      ) : null}
+
+      {lead.siteRequest && (lead.proposalId || (!lead.clientId && lead.status !== 'SPAM')) ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('proposalTitle')}</h2>
+          {lead.proposalId ? (
+            <p>
+              <Link href={`/admin/proposals/${lead.proposalId}`}>{t('proposalOpen')}</Link>
+            </p>
+          ) : (
+            <ActionForm action={proposeFromRequestAction.bind(null, locale, lead.id)}>
+              <p className={styles.muted}>{t('proposalBody')}</p>
+              <div className={styles.actions}>
+                <SubmitButton size="sm" pendingLabel={t('proposalCreating')}>
+                  {t('proposalCreate')}
+                </SubmitButton>
+              </div>
             </ActionForm>
           )}
         </section>
