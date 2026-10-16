@@ -22,7 +22,7 @@ export type DomainFieldLabels = {
 
 /**
  * A domain input inside an ActionForm with a "check" button: lists whether the name is free in
- * .es, .com and .eu (OVH or the registry, through the API) and fills the input with a free one.
+ * .com, .es and .eu (OVH or the registry, through the API) and fills the input with a free one.
  */
 export function DomainField({
   id,
@@ -78,7 +78,7 @@ export function DomainField({
           autoComplete="off"
           spellCheck={false}
           maxLength={253}
-          placeholder="peluqueria-ana.es"
+          placeholder="peluqueria-ana.com"
         />
         <Button variant="outline" size="sm" onClick={check} disabled={pending || !value.trim()}>
           {pending ? labels.checking : labels.check}
