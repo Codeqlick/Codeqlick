@@ -74,8 +74,9 @@ export async function submitSiteRequest(
     };
   }
   const d = parsed.data;
+  let preview = '';
   try {
-    await createSiteRequest({
+    const created = await createSiteRequest({
       preset: d.preset,
       business: {
         name: d.businessName,
@@ -101,9 +102,11 @@ export async function submitSiteRequest(
       email: d.email,
       locale,
     });
+    // Only the preview's name travels in the URL; the page rebuilds its address.
+    preview = created.previewUrl ? new URL(created.previewUrl).hostname.split('.')[0]! : '';
   } catch (error) {
     const message = isApiError(error) && error.status === 429 ? t('rateLimited') : t('error');
     return { status: 'error', message, values };
   }
-  redirect(`/${locale}/basic-website/request?sent=1`);
+  redirect(`/${locale}/basic-website/request?sent=1${preview ? `&preview=${preview}` : ''}`);
 }

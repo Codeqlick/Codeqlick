@@ -9,7 +9,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { SITE_PRESETS } from '@/lib/api/types';
-import { legalOwner } from '@/lib/env';
+import { env, legalOwner } from '@/lib/env';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import home from '../../page.module.css';
@@ -46,6 +46,11 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
   const tk = (key: string) => tw(key as never);
   const query = await searchParams;
   const sent = firstParam(query.sent) === '1';
+  const previewSlug = firstParam(query.preview);
+  const previewUrl =
+    previewSlug && /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(previewSlug)
+      ? `https://${previewSlug}.${env.SITES_PREVIEW_DOMAIN}`
+      : null;
   const chosen = SITE_PRESETS.find((key) => key === firstParam(query.style)) ?? 'peluqueria';
   const renderedAt = await requestTime();
 
@@ -56,6 +61,17 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
           <p className="eyebrow">{t('eyebrow')}</p>
           <h1 className={home.title}>{t('sentTitle')}</h1>
           <p className={home.lead}>{t('sentBody')}</p>
+          {previewUrl ? (
+            <div className={styles.preview}>
+              <p>{t('previewBody')}</p>
+              <p>
+                <Button href={previewUrl} external target="_blank" rel="noopener noreferrer">
+                  {t('previewOpen')}
+                </Button>
+              </p>
+              <p className={styles.hint}>{t('previewHint')}</p>
+            </div>
+          ) : null}
           <p>
             <Button href="/basic-website" variant="outline">
               {t('back')}

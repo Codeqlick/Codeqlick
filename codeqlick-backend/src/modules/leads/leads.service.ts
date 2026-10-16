@@ -53,11 +53,18 @@ export interface Lead {
   clientId: string | null;
   /** The basic-website request it came from, if any (see managed-sites/site-request.ts). */
   siteRequest: unknown;
+  /** The request's instant preview (architecture 8.2), when one was made. */
+  preview: {
+    url: string;
+    status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
+    builtAt: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export function toLead(row: LeadRow): Lead {
+/** `previewDomain`: SITES_PREVIEW_DOMAIN, where request previews are served. */
+export function toLead(row: LeadRow, previewDomain: string): Lead {
   return {
     id: row.id,
     name: row.name,
@@ -73,6 +80,14 @@ export function toLead(row: LeadRow): Lead {
     followUpOn: row.followUpOn?.toISOString().slice(0, 10) ?? null,
     clientId: row.clientId,
     siteRequest: row.siteRequest ?? null,
+    preview:
+      row.previewSlug && row.previewStatus
+        ? {
+            url: `https://${row.previewSlug}.${previewDomain}`,
+            status: row.previewStatus,
+            builtAt: row.previewBuiltAt?.toISOString() ?? null,
+          }
+        : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -150,6 +165,7 @@ export class LeadsService {
         followUpOn: null,
         client: { connect: { id: client.id } },
       }),
+      this.config.sitesPreviewDomain,
     );
     await this.activity.record(actor, {
       action: 'lead.converted',
@@ -165,9 +181,11 @@ export class LeadsService {
   }
 
   /** `siteRequest`: the structured request when it came from the basic-website request form. */
+  /** `previewSlug`: the instant preview a website request is getting (SitePreviewsService). */
   async create(
     input: CreateLeadInput,
     siteRequest?: Prisma.InputJsonValue,
+    previewSlug?: string,
   ): Promise<{ id: string }> {
     if (input.website && input.website.trim() !== '') {
       // Honeypot hit: pretend success so bots learn nothing.
@@ -184,9 +202,10 @@ export class LeadsService {
       message: input.message,
       locale: toDbLocale(input.locale),
       ...(siteRequest ? { siteRequest } : {}),
+      ...(previewSlug ? { previewSlug, previewStatus: 'BUILDING' as const } : {}),
     });
 
-    const lead = toLead(row);
+    const lead = toLead(row, this.config.sitesPreviewDomain);
     this.sendInBackground(
       leadNotificationEmail(this.config.leadsNotifyTo, lead, this.config.siteUrl),
       'notification',
@@ -233,7 +252,12 @@ export class LeadsService {
       skip,
       take,
     );
-    return paginate(items.map(toLead), total, query.page, query.pageSize);
+    return paginate(
+      items.map((row) => toLead(row, this.config.sitesPreviewDomain)),
+      total,
+      query.page,
+      query.pageSize,
+    );
   }
 
   /** All leads matching the list filters as CSV (capped at EXPORT_LIMIT rows). */
@@ -242,13 +266,13 @@ export class LeadsService {
       { status: query.status, q: query.q || undefined },
       EXPORT_LIMIT,
     );
-    return leadsToCsv(rows.map(toLead));
+    return leadsToCsv(rows.map((row) => toLead(row, this.config.sitesPreviewDomain)));
   }
 
   async get(id: string): Promise<Lead> {
     const row = await this.repository.findById(id);
     if (!row) throw new NotFoundException('Lead not found');
-    return toLead(row);
+    return toLead(row, this.config.sitesPreviewDomain);
   }
 
   async update(actor: AuthUser, id: string, input: UpdateLeadInput): Promise<Lead> {
@@ -264,7 +288,7 @@ export class LeadsService {
     const status = input.status ?? existing.status;
     if (status !== 'LOST') data.lostReason = null;
     else if (input.lostReason !== undefined) data.lostReason = input.lostReason;
-    const lead = toLead(await this.repository.update(id, data));
+    const lead = toLead(await this.repository.update(id, data), this.config.sitesPreviewDomain);
     await this.activity.record(actor, {
       action: 'lead.updated',
       targetId: id,
@@ -308,7 +332,10 @@ export class LeadsService {
       targetLabel: lead.name,
       details: { subject: input.subject },
     });
-    return { reply: toLeadReply(saved.reply), lead: toLead(saved.lead) };
+    return {
+      reply: toLeadReply(saved.reply),
+      lead: toLead(saved.lead, this.config.sitesPreviewDomain),
+    };
   }
 
   /** Fire-and-forget: mail problems are logged and never fail the request. */
