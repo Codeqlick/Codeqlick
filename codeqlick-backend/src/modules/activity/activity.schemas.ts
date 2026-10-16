@@ -54,6 +54,8 @@ export const ACTIVITY_ACTIONS = [
   'project.credential_deleted',
   'project.monitor_enabled',
   'project.monitor_disabled',
+  'project.form_updated',
+  'project.form_key_replaced',
   'project.brief_requested',
   'project.brief_submitted',
   'project.brief_updated',
