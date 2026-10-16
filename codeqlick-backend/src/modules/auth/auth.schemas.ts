@@ -29,6 +29,35 @@ export const changePasswordSchema = z
   .strict();
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
+const signupFields = {
+  name: z.string().trim().min(1).max(120),
+  password: z.string().min(12).max(256),
+  /** Language of their emails. */
+  locale: localeSchema,
+  /** They read and accept the privacy policy. */
+  acceptPrivacy: z.literal(true),
+};
+
+/** Self-registration (decision 17). */
+export const registerSchema = z
+  .object({
+    ...signupFields,
+    email: z.email().max(254),
+    /** Honeypot: humans never see this field, bots fill it in. */
+    website: z.string().max(500).optional(),
+  })
+  .strict();
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+export const confirmSignupSchema = z.object({ token: z.string().min(1).max(512) }).strict();
+export type ConfirmSignupInput = z.infer<typeof confirmSignupSchema>;
+
+/** Accepting the team's invitation: its token proves the email. */
+export const acceptInvitationSchema = z
+  .object({ ...signupFields, token: z.string().min(1).max(512) })
+  .strict();
+export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
+
 export const requestPasswordResetSchema = z
   .object({
     email: z.email().max(254),

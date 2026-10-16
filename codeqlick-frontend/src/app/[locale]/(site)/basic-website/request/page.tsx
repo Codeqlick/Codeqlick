@@ -71,6 +71,14 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
               <p className={styles.hint}>{t('previewHint')}</p>
             </div>
           ) : null}
+          <div className={styles.preview}>
+            <p>{t('accountBody')}</p>
+            <p>
+              <Button href="/register" variant="outline">
+                {t('accountCreate')}
+              </Button>
+            </p>
+          </div>
           <p>
             <Button href="/basic-website" variant="outline">
               {t('back')}

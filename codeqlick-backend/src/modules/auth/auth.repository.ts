@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Session, User } from '../../generated/prisma/client.js';
+import type { Prisma, Session, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface CreateSessionData {
@@ -92,6 +92,72 @@ export class AuthRepository {
     ]);
   }
 
+  /** A self-registration to confirm, replacing earlier unconfirmed ones for the email. */
+  async createSignupToken(data: Prisma.SignupTokenCreateInput): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.signupToken.deleteMany({ where: { email: data.email, usedAt: null } }),
+      this.prisma.signupToken.create({ data }),
+    ]);
+  }
+
+  /**
+   * Spends a sign-up token: the email's account is created, or the unregistered one the team
+   * prepared becomes theirs. Null when the token can't be used or the email is registered already.
+   */
+  async confirmSignup(tokenHash: string): Promise<User | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const token = await tx.signupToken.findUnique({ where: { tokenHash } });
+      if (!token) return null;
+      const spent = await tx.signupToken.updateMany({
+        where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (spent.count !== 1) return null;
+      const existing = await tx.user.findUnique({ where: { email: token.email } });
+      const own = { name: token.name, passwordHash: token.passwordHash, locale: token.locale };
+      if (!existing) {
+        return tx.user.create({
+          data: { ...own, email: token.email, role: 'CLIENT', registeredAt: now },
+        });
+      }
+      if (existing.registeredAt || !existing.isActive) return null;
+      return tx.user.update({ where: { id: existing.id }, data: { ...own, registeredAt: now } });
+    });
+  }
+
+  /** The unregistered account an invitation token is for, while it can be used. */
+  async findInvitation(tokenHash: string) {
+    const token = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+    if (!token || token.usedAt || token.expiresAt <= new Date()) return null;
+    if (token.user.registeredAt || !token.user.isActive) return null;
+    return token.user;
+  }
+
+  /** Spends an invitation token: the account becomes theirs with the name and password chosen. */
+  async acceptInvitation(
+    tokenHash: string,
+    data: { name: string; passwordHash: string; locale: Prisma.UserUpdateInput['locale'] },
+  ): Promise<User | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const token = await tx.passwordResetToken.findUnique({
+        where: { tokenHash },
+        include: { user: true },
+      });
+      if (!token || token.user.registeredAt || !token.user.isActive) return null;
+      const spent = await tx.passwordResetToken.updateMany({
+        where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (spent.count !== 1) return null;
+      return tx.user.update({ where: { id: token.userId }, data: { ...data, registeredAt: now } });
+    });
+  }
+
   /**
    * Spends a reset token: marks it used (only if unused and not expired), stores the new password
    * hash and revokes every session of the user. Returns false when the token can't be used.
@@ -113,7 +179,8 @@ export class AuthRepository {
 
       await tx.user.update({
         where: { id: token.userId },
-        data: { passwordHash: await hashPassword() },
+        // The emailed link proves the address: an unregistered account becomes theirs.
+        data: { passwordHash: await hashPassword(), registeredAt: token.user.registeredAt ?? now },
       });
       await tx.session.updateMany({
         where: { userId: token.userId, revokedAt: null },
@@ -200,12 +267,13 @@ export class AuthRepository {
     });
   }
 
-  /** Deletes sessions and password reset tokens that expired before `before`. */
+  /** Deletes sessions, password reset and sign-up tokens that expired before `before`. */
   async deleteExpired(before: Date): Promise<{ sessions: number; resetTokens: number }> {
-    const [sessions, resetTokens] = await this.prisma.$transaction([
+    const [sessions, resetTokens, signups] = await this.prisma.$transaction([
       this.prisma.session.deleteMany({ where: { expiresAt: { lt: before } } }),
       this.prisma.passwordResetToken.deleteMany({ where: { expiresAt: { lt: before } } }),
+      this.prisma.signupToken.deleteMany({ where: { expiresAt: { lt: before } } }),
     ]);
-    return { sessions: sessions.count, resetTokens: resetTokens.count };
+    return { sessions: sessions.count, resetTokens: resetTokens.count + signups.count };
   }
 }

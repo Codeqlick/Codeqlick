@@ -9,13 +9,21 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { createHash, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
-import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
 import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { invitationEmail, passwordResetEmail } from './auth-emails.js';
+import {
+  alreadyRegisteredEmail,
+  invitationEmail,
+  passwordResetEmail,
+  signupConfirmEmail,
+  signupInvitationEmail,
+  type SignupReason,
+} from './auth-emails.js';
+import type { AcceptInvitationInput, RegisterInput } from './auth.schemas.js';
 import { PasswordService } from './password.service.js';
 import { SecretBox } from './secret-box.js';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
@@ -100,6 +108,8 @@ export const PASSWORD_RESET_TTL_MINUTES = 60;
 
 /** How long the set-your-password link of a welcome email works. */
 export const INVITATION_TTL_DAYS = 7;
+/** How long the link that confirms a self-registration works. */
+export const SIGNUP_TTL_HOURS = 24;
 
 export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -142,7 +152,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
     const valid = await this.passwords.verify(user.passwordHash, password);
-    if (!valid || !user.isActive) {
+    // An account the team prepared can't be signed in to until its owner registers (decision 17).
+    if (!valid || !user.isActive || !user.registeredAt) {
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -298,6 +309,11 @@ export class AuthService {
   async requestPasswordReset(email: string, locale: ApiLocale): Promise<void> {
     const user = await this.repository.findUserByEmail(email.trim().toLowerCase());
     if (!user || !user.isActive) return;
+    if (!user.registeredAt) {
+      // Never registered: what they need is the invitation to create the account.
+      await this.sendSignupInvitation(user, locale, 'account').catch(() => undefined);
+      return;
+    }
 
     const token = this.generateRefreshToken();
     await this.repository.replacePasswordResetToken(
@@ -339,6 +355,117 @@ export class AuthService {
     await this.mail.send(
       invitationEmail(user, link, locale, INVITATION_TTL_DAYS, this.config.siteUrl),
     );
+  }
+
+  /**
+   * The team's invitation to create the account it prepared for an email (decision 17). Throws when
+   * the email can't be sent.
+   */
+  async sendSignupInvitation(
+    user: Pick<User, 'id' | 'name' | 'email'>,
+    locale: ApiLocale,
+    reason: SignupReason,
+  ): Promise<void> {
+    const link = await this.signupInvitationLink(user, locale);
+    await this.mail.send(
+      signupInvitationEmail(user, link, locale, INVITATION_TTL_DAYS, reason, this.config.siteUrl),
+    );
+  }
+
+  /** A new link to accept the invitation (earlier ones stop working), for emails that carry it. */
+  async signupInvitationLink(user: Pick<User, 'id'>, locale: ApiLocale): Promise<string> {
+    const token = this.generateRefreshToken();
+    await this.repository.replacePasswordResetToken(
+      user.id,
+      hashRefreshToken(token),
+      new Date(Date.now() + INVITATION_TTL_DAYS * DAY_MS),
+    );
+    return `${this.config.siteUrl}/${locale}/register?invitation=${token}`;
+  }
+
+  /**
+   * Self-registration (decision 17): emails the link that confirms it, or, when the email already
+   * has an account, says so. Never tells the caller which happened.
+   */
+  async register(input: RegisterInput): Promise<void> {
+    if (input.website && input.website.trim() !== '') return;
+    const email = input.email.trim().toLowerCase();
+    const existing = await this.repository.findUserByEmail(email);
+    const site = this.config.siteUrl;
+    let message;
+    if (existing?.registeredAt) {
+      if (!existing.isActive) return;
+      message = alreadyRegisteredEmail(
+        existing,
+        {
+          login: `${site}/${input.locale}/login`,
+          reset: `${site}/${input.locale}/forgot-password`,
+        },
+        input.locale,
+        site,
+      );
+    } else {
+      if (existing && !existing.isActive) return;
+      const token = this.generateRefreshToken();
+      await this.repository.createSignupToken({
+        email,
+        name: input.name,
+        passwordHash: await this.passwords.hash(input.password),
+        locale: toDbLocale(input.locale),
+        tokenHash: hashRefreshToken(token),
+        expiresAt: new Date(Date.now() + SIGNUP_TTL_HOURS * 3_600_000),
+      });
+      message = signupConfirmEmail(
+        { name: input.name, email },
+        `${site}/${input.locale}/register/confirm?token=${token}`,
+        input.locale,
+        SIGNUP_TTL_HOURS,
+        site,
+      );
+    }
+    this.mail.send(message).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send a sign-up email: ${reason}`);
+    });
+  }
+
+  /** The emailed link of a self-registration: the account is theirs and they are signed in. */
+  async confirmSignup(token: string, client: ClientInfo = {}): Promise<AuthTokens> {
+    const user = await this.repository.confirmSignup(hashRefreshToken(token));
+    if (!user) throw new BadRequestException('This link is invalid or has expired');
+    await this.activity.record(toAuthUser(user), {
+      action: 'account.registered',
+      targetId: user.id,
+      targetLabel: user.email,
+    });
+    return this.startSession(user, client);
+  }
+
+  /** Who an invitation is for, to fill in the sign-up form. */
+  async invitation(token: string): Promise<{ email: string; name: string }> {
+    const user = await this.repository.findInvitation(hashRefreshToken(token));
+    if (!user) throw new BadRequestException('This invitation is invalid or has expired');
+    return { email: user.email, name: user.name };
+  }
+
+  /** Accepts the team's invitation: the account is theirs at once and they are signed in. */
+  async acceptInvitation(
+    input: AcceptInvitationInput,
+    client: ClientInfo = {},
+  ): Promise<AuthTokens> {
+    const user = await this.repository.acceptInvitation(hashRefreshToken(input.token), {
+      name: input.name,
+      passwordHash: await this.passwords.hash(input.password),
+      locale: toDbLocale(input.locale),
+    });
+    if (!user) throw new BadRequestException('This invitation is invalid or has expired');
+    await this.activity.record(toAuthUser(user), {
+      action: 'account.registered',
+      targetId: user.id,
+      targetLabel: user.email,
+      details: { invited: true },
+    });
+    return this.startSession(user, client);
   }
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */
