@@ -331,6 +331,7 @@ model ClientProject {
   credentials ProjectCredential[]
   review      ClientReview?
   plan        MaintenancePlan?
+  form        SiteForm?
 
   @@index([clientId])
   @@map("client_projects")
@@ -839,4 +840,23 @@ model MaintenancePlan {
   project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("maintenance_plans")
+}
+
+/// The contact form of a client site the team hosts. The site posts to `/v1/forms/:key` and the
+/// message is emailed to `recipients`; only a counter is kept.
+model SiteForm {
+  id               String    @id @default(uuid()) @db.Uuid
+  projectId        String    @unique @map("project_id") @db.Uuid
+  /// Public (it is in the site's HTML); replacing it stops copies of the old one.
+  key              String    @unique
+  enabled          Boolean   @default(true)
+  recipients       String[]
+  submissions      Int       @default(0)
+  lastSubmissionAt DateTime? @map("last_submission_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("site_forms")
 }

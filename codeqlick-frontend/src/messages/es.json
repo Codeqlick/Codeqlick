@@ -1024,7 +1024,9 @@
           "review_submitted": "envió su valoración de <target>{label}</target>",
           "review_published": "publicó la valoración de <target>{label}</target>",
           "review_hidden": "retiró la valoración de <target>{label}</target>",
-          "plan_updated": "cambió el plan de mantenimiento de <target>{label}</target>"
+          "plan_updated": "cambió el plan de mantenimiento de <target>{label}</target>",
+          "form_updated": "cambió el formulario de la web de <target>{label}</target>",
+          "form_key_replaced": "cambió la clave del formulario de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1945,5 +1947,27 @@
     "clientLead": "Las horas de mantenimiento y mejoras incluidas cada mes, y lo que llevamos usado.",
     "overviewTitle": "Planes de mantenimiento",
     "usedColumn": "Consumo del mes"
+  },
+  "SiteForm": {
+    "title": "Formulario de la web",
+    "lead": "Para webs estáticas: el formulario de contacto de la web envía los mensajes aquí y se reenvían por email a las direcciones que pongas. Solo se guarda un contador, no los mensajes.",
+    "recipients": "Enviar los mensajes a",
+    "recipientsHint": "Uno o varios emails separados por comas (máximo 5).",
+    "enabled": "Formulario activo",
+    "enabledHint": "Desmárcalo para dejar de aceptar mensajes.",
+    "save": "Guardar formulario",
+    "saving": "Guardando…",
+    "off": "Este proyecto todavía no tiene formulario.",
+    "active": "Activo",
+    "paused": "Pausado",
+    "count": "{count, plural, =0 {Sin mensajes todavía} one {# mensaje recibido} other {# mensajes recibidos}}",
+    "last": "Último: {date}",
+    "origins": "Acepta envíos desde: {origins}",
+    "noOrigins": "Pon la URL de producción o de staging del proyecto: sin ellas el formulario rechaza los envíos de los navegadores.",
+    "snippet": "Código para la web (la plantilla ya lo incluye; solo cambia la dirección):",
+    "replaceKey": "Cambiar la clave",
+    "replacing": "Cambiando…",
+    "replaceHint": "La dirección anterior deja de funcionar: actualiza la web después.",
+    "invalidEmails": "Revisa los emails: alguno no es válido."
   }
 }
