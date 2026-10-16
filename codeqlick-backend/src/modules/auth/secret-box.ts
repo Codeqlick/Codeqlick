@@ -9,10 +9,9 @@ import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:cr
 export class SecretBox {
   private readonly key: Buffer;
 
-  constructor(masterSecret: string) {
-    this.key = Buffer.from(
-      hkdfSync('sha256', masterSecret, 'codeqlick', 'two-factor-secret-v1', 32),
-    );
+  /** `purpose` separates the keys of different uses of the same master secret. */
+  constructor(masterSecret: string, purpose = 'two-factor-secret-v1') {
+    this.key = Buffer.from(hkdfSync('sha256', masterSecret, 'codeqlick', purpose, 32));
   }
 
   seal(plaintext: string): string {
