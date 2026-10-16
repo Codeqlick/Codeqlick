@@ -635,3 +635,20 @@ export type SharedAccess = {
   /** When the team last opened it. */
   viewedAt: string | null;
 };
+
+/** The client's review of a project (`/portal/projects/:id/review`). */
+export type ClientReview = {
+  /** NONE: not asked for. */
+  status: 'NONE' | 'REQUESTED' | 'SUBMITTED' | 'PUBLISHED' | 'HIDDEN';
+  rating: number | null;
+  quote: string | null;
+  authorName: string | null;
+  authorRole: string | null;
+  consent: boolean;
+  locale: 'en' | 'es';
+  submittedAt: string | null;
+  publishedAt: string | null;
+};
+
+/** A published review, as the website shows it. */
+export type PublicReview = Testimonial & { rating: number };
