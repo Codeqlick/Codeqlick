@@ -8,6 +8,7 @@ import { failedState, invalidState, savedState } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
 import {
   adminConvertLead,
+  adminProposeFromRequest,
   adminRemoveLeadPreview,
   adminReplyToLead,
   adminUpdateLead,
@@ -101,4 +102,21 @@ export async function removeLeadPreviewAction(
   }
   revalidatePath(`/${locale}/admin`, 'layout');
   return { status: 'idle' };
+}
+
+/** "Preparar propuesta": drafts the request's proposal and opens it to review. */
+export async function proposeFromRequestAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  let proposalId: string;
+  try {
+    ({ proposalId } = await adminProposeFromRequest(id));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidatePath(`/${locale}/admin`, 'layout');
+  redirect(`/${locale}/admin/proposals/${proposalId}`);
 }

@@ -69,5 +69,7 @@ export const disableTwoFactorSchema = z
   .strict();
 export type DisableTwoFactorInput = z.infer<typeof disableTwoFactorSchema>;
 
-export const preferencesSchema = z.object({ weeklyDigest: z.boolean() }).strict();
+export const preferencesSchema = z
+  .object({ weeklyDigest: z.boolean().optional(), monthlyReport: z.boolean().optional() })
+  .strict();
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
