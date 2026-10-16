@@ -1,5 +1,5 @@
 /** The TLDs offered for a new domain, in this order. */
-export const OFFERED_TLDS = ['es', 'com', 'eu'] as const;
+export const OFFERED_TLDS = ['com', 'es', 'eu'] as const;
 
 /** "Peluquería Ana" → "peluqueria-ana": what a domain label can hold. */
 export function toLabel(text: string): string {
