@@ -19,6 +19,7 @@ import { ProjectHours } from '@/components/app/ProjectHours';
 import { ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Alert } from '@/components/ui/Alert';
+import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
@@ -42,6 +43,8 @@ import { SharedAccessList } from '@/components/app/SharedAccessList';
 import { deleteAllAccessAction, revealAccessAction } from '../../../portal/projects/access-actions';
 import { SiteStatus } from '@/components/app/SiteStatus';
 import { checkNowAction, setMonitorAction } from '../monitor-actions';
+import { adminGetSiteForm } from '@/lib/api/site-forms';
+import { replaceSiteFormKeyAction, saveSiteFormAction } from '../form-actions';
 import { BriefSummary } from '@/components/app/BriefSummary';
 import { requestBriefAction } from '../brief-actions';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
@@ -96,7 +99,7 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks, brief, monitor, access, review, plan] = await Promise.all([
+  const [time, drafts, tasks, brief, monitor, access, review, plan, siteForm] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
     adminListTasks(project.id),
@@ -105,11 +108,14 @@ export default async function EditProjectPage({
     listAccess(project.id),
     adminGetReview(project.id),
     adminGetPlan(project.id),
+    adminGetSiteForm(project.id),
   ]);
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trv = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
   const tm = await getTranslations({ locale, namespace: 'Monitoring' });
+  const tf = await getTranslations({ locale, namespace: 'SiteForm' });
+  const formEndpoint = 'key' in siteForm ? `${env.PUBLIC_API_URL}/forms/${siteForm.key}` : null;
   const tb = await getTranslations({ locale, namespace: 'Brief' });
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
@@ -301,6 +307,86 @@ export default async function EditProjectPage({
               ) : null}
             </>
           )}
+        </div>
+      </section>
+
+      <section className={styles.panel} id="site-form" aria-labelledby="site-form-heading">
+        <h2 id="site-form-heading" className={styles.panelTitle}>
+          {tf('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{tf('lead')}</p>
+          {'key' in siteForm ? (
+            <>
+              <p>
+                <Badge tone={siteForm.enabled ? 'success' : 'neutral'}>
+                  {siteForm.enabled ? tf('active') : tf('paused')}
+                </Badge>{' '}
+                {tf('count', { count: siteForm.submissions })}
+                {siteForm.lastSubmissionAt
+                  ? ` · ${tf('last', { date: formatDateTime(siteForm.lastSubmissionAt, locale) })}`
+                  : null}
+              </p>
+              <p className={styles.muted}>
+                {siteForm.origins.length > 0
+                  ? tf('origins', { origins: siteForm.origins.join(', ') })
+                  : tf('noOrigins')}
+              </p>
+              <p className={styles.muted}>{tf('snippet')}</p>
+              <pre className={styles.code}>
+                {[
+                  `<form action="${formEndpoint}" method="post">`,
+                  '  <input name="name" required>',
+                  '  <input name="email" type="email" required>',
+                  '  <input name="phone" type="tel">',
+                  '  <textarea name="message" required></textarea>',
+                  '  <input name="website" tabindex="-1" autocomplete="off" hidden>',
+                  '  <button>Enviar</button>',
+                  '</form>',
+                ].join('\n')}
+              </pre>
+            </>
+          ) : (
+            <p className={styles.muted}>{tf('off')}</p>
+          )}
+          <ActionForm
+            key={'key' in siteForm ? `${siteForm.recipients.join()}-${siteForm.enabled}` : 'none'}
+            action={saveSiteFormAction.bind(null, locale, project.id)}
+            className={styles.form}
+          >
+            <FormInput
+              id="site-form-recipients"
+              name="recipients"
+              label={tf('recipients')}
+              hint={tf('recipientsHint')}
+              defaultValue={
+                'key' in siteForm ? siteForm.recipients.join(', ') : project.client.email
+              }
+              required
+            />
+            <FormCheckbox
+              id="site-form-enabled"
+              name="enabled"
+              label={tf('enabled')}
+              hint={tf('enabledHint')}
+              defaultChecked={'key' in siteForm ? siteForm.enabled : true}
+            />
+            <div className={styles.actions}>
+              <SubmitButton size="sm" pendingLabel={tf('saving')}>
+                {tf('save')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+          {'key' in siteForm ? (
+            <ActionForm action={replaceSiteFormKeyAction.bind(null, locale, project.id)}>
+              <p className={styles.muted}>{tf('replaceHint')}</p>
+              <div>
+                <SubmitButton variant="ghost" size="sm" pendingLabel={tf('replacing')}>
+                  {tf('replaceKey')}
+                </SubmitButton>
+              </div>
+            </ActionForm>
+          ) : null}
         </div>
       </section>
 
