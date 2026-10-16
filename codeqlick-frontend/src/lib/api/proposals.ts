@@ -1,6 +1,6 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { Paginated, Proposal, ProposalInput, ProposalStatus } from './types';
+import type { Paginated, Proposal, ProposalInput, ProposalStatus, ProposalTemplate } from './types';
 
 const path = (scope: 'portal' | 'admin', id?: string) =>
   `/${scope}/proposals${id ? `/${encodeURIComponent(id)}` : ''}`;
@@ -76,4 +76,26 @@ export function adminDuplicateProposal(id: string) {
 
 export function adminDeleteProposal(id: string) {
   return apiFetch<void>(path('admin', id), { method: 'DELETE', auth: 'required' });
+}
+
+/* Templates: what a new proposal can start from. */
+
+export function adminListProposalTemplates() {
+  return apiFetch<ProposalTemplate[]>('/admin/proposal-templates', { auth: 'required' });
+}
+
+/** Saves the proposal's content as a template (replacing one with the same name). */
+export function adminSaveProposalAsTemplate(id: string, name: string) {
+  return apiFetch<ProposalTemplate>(`${path('admin', id)}/template`, {
+    method: 'POST',
+    body: { name },
+    auth: 'required',
+  });
+}
+
+export function adminDeleteProposalTemplate(id: string) {
+  return apiFetch<void>(`/admin/proposal-templates/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
 }

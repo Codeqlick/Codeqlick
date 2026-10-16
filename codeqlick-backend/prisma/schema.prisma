@@ -860,3 +860,20 @@ model SiteForm {
 
   @@map("site_forms")
 }
+
+/// A starting point for proposals ("Web básica"): what a new proposal is filled in with.
+model ProposalTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  title     String
+  summary   String
+  terms     String?
+  /// Days the proposal stays open from the day it is created.
+  validDays Int?     @map("valid_days")
+  /// `[{ description, quantity, unitPrice }]`, amounts in cents.
+  items     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("proposal_templates")
+}

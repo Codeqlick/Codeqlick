@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm } from '@/components/app/ActionForm';
+import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
@@ -22,6 +22,7 @@ import {
   updateProposalAction,
   withdrawProposalAction,
 } from '../actions';
+import { saveAsTemplateAction } from '../template-actions';
 import { ProposalForm } from '../ProposalForm';
 
 export default async function AdminProposalPage({
@@ -162,6 +163,31 @@ export default async function AdminProposalPage({
       )}
 
       <ProposalDocument proposal={proposal} locale={locale} />
+
+      <section className={styles.panel} data-print="hide" aria-labelledby="template-heading">
+        <h2 id="template-heading" className={styles.panelTitle}>
+          {t('saveAsTemplate')}
+        </h2>
+        <ActionForm
+          action={saveAsTemplateAction.bind(null, locale, proposal.id)}
+          className={styles.form}
+        >
+          <p className={styles.muted}>{t('saveAsTemplateLead')}</p>
+          <FormInput
+            id="template-name"
+            name="name"
+            label={t('templateName')}
+            placeholder={t('templateNamePlaceholder')}
+            maxLength={80}
+            required
+          />
+          <div className={styles.actions}>
+            <SubmitButton variant="outline" size="sm" pendingLabel={t('savingTemplate')}>
+              {t('saveAsTemplate')}
+            </SubmitButton>
+          </div>
+        </ActionForm>
+      </section>
 
       {draft ? (
         <div data-print="hide">

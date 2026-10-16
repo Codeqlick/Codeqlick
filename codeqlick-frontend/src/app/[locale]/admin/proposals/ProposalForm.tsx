@@ -8,9 +8,9 @@ import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
 import { adminListProjects } from '@/lib/api/projects';
-import type { Proposal } from '@/lib/api/types';
+import type { Proposal, ProposalTemplate } from '@/lib/api/types';
 import { adminListUsers } from '@/lib/api/users';
-import { toDateInput } from '@/lib/format';
+import { madridToday, toDateInput } from '@/lib/format';
 
 /**
  * Create/edit form for a proposal (drafts only). The client is chosen when it is created; the
@@ -21,12 +21,15 @@ export async function ProposalForm({
   action,
   proposal,
   clientId,
+  template,
 }: {
   locale: AppLocale;
   action: FormAction;
   proposal?: Proposal;
   /** Preselected client on a new proposal (`?client=`). */
   clientId?: string;
+  /** What a new proposal starts from (`?template=`). */
+  template?: ProposalTemplate;
 }) {
   const t = await getTranslations({ locale, namespace: 'Admin.proposals' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
@@ -39,6 +42,12 @@ export async function ProposalForm({
     adminListProjects({ pageSize: 100 }).then((r) => r.items),
   ]);
   if (!proposal && clients.length === 0) return <Alert>{t('noClients')}</Alert>;
+  // A template's validity counts from today (Madrid).
+  const templateValidUntil = template?.validDays
+    ? new Date(Date.parse(`${madridToday()}T12:00:00Z`) + template.validDays * 86_400_000)
+        .toISOString()
+        .slice(0, 10)
+    : '';
   const projectOptions = projects
     .filter((project) => !proposal || project.client.id === proposal.client.id)
     .map((project) => ({
@@ -67,7 +76,7 @@ export async function ProposalForm({
         hint={t('titleHint')}
         required
         maxLength={200}
-        defaultValue={proposal?.title}
+        defaultValue={proposal?.title ?? template?.title}
       />
       <div className={styles.row}>
         <FormSelect
@@ -85,7 +94,7 @@ export async function ProposalForm({
           label={t('validUntil')}
           optionalLabel={tc('optional')}
           hint={t('validUntilHint')}
-          defaultValue={toDateInput(proposal?.validUntil)}
+          defaultValue={proposal ? toDateInput(proposal.validUntil) : templateValidUntil}
         />
       </div>
       <MarkdownField
@@ -94,11 +103,11 @@ export async function ProposalForm({
         hint={t('summaryHint')}
         rows={10}
         required
-        defaultValue={proposal?.summary ?? ''}
+        defaultValue={proposal?.summary ?? template?.summary ?? ''}
         previewLabels={previewLabels}
       />
       <ProposalItemsField
-        initial={proposal?.items ?? []}
+        initial={proposal?.items ?? template?.items ?? []}
         currency={proposal?.currency ?? 'EUR'}
         locale={locale}
         labels={{
@@ -120,7 +129,7 @@ export async function ProposalForm({
         optionalLabel={tc('optional')}
         hint={t('termsHint')}
         rows={6}
-        defaultValue={proposal?.terms ?? ''}
+        defaultValue={proposal?.terms ?? template?.terms ?? ''}
         compact
         previewLabels={previewLabels}
       />
