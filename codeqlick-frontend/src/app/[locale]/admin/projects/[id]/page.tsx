@@ -26,7 +26,7 @@ import { isNotFound } from '@/lib/api/errors';
 import { adminGetProject, adminListDrafts, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
 import { RELEASE_ENVIRONMENTS, type ClientProject } from '@/lib/api/types';
-import { firstParam, formatDateTime, madridToday } from '@/lib/format';
+import { firstParam, formatDate, formatDateTime, madridToday } from '@/lib/format';
 import { env } from '@/lib/env';
 import { ReleaseKeyReveal } from '@/components/app/ReleaseKeyReveal';
 import { adminGetProjectTime } from '@/lib/api/time';
@@ -46,6 +46,8 @@ import { checkNowAction, setMonitorAction } from '../monitor-actions';
 import { adminGetSiteForm } from '@/lib/api/site-forms';
 import { adminGetSite, adminSiteRevisions } from '@/lib/api/managed-sites';
 import { ManagedSitePanel } from '@/components/app/ManagedSitePanel';
+import { adminGetDomain } from '@/lib/api/domains';
+import { checkDomainAction, saveDomainAction } from '../domain-actions';
 import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
 import { getProjectVisits } from '@/lib/api/portal-site';
 import { replaceSiteFormKeyAction, saveSiteFormAction } from '../form-actions';
@@ -122,6 +124,8 @@ export default async function EditProjectPage({
     ? await getProjectVisits(project.id, 30, 'admin').catch(() => undefined)
     : undefined;
   const tvis = await getTranslations({ locale, namespace: 'ProjectVisits' });
+  const domain = await adminGetDomain(project.id);
+  const tdom = await getTranslations({ locale, namespace: 'Domain' });
   const tms = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trv = await getTranslations({ locale, namespace: 'Review' });
@@ -341,6 +345,85 @@ export default async function EditProjectPage({
             <ProjectVisitsPanel visits={siteVisits} locale={locale} />
           </>
         ) : null}
+      </section>
+
+      <section className={styles.panel} id="domain" aria-labelledby="domain-heading">
+        <h2 id="domain-heading" className={styles.panelTitle}>
+          {tdom('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{tdom('lead')}</p>
+          {domain.name ? (
+            <p>
+              {domain.expiresAt && domain.daysLeft !== null ? (
+                <Badge
+                  tone={
+                    domain.daysLeft < 0 ? 'danger' : domain.daysLeft <= 30 ? 'warning' : 'success'
+                  }
+                >
+                  {domain.daysLeft < 0
+                    ? tdom('expired', { date: formatDate(domain.expiresAt, locale) })
+                    : tdom('status', {
+                        date: formatDate(domain.expiresAt, locale),
+                        days: domain.daysLeft,
+                      })}
+                </Badge>
+              ) : (
+                tdom('unknown')
+              )}
+              {domain.checkedAt ? (
+                <span className={styles.muted}>
+                  {' '}
+                  · {tdom('checked', { date: formatDateTime(domain.checkedAt, locale) })}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
+          <ActionForm
+            key={`${domain.name ?? ''}-${domain.source}-${domain.expiresAt ?? ''}`}
+            action={saveDomainAction.bind(null, locale, project.id)}
+            className={styles.form}
+          >
+            <div className={styles.row}>
+              <FormInput
+                id="domain-name"
+                name="name"
+                label={tdom('name')}
+                hint={tdom('nameHint')}
+                defaultValue={domain.name ?? ''}
+              />
+              <FormSelect
+                name="source"
+                label={tdom('source')}
+                options={(['RDAP', 'MANUAL'] as const).map((value) => ({
+                  value,
+                  label: tdom(`sources.${value}`),
+                }))}
+                defaultValue={domain.source}
+              />
+              <FormInput
+                id="domain-expires"
+                name="expiresAt"
+                type="date"
+                label={tdom('expiresAt')}
+                hint={tdom('expiresHint')}
+                defaultValue={domain.source === 'MANUAL' ? (domain.expiresAt ?? '') : ''}
+              />
+            </div>
+            <div className={styles.actions}>
+              <SubmitButton size="sm" pendingLabel={tdom('saving')}>
+                {tdom('save')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+          {domain.name && domain.source === 'RDAP' ? (
+            <ActionForm action={checkDomainAction.bind(null, locale, project.id)}>
+              <SubmitButton variant="ghost" size="sm" pendingLabel={tdom('checking')}>
+                {tdom('check')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
+        </div>
       </section>
 
       <section className={styles.panel} id="site-form" aria-labelledby="site-form-heading">
