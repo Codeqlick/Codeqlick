@@ -36,7 +36,7 @@ jobs:
       - run: npm run format:check
       - name: Check and build the template and every demo
         run: |
-          for dir in site examples/peluqueria examples/restaurante examples/fisioterapia; do
+          for dir in site examples/*/; do
             echo "::group::$dir"
             SITE_DIR=$dir npm run check
             SITE_DIR=$dir npm run build

@@ -25,7 +25,16 @@ const TOKEN = process.env.SITE_BUILDER_TOKEN ?? '';
 const PORT = Number(process.env.PORT ?? 4100);
 const KEEP_RELEASES = 5;
 const BUILD_TIMEOUT_MS = 180_000;
-export const PRESETS = ['peluqueria', 'restaurante', 'fisioterapia'];
+export const PRESETS = [
+  'peluqueria',
+  'restaurante',
+  'fisioterapia',
+  'portfolio',
+  'despacho',
+  'comercio',
+  'reformas',
+  'general',
+];
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;

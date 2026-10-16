@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { imageOf, site } from '../lib/site';
+import { imageOf, sectionLabel, site } from '../lib/site';
 
 const about = site.about!;
 ---
@@ -17,7 +17,7 @@ const about = site.about!;
       />
     ) : null}
     <div class="copy">
-      <p class="eyebrow">Sobre nosotros</p>
+      <p class="eyebrow">{sectionLabel('about')}</p>
       <h2 id="nosotros-title">{about.title}</h2>
       {about.paragraphs.map((paragraph) => (
         <p class="text">{paragraph}</p>

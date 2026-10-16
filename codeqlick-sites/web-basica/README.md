@@ -30,11 +30,19 @@ npm run check && npm run build                # comprueba y genera dist/
 
 ## Demos
 
-| Carpeta                 | Negocio                             | Publicada en                            |
-| ----------------------- | ----------------------------------- | --------------------------------------- |
-| `examples/peluqueria`   | Alba Estudio, peluquería (Sevilla)  | https://peluqueria.demo.codeqlick.com   |
-| `examples/restaurante`  | Casa Lola, arrocería (Valencia)     | https://restaurante.demo.codeqlick.com  |
-| `examples/fisioterapia` | Fisio Retiro, fisioterapia (Madrid) | https://fisioterapia.demo.codeqlick.com |
+| Carpeta                 | Negocio                                                            | Publicada en                            |
+| ----------------------- | ------------------------------------------------------------------ | --------------------------------------- |
+| `examples/peluqueria`   | Alba Estudio, peluquería (Sevilla)                                 | https://peluqueria.demo.codeqlick.com   |
+| `examples/restaurante`  | Casa Lola, arrocería (Valencia)                                    | https://restaurante.demo.codeqlick.com  |
+| `examples/fisioterapia` | Fisio Retiro, fisioterapia (Madrid)                                | https://fisioterapia.demo.codeqlick.com |
+| `examples/portfolio`    | Nora Vidal, fotógrafa (Bilbao)                                     | https://portfolio.demo.codeqlick.com    |
+| `examples/despacho`     | Ortega & Sanz, abogados (Zaragoza)                                 | https://despacho.demo.codeqlick.com     |
+| `examples/comercio`     | Flores Abril, floristería (Granada)                                | https://comercio.demo.codeqlick.com     |
+| `examples/reformas`     | Reformas Duero, reformas (Valladolid)                              | https://reformas.demo.codeqlick.com     |
+| `examples/general`      | Brezo, tienda y taller (Oviedo): «Otro tipo de web», diseño neutro | https://general.demo.codeqlick.com      |
+
+El orden de las secciones del medio y sus nombres en el menú se cambian con `sections` y
+`navLabels` (un portfolio enseña primero la galería, «Trabajos», y «Sobre mí»).
 
 Son negocios ficticios (`demo: true`: el teléfono y WhatsApp no llaman a nadie y el formulario no
 envía). Las fotos son de dominio público (CC0); ver `CREDITS.md` de cada demo.

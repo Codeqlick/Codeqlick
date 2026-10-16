@@ -2057,7 +2057,7 @@
     "request": "Request my website",
     "seeDemos": "See the demos",
     "demosTitle": "See what it looks like",
-    "demosLead": "Three made-up businesses built on the same base. Pick the style you like best: we adapt it to your brand, your texts and your photos.",
+    "demosLead": "Made-up businesses built on the same base: hair salon, restaurant, clinic, photographer, law office, shop and renovations. Pick the one closest to yours: we adapt it to your brand, your texts and your photos. Yours is something else? We make that too.",
     "openDemo": "View demo",
     "newTab": "(opens in a new tab)",
     "demos": {
@@ -2072,6 +2072,26 @@
       "fisioterapia": {
         "name": "Fisio Retiro",
         "kind": "Physiotherapy · Madrid"
+      },
+      "portfolio": {
+        "name": "Nora Vidal",
+        "kind": "Photography · Bilbao"
+      },
+      "despacho": {
+        "name": "Ortega & Sanz",
+        "kind": "Lawyers · Zaragoza"
+      },
+      "comercio": {
+        "name": "Flores Abril",
+        "kind": "Florist · Granada"
+      },
+      "reformas": {
+        "name": "Reformas Duero",
+        "kind": "Renovations · Valladolid"
+      },
+      "general": {
+        "name": "Another kind of website",
+        "kind": "Tell us what you need"
       }
     },
     "includedTitle": "What's included",
@@ -2126,7 +2146,12 @@
     "presets": {
       "peluqueria": "Hair salon (Alba Estudio)",
       "restaurante": "Restaurant (Casa Lola)",
-      "fisioterapia": "Physiotherapy (Fisio Retiro)"
+      "fisioterapia": "Physiotherapy (Fisio Retiro)",
+      "portfolio": "Portfolio (Nora Vidal)",
+      "despacho": "Professional office (Ortega & Sanz)",
+      "comercio": "Shop (Flores Abril)",
+      "reformas": "Trades and renovations (Reformas Duero)",
+      "general": "Another kind of website (Brezo)"
     },
     "domain": "Own domain",
     "domainHint": "Optional. Once it points at the server (or we manage it at OVH as technical contact), it is published over HTTPS and becomes the site address.",
@@ -2278,12 +2303,12 @@
     "eyebrow": "Basic website",
     "title": "Request your website",
     "lead": "Tell us the essentials about your business and pick the style you like best. With this we prepare a first version and write to you within two business days.",
-    "styleTitle": "Pick a style",
-    "styleHint": "These are the demos: your site will have your texts, your photos and, if you like, your colours.",
+    "styleTitle": "Pick a starting point",
+    "styleHint": "These are demos of businesses like yours: your website gets your texts, your photos and, if you like, your colours. If none fits, choose “Another kind of website” and tell us what you need.",
     "businessTitle": "Your business",
     "businessName": "Business name",
     "kind": "What is it?",
-    "kindPlaceholder": "Hair salon, workshop, academy…",
+    "kindPlaceholder": "Hair salon, photographer, academy, shop…",
     "city": "City",
     "address": "Address (optional)",
     "addressPlaceholder": "Calle Mayor 3, 28013 Madrid",
@@ -2298,6 +2323,8 @@
     "servicesPlaceholder": "Haircut — €15\nColour — from €35",
     "about": "A few lines about you (optional)",
     "aboutHint": "Who you are, since when, what sets you apart. We polish it.",
+    "wishes": "What do you want on your website? (optional)",
+    "wishesHint": "Sections, ideas, websites you like… If you chose “Another kind of website”, tell us here.",
     "contactTitle": "Your details",
     "name": "Your name",
     "email": "Your email",
