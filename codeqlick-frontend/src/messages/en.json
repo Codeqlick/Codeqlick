@@ -2327,9 +2327,13 @@
     "domainUse": "Use this one",
     "domainInvalid": "Type a name with letters, digits or dashes.",
     "domainFailed": "We could not check it right now; you can send it anyway.",
-    "previewBody": "Meanwhile, we are preparing a preview of your website with what you told us. It will be ready in a minute.",
+    "previewBody": "Meanwhile, we are preparing a preview of your website with what you told us. It takes a couple of minutes.",
     "previewOpen": "Open my preview",
-    "previewHint": "If it doesn’t load yet, wait a moment and try again. We also email you the link."
+    "previewHint": "We also email you the link as soon as it is ready.",
+    "previewWaitTitle": "Preparing your preview",
+    "previewWaitBody": "We are publishing the first version of your website. It usually takes a couple of minutes: this page will take you there as soon as it is ready, and you will also get the link by email.",
+    "previewGoneTitle": "This preview is not available",
+    "previewGoneBody": "We could not prepare it, or it has been taken down. Don’t worry: we have your request and will write to you shortly."
   },
   "ProjectVisits": {
     "title": "Your website's visits",
