@@ -1,0 +1,204 @@
+---
+import { nav } from '../lib/nav';
+import { site, telHref } from '../lib/site';
+---
+
+<header class="header">
+  <div class="container bar">
+    <a class="brand" href="/">
+      <span class="name">{site.business.name}</span>
+      {site.business.tagline ? <span class="tagline">{site.business.tagline}</span> : null}
+    </a>
+    <nav aria-label="Principal" class="desktop">
+      <ul>
+        {nav.map((link) => (
+          <li>
+            <a href={link.href}>{link.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    {site.contact.phone ? (
+      <a class="button call" href={telHref(site.contact.phone)}>
+        Llamar
+      </a>
+    ) : null}
+    <details class="mobile">
+      <summary aria-label="Menú">
+        <span aria-hidden="true"></span>
+      </summary>
+      <nav aria-label="Principal (móvil)">
+        <ul>
+          {nav.map((link) => (
+            <li>
+              <a href={link.href}>{link.label}</a>
+            </li>
+          ))}
+          {site.contact.phone ? (
+            <li>
+              <a href={telHref(site.contact.phone)}>Llamar · {site.contact.phone}</a>
+            </li>
+          ) : null}
+        </ul>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<script>
+  // Close the mobile menu after following one of its links.
+  for (const link of document.querySelectorAll('.mobile a')) {
+    link.addEventListener('click', () => link.closest('details')?.removeAttribute('open'));
+  }
+</script>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--background) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 4.5rem;
+  }
+
+  .brand {
+    display: grid;
+    margin-right: auto;
+    text-decoration: none;
+    line-height: 1.2;
+  }
+
+  .name {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .tagline {
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  ul {
+    display: flex;
+    gap: 1.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  nav a {
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  nav a:hover {
+    color: var(--primary-strong);
+  }
+
+  .call {
+    min-height: 2.6rem;
+    padding: 0.5rem 1.2rem;
+  }
+
+  .mobile {
+    display: none;
+  }
+
+  @media (max-width: 860px) {
+    .desktop,
+    .call {
+      display: none;
+    }
+
+    .mobile {
+      display: block;
+    }
+
+    summary {
+      display: grid;
+      place-items: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary span,
+    summary span::before,
+    summary span::after {
+      display: block;
+      width: 1.4rem;
+      height: 2px;
+      background: currentColor;
+      transition: transform 0.2s ease;
+    }
+
+    summary span {
+      position: relative;
+    }
+
+    summary span::before,
+    summary span::after {
+      content: '';
+      position: absolute;
+      left: 0;
+    }
+
+    summary span::before {
+      top: -7px;
+    }
+
+    summary span::after {
+      top: 7px;
+    }
+
+    details[open] summary span {
+      background: transparent;
+    }
+
+    details[open] summary span::before {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    details[open] summary span::after {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .mobile nav {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      left: 0;
+      padding: 0.5rem 1.25rem 1.5rem;
+      background: var(--background);
+      border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+      box-shadow: 0 20px 30px -20px rgb(0 0 0 / 0.25);
+    }
+
+    .mobile ul {
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .mobile a {
+      display: block;
+      padding: 0.85rem 0;
+      font-size: 1.1rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    }
+  }
+</style>

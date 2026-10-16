@@ -1,0 +1,50 @@
+---
+import { site } from '../lib/site';
+
+const banner = site.banner!;
+---
+
+<section class="banner" aria-labelledby="banner-title">
+  <div class="container inner">
+    <div class="copy">
+      <h2 id="banner-title">{banner.title}</h2>
+      {banner.text ? <p>{banner.text}</p> : null}
+    </div>
+    <a class="button light" href={banner.link.href}>
+      {banner.link.label}
+    </a>
+  </div>
+</section>
+
+<style>
+  .banner {
+    padding-block: clamp(3rem, 7vw, 5rem);
+    background: var(--primary);
+    color: var(--primary-text);
+  }
+
+  .inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .copy {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 40rem;
+  }
+
+  p {
+    opacity: 0.9;
+    font-size: 1.1rem;
+  }
+
+  .light {
+    background: var(--primary-text);
+    color: var(--primary);
+    border-color: var(--primary-text);
+  }
+</style>
