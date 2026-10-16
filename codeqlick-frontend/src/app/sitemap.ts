@@ -12,6 +12,7 @@ import { absoluteUrl } from '@/lib/seo';
 const STATIC_PATHS = [
   '',
   '/services',
+  '/basic-website',
   ...Object.values(SERVICE_SLUGS).map((slug) => `/services/${slug}`),
   '/work',
   '/blog',

@@ -1405,6 +1405,22 @@
       "nda": {
         "q": "¿Firmáis un acuerdo de confidencialidad?",
         "a": "Sí, cuando hace falta firmamos un NDA antes de entrar en detalles de tu proyecto."
+      },
+      "basicTime": {
+        "q": "¿Cuánto se tarda?",
+        "a": "En cuanto tengamos tus textos y fotos, te enseñamos una primera versión en pocos días. Con los cambios incluidos, lo normal es publicarla en una o dos semanas."
+      },
+      "basicContent": {
+        "q": "¿Qué necesito darte?",
+        "a": "El nombre y los datos de tu negocio, tus servicios con sus precios, tu horario, unas líneas sobre ti y algunas fotos. Si no tienes textos, te ayudamos a escribirlos."
+      },
+      "basicChanges": {
+        "q": "¿Y si luego quiero cambiar algo?",
+        "a": "Los pequeños cambios (precios, horario, fotos) entran en el mantenimiento opcional. Para cosas nuevas te hacemos un presupuesto."
+      },
+      "basicDomain": {
+        "q": "¿El dominio es mío?",
+        "a": "Sí. El dominio se registra a tu nombre y la web es tuya: si un día quieres llevártela a otro proveedor, te damos los archivos."
       }
     }
   },
@@ -1983,5 +1999,75 @@
     "replacing": "Cambiando…",
     "replaceHint": "La dirección anterior deja de funcionar: actualiza la web después.",
     "invalidEmails": "Revisa los emails: alguno no es válido."
+  },
+  "BasicWebsite": {
+    "metaTitle": "Web básica para negocios locales — desde 200 €",
+    "metaDescription": "Una web de una página para tu peluquería, restaurante, clínica o tienda: rápida, adaptada al móvil, con formulario, WhatsApp y textos legales. Lista en pocos días.",
+    "eyebrow": "Web básica",
+    "title": "Tu negocio en internet, en pocos días",
+    "lead": "Una web de una página, rápida y adaptada al móvil, para que quien te busque encuentre tus servicios, tus precios, tu horario y cómo contactarte. Partimos de una base probada y la hacemos tuya.",
+    "price": "Desde 200 €",
+    "priceNote": "Pago único. Mantenimiento opcional después.",
+    "request": "Pedir mi web",
+    "seeDemos": "Ver las demos",
+    "demosTitle": "Mira cómo queda",
+    "demosLead": "Tres ejemplos de negocios ficticios hechos con la misma base. Elige el estilo que más te guste: lo adaptamos a tu marca, tus textos y tus fotos.",
+    "openDemo": "Ver demo",
+    "newTab": "(se abre en otra pestaña)",
+    "demos": {
+      "peluqueria": {
+        "name": "Alba Estudio",
+        "kind": "Peluquería · Sevilla"
+      },
+      "restaurante": {
+        "name": "Casa Lola",
+        "kind": "Arrocería · Valencia"
+      },
+      "fisioterapia": {
+        "name": "Fisio Retiro",
+        "kind": "Fisioterapia · Madrid"
+      }
+    },
+    "includedTitle": "Qué incluye",
+    "included": [
+      "Portada, servicios con precios, sobre nosotros, galería de hasta 6 fotos, opiniones, horario y contacto",
+      "Formulario de contacto que te llega por email",
+      "Botón de WhatsApp y llamada a un toque desde el móvil",
+      "Aviso legal, privacidad y cookies, sin cookies de terceros: no necesita banner",
+      "Preparada para Google: títulos, descripciones, sitemap y datos de negocio local",
+      "Publicación con HTTPS y dos rondas de cambios"
+    ],
+    "extrasTitle": "Se presupuesta aparte",
+    "extras": [
+      "Reservas o pagos online",
+      "Tienda online",
+      "Blog o varios idiomas",
+      "Redacción de textos o sesión de fotos",
+      "El dominio (unos 10–15 € al año, a tu nombre)"
+    ],
+    "stepsTitle": "Cómo funciona",
+    "steps": {
+      "tell": {
+        "title": "Nos cuentas tu negocio",
+        "body": "Qué haces, tus servicios y precios, tu horario y el estilo que te gusta."
+      },
+      "preview": {
+        "title": "Te enseñamos una primera versión",
+        "body": "En pocos días tienes un enlace para verla en tu móvil."
+      },
+      "adjust": {
+        "title": "La ajustamos contigo",
+        "body": "Dos rondas de cambios para que quede como quieres."
+      },
+      "live": {
+        "title": "La publicamos",
+        "body": "En tu dominio, con HTTPS, y lista para aparecer en Google."
+      }
+    },
+    "faqTitle": "Preguntas sobre la web básica",
+    "ctaTitle": "¿Hacemos la tuya?",
+    "ctaBody": "Cuéntanos qué negocio tienes y te respondemos en dos días laborables con una propuesta cerrada.",
+    "servicesBanner": "¿Tienes un negocio local? Mira la web básica: lista en pocos días, desde 200 €.",
+    "footerLink": "Web básica"
   }
 }
