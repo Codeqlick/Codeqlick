@@ -18,6 +18,7 @@ import {
   type UpdateSiteInput,
 } from './managed-sites.schemas.js';
 import { SiteBuilderClient } from './site-builder.client.js';
+import { contentFromRequest, type SiteRequest } from './site-request.js';
 
 export interface SiteView {
   projectId: string;
@@ -70,8 +71,16 @@ export class ManagedSitesService {
     return row ? this.view(row) : null;
   }
 
-  /** Starts a site from a preset, with the project's and client's names, and builds it. */
-  async create(actor: AuthUser, projectId: string, input: CreateSiteInput): Promise<SiteView> {
+  /**
+   * Starts a site from a preset, with the project's and client's names (and a website request's
+   * business details, when there is one), and builds it.
+   */
+  async create(
+    actor: AuthUser,
+    projectId: string,
+    input: CreateSiteInput,
+    request?: SiteRequest,
+  ): Promise<SiteView> {
     const project = await this.findProject(projectId);
     if (await this.repository.findByProject(projectId)) {
       throw new ConflictException('The project already has a site');
@@ -95,13 +104,21 @@ export class ManagedSitesService {
       this.logger.error(`Preset ${input.preset} doesn't match the content schema`, parsed.error);
       throw new InternalServerErrorException('The preset does not match the content schema');
     }
+    // A request's business is applied last; if it doesn't fit the schema, the preset's stays.
+    const fromRequest = request
+      ? siteContentSchema.safeParse(contentFromRequest(parsed.data, request))
+      : undefined;
+    if (fromRequest && !fromRequest.success) {
+      this.logger.warn(`Request content of ${input.slug} skipped: ${fromRequest.error.message}`);
+    }
+    const content = fromRequest?.success ? fromRequest.data : parsed.data;
 
     const row = await this.repository.create({
       projectId,
       slug: input.slug,
       preset: input.preset,
       domain: input.domain ?? null,
-      content: parsed.data as Prisma.InputJsonValue,
+      content: content as Prisma.InputJsonValue,
     });
     await this.syncProject(row);
     if (!(await this.forms.get(projectId))) {
