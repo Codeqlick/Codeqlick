@@ -239,3 +239,47 @@ docker compose -f docker-compose.prod.yml exec -T db psql -U codeqlick -d codeql
 - The OpenAPI UI (`/docs`) is disabled in production.
 - Auth cookies are `Secure` in production, so sign-in only works over HTTPS.
 - `.env` holds every secret; it is git-ignored and should stay readable only by the deploy user.
+
+## Client sites
+
+Static client sites (copies of the [web-basica](https://github.com/Codeqlick/web-basica) template)
+are served by the host's Nginx straight from `/srv/codeqlick/sites/<name>/current`, with no
+container. Two pieces:
+
+- `deploy/sites/cq-site`, run as root through `sudo`: creates or removes the Nginx site
+  (`/etc/nginx/sites-available/cq-site-<domain>.conf`) and its Let's Encrypt certificate. It only
+  touches its own files and refuses domains another site already serves (domfeliu, circlesfera…).
+- `deploy/sites/publish-site.sh`, run from the machine that has the site's repository: builds it,
+  uploads it as a new release (the last 5 are kept), switches `current` to it and, the first time,
+  calls `cq-site`.
+
+### One-time setup (root)
+
+The deploy user has no sudo. Install a root-owned **copy** of the helper (never a link to the
+checkout: the deploy user can edit it) and allow only that command:
+
+```bash
+sudo install -o root -g root -m 755 /srv/codeqlick/deploy/sites/cq-site /usr/local/sbin/cq-site
+echo 'cqadmin ALL=(root) NOPASSWD: /usr/local/sbin/cq-site' | sudo tee /etc/sudoers.d/cq-site
+sudo chmod 440 /etc/sudoers.d/cq-site && sudo visudo -c
+```
+
+Repeat the `install` line whenever `deploy/sites/cq-site` changes. Then, as `cqadmin`:
+`mkdir -p /srv/codeqlick/sites`.
+
+DNS: demos and previews live under `*.demo.codeqlick.com` (one wildcard `A` record to the
+server). A client's own domain needs its `A` record (and `www` if wanted) pointing at the server
+before publishing; without it `cq-site` publishes over HTTP only and exits with 3, and running it
+again later adds HTTPS.
+
+### Publishing
+
+```bash
+deploy/sites/publish-site.sh peluqueria peluqueria.demo.codeqlick.com ../web-basica examples/peluqueria
+deploy/sites/publish-site.sh peluqueria-marta peluqueriamarta.es ../peluqueria-marta
+```
+
+Each run is a release; to roll back, point `current` at an older folder in `releases/`. To take a
+site down: `sudo cq-site remove <domain>` and delete its folder. On the server,
+`sudo cq-site list` shows the published domains. Turn on the project's uptime monitoring and its
+site form in the admin panel.

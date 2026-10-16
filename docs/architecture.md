@@ -572,6 +572,14 @@ To review before anything reaches the client, send a **draft** instead: `tools/c
 
 The project's **tasks** (changes the client asked for, planned work) can be followed from the repository with the same key: `tools/codeqlick-tasks.sh list | all | show <id> | start <id> | done <id> | add "<title>" ["<details>"]`. Marking a task done resolves the support request it came from. The client's **brief** prints as Markdown with `tools/codeqlick-brief.sh` (`--json` for the raw answers).
 
+### 8.2 Hosting client sites
+
+Static client sites are built from the private template repository `Codeqlick/web-basica` (Astro,
+content in `site/site.ts`) and served by the host's Nginx from `/srv/codeqlick/sites/<name>/current`
+(`deploy/sites/publish-site.sh` uploads releases; the root helper `cq-site` adds the Nginx site and
+certificate). Their contact form posts to `POST /v1/forms/:key` (a project's `SiteForm`). Demos are
+published at `<demo>.demo.codeqlick.com`. Details in `deploy/README.md`.
+
 ## 9. Quality gates (CI)
 
 Each app has its own workflow, triggered by changes in its folder:
