@@ -79,7 +79,11 @@ export default async function AdminMediaPage({ params, searchParams }: PageProps
                         {item.usedBy.map((usage) => (
                           <li key={`${usage.type}-${usage.id}`}>
                             <Link
-                              href={`/admin/${usage.type === 'post' ? 'posts' : 'portfolio'}/${usage.id}`}
+                              href={
+                                usage.type === 'site'
+                                  ? `/admin/projects/${usage.id}#site`
+                                  : `/admin/${usage.type === 'post' ? 'posts' : 'portfolio'}/${usage.id}`
+                              }
                             >
                               {t(usage.type)}: {usage.slug}
                             </Link>

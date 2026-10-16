@@ -331,6 +331,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / POST | `/portal/projects/:id/credentials` | List (`{ id, label, url, username, createdBy: { name }, createdAt, viewedAt }`, never the secret) / `{ label, url?, username?, secret, notes? }` → `201` |
 | DELETE | `/portal/projects/:id/credentials/:credentialId` | `204` |
 | GET | `/portal/projects/:id/status` | `SiteMonitor` view (`{ status, statusSince, uptime30, days: [{ day, checks, ratio }] (30 Madrid days), certExpiresAt, lastCheckedAt, ... }`); 404 unless the project is the caller's and monitored |
+| GET / PUT | `/portal/projects/:id/site` | The client's managed website: `{ status, preset, url, lastBuildAt, editable }`, `editable` being what they may change (`tagline`, `contact`, `hours`, `hero: { title, text }`, `services`, `about: { title, paragraphs }`, `gallery`, `testimonials`; brand, theme and legal data stay with the team) / `{ site: editable }` → merged into the content, validated as a whole (400 with the field in the message), saved as a change by the client (a revision) and published; the team inbox is emailed what changed (or that publishing failed). Changing the hours drops the machine-readable `openingHoursSpec`. 404 unless the project is the caller's and has a managed site. Limited to 30/hour |
+| POST | `/portal/projects/:id/site/images` | Multipart `file` (JPEG, PNG or WebP, 5 MB) → `201 { file: 'media/<name>', url }`, stored with the uploaded images (an image a managed site uses counts as used in the media library). Limited to 20/hour |
 | GET | `/portal/projects/:id/tasks` | The project's tasks without `description` (`{ id, title, status, ticket, doneAt, createdAt, updatedAt }`) |
 | GET | `/portal/projects/:id/plan` | `{ active, name, monthlyMinutes, alertPercent, month, usedMinutes, remainingMinutes, percent, months: [{ month, minutes }] (4, newest first) }`; 404 unless the project is the caller's and the plan is active |
 | GET | `/portal/projects/:id/time` | `ProjectTime` (`{ totalMinutes, months: [{ month: 'yyyy-mm', minutes }], entries: TimeEntry[] }`, newest first); 404 unless the project is the caller's and has `showHours` |
@@ -528,7 +530,8 @@ src/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password (worded as a first password with `welcome=1`)
       portal/                  Client area (role CLIENT or ADMIN): projects (updates, timeline, files, tasks, hours and plan,
-                               brief, review, shared access, site status), proposals, support requests, account
+                               brief, review, shared access, site status, and "Tu web": editing their managed website,
+                               photos shown from public/presets or the uploads), proposals, support requests, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, visits, recent activity), leads
                                (list and board), proposals, support, hours and plans, drafts to review, bookings, calculator,
                                monitoring, saved replies, posts, tags, portfolio, projects, managed websites (list and "Nueva web
@@ -679,17 +682,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
 above (data model, API contract, frontend) when it ships.
 
-
-### 11.5 Clients edit their site (portal)
-
-- `GET /portal/projects/:id/site` → the editable part: business tagline, contact (phone,
-  WhatsApp, email, address), hours, services (name, description, price), hero texts, about
-  paragraphs, gallery photos (with their descriptions), testimonials. `PUT` the same shape →
-  a revision, merged into the content, built; answers the site with its status.
-- `POST /portal/projects/:id/site/images` (JPG/PNG/WebP up to 8 MB, 20/hour) → a media file name
-  the content can use. Only for the client's own managed site; admins too.
-- Portal → project → "Tu web": a structured form (no JSON) with "Guardar y publicar", the build
-  status and the link. The team is emailed a summary of each change.
 
 ### 11.6 Visits (portal)
 
