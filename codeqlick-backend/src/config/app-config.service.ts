@@ -106,6 +106,29 @@ export class AppConfigService {
     return { url: url.replace(/\/+$/, ''), username: this.get('UMAMI_USERNAME'), password };
   }
 
+  /** OVH's API with the team's keys; undefined until all three are set. */
+  get ovh():
+    { endpoint: string; appKey: string; appSecret: string; consumerKey: string } | undefined {
+    const appKey = this.get('OVH_APPLICATION_KEY');
+    const appSecret = this.get('OVH_APPLICATION_SECRET');
+    const consumerKey = this.get('OVH_CONSUMER_KEY');
+    if (!appKey || !appSecret || !consumerKey) return undefined;
+    return {
+      endpoint: this.get('OVH_ENDPOINT').replace(/\/+$/, ''),
+      appKey,
+      appSecret,
+      consumerKey,
+    };
+  }
+
+  get ovhNicHandle(): string | undefined {
+    return this.get('OVH_NIC_HANDLE');
+  }
+
+  get sitesServerIp(): string | undefined {
+    return this.get('SITES_SERVER_IP');
+  }
+
   get umamiScriptUrl(): string {
     return this.get('UMAMI_SCRIPT_URL');
   }

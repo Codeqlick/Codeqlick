@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { connection } from 'next/server';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm';
+import { DomainField } from '@/components/app/DomainField';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -172,6 +173,42 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
             rows={5}
             maxLength={3000}
           />
+        </fieldset>
+
+        <fieldset className={styles.group}>
+          <legend className={styles.legend}>{t('domainTitle')}</legend>
+          <p className={styles.hint}>{t('domainHint')}</p>
+          <div className={styles.choices}>
+            {(['new', 'owned', 'none'] as const).map((choice) => (
+              <label key={choice} className={styles.choice}>
+                <input
+                  type="radio"
+                  name="domainChoice"
+                  value={choice}
+                  defaultChecked={choice === 'none'}
+                />
+                {t(`domainChoices.${choice}`)}
+              </label>
+            ))}
+          </div>
+          <div className={styles.domainName}>
+            <DomainField
+              id="domainName"
+              name="domainName"
+              label={t('domainName')}
+              hint={t('domainNameHint')}
+              labels={{
+                check: t('domainCheck'),
+                checking: t('domainChecking'),
+                free: t('domainFree'),
+                taken: t('domainTaken'),
+                unknown: t('domainUnknown'),
+                use: t('domainUse'),
+                invalid: t('domainInvalid'),
+                failed: t('domainFailed'),
+              }}
+            />
+          </div>
         </fieldset>
 
         <fieldset className={styles.group}>

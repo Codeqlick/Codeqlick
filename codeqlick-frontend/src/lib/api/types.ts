@@ -274,7 +274,11 @@ export type Lead = {
   /** The client account it became ("Convert to client"). */
   clientId: string | null;
   /** From the basic-website request form: the style and business details. */
-  siteRequest: { preset: string; business: { name: string; kind: string; city: string } } | null;
+  siteRequest: {
+    preset: string;
+    business: { name: string; kind: string; city: string };
+    domain?: { name: string; owned: boolean };
+  } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -717,7 +721,11 @@ export type ManagedSite = {
   slug: string;
   preset: string;
   domain: string | null;
+  /** Where the domain stands; null without one or before its first check (architecture 8.2). */
+  domainState: SiteDomainState | null;
+  domainCheckedAt: string | null;
   previewUrl: string;
+  /** The domain once it serves the site, the preview until then. */
   url: string;
   status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
   lastBuildAt: string | null;
@@ -728,6 +736,12 @@ export type ManagedSite = {
   updatedAt: string;
 };
 
+export const SITE_DOMAIN_STATES = ['UNREGISTERED', 'ELSEWHERE', 'LIVE'] as const;
+export type SiteDomainState = (typeof SITE_DOMAIN_STATES)[number];
+
+/** Whether a domain is free (architecture 8.2); null when nobody says. */
+export type DomainAvailability = { domain: string; available: boolean | null };
+
 export type ManagedSiteRevision = {
   id: string;
   createdAt: string;
@@ -736,7 +750,7 @@ export type ManagedSiteRevision = {
 
 export const SITE_PRESETS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;
 
-/** The part of a managed site its client edits (architecture 11.5). */
+/** The part of a managed site its client edits (architecture 8.2). */
 export type EditableSite = {
   tagline?: string;
   contact: {
@@ -764,11 +778,20 @@ export type PortalSite = {
   /** The demo it started from; its photos are in public/presets/<preset>/. */
   preset: string;
   url: string;
+  previewUrl: string;
+  domain: {
+    name: string | null;
+    state: SiteDomainState | null;
+    checkedAt: string | null;
+    /** The team's OVH ID, to make the technical contact; and the server IP for other registrars. */
+    nicHandle: string | null;
+    serverIp: string | null;
+  };
   lastBuildAt: string | null;
   editable: EditableSite;
 };
 
-/** Visits of a managed client site, with its form's messages (architecture 11.6). */
+/** Visits of a managed client site, with its form's messages (architecture 8.2). */
 export type ProjectVisits = {
   enabled: boolean;
   available: boolean;
@@ -780,10 +803,10 @@ export type ProjectVisits = {
   referrers: { source: string; visitors: number }[];
 };
 
-/** A project's domain renewal (architecture 11.7). */
+/** A project's domain renewal (architecture 8.2). */
 export type ProjectDomain = {
   name: string | null;
-  source: 'RDAP' | 'MANUAL';
+  source: 'RDAP' | 'MANUAL' | 'OVH';
   expiresAt: string | null;
   daysLeft: number | null;
   checkedAt: string | null;

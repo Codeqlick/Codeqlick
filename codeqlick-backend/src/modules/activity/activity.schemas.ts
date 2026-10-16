@@ -60,6 +60,8 @@ export const ACTIVITY_ACTIONS = [
   'project.site_updated',
   'project.site_restored',
   'project.domain_updated',
+  'project.domain_dns_updated',
+  'project.site_domain_live',
   'project.brief_requested',
   'project.brief_submitted',
   'project.brief_updated',

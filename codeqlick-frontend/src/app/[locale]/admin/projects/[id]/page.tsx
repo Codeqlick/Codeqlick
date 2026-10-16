@@ -395,7 +395,7 @@ export default async function EditProjectPage({
               <FormSelect
                 name="source"
                 label={tdom('source')}
-                options={(['RDAP', 'MANUAL'] as const).map((value) => ({
+                options={(['RDAP', 'OVH', 'MANUAL'] as const).map((value) => ({
                   value,
                   label: tdom(`sources.${value}`),
                 }))}
@@ -416,7 +416,7 @@ export default async function EditProjectPage({
               </SubmitButton>
             </div>
           </ActionForm>
-          {domain.name && domain.source === 'RDAP' ? (
+          {domain.name && domain.source !== 'MANUAL' ? (
             <ActionForm action={checkDomainAction.bind(null, locale, project.id)}>
               <SubmitButton variant="ghost" size="sm" pendingLabel={tdom('checking')}>
                 {tdom('check')}

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
-import { ActivityService } from '../activity/activity.service.js';
+import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { siteAlertEmail } from './monitoring-emails.js';
 import { MonitoringRepository, type MonitorRow } from './monitoring.repository.js';
@@ -107,7 +107,11 @@ export class MonitoringService implements OnApplicationBootstrap, OnApplicationS
     return this.views(await this.repository.listAll(), now);
   }
 
-  async setEnabled(actor: AuthUser, projectId: string, enabled: boolean): Promise<MonitorView> {
+  async setEnabled(
+    actor: ActivityActor,
+    projectId: string,
+    enabled: boolean,
+  ): Promise<MonitorView> {
     const project = await this.repository.findProject(projectId);
     if (!project) throw new NotFoundException('Project not found');
     if (enabled && !project.productionUrl) {

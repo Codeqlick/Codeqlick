@@ -103,7 +103,13 @@ export default async function NewSitePage({
               defaultValue={requestedPreset ?? 'peluqueria'}
               required
             />
-            <FormInput id="domain" name="domain" label={tm('domain')} hint={tm('domainHint')} />
+            <FormInput
+              id="domain"
+              name="domain"
+              label={tm('domain')}
+              hint={tm('domainHint')}
+              defaultValue={lead?.siteRequest?.domain?.name ?? ''}
+            />
           </div>
           <div className={styles.actions}>
             <SubmitButton pendingLabel={t('submitting')}>{t('submit')}</SubmitButton>

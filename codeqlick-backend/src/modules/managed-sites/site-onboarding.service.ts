@@ -8,6 +8,7 @@ import { ManagedSitesRepository } from './managed-sites.repository.js';
 import type { OnboardSiteInput } from './managed-sites.schemas.js';
 import { siteRequestSchema, type SiteRequest } from './site-request.js';
 import { ManagedSitesService, type SiteView } from './managed-sites.service.js';
+import { SiteDomainsService } from './site-domains.service.js';
 
 export interface OnboardResult {
   projectId: string;
@@ -29,6 +30,7 @@ export class SiteOnboardingService {
     private readonly sites: ManagedSitesService,
     private readonly monitoring: MonitoringService,
     private readonly repository: ManagedSitesRepository,
+    private readonly siteDomains: SiteDomainsService,
   ) {}
 
   async onboard(actor: AuthUser, input: OnboardSiteInput): Promise<OnboardResult> {
@@ -43,7 +45,7 @@ export class SiteOnboardingService {
     if (input.leadId) {
       const lead = await this.leads.get(input.leadId);
       const stored = siteRequestSchema
-        .pick({ preset: true, business: true })
+        .pick({ preset: true, business: true, domain: true })
         .safeParse(lead.siteRequest);
       request = stored.success ? stored.data : undefined;
       const converted = await this.leads.convert(actor, input.leadId, {
@@ -75,6 +77,7 @@ export class SiteOnboardingService {
     );
     // The preview is served within a minute (deploy/sites/sync-sites.sh); a client domain may
     // still lack its DNS record, so its monitor is turned on once it answers.
+    if (site.domain) this.siteDomains.checkSoon(projectId);
     const monitoring = !site.domain;
     if (monitoring) await this.monitoring.setEnabled(actor, projectId, true);
     return { projectId, client, site, monitoring };
