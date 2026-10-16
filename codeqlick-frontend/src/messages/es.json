@@ -1023,7 +1023,8 @@
           "review_requested": "pidió la valoración de <target>{label}</target>",
           "review_submitted": "envió su valoración de <target>{label}</target>",
           "review_published": "publicó la valoración de <target>{label}</target>",
-          "review_hidden": "retiró la valoración de <target>{label}</target>"
+          "review_hidden": "retiró la valoración de <target>{label}</target>",
+          "plan_updated": "cambió el plan de mantenimiento de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1922,5 +1923,27 @@
       "PUBLISHED": "Publicada en la web (portada).",
       "HIDDEN": "Retirada de la web."
     }
+  },
+  "Plans": {
+    "title": "Plan de mantenimiento",
+    "adminLead": "Una bolsa de horas al mes para este proyecto. Se descuenta con las horas registradas y te avisamos al llegar al umbral y al agotarla. El cliente ve su consumo en su área.",
+    "name": "Nombre del plan",
+    "namePlaceholder": "Mantenimiento básico",
+    "hours": "Horas al mes",
+    "alert": "Avisar al llegar al (%)",
+    "alertHint": "Te llega un correo una vez al mes.",
+    "active": "Plan activo",
+    "activeHint": "Desmárcalo para pausarlo: deja de mostrarse al cliente.",
+    "save": "Guardar plan",
+    "saving": "Guardando…",
+    "allowance": "{hours} al mes",
+    "thisMonth": "Consumo de {month}",
+    "used": "{used} de {total} en {month}",
+    "left": "quedan {minutes}",
+    "over": "{minutes} por encima",
+    "clientTitle": "Tu plan de mantenimiento",
+    "clientLead": "Las horas de mantenimiento y mejoras incluidas cada mes, y lo que llevamos usado.",
+    "overviewTitle": "Planes de mantenimiento",
+    "usedColumn": "Consumo del mes"
   }
 }

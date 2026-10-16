@@ -330,6 +330,7 @@ model ClientProject {
   monitor     SiteMonitor?
   credentials ProjectCredential[]
   review      ClientReview?
+  plan        MaintenancePlan?
 
   @@index([clientId])
   @@map("client_projects")
@@ -818,4 +819,24 @@ model ClientReview {
 
   @@index([status, publishedAt])
   @@map("client_reviews")
+}
+
+/// A monthly hour allowance for a project (maintenance and support), drawn down by its time
+/// entries per Madrid calendar month. The team is warned at `alertPercent` and at 100 %.
+model MaintenancePlan {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @unique @map("project_id") @db.Uuid
+  active         Boolean  @default(true)
+  name           String
+  monthlyMinutes Int      @map("monthly_minutes")
+  alertPercent   Int      @default(80) @map("alert_percent")
+  /// The last month (`yyyy-mm`) and level (alertPercent or 100) the team was warned about.
+  alertedMonth   String?  @map("alerted_month")
+  alertedLevel   Int      @default(0) @map("alerted_level")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_plans")
 }
