@@ -623,3 +623,15 @@ export type SiteMonitor = {
   /** The last 30 Madrid days, oldest first. */
   days: { day: string; checks: number; ratio: number | null }[];
 };
+
+/** Access a client shared for a project (never with its secret). */
+export type SharedAccess = {
+  id: string;
+  label: string;
+  url: string | null;
+  username: string | null;
+  createdBy: { name: string };
+  createdAt: string;
+  /** When the team last opened it. */
+  viewedAt: string | null;
+};

@@ -49,6 +49,11 @@ export class AppConfigService {
     return this.get('JWT_ACCESS_SECRET');
   }
 
+  /** Key material for project credentials; falls back to JWT_ACCESS_SECRET (see env.schema.ts). */
+  get credentialsSecret(): string {
+    return this.get('CREDENTIALS_SECRET') ?? this.get('JWT_ACCESS_SECRET');
+  }
+
   /** Access token lifetime in seconds. */
   get jwtAccessTtl(): number {
     return this.get('JWT_ACCESS_TTL');
