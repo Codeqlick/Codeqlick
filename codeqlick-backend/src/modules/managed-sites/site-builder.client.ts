@@ -25,6 +25,17 @@ export class SiteBuilderClient {
     return ((await response.json()) as { presets: [] }).presets;
   }
 
+  /** Marks a site for removal (only request previews); the host unpublishes it. */
+  async remove(slug: string): Promise<void> {
+    const { url, token } = this.target();
+    const response = await fetch(`${url}/sites/${encodeURIComponent(slug)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(15_000),
+    }).catch(() => null);
+    if (!response?.ok) throw new ServiceUnavailableException('The site builder is not answering');
+  }
+
   /** Builds and publishes a site; a failed build is a result, an unreachable builder an error. */
   async build(input: {
     slug: string;

@@ -157,7 +157,7 @@ erDiagram
 - **Client companies:** a CLIENT user with `memberOfId` is a person of the company whose main client account is `memberOf` (one level: a member can't have members, and projects and proposals must belong to a main account). The main account owns projects, requests and proposals; its active members see and act on all of them (the portal checks the caller's *account*: `accountOf(user)`, carried in the access token as `acc`), and the client emails (updates, comments, replies, status changes, proposals, weekly summary) go to the owner and every active member, each in their language. What a member writes (messages, comments, approvals) is signed with their own name, and team notifications reply to them.
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
 - **PasswordResetToken** — one row per "forgot my password" email or welcome email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes for a reset, 7 days for a welcome email), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
-- **Lead** — contact form submission: `name`, `email`, `company?`, `projectType?` (what they need: `web`, `custom`, `mobile`, `design`, `support`, `not-sure`), `budget?` (only older leads: the form asked for a range before), `message`, `locale`, `status` (the sales process from the wiki's Client Engagement: `NEW` → `TALKING` → `CALL` → `PROPOSAL` → `WON` / `LOST`; `SPAM` is not a stage and stays off the board), `lostReason?` (`PRICE`, `NO_RESPONSE`, `NOT_A_FIT`, `CHOSE_OTHER`, `TIMING`, `OTHER`; kept only while LOST), `followUpOn?` (date), `clientId?` (the account it became), `notes?`, `siteRequest?` (JSON `{ preset, business }`: when it came from the basic-website request, which onboarding then builds the site from).
+- **Lead** — contact form submission: `name`, `email`, `company?`, `projectType?` (what they need: `web`, `custom`, `mobile`, `design`, `support`, `not-sure`), `budget?` (only older leads: the form asked for a range before), `message`, `locale`, `status` (the sales process from the wiki's Client Engagement: `NEW` → `TALKING` → `CALL` → `PROPOSAL` → `WON` / `LOST`; `SPAM` is not a stage and stays off the board), `lostReason?` (`PRICE`, `NO_RESPONSE`, `NOT_A_FIT`, `CHOSE_OTHER`, `TIMING`, `OTHER`; kept only while LOST), `followUpOn?` (date), `clientId?` (the account it became), `notes?`, `siteRequest?` (JSON `{ preset, business, domain? }`: when it came from the basic-website request, which onboarding then builds the site from), and its instant preview: `previewSlug?` (unique), `previewStatus?` (`BUILDING` | `READY` | `FAILED` | `REMOVED`), `previewBuiltAt?` (decision 16, section 8.2).
 - **LeadReply** — an email answer sent to a lead from the admin panel: `leadId`, `authorId?` (null once the user is deleted), `authorName` copied at the time, `subject`, `body`. Only stored once the email was accepted by the SMTP server.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
@@ -263,6 +263,7 @@ Scheduled work runs inside the API process (timers that start on boot, off when 
 - **Uptime monitoring** of client sites every 5 minutes (`MonitoringService`, see SiteMonitor).
 - **Session and reset-token cleanup** twice a day (`TokenCleanupService`).
 - **Domain renewal** every 6 hours (`DomainsService`): expiry dates older than a day are refreshed (OVH or RDAP) and the reminders due are sent.
+- **Request previews** every 6 hours (`SitePreviewsService`): previews older than 30 days, or of converted or spam leads, are taken down.
 - **Managed sites' domains** every 10 minutes (`SiteDomainsService`): each domain not yet LIVE (and every LIVE one after 6 hours) is connected through OVH when the team manages it and its state checked (see ManagedSite).
 - **Weekly summary** (clients): `WeeklyDigestService` checks every hour, in the API process. It sends this week's summary to every active client with `weeklyDigest` whose `lastDigestAt` is before this week's Monday 08:00 Madrid time, so a restart or a missed Monday neither skips nor repeats it. For each project the email lists the updates and completed milestones of the last 7 days, updates waiting for approval and the next milestone. A week with nothing to tell sends nothing, but still counts as done. Clients turn it off in their account (`PATCH /auth/preferences`) and admins on the user page, which also has a "send now" button (`POST /admin/projects/weekly-digest/:clientId` → `{ sent }`, or `{ sent: false, reason: 'no-news' }`). Off in tests.
 - **Scheduled posts and case studies** need no job: they are hidden until their `publishedAt` (see Scheduling).
@@ -301,7 +302,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/bookings/cancel` | `{ token }` (from the visitor's email) | `200 { startsAt }`; `404` for an unknown or already cancelled call. Emails the team |
 | POST | `/forms/:key` | A client site's contact form: `{ name, email, phone?, message, website? (honeypot), redirect? }`, urlencoded (a plain HTML form) or JSON | Emails the project's `recipients` (Spanish, reply-to the visitor). A form post is answered `303` to `redirect` or the `Referer` with `form=ok` / `form=error` added, only when that URL is on the project's production or staging origin (else a short page); JSON gets `{ ok }`. `403` when `Origin` is another site; `404` for an unknown or disabled key — limited to 5/min/IP |
 | GET | `/domains/availability?name=` | A label (`peluqueria-ana`, accents and spaces become dashes) or a domain | `{ results: [{ domain, available: true \| false \| null }] }`: a label in `.com`, `.es` and `.eu`; a domain first, then its label in the other two. OVH's order API answers when its keys are set; otherwise RDAP (404 free, 200 taken; `null` when unknown, e.g. `.es`). Cached 10 min, 400 without a usable label, limited to 20/min/IP |
-| POST | `/site-requests` | The basic-website request: `{ preset, business: { name, kind, city, address?, phone?, whatsapp?, email?, hours? (a line per slot, "Days: hours"), services? (a line each, "Service — price"), about? }, domain?: { name, owned }, name, email, locale, website? (honeypot) }` | `201 { id }`: a lead (`projectType: web`, `company` = the business, the message a readable summary) keeping `siteRequest` (with the domain they want, `owned: false`, or have); onboarding pre-fills the site's domain with it; the usual lead emails. No photos (decision 13). Limited to 3/min/IP. Onboarding with that lead fills the site from it: business name and tagline, contact, address, hours, services and about, `schemaType: LocalBusiness`; the preset's made-up services, reviews and facts are dropped |
+| POST | `/site-requests` | The basic-website request: `{ preset, business: { name, kind, city, address?, phone?, whatsapp?, email?, hours? (a line per slot, "Days: hours"), services? (a line each, "Service — price"), about? }, domain?: { name, owned }, name, email, locale, website? (honeypot) }` | `201 { id, previewUrl? }`: a lead (`projectType: web`, `company` = the business, the message a readable summary with the preview's address) keeping `siteRequest` (with the domain they want, `owned: false`, or have); onboarding pre-fills the site's domain with it; the usual lead emails. No photos (decision 13). Limited to 3/min/IP. Onboarding with that lead fills the site from it: business name and tagline, contact, address, hours, services and about, `schemaType: LocalBusiness`; the preset's made-up services, reviews and facts are dropped |
 | GET | `/calculator` | The calculator's prices (`Setting` `calculator`) once published; `404` until then | |
 | POST | `/drafts` | `Authorization: Bearer <release key>` + `{ title, body, version?, environment? (required with a version), url? }` | `201 UpdateDraft` (`{ id, project: { id, name }, title, body, version, environment, url, createdAt }`); the team inbox is emailed a link to review it. Same key rules and limit as `/releases` |
 | POST | `/releases` | `Authorization: Bearer <release key>` + the body of `POST /admin/projects/:id/releases` | `201` release on the key's project, posted as "Despliegue automático" (shown as Codeqlick); `401` for a missing, unknown or revoked key — limited to 20/min/IP. For deploy pipelines: see below |
@@ -382,6 +383,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / PUT | `/admin/projects/:id/monitor` | The view (or `{ enabled: false }`) / `{ enabled }` (400 without a production URL; enabling checks at once) |
 | POST | `/admin/projects/:id/monitor/check` | Checks now (certificate included) → the view |
 | POST | `/admin/sites/onboard` | `{ name, email, locale? (es), businessName, slug, preset, domain?, leadId? }` → `201 { projectId, client: { id, created, invitationSent? }, site, monitoring }`: a basic-website client in one step. With `leadId` the lead is converted (as `/admin/leads/:id/convert`: account, project, brief, WON); otherwise the account is found or created (welcome email) and a project opened in DESIGN. Then the managed site from the preset (form and first build included) and, without a domain of its own, the uptime monitor (a client domain may lack DNS yet). A taken name or domain is refused (409) before anything is created |
+| DELETE | `/admin/leads/:id/preview` | Takes the request's preview down → `{ status: 'REMOVED' \| null }` (`null`: it had none). Lead views carry `preview: { url, status, builtAt } \| null` |
 | GET | `/admin/sites` | Every managed site (`SiteView`: `{ projectId, project, client, slug, preset, domain, previewUrl, url, status, lastBuildAt, lastBuildError, release, content, updatedAt }`), newest first |
 | GET / POST / PATCH | `/admin/projects/:id/site` | The site (or `{ exists: false }`) / `{ slug, preset: 'peluqueria' \| 'restaurante' \| 'fisioterapia', domain? }` → `201` site, built (409 when the project has one or the name or domain is taken) / `{ domain: string \| null }` → the site, rebuilt (a new domain starts unchecked and is checked right after). `SiteView` has `domainState` and `domainCheckedAt`. `503` when the builder isn't configured or doesn't answer |
 | POST | `/admin/projects/:id/site/domain/check` | Checks the site's domain now (connecting it through OVH when it can) → the site |
@@ -652,7 +654,7 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   domains, content }` writes the content to a work folder, copies its images (`media/<name>` from
   the API's uploads, mounted read-only; other names from the preset), runs `astro build`, copies
   the result to `releases/<timestamp>`, swaps `current` (a relative link), keeps 5 releases and
-  writes `domains`. One build at a time; answers `{ ok, release, ms }`, or `422 { ok: false, error }`
+  writes `domains` (and drops a `remove` mark). One build at a time; answers `{ ok, release, ms }`, or `422 { ok: false, error }`
   with the end of the build log. `GET /presets` returns the demos' content.
 - **Domains:** `deploy/sites/sync-sites.sh` (the deploy user's cron, every minute) runs
   `cq-site add` for each domain in `sites/*/domains` that points at the server and isn't served
@@ -663,6 +665,16 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   in their account. The portal tells them to keep that option, to create `hola@<domain>` in the
   OVH manager, how to read it (webmail, IMAP/SMTP `ssl0.ovh.net`) and offers to put that address on
   the site. Zone changes never touch MX or TXT records.
+- **Request previews** (decision 16): `POST /site-requests` reserves a slug (`<business label>-<6
+  random chars>`) and, after storing the lead, builds the preset with the request applied in the
+  background (`SitePreviewsService`) with `demo: true`, `form: { demo: true }` and `preview: true`
+  (the template then puts `noindex` on every page and a bar "Vista previa preparada por Codeqlick ·
+  aún no está publicada"), at `<slug>.<SITES_PREVIEW_DOMAIN>`. Once built the requester is emailed
+  the link; the "sent" page links it at once (`?preview=<slug>`). At most 10 a day across all
+  requests (more still become leads, without preview). They are taken down after 30 days, or once
+  the lead is converted (onboarding does it at once) or marked as spam (a job every 6 hours), and
+  from the lead page: the builder's `DELETE /sites/:slug` writes `sites/<slug>/remove`, and
+  `sync-sites.sh` runs `cq-site remove` for each of its domains and deletes the folder.
 - **Custom sites** keep their own repository and are uploaded with `deploy/sites/publish-site.sh`.
   The demos are published that way at `<demo>.demo.codeqlick.com`.
 
@@ -699,27 +711,3 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 14 | Domain expiry: RDAP when the registry offers it, a date typed by the team otherwise | `.es` has no public RDAP or WHOIS; most other TLDs do |
 | 15 | The client is the holder of their domain and pays the registrar; Codeqlick manages it as the technical contact | The domain is the client's if they ever leave; Codeqlick resells nothing (no business registration yet); as OVH technical contact the team's API keys can set its DNS and read its expiry (also `.es`) without the client's password |
 | 16 | Request previews are built at once, under the previews' domain, demo-mode and noindex, and removed after 30 days | Seeing their own site a minute after asking sells it; demo mode (form that doesn't send, no dialling) and noindex keep a page nobody reviewed harmless; a daily cap keeps Let's Encrypt's weekly certificate limit for codeqlick.com safe |
-
-## 11. Planned: instant previews
-
-Design agreed on 2026-10-16. Each part moves into the sections above when it ships.
-
-### 11.2 Instant preview of a website request
-
-- `POST /v1/site-requests` also builds a **preview** right away (in the background, after the
-  lead is stored): slug `<business label>-<6 random chars>` (≤ 40), the preset's content with the
-  request applied (as onboarding does), `demo: true` (the form shows but doesn't send; phone links
-  don't dial) and `preview: true`. The template's `preview` puts `noindex` on every page and a thin
-  bar on top: "Vista previa preparada por Codeqlick · aún no está publicada".
-- **Lead** gains `previewSlug?`, `previewStatus?` (`BUILDING` | `READY` | `FAILED` | `REMOVED`) and
-  `previewBuiltAt?`. The preview lives at `https://<slug>.<SITES_PREVIEW_DOMAIN>` (published by
-  `sync-sites.sh` like any site). `201 { id, previewUrl? }`; the "sent" page links it ("lista en un
-  minuto"). When it is ready, the requester is emailed the link; the team's lead email and the lead
-  page show it.
-- At most 10 previews a day across all requests (more requests still become leads, without
-  preview), on top of the endpoint's 3/min/IP.
-- **Removal:** 30 days after it was built, when the lead is converted (onboarding builds the real
-  site) or marked SPAM, the API asks the builder `DELETE /sites/:slug` (previews only: their slugs
-  are recorded on leads). The builder writes `sites/<slug>/remove`; `sync-sites.sh` then runs
-  `cq-site remove` for each of its domains and deletes the folder. Status `REMOVED`.
-- Admin → lead: the preview link and status, and "Quitar vista previa".

@@ -708,7 +708,16 @@
       "followUp": "Seguir el {date}",
       "lostWithoutReason": "Sin motivo",
       "boardFollowUpsDue": "{count} por seguir hoy",
-      "projectType": "Tipo de proyecto"
+      "projectType": "Tipo de proyecto",
+      "previewTitle": "Vista previa",
+      "previewStatuses": {
+        "BUILDING": "Preparando",
+        "READY": "En línea",
+        "FAILED": "Falló",
+        "REMOVED": "Retirada"
+      },
+      "previewRemove": "Quitar vista previa",
+      "previewRemoving": "Quitando…"
     },
     "posts": {
       "title": "Artículos",
@@ -2317,7 +2326,10 @@
     "domainUnknown": "Sin confirmar",
     "domainUse": "Usar este",
     "domainInvalid": "Escribe un nombre con letras, números o guiones.",
-    "domainFailed": "No hemos podido comprobarlo ahora; puedes enviarlo igualmente."
+    "domainFailed": "No hemos podido comprobarlo ahora; puedes enviarlo igualmente.",
+    "previewBody": "Mientras tanto, estamos preparando una vista previa de tu web con lo que nos has contado. Estará lista en un minuto.",
+    "previewOpen": "Ver mi vista previa",
+    "previewHint": "Si al abrirla aún no carga, espera un momento y vuelve a intentarlo. También te enviamos el enlace por email."
   },
   "ProjectVisits": {
     "title": "Visitas de tu web",
