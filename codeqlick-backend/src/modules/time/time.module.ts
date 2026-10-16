@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { AdminTimeController } from './admin-time.controller.js';
 import { PortalTimeController } from './portal-time.controller.js';
 import { TimeRepository } from './time.repository.js';
+import { PlansService } from './plans.service.js';
 import { TimeService } from './time.service.js';
 
 @Module({
   controllers: [AdminTimeController, PortalTimeController],
-  providers: [TimeService, TimeRepository],
+  providers: [TimeService, TimeRepository, PlansService],
 })
 export class TimeModule {}

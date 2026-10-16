@@ -6,6 +6,7 @@ import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { adminGetMonthTime } from '@/lib/api/time';
+import { adminPlansOverview } from '@/lib/api/plans';
 import { firstParam, formatDate, formatMinutes, formatMonth, madridToday } from '@/lib/format';
 
 /** `yyyy-mm` moved by `delta` months. */
@@ -27,7 +28,8 @@ export default async function AdminTimePage({
   const current = madridToday().slice(0, 7);
   const requested = firstParam((await searchParams).month);
   const month = requested && /^\d{4}-(0[1-9]|1[0-2])$/.test(requested) ? requested : current;
-  const data = await adminGetMonthTime(month);
+  const [data, plans] = await Promise.all([adminGetMonthTime(month), adminPlansOverview(month)]);
+  const tpl = await getTranslations({ locale, namespace: 'Plans' });
 
   return (
     <>
@@ -88,6 +90,40 @@ export default async function AdminTimePage({
             </div>
           )}
         </section>
+
+        {plans.plans.length > 0 ? (
+          <section className={styles.panel}>
+            <h2 className={styles.panelTitle}>{tpl('overviewTitle')}</h2>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('project')}</th>
+                    <th scope="col">{tpl('name')}</th>
+                    <th scope="col">{tpl('usedColumn')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {plans.plans.map((plan) => (
+                    <tr key={plan.project.id}>
+                      <th scope="row">
+                        <Link href={`/admin/projects/${plan.project.id}#plan`}>
+                          {plan.project.name}
+                        </Link>
+                        <span className={styles.sub}>{plan.client.name}</span>
+                      </th>
+                      <td>{plan.name}</td>
+                      <td>
+                        {formatMinutes(plan.usedMinutes)} / {formatMinutes(plan.monthlyMinutes)} (
+                        {plan.percent} %)
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
 
         {data.entries.length > 0 ? (
           <section className={styles.panel}>

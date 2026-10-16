@@ -1023,7 +1023,8 @@
           "review_requested": "asked for the review of <target>{label}</target>",
           "review_submitted": "sent their review of <target>{label}</target>",
           "review_published": "published the review of <target>{label}</target>",
-          "review_hidden": "took down the review of <target>{label}</target>"
+          "review_hidden": "took down the review of <target>{label}</target>",
+          "plan_updated": "changed the maintenance plan of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1922,5 +1923,27 @@
       "PUBLISHED": "Published on the website (home page).",
       "HIDDEN": "Taken off the website."
     }
+  },
+  "Plans": {
+    "title": "Maintenance plan",
+    "adminLead": "A monthly hour allowance for this project. Logged hours draw it down, and you are warned at the threshold and when it is used up. The client sees the use in their area.",
+    "name": "Plan name",
+    "namePlaceholder": "Basic maintenance",
+    "hours": "Hours a month",
+    "alert": "Warn me at (%)",
+    "alertHint": "You get one email a month.",
+    "active": "Plan active",
+    "activeHint": "Untick it to pause it: the client no longer sees it.",
+    "save": "Save plan",
+    "saving": "Saving…",
+    "allowance": "{hours} a month",
+    "thisMonth": "Use in {month}",
+    "used": "{used} of {total} in {month}",
+    "left": "{minutes} left",
+    "over": "{minutes} over",
+    "clientTitle": "Your maintenance plan",
+    "clientLead": "The maintenance and improvement hours included each month, and how many we have used.",
+    "overviewTitle": "Maintenance plans",
+    "usedColumn": "This month's use"
   }
 }
