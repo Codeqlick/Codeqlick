@@ -105,6 +105,7 @@ src/
     credentials/             Access clients share for their projects (encrypted; the team reveals, logged)
     monitoring/              Uptime monitoring of hosted client sites (checks every 5 minutes, alerts, status in the portal)
     site-forms/              Contact forms of hosted static client sites, relayed to the client's inbox
+    managed-sites/           Managed basic websites: content, revisions, builds through site-builder
     briefs/                  The project brief questionnaire (portal form, admin view, release-key read)
     proposals/               Proposals and quotes: drafted and sent from the admin panel, accepted or declined in the portal
     support/                 Support requests: clients open and answer them in the portal, the team in the admin panel
@@ -175,6 +176,7 @@ erDiagram
 - **UpdateDraft** — an update sent with a project's release key and waiting for the team's review: `title`, `body` (Markdown), `version?`, `environment?`, `url?`. The client never sees it; publishing creates the ProjectUpdate (a release when it has a version) from the reviewed text and deletes the draft.
 - **MaintenancePlan** — a monthly hour allowance for a project (one per project): `active`, `name`, `monthlyMinutes`, `alertPercent` (default 80), `alertedMonth`/`alertedLevel`. Its time entries draw it down per Madrid calendar month; logging time that crosses the threshold or 100 % emails the team inbox, once a month per level. The client sees the use while it is active. Nothing is billed.
 - **SiteForm** — the contact form of a static client site (one per project): public `key` (it goes in the site's HTML), `enabled`, `recipients` (1–5 emails), `submissions` counter, `lastSubmissionAt`. Messages are emailed, never stored.
+- **ManagedSite** — a basic website built from content stored here (one per project, section 8.2): `slug` (unique: folder and preview subdomain `<slug>.<SITES_PREVIEW_DOMAIN>`), `preset` (the demo it started from; its images are usable by name), `content` (JSON: the template's `Site` type without `url`, `form` and `demo`, validated by `siteContentSchema`; uploaded photos are `media/<file>`), `domain?` (the client's own, unique), `status` (`NONE` | `BUILDING` | `LIVE` | `FAILED`), `lastBuildAt?`, `lastBuildError?` (the end of the build log), `release?`. Creating one starts from the preset with the project's name and the client as legal owner, creates the project's site form when missing and sets the project's `stagingUrl` (preview) and `productionUrl` (domain, or the preview). Every change is built at once (`url`, `demo: false` and the form's key added); a failed build keeps the previous release online. **ManagedSiteRevision** — the content before each change (`authorId?`), the last 20 kept.
 - **ClientReview** — the client's review of a project (one per project): `status` (`REQUESTED` | `SUBMITTED` | `PUBLISHED` | `HIDDEN`), `rating` (1–5), `quote`, `authorName`, `authorRole?`, `consent` (may go on the website), `locale` (the language it was written in), `requestedAt`, `submittedAt?`, `publishedAt?`. Asked for (email to every person of the account) when the project's phase moves to `LAUNCHED`, once, or from the project page. The team publishes it only with consent; published reviews show on the home page's testimonials, after the case studies' ones, in their own language.
 - **ProjectCredential** — access a client shares for a project instead of emailing it: `label`, `url?`, `username?`, `secret` and `notes?` sealed with AES-256-GCM (key derived from `CREDENTIALS_SECRET`, purpose `project-credentials-v1`), `createdById?`, `viewedAt?`. The people of the client account add and delete theirs but never read a secret back; the team reveals one at a time (logged as `project.credential_viewed`, and the client sees when) and can delete them all at the end. Adding one emails the team inbox, never with the secret.
 - **SiteMonitor / SiteCheck** — uptime monitoring of a client project's production site (`productionUrl`): `enabled`, `status` (`UNKNOWN` | `UP` | `DOWN`), `statusSince`, `failures` in a row, `lastCheckedAt`, `lastError`, `certExpiresAt` (read at most hourly), `certWarnedFor`. `MonitoringService` (API process, every 5 minutes, off in tests) requests each enabled site (up below HTTP 400 within 15 s, redirects followed) and stores a `SiteCheck` (`ok`, `statusCode`, `responseMs`, `error`; kept 90 days). Two failures in a row make it DOWN and email the team inbox; its return emails too; a certificate with under 14 days left is warned about once. The server itself (disk ≥ 85 %, memory ≥ 90 %: time for a bigger plan) is watched by `deploy/monitor/monitor.sh`.
@@ -241,6 +243,9 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `MAIL_FROM` | `Codeqlick <hello@codeqlick.com>` | |
 | `LEADS_NOTIFY_TO` | `hello@codeqlick.com` | Where new leads are emailed |
 | `UPLOADS_DIR` | `./uploads` | Folder for uploaded images (a Docker volume in production) |
+| `SITE_BUILDER_URL` / `SITE_BUILDER_TOKEN` | `http://site-builder:4100` | The site builder (section 8.2); without them managed sites answer 503 |
+| `SITES_PREVIEW_DOMAIN` | `demo.codeqlick.com` | Managed sites are previewed at `<slug>.<this>` |
+| `PUBLIC_API_URL` | `https://api.codeqlick.com/v1` | The API as browsers reach it: managed sites' forms post to `<this>/forms/:key` |
 | `ADMIN_TWO_FACTOR_REQUIRED` | `true` | Admins must have two-step verification to use admin routes (true in production) |
 | `UMAMI_URL` / `UMAMI_WEBSITE_ID` / `UMAMI_USERNAME` / `UMAMI_PASSWORD` | `http://umami:3000` | Umami's API inside the Docker network, for the dashboard's visits (`/admin/stats/visits`); off without them |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | | Only used by `prisma db seed` |
@@ -363,6 +368,12 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/admin/monitoring` | Every monitor's view |
 | GET / PUT | `/admin/projects/:id/monitor` | The view (or `{ enabled: false }`) / `{ enabled }` (400 without a production URL; enabling checks at once) |
 | POST | `/admin/projects/:id/monitor/check` | Checks now (certificate included) → the view |
+| GET | `/admin/sites` | Every managed site (`SiteView`: `{ projectId, project, client, slug, preset, domain, previewUrl, url, status, lastBuildAt, lastBuildError, release, content, updatedAt }`), newest first |
+| GET / POST / PATCH | `/admin/projects/:id/site` | The site (or `{ exists: false }`) / `{ slug, preset: 'peluqueria' \| 'restaurante' \| 'fisioterapia', domain? }` → `201` site, built (409 when the project has one or the name or domain is taken) / `{ domain: string \| null }` → the site, rebuilt. `503` when the builder isn't configured or doesn't answer |
+| PUT | `/admin/projects/:id/site/content` | `{ content }` (the whole content; 400 with the path in the message) → the site, rebuilt; the previous content becomes a revision |
+| POST | `/admin/projects/:id/site/build` | Builds the current content again → the site |
+| GET | `/admin/projects/:id/site/revisions` | `[{ id, createdAt, author: { name } \| null }]`, newest first |
+| POST | `/admin/projects/:id/site/revisions/:revisionId/restore` | Puts that content back (itself a change, so the current one becomes a revision) → the site |
 | GET / PUT | `/admin/projects/:id/form` | `SiteForm` view (`{ enabled, key, recipients, origins, submissions, lastSubmissionAt }`, or `{ enabled: false }`) / `{ enabled, recipients }` (the first save creates the key) |
 | POST | `/admin/projects/:id/form/key` | Replaces the key (the old one stops working) → the view |
 | GET | `/admin/projects/:id/brief` | The brief, as the portal returns it |
@@ -666,22 +677,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
 above (data model, API contract, frontend) when it ships.
 
-
-### 11.3 Managed sites (platform, admin)
-
-- The template and the builder are in place (section 8.2); the `Codeqlick/web-basica`
-  repository is archived once the owner agrees. What follows is the platform side.
-- **ManagedSite** — `projectId` (unique), `slug` (unique, `[a-z0-9-]`), `preset`, `content`
-  (JSON, the template's `Site` type, validated by a Zod mirror in the API), `domain?` (the client's
-  own), `status` (`BUILDING`, `LIVE`, `FAILED`), `lastBuildAt`, `lastBuildError`, `release`.
-  **ManagedSiteRevision** — `siteId`, `content`, `authorId?`, `createdAt`; the last 20 are kept.
-- Every site has a preview at `<slug>.demo.codeqlick.com`; with `domain` it is also served there
-  (`www.<domain>` redirects). The project's `stagingUrl` is the preview, `productionUrl` the
-  domain (or the preview until there is one).
-- Admin: `GET /admin/sites`, `GET/PUT /admin/projects/:id/site` (full content), `POST
-  /admin/projects/:id/site/build`, `GET /admin/projects/:id/site/revisions`, `POST
-  /admin/projects/:id/site/revisions/:revisionId/restore`. Project page panel "Web gestionada":
-  status, links, last build, content editor (JSON with validation errors), revisions.
 
 ### 11.4 One-step onboarding (admin)
 
