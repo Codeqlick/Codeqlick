@@ -83,6 +83,21 @@ export class AppConfigService {
     return this.get('MAIL_FROM');
   }
 
+  /** The site builder's URL and token; undefined while it isn't configured. */
+  get siteBuilder(): { url: string; token: string } | undefined {
+    const url = this.get('SITE_BUILDER_URL');
+    const token = this.get('SITE_BUILDER_TOKEN');
+    return url && token ? { url: url.replace(/\/+$/, ''), token } : undefined;
+  }
+
+  get sitesPreviewDomain(): string {
+    return this.get('SITES_PREVIEW_DOMAIN');
+  }
+
+  get publicApiUrl(): string {
+    return this.get('PUBLIC_API_URL').replace(/\/+$/, '');
+  }
+
   /** Umami's API and the site's id in it; undefined while analytics isn't set up. */
   get umami(): { url: string; websiteId: string; username: string; password: string } | undefined {
     const url = this.get('UMAMI_URL');
