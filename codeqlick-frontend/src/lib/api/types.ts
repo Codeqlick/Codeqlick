@@ -605,3 +605,21 @@ export type ProjectTask = {
   createdAt: string;
   updatedAt: string;
 };
+
+/** Uptime monitoring of a client project's production site. */
+export type SiteMonitor = {
+  projectId: string;
+  project: string;
+  client: string;
+  url: string | null;
+  enabled: boolean;
+  status: 'UNKNOWN' | 'UP' | 'DOWN';
+  statusSince: string;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  certExpiresAt: string | null;
+  /** 0–1 over the last 30 days, or null without checks. */
+  uptime30: number | null;
+  /** The last 30 Madrid days, oldest first. */
+  days: { day: string; checks: number; ratio: number | null }[];
+};

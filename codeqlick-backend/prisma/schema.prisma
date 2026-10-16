@@ -326,6 +326,7 @@ model ClientProject {
   drafts     UpdateDraft[]
   tasks      ProjectTask[]
   brief      ProjectBrief?
+  monitor    SiteMonitor?
 
   @@index([clientId])
   @@map("client_projects")
@@ -710,4 +711,50 @@ model ProjectBrief {
   project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("project_briefs")
+}
+
+enum SiteStatus {
+  UNKNOWN
+  UP
+  DOWN
+}
+
+/// Uptime monitoring of a client project's production site (its `productionUrl`).
+model SiteMonitor {
+  id            String     @id @default(uuid()) @db.Uuid
+  projectId     String     @unique @map("project_id") @db.Uuid
+  enabled       Boolean    @default(true)
+  status        SiteStatus @default(UNKNOWN)
+  /// When the current status started.
+  statusSince   DateTime   @default(now()) @map("status_since") @db.Timestamptz(3)
+  /// Failed checks in a row (DOWN after two).
+  failures      Int        @default(0)
+  lastCheckedAt DateTime?  @map("last_checked_at") @db.Timestamptz(3)
+  lastError     String?    @map("last_error")
+  certExpiresAt DateTime?  @map("cert_expires_at") @db.Timestamptz(3)
+  certCheckedAt DateTime?  @map("cert_checked_at") @db.Timestamptz(3)
+  /// The certificate expiry the team was last warned about (once per certificate).
+  certWarnedFor DateTime?  @map("cert_warned_for") @db.Timestamptz(3)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  checks  SiteCheck[]
+
+  @@map("site_monitors")
+}
+
+/// One check of a monitored site; kept 90 days.
+model SiteCheck {
+  id         String   @id @default(uuid()) @db.Uuid
+  monitorId  String   @map("monitor_id") @db.Uuid
+  checkedAt  DateTime @default(now()) @map("checked_at") @db.Timestamptz(3)
+  ok         Boolean
+  statusCode Int?     @map("status_code")
+  responseMs Int?     @map("response_ms")
+  error      String?
+
+  monitor SiteMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId, checkedAt])
+  @@map("site_checks")
 }
