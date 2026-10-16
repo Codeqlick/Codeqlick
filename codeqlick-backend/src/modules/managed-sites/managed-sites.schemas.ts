@@ -185,13 +185,17 @@ export type CreateSiteInput = z.infer<typeof createSiteSchema>;
 export const updateSiteSchema = z.object({ domain: domain.nullable() }).strict();
 export type UpdateSiteInput = z.infer<typeof updateSiteSchema>;
 
+/** The client's own domain, chosen from the portal. */
+export const siteDomainBodySchema = z.object({ name: domain.nullable() }).strict();
+export type SiteDomainBody = z.infer<typeof siteDomainBodySchema>;
+
 export const siteContentBodySchema = z.object({ content: siteContentSchema }).strict();
 export type SiteContentBody = z.infer<typeof siteContentBodySchema>;
 
 export const revisionParamSchema = z.object({ id: z.uuid(), revisionId: z.uuid() });
 export type RevisionParam = z.infer<typeof revisionParamSchema>;
 
-/** One-step onboarding of a basic-website client (architecture 11.4). */
+/** One-step onboarding of a basic-website client (architecture 8.2). */
 export const onboardSiteSchema = z
   .object({
     /** The contact person: their account (existing by email, or a new one with an invitation). */
@@ -212,7 +216,7 @@ export type OnboardSiteInput = z.infer<typeof onboardSiteSchema>;
 const shape = siteContentSchema.shape;
 
 /**
- * What clients edit from the portal (architecture 11.5): texts, contact, hours, services,
+ * What clients edit from the portal (architecture 8.2): texts, contact, hours, services,
  * reviews and photos. Brand, theme and legal data stay with the team.
  */
 export const editableSiteSchema = z

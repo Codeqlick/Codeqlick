@@ -24,7 +24,8 @@ export async function saveDomainAction(
       .replace(/^https?:\/\//, '')
       .replace(/^www\./, '')
       .replace(/\/.*$/, '') || null;
-  const source = formText(formData, 'source') === 'MANUAL' ? 'MANUAL' : 'RDAP';
+  const picked = formText(formData, 'source');
+  const source = picked === 'MANUAL' || picked === 'OVH' ? picked : 'RDAP';
   const expiresAt = formText(formData, 'expiresAt') || null;
   try {
     await adminSaveDomain(projectId, {

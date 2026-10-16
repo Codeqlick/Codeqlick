@@ -9,9 +9,20 @@ import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository
 import { siteContentSchema, type EditableSite, type SiteContent } from './managed-sites.schemas.js';
 import { ManagedSitesService } from './managed-sites.service.js';
 import { applyEdits, changedParts, editableOf } from './site-editing.js';
+import { SiteDomainsService } from './site-domains.service.js';
 
 export interface PortalSiteView {
   status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
+  /** The client's own domain and where it stands (architecture 8.2). */
+  domain: {
+    name: string | null;
+    state: 'UNREGISTERED' | 'ELSEWHERE' | 'LIVE' | null;
+    checkedAt: string | null;
+    /** What to do at the registrar: the team's OVH ID (technical contact) and the server IP. */
+    nicHandle: string | null;
+    serverIp: string | null;
+  };
+  previewUrl: string;
   /** The demo it started from: its photos are the gallery's other file names. */
   preset: string;
   url: string;
@@ -22,7 +33,7 @@ export interface PortalSiteView {
 /** Photos a site can use: the template optimises these. */
 const SITE_IMAGE_TYPES = new Set(['jpg', 'jpeg', 'png', 'webp']);
 
-/** The client's side of their managed site (architecture 11.5): edit it and add photos. */
+/** The client's side of their managed site (architecture 8.2): edit it and add photos. */
 @Injectable()
 export class PortalSitesService {
   private readonly logger = new Logger(PortalSitesService.name);
@@ -33,6 +44,7 @@ export class PortalSitesService {
     private readonly media: MediaService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly siteDomains: SiteDomainsService,
   ) {}
 
   async get(caller: AuthUser, projectId: string): Promise<PortalSiteView> {
@@ -54,6 +66,18 @@ export class PortalSitesService {
     this.notifyTeam(site, caller, changed, result.status === 'FAILED');
     const row = await this.repository.findByProject(projectId);
     return this.view(row ?? site);
+  }
+
+  /** The client chooses (or drops) their own domain; it is checked and connected right after. */
+  async setDomain(
+    caller: AuthUser,
+    projectId: string,
+    name: string | null,
+  ): Promise<PortalSiteView> {
+    await this.findOwn(caller, projectId);
+    await this.sites.updateSettings(caller, projectId, { domain: name });
+    if (name) this.siteDomains.checkSoon(projectId);
+    return this.view(await this.findOwn(caller, projectId));
   }
 
   /** A photo for the site: stored with the uploaded images, referenced as `media/<file>`. */
@@ -114,12 +138,19 @@ export class PortalSitesService {
 
   private view(site: SiteRow): PortalSiteView {
     const content = site.content as SiteContent;
+    const previewUrl = `https://${site.slug}.${this.config.sitesPreviewDomain}`;
     return {
       status: site.status,
+      domain: {
+        name: site.domain,
+        state: site.domainState,
+        checkedAt: site.domainCheckedAt?.toISOString() ?? null,
+        nicHandle: this.config.ovhNicHandle ?? null,
+        serverIp: this.config.sitesServerIp ?? null,
+      },
+      previewUrl,
       preset: site.preset,
-      url: site.domain
-        ? `https://${site.domain}`
-        : `https://${site.slug}.${this.config.sitesPreviewDomain}`,
+      url: site.domain && site.domainState === 'LIVE' ? `https://${site.domain}` : previewUrl,
       lastBuildAt: site.lastBuildAt?.toISOString() ?? null,
       editable: editableOf(content),
     };

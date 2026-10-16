@@ -27,9 +27,12 @@ const schema = z.object({
   hours: optional(1000),
   services: optional(3000),
   about: optional(3000),
+  domainChoice: z.enum(['new', 'owned', 'none'], 'choice').catch('none'),
+  domainName: optional(253),
   name: required(120),
   email: z.email('email').max(254),
 });
+const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 const FIELDS = Object.keys(schema.shape);
 
 const blank = (value: string) => value || undefined;
@@ -53,7 +56,15 @@ export async function submitSiteRequest(
   }
 
   const values = formValues(formData, ['website', 'locale', 'renderedAt']);
-  const parsed = schema.safeParse(formObject(formData, FIELDS));
+  const parsed = schema
+    .superRefine((value, context) => {
+      if (value.domainChoice === 'none') return;
+      const domain = value.domainName.toLowerCase().replace(/^www\./, '');
+      if (!DOMAIN.test(domain)) {
+        context.addIssue({ code: 'custom', path: ['domainName'], message: 'domain' });
+      }
+    })
+    .safeParse(formObject(formData, FIELDS));
   if (!parsed.success) {
     return {
       status: 'error',
@@ -78,6 +89,14 @@ export async function submitSiteRequest(
         services: blank(d.services),
         about: blank(d.about),
       },
+      ...(d.domainChoice === 'none'
+        ? {}
+        : {
+            domain: {
+              name: d.domainName.toLowerCase().replace(/^www\./, ''),
+              owned: d.domainChoice === 'owned',
+            },
+          }),
       name: d.name,
       email: d.email,
       locale,
