@@ -19,6 +19,7 @@ import { getMyBrief } from '@/lib/api/briefs';
 import { getMyProjectStatus } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
 import { getMyReview } from '@/lib/api/reviews';
+import { getMySite } from '@/lib/api/portal-site';
 import { getMyPlan } from '@/lib/api/plans';
 import { PlanUsage } from '@/components/app/PlanUsage';
 import { SharedAccessList } from '@/components/app/SharedAccessList';
@@ -65,6 +66,9 @@ export default async function PortalProjectPage({
   const review = await getMyReview(project.id).catch(() => undefined);
   // Only with an active maintenance plan (404 otherwise).
   const plan = await getMyPlan(project.id).catch(() => undefined);
+  // Only for a managed website (404 otherwise).
+  const site = await getMySite(project.id).catch(() => undefined);
+  const tsite = await getTranslations({ locale, namespace: 'PortalSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trev = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
@@ -103,6 +107,25 @@ export default async function PortalProjectPage({
           <strong>{tbr('bannerTitle')}</strong> {tbr('bannerBody')}{' '}
           <Link href={`/portal/projects/${project.id}/brief`}>{tbr('bannerLink')}</Link>
         </Alert>
+      ) : null}
+
+      {site ? (
+        <section className={styles.panel} id="site" aria-labelledby="site-heading">
+          <h2 id="site-heading" className={styles.panelTitle}>
+            {tsite('cardTitle')}
+          </h2>
+          <p className={styles.muted}>{tsite('cardBody')}</p>
+          <p>
+            <a href={site.url} target="_blank" rel="noopener noreferrer">
+              {site.url}
+            </a>
+          </p>
+          <div className={styles.actions}>
+            <Button href={`/portal/projects/${project.id}/site`} size="sm">
+              {tsite('cardLink')}
+            </Button>
+          </div>
+        </section>
       ) : null}
 
       <section className={styles.panel}>

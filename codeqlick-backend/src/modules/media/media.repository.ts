@@ -2,12 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface MediaUsage {
-  type: 'post' | 'portfolio';
+  /** For a managed site, `id` is its project's and `slug` the site's. */
+  type: 'post' | 'portfolio' | 'site';
   id: string;
   slug: string;
 }
 
-/** Looks up which posts and case studies reference uploaded images. */
+/** Looks up which posts, case studies and managed sites reference uploaded images. */
 @Injectable()
 export class MediaRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -30,9 +31,11 @@ export class MediaRepository {
       coverImageUrl: true,
       translations: { select: { content: true } },
     } as const;
-    const [posts, items] = await this.prisma.$transaction([
+    const [posts, items, sites] = await this.prisma.$transaction([
       this.prisma.post.findMany({ where: { OR: mentions }, select }),
       this.prisma.portfolioItem.findMany({ where: { OR: mentions }, select }),
+      // Few rows, and their content is JSON: searched here rather than in SQL.
+      this.prisma.managedSite.findMany({ select: { projectId: true, slug: true, content: true } }),
     ]);
 
     const collect = (type: MediaUsage['type'], rows: typeof posts) => {
@@ -48,6 +51,13 @@ export class MediaRepository {
     };
     collect('post', posts);
     collect('portfolio', items);
+    for (const site of sites) {
+      const text = JSON.stringify(site.content);
+      for (const filename of filenames) {
+        if (text.includes(filename))
+          usage.get(filename)?.push({ type: 'site', id: site.projectId, slug: site.slug });
+      }
+    }
     return usage;
   }
 }
