@@ -1,0 +1,38 @@
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.stars {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.star {
+  position: relative;
+  color: var(--color-line-strong);
+  font-size: 2.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.on {
+  color: var(--color-fuchsia);
+}
+
+.star:has(input:focus-visible) {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
