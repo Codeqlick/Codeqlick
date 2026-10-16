@@ -8,5 +8,6 @@ import { MediaStorage } from './media.storage.js';
 @Module({
   controllers: [MediaController, AdminMediaController],
   providers: [MediaService, MediaStorage, MediaRepository],
+  exports: [MediaService],
 })
 export class MediaModule {}
