@@ -684,3 +684,72 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 12 | The basic-website template lives in this repository (`codeqlick-sites/web-basica`) | The builder image needs it and every managed site must build from the same version; no extra repository credentials on the server |
 | 13 | The public website request takes no photos | Anonymous uploads invite abuse; photos come later through the client portal, where the person has an account |
 | 14 | Domain expiry: RDAP when the registry offers it, a date typed by the team otherwise | `.es` has no public RDAP or WHOIS; most other TLDs do |
+| 15 | The client is the holder of their domain and pays the registrar; Codeqlick manages it as the technical contact | The domain is the client's if they ever leave; Codeqlick resells nothing (no business registration yet); as OVH technical contact the team's API keys can set its DNS and read its expiry (also `.es`) without the client's password |
+
+## 11. Planned: client domains
+
+Design agreed on 2026-10-16. Each part moves into the sections above when it ships.
+
+The client registers and pays their own domain (decision 15). The platform helps them pick one,
+tells them what to do, connects it once it exists and watches its renewal.
+
+### 11.1 Availability
+
+- `GET /v1/domains/availability?name=<label or domain>` (public, 20/min/IP) →
+  `{ results: [{ domain, available: true | false | null }] }`. A label (`peluqueriaana`) checks
+  `.es`, `.com` and `.eu`; a full domain checks itself first, then the same label in the other two.
+  Only `[a-z0-9-]` labels (accents are transliterated, `www.` is dropped). Answers are cached 10 min.
+- With the OVH keys (11.4) it asks OVH's order API (`/order/cart/{id}/domain?domain=`, one cart kept
+  a day): an offer with `action: create` that is `orderable` is free. Without them, RDAP: `404` is
+  free, `200` taken, anything else or no RDAP for the TLD (`.es`, `.eu`) is `null` (unknown).
+
+### 11.2 The request asks for it
+
+- `/basic-website/request` gains a "Dominio" group: *I want a new one* (a name and a "Comprobar"
+  button that lists the results above, with links to pick an alternative), *I already have one* (its
+  name) or *Not sure yet*. Advisory only: an unknown or taken answer doesn't block the request.
+- `POST /v1/site-requests` takes `domain?: { name, owned: boolean }`; the lead's `siteRequest`
+  keeps it and the summary shows it. Admin → Webs → onboarding pre-fills the site's domain with it.
+
+### 11.3 Domain state of a managed site
+
+- **ManagedSite** gains `domainState?` (`UNREGISTERED` | `ELSEWHERE` | `LIVE`, null without a
+  domain) and `domainCheckedAt?`. `UNREGISTERED`: nobody has it yet (RDAP 404 or OVH says free);
+  `ELSEWHERE`: registered, but it doesn't resolve to `SITES_SERVER_IP`; `LIVE`: it resolves here and
+  answers over HTTPS (published by `sync-sites.sh` as today).
+- The site's `url` (canonical address, `productionUrl`) is the domain only once `LIVE`; until then
+  the preview. Turning `LIVE` rebuilds the site with the domain, emails the client ("Tu web ya está
+  en https://…") and records the activity.
+- The builder's `domains` gets `www.<domain>` as well, so both names are published.
+- Checked every 10 min while not `LIVE`, every 6 h once `LIVE`, and on demand (admin "Comprobar").
+- Clients may set or change their domain from the portal: `PUT /portal/projects/:id/site/domain`
+  `{ name: string | null }` → the site (409 when another site uses it). Admin keeps
+  `PATCH /admin/projects/:id/site`. `SiteView` and the portal site gain `domainState`.
+
+### 11.4 OVH (the team's account)
+
+- Env: `OVH_ENDPOINT` (default `https://eu.api.ovh.com/1.0`), `OVH_APPLICATION_KEY`,
+  `OVH_APPLICATION_SECRET`, `OVH_CONSUMER_KEY` (all three or none), `OVH_NIC_HANDLE` (the team's
+  account ID, shown to clients as the technical contact to add) and `SITES_SERVER_IP` (the A record
+  target and what "resolves here" means). Requests are signed as OVH documents
+  (`$1$` + SHA-1 of secret, consumer key, method, URL, body and OVH's time); no SDK.
+- Token rights: `GET /domain`, `GET /domain/*`, `GET/POST/PUT/DELETE /domain/zone/*`,
+  `POST /order/cart`, `GET /order/cart/*`.
+- With each check, a domain listed in `GET /domain` (the client made the team its technical contact)
+  becomes the project's watched domain with **source `OVH`** (`DomainSource` gains it): the expiry is
+  `GET /domain/{name}/serviceInfos` → `expiration`, `.es` included. When its zone's `A`/`AAAA`
+  records for the apex and `www` don't point at `SITES_SERVER_IP`, they are replaced by one `A`
+  each and the zone refreshed (`POST /domain/zone/{name}/refresh`). Other records (MX, TXT…) are
+  never touched. Every DNS change is recorded in the activity log.
+- Without the keys everything else still works: the client points the DNS themselves and the expiry
+  comes from RDAP or is typed (decision 14).
+
+### 11.5 Portal and admin
+
+- Portal → the site page gets a "Tu dominio" card by state: none (field + "Comprobar" to choose
+  one), `UNREGISTERED` (steps: register it at OVH in the business's name; then, in OVH's
+  "Gestión de contactos", make `OVH_NIC_HANDLE` the technical contact — or point `@` and `www` to
+  `SITES_SERVER_IP` with any other registrar), `ELSEWHERE` (the same second step), `LIVE` (address
+  and expiry).
+- Admin → the site panel shows the state and "Comprobar"; the project's "Dominio" panel shows
+  source OVH. Admin → Webs lists the state.
