@@ -380,7 +380,8 @@ export type ProblemDetails = {
 export type UploadedMedia = { filename: string; contentType: string; size: number };
 
 /** Content that uses an uploaded image, as a cover or inside its Markdown. */
-export type MediaUsage = { type: 'post' | 'portfolio'; id: string; slug: string };
+/** For a managed site, `id` is its project's. */
+export type MediaUsage = { type: 'post' | 'portfolio' | 'site'; id: string; slug: string };
 
 /** One row of `GET /admin/media`. */
 export type MediaItem = UploadedMedia & { createdAt: string; usedBy: MediaUsage[] };
@@ -729,3 +730,35 @@ export type ManagedSiteRevision = {
 };
 
 export const SITE_PRESETS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;
+
+/** The part of a managed site its client edits (architecture 11.5). */
+export type EditableSite = {
+  tagline?: string;
+  contact: {
+    phone?: string;
+    whatsapp?: string;
+    email?: string;
+    address?: { street: string; postalCode: string; city: string; region: string };
+    mapsUrl?: string;
+  };
+  hours?: { days: string; hours: string }[];
+  hero: { title: string; text: string };
+  services?: {
+    title: string;
+    intro?: string;
+    items: { name: string; description?: string; price?: string }[];
+    note?: string;
+  };
+  about?: { title: string; paragraphs: string[] };
+  gallery?: { title: string; intro?: string; images: { file: string; alt: string }[] };
+  testimonials?: { title: string; items: { quote: string; author: string; detail?: string }[] };
+};
+
+export type PortalSite = {
+  status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
+  /** The demo it started from; its photos are in public/presets/<preset>/. */
+  preset: string;
+  url: string;
+  lastBuildAt: string | null;
+  editable: EditableSite;
+};
