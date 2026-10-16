@@ -298,6 +298,8 @@ export class ProjectsRepository {
         role: 'CLIENT',
         isActive: true,
         weeklyDigest: true,
+        // Not someone who hasn't made the account theirs yet (decision 17).
+        registeredAt: { not: null },
         OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: weekStart } }],
       },
       select: clientSelect.select,

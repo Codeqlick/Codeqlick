@@ -200,12 +200,18 @@ export default async function EditUserPage({
 
       {user.isActive && (
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('invitation')}</h2>
+          <h2 className={styles.panelTitle}>
+            {user.registered ? t('invitation') : t('signupInvitation')}
+          </h2>
           <ActionForm
             action={sendInvitationAction.bind(null, locale, user.id)}
             className={styles.form}
           >
-            <p className={styles.muted}>{t('invitationBody', { language: tl(user.locale) })}</p>
+            <p className={styles.muted}>
+              {user.registered
+                ? t('invitationBody', { language: tl(user.locale) })
+                : t('signupInvitationBody', { language: tl(user.locale) })}
+            </p>
             <div className={styles.actions}>
               <SubmitButton variant="outline" pendingLabel={t('invitationSending')}>
                 {t('invitationSend')}

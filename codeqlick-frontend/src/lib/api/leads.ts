@@ -85,7 +85,7 @@ export function adminProposeFromRequest(id: string) {
 export function adminConvertLead(id: string, input: { projectName?: string }) {
   return apiFetch<{
     lead: Lead;
-    client: { id: string; created: boolean; invitationSent?: boolean };
+    client: { id: string; created: boolean; registered: boolean; invitationSent?: boolean };
     project: { id: string; name: string };
   }>(`/admin/leads/${encodeURIComponent(id)}/convert`, {
     method: 'POST',

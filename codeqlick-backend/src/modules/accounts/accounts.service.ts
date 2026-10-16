@@ -4,9 +4,12 @@ import { AccountsRepository } from './accounts.repository.js';
 
 /** Someone who receives a client account's emails. */
 export interface AccountPerson {
+  id: string;
   name: string;
   email: string;
   locale: ApiLocale;
+  /** False until the owner of a team-prepared account makes it theirs (decision 17). */
+  registered: boolean;
 }
 
 /**
@@ -19,9 +22,10 @@ export class AccountsService {
 
   /** Who gets the account's emails: the owner and the members, active ones only. */
   async people(accountId: string): Promise<AccountPerson[]> {
-    return (await this.repository.people(accountId)).map((person) => ({
+    return (await this.repository.people(accountId)).map(({ registeredAt, ...person }) => ({
       ...person,
       locale: toApiLocale(person.locale),
+      registered: Boolean(registeredAt),
     }));
   }
 }

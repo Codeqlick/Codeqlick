@@ -12,6 +12,7 @@ import { pageToSkipTake, paginate, type Paginated } from '../../common/types/pag
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { Prisma, User } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
+import type { SignupReason } from '../auth/auth-emails.js';
 import { AuthService } from '../auth/auth.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import { UsersRepository } from './users.repository.js';
@@ -24,6 +25,8 @@ export type AdminUser = AuthUser & {
   weeklyDigest: boolean;
   /** Clients: whether they get the monthly report of their managed website. */
   monthlyReport: boolean;
+  /** False for a client account the team prepared that its owner hasn't made theirs (decision 17). */
+  registered: boolean;
   /** A person of a client company: the company's main client account. */
   memberOfId: string | null;
   createdAt: string;
@@ -42,6 +45,7 @@ export function toAdminUser(user: User): AdminUser {
     locale: toApiLocale(user.locale),
     weeklyDigest: user.weeklyDigest,
     monthlyReport: user.monthlyReport,
+    registered: Boolean(user.registeredAt),
     memberOfId: user.memberOfId,
     createdAt: user.createdAt.toISOString(),
   };
@@ -70,8 +74,8 @@ export class UsersService {
 
   /**
    * Creates an account. Without a password it gets a random one nobody knows and the user is
-   * emailed a link to choose their own; a failed email doesn't undo the account, the admin can
-   * send it again.
+   * emailed a link: an admin to choose their password, a client (left unregistered, decision 17)
+   * to create their account. A failed email doesn't undo the account; the admin can send it again.
    */
   async create(actor: AuthUser, input: CreateUserInput): Promise<CreatedUser> {
     const email = input.email.trim().toLowerCase();
@@ -79,6 +83,61 @@ export class UsersService {
       throw new ConflictException('A user with this email already exists');
     }
     if (input.memberOfId) await this.assertCompanyAccount(input.role, input.memberOfId);
+    const user = await this.insert(actor, input, email);
+    if (input.password !== undefined) return toAdminUser(user);
+
+    const invitationSent = await this.invite(actor, user, undefined, 'account').then(
+      () => true,
+      () => false,
+    );
+    return { ...toAdminUser(user), invitationSent };
+  }
+
+  /**
+   * The client account for an email: an existing client's, or a new unregistered one the team
+   * prepares for it (decision 17). With a `reason`, an account still unregistered gets the
+   * invitation to create it. An email that belongs to an admin is refused.
+   */
+  async findOrCreateClient(
+    actor: AuthUser,
+    input: { email: string; name: string; locale: ApiLocale },
+    reason: SignupReason | null,
+  ): Promise<{ id: string; created: boolean; registered: boolean; invitationSent?: boolean }> {
+    const email = input.email.trim().toLowerCase();
+    let user = await this.repository.findByEmail(email);
+    let created = false;
+    if (user && user.role !== 'CLIENT') {
+      throw new ConflictException('This email belongs to an admin account');
+    }
+    if (!user) {
+      user = await this.insert(actor, { ...input, role: 'CLIENT' }, email);
+      created = true;
+    }
+    const registered = Boolean(user.registeredAt);
+    if (registered || !reason) return { id: user.id, created, registered };
+    const invitationSent = await this.invite(actor, user, undefined, reason).then(
+      () => true,
+      () => false,
+    );
+    return { id: user.id, created, registered, invitationSent };
+  }
+
+  /** Sends (again) the welcome email: to an unregistered client, the invitation to create it. */
+  async sendInvitation(actor: AuthUser, id: string, locale?: ApiLocale): Promise<void> {
+    const user = await this.repository.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.isActive) throw new BadRequestException('This account is deactivated');
+    await this.invite(actor, user, locale, 'account').catch(() => {
+      throw new ServiceUnavailableException('The welcome email could not be sent');
+    });
+  }
+
+  /** A client without a password stays unregistered until its owner makes it theirs. */
+  private async insert(
+    actor: AuthUser,
+    input: Pick<CreateUserInput, 'name' | 'role' | 'locale' | 'memberOfId' | 'password'>,
+    email: string,
+  ): Promise<User> {
     const password = input.password ?? randomBytes(32).toString('base64url');
     const user = await this.repository.create({
       email,
@@ -87,6 +146,7 @@ export class UsersService {
       memberOfId: input.memberOfId ?? null,
       locale: toDbLocale(input.locale),
       passwordHash: await this.passwords.hash(password),
+      registeredAt: input.role === 'CLIENT' && input.password === undefined ? null : new Date(),
     });
     await this.activity.record(actor, {
       action: 'user.created',
@@ -94,51 +154,26 @@ export class UsersService {
       targetLabel: user.email,
       details: { role: user.role, ...(user.memberOfId ? { memberOf: user.memberOfId } : {}) },
     });
-    if (input.password !== undefined) return toAdminUser(user);
-
-    const invitationSent = await this.invite(actor, user).then(
-      () => true,
-      () => false,
-    );
-    return { ...toAdminUser(user), invitationSent };
-  }
-
-  /**
-   * The client account for an email: an existing client's, or a new one (with the welcome email
-   * to choose a password). An email that belongs to an admin is refused.
-   */
-  async findOrCreateClient(
-    actor: AuthUser,
-    input: { email: string; name: string; locale: ApiLocale },
-  ): Promise<{ id: string; created: boolean; invitationSent?: boolean }> {
-    const existing = await this.repository.findByEmail(input.email.trim().toLowerCase());
-    if (existing) {
-      if (existing.role !== 'CLIENT') {
-        throw new ConflictException('This email belongs to an admin account');
-      }
-      return { id: existing.id, created: false };
-    }
-    const user = await this.create(actor, { ...input, role: 'CLIENT' });
-    return { id: user.id, created: true, invitationSent: user.invitationSent };
-  }
-
-  /** Sends (again) the welcome email with a link to choose a password. */
-  async sendInvitation(actor: AuthUser, id: string, locale?: ApiLocale): Promise<void> {
-    const user = await this.repository.findById(id);
-    if (!user) throw new NotFoundException('User not found');
-    if (!user.isActive) throw new BadRequestException('This account is deactivated');
-    await this.invite(actor, user, locale).catch(() => {
-      throw new ServiceUnavailableException('The welcome email could not be sent');
-    });
+    return user;
   }
 
   /** In `locale`, or else in the user's own language. */
-  private async invite(actor: AuthUser, user: User, locale?: ApiLocale): Promise<void> {
+  private async invite(
+    actor: AuthUser,
+    user: User,
+    locale: ApiLocale | undefined,
+    reason: SignupReason,
+  ): Promise<void> {
+    const language = locale ?? toApiLocale(user.locale);
     try {
-      await this.auth.sendInvitation(user, locale ?? toApiLocale(user.locale));
+      if (user.role === 'CLIENT' && !user.registeredAt) {
+        await this.auth.sendSignupInvitation(user, language, reason);
+      } else {
+        await this.auth.sendInvitation(user, language);
+      }
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to send the welcome email: ${reason}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send the welcome email: ${message}`);
       throw error;
     }
     await this.activity.record(actor, {

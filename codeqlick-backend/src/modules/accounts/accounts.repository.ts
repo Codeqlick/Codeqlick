@@ -10,7 +10,7 @@ export class AccountsRepository {
     return this.prisma.user.findMany({
       where: { OR: [{ id: accountId }, { memberOfId: accountId }], isActive: true },
       orderBy: { createdAt: 'asc' },
-      select: { name: true, email: true, locale: true },
+      select: { id: true, name: true, email: true, locale: true, registeredAt: true },
     });
   }
 }
