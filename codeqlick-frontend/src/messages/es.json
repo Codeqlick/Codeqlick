@@ -616,7 +616,8 @@
       "proposals": "Propuestas",
       "time": "Horas",
       "calculator": "Calculadora",
-      "bookings": "Llamadas"
+      "bookings": "Llamadas",
+      "monitoring": "Monitorización"
     },
     "dashboard": {
       "title": "Panel",
@@ -1013,7 +1014,9 @@
           "task_deleted": "borró una tarea de <target>{label}</target>",
           "brief_requested": "pidió el brief de <target>{label}</target>",
           "brief_submitted": "envió el brief de <target>{label}</target>",
-          "brief_updated": "actualizó el brief de <target>{label}</target>"
+          "brief_updated": "actualizó el brief de <target>{label}</target>",
+          "monitor_enabled": "activó la monitorización de <target>{label}</target>",
+          "monitor_disabled": "desactivó la monitorización de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1821,5 +1824,35 @@
         "both": "Entre los dos"
       }
     }
+  },
+  "Monitoring": {
+    "title": "Monitorización",
+    "lead": "Las webs de producción de tus clientes, comprobadas cada 5 minutos. Si una no responde dos veces seguidas te llega un aviso, y otro cuando vuelve.",
+    "emptyTitle": "Ninguna web vigilada",
+    "emptyBody": "Actívalo desde la ficha de cada proyecto (necesita su dirección de producción).",
+    "paused": "en pausa",
+    "panelTitle": "Monitorización",
+    "offBody": "Vigila {url} cada 5 minutos y su certificado; el cliente verá el estado en su área privada.",
+    "needsUrl": "Pon la dirección de producción del proyecto para poder vigilarla.",
+    "enable": "Vigilar la web de producción",
+    "disable": "Dejar de vigilar",
+    "checkNow": "Comprobar ahora",
+    "checking": "Comprobando…",
+    "saving": "Guardando…",
+    "statuses": {
+      "UNKNOWN": "Sin comprobar",
+      "UP": "Funcionando",
+      "DOWN": "Caída"
+    },
+    "since": "desde el {date}",
+    "uptime": "{value} disponible en 30 días",
+    "barsLabel": "Disponibilidad por día, últimos 30 días",
+    "noData": "{date}: sin datos",
+    "dayUptime": "{date}: {value}",
+    "cert": "Certificado",
+    "certUntil": "Válido hasta el {date}",
+    "lastCheck": "Última comprobación",
+    "clientTitle": "Estado del servicio",
+    "clientLead": "Comprobamos {url} cada 5 minutos, día y noche: si algo falla, nos enteramos al momento y nos ponemos con ello."
   }
 }

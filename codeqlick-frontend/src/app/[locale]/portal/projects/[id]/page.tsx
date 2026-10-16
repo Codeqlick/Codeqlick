@@ -16,6 +16,8 @@ import { getMyProject } from '@/lib/api/projects';
 import { getMyProjectTime } from '@/lib/api/time';
 import { listMyProjectTasks } from '@/lib/api/tasks';
 import { getMyBrief } from '@/lib/api/briefs';
+import { getMyProjectStatus } from '@/lib/api/monitoring';
+import { SiteStatus } from '@/components/app/SiteStatus';
 import { Alert } from '@/components/ui/Alert';
 import { Link } from '@/i18n/navigation';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
@@ -48,6 +50,9 @@ export default async function PortalProjectPage({
   // Optional: the project page works without it.
   const tasks = await listMyProjectTasks(project.id).catch(() => []);
   const brief = await getMyBrief(project.id).catch(() => undefined);
+  // Only when the team monitors the site (404 otherwise).
+  const siteStatus = await getMyProjectStatus(project.id).catch(() => undefined);
+  const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
   const tbr = await getTranslations({ locale, namespace: 'Brief' });
   // Optional: the project page works without it.
   const time = project.showHours
@@ -167,6 +172,14 @@ export default async function PortalProjectPage({
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {siteStatus ? (
+        <section className={styles.panel} id="status">
+          <h2 className={styles.panelTitle}>{tmon('clientTitle')}</h2>
+          <p className={styles.muted}>{tmon('clientLead', { url: siteStatus.url ?? '' })}</p>
+          <SiteStatus monitor={siteStatus} locale={locale} />
         </section>
       ) : null}
 
