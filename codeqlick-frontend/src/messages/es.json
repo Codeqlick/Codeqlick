@@ -1026,7 +1026,10 @@
           "review_hidden": "retiró la valoración de <target>{label}</target>",
           "plan_updated": "cambió el plan de mantenimiento de <target>{label}</target>",
           "form_updated": "cambió el formulario de la web de <target>{label}</target>",
-          "form_key_replaced": "cambió la clave del formulario de <target>{label}</target>"
+          "form_key_replaced": "cambió la clave del formulario de <target>{label}</target>",
+          "site_created": "creó la web gestionada de <target>{label}</target>",
+          "site_updated": "cambió la web gestionada de <target>{label}</target>",
+          "site_restored": "restauró una versión de la web de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -2069,5 +2072,46 @@
     "ctaBody": "Cuéntanos qué negocio tienes y te respondemos en dos días laborables con una propuesta cerrada.",
     "servicesBanner": "¿Tienes un negocio local? Mira la web básica: lista en pocos días, desde 200 €.",
     "footerLink": "Web básica"
+  },
+  "ManagedSite": {
+    "title": "Web gestionada",
+    "lead": "Una web básica cuyo contenido vive aquí: se compila desde la plantilla cada vez que cambia y se publica en su vista previa y en su dominio.",
+    "none": "Este proyecto todavía no tiene web gestionada.",
+    "slug": "Nombre de la web",
+    "slugHint": "Minúsculas, números y guiones. Da la vista previa: nombre.demo.codeqlick.com.",
+    "preset": "Empezar desde la demo",
+    "presets": {
+      "peluqueria": "Peluquería (Alba Estudio)",
+      "restaurante": "Restaurante (Casa Lola)",
+      "fisioterapia": "Fisioterapia (Fisio Retiro)"
+    },
+    "domain": "Dominio propio",
+    "domainHint": "Opcional. Debe apuntar a 54.37.159.171; en un par de minutos se publica con HTTPS.",
+    "create": "Crear y publicar",
+    "creating": "Creando…",
+    "statuses": {
+      "NONE": "Sin publicar",
+      "BUILDING": "Publicando",
+      "LIVE": "Publicada",
+      "FAILED": "Error al publicar"
+    },
+    "preview": "Vista previa",
+    "live": "Web",
+    "lastBuild": "Última publicación: {date}",
+    "buildError": "La última publicación falló; sigue en línea la versión anterior:",
+    "build": "Publicar de nuevo",
+    "building": "Publicando…",
+    "saveDomain": "Guardar dominio",
+    "savingDomain": "Guardando…",
+    "content": "Contenido (JSON)",
+    "contentHint": "El objeto Site de la plantilla (codeqlick-sites/web-basica/src/types.ts) sin url, form ni demo. Las fotos subidas van como media/foto.jpg. Al guardar se publica.",
+    "saveContent": "Guardar y publicar",
+    "savingContent": "Publicando…",
+    "invalidJson": "No es un JSON válido.",
+    "revisions": "Versiones anteriores",
+    "noRevisions": "Todavía no hay versiones anteriores.",
+    "revisionBy": "{date} · {author}",
+    "restore": "Restaurar",
+    "restoring": "Restaurando…"
   }
 }
