@@ -10,6 +10,7 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { SiteFormsService } from '../site-forms/site-forms.service.js';
+import { UmamiClient } from '../stats/umami.client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
 import {
   siteContentSchema,
@@ -59,6 +60,7 @@ export class ManagedSitesService {
     private readonly forms: SiteFormsService,
     private readonly activity: ActivityService,
     private readonly config: AppConfigService,
+    private readonly umami: UmamiClient,
   ) {}
 
   async list(): Promise<SiteView[]> {
@@ -180,6 +182,7 @@ export class ManagedSitesService {
     const site = await this.findSite(projectId);
     await this.repository.update(site.id, { status: 'BUILDING' });
     const form = await this.forms.get(projectId);
+    const websiteId = await this.analyticsOf(site);
     const result = await this.builder.build({
       slug: site.slug,
       preset: site.preset,
@@ -189,6 +192,7 @@ export class ManagedSitesService {
         url: this.urlOf(site),
         demo: false,
         ...(form?.enabled ? { form: { key: form.key, api: this.config.publicApiUrl } } : {}),
+        ...(websiteId ? { analytics: { websiteId, scriptUrl: this.config.umamiScriptUrl } } : {}),
       },
     });
     const row = await this.repository.update(
@@ -217,6 +221,26 @@ export class ManagedSitesService {
     const parsed = siteContentSchema.safeParse(revision.content);
     if (!parsed.success) throw new ConflictException('That revision no longer matches the schema');
     return this.updateContent(actor, projectId, parsed.data, 'project.site_restored');
+  }
+
+  /**
+   * The site's Umami website, created the first time (named after the project); undefined when
+   * Umami isn't set up or doesn't answer: the site is built without statistics then.
+   */
+  private async analyticsOf(site: SiteRow): Promise<string | undefined> {
+    if (site.umamiWebsiteId) return site.umamiWebsiteId;
+    if (!this.config.umamiApi) return undefined;
+    try {
+      const id = await this.umami.createWebsite(
+        site.project.name,
+        site.domain ?? `${site.slug}.${this.config.sitesPreviewDomain}`,
+      );
+      await this.repository.update(site.id, { umamiWebsiteId: id });
+      return id;
+    } catch (error) {
+      this.logger.warn(`No visit statistics for ${site.slug}: ${String(error)}`);
+      return undefined;
+    }
   }
 
   private previewUrlOf(site: { slug: string }): string {

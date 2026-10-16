@@ -72,6 +72,15 @@ const theme = [
     <meta property="og:image" content={new URL(ogImage.src, Astro.site).toString()} />
     <meta name="twitter:card" content="summary_large_image" />
     {schema ? <script type="application/ld+json" set:html={JSON.stringify(schema)} /> : null}
+    {site.analytics ? (
+      <script
+        is:inline
+        defer
+        src={site.analytics.scriptUrl}
+        data-website-id={site.analytics.websiteId}
+        data-do-not-track="true"
+      />
+    ) : null}
   </head>
   <body>
     <a class="skip-link" href="#main">

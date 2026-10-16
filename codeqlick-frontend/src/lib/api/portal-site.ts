@@ -1,6 +1,6 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { EditableSite, PortalSite } from './types';
+import type { EditableSite, PortalSite, ProjectVisits } from './types';
 
 const path = (projectId: string) => `/portal/projects/${encodeURIComponent(projectId)}/site`;
 
@@ -21,5 +21,17 @@ export function uploadMySitePhoto(projectId: string, file: File) {
     method: 'POST',
     body,
     auth: 'required',
+  });
+}
+
+/** The site's visits and form messages over the last `days`; 404 without a managed site. */
+export function getProjectVisits(
+  projectId: string,
+  days = 30,
+  scope: 'portal' | 'admin' = 'portal',
+) {
+  return apiFetch<ProjectVisits>(`/${scope}/projects/${encodeURIComponent(projectId)}/visits`, {
+    auth: 'required',
+    query: { days },
   });
 }

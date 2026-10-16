@@ -42,9 +42,14 @@ export class UmamiClient {
 
   constructor(private readonly config: AppConfigService) {}
 
-  async visits(days: number, now = Date.now()): Promise<SiteVisits> {
+  /**
+   * The numbers of a website over the last `days`: the public site's by default, or a managed
+   * client site's (`websiteId`).
+   */
+  async visits(days: number, now = Date.now(), websiteId?: string): Promise<SiteVisits> {
+    const id = websiteId ?? this.config.umami?.websiteId;
     const empty: SiteVisits = {
-      enabled: this.config.umami !== undefined,
+      enabled: this.config.umamiApi !== undefined && id !== undefined,
       available: false,
       days,
       totals: EMPTY_TOTALS,
@@ -60,17 +65,17 @@ export class UmamiClient {
     const range = { startAt: now - days * DAY_MS, endAt: now };
     try {
       const [stats, series, pages, referrers, countries, events] = await Promise.all([
-        this.get<Record<string, number>>('stats', range),
-        this.get<{ pageviews: Metric[]; sessions: Metric[] }>('pageviews', range, {
+        this.get<Record<string, number>>(id!, 'stats', range),
+        this.get<{ pageviews: Metric[]; sessions: Metric[] }>(id!, 'pageviews', range, {
           unit: 'day',
           timezone: TIME_ZONE,
         }),
-        this.get<Metric[]>('metrics', range, { type: 'path', limit: '10' }),
-        this.get<Metric[]>('metrics', range, { type: 'referrer', limit: '8' }),
-        this.get<Metric[]>('metrics', range, { type: 'country', limit: '6' }),
-        this.get<Metric[]>('metrics', range, { type: 'event', limit: '50' }),
+        this.get<Metric[]>(id!, 'metrics', range, { type: 'path', limit: '10' }),
+        this.get<Metric[]>(id!, 'metrics', range, { type: 'referrer', limit: '8' }),
+        this.get<Metric[]>(id!, 'metrics', range, { type: 'country', limit: '6' }),
+        this.get<Metric[]>(id!, 'metrics', range, { type: 'event', limit: '50' }),
       ]);
-      const previous = await this.get<Record<string, number>>('stats', {
+      const previous = await this.get<Record<string, number>>(id!, 'stats', {
         startAt: range.startAt - days * DAY_MS,
         endAt: range.startAt,
       });
@@ -100,26 +105,50 @@ export class UmamiClient {
     }
   }
 
+  /** A new website in Umami for a managed client site; its id. */
+  async createWebsite(name: string, domain: string, retried = false): Promise<string> {
+    const umami = this.config.umamiApi;
+    if (!umami) throw new Error('Umami is not configured');
+    const response = await fetch(`${umami.url}/api/websites`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${await this.signIn()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, domain }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (response.status === 401 && !retried) {
+      this.token = undefined;
+      return this.createWebsite(name, domain, true);
+    }
+    if (!response.ok) throw new Error(`creating a website answered ${response.status}`);
+    const { id } = (await response.json()) as { id?: string };
+    if (!id) throw new Error('Umami returned no website id');
+    return id;
+  }
+
   private async get<T>(
+    websiteId: string,
     path: string,
     range: Range,
     params: Record<string, string> = {},
     retried = false,
   ): Promise<T> {
-    const umami = this.config.umami;
+    const umami = this.config.umamiApi;
     if (!umami) throw new Error('Umami is not configured');
     const query = new URLSearchParams({
       startAt: String(range.startAt),
       endAt: String(range.endAt),
       ...params,
     });
-    const response = await fetch(`${umami.url}/api/websites/${umami.websiteId}/${path}?${query}`, {
+    const response = await fetch(`${umami.url}/api/websites/${websiteId}/${path}?${query}`, {
       headers: { Authorization: `Bearer ${await this.signIn()}` },
       signal: AbortSignal.timeout(5000),
     });
     if (response.status === 401 && !retried) {
       this.token = undefined;
-      return this.get<T>(path, range, params, true);
+      return this.get<T>(websiteId, path, range, params, true);
     }
     if (!response.ok) throw new Error(`${path} answered ${response.status}`);
     return (await response.json()) as T;
@@ -127,7 +156,7 @@ export class UmamiClient {
 
   private async signIn(): Promise<string> {
     if (this.token) return this.token;
-    const umami = this.config.umami;
+    const umami = this.config.umamiApi;
     if (!umami) throw new Error('Umami is not configured');
     const response = await fetch(`${umami.url}/api/auth/login`, {
       method: 'POST',

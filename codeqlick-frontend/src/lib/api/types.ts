@@ -764,3 +764,15 @@ export type PortalSite = {
   lastBuildAt: string | null;
   editable: EditableSite;
 };
+
+/** Visits of a managed client site, with its form's messages (architecture 11.6). */
+export type ProjectVisits = {
+  enabled: boolean;
+  available: boolean;
+  days: number;
+  visitors: number;
+  pageviews: number;
+  messages: number;
+  daily: { date: string; visitors: number; pageviews: number; messages: number }[];
+  referrers: { source: string; visitors: number }[];
+};
