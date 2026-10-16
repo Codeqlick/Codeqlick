@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -29,8 +30,11 @@ export interface SiteView {
   slug: string;
   preset: string;
   domain: string | null;
+  /** Where the domain stands (architecture 8.2); null without one or before its first check. */
+  domainState: 'UNREGISTERED' | 'ELSEWHERE' | 'LIVE' | null;
+  domainCheckedAt: string | null;
   previewUrl: string;
-  /** The live address: the domain, or the preview while there is none. */
+  /** The live address: the domain once it serves the site, the preview until then. */
   url: string;
   status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
   lastBuildAt: string | null;
@@ -89,6 +93,7 @@ export class ManagedSitesService {
     if (await this.repository.findByProject(projectId)) {
       throw new ConflictException('The project already has a site');
     }
+    if (input.domain) this.assertOwnDomain(input.domain);
     await this.assertFree(input.slug, input.domain ?? null);
 
     const preset = (await this.builder.presets()).find((item) => item.key === input.preset);
@@ -165,10 +170,15 @@ export class ManagedSitesService {
   ): Promise<SiteView> {
     const site = await this.findSite(projectId);
     if (input.domain && input.domain !== site.domain) {
+      this.assertOwnDomain(input.domain);
       if (await this.repository.findByDomain(input.domain))
         throw new ConflictException('Another site already uses that domain');
     }
-    const row = await this.repository.update(site.id, { domain: input.domain });
+    const changed = input.domain !== site.domain;
+    const row = await this.repository.update(site.id, {
+      domain: input.domain,
+      ...(changed ? { domainState: null, domainCheckedAt: null } : {}),
+    });
     await this.syncProject(row);
     await this.activity.record(actor, {
       action: 'project.site_updated',
@@ -176,6 +186,12 @@ export class ManagedSitesService {
       targetLabel: site.project.name,
       details: { domain: input.domain },
     });
+    return this.build(projectId);
+  }
+
+  /** The domain now serves the site (or stopped): the project's URLs follow and it is rebuilt. */
+  async addressChanged(projectId: string): Promise<SiteView> {
+    await this.syncProject(await this.findSite(projectId));
     return this.build(projectId);
   }
 
@@ -249,14 +265,19 @@ export class ManagedSitesService {
     return `https://${site.slug}.${this.config.sitesPreviewDomain}`;
   }
 
-  private urlOf(site: { slug: string; domain: string | null }): string {
-    return site.domain ? `https://${site.domain}` : this.previewUrlOf(site);
+  private urlOf(site: Pick<SiteRow, 'slug' | 'domain' | 'domainState'>): string {
+    return site.domain && site.domainState === 'LIVE'
+      ? `https://${site.domain}`
+      : this.previewUrlOf(site);
   }
 
+  /** What Nginx publishes once it points here (deploy/sites/sync-sites.sh): `www` included. */
   private domainsOf(site: { slug: string; domain: string | null }): string[] {
     return [
       `${site.slug}.${this.config.sitesPreviewDomain}`,
-      ...(site.domain ? [site.domain] : []),
+      ...(site.domain
+        ? [site.domain, ...(site.domain.startsWith('www.') ? [] : [`www.${site.domain}`])]
+        : []),
     ];
   }
 
@@ -267,6 +288,17 @@ export class ManagedSitesService {
   private async syncProject(site: SiteRow): Promise<void> {
     await this.repository.setProjectUrls(site.projectId, this.previewUrlOf(site), this.urlOf(site));
     if (site.domain) await this.domains.adopt(site.projectId, site.domain.replace(/^www\./, ''));
+  }
+
+  /** The previews and the platform's own domain aren't a client's to take. */
+  private assertOwnDomain(domain: string): void {
+    const bare = domain.replace(/^www\./, '');
+    const reserved = [this.config.sitesPreviewDomain, new URL(this.config.siteUrl).hostname].map(
+      (name) => name.replace(/^www\./, ''),
+    );
+    if (reserved.some((name) => bare === name || bare.endsWith(`.${name}`))) {
+      throw new BadRequestException('That domain belongs to Codeqlick');
+    }
   }
 
   private async assertFree(slug: string, domain: string | null): Promise<void> {
@@ -300,6 +332,8 @@ export class ManagedSitesService {
       slug: row.slug,
       preset: row.preset,
       domain: row.domain,
+      domainState: row.domainState,
+      domainCheckedAt: row.domainCheckedAt?.toISOString() ?? null,
       previewUrl: this.previewUrlOf(row),
       url: this.urlOf(row),
       status: row.status,

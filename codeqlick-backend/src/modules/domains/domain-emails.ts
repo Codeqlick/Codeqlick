@@ -70,3 +70,35 @@ export function domainClientEmail(
     ),
   };
 }
+
+/** To a person of the client account: their own domain now serves their website. */
+export function siteLiveEmail(
+  person: { name: string; email: string; locale: ApiLocale },
+  domain: string,
+  siteUrl: string,
+): MailMessage {
+  const es = person.locale === 'es';
+  return {
+    to: person.email,
+    subject: es ? `Tu web ya está en ${domain}` : `Your website is live at ${domain}`,
+    ...renderEmail(
+      {
+        locale: person.locale,
+        preheader: `https://${domain}`,
+        title: es ? 'Tu web ya está en tu dominio' : 'Your website is on your domain',
+        greeting: es ? `Hola ${person.name}:` : `Hi ${person.name},`,
+        intro: es
+          ? [
+              `Tu web ya se ve en https://${domain}, con conexión segura (HTTPS).`,
+              'La dirección de prueba sigue funcionando, pero ya puedes compartir la nueva en tus redes, tarjetas y Google.',
+            ]
+          : [
+              `Your website is now served at https://${domain}, over a secure connection (HTTPS).`,
+              'The preview address still works, but you can now share the new one on your social networks, cards and Google.',
+            ],
+        button: { label: es ? 'Ver mi web' : 'Open my website', url: `https://${domain}` },
+      },
+      siteUrl,
+    ),
+  };
+}

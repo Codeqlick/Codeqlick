@@ -57,7 +57,8 @@ container sets `NODE_ENV=development`, which breaks production builds.
 ## Next steps (in order)
 
 1. **Content.** Three blog posts and the three demo case studies are drafts in `/es/admin`: review and publish them.
-2. **First basic-website clients.** Admin → Webs → "Nueva web básica" (or from a lead of `/basic-website/request`); the client then edits it from the portal.
+2. **First basic-website clients.** Admin → Webs → "Nueva web básica" (or from a lead of `/basic-website/request`); the client then edits it from the portal and chooses their domain there.
+3. **OVH keys** for client domains (`deploy/README.md`, "Client domains (OVH)"): until they are in `/srv/codeqlick/.env`, `.es` availability is unknown and clients point their DNS themselves.
 
 Outgoing email in production goes through OVH's SMTP (`ssl0.ovh.net:465`) as `hello@codeqlick.com`; the settings live in `/srv/codeqlick/.env`. Every email is plain text plus branded HTML (`codeqlick-backend/src/modules/mail/email-layout.ts`).
 

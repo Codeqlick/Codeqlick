@@ -171,7 +171,7 @@ describe('Basic-website onboarding (e2e)', () => {
       .expect(201);
     expect(result.body).toMatchObject({
       monitoring: false,
-      site: { url: `https://lola-${tag}.es` },
+      site: { domain: `lola-${tag}.es`, url: `https://lola-${tag}.demo.codeqlick.com` },
     });
     const updated = await prisma.lead.findUniqueOrThrow({ where: { id: lead.id } });
     expect(updated).toMatchObject({ status: 'WON', clientId: result.body.client.id });
@@ -179,7 +179,10 @@ describe('Basic-website onboarding (e2e)', () => {
       where: { id: result.body.projectId as string },
       include: { monitor: true },
     });
-    expect(project).toMatchObject({ name: 'Casa Lola', productionUrl: `https://lola-${tag}.es` });
+    expect(project).toMatchObject({
+      name: 'Casa Lola',
+      productionUrl: `https://lola-${tag}.demo.codeqlick.com`,
+    });
     expect(project.monitor).toBeNull();
   });
 });
