@@ -1,0 +1,87 @@
+---
+import '@fontsource-variable/inter';
+import '@fontsource-variable/outfit';
+import '@fontsource-variable/fraunces';
+import '@fontsource-variable/playfair-display';
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import WhatsApp from '../components/WhatsApp.astro';
+import { imageOf, site } from '../lib/site';
+import { getImage } from 'astro:assets';
+import type { BodyFont, HeadingFont } from '../types';
+
+interface Props {
+  /** Page title; the home page leaves it out and shows the business name. */
+  title?: string;
+  description?: string;
+  /** Legal pages: not worth indexing. */
+  noindex?: boolean;
+  /** JSON-LD for the page. */
+  schema?: Record<string, unknown>;
+}
+
+const { title, description = site.business.description, noindex = false, schema } = Astro.props;
+const fullTitle = title ? `${title} · ${site.business.name}` : site.business.name;
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const ogImage = await getImage({ src: imageOf(site.hero.image), width: 1200, format: 'jpg' });
+
+const fonts: Record<HeadingFont | BodyFont, string> = {
+  inter: "'Inter Variable', system-ui, sans-serif",
+  outfit: "'Outfit Variable', system-ui, sans-serif",
+  fraunces: "'Fraunces Variable', Georgia, serif",
+  playfair: "'Playfair Display Variable', Georgia, serif",
+};
+const radius = { square: ['0', '0'], soft: ['0.75rem', '0.6rem'], round: ['1.5rem', '999px'] }[
+  site.theme.corners
+];
+const theme = [
+  `--primary:${site.theme.primary}`,
+  `--primary-text:${site.theme.primaryText}`,
+  `--background:${site.theme.background}`,
+  `--surface:${site.theme.surface}`,
+  `--text:${site.theme.text}`,
+  `--muted:${site.theme.muted}`,
+  `--font-heading:${fonts[site.theme.headingFont]}`,
+  `--font-body:${fonts[site.theme.bodyFont]}`,
+  `--radius:${radius[0]}`,
+  `--radius-button:${radius[1]}`,
+  // Readable accent for small text on light backgrounds.
+  `--primary-strong:color-mix(in srgb, ${site.theme.primary} 80%, ${site.theme.text})`,
+].join(';');
+---
+
+<!doctype html>
+<html lang="es" style={theme}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex ? <meta name="robots" content="noindex" /> : null}
+    <meta name="theme-color" content={site.theme.primary} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content={site.business.name} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(ogImage.src, Astro.site).toString()} />
+    <meta name="twitter:card" content="summary_large_image" />
+    {schema ? <script type="application/ld+json" set:html={JSON.stringify(schema)} /> : null}
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      Saltar al contenido
+    </a>
+    <Header />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <WhatsApp />
+  </body>
+</html>

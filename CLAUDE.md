@@ -12,7 +12,8 @@ This repo holds the whole platform:
 |---|---|---|
 | `codeqlick-backend/` | NestJS 12 (ESM) + Prisma 7.10 + PostgreSQL 18 REST API under `/v1` | Running; lint, typecheck, unit and e2e tests and build pass |
 | `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck, unit tests and build pass |
-| `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook); `deploy/sites/` publishes static client sites (template: `Codeqlick/web-basica`) | Deployed |
+| `codeqlick-sites/` | Astro template of the basic websites (`web-basica`, demos in `examples/`) + `builder/`, the service that builds managed client sites | Running |
+| `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook); `deploy/sites/` publishes static client sites | Deployed |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
 | `tools/` | Scripts for client projects' repositories (architecture 8.1): `codeqlick-draft.sh` sends a work summary as a draft update, `codeqlick-tasks.sh` reads and closes the project's tasks, `codeqlick-brief.sh` prints the client's brief | Ready |
 

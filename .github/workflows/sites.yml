@@ -1,0 +1,54 @@
+name: Sites
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'codeqlick-sites/**'
+      - '.github/workflows/sites.yml'
+  pull_request:
+    paths:
+      - 'codeqlick-sites/**'
+      - '.github/workflows/sites.yml'
+
+concurrency:
+  group: sites-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  template:
+    name: Template and builder
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codeqlick-sites/web-basica
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: codeqlick-sites/web-basica/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - name: Check and build the template and every demo
+        run: |
+          for dir in site examples/peluqueria examples/restaurante examples/fisioterapia; do
+            echo "::group::$dir"
+            SITE_DIR=$dir npm run check
+            SITE_DIR=$dir npm run build
+            echo "::endgroup::"
+          done
+      - name: Builder starts and builds a preset
+        working-directory: codeqlick-sites
+        run: |
+          mkdir -p "$RUNNER_TEMP/sites" "$RUNNER_TEMP/uploads"
+          TEMPLATE_DIR=$PWD/web-basica SITES_DIR=$RUNNER_TEMP/sites UPLOADS_DIR=$RUNNER_TEMP/uploads \
+            SITE_BUILDER_TOKEN=ci-token node builder/server.mjs &
+          sleep 2
+          node builder/smoke-test.mjs http://127.0.0.1:4100 ci-token
+          test -f "$RUNNER_TEMP/sites/ci-demo/current/index.html"
+          grep -qx ci-demo.demo.codeqlick.com "$RUNNER_TEMP/sites/ci-demo/domains"

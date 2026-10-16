@@ -1,0 +1,100 @@
+---
+import { Image } from 'astro:assets';
+import { imageOf, site } from '../lib/site';
+
+const about = site.about!;
+---
+
+<section class="section" id="nosotros" aria-labelledby="nosotros-title">
+  <div class={`container grid ${about.image ? '' : 'single'}`}>
+    {about.image ? (
+      <Image
+        class="photo"
+        src={imageOf(about.image)}
+        alt={about.image.alt}
+        widths={[480, 800, 1100]}
+        sizes="(max-width: 860px) 100vw, 45vw"
+      />
+    ) : null}
+    <div class="copy">
+      <p class="eyebrow">Sobre nosotros</p>
+      <h2 id="nosotros-title">{about.title}</h2>
+      {about.paragraphs.map((paragraph) => (
+        <p class="text">{paragraph}</p>
+      ))}
+      {about.highlights ? (
+        <ul class="highlights">
+          {about.highlights.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 0.9fr 1fr;
+    align-items: center;
+    gap: clamp(2rem, 6vw, 5rem);
+  }
+
+  .single {
+    grid-template-columns: 1fr;
+    max-width: 48rem;
+  }
+
+  .photo {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: var(--radius);
+  }
+
+  .copy {
+    display: grid;
+    gap: 1.1rem;
+  }
+
+  .text {
+    color: var(--muted);
+  }
+
+  .highlights {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .highlights li {
+    display: flex;
+    gap: 0.75rem;
+    font-weight: 500;
+  }
+
+  .highlights li::before {
+    content: '';
+    flex: none;
+    width: 1.35rem;
+    height: 1.35rem;
+    margin-top: 0.2rem;
+    border-radius: 50%;
+    background: var(--primary)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L19 7'/%3E%3C/svg%3E")
+      center / 0.8rem no-repeat;
+  }
+
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .photo {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>
