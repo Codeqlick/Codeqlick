@@ -181,8 +181,13 @@ describe('Managed sites (e2e)', () => {
       .set(auth)
       .send({ domain: `marta-${tag}.es` })
       .expect(200);
-    expect(withDomain.body.url).toBe(`https://marta-${tag}.es`);
-    expect(builds.at(-1)?.domains).toEqual([`${slug}.demo.codeqlick.com`, `marta-${tag}.es`]);
+    // The domain becomes the address once it serves the site (test/client-domains.e2e-spec.ts).
+    expect(withDomain.body).toMatchObject({ domain: `marta-${tag}.es`, domainState: null });
+    expect(builds.at(-1)?.domains).toEqual([
+      `${slug}.demo.codeqlick.com`,
+      `marta-${tag}.es`,
+      `www.marta-${tag}.es`,
+    ]);
 
     const list = await request(server).get('/v1/admin/sites').set(auth).expect(200);
     expect(list.body.some((item: { slug: string }) => item.slug === slug)).toBe(true);

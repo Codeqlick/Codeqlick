@@ -7,6 +7,7 @@ import { SITE_PRESETS, type ManagedSite, type ManagedSiteRevision } from '@/lib/
 import { formatDateTime } from '@/lib/format';
 import {
   buildSiteAction,
+  checkSiteDomainAction,
   createSiteAction,
   restoreSiteRevisionAction,
   saveSiteContentAction,
@@ -15,6 +16,7 @@ import {
 import styles from './app.module.css';
 
 const TONES = { NONE: 'neutral', BUILDING: 'warning', LIVE: 'success', FAILED: 'danger' } as const;
+const DOMAIN_TONES = { UNREGISTERED: 'neutral', ELSEWHERE: 'warning', LIVE: 'success' } as const;
 
 /** Admin → project: the project's managed website (create it, its status, domain, content). */
 export async function ManagedSitePanel({
@@ -92,12 +94,27 @@ export async function ManagedSitePanel({
         {site.domain ? (
           <li>
             <span>{t('live')}</span>
-            <a href={site.url} target="_blank" rel="noopener noreferrer">
-              {site.url}
-            </a>
+            <a href={`https://${site.domain}`} target="_blank" rel="noopener noreferrer">
+              {site.domain}
+            </a>{' '}
+            <Badge tone={site.domainState ? DOMAIN_TONES[site.domainState] : 'neutral'}>
+              {tk(`domainStates.${site.domainState ?? 'UNCHECKED'}`)}
+            </Badge>
           </li>
         ) : null}
       </ul>
+      {site.domain ? (
+        <ActionForm action={checkSiteDomainAction.bind(null, locale, projectId)}>
+          <p className={styles.muted}>
+            {site.domainCheckedAt
+              ? t('domainChecked', { date: formatDateTime(site.domainCheckedAt, locale) })
+              : t('domainNotChecked')}{' '}
+            <SubmitButton variant="outline" size="sm" pendingLabel={t('checkingDomain')}>
+              {t('checkDomain')}
+            </SubmitButton>
+          </p>
+        </ActionForm>
+      ) : null}
       {site.status === 'FAILED' && site.lastBuildError ? (
         <>
           <p className={styles.muted}>{t('buildError')}</p>

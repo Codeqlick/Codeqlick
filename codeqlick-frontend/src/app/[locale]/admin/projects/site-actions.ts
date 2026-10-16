@@ -7,6 +7,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { failedState, invalidState, savedState } from '@/lib/actions';
 import {
   adminBuildSite,
+  adminCheckSiteDomain,
   adminCreateSite,
   adminRestoreSiteRevision,
   adminSaveSiteContent,
@@ -107,6 +108,21 @@ export async function buildSiteAction(
 ): Promise<FormState> {
   try {
     await adminBuildSite(projectId);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateSite(locale);
+  return { status: 'idle' };
+}
+
+export async function checkSiteDomainAction(
+  locale: AppLocale,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await adminCheckSiteDomain(projectId);
   } catch (error) {
     return failedState(error, locale, formData);
   }

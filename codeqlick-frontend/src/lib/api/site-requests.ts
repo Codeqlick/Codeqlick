@@ -15,6 +15,7 @@ export type SiteRequestInput = {
     services?: string;
     about?: string;
   };
+  domain?: { name: string; owned: boolean };
   name: string;
   email: string;
   locale: 'en' | 'es';

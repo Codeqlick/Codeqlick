@@ -36,6 +36,14 @@ export function adminBuildSite(projectId: string) {
   return apiFetch<ManagedSite>(`${path(projectId)}/build`, { method: 'POST', auth: 'required' });
 }
 
+/** Checks the site's domain now (and connects it through OVH when it can). */
+export function adminCheckSiteDomain(projectId: string) {
+  return apiFetch<ManagedSite>(`${path(projectId)}/domain/check`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
 export function adminSiteRevisions(projectId: string) {
   return apiFetch<ManagedSiteRevision[]>(`${path(projectId)}/revisions`, { auth: 'required' });
 }

@@ -394,7 +394,8 @@
     "date": "Introduce una fecha válida.",
     "choice": "Elige una de las opciones.",
     "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50.",
-    "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas)."
+    "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas).",
+    "domain": "Escribe un dominio como peluqueria-ana.es."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -1311,7 +1312,8 @@
       "submit": "Dar de alta y publicar",
       "submitting": "Creando todo…",
       "leadButton": "Dar de alta su web básica",
-      "leadHint": "O, si es una web básica, todo en un paso:"
+      "leadHint": "O, si es una web básica, todo en un paso:",
+      "domain": "Dominio"
     }
   },
   "Sessions": {
@@ -2118,7 +2120,7 @@
       "fisioterapia": "Fisioterapia (Fisio Retiro)"
     },
     "domain": "Dominio propio",
-    "domainHint": "Opcional. Debe apuntar a 54.37.159.171; en un par de minutos se publica con HTTPS.",
+    "domainHint": "Opcional. Cuando apunte al servidor (o lo gestionemos en OVH como contacto técnico), se publica con HTTPS y pasa a ser la dirección de la web.",
     "create": "Crear y publicar",
     "creating": "Creando…",
     "statuses": {
@@ -2144,7 +2146,17 @@
     "noRevisions": "Todavía no hay versiones anteriores.",
     "revisionBy": "{date} · {author}",
     "restore": "Restaurar",
-    "restoring": "Restaurando…"
+    "restoring": "Restaurando…",
+    "domainStates": {
+      "UNCHECKED": "Sin comprobar",
+      "UNREGISTERED": "Sin registrar",
+      "ELSEWHERE": "Registrado, no apunta aquí",
+      "LIVE": "Publicado"
+    },
+    "domainChecked": "Dominio comprobado el {date}.",
+    "domainNotChecked": "El dominio aún no se ha comprobado.",
+    "checkDomain": "Comprobar dominio",
+    "checkingDomain": "Comprobando…"
   },
   "PortalSite": {
     "title": "Tu web",
@@ -2212,7 +2224,32 @@
     "defaultReviewsTitle": "Opiniones",
     "cardTitle": "Tu web",
     "cardBody": "Cambia horario, precios, textos y fotos tú mismo; se publica al momento.",
-    "cardLink": "Editar mi web"
+    "cardLink": "Editar mi web",
+    "domainTitle": "Tu dominio",
+    "domainStates": {
+      "UNCHECKED": "Comprobando",
+      "UNREGISTERED": "Sin registrar",
+      "ELSEWHERE": "Falta conectarlo",
+      "LIVE": "Conectado"
+    },
+    "domainNone": "¿Quieres que tu web tenga su propia dirección, como peluqueria-ana.es? Elige un nombre libre y guárdalo; después te decimos qué hacer.",
+    "domainLabel": "Dominio",
+    "domainHint": "Escribe un nombre y pulsa «Comprobar» para ver si está libre en .es, .com y .eu.",
+    "domainSave": "Guardar dominio",
+    "domainChange": "Cambiar o quitar el dominio",
+    "domainChangeHint": "Déjalo vacío para quitarlo; tu web seguirá en la dirección de prueba.",
+    "domainLive": "Tu web ya se ve en {url}.",
+    "domainStepRegister": "Regístralo a nombre de tu negocio en <link>OVHcloud</link>: busca {domain} y cómpralo (unos 10 € al año). El dominio es tuyo y lo pagas directamente a OVH.",
+    "domainRegistered": "El dominio ya está registrado.",
+    "domainStepContact": "En tu área de cliente de OVH, abre el dominio, entra en «Gestión de contactos» y pon <code>{nic}</code> como contacto técnico. Así lo conectamos y vigilamos su renovación sin necesitar tu contraseña.",
+    "domainOtherRegistrar": "¿Lo tienes en otro proveedor? Crea dos registros A, para @ y para www, que apunten a <code>{ip}</code>.",
+    "domainWaiting": "Lo comprobamos cada pocos minutos y te avisaremos por email en cuanto esté listo. Mientras tanto, tu web sigue en {preview}.",
+    "domainInvalid": "Escribe un dominio como peluqueria-ana.es.",
+    "domainInUse": "Otra web ya usa ese dominio.",
+    "domainReserved": "Ese dominio no se puede usar.",
+    "domainSaved": "Dominio guardado.",
+    "domainRemoved": "Dominio quitado: tu web sigue en la dirección de prueba.",
+    "domainSaving": "Guardando…"
   },
   "SiteRequest": {
     "metaTitle": "Pide tu web básica",
@@ -2251,7 +2288,24 @@
     "rateLimited": "Demasiados envíos seguidos. Espera un minuto y vuelve a intentarlo.",
     "sentTitle": "¡Recibido!",
     "sentBody": "Gracias. Te escribimos en un plazo de dos días laborables con una primera propuesta para tu web.",
-    "back": "Volver a la web básica"
+    "back": "Volver a la web básica",
+    "domainTitle": "Tu dominio",
+    "domainHint": "La dirección de tu web, como peluqueria-ana.es. El dominio es tuyo: lo registras a tu nombre (unos 10 € al año) y nosotros lo conectamos. Mientras tanto, tu web se ve en una dirección de prueba.",
+    "domainChoices": {
+      "new": "Quiero uno nuevo",
+      "owned": "Ya tengo uno",
+      "none": "Todavía no lo sé"
+    },
+    "domainName": "Dominio",
+    "domainNameHint": "Escribe un nombre y pulsa «Comprobar» para ver si está libre en .es, .com y .eu.",
+    "domainCheck": "Comprobar",
+    "domainChecking": "Comprobando…",
+    "domainFree": "Libre",
+    "domainTaken": "Ocupado",
+    "domainUnknown": "Sin confirmar",
+    "domainUse": "Usar este",
+    "domainInvalid": "Escribe un nombre con letras, números o guiones.",
+    "domainFailed": "No hemos podido comprobarlo ahora; puedes enviarlo igualmente."
   },
   "ProjectVisits": {
     "title": "Visitas de tu web",
@@ -2270,13 +2324,14 @@
   },
   "Domain": {
     "title": "Dominio",
-    "lead": "Avisamos al equipo y al cliente 30 y 7 días antes de que caduque. La fecha sale del registro (RDAP) si lo publica; los .es no lo hacen, así que se escribe a mano.",
+    "lead": "Avisamos al equipo y al cliente 30 y 7 días antes de que caduque. La fecha sale de OVH cuando somos su contacto técnico (también los .es), del registro (RDAP) si la publica, o se escribe a mano.",
     "name": "Dominio",
     "nameHint": "El dominio registrado, sin www: peluqueriamarta.es.",
     "source": "Fecha de caducidad",
     "sources": {
       "RDAP": "Automática (RDAP)",
-      "MANUAL": "La escribo yo"
+      "MANUAL": "La escribo yo",
+      "OVH": "Automática (OVH)"
     },
     "expiresAt": "Caduca el",
     "expiresHint": "Solo si la escribes tú.",

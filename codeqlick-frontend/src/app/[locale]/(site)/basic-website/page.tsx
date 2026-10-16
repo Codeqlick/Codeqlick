@@ -13,7 +13,7 @@ type PageProps = { params: Promise<{ locale: string }> };
 /** The demos published from the web-basica template (`<key>.demo.codeqlick.com`). */
 const DEMOS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;
 const STEPS = ['tell', 'preview', 'adjust', 'live'] as const;
-/** The online request (architecture 11.5). */
+/** The online request (architecture 8.2). */
 const REQUEST_HREF = '/basic-website/request';
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

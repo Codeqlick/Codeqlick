@@ -10,7 +10,7 @@ const optionalText = (max: number) =>
     .optional()
     .transform((value) => (value === undefined || value === '' ? undefined : value));
 
-/** The public basic-website request (architecture 11.5). */
+/** The public basic-website request (architecture 8.2). */
 export const siteRequestSchema = z
   .object({
     preset: sitePresetSchema,
@@ -34,6 +34,21 @@ export const siteRequestSchema = z
         about: optionalText(3000),
       })
       .strict(),
+    /** The domain they want (`owned: false`) or already have (architecture 8.2). */
+    domain: z
+      .object({
+        name: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .regex(
+            /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/,
+            'A domain like peluqueria.es',
+          ),
+        owned: z.boolean(),
+      })
+      .strict()
+      .optional(),
     name: z.string().trim().min(1).max(120),
     email: z.email().max(254),
     locale: localeSchema,
@@ -43,7 +58,7 @@ export const siteRequestSchema = z
   .strict();
 export type SiteRequestInput = z.infer<typeof siteRequestSchema>;
 /** What a lead keeps: the request without the contact person and the honeypot. */
-export type SiteRequest = Pick<SiteRequestInput, 'preset' | 'business'>;
+export type SiteRequest = Pick<SiteRequestInput, 'preset' | 'business' | 'domain'>;
 
 const PRESET_NAMES: Record<string, string> = {
   peluqueria: 'Peluquería (Alba Estudio)',
@@ -65,6 +80,9 @@ export function requestSummary(request: SiteRequest): string {
     b.hours ? `\nOpening hours:\n${b.hours}` : null,
     b.services ? `\nServices:\n${b.services}` : null,
     b.about ? `\nAbout:\n${b.about}` : null,
+    request.domain
+      ? `\nDomain: ${request.domain.name} (${request.domain.owned ? 'they already have it' : 'they want to register it'})`
+      : null,
   ];
   return lines.filter((line) => line !== null).join('\n');
 }
