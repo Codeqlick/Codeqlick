@@ -683,6 +683,22 @@ Design agreed on 2026-10-16, built in this order (one PR each). Each part moves 
 above (data model, API contract, frontend) when it ships.
 
 
+### 11.5 Online request for a basic website (public)
+
+- `/[locale]/basic-website/request` (the "Pedir mi web" buttons point here): the style (one of
+  the demos, with its cover), the business (name, what it is, city and address, phone, WhatsApp,
+  email, opening hours, services with prices, a few lines about it) and the contact person (name,
+  email) with the privacy consent. No photos (decision 13). A honeypot and the 3-second rule, as
+  the contact form.
+- `POST /v1/site-requests` (public, 3/min/IP) `{ preset, business: { name, kind, city, address?,
+  phone?, whatsapp?, email?, hours?, services?, about? }, name, email, locale, website? }` →
+  `201 { id }`: a **Lead** (`projectType: web`, `company` = business name, the message a readable
+  summary) that also keeps the request as `siteRequest` (JSON); the usual lead emails go out.
+- Onboarding from such a lead (11.4 in section 5) starts from it: the preset chosen, the business
+  name, and the content filled in from the request (contact, address, hours "Days: hours" per line,
+  services "Service — price" per line, about paragraphs). The admin's "Nueva web básica" form is
+  prefilled from it and the lead page shows the request.
+
 ### 11.6 Visits (portal)
 
 - Umami (already running, cookieless) gets a website per managed site, created by the API through
