@@ -1,5 +1,6 @@
 ---
 import Legal from '../layouts/Legal.astro';
+import { site } from '../lib/site';
 ---
 
 <Legal title="Política de cookies">
@@ -12,5 +13,12 @@ import Legal from '../layouts/Legal.astro';
     terceros. Los enlaces a mapas, redes sociales o WhatsApp abren esos servicios en su propia web,
     que tiene su propia política de cookies.
   </p>
+  {site.analytics ? (
+    <p>
+      Para saber cuántas personas visitan la web usamos una herramienta de estadísticas que no usa
+      cookies ni guarda datos que te identifiquen, y que respeta la opción «No rastrear» de tu
+      navegador.
+    </p>
+  ) : null}
   <p>Si algún día empezamos a usar cookies, lo indicaremos aquí y te pediremos permiso antes.</p>
 </Legal>

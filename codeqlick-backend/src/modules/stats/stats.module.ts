@@ -7,5 +7,6 @@ import { UmamiClient } from './umami.client.js';
 @Module({
   controllers: [AdminStatsController],
   providers: [StatsService, StatsRepository, UmamiClient],
+  exports: [UmamiClient],
 })
 export class StatsModule {}
