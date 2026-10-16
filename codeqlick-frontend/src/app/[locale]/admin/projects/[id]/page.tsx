@@ -33,6 +33,8 @@ import { adminListTasks } from '@/lib/api/tasks';
 import { adminGetBrief } from '@/lib/api/briefs';
 import { adminGetMonitor } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
+import { adminGetReview } from '@/lib/api/reviews';
+import { requestReviewAction, setReviewStatusAction } from '../review-actions';
 import { SharedAccessList } from '@/components/app/SharedAccessList';
 import { deleteAllAccessAction, revealAccessAction } from '../../../portal/projects/access-actions';
 import { SiteStatus } from '@/components/app/SiteStatus';
@@ -91,14 +93,16 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks, brief, monitor, access] = await Promise.all([
+  const [time, drafts, tasks, brief, monitor, access, review] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
     adminListTasks(project.id),
     adminGetBrief(project.id),
     adminGetMonitor(project.id),
     listAccess(project.id),
+    adminGetReview(project.id),
   ]);
+  const trv = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
   const tm = await getTranslations({ locale, namespace: 'Monitoring' });
   const tb = await getTranslations({ locale, namespace: 'Brief' });
@@ -172,6 +176,54 @@ export default async function EditProjectPage({
               <SubmitButton pendingLabel={tc('creating')}>{t('milestoneAdd')}</SubmitButton>
             </div>
           </ActionForm>
+        </div>
+      </section>
+
+      <section className={styles.panel} id="review" aria-labelledby="review-heading">
+        <h2 id="review-heading" className={styles.panelTitle}>
+          {trv('adminTitle')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{trv(`adminStatus.${review.status}`)}</p>
+          {review.quote ? (
+            <figure className={styles.update}>
+              <p aria-label={trv('stars', { count: review.rating ?? 0 })}>
+                {'★'.repeat(review.rating ?? 0)}
+                {'☆'.repeat(5 - (review.rating ?? 0))}
+              </p>
+              <blockquote className={styles.prewrap}>{review.quote}</blockquote>
+              <figcaption className={styles.muted}>
+                {review.authorName}
+                {review.authorRole ? ` · ${review.authorRole}` : ''} ·{' '}
+                {review.consent ? trv('consentYes') : trv('consentNo')}
+              </figcaption>
+            </figure>
+          ) : null}
+          <div className={styles.actions}>
+            {review.status === 'NONE' ? (
+              <ActionForm action={requestReviewAction.bind(null, locale, project.id)}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={trv('sending')}>
+                  {trv('request')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+            {(review.status === 'SUBMITTED' || review.status === 'HIDDEN') && review.consent ? (
+              <ActionForm
+                action={setReviewStatusAction.bind(null, locale, project.id, 'PUBLISHED')}
+              >
+                <SubmitButton size="sm" pendingLabel={trv('sending')}>
+                  {trv('publish')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+            {review.status === 'PUBLISHED' ? (
+              <ActionForm action={setReviewStatusAction.bind(null, locale, project.id, 'HIDDEN')}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={trv('sending')}>
+                  {trv('hide')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+          </div>
         </div>
       </section>
 

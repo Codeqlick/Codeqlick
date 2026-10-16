@@ -1019,7 +1019,11 @@
           "monitor_disabled": "desactivó la monitorización de <target>{label}</target>",
           "credential_added": "compartió un acceso en <target>{label}</target>",
           "credential_viewed": "abrió un acceso de <target>{label}</target>",
-          "credential_deleted": "borró accesos de <target>{label}</target>"
+          "credential_deleted": "borró accesos de <target>{label}</target>",
+          "review_requested": "pidió la valoración de <target>{label}</target>",
+          "review_submitted": "envió su valoración de <target>{label}</target>",
+          "review_published": "publicó la valoración de <target>{label}</target>",
+          "review_hidden": "retiró la valoración de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1885,5 +1889,38 @@
     "copied": "Copiado",
     "deleteAll": "Borrar todos los accesos",
     "deleteAllConfirm": "Borrar {count, plural, one {el acceso} other {los # accesos}} de este proyecto; no se puede deshacer."
+  },
+  "Review": {
+    "title": "¿Qué tal ha ido?",
+    "lead": "Cuéntanos en dos minutos qué te ha parecido trabajar en {project}. Nos ayuda a mejorar y, si nos das permiso, a que otras empresas nos conozcan.",
+    "rating": "Tu valoración",
+    "stars": "{count} de 5 estrellas",
+    "quote": "En pocas palabras, ¿cómo ha sido la experiencia?",
+    "quoteHint": "Qué te ha gustado, qué ha cambiado en tu negocio… Lo que quieras contar.",
+    "authorName": "Tu nombre",
+    "authorRole": "Cargo y empresa",
+    "authorRoleHint": "Por ejemplo: «Directora, Clínica Sol». Aparece junto a tu opinión si la publicamos.",
+    "consent": "Podéis publicar mi opinión en vuestra web",
+    "consentHint": "Con tu nombre y cargo. Puedes cambiar de idea cuando quieras: escríbenos y la retiramos.",
+    "send": "Enviar valoración",
+    "sending": "Enviando…",
+    "thanks": "¡Muchas gracias! Nos ayuda muchísimo.",
+    "alreadySent": "Ya nos enviaste tu valoración, ¡gracias! Puedes cambiarla y volver a enviarla.",
+    "bannerTitle": "¿Qué tal ha ido?",
+    "bannerBody": "Tu proyecto ya está en marcha: cuéntanos qué te ha parecido.",
+    "bannerLink": "Dejar mi valoración",
+    "adminTitle": "Valoración del cliente",
+    "request": "Pedir valoración al cliente",
+    "publish": "Publicar en la web",
+    "hide": "Retirar de la web",
+    "consentYes": "permite publicarla",
+    "consentNo": "no permite publicarla",
+    "adminStatus": {
+      "NONE": "Aún no se ha pedido. Se pide sola cuando el proyecto pasa a «Lanzado».",
+      "REQUESTED": "Pedida; el cliente aún no la ha enviado.",
+      "SUBMITTED": "Enviada por el cliente.",
+      "PUBLISHED": "Publicada en la web (portada).",
+      "HIDDEN": "Retirada de la web."
+    }
   }
 }

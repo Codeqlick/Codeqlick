@@ -329,6 +329,7 @@ model ClientProject {
   brief       ProjectBrief?
   monitor     SiteMonitor?
   credentials ProjectCredential[]
+  review      ClientReview?
 
   @@index([clientId])
   @@map("client_projects")
@@ -784,4 +785,37 @@ model ProjectCredential {
 
   @@index([projectId, createdAt])
   @@map("project_credentials")
+}
+
+enum ReviewStatus {
+  REQUESTED
+  SUBMITTED
+  PUBLISHED
+  HIDDEN
+}
+
+/// The client's rating and words about a finished project. Asked for when it is launched; it goes
+/// on the website only with their consent and once the team publishes it.
+model ClientReview {
+  id          String       @id @default(uuid()) @db.Uuid
+  projectId   String       @unique @map("project_id") @db.Uuid
+  status      ReviewStatus @default(REQUESTED)
+  /// 1 to 5.
+  rating      Int?
+  quote       String?
+  authorName  String?      @map("author_name")
+  /// Their role and company, e.g. "CEO, Clínica Sol".
+  authorRole  String?      @map("author_role")
+  /// They allow it on the website.
+  consent     Boolean      @default(false)
+  /// The language they wrote it in (it shows on the site in that language).
+  locale      Locale       @default(EN)
+  requestedAt DateTime     @default(now()) @map("requested_at") @db.Timestamptz(3)
+  submittedAt DateTime?    @map("submitted_at") @db.Timestamptz(3)
+  publishedAt DateTime?    @map("published_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status, publishedAt])
+  @@map("client_reviews")
 }
