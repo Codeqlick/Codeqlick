@@ -1211,7 +1211,21 @@
       "duplicating": "Duplicando…",
       "deleteTitle": "Borrar el borrador",
       "deleteBody": "Solo se pueden borrar los borradores. Esta acción no se puede deshacer.",
-      "newForClient": "Nueva propuesta"
+      "newForClient": "Nueva propuesta",
+      "templates": "Plantillas",
+      "templatesLead": "Una propuesta nueva puede empezar desde una de ellas. Para crear una, guarda cualquier propuesta como plantilla.",
+      "startFrom": "Empezar desde una plantilla:",
+      "blank": "En blanco",
+      "noTemplates": "Todavía no hay plantillas.",
+      "deleteTemplate": "Borrar plantilla {name}",
+      "deletingTemplate": "Borrando…",
+      "saveAsTemplate": "Guardar como plantilla",
+      "saveAsTemplateLead": "Guarda el contenido de esta propuesta (título, alcance, partidas, condiciones y validez) para empezar otras desde él. Con un nombre que ya existe, la sustituye.",
+      "templateName": "Nombre de la plantilla",
+      "templateNamePlaceholder": "Web básica",
+      "savingTemplate": "Guardando…",
+      "templateSaved": "Plantilla guardada.",
+      "fromTemplate": "Empezando desde la plantilla «{name}»."
     },
     "calculator": {
       "title": "Calculadora de coste",

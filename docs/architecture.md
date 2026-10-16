@@ -169,6 +169,7 @@ erDiagram
 - **TicketMessage** — the request's conversation, oldest first: `body` (plain text, max 20 000), `authorId?`. The first message is the client's description; messages by an ADMIN are shown as the team's.
 - **TicketAttachment** — a file added to a support request by the client or the team: `name`, `contentType`, `size`, `uploadedById?`. Stored on disk at `UPLOADS_DIR/ticket-files/<id>`, like project files.
 - **Proposal** — a proposal or quote for a client: `number` (sequential, `#7`), `clientId`, `projectId?` (one of the client's projects), `createdById?`, `title`, `summary` (Markdown: scope), `terms?` (Markdown: payment, deadlines), `currency` (`EUR`), `validUntil?` (date; last day it can be accepted, Madrid time), `status` (`DRAFT` | `SENT` | `ACCEPTED` | `DECLINED` | `WITHDRAWN`), `sentAt?`, `respondedAt?`, `acceptedName?` (the full name the client typed to accept it), `declineReason?`. Only drafts can be edited or deleted; a sent one gets a new version by duplicating it. Nothing is charged: accepting is a recorded agreement.
+- **ProposalTemplate** — a starting point for new proposals ("Web básica"): `name` (unique), `title`, `summary`, `terms?`, `validDays?` (a proposal made from it is valid that many days from the day it is created), `items` (JSON `[{ description, quantity, unitPrice }]`, cents). Admin → Propuestas → Nueva offers them; any proposal can be saved as one.
 - **ProposalItem** — a line of a proposal: `position`, `description`, `quantity` (whole units), `unitPrice` (cents). The total is computed, never stored.
 - **UpdateDraft** — an update sent with a project's release key and waiting for the team's review: `title`, `body` (Markdown), `version?`, `environment?`, `url?`. The client never sees it; publishing creates the ProjectUpdate (a release when it has a version) from the reviewed text and deletes the draft.
 - **MaintenancePlan** — a monthly hour allowance for a project (one per project): `active`, `name`, `monthlyMinutes`, `alertPercent` (default 80), `alertedMonth`/`alertedLevel`. Its time entries draw it down per Madrid calendar month; logging time that crosses the threshold or 100 % emails the team inbox, once a month per level. The client sees the use while it is active. Nothing is billed.
@@ -350,6 +351,9 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/admin/proposals/:id/send` | Draft → `SENT`; emails the client in their language with a link to `SITE_URL/{locale}/portal/proposals/:id` → `Proposal & { clientNotified }`; 400 when `validUntil` has passed |
 | POST | `/admin/proposals/:id/withdraw` | `SENT` → `WITHDRAWN` |
 | POST | `/admin/proposals/:id/duplicate` | `201 Proposal`: a new draft with the same content (no valid-until date) |
+| POST | `/admin/proposals/:id/template` | `{ name }` → the template made from the proposal (replaces one with the same name; `validUntil` becomes `validDays`) |
+| GET / POST | `/admin/proposal-templates` | `ProposalTemplate[]` by name / `{ name, title, summary, terms?, validDays? (1–365), items }` → the template (replaces one with the same name) |
+| PUT / DELETE | `/admin/proposal-templates/:id` | The same body → the template (409 when the name is another's) / `204` |
 | GET | `/admin/projects/:id/review` | The review |
 | POST | `/admin/projects/:id/review/request` | Asks for it (once per project) |
 | PUT | `/admin/projects/:id/review/status` | `{ status: 'PUBLISHED' | 'HIDDEN' }`; 400 publishing without consent |
@@ -641,17 +645,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 
 Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
 above (data model, API contract, frontend) when it ships.
-
-### 11.1 Proposal templates (admin)
-
-- **ProposalTemplate** — `name` (unique), `title`, `summary`, `terms?`, `validDays?`, `items`
-  (JSON `[{ description, quantity, unitPrice }]`, cents).
-- `GET/POST /admin/proposal-templates`, `PUT/DELETE /admin/proposal-templates/:id`,
-  `POST /admin/proposals/:id/template { name }` (saves a proposal as a template, replacing one with
-  the same name).
-- Admin → Propuestas → Nueva: "Empezar desde una plantilla" fills the form (`?template=<id>`;
-  `validUntil` = today + `validDays`). A proposal's page has "Guardar como plantilla". The
-  proposals list shows the templates with a delete button. Production gets a "Web básica" template.
 
 ### 11.2 Basic website page (public)
 
