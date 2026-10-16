@@ -19,6 +19,9 @@ export interface Link {
 export type HeadingFont = 'fraunces' | 'playfair' | 'outfit' | 'inter';
 export type BodyFont = 'inter' | 'outfit';
 
+/** The sections between the hero and the contact, which a site may reorder. */
+export type SectionKey = 'services' | 'about' | 'gallery' | 'testimonials';
+
 export interface Site {
   /** A demo of a made-up business: phone and WhatsApp links don't dial anyone. */
   demo?: boolean;
@@ -105,6 +108,13 @@ export interface Site {
     title: string;
     items: Array<{ quote: string; author: string; detail?: string }>;
   };
+  /**
+   * Order of the middle sections (default: services, about, gallery, testimonials); a portfolio
+   * shows its gallery first. Sections the site doesn't have are skipped.
+   */
+  sections?: SectionKey[];
+  /** Header labels of the sections, e.g. a portfolio's "Trabajos" or "Sobre mí". */
+  navLabels?: Partial<Record<SectionKey, string>>;
   /** Closing call to action before the contact section. */
   banner?: { title: string; text?: string; link: Link };
   contactSection: { title: string; intro?: string };

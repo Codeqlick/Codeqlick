@@ -105,7 +105,7 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
                   alt=""
                   width={1200}
                   height={750}
-                  sizes="(max-width: 760px) 100vw, 30vw"
+                  sizes="(max-width: 960px) 50vw, 25vw"
                   className={styles.cover}
                 />
                 <span className={styles.styleName}>
@@ -186,6 +186,14 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
             label={t('about')}
             hint={t('aboutHint')}
             rows={5}
+            maxLength={3000}
+          />
+          <FormTextarea
+            id="wishes"
+            name="wishes"
+            label={t('wishes')}
+            hint={t('wishesHint')}
+            rows={4}
             maxLength={3000}
           />
         </fieldset>

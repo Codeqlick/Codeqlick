@@ -1,10 +1,15 @@
-import { site } from './site';
+import type { SectionKey } from '../types';
+import { sectionLabel, sectionOrder } from './site';
 
-/** Header links: one per section the site has. */
+const HREFS: Record<SectionKey, string> = {
+  services: '/#servicios',
+  about: '/#nosotros',
+  gallery: '/#galeria',
+  testimonials: '/#opiniones',
+};
+
+/** Header links: one per section the site has, in its order. */
 export const nav = [
-  site.services ? { label: 'Servicios', href: '/#servicios' } : null,
-  site.about ? { label: 'Sobre nosotros', href: '/#nosotros' } : null,
-  site.gallery ? { label: 'Galería', href: '/#galeria' } : null,
-  site.testimonials ? { label: 'Opiniones', href: '/#opiniones' } : null,
+  ...sectionOrder.map((key) => ({ label: sectionLabel(key), href: HREFS[key] })),
   { label: 'Contacto', href: '/#contacto' },
-].filter((link) => link !== null);
+];

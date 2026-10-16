@@ -757,7 +757,16 @@ export type ManagedSiteRevision = {
   author: { name: string } | null;
 };
 
-export const SITE_PRESETS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;
+export const SITE_PRESETS = [
+  'peluqueria',
+  'restaurante',
+  'fisioterapia',
+  'portfolio',
+  'despacho',
+  'comercio',
+  'reformas',
+  'general',
+] as const;
 
 /** The part of a managed site its client edits (architecture 8.2). */
 export type EditableSite = {
