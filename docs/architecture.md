@@ -694,3 +694,46 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 13 | The public website request takes no photos | Anonymous uploads invite abuse; photos come later through the client portal, where the person has an account |
 | 14 | Domain expiry: RDAP when the registry offers it, a date typed by the team otherwise | `.es` has no public RDAP or WHOIS; most other TLDs do |
 | 15 | The client is the holder of their domain and pays the registrar; Codeqlick manages it as the technical contact | The domain is the client's if they ever leave; Codeqlick resells nothing (no business registration yet); as OVH technical contact the team's API keys can set its DNS and read its expiry (also `.es`) without the client's password |
+| 16 | Request previews are built at once, under the previews' domain, demo-mode and noindex, and removed after 30 days | Seeing their own site a minute after asking sells it; demo mode (form that doesn't send, no dialling) and noindex keep a page nobody reviewed harmless; a daily cap keeps Let's Encrypt's weekly certificate limit for codeqlick.com safe |
+
+## 11. Planned: email on the client's domain, instant previews
+
+Design agreed on 2026-10-16. Each part moves into the sections above when it ships.
+
+### 11.1 Email on the client's domain
+
+The client owns the mailbox as they own the domain (decision 15). A domain newly bought at OVH
+includes a free **Zimbra Starter** mailbox (15 GB) in the client's account, kept while the domain
+stays there; the platform guides them and watches that mail works. No mailbox is created through
+the API (the team is only the domain's technical contact).
+
+- **ManagedSite** gains `mailState?` (`NONE`: no MX records; `OVH`: MX at `mx*.mail.ovh.net`;
+  `OTHER`: another provider) and is checked with the domain (`SiteDomainsService`, `resolveMx`).
+  OVH zone changes never touch MX, SPF or other TXT records (already so).
+- Portal → "Tu dominio": the register step says to keep the order's free Zimbra Starter option.
+  Once the domain is `LIVE`, a "Tu correo" part by `mailState`: `NONE` → how to create
+  `hola@<domain>` in the OVH manager (Web Cloud → Emails); `OVH` / `OTHER` → the webmail link
+  (`https://webmail.mail.ovh.net` for OVH), how to add it to the phone (IMAP `ssl0.ovh.net:993`,
+  SMTP `ssl0.ovh.net:465`) and, when the site's contact email isn't on the domain, a button "Usar
+  hola@<domain> en mi web" (sets `contact.email` through the usual edit and publishes).
+- Admin: the site panel and Webs show the mail state.
+
+### 11.2 Instant preview of a website request
+
+- `POST /v1/site-requests` also builds a **preview** right away (in the background, after the
+  lead is stored): slug `<business label>-<6 random chars>` (≤ 40), the preset's content with the
+  request applied (as onboarding does), `demo: true` (the form shows but doesn't send; phone links
+  don't dial) and `preview: true`. The template's `preview` puts `noindex` on every page and a thin
+  bar on top: "Vista previa preparada por Codeqlick · aún no está publicada".
+- **Lead** gains `previewSlug?`, `previewStatus?` (`BUILDING` | `READY` | `FAILED` | `REMOVED`) and
+  `previewBuiltAt?`. The preview lives at `https://<slug>.<SITES_PREVIEW_DOMAIN>` (published by
+  `sync-sites.sh` like any site). `201 { id, previewUrl? }`; the "sent" page links it ("lista en un
+  minuto"). When it is ready, the requester is emailed the link; the team's lead email and the lead
+  page show it.
+- At most 10 previews a day across all requests (more requests still become leads, without
+  preview), on top of the endpoint's 3/min/IP.
+- **Removal:** 30 days after it was built, when the lead is converted (onboarding builds the real
+  site) or marked SPAM, the API asks the builder `DELETE /sites/:slug` (previews only: their slugs
+  are recorded on leads). The builder writes `sites/<slug>/remove`; `sync-sites.sh` then runs
+  `cq-site remove` for each of its domains and deletes the folder. Status `REMOVED`.
+- Admin → lead: the preview link and status, and "Quitar vista previa".
