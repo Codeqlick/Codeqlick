@@ -68,6 +68,7 @@ export class ManagedSitesRepository {
         OR: [{ id: accountId }, { memberOfId: accountId }],
         isActive: true,
         monthlyReport: true,
+        registeredAt: { not: null },
       },
       orderBy: { createdAt: 'asc' },
       select: { name: true, email: true, locale: true },

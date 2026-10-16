@@ -33,6 +33,8 @@ export function proposalSentEmail(
   link: string,
   locale: ApiLocale,
   siteUrl: string,
+  /** `link` is the invitation to create their account first (decision 17). */
+  invitation = false,
 ): MailMessage {
   const es = locale === 'es';
   const total = formatMoney(proposal.total, proposal.currency, locale);
@@ -57,9 +59,25 @@ export function proposalSentEmail(
           es
             ? `Te hemos preparado la propuesta «${proposal.title}». Puedes revisarla con calma en tu área de clientes y aceptarla desde allí cuando quieras.`
             : `We've prepared the proposal “${proposal.title}” for you. Take your time to review it in your client area, and accept it there whenever you're ready.`,
+          ...(invitation
+            ? [
+                es
+                  ? `Tu área de clientes te espera: crea tu cuenta con ${client.email} y la propuesta estará dentro.`
+                  : `Your client area is waiting: create your account with ${client.email} and the proposal will be there.`,
+              ]
+            : []),
         ],
         details,
-        button: { label: es ? 'Ver la propuesta' : 'See the proposal', url: link },
+        button: {
+          label: invitation
+            ? es
+              ? 'Crear mi cuenta y verla'
+              : 'Create my account and see it'
+            : es
+              ? 'Ver la propuesta'
+              : 'See the proposal',
+          url: link,
+        },
         outro: [
           es
             ? 'Si tienes cualquier duda o quieres cambiar algo, responde a este correo.'

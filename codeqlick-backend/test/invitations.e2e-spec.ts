@@ -64,9 +64,11 @@ describe('Welcome emails (e2e)', () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0]?.to).toBe(invitedEmail);
-    expect(sent[0]?.subject).toContain('Bienvenido');
-    const token = /\/es\/reset-password\?token=([\w-]+)&welcome=1/.exec(sent[0]?.text ?? '')?.[1];
+    expect(sent[0]?.subject).toBe('Crea tu cuenta en Codeqlick');
+    const token = /\/es\/register\?invitation=([\w-]+)/.exec(sent[0]?.text ?? '')?.[1];
     expect(token).toBeDefined();
+    // Prepared, not registered: nobody can sign in to it yet (decision 17).
+    expect(created.body.registered).toBe(false);
 
     // Sending it again replaces the link: only the latest one works.
     await request(server)
@@ -75,35 +77,51 @@ describe('Welcome emails (e2e)', () => {
       .send({ locale: 'en' })
       .expect(204);
     expect(sent).toHaveLength(2);
-    expect(sent[1]?.subject).toContain('Welcome');
-    const latest = /\/en\/reset-password\?token=([\w-]+)&welcome=1/.exec(sent[1]?.text ?? '')?.[1];
+    expect(sent[1]?.subject).toBe('Create your Codeqlick account');
+    const latest = /\/en\/register\?invitation=([\w-]+)/.exec(sent[1]?.text ?? '')?.[1];
     expect(latest).toBeDefined();
 
     const password = 'chosen-password-1';
+    const accept = { name: 'Grace Hopper', password, locale: 'es', acceptPrivacy: true };
+    await request(server).get('/v1/auth/register/invitation').query({ token }).expect(400);
+    const invited = await request(server)
+      .get('/v1/auth/register/invitation')
+      .query({ token: latest })
+      .expect(200);
+    expect(invited.body).toEqual({ email: invitedEmail, name: 'Grace' });
     await request(server)
-      .post('/v1/auth/password-reset/confirm')
-      .send({ token, newPassword: password })
+      .post('/v1/auth/register/invitation')
+      .send({ ...accept, token })
       .expect(400);
+    const signedIn = await request(server)
+      .post('/v1/auth/register/invitation')
+      .send({ ...accept, token: latest })
+      .expect(200);
+    expect(signedIn.body.accessToken).toBeDefined();
     await request(server)
-      .post('/v1/auth/password-reset/confirm')
-      .send({ token: latest, newPassword: password })
-      .expect(204);
+      .post('/v1/auth/register/invitation')
+      .send({ ...accept, token: latest })
+      .expect(400);
     await request(server)
       .post('/v1/auth/login')
       .send({ email: invitedEmail, password })
       .expect(200);
+    expect(await prisma.user.findUniqueOrThrow({ where: { id: userId } })).toMatchObject({
+      name: 'Grace Hopper',
+    });
 
     const actions = await prisma.activityLog.findMany({
       where: { targetId: userId },
       select: { action: true },
     });
     expect(actions.map((entry) => entry.action).toSorted()).toEqual([
+      'account.registered',
       'user.created',
       'user.invited',
       'user.invited',
     ]);
 
-    // Without a language, the email follows the one stored on the account at creation.
+    // Registered now: the welcome email is the one to choose a password, in the account's language.
     await request(server)
       .post(`/v1/admin/users/${userId}/invitation`)
       .set('Authorization', auth)

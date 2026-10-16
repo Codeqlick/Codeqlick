@@ -94,12 +94,13 @@ describe('Lead pipeline (e2e)', () => {
     const converted = await request(server).post(`${url}/convert`).set(auth).send({}).expect(201);
     expect(converted.body).toMatchObject({
       lead: { status: 'WON', followUpOn: null },
-      client: { created: true, invitationSent: true },
+      client: { created: true, registered: false, invitationSent: true },
       project: { name: 'Panadería Sol' },
     });
     expect(converted.body.lead.clientId).toBe(converted.body.client.id);
-    expect(sent.at(-1)).toMatchObject({ to: leadEmail });
-    expect(sent.at(-1)?.subject).toContain('Bienvenido');
+    expect(
+      sent.some((m) => m.to === leadEmail && m.subject === 'Crea tu cuenta en Codeqlick'),
+    ).toBe(true);
     const project = await prisma.clientProject.findUniqueOrThrow({
       where: { id: converted.body.project.id as string },
     });
