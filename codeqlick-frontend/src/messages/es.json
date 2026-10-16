@@ -1016,7 +1016,10 @@
           "brief_submitted": "envió el brief de <target>{label}</target>",
           "brief_updated": "actualizó el brief de <target>{label}</target>",
           "monitor_enabled": "activó la monitorización de <target>{label}</target>",
-          "monitor_disabled": "desactivó la monitorización de <target>{label}</target>"
+          "monitor_disabled": "desactivó la monitorización de <target>{label}</target>",
+          "credential_added": "compartió un acceso en <target>{label}</target>",
+          "credential_viewed": "abrió un acceso de <target>{label}</target>",
+          "credential_deleted": "borró accesos de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1854,5 +1857,33 @@
     "lastCheck": "Última comprobación",
     "clientTitle": "Estado del servicio",
     "clientLead": "Comprobamos {url} cada 5 minutos, día y noche: si algo falla, nos enteramos al momento y nos ponemos con ello."
+  },
+  "Access": {
+    "title": "Accesos",
+    "lead": "Comparte aquí las contraseñas y accesos que necesitemos (hosting, dominio, cuentas de servicios) en lugar de enviarlos por correo. Se guardan cifrados; solo el equipo puede abrirlos y verás cuándo lo hace. Puedes borrarlos cuando quieras.",
+    "adminLead": "Accesos que ha compartido el cliente, cifrados. Cada vez que abres uno queda registrado y el cliente ve cuándo. Bórralos todos cuando el proyecto ya no los necesite.",
+    "empty": "Todavía no se ha compartido ningún acceso.",
+    "add": "Compartir un acceso",
+    "label": "¿Qué es?",
+    "labelHint": "Por ejemplo: «Hosting (OVH)», «Dominio», «Cuenta de Stripe».",
+    "url": "Dirección de acceso",
+    "username": "Usuario o correo",
+    "secret": "Contraseña o clave",
+    "secretHint": "Se cifra antes de guardarse y no se vuelve a mostrar en tu área.",
+    "notes": "Notas",
+    "share": "Compartir de forma segura",
+    "sharing": "Compartiendo…",
+    "shared": "Acceso compartido. Lo guardamos cifrado.",
+    "sharedBy": "Compartido por {name} el {date}",
+    "viewedAt": "el equipo lo abrió el {date}",
+    "notViewed": "el equipo aún no lo ha abierto",
+    "delete": "Borrar",
+    "deleting": "Borrando…",
+    "reveal": "Ver",
+    "revealing": "Abriendo…",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "deleteAll": "Borrar todos los accesos",
+    "deleteAllConfirm": "Borrar {count, plural, one {el acceso} other {los # accesos}} de este proyecto; no se puede deshacer."
   }
 }

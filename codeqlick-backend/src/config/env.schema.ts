@@ -30,6 +30,8 @@ export const envSchema = z.object({
     .default('http://localhost:3000')
     .transform((value) => value.replace(/\/+$/, '')),
   JWT_ACCESS_SECRET: z.string().min(32),
+  /** Encrypts the access clients share (project credentials). Unset: derived from JWT_ACCESS_SECRET. */
+  CREDENTIALS_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   SMTP_HOST: z.string().min(1).default('localhost'),

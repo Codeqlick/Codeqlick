@@ -17,6 +17,11 @@ import { getMyProjectTime } from '@/lib/api/time';
 import { listMyProjectTasks } from '@/lib/api/tasks';
 import { getMyBrief } from '@/lib/api/briefs';
 import { getMyProjectStatus } from '@/lib/api/monitoring';
+import { listAccess } from '@/lib/api/credentials';
+import { SharedAccessList } from '@/components/app/SharedAccessList';
+import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { deleteAccessAction, shareAccessAction } from '../access-actions';
 import { SiteStatus } from '@/components/app/SiteStatus';
 import { Alert } from '@/components/ui/Alert';
 import { Link } from '@/i18n/navigation';
@@ -53,6 +58,9 @@ export default async function PortalProjectPage({
   // Only when the team monitors the site (404 otherwise).
   const siteStatus = await getMyProjectStatus(project.id).catch(() => undefined);
   const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
+  const access = await listAccess(project.id).catch(() => []);
+  const tac = await getTranslations({ locale, namespace: 'Access' });
+  const tco = await getTranslations({ locale, namespace: 'Common' });
   const tbr = await getTranslations({ locale, namespace: 'Brief' });
   // Optional: the project page works without it.
   const time = project.showHours
@@ -229,6 +237,72 @@ export default async function PortalProjectPage({
           <ProjectHours time={time} locale={locale} empty={th('clientEmpty')} />
         </section>
       ) : null}
+
+      <section className={styles.panel} id="access" aria-labelledby="access-heading">
+        <h2 id="access-heading" className={styles.panelTitle}>
+          {tac('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{tac('lead')}</p>
+          <SharedAccessList
+            items={access}
+            locale={locale}
+            deleteAction={(id) => deleteAccessAction.bind(null, locale, project.id, id)}
+          />
+          <details className={styles.commentForm}>
+            <summary>{tac('add')}</summary>
+            <ActionForm
+              key={access.length}
+              action={shareAccessAction.bind(null, locale, project.id)}
+              className={styles.form}
+            >
+              <FormInput
+                id="access-label"
+                name="label"
+                label={tac('label')}
+                hint={tac('labelHint')}
+                maxLength={120}
+                required
+              />
+              <div className={styles.row}>
+                <FormInput
+                  id="access-url"
+                  name="url"
+                  type="url"
+                  label={tac('url')}
+                  optionalLabel={tco('optional')}
+                />
+                <FormInput
+                  id="access-username"
+                  name="username"
+                  label={tac('username')}
+                  optionalLabel={tco('optional')}
+                  autoComplete="off"
+                />
+              </div>
+              <FormInput
+                id="access-secret"
+                name="secret"
+                type="password"
+                label={tac('secret')}
+                hint={tac('secretHint')}
+                autoComplete="new-password"
+                required
+              />
+              <FormTextarea
+                id="access-notes"
+                name="notes"
+                label={tac('notes')}
+                optionalLabel={tco('optional')}
+                rows={2}
+              />
+              <div className={styles.actions}>
+                <SubmitButton pendingLabel={tac('sharing')}>{tac('share')}</SubmitButton>
+              </div>
+            </ActionForm>
+          </details>
+        </div>
+      </section>
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('updates')}</h2>

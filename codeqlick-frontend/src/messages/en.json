@@ -1016,7 +1016,10 @@
           "brief_submitted": "sent the brief of <target>{label}</target>",
           "brief_updated": "updated the brief of <target>{label}</target>",
           "monitor_enabled": "turned on monitoring of <target>{label}</target>",
-          "monitor_disabled": "turned off monitoring of <target>{label}</target>"
+          "monitor_disabled": "turned off monitoring of <target>{label}</target>",
+          "credential_added": "shared access on <target>{label}</target>",
+          "credential_viewed": "opened an access of <target>{label}</target>",
+          "credential_deleted": "deleted access of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1854,5 +1857,33 @@
     "lastCheck": "Last check",
     "clientTitle": "Service status",
     "clientLead": "We check {url} every 5 minutes, day and night: if anything fails, we know straight away and get on it."
+  },
+  "Access": {
+    "title": "Access",
+    "lead": "Share the passwords and access we need here (hosting, domain, service accounts) instead of by email. They're stored encrypted; only the team can open them and you'll see when it does. Delete them whenever you like.",
+    "adminLead": "Access the client shared, encrypted. Every time you open one it is logged and the client sees when. Delete them all when the project no longer needs them.",
+    "empty": "No access shared yet.",
+    "add": "Share access",
+    "label": "What is it?",
+    "labelHint": "For example: \"Hosting (OVH)\", \"Domain\", \"Stripe account\".",
+    "url": "Login address",
+    "username": "Username or email",
+    "secret": "Password or key",
+    "secretHint": "It's encrypted before it's stored and isn't shown again in your area.",
+    "notes": "Notes",
+    "share": "Share securely",
+    "sharing": "Sharing…",
+    "shared": "Access shared. We store it encrypted.",
+    "sharedBy": "Shared by {name} on {date}",
+    "viewedAt": "the team opened it on {date}",
+    "notViewed": "the team hasn't opened it yet",
+    "delete": "Delete",
+    "deleting": "Deleting…",
+    "reveal": "Show",
+    "revealing": "Opening…",
+    "copy": "Copy",
+    "copied": "Copied",
+    "deleteAll": "Delete all access",
+    "deleteAllConfirm": "Delete {count, plural, one {the access} other {all # access entries}} of this project; this can't be undone."
   }
 }
