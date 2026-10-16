@@ -13,6 +13,15 @@ export function saveMySite(projectId: string, site: EditableSite) {
   return apiFetch<PortalSite>(path(projectId), { method: 'PUT', body: { site }, auth: 'required' });
 }
 
+/** The client chooses or drops their own domain; 409 when another site uses it. */
+export function setMySiteDomain(projectId: string, name: string | null) {
+  return apiFetch<PortalSite>(`${path(projectId)}/domain`, {
+    method: 'PUT',
+    body: { name },
+    auth: 'required',
+  });
+}
+
 /** Uploads a photo; answers the `media/<file>` name the content uses. */
 export function uploadMySitePhoto(projectId: string, file: File) {
   const body = new FormData();

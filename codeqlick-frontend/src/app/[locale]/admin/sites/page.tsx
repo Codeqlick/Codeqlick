@@ -10,6 +10,7 @@ import { adminListSites } from '@/lib/api/managed-sites';
 import { formatDateTime } from '@/lib/format';
 
 const TONES = { NONE: 'neutral', BUILDING: 'warning', LIVE: 'success', FAILED: 'danger' } as const;
+const DOMAIN_TONES = { UNREGISTERED: 'neutral', ELSEWHERE: 'warning', LIVE: 'success' } as const;
 
 /** Every managed basic website, newest first. */
 export default async function AdminSitesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -40,6 +41,7 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
                 <th scope="col">{t('site')}</th>
                 <th scope="col">{t('client')}</th>
                 <th scope="col">{t('status')}</th>
+                <th scope="col">{t('domain')}</th>
                 <th scope="col">{t('lastBuild')}</th>
               </tr>
             </thead>
@@ -57,6 +59,22 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
                   <td>{site.client.name}</td>
                   <td>
                     <Badge tone={TONES[site.status]}>{tk(`statuses.${site.status}`)}</Badge>
+                  </td>
+                  <td>
+                    {site.domain ? (
+                      <>
+                        {site.domain}
+                        <span className={styles.sub}>
+                          <Badge
+                            tone={site.domainState ? DOMAIN_TONES[site.domainState] : 'neutral'}
+                          >
+                            {tk(`domainStates.${site.domainState ?? 'UNCHECKED'}`)}
+                          </Badge>
+                        </span>
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td>{site.lastBuildAt ? formatDateTime(site.lastBuildAt, locale) : '—'}</td>
                 </tr>

@@ -17,7 +17,12 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { MAX_IMAGE_BYTES } from '../media/media.service.js';
-import { editableSiteSchema, type EditableSite } from './managed-sites.schemas.js';
+import {
+  editableSiteSchema,
+  siteDomainBodySchema,
+  type EditableSite,
+  type SiteDomainBody,
+} from './managed-sites.schemas.js';
 import { PortalSitesService, type PortalSiteView } from './portal-sites.service.js';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -46,6 +51,16 @@ export class PortalSitesController {
     @Body({ schema: editBodySchema }) body: { site: EditableSite },
   ): Promise<PortalSiteView> {
     return this.sites.update(user, params.id, body.site);
+  }
+
+  @Put('domain')
+  @Throttle({ default: { limit: 10, ttl: HOUR_MS } })
+  setDomain(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: siteDomainBodySchema }) body: SiteDomainBody,
+  ): Promise<PortalSiteView> {
+    return this.sites.setDomain(user, params.id, body.name);
   }
 
   @Post('images')

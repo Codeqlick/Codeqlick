@@ -68,6 +68,18 @@ export const envSchema = z.object({
   SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */
   PUBLIC_API_URL: z.url().default('https://api.codeqlick.com/v1'),
+  /** OVH's API (the team's account), for domain availability, DNS and expiry; unset: off. */
+  OVH_ENDPOINT: z.url().default('https://eu.api.ovh.com/1.0'),
+  OVH_APPLICATION_KEY: optionalString,
+  OVH_APPLICATION_SECRET: optionalString,
+  OVH_CONSUMER_KEY: optionalString,
+  /** The team's OVH account ID, which clients make the technical contact of their domain. */
+  OVH_NIC_HANDLE: optionalString,
+  /** The server's public IPv4: managed sites' domains must point here (their A record). */
+  SITES_SERVER_IP: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.ipv4().optional(),
+  ),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

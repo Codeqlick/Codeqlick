@@ -45,6 +45,11 @@ export class ManagedSitesRepository {
     return this.prisma.managedSite.findUnique({ where: { domain }, select: { id: true } });
   }
 
+  /** Sites with a domain of their own, for the domain checks. */
+  withDomain(): Promise<SiteRow[]> {
+    return this.prisma.managedSite.findMany({ where: { domain: { not: null } }, include });
+  }
+
   list(): Promise<SiteRow[]> {
     return this.prisma.managedSite.findMany({ include, orderBy: { createdAt: 'desc' } });
   }

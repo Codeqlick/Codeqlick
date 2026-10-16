@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AccountsModule } from '../accounts/accounts.module.js';
 import { DomainsModule } from '../domains/domains.module.js';
 import { LeadsModule } from '../leads/leads.module.js';
 import { MediaModule } from '../media/media.module.js';
@@ -11,6 +12,7 @@ import { ManagedSitesController } from './managed-sites.controller.js';
 import { ManagedSitesRepository } from './managed-sites.repository.js';
 import { ManagedSitesService } from './managed-sites.service.js';
 import { SiteBuilderClient } from './site-builder.client.js';
+import { SiteDomainsService } from './site-domains.service.js';
 import { SiteOnboardingService } from './site-onboarding.service.js';
 import { PortalSitesController } from './portal-sites.controller.js';
 import { PortalSitesService } from './portal-sites.service.js';
@@ -28,6 +30,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     MediaModule,
     StatsModule,
     DomainsModule,
+    AccountsModule,
   ],
   controllers: [
     ManagedSitesController,
@@ -42,6 +45,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     SiteOnboardingService,
     PortalSitesService,
     SiteVisitsService,
+    SiteDomainsService,
   ],
   exports: [ManagedSitesService],
 })

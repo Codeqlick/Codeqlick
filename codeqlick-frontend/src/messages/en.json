@@ -394,7 +394,8 @@
     "date": "Enter a valid date.",
     "choice": "Choose one of the options.",
     "price": "Enter a valid amount, for example 1250 or 1250.50.",
-    "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours)."
+    "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours).",
+    "domain": "Type a domain like peluqueria-ana.es."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -1311,7 +1312,8 @@
       "submit": "Create and publish",
       "submitting": "Creating everything…",
       "leadButton": "Set up their basic website",
-      "leadHint": "Or, for a basic website, everything in one step:"
+      "leadHint": "Or, for a basic website, everything in one step:",
+      "domain": "Domain"
     }
   },
   "Sessions": {
@@ -2118,7 +2120,7 @@
       "fisioterapia": "Physiotherapy (Fisio Retiro)"
     },
     "domain": "Own domain",
-    "domainHint": "Optional. It must point at 54.37.159.171; within a couple of minutes it is live with HTTPS.",
+    "domainHint": "Optional. Once it points at the server (or we manage it at OVH as technical contact), it is published over HTTPS and becomes the site address.",
     "create": "Create and publish",
     "creating": "Creating…",
     "statuses": {
@@ -2144,7 +2146,17 @@
     "noRevisions": "No earlier versions yet.",
     "revisionBy": "{date} · {author}",
     "restore": "Restore",
-    "restoring": "Restoring…"
+    "restoring": "Restoring…",
+    "domainStates": {
+      "UNCHECKED": "Not checked",
+      "UNREGISTERED": "Not registered",
+      "ELSEWHERE": "Registered, not pointing here",
+      "LIVE": "Live"
+    },
+    "domainChecked": "Domain checked on {date}.",
+    "domainNotChecked": "The domain has not been checked yet.",
+    "checkDomain": "Check domain",
+    "checkingDomain": "Checking…"
   },
   "PortalSite": {
     "title": "Your website",
@@ -2212,7 +2224,32 @@
     "defaultReviewsTitle": "Reviews",
     "cardTitle": "Your website",
     "cardBody": "Change hours, prices, texts and photos yourself; it goes live right away.",
-    "cardLink": "Edit my website"
+    "cardLink": "Edit my website",
+    "domainTitle": "Your domain",
+    "domainStates": {
+      "UNCHECKED": "Checking",
+      "UNREGISTERED": "Not registered",
+      "ELSEWHERE": "Not connected yet",
+      "LIVE": "Connected"
+    },
+    "domainNone": "Want your website to have its own address, like peluqueria-ana.es? Pick a free name and save it; we then tell you what to do.",
+    "domainLabel": "Domain",
+    "domainHint": "Type a name and press “Check” to see whether it is free in .es, .com and .eu.",
+    "domainSave": "Save domain",
+    "domainChange": "Change or remove the domain",
+    "domainChangeHint": "Leave it empty to remove it; your site stays at the preview address.",
+    "domainLive": "Your website is live at {url}.",
+    "domainStepRegister": "Register it in your business’s name at <link>OVHcloud</link>: search for {domain} and buy it (about €10 a year). The domain is yours and you pay OVH directly.",
+    "domainRegistered": "The domain is already registered.",
+    "domainStepContact": "In your OVH customer area, open the domain, go to “Contact management” and set <code>{nic}</code> as the technical contact. That lets us connect it and watch its renewal without your password.",
+    "domainOtherRegistrar": "Is it with another provider? Add two A records, for @ and for www, pointing to <code>{ip}</code>.",
+    "domainWaiting": "We check it every few minutes and will email you as soon as it is ready. Until then, your site stays at {preview}.",
+    "domainInvalid": "Type a domain like peluqueria-ana.es.",
+    "domainInUse": "Another website already uses that domain.",
+    "domainReserved": "That domain can’t be used.",
+    "domainSaved": "Domain saved.",
+    "domainRemoved": "Domain removed: your site stays at the preview address.",
+    "domainSaving": "Saving…"
   },
   "SiteRequest": {
     "metaTitle": "Request your basic website",
@@ -2251,7 +2288,24 @@
     "rateLimited": "Too many requests in a row. Wait a minute and try again.",
     "sentTitle": "Received!",
     "sentBody": "Thank you. We'll write to you within two business days with a first proposal for your website.",
-    "back": "Back to the basic website"
+    "back": "Back to the basic website",
+    "domainTitle": "Your domain",
+    "domainHint": "Your website address, like peluqueria-ana.es. The domain is yours: you register it in your name (about €10 a year) and we connect it. Until then, your site is shown at a preview address.",
+    "domainChoices": {
+      "new": "I want a new one",
+      "owned": "I already have one",
+      "none": "Not sure yet"
+    },
+    "domainName": "Domain",
+    "domainNameHint": "Type a name and press “Check” to see whether it is free in .es, .com and .eu.",
+    "domainCheck": "Check",
+    "domainChecking": "Checking…",
+    "domainFree": "Free",
+    "domainTaken": "Taken",
+    "domainUnknown": "Unconfirmed",
+    "domainUse": "Use this one",
+    "domainInvalid": "Type a name with letters, digits or dashes.",
+    "domainFailed": "We could not check it right now; you can send it anyway."
   },
   "ProjectVisits": {
     "title": "Your website's visits",
@@ -2270,13 +2324,14 @@
   },
   "Domain": {
     "title": "Domain",
-    "lead": "The team and the client are emailed 30 and 7 days before it expires. The date comes from the registry (RDAP) when it publishes it; .es domains don't, so it is typed in.",
+    "lead": "We email the team and the client 30 and 7 days before it expires. The date comes from OVH when we are its technical contact (.es included), from the registry (RDAP) when it publishes it, or is typed by hand.",
     "name": "Domain",
     "nameHint": "The registered domain, without www: peluqueriamarta.es.",
     "source": "Expiry date",
     "sources": {
       "RDAP": "Automatic (RDAP)",
-      "MANUAL": "I type it"
+      "MANUAL": "I type it",
+      "OVH": "Automatic (OVH)"
     },
     "expiresAt": "Expires on",
     "expiresHint": "Only when you type it.",
