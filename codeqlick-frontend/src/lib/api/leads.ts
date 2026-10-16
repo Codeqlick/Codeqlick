@@ -65,6 +65,14 @@ export function adminUpdateLead(
   });
 }
 
+/** Takes a website request's preview down. */
+export function adminRemoveLeadPreview(id: string) {
+  return apiFetch<{ status: 'REMOVED' | null }>(`/admin/leads/${encodeURIComponent(id)}/preview`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
 /** "Convert to client": a client account (welcome email), a project in Discovery, the lead won. */
 export function adminConvertLead(id: string, input: { projectName?: string }) {
   return apiFetch<{

@@ -6,7 +6,12 @@ import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { failedState, invalidState, savedState } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
-import { adminConvertLead, adminReplyToLead, adminUpdateLead } from '@/lib/api/leads';
+import {
+  adminConvertLead,
+  adminRemoveLeadPreview,
+  adminReplyToLead,
+  adminUpdateLead,
+} from '@/lib/api/leads';
 import { formString, formText, type FormState } from '@/lib/forms';
 import { leadReplySchema, leadUpdateSchema } from '@/lib/schemas/admin';
 
@@ -81,4 +86,19 @@ export async function convertLeadAction(
   }
   revalidatePath(`/${locale}/admin`, 'layout');
   redirect(`/${locale}/admin/projects/${projectId}`);
+}
+
+export async function removeLeadPreviewAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await adminRemoveLeadPreview(id);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidatePath(`/${locale}/admin`, 'layout');
+  return { status: 'idle' };
 }

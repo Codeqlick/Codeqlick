@@ -4,6 +4,7 @@ import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/ap
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
@@ -19,7 +20,19 @@ import {
   type BudgetValue,
   type ProjectType,
 } from '@/lib/schemas/contact';
-import { convertLeadAction, replyToLeadAction, updateLeadAction } from '../actions';
+import {
+  convertLeadAction,
+  removeLeadPreviewAction,
+  replyToLeadAction,
+  updateLeadAction,
+} from '../actions';
+
+const PREVIEW_TONES = {
+  BUILDING: 'warning',
+  READY: 'success',
+  FAILED: 'danger',
+  REMOVED: 'neutral',
+} as const;
 
 export default async function AdminLeadPage({
   params,
@@ -99,6 +112,29 @@ export default async function AdminLeadPage({
           </div>
         </dl>
       </section>
+
+      {lead.preview ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('previewTitle')}</h2>
+          <p>
+            <Badge tone={PREVIEW_TONES[lead.preview.status]}>
+              {t(`previewStatuses.${lead.preview.status}`)}
+            </Badge>{' '}
+            {lead.preview.status === 'READY' ? (
+              <a href={lead.preview.url} target="_blank" rel="noopener noreferrer">
+                {lead.preview.url}
+              </a>
+            ) : null}
+          </p>
+          {lead.preview.status === 'REMOVED' ? null : (
+            <ActionForm action={removeLeadPreviewAction.bind(null, locale, lead.id)}>
+              <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRemoving')}>
+                {t('previewRemove')}
+              </SubmitButton>
+            </ActionForm>
+          )}
+        </section>
+      ) : null}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('message')}</h2>
