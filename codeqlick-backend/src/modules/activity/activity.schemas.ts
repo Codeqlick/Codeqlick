@@ -59,6 +59,7 @@ export const ACTIVITY_ACTIONS = [
   'project.site_created',
   'project.site_updated',
   'project.site_restored',
+  'project.domain_updated',
   'project.brief_requested',
   'project.brief_submitted',
   'project.brief_updated',

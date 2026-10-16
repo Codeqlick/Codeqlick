@@ -1031,7 +1031,8 @@
           "form_key_replaced": "replaced the form key of <target>{label}</target>",
           "site_created": "created the managed website of <target>{label}</target>",
           "site_updated": "changed the managed website of <target>{label}</target>",
-          "site_restored": "restored a version of the website of <target>{label}</target>"
+          "site_restored": "restored a version of the website of <target>{label}</target>",
+          "domain_updated": "changed the domain of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -2266,5 +2267,28 @@
     "direct": "Direct or unknown",
     "visitorsCount": "{count, plural, one {# visitor} other {# visitors}}",
     "privacy": "No cookies and no personal data: we count visits, not people."
+  },
+  "Domain": {
+    "title": "Domain",
+    "lead": "The team and the client are emailed 30 and 7 days before it expires. The date comes from the registry (RDAP) when it publishes it; .es domains don't, so it is typed in.",
+    "name": "Domain",
+    "nameHint": "The registered domain, without www: peluqueriamarta.es.",
+    "source": "Expiry date",
+    "sources": {
+      "RDAP": "Automatic (RDAP)",
+      "MANUAL": "I type it"
+    },
+    "expiresAt": "Expires on",
+    "expiresHint": "Only when you type it.",
+    "save": "Save domain",
+    "saving": "Saving…",
+    "check": "Check now",
+    "checking": "Checking…",
+    "status": "Expires on {date} ({days, plural, one {# day left} other {# days left}})",
+    "expired": "Expired on {date}",
+    "unknown": "We don't know when it expires yet.",
+    "checked": "Checked: {date}",
+    "portalLabel": "Your domain",
+    "portalExpires": "{name} · expires on {date}"
   }
 }

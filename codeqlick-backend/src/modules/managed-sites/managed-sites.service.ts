@@ -9,6 +9,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
+import { DomainsService } from '../domains/domains.service.js';
 import { SiteFormsService } from '../site-forms/site-forms.service.js';
 import { UmamiClient } from '../stats/umami.client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
@@ -61,6 +62,7 @@ export class ManagedSitesService {
     private readonly activity: ActivityService,
     private readonly config: AppConfigService,
     private readonly umami: UmamiClient,
+    private readonly domains: DomainsService,
   ) {}
 
   async list(): Promise<SiteView[]> {
@@ -258,9 +260,13 @@ export class ManagedSitesService {
     ];
   }
 
-  /** The project's staging and production URLs: what the form and the monitor accept/check. */
+  /**
+   * The project's staging and production URLs (what the form and the monitor accept/check), and
+   * its domain's renewal is watched once it has one.
+   */
   private async syncProject(site: SiteRow): Promise<void> {
     await this.repository.setProjectUrls(site.projectId, this.previewUrlOf(site), this.urlOf(site));
+    if (site.domain) await this.domains.adopt(site.projectId, site.domain.replace(/^www\./, ''));
   }
 
   private async assertFree(slug: string, domain: string | null): Promise<void> {

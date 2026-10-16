@@ -1031,7 +1031,8 @@
           "form_key_replaced": "cambió la clave del formulario de <target>{label}</target>",
           "site_created": "creó la web gestionada de <target>{label}</target>",
           "site_updated": "cambió la web gestionada de <target>{label}</target>",
-          "site_restored": "restauró una versión de la web de <target>{label}</target>"
+          "site_restored": "restauró una versión de la web de <target>{label}</target>",
+          "domain_updated": "cambió el dominio de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -2266,5 +2267,28 @@
     "direct": "Directo o desconocido",
     "visitorsCount": "{count, plural, one {# visitante} other {# visitantes}}",
     "privacy": "Sin cookies y sin datos personales: contamos visitas, no personas concretas."
+  },
+  "Domain": {
+    "title": "Dominio",
+    "lead": "Avisamos al equipo y al cliente 30 y 7 días antes de que caduque. La fecha sale del registro (RDAP) si lo publica; los .es no lo hacen, así que se escribe a mano.",
+    "name": "Dominio",
+    "nameHint": "El dominio registrado, sin www: peluqueriamarta.es.",
+    "source": "Fecha de caducidad",
+    "sources": {
+      "RDAP": "Automática (RDAP)",
+      "MANUAL": "La escribo yo"
+    },
+    "expiresAt": "Caduca el",
+    "expiresHint": "Solo si la escribes tú.",
+    "save": "Guardar dominio",
+    "saving": "Guardando…",
+    "check": "Comprobar ahora",
+    "checking": "Comprobando…",
+    "status": "Caduca el {date} ({days, plural, one {queda # día} other {quedan # días}})",
+    "expired": "Caducó el {date}",
+    "unknown": "Todavía no sabemos cuándo caduca.",
+    "checked": "Comprobado: {date}",
+    "portalLabel": "Tu dominio",
+    "portalExpires": "{name} · caduca el {date}"
   }
 }
