@@ -1,0 +1,72 @@
+import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { renderEmail } from '../mail/email-layout.js';
+import type { MailMessage } from '../mail/mail.service.js';
+
+type Domain = { name: string; project: string; expiresAt: string; days: number };
+
+const longDate = (day: string, locale: ApiLocale) =>
+  new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+    dateStyle: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${day}T12:00:00Z`));
+
+/** To the team (English): a client's domain expires soon. */
+export function domainTeamEmail(
+  to: string,
+  domain: Domain,
+  adminUrl: string,
+  siteUrl: string,
+): MailMessage {
+  const intro = `${domain.name} (${domain.project}) expires on ${longDate(domain.expiresAt, 'en')}, in ${domain.days} days. Make sure it renews: if it lapses, the site and its email stop working.`;
+  return {
+    to,
+    subject: `[codeqlick] Domain expires in ${domain.days} days: ${domain.name}`,
+    ...renderEmail(
+      {
+        locale: 'en',
+        preheader: intro.slice(0, 120),
+        title: 'A domain expires soon',
+        intro: [intro],
+        button: { label: 'Open the project', url: adminUrl },
+        signoff: [],
+      },
+      siteUrl,
+    ),
+  };
+}
+
+/** To a person of the client account, in their language. */
+export function domainClientEmail(
+  person: { name: string; email: string; locale: ApiLocale },
+  domain: Domain,
+  portalUrl: string,
+  siteUrl: string,
+): MailMessage {
+  const es = person.locale === 'es';
+  const date = longDate(domain.expiresAt, person.locale);
+  return {
+    to: person.email,
+    subject: es
+      ? `Tu dominio ${domain.name} caduca en ${domain.days} días`
+      : `Your domain ${domain.name} expires in ${domain.days} days`,
+    ...renderEmail(
+      {
+        locale: person.locale,
+        preheader: es ? `Caduca el ${date}.` : `It expires on ${date}.`,
+        title: es ? 'Tu dominio caduca pronto' : 'Your domain expires soon',
+        greeting: es ? `Hola ${person.name}:` : `Hi ${person.name},`,
+        intro: es
+          ? [
+              `El dominio ${domain.name} caduca el ${date}. Si no se renueva, tu web y el correo de ese dominio dejarán de funcionar.`,
+              'Si lo renuevas tú con tu proveedor, no hace falta que hagas nada más. Si tienes dudas, responde a este correo.',
+            ]
+          : [
+              `The domain ${domain.name} expires on ${date}. If it isn't renewed, your website and that domain's email stop working.`,
+              'If you renew it yourself with your provider, there is nothing else to do. Any questions? Just reply to this email.',
+            ],
+        button: { label: es ? 'Ver el proyecto' : 'Open the project', url: portalUrl },
+      },
+      siteUrl,
+    ),
+  };
+}

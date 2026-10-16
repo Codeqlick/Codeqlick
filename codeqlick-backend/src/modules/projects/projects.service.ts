@@ -127,6 +127,9 @@ export interface ClientProjectView {
   showHours: boolean;
   /** When the current release key was made; null without one. */
   releaseKeyCreatedAt: string | null;
+  /** The watched domain and its expiry (`yyyy-mm-dd`), if known. */
+  domainName: string | null;
+  domainExpiresAt: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdateView[];
   files?: ProjectFileView[];
@@ -199,6 +202,8 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
     productionUrl: project.productionUrl,
     showHours: project.showHours,
     releaseKeyCreatedAt: project.releaseTokenCreatedAt?.toISOString() ?? null,
+    domainName: project.domainName,
+    domainExpiresAt: project.domainExpiresAt?.toISOString().slice(0, 10) ?? null,
     client: { id: project.client.id, name: project.client.name, email: project.client.email },
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
