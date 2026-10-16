@@ -724,6 +724,8 @@ export type ManagedSite = {
   /** Where the domain stands; null without one or before its first check (architecture 8.2). */
   domainState: SiteDomainState | null;
   domainCheckedAt: string | null;
+  /** Where the domain's email goes (its MX records); null without a registered domain. */
+  mailState: SiteMailState | null;
   previewUrl: string;
   /** The domain once it serves the site, the preview until then. */
   url: string;
@@ -738,6 +740,7 @@ export type ManagedSite = {
 
 export const SITE_DOMAIN_STATES = ['UNREGISTERED', 'ELSEWHERE', 'LIVE'] as const;
 export type SiteDomainState = (typeof SITE_DOMAIN_STATES)[number];
+export type SiteMailState = 'NONE' | 'OVH' | 'OTHER';
 
 /** Whether a domain is free (architecture 8.2); null when nobody says. */
 export type DomainAvailability = { domain: string; available: boolean | null };
@@ -783,6 +786,7 @@ export type PortalSite = {
     name: string | null;
     state: SiteDomainState | null;
     checkedAt: string | null;
+    mail: SiteMailState | null;
     /** The team's OVH ID, to make the technical contact; and the server IP for other registrars. */
     nicHandle: string | null;
     serverIp: string | null;

@@ -1,4 +1,4 @@
-import { resolve4 } from 'node:dns/promises';
+import { resolve4, resolveMx } from 'node:dns/promises';
 import {
   Injectable,
   Logger,
@@ -21,6 +21,13 @@ type DomainState = 'UNREGISTERED' | 'ELSEWHERE' | 'LIVE';
 const MINUTE_MS = 60_000;
 const RUN_EVERY_MS = 10 * MINUTE_MS;
 const LIVE_RECHECK_MS = 6 * 60 * MINUTE_MS;
+
+/** Where a domain's email goes, from its MX hosts. */
+export function mailStateOf(exchanges: string[]): 'NONE' | 'OVH' | 'OTHER' {
+  const hosts = exchanges.map((host) => host.toLowerCase().replace(/\.$/, '')).filter(Boolean);
+  if (hosts.length === 0) return 'NONE';
+  return hosts.every((host) => host.endsWith('.ovh.net')) ? 'OVH' : 'OTHER';
+}
 
 /** The state from what was found: registered at all, resolving here, answering over HTTPS. */
 export function domainStateOf(found: {
@@ -108,9 +115,12 @@ export class SiteDomainsService implements OnApplicationBootstrap, OnApplication
     }
   }
 
-  /** Where the domain resolves (IPv4) and whether it answers over HTTPS. */
-  async probe(domain: string): Promise<{ addresses: string[]; https: boolean }> {
+  /** Where the domain resolves (IPv4), whether it answers over HTTPS and its MX hosts. */
+  async probe(domain: string): Promise<{ addresses: string[]; https: boolean; mx: string[] }> {
     const addresses = await resolve4(domain).catch(() => [] as string[]);
+    const mx = await resolveMx(domain)
+      .then((records) => records.map((record) => record.exchange))
+      .catch(() => [] as string[]);
     const https =
       addresses.length > 0 &&
       (await fetch(`https://${domain}/`, {
@@ -119,13 +129,13 @@ export class SiteDomainsService implements OnApplicationBootstrap, OnApplication
       })
         .then((response) => response.status === 200)
         .catch(() => false));
-    return { addresses, https };
+    return { addresses, https, mx };
   }
 
   private async checkSite(site: SiteRow, now = new Date()): Promise<void> {
     const domain = site.domain!;
     const connection = await this.domains.connect(site.projectId, domain);
-    const { addresses, https } = await this.probe(domain);
+    const { addresses, https, mx } = await this.probe(domain);
     let state = domainStateOf({
       registered: connection.registered,
       addresses,
@@ -143,7 +153,11 @@ export class SiteDomainsService implements OnApplicationBootstrap, OnApplication
       state = 'LIVE';
     }
 
-    await this.repository.update(site.id, { domainState: state, domainCheckedAt: now });
+    await this.repository.update(site.id, {
+      domainState: state,
+      domainCheckedAt: now,
+      mailState: state === 'UNREGISTERED' ? null : mailStateOf(mx),
+    });
     if (state === site.domainState) return;
     if (state === 'LIVE' || site.domainState === 'LIVE') {
       await this.sites.addressChanged(site.projectId);
