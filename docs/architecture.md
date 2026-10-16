@@ -105,6 +105,7 @@ src/
     credentials/             Access clients share for their projects (encrypted; the team reveals, logged)
     monitoring/              Uptime monitoring of hosted client sites (checks every 5 minutes, alerts, status in the portal)
     site-forms/              Contact forms of hosted static client sites, relayed to the client's inbox
+    domains/                 Domain renewal reminders (RDAP or a typed date; 30 and 7 days before)
     managed-sites/           Managed basic websites: content, revisions, builds through site-builder
     briefs/                  The project brief questionnaire (portal form, admin view, release-key read)
     proposals/               Proposals and quotes: drafted and sent from the admin panel, accepted or declined in the portal
@@ -162,7 +163,7 @@ erDiagram
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
 - **Scheduling (posts and case studies):** content is live when `status = PUBLISHED` and `publishedAt <= now`. A published item dated in the future is *scheduled*: the public API (lists, detail, so also the sitemap and RSS) hides it until then and it appears on its own, with no job to run, within the public pages' 5-minute revalidation. `publishedAt` is set on the first publish unless one is given; clearing it on a published item means now. The admin panel types it in Madrid time.
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `services[]` (the website's service keys: web, custom, mobile, design, consulting, support), `sortOrder`, `testimonialAuthor?`; translation has `title`, `summary`, `content`, `testimonialQuote?`, `testimonialRole?`. A case study has a testimonial in a language when it has an author and a quote in that language; it is shown on the case study and on the home page.
-- **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`, `showHours` (the client sees the hours logged on it; off by default).
+- **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`, `showHours` (the client sees the hours logged on it; off by default), and its watched domain: `domainName?`, `domainSource` (`RDAP` | `MANUAL`), `domainExpiresAt?` (date), `domainCheckedAt?`, `domainWarnedFor?` (`<day>:<30|7>`, the last reminder). With `RDAP` the expiry is read from the registry's RDAP server (found in IANA's bootstrap, `data.iana.org/rdap/dns.json`); TLDs without RDAP (`.es`) take a date typed by the team. 30 and 7 days before it, the team inbox and every person of the client account are emailed, once each per expiry date. A managed site's own domain becomes the project's watched domain when it has none.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`, `approvalRequested` (the team asks the client to approve it), `approvedAt?`, `approvedById?`. A **release** is an update with `version`, `environment` (`STAGING` | `PRODUCTION`) and `url?`: the version deployed, where, and where to try it; posting one also sets the project's `stagingUrl` or `productionUrl` to that URL. A project may have a release key (`releaseTokenHash`, SHA-256 of `cqr_…`, and `releaseTokenCreatedAt`) for its deploy pipeline.
 - **ProjectUpdateComment** — a comment on an update by the client or the team: `body` (plain text, max 5000), `authorId?`, `createdAt`. Comments by an ADMIN are shown as the team's.
 - **ProjectMilestone** — a step of the project shown to the client as a timeline: `title`, `description?` (plain text, max 2000), `dueDate?`, `completedAt?` (set when the admin marks it done; null while open), `position` (order set by the admin, 0-based). The first milestone not done is the "next" one.
@@ -258,6 +259,7 @@ Scheduled work runs inside the API process (timers that start on boot, off when 
 
 - **Uptime monitoring** of client sites every 5 minutes (`MonitoringService`, see SiteMonitor).
 - **Session and reset-token cleanup** twice a day (`TokenCleanupService`).
+- **Domain renewal** every 6 hours (`DomainsService`): RDAP dates older than a day are refreshed and the reminders due are sent.
 - **Weekly summary** (clients): `WeeklyDigestService` checks every hour, in the API process. It sends this week's summary to every active client with `weeklyDigest` whose `lastDigestAt` is before this week's Monday 08:00 Madrid time, so a restart or a missed Monday neither skips nor repeats it. For each project the email lists the updates and completed milestones of the last 7 days, updates waiting for approval and the next milestone. A week with nothing to tell sends nothing, but still counts as done. Clients turn it off in their account (`PATCH /auth/preferences`) and admins on the user page, which also has a "send now" button (`POST /admin/projects/weekly-digest/:clientId` → `{ sent }`, or `{ sent: false, reason: 'no-news' }`). Off in tests.
 - **Scheduled posts and case studies** need no job: they are hidden until their `publishedAt` (see Scheduling).
 
@@ -380,6 +382,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/admin/projects/:id/site/build` | Builds the current content again → the site |
 | GET | `/admin/projects/:id/site/revisions` | `[{ id, createdAt, author: { name } \| null }]`, newest first |
 | POST | `/admin/projects/:id/site/revisions/:revisionId/restore` | Puts that content back (itself a change, so the current one becomes a revision) → the site |
+| GET / PUT | `/admin/projects/:id/domain` | `{ name, source, expiresAt, daysLeft, checkedAt }` / `{ name: string \| null, source: 'RDAP' \| 'MANUAL', expiresAt? (MANUAL) }` → the view (an RDAP domain is checked at once; changing it starts the reminders over) |
+| POST | `/admin/projects/:id/domain/check` | Reads RDAP again → the view |
 | GET / PUT | `/admin/projects/:id/form` | `SiteForm` view (`{ enabled, key, recipients, origins, submissions, lastSubmissionAt }`, or `{ enabled: false }`) / `{ enabled, recipients }` (the first save creates the key) |
 | POST | `/admin/projects/:id/form/key` | Replaces the key (the old one stops working) → the view |
 | GET | `/admin/projects/:id/brief` | The brief, as the portal returns it |
@@ -680,19 +684,3 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 12 | The basic-website template lives in this repository (`codeqlick-sites/web-basica`) | The builder image needs it and every managed site must build from the same version; no extra repository credentials on the server |
 | 13 | The public website request takes no photos | Anonymous uploads invite abuse; photos come later through the client portal, where the person has an account |
 | 14 | Domain expiry: RDAP when the registry offers it, a date typed by the team otherwise | `.es` has no public RDAP or WHOIS; most other TLDs do |
-
-## 11. Planned: basic websites end to end
-
-Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
-above (data model, API contract, frontend) when it ships.
-
-
-### 11.7 Domain renewal (portal, admin)
-
-- **ClientProject** gains `domainName?`, `domainExpiresAt?`, `domainSource` (`RDAP` | `MANUAL`),
-  `domainCheckedAt?`, `domainWarnedFor?`.
-- A daily job asks RDAP (`https://rdap.org/domain/<name>`) for domains with source `RDAP`; for
-  `.es` and other TLDs without RDAP the team types the date (decision 14). 30 and 7 days before,
-  the team and the client are emailed (once per date and threshold).
-- Admin → project: domain and expiry fields. The portal shows "Tu dominio caduca el …".
-

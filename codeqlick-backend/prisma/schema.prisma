@@ -317,6 +317,13 @@ model ClientProject {
   /// SHA-256 of the project's release key, which a deploy pipeline uses to publish releases.
   releaseTokenHash      String?      @unique @map("release_token_hash")
   releaseTokenCreatedAt DateTime?    @map("release_token_created_at") @db.Timestamptz(3)
+  /// The client's domain whose renewal is watched (architecture 11.7).
+  domainName            String?      @map("domain_name")
+  domainSource          DomainSource @default(RDAP) @map("domain_source")
+  domainExpiresAt       DateTime?    @map("domain_expires_at") @db.Date
+  domainCheckedAt       DateTime?    @map("domain_checked_at") @db.Timestamptz(3)
+  /// The last reminder sent: "<expiry day>:<days before>" (30, then 7).
+  domainWarnedFor       String?      @map("domain_warned_for")
   createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -944,4 +951,11 @@ model SiteFormDay {
 
   @@id([formId, day])
   @@map("site_form_days")
+}
+
+/// Where a project's domain expiry comes from: the registry's RDAP, or typed by the team (`.es`
+/// has no public RDAP).
+enum DomainSource {
+  RDAP
+  MANUAL
 }
