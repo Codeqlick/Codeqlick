@@ -16,10 +16,12 @@ import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas
 import type { AuthUser } from '../../common/types/auth-user.js';
 import {
   createSiteSchema,
+  onboardSiteSchema,
   revisionParamSchema,
   siteContentBodySchema,
   updateSiteSchema,
   type CreateSiteInput,
+  type OnboardSiteInput,
   type RevisionParam,
   type SiteContentBody,
   type UpdateSiteInput,
@@ -29,13 +31,26 @@ import {
   type SiteRevisionView,
   type SiteView,
 } from './managed-sites.service.js';
+import { SiteOnboardingService, type OnboardResult } from './site-onboarding.service.js';
 
 @ApiTags('admin/sites')
 @ApiBearerAuth()
 @Roles('ADMIN')
 @Controller('admin')
 export class ManagedSitesController {
-  constructor(private readonly sites: ManagedSitesService) {}
+  constructor(
+    private readonly sites: ManagedSitesService,
+    private readonly onboarding: SiteOnboardingService,
+  ) {}
+
+  /** A basic-website client in one step (account, project, site, form, monitor, first build). */
+  @Post('sites/onboard')
+  onboard(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: onboardSiteSchema }) body: OnboardSiteInput,
+  ): Promise<OnboardResult> {
+    return this.onboarding.onboard(user, body);
+  }
 
   @Get('sites')
   list(): Promise<SiteView[]> {
