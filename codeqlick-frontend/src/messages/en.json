@@ -1405,6 +1405,22 @@
       "nda": {
         "q": "Do you sign a non-disclosure agreement?",
         "a": "Yes, when needed we sign an NDA before going into the details of your project."
+      },
+      "basicTime": {
+        "q": "How long does it take?",
+        "a": "Once we have your texts and photos, we show you a first version within a few days. With the included changes, it is usually live in one or two weeks."
+      },
+      "basicContent": {
+        "q": "What do I need to give you?",
+        "a": "Your business name and details, your services with prices, your opening hours, a few lines about you and some photos. If you have no texts, we help you write them."
+      },
+      "basicChanges": {
+        "q": "What if I want to change something later?",
+        "a": "Small changes (prices, hours, photos) are covered by the optional maintenance. New features get their own quote."
+      },
+      "basicDomain": {
+        "q": "Is the domain mine?",
+        "a": "Yes. The domain is registered in your name and the site is yours: if you ever want to move it to another provider, we hand you the files."
       }
     }
   },
@@ -1983,5 +1999,75 @@
     "replacing": "Replacing…",
     "replaceHint": "The old address stops working: update the site afterwards.",
     "invalidEmails": "Check the emails: one of them is not valid."
+  },
+  "BasicWebsite": {
+    "metaTitle": "Basic website for local businesses — from €200",
+    "metaDescription": "A one-page website for your salon, restaurant, clinic or shop: fast, mobile-ready, with a contact form, WhatsApp and legal pages. Ready in a few days.",
+    "eyebrow": "Basic website",
+    "title": "Your business online, in a few days",
+    "lead": "A fast, mobile-ready one-page site, so people looking for you find your services, prices, opening hours and how to reach you. We start from a proven base and make it yours.",
+    "price": "From €200",
+    "priceNote": "One-off payment. Optional maintenance afterwards.",
+    "request": "Request my website",
+    "seeDemos": "See the demos",
+    "demosTitle": "See what it looks like",
+    "demosLead": "Three made-up businesses built on the same base. Pick the style you like best: we adapt it to your brand, your texts and your photos.",
+    "openDemo": "View demo",
+    "newTab": "(opens in a new tab)",
+    "demos": {
+      "peluqueria": {
+        "name": "Alba Estudio",
+        "kind": "Hair salon · Seville"
+      },
+      "restaurante": {
+        "name": "Casa Lola",
+        "kind": "Rice restaurant · Valencia"
+      },
+      "fisioterapia": {
+        "name": "Fisio Retiro",
+        "kind": "Physiotherapy · Madrid"
+      }
+    },
+    "includedTitle": "What's included",
+    "included": [
+      "Home, services with prices, about, a gallery of up to 6 photos, reviews, opening hours and contact",
+      "A contact form that reaches your inbox",
+      "A WhatsApp button and one-tap calling on phones",
+      "Legal notice, privacy and cookie pages, with no third-party cookies: no banner needed",
+      "Ready for Google: titles, descriptions, sitemap and local business data",
+      "Published with HTTPS, plus two rounds of changes"
+    ],
+    "extrasTitle": "Quoted separately",
+    "extras": [
+      "Online booking or payments",
+      "An online shop",
+      "A blog or several languages",
+      "Copywriting or a photo shoot",
+      "The domain (about €10–15 a year, in your name)"
+    ],
+    "stepsTitle": "How it works",
+    "steps": {
+      "tell": {
+        "title": "Tell us about your business",
+        "body": "What you do, your services and prices, your hours and the style you like."
+      },
+      "preview": {
+        "title": "We show you a first version",
+        "body": "In a few days you get a link to see it on your phone."
+      },
+      "adjust": {
+        "title": "We fine-tune it with you",
+        "body": "Two rounds of changes until it looks the way you want."
+      },
+      "live": {
+        "title": "We publish it",
+        "body": "On your domain, with HTTPS, and ready to show up on Google."
+      }
+    },
+    "faqTitle": "Questions about the basic website",
+    "ctaTitle": "Shall we build yours?",
+    "ctaBody": "Tell us about your business and we'll get back to you within two business days with a fixed-price proposal.",
+    "servicesBanner": "Run a local business? See the basic website: ready in a few days, from €200.",
+    "footerLink": "Basic website"
   }
 }

@@ -15,7 +15,9 @@ export const FAQ_KEYS = [
   'response',
   'nda',
 ] as const;
-export type FaqKey = (typeof FAQ_KEYS)[number];
+/** Questions of the basic-website page. */
+export const BASIC_FAQ_KEYS = ['basicTime', 'basicContent', 'basicChanges', 'basicDomain'] as const;
+export type FaqKey = (typeof FAQ_KEYS)[number] | (typeof BASIC_FAQ_KEYS)[number];
 
 /**
  * Frequently asked questions as disclosure widgets (no script), with FAQPage structured data so
@@ -25,10 +27,13 @@ export async function Faq({
   locale,
   keys = FAQ_KEYS,
   headingId = 'faq-title',
+  title,
 }: {
   locale: AppLocale;
   keys?: readonly FaqKey[];
   headingId?: string;
+  /** Replaces the default heading. */
+  title?: string;
 }) {
   const t = await getTranslations({ locale, namespace: 'Faq' });
   const items = keys.map((key) => ({
@@ -52,7 +57,7 @@ export async function Faq({
       />
       <p className="eyebrow">{t('eyebrow')}</p>
       <h2 id={headingId} className={styles.title}>
-        {t('title')}
+        {title ?? t('title')}
       </h2>
       <div className={styles.list}>
         {items.map((item) => (
