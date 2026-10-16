@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { domainStateOf } from './site-domains.service.js';
+import { domainStateOf, mailStateOf } from './site-domains.service.js';
 
 const ip = '54.37.159.171';
 
@@ -24,5 +24,13 @@ describe('domainStateOf', () => {
     expect(domainStateOf({ registered: null, addresses: [ip], serverIp: ip, https: true })).toBe(
       'LIVE',
     );
+  });
+});
+
+describe('mailStateOf', () => {
+  it('tells OVH mail from another provider or none', () => {
+    expect(mailStateOf([])).toBe('NONE');
+    expect(mailStateOf(['mx1.mail.ovh.net.', 'mx3.mail.ovh.net'])).toBe('OVH');
+    expect(mailStateOf(['aspmx.l.google.com', 'mx1.mail.ovh.net'])).toBe('OTHER');
   });
 });

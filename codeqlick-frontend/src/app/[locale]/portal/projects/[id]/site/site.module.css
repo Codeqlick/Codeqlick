@@ -49,3 +49,8 @@
 .domainCard p {
   margin: 0;
 }
+
+.subTitle {
+  margin: var(--space-2) 0 0;
+  font-size: 1rem;
+}

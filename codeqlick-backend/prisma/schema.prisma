@@ -914,6 +914,8 @@ model ManagedSite {
   /// Null without a domain; the canonical address is the domain only once LIVE.
   domainState     SiteDomainState? @map("domain_state")
   domainCheckedAt DateTime?        @map("domain_checked_at") @db.Timestamptz(3)
+  /// Where the domain's email goes (its MX records), checked with the domain.
+  mailState       SiteMailState?   @map("mail_state")
   status          SiteBuildStatus  @default(NONE)
   lastBuildAt     DateTime?        @map("last_build_at") @db.Timestamptz(3)
   lastBuildError  String?          @map("last_build_error")
@@ -970,4 +972,11 @@ enum SiteDomainState {
   UNREGISTERED
   ELSEWHERE
   LIVE
+}
+
+/// A managed site domain's email: no MX records, OVH's mail servers, or another provider.
+enum SiteMailState {
+  NONE
+  OVH
+  OTHER
 }
