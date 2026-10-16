@@ -18,6 +18,14 @@ export class SitePreviewsRepository {
     return this.prisma.lead.count({ where: { previewSlug: slug } }).then((count) => count > 0);
   }
 
+  /** The public status of a preview, by its slug. */
+  findBySlug(slug: string) {
+    return this.prisma.lead.findFirst({
+      where: { previewSlug: slug },
+      select: { previewStatus: true },
+    });
+  }
+
   find(leadId: string) {
     return this.prisma.lead.findUnique({
       where: { id: leadId },

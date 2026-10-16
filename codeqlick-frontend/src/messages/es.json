@@ -2327,9 +2327,13 @@
     "domainUse": "Usar este",
     "domainInvalid": "Escribe un nombre con letras, números o guiones.",
     "domainFailed": "No hemos podido comprobarlo ahora; puedes enviarlo igualmente.",
-    "previewBody": "Mientras tanto, estamos preparando una vista previa de tu web con lo que nos has contado. Estará lista en un minuto.",
+    "previewBody": "Mientras tanto, estamos preparando una vista previa de tu web con lo que nos has contado. Tarda un par de minutos.",
     "previewOpen": "Ver mi vista previa",
-    "previewHint": "Si al abrirla aún no carga, espera un momento y vuelve a intentarlo. También te enviamos el enlace por email."
+    "previewHint": "También te enviamos el enlace por email en cuanto esté lista.",
+    "previewWaitTitle": "Preparando tu vista previa",
+    "previewWaitBody": "Estamos publicando la primera versión de tu web. Suele tardar un par de minutos: esta página te llevará a ella en cuanto esté lista, y también te llegará el enlace por email.",
+    "previewGoneTitle": "Esta vista previa no está disponible",
+    "previewGoneBody": "No hemos podido prepararla, o ya se ha retirado. No te preocupes: tenemos tu solicitud y te escribiremos en breve."
   },
   "ProjectVisits": {
     "title": "Visitas de tu web",

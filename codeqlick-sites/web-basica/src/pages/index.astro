@@ -28,7 +28,7 @@ const schema = {
         address: {
           '@type': 'PostalAddress',
           streetAddress: address.street,
-          postalCode: address.postalCode,
+          ...(address.postalCode ? { postalCode: address.postalCode } : {}),
           addressLocality: address.city,
           addressRegion: address.region,
           addressCountry: 'ES',

@@ -71,6 +71,18 @@ describe('site requests', () => {
     expect(content.theme).toEqual({ primary: '#A84A33' });
   });
 
+  it('keeps an address without a postcode', () => {
+    const content = contentFromRequest(base, {
+      ...request,
+      business: { ...request.business, address: 'Calle Feria 12, Málaga' },
+    });
+    expect(content.contact.address).toEqual({
+      street: 'Calle Feria 12',
+      city: 'Málaga',
+      region: 'Málaga',
+    });
+  });
+
   it('summarises the request for the team', () => {
     const text = requestSummary(request);
     expect(text).toContain('style: Peluquería (Alba Estudio)');
