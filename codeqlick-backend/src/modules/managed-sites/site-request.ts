@@ -32,6 +32,8 @@ export const siteRequestSchema = z
         /** One line per service: "Corte — 15 €". */
         services: optionalText(3000),
         about: optionalText(3000),
+        /** What they want on their website, in their words (any kind of website). */
+        wishes: optionalText(3000),
       })
       .strict(),
     /** The domain they want (`owned: false`) or already have (architecture 8.2). */
@@ -64,6 +66,11 @@ const PRESET_NAMES: Record<string, string> = {
   peluqueria: 'Peluquería (Alba Estudio)',
   restaurante: 'Restaurante (Casa Lola)',
   fisioterapia: 'Fisioterapia (Fisio Retiro)',
+  portfolio: 'Portfolio (Nora Vidal)',
+  despacho: 'Despacho profesional (Ortega & Sanz)',
+  comercio: 'Tienda (Flores Abril)',
+  reformas: 'Reformas y oficios (Reformas Duero)',
+  general: 'Otro tipo de web (Brezo)',
 };
 
 /** The lead's message: the request in plain text, as the team reads it in the email and panel. */
@@ -80,6 +87,7 @@ export function requestSummary(request: SiteRequest): string {
     b.hours ? `\nOpening hours:\n${b.hours}` : null,
     b.services ? `\nServices:\n${b.services}` : null,
     b.about ? `\nAbout:\n${b.about}` : null,
+    b.wishes ? `\nWhat they want on the website:\n${b.wishes}` : null,
     request.domain
       ? `\nDomain: ${request.domain.name} (${request.domain.owned ? 'they already have it' : 'they want to register it'})`
       : null,

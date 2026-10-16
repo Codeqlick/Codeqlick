@@ -19,7 +19,7 @@ medida son una copia en su propio repositorio. El contenido de una web es `site/
   `primaryText` y de `muted` con `background`/`surface`.
 - Fotos: optimizadas por Astro (`astro:assets`); sube originales de 1600–2000 px en JPG.
 - Formato con Prettier (`npm run format`); antes de terminar: `npm run check` y `npm run build`
-  con la web del cliente y con las tres demos (`SITE_DIR=examples/<demo>`).
+  con la web del cliente y con todas las demos (`SITE_DIR=examples/<demo>`).
 
 ## Proyecto en el panel de Codeqlick
 

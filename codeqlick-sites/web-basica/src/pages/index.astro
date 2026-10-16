@@ -8,7 +8,7 @@ import Hero from '../components/Hero.astro';
 import Services from '../components/Services.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Base from '../layouts/Base.astro';
-import { imageOf, site } from '../lib/site';
+import { imageOf, sectionOrder, site } from '../lib/site';
 
 const image = await getImage({ src: imageOf(site.hero.image), width: 1200, format: 'jpg' });
 const { address } = site.contact;
@@ -41,10 +41,17 @@ const schema = {
 
 <Base schema={schema}>
   <Hero />
-  {site.services ? <Services /> : null}
-  {site.about ? <About /> : null}
-  {site.gallery ? <Gallery /> : null}
-  {site.testimonials ? <Testimonials /> : null}
+  {sectionOrder.map((key) =>
+    key === 'services' ? (
+      <Services />
+    ) : key === 'about' ? (
+      <About />
+    ) : key === 'gallery' ? (
+      <Gallery />
+    ) : (
+      <Testimonials />
+    ),
+  )}
   {site.banner ? <Banner /> : null}
   <Contact />
 </Base>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SiteContent } from './managed-sites.schemas.js';
+import { createSiteSchema, type SiteContent } from './managed-sites.schemas.js';
 import { contentFromRequest, requestSummary, type SiteRequest } from './site-request.js';
 
 const base = {
@@ -33,6 +33,7 @@ const request: SiteRequest = {
     hours: 'Lunes a viernes: 9:00–20:00\nSábado – 10:00–14:00\nDomingo cerrado',
     services: 'Corte — 15 €\nCorte y barba - 22 €\nArreglo de barba',
     about: 'Barbería de toda la vida.\n\nDesde 1990 en el centro.',
+    wishes: undefined,
   },
 };
 
@@ -88,5 +89,21 @@ describe('site requests', () => {
     expect(text).toContain('style: Peluquería (Alba Estudio)');
     expect(text).toContain('Business: Barbería Paco (Barbería, Málaga)');
     expect(text).toContain('Corte y barba - 22 €');
+    const other = requestSummary({
+      ...request,
+      preset: 'general',
+      business: { ...request.business, wishes: 'Un portfolio con mis cuadros' },
+    });
+    expect(other).toContain('style: Otro tipo de web (Brezo)');
+    expect(other).toContain('What they want on the website:\nUn portfolio con mis cuadros');
+  });
+
+  it("keeps the demos' names for the demos", () => {
+    expect(createSiteSchema.safeParse({ slug: 'portfolio', preset: 'portfolio' }).success).toBe(
+      false,
+    );
+    expect(createSiteSchema.safeParse({ slug: 'nora-vidal', preset: 'portfolio' }).success).toBe(
+      true,
+    );
   });
 });

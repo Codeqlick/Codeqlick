@@ -2057,7 +2057,7 @@
     "request": "Pedir mi web",
     "seeDemos": "Ver las demos",
     "demosTitle": "Mira cómo queda",
-    "demosLead": "Tres ejemplos de negocios ficticios hechos con la misma base. Elige el estilo que más te guste: lo adaptamos a tu marca, tus textos y tus fotos.",
+    "demosLead": "Ejemplos de negocios ficticios hechos con la misma base: peluquería, restaurante, clínica, fotógrafa, despacho, tienda y reformas. Elige el que más se parezca al tuyo: lo adaptamos a tu marca, tus textos y tus fotos. ¿El tuyo es otro? También lo hacemos.",
     "openDemo": "Ver demo",
     "newTab": "(se abre en otra pestaña)",
     "demos": {
@@ -2072,6 +2072,26 @@
       "fisioterapia": {
         "name": "Fisio Retiro",
         "kind": "Fisioterapia · Madrid"
+      },
+      "portfolio": {
+        "name": "Nora Vidal",
+        "kind": "Fotografía · Bilbao"
+      },
+      "despacho": {
+        "name": "Ortega & Sanz",
+        "kind": "Abogados · Zaragoza"
+      },
+      "comercio": {
+        "name": "Flores Abril",
+        "kind": "Floristería · Granada"
+      },
+      "reformas": {
+        "name": "Reformas Duero",
+        "kind": "Reformas · Valladolid"
+      },
+      "general": {
+        "name": "Otro tipo de web",
+        "kind": "Cuéntanos qué necesitas"
       }
     },
     "includedTitle": "Qué incluye",
@@ -2126,7 +2146,12 @@
     "presets": {
       "peluqueria": "Peluquería (Alba Estudio)",
       "restaurante": "Restaurante (Casa Lola)",
-      "fisioterapia": "Fisioterapia (Fisio Retiro)"
+      "fisioterapia": "Fisioterapia (Fisio Retiro)",
+      "portfolio": "Portfolio (Nora Vidal)",
+      "despacho": "Despacho profesional (Ortega & Sanz)",
+      "comercio": "Tienda (Flores Abril)",
+      "reformas": "Reformas y oficios (Reformas Duero)",
+      "general": "Otro tipo de web (Brezo)"
     },
     "domain": "Dominio propio",
     "domainHint": "Opcional. Cuando apunte al servidor (o lo gestionemos en OVH como contacto técnico), se publica con HTTPS y pasa a ser la dirección de la web.",
@@ -2278,12 +2303,12 @@
     "eyebrow": "Web básica",
     "title": "Pide tu web",
     "lead": "Cuéntanos lo esencial de tu negocio y elige el estilo que más te guste. Con esto te preparamos una primera versión y te escribimos en dos días laborables.",
-    "styleTitle": "Elige un estilo",
-    "styleHint": "Son las demos: tu web tendrá tus textos, tus fotos y, si quieres, tus colores.",
+    "styleTitle": "Elige un punto de partida",
+    "styleHint": "Son demos de negocios parecidos al tuyo: tu web tendrá tus textos, tus fotos y, si quieres, tus colores. Si ninguna encaja, elige «Otro tipo de web» y cuéntanos qué necesitas.",
     "businessTitle": "Tu negocio",
     "businessName": "Nombre del negocio",
     "kind": "¿Qué es?",
-    "kindPlaceholder": "Peluquería, taller, academia…",
+    "kindPlaceholder": "Peluquería, fotógrafa, academia, tienda…",
     "city": "Ciudad",
     "address": "Dirección (opcional)",
     "addressPlaceholder": "Calle Mayor 3, 28013 Madrid",
@@ -2298,6 +2323,8 @@
     "servicesPlaceholder": "Corte de pelo — 15 €\nColor — desde 35 €",
     "about": "Unas líneas sobre vosotros (opcional)",
     "aboutHint": "Quiénes sois, desde cuándo, qué os diferencia. Lo pulimos nosotros.",
+    "wishes": "¿Qué quieres en tu web? (opcional)",
+    "wishesHint": "Secciones, ideas, webs que te gustan… Si has elegido «Otro tipo de web», cuéntanoslo aquí.",
     "contactTitle": "Tus datos",
     "name": "Tu nombre",
     "email": "Tu email",
