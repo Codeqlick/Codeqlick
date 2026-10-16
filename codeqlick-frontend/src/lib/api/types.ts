@@ -766,7 +766,7 @@ export type EditableSite = {
     phone?: string;
     whatsapp?: string;
     email?: string;
-    address?: { street: string; postalCode: string; city: string; region: string };
+    address?: { street: string; postalCode?: string; city: string; region: string };
     mapsUrl?: string;
   };
   hours?: { days: string; hours: string }[];

@@ -61,7 +61,7 @@ export interface Site {
     email?: string;
     address?: {
       street: string;
-      postalCode: string;
+      postalCode?: string;
       city: string;
       region: string;
     };
