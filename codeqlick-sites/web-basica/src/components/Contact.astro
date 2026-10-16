@@ -1,0 +1,308 @@
+---
+import { addressLine, site, telHref, whatsappHref } from '../lib/site';
+
+const { contact, hours, form, contactSection } = site;
+const action =
+  form && 'key' in form ? `${form.api ?? 'https://api.codeqlick.com/v1'}/forms/${form.key}` : null;
+const redirect = new URL('/#contacto', Astro.site).toString();
+---
+
+<section class="section section--alt" id="contacto" aria-labelledby="contacto-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Contacto</p>
+      <h2 id="contacto-title">{contactSection.title}</h2>
+      {contactSection.intro ? <p class="lead">{contactSection.intro}</p> : null}
+    </div>
+    <div class={`grid ${form ? '' : 'single'}`}>
+      <div class="info">
+        <dl>
+          {contact.address ? (
+            <div>
+              <dt>Dirección</dt>
+              <dd>
+                {addressLine(contact.address)}
+                {contact.mapsUrl ? (
+                  <a class="link" href={contact.mapsUrl} rel="noopener" target="_blank">
+                    Cómo llegar
+                  </a>
+                ) : null}
+              </dd>
+            </div>
+          ) : null}
+          {contact.phone ? (
+            <div>
+              <dt>Teléfono</dt>
+              <dd>
+                <a href={telHref(contact.phone)}>{contact.phone}</a>
+              </dd>
+            </div>
+          ) : null}
+          {contact.whatsapp ? (
+            <div>
+              <dt>WhatsApp</dt>
+              <dd>
+                <a href={whatsappHref(contact.whatsapp)}>Escríbenos</a>
+              </dd>
+            </div>
+          ) : null}
+          {contact.email ? (
+            <div>
+              <dt>Email</dt>
+              <dd>
+                <a href={`mailto:${contact.email}`}>{contact.email}</a>
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+        {hours ? (
+          <div class="hours">
+            <h3>Horario</h3>
+            <table>
+              <tbody>
+                {hours.map((row) => (
+                  <tr>
+                    <th scope="row">{row.days}</th>
+                    <td>{row.hours}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+
+      {form ? (
+        <form
+          class="form"
+          action={action ?? '#contacto'}
+          method="post"
+          data-demo={action ? undefined : 'true'}
+        >
+          <div class="status" role="status" aria-live="polite" hidden />
+          <div class="row">
+            <label>
+              <span>Nombre</span>
+              <input name="name" autocomplete="name" required maxlength="120" />
+            </label>
+            <label>
+              <span>Teléfono (opcional)</span>
+              <input name="phone" type="tel" autocomplete="tel" maxlength="40" />
+            </label>
+          </div>
+          <label>
+            <span>Email</span>
+            <input name="email" type="email" autocomplete="email" required maxlength="254" />
+          </label>
+          <label>
+            <span>Mensaje</span>
+            <textarea name="message" rows="5" required maxlength="5000" />
+          </label>
+          <label class="hp" aria-hidden="true">
+            <span>No rellenes este campo</span>
+            <input name="website" tabindex="-1" autocomplete="off" />
+          </label>
+          <input type="hidden" name="redirect" value={redirect} />
+          <label class="check">
+            <input type="checkbox" name="privacy" required />
+            <span>
+              He leído y acepto la <a href="/privacidad">política de privacidad</a>.
+            </span>
+          </label>
+          <button class="button" type="submit">
+            Enviar mensaje
+          </button>
+        </form>
+      ) : null}
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#contacto form');
+  const status = form?.querySelector<HTMLElement>('.status');
+  const show = (kind: 'ok' | 'error' | 'demo') => {
+    if (!status) return;
+    status.hidden = false;
+    status.dataset.kind = kind;
+    status.textContent = {
+      ok: 'Gracias, hemos recibido tu mensaje. Te responderemos lo antes posible.',
+      error: 'No se ha podido enviar. Revisa los campos y vuelve a intentarlo.',
+      demo: 'Esta web es una demostración: el formulario no envía mensajes.',
+    }[kind];
+  };
+  // After sending, the form service sends the visitor back here with ?form=ok|error.
+  const result = new URLSearchParams(location.search).get('form');
+  if (result === 'ok' || result === 'error') {
+    show(result);
+    history.replaceState(null, '', location.pathname + location.hash);
+  }
+  if (form?.dataset.demo) {
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      show('demo');
+    });
+  }
+</script>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .single {
+    grid-template-columns: 1fr;
+  }
+
+  .info {
+    display: grid;
+    gap: 2rem;
+  }
+
+  dl {
+    display: grid;
+    gap: 1.25rem;
+    margin: 0;
+  }
+
+  dt {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0.2rem 0 0;
+    font-size: 1.1rem;
+  }
+
+  .link {
+    color: var(--primary-strong);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .hours {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    background: var(--background);
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 0.45rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    text-align: left;
+  }
+
+  th {
+    padding-right: 1rem;
+    font-weight: 500;
+  }
+
+  td {
+    color: var(--muted);
+    text-align: right;
+  }
+
+  tr:last-child th,
+  tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .form {
+    display: grid;
+    gap: 1.1rem;
+    padding: clamp(1.5rem, 4vw, 2.25rem);
+    border-radius: var(--radius);
+    background: var(--background);
+    box-shadow: 0 24px 60px -40px rgb(0 0 0 / 0.4);
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem;
+  }
+
+  label {
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--text) 22%, transparent);
+    border-radius: calc(var(--radius) * 0.6);
+    background: var(--background);
+    color: var(--text);
+    font: inherit;
+    font-weight: 400;
+  }
+
+  input:focus,
+  textarea:focus {
+    border-color: var(--primary);
+    outline: 2px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    outline-offset: 0;
+  }
+
+  .check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-weight: 400;
+  }
+
+  .check input {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.2rem;
+    accent-color: var(--primary);
+  }
+
+  .hp {
+    position: absolute;
+    left: -10000px;
+  }
+
+  .status {
+    padding: 0.9rem 1rem;
+    border-radius: calc(var(--radius) * 0.6);
+    background: color-mix(in srgb, var(--primary) 12%, var(--background));
+    font-weight: 500;
+  }
+
+  .status[data-kind='error'] {
+    background: #fde8e8;
+    color: #8a1c1c;
+  }
+
+  button {
+    justify-self: start;
+  }
+
+  @media (max-width: 860px) {
+    .grid,
+    .row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

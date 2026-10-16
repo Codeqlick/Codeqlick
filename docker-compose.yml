@@ -63,6 +63,8 @@ services:
       SEED_ADMIN_EMAIL: admin@codeqlick.com
       SEED_ADMIN_PASSWORD: change-me-please-123
       SEED_ADMIN_NAME: Codeqlick Admin
+      SITE_BUILDER_URL: http://site-builder:4100
+      SITE_BUILDER_TOKEN: dev-site-builder-token
     command:
       - sh
       - -c
@@ -82,6 +84,18 @@ services:
       timeout: 3s
       retries: 10
       start_period: 60s
+
+  # Builds managed client sites into ./.sites (see codeqlick-sites/builder/server.mjs).
+  site-builder:
+    build: ./codeqlick-sites
+    restart: unless-stopped
+    environment:
+      SITE_BUILDER_TOKEN: dev-site-builder-token
+    ports:
+      - "${SITE_BUILDER_PORT:-4100}:4100"
+    volumes:
+      - ./.sites:/srv/codeqlick/sites
+      - ./codeqlick-backend/uploads:/uploads:ro
 
   web:
     build:

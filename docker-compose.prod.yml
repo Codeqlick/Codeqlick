@@ -78,6 +78,10 @@ services:
       UMAMI_URL: http://umami:3000
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
       UMAMI_PASSWORD: ${UMAMI_ADMIN_PASSWORD:-}
+      # Managed client sites: built by site-builder, previews at <slug>.demo.codeqlick.com.
+      SITE_BUILDER_URL: http://site-builder:4100
+      SITE_BUILDER_TOKEN: ${SITE_BUILDER_TOKEN}
+      SITES_PREVIEW_DOMAIN: ${SITES_PREVIEW_DOMAIN:-demo.codeqlick.com}
     volumes:
       - uploads-data:/app/uploads
     ports:
@@ -111,6 +115,21 @@ services:
       LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
     ports:
       - "127.0.0.1:${WEB_PORT:-3010}:3000"
+
+  # Builds the managed client sites (codeqlick-sites) into /srv/codeqlick/sites/<slug>, where the
+  # host's Nginx serves them. Internal only: the API calls it inside the Docker network. It runs as
+  # the deploy user so the releases it writes belong to them (deploy/sites/sync-sites.sh).
+  site-builder:
+    build: ./codeqlick-sites
+    restart: unless-stopped
+    user: "${SITES_USER:?set SITES_USER in .env (the deploy user's uid:gid)}"
+    environment:
+      SITE_BUILDER_TOKEN: ${SITE_BUILDER_TOKEN:?set SITE_BUILDER_TOKEN in .env}
+      SITES_DIR: /srv/codeqlick/sites
+      UPLOADS_DIR: /uploads
+    volumes:
+      - /srv/codeqlick/sites:/srv/codeqlick/sites
+      - uploads-data:/uploads:ro
 
   # Cookieless analytics (Umami), with its own database. The site reaches it inside the Docker
   # network; its dashboard listens on 127.0.0.1 only (Nginx site or an SSH tunnel).

@@ -1,0 +1,49 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { site } from '../lib/site';
+
+const { legal } = site;
+const domain = new URL(site.url).host;
+---
+
+<Legal title="Aviso legal">
+  <p>
+    En cumplimiento del artículo 10 de la Ley 34/2002, de servicios de la sociedad de la información
+    y de comercio electrónico (LSSI-CE), estos son los datos del titular de {domain}:
+  </p>
+  <ul>
+    <li>Titular: {legal.owner}</li>
+    <li>NIF: {legal.taxId}</li>
+    <li>Domicilio: {legal.address}</li>
+    <li>
+      Email: <a href={`mailto:${legal.email}`}>{legal.email}</a>
+    </li>
+    {legal.registry ? <li>{legal.registry}</li> : null}
+  </ul>
+
+  <h2>Uso de la web</h2>
+  <p>
+    Quien visita esta web se compromete a usarla de forma lícita y a no dañar su funcionamiento ni
+    el de los equipos de otras personas. La información que contiene es orientativa: los precios y
+    horarios pueden cambiar, y lo que confirmemos por teléfono o por escrito es lo que vale.
+  </p>
+
+  <h2>Propiedad intelectual</h2>
+  <p>
+    Los textos, fotos, logotipos y el diseño de esta web pertenecen a {legal.owner} o se usan con
+    permiso de sus autores. No se pueden copiar ni reutilizar sin autorización, salvo para uso
+    personal.
+  </p>
+
+  <h2>Enlaces</h2>
+  <p>
+    Esta web enlaza a servicios de terceros (mapas, redes sociales, WhatsApp). No somos responsables
+    de su contenido ni de cómo tratan tus datos: consulta sus propias condiciones.
+  </p>
+
+  <h2>Legislación aplicable</h2>
+  <p>
+    Este aviso se rige por la legislación española. Para cualquier conflicto, las partes se someten
+    a los juzgados y tribunales que correspondan según la ley.
+  </p>
+</Legal>
