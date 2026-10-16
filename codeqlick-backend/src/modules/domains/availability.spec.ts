@@ -10,8 +10,8 @@ describe('toLabel', () => {
 describe('candidatesOf', () => {
   it('checks a label in each offered TLD', () => {
     expect(candidatesOf('Peluquería Ana')).toEqual([
-      'peluqueria-ana.es',
       'peluqueria-ana.com',
+      'peluqueria-ana.es',
       'peluqueria-ana.eu',
     ]);
   });
@@ -21,7 +21,7 @@ describe('candidatesOf', () => {
       'casalola.es',
       'casalola.eu',
     ]);
-    expect(candidatesOf('fisio.cat')).toEqual(['fisio.cat', 'fisio.es', 'fisio.com', 'fisio.eu']);
+    expect(candidatesOf('fisio.cat')).toEqual(['fisio.cat', 'fisio.com', 'fisio.es', 'fisio.eu']);
   });
   it('refuses what has no usable label', () => {
     expect(candidatesOf('---')).toBeNull();
