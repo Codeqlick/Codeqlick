@@ -14,6 +14,9 @@ flowchart LR
   A --> P[("PostgreSQL 18")]
   A --> M["SMTP (OVH)"]
   N2["Nginx<br>api.codeqlick.com"] --> A
+  W -->|"/api/stats"| U["Umami<br>(analytics)"]
+  N3["Nginx<br>client sites"] --> S["Static files<br>/srv/codeqlick/sites"]
+  S -.->|"contact form"| N2
 ```
 
 Two independent deployables in one repository:
@@ -21,7 +24,9 @@ Two independent deployables in one repository:
 | Directory | What it is | Runs on |
 |---|---|---|
 | `codeqlick-frontend/` | Public website (EN/ES), blog, portfolio, contact form, client portal and admin panel | Node 24, port 3000 |
-| `codeqlick-backend/` | REST API: auth, leads, blog, portfolio, client projects, users | Node 24, port 4000 |
+| `codeqlick-backend/` | REST API: auth, leads, blog, portfolio, client projects (updates, files, tasks, hours, briefs, reviews, access, monitoring), proposals, support, bookings, settings, users | Node 24, port 4000 |
+
+Client websites hosted by Codeqlick are static sites next to them (section 8.2).
 
 They share **no code**. The contract between them is the HTTP API (section 5), documented live with OpenAPI at `/docs` in non-production environments.
 
@@ -67,7 +72,7 @@ They share **no code**. The contract between them is the HTTP API (section 5), d
 
 ```
 src/
-  main.ts                    Bootstrap: helmet, CORS, cookie parser, global pipe/filter, Swagger, shutdown hooks
+  main.ts                    Bootstrap: app.setup.ts (helmet, CORS, global pipe/filter, shutdown hooks), Swagger outside production
   app.module.ts              Wires all modules, global guards (throttler, JWT auth, roles)
   config/
     env.schema.ts            Zod schema for process.env
@@ -82,7 +87,9 @@ src/
   generated/prisma/          Prisma client output (git-ignored, created by `prisma generate`)
   modules/
     health/
-    auth/                    login, refresh (rotation + reuse detection), logout, me
+    auth/                    login, refresh (rotation + reuse detection), logout, me, two-step verification, sessions
+    accounts/                Client companies: `accountOf()` and the people of an account
+    activity/                The activity log (who changed what)
     users/                   Admin management of admin/client accounts
     mail/                    MailService abstraction over Nodemailer; email-layout.ts renders every email as plain text plus branded HTML
     leads/                   Public contact form + admin pipeline
@@ -101,6 +108,8 @@ src/
     proposals/               Proposals and quotes: drafted and sent from the admin panel, accepted or declined in the portal
     support/                 Support requests: clients open and answer them in the portal, the team in the admin panel
     media/                   Image uploads (admin) stored on disk and served publicly
+    saved-replies/           Reusable texts for lead replies and project comments
+    stats/                   Admin dashboard numbers and the public site's visits (Umami)
 prisma/
   schema.prisma
   migrations/
@@ -196,8 +205,6 @@ sequenceDiagram
 - **Access token:** JWT (HS256), 15 minutes, claims `sub`, `role`, `email`, `name` and `sid` (the session's `familyId`, which marks the current device in the sessions list).
 - **Refresh token:** 48 random bytes, base64url, 30 days. Only its SHA-256 hash is stored. Each refresh **rotates** the token (old one revoked, `replacedById` set). Presenting an already-rotated token is treated as theft: the whole `familyId` is revoked.
 - **Logout** revokes the current session.
-- **Lead board** (`/admin/leads/board`): the six stages as columns, each with a line on what it means (spam stays in the list). Cards show a lost lead's reason and flag a follow-up date that has arrived, the 50 most recent leads per column. Cards move by drag and drop or with their "Move to" menu (keyboard and touch); the change shows at once (`useOptimistic`) and a Server Action PATCHes the lead. Each column's header counts the open leads whose follow-up date has arrived ("N por seguir hoy").
-- **Weekly summary** (clients): `WeeklyDigestService` checks every hour, in the API process. It sends this week's summary to every active client with `weeklyDigest` whose `lastDigestAt` is before this week's Monday 08:00 Madrid time, so a restart or a missed Monday neither skips nor repeats it. For each project the email lists the updates and completed milestones of the last 7 days, updates waiting for approval and the next milestone. A week with nothing to tell sends nothing, but still counts as done. Clients turn it off in their account (`PATCH /auth/preferences`) and admins on the user page, which also has a "send now" button (`POST /admin/projects/weekly-digest/:clientId` → `{ sent }`, or `{ sent: false, reason: 'no-news' }`). Off in tests.
 - **Two-step verification required for admins** (`ADMIN_TWO_FACTOR_REQUIRED`, true in production): `RolesGuard` refuses admin routes with 403 `Two-step verification is required for admin accounts` while the admin's account has no TOTP (read from the database, so turning it on takes effect at once). Account routes (`/auth/*`) carry no `@Roles`, so the setup still works. `GET /auth/2fa` reports `required`, and turning it off is refused (409). The admin layout then shows only the account page with a notice, and `apiFetch` sends that 403 to it.
 - **Sessions list:** a session (device) is a `familyId`; its live row (the latest rotation) gives the browser, the IP and the last activity. Signing a device out revokes its family; it stays in until its access token expires (15 minutes at most). A refresh token whose row was revoked without a replacement (signed out) is rejected without the reuse alarm.
 - **Cleanup:** sessions and password reset tokens are deleted 30 days after they expire (the API checks twice a day). The 30 days keep reuse detection working for a rotated token that comes back shortly after expiring.
@@ -232,8 +239,21 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `MAIL_FROM` | `Codeqlick <hello@codeqlick.com>` | |
 | `LEADS_NOTIFY_TO` | `hello@codeqlick.com` | Where new leads are emailed |
 | `UPLOADS_DIR` | `./uploads` | Folder for uploaded images (a Docker volume in production) |
+| `ADMIN_TWO_FACTOR_REQUIRED` | `true` | Admins must have two-step verification to use admin routes (true in production) |
+| `UMAMI_URL` / `UMAMI_WEBSITE_ID` / `UMAMI_USERNAME` / `UMAMI_PASSWORD` | `http://umami:3000` | Umami's API inside the Docker network, for the dashboard's visits (`/admin/stats/visits`); off without them |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | | Only used by `prisma db seed` |
 | `LOG_LEVEL` | `info` | |
+
+### 4.6 Background work
+
+Scheduled work runs inside the API process (timers that start on boot, off when `NODE_ENV=test`); nothing else needs a scheduler:
+
+- **Uptime monitoring** of client sites every 5 minutes (`MonitoringService`, see SiteMonitor).
+- **Session and reset-token cleanup** twice a day (`TokenCleanupService`).
+- **Weekly summary** (clients): `WeeklyDigestService` checks every hour, in the API process. It sends this week's summary to every active client with `weeklyDigest` whose `lastDigestAt` is before this week's Monday 08:00 Madrid time, so a restart or a missed Monday neither skips nor repeats it. For each project the email lists the updates and completed milestones of the last 7 days, updates waiting for approval and the next milestone. A week with nothing to tell sends nothing, but still counts as done. Clients turn it off in their account (`PATCH /auth/preferences`) and admins on the user page, which also has a "send now" button (`POST /admin/projects/weekly-digest/:clientId` → `{ sent }`, or `{ sent: false, reason: 'no-news' }`). Off in tests.
+- **Scheduled posts and case studies** need no job: they are hidden until their `publishedAt` (see Scheduling).
+
+On the host, `deploy/monitor/monitor.sh` (cron, every 5 minutes) watches the server and the stack, and the `backup` container dumps the database daily (section 8).
 
 ## 5. API contract (v1)
 
@@ -362,7 +382,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | PATCH / DELETE | `/admin/saved-replies/:id` | `{ title?, body? }` / `204` |
 | POST | `/admin/projects/weekly-digest/:clientId` | Sends that client's weekly summary now → `{ sent: true }`, or `{ sent: false, reason: 'no-news' }` |
 | GET | `/admin/stats/visits` | `?days=7|30|90` (default 30) → `SiteVisits`: the public site's numbers from Umami (visitors, visits, page views, bounce rate, average visit, visitors in the previous period, daily series in Madrid days, top pages, referrers, countries and `contact-sent` events). `enabled: false` without `UMAMI_URL`, `UMAMI_WEBSITE_ID` and `UMAMI_PASSWORD`; `available: false` when Umami doesn't answer |
-| GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|tag|account&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
+| GET | `/admin/activity` | `?targetType=post|portfolio|project|lead|user|media|tag|account|support|proposal|settings|booking&page&pageSize` → `Paginated<ActivityEntry>`: `{ id, action, actor: { id, name }, target: { type, id, label }, details, createdAt }`, newest first |
 | GET | `/admin/leads` | `?status&q&page&pageSize` |
 | GET | `/admin/leads/export.csv` | `?status&q` (same filters as the list) → `text/csv` attachment with every match, newest first, up to 10,000 rows. UTF-8 with BOM; cells that start like a formula get a leading `'` |
 | GET / PATCH | `/admin/leads/:id` | PATCH `{ status?, notes? }` |
@@ -479,6 +499,8 @@ src/
         work/ work/[slug]/     Portfolio; work/[slug]/og: the case study's social preview image
         about/                 Who is behind Codeqlick (from the company overview in the Notion wiki)
         legal/ privacy/        Legal notice and privacy policy (shown once LEGAL_OWNER_NAME is set)
+        book/                  Book a call (free slots, POST /v1/bookings) and cancel from the emailed link
+        calculator/            Cost calculator (prices from GET /v1/calculator; 404 until published)
         contact/               Contact form (server action → POST /v1/leads). Bots are dropped silently: a
                                honeypot field, and submissions made less than 3 s after the form was served
         not-found.tsx          Boundary for notFound() in site pages (unknown post or case study). Next.js 16.4
@@ -486,8 +508,11 @@ src/
       login/
       forgot-password/         Asks for a reset email
       reset-password/          Landing page of the emailed link: choose a new password (worded as a first password with `welcome=1`)
-      portal/                  Client area (role CLIENT or ADMIN): projects, proposals, support requests, account
-      admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, recent activity), leads, proposals, support, hours, posts, portfolio, projects, media, users, activity, account;
+      portal/                  Client area (role CLIENT or ADMIN): projects (updates, timeline, files, tasks, hours and plan,
+                               brief, review, shared access, site status), proposals, support requests, account
+      admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, visits, recent activity), leads
+                               (list and board), proposals, support, hours and plans, drafts to review, bookings, calculator,
+                               monitoring, saved replies, posts, tags, portfolio, projects, media, users, activity, account;
                                posts and portfolio items have a preview page that renders the saved draft; Markdown
                                fields (post and case-study content, project description and updates) have a live
                                preview next to the editor (MarkdownField, client-side, same renderer as the site)
@@ -504,9 +529,10 @@ src/
   lib/
     api/client.ts              Typed fetch wrapper (server-only): base URL, auth header, problem+json errors
     api/types.ts               Types from the API contract (section 5)
-    api/*.ts                   One file per resource: posts, portfolio, leads, projects (updates, releases, files, hours), proposals, support, users, auth, stats
+    api/*.ts                   One file per resource (posts, portfolio, leads, projects, proposals, support, bookings, calculator,
+                               briefs, reviews, credentials, monitoring, site-forms, tasks, time, plans, users, auth, stats…)
     auth/session.ts            Cookie names, read/write tokens, getCurrentUser(), requireRole()
-    env.ts                     Server env validated with Zod (API_URL, SITE_URL)
+    env.ts                     Server env validated with Zod (API_URL, SITE_URL, PUBLIC_API_URL, UMAMI_*, LEGAL_OWNER_*)
   styles/
     tokens.css                 Brand tokens (colors, type, spacing, radius)
     globals.css
@@ -523,6 +549,7 @@ src/
 - **Project files:** uploads are a plain multipart form posted to the route handler `/[locale]/admin/projects/[id]/files`, which checks the origin and streams the body to `POST /v1/admin/projects/:id/files` without buffering it (Server Actions cap bodies at 6 MB). Downloads go through `/[locale]/portal/projects/[id]/files/[fileId]`, which streams the API response. Support request files work the same way through `/[locale]/portal/support/[id]/files` (upload, for the client and the admin page, which adds `?from=admin`) and `/[locale]/portal/support/[id]/files/[fileId]` (download).
 - **Legal pages:** `/[locale]/legal` (legal notice, LSSI-CE) and `/[locale]/privacy` (GDPR, cookies), written in `src/content/legal` for a private individual as owner. They render, and the footer, sitemap and contact form link to them, only when `LEGAL_OWNER_NAME` is set (`LEGAL_OWNER_TAX_ID` and `LEGAL_OWNER_ADDRESS` are optional); otherwise they are a 404.
 - **FAQ:** `components/content/Faq` renders questions from messages (`Faq.items`) as `<details>` (no script) with `FAQPage` structured data: all of them on /services, five on /contact. Answers follow the wiki's Client Engagement and Services pages; there are no prices or durations, because those depend on each proposal.
+- **Lead board** (`/[locale]/admin/leads/board`): the six stages as columns, each with a line on what it means (spam stays in the list). Cards show a lost lead's reason and flag a follow-up date that has arrived, the 50 most recent leads per column. Cards move by drag and drop or with their "Move to" menu (keyboard and touch); the change shows at once (`useOptimistic`) and a Server Action PATCHes the lead. Each column's header counts the open leads whose follow-up date has arrived ("N por seguir hoy").
 - **Analytics:** Umami (self-hosted, cookieless) when `UMAMI_URL` and `UMAMI_WEBSITE_ID` are set. Only the public site layout loads the tracker, from `/api/stats/script.js`; its events go to `/api/stats/api/send`. A route handler forwards just those two paths to Umami inside the Docker network, with the visitor's IP and User-Agent, so the CSP stays same-origin and Umami is never public. "Do Not Track" is respected. A sent contact form fires the `contact-sent` event.
 - **Social preview images:** a post or case study is shared with its cover. Without one, `og:image` points to `/[locale]/blog/[slug]/og` (or `/work/[slug]/og`), a 1200×630 PNG drawn on request with `next/og` from the title, a label (date or client) and the brand mark, in the brand fonts read from `public/og-fonts/` (WOFF). Pages with neither use `/og-image.png`.
 - **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images.
@@ -549,7 +576,7 @@ src/
 | Local | `docker compose up --build -d`: PostgreSQL, Mailpit, `api` and `web` (the `dev` target of each Dockerfile, source bind-mounted for hot reload) |
 | Production | VPS (OVH): `docker compose -f docker-compose.prod.yml up -d --build` in `/srv/codeqlick`, Nginx in front with Let's Encrypt |
 
-Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept, plus a copy of the uploaded images), `api` (runs `prisma migrate deploy` on start, keeps uploaded images in the `uploads-data` volume) and `web`. Only Nginx is exposed publicly; `api` and `web` bind to `127.0.0.1`. Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
+Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept, plus a copy of the uploaded images), `api` (runs `prisma migrate deploy` on start, keeps uploaded images in the `uploads-data` volume), `web`, and `umami` with its own `umami-db` (analytics; dashboard at stats.codeqlick.com). Only Nginx is exposed publicly; the services bind to `127.0.0.1`. Merging to `main` deploys on its own once the commit's CI passes (`.github/workflows/deploy.yml`). Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
 
 ### 8.1 Releases from client projects' pipelines
 
@@ -584,10 +611,12 @@ published at `<demo>.demo.codeqlick.com`. Details in `deploy/README.md`.
 
 Each app has its own workflow, triggered by changes in its folder:
 
-- **Backend:** install → `prisma generate` → lint → typecheck → unit tests → e2e tests against a PostgreSQL service → build.
-- **Frontend:** install → lint → typecheck → build.
+- **Backend:** install → `prisma generate` → lint → format check → typecheck → unit tests → migrations and e2e tests against a PostgreSQL service → build.
+- **Frontend:** install → lint → format check → typecheck → unit tests → build.
+- **E2E:** the whole stack built from the commit, then Playwright browser tests.
+- **Deploy:** after all of a commit's CI on `main` has passed, runs `deploy/ci-deploy.sh` on the server.
 
-A pull request can't be merged unless both pass.
+Changes that touch neither app (only `deploy/` or docs) run no CI and aren't deployed on their own.
 
 ## 10. Decisions log
 
@@ -603,3 +632,98 @@ A pull request can't be merged unless both pass.
 | 8 | CSS Modules + tokens over a CSS framework | Small surface, no runtime, brand-driven design |
 | 9 | Markdown content stored in PostgreSQL | Simple authoring, versionable later, no external CMS |
 | 10 | Uploaded images on the API's disk, not in object storage | One VPS and few files: a Docker volume is enough and adds no service or credentials; the URL shape (`/media/<filename>`) would survive a later move |
+| 11 | Managed basic websites are built on the server from content in the database | Clients edit their own site from the portal and it republishes in seconds; one shared template keeps 200 € sites maintainable. Custom sites keep their own repository (`deploy/sites/publish-site.sh`) |
+| 12 | The basic-website template lives in this repository (`codeqlick-sites/web-basica`) | The builder image needs it and every managed site must build from the same version; no extra repository credentials on the server |
+| 13 | The public website request takes no photos | Anonymous uploads invite abuse; photos come later through the client portal, where the person has an account |
+| 14 | Domain expiry: RDAP when the registry offers it, a date typed by the team otherwise | `.es` has no public RDAP or WHOIS; most other TLDs do |
+
+## 11. Planned: basic websites end to end
+
+Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
+above (data model, API contract, frontend) when it ships.
+
+### 11.1 Proposal templates (admin)
+
+- **ProposalTemplate** — `name` (unique), `title`, `summary`, `terms?`, `validDays?`, `items`
+  (JSON `[{ description, quantity, unitPrice }]`, cents).
+- `GET/POST /admin/proposal-templates`, `PUT/DELETE /admin/proposal-templates/:id`,
+  `POST /admin/proposals/:id/template { name }` (saves a proposal as a template, replacing one with
+  the same name).
+- Admin → Propuestas → Nueva: "Empezar desde una plantilla" fills the form (`?template=<id>`;
+  `validUntil` = today + `validDays`). A proposal's page has "Guardar como plantilla". The
+  proposals list shows the templates with a delete button. Production gets a "Web básica" template.
+
+### 11.2 Basic website page (public)
+
+`/[locale]/basic-website`: what it is, the price ("desde 200 €", in the messages files), what is
+included and what is an extra, the three demos (cover, link to `<demo>.demo.codeqlick.com`),
+how it works (request → preview → changes → live), FAQ, and the button to request it (11.4).
+Linked from the services page and the footer; in the sitemap.
+
+### 11.3 Managed sites (platform, admin)
+
+- The template moves to `codeqlick-sites/web-basica` (decision 12); the `Codeqlick/web-basica`
+  repository is archived once the owner agrees. Its demos stay in `examples/` and double as presets.
+- **site-builder** — a new internal service in both compose files (Node 24 + the template). Not
+  published to the host. `POST /build` with `Authorization: Bearer $SITE_BUILDER_TOKEN` and
+  `{ slug, domains, content, images: [{ file, from: 'preset' | 'media', path }] }`: writes the
+  content as `site.ts`, copies the images (presets from the image, media from the uploads volume,
+  read-only), runs `astro build`, writes `/srv/codeqlick/sites/<slug>/releases/<ts>`, swaps
+  `current`, keeps 5 releases and writes `domains` (one per line). One build at a time; answers
+  `{ ok, release, ms }` or `{ ok: false, error }` (the build log tail).
+- **ManagedSite** — `projectId` (unique), `slug` (unique, `[a-z0-9-]`), `preset`, `content`
+  (JSON, the template's `Site` type, validated by a Zod mirror in the API), `domain?` (the client's
+  own), `status` (`BUILDING`, `LIVE`, `FAILED`), `lastBuildAt`, `lastBuildError`, `release`.
+  **ManagedSiteRevision** — `siteId`, `content`, `authorId?`, `createdAt`; the last 20 are kept.
+- Every site has a preview at `<slug>.demo.codeqlick.com`; with `domain` it is also served there
+  (`www.<domain>` redirects). The project's `stagingUrl` is the preview, `productionUrl` the
+  domain (or the preview until there is one).
+- Host side: `deploy/sites/sync-sites.sh`, in the deploy user's crontab every minute, publishes
+  through `sudo cq-site add` every domain in `sites/*/domains` that isn't served yet and points
+  at the server (it retries until DNS is ready).
+- Admin: `GET /admin/sites`, `GET/PUT /admin/projects/:id/site` (full content), `POST
+  /admin/projects/:id/site/build`, `GET /admin/projects/:id/site/revisions`, `POST
+  /admin/projects/:id/site/revisions/:revisionId/restore`. Project page panel "Web gestionada":
+  status, links, last build, content editor (JSON with validation errors), revisions.
+
+### 11.4 One-step onboarding (admin)
+
+`POST /admin/sites/onboard { name, email, company?, businessName, slug, preset, domain?, leadId? }`
+does, in order: the client account (existing one by email, or a new one with an invitation),
+the project, the managed site (preset content with the business name, `demo: false`, the form key;
+from the lead's request when `leadId` has one), the site form (to the client's email), the uptime
+monitor, the visits website (11.6) and the first build; with `leadId`, the lead becomes WON and
+linked to the project. Admin → Webs → "Nueva web básica", and a button on a lead that has a website
+request. Answers the project id; each step is logged in the activity.
+
+### 11.5 Clients edit their site (portal)
+
+- `GET /portal/projects/:id/site` → the editable part: business tagline, contact (phone,
+  WhatsApp, email, address), hours, services (name, description, price), hero texts, about
+  paragraphs, gallery photos (with their descriptions), testimonials. `PUT` the same shape →
+  a revision, merged into the content, built; answers the site with its status.
+- `POST /portal/projects/:id/site/images` (JPG/PNG/WebP up to 8 MB, 20/hour) → a media file name
+  the content can use. Only for the client's own managed site; admins too.
+- Portal → project → "Tu web": a structured form (no JSON) with "Guardar y publicar", the build
+  status and the link. The team is emailed a summary of each change.
+
+### 11.6 Visits (portal)
+
+- Umami (already running, cookieless) gets a website per managed site, created by the API through
+  Umami's API on the internal network (`UMAMI_API_URL`, `UMAMI_USERNAME`, `UMAMI_PASSWORD`); its id
+  is stored on the managed site and the builder adds the tracker
+  (`https://stats.codeqlick.com/script.js`). The template's privacy page mentions it.
+- **SiteFormDay** — `formId`, `day` (Madrid), `count`: messages per day of a site form.
+- `GET /portal/projects/:id/visits?days=30` → `{ visitors, pageviews, days: [{ day, visitors,
+  messages }], referrers: [{ source, visitors }] }` (also under `/admin`). Portal → project →
+  "Visitas de tu web".
+
+### 11.7 Domain renewal (portal, admin)
+
+- **ClientProject** gains `domainName?`, `domainExpiresAt?`, `domainSource` (`RDAP` | `MANUAL`),
+  `domainCheckedAt?`, `domainWarnedFor?`.
+- A daily job asks RDAP (`https://rdap.org/domain/<name>`) for domains with source `RDAP`; for
+  `.es` and other TLDs without RDAP the team types the date (decision 14). 30 and 7 days before,
+  the team and the client are emailed (once per date and threshold).
+- Admin → project: domain and expiry fields. The portal shows "Tu dominio caduca el …".
+
