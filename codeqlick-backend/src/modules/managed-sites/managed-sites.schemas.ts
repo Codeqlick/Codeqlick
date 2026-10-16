@@ -208,3 +208,26 @@ export const onboardSiteSchema = z
   })
   .strict();
 export type OnboardSiteInput = z.infer<typeof onboardSiteSchema>;
+
+const shape = siteContentSchema.shape;
+
+/**
+ * What clients edit from the portal (architecture 11.5): texts, contact, hours, services,
+ * reviews and photos. Brand, theme and legal data stay with the team.
+ */
+export const editableSiteSchema = z
+  .object({
+    tagline: z.string().trim().max(80).optional(),
+    contact: shape.contact,
+    hours: shape.hours,
+    hero: z.object({ title: text(120), text: text(400) }).strict(),
+    services: shape.services,
+    about: z
+      .object({ title: text(120), paragraphs: z.array(text(1200)).min(1).max(6) })
+      .strict()
+      .optional(),
+    gallery: shape.gallery,
+    testimonials: shape.testimonials,
+  })
+  .strict();
+export type EditableSite = z.infer<typeof editableSiteSchema>;
