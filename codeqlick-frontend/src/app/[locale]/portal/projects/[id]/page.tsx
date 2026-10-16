@@ -18,6 +18,7 @@ import { listMyProjectTasks } from '@/lib/api/tasks';
 import { getMyBrief } from '@/lib/api/briefs';
 import { getMyProjectStatus } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
+import { getMyReview } from '@/lib/api/reviews';
 import { SharedAccessList } from '@/components/app/SharedAccessList';
 import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -59,6 +60,8 @@ export default async function PortalProjectPage({
   const siteStatus = await getMyProjectStatus(project.id).catch(() => undefined);
   const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
   const access = await listAccess(project.id).catch(() => []);
+  const review = await getMyReview(project.id).catch(() => undefined);
+  const trev = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
   const tco = await getTranslations({ locale, namespace: 'Common' });
   const tbr = await getTranslations({ locale, namespace: 'Brief' });
@@ -82,6 +85,13 @@ export default async function PortalProjectPage({
           </Button>
         }
       />
+
+      {review?.status === 'REQUESTED' ? (
+        <Alert tone="info">
+          <strong>{trev('bannerTitle')}</strong> {trev('bannerBody')}{' '}
+          <Link href={`/portal/projects/${project.id}/review`}>{trev('bannerLink')}</Link>
+        </Alert>
+      ) : null}
 
       {brief?.status === 'REQUESTED' ? (
         <Alert tone="info">

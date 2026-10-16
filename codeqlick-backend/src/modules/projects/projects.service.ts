@@ -29,6 +29,7 @@ import {
   type UpdateWithAuthor,
 } from './projects.repository.js';
 import { AccountsService, type AccountPerson } from '../accounts/accounts.service.js';
+import { ReviewsService } from '../reviews/reviews.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import {
@@ -254,6 +255,7 @@ export class ProjectsService {
     private readonly storage: ProjectFilesStorage,
     private readonly activity: ActivityService,
     private readonly accounts: AccountsService,
+    private readonly reviews: ReviewsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
   ) {}
@@ -347,6 +349,8 @@ export class ProjectsService {
       targetLabel: project.name,
       details: Object.keys(details).length > 0 ? details : undefined,
     });
+    // Launched: time to ask the client how it went (once per project).
+    if (details.phase === 'LAUNCHED') await this.reviews.request(actor, id);
     return toView(project);
   }
 
