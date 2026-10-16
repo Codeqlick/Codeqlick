@@ -2251,5 +2251,20 @@
     "sentTitle": "Received!",
     "sentBody": "Thank you. We'll write to you within two business days with a first proposal for your website.",
     "back": "Back to the basic website"
+  },
+  "ProjectVisits": {
+    "title": "Your website's visits",
+    "lead": "The last 30 days.",
+    "notYet": "The statistics show up once the website gets its first visits.",
+    "unavailable": "We can't read the statistics right now. Try again later.",
+    "visitors": "Visitors",
+    "pageviews": "Page views",
+    "messages": "Form messages",
+    "chart": "Visitors per day, last {days} days",
+    "day": "Day",
+    "sources": "Where they come from",
+    "direct": "Direct or unknown",
+    "visitorsCount": "{count, plural, one {# visitor} other {# visitors}}",
+    "privacy": "No cookies and no personal data: we count visits, not people."
   }
 }

@@ -98,6 +98,18 @@ export class AppConfigService {
     return this.get('PUBLIC_API_URL').replace(/\/+$/, '');
   }
 
+  /** Umami's API without a website (managed client sites have their own); undefined when off. */
+  get umamiApi(): { url: string; username: string; password: string } | undefined {
+    const url = this.get('UMAMI_URL');
+    const password = this.get('UMAMI_PASSWORD');
+    if (!url || !password) return undefined;
+    return { url: url.replace(/\/+$/, ''), username: this.get('UMAMI_USERNAME'), password };
+  }
+
+  get umamiScriptUrl(): string {
+    return this.get('UMAMI_SCRIPT_URL');
+  }
+
   /** Umami's API and the site's id in it; undefined while analytics isn't set up. */
   get umami(): { url: string; websiteId: string; username: string; password: string } | undefined {
     const url = this.get('UMAMI_URL');

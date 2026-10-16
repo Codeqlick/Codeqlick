@@ -119,4 +119,9 @@ export interface Site {
   };
   /** Shown in the footer, e.g. photo credits of a demo. */
   footerNote?: string;
+  /**
+   * Cookieless visit statistics (Umami). Set by the site builder for managed sites; the privacy
+   * and cookie pages mention it when present.
+   */
+  analytics?: { websiteId: string; scriptUrl: string };
 }

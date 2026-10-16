@@ -46,6 +46,8 @@ import { checkNowAction, setMonitorAction } from '../monitor-actions';
 import { adminGetSiteForm } from '@/lib/api/site-forms';
 import { adminGetSite, adminSiteRevisions } from '@/lib/api/managed-sites';
 import { ManagedSitePanel } from '@/components/app/ManagedSitePanel';
+import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
+import { getProjectVisits } from '@/lib/api/portal-site';
 import { replaceSiteFormKeyAction, saveSiteFormAction } from '../form-actions';
 import { BriefSummary } from '@/components/app/BriefSummary';
 import { requestBriefAction } from '../brief-actions';
@@ -116,6 +118,10 @@ export default async function EditProjectPage({
     ]);
   const site = 'slug' in managedSite ? managedSite : null;
   const siteRevisions = site ? await adminSiteRevisions(project.id) : [];
+  const siteVisits = site
+    ? await getProjectVisits(project.id, 30, 'admin').catch(() => undefined)
+    : undefined;
+  const tvis = await getTranslations({ locale, namespace: 'ProjectVisits' });
   const tms = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trv = await getTranslations({ locale, namespace: 'Review' });
@@ -329,6 +335,12 @@ export default async function EditProjectPage({
           site={site}
           revisions={siteRevisions}
         />
+        {siteVisits ? (
+          <>
+            <h3 className={styles.panelTitle}>{tvis('title')}</h3>
+            <ProjectVisitsPanel visits={siteVisits} locale={locale} />
+          </>
+        ) : null}
       </section>
 
       <section className={styles.panel} id="site-form" aria-labelledby="site-form-heading">

@@ -19,7 +19,8 @@ import { getMyBrief } from '@/lib/api/briefs';
 import { getMyProjectStatus } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
 import { getMyReview } from '@/lib/api/reviews';
-import { getMySite } from '@/lib/api/portal-site';
+import { getMySite, getProjectVisits } from '@/lib/api/portal-site';
+import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
 import { getMyPlan } from '@/lib/api/plans';
 import { PlanUsage } from '@/components/app/PlanUsage';
 import { SharedAccessList } from '@/components/app/SharedAccessList';
@@ -68,6 +69,8 @@ export default async function PortalProjectPage({
   const plan = await getMyPlan(project.id).catch(() => undefined);
   // Only for a managed website (404 otherwise).
   const site = await getMySite(project.id).catch(() => undefined);
+  const visits = site ? await getProjectVisits(project.id).catch(() => undefined) : undefined;
+  const tvis = await getTranslations({ locale, namespace: 'ProjectVisits' });
   const tsite = await getTranslations({ locale, namespace: 'PortalSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trev = await getTranslations({ locale, namespace: 'Review' });
@@ -125,6 +128,16 @@ export default async function PortalProjectPage({
               {tsite('cardLink')}
             </Button>
           </div>
+        </section>
+      ) : null}
+
+      {visits ? (
+        <section className={styles.panel} id="visits" aria-labelledby="visits-heading">
+          <h2 id="visits-heading" className={styles.panelTitle}>
+            {tvis('title')}
+          </h2>
+          <p className={styles.muted}>{tvis('lead')}</p>
+          <ProjectVisitsPanel visits={visits} locale={locale} />
         </section>
       ) : null}
 

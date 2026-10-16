@@ -51,6 +51,17 @@ const { legal } = site;
     servicio pertenece a WhatsApp Ireland Limited y se rige por su propia política.
   </p>
 
+  {site.analytics ? (
+    <>
+      <h2>Estadísticas de visitas</h2>
+      <p>
+        Contamos las visitas a la web de forma agregada (páginas vistas, de dónde llegan, el tipo de
+        dispositivo) con una herramienta propia que no usa cookies ni guarda tu dirección IP. No
+        sirve para identificarte.
+      </p>
+    </>
+  ) : null}
+
   <h2>Tus derechos</h2>
   <p>
     Puedes pedirnos acceder a tus datos, corregirlos, borrarlos, oponerte a su tratamiento,
