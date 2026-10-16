@@ -111,13 +111,18 @@ function serviceRow(line: string): { name: string; price?: string } {
 
 /** "Calle Mayor 3, 28013 Madrid" → the parts the template shows. */
 function addressOf(address: string, city: string) {
-  const postalCode = /\b\d{5}\b/.exec(address)?.[0] ?? '';
+  const postalCode = /\b\d{5}\b/.exec(address)?.[0];
   const street = address
-    .replace(postalCode, '')
+    .replace(postalCode ?? '', '')
     .replace(new RegExp(`\\b${city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'), '')
     .replace(/[\s,]+$/, '')
     .trim();
-  return { street: (street || address).slice(0, 120), postalCode, city, region: city };
+  return {
+    street: (street || address).slice(0, 120),
+    ...(postalCode ? { postalCode } : {}),
+    city,
+    region: city,
+  };
 }
 
 /**

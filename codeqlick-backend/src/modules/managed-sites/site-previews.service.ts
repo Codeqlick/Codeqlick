@@ -20,6 +20,11 @@ const DAY_MS = 86_400_000;
 /** Previews a day across all requests: Let's Encrypt allows 50 certificates a week per domain. */
 export const DAILY_PREVIEWS = 10;
 const KEEP_DAYS = 30;
+/** How long the host may take to publish a built preview over HTTPS (sync-sites runs each minute). */
+const LIVE_WAIT_MS = 10 * 60_000;
+const LIVE_POLL_MS = 10_000;
+
+export type PreviewStatus = 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 /** `<business label>-<6 random chars>`, at most 40 characters (the builder's slug rule). */
@@ -87,6 +92,13 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     });
   }
 
+  /** A preview's status, for the waiting page the requester opens; null when there is none. */
+  async status(slug: string): Promise<{ status: PreviewStatus; url: string } | null> {
+    const lead = await this.repository.findBySlug(slug);
+    if (!lead?.previewStatus) return null;
+    return { status: lead.previewStatus as PreviewStatus, url: this.urlOf(slug) };
+  }
+
   /** Takes the lead's preview down (the builder marks it; the host unpublishes it). */
   async remove(leadId: string): Promise<'REMOVED' | null> {
     const lead = await this.repository.find(leadId);
@@ -138,10 +150,27 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
       content: { ...content, url, demo: true, form: { demo: true }, preview: true },
     });
     if (!result.ok) throw new Error(result.error.slice(-500));
+    // Until the host serves it over HTTPS, its address answers with another site of the server.
+    // Only production has a host that publishes it.
+    if (this.config.isProduction && !(await this.waitLive(url)))
+      throw new Error(`${url} not served after the build`);
     await this.repository.update(leadId, { previewStatus: 'READY', previewBuiltAt: new Date() });
     await this.mail
       .send(previewReadyEmail(person, request.business.name, url, this.config.siteUrl))
       .catch((error: unknown) => this.logger.error('Preview email failed', error));
+  }
+
+  /** Whether `url` answers 200 over HTTPS (a valid certificate) within LIVE_WAIT_MS. */
+  async waitLive(url: string): Promise<boolean> {
+    const until = Date.now() + LIVE_WAIT_MS;
+    while (Date.now() < until) {
+      const live = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(10_000) })
+        .then((response) => response.status === 200)
+        .catch(() => false);
+      if (live) return true;
+      await new Promise((resolve) => setTimeout(resolve, LIVE_POLL_MS));
+    }
+    return false;
   }
 }
 

@@ -303,6 +303,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/forms/:key` | A client site's contact form: `{ name, email, phone?, message, website? (honeypot), redirect? }`, urlencoded (a plain HTML form) or JSON | Emails the project's `recipients` (Spanish, reply-to the visitor). A form post is answered `303` to `redirect` or the `Referer` with `form=ok` / `form=error` added, only when that URL is on the project's production or staging origin (else a short page); JSON gets `{ ok }`. `403` when `Origin` is another site; `404` for an unknown or disabled key — limited to 5/min/IP |
 | GET | `/domains/availability?name=` | A label (`peluqueria-ana`, accents and spaces become dashes) or a domain | `{ results: [{ domain, available: true \| false \| null }] }`: a label in `.com`, `.es` and `.eu`; a domain first, then its label in the other two. OVH's order API answers when its keys are set; otherwise RDAP (404 free, 200 taken; `null` when unknown, e.g. `.es`). Cached 10 min, 400 without a usable label, limited to 20/min/IP |
 | POST | `/site-requests` | The basic-website request: `{ preset, business: { name, kind, city, address?, phone?, whatsapp?, email?, hours? (a line per slot, "Days: hours"), services? (a line each, "Service — price"), about? }, domain?: { name, owned }, name, email, locale, website? (honeypot) }` | `201 { id, previewUrl? }`: a lead (`projectType: web`, `company` = the business, the message a readable summary with the preview's address) keeping `siteRequest` (with the domain they want, `owned: false`, or have); onboarding pre-fills the site's domain with it; the usual lead emails. No photos (decision 13). Limited to 3/min/IP. Onboarding with that lead fills the site from it: business name and tagline, contact, address, hours, services and about, `schemaType: LocalBusiness`; the preset's made-up services, reviews and facts are dropped |
+| GET | `/site-requests/previews/:slug` | Public: whether a request's preview is online → `{ status, url }`; 404 when there is none. Limited to 30/min/IP |
 | GET | `/calculator` | The calculator's prices (`Setting` `calculator`) once published; `404` until then | |
 | POST | `/drafts` | `Authorization: Bearer <release key>` + `{ title, body, version?, environment? (required with a version), url? }` | `201 UpdateDraft` (`{ id, project: { id, name }, title, body, version, environment, url, createdAt }`); the team inbox is emailed a link to review it. Same key rules and limit as `/releases` |
 | POST | `/releases` | `Authorization: Bearer <release key>` + the body of `POST /admin/projects/:id/releases` | `201` release on the key's project, posted as "Despliegue automático" (shown as Codeqlick); `401` for a missing, unknown or revoked key — limited to 20/min/IP. For deploy pipelines: see below |
@@ -669,8 +670,13 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   random chars>`) and, after storing the lead, builds the preset with the request applied in the
   background (`SitePreviewsService`) with `demo: true`, `form: { demo: true }` and `preview: true`
   (the template then puts `noindex` on every page and a bar "Vista previa preparada por Codeqlick ·
-  aún no está publicada"), at `<slug>.<SITES_PREVIEW_DOMAIN>`. Once built the requester is emailed
-  the link; the "sent" page links it at once (`?preview=<slug>`). At most 10 a day across all
+  aún no está publicada"), at `<slug>.<SITES_PREVIEW_DOMAIN>`. Until the host publishes it (about a
+  minute) that address answers with another site of the server, so in production the API waits for
+  it to answer 200 over HTTPS (up to 10 minutes, else `FAILED`) before marking it `READY` and
+  emailing the requester the link. The "sent" page (`?preview=<slug>`) links
+  `/basic-website/request/preview/<slug>`, which asks `GET /site-requests/previews/:slug`, refreshes
+  itself every 10 s while it is `BUILDING` and sends the visitor to the preview once `READY` (and
+  says it isn't available when it failed or was removed). At most 10 a day across all
   requests (more still become leads, without preview). They are taken down after 30 days, or once
   the lead is converted (onboarding does it at once) or marked as spam (a job every 6 hours), and
   from the lead page: the builder's `DELETE /sites/:slug` writes `sites/<slug>/remove`, and

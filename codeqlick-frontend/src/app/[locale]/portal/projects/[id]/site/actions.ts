@@ -92,7 +92,7 @@ export async function saveSiteAction(
       address: street
         ? {
             street,
-            postalCode: text(formData, 'postalCode') ?? '',
+            postalCode: text(formData, 'postalCode'),
             city: text(formData, 'city') ?? '',
             region: text(formData, 'region') ?? '',
           }

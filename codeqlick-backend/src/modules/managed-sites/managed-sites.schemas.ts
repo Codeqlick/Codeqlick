@@ -65,7 +65,8 @@ export const siteContentSchema = z
         address: z
           .object({
             street: text(120),
-            postalCode: text(10),
+            /** Optional: a request may bring an address without one. */
+            postalCode: text(10).optional(),
             city: text(80),
             region: text(80),
           })
