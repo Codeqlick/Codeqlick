@@ -6,6 +6,7 @@ import { ProjectsService } from '../projects/projects.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ManagedSitesRepository } from './managed-sites.repository.js';
 import type { OnboardSiteInput } from './managed-sites.schemas.js';
+import { siteRequestSchema, type SiteRequest } from './site-request.js';
 import { ManagedSitesService, type SiteView } from './managed-sites.service.js';
 
 export interface OnboardResult {
@@ -38,7 +39,13 @@ export class SiteOnboardingService {
 
     let projectId: string;
     let client: OnboardResult['client'];
+    let request: SiteRequest | undefined;
     if (input.leadId) {
+      const lead = await this.leads.get(input.leadId);
+      const stored = siteRequestSchema
+        .pick({ preset: true, business: true })
+        .safeParse(lead.siteRequest);
+      request = stored.success ? stored.data : undefined;
       const converted = await this.leads.convert(actor, input.leadId, {
         projectName: input.businessName,
       });
@@ -60,11 +67,12 @@ export class SiteOnboardingService {
       ).id;
     }
 
-    const site = await this.sites.create(actor, projectId, {
-      slug: input.slug,
-      preset: input.preset,
-      domain: input.domain ?? null,
-    });
+    const site = await this.sites.create(
+      actor,
+      projectId,
+      { slug: input.slug, preset: input.preset, domain: input.domain ?? null },
+      request,
+    );
     // The preview is served within a minute (deploy/sites/sync-sites.sh); a client domain may
     // still lack its DNS record, so its monitor is turned on once it answers.
     const monitoring = !site.domain;
