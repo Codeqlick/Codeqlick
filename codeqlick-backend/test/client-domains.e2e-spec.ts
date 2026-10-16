@@ -64,7 +64,12 @@ describe('Client domains (e2e)', () => {
   const ids: Record<string, string> = {};
   const domain = `marta-${tag}.es`;
   /** What the registry, DNS and HTTPS say about the domain at each step. */
-  const world = { registered: false as boolean | null, addresses: [] as string[], https: false };
+  const world = {
+    registered: false as boolean | null,
+    addresses: [] as string[],
+    https: false,
+    mx: [] as string[],
+  };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -97,7 +102,7 @@ describe('Client domains (e2e)', () => {
       ),
     );
     vi.spyOn(app.get(SiteDomainsService), 'probe').mockImplementation(() =>
-      Promise.resolve({ addresses: world.addresses, https: world.https }),
+      Promise.resolve({ addresses: world.addresses, https: world.https, mx: world.mx }),
     );
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     await prisma.user.create({
@@ -210,14 +215,19 @@ describe('Client domains (e2e)', () => {
     world.registered = true;
     world.addresses = ['213.186.33.5'];
     site = await request(server).post(check).set(adminAuth).expect(200);
-    expect(site.body).toMatchObject({ domainState: 'ELSEWHERE', url: preview });
+    expect(site.body).toMatchObject({ domainState: 'ELSEWHERE', mailState: 'NONE', url: preview });
 
     // It points here and serves HTTPS: the site is rebuilt on its domain and the client told.
     world.addresses = ['54.37.159.171'];
     world.https = true;
+    world.mx = ['mx1.mail.ovh.net.', 'mx2.mail.ovh.net.'];
     const buildsBefore = builds.length;
     site = await request(server).post(check).set(adminAuth).expect(200);
-    expect(site.body).toMatchObject({ domainState: 'LIVE', url: `https://${domain}` });
+    expect(site.body).toMatchObject({
+      domainState: 'LIVE',
+      mailState: 'OVH',
+      url: `https://${domain}`,
+    });
     expect(builds.length).toBe(buildsBefore + 1);
     expect(builds.at(-1)!.content.url).toBe(`https://${domain}`);
     expect(
@@ -233,7 +243,7 @@ describe('Client domains (e2e)', () => {
     expect(builds.length).toBe(buildsBefore + 1);
 
     const own = await request(server).get(portal).set(clientAuth).expect(200);
-    expect(own.body.domain).toMatchObject({ name: domain, state: 'LIVE' });
+    expect(own.body.domain).toMatchObject({ name: domain, state: 'LIVE', mail: 'OVH' });
     expect(own.body.url).toBe(`https://${domain}`);
   });
 });
