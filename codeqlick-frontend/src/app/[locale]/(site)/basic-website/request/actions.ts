@@ -27,6 +27,7 @@ const schema = z.object({
   hours: optional(1000),
   services: optional(3000),
   about: optional(3000),
+  wishes: optional(3000),
   domainChoice: z.enum(['new', 'owned', 'none'], 'choice').catch('none'),
   domainName: optional(253),
   name: required(120),
@@ -89,6 +90,7 @@ export async function submitSiteRequest(
         hours: blank(d.hours),
         services: blank(d.services),
         about: blank(d.about),
+        wishes: blank(d.wishes),
       },
       ...(d.domainChoice === 'none'
         ? {}

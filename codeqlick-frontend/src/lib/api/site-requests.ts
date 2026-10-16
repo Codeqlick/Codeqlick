@@ -15,6 +15,7 @@ export type SiteRequestInput = {
     hours?: string;
     services?: string;
     about?: string;
+    wishes?: string;
   };
   domain?: { name: string; owned: boolean };
   name: string;

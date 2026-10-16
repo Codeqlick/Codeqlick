@@ -1,8 +1,25 @@
 import type { ImageMetadata } from 'astro';
 import site from '@site/site';
-import type { SiteImage } from '../types';
+import type { SectionKey, SiteImage } from '../types';
 
 export { site };
+
+const DEFAULT_ORDER: SectionKey[] = ['services', 'about', 'gallery', 'testimonials'];
+
+const LABELS: Record<SectionKey, string> = {
+  services: 'Servicios',
+  about: 'Sobre nosotros',
+  gallery: 'Galería',
+  testimonials: 'Opiniones',
+};
+
+/** A section's label in the header and above its title ("Trabajos", "Sobre mí"…). */
+export const sectionLabel = (key: SectionKey) => site.navLabels?.[key] ?? LABELS[key];
+
+/** The middle sections the site has, in its order (any it leaves out keep their default place). */
+export const sectionOrder: SectionKey[] = [
+  ...new Set([...(site.sections ?? []), ...DEFAULT_ORDER]),
+].filter((key) => site[key] !== undefined);
 
 const images = import.meta.glob<{ default: ImageMetadata }>(
   '@site/images/*.{jpg,jpeg,png,webp,avif}',

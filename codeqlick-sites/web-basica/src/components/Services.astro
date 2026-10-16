@@ -1,5 +1,5 @@
 ---
-import { site } from '../lib/site';
+import { sectionLabel, site } from '../lib/site';
 
 const services = site.services!;
 ---
@@ -7,7 +7,7 @@ const services = site.services!;
 <section class="section section--alt" id="servicios" aria-labelledby="servicios-title">
   <div class="container">
     <div class="section-head">
-      <p class="eyebrow">Servicios</p>
+      <p class="eyebrow">{sectionLabel('services')}</p>
       <h2 id="servicios-title">{services.title}</h2>
       {services.intro ? <p class="lead">{services.intro}</p> : null}
     </div>
