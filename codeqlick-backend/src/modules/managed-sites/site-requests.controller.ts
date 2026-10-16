@@ -1,10 +1,19 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { randomUUID } from 'node:crypto';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { LeadsService } from '../leads/leads.service.js';
-import { SitePreviewsService } from './site-previews.service.js';
+import { SitePreviewsService, type PreviewStatus } from './site-previews.service.js';
 import { requestSummary, siteRequestSchema, type SiteRequestInput } from './site-request.js';
 
 /** The public basic-website request (architecture 8.2): a lead that keeps the request. */
@@ -51,5 +60,15 @@ export class SiteRequestsController {
       });
     }
     return { id: lead.id, ...(previewUrl ? { previewUrl } : {}) };
+  }
+
+  /** Whether a request's preview is online yet: the page the requester waits on asks this. */
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Get('previews/:slug')
+  async preview(@Param('slug') slug: string): Promise<{ status: PreviewStatus; url: string }> {
+    const found = /^[a-z0-9-]{1,40}$/.test(slug) ? await this.previews.status(slug) : null;
+    if (!found) throw new NotFoundException('Preview not found');
+    return found;
   }
 }

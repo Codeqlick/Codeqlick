@@ -30,5 +30,5 @@ export const whatsappHref = (number: string, text?: string) =>
 
 /** Spanish addresses: "Calle Mayor 3, 28013 Madrid". */
 export function addressLine(address: NonNullable<typeof site.contact.address>): string {
-  return `${address.street}, ${address.postalCode} ${address.city}`;
+  return `${address.street}, ${address.postalCode ? `${address.postalCode} ` : ''}${address.city}`;
 }

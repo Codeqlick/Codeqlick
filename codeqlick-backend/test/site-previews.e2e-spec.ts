@@ -155,6 +155,10 @@ describe('Instant previews of website requests (e2e)', () => {
     );
     expect(email?.to).toBe(client.email);
     expect(email?.text).toContain(created.body.previewUrl);
+    const slug = new URL(created.body.previewUrl as string).hostname.split('.')[0]!;
+    const status = await request(server).get(`/v1/site-requests/previews/${slug}`).expect(200);
+    expect(status.body).toEqual({ status: 'READY', url: created.body.previewUrl });
+    await request(server).get('/v1/site-requests/previews/nope-000000').expect(404);
 
     const auth = {
       Authorization: `Bearer ${(await request(server).post('/v1/auth/login').send(admin).expect(200)).body.accessToken as string}`,
@@ -168,6 +172,44 @@ describe('Instant previews of website requests (e2e)', () => {
       .expect(200);
     expect(gone.body).toEqual({ status: 'REMOVED' });
     expect(removed).toContain(lead.previewSlug);
+  });
+
+  it('builds a request whose address has no postcode, and fails one never served', async () => {
+    const server = app.getHttpServer();
+    const body = requestBody('Barbería Easy');
+    const created = await request(server)
+      .post('/v1/site-requests')
+      .set('X-Forwarded-For', '203.0.113.7')
+      .send({ ...body, business: { ...body.business, address: 'Calle Feria 12' } })
+      .expect(201);
+    await settle();
+    expect(builds.at(-1)!.content).toMatchObject({
+      contact: { address: { street: 'Calle Feria 12', city: 'Sevilla' } },
+    });
+    expect(await prisma.lead.findUniqueOrThrow({ where: { id: created.body.id } })).toMatchObject({
+      previewStatus: 'READY',
+    });
+
+    // In production the link is only sent once the host serves the preview over HTTPS.
+    const config = app.get(AppConfigService);
+    const previews = app.get(SitePreviewsService);
+    const production = vi.spyOn(config, 'isProduction', 'get').mockReturnValue(true);
+    const live = vi.spyOn(previews, 'waitLive').mockResolvedValue(false);
+    const before = sent.length;
+    const never = await request(server)
+      .post('/v1/site-requests')
+      .set('X-Forwarded-For', '203.0.113.8')
+      .send(requestBody('Bar Nunca'))
+      .expect(201);
+    await settle();
+    production.mockRestore();
+    live.mockRestore();
+    expect(await prisma.lead.findUniqueOrThrow({ where: { id: never.body.id } })).toMatchObject({
+      previewStatus: 'FAILED',
+    });
+    expect(
+      sent.slice(before).some((message) => message.subject.startsWith('La vista previa')),
+    ).toBe(false);
   });
 
   it('stops making previews past the daily cap, and takes old ones down', async () => {
