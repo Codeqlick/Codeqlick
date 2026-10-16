@@ -59,7 +59,7 @@ const theme = [
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    {noindex ? <meta name="robots" content="noindex" /> : null}
+    {noindex || site.preview ? <meta name="robots" content="noindex" /> : null}
     <meta name="theme-color" content={site.theme.primary} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -86,6 +86,12 @@ const theme = [
     <a class="skip-link" href="#main">
       Saltar al contenido
     </a>
+    {site.preview ? (
+      <p class="preview-bar">
+        Vista previa preparada por <a href="https://codeqlick.com/es/basic-website">Codeqlick</a> ·
+        aún no está publicada
+      </p>
+    ) : null}
     <Header />
     <main id="main">
       <slot />

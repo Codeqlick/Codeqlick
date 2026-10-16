@@ -5,6 +5,9 @@
 # this server, and retries HTTPS for one that was published over HTTP only. Sites published with
 # publish-site.sh have no `domains` file and are left alone.
 #
+# A site the builder marked with a `remove` file (expired request previews) is unpublished
+# (`cq-site remove` for each of its domains) and its folder deleted.
+#
 # In the deploy user's crontab:  * * * * * /srv/codeqlick/deploy/sites/sync-sites.sh
 set -euo pipefail
 
@@ -13,6 +16,21 @@ LOG="$HOME/.codeqlick-sites.log"
 shopt -s nullglob
 
 ips=$(hostname -I | tr ' ' '\n' | grep . || true)
+listed=$(sudo -n /usr/local/sbin/cq-site list)
+
+for marker in "$ROOT"/*/remove; do
+  dir=$(dirname "$marker")
+  if [[ -f $dir/domains ]]; then
+    while read -r domain; do
+      [[ -n $domain ]] || continue
+      if grep -qxF "$domain" <<<"$listed"; then
+        echo "$(date -Is) remove $domain" >>"$LOG"
+        sudo -n /usr/local/sbin/cq-site remove "$domain" >>"$LOG" 2>&1 || true
+      fi
+    done <"$dir/domains"
+  fi
+  rm -rf -- "$dir"
+done
 listed=$(sudo -n /usr/local/sbin/cq-site list)
 
 for file in "$ROOT"/*/domains; do

@@ -708,7 +708,16 @@
       "followUp": "Follow up on {date}",
       "lostWithoutReason": "No reason",
       "boardFollowUpsDue": "{count} to follow up",
-      "projectType": "Project type"
+      "projectType": "Project type",
+      "previewTitle": "Preview",
+      "previewStatuses": {
+        "BUILDING": "Building",
+        "READY": "Online",
+        "FAILED": "Failed",
+        "REMOVED": "Removed"
+      },
+      "previewRemove": "Remove preview",
+      "previewRemoving": "Removing…"
     },
     "posts": {
       "title": "Posts",
@@ -2317,7 +2326,10 @@
     "domainUnknown": "Unconfirmed",
     "domainUse": "Use this one",
     "domainInvalid": "Type a name with letters, digits or dashes.",
-    "domainFailed": "We could not check it right now; you can send it anyway."
+    "domainFailed": "We could not check it right now; you can send it anyway.",
+    "previewBody": "Meanwhile, we are preparing a preview of your website with what you told us. It will be ready in a minute.",
+    "previewOpen": "Open my preview",
+    "previewHint": "If it doesn’t load yet, wait a moment and try again. We also email you the link."
   },
   "ProjectVisits": {
     "title": "Your website's visits",

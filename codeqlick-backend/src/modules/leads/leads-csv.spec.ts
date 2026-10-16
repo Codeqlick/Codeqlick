@@ -17,6 +17,7 @@ const lead: Lead = {
   followUpOn: null,
   clientId: null,
   siteRequest: null,
+  preview: null,
   createdAt: '2026-10-14T10:00:00.000Z',
   updatedAt: '2026-10-14T10:00:00.000Z',
 };
