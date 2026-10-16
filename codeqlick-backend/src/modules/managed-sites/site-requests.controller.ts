@@ -6,7 +6,7 @@ import { Public } from '../../common/decorators/public.decorator.js';
 import { LeadsService } from '../leads/leads.service.js';
 import { requestSummary, siteRequestSchema, type SiteRequestInput } from './site-request.js';
 
-/** The public basic-website request (architecture 11.5): a lead that keeps the request. */
+/** The public basic-website request (architecture 8.2): a lead that keeps the request. */
 @ApiTags('site-requests')
 @Controller('site-requests')
 export class SiteRequestsController {
@@ -21,7 +21,7 @@ export class SiteRequestsController {
   ): Promise<{ id: string }> {
     // Honeypot hit: pretend success so bots learn nothing.
     if (body.website && body.website.trim() !== '') return { id: randomUUID() };
-    const request = { preset: body.preset, business: body.business };
+    const request = { preset: body.preset, business: body.business, domain: body.domain };
     return this.leads.create(
       {
         name: body.name,

@@ -169,8 +169,8 @@ model Lead {
   followUpOn  DateTime?       @map("follow_up_on") @db.Date
   /// The client account it became ("Convert to client").
   clientId    String?         @map("client_id") @db.Uuid
-  /// A basic-website request from /basic-website/request (architecture 11.5): style, business details.
-  siteRequest Json?       @map("site_request")
+  /// A basic-website request from /basic-website/request (architecture 8.2): style, business details.
+  siteRequest Json?           @map("site_request")
   createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -317,7 +317,7 @@ model ClientProject {
   /// SHA-256 of the project's release key, which a deploy pipeline uses to publish releases.
   releaseTokenHash      String?      @unique @map("release_token_hash")
   releaseTokenCreatedAt DateTime?    @map("release_token_created_at") @db.Timestamptz(3)
-  /// The client's domain whose renewal is watched (architecture 11.7).
+  /// The client's domain whose renewal is watched (architecture 8.2).
   domainName            String?      @map("domain_name")
   domainSource          DomainSource @default(RDAP) @map("domain_source")
   domainExpiresAt       DateTime?    @map("domain_expires_at") @db.Date
@@ -901,24 +901,27 @@ enum SiteBuildStatus {
 /// A basic website whose content lives here and which site-builder builds from the web-basica
 /// template (architecture 8.2): one per project. Previewed at <slug>.<SITES_PREVIEW_DOMAIN>.
 model ManagedSite {
-  id             String          @id @default(uuid()) @db.Uuid
-  projectId      String          @unique @map("project_id") @db.Uuid
+  id              String           @id @default(uuid()) @db.Uuid
+  projectId       String           @unique @map("project_id") @db.Uuid
   /// Folder and preview subdomain: [a-z0-9-].
-  slug           String          @unique
+  slug            String           @unique
   /// The demo it started from; its images are available by name.
-  preset         String
+  preset          String
   /// The template's `Site` object (without `url`, `form` and `demo`, which are set when built).
-  content        Json
+  content         Json
   /// The client's own domain, when there is one.
-  domain         String?         @unique
-  status         SiteBuildStatus @default(NONE)
-  lastBuildAt    DateTime?       @map("last_build_at") @db.Timestamptz(3)
-  lastBuildError String?         @map("last_build_error")
-  release        String?
+  domain          String?          @unique
+  /// Null without a domain; the canonical address is the domain only once LIVE.
+  domainState     SiteDomainState? @map("domain_state")
+  domainCheckedAt DateTime?        @map("domain_checked_at") @db.Timestamptz(3)
+  status          SiteBuildStatus  @default(NONE)
+  lastBuildAt     DateTime?        @map("last_build_at") @db.Timestamptz(3)
+  lastBuildError  String?          @map("last_build_error")
+  release         String?
   /// Its website in Umami (cookieless visit statistics), created on its first build.
-  umamiWebsiteId String?         @map("umami_website_id")
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  umamiWebsiteId  String?          @map("umami_website_id")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project   ClientProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   revisions ManagedSiteRevision[]
@@ -953,9 +956,18 @@ model SiteFormDay {
   @@map("site_form_days")
 }
 
-/// Where a project's domain expiry comes from: the registry's RDAP, or typed by the team (`.es`
-/// has no public RDAP).
+/// Where a project's domain expiry comes from: the registry's RDAP, typed by the team (`.es`
+/// has no public RDAP), or OVH's API when the team is the domain's technical contact.
 enum DomainSource {
   RDAP
   MANUAL
+  OVH
+}
+
+/// Where a managed site's own domain stands: nobody has registered it, it is registered but
+/// doesn't resolve to this server, or it resolves here and answers over HTTPS.
+enum SiteDomainState {
+  UNREGISTERED
+  ELSEWHERE
+  LIVE
 }

@@ -31,6 +31,7 @@ import {
   type SiteRevisionView,
   type SiteView,
 } from './managed-sites.service.js';
+import { SiteDomainsService } from './site-domains.service.js';
 import { SiteOnboardingService, type OnboardResult } from './site-onboarding.service.js';
 
 @ApiTags('admin/sites')
@@ -41,6 +42,7 @@ export class ManagedSitesController {
   constructor(
     private readonly sites: ManagedSitesService,
     private readonly onboarding: SiteOnboardingService,
+    private readonly siteDomains: SiteDomainsService,
   ) {}
 
   /** A basic-website client in one step (account, project, site, form, monitor, first build). */
@@ -65,21 +67,32 @@ export class ManagedSitesController {
   }
 
   @Post('projects/:id/site')
-  create(
+  async create(
     @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: createSiteSchema }) body: CreateSiteInput,
   ): Promise<SiteView> {
-    return this.sites.create(user, params.id, body);
+    const site = await this.sites.create(user, params.id, body);
+    if (site.domain) this.siteDomains.checkSoon(params.id);
+    return site;
   }
 
   @Patch('projects/:id/site')
-  update(
+  async update(
     @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: updateSiteSchema }) body: UpdateSiteInput,
   ): Promise<SiteView> {
-    return this.sites.updateSettings(user, params.id, body);
+    const site = await this.sites.updateSettings(user, params.id, body);
+    if (site.domain) this.siteDomains.checkSoon(params.id);
+    return site;
+  }
+
+  /** Checks where the site's domain stands now (and connects it through OVH when it can). */
+  @Post('projects/:id/site/domain/check')
+  @HttpCode(HttpStatus.OK)
+  checkDomain(@Param({ schema: idParamSchema }) params: IdParam): Promise<SiteView> {
+    return this.siteDomains.check(params.id);
   }
 
   @Put('projects/:id/site/content')

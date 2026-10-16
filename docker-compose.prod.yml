@@ -82,6 +82,12 @@ services:
       SITE_BUILDER_URL: http://site-builder:4100
       SITE_BUILDER_TOKEN: ${SITE_BUILDER_TOKEN}
       SITES_PREVIEW_DOMAIN: ${SITES_PREVIEW_DOMAIN:-demo.codeqlick.com}
+      # Client domains: what they must point at, and OVH's API as their technical contact.
+      SITES_SERVER_IP: ${SITES_SERVER_IP:-}
+      OVH_APPLICATION_KEY: ${OVH_APPLICATION_KEY:-}
+      OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET:-}
+      OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
+      OVH_NIC_HANDLE: ${OVH_NIC_HANDLE:-}
     volumes:
       - uploads-data:/app/uploads
     ports:

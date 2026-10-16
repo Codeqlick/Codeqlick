@@ -66,6 +66,12 @@ services:
       SITE_BUILDER_URL: http://site-builder:4100
       SITE_BUILDER_TOKEN: dev-site-builder-token
       PUBLIC_API_URL: http://localhost:${API_PORT:-4000}/v1
+      # Client domains (architecture 11): OVH stays off without keys in the root .env.
+      SITES_SERVER_IP: ${SITES_SERVER_IP:-}
+      OVH_APPLICATION_KEY: ${OVH_APPLICATION_KEY:-}
+      OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET:-}
+      OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
+      OVH_NIC_HANDLE: ${OVH_NIC_HANDLE:-}
     command:
       - sh
       - -c

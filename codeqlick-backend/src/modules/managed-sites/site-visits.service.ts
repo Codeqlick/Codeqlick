@@ -20,7 +20,7 @@ export interface ProjectVisits {
 
 const DAY_MS = 86_400_000;
 
-/** Visits of a managed client site (Umami) with its form's messages per day (architecture 11.6). */
+/** Visits of a managed client site (Umami) with its form's messages per day (architecture 8.2). */
 @Injectable()
 export class SiteVisitsService {
   constructor(

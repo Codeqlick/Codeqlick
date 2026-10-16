@@ -12,9 +12,14 @@ export const domainSettingsSchema = z
         'A domain like peluqueria.es',
       )
       .nullable(),
-    source: z.enum(['RDAP', 'MANUAL']),
+    source: z.enum(['RDAP', 'MANUAL', 'OVH']),
     /** `yyyy-mm-dd`, typed by the team when the source is MANUAL. */
     expiresAt: z.iso.date().nullable().optional(),
   })
   .strict();
 export type DomainSettingsInput = z.infer<typeof domainSettingsSchema>;
+
+export const availabilityQuerySchema = z
+  .object({ name: z.string().trim().min(1).max(253) })
+  .strict();
+export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;

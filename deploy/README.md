@@ -285,9 +285,41 @@ calls it with `SITE_BUILDER_TOKEN` inside the Docker network (it publishes no po
 published domains is `~/.codeqlick-sites.log`.
 
 DNS: demos and previews live under `*.demo.codeqlick.com` (one wildcard `A` record to the
-server). A client's own domain needs its `A` record (and `www` if wanted) pointing at the server
-before publishing; without it `cq-site` publishes over HTTP only and exits with 3, and running it
+server). A client's own domain needs its `A` records (`@` and `www`) pointing at the server before
+publishing (see "Client domains" for the managed ones); without it `cq-site` publishes over HTTP only and exits with 3, and running it
 again later adds HTTPS.
+
+### Client domains (OVH)
+
+Clients register and pay their own domain (architecture, decision 15). To connect it without
+their password, they make the team's OVH account its **technical contact**; the API then points
+the apex and `www` at the server and reads the expiry (also for `.es`). Without the keys below,
+availability comes from RDAP (unknown for `.es`) and clients point their DNS themselves.
+
+1. Create the keys at <https://eu.api.ovh.com/createToken/> (signed in with the team's account),
+   with no expiry and these rights:
+
+   | Method | Path |
+   |---|---|
+   | GET | `/domain`, `/domain/*` |
+   | GET, POST, PUT, DELETE | `/domain/zone/*` |
+   | POST | `/order/cart` |
+   | GET | `/order/cart/*` |
+
+2. Add them to `/srv/codeqlick/.env` with the account ID (the NIC handle, `xx12345-ovh`, top right
+   in the OVH manager) and the server IP, then deploy (or `docker compose -f
+   docker-compose.prod.yml up -d api`):
+
+   ```bash
+   OVH_APPLICATION_KEY=…
+   OVH_APPLICATION_SECRET=…
+   OVH_CONSUMER_KEY=…
+   OVH_NIC_HANDLE=xx12345-ovh
+   SITES_SERVER_IP=54.37.159.171
+   ```
+
+The portal shows clients the NIC handle and the IP. Each change OVH's API makes to a zone is in
+the admin activity log; MX and other records are never touched.
 
 ### Publishing
 
