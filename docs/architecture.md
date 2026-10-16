@@ -368,6 +368,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/admin/monitoring` | Every monitor's view |
 | GET / PUT | `/admin/projects/:id/monitor` | The view (or `{ enabled: false }`) / `{ enabled }` (400 without a production URL; enabling checks at once) |
 | POST | `/admin/projects/:id/monitor/check` | Checks now (certificate included) → the view |
+| POST | `/admin/sites/onboard` | `{ name, email, locale? (es), businessName, slug, preset, domain?, leadId? }` → `201 { projectId, client: { id, created, invitationSent? }, site, monitoring }`: a basic-website client in one step. With `leadId` the lead is converted (as `/admin/leads/:id/convert`: account, project, brief, WON); otherwise the account is found or created (welcome email) and a project opened in DESIGN. Then the managed site from the preset (form and first build included) and, without a domain of its own, the uptime monitor (a client domain may lack DNS yet). A taken name or domain is refused (409) before anything is created |
 | GET | `/admin/sites` | Every managed site (`SiteView`: `{ projectId, project, client, slug, preset, domain, previewUrl, url, status, lastBuildAt, lastBuildError, release, content, updatedAt }`), newest first |
 | GET / POST / PATCH | `/admin/projects/:id/site` | The site (or `{ exists: false }`) / `{ slug, preset: 'peluqueria' \| 'restaurante' \| 'fisioterapia', domain? }` → `201` site, built (409 when the project has one or the name or domain is taken) / `{ domain: string \| null }` → the site, rebuilt. `503` when the builder isn't configured or doesn't answer |
 | PUT | `/admin/projects/:id/site/content` | `{ content }` (the whole content; 400 with the path in the message) → the site, rebuilt; the previous content becomes a revision |
@@ -530,7 +531,8 @@ src/
                                brief, review, shared access, site status), proposals, support requests, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, visits, recent activity), leads
                                (list and board), proposals, support, hours and plans, drafts to review, bookings, calculator,
-                               monitoring, saved replies, posts, tags, portfolio, projects, media, users, activity, account;
+                               monitoring, saved replies, posts, tags, portfolio, projects, managed websites (list and "Nueva web
+                               básica", also from a lead), media, users, activity, account;
                                posts and portfolio items have a preview page that renders the saved draft; Markdown
                                fields (post and case-study content, project description and updates) have a live
                                preview next to the editor (MarkdownField, client-side, same renderer as the site)
@@ -677,16 +679,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
 above (data model, API contract, frontend) when it ships.
 
-
-### 11.4 One-step onboarding (admin)
-
-`POST /admin/sites/onboard { name, email, company?, businessName, slug, preset, domain?, leadId? }`
-does, in order: the client account (existing one by email, or a new one with an invitation),
-the project, the managed site (preset content with the business name, `demo: false`, the form key;
-from the lead's request when `leadId` has one), the site form (to the client's email), the uptime
-monitor, the visits website (11.6) and the first build; with `leadId`, the lead becomes WON and
-linked to the project. Admin → Webs → "Nueva web básica", and a button on a lead that has a website
-request. Answers the project id; each step is logged in the activity.
 
 ### 11.5 Clients edit their site (portal)
 

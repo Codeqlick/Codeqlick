@@ -46,3 +46,27 @@ export function adminRestoreSiteRevision(projectId: string, revisionId: string) 
     { method: 'POST', auth: 'required' },
   );
 }
+
+export type OnboardResult = {
+  projectId: string;
+  client: { id: string; created: boolean; invitationSent?: boolean };
+  site: ManagedSite;
+  monitoring: boolean;
+};
+
+export function adminOnboardSite(input: {
+  name: string;
+  email: string;
+  locale: 'es' | 'en';
+  businessName: string;
+  slug: string;
+  preset: string;
+  domain?: string | null;
+  leadId?: string;
+}) {
+  return apiFetch<OnboardResult>('/admin/sites/onboard', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+  });
+}
