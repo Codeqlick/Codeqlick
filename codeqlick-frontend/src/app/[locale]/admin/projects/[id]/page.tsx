@@ -32,6 +32,9 @@ import { adminGetProjectTime } from '@/lib/api/time';
 import { adminListTasks } from '@/lib/api/tasks';
 import { adminGetBrief } from '@/lib/api/briefs';
 import { adminGetMonitor } from '@/lib/api/monitoring';
+import { listAccess } from '@/lib/api/credentials';
+import { SharedAccessList } from '@/components/app/SharedAccessList';
+import { deleteAllAccessAction, revealAccessAction } from '../../../portal/projects/access-actions';
 import { SiteStatus } from '@/components/app/SiteStatus';
 import { checkNowAction, setMonitorAction } from '../monitor-actions';
 import { BriefSummary } from '@/components/app/BriefSummary';
@@ -88,13 +91,15 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks, brief, monitor] = await Promise.all([
+  const [time, drafts, tasks, brief, monitor, access] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
     adminListTasks(project.id),
     adminGetBrief(project.id),
     adminGetMonitor(project.id),
+    listAccess(project.id),
   ]);
+  const tac = await getTranslations({ locale, namespace: 'Access' });
   const tm = await getTranslations({ locale, namespace: 'Monitoring' });
   const tb = await getTranslations({ locale, namespace: 'Brief' });
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
@@ -167,6 +172,38 @@ export default async function EditProjectPage({
               <SubmitButton pendingLabel={tc('creating')}>{t('milestoneAdd')}</SubmitButton>
             </div>
           </ActionForm>
+        </div>
+      </section>
+
+      <section className={styles.panel} id="access" aria-labelledby="access-heading">
+        <h2 id="access-heading" className={styles.panelTitle}>
+          {tac('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{tac('adminLead')}</p>
+          <SharedAccessList
+            items={access}
+            locale={locale}
+            revealAction={(id) => revealAccessAction.bind(null, locale, project.id, id)}
+          />
+          {access.length > 0 ? (
+            <ActionForm
+              action={deleteAllAccessAction.bind(null, locale, project.id)}
+              className={styles.form}
+            >
+              <FormCheckbox
+                id="access-confirm"
+                name="confirm"
+                label={tac('deleteAllConfirm', { count: access.length })}
+                required
+              />
+              <div>
+                <SubmitButton variant="danger" size="sm" pendingLabel={tac('deleting')}>
+                  {tac('deleteAll')}
+                </SubmitButton>
+              </div>
+            </ActionForm>
+          ) : null}
         </div>
       </section>
 
