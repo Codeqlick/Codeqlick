@@ -184,3 +184,26 @@ export async function setSiteDomainAction(
   revalidatePath(`/${locale}/portal`, 'layout');
   return { status: 'success', message: raw ? t('domainSaved') : t('domainRemoved') };
 }
+
+/** Puts hola@<domain> as the site's contact email and publishes it. */
+export async function applyDomainEmailAction(
+  locale: AppLocale,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'PortalSite' });
+  try {
+    const site = await getMySite(projectId);
+    if (!site.domain.name) return { status: 'idle' };
+    const address = `hola@${site.domain.name}`;
+    await saveMySite(projectId, {
+      ...site.editable,
+      contact: { ...site.editable.contact, email: address },
+    });
+    revalidatePath(`/${locale}/portal`, 'layout');
+    return { status: 'success', message: t('mailUsed', { address }) };
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+}

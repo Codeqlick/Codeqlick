@@ -69,7 +69,12 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
                             tone={site.domainState ? DOMAIN_TONES[site.domainState] : 'neutral'}
                           >
                             {tk(`domainStates.${site.domainState ?? 'UNCHECKED'}`)}
-                          </Badge>
+                          </Badge>{' '}
+                          {site.mailState ? (
+                            <Badge tone={site.mailState === 'NONE' ? 'neutral' : 'success'}>
+                              {tk(`mailStates.${site.mailState}`)}
+                            </Badge>
+                          ) : null}
                         </span>
                       </>
                     ) : (

@@ -2156,7 +2156,12 @@
     "domainChecked": "Dominio comprobado el {date}.",
     "domainNotChecked": "El dominio aún no se ha comprobado.",
     "checkDomain": "Comprobar dominio",
-    "checkingDomain": "Comprobando…"
+    "checkingDomain": "Comprobando…",
+    "mailStates": {
+      "NONE": "Sin correo",
+      "OVH": "Correo en OVH",
+      "OTHER": "Correo en otro proveedor"
+    }
   },
   "PortalSite": {
     "title": "Tu web",
@@ -2239,7 +2244,7 @@
     "domainChange": "Cambiar o quitar el dominio",
     "domainChangeHint": "Déjalo vacío para quitarlo; tu web seguirá en la dirección de prueba.",
     "domainLive": "Tu web ya se ve en {url}.",
-    "domainStepRegister": "Regístralo a nombre de tu negocio en <link>OVHcloud</link>: busca {domain} y cómpralo (unos 10 € al año). El dominio es tuyo y lo pagas directamente a OVH.",
+    "domainStepRegister": "Regístralo a nombre de tu negocio en <link>OVHcloud</link>: busca {domain} y cómpralo (unos 10 € al año). Deja marcada la opción gratuita «Zimbra Starter»: es tu correo con el dominio. El dominio es tuyo y lo pagas directamente a OVH.",
     "domainRegistered": "El dominio ya está registrado.",
     "domainStepContact": "En tu área de cliente de OVH, abre el dominio, entra en «Gestión de contactos» y pon <code>{nic}</code> como contacto técnico. Así lo conectamos y vigilamos su renovación sin necesitar tu contraseña.",
     "domainOtherRegistrar": "¿Lo tienes en otro proveedor? Crea dos registros A, para @ y para www, que apunten a <code>{ip}</code>.",
@@ -2249,7 +2254,14 @@
     "domainReserved": "Ese dominio no se puede usar.",
     "domainSaved": "Dominio guardado.",
     "domainRemoved": "Dominio quitado: tu web sigue en la dirección de prueba.",
-    "domainSaving": "Guardando…"
+    "domainSaving": "Guardando…",
+    "mailTitle": "Tu correo",
+    "mailCreate": "Aún no recibe correo. Crea <code>{address}</code> en tu área de cliente de OVH (Web Cloud → Emails → tu dominio → Crear una cuenta). Si al comprar el dominio dejaste marcada la opción «Zimbra Starter», es gratis.",
+    "mailOvh": "Tu dominio ya recibe correo en OVH. Léelo en el <link>webmail</link> con tu dirección y su contraseña.",
+    "mailOther": "Tu dominio ya recibe correo con otro proveedor.",
+    "mailPhone": "Para tenerlo en el móvil, añade una cuenta IMAP: servidor de entrada <code>ssl0.ovh.net</code> (puerto 993) y de salida <code>ssl0.ovh.net</code> (puerto 465), con tu dirección completa como usuario.",
+    "mailUse": "Usar {address} en mi web",
+    "mailUsed": "Listo: tu web muestra {address} como email de contacto."
   },
   "SiteRequest": {
     "metaTitle": "Pide tu web básica",

@@ -12,7 +12,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMySite } from '@/lib/api/portal-site';
 import { formatDateTime } from '@/lib/format';
-import { saveSiteAction, setSiteDomainAction } from './actions';
+import { saveSiteAction, setSiteDomainAction, applyDomainEmailAction } from './actions';
 import siteStyles from './site.module.css';
 
 const TONES = { NONE: 'neutral', BUILDING: 'warning', LIVE: 'success', FAILED: 'danger' } as const;
@@ -85,7 +85,48 @@ export default async function PortalSitePage({
               </Badge>
             </p>
             {domain.state === 'LIVE' ? (
-              <p>{t('domainLive', { url: `https://${domain.name}` })}</p>
+              <>
+                <p>{t('domainLive', { url: `https://${domain.name}` })}</p>
+                <h3 className={siteStyles.subTitle}>{t('mailTitle')}</h3>
+                {domain.mail === 'NONE' || domain.mail === null ? (
+                  <p>
+                    {t.rich('mailCreate', {
+                      address: `hola@${domain.name}`,
+                      code: (chunks) => <code>{chunks}</code>,
+                    })}
+                  </p>
+                ) : (
+                  <>
+                    <p>
+                      {domain.mail === 'OVH'
+                        ? t.rich('mailOvh', {
+                            link: (chunks) => (
+                              <a
+                                href="https://webmail.mail.ovh.net"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {chunks}
+                              </a>
+                            ),
+                          })
+                        : t('mailOther')}
+                    </p>
+                    {domain.mail === 'OVH' ? (
+                      <p className={styles.muted}>
+                        {t.rich('mailPhone', { code: (chunks) => <code>{chunks}</code> })}
+                      </p>
+                    ) : null}
+                    {editable.contact.email?.toLowerCase().endsWith(`@${domain.name}`) ? null : (
+                      <ActionForm action={applyDomainEmailAction.bind(null, locale, id)}>
+                        <SubmitButton variant="outline" size="sm" pendingLabel={t('domainSaving')}>
+                          {t('mailUse', { address: `hola@${domain.name}` })}
+                        </SubmitButton>
+                      </ActionForm>
+                    )}
+                  </>
+                )}
+              </>
             ) : (
               <>
                 <ol className={siteStyles.steps}>

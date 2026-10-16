@@ -18,6 +18,8 @@ export interface PortalSiteView {
     name: string | null;
     state: 'UNREGISTERED' | 'ELSEWHERE' | 'LIVE' | null;
     checkedAt: string | null;
+    /** Where its email goes (architecture 11.1). */
+    mail: 'NONE' | 'OVH' | 'OTHER' | null;
     /** What to do at the registrar: the team's OVH ID (technical contact) and the server IP. */
     nicHandle: string | null;
     serverIp: string | null;
@@ -145,6 +147,7 @@ export class PortalSitesService {
         name: site.domain,
         state: site.domainState,
         checkedAt: site.domainCheckedAt?.toISOString() ?? null,
+        mail: site.mailState,
         nicHandle: this.config.ovhNicHandle ?? null,
         serverIp: this.config.sitesServerIp ?? null,
       },
