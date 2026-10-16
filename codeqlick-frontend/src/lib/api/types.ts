@@ -606,6 +606,18 @@ export type ProjectTask = {
   updatedAt: string;
 };
 
+/** The contact form of a client's static site, relayed by the API to the client's inbox. */
+export type SiteForm = {
+  enabled: boolean;
+  /** Public: it goes in the site's HTML. */
+  key: string;
+  recipients: string[];
+  /** Origins the form accepts posts from (the project's production and staging URLs). */
+  origins: string[];
+  submissions: number;
+  lastSubmissionAt: string | null;
+};
+
 /** Uptime monitoring of a client project's production site. */
 export type SiteMonitor = {
   projectId: string;
