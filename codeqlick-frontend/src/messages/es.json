@@ -395,7 +395,7 @@
     "choice": "Elige una de las opciones.",
     "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50.",
     "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas).",
-    "domain": "Escribe un dominio como peluqueria-ana.es."
+    "domain": "Escribe un dominio como peluqueria-ana.com."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -2232,9 +2232,9 @@
       "ELSEWHERE": "Falta conectarlo",
       "LIVE": "Conectado"
     },
-    "domainNone": "¿Quieres que tu web tenga su propia dirección, como peluqueria-ana.es? Elige un nombre libre y guárdalo; después te decimos qué hacer.",
+    "domainNone": "¿Quieres que tu web tenga su propia dirección, como peluqueria-ana.com? Elige un nombre libre y guárdalo; después te decimos qué hacer.",
     "domainLabel": "Dominio",
-    "domainHint": "Escribe un nombre y pulsa «Comprobar» para ver si está libre en .es, .com y .eu.",
+    "domainHint": "Escribe un nombre y pulsa «Comprobar» para ver si está libre en .com, .es y .eu.",
     "domainSave": "Guardar dominio",
     "domainChange": "Cambiar o quitar el dominio",
     "domainChangeHint": "Déjalo vacío para quitarlo; tu web seguirá en la dirección de prueba.",
@@ -2244,7 +2244,7 @@
     "domainStepContact": "En tu área de cliente de OVH, abre el dominio, entra en «Gestión de contactos» y pon <code>{nic}</code> como contacto técnico. Así lo conectamos y vigilamos su renovación sin necesitar tu contraseña.",
     "domainOtherRegistrar": "¿Lo tienes en otro proveedor? Crea dos registros A, para @ y para www, que apunten a <code>{ip}</code>.",
     "domainWaiting": "Lo comprobamos cada pocos minutos y te avisaremos por email en cuanto esté listo. Mientras tanto, tu web sigue en {preview}.",
-    "domainInvalid": "Escribe un dominio como peluqueria-ana.es.",
+    "domainInvalid": "Escribe un dominio como peluqueria-ana.com.",
     "domainInUse": "Otra web ya usa ese dominio.",
     "domainReserved": "Ese dominio no se puede usar.",
     "domainSaved": "Dominio guardado.",
@@ -2290,14 +2290,14 @@
     "sentBody": "Gracias. Te escribimos en un plazo de dos días laborables con una primera propuesta para tu web.",
     "back": "Volver a la web básica",
     "domainTitle": "Tu dominio",
-    "domainHint": "La dirección de tu web, como peluqueria-ana.es. El dominio es tuyo: lo registras a tu nombre (unos 10 € al año) y nosotros lo conectamos. Mientras tanto, tu web se ve en una dirección de prueba.",
+    "domainHint": "La dirección de tu web, como peluqueria-ana.com. El dominio es tuyo: lo registras a tu nombre (unos 10 € al año) y nosotros lo conectamos. Mientras tanto, tu web se ve en una dirección de prueba.",
     "domainChoices": {
       "new": "Quiero uno nuevo",
       "owned": "Ya tengo uno",
       "none": "Todavía no lo sé"
     },
     "domainName": "Dominio",
-    "domainNameHint": "Escribe un nombre y pulsa «Comprobar» para ver si está libre en .es, .com y .eu.",
+    "domainNameHint": "Escribe un nombre y pulsa «Comprobar» para ver si está libre en .com, .es y .eu.",
     "domainCheck": "Comprobar",
     "domainChecking": "Comprobando…",
     "domainFree": "Libre",

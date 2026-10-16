@@ -395,7 +395,7 @@
     "choice": "Choose one of the options.",
     "price": "Enter a valid amount, for example 1250 or 1250.50.",
     "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours).",
-    "domain": "Type a domain like peluqueria-ana.es."
+    "domain": "Type a domain like peluqueria-ana.com."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -2232,9 +2232,9 @@
       "ELSEWHERE": "Not connected yet",
       "LIVE": "Connected"
     },
-    "domainNone": "Want your website to have its own address, like peluqueria-ana.es? Pick a free name and save it; we then tell you what to do.",
+    "domainNone": "Want your website to have its own address, like peluqueria-ana.com? Pick a free name and save it; we then tell you what to do.",
     "domainLabel": "Domain",
-    "domainHint": "Type a name and press “Check” to see whether it is free in .es, .com and .eu.",
+    "domainHint": "Type a name and press “Check” to see whether it is free in .com, .es and .eu.",
     "domainSave": "Save domain",
     "domainChange": "Change or remove the domain",
     "domainChangeHint": "Leave it empty to remove it; your site stays at the preview address.",
@@ -2244,7 +2244,7 @@
     "domainStepContact": "In your OVH customer area, open the domain, go to “Contact management” and set <code>{nic}</code> as the technical contact. That lets us connect it and watch its renewal without your password.",
     "domainOtherRegistrar": "Is it with another provider? Add two A records, for @ and for www, pointing to <code>{ip}</code>.",
     "domainWaiting": "We check it every few minutes and will email you as soon as it is ready. Until then, your site stays at {preview}.",
-    "domainInvalid": "Type a domain like peluqueria-ana.es.",
+    "domainInvalid": "Type a domain like peluqueria-ana.com.",
     "domainInUse": "Another website already uses that domain.",
     "domainReserved": "That domain can’t be used.",
     "domainSaved": "Domain saved.",
@@ -2290,14 +2290,14 @@
     "sentBody": "Thank you. We'll write to you within two business days with a first proposal for your website.",
     "back": "Back to the basic website",
     "domainTitle": "Your domain",
-    "domainHint": "Your website address, like peluqueria-ana.es. The domain is yours: you register it in your name (about €10 a year) and we connect it. Until then, your site is shown at a preview address.",
+    "domainHint": "Your website address, like peluqueria-ana.com. The domain is yours: you register it in your name (about €10 a year) and we connect it. Until then, your site is shown at a preview address.",
     "domainChoices": {
       "new": "I want a new one",
       "owned": "I already have one",
       "none": "Not sure yet"
     },
     "domainName": "Domain",
-    "domainNameHint": "Type a name and press “Check” to see whether it is free in .es, .com and .eu.",
+    "domainNameHint": "Type a name and press “Check” to see whether it is free in .com, .es and .eu.",
     "domainCheck": "Check",
     "domainChecking": "Checking…",
     "domainFree": "Free",
