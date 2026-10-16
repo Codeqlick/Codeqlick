@@ -29,6 +29,7 @@ export default async function AdminLeadPage({
   const { locale: rawLocale, id } = await params;
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.leads' });
+  const tsite = await getTranslations({ locale, namespace: 'Admin.sites' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const ts = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tb = await getTranslations({ locale, namespace: 'Contact.budgets' });
@@ -233,6 +234,12 @@ export default async function AdminLeadPage({
               <SubmitButton pendingLabel={t('converting')}>{t('convert')}</SubmitButton>
             </div>
           </ActionForm>
+          <p className={styles.muted}>{tsite('leadHint')}</p>
+          <p>
+            <Link href={{ pathname: '/admin/sites/new', query: { lead: lead.id } }}>
+              {tsite('leadButton')}
+            </Link>
+          </p>
         </section>
       ) : null}
     </div>

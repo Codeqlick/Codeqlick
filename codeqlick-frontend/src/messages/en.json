@@ -617,7 +617,8 @@
       "time": "Hours",
       "calculator": "Calculator",
       "bookings": "Calls",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoring",
+      "sites": "Websites"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1280,6 +1281,35 @@
       "enabledHint": "The \"Book a call\" page appears, linked from the contact and service pages. It needs the link and some free hours.",
       "calendarEmail": "Your calendar email",
       "calendarEmailHint": "Your Gmail: every booking (and cancellation) also reaches it as an invitation, so it shows in your Google Calendar. The usual copy still goes to the team inbox."
+    },
+    "sites": {
+      "title": "Managed websites",
+      "lead": "Basic websites whose content lives in the platform. Every change publishes itself.",
+      "new": "New basic website",
+      "emptyTitle": "No managed websites yet",
+      "emptyBody": "Create the first one with “New basic website”.",
+      "site": "Website",
+      "client": "Client",
+      "status": "Status",
+      "lastBuild": "Published",
+      "newTitle": "New basic website",
+      "newLead": "In one step: the client's account (with their email invitation), the project, the website from a demo, the form, monitoring and the first publish.",
+      "fromLead": "From {name}'s lead: it becomes won and linked to the client.",
+      "contactTitle": "Contact person",
+      "name": "Name",
+      "email": "Email",
+      "locale": "Language of their emails",
+      "locales": {
+        "es": "Spanish",
+        "en": "English"
+      },
+      "businessTitle": "Business and website",
+      "businessName": "Business name",
+      "businessHint": "It names the project and the website; it can be changed later.",
+      "submit": "Create and publish",
+      "submitting": "Creating everything…",
+      "leadButton": "Set up their basic website",
+      "leadHint": "Or, for a basic website, everything in one step:"
     }
   },
   "Sessions": {
