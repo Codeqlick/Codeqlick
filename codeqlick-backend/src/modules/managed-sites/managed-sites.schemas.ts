@@ -190,3 +190,21 @@ export type SiteContentBody = z.infer<typeof siteContentBodySchema>;
 
 export const revisionParamSchema = z.object({ id: z.uuid(), revisionId: z.uuid() });
 export type RevisionParam = z.infer<typeof revisionParamSchema>;
+
+/** One-step onboarding of a basic-website client (architecture 11.4). */
+export const onboardSiteSchema = z
+  .object({
+    /** The contact person: their account (existing by email, or a new one with an invitation). */
+    name: z.string().trim().min(1).max(120),
+    email: z.email().max(254),
+    locale: z.enum(['en', 'es']).default('es'),
+    /** The business: the project's and the site's name. */
+    businessName: z.string().trim().min(1).max(120),
+    slug,
+    preset: sitePresetSchema,
+    domain: domain.nullable().optional(),
+    /** A lead becomes the client (WON, linked) instead of creating the account here. */
+    leadId: z.uuid().optional(),
+  })
+  .strict();
+export type OnboardSiteInput = z.infer<typeof onboardSiteSchema>;

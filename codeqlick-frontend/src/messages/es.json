@@ -617,7 +617,8 @@
       "time": "Horas",
       "calculator": "Calculadora",
       "bookings": "Llamadas",
-      "monitoring": "Monitorización"
+      "monitoring": "Monitorización",
+      "sites": "Webs"
     },
     "dashboard": {
       "title": "Panel",
@@ -1280,6 +1281,35 @@
       "enabledHint": "Aparece la página «Reserva una llamada», enlazada desde contacto y servicios. Hacen falta el enlace y alguna hora disponible.",
       "calendarEmail": "Correo de tu calendario",
       "calendarEmailHint": "Tu Gmail: cada reserva (y cada cancelación) te llega también ahí como invitación, así aparece en tu Google Calendar. La copia normal sigue yendo al buzón del equipo."
+    },
+    "sites": {
+      "title": "Webs gestionadas",
+      "lead": "Las webs básicas cuyo contenido vive en la plataforma. Cada cambio se publica solo.",
+      "new": "Nueva web básica",
+      "emptyTitle": "Todavía no hay webs gestionadas",
+      "emptyBody": "Da de alta la primera con «Nueva web básica».",
+      "site": "Web",
+      "client": "Cliente",
+      "status": "Estado",
+      "lastBuild": "Publicada",
+      "newTitle": "Nueva web básica",
+      "newLead": "En un paso: la cuenta del cliente (con su invitación por email), el proyecto, la web desde una demo, el formulario, la monitorización y la primera publicación.",
+      "fromLead": "Desde el lead de {name}: pasará a ganado y quedará enlazado al cliente.",
+      "contactTitle": "Persona de contacto",
+      "name": "Nombre",
+      "email": "Email",
+      "locale": "Idioma de sus emails",
+      "locales": {
+        "es": "Español",
+        "en": "Inglés"
+      },
+      "businessTitle": "Negocio y web",
+      "businessName": "Nombre del negocio",
+      "businessHint": "Es el nombre del proyecto y el de la web; luego se puede cambiar.",
+      "submit": "Dar de alta y publicar",
+      "submitting": "Creando todo…",
+      "leadButton": "Dar de alta su web básica",
+      "leadHint": "O, si es una web básica, todo en un paso:"
     }
   },
   "Sessions": {
