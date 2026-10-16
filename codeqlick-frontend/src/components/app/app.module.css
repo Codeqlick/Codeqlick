@@ -578,3 +578,11 @@
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--color-line);
 }
+
+/* JSON editors (a managed site's content). */
+.codeInput {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  tab-size: 2;
+}

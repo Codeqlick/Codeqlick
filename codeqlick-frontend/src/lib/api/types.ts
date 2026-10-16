@@ -702,3 +702,30 @@ export type ProposalTemplate = {
   items: { description: string; quantity: number; unitPrice: number }[];
   updatedAt: string;
 };
+
+/** A basic website built from the platform's content (architecture 8.2). */
+export type ManagedSite = {
+  projectId: string;
+  project: { id: string; name: string };
+  client: { id: string; name: string };
+  slug: string;
+  preset: string;
+  domain: string | null;
+  previewUrl: string;
+  url: string;
+  status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
+  lastBuildAt: string | null;
+  lastBuildError: string | null;
+  release: string | null;
+  /** The template's `Site` object without url, form and demo. */
+  content: Record<string, unknown>;
+  updatedAt: string;
+};
+
+export type ManagedSiteRevision = {
+  id: string;
+  createdAt: string;
+  author: { name: string } | null;
+};
+
+export const SITE_PRESETS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;

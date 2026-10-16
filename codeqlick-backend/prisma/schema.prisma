@@ -103,6 +103,7 @@ model User {
   proposalsMade   Proposal[]             @relation("ProposalAuthor")
   timeEntries     TimeEntry[]
   credentials     ProjectCredential[]
+  siteRevisions   ManagedSiteRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
   memberOfId      String?                @map("member_of_id") @db.Uuid
@@ -332,6 +333,7 @@ model ClientProject {
   review      ClientReview?
   plan        MaintenancePlan?
   form        SiteForm?
+  site        ManagedSite?
 
   @@index([clientId])
   @@map("client_projects")
@@ -876,4 +878,53 @@ model ProposalTemplate {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("proposal_templates")
+}
+
+/// Where a managed site's last build stands.
+enum SiteBuildStatus {
+  NONE
+  BUILDING
+  LIVE
+  FAILED
+}
+
+/// A basic website whose content lives here and which site-builder builds from the web-basica
+/// template (architecture 8.2): one per project. Previewed at <slug>.<SITES_PREVIEW_DOMAIN>.
+model ManagedSite {
+  id             String          @id @default(uuid()) @db.Uuid
+  projectId      String          @unique @map("project_id") @db.Uuid
+  /// Folder and preview subdomain: [a-z0-9-].
+  slug           String          @unique
+  /// The demo it started from; its images are available by name.
+  preset         String
+  /// The template's `Site` object (without `url`, `form` and `demo`, which are set when built).
+  content        Json
+  /// The client's own domain, when there is one.
+  domain         String?         @unique
+  status         SiteBuildStatus @default(NONE)
+  lastBuildAt    DateTime?       @map("last_build_at") @db.Timestamptz(3)
+  lastBuildError String?         @map("last_build_error")
+  release        String?
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project   ClientProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  revisions ManagedSiteRevision[]
+
+  @@map("managed_sites")
+}
+
+/// The content a managed site had before a change (the last 20 are kept).
+model ManagedSiteRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  siteId    String   @map("site_id") @db.Uuid
+  content   Json
+  authorId  String?  @map("author_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  site   ManagedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  author User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, createdAt])
+  @@map("managed_site_revisions")
 }

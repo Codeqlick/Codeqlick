@@ -56,6 +56,16 @@ export const envSchema = z.object({
   UMAMI_WEBSITE_ID: optionalString,
   UMAMI_USERNAME: z.string().min(1).default('admin'),
   UMAMI_PASSWORD: optionalString,
+  /** The site builder (codeqlick-sites/builder); unset: managed sites can't be built. */
+  SITE_BUILDER_URL: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.url().optional(),
+  ),
+  SITE_BUILDER_TOKEN: optionalString,
+  /** Managed sites get a preview at <slug>.<this>. */
+  SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
+  /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */
+  PUBLIC_API_URL: z.url().default('https://api.codeqlick.com/v1'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

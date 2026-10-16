@@ -6,5 +6,6 @@ import { SiteFormsService } from './site-forms.service.js';
 @Module({
   controllers: [SiteFormsController],
   providers: [SiteFormsService, SiteFormsRepository],
+  exports: [SiteFormsService],
 })
 export class SiteFormsModule {}

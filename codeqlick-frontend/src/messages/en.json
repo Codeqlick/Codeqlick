@@ -1026,7 +1026,10 @@
           "review_hidden": "took down the review of <target>{label}</target>",
           "plan_updated": "changed the maintenance plan of <target>{label}</target>",
           "form_updated": "changed the site form of <target>{label}</target>",
-          "form_key_replaced": "replaced the form key of <target>{label}</target>"
+          "form_key_replaced": "replaced the form key of <target>{label}</target>",
+          "site_created": "created the managed website of <target>{label}</target>",
+          "site_updated": "changed the managed website of <target>{label}</target>",
+          "site_restored": "restored a version of the website of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -2069,5 +2072,46 @@
     "ctaBody": "Tell us about your business and we'll get back to you within two business days with a fixed-price proposal.",
     "servicesBanner": "Run a local business? See the basic website: ready in a few days, from €200.",
     "footerLink": "Basic website"
+  },
+  "ManagedSite": {
+    "title": "Managed website",
+    "lead": "A basic website whose content lives here: it is built from the template every time it changes and published at its preview and its domain.",
+    "none": "This project has no managed website yet.",
+    "slug": "Site name",
+    "slugHint": "Lowercase letters, digits and dashes. Gives the preview: name.demo.codeqlick.com.",
+    "preset": "Start from the demo",
+    "presets": {
+      "peluqueria": "Hair salon (Alba Estudio)",
+      "restaurante": "Restaurant (Casa Lola)",
+      "fisioterapia": "Physiotherapy (Fisio Retiro)"
+    },
+    "domain": "Own domain",
+    "domainHint": "Optional. It must point at 54.37.159.171; within a couple of minutes it is live with HTTPS.",
+    "create": "Create and publish",
+    "creating": "Creating…",
+    "statuses": {
+      "NONE": "Not published",
+      "BUILDING": "Publishing",
+      "LIVE": "Live",
+      "FAILED": "Publishing failed"
+    },
+    "preview": "Preview",
+    "live": "Site",
+    "lastBuild": "Last published: {date}",
+    "buildError": "The last publish failed; the previous version is still online:",
+    "build": "Publish again",
+    "building": "Publishing…",
+    "saveDomain": "Save domain",
+    "savingDomain": "Saving…",
+    "content": "Content (JSON)",
+    "contentHint": "The template's Site object (codeqlick-sites/web-basica/src/types.ts) without url, form or demo. Uploaded photos go as media/photo.jpg. Saving publishes it.",
+    "saveContent": "Save and publish",
+    "savingContent": "Publishing…",
+    "invalidJson": "This is not valid JSON.",
+    "revisions": "Earlier versions",
+    "noRevisions": "No earlier versions yet.",
+    "revisionBy": "{date} · {author}",
+    "restore": "Restore",
+    "restoring": "Restoring…"
   }
 }
