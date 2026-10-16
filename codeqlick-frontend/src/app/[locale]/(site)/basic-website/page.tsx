@@ -4,14 +4,18 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BASIC_FAQ_KEYS, Faq } from '@/components/content/Faq';
 import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
+import { SITE_PRESETS } from '@/lib/api/types';
 import { pageMetadata } from '@/lib/seo';
 import home from '../page.module.css';
 import styles from './basic-website.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
-/** The demos published from the web-basica template (`<key>.demo.codeqlick.com`). */
-const DEMOS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;
+/**
+ * The demos published from the web-basica template (`<key>.demo.codeqlick.com`); "Another kind of
+ * website" (`general`) is offered in the request only.
+ */
+const DEMOS = SITE_PRESETS.filter((key) => key !== 'general');
 const STEPS = ['tell', 'preview', 'adjust', 'live'] as const;
 /** The online request (architecture 8.2). */
 const REQUEST_HREF = '/basic-website/request';
