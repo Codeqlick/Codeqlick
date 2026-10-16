@@ -1,8 +1,20 @@
 import { z } from 'zod';
 
 /** The demos of the template, which new managed sites start from. */
-export const SITE_PRESETS = ['peluqueria', 'restaurante', 'fisioterapia'] as const;
+export const SITE_PRESETS = [
+  'peluqueria',
+  'restaurante',
+  'fisioterapia',
+  'portfolio',
+  'despacho',
+  'comercio',
+  'reformas',
+  /** "Another kind of website": neutral design and photos. */
+  'general',
+] as const;
 export const sitePresetSchema = z.enum(SITE_PRESETS);
+
+const sectionKeySchema = z.enum(['services', 'about', 'gallery', 'testimonials']);
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).optional();
@@ -148,6 +160,17 @@ export const siteContentSchema = z
       })
       .strict()
       .optional(),
+    /** Order of the middle sections and their header labels (the template's `sections`, `navLabels`). */
+    sections: z.array(sectionKeySchema).max(4).optional(),
+    navLabels: z
+      .object({
+        services: optionalText(30),
+        about: optionalText(30),
+        gallery: optionalText(30),
+        testimonials: optionalText(30),
+      })
+      .strict()
+      .optional(),
     banner: z
       .object({ title: text(120), text: optionalText(300), link })
       .strict()
@@ -171,7 +194,9 @@ const slug = z
   .string()
   .trim()
   .toLowerCase()
-  .regex(/^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/, 'Lowercase letters, digits and dashes');
+  .regex(/^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/, 'Lowercase letters, digits and dashes')
+  // The demos are published under their preset's name (`<preset>.demo.codeqlick.com`).
+  .refine((value) => !(SITE_PRESETS as readonly string[]).includes(value), 'Reserved for a demo');
 const domain = z
   .string()
   .trim()
