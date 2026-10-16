@@ -65,6 +65,7 @@ services:
       SEED_ADMIN_NAME: Codeqlick Admin
       SITE_BUILDER_URL: http://site-builder:4100
       SITE_BUILDER_TOKEN: dev-site-builder-token
+      PUBLIC_API_URL: http://localhost:${API_PORT:-4000}/v1
     command:
       - sh
       - -c

@@ -44,6 +44,8 @@ import { deleteAllAccessAction, revealAccessAction } from '../../../portal/proje
 import { SiteStatus } from '@/components/app/SiteStatus';
 import { checkNowAction, setMonitorAction } from '../monitor-actions';
 import { adminGetSiteForm } from '@/lib/api/site-forms';
+import { adminGetSite, adminSiteRevisions } from '@/lib/api/managed-sites';
+import { ManagedSitePanel } from '@/components/app/ManagedSitePanel';
 import { replaceSiteFormKeyAction, saveSiteFormAction } from '../form-actions';
 import { BriefSummary } from '@/components/app/BriefSummary';
 import { requestBriefAction } from '../brief-actions';
@@ -99,17 +101,22 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks, brief, monitor, access, review, plan, siteForm] = await Promise.all([
-    adminGetProjectTime(project.id),
-    adminListDrafts(project.id),
-    adminListTasks(project.id),
-    adminGetBrief(project.id),
-    adminGetMonitor(project.id),
-    listAccess(project.id),
-    adminGetReview(project.id),
-    adminGetPlan(project.id),
-    adminGetSiteForm(project.id),
-  ]);
+  const [time, drafts, tasks, brief, monitor, access, review, plan, siteForm, managedSite] =
+    await Promise.all([
+      adminGetProjectTime(project.id),
+      adminListDrafts(project.id),
+      adminListTasks(project.id),
+      adminGetBrief(project.id),
+      adminGetMonitor(project.id),
+      listAccess(project.id),
+      adminGetReview(project.id),
+      adminGetPlan(project.id),
+      adminGetSiteForm(project.id),
+      adminGetSite(project.id),
+    ]);
+  const site = 'slug' in managedSite ? managedSite : null;
+  const siteRevisions = site ? await adminSiteRevisions(project.id) : [];
+  const tms = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trv = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
@@ -308,6 +315,20 @@ export default async function EditProjectPage({
             </>
           )}
         </div>
+      </section>
+
+      <section className={styles.panel} id="site" aria-labelledby="site-heading">
+        <h2 id="site-heading" className={styles.panelTitle}>
+          {tms('title')}
+        </h2>
+        <p className={styles.muted}>{tms('lead')}</p>
+        <ManagedSitePanel
+          locale={locale}
+          projectId={project.id}
+          projectName={project.name}
+          site={site}
+          revisions={siteRevisions}
+        />
       </section>
 
       <section className={styles.panel} id="site-form" aria-labelledby="site-form-heading">
