@@ -51,6 +51,8 @@ export interface Lead {
   followUpOn: string | null;
   /** The client account it became, once converted. */
   clientId: string | null;
+  /** The basic-website request it came from, if any (see managed-sites/site-request.ts). */
+  siteRequest: unknown;
   createdAt: string;
   updatedAt: string;
 }
@@ -70,6 +72,7 @@ export function toLead(row: LeadRow): Lead {
     lostReason: row.lostReason,
     followUpOn: row.followUpOn?.toISOString().slice(0, 10) ?? null,
     clientId: row.clientId,
+    siteRequest: row.siteRequest ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -161,7 +164,11 @@ export class LeadsService {
     };
   }
 
-  async create(input: CreateLeadInput): Promise<{ id: string }> {
+  /** `siteRequest`: the structured request when it came from the basic-website request form. */
+  async create(
+    input: CreateLeadInput,
+    siteRequest?: Prisma.InputJsonValue,
+  ): Promise<{ id: string }> {
     if (input.website && input.website.trim() !== '') {
       // Honeypot hit: pretend success so bots learn nothing.
       this.logger.warn('Lead honeypot triggered; submission discarded');
@@ -176,6 +183,7 @@ export class LeadsService {
       projectType: input.projectType ?? null,
       message: input.message,
       locale: toDbLocale(input.locale),
+      ...(siteRequest ? { siteRequest } : {}),
     });
 
     const lead = toLead(row);

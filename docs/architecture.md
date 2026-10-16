@@ -156,7 +156,7 @@ erDiagram
 - **Client companies:** a CLIENT user with `memberOfId` is a person of the company whose main client account is `memberOf` (one level: a member can't have members, and projects and proposals must belong to a main account). The main account owns projects, requests and proposals; its active members see and act on all of them (the portal checks the caller's *account*: `accountOf(user)`, carried in the access token as `acc`), and the client emails (updates, comments, replies, status changes, proposals, weekly summary) go to the owner and every active member, each in their language. What a member writes (messages, comments, approvals) is signed with their own name, and team notifications reply to them.
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
 - **PasswordResetToken** — one row per "forgot my password" email or welcome email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes for a reset, 7 days for a welcome email), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works.
-- **Lead** — contact form submission: `name`, `email`, `company?`, `projectType?` (what they need: `web`, `custom`, `mobile`, `design`, `support`, `not-sure`), `budget?` (only older leads: the form asked for a range before), `message`, `locale`, `status` (the sales process from the wiki's Client Engagement: `NEW` → `TALKING` → `CALL` → `PROPOSAL` → `WON` / `LOST`; `SPAM` is not a stage and stays off the board), `lostReason?` (`PRICE`, `NO_RESPONSE`, `NOT_A_FIT`, `CHOSE_OTHER`, `TIMING`, `OTHER`; kept only while LOST), `followUpOn?` (date), `clientId?` (the account it became), `notes?`.
+- **Lead** — contact form submission: `name`, `email`, `company?`, `projectType?` (what they need: `web`, `custom`, `mobile`, `design`, `support`, `not-sure`), `budget?` (only older leads: the form asked for a range before), `message`, `locale`, `status` (the sales process from the wiki's Client Engagement: `NEW` → `TALKING` → `CALL` → `PROPOSAL` → `WON` / `LOST`; `SPAM` is not a stage and stays off the board), `lostReason?` (`PRICE`, `NO_RESPONSE`, `NOT_A_FIT`, `CHOSE_OTHER`, `TIMING`, `OTHER`; kept only while LOST), `followUpOn?` (date), `clientId?` (the account it became), `notes?`, `siteRequest?` (JSON `{ preset, business }`: when it came from the basic-website request, which onboarding then builds the site from).
 - **LeadReply** — an email answer sent to a lead from the admin panel: `leadId`, `authorId?` (null once the user is deleted), `authorName` copied at the time, `subject`, `body`. Only stored once the email was accepted by the SMTP server.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
@@ -293,6 +293,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/bookings` | `{ name, email, company?, message?, locale, startsAt, website? }` (`website`: honeypot) | `201 { id, startsAt, meetingUrl }`; `409` when the time isn't free (any more). Emails the visitor (their language, Meet link, cancel link, invitation) and the team inbox (invitation, reply-to the visitor) — limited to 5/min/IP |
 | POST | `/bookings/cancel` | `{ token }` (from the visitor's email) | `200 { startsAt }`; `404` for an unknown or already cancelled call. Emails the team |
 | POST | `/forms/:key` | A client site's contact form: `{ name, email, phone?, message, website? (honeypot), redirect? }`, urlencoded (a plain HTML form) or JSON | Emails the project's `recipients` (Spanish, reply-to the visitor). A form post is answered `303` to `redirect` or the `Referer` with `form=ok` / `form=error` added, only when that URL is on the project's production or staging origin (else a short page); JSON gets `{ ok }`. `403` when `Origin` is another site; `404` for an unknown or disabled key — limited to 5/min/IP |
+| POST | `/site-requests` | The basic-website request: `{ preset, business: { name, kind, city, address?, phone?, whatsapp?, email?, hours? (a line per slot, "Days: hours"), services? (a line each, "Service — price"), about? }, name, email, locale, website? (honeypot) }` | `201 { id }`: a lead (`projectType: web`, `company` = the business, the message a readable summary) keeping `siteRequest`; the usual lead emails. No photos (decision 13). Limited to 3/min/IP. Onboarding with that lead fills the site from it: business name and tagline, contact, address, hours, services and about, `schemaType: LocalBusiness`; the preset's made-up services, reviews and facts are dropped |
 | GET | `/calculator` | The calculator's prices (`Setting` `calculator`) once published; `404` until then | |
 | POST | `/drafts` | `Authorization: Bearer <release key>` + `{ title, body, version?, environment? (required with a version), url? }` | `201 UpdateDraft` (`{ id, project: { id, name }, title, body, version, environment, url, createdAt }`); the team inbox is emailed a link to review it. Same key rules and limit as `/releases` |
 | POST | `/releases` | `Authorization: Bearer <release key>` + the body of `POST /admin/projects/:id/releases` | `201` release on the key's project, posted as "Despliegue automático" (shown as Codeqlick); `401` for a missing, unknown or revoked key — limited to 20/min/IP. For deploy pipelines: see below |
@@ -521,7 +522,8 @@ src/
         book/                  Book a call (free slots, POST /v1/bookings) and cancel from the emailed link
         calculator/            Cost calculator (prices from GET /v1/calculator; 404 until published)
         basic-website/         The basic website offer: price (messages), what is included, the demos
-                               (covers in public/demos, links to <demo>.demo.codeqlick.com), steps, FAQ
+                               (covers in public/demos, links to <demo>.demo.codeqlick.com), steps, FAQ;
+                               request/: the online request (style, business, contact; honeypot and 3 s rule)
         contact/               Contact form (server action → POST /v1/leads). Bots are dropped silently: a
                                honeypot field, and submissions made less than 3 s after the form was served
         not-found.tsx          Boundary for notFound() in site pages (unknown post or case study). Next.js 16.4
@@ -682,22 +684,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 Design agreed on 2026-10-16, built in this order (one PR each). Each part moves into the sections
 above (data model, API contract, frontend) when it ships.
 
-
-### 11.5 Online request for a basic website (public)
-
-- `/[locale]/basic-website/request` (the "Pedir mi web" buttons point here): the style (one of
-  the demos, with its cover), the business (name, what it is, city and address, phone, WhatsApp,
-  email, opening hours, services with prices, a few lines about it) and the contact person (name,
-  email) with the privacy consent. No photos (decision 13). A honeypot and the 3-second rule, as
-  the contact form.
-- `POST /v1/site-requests` (public, 3/min/IP) `{ preset, business: { name, kind, city, address?,
-  phone?, whatsapp?, email?, hours?, services?, about? }, name, email, locale, website? }` →
-  `201 { id }`: a **Lead** (`projectType: web`, `company` = business name, the message a readable
-  summary) that also keeps the request as `siteRequest` (JSON); the usual lead emails go out.
-- Onboarding from such a lead (11.4 in section 5) starts from it: the preset chosen, the business
-  name, and the content filled in from the request (contact, address, hours "Days: hours" per line,
-  services "Service — price" per line, about paragraphs). The admin's "Nueva web básica" form is
-  prefilled from it and the lead page shows the request.
 
 ### 11.6 Visits (portal)
 

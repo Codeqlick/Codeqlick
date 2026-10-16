@@ -1,0 +1,38 @@
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { randomUUID } from 'node:crypto';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { LeadsService } from '../leads/leads.service.js';
+import { requestSummary, siteRequestSchema, type SiteRequestInput } from './site-request.js';
+
+/** The public basic-website request (architecture 11.5): a lead that keeps the request. */
+@ApiTags('site-requests')
+@Controller('site-requests')
+export class SiteRequestsController {
+  constructor(private readonly leads: LeadsService) {}
+
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  async create(
+    @Body({ schema: siteRequestSchema }) body: SiteRequestInput,
+  ): Promise<{ id: string }> {
+    // Honeypot hit: pretend success so bots learn nothing.
+    if (body.website && body.website.trim() !== '') return { id: randomUUID() };
+    const request = { preset: body.preset, business: body.business };
+    return this.leads.create(
+      {
+        name: body.name,
+        email: body.email,
+        company: body.business.name,
+        budget: undefined,
+        projectType: 'web',
+        message: requestSummary(request).slice(0, 5000),
+        locale: body.locale,
+      },
+      request,
+    );
+  }
+}

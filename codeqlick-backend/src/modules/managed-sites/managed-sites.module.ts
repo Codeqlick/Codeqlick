@@ -12,6 +12,7 @@ import { SiteBuilderClient } from './site-builder.client.js';
 import { SiteOnboardingService } from './site-onboarding.service.js';
 import { PortalSitesController } from './portal-sites.controller.js';
 import { PortalSitesService } from './portal-sites.service.js';
+import { SiteRequestsController } from './site-requests.controller.js';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { PortalSitesService } from './portal-sites.service.js';
     MonitoringModule,
     MediaModule,
   ],
-  controllers: [ManagedSitesController, PortalSitesController],
+  controllers: [ManagedSitesController, PortalSitesController, SiteRequestsController],
   providers: [
     ManagedSitesService,
     ManagedSitesRepository,
