@@ -12,7 +12,7 @@ set -eu
 
 cd "$(dirname "$0")/.."
 COMPOSE="docker compose -f docker-compose.prod.yml"
-SERVICES="db api web backup"
+SERVICES="db api web backup site-builder"
 
 # Ports as configured in .env, with the same defaults as docker-compose.prod.yml.
 setting() { sed -n "s/^$1=//p" .env 2>/dev/null | tail -n 1; }

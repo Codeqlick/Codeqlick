@@ -1,0 +1,65 @@
+---
+import Legal from '../layouts/Legal.astro';
+import { site } from '../lib/site';
+
+const { legal } = site;
+---
+
+<Legal title="Política de privacidad">
+  <p>
+    Esta política explica qué datos personales recogemos a través de esta web y qué hacemos con
+    ellos, de acuerdo con el Reglamento General de Protección de Datos (RGPD) y la Ley Orgánica
+    3/2018 (LOPDGDD).
+  </p>
+
+  <h2>Responsable</h2>
+  <ul>
+    <li>
+      {legal.owner} (NIF {legal.taxId})
+    </li>
+    <li>{legal.address}</li>
+    <li>
+      <a href={`mailto:${legal.email}`}>{legal.email}</a>
+    </li>
+  </ul>
+
+  <h2>Qué datos recogemos y para qué</h2>
+  <p>
+    Solo los que nos das al escribirnos (por el formulario, por email o por WhatsApp): tu nombre, tu
+    email, tu teléfono si lo indicas y tu mensaje. Los usamos únicamente para responderte y, si
+    llegamos a un acuerdo, para prestarte el servicio. No los usamos para enviarte publicidad.
+  </p>
+
+  <h2>Base legal</h2>
+  <p>
+    Tu consentimiento al enviarnos el mensaje (artículo 6.1.a del RGPD) y, cuando nos pides un
+    presupuesto o una cita, la aplicación de medidas precontractuales a petición tuya (artículo
+    6.1.b).
+  </p>
+
+  <h2>Cuánto tiempo los guardamos</h2>
+  <p>
+    El tiempo necesario para atender tu consulta. Si después eres cliente, durante la relación y los
+    plazos que exija la ley (por ejemplo, la normativa fiscal).
+  </p>
+
+  <h2>Quién más accede a ellos</h2>
+  <p>
+    No cedemos tus datos a nadie, salvo obligación legal. Nuestros proveedores de alojamiento web y
+    de envío del formulario acceden a ellos solo para prestarnos ese servicio, como encargados del
+    tratamiento, y no los guardan ni los usan para nada más. Si nos escribes por WhatsApp, ese
+    servicio pertenece a WhatsApp Ireland Limited y se rige por su propia política.
+  </p>
+
+  <h2>Tus derechos</h2>
+  <p>
+    Puedes pedirnos acceder a tus datos, corregirlos, borrarlos, oponerte a su tratamiento,
+    limitarlo o llevártelos, escribiendo a <a href={`mailto:${legal.email}`}>{legal.email}</a>. Si
+    crees que no los hemos tratado bien, puedes reclamar ante la Agencia Española de Protección de
+    Datos (
+    <a href="https://www.aepd.es" rel="noopener" target="_blank">
+      www.aepd.es
+    </a>
+    ).
+  </p>
+</Legal>

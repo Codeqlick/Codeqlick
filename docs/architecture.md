@@ -24,6 +24,7 @@ Two independent deployables in one repository:
 | Directory | What it is | Runs on |
 |---|---|---|
 | `codeqlick-frontend/` | Public website (EN/ES), blog, portfolio, contact form, client portal and admin panel | Node 24, port 3000 |
+| `codeqlick-sites/` | The basic-website template (`web-basica`) and the service that builds managed client sites from it | Node 24, internal port 4100 |
 | `codeqlick-backend/` | REST API: auth, leads, blog, portfolio, client projects (updates, files, tasks, hours, briefs, reviews, access, monitoring), proposals, support, bookings, settings, users | Node 24, port 4000 |
 
 Client websites hosted by Codeqlick are static sites next to them (section 8.2).
@@ -580,7 +581,7 @@ src/
 | Local | `docker compose up --build -d`: PostgreSQL, Mailpit, `api` and `web` (the `dev` target of each Dockerfile, source bind-mounted for hot reload) |
 | Production | VPS (OVH): `docker compose -f docker-compose.prod.yml up -d --build` in `/srv/codeqlick`, Nginx in front with Let's Encrypt |
 
-Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept, plus a copy of the uploaded images), `api` (runs `prisma migrate deploy` on start, keeps uploaded images in the `uploads-data` volume), `web`, and `umami` with its own `umami-db` (analytics; dashboard at stats.codeqlick.com). Only Nginx is exposed publicly; the services bind to `127.0.0.1`. Merging to `main` deploys on its own once the commit's CI passes (`.github/workflows/deploy.yml`). Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
+Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept, plus a copy of the uploaded images), `api` (runs `prisma migrate deploy` on start, keeps uploaded images in the `uploads-data` volume), `web`, `site-builder` (builds managed client sites, 8.2) and `umami` with its own `umami-db` (analytics; dashboard at stats.codeqlick.com). Only Nginx is exposed publicly; the services bind to `127.0.0.1`. Merging to `main` deploys on its own once the commit's CI passes (`.github/workflows/deploy.yml`). Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
 
 ### 8.1 Releases from client projects' pipelines
 
@@ -605,11 +606,28 @@ The project's **tasks** (changes the client asked for, planned work) can be foll
 
 ### 8.2 Hosting client sites
 
-Static client sites are built from the private template repository `Codeqlick/web-basica` (Astro,
-content in `site/site.ts`) and served by the host's Nginx from `/srv/codeqlick/sites/<name>/current`
-(`deploy/sites/publish-site.sh` uploads releases; the root helper `cq-site` adds the Nginx site and
-certificate). Their contact form posts to `POST /v1/forms/:key` (a project's `SiteForm`). Demos are
-published at `<demo>.demo.codeqlick.com`. Details in `deploy/README.md`.
+Client sites are static and served by the host's Nginx from `/srv/codeqlick/sites/<name>/current`
+(the root helper `cq-site` adds each domain's Nginx site and certificate). Their contact form posts
+to `POST /v1/forms/:key` (a project's `SiteForm`).
+
+- **Template:** `codeqlick-sites/web-basica` (Astro; a site's content is one `Site` object in
+  `site.ts` plus its images; the demos in `examples/` are also the presets of managed sites). Its CI
+  (`.github/workflows/sites.yml`) checks and builds the template and every demo, and builds a preset
+  through the builder.
+- **site-builder** (`codeqlick-sites/builder/server.mjs`, a service in both compose files, internal
+  only): `POST /build` with `Authorization: Bearer $SITE_BUILDER_TOKEN` and `{ slug, preset,
+  domains, content }` writes the content to a work folder, copies its images (`media/<name>` from
+  the API's uploads, mounted read-only; other names from the preset), runs `astro build`, copies
+  the result to `releases/<timestamp>`, swaps `current` (a relative link), keeps 5 releases and
+  writes `domains`. One build at a time; answers `{ ok, release, ms }`, or `422 { ok: false, error }`
+  with the end of the build log. `GET /presets` returns the demos' content.
+- **Domains:** `deploy/sites/sync-sites.sh` (the deploy user's cron, every minute) runs
+  `cq-site add` for each domain in `sites/*/domains` that points at the server and isn't served
+  over HTTPS yet.
+- **Custom sites** keep their own repository and are uploaded with `deploy/sites/publish-site.sh`.
+  The demos are published that way at `<demo>.demo.codeqlick.com`.
+
+Details in `deploy/README.md`.
 
 ## 9. Quality gates (CI)
 
@@ -655,15 +673,8 @@ Linked from the services page and the footer; in the sitemap.
 
 ### 11.3 Managed sites (platform, admin)
 
-- The template moves to `codeqlick-sites/web-basica` (decision 12); the `Codeqlick/web-basica`
-  repository is archived once the owner agrees. Its demos stay in `examples/` and double as presets.
-- **site-builder** — a new internal service in both compose files (Node 24 + the template). Not
-  published to the host. `POST /build` with `Authorization: Bearer $SITE_BUILDER_TOKEN` and
-  `{ slug, domains, content, images: [{ file, from: 'preset' | 'media', path }] }`: writes the
-  content as `site.ts`, copies the images (presets from the image, media from the uploads volume,
-  read-only), runs `astro build`, writes `/srv/codeqlick/sites/<slug>/releases/<ts>`, swaps
-  `current`, keeps 5 releases and writes `domains` (one per line). One build at a time; answers
-  `{ ok, release, ms }` or `{ ok: false, error }` (the build log tail).
+- The template and the builder are in place (section 8.2); the `Codeqlick/web-basica`
+  repository is archived once the owner agrees. What follows is the platform side.
 - **ManagedSite** — `projectId` (unique), `slug` (unique, `[a-z0-9-]`), `preset`, `content`
   (JSON, the template's `Site` type, validated by a Zod mirror in the API), `domain?` (the client's
   own), `status` (`BUILDING`, `LIVE`, `FAILED`), `lastBuildAt`, `lastBuildError`, `release`.
@@ -671,9 +682,6 @@ Linked from the services page and the footer; in the sitemap.
 - Every site has a preview at `<slug>.demo.codeqlick.com`; with `domain` it is also served there
   (`www.<domain>` redirects). The project's `stagingUrl` is the preview, `productionUrl` the
   domain (or the preview until there is one).
-- Host side: `deploy/sites/sync-sites.sh`, in the deploy user's crontab every minute, publishes
-  through `sudo cq-site add` every domain in `sites/*/domains` that isn't served yet and points
-  at the server (it retries until DNS is ready).
 - Admin: `GET /admin/sites`, `GET/PUT /admin/projects/:id/site` (full content), `POST
   /admin/projects/:id/site/build`, `GET /admin/projects/:id/site/revisions`, `POST
   /admin/projects/:id/site/revisions/:revisionId/restore`. Project page panel "Web gestionada":
