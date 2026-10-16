@@ -1211,7 +1211,21 @@
       "duplicating": "Duplicating…",
       "deleteTitle": "Delete the draft",
       "deleteBody": "Only drafts can be deleted. This can't be undone.",
-      "newForClient": "New proposal"
+      "newForClient": "New proposal",
+      "templates": "Templates",
+      "templatesLead": "A new proposal can start from one of them. To make one, save any proposal as a template.",
+      "startFrom": "Start from a template:",
+      "blank": "Blank",
+      "noTemplates": "No templates yet.",
+      "deleteTemplate": "Delete template {name}",
+      "deletingTemplate": "Deleting…",
+      "saveAsTemplate": "Save as a template",
+      "saveAsTemplateLead": "Saves this proposal's content (title, scope, items, terms and validity) to start others from it. A name that already exists is replaced.",
+      "templateName": "Template name",
+      "templateNamePlaceholder": "Basic website",
+      "savingTemplate": "Saving…",
+      "templateSaved": "Template saved.",
+      "fromTemplate": "Starting from the “{name}” template."
     },
     "calculator": {
       "title": "Cost calculator",
