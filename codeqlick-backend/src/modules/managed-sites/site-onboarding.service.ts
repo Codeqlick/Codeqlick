@@ -13,7 +13,7 @@ import { SitePreviewsService } from './site-previews.service.js';
 
 export interface OnboardResult {
   projectId: string;
-  client: { id: string; created: boolean; invitationSent?: boolean };
+  client: { id: string; created: boolean; registered: boolean; invitationSent?: boolean };
   site: SiteView;
   monitoring: boolean;
 }
@@ -56,11 +56,11 @@ export class SiteOnboardingService {
       projectId = converted.project.id;
       client = converted.client;
     } else {
-      client = await this.users.findOrCreateClient(actor, {
-        email: input.email,
-        name: input.name,
-        locale: input.locale,
-      });
+      client = await this.users.findOrCreateClient(
+        actor,
+        { email: input.email, name: input.name, locale: input.locale },
+        'project',
+      );
       projectId = (
         await this.projects.create(actor, {
           clientId: client.id,
