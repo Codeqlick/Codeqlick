@@ -1,0 +1,82 @@
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  align-items: start;
+  gap: var(--space-2);
+}
+
+.cell {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.cellLabel {
+  color: var(--color-slate);
+  font-family: var(--font-family-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.remove {
+  display: grid;
+  place-items: center;
+  align-self: end;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-slate);
+  cursor: pointer;
+}
+
+.remove:hover {
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+}
+
+.add {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-4);
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add:hover {
+  border-color: var(--color-fuchsia);
+}
+
+@media (max-width: 700px) {
+  .row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .remove {
+    justify-self: end;
+  }
+}
