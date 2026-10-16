@@ -323,6 +323,8 @@ export type AdminUser = AuthUser & {
   weeklyDigest: boolean;
   /** Clients: the monthly report of their managed website. */
   monthlyReport: boolean;
+  /** False for a client account the team prepared that its owner hasn't made theirs yet. */
+  registered: boolean;
   createdAt: string;
 };
 

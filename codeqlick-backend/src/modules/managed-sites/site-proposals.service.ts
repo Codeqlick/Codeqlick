@@ -8,7 +8,7 @@ import { siteRequestSchema } from './site-request.js';
 
 export interface RequestProposalResult {
   proposalId: string;
-  client: { id: string; created: boolean; invitationSent?: boolean };
+  client: { id: string; created: boolean; registered: boolean; invitationSent?: boolean };
 }
 
 /** "Preparar propuesta" on a basic-website lead (architecture 8.2). */
@@ -21,8 +21,8 @@ export class SiteProposalsService {
   ) {}
 
   /**
-   * Drafts the proposal for a website request: for the email's client account (created, with the
-   * welcome email, when missing), linked to the lead, which moves to PROPOSAL.
+   * Drafts the proposal for a website request: for the email's client account (prepared
+   * unregistered, without any email, when missing), linked to the lead, which moves to PROPOSAL.
    */
   async draft(actor: AuthUser, leadId: string, now = new Date()): Promise<RequestProposalResult> {
     const lead = await this.leads.get(leadId);
@@ -33,11 +33,12 @@ export class SiteProposalsService {
       throw new BadRequestException('This lead did not come from a website request');
     }
     if (lead.proposalId) throw new ConflictException('This lead already has a proposal');
-    const client = await this.users.findOrCreateClient(actor, {
-      email: lead.email,
-      name: lead.name,
-      locale: lead.locale,
-    });
+    // No email yet: sending the proposal invites them to create the account (decision 17).
+    const client = await this.users.findOrCreateClient(
+      actor,
+      { email: lead.email, name: lead.name, locale: lead.locale },
+      null,
+    );
     const proposal = await this.proposals.create(actor, {
       clientId: client.id,
       ...proposalFromRequest(stored.data, lead.locale, madridToday(now)),

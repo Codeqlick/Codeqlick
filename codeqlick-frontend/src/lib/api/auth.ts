@@ -132,3 +132,47 @@ export function revokeOtherSessions(refreshToken: string) {
     auth: 'required',
   });
 }
+
+/** Self-registration: the API emails the link that confirms it; same answer for any email. */
+export function register(input: {
+  name: string;
+  email: string;
+  password: string;
+  locale: Locale;
+  acceptPrivacy: true;
+  website?: string;
+}) {
+  return apiFetch<void>('/auth/register', { method: 'POST', body: input, forwardClientIp: true });
+}
+
+/** The emailed link of a self-registration: the account is created and signed in. */
+export function confirmSignup(token: string) {
+  return apiFetch<AuthTokens>('/auth/register/confirm', {
+    method: 'POST',
+    body: { token },
+    forwardClientIp: true,
+  });
+}
+
+/** Who the team's invitation is for. */
+export function signupInvitation(token: string) {
+  return apiFetch<{ email: string; name: string }>(
+    `/auth/register/invitation?token=${encodeURIComponent(token)}`,
+    { forwardClientIp: true },
+  );
+}
+
+/** Accepts the team's invitation: the account is theirs and signed in. */
+export function acceptInvitation(input: {
+  token: string;
+  name: string;
+  password: string;
+  locale: Locale;
+  acceptPrivacy: true;
+}) {
+  return apiFetch<AuthTokens>('/auth/register/invitation', {
+    method: 'POST',
+    body: input,
+    forwardClientIp: true,
+  });
+}
