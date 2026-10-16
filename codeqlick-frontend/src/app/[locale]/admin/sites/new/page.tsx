@@ -39,7 +39,8 @@ export default async function NewSitePage({
         throw error;
       })
     : null;
-  const business = lead?.company ?? '';
+  const business = lead?.siteRequest?.business.name ?? lead?.company ?? '';
+  const requestedPreset = SITE_PRESETS.find((key) => key === lead?.siteRequest?.preset);
 
   return (
     <div className={styles.stack}>
@@ -99,7 +100,7 @@ export default async function NewSitePage({
               name="preset"
               label={tm('preset')}
               options={SITE_PRESETS.map((value) => ({ value, label: tk(`presets.${value}`) }))}
-              defaultValue="peluqueria"
+              defaultValue={requestedPreset ?? 'peluqueria'}
               required
             />
             <FormInput id="domain" name="domain" label={tm('domain')} hint={tm('domainHint')} />

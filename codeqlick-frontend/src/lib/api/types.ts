@@ -270,6 +270,8 @@ export type Lead = {
   followUpOn: string | null;
   /** The client account it became ("Convert to client"). */
   clientId: string | null;
+  /** From the basic-website request form: the style and business details. */
+  siteRequest: { preset: string; business: { name: string; kind: string; city: string } } | null;
   createdAt: string;
   updatedAt: string;
 };
