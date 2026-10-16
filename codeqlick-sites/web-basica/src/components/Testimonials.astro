@@ -1,0 +1,74 @@
+---
+import { site } from '../lib/site';
+
+const testimonials = site.testimonials!;
+---
+
+<section class="section" id="opiniones" aria-labelledby="opiniones-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Opiniones</p>
+      <h2 id="opiniones-title">{testimonials.title}</h2>
+    </div>
+    <ul class="list">
+      {testimonials.items.map((item) => (
+        <li>
+          <figure>
+            <p class="stars" aria-hidden="true">
+              ★★★★★
+            </p>
+            <blockquote>
+              <p>{item.quote}</p>
+            </blockquote>
+            <figcaption>
+              <strong>{item.author}</strong>
+              {item.detail ? <span>{item.detail}</span> : null}
+            </figcaption>
+          </figure>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  figure {
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    height: 100%;
+    margin: 0;
+    padding: 1.75rem;
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .stars {
+    color: var(--primary);
+    letter-spacing: 0.15em;
+  }
+
+  blockquote {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  figcaption {
+    display: grid;
+    margin-top: auto;
+    font-size: 0.95rem;
+  }
+
+  figcaption span {
+    color: var(--muted);
+  }
+</style>

@@ -1,0 +1,64 @@
+---
+import { Image } from 'astro:assets';
+import { imageOf, site } from '../lib/site';
+
+const gallery = site.gallery!;
+---
+
+<section class="section section--alt" id="galeria" aria-labelledby="galeria-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Galería</p>
+      <h2 id="galeria-title">{gallery.title}</h2>
+      {gallery.intro ? <p class="lead">{gallery.intro}</p> : null}
+    </div>
+    <ul class="grid">
+      {gallery.images.map((image) => (
+        <li>
+          <Image
+            src={imageOf(image)}
+            alt={image.alt}
+            widths={[400, 800]}
+            sizes="(max-width: 760px) 50vw, 33vw"
+          />
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+
+<style>
+  /* Six photos fill three rows: the first takes 2×2, the other five go around it. */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: clamp(11rem, 18vw, 15rem);
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li:first-child {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius);
+  }
+
+  @media (max-width: 760px) {
+    .grid {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: 10rem;
+    }
+
+    li:first-child {
+      grid-row: span 1;
+    }
+  }
+</style>

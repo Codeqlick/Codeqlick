@@ -1,0 +1,140 @@
+---
+import { Image } from 'astro:assets';
+import { imageOf, site } from '../lib/site';
+
+const { hero } = site;
+---
+
+<section class="hero">
+  <div class="container grid">
+    <div class="copy">
+      {hero.eyebrow ? <p class="eyebrow">{hero.eyebrow}</p> : null}
+      <h1>{hero.title}</h1>
+      <p class="lead">{hero.text}</p>
+      <div class="actions">
+        <a class="button" href={hero.primary.href}>
+          {hero.primary.label}
+        </a>
+        {hero.secondary ? (
+          <a class="button button--ghost" href={hero.secondary.href}>
+            {hero.secondary.label}
+          </a>
+        ) : null}
+      </div>
+      {hero.facts ? (
+        <dl class="facts">
+          {hero.facts.map((fact) => (
+            <div>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </div>
+    <div class="media">
+      <Image
+        src={imageOf(hero.image)}
+        alt={hero.image.alt}
+        widths={[480, 800, 1200]}
+        sizes="(max-width: 860px) 100vw, 50vw"
+        loading="eager"
+        fetchpriority="high"
+      />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-block: clamp(2.5rem, 6vw, 5rem);
+    overflow: hidden;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    align-items: center;
+    gap: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  .copy {
+    display: grid;
+    gap: 1.4rem;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.5rem;
+    margin: 1rem 0 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  }
+
+  .facts div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  dt {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  dd {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .media {
+    position: relative;
+  }
+
+  .media::before {
+    content: '';
+    position: absolute;
+    inset: 1.5rem -1.5rem -1.5rem 1.5rem;
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--primary) 18%, var(--background));
+  }
+
+  .media img {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border-radius: var(--radius);
+  }
+
+  @media (max-width: 860px) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+
+    .facts {
+      gap: 1.5rem;
+    }
+
+    dd {
+      font-size: 1.3rem;
+    }
+
+    .media {
+      margin-right: 1.5rem;
+    }
+
+    .media img {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

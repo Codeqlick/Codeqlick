@@ -242,9 +242,16 @@ docker compose -f docker-compose.prod.yml exec -T db psql -U codeqlick -d codeql
 
 ## Client sites
 
-Static client sites (copies of the [web-basica](https://github.com/Codeqlick/web-basica) template)
-are served by the host's Nginx straight from `/srv/codeqlick/sites/<name>/current`, with no
-container. Two pieces:
+Static client sites are served by the host's Nginx straight from
+`/srv/codeqlick/sites/<name>/current`. There are two kinds:
+
+- **Managed sites** (basic websites): their content lives in the platform's database and the
+  `site-builder` service builds them from the template in `codeqlick-sites/web-basica` whenever it
+  changes. `deploy/sites/sync-sites.sh` (cron, every minute) publishes their domains.
+- **Custom sites**: their own repository (a copy of the template or anything static), built and
+  uploaded from the machine that has it with `deploy/sites/publish-site.sh`.
+
+Both go through:
 
 - `deploy/sites/cq-site`, run as root through `sudo`: creates or removes the Nginx site
   (`/etc/nginx/sites-available/cq-site-<domain>.conf`) and its Let's Encrypt certificate. It only
@@ -265,7 +272,17 @@ sudo chmod 440 /etc/sudoers.d/cq-site && sudo visudo -c
 ```
 
 Repeat the `install` line whenever `deploy/sites/cq-site` changes. Then, as `cqadmin`:
-`mkdir -p /srv/codeqlick/sites`.
+
+```bash
+mkdir -p /srv/codeqlick/sites
+echo "SITES_USER=$(id -u):$(id -g)" >> .env
+echo "SITE_BUILDER_TOKEN=$(openssl rand -hex 32)" >> .env
+(crontab -l; echo '* * * * * /srv/codeqlick/deploy/sites/sync-sites.sh') | crontab -
+```
+
+`site-builder` runs as `SITES_USER` so the releases it writes belong to the deploy user; the API
+calls it with `SITE_BUILDER_TOKEN` inside the Docker network (it publishes no port). Its log of
+published domains is `~/.codeqlick-sites.log`.
 
 DNS: demos and previews live under `*.demo.codeqlick.com` (one wildcard `A` record to the
 server). A client's own domain needs its `A` record (and `www` if wanted) pointing at the server

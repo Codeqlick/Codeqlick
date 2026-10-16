@@ -1,0 +1,81 @@
+---
+import { site } from '../lib/site';
+
+const services = site.services!;
+---
+
+<section class="section section--alt" id="servicios" aria-labelledby="servicios-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Servicios</p>
+      <h2 id="servicios-title">{services.title}</h2>
+      {services.intro ? <p class="lead">{services.intro}</p> : null}
+    </div>
+    <ul class="list">
+      {services.items.map((item) => (
+        <li class="card">
+          <div class="top">
+            <h3>{item.name}</h3>
+            {item.price ? <p class="price">{item.price}</p> : null}
+          </div>
+          {item.description ? <p class="muted">{item.description}</p> : null}
+        </li>
+      ))}
+    </ul>
+    {services.note ? <p class="note">{services.note}</p> : null}
+  </div>
+</section>
+
+<style>
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .card {
+    display: grid;
+    align-content: start;
+    gap: 0.6rem;
+    padding: 1.6rem;
+    border-radius: var(--radius);
+    background: var(--background);
+    border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 40px -28px rgb(0 0 0 / 0.35);
+  }
+
+  .top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .price {
+    flex: none;
+    color: var(--primary-strong);
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .muted {
+    color: var(--muted);
+  }
+
+  .note {
+    margin-top: 1.5rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+</style>
