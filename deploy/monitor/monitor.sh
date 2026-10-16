@@ -4,8 +4,10 @@
 #   */5 * * * * /srv/codeqlick/deploy/monitor/monitor.sh
 #
 # Checks the public site and API (through Nginx and TLS), every service's Docker health (the
-# `backup` service is unhealthy when there is no dump from the last two days), free disk space
-# and how long the TLS certificates have left. When the result changes it emails ALERT_TO
+# `backup` service is unhealthy when there is no dump from the last two days), free disk space and
+# memory (client projects share this server: a warning here means it is time for a bigger plan)
+# and how long the TLS certificates have left. Client sites themselves are watched by the API
+# (admin → Monitorización). When the result changes it emails ALERT_TO
 # (default: LEADS_NOTIFY_TO) through the same SMTP account as the site, with curl. The message is
 # the branded HTML email built by the API image (dist/scripts/monitor-email.js); when Docker can't
 # build it, a plain-text one goes instead, so an alert is never lost: one email when something has
@@ -29,7 +31,8 @@ ALERT_TO="${ALERT_TO:-$(setting LEADS_NOTIFY_TO)}"
 ALERT_TO="${ALERT_TO:-hello@codeqlick.com}"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 SERVICES="db api web backup umami"
-DISK_LIMIT="${MONITOR_DISK_LIMIT:-90}"
+DISK_LIMIT="${MONITOR_DISK_LIMIT:-85}"
+MEMORY_LIMIT="${MONITOR_MEMORY_LIMIT:-90}"
 CERT_DAYS=14
 
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" >> "$LOG"; }
@@ -96,7 +99,11 @@ for service in $SERVICES; do
 done
 
 used="$(df -P / | awk 'NR == 2 { gsub("%", "", $5); print $5 }')"
-[ "${used:-0}" -lt "$DISK_LIMIT" ] || fail "disk / is ${used}% full"
+[ "${used:-0}" -lt "$DISK_LIMIT" ] || fail "disk / is ${used}% full (time to clean up or move to a bigger server)"
+
+# Memory in use, counting what the kernel can reclaim (MemAvailable) as free.
+memory="$(awk '/^MemTotal:/ { t = $2 } /^MemAvailable:/ { a = $2 } END { if (t) printf "%d", (t - a) * 100 / t }' /proc/meminfo 2>/dev/null)"
+[ "${memory:-0}" -lt "$MEMORY_LIMIT" ] || fail "memory is ${memory}% used (time to move to a bigger server)"
 
 for url in "$SITE_URL" "$API_URL"; do
   host="$(echo "$url" | sed 's#^https\?://##; s#/.*##')"
