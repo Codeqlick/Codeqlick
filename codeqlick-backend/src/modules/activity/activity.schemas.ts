@@ -45,6 +45,8 @@ export const ACTIVITY_ACTIONS = [
   'project.release_key_revoked',
   'project.draft_received',
   'project.draft_discarded',
+  'project.monitor_enabled',
+  'project.monitor_disabled',
   'project.brief_requested',
   'project.brief_submitted',
   'project.brief_updated',

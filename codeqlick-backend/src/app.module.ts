@@ -22,6 +22,7 @@ import { ProposalsModule } from './modules/proposals/proposals.module.js';
 import { SupportModule } from './modules/support/support.module.js';
 import { BookingsModule } from './modules/bookings/bookings.module.js';
 import { BriefsModule } from './modules/briefs/briefs.module.js';
+import { MonitoringModule } from './modules/monitoring/monitoring.module.js';
 import { CalculatorModule } from './modules/calculator/calculator.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
 import { TimeModule } from './modules/time/time.module.js';
@@ -56,6 +57,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     CalculatorModule,
     BookingsModule,
     BriefsModule,
+    MonitoringModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.
