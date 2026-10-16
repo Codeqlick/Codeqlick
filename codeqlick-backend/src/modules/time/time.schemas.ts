@@ -26,3 +26,15 @@ export const timeMonthQuerySchema = z.object({
     .optional(),
 });
 export type TimeMonthQuery = z.infer<typeof timeMonthQuerySchema>;
+
+/** A project's monthly hour allowance (maintenance plan). */
+export const planSchema = z
+  .object({
+    active: z.boolean(),
+    name: z.string().trim().min(1).max(120),
+    /** 1 hour to 1000 hours a month. */
+    monthlyMinutes: z.number().int().min(60).max(60_000),
+    alertPercent: z.number().int().min(10).max(99).default(80),
+  })
+  .strict();
+export type PlanInput = z.infer<typeof planSchema>;

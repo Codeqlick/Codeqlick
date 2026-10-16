@@ -19,6 +19,8 @@ import { getMyBrief } from '@/lib/api/briefs';
 import { getMyProjectStatus } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
 import { getMyReview } from '@/lib/api/reviews';
+import { getMyPlan } from '@/lib/api/plans';
+import { PlanUsage } from '@/components/app/PlanUsage';
 import { SharedAccessList } from '@/components/app/SharedAccessList';
 import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -61,6 +63,9 @@ export default async function PortalProjectPage({
   const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
   const access = await listAccess(project.id).catch(() => []);
   const review = await getMyReview(project.id).catch(() => undefined);
+  // Only with an active maintenance plan (404 otherwise).
+  const plan = await getMyPlan(project.id).catch(() => undefined);
+  const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trev = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
   const tco = await getTranslations({ locale, namespace: 'Common' });
@@ -190,6 +195,14 @@ export default async function PortalProjectPage({
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {plan ? (
+        <section className={styles.panel} id="plan">
+          <h2 className={styles.panelTitle}>{tpl('clientTitle')}</h2>
+          <p className={styles.muted}>{tpl('clientLead')}</p>
+          <PlanUsage plan={plan} locale={locale} />
         </section>
       ) : null}
 
