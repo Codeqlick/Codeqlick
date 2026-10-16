@@ -37,6 +37,32 @@ export class SitePreviewsRepository {
     return this.prisma.lead.update({ where: { id: leadId }, data }).then(() => undefined);
   }
 
+  /**
+   * Leads to ask about their preview: READY since before `builtBefore`, nobody has answered them
+   * (still NEW), not converted and not asked yet.
+   */
+  followUpsDue(builtBefore: Date) {
+    return this.prisma.lead.findMany({
+      where: {
+        previewStatus: 'READY',
+        previewSlug: { not: null },
+        previewBuiltAt: { lte: builtBefore },
+        previewFollowUpAt: null,
+        status: 'NEW',
+        clientId: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        company: true,
+        locale: true,
+        previewSlug: true,
+        followUpOn: true,
+      },
+    });
+  }
+
   /** Previews to take down: older than `before`, or of a lead converted or marked as spam. */
   due(before: Date) {
     return this.prisma.lead.findMany({

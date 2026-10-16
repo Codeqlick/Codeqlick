@@ -11,6 +11,7 @@ import {
   adminCreateSite,
   adminRestoreSiteRevision,
   adminSaveSiteContent,
+  adminSendSiteReport,
   adminUpdateSite,
 } from '@/lib/api/managed-sites';
 import { SITE_PRESETS } from '@/lib/api/types';
@@ -144,4 +145,24 @@ export async function restoreSiteRevisionAction(
   }
   revalidateSite(locale);
   return { status: 'idle' };
+}
+
+/** Sends last month's website report to the client now. */
+export async function sendSiteReportAction(
+  locale: AppLocale,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  let sent: number;
+  try {
+    ({ sent } = await adminSendSiteReport(projectId));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  const t = await getTranslations({ locale, namespace: 'ManagedSite' });
+  return {
+    status: 'success',
+    message: sent > 0 ? t('reportSent', { count: sent }) : t('reportNobody'),
+  };
 }

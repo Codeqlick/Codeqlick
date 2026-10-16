@@ -85,6 +85,8 @@ model User {
   weeklyDigest       Boolean   @default(true) @map("weekly_digest")
   /// When the last summary went out, so each client gets one per week even across restarts.
   lastDigestAt       DateTime? @map("last_digest_at") @db.Timestamptz(3)
+  /// Clients with a managed website get its monthly report unless they turn it off.
+  monthlyReport      Boolean   @default(true) @map("monthly_report")
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -152,34 +154,39 @@ model PasswordResetToken {
 }
 
 model Lead {
-  id             String             @id @default(uuid()) @db.Uuid
-  name           String
-  email          String
-  company        String?
-  budget         String?
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String
+  email             String
+  company           String?
+  budget            String?
   /// What they need (web, custom, mobile, design, support, not-sure); replaced budget on the form.
-  projectType    String?            @map("project_type")
-  message        String
-  locale         Locale             @default(EN)
-  status         LeadStatus         @default(NEW)
-  notes          String?
+  projectType       String?            @map("project_type")
+  message           String
+  locale            Locale             @default(EN)
+  status            LeadStatus         @default(NEW)
+  notes             String?
   /// Why it didn't go ahead (status LOST).
-  lostReason     LeadLostReason?    @map("lost_reason")
+  lostReason        LeadLostReason?    @map("lost_reason")
   /// When to get back to them; the board flags it once it has passed.
-  followUpOn     DateTime?          @map("follow_up_on") @db.Date
+  followUpOn        DateTime?          @map("follow_up_on") @db.Date
   /// The client account it became ("Convert to client").
-  clientId       String?            @map("client_id") @db.Uuid
+  clientId          String?            @map("client_id") @db.Uuid
   /// A basic-website request from /basic-website/request (architecture 8.2): style, business details.
-  siteRequest    Json?              @map("site_request")
+  siteRequest       Json?              @map("site_request")
   /// The request's instant preview, served at <slug>.<SITES_PREVIEW_DOMAIN> (architecture 8.2).
-  previewSlug    String?            @unique @map("preview_slug")
-  previewStatus  SitePreviewStatus? @map("preview_status")
-  previewBuiltAt DateTime?          @map("preview_built_at") @db.Timestamptz(3)
-  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  previewSlug       String?            @unique @map("preview_slug")
+  previewStatus     SitePreviewStatus? @map("preview_status")
+  previewBuiltAt    DateTime?          @map("preview_built_at") @db.Timestamptz(3)
+  /// When the "what do you think of it?" email about the preview went out (once).
+  previewFollowUpAt DateTime?          @map("preview_follow_up_at") @db.Timestamptz(3)
+  /// The proposal drafted from the request ("Preparar propuesta").
+  proposalId        String?            @unique @map("proposal_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   replies  LeadReply[]
   client   User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  proposal Proposal?   @relation(fields: [proposalId], references: [id], onDelete: SetNull)
   bookings Booking[]
 
   @@index([status, createdAt])
@@ -584,6 +591,7 @@ model Proposal {
   project   ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdBy User?          @relation("ProposalAuthor", fields: [createdById], references: [id], onDelete: SetNull)
   items     ProposalItem[]
+  lead      Lead?
 
   @@index([status, updatedAt])
   @@index([clientId, updatedAt])
@@ -924,6 +932,8 @@ model ManagedSite {
   lastBuildAt     DateTime?        @map("last_build_at") @db.Timestamptz(3)
   lastBuildError  String?          @map("last_build_error")
   release         String?
+  /// `yyyy-mm`: the last month its monthly report went out for.
+  reportedMonth   String?          @map("reported_month")
   /// Its website in Umami (cookieless visit statistics), created on its first build.
   umamiWebsiteId  String?          @map("umami_website_id")
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)

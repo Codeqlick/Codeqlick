@@ -4,7 +4,7 @@ const TIME_ZONE = 'Europe/Madrid';
 const DAY_MS = 86_400_000;
 
 /** Madrid wall-clock parts of `date`. */
-function madridParts(date: Date) {
+export function madridParts(date: Date) {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: TIME_ZONE,
     year: 'numeric',
@@ -36,7 +36,7 @@ function madridOffset(instant: number): number {
 }
 
 /** The UTC instant of `y-m-d h:00` in Madrid (DST-aware: two passes over the offset). */
-function madridInstant(year: number, month: number, day: number, hour: number): Date {
+export function madridInstant(year: number, month: number, day: number, hour: number): Date {
   const wallClock = Date.UTC(year, month - 1, day, hour);
   const first = wallClock - madridOffset(wallClock);
   return new Date(wallClock - madridOffset(first));

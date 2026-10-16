@@ -80,6 +80,7 @@ export async function updateUserAction(
     isActive: formBoolean(formData, 'isActive'),
     locale: formString(formData, 'locale'),
     weeklyDigest: formBoolean(formData, 'weeklyDigest'),
+    monthlyReport: formBoolean(formData, 'monthlyReport'),
   });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 

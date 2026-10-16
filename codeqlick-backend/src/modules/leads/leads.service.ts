@@ -58,7 +58,11 @@ export interface Lead {
     url: string;
     status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
     builtAt: string | null;
+    /** When the requester was asked what they think of it (once, a few days after). */
+    followUpAt: string | null;
   } | null;
+  /** The proposal drafted from the request ("Preparar propuesta"). */
+  proposalId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -86,8 +90,10 @@ export function toLead(row: LeadRow, previewDomain: string): Lead {
             url: `https://${row.previewSlug}.${previewDomain}`,
             status: row.previewStatus,
             builtAt: row.previewBuiltAt?.toISOString() ?? null,
+            followUpAt: row.previewFollowUpAt?.toISOString() ?? null,
           }
         : null,
+    proposalId: row.proposalId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -299,6 +305,17 @@ export class LeadsService {
           : undefined,
     });
     return lead;
+  }
+
+  /** The proposal drafted from the lead's website request: the lead moves to PROPOSAL. */
+  async linkProposal(id: string, proposalId: string): Promise<Lead> {
+    return toLead(
+      await this.repository.update(id, {
+        status: LeadStatus.PROPOSAL,
+        proposal: { connect: { id: proposalId } },
+      }),
+      this.config.sitesPreviewDomain,
+    );
   }
 
   async listReplies(id: string): Promise<LeadReply[]> {

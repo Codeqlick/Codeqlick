@@ -18,6 +18,7 @@ const lead: Lead = {
   clientId: null,
   siteRequest: null,
   preview: null,
+  proposalId: null,
   createdAt: '2026-10-14T10:00:00.000Z',
   updatedAt: '2026-10-14T10:00:00.000Z',
 };

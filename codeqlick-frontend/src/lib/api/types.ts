@@ -284,7 +284,11 @@ export type Lead = {
     url: string;
     status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
     builtAt: string | null;
+    /** When the requester was asked what they think of it (once, a few days after). */
+    followUpAt: string | null;
   } | null;
+  /** The proposal drafted from the request ("Preparar propuesta"). */
+  proposalId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -317,11 +321,13 @@ export type AdminUser = AuthUser & {
   locale: 'en' | 'es';
   /** Clients: the Monday summary of their projects. */
   weeklyDigest: boolean;
+  /** Clients: the monthly report of their managed website. */
+  monthlyReport: boolean;
   createdAt: string;
 };
 
 /** `GET /auth/preferences`: the caller's email preferences. */
-export type Preferences = { weeklyDigest: boolean };
+export type Preferences = { weeklyDigest: boolean; monthlyReport: boolean };
 
 /** Without `password`, the user is emailed a link to choose one. `locale`: language of their emails. */
 export type UserInput = {
@@ -344,6 +350,7 @@ export type UserPatch = {
   role?: Role;
   locale?: 'en' | 'es';
   weeklyDigest?: boolean;
+  monthlyReport?: boolean;
 };
 
 export type AdminStats = {

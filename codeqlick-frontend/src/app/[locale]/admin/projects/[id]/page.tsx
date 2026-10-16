@@ -51,6 +51,7 @@ import { checkDomainAction, saveDomainAction } from '../domain-actions';
 import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
 import { getProjectVisits } from '@/lib/api/portal-site';
 import { replaceSiteFormKeyAction, saveSiteFormAction } from '../form-actions';
+import { sendSiteReportAction } from '../site-actions';
 import { BriefSummary } from '@/components/app/BriefSummary';
 import { requestBriefAction } from '../brief-actions';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
@@ -344,6 +345,16 @@ export default async function EditProjectPage({
             <h3 className={styles.panelTitle}>{tvis('title')}</h3>
             <ProjectVisitsPanel visits={siteVisits} locale={locale} />
           </>
+        ) : null}
+        {site ? (
+          <ActionForm action={sendSiteReportAction.bind(null, locale, project.id)}>
+            <p className={styles.muted}>{tms('reportHint')}</p>
+            <div className={styles.actions}>
+              <SubmitButton variant="outline" size="sm" pendingLabel={tms('reportSending')}>
+                {tms('reportSend')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
         ) : null}
       </section>
 

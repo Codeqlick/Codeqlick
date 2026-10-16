@@ -5,6 +5,7 @@ import { LeadsModule } from '../leads/leads.module.js';
 import { MediaModule } from '../media/media.module.js';
 import { MonitoringModule } from '../monitoring/monitoring.module.js';
 import { ProjectsModule } from '../projects/projects.module.js';
+import { ProposalsModule } from '../proposals/proposals.module.js';
 import { SiteFormsModule } from '../site-forms/site-forms.module.js';
 import { StatsModule } from '../stats/stats.module.js';
 import { UsersModule } from '../users/users.module.js';
@@ -15,6 +16,8 @@ import { SiteBuilderClient } from './site-builder.client.js';
 import { SiteDomainsService } from './site-domains.service.js';
 import { SitePreviewsRepository } from './site-previews.repository.js';
 import { SitePreviewsService } from './site-previews.service.js';
+import { SiteProposalsService } from './site-proposals.service.js';
+import { SiteReportsService } from './site-reports.service.js';
 import { SiteOnboardingService } from './site-onboarding.service.js';
 import { PortalSitesController } from './portal-sites.controller.js';
 import { PortalSitesService } from './portal-sites.service.js';
@@ -27,6 +30,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     SiteFormsModule,
     UsersModule,
     ProjectsModule,
+    ProposalsModule,
     LeadsModule,
     MonitoringModule,
     MediaModule,
@@ -50,6 +54,8 @@ import { SiteVisitsService } from './site-visits.service.js';
     SiteDomainsService,
     SitePreviewsService,
     SitePreviewsRepository,
+    SiteProposalsService,
+    SiteReportsService,
   ],
   exports: [ManagedSitesService],
 })
