@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { Role } from '../src/generated/prisma/client.js';
-import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
+import { MailService } from '../src/modules/mail/mail.service.js';
 import { SiteBuilderClient } from '../src/modules/managed-sites/site-builder.client.js';
 import { UmamiClient } from '../src/modules/stats/umami.client.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
