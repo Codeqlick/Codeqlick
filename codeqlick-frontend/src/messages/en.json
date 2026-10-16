@@ -1019,7 +1019,11 @@
           "monitor_disabled": "turned off monitoring of <target>{label}</target>",
           "credential_added": "shared access on <target>{label}</target>",
           "credential_viewed": "opened an access of <target>{label}</target>",
-          "credential_deleted": "deleted access of <target>{label}</target>"
+          "credential_deleted": "deleted access of <target>{label}</target>",
+          "review_requested": "asked for the review of <target>{label}</target>",
+          "review_submitted": "sent their review of <target>{label}</target>",
+          "review_published": "published the review of <target>{label}</target>",
+          "review_hidden": "took down the review of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1885,5 +1889,38 @@
     "copied": "Copied",
     "deleteAll": "Delete all access",
     "deleteAllConfirm": "Delete {count, plural, one {the access} other {all # access entries}} of this project; this can't be undone."
+  },
+  "Review": {
+    "title": "How did it go?",
+    "lead": "Take two minutes to tell us what it was like working on {project}. It helps us improve and, with your permission, helps other businesses find us.",
+    "rating": "Your rating",
+    "stars": "{count} out of 5 stars",
+    "quote": "In a few words, how was the experience?",
+    "quoteHint": "What you liked, what changed for your business… Whatever you'd like to share.",
+    "authorName": "Your name",
+    "authorRole": "Role and company",
+    "authorRoleHint": "For example: \"Director, Sun Clinic\". It shows next to your words if we publish them.",
+    "consent": "You may publish my review on your website",
+    "consentHint": "With your name and role. You can change your mind any time: write to us and we'll take it down.",
+    "send": "Send review",
+    "sending": "Sending…",
+    "thanks": "Thank you so much! It really helps.",
+    "alreadySent": "You already sent us your review, thank you! You can change it and send it again.",
+    "bannerTitle": "How did it go?",
+    "bannerBody": "Your project is live: tell us what you thought.",
+    "bannerLink": "Leave my review",
+    "adminTitle": "Client review",
+    "request": "Ask the client for a review",
+    "publish": "Publish on the website",
+    "hide": "Take it off the website",
+    "consentYes": "allows publishing it",
+    "consentNo": "does not allow publishing it",
+    "adminStatus": {
+      "NONE": "Not asked for yet. It is asked for when the project moves to \"Launched\".",
+      "REQUESTED": "Asked for; the client hasn't sent it yet.",
+      "SUBMITTED": "Sent by the client.",
+      "PUBLISHED": "Published on the website (home page).",
+      "HIDDEN": "Taken off the website."
+    }
   }
 }
