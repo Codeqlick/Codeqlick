@@ -133,6 +133,12 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
               hint={t('weeklyDigestHint')}
               defaultChecked={preferences.weeklyDigest}
             />
+            <FormCheckbox
+              name="monthlyReport"
+              label={t('monthlyReport')}
+              hint={t('monthlyReportHint')}
+              defaultChecked={preferences.monthlyReport}
+            />
             <div className={styles.actions}>
               <SubmitButton pendingLabel={tc('saving')}>{tc('save')}</SubmitButton>
             </div>

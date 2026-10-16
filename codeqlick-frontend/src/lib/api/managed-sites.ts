@@ -36,6 +36,14 @@ export function adminBuildSite(projectId: string) {
   return apiFetch<ManagedSite>(`${path(projectId)}/build`, { method: 'POST', auth: 'required' });
 }
 
+/** Emails last month's website report now; how many people got it. */
+export function adminSendSiteReport(projectId: string) {
+  return apiFetch<{ sent: number }>(`${path(projectId)}/report`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
 /** Checks the site's domain now (and connects it through OVH when it can). */
 export function adminCheckSiteDomain(projectId: string) {
   return apiFetch<ManagedSite>(`${path(projectId)}/domain/check`, {

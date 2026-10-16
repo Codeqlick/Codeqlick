@@ -224,6 +224,7 @@ export const userUpdateSchema = z.object({
   isActive: z.boolean(),
   locale: z.enum(EMAIL_LOCALES, 'choice'),
   weeklyDigest: z.boolean(),
+  monthlyReport: z.boolean(),
 });
 
 export const passwordResetSchema = z.object({ password: passwordSchema });

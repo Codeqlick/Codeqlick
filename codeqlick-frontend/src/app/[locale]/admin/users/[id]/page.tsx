@@ -155,14 +155,25 @@ export default async function EditUserPage({
             defaultChecked={user.isActive}
           />
           {user.role === 'CLIENT' ? (
-            <FormCheckbox
-              name="weeklyDigest"
-              label={t('weeklyDigest')}
-              hint={t('weeklyDigestHint')}
-              defaultChecked={user.weeklyDigest}
-            />
+            <>
+              <FormCheckbox
+                name="weeklyDigest"
+                label={t('weeklyDigest')}
+                hint={t('weeklyDigestHint')}
+                defaultChecked={user.weeklyDigest}
+              />
+              <FormCheckbox
+                name="monthlyReport"
+                label={t('monthlyReport')}
+                hint={t('monthlyReportHint')}
+                defaultChecked={user.monthlyReport}
+              />
+            </>
           ) : (
-            <input type="hidden" name="weeklyDigest" value={user.weeklyDigest ? 'on' : ''} />
+            <>
+              <input type="hidden" name="weeklyDigest" value={user.weeklyDigest ? 'on' : ''} />
+              <input type="hidden" name="monthlyReport" value={user.monthlyReport ? 'on' : ''} />
+            </>
           )}
           <div className={styles.actions}>
             <SubmitButton pendingLabel={tc('saving')}>{tc('save')}</SubmitButton>

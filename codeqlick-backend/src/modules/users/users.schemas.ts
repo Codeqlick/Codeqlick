@@ -28,6 +28,7 @@ export const updateUserSchema = z
     role: roleSchema.optional(),
     locale: localeSchema.optional(),
     weeklyDigest: z.boolean().optional(),
+    monthlyReport: z.boolean().optional(),
   })
   .strict();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;

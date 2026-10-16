@@ -6,11 +6,12 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { toLabel } from '../domains/availability.js';
 import { renderEmail } from '../mail/email-layout.js';
 import { MailService } from '../mail/mail.service.js';
+import { madridToday } from '../proposals/proposals.service.js';
 import { siteContentSchema } from './managed-sites.schemas.js';
 import { SiteBuilderClient } from './site-builder.client.js';
 import { SitePreviewsRepository } from './site-previews.repository.js';
@@ -20,6 +21,8 @@ const DAY_MS = 86_400_000;
 /** Previews a day across all requests: Let's Encrypt allows 50 certificates a week per domain. */
 export const DAILY_PREVIEWS = 10;
 const KEEP_DAYS = 30;
+/** Days after a preview is ready before its requester is asked what they think of it. */
+export const FOLLOW_UP_DAYS = 3;
 /** How long the host may take to publish a built preview over HTTPS (sync-sites runs each minute). */
 const LIVE_WAIT_MS = 10 * 60_000;
 const LIVE_POLL_MS = 10_000;
@@ -37,7 +40,8 @@ export function previewSlugOf(businessName: string, random = randomBytes(6)): st
 /**
  * Instant previews of website requests (architecture 8.2, decision 16): built from the request in
  * demo mode, noindex, at `<slug>.<SITES_PREVIEW_DOMAIN>`; taken down after 30 days, or once the
- * lead is converted or marked as spam (a daily job, off in tests).
+ * lead is converted or marked as spam (a job every 6 hours, off in tests), which also sends the
+ * follow-ups due.
  */
 @Injectable()
 export class SitePreviewsService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -53,8 +57,10 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
 
   onApplicationBootstrap(): void {
     if (this.config.nodeEnv === 'test') return;
-    this.timer = setInterval(() => void this.removeDue(), DAY_MS / 4);
+    const run = () => void this.removeDue().then(() => this.sendFollowUps());
+    this.timer = setInterval(run, DAY_MS / 4);
     this.timer.unref();
+    setTimeout(run, 180_000).unref();
   }
 
   onApplicationShutdown(): void {
@@ -128,6 +134,41 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
       }
     } catch (error) {
       this.logger.error(`Preview removal run failed: ${String(error)}`);
+    }
+  }
+
+  /**
+   * Asks each requester whose preview has been ready for FOLLOW_UP_DAYS, and who nobody has
+   * answered yet, what they think of it (once); the lead is flagged for follow-up that day when it
+   * had no date. Never throws.
+   */
+  async sendFollowUps(now = new Date()): Promise<void> {
+    try {
+      const due = await this.repository.followUpsDue(
+        new Date(now.getTime() - FOLLOW_UP_DAYS * DAY_MS),
+      );
+      for (const lead of due) {
+        try {
+          const locale = toApiLocale(lead.locale);
+          await this.mail.send(
+            previewFollowUpEmail(
+              { name: lead.name, email: lead.email, locale },
+              lead.company ?? lead.name,
+              this.urlOf(lead.previewSlug!),
+              `${this.config.siteUrl}/${locale}/book`,
+              this.config.siteUrl,
+            ),
+          );
+          await this.repository.update(lead.id, {
+            previewFollowUpAt: now,
+            ...(lead.followUpOn ? {} : { followUpOn: new Date(`${madridToday(now)}T00:00:00Z`) }),
+          });
+        } catch (error) {
+          this.logger.warn(`Preview follow-up of lead ${lead.id} not sent: ${String(error)}`);
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Preview follow-up run failed: ${String(error)}`);
     }
   }
 
@@ -211,6 +252,49 @@ function previewReadyEmail(
               "We'll write to you shortly to fine-tune it, add your photos and publish it. Want something changed? Just reply to this email.",
             ],
         button: { label: es ? 'Ver la vista previa' : 'Open the preview', url },
+      },
+      siteUrl,
+    ),
+  };
+}
+
+/** To a requester nobody has answered yet, a few days after their preview: what do they think? */
+function previewFollowUpEmail(
+  person: { name: string; email: string; locale: ApiLocale },
+  business: string,
+  url: string,
+  bookUrl: string,
+  siteUrl: string,
+) {
+  const es = person.locale === 'es';
+  return {
+    to: person.email,
+    subject: es
+      ? `¿Qué te parece la web de ${business}?`
+      : `What do you think of ${business}'s website?`,
+    ...renderEmail(
+      {
+        locale: person.locale,
+        preheader: es
+          ? 'Cuéntanos qué cambiarías y la dejamos a tu gusto.'
+          : "Tell us what you'd change and we'll make it yours.",
+        title: es ? '¿Qué te ha parecido?' : 'What did you think?',
+        greeting: es ? `Hola ${person.name}:` : `Hi ${person.name},`,
+        intro: es
+          ? [
+              `Hace unos días te enviamos la vista previa de la web de ${business}. ¿Has podido verla?`,
+              'Si quieres cambiar algo (textos, colores, fotos o secciones), responde a este correo y te contamos cómo dejarla a tu gusto. Y si te encaja tal cual, te enviamos la propuesta para publicarla en tu dominio.',
+            ]
+          : [
+              `A few days ago we sent you the preview of ${business}'s website. Have you had a look?`,
+              "Want something changed (texts, colours, photos or sections)? Reply to this email and we'll tell you how we'd make it yours. And if it fits as it is, we'll send you the proposal to publish it on your domain.",
+            ],
+        button: { label: es ? 'Ver la vista previa' : 'Open the preview', url },
+        outro: [
+          es
+            ? `¿Prefieres hablarlo? Reserva una videollamada: ${bookUrl}`
+            : `Rather talk it through? Book a video call: ${bookUrl}`,
+        ],
       },
       siteUrl,
     ),

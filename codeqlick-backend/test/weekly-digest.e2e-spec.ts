@@ -140,12 +140,17 @@ describe('Weekly project summary (e2e)', () => {
     await request(server)
       .get('/v1/auth/preferences')
       .set(clientAuth)
-      .expect(200, { weeklyDigest: true });
+      .expect(200, { weeklyDigest: true, monthlyReport: true });
     await request(server)
       .patch('/v1/auth/preferences')
       .set(clientAuth)
       .send({ weeklyDigest: false })
-      .expect(200, { weeklyDigest: false });
+      .expect(200, { weeklyDigest: false, monthlyReport: true });
+    await request(server)
+      .patch('/v1/auth/preferences')
+      .set(clientAuth)
+      .send({ monthlyReport: false })
+      .expect(200, { weeklyDigest: false, monthlyReport: false });
     const auth = {
       Authorization: `Bearer ${(await request(server).post('/v1/auth/login').send(admin).expect(200)).body.accessToken as string}`,
     };

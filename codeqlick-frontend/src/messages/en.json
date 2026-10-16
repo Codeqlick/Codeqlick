@@ -470,7 +470,9 @@
     "rateLimited": "Too many attempts. Please wait a minute and try again.",
     "emails": "Emails",
     "weeklyDigest": "Weekly summary of my projects",
-    "weeklyDigestHint": "Every Monday, if there's news or something waiting for your approval, we email you a summary."
+    "weeklyDigestHint": "Every Monday, if there's news or something waiting for your approval, we email you a summary.",
+    "monthlyReport": "Monthly report of my website",
+    "monthlyReportHint": "On the 1st of each month we email you your website's visits, form messages and time online."
   },
   "TwoFactor": {
     "title": "Two-step verification",
@@ -717,7 +719,13 @@
         "REMOVED": "Removed"
       },
       "previewRemove": "Remove preview",
-      "previewRemoving": "Removing…"
+      "previewRemoving": "Removing…",
+      "previewFollowUp": "We asked what they thought of it on {date}.",
+      "proposalTitle": "Proposal",
+      "proposalBody": "Drafts it with the price, what's included and what they asked for (style, domain, wishes). Without a client account yet, one is created and they get the welcome email. You review it before sending it.",
+      "proposalCreate": "Draft the proposal",
+      "proposalCreating": "Drafting…",
+      "proposalOpen": "Open the proposal"
     },
     "posts": {
       "title": "Posts",
@@ -947,6 +955,8 @@
       "localeHint": "The welcome email and the notices about their projects' updates are sent in this language.",
       "weeklyDigest": "Weekly summary by email",
       "weeklyDigestHint": "Every Monday, if there's news or something to approve, we email them a summary of their projects.",
+      "monthlyReport": "Monthly report of their website",
+      "monthlyReportHint": "On the 1st of each month we email them their basic website's visits, form messages and time online.",
       "digest": "Weekly summary",
       "digestBody": "Send this week's summary now (in {language}) to check how it looks to them. With no news and nothing pending, nothing is sent.",
       "digestSend": "Send summary now",
@@ -2137,6 +2147,12 @@
     "footerLink": "Basic website"
   },
   "ManagedSite": {
+    "reportHint": "On the 1st of each month, once the site is on its domain, the client gets last month's report: visits, form messages and time online.",
+    "reportSend": "Send last month's report",
+    "reportSending": "Sending…",
+    "reportSent": "Report sent to {count, plural, one {# person} other {# people}}.",
+    "reportNobody": "Nobody in the account wants the monthly report.",
+
     "title": "Managed website",
     "lead": "A basic website whose content lives here: it is built from the template every time it changes and published at its preview and its domain.",
     "none": "This project has no managed website yet.",
