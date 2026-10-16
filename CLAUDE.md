@@ -28,6 +28,7 @@ This repo holds the whole platform:
 - Next.js 16: middleware is **`src/proxy.ts`**, `params`/`searchParams` are Promises, `cookies()` is async, use `revalidatePath` (not `revalidateTag`), no `next lint` (we use oxlint).
 - Styling: CSS Modules + brand tokens. No Tailwind or UI kits.
 - Lint with oxlint, format with Prettier (`singleQuote`, `trailingComma: all`, `printWidth: 100`).
+- **Document before implementing:** a feature's spec goes into `docs/architecture.md` and its row into the Notion roadmap before its code.
 - Commits: Conventional Commits. Work on branches, open PRs to `main`.
 
 ## Brand
@@ -54,7 +55,8 @@ container sets `NODE_ENV=development`, which breaks production builds.
 
 ## Next steps (in order)
 
-1. **Content.** Publish the first blog posts and case studies from `/en/admin`.
+1. **Content.** Three blog posts and the three demo case studies are drafts in `/es/admin`: review and publish them.
+2. **Basic websites end to end** — `docs/architecture.md` section 11, one PR per part, in its order: proposal templates, the basic-website page, managed sites, one-step onboarding, client editing, the online request, visits, domain renewal.
 
 Outgoing email in production goes through OVH's SMTP (`ssl0.ovh.net:465`) as `hello@codeqlick.com`; the settings live in `/srv/codeqlick/.env`. Every email is plain text plus branded HTML (`codeqlick-backend/src/modules/mail/email-layout.ts`).
 
