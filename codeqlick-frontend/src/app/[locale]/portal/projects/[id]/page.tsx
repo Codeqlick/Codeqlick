@@ -71,6 +71,7 @@ export default async function PortalProjectPage({
   const site = await getMySite(project.id).catch(() => undefined);
   const visits = site ? await getProjectVisits(project.id).catch(() => undefined) : undefined;
   const tvis = await getTranslations({ locale, namespace: 'ProjectVisits' });
+  const tdomain = await getTranslations({ locale, namespace: 'Domain' });
   const tsite = await getTranslations({ locale, namespace: 'PortalSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trev = await getTranslations({ locale, namespace: 'Review' });
@@ -172,6 +173,17 @@ export default async function PortalProjectPage({
               <dt>{t('nextMilestone')}</dt>
               <dd>
                 <a href="#milestones">{next.title}</a>
+              </dd>
+            </div>
+          ) : null}
+          {project.domainName && project.domainExpiresAt ? (
+            <div>
+              <dt>{tdomain('portalLabel')}</dt>
+              <dd>
+                {tdomain('portalExpires', {
+                  name: project.domainName,
+                  date: formatDate(project.domainExpiresAt, locale),
+                })}
               </dd>
             </div>
           ) : null}

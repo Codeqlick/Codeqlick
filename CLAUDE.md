@@ -57,7 +57,7 @@ container sets `NODE_ENV=development`, which breaks production builds.
 ## Next steps (in order)
 
 1. **Content.** Three blog posts and the three demo case studies are drafts in `/es/admin`: review and publish them.
-2. **Basic websites end to end** — `docs/architecture.md` section 11, one PR per part, in its order: proposal templates, the basic-website page, managed sites, one-step onboarding, client editing, the online request, visits, domain renewal.
+2. **First basic-website clients.** Admin → Webs → "Nueva web básica" (or from a lead of `/basic-website/request`); the client then edits it from the portal.
 
 Outgoing email in production goes through OVH's SMTP (`ssl0.ovh.net:465`) as `hello@codeqlick.com`; the settings live in `/srv/codeqlick/.env`. Every email is plain text plus branded HTML (`codeqlick-backend/src/modules/mail/email-layout.ts`).
 
