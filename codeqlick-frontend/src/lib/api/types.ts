@@ -279,6 +279,12 @@ export type Lead = {
     business: { name: string; kind: string; city: string };
     domain?: { name: string; owned: boolean };
   } | null;
+  /** The request's instant preview, when one was made. */
+  preview: {
+    url: string;
+    status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
+    builtAt: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 };

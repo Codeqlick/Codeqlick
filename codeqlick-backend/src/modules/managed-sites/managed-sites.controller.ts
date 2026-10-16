@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -32,6 +33,7 @@ import {
   type SiteView,
 } from './managed-sites.service.js';
 import { SiteDomainsService } from './site-domains.service.js';
+import { SitePreviewsService } from './site-previews.service.js';
 import { SiteOnboardingService, type OnboardResult } from './site-onboarding.service.js';
 
 @ApiTags('admin/sites')
@@ -43,6 +45,7 @@ export class ManagedSitesController {
     private readonly sites: ManagedSitesService,
     private readonly onboarding: SiteOnboardingService,
     private readonly siteDomains: SiteDomainsService,
+    private readonly previews: SitePreviewsService,
   ) {}
 
   /** A basic-website client in one step (account, project, site, form, monitor, first build). */
@@ -52,6 +55,14 @@ export class ManagedSitesController {
     @Body({ schema: onboardSiteSchema }) body: OnboardSiteInput,
   ): Promise<OnboardResult> {
     return this.onboarding.onboard(user, body);
+  }
+
+  /** Takes a website request's preview down (architecture 8.2). */
+  @Delete('leads/:id/preview')
+  async removePreview(
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<{ status: 'REMOVED' | null }> {
+    return { status: await this.previews.remove(params.id) };
   }
 
   @Get('sites')

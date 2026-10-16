@@ -22,6 +22,8 @@ export type BodyFont = 'inter' | 'outfit';
 export interface Site {
   /** A demo of a made-up business: phone and WhatsApp links don't dial anyone. */
   demo?: boolean;
+  /** A preview built from a website request: noindex everywhere and a bar saying so on top. */
+  preview?: boolean;
   /** Public address, without a trailing slash: `https://peluqueriamarta.es`. */
   url: string;
   business: {
