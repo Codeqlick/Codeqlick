@@ -528,3 +528,53 @@
   margin: 0 0 var(--space-2);
   font-size: 0.9rem;
 }
+
+/* A row of links to pick one option (proposal templates); the current one is filled. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chips a {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 999px;
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.chips a:hover {
+  border-color: var(--color-fuchsia);
+}
+
+.chips a[aria-current='page'] {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+/* Name + small action rows (proposal templates in the proposals list). */
+.simpleList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.simpleList li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-line);
+}

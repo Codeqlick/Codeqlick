@@ -48,3 +48,19 @@ export const listProposalsQuerySchema = paginationSchema.extend({
   clientId: z.uuid().optional(),
 });
 export type ListProposalsQuery = z.infer<typeof listProposalsQuerySchema>;
+
+export const proposalTemplateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80),
+    title: z.string().trim().min(1).max(200),
+    summary: z.string().trim().min(1).max(50_000),
+    terms: z.string().trim().max(20_000).nullable().optional(),
+    validDays: z.number().int().min(1).max(365).nullable().optional(),
+    items: z.array(itemSchema).min(1).max(100),
+  })
+  .strict();
+export type ProposalTemplateInput = z.infer<typeof proposalTemplateSchema>;
+
+/** Saves a proposal as a template under this name (replacing one with the same name). */
+export const saveAsTemplateSchema = z.object({ name: z.string().trim().min(1).max(80) }).strict();
+export type SaveAsTemplateInput = z.infer<typeof saveAsTemplateSchema>;
