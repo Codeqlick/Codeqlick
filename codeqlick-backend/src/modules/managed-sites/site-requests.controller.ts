@@ -38,7 +38,9 @@ export class SiteRequestsController {
     // The instant preview (architecture 8.2): its address goes in the team's email too.
     const slug = await this.previews.reserve(body.business.name);
     const previewUrl = slug ? this.previews.urlOf(slug) : undefined;
-    const summary = requestSummary(request) + (previewUrl ? `\n\nPreview: ${previewUrl}` : '');
+    const summary =
+      requestSummary(request) +
+      (slug ? `\n\nPreview: ${this.previews.waitingUrlOf(slug, body.locale)}` : '');
     const lead = await this.leads.create(
       {
         name: body.name,

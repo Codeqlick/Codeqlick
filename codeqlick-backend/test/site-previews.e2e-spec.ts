@@ -149,7 +149,9 @@ describe('Instant previews of website requests (e2e)', () => {
     });
     const lead = await prisma.lead.findUniqueOrThrow({ where: { id: created.body.id } });
     expect(lead).toMatchObject({ previewStatus: 'READY' });
-    expect(lead.message).toContain(`Preview: ${created.body.previewUrl}`);
+    expect(lead.message).toContain(
+      `Preview: ${app.get(AppConfigService).siteUrl}/es/basic-website/request/preview/${lead.previewSlug}`,
+    );
     const email = sent.find(
       (message) => message.subject === 'La vista previa de la web de Peluquería Marta',
     );
