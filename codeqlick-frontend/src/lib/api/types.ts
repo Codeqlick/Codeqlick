@@ -217,6 +217,9 @@ export type ClientProject = {
   showHours: boolean;
   /** When the current release key (for deploy pipelines) was made; null without one. */
   releaseKeyCreatedAt: string | null;
+  /** The watched domain and its expiry (`yyyy-mm-dd`). */
+  domainName?: string | null;
+  domainExpiresAt?: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdate[];
   files?: ProjectFile[];
@@ -775,4 +778,13 @@ export type ProjectVisits = {
   messages: number;
   daily: { date: string; visitors: number; pageviews: number; messages: number }[];
   referrers: { source: string; visitors: number }[];
+};
+
+/** A project's domain renewal (architecture 11.7). */
+export type ProjectDomain = {
+  name: string | null;
+  source: 'RDAP' | 'MANUAL';
+  expiresAt: string | null;
+  daysLeft: number | null;
+  checkedAt: string | null;
 };

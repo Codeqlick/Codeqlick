@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DomainsModule } from '../domains/domains.module.js';
 import { LeadsModule } from '../leads/leads.module.js';
 import { MediaModule } from '../media/media.module.js';
 import { MonitoringModule } from '../monitoring/monitoring.module.js';
@@ -26,6 +27,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     MonitoringModule,
     MediaModule,
     StatsModule,
+    DomainsModule,
   ],
   controllers: [
     ManagedSitesController,
