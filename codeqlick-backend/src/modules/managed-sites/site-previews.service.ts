@@ -65,6 +65,14 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     return `https://${slug}.${this.config.sitesPreviewDomain}`;
   }
 
+  /**
+   * The page on the website that waits for the preview to be online and then opens it: the link to
+   * share before it is READY (its own address answers with another site of the server until then).
+   */
+  waitingUrlOf(slug: string, locale: ApiLocale): string {
+    return `${this.config.siteUrl}/${locale}/basic-website/request/preview/${slug}`;
+  }
+
   /** A free slug for a new preview, or null without a builder or past today's cap. */
   async reserve(businessName: string, now = new Date()): Promise<string | null> {
     if (!this.config.siteBuilder) return null;
