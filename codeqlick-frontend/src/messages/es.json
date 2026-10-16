@@ -2251,5 +2251,20 @@
     "sentTitle": "¡Recibido!",
     "sentBody": "Gracias. Te escribimos en un plazo de dos días laborables con una primera propuesta para tu web.",
     "back": "Volver a la web básica"
+  },
+  "ProjectVisits": {
+    "title": "Visitas de tu web",
+    "lead": "Los últimos 30 días.",
+    "notYet": "Las estadísticas aparecerán cuando la web reciba sus primeras visitas.",
+    "unavailable": "Ahora mismo no podemos leer las estadísticas. Vuelve a intentarlo más tarde.",
+    "visitors": "Visitantes",
+    "pageviews": "Páginas vistas",
+    "messages": "Mensajes del formulario",
+    "chart": "Visitantes por día, últimos {days} días",
+    "day": "Día",
+    "sources": "De dónde llegan",
+    "direct": "Directo o desconocido",
+    "visitorsCount": "{count, plural, one {# visitante} other {# visitantes}}",
+    "privacy": "Sin cookies y sin datos personales: contamos visitas, no personas concretas."
   }
 }
