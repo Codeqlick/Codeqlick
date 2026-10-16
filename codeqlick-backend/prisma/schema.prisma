@@ -87,6 +87,9 @@ model User {
   lastDigestAt       DateTime? @map("last_digest_at") @db.Timestamptz(3)
   /// Clients with a managed website get its monthly report unless they turn it off.
   monthlyReport      Boolean   @default(true) @map("monthly_report")
+  /// When the person made the account theirs (signed up, or accepted the invitation). Null: a
+  /// client account the team prepared for an email, which nobody can sign in to yet (decision 17).
+  registeredAt       DateTime? @default(now()) @map("registered_at") @db.Timestamptz(3)
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -151,6 +154,22 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+/// A self-registration waiting for its email to be confirmed (24 hours).
+model SignupToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String
+  name         String
+  passwordHash String    @map("password_hash")
+  locale       Locale
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt       DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([email])
+  @@map("signup_tokens")
 }
 
 model Lead {

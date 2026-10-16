@@ -14,6 +14,7 @@ import { AccountsService } from '../accounts/accounts.service.js';
 import { BriefsService } from '../briefs/briefs.service.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
+import { AuthService } from '../auth/auth.service.js';
 import { proposalAnsweredEmail, proposalSentEmail } from './proposal-emails.js';
 import {
   ProposalsRepository,
@@ -118,6 +119,7 @@ export class ProposalsService {
     private readonly activity: ActivityService,
     private readonly accounts: AccountsService,
     private readonly briefs: BriefsService,
+    private readonly auth: AuthService,
   ) {}
 
   // ---- Portal ---------------------------------------------------------------------------
@@ -232,13 +234,18 @@ export class ProposalsService {
     let clientNotified = false;
     for (const person of await this.accounts.people(row.clientId)) {
       try {
+        // Someone who hasn't made the account theirs yet gets the invitation to (decision 17).
+        const link = person.registered
+          ? `${this.config.siteUrl}/${person.locale}/portal/proposals/${row.id}`
+          : await this.auth.signupInvitationLink(person, person.locale);
         await this.mail.send(
           proposalSentEmail(
             person,
             view,
-            `${this.config.siteUrl}/${person.locale}/portal/proposals/${row.id}`,
+            link,
             person.locale,
             this.config.siteUrl,
+            !person.registered,
           ),
         );
         clientNotified = true;

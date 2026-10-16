@@ -66,7 +66,8 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
                     <td>
                       <Badge tone={user.isActive ? 'success' : 'neutral'}>
                         {user.isActive ? t('active') : t('inactive')}
-                      </Badge>
+                      </Badge>{' '}
+                      {user.registered ? null : <Badge tone="warning">{t('unregistered')}</Badge>}
                     </td>
                     <td>{formatDate(user.createdAt, locale)}</td>
                   </tr>

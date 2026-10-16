@@ -107,6 +107,7 @@ export const ACTIVITY_ACTIONS = [
   'account.two_factor_enabled',
   'account.two_factor_disabled',
   'account.sessions_revoked',
+  'account.registered',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

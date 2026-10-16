@@ -101,7 +101,7 @@ export function toLead(row: LeadRow, previewDomain: string): Lead {
 
 export interface ConvertedLead {
   lead: Lead;
-  client: { id: string; created: boolean; invitationSent?: boolean };
+  client: { id: string; created: boolean; registered: boolean; invitationSent?: boolean };
   project: { id: string; name: string };
 }
 
@@ -144,18 +144,18 @@ export class LeadsService {
   ) {}
 
   /**
-   * "Convert to client": the lead's person gets a client account (welcome email to choose a
-   * password; an existing client account is reused), a project is opened for them in Discovery,
+   * "Convert to client": the lead's person gets a client account (an existing one is reused, else
+   * one is prepared unregistered and they are invited to create it, decision 17), a project is opened for them in Discovery,
    * and the lead is marked WON and linked to the account.
    */
   async convert(actor: AuthUser, id: string, input: ConvertLeadInput): Promise<ConvertedLead> {
     const existing = await this.get(id);
     if (existing.clientId) throw new ConflictException('This lead is already a client');
-    const client = await this.users.findOrCreateClient(actor, {
-      email: existing.email,
-      name: existing.name,
-      locale: existing.locale,
-    });
+    const client = await this.users.findOrCreateClient(
+      actor,
+      { email: existing.email, name: existing.name, locale: existing.locale },
+      'project',
+    );
     const project = await this.projects.create(actor, {
       clientId: client.id,
       name: input.projectName ?? existing.company ?? existing.name,
@@ -181,7 +181,7 @@ export class LeadsService {
     });
     return {
       lead,
-      client: { id: client.id, created: client.created, invitationSent: client.invitationSent },
+      client,
       project: { id: project.id, name: project.name },
     };
   }
