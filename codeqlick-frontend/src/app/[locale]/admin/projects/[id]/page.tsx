@@ -31,6 +31,9 @@ import { ReleaseKeyReveal } from '@/components/app/ReleaseKeyReveal';
 import { adminGetProjectTime } from '@/lib/api/time';
 import { adminListTasks } from '@/lib/api/tasks';
 import { adminGetBrief } from '@/lib/api/briefs';
+import { adminGetMonitor } from '@/lib/api/monitoring';
+import { SiteStatus } from '@/components/app/SiteStatus';
+import { checkNowAction, setMonitorAction } from '../monitor-actions';
 import { BriefSummary } from '@/components/app/BriefSummary';
 import { requestBriefAction } from '../brief-actions';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
@@ -85,12 +88,14 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks, brief] = await Promise.all([
+  const [time, drafts, tasks, brief, monitor] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
     adminListTasks(project.id),
     adminGetBrief(project.id),
+    adminGetMonitor(project.id),
   ]);
+  const tm = await getTranslations({ locale, namespace: 'Monitoring' });
   const tb = await getTranslations({ locale, namespace: 'Brief' });
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
@@ -162,6 +167,46 @@ export default async function EditProjectPage({
               <SubmitButton pendingLabel={tc('creating')}>{t('milestoneAdd')}</SubmitButton>
             </div>
           </ActionForm>
+        </div>
+      </section>
+
+      <section className={styles.panel} id="monitor" aria-labelledby="monitor-heading">
+        <h2 id="monitor-heading" className={styles.panelTitle}>
+          {tm('panelTitle')}
+        </h2>
+        <div className={styles.stack}>
+          {'projectId' in monitor && monitor.enabled ? (
+            <>
+              <SiteStatus monitor={monitor} locale={locale} />
+              <div className={styles.actions}>
+                <ActionForm action={checkNowAction.bind(null, locale, project.id)}>
+                  <SubmitButton variant="outline" size="sm" pendingLabel={tm('checking')}>
+                    {tm('checkNow')}
+                  </SubmitButton>
+                </ActionForm>
+                <ActionForm action={setMonitorAction.bind(null, locale, project.id, false)}>
+                  <SubmitButton variant="ghost" size="sm" pendingLabel={tm('saving')}>
+                    {tm('disable')}
+                  </SubmitButton>
+                </ActionForm>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className={styles.muted}>
+                {project.productionUrl
+                  ? tm('offBody', { url: project.productionUrl })
+                  : tm('needsUrl')}
+              </p>
+              {project.productionUrl ? (
+                <ActionForm action={setMonitorAction.bind(null, locale, project.id, true)}>
+                  <SubmitButton variant="outline" size="sm" pendingLabel={tm('saving')}>
+                    {tm('enable')}
+                  </SubmitButton>
+                </ActionForm>
+              ) : null}
+            </>
+          )}
         </div>
       </section>
 

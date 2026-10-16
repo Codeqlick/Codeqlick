@@ -616,7 +616,8 @@
       "proposals": "Proposals",
       "time": "Hours",
       "calculator": "Calculator",
-      "bookings": "Calls"
+      "bookings": "Calls",
+      "monitoring": "Monitoring"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1013,7 +1014,9 @@
           "task_deleted": "deleted a task from <target>{label}</target>",
           "brief_requested": "asked for the brief of <target>{label}</target>",
           "brief_submitted": "sent the brief of <target>{label}</target>",
-          "brief_updated": "updated the brief of <target>{label}</target>"
+          "brief_updated": "updated the brief of <target>{label}</target>",
+          "monitor_enabled": "turned on monitoring of <target>{label}</target>",
+          "monitor_disabled": "turned off monitoring of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1821,5 +1824,35 @@
         "both": "Together"
       }
     }
+  },
+  "Monitoring": {
+    "title": "Monitoring",
+    "lead": "Your clients' production sites, checked every 5 minutes. If one fails twice in a row you get an alert, and another when it's back.",
+    "emptyTitle": "No sites monitored",
+    "emptyBody": "Turn it on from each project page (it needs the production address).",
+    "paused": "paused",
+    "panelTitle": "Monitoring",
+    "offBody": "Checks {url} every 5 minutes and its certificate; the client sees the status in their private area.",
+    "needsUrl": "Set the project's production address to monitor it.",
+    "enable": "Monitor the production site",
+    "disable": "Stop monitoring",
+    "checkNow": "Check now",
+    "checking": "Checking…",
+    "saving": "Saving…",
+    "statuses": {
+      "UNKNOWN": "Not checked yet",
+      "UP": "Up",
+      "DOWN": "Down"
+    },
+    "since": "since {date}",
+    "uptime": "{value} uptime over 30 days",
+    "barsLabel": "Uptime per day, last 30 days",
+    "noData": "{date}: no data",
+    "dayUptime": "{date}: {value}",
+    "cert": "Certificate",
+    "certUntil": "Valid until {date}",
+    "lastCheck": "Last check",
+    "clientTitle": "Service status",
+    "clientLead": "We check {url} every 5 minutes, day and night: if anything fails, we know straight away and get on it."
   }
 }
