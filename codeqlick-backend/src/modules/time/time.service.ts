@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { ActivityService } from '../activity/activity.service.js';
+import { PlansService } from './plans.service.js';
 import { TimeRepository, type EntryRow } from './time.repository.js';
 import type { CreateTimeEntryInput } from './time.schemas.js';
 
@@ -66,6 +67,7 @@ export class TimeService {
   constructor(
     private readonly repository: TimeRepository,
     private readonly activity: ActivityService,
+    private readonly plans: PlansService,
   ) {}
 
   async forProject(projectId: string): Promise<ProjectTime> {
@@ -98,6 +100,7 @@ export class TimeService {
       targetLabel: project.name,
       details: { minutes: input.minutes },
     });
+    await this.plans.checkAlert(projectId);
     return toView(row);
   }
 

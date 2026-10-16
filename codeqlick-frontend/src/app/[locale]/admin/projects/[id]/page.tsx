@@ -34,6 +34,9 @@ import { adminGetBrief } from '@/lib/api/briefs';
 import { adminGetMonitor } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
 import { adminGetReview } from '@/lib/api/reviews';
+import { adminGetPlan } from '@/lib/api/plans';
+import { PlanUsage } from '@/components/app/PlanUsage';
+import { savePlanAction } from '../plan-actions';
 import { requestReviewAction, setReviewStatusAction } from '../review-actions';
 import { SharedAccessList } from '@/components/app/SharedAccessList';
 import { deleteAllAccessAction, revealAccessAction } from '../../../portal/projects/access-actions';
@@ -93,7 +96,7 @@ export default async function EditProjectPage({
 
   const milestones = project.milestones ?? [];
   const th = await getTranslations({ locale, namespace: 'Hours' });
-  const [time, drafts, tasks, brief, monitor, access, review] = await Promise.all([
+  const [time, drafts, tasks, brief, monitor, access, review, plan] = await Promise.all([
     adminGetProjectTime(project.id),
     adminListDrafts(project.id),
     adminListTasks(project.id),
@@ -101,7 +104,9 @@ export default async function EditProjectPage({
     adminGetMonitor(project.id),
     listAccess(project.id),
     adminGetReview(project.id),
+    adminGetPlan(project.id),
   ]);
+  const tpl = await getTranslations({ locale, namespace: 'Plans' });
   const trv = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
   const tm = await getTranslations({ locale, namespace: 'Monitoring' });
@@ -517,6 +522,62 @@ export default async function EditProjectPage({
               deleteProjectFileAction.bind(null, locale, project.id, fileId)
             }
           />
+        </div>
+      </section>
+
+      <section className={styles.panel} id="plan" aria-labelledby="plan-heading">
+        <h2 id="plan-heading" className={styles.panelTitle}>
+          {tpl('title')}
+        </h2>
+        <div className={styles.stack}>
+          {'month' in plan && plan.active ? <PlanUsage plan={plan} locale={locale} /> : null}
+          <p className={styles.muted}>{tpl('adminLead')}</p>
+          <ActionForm
+            key={'month' in plan ? `${plan.name}-${plan.monthlyMinutes}-${plan.active}` : 'none'}
+            action={savePlanAction.bind(null, locale, project.id)}
+            className={styles.form}
+          >
+            <div className={styles.row}>
+              <FormInput
+                id="plan-name"
+                name="name"
+                label={tpl('name')}
+                placeholder={tpl('namePlaceholder')}
+                defaultValue={'month' in plan ? plan.name : ''}
+                required
+              />
+              <FormInput
+                id="plan-hours"
+                name="hours"
+                label={tpl('hours')}
+                inputMode="decimal"
+                defaultValue={'month' in plan ? String(plan.monthlyMinutes / 60) : ''}
+                required
+              />
+              <FormInput
+                id="plan-alert"
+                name="alertPercent"
+                type="number"
+                min={10}
+                max={99}
+                label={tpl('alert')}
+                hint={tpl('alertHint')}
+                defaultValue={'month' in plan ? String(plan.alertPercent) : '80'}
+              />
+            </div>
+            <FormCheckbox
+              id="plan-active"
+              name="active"
+              label={tpl('active')}
+              hint={tpl('activeHint')}
+              defaultChecked={'month' in plan ? plan.active : true}
+            />
+            <div className={styles.actions}>
+              <SubmitButton size="sm" pendingLabel={tpl('saving')}>
+                {tpl('save')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
         </div>
       </section>
 
