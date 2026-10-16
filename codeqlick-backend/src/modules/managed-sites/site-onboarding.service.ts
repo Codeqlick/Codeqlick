@@ -9,6 +9,7 @@ import type { OnboardSiteInput } from './managed-sites.schemas.js';
 import { siteRequestSchema, type SiteRequest } from './site-request.js';
 import { ManagedSitesService, type SiteView } from './managed-sites.service.js';
 import { SiteDomainsService } from './site-domains.service.js';
+import { SitePreviewsService } from './site-previews.service.js';
 
 export interface OnboardResult {
   projectId: string;
@@ -31,6 +32,7 @@ export class SiteOnboardingService {
     private readonly monitoring: MonitoringService,
     private readonly repository: ManagedSitesRepository,
     private readonly siteDomains: SiteDomainsService,
+    private readonly previews: SitePreviewsService,
   ) {}
 
   async onboard(actor: AuthUser, input: OnboardSiteInput): Promise<OnboardResult> {
@@ -78,6 +80,10 @@ export class SiteOnboardingService {
     // The preview is served within a minute (deploy/sites/sync-sites.sh); a client domain may
     // still lack its DNS record, so its monitor is turned on once it answers.
     if (site.domain) this.siteDomains.checkSoon(projectId);
+    // The real site replaces the request's preview.
+    if (input.leadId) {
+      await this.previews.remove(input.leadId).catch(() => undefined /* the daily job retries */);
+    }
     const monitoring = !site.domain;
     if (monitoring) await this.monitoring.setEnabled(actor, projectId, true);
     return { projectId, client, site, monitoring };

@@ -179,3 +179,17 @@ img {
   margin: 0;
   padding-left: 1.25rem;
 }
+
+/* A preview of a website request (site.preview). */
+.preview-bar {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background: #14101f;
+  color: #ffffff;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.preview-bar a {
+  color: #ff7dbe;
+}

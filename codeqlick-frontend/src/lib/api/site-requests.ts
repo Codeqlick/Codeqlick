@@ -23,7 +23,7 @@ export type SiteRequestInput = {
 
 /** The public basic-website request → a lead that keeps it. */
 export function createSiteRequest(input: SiteRequestInput) {
-  return apiFetch<{ id: string }>('/site-requests', {
+  return apiFetch<{ id: string; previewUrl?: string }>('/site-requests', {
     method: 'POST',
     body: input,
     forwardClientIp: true,

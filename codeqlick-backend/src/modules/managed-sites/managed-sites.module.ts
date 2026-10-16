@@ -13,6 +13,8 @@ import { ManagedSitesRepository } from './managed-sites.repository.js';
 import { ManagedSitesService } from './managed-sites.service.js';
 import { SiteBuilderClient } from './site-builder.client.js';
 import { SiteDomainsService } from './site-domains.service.js';
+import { SitePreviewsRepository } from './site-previews.repository.js';
+import { SitePreviewsService } from './site-previews.service.js';
 import { SiteOnboardingService } from './site-onboarding.service.js';
 import { PortalSitesController } from './portal-sites.controller.js';
 import { PortalSitesService } from './portal-sites.service.js';
@@ -46,6 +48,8 @@ import { SiteVisitsService } from './site-visits.service.js';
     PortalSitesService,
     SiteVisitsService,
     SiteDomainsService,
+    SitePreviewsService,
+    SitePreviewsRepository,
   ],
   exports: [ManagedSitesService],
 })

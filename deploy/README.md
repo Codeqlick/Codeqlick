@@ -284,6 +284,10 @@ echo "SITE_BUILDER_TOKEN=$(openssl rand -hex 32)" >> .env
 calls it with `SITE_BUILDER_TOKEN` inside the Docker network (it publishes no port). Its log of
 published domains is `~/.codeqlick-sites.log`.
 
+Request previews (`<name>-<random>.demo.codeqlick.com`) are built by the same builder; when one
+expires the builder leaves a `remove` file in its folder and `sync-sites.sh` unpublishes it
+(`cq-site remove`) and deletes the folder.
+
 DNS: demos and previews live under `*.demo.codeqlick.com` (one wildcard `A` record to the
 server). A client's own domain needs its `A` records (`@` and `www`) pointing at the server before
 publishing (see "Client domains" for the managed ones); without it `cq-site` publishes over HTTP only and exits with 3, and running it

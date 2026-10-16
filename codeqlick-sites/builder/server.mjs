@@ -5,12 +5,14 @@
 //   GET  /presets           { presets: [{ key, content }] }: the demos, as starting content
 //   POST /build             Bearer SITE_BUILDER_TOKEN; { slug, preset, domains, content }
 //                           -> { ok: true, release, ms } or { ok: false, error }
+//   DELETE /sites/:slug     Bearer; marks the site for removal (deploy/sites/sync-sites.sh)
+//                           -> { ok: true, removed }
 //
 // Images in the content are `file` names: `media/<name>` comes from the API's uploads (read-only
 // mount), anything else from the preset's images. Builds run one at a time.
 import { spawn } from 'node:child_process';
 import { timingSafeEqual } from 'node:crypto';
-import { copyFile, cp, mkdir, readdir, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readdir, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -113,8 +115,26 @@ async function build({ slug, preset, domains, content }) {
   }
   // Read by deploy/sites/sync-sites.sh on the host, which publishes the domains through Nginx.
   await writeFile(join(root, 'domains'), `${domains.join('\n')}\n`);
+  // Built again: no longer on its way out.
+  await rm(join(root, 'remove'), { force: true });
   await rm(work, { recursive: true, force: true });
   return { ok: true, release, ms: Date.now() - started };
+}
+
+/**
+ * Marks a site for removal: the host's sync-sites.sh unpublishes its domains and deletes the
+ * folder. The API only asks this for request previews.
+ */
+async function remove(slug) {
+  if (!SLUG.test(slug)) throw new BuildError('Invalid slug');
+  const root = join(SITES, slug);
+  try {
+    await stat(root);
+  } catch {
+    return { ok: true, removed: false };
+  }
+  await writeFile(join(root, 'remove'), `${new Date().toISOString()}\n`);
+  return { ok: true, removed: true };
 }
 
 async function presets() {
@@ -158,6 +178,15 @@ const server = createServer(async (req, res) => {
       queue = job.catch(() => undefined);
       try {
         return send(res, 200, await job);
+      } catch (error) {
+        if (error instanceof BuildError) return send(res, 422, { ok: false, error: error.message });
+        throw error;
+      }
+    }
+    const removal = req.method === 'DELETE' && /^\/sites\/([^/]+)$/.exec(req.url ?? '');
+    if (removal) {
+      try {
+        return send(res, 200, await remove(decodeURIComponent(removal[1])));
       } catch (error) {
         if (error instanceof BuildError) return send(res, 422, { ok: false, error: error.message });
         throw error;

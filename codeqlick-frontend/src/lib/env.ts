@@ -18,6 +18,8 @@ const envSchema = z.object({
   LEGAL_OWNER_NAME: z.string().trim().min(1).optional(),
   LEGAL_OWNER_TAX_ID: z.string().trim().min(1).optional(),
   LEGAL_OWNER_ADDRESS: z.string().trim().min(1).optional(),
+  /** Where managed sites and request previews are previewed: <slug>.<this>. */
+  SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
 });
 
 const parsed = envSchema.safeParse({
@@ -30,6 +32,7 @@ const parsed = envSchema.safeParse({
   LEGAL_OWNER_NAME: process.env.LEGAL_OWNER_NAME || undefined,
   LEGAL_OWNER_TAX_ID: process.env.LEGAL_OWNER_TAX_ID || undefined,
   LEGAL_OWNER_ADDRESS: process.env.LEGAL_OWNER_ADDRESS || undefined,
+  SITES_PREVIEW_DOMAIN: process.env.SITES_PREVIEW_DOMAIN || undefined,
 });
 
 if (!parsed.success) {
