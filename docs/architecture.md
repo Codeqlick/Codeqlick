@@ -348,7 +348,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / POST | `/portal/projects/:id/credentials` | List (`{ id, label, url, username, createdBy: { name }, createdAt, viewedAt }`, never the secret) / `{ label, url?, username?, secret, notes? }` → `201` |
 | DELETE | `/portal/projects/:id/credentials/:credentialId` | `204` |
 | GET | `/portal/projects/:id/status` | `SiteMonitor` view (`{ status, statusSince, uptime30, days: [{ day, checks, ratio }] (30 Madrid days), certExpiresAt, lastCheckedAt, ... }`); 404 unless the project is the caller's and monitored |
-| GET / PUT | `/portal/projects/:id/site` | The client's managed website: `{ status, preset, url, previewUrl, domain: { name, state, checkedAt, mail, nicHandle, serverIp }, lastBuildAt, editable }` (`nicHandle` and `serverIp` are what the client sets at their registrar), `editable` being what they may change (`tagline`, `contact`, `hours`, `hero: { title, text }`, `services`, `about: { title, paragraphs }`, `gallery`, `testimonials`; brand, theme and legal data stay with the team) / `{ site: editable }` → merged into the content, validated as a whole (400 with the field in the message), saved as a change by the client (a revision) and published; the team inbox is emailed what changed (or that publishing failed). Changing the hours drops the machine-readable `openingHoursSpec`. 404 unless the project is the caller's and has a managed site. Limited to 30/hour |
+| GET / PUT | `/portal/projects/:id/site` | The client's managed website: `{ status, preset, url, previewUrl, domain: { name, state, checkedAt, mail, nicHandle, serverIp }, lastBuildAt, businessName, colors: { primary, primaryText }, editable }` (`nicHandle` and `serverIp` are what the client sets at their registrar), `editable` being what they may change (`tagline`, `contact` — with `reviewUrl`, the Google review link of section 8.2 —, `hours`, `hero: { title, text }`, `services`, `about: { title, paragraphs }`, `gallery`, `testimonials`; brand, theme and legal data stay with the team) / `{ site: editable }` → merged into the content, validated as a whole (400 with the field in the message), saved as a change by the client (a revision) and published; the team inbox is emailed what changed (or that publishing failed). Changing the hours drops the machine-readable `openingHoursSpec`. 404 unless the project is the caller's and has a managed site. Limited to 30/hour |
 | PUT | `/portal/projects/:id/site/domain` | `{ name: string \| null }` → the site: the client chooses, changes or drops their own domain; it is rebuilt and the domain checked right away. 400 for a Codeqlick domain, 409 when another site uses it. Limited to 10/hour |
 | POST | `/portal/projects/:id/site/images` | Multipart `file` (JPEG, PNG or WebP, 5 MB) → `201 { file: 'media/<name>', url }`, stored with the uploaded images (an image a managed site uses counts as used in the media library). Limited to 20/hour |
 | GET | `/portal/projects/:id/visits` | `?days=7\|30\|90` (default 30) → `{ enabled, available, days, visitors, pageviews, messages, daily: [{ date, visitors, pageviews, messages }], referrers: [{ source, visitors }] (5) }`: the managed site's numbers from Umami and its form's messages; `enabled: false` until it has statistics. Also `GET /admin/projects/:id/visits`. 404 without a managed site of the caller's |
@@ -560,7 +560,8 @@ src/
                                register/confirm: the emailed link, a button that confirms and signs in
       portal/                  Client area (role CLIENT or ADMIN): projects (updates, timeline, files, tasks, hours and plan,
                                brief, review, shared access, site status, and "Tu web": editing their managed website,
-                               photos shown from public/presets or the uploads), proposals, support requests, account
+                               photos shown from public/presets or the uploads; site/reviews: the Google
+                               review kit, QR and printable poster), proposals, support requests, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, visits, recent activity), leads
                                (list and board), proposals, support, hours and plans, drafts to review, bookings, calculator,
                                monitoring, saved replies, posts, tags, portfolio, projects, managed websites (list and "Nueva web
@@ -715,6 +716,15 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   plus a button to the project in the portal. When Umami doesn't answer it waits for the next hourly
   check, and from the 3rd it goes out without visits. `reportedMonth` keeps it to one a month.
   Clients turn it off in their account and admins on the user page; the project page has "send now".
+- **Google review kit:** the site content's `contact.reviewUrl` is the business's "write a review"
+  link on Google (`https://g.page/r/…/review`, `https://search.google.com/local/writereview?placeid=…`
+  or a `maps.app.goo.gl`/`goo.gl` short link; other hosts are refused). Clients set it in "Tu web"
+  (reviews section), with how to get it from their Google Business Profile ("Pedir
+  reseñas"). With it the site's reviews section ends with "Déjanos tu opinión en Google", and the
+  portal page `/portal/projects/[id]/site/reviews` shows the kit: the QR code (SVG drawn on the
+  server), the link to copy and send by WhatsApp or email, and a printable A5 poster ("¿Te ha
+  gustado? Déjanos tu opinión en Google", business name, QR, short steps) printed or saved as PDF
+  from the browser. Without the link the page explains how to get it. The project page links to it.
 - **Custom sites** keep their own repository and are uploaded with `deploy/sites/publish-site.sh`.
   The demos are published that way at `<demo>.demo.codeqlick.com`.
 
