@@ -786,6 +786,8 @@ export type EditableSite = {
     email?: string;
     address?: { street: string; postalCode?: string; city: string; region: string };
     mapsUrl?: string;
+    /** The business's "write a review" link on Google. */
+    reviewUrl?: string;
   };
   hours?: { days: string; hours: string }[];
   hero: { title: string; text: string };
@@ -816,6 +818,9 @@ export type PortalSite = {
     serverIp: string | null;
   };
   lastBuildAt: string | null;
+  /** The business's name and the site's main colours (the review poster). */
+  businessName: string;
+  colors: { primary: string; primaryText: string };
   editable: EditableSite;
 };
 
