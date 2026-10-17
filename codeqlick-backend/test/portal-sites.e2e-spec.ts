@@ -151,8 +151,23 @@ describe('Clients edit their website (e2e)', () => {
       .expect(201);
     expect(photo.body.file).toMatch(/^media\/[\w-]+\.png$/);
 
+    // The Google review link: only Google's.
+    await request(server)
+      .put(portal)
+      .set(clientAuth)
+      .send({
+        site: {
+          ...site.body.editable,
+          contact: { ...site.body.editable.contact, reviewUrl: 'https://example.com/review' },
+        },
+      })
+      .expect(400);
     const edits = {
       ...site.body.editable,
+      contact: {
+        ...site.body.editable.contact,
+        reviewUrl: 'https://g.page/r/CdA1b2C3d4E5EAE/review',
+      },
       hours: [{ days: 'Lunes a sábado', hours: '10:00–20:00' }],
       gallery: { title: 'Nuestro trabajo', images: [{ file: photo.body.file, alt: 'Un corte' }] },
     };
@@ -172,6 +187,7 @@ describe('Clients edit their website (e2e)', () => {
     expect(built).not.toHaveProperty('openingHoursSpec');
     expect(built.theme).toMatchObject({ primary: '#A84A33' });
     expect(built.gallery).toMatchObject({ images: [{ file: photo.body.file }] });
+    expect(built.contact).toMatchObject({ reviewUrl: 'https://g.page/r/CdA1b2C3d4E5EAE/review' });
     await vi.waitFor(() => expect(sent.length).toBe(before + 1));
     expect(sent.at(-1)?.subject).toBe('[codeqlick] Website changed: Peluquería Marta');
     expect(sent.at(-1)?.text).toContain('Opening hours, Gallery');
