@@ -2,6 +2,7 @@
 import { sectionLabel, site } from '../lib/site';
 
 const testimonials = site.testimonials!;
+const reviewUrl = site.contact.reviewUrl;
 ---
 
 <section class="section" id="opiniones" aria-labelledby="opiniones-title">
@@ -28,6 +29,13 @@ const testimonials = site.testimonials!;
         </li>
       ))}
     </ul>
+    {reviewUrl ? (
+      <p class="review">
+        <a class="button button--ghost" href={reviewUrl} rel="noopener" target="_blank">
+          Déjanos tu opinión en Google
+        </a>
+      </p>
+    ) : null}
   </div>
 </section>
 
@@ -66,6 +74,11 @@ const testimonials = site.testimonials!;
     display: grid;
     margin-top: auto;
     font-size: 0.95rem;
+  }
+
+  .review {
+    margin: 2rem 0 0;
+    text-align: center;
   }
 
   figcaption span {

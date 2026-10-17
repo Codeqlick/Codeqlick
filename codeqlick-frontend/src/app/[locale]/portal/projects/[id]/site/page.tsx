@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/Badge';
 import { FilePicker } from '@/components/ui/FilePicker';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
+import { Link } from '@/i18n/navigation';
 import { isNotFound } from '@/lib/api/errors';
 import { getMySite } from '@/lib/api/portal-site';
 import { formatDateTime } from '@/lib/format';
@@ -474,6 +475,19 @@ export default async function PortalSitePage({
               labels={rowLabels(t('reviewsList'), t('addReview'), t('reviewsHint'))}
               max={9}
             />
+            <FormInput
+              id="reviewUrl"
+              name="reviewUrl"
+              type="url"
+              label={t('reviewUrl')}
+              hint={t('reviewUrlHint')}
+              placeholder="https://g.page/r/…/review"
+              defaultValue={editable.contact.reviewUrl}
+              maxLength={500}
+            />
+            <p className={styles.muted}>
+              <Link href={`/portal/projects/${id}/site/reviews`}>{t('reviewKitLink')}</Link>
+            </p>
           </div>
         </section>
 
