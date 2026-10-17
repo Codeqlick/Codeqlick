@@ -128,6 +128,13 @@ export default async function PortalProjectPage({
             <Button href={`/portal/projects/${project.id}/site`} size="sm">
               {tsite('cardLink')}
             </Button>
+            <Button
+              href={`/portal/projects/${project.id}/site/reviews`}
+              variant="outline"
+              size="sm"
+            >
+              {tsite('cardReviews')}
+            </Button>
           </div>
         </section>
       ) : null}

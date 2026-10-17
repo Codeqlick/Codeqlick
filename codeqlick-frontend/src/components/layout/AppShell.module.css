@@ -167,3 +167,16 @@
     padding-top: 1.5rem;
   }
 }
+
+/* Printing (proposals, the review poster): only the page's content, from the page's corner. */
+@media print {
+  .shell {
+    display: block;
+    min-height: 0;
+    background: none;
+  }
+
+  .main {
+    padding: 0;
+  }
+}

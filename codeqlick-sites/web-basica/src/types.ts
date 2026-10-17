@@ -70,6 +70,8 @@ export interface Site {
     };
     /** "Cómo llegar" link (Google Maps or OpenStreetMap); no embedded map, so no cookies. */
     mapsUrl?: string;
+    /** The business's "write a review" link on Google: the reviews section links to it. */
+    reviewUrl?: string;
   };
   /** Opening hours, as shown: `{ days: 'Lunes a viernes', hours: '9:00–20:00' }`. */
   hours?: Array<{ days: string; hours: string }>;

@@ -37,6 +37,16 @@ const image = z
   })
   .strict();
 const link = z.object({ label: text(60), href }).strict();
+/** Hosts of a business's "write a review" link on Google (architecture 8.2, Google review kit). */
+const REVIEW_HOSTS =
+  /^(g\.page|maps\.app\.goo\.gl|goo\.gl|(www\.|search\.|maps\.)?google\.(com|[a-z]{2}|com?\.[a-z]{2}))$/;
+const reviewUrl = z
+  .url({
+    protocol: /^https$/,
+    hostname: REVIEW_HOSTS,
+    error: 'Your review link on Google: https://g.page/r/…/review',
+  })
+  .max(500);
 
 /**
  * A managed site's content: the template's `Site` type (codeqlick-sites/web-basica/src/types.ts)
@@ -85,6 +95,8 @@ export const siteContentSchema = z
           .strict()
           .optional(),
         mapsUrl: z.url().max(500).optional(),
+        /** The business's "write a review" link on Google. */
+        reviewUrl: reviewUrl.optional(),
       })
       .strict(),
     hours: z
