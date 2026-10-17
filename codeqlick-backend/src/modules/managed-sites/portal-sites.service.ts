@@ -29,6 +29,9 @@ export interface PortalSiteView {
   preset: string;
   url: string;
   lastBuildAt: string | null;
+  /** The business's name and the site's main colours, for the review poster. */
+  businessName: string;
+  colors: { primary: string; primaryText: string };
   editable: EditableSite;
 }
 
@@ -155,6 +158,8 @@ export class PortalSitesService {
       preset: site.preset,
       url: site.domain && site.domainState === 'LIVE' ? `https://${site.domain}` : previewUrl,
       lastBuildAt: site.lastBuildAt?.toISOString() ?? null,
+      businessName: content.business.name,
+      colors: { primary: content.theme.primary, primaryText: content.theme.primaryText },
       editable: editableOf(content),
     };
   }

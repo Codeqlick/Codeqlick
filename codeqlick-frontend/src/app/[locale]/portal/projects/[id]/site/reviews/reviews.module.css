@@ -1,0 +1,123 @@
+.steps {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-6);
+}
+
+/* The poster: A5 portrait, in the site's own colour. */
+.poster {
+  width: min(100%, 148mm);
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  color: var(--color-ink);
+  text-align: center;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.band {
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  background: var(--poster-primary);
+  color: var(--poster-on-primary);
+}
+
+.kicker {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.25rem;
+}
+
+.headline {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-family-display);
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.body {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-6);
+}
+
+.business {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.qr {
+  width: min(70%, 75mm);
+  aspect-ratio: 1;
+}
+
+.qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.stars {
+  margin: 0;
+  color: #f4b400;
+  font-size: 1.6rem;
+  letter-spacing: 0.2em;
+}
+
+.posterSteps {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-6);
+  text-align: left;
+}
+
+.thanks {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+@media print {
+  @page {
+    size: A5 portrait;
+    margin: 0;
+  }
+
+  .poster {
+    width: 148mm;
+    height: 209mm;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    break-inside: avoid;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .band {
+    padding: 14mm 10mm 10mm;
+  }
+
+  .headline {
+    font-size: 26pt;
+  }
+
+  .body {
+    flex: 1;
+    align-content: space-evenly;
+    padding: 8mm 10mm;
+  }
+
+  .posterSteps {
+    font-size: 11pt;
+  }
+}

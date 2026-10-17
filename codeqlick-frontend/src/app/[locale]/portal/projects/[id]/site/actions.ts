@@ -10,6 +10,20 @@ import type { EditableSite } from '@/lib/api/types';
 import { formValues, type FormState } from '@/lib/forms';
 
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+/** The hosts the API takes for the Google review link (architecture 8.2). */
+const REVIEW_HOSTS =
+  /^(g\.page|maps\.app\.goo\.gl|goo\.gl|(www\.|search\.|maps\.)?google\.(com|[a-z]{2}|com?\.[a-z]{2}))$/;
+
+/** A Google review link, or false when it isn't one. */
+function reviewLink(value: string | undefined): string | undefined | false {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && REVIEW_HOSTS.test(url.hostname) ? url.href : false;
+  } catch {
+    return false;
+  }
+}
 
 /** The trimmed text of a field, or undefined when empty. */
 function text(formData: FormData, name: string): string | undefined {
@@ -45,7 +59,9 @@ export async function saveSiteAction(
   formData: FormData,
 ): Promise<FormState> {
   const t = await getTranslations({ locale, namespace: 'PortalSite' });
-  const values = formValues(formData);
+  // Not the photos' fields: one input per photo shares each name, and echoing the joined values
+  // back would put every description in each input.
+  const values = formValues(formData, ['gallery.file', 'gallery.alt', 'gallery.remove']);
   let current: EditableSite;
   try {
     current = (await getMySite(projectId)).editable;
@@ -74,6 +90,10 @@ export async function saveSiteAction(
     return { status: 'error', message: t('altRequired'), values };
   }
 
+  const reviewUrl = reviewLink(text(formData, 'reviewUrl'));
+  if (reviewUrl === false) {
+    return { status: 'error', fieldErrors: { reviewUrl: t('reviewUrlInvalid') }, values };
+  }
   const street = text(formData, 'street');
   const services = rows(formData, 'services', ['name', 'description', 'price'] as const);
   const reviews = rows(formData, 'reviews', ['quote', 'author', 'detail'] as const);
@@ -98,6 +118,7 @@ export async function saveSiteAction(
           }
         : undefined,
       mapsUrl: current.contact.mapsUrl,
+      reviewUrl,
     },
     hours:
       hours.length > 0
