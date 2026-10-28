@@ -41,10 +41,20 @@ export class SitePurchasesRepository {
    * Marks a purchase paid, once: false when it already was (Stripe may send an event again), so
    * its site is only made by the first.
    */
-  async markPaid(stripeSessionId: string, email: string | null, now: Date): Promise<boolean> {
+  async markPaid(
+    stripeSessionId: string,
+    paid: { email: string | null; amountCents: number | null; invoiceId: string | null },
+    now: Date,
+  ): Promise<boolean> {
     const { count } = await this.prisma.sitePurchase.updateMany({
       where: { stripeSessionId, status: { not: 'PAID' } },
-      data: { status: 'PAID', paidAt: now, ...(email ? { email } : {}) },
+      data: {
+        status: 'PAID',
+        paidAt: now,
+        ...(paid.email ? { email: paid.email } : {}),
+        ...(paid.amountCents !== null ? { amountCents: paid.amountCents } : {}),
+        ...(paid.invoiceId ? { stripeInvoiceId: paid.invoiceId } : {}),
+      },
     });
     return count === 1;
   }

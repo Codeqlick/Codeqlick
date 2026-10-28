@@ -19,7 +19,11 @@ export type PurchaseStatus = 'PENDING' | 'PAID' | 'EXPIRED';
 
 /** What the preview's pages show about buying it; null while buying online is off. */
 export interface PurchaseOffer {
+  /** Before VAT. */
   priceCents: number;
+  vatPercent: number;
+  /** What is charged, VAT included. */
+  totalCents: number;
   currency: 'eur';
   /** The preview is READY, not bought and its lead isn't a client yet. */
   available: boolean;
@@ -44,6 +48,7 @@ export interface PurchaseView extends PurchaseProgress {
   email: string | null;
   paidAt: string | null;
   projectId: string | null;
+  stripeInvoiceId: string | null;
   error: string | null;
   createdAt: string;
 }
@@ -77,6 +82,8 @@ export class SitePurchasesService {
     const lead = await this.repository.leadBySlug(slug);
     return {
       priceCents: this.config.sitePriceCents,
+      vatPercent: this.config.siteVatPercent,
+      totalCents: this.config.siteTotalCents,
       currency: 'eur',
       available:
         lead?.previewStatus === 'READY' && lead.clientId === null && lead.purchases.length === 0,
@@ -96,7 +103,9 @@ export class SitePurchasesService {
     const es = locale === 'es';
     const business = request.business.name;
     const id = randomUUID();
-    const amountCents = this.config.sitePriceCents;
+    const vat = this.config.siteVatPercent;
+    const taxRates = vat > 0 ? [await this.stripe.taxRate(vat)] : [];
+    const product = `${es ? 'Web básica' : 'Basic website'} — ${business}`;
     const back = `${this.config.siteUrl}/${locale}/basic-website/request/preview/${slug}`;
     const session = await this.stripe.createCheckout({
       mode: 'payment',
@@ -105,11 +114,17 @@ export class SitePurchasesService {
           quantity: 1,
           price_data: {
             currency: 'eur',
-            unit_amount: amountCents,
-            product_data: { name: `${es ? 'Web básica' : 'Basic website'} — ${business}` },
+            unit_amount: this.config.sitePriceCents,
+            product_data: { name: product },
           },
+          ...(taxRates.length > 0 ? { tax_rates: taxRates } : {}),
         },
       ],
+      // Stripe numbers, emails and keeps the invoice of each sale (decision 20).
+      invoice_creation: {
+        enabled: true,
+        invoice_data: { description: product, metadata: { purchaseId: id, leadId: lead.id } },
+      },
       ...(lead.email ? { customer_email: lead.email } : {}),
       billing_address_collection: 'required',
       tax_id_collection: { enabled: true },
@@ -123,7 +138,7 @@ export class SitePurchasesService {
       id,
       leadId: lead.id,
       stripeSessionId: session.id,
-      amountCents,
+      amountCents: this.config.siteTotalCents,
       currency: 'eur',
     });
     return { url: session.url };
@@ -146,6 +161,7 @@ export class SitePurchasesService {
       email: row.email,
       paidAt: row.paidAt?.toISOString() ?? null,
       projectId: row.projectId,
+      stripeInvoiceId: row.stripeInvoiceId,
       error: row.error,
       createdAt: row.createdAt.toISOString(),
     }));
@@ -182,7 +198,13 @@ export class SitePurchasesService {
 
   private async paid(session: CheckoutSession, now: Date): Promise<void> {
     const email = session.customer_details?.email ?? session.customer_email ?? null;
-    if (!(await this.repository.markPaid(session.id, email, now))) return;
+    const paid = {
+      email,
+      amountCents: session.amount_total ?? null,
+      invoiceId:
+        typeof session.invoice === 'string' ? session.invoice : (session.invoice?.id ?? null),
+    };
+    if (!(await this.repository.markPaid(session.id, paid, now))) return;
     const purchase = await this.repository.findBySession(session.id);
     if (!purchase) {
       this.logger.error(`Paid Checkout Session ${session.id} has no purchase`);
@@ -240,7 +262,7 @@ export class SitePurchasesService {
       action: 'lead.purchased',
       targetId: leadId,
       targetLabel: lead.name,
-      details: { business: request.business.name, amount: priceLabel(this.config.sitePriceCents) },
+      details: { business: request.business.name, amount: priceLabel(this.config.siteTotalCents) },
     });
     const siteUrl = result.site.url;
     await this.mail
@@ -367,8 +389,8 @@ function boughtEmail(
             ],
         button: { label: es ? 'Editar mi web' : 'Edit my website', url: portalUrl },
         note: es
-          ? 'Stripe te envía el recibo del pago. Si tienes cualquier duda, responde a este correo.'
-          : 'Stripe sends you the receipt. Any question? Just reply to this email.',
+          ? 'Stripe te envía por email la factura del pago. Si tienes cualquier duda, responde a este correo.'
+          : 'Stripe emails you the invoice. Any question? Just reply to this email.',
       },
       appUrl,
     ),

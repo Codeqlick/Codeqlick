@@ -35,7 +35,15 @@ export function createSiteRequest(input: SiteRequestInput) {
 export type PreviewStatus = 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
 
 /** Buying the preview online (architecture 8.2, decision 20); null while it is off. */
-export type PurchaseOffer = { priceCents: number; currency: 'eur'; available: boolean };
+export type PurchaseOffer = {
+  /** Before VAT. */
+  priceCents: number;
+  vatPercent: number;
+  /** What is charged, VAT included. */
+  totalCents: number;
+  currency: 'eur';
+  available: boolean;
+};
 
 export type PreviewInfo = {
   status: PreviewStatus;
