@@ -781,7 +781,18 @@
       "deleteTitle": "Eliminar el contacto",
       "deleteBody": "Se borran el contacto y sus respuestas. Sus reservas, su propuesta y su cuenta de cliente, si las tiene, se quedan.",
       "deleteBodyPreview": "Se borran el contacto, sus respuestas y su vista previa, que deja de estar online. Sus reservas, su propuesta y su cuenta de cliente, si las tiene, se quedan.",
-      "proposalNoEmail": "Para preparar su propuesta, añade antes su email en «Editar los datos de contacto»."
+      "proposalNoEmail": "Para preparar su propuesta, añade antes su email en «Editar los datos de contacto».",
+      "purchasesTitle": "Compra online",
+      "purchaseStatuses": {
+        "PENDING": "Pago sin completar",
+        "PAID": "Pagada",
+        "EXPIRED": "Caducada"
+      },
+      "purchaseLine": "{amount} · {date}",
+      "purchaseBuyer": "Comprador: {email}",
+      "purchaseSession": "Sesión de Stripe: {id}",
+      "purchaseProject": "Abrir el proyecto",
+      "purchaseError": "No se pudo crear sola: {error}. Termínala desde «Convertir en cliente» (o con la web básica del proyecto) o devuelve el pago desde Stripe."
     },
     "posts": {
       "title": "Artículos",
@@ -1129,7 +1140,8 @@
           "replied": "respondió al contacto <target>{label}</target>",
           "converted": "convirtió en cliente el contacto <target>{label}</target>",
           "created": "añadió el contacto <target>{label}</target>",
-          "deleted": "eliminó el contacto <target>{label}</target>"
+          "deleted": "eliminó el contacto <target>{label}</target>",
+          "purchased": "creó la web comprada por el contacto <target>{label}</target>"
         },
         "media": {
           "uploaded": "subió la imagen <target>{label}</target>",
@@ -1427,7 +1439,8 @@
       "creating": "Creando…",
       "create": "Crear la vista previa",
       "capReached": "Hoy ya se han hecho 10 vistas previas, el máximo diario. Prueba mañana.",
-      "noBuilder": "El generador de webs no está disponible ahora mismo."
+      "noBuilder": "El generador de webs no está disponible ahora mismo.",
+      "purchased": "Comprada"
     }
   },
   "Sessions": {
@@ -2485,7 +2498,40 @@
     "previewWaitTitle": "Preparando tu vista previa",
     "previewWaitBody": "Estamos publicando la primera versión de tu web. Suele tardar un par de minutos: esta página te llevará a ella en cuanto esté lista, y también te llegará el enlace por email.",
     "previewGoneTitle": "Esta vista previa no está disponible",
-    "previewGoneBody": "No hemos podido prepararla, o ya se ha retirado. No te preocupes: tenemos tu solicitud y te escribiremos en breve."
+    "previewGoneBody": "No hemos podido prepararla, o ya se ha retirado. No te preocupes: tenemos tu solicitud y te escribiremos en breve.",
+    "buyMetaTitle": "Comprar tu web",
+    "buyEyebrow": "Web básica",
+    "buyTitle": "La web de {business}, tuya hoy",
+    "buyLead": "Pagas una vez y la creamos al momento tal como la ves en la vista previa. Después la cambias a tu gusto desde tu área de cliente: textos, fotos, colores y secciones.",
+    "buyPrice": "{price}",
+    "buyPriceNote": "Pago único",
+    "buyIncludesTitle": "Qué incluye",
+    "buyIncludes": {
+      "site": "La web completa, publicada y con su formulario de contacto funcionando: los mensajes te llegan por email.",
+      "editor": "El editor para cambiarlo todo cuando quieras: textos, fotos, colores, tipografías, secciones y datos legales.",
+      "hosting": "Alojamiento con HTTPS y estadísticas de visitas sin cookies.",
+      "extras": "Avisos de cierre o de horario especial y el kit para pedir reseñas en Google.",
+      "domain": "Tu dominio cuando quieras: lo eliges desde tu área de cliente. El dominio lo pagas aparte, a quien lo registres."
+    },
+    "buyPreview": "Ver la vista previa otra vez",
+    "buyAccept": "He leído y acepto las <terms>condiciones de contratación</terms> y pido que creéis la web ya. Sé que, una vez creada, pierdo el derecho de desistimiento.",
+    "buyAcceptRequired": "Para seguir, acepta las condiciones.",
+    "buyButton": "Pagar {price}",
+    "buySecure": "El pago se hace en Stripe, con tarjeta. Nosotros no vemos ni guardamos los datos de tu tarjeta.",
+    "buyCancelled": "Has cancelado el pago y no se ha hecho ningún cargo. Puedes intentarlo de nuevo cuando quieras.",
+    "buyError": "No hemos podido abrir el pago. Inténtalo de nuevo en un momento.",
+    "buyTaken": "Esta web ya se ha comprado. Si es tuya, revisa tu correo: te hemos enviado cómo entrar en tu área de cliente.",
+    "buyNotReady": "La vista previa todavía se está preparando. Vuelve en un minuto.",
+    "paidMetaTitle": "Pago recibido",
+    "paidWaitTitle": "Pago recibido: estamos creando tu web",
+    "paidWaitBody": "Tarda menos de un minuto. Esta página se actualiza sola.",
+    "paidTitle": "¡Tu web ya está creada!",
+    "paidBody": "La web de {business} ya está publicada. Te hemos enviado un email para entrar en tu área de cliente: desde allí la cambias a tu gusto y eliges tu dominio.",
+    "paidOpen": "Ver mi web",
+    "paidSlow": "El pago está recibido, pero la web está tardando más de lo normal. No tienes que hacer nada: te escribiremos en cuanto esté lista.",
+    "paidPending": "Estamos esperando la confirmación del pago. Esta página se actualiza sola.",
+    "paidExpired": "Este pago no se completó y no se ha hecho ningún cargo.",
+    "paidUnknown": "No encontramos este pago. Si te han hecho un cargo, escríbenos y lo resolvemos."
   },
   "ProjectVisits": {
     "title": "Visitas de tu web",

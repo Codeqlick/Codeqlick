@@ -325,6 +325,37 @@ availability comes from RDAP (unknown for `.es`) and clients point their DNS the
 The portal shows clients the NIC handle and the IP. Each change OVH's API makes to a zone is in
 the admin activity log; MX and other records are never touched.
 
+### Buying a preview online (Stripe)
+
+Requesters can buy their website from its preview (architecture 8.2, decision 20). It is **off**
+until `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set, and should stay off until the owner
+is registered to charge (autónomo or company). To switch it on:
+
+1. A gestor reviews the terms of sale (`codeqlick-frontend/src/content/legal/index.ts`,
+   `termsOfSale`, served at `/terms`) and the price (`SITE_PRICE_CENTS`, VAT included or not).
+2. Add Stripe to the privacy policy (`privacyPolicy` in the same file): it processes the payment
+   as data processor, and the buyer's email, amount and date are kept as long as tax law requires.
+3. Create the Stripe account (business details, bank account) and turn on its email receipts.
+4. Add a webhook endpoint in Stripe's dashboard (Developers → Webhooks): URL
+   `https://api.codeqlick.com/v1/payments/stripe`, events `checkout.session.completed`,
+   `checkout.session.async_payment_succeeded` and `checkout.session.expired`. Copy its signing
+   secret.
+5. Add the keys to `/srv/codeqlick/.env` and deploy (or `docker compose -f
+   docker-compose.prod.yml up -d api`):
+
+   ```bash
+   STRIPE_SECRET_KEY=sk_live_…
+   STRIPE_WEBHOOK_SECRET=whsec_…
+   SITE_PRICE_CENTS=20000
+   ```
+
+6. Rebuild the previews that are up (Admin → Vistas previas → each lead → "Reconstruir") so their
+   bar offers the purchase; new ones get it on their own.
+
+To try it locally, put test keys (`sk_test_…`) in the root `.env` and forward the webhook with the
+Stripe CLI: `stripe listen --forward-to localhost:4000/v1/payments/stripe` (it prints the
+`whsec_…` to use). Card `4242 4242 4242 4242`, any future date and CVC.
+
 ### Publishing
 
 ```bash

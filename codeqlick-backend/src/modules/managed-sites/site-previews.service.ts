@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import {
   BadRequestException,
+  ConflictException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -55,6 +56,8 @@ export interface PreviewListItem {
   builtAt: string | null;
   createdAt: string;
   prospect: boolean;
+  /** Bought online (decision 20). */
+  purchased: boolean;
 }
 
 const LIST_LIMIT = 200;
@@ -110,6 +113,15 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     return `${this.config.siteUrl}/${locale}/basic-website/request/preview/${slug}`;
   }
 
+  /** Where to buy the preview's website, while buying online is on (architecture 8.2). */
+  buyLinkOf(slug: string, locale: ApiLocale): BuyLink | undefined {
+    if (!this.config.stripe) return undefined;
+    return {
+      url: `${this.config.siteUrl}/${locale}/basic-website/request/preview/${slug}/buy`,
+      price: priceLabel(this.config.sitePriceCents),
+    };
+  }
+
   /** A free slug for a new preview, or null without a builder or past today's cap. */
   async reserve(businessName: string, now = new Date()): Promise<string | null> {
     if (!this.config.siteBuilder) return null;
@@ -157,6 +169,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
         builtAt: row.previewBuiltAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),
         prospect: row.createdById !== null,
+        purchased: row.purchases.length > 0,
       };
     });
   }
@@ -233,6 +246,9 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
 
   /** Deletes the lead, taking its preview down first. */
   async deleteLead(actor: AuthUser, leadId: string): Promise<void> {
+    if (await this.repository.hasPurchases(leadId)) {
+      throw new ConflictException('This lead has an online purchase: its record is kept');
+    }
     await this.remove(leadId);
     await this.leads.delete(actor, leadId);
   }
@@ -252,10 +268,16 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
   }
 
   /** A preview's status, for the waiting page the requester opens; null when there is none. */
-  async status(slug: string): Promise<{ status: PreviewStatus; url: string } | null> {
+  async status(
+    slug: string,
+  ): Promise<{ status: PreviewStatus; url: string; business: string | null } | null> {
     const lead = await this.repository.findBySlug(slug);
     if (!lead?.previewStatus) return null;
-    return { status: lead.previewStatus as PreviewStatus, url: this.urlOf(slug) };
+    return {
+      status: lead.previewStatus as PreviewStatus,
+      url: this.urlOf(slug),
+      business: lead.company,
+    };
   }
 
   /** Takes the lead's preview down (the builder marks it; the host unpublishes it). */
@@ -302,6 +324,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
               this.urlOf(lead.previewSlug!),
               `${this.config.siteUrl}/${locale}/book`,
               this.config.siteUrl,
+              this.buyLinkOf(lead.previewSlug!, locale),
             ),
           );
           await this.repository.update(lead.id, {
@@ -338,11 +361,19 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     });
     const content = siteContentSchema.parse(contentFromRequest(parsed, request));
     const url = this.urlOf(slug);
+    const buy = this.buyLinkOf(slug, person.locale);
     const result = await this.builder.build({
       slug,
       preset: request.preset,
       domains: [`${slug}.${this.config.sitesPreviewDomain}`],
-      content: { ...content, url, demo: true, form: { demo: true }, preview: true },
+      content: {
+        ...content,
+        url,
+        demo: true,
+        form: { demo: true },
+        preview: true,
+        ...(buy ? { previewBuy: buy } : {}),
+      },
     });
     if (!result.ok) throw new Error(result.error.slice(-500));
     // Until the host serves it over HTTPS, its address answers with another site of the server.
@@ -358,6 +389,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
           request.business.name,
           url,
           this.config.siteUrl,
+          buy,
         ),
       )
       .catch((error: unknown) => this.logger.error('Preview email failed', error));
@@ -377,6 +409,17 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
   }
 }
 
+/** "200 €" */
+export function priceLabel(cents: number): string {
+  return `${(cents / 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })} €`;
+}
+
+/** Buying the preview from its bar and emails (decision 20): where, and for how much. */
+interface BuyLink {
+  url: string;
+  price: string;
+}
+
 /** `hello@x.com` from `Codeqlick <hello@x.com>`. */
 export function mailboxOf(from: string): string {
   return /<([^>]+)>/.exec(from)?.[1] ?? from.trim();
@@ -388,6 +431,7 @@ function previewReadyEmail(
   business: string,
   url: string,
   siteUrl: string,
+  buy?: BuyLink,
 ) {
   const es = person.locale === 'es';
   return {
@@ -411,10 +455,18 @@ function previewReadyEmail(
               "We'll write to you shortly to fine-tune it, add your photos and publish it. Want something changed? Just reply to this email.",
             ],
         button: { label: es ? 'Ver la vista previa' : 'Open the preview', url },
+        ...(buy ? { outro: [buyLine(buy, es)] } : {}),
       },
       siteUrl,
     ),
   };
+}
+
+/** The line offering to buy the website as it is (decision 20). */
+function buyLine(buy: BuyLink, es: boolean): string {
+  return es
+    ? `¿Te gusta tal cual? Puedes quedártela ya por ${buy.price}: la creamos al momento y la terminas tú desde tu área de cliente. ${buy.url}`
+    : `Like it as it is? You can have it now for ${buy.price}: we make it at once and you finish it from your client area. ${buy.url}`;
 }
 
 /** To a requester nobody has answered yet, a few days after their preview: what do they think? */
@@ -424,6 +476,7 @@ function previewFollowUpEmail(
   url: string,
   bookUrl: string,
   siteUrl: string,
+  buy?: BuyLink,
 ) {
   const es = person.locale === 'es';
   return {
@@ -450,6 +503,7 @@ function previewFollowUpEmail(
             ],
         button: { label: es ? 'Ver la vista previa' : 'Open the preview', url },
         outro: [
+          ...(buy ? [buyLine(buy, es)] : []),
           es
             ? `¿Prefieres hablarlo? Reserva una videollamada: ${bookUrl}`
             : `Rather talk it through? Book a video call: ${bookUrl}`,

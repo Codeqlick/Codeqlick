@@ -11,9 +11,15 @@ import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
-import { adminGetLead, adminListLeadReplies } from '@/lib/api/leads';
+import { adminGetLead, adminListLeadPurchases, adminListLeadReplies } from '@/lib/api/leads';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
-import { LEAD_STATUSES, LOST_REASONS, type Lead, type LeadReply } from '@/lib/api/types';
+import {
+  LEAD_STATUSES,
+  LOST_REASONS,
+  type Lead,
+  type LeadReply,
+  type SitePurchase,
+} from '@/lib/api/types';
 import { Link } from '@/i18n/navigation';
 import { formatDateTime } from '@/lib/format';
 import {
@@ -33,6 +39,8 @@ import {
   updateLeadAction,
   updateLeadContactAction,
 } from '../actions';
+
+const PURCHASE_TONES = { PENDING: 'warning', PAID: 'success', EXPIRED: 'neutral' } as const;
 
 const PREVIEW_TONES = {
   BUILDING: 'warning',
@@ -62,8 +70,13 @@ export default async function AdminLeadPage({
 
   let lead: Lead;
   let replies: LeadReply[];
+  let purchases: SitePurchase[];
   try {
-    [lead, replies] = await Promise.all([adminGetLead(id), adminListLeadReplies(id)]);
+    [lead, replies, purchases] = await Promise.all([
+      adminGetLead(id),
+      adminListLeadReplies(id),
+      adminListLeadPurchases(id),
+    ]);
   } catch (error) {
     if (isNotFound(error)) notFound();
     throw error;
@@ -233,6 +246,42 @@ export default async function AdminLeadPage({
               </ActionForm>
             </details>
           ) : null}
+        </section>
+      ) : null}
+
+      {purchases.length > 0 ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('purchasesTitle')}</h2>
+          {purchases.map((purchase) => (
+            <div key={purchase.id} className={styles.form}>
+              <p>
+                <Badge tone={PURCHASE_TONES[purchase.status]}>
+                  {t(`purchaseStatuses.${purchase.status}`)}
+                </Badge>{' '}
+                {t('purchaseLine', {
+                  amount: new Intl.NumberFormat(locale, {
+                    style: 'currency',
+                    currency: purchase.currency.toUpperCase(),
+                  }).format(purchase.amountCents / 100),
+                  date: formatDateTime(purchase.paidAt ?? purchase.createdAt, locale),
+                })}
+              </p>
+              {purchase.email ? (
+                <p className={styles.muted}>{t('purchaseBuyer', { email: purchase.email })}</p>
+              ) : null}
+              <p className={styles.muted}>
+                {t('purchaseSession', { id: purchase.stripeSessionId })}
+              </p>
+              {purchase.error ? (
+                <p className={styles.muted}>{t('purchaseError', { error: purchase.error })}</p>
+              ) : null}
+              {purchase.projectId ? (
+                <p>
+                  <Link href={`/admin/projects/${purchase.projectId}`}>{t('purchaseProject')}</Link>
+                </p>
+              ) : null}
+            </div>
+          ))}
         </section>
       ) : null}
 
