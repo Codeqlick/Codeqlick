@@ -71,7 +71,9 @@ export default async function AdminPreviewsPage({
                   </th>
                   <td>{preview.preset ? tk(`demos.${preview.preset}.kind`) : '—'}</td>
                   <td>
-                    {preview.status ? (
+                    {preview.purchased ? (
+                      <Badge tone="success">{t('purchased')}</Badge>
+                    ) : preview.status ? (
                       <Badge tone={TONES[preview.status]}>
                         {tlead(`previewStatuses.${preview.status}`)}
                       </Badge>

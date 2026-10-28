@@ -10,7 +10,7 @@ export type LegalOwner = {
 };
 
 export type LegalDocument = { title: string; updated: string; markdown: string };
-export type LegalPage = 'legal' | 'privacy';
+export type LegalPage = 'legal' | 'privacy' | 'terms';
 
 const UPDATED = { es: '15 de octubre de 2026', en: '15 October 2026' } as const;
 
@@ -158,12 +158,104 @@ This site only uses technical cookies it needs to work, so it doesn't ask for co
 We use no advertising or analytics cookies.`;
 }
 
+/**
+ * Terms of sale of a basic website bought online (architecture 8.2, decision 20). A draft for a
+ * gestor to review before buying online is switched on.
+ */
+function termsOfSale(owner: LegalOwner, locale: AppLocale): string {
+  if (locale === 'es') {
+    return `Estas condiciones se aplican cuando compras en codeqlick.com la web básica de tu negocio a partir de su vista previa.
+
+## Quién te la vende
+
+${ownerLines(owner, locale)}
+
+## Qué compras
+
+- La web de tu negocio tal como la ves en la vista previa, creada y publicada en cuanto se confirma el pago, primero en una dirección de Codeqlick (\`<nombre>.demo.codeqlick.com\`) y en tu dominio cuando lo conectes.
+- Su formulario de contacto, que te envía por email los mensajes de tus visitas.
+- El acceso a tu área de cliente, desde donde puedes cambiar todo el contenido de la web (textos, fotos, colores, tipografías, secciones y datos legales) y elegir tu dominio.
+- El alojamiento de la web con HTTPS y unas estadísticas de visitas sin cookies.
+
+No incluye el dominio: lo registras y pagas tú a la empresa que elijas y es tuyo. Tampoco incluye el correo de tu dominio, que contratas con quien lo registres.
+
+## Precio y pago
+
+El precio es el que se muestra antes de pagar, un único pago. El pago se hace con tarjeta en Stripe, que te envía el recibo; nosotros no vemos ni guardamos los datos de tu tarjeta.
+
+## Entrega
+
+La web se crea y se publica al momento, en cuanto Stripe confirma el pago. Te enviamos un email para entrar en tu área de cliente. Si algo fallara al crearla, te escribimos y la terminamos nosotros sin coste.
+
+## Derecho de desistimiento
+
+Al pagar pides expresamente que creemos la web en ese momento. Según el artículo 103 del texto refundido de la Ley General para la Defensa de los Consumidores y Usuarios, una vez creada y entregada pierdes el derecho de desistimiento. Si pagas y la web todavía no se ha podido crear, puedes pedirnos la devolución completa.
+
+## Tu contenido
+
+Los textos, fotos y datos que pongas en tu web son responsabilidad tuya: deben ser tuyos o tener permiso para usarlos, y ser veraces, sobre todo los datos legales del negocio. Podemos retirar una web que se use para algo ilícito.
+
+## Alojamiento y soporte
+
+Mantenemos la web en línea y corregimos sin coste los fallos de la plantilla. Si algún día dejáramos de ofrecer el alojamiento, te avisaríamos con al menos tres meses de antelación y te daríamos una copia de tu web para llevarla a otro sitio.
+
+## Legislación aplicable
+
+Estas condiciones se rigen por la legislación española. Si tienes cualquier duda o reclamación, escríbenos a [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}). También puedes acudir a la plataforma europea de resolución de litigios en línea: [ec.europa.eu/consumers/odr](https://ec.europa.eu/consumers/odr).`;
+  }
+  return `These terms apply when you buy your business's basic website from its preview on codeqlick.com.
+
+## Who sells it
+
+${ownerLines(owner, locale)}
+
+## What you buy
+
+- Your business's website as you see it in the preview, made and published as soon as the payment is confirmed, first at a Codeqlick address (\`<name>.demo.codeqlick.com\`) and on your domain once you connect it.
+- Its contact form, which emails you your visitors' messages.
+- Access to your client area, where you can change all of the website's content (texts, photos, colours, fonts, sections and legal data) and choose your domain.
+- Hosting of the website with HTTPS and cookieless visit statistics.
+
+The domain isn't included: you register and pay it to the company you choose, and it is yours. Nor is your domain's email, which you get from whoever registers it.
+
+## Price and payment
+
+The price is the one shown before paying, one payment. You pay by card on Stripe, which sends you the receipt; we never see or keep your card details.
+
+## Delivery
+
+The website is made and published at once, as soon as Stripe confirms the payment. We email you how to enter your client area. If anything failed while making it, we write to you and finish it ourselves at no cost.
+
+## Right of withdrawal
+
+By paying you expressly ask us to make the website right away. Under article 103 of the Spanish consumer protection law (texto refundido de la Ley General para la Defensa de los Consumidores y Usuarios), once it is made and delivered you lose the right of withdrawal. If you pay and the website couldn't be made yet, you can ask us for a full refund.
+
+## Your content
+
+The texts, photos and data you put on your website are your responsibility: they must be yours or used with permission, and true, above all the business's legal data. We may take down a website used for anything unlawful.
+
+## Hosting and support
+
+We keep the website online and fix the template's faults at no cost. If we ever stopped offering hosting, we would tell you at least three months before and give you a copy of your website to take elsewhere.
+
+## Governing law
+
+These terms are governed by Spanish law. For any question or complaint, write to us at [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}). You can also use the European online dispute resolution platform: [ec.europa.eu/consumers/odr](https://ec.europa.eu/consumers/odr).`;
+}
+
 export function legalDocument(
   page: LegalPage,
   owner: LegalOwner,
   locale: AppLocale,
 ): LegalDocument {
   const es = locale === 'es';
+  if (page === 'terms') {
+    return {
+      title: es ? 'Condiciones de contratación' : 'Terms of sale',
+      updated: UPDATED[locale],
+      markdown: termsOfSale(owner, locale),
+    };
+  }
   return page === 'legal'
     ? {
         title: es ? 'Aviso legal' : 'Legal notice',

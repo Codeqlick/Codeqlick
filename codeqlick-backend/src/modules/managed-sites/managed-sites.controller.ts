@@ -44,6 +44,7 @@ import type { Lead } from '../leads/leads.service.js';
 import { SiteProposalsService, type RequestProposalResult } from './site-proposals.service.js';
 import { SiteReportsService } from './site-reports.service.js';
 import { SiteOnboardingService, type OnboardResult } from './site-onboarding.service.js';
+import { SitePurchasesService, type PurchaseView } from './site-purchases.service.js';
 
 @ApiTags('admin/sites')
 @ApiBearerAuth()
@@ -57,6 +58,7 @@ export class ManagedSitesController {
     private readonly previews: SitePreviewsService,
     private readonly requestProposals: SiteProposalsService,
     private readonly reports: SiteReportsService,
+    private readonly purchases: SitePurchasesService,
   ) {}
 
   /** A basic-website client in one step (account, project, site, form, monitor, first build). */
@@ -92,6 +94,12 @@ export class ManagedSitesController {
     @Body({ schema: storedRequestSchema }) body: SiteRequest,
   ): Promise<Lead> {
     return this.previews.editRequest(params.id, body);
+  }
+
+  /** The lead's online purchases of its preview (architecture 8.2, decision 20). */
+  @Get('leads/:id/purchases')
+  leadPurchases(@Param({ schema: idParamSchema }) params: IdParam): Promise<PurchaseView[]> {
+    return this.purchases.forLead(params.id);
   }
 
   /** Deletes a lead and takes its preview down. */

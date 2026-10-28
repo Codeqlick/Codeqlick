@@ -208,10 +208,11 @@ model Lead {
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   replies   LeadReply[]
-  client    User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
-  createdBy User?       @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  proposal  Proposal?   @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  client    User?          @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  proposal  Proposal?      @relation(fields: [proposalId], references: [id], onDelete: SetNull)
   bookings  Booking[]
+  purchases SitePurchase[]
 
   @@index([status, createdAt])
   @@map("leads")
@@ -377,6 +378,7 @@ model ClientProject {
   review      ClientReview?
   plan        MaintenancePlan?
   form        SiteForm?
+  purchases   SitePurchase[]
   site        ManagedSite?
 
   @@index([clientId])
@@ -1020,6 +1022,38 @@ enum SiteDomainState {
 }
 
 /// A website request's preview: being built, online, failed, or taken down.
+/// A request's preview bought online through Stripe Checkout (architecture 8.2, decision 20).
+model SitePurchase {
+  id              String             @id @default(uuid()) @db.Uuid
+  leadId          String             @map("lead_id") @db.Uuid
+  /// The Stripe Checkout Session.
+  stripeSessionId String             @unique @map("stripe_session_id")
+  amountCents     Int                @map("amount_cents")
+  currency        String
+  status          SitePurchaseStatus @default(PENDING)
+  /// The buyer's email, from Stripe.
+  email           String?
+  paidAt          DateTime?          @map("paid_at") @db.Timestamptz(3)
+  /// The project of the site made from it.
+  projectId       String?            @map("project_id") @db.Uuid
+  /// Why the site couldn't be made on its own: the team finishes it.
+  error           String?
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lead    Lead           @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  project ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@map("site_purchases")
+}
+
+enum SitePurchaseStatus {
+  PENDING
+  PAID
+  EXPIRED
+}
+
 enum SitePreviewStatus {
   BUILDING
   READY
