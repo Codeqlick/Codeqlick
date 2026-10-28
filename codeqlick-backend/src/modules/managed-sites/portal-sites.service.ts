@@ -103,7 +103,7 @@ export class PortalSitesService {
     };
   }
 
-  private notifyTeam(site: SiteRow, caller: AuthUser, changed: string[], failed: boolean): void {
+  notifyTeam(site: SiteRow, caller: AuthUser, changed: string[], failed: boolean): void {
     const url = `${this.config.siteUrl}/es/admin/projects/${site.projectId}#site`;
     const intro = failed
       ? `${caller.name} changed the website of ${site.project.name}, but publishing it failed: the previous version is still online.`
@@ -134,7 +134,7 @@ export class PortalSitesService {
       .catch((error: unknown) => this.logger.error('Could not email the site change', error));
   }
 
-  private async findOwn(caller: AuthUser, projectId: string): Promise<SiteRow> {
+  async findOwn(caller: AuthUser, projectId: string): Promise<SiteRow> {
     const site = await this.repository.findByProject(projectId);
     const own = site && (caller.role === 'ADMIN' || site.project.client.id === accountOf(caller));
     if (!site || !own) throw new NotFoundException('Website not found');
