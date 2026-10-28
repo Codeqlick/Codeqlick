@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
@@ -15,7 +15,7 @@ import {
   type ListUsersQuery,
   type UpdateUserInput,
 } from './users.schemas.js';
-import { UsersService, type AdminUser, type CreatedUser } from './users.service.js';
+import { UsersService, type AdminUser, type CreatedUser, type UserOwns } from './users.service.js';
 
 @ApiTags('admin/users')
 @ApiBearerAuth()
@@ -47,6 +47,20 @@ export class AdminUsersController {
     @Body({ schema: invitationSchema }) body: InvitationInput,
   ): Promise<void> {
     return this.users.sendInvitation(actor, params.id, body.locale);
+  }
+
+  @Get(':id')
+  get(@Param({ schema: idParamSchema }) params: IdParam): Promise<AdminUser & { owns: UserOwns }> {
+    return this.users.get(params.id);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  delete(
+    @CurrentUser() actor: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    return this.users.delete(actor, params.id);
   }
 
   @Patch(':id')

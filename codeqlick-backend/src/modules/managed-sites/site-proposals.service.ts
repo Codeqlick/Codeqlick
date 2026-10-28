@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import type { AuthUser } from '../../common/types/auth-user.js';
-import { LeadsService } from '../leads/leads.service.js';
+import { emailOf, LeadsService } from '../leads/leads.service.js';
 import { madridToday, ProposalsService } from '../proposals/proposals.service.js';
 import { UsersService } from '../users/users.service.js';
 import { proposalFromRequest } from './site-proposal.js';
@@ -36,7 +36,7 @@ export class SiteProposalsService {
     // No email yet: sending the proposal invites them to create the account (decision 17).
     const client = await this.users.findOrCreateClient(
       actor,
-      { email: lead.email, name: lead.name, locale: lead.locale },
+      { email: emailOf(lead), name: lead.name, locale: lead.locale },
       null,
     );
     const proposal = await this.proposals.create(actor, {

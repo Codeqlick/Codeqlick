@@ -49,6 +49,11 @@ export class LeadsRepository {
     return this.prisma.lead.findUnique({ where: { id } });
   }
 
+  /** Its replies go with it; bookings, proposal and client account stay, unlinked. */
+  async delete(id: string): Promise<void> {
+    await this.prisma.lead.delete({ where: { id } });
+  }
+
   update(id: string, data: Prisma.LeadUpdateInput): Promise<Lead> {
     return this.prisma.lead.update({ where: { id }, data });
   }

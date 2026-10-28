@@ -115,6 +115,15 @@ export class ProjectsRepository {
     });
   }
 
+  /** The slug of the project's managed site, if it has one. */
+  async siteSlugOf(projectId: string): Promise<string | null> {
+    const site = await this.prisma.managedSite.findUnique({
+      where: { projectId },
+      select: { slug: true },
+    });
+    return site?.slug ?? null;
+  }
+
   async delete(id: string): Promise<void> {
     await this.prisma.clientProject.delete({ where: { id } });
   }
