@@ -47,13 +47,22 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        // Not the drafts' previews (/site-draft): sandboxed, their origin is opaque, and a
+        // same-origin frame rule would keep them out of the editor's iframe.
+        source: '/:path((?!site-draft/).*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           ...productionHeaders,
+        ],
+      },
+      {
+        source: '/site-draft/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'no-referrer' },
         ],
       },
     ];

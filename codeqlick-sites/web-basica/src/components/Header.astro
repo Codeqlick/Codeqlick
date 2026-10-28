@@ -1,19 +1,27 @@
 ---
 import { nav } from '../lib/nav';
-import { site, telHref } from '../lib/site';
+import { edit, site, telHref } from '../lib/site';
 ---
 
 <header class="header">
   <div class="container bar">
     <a class="brand" href="/">
-      <span class="name">{site.business.name}</span>
-      {site.business.tagline ? <span class="tagline">{site.business.tagline}</span> : null}
+      <span class="name" data-edit={edit('business.name')}>
+        {site.business.name}
+      </span>
+      {site.business.tagline ? (
+        <span class="tagline" data-edit={edit('business.tagline')}>
+          {site.business.tagline}
+        </span>
+      ) : null}
     </a>
     <nav aria-label="Principal" class="desktop">
       <ul>
         {nav.map((link) => (
           <li>
-            <a href={link.href}>{link.label}</a>
+            <a href={link.href} data-edit={link.edit && edit(link.edit)}>
+              {link.label}
+            </a>
           </li>
         ))}
       </ul>

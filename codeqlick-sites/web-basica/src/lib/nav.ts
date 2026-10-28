@@ -10,6 +10,10 @@ const HREFS: Record<SectionKey, string> = {
 
 /** Header links: one per section the site has, in its order. */
 export const nav = [
-  ...sectionOrder.map((key) => ({ label: sectionLabel(key), href: HREFS[key] })),
-  { label: 'Contacto', href: '/#contacto' },
+  ...sectionOrder.map((key) => ({
+    label: sectionLabel(key),
+    href: HREFS[key],
+    edit: `navLabels.${key}`,
+  })),
+  { label: 'Contacto', href: '/#contacto', edit: undefined },
 ];

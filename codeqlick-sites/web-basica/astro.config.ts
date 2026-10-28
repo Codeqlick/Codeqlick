@@ -15,6 +15,8 @@ const { default: content } = (await import(pathToFileURL(`${siteDir}site.ts`).hr
 
 export default defineConfig({
   site: process.env.SITE_URL ?? content.url,
+  // A draft's preview is served under a path of the portal (`/site-draft/<key>`).
+  ...(process.env.SITE_BASE ? { base: process.env.SITE_BASE } : {}),
   trailingSlash: 'never',
   build: { format: 'file' },
   // Legal pages are noindex: keep them out of the sitemap.

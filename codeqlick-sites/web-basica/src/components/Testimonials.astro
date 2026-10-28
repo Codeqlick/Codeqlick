@@ -1,5 +1,5 @@
 ---
-import { sectionLabel, site } from '../lib/site';
+import { edit, sectionLabel, site } from '../lib/site';
 
 const testimonials = site.testimonials!;
 const reviewUrl = site.contact.reviewUrl;
@@ -9,21 +9,25 @@ const reviewUrl = site.contact.reviewUrl;
   <div class="container">
     <div class="section-head">
       <p class="eyebrow">{sectionLabel('testimonials')}</p>
-      <h2 id="opiniones-title">{testimonials.title}</h2>
+      <h2 id="opiniones-title" data-edit={edit('testimonials.title')}>
+        {testimonials.title}
+      </h2>
     </div>
     <ul class="list">
-      {testimonials.items.map((item) => (
+      {testimonials.items.map((item, i) => (
         <li>
           <figure>
             <p class="stars" aria-hidden="true">
               ★★★★★
             </p>
             <blockquote>
-              <p>{item.quote}</p>
+              <p data-edit={edit(`testimonials.items.${i}.quote`)}>{item.quote}</p>
             </blockquote>
             <figcaption>
-              <strong>{item.author}</strong>
-              {item.detail ? <span>{item.detail}</span> : null}
+              <strong data-edit={edit(`testimonials.items.${i}.author`)}>{item.author}</strong>
+              {item.detail ? (
+                <span data-edit={edit(`testimonials.items.${i}.detail`)}>{item.detail}</span>
+              ) : null}
             </figcaption>
           </figure>
         </li>

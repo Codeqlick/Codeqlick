@@ -27,6 +27,11 @@ export interface Site {
   demo?: boolean;
   /** A preview built from a website request: noindex everywhere and a bar saying so on top. */
   preview?: boolean;
+  /**
+   * The draft being edited in the portal (built under SITE_BASE): noindex, links disabled, texts
+   * marked with `data-edit` paths that the editor patches live through `postMessage`.
+   */
+  draft?: boolean;
   /** Public address, without a trailing slash: `https://peluqueriamarta.es`. */
   url: string;
   business: {

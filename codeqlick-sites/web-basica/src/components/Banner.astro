@@ -1,5 +1,5 @@
 ---
-import { site } from '../lib/site';
+import { edit, site } from '../lib/site';
 
 const banner = site.banner!;
 ---
@@ -7,10 +7,12 @@ const banner = site.banner!;
 <section class="banner" aria-labelledby="banner-title">
   <div class="container inner">
     <div class="copy">
-      <h2 id="banner-title">{banner.title}</h2>
-      {banner.text ? <p>{banner.text}</p> : null}
+      <h2 id="banner-title" data-edit={edit('banner.title')}>
+        {banner.title}
+      </h2>
+      {banner.text ? <p data-edit={edit('banner.text')}>{banner.text}</p> : null}
     </div>
-    <a class="button light" href={banner.link.href}>
+    <a class="button light" href={banner.link.href} data-edit={edit('banner.link.label')}>
       {banner.link.label}
     </a>
   </div>

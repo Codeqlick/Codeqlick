@@ -1,5 +1,5 @@
 ---
-import { addressLine, site, telHref, whatsappHref } from '../lib/site';
+import { addressLine, edit, site, telHref, whatsappHref } from '../lib/site';
 
 const { contact, hours, form, contactSection } = site;
 const action =
@@ -11,8 +11,14 @@ const redirect = new URL('/#contacto', Astro.site).toString();
   <div class="container">
     <div class="section-head">
       <p class="eyebrow">Contacto</p>
-      <h2 id="contacto-title">{contactSection.title}</h2>
-      {contactSection.intro ? <p class="lead">{contactSection.intro}</p> : null}
+      <h2 id="contacto-title" data-edit={edit('contactSection.title')}>
+        {contactSection.title}
+      </h2>
+      {contactSection.intro ? (
+        <p class="lead" data-edit={edit('contactSection.intro')}>
+          {contactSection.intro}
+        </p>
+      ) : null}
     </div>
     <div class={`grid ${form ? '' : 'single'}`}>
       <div class="info">
@@ -60,10 +66,12 @@ const redirect = new URL('/#contacto', Astro.site).toString();
             <h3>Horario</h3>
             <table>
               <tbody>
-                {hours.map((row) => (
+                {hours.map((row, i) => (
                   <tr>
-                    <th scope="row">{row.days}</th>
-                    <td>{row.hours}</td>
+                    <th scope="row" data-edit={edit(`hours.${i}.days`)}>
+                      {row.days}
+                    </th>
+                    <td data-edit={edit(`hours.${i}.hours`)}>{row.hours}</td>
                   </tr>
                 ))}
               </tbody>
