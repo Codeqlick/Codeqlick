@@ -59,6 +59,10 @@ export const updateLeadSchema = z
     lostReason: lostReasonSchema.nullable().optional(),
     /** `yyyy-mm-dd`; null clears it. */
     followUpOn: z.iso.date().nullable().optional(),
+    /** The contact details, corrected by the team; only a prospect's email may be cleared. */
+    name: z.string().trim().min(1).max(120).optional(),
+    email: z.email().max(254).nullable().optional(),
+    company: z.string().trim().max(160).nullable().optional(),
   })
   .strict();
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;

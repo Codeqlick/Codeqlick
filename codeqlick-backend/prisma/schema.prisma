@@ -101,6 +101,7 @@ model User {
   approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
   updateComments  ProjectUpdateComment[]
   leadsConverted  Lead[]                 @relation("LeadClient")
+  leadsAdded      Lead[]                 @relation("LeadCreator")
   tickets         SupportTicket[]
   ticketMessages  TicketMessage[]
   ticketFiles     TicketAttachment[]
@@ -175,7 +176,8 @@ model SignupToken {
 model Lead {
   id                String             @id @default(uuid()) @db.Uuid
   name              String
-  email             String
+  /// Always set from the forms; a prospect the team added may have none yet.
+  email             String?
   company           String?
   budget            String?
   /// What they need (web, custom, mobile, design, support, not-sure); replaced budget on the form.
@@ -200,13 +202,16 @@ model Lead {
   previewFollowUpAt DateTime?          @map("preview_follow_up_at") @db.Timestamptz(3)
   /// The proposal drafted from the request ("Preparar propuesta").
   proposalId        String?            @unique @map("proposal_id") @db.Uuid
+  /// Who on the team added it (a prospect, architecture 8.2); null when it came from a form.
+  createdById       String?            @map("created_by_id") @db.Uuid
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  replies  LeadReply[]
-  client   User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
-  proposal Proposal?   @relation(fields: [proposalId], references: [id], onDelete: SetNull)
-  bookings Booking[]
+  replies   LeadReply[]
+  client    User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  createdBy User?       @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  proposal  Proposal?   @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  bookings  Booking[]
 
   @@index([status, createdAt])
   @@map("leads")

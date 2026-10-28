@@ -1,16 +1,19 @@
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { adminGetUser, adminListUsers } from '@/lib/api/users';
+import { getCurrentUser } from '@/lib/auth/session';
 import { Link } from '@/i18n/navigation';
 import { EMAIL_LOCALES, ROLES } from '@/lib/schemas/admin';
 import {
   addCompanyPersonAction,
+  deleteUserAction,
   resetPasswordAction,
   sendInvitationAction,
   sendWeeklyDigestAction,
@@ -31,7 +34,7 @@ export default async function EditUserPage({
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
   const back = { href: '/admin/users', label: t('back') };
 
-  const user = await adminGetUser(id);
+  const [user, me] = await Promise.all([adminGetUser(id), getCurrentUser()]);
   if (!user) {
     return (
       <>
@@ -243,6 +246,24 @@ export default async function EditUserPage({
           </div>
         </ActionForm>
       </section>
+
+      {me?.id === user.id ? null : user.owns && user.owns.projects > 0 ? (
+        <section className={`${styles.panel} ${styles.dangerPanel}`}>
+          <h2 className={styles.panelTitle}>{t('deleteTitle')}</h2>
+          <p className={styles.muted}>{t('deleteBlocked', { count: user.owns.projects })}</p>
+        </section>
+      ) : (
+        <DeleteForm
+          action={deleteUserAction.bind(null, locale, user.id)}
+          title={t('deleteTitle')}
+          body={t('deleteBody', {
+            members: user.owns?.members ?? 0,
+            proposals: user.owns?.proposals ?? 0,
+            tickets: user.owns?.tickets ?? 0,
+          })}
+          confirmText={user.email}
+        />
+      )}
     </div>
   );
 }

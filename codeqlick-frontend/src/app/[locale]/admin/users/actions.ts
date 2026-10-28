@@ -4,10 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
-import { failedState, invalidState, savedState } from '@/lib/actions';
+import { failedState, invalidState, savedState, unconfirmedDelete } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
 import {
   adminCreateUser,
+  adminDeleteUser,
+  adminGetUser,
   adminSendInvitation,
   adminSendWeeklyDigest,
   adminUpdateUser,
@@ -158,4 +160,28 @@ export async function addCompanyPersonAction(
   return invitationSent === false
     ? { status: 'error', message: t('personAddedNoEmail') }
     : { status: 'success', message: t('personAdded') };
+}
+
+/** Deletes the account after its email was typed; refused while it owns projects. */
+export async function deleteUserAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const user = await adminGetUser(id);
+  if (!user) redirect(`/${locale}/admin/users`);
+  const unconfirmed = await unconfirmedDelete(locale, formData, user.email);
+  if (unconfirmed) return unconfirmed;
+  try {
+    await adminDeleteUser(id);
+  } catch (error) {
+    if (isApiError(error) && error.status === 409) {
+      const t = await getTranslations({ locale, namespace: 'Admin.users' });
+      return { status: 'error', message: t('deleteHasProjects') };
+    }
+    return failedState(error, locale, formData);
+  }
+  revalidatePath(`/${locale}/admin`, 'layout');
+  redirect(`/${locale}/admin/users`);
 }

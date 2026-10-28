@@ -9,11 +9,13 @@ import {
   buildSiteAction,
   checkSiteDomainAction,
   createSiteAction,
+  deleteSiteAction,
   restoreSiteRevisionAction,
   saveSiteContentAction,
   updateSiteDomainAction,
 } from '@/app/[locale]/admin/projects/site-actions';
 import styles from './app.module.css';
+import { DeleteForm } from './DeleteForm';
 
 const TONES = { NONE: 'neutral', BUILDING: 'warning', LIVE: 'success', FAILED: 'danger' } as const;
 const DOMAIN_TONES = { UNREGISTERED: 'neutral', ELSEWHERE: 'warning', LIVE: 'success' } as const;
@@ -198,6 +200,13 @@ export async function ManagedSitePanel({
           ))}
         </ul>
       )}
+      <DeleteForm
+        action={deleteSiteAction.bind(null, locale, projectId)}
+        title={t('deleteTitle')}
+        body={t('deleteBody')}
+        confirmText={site.domain ?? site.slug}
+        label={t('deleteButton')}
+      />
     </div>
   );
 }

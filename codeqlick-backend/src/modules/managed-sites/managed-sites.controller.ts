@@ -33,7 +33,14 @@ import {
   type SiteView,
 } from './managed-sites.service.js';
 import { SiteDomainsService } from './site-domains.service.js';
-import { SitePreviewsService } from './site-previews.service.js';
+import { SitePreviewsService, type PreviewListItem } from './site-previews.service.js';
+import {
+  prospectSchema,
+  storedRequestSchema,
+  type ProspectInput,
+  type SiteRequest,
+} from './site-request.js';
+import type { Lead } from '../leads/leads.service.js';
 import { SiteProposalsService, type RequestProposalResult } from './site-proposals.service.js';
 import { SiteReportsService } from './site-reports.service.js';
 import { SiteOnboardingService, type OnboardResult } from './site-onboarding.service.js';
@@ -67,6 +74,50 @@ export class ManagedSitesController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<{ status: 'REMOVED' | null }> {
     return { status: await this.previews.remove(params.id) };
+  }
+
+  /** (Re)builds a lead's preview from its request, emailing nobody (architecture 8.2). */
+  @Post('leads/:id/preview')
+  @HttpCode(HttpStatus.OK)
+  rebuildPreview(
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<{ status: 'BUILDING' }> {
+    return this.previews.rebuild(params.id);
+  }
+
+  /** Replaces a lead's website request and rebuilds its preview. */
+  @Put('leads/:id/request')
+  editRequest(
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: storedRequestSchema }) body: SiteRequest,
+  ): Promise<Lead> {
+    return this.previews.editRequest(params.id, body);
+  }
+
+  /** Deletes a lead and takes its preview down. */
+  @Delete('leads/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteLead(
+    @CurrentUser() actor: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.previews.deleteLead(actor, params.id);
+  }
+
+  /** Every preview (Admin → Vistas previas). */
+  @Get('previews')
+  previewList(): Promise<PreviewListItem[]> {
+    return this.previews.list();
+  }
+
+  /** A prospect: the preview of a business that hasn't asked yet (architecture 8.2). */
+  @Post('previews')
+  @HttpCode(HttpStatus.CREATED)
+  createProspect(
+    @CurrentUser() actor: AuthUser,
+    @Body({ schema: prospectSchema }) body: ProspectInput,
+  ): Promise<{ leadId: string }> {
+    return this.previews.createProspect(actor, body);
   }
 
   /** Drafts the proposal for a website request (architecture 8.2). */
@@ -134,6 +185,16 @@ export class ManagedSitesController {
     @Body({ schema: siteContentBodySchema }) body: SiteContentBody,
   ): Promise<SiteView> {
     return this.sites.updateContent(user, params.id, body.content);
+  }
+
+  /** Takes the managed site down (architecture 8.2). */
+  @Delete('projects/:id/site')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(
+    @CurrentUser() actor: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.sites.remove(actor, params.id);
   }
 
   @Post('projects/:id/site/build')

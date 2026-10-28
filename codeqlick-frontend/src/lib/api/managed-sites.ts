@@ -32,6 +32,11 @@ export function adminSaveSiteContent(projectId: string, content: unknown) {
   });
 }
 
+/** Takes the site down: unpublished, monitor off, content deleted. */
+export function adminDeleteSite(projectId: string) {
+  return apiFetch<void>(path(projectId), { method: 'DELETE', auth: 'required' });
+}
+
 export function adminBuildSite(projectId: string) {
   return apiFetch<ManagedSite>(`${path(projectId)}/build`, { method: 'POST', auth: 'required' });
 }
