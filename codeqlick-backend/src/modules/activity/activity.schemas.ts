@@ -85,6 +85,8 @@ export const ACTIVITY_ACTIONS = [
   'lead.converted',
   'lead.created',
   'lead.deleted',
+  /** A request's preview bought online: its website was made (architecture 8.2). */
+  'lead.purchased',
   'support.opened',
   'support.replied',
   'support.updated',

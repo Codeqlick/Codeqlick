@@ -193,3 +193,19 @@ img {
 .preview-bar a {
   color: #ff7dbe;
 }
+
+.preview-bar .preview-buy {
+  display: inline-block;
+  margin-left: 0.75rem;
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: #d9177e;
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.preview-bar .preview-buy:hover,
+.preview-bar .preview-buy:focus-visible {
+  background: #a80f5e;
+}

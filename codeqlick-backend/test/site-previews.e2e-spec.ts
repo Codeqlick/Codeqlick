@@ -163,7 +163,13 @@ describe('Instant previews of website requests (e2e)', () => {
     expect(email?.text).toContain(created.body.previewUrl);
     const slug = new URL(created.body.previewUrl as string).hostname.split('.')[0]!;
     const status = await request(server).get(`/v1/site-requests/previews/${slug}`).expect(200);
-    expect(status.body).toEqual({ status: 'READY', url: created.body.previewUrl });
+    expect(status.body).toEqual({
+      status: 'READY',
+      url: created.body.previewUrl,
+      business: 'Peluquería Marta',
+      // Buying online is off without Stripe's keys.
+      purchase: null,
+    });
     await request(server).get('/v1/site-requests/previews/nope-000000').expect(404);
 
     const auth = {
