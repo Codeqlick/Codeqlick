@@ -6,7 +6,11 @@ import { configureApp } from './app.setup.js';
 import { AppConfigService } from './config/app-config.service.js';
 import { setupSwagger } from './config/swagger.js';
 
-const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  bufferLogs: true,
+  // Stripe's webhook checks its signature against the body as sent.
+  rawBody: true,
+});
 configureApp(app);
 
 const config = app.get(AppConfigService);

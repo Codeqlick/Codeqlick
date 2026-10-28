@@ -781,7 +781,18 @@
       "deleteTitle": "Delete the lead",
       "deleteBody": "The lead and its replies are deleted. Its bookings, proposal and client account, if any, stay.",
       "deleteBodyPreview": "The lead, its replies and its preview (taken offline) are deleted. Its bookings, proposal and client account, if any, stay.",
-      "proposalNoEmail": "To draft their proposal, first add their email in “Edit the contact details”."
+      "proposalNoEmail": "To draft their proposal, first add their email in “Edit the contact details”.",
+      "purchasesTitle": "Online purchase",
+      "purchaseStatuses": {
+        "PENDING": "Payment not completed",
+        "PAID": "Paid",
+        "EXPIRED": "Expired"
+      },
+      "purchaseLine": "{amount} · {date}",
+      "purchaseBuyer": "Buyer: {email}",
+      "purchaseSession": "Stripe session: {id}",
+      "purchaseProject": "Open the project",
+      "purchaseError": "It couldn’t be made on its own: {error}. Finish it with «Convert to client» (or the project’s basic website) or refund it from Stripe."
     },
     "posts": {
       "title": "Posts",
@@ -1129,7 +1140,8 @@
           "replied": "replied to the lead <target>{label}</target>",
           "converted": "turned the lead <target>{label}</target> into a client",
           "created": "added the lead <target>{label}</target>",
-          "deleted": "deleted the lead <target>{label}</target>"
+          "deleted": "deleted the lead <target>{label}</target>",
+          "purchased": "made the website bought by lead <target>{label}</target>"
         },
         "media": {
           "uploaded": "uploaded the image <target>{label}</target>",
@@ -1427,7 +1439,8 @@
       "creating": "Creating…",
       "create": "Create the preview",
       "capReached": "Today’s 10 previews, the daily maximum, are made. Try tomorrow.",
-      "noBuilder": "The website builder isn’t available right now."
+      "noBuilder": "The website builder isn’t available right now.",
+      "purchased": "Bought"
     }
   },
   "Sessions": {
@@ -2485,7 +2498,40 @@
     "previewWaitTitle": "Preparing your preview",
     "previewWaitBody": "We are publishing the first version of your website. It usually takes a couple of minutes: this page will take you there as soon as it is ready, and you will also get the link by email.",
     "previewGoneTitle": "This preview is not available",
-    "previewGoneBody": "We could not prepare it, or it has been taken down. Don’t worry: we have your request and will write to you shortly."
+    "previewGoneBody": "We could not prepare it, or it has been taken down. Don’t worry: we have your request and will write to you shortly.",
+    "buyMetaTitle": "Buy your website",
+    "buyEyebrow": "Basic website",
+    "buyTitle": "{business}’s website, yours today",
+    "buyLead": "You pay once and we make it at once, as you see it in the preview. Then you change it as you like from your client area: texts, photos, colours and sections.",
+    "buyPrice": "{price}",
+    "buyPriceNote": "One-off payment",
+    "buyIncludesTitle": "What’s included",
+    "buyIncludes": {
+      "site": "The whole website, online, with its contact form working: messages reach you by email.",
+      "editor": "The editor to change everything whenever you like: texts, photos, colours, fonts, sections and legal data.",
+      "hosting": "Hosting with HTTPS and cookieless visit statistics.",
+      "extras": "Closure or special-hours notices and the kit to ask for Google reviews.",
+      "domain": "Your domain whenever you want: you choose it from your client area. The domain is paid apart, to whoever registers it."
+    },
+    "buyPreview": "See the preview again",
+    "buyAccept": "I have read and accept the <terms>terms of sale</terms> and ask you to make the website now. I know that once it is made I lose the right of withdrawal.",
+    "buyAcceptRequired": "To go on, accept the terms.",
+    "buyButton": "Pay {price}",
+    "buySecure": "You pay on Stripe, by card. We never see or keep your card details.",
+    "buyCancelled": "You cancelled the payment and nothing was charged. Try again whenever you like.",
+    "buyError": "We couldn’t open the payment. Try again in a moment.",
+    "buyTaken": "This website has already been bought. If it is yours, check your email: we sent you how to enter your client area.",
+    "buyNotReady": "The preview is still being prepared. Come back in a minute.",
+    "paidMetaTitle": "Payment received",
+    "paidWaitTitle": "Payment received: we’re making your website",
+    "paidWaitBody": "It takes less than a minute. This page refreshes on its own.",
+    "paidTitle": "Your website is made!",
+    "paidBody": "{business}’s website is online. We sent you an email to enter your client area: from there you change it as you like and choose your domain.",
+    "paidOpen": "See my website",
+    "paidSlow": "The payment is in, but the website is taking longer than usual. You don’t need to do anything: we’ll write to you as soon as it’s ready.",
+    "paidPending": "We’re waiting for the payment to be confirmed. This page refreshes on its own.",
+    "paidExpired": "This payment wasn’t completed and nothing was charged.",
+    "paidUnknown": "We can’t find this payment. If you were charged, write to us and we’ll sort it out."
   },
   "ProjectVisits": {
     "title": "Your website's visits",

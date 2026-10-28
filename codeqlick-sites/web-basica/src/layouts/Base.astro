@@ -117,6 +117,11 @@ const theme = [
       <p class="preview-bar">
         Vista previa preparada por <a href="https://codeqlick.com/es/basic-website">Codeqlick</a> ·
         aún no está publicada
+        {site.previewBuy ? (
+          <a class="preview-buy" href={site.previewBuy.url}>
+            La quiero · {site.previewBuy.price}
+          </a>
+        ) : null}
       </p>
     ) : null}
     <Notices />

@@ -84,6 +84,10 @@ services:
       SITES_PREVIEW_DOMAIN: ${SITES_PREVIEW_DOMAIN:-demo.codeqlick.com}
       # Client domains: what they must point at, and OVH's API as their technical contact.
       SITES_SERVER_IP: ${SITES_SERVER_IP:-}
+      # Buying a preview online (architecture 8.2, decision 20): off without both keys.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      SITE_PRICE_CENTS: ${SITE_PRICE_CENTS:-20000}
       OVH_APPLICATION_KEY: ${OVH_APPLICATION_KEY:-}
       OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET:-}
       OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}

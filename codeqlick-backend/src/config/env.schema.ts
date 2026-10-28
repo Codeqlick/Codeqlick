@@ -80,6 +80,11 @@ export const envSchema = z.object({
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z.ipv4().optional(),
   ),
+  /** Buying a preview online (architecture 8.2, decision 20); unset: off. */
+  STRIPE_SECRET_KEY: optionalString,
+  STRIPE_WEBHOOK_SECRET: optionalString,
+  /** Price of a basic website bought online, in euro cents. */
+  SITE_PRICE_CENTS: z.coerce.number().int().min(100).max(1_000_000).default(20000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 
