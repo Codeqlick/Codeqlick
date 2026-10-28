@@ -30,6 +30,7 @@ function useError(path: string): string | undefined {
   const key = Object.keys(errors).find((key) => key === path || key.startsWith(`${path}.`));
   if (!key) return undefined;
   const message = errors[key]!;
+  if (/before the first/.test(message)) return t('dateOrder');
   if (/>=1 character|expected string, received undefined|Required|expected array/i.test(message))
     return t('required');
   if (/Too big|<=/i.test(message)) return t('tooLong');
@@ -159,6 +160,26 @@ export function SelectField({
           </option>
         ))}
       </select>
+    </Field>
+  );
+}
+
+/** A day at `path` (`YYYY-MM-DD`); left empty, it is removed from the content. */
+export function DateField({ path, label, hint }: { path: string; label: string; hint?: string }) {
+  const { content, set } = useEditor();
+  const id = useId();
+  const error = useError(path);
+  const value = getAt(content, path);
+  return (
+    <Field id={id} label={label} hint={hint} error={error}>
+      <input
+        id={id}
+        type="date"
+        className={styles.input}
+        value={typeof value === 'string' ? value : ''}
+        aria-invalid={error ? true : undefined}
+        onChange={(event) => set(path, event.target.value || undefined)}
+      />
     </Field>
   );
 }
