@@ -90,6 +90,7 @@ describe('Buying a preview online (e2e)', () => {
     vi.spyOn(builder, 'presets').mockResolvedValue([{ key: 'peluqueria', content: preset }]);
     vi.spyOn(builder, 'build').mockResolvedValue({ ok: true, release: 'r1', ms: 10 });
     vi.spyOn(builder, 'remove').mockResolvedValue(undefined);
+    vi.spyOn(app.get(StripeClient), 'taxRate').mockResolvedValue('txr_iva21');
     let n = 0;
     vi.spyOn(app.get(StripeClient), 'createCheckout').mockImplementation((params) => {
       checkouts.push(params);
@@ -149,7 +150,13 @@ describe('Buying a preview online (e2e)', () => {
     expect(offer.body).toMatchObject({
       status: 'READY',
       business: 'Alba Estudio',
-      purchase: { priceCents: 20000, currency: 'eur', available: true },
+      purchase: {
+        priceCents: 20000,
+        vatPercent: 21,
+        totalCents: 24200,
+        currency: 'eur',
+        available: true,
+      },
     });
 
     // The terms must be accepted.
@@ -165,7 +172,14 @@ describe('Buying a preview online (e2e)', () => {
     expect(checkouts[0]).toMatchObject({
       mode: 'payment',
       customer_email: buyer,
-      line_items: [{ price_data: { currency: 'eur', unit_amount: 20000 }, quantity: 1 }],
+      line_items: [
+        {
+          price_data: { currency: 'eur', unit_amount: 20000 },
+          quantity: 1,
+          tax_rates: ['txr_iva21'],
+        },
+      ],
+      invoice_creation: { enabled: true },
       success_url: expect.stringContaining(
         `/es/basic-website/request/preview/${slug}/paid?session={CHECKOUT_SESSION_ID}`,
       ),
@@ -182,6 +196,8 @@ describe('Buying a preview online (e2e)', () => {
     const paid = event('checkout.session.completed', {
       id: session,
       payment_status: 'paid',
+      amount_total: 24200,
+      invoice: 'in_test_e2e',
       customer_details: { email: buyer },
     });
     await request(server)
@@ -205,7 +221,13 @@ describe('Buying a preview online (e2e)', () => {
       where: { stripeSessionId: session },
       include: { project: { include: { site: true } }, lead: true },
     });
-    expect(purchase).toMatchObject({ status: 'PAID', email: buyer, error: null });
+    expect(purchase).toMatchObject({
+      status: 'PAID',
+      email: buyer,
+      amountCents: 24200,
+      stripeInvoiceId: 'in_test_e2e',
+      error: null,
+    });
     expect(purchase.lead).toMatchObject({ status: 'WON', previewStatus: 'REMOVED' });
     expect(purchase.project?.site?.slug).toBe(`alba-estudio-${tag}`);
     expect(await prisma.clientProject.count({ where: { clientId: purchase.lead.clientId! } })).toBe(
@@ -237,7 +259,8 @@ describe('Buying a preview online (e2e)', () => {
     expect(list.body).toEqual([
       expect.objectContaining({
         status: 'PAID',
-        amountCents: 20000,
+        amountCents: 24200,
+        stripeInvoiceId: 'in_test_e2e',
         projectId: purchase.projectId,
       }),
     ]);

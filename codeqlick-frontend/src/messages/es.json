@@ -792,7 +792,8 @@
       "purchaseBuyer": "Comprador: {email}",
       "purchaseSession": "Sesión de Stripe: {id}",
       "purchaseProject": "Abrir el proyecto",
-      "purchaseError": "No se pudo crear sola: {error}. Termínala desde «Convertir en cliente» (o con la web básica del proyecto) o devuelve el pago desde Stripe."
+      "purchaseError": "No se pudo crear sola: {error}. Termínala desde «Convertir en cliente» (o con la web básica del proyecto) o devuelve el pago desde Stripe.",
+      "purchaseInvoice": "Ver la factura en Stripe"
     },
     "posts": {
       "title": "Artículos",
@@ -2504,7 +2505,7 @@
     "buyTitle": "La web de {business}, tuya hoy",
     "buyLead": "Pagas una vez y la creamos al momento tal como la ves en la vista previa. Después la cambias a tu gusto desde tu área de cliente: textos, fotos, colores y secciones.",
     "buyPrice": "{price}",
-    "buyPriceNote": "Pago único",
+    "buyPriceNote": "+ IVA",
     "buyIncludesTitle": "Qué incluye",
     "buyIncludes": {
       "site": "La web completa, publicada y con su formulario de contacto funcionando: los mensajes te llegan por email.",
@@ -2517,7 +2518,7 @@
     "buyAccept": "He leído y acepto las <terms>condiciones de contratación</terms> y pido que creéis la web ya. Sé que, una vez creada, pierdo el derecho de desistimiento.",
     "buyAcceptRequired": "Para seguir, acepta las condiciones.",
     "buyButton": "Pagar {price}",
-    "buySecure": "El pago se hace en Stripe, con tarjeta. Nosotros no vemos ni guardamos los datos de tu tarjeta.",
+    "buySecure": "El pago se hace en Stripe y nosotros no vemos ni guardamos los datos de tu tarjeta. Stripe te envía la factura por email.",
     "buyCancelled": "Has cancelado el pago y no se ha hecho ningún cargo. Puedes intentarlo de nuevo cuando quieras.",
     "buyError": "No hemos podido abrir el pago. Inténtalo de nuevo en un momento.",
     "buyTaken": "Esta web ya se ha comprado. Si es tuya, revisa tu correo: te hemos enviado cómo entrar en tu área de cliente.",
@@ -2531,7 +2532,8 @@
     "paidSlow": "El pago está recibido, pero la web está tardando más de lo normal. No tienes que hacer nada: te escribiremos en cuanto esté lista.",
     "paidPending": "Estamos esperando la confirmación del pago. Esta página se actualiza sola.",
     "paidExpired": "Este pago no se completó y no se ha hecho ningún cargo.",
-    "paidUnknown": "No encontramos este pago. Si te han hecho un cargo, escríbenos y lo resolvemos."
+    "paidUnknown": "No encontramos este pago. Si te han hecho un cargo, escríbenos y lo resolvemos.",
+    "buyTotal": "Total: {total} con IVA ({vat} %). Pago único."
   },
   "ProjectVisits": {
     "title": "Visitas de tu web",
