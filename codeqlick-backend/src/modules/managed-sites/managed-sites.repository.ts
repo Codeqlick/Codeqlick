@@ -30,6 +30,10 @@ export class ManagedSitesRepository {
     });
   }
 
+  findByDraftKey(draftKey: string): Promise<SiteRow | null> {
+    return this.prisma.managedSite.findUnique({ where: { draftKey }, include });
+  }
+
   findByProject(projectId: string): Promise<SiteRow | null> {
     return this.prisma.managedSite.findUnique({ where: { projectId }, include });
   }

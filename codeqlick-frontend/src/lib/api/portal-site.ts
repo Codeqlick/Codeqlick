@@ -1,6 +1,6 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { EditableSite, PortalSite, ProjectVisits } from './types';
+import type { EditableSite, PortalSite, ProjectVisits, SiteEditorView } from './types';
 
 const path = (projectId: string) => `/portal/projects/${encodeURIComponent(projectId)}/site`;
 
@@ -42,5 +42,42 @@ export function getProjectVisits(
   return apiFetch<ProjectVisits>(`/${scope}/projects/${encodeURIComponent(projectId)}/visits`, {
     auth: 'required',
     query: { days },
+  });
+}
+
+/** The website editor (architecture 8.2): the draft, or the published content without one. */
+export function getSiteEditor(projectId: string) {
+  return apiFetch<SiteEditorView>(`${path(projectId)}/draft`, { auth: 'required' });
+}
+
+/** Saves the draft; its preview is built when `rebuild` (400 lists every issue by path). */
+export function saveSiteDraft(
+  projectId: string,
+  body: { content: unknown; preset?: string; rebuild?: boolean },
+) {
+  return apiFetch<SiteEditorView>(`${path(projectId)}/draft`, {
+    method: 'PUT',
+    body,
+    auth: 'required',
+  });
+}
+
+export function discardSiteDraft(projectId: string) {
+  return apiFetch<void>(`${path(projectId)}/draft`, { method: 'DELETE', auth: 'required' });
+}
+
+export function publishSiteDraft(projectId: string) {
+  return apiFetch<SiteEditorView>(`${path(projectId)}/draft/publish`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
+/** The draft takes another style's colours, fonts, order and photos. */
+export function applySiteStyle(projectId: string, preset: string) {
+  return apiFetch<SiteEditorView>(`${path(projectId)}/draft/style`, {
+    method: 'POST',
+    body: { preset },
+    auth: 'required',
   });
 }

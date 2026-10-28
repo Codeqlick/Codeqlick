@@ -879,3 +879,21 @@ export type ProjectDomain = {
   daysLeft: number | null;
   checkedAt: string | null;
 };
+
+/** The website editor (`GET /portal/projects/:id/site/draft`, architecture 8.2). */
+export type SiteEditorView = {
+  /** The whole content: the draft's, or the published one without a draft. */
+  content: { [key: string]: unknown };
+  preset: string;
+  presets: Array<{
+    key: string;
+    theme: { primary: string; background: string; text: string; headingFont: string };
+  }>;
+  published: { content: { [key: string]: unknown }; preset: string };
+  draft: {
+    updatedAt: string;
+    previewUrl: string;
+    previewStatus: 'READY' | 'FAILED' | 'MISSING';
+    previewError?: string;
+  } | null;
+};

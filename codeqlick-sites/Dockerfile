@@ -5,8 +5,8 @@ COPY web-basica/package.json web-basica/package-lock.json web-basica/.npmrc ./we
 RUN cd web-basica && npm ci --no-audit --no-fund
 COPY web-basica ./web-basica
 COPY builder ./builder
-# Builds write dist/, .astro/ and .work/ inside the template, as whatever user compose sets.
-RUN mkdir -p web-basica/dist web-basica/.astro web-basica/.work \
+# Builds write dist/, .astro/, .work/ and .drafts/ inside the template, as whatever user compose sets.
+RUN mkdir -p web-basica/dist web-basica/.astro web-basica/.work web-basica/.drafts \
   && chmod -R a+rwX web-basica
 ENV NODE_ENV=production TEMPLATE_DIR=/app/web-basica PORT=4100
 EXPOSE 4100

@@ -67,5 +67,5 @@ export default async function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except API routes, Next internals and files with an extension (favicon.ico, ...).
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  matcher: ['/((?!api|site-draft|_next|_vercel|.*\\..*).*)'],
 };

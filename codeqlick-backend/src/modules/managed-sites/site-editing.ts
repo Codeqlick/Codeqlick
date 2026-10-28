@@ -56,3 +56,63 @@ export function changedParts(before: EditableSite, after: EditableSite): string[
     .filter((key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null))
     .map((key) => labels[key]);
 }
+
+/** What changed between two versions of the whole content, for the team's email. */
+export function changedSections(before: SiteContent, after: SiteContent): string[] {
+  const labels: Record<keyof SiteContent, string> = {
+    business: 'Business',
+    theme: 'Design',
+    contact: 'Contact',
+    hours: 'Opening hours',
+    openingHoursSpec: 'Opening hours (for Google)',
+    social: 'Social links',
+    hero: 'Header',
+    services: 'Services',
+    about: 'About',
+    gallery: 'Gallery',
+    testimonials: 'Reviews',
+    sections: 'Section order',
+    navLabels: 'Menu',
+    banner: 'Banner',
+    contactSection: 'Contact section',
+    legal: 'Legal data',
+    footerNote: 'Footer note',
+  };
+  return (Object.keys(labels) as Array<keyof SiteContent>)
+    .filter((key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null))
+    .map((key) => labels[key]);
+}
+
+/** Whether a photo is one the client uploaded (it doesn't belong to any style). */
+const uploaded = (image: { file: string } | undefined) => image?.file.startsWith('media/') ?? false;
+
+/**
+ * The content in another style (`preset`: that style's demo content): its colours, fonts,
+ * corners and section order, and its photos where the client hasn't uploaded their own. Every
+ * text stays.
+ */
+export function applyStyle(content: SiteContent, preset: SiteContent): SiteContent {
+  const ownPhotos = content.gallery?.images.filter(uploaded) ?? [];
+  return {
+    ...content,
+    theme: preset.theme,
+    sections: preset.sections,
+    hero: {
+      ...content.hero,
+      image: uploaded(content.hero.image) ? content.hero.image : preset.hero.image,
+    },
+    about: content.about
+      ? {
+          ...content.about,
+          image: uploaded(content.about.image) ? content.about.image : preset.about?.image,
+        }
+      : undefined,
+    gallery: content.gallery
+      ? {
+          ...content.gallery,
+          images:
+            ownPhotos.length > 0 ? ownPhotos : (preset.gallery?.images ?? content.gallery.images),
+        }
+      : undefined,
+  };
+}
