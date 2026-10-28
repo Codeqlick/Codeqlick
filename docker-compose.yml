@@ -68,6 +68,10 @@ services:
       PUBLIC_API_URL: http://localhost:${API_PORT:-4000}/v1
       # Client domains (architecture 11): OVH stays off without keys in the root .env.
       SITES_SERVER_IP: ${SITES_SERVER_IP:-}
+      # Buying a preview online (architecture 8.2, decision 20): off without both keys.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      SITE_PRICE_CENTS: ${SITE_PRICE_CENTS:-20000}
       OVH_APPLICATION_KEY: ${OVH_APPLICATION_KEY:-}
       OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET:-}
       OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}

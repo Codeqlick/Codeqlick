@@ -150,3 +150,49 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Buying a preview's website (architecture 8.2). */
+.buy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 2rem;
+}
+
+.buyCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1.75rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1.25rem;
+  background: var(--color-white);
+}
+
+.price {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.price span {
+  font-family: var(--font-family-body);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-slate);
+}
+
+.includes {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+@media (max-width: 860px) {
+  .buy {
+    grid-template-columns: 1fr;
+  }
+}
