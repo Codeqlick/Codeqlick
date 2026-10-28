@@ -90,6 +90,17 @@ export class AppConfigService {
     return url && token ? { url: url.replace(/\/+$/, ''), token } : undefined;
   }
 
+  /** Stripe's keys for buying a preview online; undefined while it is off (decision 20). */
+  get stripe(): { secretKey: string; webhookSecret: string } | undefined {
+    const secretKey = this.get('STRIPE_SECRET_KEY');
+    const webhookSecret = this.get('STRIPE_WEBHOOK_SECRET');
+    return secretKey && webhookSecret ? { secretKey, webhookSecret } : undefined;
+  }
+
+  get sitePriceCents(): number {
+    return this.get('SITE_PRICE_CENTS');
+  }
+
   get sitesPreviewDomain(): string {
     return this.get('SITES_PREVIEW_DOMAIN');
   }

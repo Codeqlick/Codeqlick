@@ -8,6 +8,7 @@ import type {
   LostReason,
   Paginated,
   PreviewListItem,
+  SitePurchase,
   SiteRequest,
 } from './types';
 
@@ -143,6 +144,13 @@ export function adminConvertLead(id: string, input: { projectName?: string }) {
   }>(`/admin/leads/${encodeURIComponent(id)}/convert`, {
     method: 'POST',
     body: input,
+    auth: 'required',
+  });
+}
+
+/** The lead's online purchases of its preview, newest first (decision 20). */
+export function adminListLeadPurchases(id: string) {
+  return apiFetch<SitePurchase[]>(`/admin/leads/${encodeURIComponent(id)}/purchases`, {
     auth: 'required',
   });
 }

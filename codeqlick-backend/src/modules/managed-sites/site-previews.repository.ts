@@ -33,6 +33,7 @@ export class SitePreviewsRepository {
         previewBuiltAt: true,
         createdById: true,
         createdAt: true,
+        purchases: { where: { status: 'PAID' }, select: { id: true } },
       },
     });
   }
@@ -61,8 +62,13 @@ export class SitePreviewsRepository {
   findBySlug(slug: string) {
     return this.prisma.lead.findFirst({
       where: { previewSlug: slug },
-      select: { previewStatus: true },
+      select: { previewStatus: true, company: true },
     });
+  }
+
+  /** Whether the lead has an online purchase (its record is kept: the lead can't be deleted). */
+  async hasPurchases(leadId: string): Promise<boolean> {
+    return (await this.prisma.sitePurchase.count({ where: { leadId } })) > 0;
   }
 
   find(leadId: string) {

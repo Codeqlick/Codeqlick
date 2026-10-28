@@ -27,6 +27,8 @@ export interface Site {
   demo?: boolean;
   /** A preview built from a website request: noindex everywhere and a bar saying so on top. */
   preview?: boolean;
+  /** A preview that can be bought online: the bar links to where, with its price ("200 €"). */
+  previewBuy?: { url: string; price: string };
   /**
    * The draft being edited in the portal (built under SITE_BASE): noindex, links disabled, texts
    * marked with `data-edit` paths that the editor patches live through `postMessage`.

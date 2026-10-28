@@ -324,6 +324,25 @@ export type PreviewListItem = {
   builtAt: string | null;
   createdAt: string;
   prospect: boolean;
+  /** Bought online (decision 20). */
+  purchased: boolean;
+};
+
+/** A request's preview bought online (architecture 8.2, decision 20), on the lead page. */
+export type SitePurchase = {
+  id: string;
+  status: 'PENDING' | 'PAID' | 'EXPIRED';
+  business: string | null;
+  siteUrl: string | null;
+  delayed: boolean;
+  stripeSessionId: string;
+  amountCents: number;
+  currency: string;
+  email: string | null;
+  paidAt: string | null;
+  projectId: string | null;
+  error: string | null;
+  createdAt: string;
 };
 
 /** An email answer sent to a lead from the admin panel. */
