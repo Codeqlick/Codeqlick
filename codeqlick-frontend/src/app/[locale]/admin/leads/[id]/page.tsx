@@ -275,6 +275,17 @@ export default async function AdminLeadPage({
               {purchase.error ? (
                 <p className={styles.muted}>{t('purchaseError', { error: purchase.error })}</p>
               ) : null}
+              {purchase.stripeInvoiceId ? (
+                <p>
+                  <a
+                    href={`https://dashboard.stripe.com/invoices/${encodeURIComponent(purchase.stripeInvoiceId)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('purchaseInvoice')}
+                  </a>
+                </p>
+              ) : null}
               {purchase.projectId ? (
                 <p>
                   <Link href={`/admin/projects/${purchase.projectId}`}>{t('purchaseProject')}</Link>

@@ -35,11 +35,14 @@ export default async function BuyPage({ params, searchParams }: PageProps) {
   const preview = /^[a-z0-9-]{1,40}$/.test(slug) ? await getPreviewStatus(slug) : null;
   if (!preview?.purchase) notFound();
   const { purchase } = preview;
-  const price = new Intl.NumberFormat(locale === 'es' ? 'es-ES' : 'en-IE', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: purchase.priceCents % 100 === 0 ? 0 : 2,
-  }).format(purchase.priceCents / 100);
+  const euros = (cents: number) =>
+    new Intl.NumberFormat(locale === 'es' ? 'es-ES' : 'en-IE', {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    }).format(cents / 100);
+  const price = euros(purchase.priceCents);
+  const total = euros(purchase.totalCents);
   const cancelled = firstParam((await searchParams).cancelled) === '1';
   const business = preview.business ?? '';
 
@@ -54,8 +57,10 @@ export default async function BuyPage({ params, searchParams }: PageProps) {
       <div className={styles.buy}>
         <div className={styles.buyCard}>
           <p className={styles.price}>
-            {t('buyPrice', { price })} <span>{t('buyPriceNote')}</span>
+            {t('buyPrice', { price })}{' '}
+            {purchase.vatPercent > 0 ? <span>{t('buyPriceNote')}</span> : null}
           </p>
+          <p className={styles.hint}>{t('buyTotal', { total, vat: purchase.vatPercent })}</p>
           <h2 className={styles.legend}>{t('buyIncludesTitle')}</h2>
           <ul className={styles.includes}>
             {INCLUDES.map((key) => (
@@ -86,7 +91,7 @@ export default async function BuyPage({ params, searchParams }: PageProps) {
                   ),
                 })}
               />
-              <SubmitButton>{t('buyButton', { price })}</SubmitButton>
+              <SubmitButton>{t('buyButton', { price: total })}</SubmitButton>
               <p className={styles.hint}>{t('buySecure')}</p>
             </ActionForm>
           ) : (
