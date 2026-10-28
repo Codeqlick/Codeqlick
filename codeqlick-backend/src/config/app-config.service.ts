@@ -97,8 +97,18 @@ export class AppConfigService {
     return secretKey && webhookSecret ? { secretKey, webhookSecret } : undefined;
   }
 
+  /** Price of a website bought online, before VAT. */
   get sitePriceCents(): number {
     return this.get('SITE_PRICE_CENTS');
+  }
+
+  get siteVatPercent(): number {
+    return this.get('SITE_VAT_PERCENT');
+  }
+
+  /** What a website bought online costs with VAT. */
+  get siteTotalCents(): number {
+    return Math.round((this.sitePriceCents * (100 + this.siteVatPercent)) / 100);
   }
 
   get sitesPreviewDomain(): string {

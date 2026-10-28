@@ -341,6 +341,7 @@ export type SitePurchase = {
   email: string | null;
   paidAt: string | null;
   projectId: string | null;
+  stripeInvoiceId: string | null;
   error: string | null;
   createdAt: string;
 };
