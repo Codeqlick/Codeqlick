@@ -59,6 +59,7 @@ const LIVE = [
   /^banner\.(title|text|link\.label)$/,
   /^contactSection\.(title|intro)$/,
   /^hours\.\d+\.(days|hours)$/,
+  /^notices\.\d+\.text$/,
 ];
 const isLive = (path: string) => LIVE.some((pattern) => pattern.test(path));
 
@@ -92,6 +93,23 @@ export function structureOf(content: Content): string {
     );
   });
   return parts.join('\n');
+}
+
+/** A day as the site's notices compare it (`YYYY-MM-DD`, local time). */
+export function dayOf(date: Date): string {
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part) => String(part).padStart(2, '0'))
+    .join('-');
+}
+
+export type NoticeState = 'showing' | 'scheduled' | 'over' | 'incomplete';
+
+/** Whether a notice shows on the site on `today` (the template's Notices component). */
+export function noticeState(notice: { from?: string; until?: string }, today: string): NoticeState {
+  if (!notice.until) return 'incomplete';
+  if (notice.until < today) return 'over';
+  if (notice.from && notice.from > today) return 'scheduled';
+  return 'showing';
 }
 
 const FONTS: Record<string, string> = {
