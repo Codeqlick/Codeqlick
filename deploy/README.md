@@ -327,34 +327,39 @@ the admin activity log; MX and other records are never touched.
 
 ### Buying a preview online (Stripe)
 
-Requesters can buy their website from its preview (architecture 8.2, decision 20). It is **off**
-until `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set, and should stay off until the owner
-is registered to charge (autónomo or company). To switch it on:
+Requesters can buy their website from its preview (architecture 8.2, decision 20) for
+`SITE_PRICE_CENTS` + `SITE_VAT_PERCENT` (200 € + 21 % IVA). It uses **Codeqlick's** Stripe account
+(not CircleSfera's) and is off until `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set.
+Stripe issues each sale's invoice; the API creates the tax rate "IVA 21 %" in Stripe on the first
+purchase. To switch it on:
 
-1. A gestor reviews the terms of sale (`codeqlick-frontend/src/content/legal/index.ts`,
-   `termsOfSale`, served at `/terms`) and the price (`SITE_PRICE_CENTS`, VAT included or not).
-2. Add Stripe to the privacy policy (`privacyPolicy` in the same file): it processes the payment
-   as data processor, and the buyer's email, amount and date are kept as long as tax law requires.
-3. Create the Stripe account (business details, bank account) and turn on its email receipts.
-4. Add a webhook endpoint in Stripe's dashboard (Developers → Webhooks): URL
-   `https://api.codeqlick.com/v1/payments/stripe`, events `checkout.session.completed`,
-   `checkout.session.async_payment_succeeded` and `checkout.session.expired`. Copy its signing
-   secret.
-5. Add the keys to `/srv/codeqlick/.env` and deploy (or `docker compose -f
-   docker-compose.prod.yml up -d api`):
+1. In Stripe's dashboard (live mode): the business details and tax ID (NIF) that go on invoices
+   (Settings → Business → Public details, and Settings → Billing → Invoices: tax ID shown, invoice
+   numbering), and **email finalized invoices to customers** (Settings → Billing → Customer
+   emails), plus successful-payment receipts if wanted.
+2. Settings → Payment methods: keep the methods you want in Checkout (card, Apple Pay, Link…).
+3. Developers → Webhooks → Add endpoint: URL `https://api.codeqlick.com/v1/payments/stripe`,
+   events `checkout.session.completed`, `checkout.session.async_payment_succeeded` and
+   `checkout.session.expired`. Copy its signing secret (`whsec_…`).
+4. Developers → API keys: the live secret key (`sk_live_…`).
+5. Add them to `/srv/codeqlick/.env` and recreate the API (`docker compose -f
+   docker-compose.prod.yml up -d api`, or deploy):
 
    ```bash
    STRIPE_SECRET_KEY=sk_live_…
    STRIPE_WEBHOOK_SECRET=whsec_…
    SITE_PRICE_CENTS=20000
+   SITE_VAT_PERCENT=21
    ```
 
 6. Rebuild the previews that are up (Admin → Vistas previas → each lead → "Reconstruir") so their
    bar offers the purchase; new ones get it on their own.
 
-To try it locally, put test keys (`sk_test_…`) in the root `.env` and forward the webhook with the
-Stripe CLI: `stripe listen --forward-to localhost:4000/v1/payments/stripe` (it prints the
-`whsec_…` to use). Card `4242 4242 4242 4242`, any future date and CVC.
+To try it locally with Codeqlick's test mode: put its test secret key (`sk_test_…`) in the root
+`.env`, and forward the webhook with the Stripe CLI logged in to Codeqlick (`stripe login
+--project-name codeqlick`): `stripe listen --project-name codeqlick --forward-to
+localhost:4000/v1/payments/stripe`, whose `whsec_…` goes in the `.env` as `STRIPE_WEBHOOK_SECRET`.
+Card `4242 4242 4242 4242`, any future date and CVC.
 
 ### Publishing
 

@@ -13,6 +13,7 @@ export type CheckoutParams = Stripe.Checkout.SessionCreateParams;
 @Injectable()
 export class StripeClient {
   private client: Stripe | undefined;
+  private readonly taxRates = new Map<number, Promise<string>>();
 
   constructor(private readonly config: AppConfigService) {}
 
@@ -25,6 +26,40 @@ export class StripeClient {
     const session = await this.stripe().checkout.sessions.create(params);
     if (!session.url) throw new Error('Stripe returned a Checkout Session without its address');
     return { id: session.id, url: session.url };
+  }
+
+  /**
+   * The id of the tax rate "IVA <percent> %" (added to the price, Spain), found among the
+   * account's active rates or created once.
+   */
+  taxRate(percent: number): Promise<string> {
+    let rate = this.taxRates.get(percent);
+    if (!rate) {
+      rate = this.findOrCreateTaxRate(percent);
+      // A failure is retried on the next purchase.
+      rate.catch(() => this.taxRates.delete(percent));
+      this.taxRates.set(percent, rate);
+    }
+    return rate;
+  }
+
+  private async findOrCreateTaxRate(percent: number): Promise<string> {
+    const stripe = this.stripe();
+    for await (const rate of stripe.taxRates.list({ active: true, inclusive: false, limit: 100 })) {
+      if (rate.display_name === 'IVA' && rate.percentage === percent && rate.country === 'ES') {
+        return rate.id;
+      }
+    }
+    const created = await stripe.taxRates.create({
+      display_name: 'IVA',
+      description: `IVA ${percent} % (España)`,
+      percentage: percent,
+      inclusive: false,
+      country: 'ES',
+      jurisdiction: 'ES',
+      tax_type: 'vat',
+    });
+    return created.id;
   }
 
   /** The webhook's event, once its signature is checked; throws when it doesn't match. */

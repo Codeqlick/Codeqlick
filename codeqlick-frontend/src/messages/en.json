@@ -792,7 +792,8 @@
       "purchaseBuyer": "Buyer: {email}",
       "purchaseSession": "Stripe session: {id}",
       "purchaseProject": "Open the project",
-      "purchaseError": "It couldn’t be made on its own: {error}. Finish it with «Convert to client» (or the project’s basic website) or refund it from Stripe."
+      "purchaseError": "It couldn’t be made on its own: {error}. Finish it with «Convert to client» (or the project’s basic website) or refund it from Stripe.",
+      "purchaseInvoice": "Open the invoice in Stripe"
     },
     "posts": {
       "title": "Posts",
@@ -2504,7 +2505,7 @@
     "buyTitle": "{business}’s website, yours today",
     "buyLead": "You pay once and we make it at once, as you see it in the preview. Then you change it as you like from your client area: texts, photos, colours and sections.",
     "buyPrice": "{price}",
-    "buyPriceNote": "One-off payment",
+    "buyPriceNote": "+ VAT",
     "buyIncludesTitle": "What’s included",
     "buyIncludes": {
       "site": "The whole website, online, with its contact form working: messages reach you by email.",
@@ -2517,7 +2518,7 @@
     "buyAccept": "I have read and accept the <terms>terms of sale</terms> and ask you to make the website now. I know that once it is made I lose the right of withdrawal.",
     "buyAcceptRequired": "To go on, accept the terms.",
     "buyButton": "Pay {price}",
-    "buySecure": "You pay on Stripe, by card. We never see or keep your card details.",
+    "buySecure": "You pay on Stripe and we never see or keep your card details. Stripe emails you the invoice.",
     "buyCancelled": "You cancelled the payment and nothing was charged. Try again whenever you like.",
     "buyError": "We couldn’t open the payment. Try again in a moment.",
     "buyTaken": "This website has already been bought. If it is yours, check your email: we sent you how to enter your client area.",
@@ -2531,7 +2532,8 @@
     "paidSlow": "The payment is in, but the website is taking longer than usual. You don’t need to do anything: we’ll write to you as soon as it’s ready.",
     "paidPending": "We’re waiting for the payment to be confirmed. This page refreshes on its own.",
     "paidExpired": "This payment wasn’t completed and nothing was charged.",
-    "paidUnknown": "We can’t find this payment. If you were charged, write to us and we’ll sort it out."
+    "paidUnknown": "We can’t find this payment. If you were charged, write to us and we’ll sort it out.",
+    "buyTotal": "Total: {total} with VAT ({vat} %). One-off payment."
   },
   "ProjectVisits": {
     "title": "Your website's visits",

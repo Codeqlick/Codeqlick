@@ -1028,6 +1028,7 @@ model SitePurchase {
   leadId          String             @map("lead_id") @db.Uuid
   /// The Stripe Checkout Session.
   stripeSessionId String             @unique @map("stripe_session_id")
+  /// The total charged, VAT included.
   amountCents     Int                @map("amount_cents")
   currency        String
   status          SitePurchaseStatus @default(PENDING)
@@ -1036,6 +1037,8 @@ model SitePurchase {
   paidAt          DateTime?          @map("paid_at") @db.Timestamptz(3)
   /// The project of the site made from it.
   projectId       String?            @map("project_id") @db.Uuid
+  /// The invoice Stripe issued for it.
+  stripeInvoiceId String?            @map("stripe_invoice_id")
   /// Why the site couldn't be made on its own: the team finishes it.
   error           String?
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
