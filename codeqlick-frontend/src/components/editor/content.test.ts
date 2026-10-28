@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { contrast, getAt, liveTexts, setAt, structureOf, themeVars, type Content } from './content';
+import {
+  contrast,
+  dayOf,
+  getAt,
+  liveTexts,
+  noticeState,
+  setAt,
+  structureOf,
+  themeVars,
+  type Content,
+} from './content';
 
 const site: Content = {
   business: { name: 'Alba', description: 'Peluquería' },
@@ -46,5 +56,26 @@ describe('the website editor’s content helpers', () => {
     expect(contrast('#FFFFFF', '#000000')).toBeCloseTo(21);
     expect(contrast('#FFFFFF', '#FFFF00')!).toBeLessThan(4.5);
     expect(contrast('red', '#000000')).toBeNull();
+  });
+});
+
+describe('the site notices in the editor', () => {
+  it('says whether a notice shows on a day, as the site does', () => {
+    const today = '2026-08-15';
+    expect(noticeState({ from: '2026-08-10', until: '2026-08-20' }, today)).toBe('showing');
+    expect(noticeState({ until: '2026-08-15' }, today)).toBe('showing');
+    expect(noticeState({ from: '2026-08-16', until: '2026-08-20' }, today)).toBe('scheduled');
+    expect(noticeState({ until: '2026-08-14' }, today)).toBe('over');
+    expect(noticeState({ from: '2026-08-10' }, today)).toBe('incomplete');
+  });
+
+  it('writes days as the site compares them', () => {
+    expect(dayOf(new Date(2026, 0, 5, 23, 30))).toBe('2026-01-05');
+  });
+
+  it('patches their texts live', () => {
+    expect(
+      liveTexts({ ...site, notices: [{ text: 'Cerrado', until: '2026-08-20' }] }),
+    ).toMatchObject({ 'notices.0.text': 'Cerrado' });
   });
 });

@@ -2565,7 +2565,8 @@
       "link": "Use a full link (https://…), #section, tel: or mailto:.",
       "email": "Enter a valid email.",
       "tooFew": "At least one is needed.",
-      "invalid": "Check this field."
+      "invalid": "Check this field.",
+      "dateOrder": "The last day can’t come before the first."
     },
     "lowContrast": "Hard to read on “{other}” (contrast {ratio}:1; at least 4.5:1).",
     "photoFailed": "The photo could not be uploaded. Use a JPG, PNG or WebP of up to 5 MB.",
@@ -2607,7 +2608,8 @@
       "banner": "Banner",
       "contact": "Contact and hours",
       "social": "Social media",
-      "legal": "Legal data"
+      "legal": "Legal data",
+      "notices": "Notices (closures and special hours)"
     },
     "style": "Starting style",
     "styleHint": "Changes the colours, fonts, order and sample photos. Your texts and photos stay.",
@@ -2720,6 +2722,20 @@
     "bannerTitle": "Title",
     "bannerText": "Text",
     "bannerLink": "Button",
+    "noticesHint": "A notice shows at the top of every page between its dates and goes away on its own when they pass. For example, holidays, bank holidays or special opening hours.",
+    "notices": "Notices",
+    "addNotice": "Add notice",
+    "noticeText": "Notice text",
+    "noticePlaceholder": "Closed for holidays from 10 to 20 August",
+    "noticeFrom": "Shown from",
+    "noticeFromHint": "Leave it empty to show it now.",
+    "noticeUntil": "Until (included)",
+    "noticeStates": {
+      "showing": "Showing now",
+      "scheduled": "Shows from {from}",
+      "over": "Over: not shown",
+      "incomplete": "Choose the last day"
+    },
     "contactTitle": "Contact section title",
     "phone": "Phone",
     "whatsapp": "WhatsApp",
