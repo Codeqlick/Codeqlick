@@ -763,6 +763,15 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   server), the link to copy and send by WhatsApp or email, and a printable A5 poster ("¿Te ha
   gustado? Déjanos tu opinión en Google", business name, QR, short steps) printed or saved as PDF
   from the browser. Without the link the page explains how to get it. The project page links to it.
+- **Notices** (closures and special hours): the site content's `notices` (up to 5) are short texts
+  with dates, `{ text, from?, until }` (`YYYY-MM-DD`, `until` not before `from`): "Cerrado por
+  vacaciones del 10 al 20 de agosto", "El 12 de octubre abrimos de 10:00 a 14:00". Each shows as a
+  bar on top of every page from `from` (or at once) to the end of `until`, by the visitor's date: the
+  site is static, so the bars are built `hidden` and a small inline script shows the ones in their
+  window, and they go away on their own when the dates pass without a rebuild (a notice past its
+  `until` stays in the content until the client removes it). Clients edit them in the website
+  editor ("Avisos"), which says of each whether it is showing, scheduled or over; the draft's
+  preview shows them all, and their texts change live.
 - **Custom sites** keep their own repository and are uploaded with `deploy/sites/publish-site.sh`.
   The demos are published that way at `<demo>.demo.codeqlick.com`.
 
