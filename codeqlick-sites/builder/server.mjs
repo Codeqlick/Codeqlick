@@ -7,11 +7,16 @@
 //                           -> { ok: true, release, ms } or { ok: false, error }
 //   DELETE /sites/:slug     Bearer; marks the site for removal (deploy/sites/sync-sites.sh)
 //                           -> { ok: true, removed }
+//   POST /drafts            Bearer; { slug, preset, content, base }: builds a draft's preview under
+//                           the base path, kept apart from the releases -> { ok: true, ms } or error
+//   GET  /drafts/:slug/*    Bearer; a file of that preview (the API streams it to the editor)
+//   DELETE /drafts/:slug    Bearer; deletes that preview -> { ok: true }
 //
 // Images in the content are `file` names: `media/<name>` comes from the API's uploads (read-only
 // mount), anything else from the preset's images. Builds run one at a time.
 import { spawn } from 'node:child_process';
 import { timingSafeEqual } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { copyFile, cp, mkdir, readdir, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { join } from 'node:path';
@@ -21,6 +26,7 @@ const TEMPLATE = process.env.TEMPLATE_DIR ?? '/app/web-basica';
 const SITES = process.env.SITES_DIR ?? '/srv/codeqlick/sites';
 const UPLOADS = process.env.UPLOADS_DIR ?? '/uploads';
 const WORK = process.env.WORK_DIR ?? join(TEMPLATE, '.work');
+const DRAFTS = process.env.DRAFTS_DIR ?? join(TEMPLATE, '.drafts');
 const TOKEN = process.env.SITE_BUILDER_TOKEN ?? '';
 const PORT = Number(process.env.PORT ?? 4100);
 const KEEP_RELEASES = 5;
@@ -39,6 +45,23 @@ export const PRESETS = [
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 const DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 const IMAGE = /^[\w-]{1,100}\.(?:jpe?g|png|webp|avif)$/i;
+const BASE = /^\/site-draft\/[\w-]{16,64}$/;
+const TYPES = {
+  html: 'text/html; charset=utf-8',
+  css: 'text/css; charset=utf-8',
+  js: 'text/javascript; charset=utf-8',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  woff2: 'font/woff2',
+  woff: 'font/woff',
+  xml: 'application/xml',
+  txt: 'text/plain; charset=utf-8',
+  json: 'application/json',
+};
 
 class BuildError extends Error {}
 
@@ -84,17 +107,8 @@ function run(command, args, options) {
   });
 }
 
-async function build({ slug, preset, domains, content }) {
-  const started = Date.now();
-  if (typeof slug !== 'string' || !SLUG.test(slug)) throw new BuildError('Invalid slug');
-  if (!PRESETS.includes(preset)) throw new BuildError('Invalid preset');
-  if (!Array.isArray(domains) || domains.length === 0 || !domains.every((d) => DOMAIN.test(d))) {
-    throw new BuildError('Invalid domains');
-  }
-  if (!content || typeof content !== 'object' || typeof content.url !== 'string') {
-    throw new BuildError('Invalid content');
-  }
-
+/** Builds the content into the template's dist/ (under `base`, when given). */
+async function compile(slug, preset, content, base) {
   const work = join(WORK, slug);
   await rm(work, { recursive: true, force: true });
   await mkdir(join(work, 'images'), { recursive: true });
@@ -106,9 +120,66 @@ async function build({ slug, preset, domains, content }) {
   await rm(dist, { recursive: true, force: true });
   const result = await run(join(TEMPLATE, 'node_modules', '.bin', 'astro'), ['build'], {
     cwd: TEMPLATE,
-    env: { ...process.env, SITE_DIR: work, SITE_URL: content.url, ASTRO_TELEMETRY_DISABLED: '1' },
+    env: {
+      ...process.env,
+      SITE_DIR: work,
+      SITE_URL: content.url,
+      SITE_BASE: base ?? '',
+      ASTRO_TELEMETRY_DISABLED: '1',
+    },
   });
   if (result.code !== 0) throw new BuildError(result.output.split('\n').slice(-25).join('\n'));
+  return { dist, work };
+}
+
+/** A draft's preview (the portal's editor): built under `base`, never published. */
+async function buildDraft({ slug, preset, content, base }) {
+  const started = Date.now();
+  if (typeof slug !== 'string' || !SLUG.test(slug)) throw new BuildError('Invalid slug');
+  if (!PRESETS.includes(preset)) throw new BuildError('Invalid preset');
+  if (typeof base !== 'string' || !BASE.test(base)) throw new BuildError('Invalid base');
+  if (!content || typeof content !== 'object' || typeof content.url !== 'string') {
+    throw new BuildError('Invalid content');
+  }
+  const { dist, work } = await compile(slug, preset, { ...content, draft: true }, base);
+  const target = join(DRAFTS, slug);
+  await rm(`${target}.new`, { recursive: true, force: true });
+  await mkdir(DRAFTS, { recursive: true });
+  await cp(dist, `${target}.new`, { recursive: true });
+  await rm(target, { recursive: true, force: true });
+  await rename(`${target}.new`, target);
+  await rm(work, { recursive: true, force: true });
+  return { ok: true, ms: Date.now() - started };
+}
+
+/** A file of a draft's preview: `null` when there is none. */
+async function draftFile(slug, path) {
+  if (!SLUG.test(slug)) return null;
+  const clean = decodeURIComponent(path).replace(/^\/+/, '') || 'index.html';
+  if (clean.split('/').some((part) => part === '..' || part.startsWith('.'))) return null;
+  const name = /\.[a-z0-9]+$/i.test(clean) ? clean : `${clean}.html`;
+  const file = join(DRAFTS, slug, name);
+  try {
+    if (!(await stat(file)).isFile()) return null;
+  } catch {
+    return null;
+  }
+  const extension = name.split('.').pop().toLowerCase();
+  return { file, type: TYPES[extension] ?? 'application/octet-stream' };
+}
+
+async function build({ slug, preset, domains, content }) {
+  const started = Date.now();
+  if (typeof slug !== 'string' || !SLUG.test(slug)) throw new BuildError('Invalid slug');
+  if (!PRESETS.includes(preset)) throw new BuildError('Invalid preset');
+  if (!Array.isArray(domains) || domains.length === 0 || !domains.every((d) => DOMAIN.test(d))) {
+    throw new BuildError('Invalid domains');
+  }
+  if (!content || typeof content !== 'object' || typeof content.url !== 'string') {
+    throw new BuildError('Invalid content');
+  }
+
+  const { dist, work } = await compile(slug, preset, content);
 
   const release = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
   const root = join(SITES, slug);
@@ -174,7 +245,7 @@ const server = createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') return send(res, 200, { ok: true });
     if (!authorized(req.headers.authorization)) return send(res, 401, { ok: false, error: 'Unauthorized' });
     if (req.method === 'GET' && req.url === '/presets') return send(res, 200, await presets());
-    if (req.method === 'POST' && req.url === '/build') {
+    if (req.method === 'POST' && (req.url === '/build' || req.url === '/drafts')) {
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
@@ -183,7 +254,7 @@ const server = createServer(async (req, res) => {
         chunks.push(chunk);
       }
       const input = JSON.parse(Buffer.concat(chunks).toString() || '{}');
-      const job = queue.then(() => build(input));
+      const job = queue.then(() => (req.url === '/build' ? build(input) : buildDraft(input)));
       queue = job.catch(() => undefined);
       try {
         return send(res, 200, await job);
@@ -191,6 +262,18 @@ const server = createServer(async (req, res) => {
         if (error instanceof BuildError) return send(res, 422, { ok: false, error: error.message });
         throw error;
       }
+    }
+    const draft = /^\/drafts\/([^/?]+)(\/[^?]*)?/.exec(req.url ?? '');
+    if (draft && req.method === 'GET') {
+      const found = await draftFile(draft[1], draft[2] ?? '/');
+      if (!found) return send(res, 404, { ok: false, error: 'Not found' });
+      res.writeHead(200, { 'Content-Type': found.type });
+      return createReadStream(found.file).pipe(res);
+    }
+    if (draft && req.method === 'DELETE' && !draft[2]) {
+      if (!SLUG.test(draft[1])) return send(res, 422, { ok: false, error: 'Invalid slug' });
+      await rm(join(DRAFTS, draft[1]), { recursive: true, force: true });
+      return send(res, 200, { ok: true });
     }
     const removal = req.method === 'DELETE' && /^\/sites\/([^/]+)$/.exec(req.url ?? '');
     if (removal) {

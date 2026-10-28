@@ -22,6 +22,32 @@ interface Props {
 }
 
 const { title, description = site.business.description, noindex = false, schema } = Astro.props;
+/** The portal's editor (architecture 8.2): texts and theme variables arrive by postMessage. */
+const DRAFT_SCRIPT = `addEventListener('message', (event) => {
+  if (event.source !== parent) return;
+  const data = event.data;
+  if (!data || data.type !== 'cq-edit') return;
+  for (const [path, value] of Object.entries(data.texts || {})) {
+    for (const node of document.querySelectorAll('[data-edit="' + CSS.escape(path) + '"]')) {
+      if (node.textContent !== value) node.textContent = value;
+    }
+  }
+  for (const [name, value] of Object.entries(data.vars || {})) {
+    if (/^--[a-z-]+$/.test(name)) document.documentElement.style.setProperty(name, String(value));
+  }
+  if (data.scrollTo) document.getElementById(data.scrollTo)?.scrollIntoView({ behavior: 'smooth' });
+});
+// A preview: links don't leave it, the sections' anchors still scroll.
+document.addEventListener('click', (event) => {
+  const link = event.target.closest && event.target.closest('a');
+  if (!link) return;
+  const href = link.getAttribute('href') || '';
+  event.preventDefault();
+  const hash = href.includes('#') ? href.slice(href.indexOf('#') + 1) : '';
+  if (hash) document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+});
+parent.postMessage({ type: 'cq-ready' }, '*');`;
+
 const fullTitle = title ? `${title} · ${site.business.name}` : site.business.name;
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImage = await getImage({ src: imageOf(site.hero.image), width: 1200, format: 'jpg' });
@@ -59,7 +85,7 @@ const theme = [
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
-    {noindex || site.preview ? <meta name="robots" content="noindex" /> : null}
+    {noindex || site.preview || site.draft ? <meta name="robots" content="noindex" /> : null}
     <meta name="theme-color" content={site.theme.primary} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -98,5 +124,6 @@ const theme = [
     </main>
     <Footer />
     <WhatsApp />
+    {site.draft ? <script is:inline set:html={DRAFT_SCRIPT} /> : null}
   </body>
 </html>

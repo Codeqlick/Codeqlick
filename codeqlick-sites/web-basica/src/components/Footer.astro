@@ -1,5 +1,5 @@
 ---
-import { addressLine, site, telHref } from '../lib/site';
+import { addressLine, edit, site, telHref } from '../lib/site';
 
 const social = Object.entries(site.social ?? {}).filter(([, url]) => url) as Array<
   [string, string]
@@ -16,8 +16,10 @@ const year = new Date().getFullYear();
 <footer class="footer">
   <div class="container grid">
     <div class="about">
-      <p class="name">{site.business.name}</p>
-      <p>{site.business.description}</p>
+      <p class="name" data-edit={edit('business.name')}>
+        {site.business.name}
+      </p>
+      <p data-edit={edit('business.description')}>{site.business.description}</p>
     </div>
     <div>
       <p class="title">Contacto</p>

@@ -153,10 +153,15 @@ export class ManagedSitesService {
     projectId: string,
     content: SiteContent,
     action: 'project.site_updated' | 'project.site_restored' = 'project.site_updated',
+    /** Another style to start from (the editor's draft), whose photos the content may use. */
+    preset?: string,
   ): Promise<SiteView> {
     const site = await this.findSite(projectId);
     await this.repository.addRevision(site.id, site.content as Prisma.InputJsonValue, actor.id);
-    await this.repository.update(site.id, { content: content as Prisma.InputJsonValue });
+    await this.repository.update(site.id, {
+      content: content as Prisma.InputJsonValue,
+      ...(preset ? { preset } : {}),
+    });
     await this.activity.record(actor, {
       action,
       targetId: projectId,
@@ -233,6 +238,7 @@ export class ManagedSitesService {
     const project = await this.findProject(projectId);
     const site = await this.findSite(projectId);
     await this.builder.remove(site.slug);
+    await this.builder.removeDraft(site.slug);
     await this.repository.remove(site.id, projectId);
     await this.activity.record(actor, {
       action: 'project.site_deleted',
@@ -282,6 +288,11 @@ export class ManagedSitesService {
 
   private previewUrlOf(site: { slug: string }): string {
     return `https://${site.slug}.${this.config.sitesPreviewDomain}`;
+  }
+
+  /** The site's address: its domain once LIVE, its preview until then. */
+  addressOf(site: Pick<SiteRow, 'slug' | 'domain' | 'domainState'>): string {
+    return this.urlOf(site);
   }
 
   private urlOf(site: Pick<SiteRow, 'slug' | 'domain' | 'domainState'>): string {

@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { imageOf, sectionLabel, site } from '../lib/site';
+import { edit, imageOf, sectionLabel, site } from '../lib/site';
 
 const about = site.about!;
 ---
@@ -18,14 +18,18 @@ const about = site.about!;
     ) : null}
     <div class="copy">
       <p class="eyebrow">{sectionLabel('about')}</p>
-      <h2 id="nosotros-title">{about.title}</h2>
-      {about.paragraphs.map((paragraph) => (
-        <p class="text">{paragraph}</p>
+      <h2 id="nosotros-title" data-edit={edit('about.title')}>
+        {about.title}
+      </h2>
+      {about.paragraphs.map((paragraph, i) => (
+        <p class="text" data-edit={edit(`about.paragraphs.${i}`)}>
+          {paragraph}
+        </p>
       ))}
       {about.highlights ? (
         <ul class="highlights">
-          {about.highlights.map((item) => (
-            <li>{item}</li>
+          {about.highlights.map((item, i) => (
+            <li data-edit={edit(`about.highlights.${i}`)}>{item}</li>
           ))}
         </ul>
       ) : null}
