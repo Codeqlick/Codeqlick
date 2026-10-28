@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
+import { SiteRequestFields } from '@/components/app/SiteRequestFields';
 import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -22,10 +24,14 @@ import {
 } from '@/lib/schemas/contact';
 import {
   convertLeadAction,
+  deleteLeadAction,
+  editLeadRequestAction,
   proposeFromRequestAction,
+  rebuildLeadPreviewAction,
   removeLeadPreviewAction,
   replyToLeadAction,
   updateLeadAction,
+  updateLeadContactAction,
 } from '../actions';
 
 const PREVIEW_TONES = {
@@ -85,7 +91,11 @@ export default async function AdminLeadPage({
           <div>
             <dt>{t('email')}</dt>
             <dd>
-              <a href={`mailto:${lead.email}`}>{lead.email}</a>
+              {lead.email ? (
+                <a href={`mailto:${lead.email}`}>{lead.email}</a>
+              ) : (
+                <span className={styles.muted}>{t('noEmail')}</span>
+              )}
             </dd>
           </div>
           <div>
@@ -108,37 +118,121 @@ export default async function AdminLeadPage({
             <dd>{tl(lead.locale)}</dd>
           </div>
           <div>
-            <dt>{t('received')}</dt>
-            <dd>{formatDateTime(lead.createdAt, locale)}</dd>
+            <dt>{lead.prospect ? t('added') : t('received')}</dt>
+            <dd>
+              {formatDateTime(lead.createdAt, locale)}
+              {lead.prospect ? (
+                <>
+                  {' '}
+                  <Badge tone="neutral">{t('prospect')}</Badge>
+                </>
+              ) : null}
+            </dd>
           </div>
         </dl>
+        <details>
+          <summary>{t('contactEdit')}</summary>
+          <ActionForm
+            key={`contact-${lead.updatedAt}`}
+            action={updateLeadContactAction.bind(null, locale, lead.id)}
+            className={styles.form}
+          >
+            <div className={styles.row}>
+              <FormInput
+                id="contact-name"
+                name="name"
+                label={t('name')}
+                defaultValue={lead.name}
+                required
+                maxLength={120}
+              />
+              <FormInput
+                id="contact-email"
+                name="email"
+                type="email"
+                label={t('email')}
+                hint={lead.prospect ? t('emailProspectHint') : undefined}
+                defaultValue={lead.email ?? ''}
+                required={!lead.prospect}
+                maxLength={254}
+              />
+              <FormInput
+                id="contact-company"
+                name="company"
+                label={t('company')}
+                optionalLabel={tc('optional')}
+                defaultValue={lead.company ?? ''}
+                maxLength={160}
+              />
+            </div>
+            <div className={styles.actions}>
+              <SubmitButton size="sm" pendingLabel={tc('saving')}>
+                {tc('save')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </details>
       </section>
 
-      {lead.preview ? (
+      {lead.preview || lead.siteRequest ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('previewTitle')}</h2>
-          <p>
-            <Badge tone={PREVIEW_TONES[lead.preview.status]}>
-              {t(`previewStatuses.${lead.preview.status}`)}
-            </Badge>{' '}
-            {lead.preview.status === 'READY' ? (
-              <a href={lead.preview.url} target="_blank" rel="noopener noreferrer">
-                {lead.preview.url}
-              </a>
-            ) : null}
-          </p>
-          {lead.preview.followUpAt ? (
+          {lead.preview ? (
+            <p>
+              <Badge tone={PREVIEW_TONES[lead.preview.status]}>
+                {t(`previewStatuses.${lead.preview.status}`)}
+              </Badge>{' '}
+              {lead.preview.status === 'READY' ? (
+                <a href={lead.preview.url} target="_blank" rel="noopener noreferrer">
+                  {lead.preview.url}
+                </a>
+              ) : null}
+            </p>
+          ) : (
+            <p className={styles.muted}>{t('previewNone')}</p>
+          )}
+          {lead.preview?.followUpAt ? (
             <p className={styles.muted}>
               {t('previewFollowUp', { date: formatDateTime(lead.preview.followUpAt, locale) })}
             </p>
           ) : null}
-          {lead.preview.status === 'REMOVED' ? null : (
-            <ActionForm action={removeLeadPreviewAction.bind(null, locale, lead.id)}>
-              <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRemoving')}>
-                {t('previewRemove')}
-              </SubmitButton>
-            </ActionForm>
-          )}
+          {lead.prospect ? <p className={styles.muted}>{t('previewProspect')}</p> : null}
+          <div className={styles.actions}>
+            {lead.siteRequest ? (
+              <ActionForm action={rebuildLeadPreviewAction.bind(null, locale, lead.id)}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRebuilding')}>
+                  {lead.preview && lead.preview.status !== 'REMOVED'
+                    ? t('previewRebuild')
+                    : t('previewBuild')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+            {lead.preview && lead.preview.status !== 'REMOVED' ? (
+              <ActionForm action={removeLeadPreviewAction.bind(null, locale, lead.id)}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRemoving')}>
+                  {t('previewRemove')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+          </div>
+          {lead.siteRequest ? (
+            <details>
+              <summary>{t('requestEdit')}</summary>
+              <ActionForm
+                key={`request-${lead.updatedAt}`}
+                action={editLeadRequestAction.bind(null, locale, lead.id)}
+                className={styles.form}
+              >
+                <p className={styles.muted}>{t('requestEditBody')}</p>
+                <SiteRequestFields locale={locale} request={lead.siteRequest} />
+                <div className={styles.actions}>
+                  <SubmitButton size="sm" pendingLabel={t('requestSaving')}>
+                    {t('requestSave')}
+                  </SubmitButton>
+                </div>
+              </ActionForm>
+            </details>
+          ) : null}
         </section>
       ) : null}
 
@@ -149,6 +243,8 @@ export default async function AdminLeadPage({
             <p>
               <Link href={`/admin/proposals/${lead.proposalId}`}>{t('proposalOpen')}</Link>
             </p>
+          ) : !lead.email ? (
+            <p className={styles.muted}>{t('proposalNoEmail')}</p>
           ) : (
             <ActionForm action={proposeFromRequestAction.bind(null, locale, lead.id)}>
               <p className={styles.muted}>{t('proposalBody')}</p>
@@ -188,41 +284,45 @@ export default async function AdminLeadPage({
               ))}
             </ol>
           )}
-          <ActionForm
-            action={replyToLeadAction.bind(null, locale, lead.id)}
-            className={styles.form}
-          >
-            <FormInput
-              name="subject"
-              label={t('replySubject')}
-              required
-              defaultValue={
-                lead.locale === 'es'
-                  ? 'Re: tu mensaje a Codeqlick'
-                  : 'Re: your message to Codeqlick'
-              }
-            />
-            <SavedReplyPicker
-              target="body"
-              replies={savedReplies}
-              values={{ name: lead.name }}
-              label={tsr('insert')}
-              placeholder={tsr('insertPlaceholder')}
-            />
-            <FormTextarea
-              name="body"
-              label={t('replyBody')}
-              hint={t('replyHint', { email: lead.email, language: tl(lead.locale) })}
-              rows={10}
-              required
-              defaultValue={
-                lead.locale === 'es' ? `Hola ${lead.name}:\n\n` : `Hi ${lead.name},\n\n`
-              }
-            />
-            <div className={styles.actions}>
-              <SubmitButton pendingLabel={t('replySending')}>{t('replySend')}</SubmitButton>
-            </div>
-          </ActionForm>
+          {lead.email ? (
+            <ActionForm
+              action={replyToLeadAction.bind(null, locale, lead.id)}
+              className={styles.form}
+            >
+              <FormInput
+                name="subject"
+                label={t('replySubject')}
+                required
+                defaultValue={
+                  lead.locale === 'es'
+                    ? 'Re: tu mensaje a Codeqlick'
+                    : 'Re: your message to Codeqlick'
+                }
+              />
+              <SavedReplyPicker
+                target="body"
+                replies={savedReplies}
+                values={{ name: lead.name }}
+                label={tsr('insert')}
+                placeholder={tsr('insertPlaceholder')}
+              />
+              <FormTextarea
+                name="body"
+                label={t('replyBody')}
+                hint={t('replyHint', { email: lead.email, language: tl(lead.locale) })}
+                rows={10}
+                required
+                defaultValue={
+                  lead.locale === 'es' ? `Hola ${lead.name}:\n\n` : `Hi ${lead.name},\n\n`
+                }
+              />
+              <div className={styles.actions}>
+                <SubmitButton pendingLabel={t('replySending')}>{t('replySend')}</SubmitButton>
+              </div>
+            </ActionForm>
+          ) : (
+            <p className={styles.muted}>{t('replyNoEmail')}</p>
+          )}
         </div>
       </section>
 
@@ -285,7 +385,7 @@ export default async function AdminLeadPage({
             action={convertLeadAction.bind(null, locale, lead.id)}
             className={styles.form}
           >
-            <p className={styles.muted}>{t('convertBody')}</p>
+            <p className={styles.muted}>{lead.email ? t('convertBody') : t('convertNoEmail')}</p>
             <FormInput
               name="projectName"
               label={t('projectName')}
@@ -304,6 +404,16 @@ export default async function AdminLeadPage({
           </p>
         </section>
       ) : null}
+
+      <DeleteForm
+        action={deleteLeadAction.bind(null, locale, lead.id)}
+        title={t('deleteTitle')}
+        body={
+          lead.preview && lead.preview.status !== 'REMOVED'
+            ? t('deleteBodyPreview')
+            : t('deleteBody')
+        }
+      />
     </div>
   );
 }

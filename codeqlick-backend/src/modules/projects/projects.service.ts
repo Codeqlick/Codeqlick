@@ -28,6 +28,7 @@ import {
   type ProjectWithUpdates,
   type UpdateWithAuthor,
 } from './projects.repository.js';
+import { SiteBuilderClient } from '../managed-sites/site-builder.client.js';
 import { AccountsService, type AccountPerson } from '../accounts/accounts.service.js';
 import { ReviewsService } from '../reviews/reviews.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
@@ -263,6 +264,7 @@ export class ProjectsService {
     private readonly reviews: ReviewsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly builder: SiteBuilderClient,
   ) {}
 
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
@@ -361,6 +363,9 @@ export class ProjectsService {
 
   async delete(actor: AuthUser, id: string): Promise<void> {
     const project = await this.findOrThrow(id);
+    // Its managed site is taken down first (architecture 8.2): the row goes with the project.
+    const slug = await this.repository.siteSlugOf(id);
+    if (slug) await this.builder.remove(slug);
     await this.repository.delete(id);
     // The rows went with the project (cascade); the content goes once they are gone.
     await Promise.all(project.files.map((file) => this.storage.remove(file.id)));

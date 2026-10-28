@@ -28,7 +28,8 @@
     "unavailable": "This content is temporarily unavailable. Please try again in a few minutes.",
     "confirmDelete": "I understand this can't be undone.",
     "changeFile": "Change file",
-    "dropFile": "or drop it here"
+    "dropFile": "or drop it here",
+    "confirmType": "Type “{text}” to confirm"
   },
   "Pagination": {
     "label": "Pagination",
@@ -396,7 +397,8 @@
     "choice": "Choose one of the options.",
     "price": "Enter a valid amount, for example 1250 or 1250.50.",
     "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours).",
-    "domain": "Type a domain like peluqueria-ana.com."
+    "domain": "Type a domain like peluqueria-ana.com.",
+    "confirmMismatch": "That doesn’t match: type it exactly."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -653,7 +655,8 @@
       "calculator": "Calculator",
       "bookings": "Calls",
       "monitoring": "Monitoring",
-      "sites": "Websites"
+      "sites": "Websites",
+      "previews": "Previews"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -757,7 +760,28 @@
       "proposalBody": "Drafts it with the price, what's included and what they asked for (style, domain, wishes). Nothing is sent yet: you review it and, when you send it, an email without an account invites them to create it to read the proposal.",
       "proposalCreate": "Draft the proposal",
       "proposalCreating": "Drafting…",
-      "proposalOpen": "Open the proposal"
+      "proposalOpen": "Open the proposal",
+      "noEmail": "No email yet",
+      "added": "Added",
+      "prospect": "Added by the team",
+      "contactEdit": "Edit the contact details",
+      "emailProspectHint": "You can leave it empty until you have it.",
+      "previewNone": "It has no preview yet.",
+      "previewProspect": "You added it: it gets no automatic emails (neither the preview notice nor the follow-up).",
+      "previewRebuilding": "Building…",
+      "previewRebuild": "Build again",
+      "previewBuild": "Build the preview",
+      "requestEdit": "Edit the request",
+      "requestEditBody": "Saving builds the preview again at the same address. The client isn’t told.",
+      "requestSaving": "Saving…",
+      "requestSave": "Save and rebuild the preview",
+      "requestSaved": "Saved. The preview is being built again.",
+      "replyNoEmail": "Add their email in “Edit the contact details” to reply.",
+      "convertNoEmail": "To make them a client, first add their email in “Edit the contact details”.",
+      "deleteTitle": "Delete the lead",
+      "deleteBody": "The lead and its replies are deleted. Its bookings, proposal and client account, if any, stay.",
+      "deleteBodyPreview": "The lead, its replies and its preview (taken offline) are deleted. Its bookings, proposal and client account, if any, stay.",
+      "proposalNoEmail": "To draft their proposal, first add their email in “Edit the contact details”."
     },
     "posts": {
       "title": "Posts",
@@ -1007,7 +1031,11 @@
       "personAdding": "Adding…",
       "addPersonButton": "Add and send the invitation",
       "personAdded": "Person added. We have emailed them a link to choose their password.",
-      "personAddedNoEmail": "Person added, but the invitation email didn't go out. Send it from their page."
+      "personAddedNoEmail": "Person added, but the invitation email didn't go out. Send it from their page.",
+      "deleteTitle": "Delete the user",
+      "deleteBlocked": "{count, plural, one {It has a project} other {It has # projects}}. Delete them from Projects first to delete the account.",
+      "deleteBody": "The account and what hangs from it are deleted: its sessions{members, plural, =0 {} one {, the person of its company} other {, the # people of its company}}{proposals, plural, =0 {} one {, its proposal} other {, its # proposals}}{tickets, plural, =0 {} one {, its support request} other {, its # support requests}}. Its comments, files and hours stay without author.",
+      "deleteHasProjects": "This account has projects: delete them first."
     },
     "activity": {
       "title": "Activity",
@@ -1087,17 +1115,21 @@
           "site_created": "created the managed website of <target>{label}</target>",
           "site_updated": "changed the managed website of <target>{label}</target>",
           "site_restored": "restored a version of the website of <target>{label}</target>",
-          "domain_updated": "changed the domain of <target>{label}</target>"
+          "domain_updated": "changed the domain of <target>{label}</target>",
+          "site_deleted": "took down the website of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
           "updated": "changed the user <target>{label}</target>",
-          "invited": "sent a welcome email to <target>{label}</target>"
+          "invited": "sent a welcome email to <target>{label}</target>",
+          "deleted": "deleted the user <target>{label}</target>"
         },
         "lead": {
           "updated": "updated the lead <target>{label}</target>",
           "replied": "replied to the lead <target>{label}</target>",
-          "converted": "turned the lead <target>{label}</target> into a client"
+          "converted": "turned the lead <target>{label}</target> into a client",
+          "created": "added the lead <target>{label}</target>",
+          "deleted": "deleted the lead <target>{label}</target>"
         },
         "media": {
           "uploaded": "uploaded the image <target>{label}</target>",
@@ -1369,6 +1401,33 @@
       "leadButton": "Set up their basic website",
       "leadHint": "Or, for a basic website, everything in one step:",
       "domain": "Domain"
+    },
+    "previews": {
+      "title": "Previews",
+      "lead": "The previews of basic-website requests and the ones you make for businesses that haven’t written yet.",
+      "new": "New preview",
+      "emptyTitle": "No previews yet",
+      "emptyBody": "They are made with each basic-website request, or from “New preview”.",
+      "business": "Business",
+      "style": "Style",
+      "status": "Status",
+      "origin": "Origin",
+      "created": "Created",
+      "prospect": "Added by you",
+      "fromRequest": "Website request",
+      "noEmail": "No email",
+      "newTitle": "New preview",
+      "newLead": "Make the website of a business that hasn’t written yet, to show it in person or send it by WhatsApp. Nobody is emailed.",
+      "businessTitle": "The business",
+      "personTitle": "The contact person",
+      "personBody": "Optional. Without an email you can’t reply or make them a client until you add it.",
+      "personName": "Name",
+      "personEmail": "Email",
+      "personLocale": "Language",
+      "creating": "Creating…",
+      "create": "Create the preview",
+      "capReached": "Today’s 10 previews, the daily maximum, are made. Try tomorrow.",
+      "noBuilder": "The website builder isn’t available right now."
     }
   },
   "Sessions": {
@@ -2246,7 +2305,11 @@
       "NONE": "No email",
       "OVH": "Email at OVH",
       "OTHER": "Email elsewhere"
-    }
+    },
+    "deleteTitle": "Take the website down",
+    "deleteBody": "The website stops being published at its address and domain, its monitor is turned off and its content and versions are deleted. Its photos stay in the media library and the domain’s DNS records are left as they are.",
+    "deleteButton": "Take the website down",
+    "deleted": "Website taken down. It will be gone within a minute."
   },
   "PortalSite": {
     "title": "Your website",

@@ -7,10 +7,49 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 export class SitePreviewsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Previews started since `since` (the daily cap). */
+  /** Previews started or rebuilt since `since` (the daily cap). */
   countSince(since: Date): Promise<number> {
     return this.prisma.lead.count({
-      where: { previewSlug: { not: null }, createdAt: { gte: since } },
+      where: {
+        previewSlug: { not: null },
+        OR: [{ createdAt: { gte: since } }, { previewBuiltAt: { gte: since } }],
+      },
+    });
+  }
+
+  /** Every lead with a preview, newest first (Admin → Vistas previas). */
+  list(limit: number) {
+    return this.prisma.lead.findMany({
+      where: { previewSlug: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        siteRequest: true,
+        previewSlug: true,
+        previewStatus: true,
+        previewBuiltAt: true,
+        createdById: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  /** What rebuilding a lead's preview needs. */
+  findForBuild(leadId: string) {
+    return this.prisma.lead.findUnique({
+      where: { id: leadId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        locale: true,
+        siteRequest: true,
+        previewSlug: true,
+        previewStatus: true,
+      },
     });
   }
 
@@ -50,6 +89,9 @@ export class SitePreviewsRepository {
         previewFollowUpAt: null,
         status: 'NEW',
         clientId: null,
+        // A prospect the team added is never emailed automatically.
+        createdById: null,
+        email: { not: null },
       },
       select: {
         id: true,
@@ -69,7 +111,13 @@ export class SitePreviewsRepository {
       where: {
         previewSlug: { not: null },
         previewStatus: { in: ['BUILDING', 'READY', 'FAILED'] },
-        OR: [{ createdAt: { lt: before } }, { clientId: { not: null } }, { status: 'SPAM' }],
+        OR: [
+          // 30 days from its last build (a rebuild starts them again), or from the request.
+          { previewBuiltAt: { lt: before } },
+          { previewBuiltAt: null, createdAt: { lt: before } },
+          { clientId: { not: null } },
+          { status: 'SPAM' },
+        ],
       },
       select: { id: true },
     });
