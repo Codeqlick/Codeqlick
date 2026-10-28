@@ -124,6 +124,11 @@ export interface Site {
   navLabels?: Partial<Record<SectionKey, string>>;
   /** Closing call to action before the contact section. */
   banner?: { title: string; text?: string; link: Link };
+  /**
+   * Closures and special hours: a bar on top of every page from `from` (or at once) to the end of
+   * `until` (`YYYY-MM-DD`, the visitor's date), e.g. "Cerrado por vacaciones del 10 al 20 de agosto".
+   */
+  notices?: Array<{ text: string; from?: string; until: string }>;
   contactSection: { title: string; intro?: string };
   /** Data the legal pages need (LSSI and RGPD). Check it with the client. */
   legal: {

@@ -2565,7 +2565,8 @@
       "link": "Pon un enlace completo (https://…), #seccion, tel: o mailto:.",
       "email": "Escribe un email válido.",
       "tooFew": "Hace falta al menos uno.",
-      "invalid": "Revisa este campo."
+      "invalid": "Revisa este campo.",
+      "dateOrder": "El último día no puede ir antes del primero."
     },
     "lowContrast": "Se lee mal sobre «{other}» (contraste {ratio}:1; mínimo 4,5:1).",
     "photoFailed": "No se ha podido subir la foto. Usa JPG, PNG o WebP de hasta 5 MB.",
@@ -2607,7 +2608,8 @@
       "banner": "Banner",
       "contact": "Contacto y horario",
       "social": "Redes sociales",
-      "legal": "Datos legales"
+      "legal": "Datos legales",
+      "notices": "Avisos (cierres y horarios especiales)"
     },
     "style": "Estilo de partida",
     "styleHint": "Cambia los colores, las tipografías, el orden y las fotos de ejemplo. Tus textos y tus fotos se quedan.",
@@ -2720,6 +2722,20 @@
     "bannerTitle": "Título",
     "bannerText": "Texto",
     "bannerLink": "Botón",
+    "noticesHint": "Un aviso sale arriba en toda la web entre sus fechas y se quita solo cuando pasan. Por ejemplo, vacaciones, festivos o un horario especial.",
+    "notices": "Avisos",
+    "addNotice": "Añadir aviso",
+    "noticeText": "Texto del aviso",
+    "noticePlaceholder": "Cerrado por vacaciones del 10 al 20 de agosto",
+    "noticeFrom": "Se muestra desde",
+    "noticeFromHint": "Déjalo vacío para mostrarlo ya.",
+    "noticeUntil": "Hasta (incluido)",
+    "noticeStates": {
+      "showing": "Se está mostrando",
+      "scheduled": "Saldrá el {from}",
+      "over": "Ya pasó: no se muestra",
+      "incomplete": "Elige hasta qué día"
+    },
     "contactTitle": "Título de la sección de contacto",
     "phone": "Teléfono",
     "whatsapp": "WhatsApp",
