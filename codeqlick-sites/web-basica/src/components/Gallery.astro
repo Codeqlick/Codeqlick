@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { imageOf, sectionLabel, site } from '../lib/site';
+import { edit, imageOf, sectionLabel, site } from '../lib/site';
 
 const gallery = site.gallery!;
 ---
@@ -9,8 +9,14 @@ const gallery = site.gallery!;
   <div class="container">
     <div class="section-head">
       <p class="eyebrow">{sectionLabel('gallery')}</p>
-      <h2 id="galeria-title">{gallery.title}</h2>
-      {gallery.intro ? <p class="lead">{gallery.intro}</p> : null}
+      <h2 id="galeria-title" data-edit={edit('gallery.title')}>
+        {gallery.title}
+      </h2>
+      {gallery.intro ? (
+        <p class="lead" data-edit={edit('gallery.intro')}>
+          {gallery.intro}
+        </p>
+      ) : null}
     </div>
     <ul class="grid">
       {gallery.images.map((image) => (

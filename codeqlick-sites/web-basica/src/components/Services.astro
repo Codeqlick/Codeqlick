@@ -1,5 +1,5 @@
 ---
-import { sectionLabel, site } from '../lib/site';
+import { edit, sectionLabel, site } from '../lib/site';
 
 const services = site.services!;
 ---
@@ -8,21 +8,39 @@ const services = site.services!;
   <div class="container">
     <div class="section-head">
       <p class="eyebrow">{sectionLabel('services')}</p>
-      <h2 id="servicios-title">{services.title}</h2>
-      {services.intro ? <p class="lead">{services.intro}</p> : null}
+      <h2 id="servicios-title" data-edit={edit('services.title')}>
+        {services.title}
+      </h2>
+      {services.intro ? (
+        <p class="lead" data-edit={edit('services.intro')}>
+          {services.intro}
+        </p>
+      ) : null}
     </div>
     <ul class="list">
-      {services.items.map((item) => (
+      {services.items.map((item, i) => (
         <li class="card">
           <div class="top">
-            <h3>{item.name}</h3>
-            {item.price ? <p class="price">{item.price}</p> : null}
+            <h3 data-edit={edit(`services.items.${i}.name`)}>{item.name}</h3>
+            {item.price ? (
+              <p class="price" data-edit={edit(`services.items.${i}.price`)}>
+                {item.price}
+              </p>
+            ) : null}
           </div>
-          {item.description ? <p class="muted">{item.description}</p> : null}
+          {item.description ? (
+            <p class="muted" data-edit={edit(`services.items.${i}.description`)}>
+              {item.description}
+            </p>
+          ) : null}
         </li>
       ))}
     </ul>
-    {services.note ? <p class="note">{services.note}</p> : null}
+    {services.note ? (
+      <p class="note" data-edit={edit('services.note')}>
+        {services.note}
+      </p>
+    ) : null}
   </div>
 </section>
 

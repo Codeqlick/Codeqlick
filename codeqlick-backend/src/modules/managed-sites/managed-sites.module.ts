@@ -23,6 +23,8 @@ import { PortalSitesController } from './portal-sites.controller.js';
 import { PortalSitesService } from './portal-sites.service.js';
 import { SiteRequestsController } from './site-requests.controller.js';
 import { SiteVisitsController } from './site-visits.controller.js';
+import { SiteDraftsController } from './site-drafts.controller.js';
+import { SiteEditorService } from './site-editor.service.js';
 import { SiteVisitsService } from './site-visits.service.js';
 
 @Module({
@@ -44,6 +46,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     PortalSitesController,
     SiteRequestsController,
     SiteVisitsController,
+    SiteDraftsController,
   ],
   providers: [
     ManagedSitesService,
@@ -56,6 +59,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     SitePreviewsRepository,
     SiteProposalsService,
     SiteReportsService,
+    SiteEditorService,
   ],
   exports: [ManagedSitesService],
 })

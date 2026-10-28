@@ -13,6 +13,9 @@ const LABELS: Record<SectionKey, string> = {
   testimonials: 'Opiniones',
 };
 
+/** `data-edit` of a text in a draft (the editor patches it live); nothing on a real site. */
+export const edit = (path: string) => (site.draft ? path : undefined);
+
 /** A section's label in the header and above its title ("Trabajos", "Sobre mí"…). */
 export const sectionLabel = (key: SectionKey) => site.navLabels?.[key] ?? LABELS[key];
 
