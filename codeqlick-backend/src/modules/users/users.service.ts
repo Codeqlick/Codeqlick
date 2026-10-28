@@ -32,6 +32,9 @@ export type AdminUser = AuthUser & {
   createdAt: string;
 };
 
+/** What hangs from an account (`GET /admin/users/:id`). */
+export type UserOwns = { projects: number; members: number; proposals: number; tickets: number };
+
 /** A created user; `invitationSent` only when no password was given and a welcome email was due. */
 export type CreatedUser = AdminUser & { invitationSent?: boolean };
 
@@ -180,6 +183,33 @@ export class UsersService {
       action: 'user.invited',
       targetId: user.id,
       targetLabel: user.email,
+    });
+  }
+
+  async get(id: string): Promise<AdminUser & { owns: UserOwns }> {
+    const user = await this.repository.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    return { ...toAdminUser(user), owns: await this.repository.owns(id) };
+  }
+
+  /**
+   * Deletes the account and what hangs from it (sessions, its company's people, proposals, support
+   * requests); refused for your own account and while it owns projects.
+   */
+  async delete(actor: AuthUser, id: string): Promise<void> {
+    const user = await this.repository.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    if (actor.id === id) throw new BadRequestException('You cannot delete your own account');
+    const owns = await this.repository.owns(id);
+    if (owns.projects > 0) {
+      throw new ConflictException('This account still owns projects: delete them first');
+    }
+    await this.repository.delete(id);
+    await this.activity.record(actor, {
+      action: 'user.deleted',
+      targetId: id,
+      targetLabel: user.email,
+      details: { ...owns, projects: undefined, role: user.role },
     });
   }
 

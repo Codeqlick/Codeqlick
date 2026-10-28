@@ -12,7 +12,7 @@ import { UsersModule } from '../users/users.module.js';
 import { ManagedSitesController } from './managed-sites.controller.js';
 import { ManagedSitesRepository } from './managed-sites.repository.js';
 import { ManagedSitesService } from './managed-sites.service.js';
-import { SiteBuilderClient } from './site-builder.client.js';
+import { SiteBuilderModule } from './site-builder.module.js';
 import { SiteDomainsService } from './site-domains.service.js';
 import { SitePreviewsRepository } from './site-previews.repository.js';
 import { SitePreviewsService } from './site-previews.service.js';
@@ -37,6 +37,7 @@ import { SiteVisitsService } from './site-visits.service.js';
     StatsModule,
     DomainsModule,
     AccountsModule,
+    SiteBuilderModule,
   ],
   controllers: [
     ManagedSitesController,
@@ -47,7 +48,6 @@ import { SiteVisitsService } from './site-visits.service.js';
   providers: [
     ManagedSitesService,
     ManagedSitesRepository,
-    SiteBuilderClient,
     SiteOnboardingService,
     PortalSitesService,
     SiteVisitsService,

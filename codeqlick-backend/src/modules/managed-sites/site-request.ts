@@ -62,6 +62,29 @@ export type SiteRequestInput = z.infer<typeof siteRequestSchema>;
 /** What a lead keeps: the request without the contact person and the honeypot. */
 export type SiteRequest = Pick<SiteRequestInput, 'preset' | 'business' | 'domain'>;
 
+/** A lead's request as the team edits it (`PUT /admin/leads/:id/request`). */
+export const storedRequestSchema = siteRequestSchema
+  .pick({ preset: true, business: true, domain: true })
+  .strict();
+
+/** A prospect's preview (`POST /admin/previews`): the request and, optionally, the person. */
+export const prospectSchema = storedRequestSchema
+  .extend({
+    name: z
+      .string()
+      .trim()
+      .max(120)
+      .optional()
+      .transform((value) => value || undefined),
+    email: z
+      .union([z.literal(''), z.email().max(254)])
+      .optional()
+      .transform((value) => value || undefined),
+    locale: localeSchema.default('es'),
+  })
+  .strict();
+export type ProspectInput = z.infer<typeof prospectSchema>;
+
 const PRESET_NAMES: Record<string, string> = {
   peluqueria: 'Peluquería (Alba Estudio)',
   restaurante: 'Restaurante (Casa Lola)',

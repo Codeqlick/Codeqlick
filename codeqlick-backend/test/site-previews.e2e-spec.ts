@@ -116,6 +116,10 @@ describe('Instant previews of website requests (e2e)', () => {
       where: { previewSlug: { not: null } },
       data: { createdAt: new Date(Date.now() - 2 * 86_400_000) },
     });
+    await prisma.lead.updateMany({
+      where: { previewSlug: { not: null }, previewBuiltAt: { not: null } },
+      data: { previewBuiltAt: new Date(Date.now() - 2 * 86_400_000) },
+    });
   });
 
   afterAll(async () => {
@@ -217,7 +221,13 @@ describe('Instant previews of website requests (e2e)', () => {
   it('stops making previews past the daily cap, and takes old ones down', async () => {
     const server = app.getHttpServer();
     const already = await prisma.lead.count({
-      where: { previewSlug: { not: null }, createdAt: { gte: new Date(Date.now() - 86_400_000) } },
+      where: {
+        previewSlug: { not: null },
+        OR: [
+          { createdAt: { gte: new Date(Date.now() - 86_400_000) } },
+          { previewBuiltAt: { gte: new Date(Date.now() - 86_400_000) } },
+        ],
+      },
     });
     for (let i = already; i < DAILY_PREVIEWS; i++) {
       await prisma.lead.create({

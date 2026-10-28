@@ -107,6 +107,21 @@ export class ManagedSitesRepository {
     return this.prisma.managedSite.update({ where: { id }, data, include });
   }
 
+  /**
+   * Deletes the site (its revisions go with it); the project loses its addresses and its monitor
+   * is turned off.
+   */
+  async remove(siteId: string, projectId: string): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.managedSite.delete({ where: { id: siteId } }),
+      this.prisma.clientProject.update({
+        where: { id: projectId },
+        data: { stagingUrl: null, productionUrl: null },
+      }),
+      this.prisma.siteMonitor.updateMany({ where: { projectId }, data: { enabled: false } }),
+    ]);
+  }
+
   /** The project's preview (staging) and live (production) addresses follow the site's. */
   async setProjectUrls(projectId: string, stagingUrl: string, productionUrl: string) {
     await this.prisma.clientProject.update({
