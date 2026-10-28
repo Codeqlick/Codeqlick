@@ -225,6 +225,23 @@ export class ManagedSitesService {
     return this.view(row);
   }
 
+  /**
+   * Takes the site down (architecture 8.2): the builder marks it for removal, so the host
+   * unpublishes its domains and folder, and then it is deleted.
+   */
+  async remove(actor: AuthUser, projectId: string): Promise<void> {
+    const project = await this.findProject(projectId);
+    const site = await this.findSite(projectId);
+    await this.builder.remove(site.slug);
+    await this.repository.remove(site.id, projectId);
+    await this.activity.record(actor, {
+      action: 'project.site_deleted',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { slug: site.slug, ...(site.domain ? { domain: site.domain } : {}) },
+    });
+  }
+
   async revisions(projectId: string): Promise<SiteRevisionView[]> {
     const site = await this.findSite(projectId);
     return (await this.repository.revisions(site.id)).map((row) => ({

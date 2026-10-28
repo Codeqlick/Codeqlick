@@ -22,6 +22,22 @@ export class UsersRepository {
     return { items, total };
   }
 
+  /** What hangs from the account: what deleting it takes with it, or prevents it. */
+  async owns(id: string) {
+    const [projects, members, proposals, tickets] = await this.prisma.$transaction([
+      this.prisma.clientProject.count({ where: { clientId: id } }),
+      this.prisma.user.count({ where: { memberOfId: id } }),
+      this.prisma.proposal.count({ where: { clientId: id } }),
+      this.prisma.supportTicket.count({ where: { clientId: id } }),
+    ]);
+    return { projects, members, proposals, tickets };
+  }
+
+  /** Sessions, its company's people, proposals and support requests go with it (cascade). */
+  async delete(id: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id } });
+  }
+
   findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }

@@ -28,26 +28,16 @@ export function adminListUsers(
   });
 }
 
-/**
- * Section 5 lists `GET /admin/users` and `PATCH /admin/users/:id` but no `GET /admin/users/:id`.
- * We try the conventional detail route first and fall back to scanning the list.
- */
+/** The user with what hangs from the account (`owns`), or null when there is none. */
 export async function adminGetUser(id: string): Promise<AdminUser | null> {
   try {
     return await apiFetch<AdminUser>(`/admin/users/${encodeURIComponent(id)}`, {
       auth: 'required',
     });
   } catch (error) {
-    // 404 / 405 from a backend without the detail route: fall back to the list.
-    if (!isApiError(error) || (error.status !== 404 && error.status !== 405)) throw error;
+    if (isApiError(error) && error.status === 404) return null;
+    throw error;
   }
-  for (let page = 1; page <= 20; page += 1) {
-    const result = await adminListUsers({ page, pageSize: 100 });
-    const match = result.items.find((user) => user.id === id);
-    if (match) return match;
-    if (page >= result.totalPages) break;
-  }
-  return null;
 }
 
 export function adminCreateUser(input: UserInput) {
@@ -59,6 +49,14 @@ export function adminSendInvitation(id: string) {
   return apiFetch<void>(`/admin/users/${encodeURIComponent(id)}/invitation`, {
     method: 'POST',
     body: {},
+    auth: 'required',
+  });
+}
+
+/** Deletes the account and what hangs from it; 409 while it owns projects. */
+export function adminDeleteUser(id: string) {
+  return apiFetch<void>(`/admin/users/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
     auth: 'required',
   });
 }

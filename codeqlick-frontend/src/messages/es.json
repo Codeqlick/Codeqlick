@@ -28,7 +28,8 @@
     "unavailable": "Este contenido no está disponible en este momento. Vuelve a intentarlo en unos minutos.",
     "confirmDelete": "Entiendo que no se puede deshacer.",
     "changeFile": "Cambiar archivo",
-    "dropFile": "o arrástralo aquí"
+    "dropFile": "o arrástralo aquí",
+    "confirmType": "Escribe «{text}» para confirmar"
   },
   "Pagination": {
     "label": "Paginación",
@@ -396,7 +397,8 @@
     "choice": "Elige una de las opciones.",
     "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50.",
     "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas).",
-    "domain": "Escribe un dominio como peluqueria-ana.com."
+    "domain": "Escribe un dominio como peluqueria-ana.com.",
+    "confirmMismatch": "No coincide: escríbelo tal cual."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -653,7 +655,8 @@
       "calculator": "Calculadora",
       "bookings": "Llamadas",
       "monitoring": "Monitorización",
-      "sites": "Webs"
+      "sites": "Webs",
+      "previews": "Vistas previas"
     },
     "dashboard": {
       "title": "Panel",
@@ -757,7 +760,28 @@
       "proposalBody": "Prepara el borrador con el precio, lo que incluye y lo que pidió (estilo, dominio, deseos). No se le envía nada todavía: lo revisas y, al enviarla, si aún no tiene cuenta, el email le invita a crearla para verla.",
       "proposalCreate": "Preparar propuesta",
       "proposalCreating": "Preparando…",
-      "proposalOpen": "Ver la propuesta"
+      "proposalOpen": "Ver la propuesta",
+      "noEmail": "Sin email todavía",
+      "added": "Añadido",
+      "prospect": "Añadido por el equipo",
+      "contactEdit": "Editar los datos de contacto",
+      "emailProspectHint": "Puedes dejarlo vacío hasta que lo tengas.",
+      "previewNone": "Aún no tiene vista previa.",
+      "previewProspect": "Lo añadiste tú: no se le envía ningún email automático (ni el aviso de la vista previa ni el seguimiento).",
+      "previewRebuilding": "Generando…",
+      "previewRebuild": "Volver a generar",
+      "previewBuild": "Generar la vista previa",
+      "requestEdit": "Editar la solicitud",
+      "requestEditBody": "Al guardar se vuelve a generar la vista previa en la misma dirección. No se avisa al cliente.",
+      "requestSaving": "Guardando…",
+      "requestSave": "Guardar y regenerar la vista previa",
+      "requestSaved": "Guardado. La vista previa se está generando de nuevo.",
+      "replyNoEmail": "Añade su email en «Editar los datos de contacto» para poder responderle.",
+      "convertNoEmail": "Para convertirlo en cliente, añade antes su email en «Editar los datos de contacto».",
+      "deleteTitle": "Eliminar el contacto",
+      "deleteBody": "Se borran el contacto y sus respuestas. Sus reservas, su propuesta y su cuenta de cliente, si las tiene, se quedan.",
+      "deleteBodyPreview": "Se borran el contacto, sus respuestas y su vista previa, que deja de estar online. Sus reservas, su propuesta y su cuenta de cliente, si las tiene, se quedan.",
+      "proposalNoEmail": "Para preparar su propuesta, añade antes su email en «Editar los datos de contacto»."
     },
     "posts": {
       "title": "Artículos",
@@ -1007,7 +1031,11 @@
       "personAdding": "Añadiendo…",
       "addPersonButton": "Añadir y enviar invitación",
       "personAdded": "Persona añadida. Le hemos enviado el correo para elegir su contraseña.",
-      "personAddedNoEmail": "Persona añadida, pero el correo de invitación no ha salido. Envíalo desde su ficha."
+      "personAddedNoEmail": "Persona añadida, pero el correo de invitación no ha salido. Envíalo desde su ficha.",
+      "deleteTitle": "Eliminar el usuario",
+      "deleteBlocked": "{count, plural, one {Tiene un proyecto} other {Tiene # proyectos}}. Bórralos antes desde Proyectos para poder eliminar la cuenta.",
+      "deleteBody": "Se borran la cuenta y lo que depende de ella: sus sesiones{members, plural, =0 {} one {, la persona de su empresa} other {, las # personas de su empresa}}{proposals, plural, =0 {} one {, su propuesta} other {, sus # propuestas}}{tickets, plural, =0 {} one {, su solicitud de soporte} other {, sus # solicitudes de soporte}}. Sus comentarios, archivos y horas se quedan sin autor.",
+      "deleteHasProjects": "Esta cuenta tiene proyectos: bórralos antes."
     },
     "activity": {
       "title": "Actividad",
@@ -1087,17 +1115,21 @@
           "site_created": "creó la web gestionada de <target>{label}</target>",
           "site_updated": "cambió la web gestionada de <target>{label}</target>",
           "site_restored": "restauró una versión de la web de <target>{label}</target>",
-          "domain_updated": "cambió el dominio de <target>{label}</target>"
+          "domain_updated": "cambió el dominio de <target>{label}</target>",
+          "site_deleted": "dio de baja la web de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
           "updated": "modificó el usuario <target>{label}</target>",
-          "invited": "envió un correo de bienvenida a <target>{label}</target>"
+          "invited": "envió un correo de bienvenida a <target>{label}</target>",
+          "deleted": "eliminó el usuario <target>{label}</target>"
         },
         "lead": {
           "updated": "actualizó el contacto <target>{label}</target>",
           "replied": "respondió al contacto <target>{label}</target>",
-          "converted": "convirtió en cliente el contacto <target>{label}</target>"
+          "converted": "convirtió en cliente el contacto <target>{label}</target>",
+          "created": "añadió el contacto <target>{label}</target>",
+          "deleted": "eliminó el contacto <target>{label}</target>"
         },
         "media": {
           "uploaded": "subió la imagen <target>{label}</target>",
@@ -1369,6 +1401,33 @@
       "leadButton": "Dar de alta su web básica",
       "leadHint": "O, si es una web básica, todo en un paso:",
       "domain": "Dominio"
+    },
+    "previews": {
+      "title": "Vistas previas",
+      "lead": "Las vistas previas de las solicitudes de web básica y las que preparas tú para negocios que aún no te han escrito.",
+      "new": "Nueva vista previa",
+      "emptyTitle": "Aún no hay vistas previas",
+      "emptyBody": "Se crean solas con cada solicitud de web básica, o desde «Nueva vista previa».",
+      "business": "Negocio",
+      "style": "Estilo",
+      "status": "Estado",
+      "origin": "Origen",
+      "created": "Creada",
+      "prospect": "Añadida por ti",
+      "fromRequest": "Solicitud de la web",
+      "noEmail": "Sin email",
+      "newTitle": "Nueva vista previa",
+      "newLead": "Prepara la web de un negocio que aún no te ha escrito para enseñársela en persona o mandársela por WhatsApp. No se le envía ningún email.",
+      "businessTitle": "El negocio",
+      "personTitle": "La persona de contacto",
+      "personBody": "Opcional. Sin email no podrás responderle ni convertirlo en cliente hasta que lo añadas.",
+      "personName": "Nombre",
+      "personEmail": "Email",
+      "personLocale": "Idioma",
+      "creating": "Creando…",
+      "create": "Crear la vista previa",
+      "capReached": "Hoy ya se han hecho 10 vistas previas, el máximo diario. Prueba mañana.",
+      "noBuilder": "El generador de webs no está disponible ahora mismo."
     }
   },
   "Sessions": {
@@ -2246,7 +2305,11 @@
       "NONE": "Sin correo",
       "OVH": "Correo en OVH",
       "OTHER": "Correo en otro proveedor"
-    }
+    },
+    "deleteTitle": "Dar de baja la web",
+    "deleteBody": "La web deja de estar publicada en su dirección y su dominio, se apaga su monitor y se borran su contenido y sus versiones. Las fotos siguen en la biblioteca de medios y los registros DNS del dominio no se tocan.",
+    "deleteButton": "Dar de baja la web",
+    "deleted": "Web dada de baja. Dejará de verse en un minuto."
   },
   "PortalSite": {
     "title": "Tu web",

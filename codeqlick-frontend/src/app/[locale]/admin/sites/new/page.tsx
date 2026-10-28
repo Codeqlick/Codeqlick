@@ -61,7 +61,7 @@ export default async function NewSitePage({
               name="email"
               type="email"
               label={t('email')}
-              defaultValue={lead?.email}
+              defaultValue={lead?.email ?? undefined}
               required
             />
             <FormSelect
