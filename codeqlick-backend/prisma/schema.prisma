@@ -960,6 +960,13 @@ model ManagedSite {
   reportedMonth   String?          @map("reported_month")
   /// Its website in Umami (cookieless visit statistics), created on its first build.
   umamiWebsiteId  String?          @map("umami_website_id")
+  /// The draft the client is editing (decision 18): the whole content, valid as `content`.
+  draftContent    Json?            @map("draft_content")
+  /// The style the draft starts from, when the client changed it.
+  draftPreset     String?          @map("draft_preset")
+  draftUpdatedAt  DateTime?        @map("draft_updated_at") @db.Timestamptz(3)
+  /// Random: the draft's preview is served at /site-draft/<key>/.
+  draftKey        String?          @unique @map("draft_key")
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 

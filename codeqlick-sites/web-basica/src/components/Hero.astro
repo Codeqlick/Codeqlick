@@ -1,6 +1,6 @@
 ---
 import { Image } from 'astro:assets';
-import { imageOf, site } from '../lib/site';
+import { edit, imageOf, site } from '../lib/site';
 
 const { hero } = site;
 ---
@@ -8,25 +8,35 @@ const { hero } = site;
 <section class="hero">
   <div class="container grid">
     <div class="copy">
-      {hero.eyebrow ? <p class="eyebrow">{hero.eyebrow}</p> : null}
-      <h1>{hero.title}</h1>
-      <p class="lead">{hero.text}</p>
+      {hero.eyebrow ? (
+        <p class="eyebrow" data-edit={edit('hero.eyebrow')}>
+          {hero.eyebrow}
+        </p>
+      ) : null}
+      <h1 data-edit={edit('hero.title')}>{hero.title}</h1>
+      <p class="lead" data-edit={edit('hero.text')}>
+        {hero.text}
+      </p>
       <div class="actions">
-        <a class="button" href={hero.primary.href}>
+        <a class="button" href={hero.primary.href} data-edit={edit('hero.primary.label')}>
           {hero.primary.label}
         </a>
         {hero.secondary ? (
-          <a class="button button--ghost" href={hero.secondary.href}>
+          <a
+            class="button button--ghost"
+            href={hero.secondary.href}
+            data-edit={edit('hero.secondary.label')}
+          >
             {hero.secondary.label}
           </a>
         ) : null}
       </div>
       {hero.facts ? (
         <dl class="facts">
-          {hero.facts.map((fact) => (
+          {hero.facts.map((fact, i) => (
             <div>
-              <dt>{fact.label}</dt>
-              <dd>{fact.value}</dd>
+              <dt data-edit={edit(`hero.facts.${i}.label`)}>{fact.label}</dt>
+              <dd data-edit={edit(`hero.facts.${i}.value`)}>{fact.value}</dd>
             </div>
           ))}
         </dl>
