@@ -1,8 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
@@ -15,7 +19,16 @@ import { madridToday } from '../proposals/proposals.service.js';
 import { siteContentSchema } from './managed-sites.schemas.js';
 import { SiteBuilderClient } from './site-builder.client.js';
 import { SitePreviewsRepository } from './site-previews.repository.js';
-import { contentFromRequest, type SiteRequest } from './site-request.js';
+import type { AuthUser } from '../../common/types/auth-user.js';
+import type { Prisma } from '../../generated/prisma/client.js';
+import { LeadsService, type Lead } from '../leads/leads.service.js';
+import {
+  contentFromRequest,
+  requestSummary,
+  storedRequestSchema,
+  type ProspectInput,
+  type SiteRequest,
+} from './site-request.js';
 
 const DAY_MS = 86_400_000;
 /** Previews a day across all requests: Let's Encrypt allows 50 certificates a week per domain. */
@@ -28,6 +41,23 @@ const LIVE_WAIT_MS = 10 * 60_000;
 const LIVE_POLL_MS = 10_000;
 
 export type PreviewStatus = 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
+
+/** A row of Admin → Vistas previas. */
+export interface PreviewListItem {
+  leadId: string;
+  name: string;
+  email: string | null;
+  business: string | null;
+  preset: string | null;
+  slug: string;
+  url: string;
+  status: PreviewStatus | null;
+  builtAt: string | null;
+  createdAt: string;
+  prospect: boolean;
+}
+
+const LIST_LIMIT = 200;
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
 /** `<business label>-<6 random chars>`, at most 40 characters (the builder's slug rule). */
@@ -53,6 +83,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     private readonly builder: SiteBuilderClient,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly leads: LeadsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -93,17 +124,131 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     return null;
   }
 
-  /** Builds the lead's preview in the background; the requester is emailed when it is ready. */
+  /**
+   * Builds the lead's preview in the background; the requester is emailed when it is ready unless
+   * `notify` is false (a prospect, or a rebuild by the team).
+   */
   start(
     leadId: string,
     slug: string,
     request: SiteRequest,
-    person: { name: string; email: string; locale: ApiLocale },
+    person: { name: string; email: string | null; locale: ApiLocale },
+    notify = true,
   ): void {
-    void this.build(leadId, slug, request, person).catch(async (error: unknown) => {
+    void this.build(leadId, slug, request, person, notify).catch(async (error: unknown) => {
       this.logger.error(`Preview ${slug} failed: ${String(error)}`);
       await this.repository.update(leadId, { previewStatus: 'FAILED' }).catch(() => undefined);
     });
+  }
+
+  /** Every preview, newest first (Admin → Vistas previas). */
+  async list(): Promise<PreviewListItem[]> {
+    return (await this.repository.list(LIST_LIMIT)).map((row) => {
+      const request = storedRequestSchema.safeParse(row.siteRequest);
+      return {
+        leadId: row.id,
+        name: row.name,
+        email: row.email,
+        business: request.success ? request.data.business.name : null,
+        preset: request.success ? request.data.preset : null,
+        slug: row.previewSlug!,
+        url: this.urlOf(row.previewSlug!),
+        status: (row.previewStatus as PreviewStatus | null) ?? null,
+        builtAt: row.previewBuiltAt?.toISOString() ?? null,
+        createdAt: row.createdAt.toISOString(),
+        prospect: row.createdById !== null,
+      };
+    });
+  }
+
+  /**
+   * A prospect (architecture 8.2): a lead the team adds for a business that hasn't asked yet, with
+   * its preview building. Nobody is emailed.
+   */
+  async createProspect(actor: AuthUser, input: ProspectInput): Promise<{ leadId: string }> {
+    const slug = await this.reserveOrThrow(input.business.name);
+    const request: SiteRequest = {
+      preset: input.preset,
+      business: input.business,
+      domain: input.domain,
+    };
+    const name = input.name ?? input.business.name;
+    const { id } = await this.leads.createProspect(actor, {
+      name,
+      email: input.email ?? null,
+      company: input.business.name,
+      message: requestSummary(request).slice(0, 5000),
+      locale: input.locale,
+      siteRequest: request as Prisma.InputJsonValue,
+      previewSlug: slug,
+    });
+    this.start(
+      id,
+      slug,
+      request,
+      { name, email: input.email ?? null, locale: input.locale },
+      false,
+    );
+    return { leadId: id };
+  }
+
+  /** Replaces the lead's website request and rebuilds its preview from it. */
+  async editRequest(leadId: string, request: SiteRequest): Promise<Lead> {
+    await this.leads.replaceRequest(
+      leadId,
+      request as Prisma.InputJsonValue,
+      requestSummary(request).slice(0, 5000),
+    );
+    await this.rebuild(leadId);
+    return this.leads.get(leadId);
+  }
+
+  /**
+   * (Re)builds the lead's preview from its request, without emailing anyone: on its slug while it
+   * is up, on a new one (counting toward the daily cap) when it was removed or never made.
+   */
+  async rebuild(leadId: string): Promise<{ status: 'BUILDING' }> {
+    const lead = await this.repository.findForBuild(leadId);
+    if (!lead) throw new NotFoundException('Lead not found');
+    const request = storedRequestSchema.safeParse(lead.siteRequest);
+    if (!request.success) throw new BadRequestException('This lead has no website request');
+    const slug =
+      lead.previewSlug && lead.previewStatus !== 'REMOVED'
+        ? lead.previewSlug
+        : await this.reserveOrThrow(request.data.business.name);
+    await this.repository.update(leadId, {
+      previewSlug: slug,
+      previewStatus: 'BUILDING',
+      previewBuiltAt: null,
+    });
+    this.start(
+      leadId,
+      slug,
+      request.data,
+      { name: lead.name, email: lead.email, locale: toApiLocale(lead.locale) },
+      false,
+    );
+    return { status: 'BUILDING' };
+  }
+
+  /** Deletes the lead, taking its preview down first. */
+  async deleteLead(actor: AuthUser, leadId: string): Promise<void> {
+    await this.remove(leadId);
+    await this.leads.delete(actor, leadId);
+  }
+
+  private async reserveOrThrow(businessName: string): Promise<string> {
+    if (!this.config.siteBuilder) {
+      throw new ServiceUnavailableException('The site builder is not configured');
+    }
+    const slug = await this.reserve(businessName);
+    if (!slug) {
+      throw new HttpException(
+        `No more previews today (${DAILY_PREVIEWS} a day); try again tomorrow`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    return slug;
   }
 
   /** A preview's status, for the waiting page the requester opens; null when there is none. */
@@ -152,7 +297,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
           const locale = toApiLocale(lead.locale);
           await this.mail.send(
             previewFollowUpEmail(
-              { name: lead.name, email: lead.email, locale },
+              { name: lead.name, email: lead.email!, locale },
               lead.company ?? lead.name,
               this.urlOf(lead.previewSlug!),
               `${this.config.siteUrl}/${locale}/book`,
@@ -176,7 +321,8 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     leadId: string,
     slug: string,
     request: SiteRequest,
-    person: { name: string; email: string; locale: ApiLocale },
+    person: { name: string; email: string | null; locale: ApiLocale },
+    notify: boolean,
   ): Promise<void> {
     const preset = (await this.builder.presets()).find((item) => item.key === request.preset);
     if (!preset) throw new Error(`No preset ${request.preset}`);
@@ -187,7 +333,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
         owner: request.business.name,
         taxId: '',
         address: request.business.address ?? request.business.city,
-        email: request.business.email ?? person.email,
+        email: request.business.email ?? person.email ?? mailboxOf(this.config.mailFrom),
       },
     });
     const content = siteContentSchema.parse(contentFromRequest(parsed, request));
@@ -204,8 +350,16 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     if (this.config.isProduction && !(await this.waitLive(url)))
       throw new Error(`${url} not served after the build`);
     await this.repository.update(leadId, { previewStatus: 'READY', previewBuiltAt: new Date() });
+    if (!notify || !person.email) return;
     await this.mail
-      .send(previewReadyEmail(person, request.business.name, url, this.config.siteUrl))
+      .send(
+        previewReadyEmail(
+          { ...person, email: person.email },
+          request.business.name,
+          url,
+          this.config.siteUrl,
+        ),
+      )
       .catch((error: unknown) => this.logger.error('Preview email failed', error));
   }
 
@@ -221,6 +375,11 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     }
     return false;
   }
+}
+
+/** `hello@x.com` from `Codeqlick <hello@x.com>`. */
+export function mailboxOf(from: string): string {
+  return /<([^>]+)>/.exec(from)?.[1] ?? from.trim();
 }
 
 /** To the requester: their preview is online (it takes Nginx a minute to publish it). */

@@ -1,6 +1,15 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { Lead, LeadInput, LeadReply, LeadStatus, LostReason, Paginated } from './types';
+import type {
+  Lead,
+  LeadInput,
+  LeadReply,
+  LeadStatus,
+  LostReason,
+  Paginated,
+  PreviewListItem,
+  SiteRequest,
+} from './types';
 
 export function createLead(input: LeadInput) {
   return apiFetch<{ id: string }>('/leads', {
@@ -56,10 +65,54 @@ export function adminUpdateLead(
     notes?: string | null;
     lostReason?: LostReason | null;
     followUpOn?: string | null;
+    name?: string;
+    email?: string | null;
+    company?: string | null;
   },
 ) {
   return apiFetch<Lead>(`/admin/leads/${encodeURIComponent(id)}`, {
     method: 'PATCH',
+    body: input,
+    auth: 'required',
+  });
+}
+
+/** Deletes the lead; its preview is taken down. */
+export function adminDeleteLead(id: string) {
+  return apiFetch<void>(`/admin/leads/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+/** (Re)builds the lead's preview from its request; nobody is emailed. */
+export function adminRebuildLeadPreview(id: string) {
+  return apiFetch<{ status: 'BUILDING' }>(`/admin/leads/${encodeURIComponent(id)}/preview`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
+/** Replaces the lead's website request and rebuilds its preview. */
+export function adminEditLeadRequest(id: string, request: SiteRequest) {
+  return apiFetch<Lead>(`/admin/leads/${encodeURIComponent(id)}/request`, {
+    method: 'PUT',
+    body: request,
+    auth: 'required',
+  });
+}
+
+/** Every preview, newest first. */
+export function adminListPreviews() {
+  return apiFetch<PreviewListItem[]>('/admin/previews', { auth: 'required' });
+}
+
+/** A prospect: the preview of a business that hasn't asked yet. */
+export function adminCreatePreview(
+  input: SiteRequest & { name?: string; email?: string; locale?: 'es' | 'en' },
+) {
+  return apiFetch<{ leadId: string }>('/admin/previews', {
+    method: 'POST',
     body: input,
     auth: 'required',
   });

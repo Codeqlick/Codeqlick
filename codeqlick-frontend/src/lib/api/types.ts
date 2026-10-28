@@ -259,7 +259,8 @@ export type LeadStatus = (typeof LEAD_STATUSES)[number];
 export type Lead = {
   id: string;
   name: string;
-  email: string;
+  /** Null only for a prospect the team added without one. */
+  email: string | null;
   company: string | null;
   budget: string | null;
   /** What they need (PROJECT_TYPES); older leads have a budget instead. */
@@ -273,12 +274,8 @@ export type Lead = {
   followUpOn: string | null;
   /** The client account it became ("Convert to client"). */
   clientId: string | null;
-  /** From the basic-website request form: the style and business details. */
-  siteRequest: {
-    preset: string;
-    business: { name: string; kind: string; city: string };
-    domain?: { name: string; owned: boolean };
-  } | null;
+  /** From the basic-website request form (or a prospect): the style and business details. */
+  siteRequest: SiteRequest | null;
   /** The request's instant preview, when one was made. */
   preview: {
     url: string;
@@ -289,8 +286,44 @@ export type Lead = {
   } | null;
   /** The proposal drafted from the request ("Preparar propuesta"). */
   proposalId: string | null;
+  /** Added by the team (a prospect): never emailed automatically. */
+  prospect: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/** A basic-website request as a lead keeps it (and the team edits it). */
+export type SiteRequest = {
+  preset: string;
+  business: {
+    name: string;
+    kind: string;
+    city: string;
+    address?: string;
+    phone?: string;
+    whatsapp?: string;
+    email?: string;
+    hours?: string;
+    services?: string;
+    about?: string;
+    wishes?: string;
+  };
+  domain?: { name: string; owned: boolean };
+};
+
+/** A row of Admin → Vistas previas. */
+export type PreviewListItem = {
+  leadId: string;
+  name: string;
+  email: string | null;
+  business: string | null;
+  preset: string | null;
+  slug: string;
+  url: string;
+  status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED' | null;
+  builtAt: string | null;
+  createdAt: string;
+  prospect: boolean;
 };
 
 /** An email answer sent to a lead from the admin panel. */
@@ -326,6 +359,8 @@ export type AdminUser = AuthUser & {
   /** False for a client account the team prepared that its owner hasn't made theirs yet. */
   registered: boolean;
   createdAt: string;
+  /** What hangs from the account (`GET /admin/users/:id` only). */
+  owns?: { projects: number; members: number; proposals: number; tickets: number };
 };
 
 /** `GET /auth/preferences`: the caller's email preferences. */

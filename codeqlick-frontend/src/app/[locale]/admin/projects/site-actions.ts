@@ -4,11 +4,13 @@ import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 import type { AppLocale } from '@/i18n/routing';
-import { failedState, invalidState, savedState } from '@/lib/actions';
+import { failedState, invalidState, savedState, unconfirmedDelete } from '@/lib/actions';
 import {
   adminBuildSite,
   adminCheckSiteDomain,
   adminCreateSite,
+  adminDeleteSite,
+  adminGetSite,
   adminRestoreSiteRevision,
   adminSaveSiteContent,
   adminSendSiteReport,
@@ -165,4 +167,25 @@ export async function sendSiteReportAction(
     status: 'success',
     message: sent > 0 ? t('reportSent', { count: sent }) : t('reportNobody'),
   };
+}
+
+/** Takes the site down after its domain (or name, without one) was typed: unpublished, monitor off, content deleted. */
+export async function deleteSiteAction(
+  locale: AppLocale,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const site = await adminGetSite(projectId);
+  if ('exists' in site) return { status: 'idle' };
+  const unconfirmed = await unconfirmedDelete(locale, formData, site.domain ?? site.slug);
+  if (unconfirmed) return unconfirmed;
+  try {
+    await adminDeleteSite(projectId);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateSite(locale);
+  const t = await getTranslations({ locale, namespace: 'ManagedSite' });
+  return { status: 'success', message: t('deleted') };
 }
