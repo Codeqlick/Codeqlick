@@ -158,7 +158,7 @@ erDiagram
 - **Session** — one row per refresh token: `tokenHash` (SHA-256, unique), `familyId`, `expiresAt`, `revokedAt`, `replacedById`, `userAgent`, `ip`.
 - **PasswordResetToken** — one row per "forgot my password" email or welcome email: `tokenHash` (SHA-256, unique), `expiresAt` (60 minutes for a reset, 7 days for a welcome email), `usedAt`. Asking again deletes the user's unused tokens, so only the latest link works. An unregistered client's invitation to create their account is one of these too (7 days). **SignupToken** — a self-registration waiting for its email to be confirmed: `email`, `name`, `passwordHash`, `locale`, `tokenHash` (unique), `expiresAt` (24 hours), `usedAt`.
 - **Lead** — contact form submission, or a business the team added itself (`createdById?`: who; a prospect, section 8.2): `name`, `email?` (always set from the forms; a prospect may have none until the team adds it), `company?`, `projectType?` (what they need: `web`, `custom`, `mobile`, `design`, `support`, `not-sure`), `budget?` (only older leads: the form asked for a range before), `message`, `locale`, `status` (the sales process from the wiki's Client Engagement: `NEW` → `TALKING` → `CALL` → `PROPOSAL` → `WON` / `LOST`; `SPAM` is not a stage and stays off the board), `lostReason?` (`PRICE`, `NO_RESPONSE`, `NOT_A_FIT`, `CHOSE_OTHER`, `TIMING`, `OTHER`; kept only while LOST), `followUpOn?` (date), `clientId?` (the account it became), `notes?`, `siteRequest?` (JSON `{ preset, business, domain? }`: when it came from the basic-website request, which onboarding then builds the site from), and its instant preview: `previewSlug?` (unique), `previewStatus?` (`BUILDING` | `READY` | `FAILED` | `REMOVED`), `previewBuiltAt?`, `previewFollowUpAt?` (when the follow-up about it was emailed; never for a prospect) (decision 16, section 8.2), and `proposalId?` (the proposal drafted from the request, `POST /admin/leads/:id/proposal`; null again if it is deleted).
-- **SitePurchase** — a request's preview bought online (section 8.2, decision 20): `leadId`, `stripeSessionId` (unique, the Stripe Checkout Session), `amountCents`, `currency` (`eur`), `status` (`PENDING` → `PAID` | `EXPIRED`), `email?` (the buyer's, from Stripe), `paidAt?`, `projectId?` (the project of the site made from it), `error?` (why the site couldn't be made on its own; the team finishes it).
+- **SitePurchase** — a request's preview bought online (section 8.2, decision 20): `leadId`, `stripeSessionId` (unique, the Stripe Checkout Session), `amountCents` (the total charged, VAT included), `currency` (`eur`), `status` (`PENDING` → `PAID` | `EXPIRED`), `email?` (the buyer's, from Stripe), `paidAt?`, `projectId?` (the project of the site made from it), `stripeInvoiceId?` (the invoice Stripe issued for it), `error?` (why the site couldn't be made on its own; the team finishes it).
 - **LeadReply** — an email answer sent to a lead from the admin panel: `leadId`, `authorId?` (null once the user is deleted), `authorName` copied at the time, `subject`, `body`. Only stored once the email was accepted by the SMTP server.
 - **Post / PostTranslation** — `slug` (unique), `status` (`DRAFT` | `PUBLISHED`), `publishedAt`, `coverImageUrl?`; translation per `locale` with `title`, `excerpt`, `content` (Markdown).
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
@@ -255,7 +255,8 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `UMAMI_URL` / `UMAMI_WEBSITE_ID` / `UMAMI_USERNAME` / `UMAMI_PASSWORD` | `http://umami:3000` | Umami's API inside the Docker network, for the dashboard's visits (`/admin/stats/visits`) and the managed sites' statistics (their websites are created with this account); off without them |
 | `UMAMI_SCRIPT_URL` | `https://stats.codeqlick.com/script.js` | The tracker managed client sites load |
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | `sk_live_…` / `whsec_…` | Buying a preview online (section 8.2, decision 20); off without both. Test keys (`sk_test_…`) in development |
-| `SITE_PRICE_CENTS` | `20000` | Price of a basic website bought online, in euro cents (default 200 €) |
+| `SITE_PRICE_CENTS` | `20000` | Price of a basic website bought online, in euro cents before VAT (default 200 €) |
+| `SITE_VAT_PERCENT` | `21` | VAT added to it (Spain's general rate); Stripe shows and invoices it as a tax rate "IVA" the API creates once |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | | Only used by `prisma db seed` |
 | `LOG_LEVEL` | `info` | |
 
@@ -307,7 +308,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/forms/:key` | A client site's contact form: `{ name, email, phone?, message, website? (honeypot), redirect? }`, urlencoded (a plain HTML form) or JSON | Emails the project's `recipients` (Spanish, reply-to the visitor). A form post is answered `303` to `redirect` or the `Referer` with `form=ok` / `form=error` added, only when that URL is on the project's production or staging origin (else a short page); JSON gets `{ ok }`. `403` when `Origin` is another site; `404` for an unknown or disabled key — limited to 5/min/IP |
 | GET | `/domains/availability?name=` | A label (`peluqueria-ana`, accents and spaces become dashes) or a domain | `{ results: [{ domain, available: true \| false \| null }] }`: a label in `.com`, `.es` and `.eu`; a domain first, then its label in the other two. OVH's order API answers when its keys are set; otherwise RDAP (404 free, 200 taken; `null` when unknown, e.g. `.es`). Cached 10 min, 400 without a usable label, limited to 20/min/IP |
 | POST | `/site-requests` | The basic-website request: `{ preset, business: { name, kind, city, address?, phone?, whatsapp?, email?, hours? (a line per slot, "Days: hours"), services? (a line each, "Service — price"), about?, wishes? (what they want on the website, in their words) }, domain?: { name, owned }, name, email, locale, website? (honeypot) }` | `201 { id, previewUrl? }`: a lead (`projectType: web`, `company` = the business, the message a readable summary with the link to the preview's waiting page) keeping `siteRequest` (with the domain they want, `owned: false`, or have); onboarding pre-fills the site's domain with it; the usual lead emails. No photos (decision 13). Limited to 3/min/IP. Onboarding with that lead fills the site from it: business name and tagline, contact, address, hours, services and about, `schemaType: LocalBusiness`; the preset's made-up services, reviews and facts are dropped |
-| GET | `/site-requests/previews/:slug` | Public: whether a request's preview is online → `{ status, url, business, purchase }`; `purchase` is `{ priceCents, currency, available }` while buying online is on (`available`: READY, not bought, not a client yet), else null. 404 when there is none. Limited to 30/min/IP |
+| GET | `/site-requests/previews/:slug` | Public: whether a request's preview is online → `{ status, url, business, purchase }`; `purchase` is `{ priceCents (before VAT), vatPercent, totalCents, currency, available }` while buying online is on (`available`: READY, not bought, not a client yet), else null. 404 when there is none. Limited to 30/min/IP |
 | POST | `/site-requests/previews/:slug/checkout` | Public: `{ locale, accept: true }` (the terms and starting at once) → `{ url }`, a Stripe Checkout Session to pay the website (section 8.2). 404 while buying online is off or without a preview; 409 when it isn't READY, was bought or its lead is a client. Limited to 5/min/IP |
 | GET | `/site-requests/purchases/:sessionId` | Public: how a purchase is going, for the page Stripe returns to → `{ status, business, siteUrl? }` (`siteUrl` once its site exists); 404 when unknown |
 | POST | `/payments/stripe` | Stripe's webhook (raw body, `Stripe-Signature` checked with `STRIPE_WEBHOOK_SECRET`, else 400): a paid `checkout.session.completed` or `checkout.session.async_payment_succeeded` marks the purchase PAID and makes the site; `checkout.session.expired` marks it EXPIRED. Answers 200 to anything else |
@@ -780,17 +781,20 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   editor ("Avisos"), which says of each whether it is showing, scheduled or over; the draft's
   preview shows them all, and their texts change live.
 - **Buying a preview** (decision 20): with `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` set,
-  the requester can buy their website from its preview for `SITE_PRICE_CENTS` (200 €), one
-  payment, with nobody from the team in between. The preview's bar adds "La quiero · 200 €" (the
+  the requester can buy their website from its preview for `SITE_PRICE_CENTS` plus VAT
+  (`SITE_VAT_PERCENT`: 200 € + 21 % IVA, 242 €), one payment, with nobody from the team in between.
+  The preview's bar adds "La quiero · 200 € + IVA" (the
   build gets `previewBuyUrl`), and so do the "your preview is ready" and follow-up emails. They lead
   to `/[locale]/basic-website/request/preview/<slug>/buy` on the website: the business, the link to
   the preview, what is included (the whole website with a contact form that works, hosting,
   the editor to change everything, choosing their domain from the client area; the domain is paid
-  apart, to its registrar) and the price, and a checkbox to accept the terms (`/terms`) and ask to
+  apart, to its registrar) and the price before VAT with the total, and a checkbox to accept the terms (`/terms`) and ask to
   start at once, knowing the right of withdrawal ends once the website is made. Its button asks
   `POST /site-requests/previews/:slug/checkout` and goes to Stripe Checkout (one line "Web básica —
-  <business>", euros, the lead's email when it has one, billing address and optional tax ID
-  collected, the purchase in `client_reference_id` and the metadata). Stripe returns to
+  <business>" at the price before VAT with the tax rate "IVA <n> %" (exclusive; the API finds or
+  creates it in Stripe once), euros, the lead's email when it has one, billing address and optional
+  tax ID collected, an invoice created on payment (`invoice_creation`), the purchase in
+  `client_reference_id` and the metadata). Stripe returns to
   `…/preview/<slug>/paid?session=<id>`, which follows the purchase (refreshing while it is pending)
   and then says the website is made, where it is and that an email brings them into the client
   area; a cancelled payment returns to the buy page. Stripe's webhook makes the website once it is
@@ -802,8 +806,10 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   its address and the client area, and the team gets an email with the purchase. If the site can't
   be made (the lead became a client meanwhile, the builder failed…) the purchase stays PAID with its
   `error`, and the team is emailed to finish it by hand. Each event is handled once. The lead page
-  shows its purchases, and Admin → Vistas previas marks bought ones. Stripe sends the receipt;
-  invoices are left for when the owner is registered (decision 20).
+  shows its purchases (with a link to the invoice in Stripe's dashboard), and Admin → Vistas previas
+  marks bought ones. Stripe numbers and emails the invoice (the owner's tax details and "email
+  finalized invoices" are set in Stripe's dashboard); the purchase keeps its id and the total
+  charged. The privacy policy names Stripe as the payment processor.
 - **Custom sites** keep their own repository and are uploaded with `deploy/sites/publish-site.sh`.
   The demos are published that way at `<demo>.demo.codeqlick.com`.
 
@@ -843,4 +849,4 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 17 | Clients create their own account; the team only prepares what is theirs and invites them | Consent and credentials come from the person (`/register`, email confirmed, privacy accepted). A proposal, project or site the team prepares for an email hangs from an unregistered account for that email, so nothing else changes; it can't be signed in to until its owner registers (on their own or from the invitation), and team emails to it (a sent proposal) carry the invitation instead of the portal link. Weekly summaries and monthly reports skip unregistered accounts |
 | 18 | Clients edit everything of their website, on a draft with its preview | They own it: design, texts, photos, sections and legal data are theirs to change, with nothing left to ask the team for. A draft keeps half-finished changes off the live site, and its preview is a real build of the template (no second renderer to keep in step): texts and colours are patched live, everything else rebuilt in seconds. Publishing tells the team what changed, and every publish keeps a revision |
 | 19 | TypeScript 7.0 in the API and the website; the site template stays on 6.0 | The Go compiler type-checks in a fraction of the time. 7.0 ships no programmatic API, so the API is built with `tsc` instead of the Nest CLI (it only ran `tsc` and cleaned `dist`), and the template keeps 6.0 until `astro check` (or its successor for 7.1+) supports it. Supersedes decision 5 for the API and the website |
-| 20 | Clients can buy their preview online, through Stripe Checkout; built now, off until the owner is registered | The preview sells the website; paying for it there and getting it made at once, with the editor to finish it themselves, sells it to those who don't want a call. Stripe Checkout keeps card data off the platform and its webhook makes the site even if the buyer closes the page. Charging needs the owner registered (autónomo) and Stripe's account, so it stays off in production (no keys) until then; the terms page is a draft for a gestor to review |
+| 20 | Clients can buy their preview online, through Stripe Checkout, for 200 € + IVA with Stripe's invoice | The preview sells the website; paying for it there and getting it made at once, with the editor to finish it themselves, sells it to those who don't want a call. Stripe Checkout keeps card data off the platform and its webhook makes the site even if the buyer closes the page. Built off (no keys) until the owner was registered; switched on once registered and the gestor reviewed the terms and the price (200 € + 21 % IVA). Stripe issues each sale's invoice (numbering, tax breakdown, the buyer's tax ID when given), so there is no invoicing of our own |

@@ -119,6 +119,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
     return {
       url: `${this.config.siteUrl}/${locale}/basic-website/request/preview/${slug}/buy`,
       price: priceLabel(this.config.sitePriceCents),
+      vat: this.config.siteVatPercent,
     };
   }
 
@@ -372,7 +373,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
         demo: true,
         form: { demo: true },
         preview: true,
-        ...(buy ? { previewBuy: buy } : {}),
+        ...(buy ? { previewBuy: { url: buy.url, price: priceWithVat(buy, true) } } : {}),
       },
     });
     if (!result.ok) throw new Error(result.error.slice(-500));
@@ -417,7 +418,15 @@ export function priceLabel(cents: number): string {
 /** Buying the preview from its bar and emails (decision 20): where, and for how much. */
 interface BuyLink {
   url: string;
+  /** Before VAT: "200 €". */
   price: string;
+  /** VAT added to it, in percent (0: none). */
+  vat: number;
+}
+
+/** "200 € + IVA" / "200 € + VAT". */
+function priceWithVat(buy: BuyLink, es: boolean): string {
+  return buy.vat > 0 ? `${buy.price} + ${es ? 'IVA' : 'VAT'}` : buy.price;
 }
 
 /** `hello@x.com` from `Codeqlick <hello@x.com>`. */
@@ -465,8 +474,8 @@ function previewReadyEmail(
 /** The line offering to buy the website as it is (decision 20). */
 function buyLine(buy: BuyLink, es: boolean): string {
   return es
-    ? `¿Te gusta tal cual? Puedes quedártela ya por ${buy.price}: la creamos al momento y la terminas tú desde tu área de cliente. ${buy.url}`
-    : `Like it as it is? You can have it now for ${buy.price}: we make it at once and you finish it from your client area. ${buy.url}`;
+    ? `¿Te gusta tal cual? Puedes quedártela ya por ${priceWithVat(buy, true)}: la creamos al momento y la terminas tú desde tu área de cliente. ${buy.url}`
+    : `Like it as it is? You can have it now for ${priceWithVat(buy, false)}: we make it at once and you finish it from your client area. ${buy.url}`;
 }
 
 /** To a requester nobody has answered yet, a few days after their preview: what do they think? */
