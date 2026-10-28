@@ -1,0 +1,71 @@
+---
+import { edit, site } from '../lib/site';
+
+const notices = site.notices ?? [];
+/**
+ * The site is static: the bars are built hidden and shown by the visitor's date, so they go away
+ * on their own when their dates pass. A draft shows them all.
+ */
+const SHOW_SCRIPT = `(() => {
+  const now = new Date();
+  const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+    .map((part) => String(part).padStart(2, '0'))
+    .join('-');
+  for (const notice of document.querySelectorAll('.notice[data-until]')) {
+    const from = notice.dataset.from || '';
+    if (from <= today && today <= notice.dataset.until) notice.hidden = false;
+  }
+})();`;
+---
+
+{notices.length > 0 ? (
+  <div class="notices" id="avisos">
+    {notices.map((notice, index) => (
+      <p
+        class="notice"
+        data-from={site.draft ? undefined : notice.from}
+        data-until={site.draft ? undefined : notice.until}
+        hidden={!site.draft}
+      >
+        <span aria-hidden="true">!</span>
+        <span data-edit={edit(`notices.${index}.text`)}>{notice.text}</span>
+      </p>
+    ))}
+  </div>
+) : null}
+{notices.length > 0 && !site.draft ? <script is:inline set:html={SHOW_SCRIPT} /> : null}
+
+<style>
+  .notice {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    padding: 0.6rem 1rem;
+    background: var(--text);
+    color: var(--background);
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .notice[hidden] {
+    display: none;
+  }
+
+  .notice + .notice {
+    border-top: 1px solid color-mix(in srgb, var(--background) 25%, transparent);
+  }
+
+  .notice > span[aria-hidden] {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--primary-text);
+    font-size: 0.85rem;
+  }
+</style>

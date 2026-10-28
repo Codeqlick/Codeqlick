@@ -37,6 +37,8 @@ const image = z
   })
   .strict();
 const link = z.object({ label: text(60), href }).strict();
+/** A calendar day, `YYYY-MM-DD`. */
+const day = z.iso.date();
 /** Hosts of a business's "write a review" link on Google (architecture 8.2, Google review kit). */
 const REVIEW_HOSTS =
   /^(g\.page|maps\.app\.goo\.gl|goo\.gl|(www\.|search\.|maps\.)?google\.(com|[a-z]{2}|com?\.[a-z]{2}))$/;
@@ -186,6 +188,19 @@ export const siteContentSchema = z
     banner: z
       .object({ title: text(120), text: optionalText(300), link })
       .strict()
+      .optional(),
+    /** Closures and special hours: a bar on top of the site between their dates (architecture 8.2). */
+    notices: z
+      .array(
+        z
+          .object({ text: text(200), from: day.optional(), until: day })
+          .strict()
+          .refine((notice) => !notice.from || notice.from <= notice.until, {
+            message: 'The last day comes before the first',
+            path: ['until'],
+          }),
+      )
+      .max(5)
       .optional(),
     contactSection: z.object({ title: text(80), intro: optionalText(300) }).strict(),
     legal: z

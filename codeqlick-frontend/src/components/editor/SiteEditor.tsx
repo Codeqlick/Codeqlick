@@ -13,7 +13,9 @@ import {
 import type { AppLocale } from '@/i18n/routing';
 import type { SiteEditorView } from '@/lib/api/types';
 import {
+  dayOf,
   liveTexts,
+  noticeState,
   setAt,
   structureOf,
   themeVars,
@@ -23,6 +25,7 @@ import {
 } from './content';
 import {
   ColorField,
+  DateField,
   EditorContext,
   ImageField,
   LinkField,
@@ -44,6 +47,7 @@ const ANCHORS: Record<string, string> = {
   gallery: 'galeria',
   testimonials: 'opiniones',
   banner: 'banner-title',
+  notices: 'avisos',
   contact: 'contacto',
 };
 const SCHEMA_TYPES = [
@@ -103,6 +107,8 @@ export function SiteEditor({
   const latest = useRef(content);
   const preset = useRef(initial.preset);
   const [presetKey, setPresetKey] = useState(initial.preset);
+  /** The visitor's day the site's notices are shown by. */
+  const [today] = useState(() => dayOf(new Date()));
   const built = useRef<string | null>(
     initial.draft?.previewStatus === 'READY' ? structureOf(initial.content as Content) : null,
   );
@@ -421,6 +427,57 @@ export function SiteEditor({
                   }))}
                 />
               </div>
+            </div>
+          </details>
+
+          <details
+            className={styles.part}
+            onToggle={(event) => event.currentTarget.open && scrollPreview('notices')}
+          >
+            <summary>{t('parts.notices')}</summary>
+            <div className={styles.stack}>
+              <p className={styles.hint}>{t('noticesHint')}</p>
+              <ListField
+                path="notices"
+                label={t('notices')}
+                addLabel={t('addNotice')}
+                blank={{ text: '', until: today }}
+                max={5}
+                render={(item) => {
+                  const notice = (getAt(content, item) ?? {}) as { from?: string; until?: string };
+                  const state = noticeState(notice, today);
+                  return (
+                    <>
+                      <TextField
+                        path={`${item}.text`}
+                        label={t('noticeText')}
+                        placeholder={t('noticePlaceholder')}
+                        max={200}
+                        rows={2}
+                        required
+                      />
+                      <div className={styles.row}>
+                        <DateField
+                          path={`${item}.from`}
+                          label={t('noticeFrom')}
+                          hint={t('noticeFromHint')}
+                        />
+                        <DateField path={`${item}.until`} label={t('noticeUntil')} />
+                      </div>
+                      <p className={styles.noticeState} data-state={state}>
+                        {t(`noticeStates.${state}`, {
+                          from: notice.from
+                            ? new Date(`${notice.from}T00:00:00`).toLocaleDateString(locale, {
+                                day: 'numeric',
+                                month: 'long',
+                              })
+                            : '',
+                        })}
+                      </p>
+                    </>
+                  );
+                }}
+              />
             </div>
           </details>
 
