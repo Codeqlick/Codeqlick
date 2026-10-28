@@ -20,7 +20,7 @@ This repo holds the whole platform:
 ## Non-negotiable rules
 
 - **Exact dependency versions, no `^` or `~`.** Use the latest *stable* release. `.npmrc` has `save-exact=true`. Install with `npm install <pkg>@<exact-version>`.
-- **TypeScript 6.0.3, not 7.x** — TS 7's API isn't supported by linters/test tooling yet. Prisma **7.10.0, not 8.x RC**. Node **24 LTS**.
+- **TypeScript 6.0.3, not 7.x** — TS 7 has no JS API yet: `astro check` refuses it (checked 2026-10-28). Prisma **7.10.1, not 8.x RC** (npm's `latest` tag points at the RC). Node **24 LTS**, so `@types/node` stays on 24.x.
 - Backend is **ESM**: relative imports end in `.js`, use `import.meta.dirname`, no `require`.
 - Backend validation uses **Zod 4 via NestJS 12 Standard Schema**: `@Body({ schema })` + global `StandardSchemaValidationPipe`. Not class-validator.
 - Backend layers: controller → service → repository → PrismaService. Only repositories touch Prisma.
