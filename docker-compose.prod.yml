@@ -154,7 +154,7 @@ services:
       - --fingerprint
       - --no-cli
       - --no-tls
-      - --no-dtls
+      # DTLS listeners are off by default since coturn 4.18 (the old --no-dtls flag is gone).
       - --no-multicast-peers
       # Never relay to the server itself or private networks (no SSRF through TURN).
       - --denied-peer-ip=0.0.0.0-0.255.255.255
