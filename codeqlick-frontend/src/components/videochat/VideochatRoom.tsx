@@ -1,7 +1,14 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type FormEvent,
+} from 'react';
 import { Link } from '@/i18n/navigation';
 import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
@@ -28,6 +35,8 @@ type ServerMessage =
   | { type: 'matched'; initiator: boolean; partner: PartnerProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }
+  | { type: 'typing'; on: boolean }
+  | { type: 'react'; emoji: string }
   | { type: 'partner-left' }
   | { type: 'reported' }
   | { type: 'blocked' }
@@ -144,7 +153,59 @@ function chime(): void {
   }
 }
 
-type ChatLine = { id: number; from: 'me' | 'them'; text: string };
+type ChatLine = { id: number; from: 'me' | 'them'; text: string; reaction?: boolean };
+
+/** Quick reactions (the server accepts only these). */
+const REACTIONS = ['❤️', '😂', '😮', '🔥', '👍', '😘'] as const;
+/** "Typing…" stops being sent after this long without a key, and shown after this long without news. */
+const TYPING_IDLE_MS = 3_000;
+const TYPING_SHOWN_MS = 6_000;
+const FLOAT_MS = 2_400;
+
+/** Tones on or off, remembered on this device. */
+const SOUNDS_KEY = 'cq-videochat-sounds';
+const soundsEvent = 'cq-videochat-sounds';
+function soundsOn(): boolean {
+  try {
+    return localStorage.getItem(SOUNDS_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+function subscribeSounds(callback: () => void): () => void {
+  window.addEventListener('storage', callback);
+  window.addEventListener(soundsEvent, callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener(soundsEvent, callback);
+  };
+}
+function setSounds(on: boolean): void {
+  try {
+    localStorage.setItem(SOUNDS_KEY, on ? 'on' : 'off');
+  } catch {
+    // Private mode: it just isn't remembered.
+  }
+  window.dispatchEvent(new Event(soundsEvent));
+}
+
+/** A short soft tone for an incoming message or reaction. */
+function tick(): void {
+  try {
+    const audio = new AudioContext();
+    const gain = audio.createGain();
+    gain.gain.value = 0.05;
+    gain.connect(audio.destination);
+    const tone = audio.createOscillator();
+    tone.frequency.value = 740;
+    tone.connect(gain);
+    tone.start();
+    tone.stop(audio.currentTime + 0.07);
+    setTimeout(() => void audio.close(), 300);
+  } catch {
+    // No sound is fine.
+  }
+}
 
 export function VideochatRoom({
   wsUrl,
@@ -197,6 +258,17 @@ export function VideochatRoom({
   /** The call's connection is poor (see QUALITY_EVERY_MS). */
   const [weak, setWeak] = useState(false);
   const roomRef = useRef<HTMLDivElement>(null);
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [floats, setFloats] = useState<Array<{ id: number; emoji: string; mine: boolean }>>([]);
+  const sounds = useSyncExternalStore(subscribeSounds, soundsOn, () => true);
+  const soundsRef = useRef(true);
+  useEffect(() => {
+    soundsRef.current = sounds;
+  }, [sounds]);
+  const typingSent = useRef(false);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const partnerTypingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const floatId = useRef(0);
 
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
@@ -230,7 +302,35 @@ export function VideochatRoom({
     }
   }, []);
 
+  /** An emoji floats up over the partner's video for a moment. */
+  const float = useCallback((emoji: string, mine: boolean) => {
+    floatId.current += 1;
+    const id = floatId.current;
+    setFloats((items) => [...items.slice(-5), { id, emoji, mine }]);
+    setTimeout(() => setFloats((items) => items.filter((item) => item.id !== id)), FLOAT_MS);
+  }, []);
+
+  /** Something arrived from the partner: a soft tone and, in a hidden tab, the title flashes. */
+  const notify = useCallback((title: string) => {
+    if (soundsRef.current) tick();
+    flashTitle(title);
+  }, []);
+
+  const stopTyping = useCallback(() => {
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = null;
+    if (!typingSent.current) return;
+    typingSent.current = false;
+    if (socket.current?.readyState === WebSocket.OPEN) {
+      socket.current.send(JSON.stringify({ type: 'typing', on: false }));
+    }
+  }, []);
+
   const closePeer = useCallback(() => {
+    typingSent.current = false;
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    if (partnerTypingTimer.current) clearTimeout(partnerTypingTimer.current);
+    setPartnerTyping(false);
     pendingCandidates.current = [];
     if (callTimer.current) clearTimeout(callTimer.current);
     callTimer.current = null;
@@ -390,6 +490,25 @@ export function VideochatRoom({
         case 'chat':
           lineId.current += 1;
           setChat((lines) => [...lines, { id: lineId.current, from: 'them', text: message.text }]);
+          if (partnerTypingTimer.current) clearTimeout(partnerTypingTimer.current);
+          setPartnerTyping(false);
+          notify(t('messageTitle'));
+          return;
+        case 'typing':
+          if (partnerTypingTimer.current) clearTimeout(partnerTypingTimer.current);
+          setPartnerTyping(message.on);
+          if (message.on) {
+            partnerTypingTimer.current = setTimeout(() => setPartnerTyping(false), TYPING_SHOWN_MS);
+          }
+          return;
+        case 'react':
+          lineId.current += 1;
+          setChat((lines) => [
+            ...lines,
+            { id: lineId.current, from: 'them', text: message.emoji, reaction: true },
+          ]);
+          float(message.emoji, false);
+          notify(t('messageTitle'));
           return;
         case 'partner-left':
           setNotice({ key: 'partnerLeft', tone: 'info' });
@@ -460,7 +579,7 @@ export function VideochatRoom({
           return;
       }
     },
-    [onSignal, searchAgain, send, setRing, shutdown, startPeer, t],
+    [float, notify, onSignal, searchAgain, send, setRing, shutdown, startPeer, t],
   );
 
   const connect = useCallback(async () => {
@@ -586,7 +705,7 @@ export function VideochatRoom({
 
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ block: 'nearest' });
-  }, [chat]);
+  }, [chat, partnerTyping]);
 
   // Esc is "next" (unless the report dialog is open: there it closes the dialog).
   const online =
@@ -780,10 +899,35 @@ export function VideochatRoom({
     event.preventDefault();
     const text = draft.trim().slice(0, CHAT_MAX);
     if (!text || phase !== 'connected') return;
+    stopTyping();
     send({ type: 'chat', text });
     lineId.current += 1;
     setChat((lines) => [...lines, { id: lineId.current, from: 'me', text }]);
     setDraft('');
+  };
+
+  /** "Typing…" for the partner: on with the first key, off after a pause or an empty box. */
+  const onDraft = (value: string) => {
+    setDraft(value);
+    if (phase !== 'connected') return;
+    if (!value.trim()) {
+      stopTyping();
+      return;
+    }
+    if (!typingSent.current) {
+      typingSent.current = true;
+      send({ type: 'typing', on: true });
+    }
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(stopTyping, TYPING_IDLE_MS);
+  };
+
+  const sendReaction = (emoji: string) => {
+    if (phase !== 'connected') return;
+    send({ type: 'react', emoji });
+    lineId.current += 1;
+    setChat((lines) => [...lines, { id: lineId.current, from: 'me', text: emoji, reaction: true }]);
+    float(emoji, true);
   };
 
   const sendReport = (event: FormEvent<HTMLFormElement>) => {
@@ -828,6 +972,13 @@ export function VideochatRoom({
         <div className={styles.remote}>
           {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- a live call: no captions exist */}
           <video ref={remoteVideo} autoPlay playsInline className={styles.video} />
+          <div className={styles.floats} aria-hidden="true">
+            {floats.map((item) => (
+              <span key={item.id} className={item.mine ? styles.floatMine : styles.float}>
+                {item.emoji}
+              </span>
+            ))}
+          </div>
           {weak && phase === 'connected' ? (
             <output className={styles.weak}>{t('weakConnection')}</output>
           ) : null}
@@ -1045,15 +1196,46 @@ export function VideochatRoom({
         <div className={styles.chatLog} aria-live="polite">
           {chat.length === 0 ? <p className={styles.chatEmpty}>{t('chatEmpty')}</p> : null}
           {chat.map((line) => (
-            <p key={line.id} className={line.from === 'me' ? styles.lineMe : styles.lineThem}>
+            <p
+              key={line.id}
+              className={`${line.from === 'me' ? styles.lineMe : styles.lineThem}${
+                line.reaction ? ` ${styles.lineReaction}` : ''
+              }`}
+            >
               <span className={styles.lineWho}>
                 {line.from === 'me' ? t('chatMe') : t('chatThem')}
               </span>
               {line.text}
             </p>
           ))}
+          {partnerTyping && phase === 'connected' ? (
+            <p className={styles.typing}>{t('typing')}</p>
+          ) : null}
           <div ref={chatEnd} />
         </div>
+        <fieldset className={styles.reactions}>
+          <legend className="visually-hidden">{t('reactions')}</legend>
+          {REACTIONS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              className={styles.reaction}
+              onClick={() => sendReaction(emoji)}
+              disabled={phase !== 'connected'}
+              aria-label={t('reactWith', { emoji })}
+            >
+              {emoji}
+            </button>
+          ))}
+          <label className={styles.sounds}>
+            <input
+              type="checkbox"
+              checked={sounds}
+              onChange={(event) => setSounds(event.target.checked)}
+            />
+            {t('sounds')}
+          </label>
+        </fieldset>
         <form className={styles.chatForm} onSubmit={sendChat}>
           <label className="visually-hidden" htmlFor="videochat-message">
             {t('chatPlaceholder')}
@@ -1062,7 +1244,7 @@ export function VideochatRoom({
             id="videochat-message"
             className={styles.chatInput}
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => onDraft(event.target.value)}
             maxLength={CHAT_MAX}
             placeholder={t('chatPlaceholder')}
             disabled={phase !== 'connected'}

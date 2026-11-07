@@ -118,8 +118,14 @@ test('two people meet in the video chat, talk and move on', async ({
     await expect(ben.getByRole('list', { name: 'Sus intereses' })).toContainText('Charla picante');
 
     await ana.getByPlaceholder('Escribe un mensaje…').fill('¡Hola!');
+    // Ben sees she is typing until the message arrives.
+    await expect(ben.getByText('Escribiendo…')).toBeVisible();
     await ana.getByRole('button', { name: 'Enviar' }).click();
     await expect(ben.getByText('¡Hola!')).toBeVisible();
+    await expect(ben.getByText('Escribiendo…')).toBeHidden();
+    // A quick reaction lands in Ana's chat.
+    await ben.getByRole('button', { name: 'Reaccionar con 🔥' }).click();
+    await expect(ana.getByText('Otra persona🔥')).toBeVisible();
 
     // Esc is "next": Ana is told and both look for someone else.
     await ben.keyboard.press('Escape');

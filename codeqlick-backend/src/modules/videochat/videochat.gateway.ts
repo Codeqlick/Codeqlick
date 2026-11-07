@@ -347,6 +347,19 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
         this.send(partner, { type: 'chat', text: message.text });
         return;
       }
+      case 'typing': {
+        if (!connection.limits.signal.take()) return;
+        const partner = this.partnerConnection(connection);
+        if (partner) this.send(partner, { type: 'typing', on: message.on });
+        return;
+      }
+      case 'react': {
+        if (!connection.limits.chat.take()) return this.error(connection, 'rate-limited');
+        const partner = this.partnerConnection(connection);
+        if (!partner) return this.error(connection, 'no-partner');
+        this.send(partner, { type: 'react', emoji: message.emoji });
+        return;
+      }
       case 'report':
         if (!connection.limits.reports.take()) return this.error(connection, 'rate-limited');
         await this.report(connection, message.reason, message.details);
