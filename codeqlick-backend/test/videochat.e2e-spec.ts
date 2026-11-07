@@ -358,6 +358,15 @@ describe('Video chat (e2e)', () => {
       reported: { recentReports: 3 },
     });
     expect(mine[0]?.reported).toHaveProperty('suspendedAt');
+    // Beside each report: the person's history.
+    expect(mine[0]?.reported).toMatchObject({
+      history: {
+        reports: { open: 3, actioned: 0, dismissed: 0, total: 3 },
+        reporters: 3,
+        suspensions: 1,
+        lastSuspension: { createdAt: expect.any(String) },
+      },
+    });
 
     const { body: suspensions } = await request(server())
       .get('/v1/admin/videochat/suspensions')
@@ -386,6 +395,30 @@ describe('Video chat (e2e)', () => {
     expect(dismissed).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: reportId, status: 'DISMISSED' })]),
     );
+
+    // The other two in bulk: dan is suspended once, both close as acted on, the dismissed one is
+    // skipped.
+    const ids = mine.map((report) => (report as unknown as { id: string }).id);
+    await request(server())
+      .post('/v1/admin/videochat/reports/bulk')
+      .set(users.admin!.auth)
+      .send({ ids, action: 'explode' })
+      .expect(400);
+    const { body: bulk } = await request(server())
+      .post('/v1/admin/videochat/reports/bulk')
+      .set(users.admin!.auth)
+      .send({ ids, action: 'suspend', duration: '24h' })
+      .expect(200);
+    expect(bulk).toEqual({ done: 2, skipped: 1 });
+    await request(server()).post('/v1/videochat/ticket').set(users.dan!.auth).expect(403);
+    const actioned = await prisma.videochatReport.count({
+      where: { id: { in: ids }, status: 'ACTIONED' },
+    });
+    expect(actioned).toBe(2);
+    await request(server())
+      .delete(`/v1/admin/videochat/suspensions/${users.dan!.id}`)
+      .set(users.admin!.auth)
+      .expect(204);
   });
 
   it('suspends at once and emails the team when someone reports a possible minor', async () => {

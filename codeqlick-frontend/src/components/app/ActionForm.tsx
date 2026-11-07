@@ -29,10 +29,13 @@ type CountedState = FormState & { submission: number };
  */
 export function ActionForm({
   action,
+  id,
   className,
   children,
 }: {
   action: FormAction;
+  /** For fields outside the form that join it with `form={id}`. */
+  id?: string;
   className?: string;
   children: ReactNode;
 }) {
@@ -45,7 +48,7 @@ export function ActionForm({
   );
 
   return (
-    <form action={formAction} className={className} noValidate>
+    <form id={id} action={formAction} className={className} noValidate>
       {state.message ? (
         <Alert tone={state.status === 'success' ? 'success' : 'error'}>{state.message}</Alert>
       ) : null}

@@ -20,6 +20,7 @@ import { VideochatGateway } from './videochat.gateway.js';
 import {
   appealDecisionSchema,
   appealsQuerySchema,
+  bulkReportsSchema,
   historyQuerySchema,
   reportsQuerySchema,
   suspendSchema,
@@ -27,6 +28,7 @@ import {
   userIdParamSchema,
   type AppealDecisionInput,
   type AppealsQuery,
+  type BulkReportsInput,
   type HistoryQuery,
   type ReportsQuery,
   type SuspendInput,
@@ -77,6 +79,16 @@ export class VideochatAdminController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<void> {
     return this.videochat.dismissReport(admin, params.id);
+  }
+
+  /** Dismisses or suspends from several reports at once (the moderation page's bulk actions). */
+  @Post('reports/bulk')
+  @HttpCode(HttpStatus.OK)
+  bulk(
+    @CurrentUser() admin: AuthUser,
+    @Body({ schema: bulkReportsSchema }) body: BulkReportsInput,
+  ): Promise<{ done: number; skipped: number }> {
+    return this.videochat.bulkReports(admin, body.ids, body.action, body.duration);
   }
 
   /** Suspends the reported account from the video chat (disconnected at once). */

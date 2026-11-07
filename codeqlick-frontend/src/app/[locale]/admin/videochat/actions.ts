@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { failedState } from '@/lib/actions';
 import {
+  bulkVideochatReports,
   dismissVideochatReport,
   liftVideochatSuspension,
   resolveVideochatAppeal,
@@ -51,6 +52,26 @@ export async function dismissReportAction(
   formData: FormData,
 ): Promise<FormState> {
   return run(locale, formData, () => dismissVideochatReport(id));
+}
+
+/** The selected reports (checkboxes joined to the bulk form), dismissed or suspended at once. */
+export async function bulkReportsAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'AdminVideochat' });
+  const ids = formData.getAll('ids').map(String).filter(Boolean).slice(0, 100);
+  if (ids.length === 0) return { status: 'error', message: t('bulk.none') };
+  const action = formData.get('bulkAction') === 'suspend' ? 'suspend' : 'dismiss';
+  let result: { done: number; skipped: number };
+  try {
+    result = await bulkVideochatReports(ids, action, duration(formData));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidatePath(`/${locale}/admin/videochat`, 'layout');
+  return { status: 'success', message: t('bulk.done', result) };
 }
 
 export async function suspendReportAction(

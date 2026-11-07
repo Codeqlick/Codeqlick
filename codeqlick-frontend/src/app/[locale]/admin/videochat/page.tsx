@@ -15,13 +15,18 @@ import {
   SUSPENSION_DURATIONS,
   type ReportStatus,
 } from '@/lib/api/videochat';
-import { firstParam, formatDateTime } from '@/lib/format';
+import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import {
+  bulkReportsAction,
   dismissReportAction,
   liftSuspensionAction,
   resolveAppealAction,
   suspendReportAction,
 } from './actions';
+import { ModerationKeys } from './ModerationKeys';
+import moderation from './moderation.module.css';
+
+const BULK_FORM = 'bulk-reports';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -34,6 +39,7 @@ const STATUSES: ReportStatus[] = ['OPEN', 'ACTIONED', 'DISMISSED'];
 export default async function AdminVideochatPage({ params, searchParams }: PageProps) {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'AdminVideochat' });
+  const th = await getTranslations({ locale, namespace: 'AdminVideochat.personHistory' });
   const requested = firstParam((await searchParams).status);
   const status = STATUSES.find((value) => value === requested) ?? 'OPEN';
   const [stats, reports, suspensions, appeals] = await Promise.all([
@@ -92,79 +98,171 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
         {reports.length === 0 ? (
           <p className={styles.muted}>{t('empty')}</p>
         ) : (
-          <ul className={styles.updates}>
-            {reports.map((report) => (
-              <li key={report.id} className={styles.update}>
-                <h3 className={styles.updateTitle}>
-                  {t(`reasons.${report.reason}`)}{' '}
-                  {report.reason === 'MINOR' ? <Badge tone="danger">!</Badge> : null}
-                </h3>
-                <p className={styles.muted}>
-                  {formatDateTime(report.createdAt, locale)} · {t('reportedBy')}{' '}
-                  {report.reporter.name} ({report.reporter.email})
-                </p>
-                <p>
-                  <strong>{t('reportedUser')}:</strong>{' '}
-                  <Link href={userLink(report.reported.id)}>{report.reported.name}</Link> (
-                  {report.reported.email}) · {t('recent', { count: report.reported.recentReports })}{' '}
-                  {report.reported.suspendedAt ? (
-                    <Badge tone="danger">{t('suspendedBadge')}</Badge>
-                  ) : null}
-                </p>
-                {report.details ? (
-                  <p className={styles.prewrap}>
-                    <strong>{t('details')}:</strong> {report.details}
-                  </p>
-                ) : null}
-                <details>
-                  <summary>{t('transcript')}</summary>
-                  {report.transcript.length === 0 ? (
-                    <p className={styles.muted}>{t('noTranscript')}</p>
-                  ) : (
-                    <ul>
-                      {report.transcript.map((line, index) => (
-                        <li key={`${line.at}-${index}`}>
-                          <strong>
-                            {line.from === 'reporter' ? t('fromReporter') : t('fromReported')}:
-                          </strong>{' '}
-                          {line.text}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </details>
-                {report.reviewedBy ? (
-                  <p className={styles.muted}>
-                    {t('reviewedBy', { name: report.reviewedBy.name })} ·{' '}
-                    {formatDateTime(report.reviewedAt, locale)}
-                  </p>
-                ) : null}
-                {report.status === 'OPEN' ? (
-                  <div className={styles.actions}>
-                    <ActionForm
-                      action={suspendReportAction.bind(null, locale, report.id)}
-                      className={styles.row}
-                    >
-                      <FormSelect
-                        name="duration"
-                        label={t('duration')}
-                        options={durations}
-                        defaultValue="permanent"
-                      />
-                      <SubmitButton size="sm" variant="danger">
-                        {t('suspend')}
-                      </SubmitButton>
-                    </ActionForm>
-                    <ActionForm action={dismissReportAction.bind(null, locale, report.id)}>
-                      <SubmitButton size="sm" variant="outline">
-                        {t('dismiss')}
-                      </SubmitButton>
-                    </ActionForm>
-                  </div>
-                ) : null}
-              </li>
-            ))}
-          </ul>
+          <>
+            {status === 'OPEN' ? (
+              <ActionForm
+                id={BULK_FORM}
+                action={bulkReportsAction.bind(null, locale)}
+                className={moderation.bulk}
+              >
+                <ModerationKeys
+                  form={BULK_FORM}
+                  labels={{
+                    title: t('keys.title'),
+                    selectAll: t('bulk.selectAll'),
+                    j: t('keys.next'),
+                    k: t('keys.previous'),
+                    x: t('keys.select'),
+                    d: t('keys.dismiss'),
+                    s: t('keys.suspend'),
+                    o: t('keys.open'),
+                    '?': t('keys.help'),
+                  }}
+                />
+                <FormSelect
+                  name="duration"
+                  label={t('duration')}
+                  options={durations}
+                  defaultValue="permanent"
+                />
+                <SubmitButton size="sm" variant="danger" name="bulkAction" value="suspend">
+                  {t('bulk.suspend')}
+                </SubmitButton>
+                <SubmitButton size="sm" variant="outline" name="bulkAction" value="dismiss">
+                  {t('bulk.dismiss')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+            <ul className={styles.updates}>
+              {reports.map((report) => {
+                const history = report.reported.history;
+                return (
+                  <li
+                    key={report.id}
+                    className={`${styles.update} ${moderation.report}`}
+                    data-report
+                    tabIndex={-1}
+                  >
+                    <div className={moderation.reportMain}>
+                      <h3 className={styles.updateTitle}>
+                        {report.status === 'OPEN' ? (
+                          <label className={moderation.pick}>
+                            <input
+                              type="checkbox"
+                              name="ids"
+                              value={report.id}
+                              form={BULK_FORM}
+                              data-shortcut="select"
+                              aria-label={t('bulk.pick', {
+                                reason: t(`reasons.${report.reason}`),
+                                name: report.reported.name,
+                              })}
+                            />
+                          </label>
+                        ) : null}
+                        {t(`reasons.${report.reason}`)}{' '}
+                        {report.reason === 'MINOR' ? <Badge tone="danger">!</Badge> : null}
+                      </h3>
+                      <p className={styles.muted}>
+                        {formatDateTime(report.createdAt, locale)} · {t('reportedBy')}{' '}
+                        {report.reporter.name} ({report.reporter.email})
+                      </p>
+                      <p>
+                        <strong>{t('reportedUser')}:</strong>{' '}
+                        <Link href={userLink(report.reported.id)} data-shortcut="open">
+                          {report.reported.name}
+                        </Link>{' '}
+                        ({report.reported.email}) ·{' '}
+                        {t('recent', { count: report.reported.recentReports })}{' '}
+                        {report.reported.suspendedAt ? (
+                          <Badge tone="danger">{t('suspendedBadge')}</Badge>
+                        ) : null}
+                      </p>
+                      {report.details ? (
+                        <p className={styles.prewrap}>
+                          <strong>{t('details')}:</strong> {report.details}
+                        </p>
+                      ) : null}
+                      <details>
+                        <summary>{t('transcript')}</summary>
+                        {report.transcript.length === 0 ? (
+                          <p className={styles.muted}>{t('noTranscript')}</p>
+                        ) : (
+                          <ul>
+                            {report.transcript.map((line, index) => (
+                              <li key={`${line.at}-${index}`}>
+                                <strong>
+                                  {line.from === 'reporter' ? t('fromReporter') : t('fromReported')}
+                                  :
+                                </strong>{' '}
+                                {line.text}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </details>
+                      {report.reviewedBy ? (
+                        <p className={styles.muted}>
+                          {t('reviewedBy', { name: report.reviewedBy.name })} ·{' '}
+                          {formatDateTime(report.reviewedAt, locale)}
+                        </p>
+                      ) : null}
+                      {report.status === 'OPEN' ? (
+                        <div className={styles.actions}>
+                          <ActionForm
+                            action={suspendReportAction.bind(null, locale, report.id)}
+                            className={styles.row}
+                          >
+                            <FormSelect
+                              name="duration"
+                              label={t('duration')}
+                              options={durations}
+                              defaultValue="permanent"
+                            />
+                            <SubmitButton size="sm" variant="danger" shortcut="suspend">
+                              {t('suspend')}
+                            </SubmitButton>
+                          </ActionForm>
+                          <ActionForm action={dismissReportAction.bind(null, locale, report.id)}>
+                            <SubmitButton size="sm" variant="outline" shortcut="dismiss">
+                              {t('dismiss')}
+                            </SubmitButton>
+                          </ActionForm>
+                        </div>
+                      ) : null}
+                    </div>
+                    {history ? (
+                      <aside className={moderation.history} aria-label={th('title')}>
+                        <h4 className={moderation.historyTitle}>{th('title')}</h4>
+                        <dl>
+                          <dt>{th('memberSince')}</dt>
+                          <dd>{formatDate(history.memberSince, locale)}</dd>
+                          <dt>{th('open')}</dt>
+                          <dd>{history.reports.open}</dd>
+                          <dt>{th('actioned')}</dt>
+                          <dd>{history.reports.actioned}</dd>
+                          <dt>{th('dismissed')}</dt>
+                          <dd>{history.reports.dismissed}</dd>
+                          <dt>{th('reporters')}</dt>
+                          <dd>{history.reporters}</dd>
+                          <dt>{th('suspensions')}</dt>
+                          <dd>{history.suspensions}</dd>
+                        </dl>
+                        {history.lastSuspension ? (
+                          <p className={moderation.historyNote}>
+                            {th('last', {
+                              date: formatDate(history.lastSuspension.createdAt, locale),
+                              reason: history.lastSuspension.reason ?? '—',
+                            })}
+                          </p>
+                        ) : null}
+                      </aside>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </section>
 
