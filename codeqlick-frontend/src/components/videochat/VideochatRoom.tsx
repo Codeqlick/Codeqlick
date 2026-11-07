@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { Link } from '@/i18n/navigation';
 import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
 import styles from './VideochatRoom.module.css';
 
@@ -22,7 +23,7 @@ type SignalData =
 
 type ServerMessage =
   | { type: 'ready' }
-  | { type: 'waiting' }
+  | { type: 'waiting'; others: number }
   | { type: 'matched'; initiator: boolean; partner: PartnerProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }
@@ -114,6 +115,8 @@ export function VideochatRoom({
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [hadPartner, setHadPartner] = useState(false);
+  /** People waiting who can't be paired with this person now (filters, blocks, just met). */
+  const [othersWaiting, setOthersWaiting] = useState(0);
   /** The camera stream is on (kept in a ref; this mirrors it for rendering). */
   const [hasCamera, setHasCamera] = useState(false);
 
@@ -271,8 +274,10 @@ export function VideochatRoom({
           return;
         case 'waiting':
           setPhase('searching');
+          setOthersWaiting(message.others);
           return;
         case 'matched':
+          setOthersWaiting(0);
           setChat([]);
           setNotice(null);
           setHadPartner(true);
@@ -543,6 +548,12 @@ export function VideochatRoom({
                   {status}
                 </p>
               )}
+              {phase === 'searching' && othersWaiting > 0 ? (
+                <p className={styles.statusHint}>
+                  {t('othersWaiting', { count: othersWaiting })}{' '}
+                  <Link href="/videochat/settings">{t('checkFilters')}</Link>
+                </p>
+              ) : null}
             </div>
           ) : null}
           <span className={styles.tag}>

@@ -41,6 +41,8 @@ const TRANSCRIPT_LINES = 30;
 const HEARTBEAT_MS = 30_000;
 /** Someone waiting alone this long makes the API notify people who asked to know. */
 const PUSH_WAIT_MS = 20_000;
+/** How often people left waiting are paired again (a cooldown ran out) and told who else waits. */
+const REMATCH_EVERY_MS = 5_000;
 
 interface CallLog {
   lines: Array<{ userId: string; text: string; at: string }>;
@@ -54,6 +56,8 @@ interface Connection {
   authTimer?: NodeJS.Timeout;
   /** Fires when this person has waited alone long enough to notify others (Web Push). */
   waitTimer?: NodeJS.Timeout;
+  /** The `others` this person was last told while waiting. */
+  waitingOthers?: number;
   participant?: Participant;
   /** What partners see of this person. */
   profile?: PublicProfile;
@@ -84,6 +88,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private readonly socketsPerIp = new Map<string, number>();
   private server?: Server;
   private heartbeat?: NodeJS.Timeout;
+  private rematcher?: NodeJS.Timeout;
   private suspensions?: Subscription;
   private readonly onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) =>
     this.upgrade(request, socket, head);
@@ -103,12 +108,15 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     );
     this.heartbeat = setInterval(() => this.ping(), HEARTBEAT_MS);
     this.heartbeat.unref();
+    this.rematcher = setInterval(() => this.rematch(), REMATCH_EVERY_MS);
+    this.rematcher.unref();
     this.suspensions = this.videochat.suspensions.subscribe((userId) => this.suspended(userId));
   }
 
   onModuleDestroy(): void {
     this.server?.off('upgrade', this.onUpgrade);
     if (this.heartbeat) clearInterval(this.heartbeat);
+    if (this.rematcher) clearInterval(this.rematcher);
     this.suspensions?.unsubscribe();
     for (const connection of this.connections.values()) connection.socket.terminate();
     this.wss.close();
@@ -316,7 +324,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     const result = this.matchmaker.join(me);
     if (connection.waitTimer) clearTimeout(connection.waitTimer);
     if (result.status === 'waiting') {
-      this.send(connection, { type: 'waiting' });
+      connection.waitingOthers = this.matchmaker.waitingCount - 1;
+      this.send(connection, { type: 'waiting', others: connection.waitingOthers });
       if (this.push.enabled) {
         connection.waitTimer = setTimeout(() => this.waitedAlone(connection), PUSH_WAIT_MS);
         connection.waitTimer.unref();
@@ -330,26 +339,60 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       this.join(connection);
       return;
     }
-    const call: CallLog = { lines: [] };
-    connection.call = call;
-    partner.call = call;
     // The newcomer makes the WebRTC offer.
+    this.startCall(connection, partner);
+  }
+
+  /** Puts two connections in a call; `initiator` makes the WebRTC offer. */
+  private startCall(initiator: Connection, other: Connection): void {
+    const call: CallLog = { lines: [] };
+    for (const connection of [initiator, other]) {
+      connection.call = call;
+      connection.waitingOthers = undefined;
+      if (connection.waitTimer) clearTimeout(connection.waitTimer);
+    }
     const anonymous: PublicProfile = {
       nickname: null,
       gender: null,
       country: null,
       language: null,
     };
-    this.send(connection, {
+    this.send(initiator, {
       type: 'matched',
       initiator: true,
-      partner: partner.profile ?? anonymous,
+      partner: other.profile ?? anonymous,
     });
-    this.send(partner, {
+    this.send(other, {
       type: 'matched',
       initiator: false,
-      partner: connection.profile ?? anonymous,
+      partner: initiator.profile ?? anonymous,
     });
+  }
+
+  /**
+   * Pairs people left waiting who may meet now (two who just skipped each other, once the
+   * cooldown runs out) and tells everyone still waiting how many others wait but don't fit.
+   */
+  private rematch(now: number = Date.now()): void {
+    for (const [older, newer] of this.matchmaker.pairWaiting(now)) {
+      const a = this.connections.get(older.id);
+      const b = this.connections.get(newer.id);
+      if (!a || !b) {
+        // Can't happen (closed sockets leave the queue): put whoever is left back.
+        this.matchmaker.remove(older.id);
+        if (a) this.join(a);
+        if (b) this.join(b);
+        continue;
+      }
+      this.startCall(b, a);
+    }
+    const others = this.matchmaker.waitingCount - 1;
+    for (const participant of this.matchmaker.waiting) {
+      const connection = this.connections.get(participant.id);
+      if (!connection || connection.waitingOthers === others) continue;
+      connection.waitingOthers = others;
+      this.send(connection, { type: 'waiting', others });
+    }
   }
 
   /** Still waiting, and nobody else is: tell people who asked to know (Web Push). */

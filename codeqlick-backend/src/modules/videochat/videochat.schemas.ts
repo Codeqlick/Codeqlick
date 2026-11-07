@@ -185,7 +185,8 @@ export type ClientMessage = z.infer<typeof clientMessageSchema>;
 /** Server → browser. */
 export type ServerMessage =
   | { type: 'ready' }
-  | { type: 'waiting' }
+  /** `others`: people waiting who can't be paired with this one now (filters, blocks, cooldown). */
+  | { type: 'waiting'; others: number }
   | { type: 'matched'; initiator: boolean; partner: PublicProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }

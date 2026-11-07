@@ -96,6 +96,22 @@ describe('Matchmaker', () => {
     expect(Matchmaker.compatible(a, b, now + 60_001)).toBe(true);
   });
 
+  it('pairs people left waiting once their cooldown runs out', () => {
+    const matchmaker = new Matchmaker();
+    const ana = { ...person('a'), lastPartner: { userId: 'user-b', until: 1_000 } };
+    const ben = { ...person('b'), lastPartner: { userId: 'user-a', until: 1_000 } };
+    const cai = person('c', 'user-c', ['user-a', 'user-b']);
+    matchmaker.join(ana, () => 0, 0);
+    matchmaker.join(ben, () => 0, 0);
+    matchmaker.join(cai, () => 0, 0);
+    expect(matchmaker.waitingCount).toBe(3);
+    expect(matchmaker.pairWaiting(999)).toEqual([]);
+
+    expect(matchmaker.pairWaiting(1_000)).toEqual([[ana, ben]]);
+    expect(matchmaker.partnerOf('a')).toBe(ben);
+    expect(matchmaker.waiting).toEqual([cai]);
+  });
+
   it('picks among the five who waited longest', () => {
     const mm = new Matchmaker();
     // One account in eight tabs: they never pair with each other, so all eight wait.
