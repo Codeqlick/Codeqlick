@@ -37,7 +37,7 @@ export default async function VideochatLandingPage({ params }: PageProps) {
           ) : (
             <>
               <Button href={`/login?next=${encodeURIComponent(room)}`}>{t('signIn')}</Button>
-              <Button href="/register" variant="outline" className={styles.outlineLight}>
+              <Button href="/register" variant="outline">
                 {t('createAccount')}
               </Button>
             </>
