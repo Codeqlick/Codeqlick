@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
+import { getVideochatOnline } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
 import styles from './videochat.module.css';
 
@@ -12,11 +13,17 @@ export default async function VideochatLandingPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Videochat.landing' });
   const user = await getCurrentUser();
   const room = `/${locale}/videochat/room`;
+  const online = await getVideochatOnline();
 
   return (
     <div className={styles.landing}>
       <section className={styles.hero}>
         <p className={styles.eyebrow}>{t('eyebrow')}</p>
+        {online !== null ? (
+          <p className={styles.online} aria-live="polite">
+            {t('online', { count: online })}
+          </p>
+        ) : null}
         <h1 className={styles.heroTitle}>{t('title')}</h1>
         <p className={styles.heroLead}>{t('lead')}</p>
 

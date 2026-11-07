@@ -24,6 +24,12 @@ export function webappHost(app: Webapp, mainHost: string): string {
   return `${app}.${mainHost.replace(/^www\./, '')}`;
 }
 
+/** `127.0.0.1:3000`, `[::1]:3000`: hosts that can't have a subdomain. */
+function isIpHost(host: string): boolean {
+  const name = host.startsWith('[') ? host : (host.split(':')[0] ?? '');
+  return name.startsWith('[') || /^\d{1,3}(\.\d{1,3}){3}$/.test(name);
+}
+
 export type WebappRoute =
   /** Leave it to the normal routing. */
   | { action: 'pass' }
@@ -51,6 +57,7 @@ export function routeWebapp(pathname: string, host: string, protocol: string): W
   }
 
   const target = WEBAPPS.find((name) => name === section);
-  if (!target) return { action: 'pass' };
+  // An IP address has no subdomains: Next.js's own requests to itself (127.0.0.1) are served.
+  if (!target || isIpHost(host)) return { action: 'pass' };
   return { action: 'redirect', to: `${protocol}//${webappHost(target, host)}${pathname}` };
 }

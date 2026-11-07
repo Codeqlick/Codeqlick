@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
+import { ActionForm, FormCheckbox, FormInput, FormTextarea } from '@/components/app/ActionForm';
 import { VideochatRoom } from '@/components/videochat/VideochatRoom';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -9,7 +9,7 @@ import { getVideochatStatus } from '@/lib/api/videochat';
 import { requireUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
 import styles from '../videochat.module.css';
-import { onboardAction, ticketAction } from './actions';
+import { appealAction, onboardAction, ticketAction } from './actions';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -31,10 +31,48 @@ export default async function VideochatRoomPage({ params }: PageProps) {
   const status = await getVideochatStatus();
 
   if (status.suspended) {
+    const suspension = status.suspension;
+    const appeal = suspension?.appeal;
+    const date = (iso: string) =>
+      new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(
+        new Date(iso),
+      );
     return (
-      <section className={styles.panel}>
+      <section className={`${styles.panel} ${styles.suspension}`}>
         <h1 className={styles.pageTitle}>{t('suspended.title')}</h1>
         <p>{t('suspended.body')}</p>
+        <dl>
+          <dt>{t('suspended.reason')}</dt>
+          <dd>{suspension?.reason ?? t('suspended.noReason')}</dd>
+          <dt>{t('suspended.until')}</dt>
+          <dd>{suspension?.until ? date(suspension.until) : t('suspended.untilReviewed')}</dd>
+        </dl>
+        {appeal ? (
+          <>
+            <h2 className={styles.sectionTitle}>{t('suspended.appealTitle')}</h2>
+            <p>{t(`suspended.appealStatus.${appeal.status}`)}</p>
+            {appeal.response ? <p className={styles.answer}>{appeal.response}</p> : null}
+          </>
+        ) : (
+          <>
+            <h2 className={styles.sectionTitle}>{t('suspended.appealTitle')}</h2>
+            <p className={styles.muted}>{t('suspended.appealLead')}</p>
+            <ActionForm action={appealAction} className={styles.form}>
+              <input type="hidden" name="locale" value={locale} />
+              <FormTextarea
+                name="message"
+                label={t('suspended.appealLabel')}
+                rows={5}
+                minLength={10}
+                maxLength={2000}
+                required
+              />
+              <SubmitButton block pendingLabel={t('suspended.appealSending')}>
+                {t('suspended.appealSubmit')}
+              </SubmitButton>
+            </ActionForm>
+          </>
+        )}
       </section>
     );
   }
@@ -81,5 +119,5 @@ export default async function VideochatRoomPage({ params }: PageProps) {
     );
   }
 
-  return <VideochatRoom wsUrl={await websocketUrl()} getTicket={ticketAction} />;
+  return <VideochatRoom wsUrl={await websocketUrl()} getTicket={ticketAction} locale={locale} />;
 }

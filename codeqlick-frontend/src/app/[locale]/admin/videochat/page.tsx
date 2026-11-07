@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { ActionForm } from '@/components/app/ActionForm';
+import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Badge } from '@/components/ui/Badge';
@@ -8,12 +8,19 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
   getVideochatStats,
+  listVideochatAppeals,
   listVideochatReports,
   listVideochatSuspensions,
+  SUSPENSION_DURATIONS,
   type ReportStatus,
 } from '@/lib/api/videochat';
 import { firstParam, formatDateTime } from '@/lib/format';
-import { dismissReportAction, liftSuspensionAction, suspendReportAction } from './actions';
+import {
+  dismissReportAction,
+  liftSuspensionAction,
+  resolveAppealAction,
+  suspendReportAction,
+} from './actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -28,11 +35,17 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
   const t = await getTranslations({ locale, namespace: 'AdminVideochat' });
   const requested = firstParam((await searchParams).status);
   const status = STATUSES.find((value) => value === requested) ?? 'OPEN';
-  const [stats, reports, suspensions] = await Promise.all([
+  const [stats, reports, suspensions, appeals] = await Promise.all([
     getVideochatStats(),
     listVideochatReports(status),
     listVideochatSuspensions(),
+    listVideochatAppeals('OPEN'),
   ]);
+  const durations = SUSPENSION_DURATIONS.map((value) => ({
+    value,
+    label: t(`durations.${value}`),
+  }));
+  const userLink = (id: string) => `/admin/videochat/users/${id}`;
 
   const cards = [
     { label: t('online'), value: stats.online },
@@ -82,7 +95,8 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
                   {report.reporter.name} ({report.reporter.email})
                 </p>
                 <p>
-                  <strong>{t('reportedUser')}:</strong> {report.reported.name} (
+                  <strong>{t('reportedUser')}:</strong>{' '}
+                  <Link href={userLink(report.reported.id)}>{report.reported.name}</Link> (
                   {report.reported.email}) · {t('recent', { count: report.reported.recentReports })}{' '}
                   {report.reported.suspendedAt ? (
                     <Badge tone="danger">{t('suspendedBadge')}</Badge>
@@ -118,7 +132,16 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
                 ) : null}
                 {report.status === 'OPEN' ? (
                   <div className={styles.actions}>
-                    <ActionForm action={suspendReportAction.bind(null, locale, report.id)}>
+                    <ActionForm
+                      action={suspendReportAction.bind(null, locale, report.id)}
+                      className={styles.row}
+                    >
+                      <FormSelect
+                        name="duration"
+                        label={t('duration')}
+                        options={durations}
+                        defaultValue="permanent"
+                      />
                       <SubmitButton size="sm" variant="danger">
                         {t('suspend')}
                       </SubmitButton>
@@ -137,6 +160,49 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
       </section>
 
       <section className={styles.panel}>
+        <h2 className={styles.panelTitle}>{t('appealsTitle')}</h2>
+        {appeals.length === 0 ? (
+          <p className={styles.muted}>{t('noAppeals')}</p>
+        ) : (
+          <ul className={styles.updates}>
+            {appeals.map((appeal) => (
+              <li key={appeal.id} className={styles.update}>
+                <p>
+                  <Link href={userLink(appeal.user.id)}>
+                    <strong>{appeal.user.name}</strong>
+                  </Link>{' '}
+                  ({appeal.user.email}) · {formatDateTime(appeal.createdAt, locale)}
+                </p>
+                <p className={styles.muted}>
+                  {t('appealFor', {
+                    reason: appeal.sanction.reason ?? '—',
+                    until: appeal.sanction.until
+                      ? formatDateTime(appeal.sanction.until, locale)
+                      : t('durations.permanent'),
+                  })}
+                </p>
+                <p className={styles.prewrap}>{appeal.message}</p>
+                <ActionForm
+                  action={resolveAppealAction.bind(null, locale, appeal.id)}
+                  className={styles.form}
+                >
+                  <FormTextarea name="response" label={t('appealResponse')} rows={2} />
+                  <div className={styles.actions}>
+                    <SubmitButton size="sm" name="decision" value="accept">
+                      {t('appealAccept')}
+                    </SubmitButton>
+                    <SubmitButton size="sm" variant="outline" name="decision" value="reject">
+                      {t('appealReject')}
+                    </SubmitButton>
+                  </div>
+                </ActionForm>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('suspensionsTitle')}</h2>
         {suspensions.length === 0 ? (
           <p className={styles.muted}>{t('noSuspensions')}</p>
@@ -145,8 +211,13 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
             {suspensions.map((suspension) => (
               <li key={suspension.user.id} className={styles.update}>
                 <p>
-                  <strong>{suspension.user.name}</strong> ({suspension.user.email}) ·{' '}
-                  {formatDateTime(suspension.suspendedAt, locale)}
+                  <Link href={userLink(suspension.user.id)}>
+                    <strong>{suspension.user.name}</strong>
+                  </Link>{' '}
+                  ({suspension.user.email}) · {formatDateTime(suspension.suspendedAt, locale)} ·{' '}
+                  {suspension.until
+                    ? t('until', { date: formatDateTime(suspension.until, locale) })
+                    : t('durations.permanent')}
                 </p>
                 {suspension.reason ? <p className={styles.muted}>{suspension.reason}</p> : null}
                 <div className={styles.actions}>

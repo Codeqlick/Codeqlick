@@ -1,17 +1,44 @@
 import 'server-only';
 import { apiFetch } from './client';
+import { isApiError } from './errors';
 
 /** The video chat (architecture 4.7). Shapes mirror the API's videochat module. */
+
+export const GENDERS = ['WOMAN', 'MAN', 'NONBINARY'] as const;
+export type Gender = (typeof GENDERS)[number];
+
+/** Public profile and matching filters (all free). */
+export type VideochatSettings = {
+  nickname: string | null;
+  gender: Gender | null;
+  seeking: Gender[];
+  country: string | null;
+  language: string | null;
+  sameCountryOnly: boolean;
+  sameLanguageOnly: boolean;
+};
+
+export type AppealStatus = 'OPEN' | 'ACCEPTED' | 'REJECTED';
 
 export type VideochatStatus = {
   onboarded: boolean;
   termsVersion: string;
   acceptedTermsVersion: string | null;
   suspended: boolean;
+  suspension: {
+    reason: string | null;
+    /** Null: until the team lifts it. */
+    until: string | null;
+    appeal: { status: AppealStatus; response: string | null; createdAt: string } | null;
+  } | null;
   ageVerificationRequired: boolean;
   ageVerified: boolean;
   allowed: boolean;
+  profile: VideochatSettings | null;
 };
+
+export const SUSPENSION_DURATIONS = ['24h', '7d', '30d', 'permanent'] as const;
+export type SuspensionDuration = (typeof SUSPENSION_DURATIONS)[number];
 
 export type IceServer = { urls: string[]; username?: string; credential?: string };
 
@@ -48,10 +75,64 @@ export type VideochatReport = {
   };
 };
 
+type Person = { id: string; name: string; email: string };
+
 export type VideochatSuspension = {
-  user: { id: string; name: string; email: string };
+  user: Person;
   suspendedAt: string;
+  until: string | null;
   reason: string | null;
+};
+
+export type VideochatAppeal = {
+  id: string;
+  message: string;
+  status: AppealStatus;
+  response: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  user: Person;
+  sanction: { reason: string | null; until: string | null; createdAt: string };
+};
+
+export type VideochatUserDetail = {
+  user: Person & { createdAt: string };
+  profile: VideochatSettings;
+  suspension: { since: string; until: string | null; reason: string | null } | null;
+  ageVerified: boolean;
+  onboardedAt: string;
+  reportsReceived: Array<{
+    id: string;
+    reason: ReportReason;
+    status: ReportStatus;
+    details: string | null;
+    createdAt: string;
+    reporter: Person;
+  }>;
+  reportsMade: Array<{
+    id: string;
+    reason: ReportReason;
+    status: ReportStatus;
+    details: string | null;
+    createdAt: string;
+    reported: Person;
+  }>;
+  sanctions: Array<{
+    id: string;
+    kind: 'SUSPENDED' | 'LIFTED';
+    reason: string | null;
+    until: string | null;
+    createdAt: string;
+    by: Person | null;
+  }>;
+  appeals: Array<{
+    id: string;
+    message: string;
+    status: AppealStatus;
+    response: string | null;
+    createdAt: string;
+    reviewedAt: string | null;
+  }>;
 };
 
 export type VideochatStats = { online: number; waiting: number; calls: number };
@@ -70,6 +151,32 @@ export function onboardVideochat(input: {
     body: input,
     auth: 'required',
   });
+}
+
+export function saveVideochatSettings(input: VideochatSettings) {
+  return apiFetch<VideochatSettings>('/videochat/profile', {
+    method: 'PUT',
+    body: input,
+    auth: 'required',
+  });
+}
+
+export function appealVideochatSuspension(message: string) {
+  return apiFetch<void>('/videochat/appeal', {
+    method: 'POST',
+    body: { message },
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
+/** People in the video chat now (public; null when the API can't be reached). */
+export async function getVideochatOnline(): Promise<number | null> {
+  try {
+    return (await apiFetch<{ online: number }>('/videochat/online', { cache: 'no-store' })).online;
+  } catch {
+    return null;
+  }
 }
 
 export function createVideochatTicket() {
@@ -94,10 +201,54 @@ export function dismissVideochatReport(id: string) {
   });
 }
 
-export function suspendFromVideochatReport(id: string, reason?: string) {
+export function suspendFromVideochatReport(
+  id: string,
+  duration: SuspensionDuration,
+  reason?: string,
+) {
   return apiFetch<void>(`/admin/videochat/reports/${encodeURIComponent(id)}/suspend`, {
     method: 'POST',
-    body: reason ? { reason } : {},
+    body: reason ? { reason, duration } : { duration },
+    auth: 'required',
+  });
+}
+
+export function suspendVideochatUser(
+  userId: string,
+  input: { reason: string; duration: SuspensionDuration },
+) {
+  return apiFetch<void>(`/admin/videochat/users/${encodeURIComponent(userId)}/suspend`, {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+  });
+}
+
+/** Null when the person never joined the video chat. */
+export async function getVideochatUser(userId: string): Promise<VideochatUserDetail | null> {
+  try {
+    return await apiFetch<VideochatUserDetail>(
+      `/admin/videochat/users/${encodeURIComponent(userId)}`,
+      { auth: 'required' },
+    );
+  } catch (error) {
+    if (isApiError(error) && (error.status === 404 || error.status === 400)) return null;
+    throw error;
+  }
+}
+
+export function listVideochatAppeals(status: AppealStatus) {
+  return apiFetch<VideochatAppeal[]>('/admin/videochat/appeals', {
+    query: { status },
+    auth: 'required',
+  });
+}
+
+export function resolveVideochatAppeal(id: string, accept: boolean, response?: string) {
+  const path = `/admin/videochat/appeals/${encodeURIComponent(id)}/${accept ? 'accept' : 'reject'}`;
+  return apiFetch<void>(path, {
+    method: 'POST',
+    body: response ? { response } : {},
     auth: 'required',
   });
 }

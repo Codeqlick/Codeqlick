@@ -338,3 +338,61 @@
   background: var(--color-fuchsia);
   border-color: var(--color-fuchsia);
 }
+
+.kbd {
+  margin-left: var(--space-1);
+  padding: 0 0.3rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgb(255 255 255 / 40%);
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+@media (pointer: coarse), (max-width: 40rem) {
+  .kbd {
+    display: none;
+  }
+}
+
+/* Phones: the partner fills the screen's width in portrait, own video in a corner, the buttons
+   in an even grid under it and the chat below. */
+@media (max-width: 40rem) {
+  .room {
+    gap: var(--space-3);
+  }
+
+  .remote {
+    aspect-ratio: 3 / 4;
+    max-height: 68svh;
+    width: 100%;
+  }
+
+  .local {
+    width: 32%;
+    right: var(--space-2);
+    bottom: var(--space-2);
+    aspect-ratio: 3 / 4;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  .primary,
+  .secondary,
+  .danger {
+    padding-inline: var(--space-2);
+    font-size: 0.875rem;
+  }
+
+  .chat {
+    min-height: 12rem;
+    max-height: 18rem;
+  }
+}

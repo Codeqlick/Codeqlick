@@ -1068,7 +1068,8 @@
         "support": "Support",
         "proposal": "Proposals",
         "settings": "Settings",
-        "booking": "Calls"
+        "booking": "Calls",
+        "videochat": "Video chat"
       },
       "actions": {
         "post": {
@@ -1186,6 +1187,15 @@
         "booking": {
           "created": "booked a call (<target>{label}</target>)",
           "cancelled": "cancelled the call with <target>{label}</target>"
+        },
+        "videochat": {
+          "suspended": "suspended <target>{label}</target> from the video chat",
+          "unsuspended": "lifted <target>{label}</target>'s video chat suspension",
+          "report_dismissed": "dismissed a report against <target>{label}</target>",
+          "appeal_accepted": "accepted <target>{label}</target>'s appeal",
+          "appeal_rejected": "rejected <target>{label}</target>'s appeal",
+          "age_verified": "marked <target>{label}</target>'s age as verified",
+          "age_unverified": "cleared <target>{label}</target>'s verified age"
         }
       },
       "details": {
@@ -1203,7 +1213,10 @@
         "milestone": "Milestone: {value}",
         "project": "Project: {value}",
         "minutes": "Time: {value}",
-        "taskStatus": "Status: {value}"
+        "taskStatus": "Status: {value}",
+        "reason": "Reason: {value}",
+        "until": "Until {value}",
+        "untilLifted": "Until lifted"
       }
     },
     "tags": {
@@ -2853,7 +2866,8 @@
       "safety1": "Video goes straight from browser to browser: we don't record it.",
       "safety2": "Block anyone and you'll never be paired again.",
       "safety3": "Report anything that breaks the rules: the team reviews it.",
-      "safety4": "Nobody sees your name or email."
+      "safety4": "Nobody sees your name or email.",
+      "online": "{count, plural, =0 {Nobody online right now} one {# person online now} other {# people online now}}"
     },
     "onboarding": {
       "title": "Before you start",
@@ -2872,7 +2886,25 @@
     },
     "suspended": {
       "title": "Your access is suspended",
-      "body": "Your account was reported and the team is reviewing it. If you think it's a mistake, write to hello@codeqlick.com."
+      "body": "Your account can't use the video chat right now.",
+      "reason": "Reason",
+      "noReason": "Not given",
+      "until": "Until",
+      "untilReviewed": "Until the team reviews it",
+      "appealTitle": "Appeal",
+      "appealLead": "If you think it's a mistake, tell us. You can appeal once per suspension and we'll answer by email.",
+      "appealLabel": "Your message to the team",
+      "appealSubmit": "Send appeal",
+      "appealSending": "Sending…",
+      "appealLength": "Write between 10 and 2,000 characters.",
+      "appealTaken": "You already appealed this suspension.",
+      "appealError": "Couldn't send it. Please try again.",
+      "appealSent": "Appeal sent. We'll answer by email.",
+      "appealStatus": {
+        "OPEN": "We got your appeal and we're reviewing it.",
+        "ACCEPTED": "We accepted your appeal.",
+        "REJECTED": "We reviewed your appeal and the suspension stays."
+      }
     },
     "ageVerification": {
       "title": "Your age needs to be verified",
@@ -2931,7 +2963,10 @@
         "HATE": "Hate or discrimination",
         "SPAM": "Spam, scam or advertising",
         "OTHER": "Something else"
-      }
+      },
+      "reconnecting": "Connection lost. Reconnecting…",
+      "callFailed": "Couldn't connect with that person. Looking for someone else…",
+      "matchedTitle": "● Someone new!"
     },
     "rules": {
       "title": "Video chat rules",
@@ -2967,11 +3002,41 @@
           "body": "To report content, appeal a suspension or ask anything: hello@codeqlick.com."
         }
       ]
+    },
+    "settingsLink": "Your profile",
+    "genders": {
+      "WOMAN": "Woman",
+      "MAN": "Man",
+      "NONBINARY": "Non-binary"
+    },
+    "settings": {
+      "title": "Your profile and filters",
+      "lead": "What the other person sees during the call, and who you want to meet. All free.",
+      "nickname": "Nickname",
+      "nicknameHint": "2 to 24 characters. We never show your name or email.",
+      "nicknameInvalid": "Use 2 to 24 letters, numbers, spaces, dots, dashes or underscores.",
+      "gender": "Gender",
+      "genderNone": "Prefer not to say",
+      "seeking": "I want to meet",
+      "seekingHint": "None ticked means anyone. If you filter, you only meet people who gave their gender.",
+      "country": "Country",
+      "notSaid": "Not given",
+      "sameCountryOnly": "Only people from my country",
+      "language": "Language",
+      "sameLanguageOnly": "Only people who speak my language",
+      "filtersHint": "Filters work both ways: you only meet people who are also looking for you. The more you set, the longer you may wait.",
+      "countryNeeded": "Choose your country to filter by country.",
+      "languageNeeded": "Choose your language to filter by language.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved. It applies the next time you join the room.",
+      "error": "Couldn't save. Please try again.",
+      "backToRoom": "Back to the room"
     }
   },
   "AdminVideochat": {
     "title": "Video chat",
-    "lead": "Video chat reports and suspensions.",
+    "lead": "Video chat reports, appeals and suspensions.",
     "online": "Online",
     "waiting": "Waiting",
     "calls": "In a call",
@@ -3006,6 +3071,65 @@
       "HATE": "Hate or discrimination",
       "SPAM": "Spam, scam or advertising",
       "OTHER": "Something else"
+    },
+    "duration": "Duration",
+    "durations": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "permanent": "Until lifted"
+    },
+    "until": "until {date}",
+    "reasonRequired": "Give the reason: the person will see it.",
+    "appealsTitle": "Open appeals",
+    "noAppeals": "No open appeals.",
+    "appealFor": "Suspension: {reason} · {until}",
+    "appealResponse": "Answer",
+    "appealAccept": "Accept and lift",
+    "appealReject": "Reject",
+    "user": {
+      "title": "Video chat person",
+      "lead": "Profile, status and history in the video chat.",
+      "back": "Video chat",
+      "notFound": "This account has not joined the video chat.",
+      "status": "Status",
+      "active": "Active",
+      "suspendedSince": "Suspended since {date}",
+      "ageVerified": "Age verified",
+      "ageDeclared": "Age declared",
+      "verifyAge": "Mark age as verified",
+      "unverifyAge": "Clear verified age",
+      "suspend": "Suspend",
+      "changeSuspension": "Change the suspension",
+      "reason": "Reason (the person will see it)",
+      "profile": "Profile",
+      "email": "Email",
+      "nickname": "Nickname",
+      "gender": "Gender",
+      "seeking": "Wants to meet",
+      "anyone": "Anyone",
+      "country": "Country",
+      "language": "Language",
+      "only": "only",
+      "joined": "Joined the video chat",
+      "account": "Account created",
+      "sanctions": "Sanction history",
+      "noSanctions": "No sanctions.",
+      "automatic": "Automatic",
+      "kinds": {
+        "SUSPENDED": "Suspension",
+        "LIFTED": "Lifted"
+      },
+      "appeals": "Appeals",
+      "noAppeals": "No appeals.",
+      "appealStatus": {
+        "OPEN": "Open",
+        "ACCEPTED": "Accepted",
+        "REJECTED": "Rejected"
+      },
+      "reportsReceived": "Reports received",
+      "reportsMade": "Reports made",
+      "noReports": "None."
     }
   }
 }

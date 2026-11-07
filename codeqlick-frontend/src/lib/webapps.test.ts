@@ -46,4 +46,11 @@ describe('web apps on subdomains', () => {
     });
     expect(routeWebapp('/es/blog', 'codeqlick.com', 'https:')).toEqual({ action: 'pass' });
   });
+
+  it('serves app pages asked for by IP address (Next.js calling itself)', () => {
+    expect(routeWebapp('/es/videochat/room', '127.0.0.1:3000', 'http:')).toEqual({
+      action: 'pass',
+    });
+    expect(routeWebapp('/es/videochat/room', '[::1]:3000', 'http:')).toEqual({ action: 'pass' });
+  });
 });

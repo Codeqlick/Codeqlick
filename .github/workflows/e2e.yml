@@ -90,6 +90,9 @@ jobs:
           API_URL: http://localhost:4000/v1
           SITE_URL: http://localhost:3000
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+          # The video chat test opens http://videochat.localhost:3000 (the API's default allowed
+          # origin there) and its socket goes straight to the API (also allowed by the CSP).
+          VIDEOCHAT_WS_URL: ws://localhost:4000/v1/videochat/ws
         run: |
           npm ci
           npm run build

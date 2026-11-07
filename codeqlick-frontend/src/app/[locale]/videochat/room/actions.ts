@@ -4,7 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { isApiError } from '@/lib/api/errors';
-import { createVideochatTicket, onboardVideochat, type VideochatTicket } from '@/lib/api/videochat';
+import {
+  appealVideochatSuspension,
+  createVideochatTicket,
+  onboardVideochat,
+  type VideochatTicket,
+} from '@/lib/api/videochat';
 import type { FormState } from '@/lib/forms';
 
 /** Confirms 18+ and the rules (PUT /videochat/me); the page then shows the room. */
@@ -51,4 +56,24 @@ export async function ticketAction(): Promise<TicketResult> {
     if (status === 403) return { ok: false, reason: 'suspended' };
     return { ok: false, reason: 'error' };
   }
+}
+
+/** A suspended person asks the team to lift it (POST /videochat/appeal), once per suspension. */
+export async function appealAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const locale = localeOrDefault(formData.get('locale'));
+  const t = await getTranslations({ locale, namespace: 'Videochat.suspended' });
+  const message = String(formData.get('message') ?? '').trim();
+  const values = { message };
+  if (message.length < 10 || message.length > 2000) {
+    return { status: 'error', fieldErrors: { message: t('appealLength') }, values };
+  }
+  try {
+    await appealVideochatSuspension(message);
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) return { status: 'error', message: t('appealTaken'), values };
+    return { status: 'error', message: t('appealError'), values };
+  }
+  revalidatePath(`/${locale}/videochat/room`);
+  return { status: 'success', message: t('appealSent') };
 }

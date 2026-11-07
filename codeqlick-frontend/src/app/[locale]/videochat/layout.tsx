@@ -42,6 +42,11 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
           <Link href="/videochat/rules" className={styles.headerLink}>
             {t('rulesLink')}
           </Link>
+          {user ? (
+            <Link href="/videochat/settings" className={styles.headerLink}>
+              {t('settingsLink')}
+            </Link>
+          ) : null}
           <LocaleSwitcher className={styles.locale} />
           {user ? (
             <form action={logoutAction}>

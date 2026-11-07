@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
 import styles from './VideochatRoom.module.css';
 
 /**
@@ -22,7 +23,7 @@ type SignalData =
 type ServerMessage =
   | { type: 'ready' }
   | { type: 'waiting' }
-  | { type: 'matched'; initiator: boolean }
+  | { type: 'matched'; initiator: boolean; partner: PartnerProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }
   | { type: 'partner-left' }
@@ -30,6 +31,13 @@ type ServerMessage =
   | { type: 'blocked' }
   | { type: 'suspended' }
   | { type: 'error'; code: string };
+
+type PartnerProfile = {
+  nickname: string | null;
+  gender: 'WOMAN' | 'MAN' | 'NONBINARY' | null;
+  country: string | null;
+  language: string | null;
+};
 
 type Phase = 'idle' | 'starting' | 'searching' | 'connecting' | 'connected' | 'stopped' | 'closed';
 
@@ -42,6 +50,8 @@ type NoticeKey =
   | 'replaced'
   | 'suspended'
   | 'connectionLost'
+  | 'reconnecting'
+  | 'callFailed'
   | 'ticketError'
   | 'cameraDenied'
   | 'cameraMissing'
@@ -57,17 +67,46 @@ const REASONS = [
   'OTHER',
 ] as const;
 const CHAT_MAX = 500;
+/** A call with no media after this long moves on to the next person. */
+const CALL_TIMEOUT_MS = 15_000;
+/** Waits between reconnection attempts (the last one repeats), and how many attempts. */
+const RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 16_000, 30_000];
+const RECONNECT_ATTEMPTS = 10;
+
+/** A short two-note chime (Web Audio), so a match is noticed from another tab. */
+function chime(): void {
+  try {
+    const audio = new AudioContext();
+    const gain = audio.createGain();
+    gain.gain.value = 0.08;
+    gain.connect(audio.destination);
+    [660, 880].forEach((frequency, index) => {
+      const tone = audio.createOscillator();
+      tone.frequency.value = frequency;
+      tone.connect(gain);
+      tone.start(audio.currentTime + index * 0.12);
+      tone.stop(audio.currentTime + index * 0.12 + 0.1);
+    });
+    setTimeout(() => void audio.close(), 500);
+  } catch {
+    // No sound is fine.
+  }
+}
 
 type ChatLine = { id: number; from: 'me' | 'them'; text: string };
 
 export function VideochatRoom({
   wsUrl,
   getTicket,
+  locale,
 }: {
   wsUrl: string;
   getTicket: () => Promise<TicketResult>;
+  locale: string;
 }) {
   const t = useTranslations('Videochat.room');
+  const tg = useTranslations('Videochat.genders');
+  const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [notice, setNotice] = useState<{ key: NoticeKey; tone: 'info' | 'error' } | null>(null);
   const [chat, setChat] = useState<ChatLine[]>([]);
@@ -89,6 +128,13 @@ export function VideochatRoom({
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
   const closingOnPurpose = useRef(false);
   const lineId = useRef(0);
+  /** Gives up on a call that doesn't connect (see CALL_TIMEOUT_MS). */
+  const callTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttempt = useRef(0);
+  /** The person pressed Stop: a reconnection doesn't start searching again by itself. */
+  const paused = useRef(false);
+  const connectRef = useRef<() => Promise<void>>(async () => undefined);
 
   const send = useCallback((message: object) => {
     if (socket.current?.readyState === WebSocket.OPEN) {
@@ -98,6 +144,9 @@ export function VideochatRoom({
 
   const closePeer = useCallback(() => {
     pendingCandidates.current = [];
+    if (callTimer.current) clearTimeout(callTimer.current);
+    callTimer.current = null;
+    setPartner(null);
     if (peer.current) {
       peer.current.ontrack = null;
       peer.current.onicecandidate = null;
@@ -111,6 +160,7 @@ export function VideochatRoom({
   const shutdown = useCallback(
     (finalPhase: Phase) => {
       closingOnPurpose.current = true;
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       closePeer();
       socket.current?.close();
       socket.current = null;
@@ -126,6 +176,15 @@ export function VideochatRoom({
       await connection.addIceCandidate(candidate).catch(() => undefined);
     }
   }, []);
+
+  /** Leaves the current call (or the wait) and looks for someone else. */
+  const next = useCallback(() => {
+    paused.current = false;
+    closePeer();
+    setChat([]);
+    setPhase('searching');
+    send({ type: 'next' });
+  }, [closePeer, send]);
 
   const startPeer = useCallback(
     async (initiator: boolean) => {
@@ -144,8 +203,21 @@ export function VideochatRoom({
         if (event.candidate)
           send({ type: 'signal', data: { candidate: event.candidate.toJSON() } });
       };
+      // No direct path and no relay, or nothing after a while: on to the next person.
+      const giveUp = () => {
+        if (peer.current !== connection) return;
+        setNotice({ key: 'callFailed', tone: 'info' });
+        next();
+      };
+      callTimer.current = setTimeout(giveUp, CALL_TIMEOUT_MS);
       connection.onconnectionstatechange = () => {
-        if (connection.connectionState === 'connected') setPhase('connected');
+        if (connection.connectionState === 'connected') {
+          if (callTimer.current) clearTimeout(callTimer.current);
+          callTimer.current = null;
+          setPhase('connected');
+        } else if (connection.connectionState === 'failed') {
+          giveUp();
+        }
       };
       if (initiator) {
         const offer = await connection.createOffer();
@@ -153,7 +225,7 @@ export function VideochatRoom({
         send({ type: 'signal', data: { sdp: { type: 'offer', sdp: offer.sdp ?? '' } } });
       }
     },
-    [closePeer, send],
+    [closePeer, next, send],
   );
 
   const onSignal = useCallback(
@@ -188,6 +260,12 @@ export function VideochatRoom({
     (message: ServerMessage) => {
       switch (message.type) {
         case 'ready':
+          reconnectAttempt.current = 0;
+          setNotice(null);
+          if (paused.current) {
+            setPhase('stopped');
+            return;
+          }
           setPhase('searching');
           send({ type: 'join' });
           return;
@@ -199,7 +277,9 @@ export function VideochatRoom({
           setNotice(null);
           setHadPartner(true);
           setPhase('connecting');
-          void startPeer(message.initiator);
+          void startPeer(message.initiator).then(() => setPartner(message.partner ?? null));
+          chime();
+          flashTitle(t('matchedTitle'));
           return;
         case 'signal':
           void onSignal(message.data).catch(() => undefined);
@@ -236,44 +316,87 @@ export function VideochatRoom({
           return;
       }
     },
-    [onSignal, searchAgain, send, shutdown, startPeer],
+    [onSignal, searchAgain, send, shutdown, startPeer, t],
   );
 
   const connect = useCallback(async () => {
     setPhase('starting');
-    setNotice(null);
+    // Lost (network change, server restart): back by itself, waiting longer each time.
+    const retryLater = () => {
+      if (reconnectAttempt.current >= RECONNECT_ATTEMPTS) {
+        setNotice({ key: 'connectionLost', tone: 'error' });
+        setPhase('closed');
+        return;
+      }
+      const delay =
+        RECONNECT_DELAYS_MS[Math.min(reconnectAttempt.current, RECONNECT_DELAYS_MS.length - 1)];
+      reconnectAttempt.current += 1;
+      setNotice({ key: 'reconnecting', tone: 'info' });
+      setPhase('starting');
+      reconnectTimer.current = setTimeout(() => void connectRef.current(), delay);
+    };
+
     const result = await getTicket();
     if (!result.ok) {
+      if (result.reason === 'error' && reconnectAttempt.current > 0) {
+        retryLater();
+        return;
+      }
       setNotice({
         key: result.reason === 'suspended' ? 'suspended' : 'ticketError',
         tone: 'error',
       });
       setPhase('closed');
-      if (result.reason === 'signed-out') window.location.reload();
+      if (result.reason === 'signed-out' || result.reason === 'suspended') {
+        // The page shows the sign-in, or the suspension and the appeal form.
+        window.location.reload();
+      }
       return;
     }
+    if (reconnectAttempt.current === 0) setNotice(null);
     iceServers.current = result.ticket.iceServers;
     closingOnPurpose.current = false;
-    const ws = new WebSocket(wsUrl);
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch {
+      retryLater();
+      return;
+    }
     socket.current = ws;
+    let ready = false;
+    const lost = () => {
+      if (socket.current !== ws) return;
+      socket.current = null;
+      clearTimeout(readyTimer);
+      closePeer();
+      if (!closingOnPurpose.current) retryLater();
+    };
+    // A socket the browser blocks (a policy, a proxy) may never open nor close: give it 10 s.
+    const readyTimer = setTimeout(() => {
+      if (ready) return;
+      ws.close();
+      lost();
+    }, 10_000);
     ws.onopen = () => ws.send(JSON.stringify({ type: 'auth', ticket: result.ticket.ticket }));
     ws.onmessage = (event) => {
       try {
-        onMessage(JSON.parse(String(event.data)) as ServerMessage);
+        const message = JSON.parse(String(event.data)) as ServerMessage;
+        if (message.type === 'ready') {
+          ready = true;
+          clearTimeout(readyTimer);
+        }
+        onMessage(message);
       } catch {
         // Ignore anything that isn't one of our messages.
       }
     };
-    ws.onclose = () => {
-      if (socket.current !== ws) return;
-      socket.current = null;
-      closePeer();
-      if (!closingOnPurpose.current) {
-        setNotice({ key: 'connectionLost', tone: 'error' });
-        setPhase('closed');
-      }
-    };
+    ws.onclose = lost;
   }, [closePeer, getTicket, onMessage, wsUrl]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const start = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === 'undefined') {
@@ -302,6 +425,8 @@ export function VideochatRoom({
   useEffect(
     () => () => {
       closingOnPurpose.current = true;
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (callTimer.current) clearTimeout(callTimer.current);
       peer.current?.close();
       socket.current?.close();
       for (const track of stream.current?.getTracks() ?? []) track.stop();
@@ -313,15 +438,21 @@ export function VideochatRoom({
     chatEnd.current?.scrollIntoView({ block: 'nearest' });
   }, [chat]);
 
-  const next = () => {
-    setNotice(null);
-    closePeer();
-    setChat([]);
-    setPhase('searching');
-    send({ type: 'next' });
-  };
+  // Esc is "next" (unless the report dialog is open: there it closes the dialog).
+  const online = phase === 'connecting' || phase === 'connected' || phase === 'searching';
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || reportDialog.current?.open) return;
+      if (!online) return;
+      setNotice(null);
+      next();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [next, online]);
 
   const stop = () => {
+    paused.current = true;
     closePeer();
     setChat([]);
     setPhase('stopped');
@@ -329,6 +460,7 @@ export function VideochatRoom({
   };
 
   const resume = () => {
+    paused.current = false;
     setNotice(null);
     setPhase('searching');
     send({ type: 'join' });
@@ -369,8 +501,7 @@ export function VideochatRoom({
     event.currentTarget.reset();
   };
 
-  const live = phase === 'connecting' || phase === 'connected';
-  const online = live || phase === 'searching' || phase === 'stopped';
+  const inRoom = online || phase === 'stopped';
   const status =
     phase === 'starting'
       ? t('starting')
@@ -414,7 +545,14 @@ export function VideochatRoom({
               )}
             </div>
           ) : null}
-          <span className={styles.tag}>{t('stranger')}</span>
+          <span className={styles.tag}>
+            {partner?.nickname ?? t('stranger')}
+            {partner?.gender ? ` · ${tg(partner.gender)}` : ''}
+            {partner?.country
+              ? ` · ${countryFlag(partner.country)} ${countryName(partner.country, locale)}`
+              : ''}
+            {partner?.language ? ` · ${languageName(partner.language, locale)}` : ''}
+          </span>
         </div>
         <div className={styles.local}>
           <video ref={localVideo} autoPlay playsInline muted className={styles.video} />
@@ -437,15 +575,24 @@ export function VideochatRoom({
             {t('resume')}
           </button>
         ) : (
-          <button type="button" className={styles.primary} onClick={next} disabled={!online}>
-            {t('next')}
+          <button
+            type="button"
+            className={styles.primary}
+            onClick={() => {
+              setNotice(null);
+              next();
+            }}
+            disabled={!inRoom}
+            aria-keyshortcuts="Escape"
+          >
+            {t('next')} <kbd className={styles.kbd}>Esc</kbd>
           </button>
         )}
         <button
           type="button"
           className={styles.secondary}
           onClick={stop}
-          disabled={!online || phase === 'stopped'}
+          disabled={!inRoom || phase === 'stopped'}
         >
           {t('stop')}
         </button>
@@ -472,7 +619,7 @@ export function VideochatRoom({
           type="button"
           className={styles.danger}
           onClick={() => send({ type: 'block' })}
-          disabled={!hadPartner || !online}
+          disabled={!hadPartner || !inRoom}
         >
           {t('block')}
         </button>
@@ -480,7 +627,7 @@ export function VideochatRoom({
           type="button"
           className={styles.danger}
           onClick={() => reportDialog.current?.showModal()}
-          disabled={!hadPartner || !online}
+          disabled={!hadPartner || !inRoom}
         >
           {t('report')}
         </button>
@@ -565,4 +712,22 @@ export function VideochatRoom({
       </dialog>
     </div>
   );
+}
+
+/** Flashes the tab title until the tab is looked at again (only while it is hidden). */
+function flashTitle(message: string): void {
+  if (typeof document === 'undefined' || !document.hidden) return;
+  const original = document.title;
+  let on = false;
+  const timer = setInterval(() => {
+    on = !on;
+    document.title = on ? message : original;
+  }, 1_000);
+  const restore = () => {
+    if (document.hidden) return;
+    clearInterval(timer);
+    document.title = original;
+    document.removeEventListener('visibilitychange', restore);
+  };
+  document.addEventListener('visibilitychange', restore);
 }
