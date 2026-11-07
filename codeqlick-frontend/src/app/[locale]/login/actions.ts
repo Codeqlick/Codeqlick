@@ -10,7 +10,8 @@ import type { LoginResult } from '@/lib/api/types';
 import { TWO_FACTOR_COOKIE, TWO_FACTOR_MAX_AGE } from '@/lib/auth/constants';
 import { authCookieOptions, isSecureCookieEnv } from '@/lib/auth/refresh';
 import { invalidState } from '@/lib/actions';
-import { homeForRole, safeNextPath, setAuthCookies } from '@/lib/auth/session';
+import { safeNextPath, setAuthCookies } from '@/lib/auth/session';
+import { homeAfterSignIn } from '@/lib/webapp-request';
 import { formString, type FormState } from '@/lib/forms';
 import { loginSchema } from '@/lib/schemas/auth';
 
@@ -53,5 +54,5 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
   }
 
   await setAuthCookies(result);
-  redirect(next ?? homeForRole(locale, result.user.role));
+  redirect(next ?? (await homeAfterSignIn(locale, result.user.role)));
 }

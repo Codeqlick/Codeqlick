@@ -87,6 +87,22 @@ export const envSchema = z.object({
   SITE_PRICE_CENTS: z.coerce.number().int().min(100).max(1_000_000).default(20000),
   /** VAT added to it, in percent (Spain's general rate). */
   SITE_VAT_PERCENT: z.coerce.number().min(0).max(50).default(21),
+  /** Pages allowed to open the video chat's WebSocket (its Origin header), comma-separated. */
+  VIDEOCHAT_ORIGINS: z
+    .string()
+    .default('http://videochat.localhost:3000,http://localhost:3000')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim().replace(/\/+$/, ''))
+        .filter((origin) => origin.length > 0),
+    ),
+  /** Only people whose age was verified for real may use the video chat (off: declared 18+). */
+  VIDEOCHAT_AGE_VERIFICATION_REQUIRED: booleanString,
+  /** coturn's `static-auth-secret`: signs the video chat's short-lived TURN credentials. */
+  TURN_SECRET: optionalString,
+  /** STUN/TURN URLs given to browsers, comma-separated (stun:… and turn:…); unset: none. */
+  TURN_URLS: optionalString,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

@@ -141,6 +141,7 @@ export function register(input: {
   locale: Locale;
   acceptPrivacy: true;
   website?: string;
+  app?: 'videochat';
 }) {
   return apiFetch<void>('/auth/register', { method: 'POST', body: input, forwardClientIp: true });
 }

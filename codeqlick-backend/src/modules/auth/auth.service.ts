@@ -392,14 +392,16 @@ export class AuthService {
     const email = input.email.trim().toLowerCase();
     const existing = await this.repository.findUserByEmail(email);
     const site = this.config.siteUrl;
+    // From a web app (architecture 6.3), the links open on its host so the person ends up there.
+    const linkBase = input.app ? this.config.webappUrl(input.app) : site;
     let message;
     if (existing?.registeredAt) {
       if (!existing.isActive) return;
       message = alreadyRegisteredEmail(
         existing,
         {
-          login: `${site}/${input.locale}/login`,
-          reset: `${site}/${input.locale}/forgot-password`,
+          login: `${linkBase}/${input.locale}/login`,
+          reset: `${linkBase}/${input.locale}/forgot-password`,
         },
         input.locale,
         site,
@@ -417,7 +419,7 @@ export class AuthService {
       });
       message = signupConfirmEmail(
         { name: input.name, email },
-        `${site}/${input.locale}/register/confirm?token=${token}`,
+        `${linkBase}/${input.locale}/register/confirm?token=${token}`,
         input.locale,
         SIGNUP_TTL_HOURS,
         site,

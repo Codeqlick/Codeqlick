@@ -45,6 +45,8 @@ export const registerSchema = z
     email: z.email().max(254),
     /** Honeypot: humans never see this field, bots fill it in. */
     website: z.string().max(500).optional(),
+    /** Signed up from one of Codeqlick's web apps: the emailed links lead back to it. */
+    app: z.enum(['videochat']).optional(),
   })
   .strict();
 export type RegisterInput = z.infer<typeof registerSchema>;
