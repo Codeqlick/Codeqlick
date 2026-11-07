@@ -37,16 +37,15 @@ export async function settingsAction(_previous: FormState, formData: FormData): 
     .filter((g): g is Gender => g !== null);
   const interests = [
     ...new Set(
-      formData
-        .getAll('interests')
-        .filter((value): value is Interest =>
-          (INTERESTS as readonly FormDataEntryValue[]).includes(value),
-        ),
+      [...formData.getAll('interests'), ...formData.getAll('adultInterests')].filter(
+        (value): value is Interest => (INTERESTS as readonly FormDataEntryValue[]).includes(value),
+      ),
     ),
   ];
   const values: Record<string, string> = {
     nickname,
     interests: interests.join('\n'),
+    adultInterests: interests.join('\n'),
     gender: String(formData.get('gender') ?? ''),
     seeking: seeking.join('\n'),
     country,

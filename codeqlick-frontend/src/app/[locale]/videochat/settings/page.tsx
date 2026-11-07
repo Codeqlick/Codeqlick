@@ -13,6 +13,7 @@ import { PushToggle } from '@/components/videochat/PushToggle';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { GENDERS, getVideochatStatus, INTERESTS, MAX_INTERESTS } from '@/lib/api/videochat';
+import { ADULT_INTERESTS } from '@/lib/videochat-interests';
 import { requireUser } from '@/lib/auth/session';
 import { countryOptions, languageOptions } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
@@ -90,11 +91,22 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
         <FormCheckboxGroup
           name="interests"
           legend={t('interests')}
-          options={INTERESTS.map((value) => ({ value, label: ti(value) }))}
+          options={INTERESTS.filter((value) => !ADULT_INTERESTS.includes(value)).map((value) => ({
+            value,
+            label: ti(value),
+          }))}
           defaultValues={profile.interests}
           className={`${styles.fieldset} ${styles.interests}`}
         />
         <p className={styles.hint}>{t('interestsHint', { max: MAX_INTERESTS })}</p>
+        <FormCheckboxGroup
+          name="adultInterests"
+          legend={t('adultInterests')}
+          options={ADULT_INTERESTS.map((value) => ({ value, label: ti(value) }))}
+          defaultValues={profile.interests}
+          className={`${styles.fieldset} ${styles.interests}`}
+        />
+        <p className={styles.hint}>{t('adultInterestsHint', { max: MAX_INTERESTS })}</p>
         <SubmitButton block pendingLabel={t('saving')}>
           {t('save')}
         </SubmitButton>
