@@ -76,3 +76,121 @@ export function invitationEmail(
     ),
   };
 }
+
+/** Why the team invites someone to create their account: said in the invitation. */
+export type SignupReason = 'project' | 'proposal' | 'account';
+
+/**
+ * The team's invitation to create an account it prepared for an email (decision 17): the link
+ * opens the sign-up form with the email fixed, and proves it.
+ */
+export function signupInvitationEmail(
+  user: { name: string; email: string },
+  link: string,
+  locale: ApiLocale,
+  ttlDays: number,
+  reason: SignupReason,
+  siteUrl: string,
+): MailMessage {
+  const es = locale === 'es';
+  const why = {
+    project: es
+      ? 'Hemos abierto tu proyecto en Codeqlick. Crea tu cuenta para seguirlo: sus novedades, sus archivos y, si es una web, editarla tú mismo.'
+      : "We've opened your project at Codeqlick. Create your account to follow it: its updates, its files and, for a website, editing it yourself.",
+    proposal: es
+      ? 'Te hemos preparado una propuesta en Codeqlick. Crea tu cuenta para verla y aceptarla.'
+      : "We've prepared a proposal for you at Codeqlick. Create your account to read and accept it.",
+    account: es
+      ? 'Te invitamos a crear tu cuenta en Codeqlick, desde la que podrás seguir tus proyectos y propuestas.'
+      : "You're invited to create your Codeqlick account, where you can follow your projects and proposals.",
+  }[reason];
+  return {
+    to: user.email,
+    subject: es ? 'Crea tu cuenta en Codeqlick' : 'Create your Codeqlick account',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? 'Elige tu contraseña y entra a tu área de cliente.'
+          : 'Choose your password and enter your client area.',
+        title: es ? 'Crea tu cuenta' : 'Create your account',
+        greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
+        intro: [why],
+        button: { label: es ? 'Crear mi cuenta' : 'Create my account', url: link },
+        note: es
+          ? `El enlace es para ${user.email}, caduca en ${ttlDays} días y solo se puede usar una vez. Si caduca, crea tu cuenta desde la web con este mismo correo.`
+          : `The link is for ${user.email}, expires in ${ttlDays} days and can only be used once. If it expires, sign up on the website with this same email.`,
+      },
+      siteUrl,
+    ),
+  };
+}
+
+/** Self-registration: the link that confirms the email and creates the account. */
+export function signupConfirmEmail(
+  person: { name: string; email: string },
+  link: string,
+  locale: ApiLocale,
+  ttlHours: number,
+  siteUrl: string,
+): MailMessage {
+  const es = locale === 'es';
+  return {
+    to: person.email,
+    subject: es ? 'Confirma tu email — Codeqlick' : 'Confirm your email — Codeqlick',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? 'Un paso más para crear tu cuenta.'
+          : 'One more step to create your account.',
+        title: es ? 'Confirma tu email' : 'Confirm your email',
+        greeting: es ? `Hola ${person.name}:` : `Hi ${person.name},`,
+        intro: [
+          es
+            ? 'Para terminar de crear tu cuenta en Codeqlick, confirma que este correo es tuyo:'
+            : 'To finish creating your Codeqlick account, confirm this email is yours:',
+        ],
+        button: { label: es ? 'Confirmar mi email' : 'Confirm my email', url: link },
+        note: es
+          ? `El enlace caduca en ${ttlHours} horas. Si no has sido tú, ignora este correo: no se crea ninguna cuenta.`
+          : `The link expires in ${ttlHours} hours. If it wasn't you, ignore this email: no account is created.`,
+      },
+      siteUrl,
+    ),
+  };
+}
+
+/** Someone tried to sign up with an email that already has an account. */
+export function alreadyRegisteredEmail(
+  user: { name: string; email: string },
+  urls: { login: string; reset: string },
+  locale: ApiLocale,
+  siteUrl: string,
+): MailMessage {
+  const es = locale === 'es';
+  return {
+    to: user.email,
+    subject: es ? 'Ya tienes una cuenta en Codeqlick' : 'You already have a Codeqlick account',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? 'Entra con tu email y contraseña.'
+          : 'Sign in with your email and password.',
+        title: es ? 'Ya tienes una cuenta' : 'You already have an account',
+        greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
+        intro: [
+          es
+            ? `Alguien ha intentado crear una cuenta con ${user.email}, pero ya tienes una. Entra con tu contraseña:`
+            : `Someone tried to create an account with ${user.email}, but you already have one. Sign in with your password:`,
+        ],
+        button: { label: es ? 'Entrar' : 'Sign in', url: urls.login },
+        note: es
+          ? `¿No la recuerdas? Elige una nueva: ${urls.reset}. Si no has sido tú, ignora este correo.`
+          : `Forgot it? Choose a new one: ${urls.reset}. If it wasn't you, ignore this email.`,
+      },
+      siteUrl,
+    ),
+  };
+}

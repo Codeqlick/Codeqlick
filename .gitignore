@@ -37,3 +37,9 @@ Thumbs.db
 # Playwright (codeqlick-frontend)
 test-results/
 playwright-report/
+
+# Client sites published on the server (deploy/sites)
+/sites/
+
+# Managed client sites built locally by site-builder
+/.sites/

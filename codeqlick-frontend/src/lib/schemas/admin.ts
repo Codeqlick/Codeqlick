@@ -3,6 +3,7 @@ import {
   LEAD_STATUSES,
   LOST_REASONS,
   PROJECT_PHASES,
+  RELEASE_ENVIRONMENTS,
   TICKET_PRIORITIES,
   TICKET_STATUSES,
   TICKET_TYPES,
@@ -157,6 +158,11 @@ export const projectFormSchema = z.object({
   dueDate: optionalDate,
   stagingUrl: optionalUrl,
   productionUrl: optionalUrl,
+  /** A checkbox: present (`on`) when ticked. */
+  showHours: z
+    .string()
+    .optional()
+    .transform((value) => value === 'on'),
 });
 
 export const projectUpdateSchema = z.object({
@@ -164,6 +170,17 @@ export const projectUpdateSchema = z.object({
   body: z.string().trim().min(1, 'required').max(20000, 'tooLong'),
   notifyClient: z.boolean(),
   requestApproval: z.boolean(),
+});
+
+/** The optional release fields of the update form: a version makes it a release. */
+export const releaseFieldsSchema = z.object({
+  version: z
+    .string()
+    .trim()
+    .max(40, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+  environment: z.enum(RELEASE_ENVIRONMENTS, 'choice'),
+  url: optionalUrl,
 });
 
 export const updateCommentSchema = z.object({
@@ -207,6 +224,7 @@ export const userUpdateSchema = z.object({
   isActive: z.boolean(),
   locale: z.enum(EMAIL_LOCALES, 'choice'),
   weeklyDigest: z.boolean(),
+  monthlyReport: z.boolean(),
 });
 
 export const passwordResetSchema = z.object({ password: passwordSchema });
@@ -233,4 +251,82 @@ export const adminTicketMessageSchema = z.object({
 export const adminTicketUpdateSchema = z.object({
   status: z.enum(TICKET_STATUSES, 'choice'),
   priority: z.enum(TICKET_PRIORITIES, 'choice'),
+});
+
+/* Proposals. Prices are typed in euros and sent in cents. */
+
+const MAX_UNIT_PRICE_CENTS = 1_000_000_000;
+
+const proposalItemSchema = z.object({
+  description: requiredString(500),
+  quantity: z.coerce.number('number').int('number').min(1, 'number').max(10000, 'number'),
+  unitPrice: z
+    .string()
+    .trim()
+    .transform((value) =>
+      value === '' ? Number.NaN : Math.round(Number(value.replace(',', '.')) * 100),
+    )
+    .refine(
+      (cents) => Number.isFinite(cents) && cents >= 0 && cents <= MAX_UNIT_PRICE_CENTS,
+      'price',
+    ),
+});
+
+export const proposalFormSchema = z.object({
+  title: requiredString(200),
+  summary: z.string().trim().min(1, 'required').max(50000, 'tooLong'),
+  terms: z
+    .string()
+    .trim()
+    .max(20000, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+  validUntil: optionalDate,
+  projectId: z.string().transform((value) => (value === '' ? null : value)),
+  items: z.array(proposalItemSchema).min(1, 'required').max(100, 'tooLong'),
+});
+
+export const proposalCreateSchema = proposalFormSchema.extend({
+  clientId: z.string().uuid('choice'),
+});
+
+export const proposalAcceptSchema = z.object({
+  name: z.string().trim().min(2, 'required').max(200, 'tooLong'),
+  confirm: z.literal('on', 'required'),
+});
+
+export const proposalDeclineSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .max(2000, 'tooLong')
+    .transform((value) => (value === '' ? null : value)),
+});
+
+/**
+ * Time spent, typed as "1:30", "1h 30m", "1,5" (hours) or "90m" → minutes (1 minute to 24 hours).
+ * Returns null when it can't be read.
+ */
+export function parseDuration(raw: string): number | null {
+  const value = raw.trim().toLowerCase().replace(',', '.');
+  let minutes: number | null = null;
+  const clock = /^(\d{1,2}):([0-5]\d)$/.exec(value);
+  const units = /^(?:(\d{1,2}(?:\.\d+)?)\s*h)?\s*(?:(\d{1,4})\s*m(?:in)?)?$/.exec(value);
+  if (clock) minutes = Number(clock[1]) * 60 + Number(clock[2]);
+  else if (/^\d{1,2}(?:\.\d+)?$/.test(value)) minutes = Math.round(Number(value) * 60);
+  else if (units && (units[1] || units[2])) {
+    minutes = Math.round(Number(units[1] ?? 0) * 60) + Number(units[2] ?? 0);
+  }
+  return minutes !== null && minutes >= 1 && minutes <= 24 * 60 ? minutes : null;
+}
+
+export const timeEntrySchema = z.object({
+  date: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'date'),
+  minutes: z
+    .string()
+    .transform((value) => parseDuration(value))
+    .refine((value): value is number => value !== null, 'duration'),
+  description: requiredString(500),
 });

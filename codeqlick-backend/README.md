@@ -1,7 +1,8 @@
 # codeqlick-backend
 
-REST API of the Codeqlick platform: authentication, contact-form leads, blog, portfolio, client
-projects and user management. Built with NestJS 12 (ESM), Prisma 7 on PostgreSQL 18 and Zod 4.
+REST API of the Codeqlick platform: authentication, leads, blog, portfolio, client projects (and
+everything around them: updates, files, tasks, hours, briefs, reviews, access, monitoring, site
+forms), proposals, support, bookings, settings and user management. Built with NestJS 12 (ESM), Prisma 7 on PostgreSQL 18 and Zod 4.
 
 The binding design lives in [`../docs/architecture.md`](../docs/architecture.md) (sections 4 and 5).
 This README is the practical companion.
@@ -60,14 +61,25 @@ src/
   prisma/                 PrismaModule (global) + PrismaService (adapter-pg)
   modules/
     health/               GET /v1/health (Terminus, database ping)
-    auth/                 login, refresh (rotation + reuse detection), logout, me
-    users/                /v1/admin/users
-    mail/                 MailService over Nodemailer (JSON transport in tests)
-    leads/                POST /v1/leads (public, honeypot) + /v1/admin/leads
-    posts/                /v1/posts (public) + /v1/admin/posts
+    auth/                 login, refresh (rotation + reuse detection), logout, me, 2FA, sessions
+    users/                /v1/admin/users (invitations, client companies)
+    accounts/             accountOf(): the client account a person acts for
+    activity/             the activity log (/v1/admin/activity)
+    mail/                 MailService over Nodemailer (JSON transport in tests), branded layout
+    leads/                POST /v1/leads (public, honeypot) + /v1/admin/leads (board, replies, convert)
+    posts/                /v1/posts (public) + /v1/admin/posts, /v1/admin/tags
     portfolio/            /v1/portfolio (public) + /v1/admin/portfolio
-    projects/             /v1/portal/projects (CLIENT/ADMIN) + /v1/admin/projects
-    stats/                /v1/admin/stats
+    media/                /v1/media (public) + /v1/admin/media
+    projects/             /v1/portal/projects + /v1/admin/projects (updates, releases, drafts,
+                          milestones, files, release keys, weekly summary)
+    tasks/ time/ briefs/ reviews/ credentials/ monitoring/ site-forms/
+                          the rest of a project: tasks, hours and plans, brief, review, shared
+                          access, uptime, its site's contact form (/v1/forms/:key)
+    proposals/            /v1/admin/proposals + /v1/portal/proposals
+    support/              /v1/portal/tickets + /v1/admin/tickets
+    bookings/ calculator/ public call booking and cost calculator, with their admin settings
+    saved-replies/        /v1/admin/saved-replies
+    stats/                /v1/admin/stats (dashboard, Umami visits)
 prisma/                   schema.prisma, migrations/, seed.ts
 test/                     e2e tests
 ```
@@ -89,6 +101,8 @@ files that touch Prisma; `<module>.schemas.ts` holds the Zod request schemas and
   presented token, links it to its replacement (`replacedById`) and returns a new pair.
   Presenting an already-rotated token is treated as theft: every session in that family is
   revoked and the call returns 401.
+- With two-step verification on, login returns a challenge instead and `POST /v1/auth/2fa/verify`
+  finishes it.
 - `POST /v1/auth/logout` revokes the given refresh token. Deactivating a user, resetting their
   password or changing their role revokes all of their sessions.
 - `JwtAuthGuard` is global: **every route requires a token** unless it is decorated with

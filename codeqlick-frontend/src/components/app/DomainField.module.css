@@ -1,0 +1,44 @@
+.domain {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2);
+}
+
+/* Lines the button up with the input, below the label. */
+.line > button {
+  margin-top: 1.75rem;
+}
+
+.results {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.results li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.name {
+  font-family: var(--font-family-mono);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.problem {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
