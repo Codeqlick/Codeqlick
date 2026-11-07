@@ -5,6 +5,7 @@ import { Markdown } from '@/components/markdown/Markdown';
 import type { AppLocale } from '@/i18n/routing';
 import type { PublicTag } from '@/lib/api/types';
 import { formatDate } from '@/lib/format';
+import { CoverImage } from './CoverImage';
 import { TagLinks } from './TagLinks';
 
 export type PostArticleContent = {
@@ -49,12 +50,11 @@ export async function PostArticle({
         </div>
       ) : null}
       {post.coverImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img
+        <CoverImage
           src={post.coverImageUrl}
-          alt=""
           className={`${styles.cover} ${styles.hero}`}
-          fetchPriority="high"
+          variant="hero"
+          priority
         />
       ) : null}
       <div className={styles.content}>

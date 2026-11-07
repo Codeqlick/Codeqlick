@@ -15,11 +15,8 @@ export function legalMetadata(page: Page) {
   return async ({ params }: PageProps): Promise<Metadata> => {
     const locale = resolveLocale((await params).locale);
     if (!legalOwner) return { robots: { index: false, follow: false } };
-    return pageMetadata({
-      locale,
-      path: `/${page}`,
-      title: legalDocument(page, legalOwner, locale).title,
-    });
+    const { title, description } = legalDocument(page, legalOwner, locale);
+    return pageMetadata({ locale, path: `/${page}`, title, description });
   };
 }
 
