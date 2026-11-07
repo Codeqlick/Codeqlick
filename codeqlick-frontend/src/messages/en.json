@@ -3041,7 +3041,9 @@
       "backToRoom": "Back to the room",
       "interests": "Your interests",
       "interestsHint": "Pick up to {max}. They don't leave anyone out: you meet people who share them first, and your partner sees them.",
-      "interestsTooMany": "Pick at most {max} interests."
+      "interestsTooMany": "Pick at most {max} interests.",
+      "adultInterests": "+18 interests",
+      "adultInterestsHint": "Only between consenting adults. They count toward the limit of {max}."
     },
     "install": {
       "title": "Take it on your phone",
@@ -3082,7 +3084,19 @@
       "languages": "Languages",
       "nature": "Nature",
       "pets": "Pets",
-      "fashion": "Fashion"
+      "fashion": "Fashion",
+      "spicy": "Spicy chat",
+      "explicit": "Explicit content",
+      "showing": "Showing off",
+      "watching": "Watching",
+      "roleplay": "Roleplay",
+      "fetish": "Fetishes",
+      "bdsm": "BDSM",
+      "striptease": "Striptease",
+      "mutual": "Mutual pleasure",
+      "couples": "Couples",
+      "lgbtq": "LGBTQ+",
+      "nostrings": "No strings"
     }
   },
   "AdminVideochat": {

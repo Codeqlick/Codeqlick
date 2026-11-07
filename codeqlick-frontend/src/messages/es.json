@@ -3041,7 +3041,9 @@
       "backToRoom": "Volver a la sala",
       "interests": "Tus intereses",
       "interestsHint": "Elige hasta {max}. No dejan fuera a nadie: sirven para que conozcas antes a gente con gustos en común, y la otra persona los verá.",
-      "interestsTooMany": "Elige como mucho {max} intereses."
+      "interestsTooMany": "Elige como mucho {max} intereses.",
+      "adultInterests": "Intereses +18",
+      "adultInterestsHint": "Solo entre personas adultas que consienten. Cuentan para el máximo de {max}."
     },
     "install": {
       "title": "Llévalo en el móvil",
@@ -3082,7 +3084,19 @@
       "languages": "Idiomas",
       "nature": "Naturaleza",
       "pets": "Mascotas",
-      "fashion": "Moda"
+      "fashion": "Moda",
+      "spicy": "Charla picante",
+      "explicit": "Contenido explícito",
+      "showing": "Exhibirme",
+      "watching": "Mirar",
+      "roleplay": "Juegos de rol",
+      "fetish": "Fetiches",
+      "bdsm": "BDSM",
+      "striptease": "Striptease",
+      "mutual": "Placer mutuo",
+      "couples": "En pareja",
+      "lgbtq": "LGTBIQ+",
+      "nostrings": "Sin compromiso"
     }
   },
   "AdminVideochat": {
