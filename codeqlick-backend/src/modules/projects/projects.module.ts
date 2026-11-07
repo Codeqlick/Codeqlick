@@ -3,6 +3,7 @@ import { AccountsModule } from '../accounts/accounts.module.js';
 import { Module } from '@nestjs/common';
 import { AdminProjectsController } from './admin-projects.controller.js';
 import { PortalProjectsController } from './portal-projects.controller.js';
+import { PortalTodoController } from './portal-todo.controller.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import { DraftsController } from './drafts.controller.js';
 import { ReleasesController } from './releases.controller.js';
@@ -15,6 +16,7 @@ import { ProjectsService } from './projects.service.js';
   imports: [AccountsModule, ReviewsModule, SiteBuilderModule],
   controllers: [
     PortalProjectsController,
+    PortalTodoController,
     AdminProjectsController,
     ReleasesController,
     DraftsController,

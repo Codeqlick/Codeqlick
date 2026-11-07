@@ -45,7 +45,12 @@ test('the client comments on and approves an update, and the team answers', asyn
     // The client signs in, sees the project, comments and approves.
     const clientPage = await (await browser.newContext()).newPage();
     await signIn(clientPage, client);
-    await clientPage.goto(`/es/portal/projects/${projectId}`);
+    // The portal home leads with what waits on them, linked to where it is done.
+    await clientPage.goto('/es/portal');
+    await clientPage
+      .getByRole('link', { name: 'Revisar y aprobar «Propuesta de portada»' })
+      .click();
+    await expect(clientPage).toHaveURL(new RegExp(`/es/portal/projects/${projectId}#update-`));
     await expect(clientPage.getByRole('heading', { level: 1 })).toHaveText(`Tienda ${tag}`);
     await expect(clientPage.getByRole('heading', { name: 'Diseño aprobado' })).toBeVisible();
     const update = clientPage.locator('[id^="update-"]').first();
@@ -59,6 +64,11 @@ test('the client comments on and approves an update, and the team answers', asyn
     await update.getByRole('button', { name: 'Aprobar' }).click();
     await expect(update.getByText(/Aprobado por Cliente/)).toBeVisible();
     await expect(update.getByRole('button', { name: 'Aprobar' })).toHaveCount(0);
+    await clientPage.goto('/es/portal');
+    await expect(
+      clientPage.getByRole('link', { name: 'Revisar y aprobar «Propuesta de portada»' }),
+    ).toHaveCount(0);
+    await clientPage.goto(`/es/portal/projects/${projectId}`);
 
     // The team sees it in the admin panel and answers in the same thread.
     const adminContext = await browser.newContext();

@@ -636,7 +636,21 @@
     "sending": "Enviando…",
     "askSupport": "Abrir una petición",
     "releases": "Entregas",
-    "openRelease": "Abrir esta versión"
+    "openRelease": "Abrir esta versión",
+    "cardNext": "Siguiente hito: {title}",
+    "cardNextDated": "Siguiente hito: {title}, para el {date}",
+    "cardWaiting": "{count, plural, one {# cosa pendiente de ti} other {# cosas pendientes de ti}}"
+  },
+  "PortalTodo": {
+    "title": "{count, plural, one {Pendiente de ti: # cosa} other {Pendiente de ti: # cosas}}",
+    "since": "desde el {date}",
+    "kinds": {
+      "approval": "Revisar y aprobar «{title}»",
+      "proposal": "Responder a la propuesta «{title}»",
+      "ticket": "Contestar a tu petición {title}",
+      "brief": "Rellenar el cuestionario del proyecto",
+      "review": "Contarnos qué te ha parecido el proyecto"
+    }
   },
   "Admin": {
     "title": "Administración",
@@ -1724,8 +1738,6 @@
     "declineReasonHint": "Opcional, pero nos ayuda a mejorar o a prepararte otra versión.",
     "decline": "Rechazar propuesta",
     "declining": "Enviando…",
-    "pendingBanner": "Tienes una propuesta pendiente de respuesta: {title}.",
-    "pendingLink": "Ver la propuesta",
     "statuses": {
       "DRAFT": "Borrador",
       "SENT": "Enviada",
@@ -1906,9 +1918,6 @@
     "missing": "Hemos guardado lo que llevas, pero para enviarlo faltan algunas respuestas.",
     "required": "Necesitamos esta respuesta para empezar.",
     "submittedNotice": "Lo enviaste el {date}. Puedes cambiar cualquier respuesta y volver a enviarlo.",
-    "bannerTitle": "Cuéntanos tu proyecto.",
-    "bannerBody": "Unas preguntas sobre objetivos, público, funciones y marca para empezar con buen pie.",
-    "bannerLink": "Responder ahora",
     "factLabel": "Brief",
     "factLink": "Ver o editar",
     "adminTitle": "Brief del proyecto",
@@ -2120,9 +2129,6 @@
     "sending": "Enviando…",
     "thanks": "¡Muchas gracias! Nos ayuda muchísimo.",
     "alreadySent": "Ya nos enviaste tu valoración, ¡gracias! Puedes cambiarla y volver a enviarla.",
-    "bannerTitle": "¿Qué tal ha ido?",
-    "bannerBody": "Tu proyecto ya está en marcha: cuéntanos qué te ha parecido.",
-    "bannerLink": "Dejar mi valoración",
     "adminTitle": "Valoración del cliente",
     "request": "Pedir valoración al cliente",
     "publish": "Publicar en la web",

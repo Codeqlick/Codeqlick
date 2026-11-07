@@ -12,6 +12,7 @@ import type {
   User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { TodoRows } from './portal-todo.js';
 
 type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive' | 'memberOfId'>;
 export type CommentWithAuthor = ProjectUpdateComment & {
@@ -25,6 +26,7 @@ export type UpdateWithAuthor = ProjectUpdate & {
 
 export type DraftWithProject = UpdateDraft & { project: { id: string; name: string } };
 export type ProjectWithClient = ClientProject & { client: ClientRef };
+export type ProjectWithMilestones = ProjectWithClient & { milestones: ProjectMilestone[] };
 export type ProjectWithUpdates = ProjectWithClient & {
   updates: UpdateWithAuthor[];
   files: ProjectFile[];
@@ -85,10 +87,49 @@ export class ProjectsRepository {
     return { items, total };
   }
 
-  listByClient(clientId: string): Promise<ProjectWithClient[]> {
+  /** What waits on a client account (see `buildTodo`). */
+  async todoRows(clientId: string): Promise<TodoRows> {
+    const projectRef = { select: { id: true, name: true } } as const;
+    const [approvals, proposals, tickets, briefs, reviews] = await Promise.all([
+      this.prisma.projectUpdate.findMany({
+        where: { approvalRequested: true, approvedAt: null, project: { clientId } },
+        select: { id: true, title: true, createdAt: true, project: projectRef },
+        take: 50,
+      }),
+      this.prisma.proposal.findMany({
+        where: { clientId, status: 'SENT' },
+        select: {
+          id: true,
+          title: true,
+          validUntil: true,
+          sentAt: true,
+          createdAt: true,
+          project: projectRef,
+        },
+        take: 50,
+      }),
+      this.prisma.supportTicket.findMany({
+        where: { clientId, status: 'WAITING_CLIENT' },
+        select: { id: true, number: true, title: true, updatedAt: true, project: projectRef },
+        take: 50,
+      }),
+      this.prisma.projectBrief.findMany({
+        where: { status: 'REQUESTED', project: { clientId } },
+        select: { requestedAt: true, project: projectRef },
+      }),
+      this.prisma.clientReview.findMany({
+        where: { status: 'REQUESTED', project: { clientId } },
+        select: { requestedAt: true, project: projectRef },
+      }),
+    ]);
+    return { approvals, proposals, tickets, briefs, reviews };
+  }
+
+  /** A client's projects with their milestones (the portal's cards show the next one). */
+  listByClient(clientId: string): Promise<ProjectWithMilestones[]> {
     return this.prisma.clientProject.findMany({
       where: { clientId },
-      include: { client: clientSelect },
+      include: { client: clientSelect, milestones: { orderBy: { position: 'asc' } } },
       orderBy: { updatedAt: 'desc' },
     });
   }
