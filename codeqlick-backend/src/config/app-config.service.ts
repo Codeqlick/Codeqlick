@@ -180,6 +180,30 @@ export class AppConfigService {
     return this.get('UPLOADS_DIR');
   }
 
+  /** Origins allowed to open the video chat's WebSocket. */
+  get videochatOrigins(): string[] {
+    return this.get('VIDEOCHAT_ORIGINS');
+  }
+
+  /** The video chat needs a verified age (not only a declared one). */
+  get videochatAgeVerificationRequired(): boolean {
+    return this.get('VIDEOCHAT_AGE_VERIFICATION_REQUIRED');
+  }
+
+  /** A web app's public URL (architecture 6.3): the first of its allowed origins. */
+  webappUrl(app: 'videochat'): string {
+    return this.videochatOrigins[0] ?? `${this.siteUrl}`.replace('://', `://${app}.`);
+  }
+
+  /** STUN/TURN for the video chat: the URLs and coturn's shared secret (TURN needs both). */
+  get turn(): { urls: string[]; secret: string | undefined } {
+    const urls = (this.get('TURN_URLS') ?? '')
+      .split(',')
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
+    return { urls, secret: this.get('TURN_SECRET') };
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }

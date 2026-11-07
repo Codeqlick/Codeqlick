@@ -93,6 +93,12 @@ services:
       OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET:-}
       OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
       OVH_NIC_HANDLE: ${OVH_NIC_HANDLE:-}
+      # Video chat (architecture 4.7): the page allowed to open its WebSocket, coturn's shared
+      # secret and the STUN/TURN URLs browsers get. Without TURN, calls behind strict NATs fail.
+      VIDEOCHAT_ORIGINS: ${VIDEOCHAT_URL:-https://videochat.codeqlick.com}
+      VIDEOCHAT_AGE_VERIFICATION_REQUIRED: ${VIDEOCHAT_AGE_VERIFICATION_REQUIRED:-false}
+      TURN_SECRET: ${TURN_SECRET:-}
+      TURN_URLS: ${TURN_URLS:-}
     volumes:
       - uploads-data:/app/uploads
     ports:
@@ -126,6 +132,42 @@ services:
       LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
     ports:
       - "127.0.0.1:${WEB_PORT:-3010}:3000"
+
+  # STUN/TURN for the video chat (architecture 4.7): relays a call's media when the two browsers
+  # can't reach each other directly. Host network (it needs a public UDP port range); credentials
+  # are short-lived HMACs of TURN_SECRET made by the API. Firewall: 3478/udp+tcp and the range.
+  # Off until the video chat is set up: deploy/setup-videochat.sh adds COMPOSE_PROFILES=videochat
+  # to .env, so a release before that (no TURN_SECRET yet) doesn't fail.
+  coturn:
+    image: coturn/coturn:4.18.0-alpine
+    profiles: [videochat]
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --listening-port=3478
+      - --external-ip=${SITES_SERVER_IP:-}
+      - --realm=videochat.codeqlick.com
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET:-}
+      - --min-port=49160
+      - --max-port=49400
+      - --fingerprint
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --no-multicast-peers
+      # Never relay to the server itself or private networks (no SSRF through TURN).
+      - --denied-peer-ip=0.0.0.0-0.255.255.255
+      - --denied-peer-ip=10.0.0.0-10.255.255.255
+      - --denied-peer-ip=100.64.0.0-100.127.255.255
+      - --denied-peer-ip=127.0.0.0-127.255.255.255
+      - --denied-peer-ip=169.254.0.0-169.254.255.255
+      - --denied-peer-ip=172.16.0.0-172.31.255.255
+      - --denied-peer-ip=192.168.0.0-192.168.255.255
+      - --denied-peer-ip=${SITES_SERVER_IP:-127.0.0.1}
+      - --user-quota=12
+      - --total-quota=1200
+      - --log-file=stdout
 
   # Builds the managed client sites (codeqlick-sites) into /srv/codeqlick/sites/<slug>, where the
   # host's Nginx serves them. Internal only: the API calls it inside the Docker network. It runs as

@@ -15,6 +15,7 @@ export const ACTIVITY_TARGETS = [
   'proposal',
   'settings',
   'booking',
+  'videochat',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -114,6 +115,13 @@ export const ACTIVITY_ACTIONS = [
   'account.two_factor_disabled',
   'account.sessions_revoked',
   'account.registered',
+  'videochat.suspended',
+  'videochat.unsuspended',
+  'videochat.report_dismissed',
+  'videochat.appeal_accepted',
+  'videochat.appeal_rejected',
+  'videochat.age_verified',
+  'videochat.age_unverified',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

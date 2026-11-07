@@ -656,7 +656,8 @@
       "bookings": "Llamadas",
       "monitoring": "Monitorización",
       "sites": "Webs",
-      "previews": "Vistas previas"
+      "previews": "Vistas previas",
+      "videochat": "Videochat"
     },
     "dashboard": {
       "title": "Panel",
@@ -1067,7 +1068,8 @@
         "support": "Soporte",
         "proposal": "Propuestas",
         "settings": "Ajustes",
-        "booking": "Llamadas"
+        "booking": "Llamadas",
+        "videochat": "Videochat"
       },
       "actions": {
         "post": {
@@ -1185,6 +1187,15 @@
         "booking": {
           "created": "reservó una llamada (<target>{label}</target>)",
           "cancelled": "canceló la llamada de <target>{label}</target>"
+        },
+        "videochat": {
+          "suspended": "suspendió en el videochat a <target>{label}</target>",
+          "unsuspended": "levantó la suspensión en el videochat de <target>{label}</target>",
+          "report_dismissed": "descartó un reporte contra <target>{label}</target>",
+          "appeal_accepted": "aceptó la apelación de <target>{label}</target>",
+          "appeal_rejected": "rechazó la apelación de <target>{label}</target>",
+          "age_verified": "marcó como verificada la edad de <target>{label}</target>",
+          "age_unverified": "quitó la edad verificada de <target>{label}</target>"
         }
       },
       "details": {
@@ -1202,7 +1213,10 @@
         "milestone": "Hito: {value}",
         "project": "Proyecto: {value}",
         "minutes": "Tiempo: {value}",
-        "taskStatus": "Estado: {value}"
+        "taskStatus": "Estado: {value}",
+        "reason": "Motivo: {value}",
+        "until": "Hasta el {value}",
+        "untilLifted": "Hasta levantarla"
       }
     },
     "tags": {
@@ -2821,5 +2835,301 @@
     "phoneView": "Móvil",
     "previewMissing": "Preparando la vista previa…",
     "discardConfirm": "¿Descartar todos los cambios sin publicar? Tu web vuelve a lo que está publicado."
+  },
+  "Videochat": {
+    "metaTitle": "Videochat aleatorio para adultos",
+    "metaDescription": "Habla por vídeo con una persona al azar. Solo mayores de 18 años, con cuenta de Codeqlick.",
+    "brand": "videochat",
+    "homeLabel": "Inicio del videochat",
+    "adultBadge": "+18",
+    "rulesLink": "Normas",
+    "signOut": "Cerrar sesión",
+    "landing": {
+      "eyebrow": "Solo para mayores de 18 años",
+      "title": "Conoce a alguien nuevo, cara a cara.",
+      "lead": "Un clic y hablas por vídeo con una persona al azar. Si no hay química, pasas a la siguiente.",
+      "warningTitle": "Contenido para adultos",
+      "warning": "En este videochat puede aparecer contenido sexual explícito entre adultos que lo consienten. Si eres menor de 18 años o no quieres verlo, sal ahora.",
+      "enter": "Entrar al videochat",
+      "signIn": "Iniciar sesión",
+      "createAccount": "Crear cuenta",
+      "accountNote": "Crea tu cuenta aquí y confirma el email: el enlace te traerá de vuelta al videochat.",
+      "leave": "Soy menor o no quiero entrar",
+      "howTitle": "Cómo funciona",
+      "how1Title": "Entra con tu cuenta",
+      "how1": "Confirma que tienes 18 años o más y acepta las normas.",
+      "how2Title": "Activa la cámara",
+      "how2": "Te emparejamos al azar con otra persona conectada.",
+      "how3Title": "Habla o pasa",
+      "how3": "Vídeo, voz y chat de texto. «Siguiente» te lleva a otra persona.",
+      "safetyTitle": "Tu seguridad",
+      "safety1": "El vídeo va directamente de navegador a navegador: no lo grabamos.",
+      "safety2": "Bloquea a quien quieras y no volveréis a coincidir.",
+      "safety3": "Reporta lo que incumpla las normas: el equipo lo revisa.",
+      "safety4": "Nadie ve tu nombre ni tu email.",
+      "online": "{count, plural, =0 {Nadie conectado ahora mismo} one {# persona conectada ahora} other {# personas conectadas ahora}}"
+    },
+    "onboarding": {
+      "title": "Antes de empezar",
+      "lead": "Solo una vez: confirma tu edad y acepta las normas.",
+      "birthDate": "Fecha de nacimiento",
+      "birthDateHint": "Solo la usamos para comprobar que tienes 18 años o más. No la guardamos.",
+      "accept": "Tengo 18 años o más, he leído las normas y las acepto, y entiendo que puedo ver contenido sexual explícito.",
+      "readRules": "Leer las normas",
+      "submit": "Entrar",
+      "submitting": "Comprobando…",
+      "underage": "El videochat es solo para mayores de 18 años.",
+      "invalidDate": "Escribe una fecha de nacimiento válida.",
+      "mustAccept": "Tienes que aceptar las normas para entrar.",
+      "rulesChanged": "Las normas han cambiado: léelas y acéptalas de nuevo.",
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+    },
+    "suspended": {
+      "title": "Tu acceso está suspendido",
+      "body": "Tu cuenta no puede usar el videochat ahora mismo.",
+      "reason": "Motivo",
+      "noReason": "Sin indicar",
+      "until": "Hasta",
+      "untilReviewed": "Hasta que el equipo lo revise",
+      "appealTitle": "Apelación",
+      "appealLead": "Si crees que es un error, cuéntanoslo. Puedes apelar una vez por suspensión y te responderemos por email.",
+      "appealLabel": "Tu mensaje al equipo",
+      "appealSubmit": "Enviar apelación",
+      "appealSending": "Enviando…",
+      "appealLength": "Escribe entre 10 y 2000 caracteres.",
+      "appealTaken": "Ya apelaste esta suspensión.",
+      "appealError": "No se ha podido enviar. Inténtalo de nuevo.",
+      "appealSent": "Apelación enviada. Te responderemos por email.",
+      "appealStatus": {
+        "OPEN": "Recibimos tu apelación y la estamos revisando.",
+        "ACCEPTED": "Aceptamos tu apelación.",
+        "REJECTED": "Revisamos tu apelación y la suspensión se mantiene."
+      }
+    },
+    "ageVerification": {
+      "title": "Falta verificar tu edad",
+      "body": "Para usar el videochat hay que verificar la edad. Escríbenos a hello@codeqlick.com y te explicamos cómo."
+    },
+    "room": {
+      "startTitle": "¿Todo listo?",
+      "startLead": "Activa la cámara y el micrófono para empezar. Puedes apagarlos cuando quieras.",
+      "start": "Activar cámara y empezar",
+      "starting": "Conectando…",
+      "searching": "Buscando a alguien…",
+      "connecting": "Conectando con la otra persona…",
+      "connected": "En llamada",
+      "partnerLeft": "La otra persona se ha ido. Buscando a otra…",
+      "stopped": "Has parado. Pulsa «Empezar» cuando quieras.",
+      "resume": "Empezar",
+      "next": "Siguiente",
+      "stop": "Parar",
+      "report": "Reportar",
+      "block": "Bloquear",
+      "mute": "Silenciar",
+      "unmute": "Activar micro",
+      "cameraOff": "Apagar cámara",
+      "cameraOn": "Encender cámara",
+      "you": "Tú",
+      "stranger": "Otra persona",
+      "chatLabel": "Chat",
+      "chatPlaceholder": "Escribe un mensaje…",
+      "chatSend": "Enviar",
+      "chatEmpty": "Saluda: los mensajes solo se ven durante esta llamada.",
+      "chatMe": "Tú",
+      "chatThem": "Otra persona",
+      "reportTitle": "Reportar a esta persona",
+      "reportLead": "La llamada termina y no volveréis a coincidir. El equipo revisa el reporte con los últimos mensajes del chat.",
+      "reportReason": "Motivo",
+      "reportDetails": "Detalles (opcional)",
+      "reportSend": "Enviar reporte",
+      "reportCancel": "Cancelar",
+      "reported": "Gracias. Hemos recibido el reporte y no volveréis a coincidir.",
+      "blocked": "Persona bloqueada. No volveréis a coincidir.",
+      "noPartner": "Ahora mismo no hay nadie a quien reportar o bloquear.",
+      "rateLimited": "Vas muy rápido. Espera un momento.",
+      "replaced": "Has abierto el videochat en otra pestaña o dispositivo.",
+      "suspended": "Tu acceso al videochat se ha suspendido mientras el equipo revisa los reportes.",
+      "connectionLost": "Se ha perdido la conexión.",
+      "retry": "Reconectar",
+      "ticketError": "No hemos podido conectar con el videochat. Inténtalo de nuevo.",
+      "cameraDenied": "No tenemos permiso para usar la cámara o el micrófono. Actívalo en tu navegador y vuelve a intentarlo.",
+      "cameraMissing": "No encontramos cámara o micrófono en este dispositivo.",
+      "unsupported": "Tu navegador no permite videollamadas. Prueba con una versión reciente de Chrome, Firefox o Safari.",
+      "reasons": {
+        "MINOR": "Parece menor de 18 años",
+        "NON_CONSENSUAL": "Sin consentimiento o me está grabando",
+        "ILLEGAL": "Contenido ilegal",
+        "HARASSMENT": "Acoso o amenazas",
+        "HATE": "Odio o discriminación",
+        "SPAM": "Spam, estafa o publicidad",
+        "OTHER": "Otro motivo"
+      },
+      "reconnecting": "Se perdió la conexión. Reconectando…",
+      "callFailed": "No se pudo conectar con esa persona. Buscando a otra…",
+      "matchedTitle": "● ¡Nueva persona!"
+    },
+    "rules": {
+      "title": "Normas del videochat",
+      "updated": "Versión del 7 de noviembre de 2026",
+      "intro": "El videochat de Codeqlick es un servicio para adultos. Al entrar aceptas estas normas. Si las incumples, suspendemos tu acceso.",
+      "sections": [
+        {
+          "title": "1. Solo mayores de 18 años",
+          "body": "Tienes que tener 18 años o más. Si ves a alguien que parece menor, termina la llamada y repórtalo con el motivo «Parece menor de 18 años»: suspendemos su cuenta al momento mientras lo revisamos."
+        },
+        {
+          "title": "2. Contenido explícito, siempre con consentimiento",
+          "body": "Está permitido el contenido sexual explícito entre adultos que lo consienten. Nadie tiene que aguantar lo que no quiere: si la otra persona no está cómoda, respétalo y pulsa «Siguiente». Insistir, presionar o mostrar algo a quien ha dicho que no es acoso."
+        },
+        {
+          "title": "3. Prohibido",
+          "body": "Menores en cualquier forma. Grabar, capturar o difundir a otra persona sin su permiso. Publicar datos personales de otros. Acoso, amenazas, odio o discriminación. Violencia, animales o cualquier contenido ilegal. Spam, estafas, publicidad o pedir dinero. Hacerse pasar por otra persona."
+        },
+        {
+          "title": "4. Moderación",
+          "body": "Puedes bloquear a cualquiera y reportar lo que incumpla estas normas. El equipo revisa los reportes. Varios reportes de personas distintas suspenden la cuenta automáticamente hasta la revisión, y un reporte de posible menor la suspende al momento."
+        },
+        {
+          "title": "5. Privacidad",
+          "body": "El vídeo y el audio van directamente entre los dos navegadores (o a través de nuestro servidor de retransmisión, cifrados) y no se graban. Nadie ve tu nombre ni tu email. Guardamos tu cuenta, cuándo confirmaste tu edad y aceptaste estas normas, tus bloqueos y los reportes, que incluyen los últimos mensajes de texto de esa llamada. La fecha de nacimiento no se guarda."
+        },
+        {
+          "title": "6. Ten cuidado",
+          "body": "No podemos impedir que alguien grabe su pantalla con otro dispositivo. No muestres lo que no quieras que se vea fuera de la llamada y no compartas datos personales."
+        },
+        {
+          "title": "7. Contacto",
+          "body": "Para denunciar contenido, recurrir una suspensión o cualquier duda: hello@codeqlick.com."
+        }
+      ]
+    },
+    "settingsLink": "Tu perfil",
+    "genders": {
+      "WOMAN": "Mujer",
+      "MAN": "Hombre",
+      "NONBINARY": "No binario"
+    },
+    "settings": {
+      "title": "Tu perfil y filtros",
+      "lead": "Lo que ve la otra persona durante la llamada y con quién quieres coincidir. Todo es gratis.",
+      "nickname": "Apodo",
+      "nicknameHint": "De 2 a 24 caracteres. Nunca mostramos tu nombre ni tu email.",
+      "nicknameInvalid": "Usa de 2 a 24 letras, números, espacios, puntos, guiones o guiones bajos.",
+      "gender": "Género",
+      "genderNone": "Prefiero no decirlo",
+      "seeking": "Quiero conocer a",
+      "seekingHint": "Sin marcar ninguna, cualquiera. Si filtras, solo coincidirás con quien haya indicado su género.",
+      "country": "País",
+      "notSaid": "Sin indicar",
+      "sameCountryOnly": "Solo personas de mi país",
+      "language": "Idioma",
+      "sameLanguageOnly": "Solo personas que hablen mi idioma",
+      "filtersHint": "Los filtros funcionan en los dos sentidos: solo coincides con quien también te busca. Cuantos más pongas, más puedes esperar.",
+      "countryNeeded": "Elige tu país para filtrar por país.",
+      "languageNeeded": "Elige tu idioma para filtrar por idioma.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado. Se aplica en tu próxima conexión a la sala.",
+      "error": "No se ha podido guardar. Inténtalo de nuevo.",
+      "backToRoom": "Volver a la sala"
+    }
+  },
+  "AdminVideochat": {
+    "title": "Videochat",
+    "lead": "Reportes, apelaciones y suspensiones del videochat.",
+    "online": "En línea",
+    "waiting": "Esperando",
+    "calls": "En llamada",
+    "tabs": {
+      "OPEN": "Abiertos",
+      "ACTIONED": "Con medidas",
+      "DISMISSED": "Descartados"
+    },
+    "empty": "No hay reportes aquí.",
+    "reportedBy": "Reportado por",
+    "reportedUser": "Cuenta reportada",
+    "recent": "{count, plural, one {# reporte} other {# reportes}} en 30 días",
+    "suspendedBadge": "Suspendida",
+    "details": "Detalles",
+    "transcript": "Últimos mensajes",
+    "noTranscript": "Sin mensajes de texto.",
+    "fromReporter": "Quien reporta",
+    "fromReported": "Persona reportada",
+    "dismiss": "Descartar",
+    "suspend": "Suspender cuenta",
+    "reviewedBy": "Revisado por {name}",
+    "suspensionsTitle": "Cuentas suspendidas",
+    "noSuspensions": "No hay cuentas suspendidas.",
+    "lift": "Levantar suspensión",
+    "done": "Hecho.",
+    "error": "No se ha podido hacer. Inténtalo de nuevo.",
+    "reasons": {
+      "MINOR": "Parece menor de 18 años",
+      "NON_CONSENSUAL": "Sin consentimiento o me está grabando",
+      "ILLEGAL": "Contenido ilegal",
+      "HARASSMENT": "Acoso o amenazas",
+      "HATE": "Odio o discriminación",
+      "SPAM": "Spam, estafa o publicidad",
+      "OTHER": "Otro motivo"
+    },
+    "duration": "Duración",
+    "durations": {
+      "24h": "24 horas",
+      "7d": "7 días",
+      "30d": "30 días",
+      "permanent": "Hasta levantarla"
+    },
+    "until": "hasta el {date}",
+    "reasonRequired": "Indica el motivo: lo verá la persona.",
+    "appealsTitle": "Apelaciones pendientes",
+    "noAppeals": "No hay apelaciones pendientes.",
+    "appealFor": "Suspensión: {reason} · {until}",
+    "appealResponse": "Respuesta",
+    "appealAccept": "Aceptar y levantar",
+    "appealReject": "Rechazar",
+    "user": {
+      "title": "Persona del videochat",
+      "lead": "Perfil, estado e historial en el videochat.",
+      "back": "Videochat",
+      "notFound": "Esta cuenta no ha entrado en el videochat.",
+      "status": "Estado",
+      "active": "Activa",
+      "suspendedSince": "Suspendida desde el {date}",
+      "ageVerified": "Edad verificada",
+      "ageDeclared": "Edad declarada",
+      "verifyAge": "Marcar edad verificada",
+      "unverifyAge": "Quitar edad verificada",
+      "suspend": "Suspender",
+      "changeSuspension": "Cambiar la suspensión",
+      "reason": "Motivo (lo verá la persona)",
+      "profile": "Perfil",
+      "email": "Email",
+      "nickname": "Apodo",
+      "gender": "Género",
+      "seeking": "Quiere conocer a",
+      "anyone": "Cualquiera",
+      "country": "País",
+      "language": "Idioma",
+      "only": "solo",
+      "joined": "Entró al videochat",
+      "account": "Cuenta creada",
+      "sanctions": "Historial de sanciones",
+      "noSanctions": "Sin sanciones.",
+      "automatic": "Automática",
+      "kinds": {
+        "SUSPENDED": "Suspensión",
+        "LIFTED": "Levantada"
+      },
+      "appeals": "Apelaciones",
+      "noAppeals": "Sin apelaciones.",
+      "appealStatus": {
+        "OPEN": "Pendiente",
+        "ACCEPTED": "Aceptada",
+        "REJECTED": "Rechazada"
+      },
+      "reportsReceived": "Reportes recibidos",
+      "reportsMade": "Reportes que ha hecho",
+      "noReports": "Ninguno."
+    }
   }
 }

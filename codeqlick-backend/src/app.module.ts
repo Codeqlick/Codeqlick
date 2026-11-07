@@ -32,6 +32,7 @@ import { CalculatorModule } from './modules/calculator/calculator.module.js';
 import { TasksModule } from './modules/tasks/tasks.module.js';
 import { TimeModule } from './modules/time/time.module.js';
 import { UsersModule } from './modules/users/users.module.js';
+import { VideochatModule } from './modules/videochat/videochat.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -68,6 +69,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     DomainsModule,
     CredentialsModule,
     ReviewsModule,
+    VideochatModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.

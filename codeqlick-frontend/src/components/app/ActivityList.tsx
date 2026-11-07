@@ -14,6 +14,7 @@ const ADMIN_SECTIONS: Record<string, string> = {
   user: 'users',
   support: 'support',
   proposal: 'proposals',
+  videochat: 'videochat/users',
 };
 
 /** Admin page of the thing an entry is about, while it can still exist. */
@@ -91,6 +92,14 @@ export async function ActivityList({
     if ('isActive' in details)
       notes.push(details.isActive ? t('details.activated') : t('details.deactivated'));
     if (details.passwordReset) notes.push(t('details.passwordReset'));
+    if (entry.action === 'videochat.suspended') {
+      if ('reason' in details) notes.push(t('details.reason', { value: text(details.reason) }));
+      notes.push(
+        typeof details.until === 'string'
+          ? t('details.until', { value: formatDateTime(details.until, locale) })
+          : t('details.untilLifted'),
+      );
+    }
     return notes;
   }
 

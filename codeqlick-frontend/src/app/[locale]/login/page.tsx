@@ -9,7 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCurrentUser, homeForRole } from '@/lib/auth/session';
+import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
+import { homeAfterSignIn } from '@/lib/webapp-request';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { loginAction } from './actions';
@@ -35,8 +36,12 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
   const tc = await getTranslations({ locale, namespace: 'Common' });
 
   const user = await getCurrentUser();
-  if (user) redirect(homeForRole(locale, user.role));
   const query = await searchParams;
+  if (user) {
+    redirect(
+      safeNextPath(firstParam(query.next), locale) ?? (await homeAfterSignIn(locale, user.role)),
+    );
+  }
 
   return (
     <main className={styles.login}>

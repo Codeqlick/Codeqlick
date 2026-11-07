@@ -10,7 +10,8 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { signupInvitation } from '@/lib/api/auth';
-import { getCurrentUser, homeForRole } from '@/lib/auth/session';
+import { getCurrentUser } from '@/lib/auth/session';
+import { homeAfterSignIn } from '@/lib/webapp-request';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { registerAction } from './actions';
@@ -41,7 +42,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
   const tc = await getTranslations({ locale, namespace: 'Common' });
 
   const user = await getCurrentUser();
-  if (user) redirect(homeForRole(locale, user.role));
+  if (user) redirect(await homeAfterSignIn(locale, user.role));
   const query = await searchParams;
   const sent = firstParam(query.sent);
   const token = firstParam(query.invitation);

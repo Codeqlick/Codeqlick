@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Context for Claude Code working in this repository. Read `docs/architecture.md` before changing anything — it is the binding spec (structure, data model, auth, API contract v1, decisions).
+Context for anyone working in this repository. Read `docs/architecture.md` before changing anything — it is the binding spec (structure, data model, auth, API contract v1, decisions).
 
 ## Project
 
