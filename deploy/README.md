@@ -71,6 +71,36 @@ the HTTP → HTTPS redirect, and renews them automatically. Both files send `X-R
 Then check https://codeqlick.com, https://codeqlick.com/en/login and
 https://api.codeqlick.com/v1/health.
 
+### Video chat (videochat.codeqlick.com)
+
+The random video chat (architecture 4.7 and 6.3) is served by the same web and API containers;
+it needs its own host name, a TURN server and a few settings. One-time setup:
+
+1. **DNS:** an `A` record `videochat.codeqlick.com` → the server's IPv4 (`SITES_SERVER_IP`).
+2. **Settings** in `/srv/codeqlick/.env` (template in `deploy/.env.example`): `TURN_SECRET`
+   (`openssl rand -hex 32`), `TURN_URLS` (the default in the template) and, if it isn't
+   https://videochat.codeqlick.com, `VIDEOCHAT_URL`. `SITES_SERVER_IP` must be set: coturn
+   announces it.
+3. **Firewall:** open `3478/tcp`, `3478/udp` and the relay range `49160-49400/udp`
+   (`sudo ufw allow 3478 && sudo ufw allow 49160:49400/udp`, or the OVH firewall).
+4. **Nginx and TLS:**
+
+   ```bash
+   sudo cp deploy/nginx/videochat.codeqlick.com.conf /etc/nginx/sites-available/
+   sudo ln -s /etc/nginx/sites-available/videochat.codeqlick.com.conf /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d videochat.codeqlick.com
+   ```
+
+5. Deploy (the `coturn` service starts with the stack), then open
+   https://videochat.codeqlick.com, sign in, accept the rules and try a call from two devices on
+   different networks (one on mobile data checks TURN).
+
+Moderation is in Admin → Videochat. Reports of a possible minor suspend the account at once and
+email `LEADS_NOTIFY_TO`. Explicit content between adults is allowed; before opening it to the
+public, have the rules and the privacy text reviewed (Digital Services Act, age assurance). To
+require a verified age instead of a declared one, set `VIDEOCHAT_AGE_VERIFICATION_REQUIRED=true`.
+
 ## Updating
 
 ```bash

@@ -1,0 +1,340 @@
+.room {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 64rem) {
+  .room {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    grid-template-areas:
+      'stage chat'
+      'notice chat'
+      'controls chat';
+    align-items: start;
+  }
+
+  .stage {
+    grid-area: stage;
+  }
+
+  .notice,
+  .noticeError {
+    grid-area: notice;
+  }
+
+  .controls {
+    grid-area: controls;
+  }
+
+  .chat {
+    grid-area: chat;
+    height: 100%;
+    min-height: 28rem;
+  }
+}
+
+.stage {
+  position: relative;
+}
+
+.remote {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+}
+
+.local {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  width: clamp(7rem, 24%, 14rem);
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-ink-hover);
+  border: 2px solid var(--color-ink);
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.local .video {
+  transform: scaleX(-1);
+}
+
+.tag {
+  position: absolute;
+  left: var(--space-2);
+  top: var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgb(20 16 31 / 70%);
+  color: var(--color-white);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  text-align: center;
+  background: radial-gradient(circle at center, var(--color-ink-hover), var(--color-ink));
+}
+
+.startBox {
+  max-width: 26rem;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  color: var(--color-muted-on-ink);
+}
+
+.startTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.8rem;
+  margin: 0;
+  color: var(--color-white);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 1.1rem;
+  color: var(--color-muted-on-ink);
+}
+
+.spinner {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  border: 3px solid var(--color-ink-hover);
+  border-top-color: var(--color-fuchsia);
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
+
+.notice,
+.noticeError {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-ink-hover);
+  color: var(--color-white);
+}
+
+.noticeError {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.primary,
+.secondary,
+.danger {
+  min-height: 2.75rem;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+}
+
+.primary {
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--color-fuchsia-dark);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--color-white);
+  border-color: var(--color-muted-on-ink);
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--color-white);
+}
+
+.danger {
+  background: transparent;
+  color: var(--color-fuchsia-light);
+  border-color: var(--color-fuchsia-light);
+}
+
+.danger:hover:not(:disabled) {
+  background: rgb(255 125 190 / 12%);
+}
+
+.primary:disabled,
+.secondary:disabled,
+.danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible,
+.danger:focus-visible,
+.chatInput:focus-visible,
+.select:focus-visible {
+  outline: 3px solid var(--color-fuchsia-light);
+  outline-offset: 2px;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-ink-hover);
+  border-radius: var(--radius-lg);
+  min-height: 16rem;
+  max-height: 32rem;
+  overflow: hidden;
+}
+
+.chatLog {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+}
+
+.chatEmpty {
+  color: var(--color-muted-on-ink);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.lineMe,
+.lineThem {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  max-width: 90%;
+  overflow-wrap: anywhere;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.lineMe {
+  justify-self: end;
+  background: var(--color-fuchsia);
+}
+
+.lineThem {
+  justify-self: start;
+  background: var(--color-ink-hover);
+}
+
+.lineWho {
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.chatForm {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-ink-hover);
+}
+
+.chatInput,
+.select {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-line-strong);
+  font: inherit;
+  background: var(--color-white);
+  color: var(--color-ink);
+}
+
+.dialog {
+  max-width: 28rem;
+  width: calc(100% - 2 * var(--gutter));
+  border: 0;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  color: var(--color-ink);
+}
+
+.dialog::backdrop {
+  background: rgb(20 16 31 / 70%);
+}
+
+.dialogForm {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dialogForm textarea {
+  padding: var(--space-2) var(--space-3);
+}
+
+.dialogTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.dialog .secondary {
+  color: var(--color-ink);
+  border-color: var(--color-line-strong);
+}
+
+.dialog .danger {
+  color: var(--color-white);
+  background: var(--color-fuchsia);
+  border-color: var(--color-fuchsia);
+}

@@ -1,6 +1,7 @@
 /**
- * Next.js 16 proxy (formerly middleware): next-intl locale routing + token refresh + route
- * protection for /{locale}/portal and /{locale}/admin. The refresh/forwarding mechanics are
+ * Next.js 16 proxy (formerly middleware): web apps on their subdomains (`src/lib/webapps.ts`),
+ * next-intl locale routing + token refresh + route protection for /{locale}/portal,
+ * /{locale}/admin and /{locale}/videochat/room. The refresh/forwarding mechanics are
  * documented and implemented in `src/lib/auth/refresh.ts`.
  */
 import createMiddleware from 'next-intl/middleware';
@@ -19,11 +20,27 @@ import {
   setTokenCookies,
   withForwardedRequestHeaders,
 } from './lib/auth/refresh';
+import { routeWebapp } from './lib/webapps';
 
 const handleI18nRouting = createMiddleware(routing);
 
 export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+
+  // Behind Nginx the request URL says http://localhost; the Host header is the visitor's.
+  const host = request.headers.get('host') ?? request.nextUrl.host;
+  const protocol =
+    request.headers.get('x-forwarded-proto') === 'https' ? 'https:' : request.nextUrl.protocol;
+  const webapp = routeWebapp(pathname, host, protocol);
+  if (webapp.action === 'redirect') {
+    if (webapp.to.startsWith('/')) {
+      return NextResponse.redirect(new URL(webapp.to, `${protocol}//${host}`));
+    }
+    const target = new URL(webapp.to);
+    target.search = search;
+    return NextResponse.redirect(target);
+  }
+
   const locale = protectedPathLocale(pathname);
 
   // Public pages: locale routing only.

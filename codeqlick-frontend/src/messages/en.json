@@ -656,7 +656,8 @@
       "bookings": "Calls",
       "monitoring": "Monitoring",
       "sites": "Websites",
-      "previews": "Previews"
+      "previews": "Previews",
+      "videochat": "Video chat"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -2821,5 +2822,190 @@
     "phoneView": "Phone",
     "previewMissing": "Preparing the preview…",
     "discardConfirm": "Discard every unpublished change? Your website goes back to what is published."
+  },
+  "Videochat": {
+    "metaTitle": "Random video chat for adults",
+    "metaDescription": "Talk by video with a random person. Adults only (18+), with a Codeqlick account.",
+    "brand": "videochat",
+    "homeLabel": "Video chat home",
+    "adultBadge": "18+",
+    "rulesLink": "Rules",
+    "signOut": "Sign out",
+    "landing": {
+      "eyebrow": "Adults only (18+)",
+      "title": "Meet someone new, face to face.",
+      "lead": "One click and you're on video with a random person. No spark? Move on to the next one.",
+      "warningTitle": "Adult content",
+      "warning": "Explicit sexual content between consenting adults may appear in this video chat. If you are under 18 or don't want to see it, leave now.",
+      "enter": "Enter the video chat",
+      "signIn": "Sign in",
+      "createAccount": "Create an account",
+      "accountNote": "You need a Codeqlick account with a confirmed email. If you sign up, confirm your email and come back here to sign in.",
+      "leave": "I'm under 18 or don't want to enter",
+      "howTitle": "How it works",
+      "how1Title": "Sign in",
+      "how1": "Confirm you are 18 or older and accept the rules.",
+      "how2Title": "Turn on your camera",
+      "how2": "We pair you at random with someone else online.",
+      "how3Title": "Talk or skip",
+      "how3": "Video, voice and text chat. “Next” takes you to someone else.",
+      "safetyTitle": "Your safety",
+      "safety1": "Video goes straight from browser to browser: we don't record it.",
+      "safety2": "Block anyone and you'll never be paired again.",
+      "safety3": "Report anything that breaks the rules: the team reviews it.",
+      "safety4": "Nobody sees your name or email."
+    },
+    "onboarding": {
+      "title": "Before you start",
+      "lead": "Just once: confirm your age and accept the rules.",
+      "birthDate": "Date of birth",
+      "birthDateHint": "Only used to check you are 18 or older. We don't store it.",
+      "accept": "I am 18 or older, I have read and accept the rules, and I understand I may see explicit sexual content.",
+      "readRules": "Read the rules",
+      "submit": "Enter",
+      "submitting": "Checking…",
+      "underage": "The video chat is for people aged 18 or older only.",
+      "invalidDate": "Enter a valid date of birth.",
+      "mustAccept": "You have to accept the rules to enter.",
+      "rulesChanged": "The rules changed: read and accept them again.",
+      "error": "We couldn't save it. Try again."
+    },
+    "suspended": {
+      "title": "Your access is suspended",
+      "body": "Your account was reported and the team is reviewing it. If you think it's a mistake, write to hello@codeqlick.com."
+    },
+    "ageVerification": {
+      "title": "Your age needs to be verified",
+      "body": "The video chat requires a verified age. Write to hello@codeqlick.com and we'll explain how."
+    },
+    "room": {
+      "startTitle": "Ready?",
+      "startLead": "Turn on your camera and microphone to start. You can switch them off at any time.",
+      "start": "Turn on camera and start",
+      "starting": "Connecting…",
+      "searching": "Looking for someone…",
+      "connecting": "Connecting to them…",
+      "connected": "Connected",
+      "partnerLeft": "They left. Looking for someone else…",
+      "stopped": "You stopped. Press “Start” whenever you want.",
+      "resume": "Start",
+      "next": "Next",
+      "stop": "Stop",
+      "report": "Report",
+      "block": "Block",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "cameraOff": "Camera off",
+      "cameraOn": "Camera on",
+      "you": "You",
+      "stranger": "Stranger",
+      "chatLabel": "Chat",
+      "chatPlaceholder": "Type a message…",
+      "chatSend": "Send",
+      "chatEmpty": "Say hi: messages only show during this call.",
+      "chatMe": "You",
+      "chatThem": "Stranger",
+      "reportTitle": "Report this person",
+      "reportLead": "The call ends and you won't be paired again. The team reviews the report with the last chat messages.",
+      "reportReason": "Reason",
+      "reportDetails": "Details (optional)",
+      "reportSend": "Send report",
+      "reportCancel": "Cancel",
+      "reported": "Thanks. We got your report and you won't be paired again.",
+      "blocked": "Blocked. You won't be paired again.",
+      "noPartner": "There's nobody to report or block right now.",
+      "rateLimited": "You're going too fast. Wait a moment.",
+      "replaced": "You opened the video chat in another tab or device.",
+      "suspended": "Your video chat access was suspended while the team reviews the reports.",
+      "connectionLost": "The connection was lost.",
+      "retry": "Reconnect",
+      "ticketError": "We couldn't connect to the video chat. Try again.",
+      "cameraDenied": "We don't have permission to use your camera or microphone. Allow it in your browser and try again.",
+      "cameraMissing": "No camera or microphone was found on this device.",
+      "unsupported": "Your browser doesn't support video calls. Try a recent Chrome, Firefox or Safari.",
+      "reasons": {
+        "MINOR": "Looks under 18",
+        "NON_CONSENSUAL": "No consent, or recording me",
+        "ILLEGAL": "Illegal content",
+        "HARASSMENT": "Harassment or threats",
+        "HATE": "Hate or discrimination",
+        "SPAM": "Spam, scam or advertising",
+        "OTHER": "Something else"
+      }
+    },
+    "rules": {
+      "title": "Video chat rules",
+      "updated": "Version of 7 November 2026",
+      "intro": "Codeqlick's video chat is an adult service. By entering you accept these rules. If you break them, we suspend your access.",
+      "sections": [
+        {
+          "title": "1. Adults only (18+)",
+          "body": "You must be 18 or older. If someone looks under 18, end the call and report them with “Looks under 18”: we suspend their account at once while we review it."
+        },
+        {
+          "title": "2. Explicit content, always with consent",
+          "body": "Explicit sexual content between consenting adults is allowed. Nobody has to put up with what they don't want: if the other person isn't comfortable, respect it and press “Next”. Insisting, pressuring or showing something to someone who said no is harassment."
+        },
+        {
+          "title": "3. Not allowed",
+          "body": "Minors in any form. Recording, capturing or sharing another person without their permission. Posting other people's personal data. Harassment, threats, hate or discrimination. Violence, animals or anything illegal. Spam, scams, advertising or asking for money. Pretending to be someone else."
+        },
+        {
+          "title": "4. Moderation",
+          "body": "You can block anyone and report anything that breaks these rules. The team reviews reports. Several reports from different people suspend the account automatically until it's reviewed, and a report of a possible minor suspends it at once."
+        },
+        {
+          "title": "5. Privacy",
+          "body": "Video and audio go straight between the two browsers (or encrypted through our relay server) and are never recorded. Nobody sees your name or email. We keep your account, when you confirmed your age and accepted these rules, your blocks, and reports, which include the last text messages of that call. Your date of birth is not stored."
+        },
+        {
+          "title": "6. Be careful",
+          "body": "We can't stop someone from filming their screen with another device. Don't show what you don't want seen outside the call, and don't share personal details."
+        },
+        {
+          "title": "7. Contact",
+          "body": "To report content, appeal a suspension or ask anything: hello@codeqlick.com."
+        }
+      ]
+    }
+  },
+  "AdminVideochat": {
+    "title": "Video chat",
+    "lead": "Video chat reports and suspensions.",
+    "online": "Online",
+    "waiting": "Waiting",
+    "calls": "In a call",
+    "tabs": {
+      "OPEN": "Open",
+      "ACTIONED": "Acted on",
+      "DISMISSED": "Dismissed"
+    },
+    "empty": "No reports here.",
+    "reportedBy": "Reported by",
+    "reportedUser": "Reported account",
+    "recent": "{count, plural, one {# report} other {# reports}} in 30 days",
+    "suspendedBadge": "Suspended",
+    "details": "Details",
+    "transcript": "Last messages",
+    "noTranscript": "No text messages.",
+    "fromReporter": "Reporter",
+    "fromReported": "Reported",
+    "dismiss": "Dismiss",
+    "suspend": "Suspend account",
+    "reviewedBy": "Reviewed by {name}",
+    "suspensionsTitle": "Suspended accounts",
+    "noSuspensions": "No suspended accounts.",
+    "lift": "Lift suspension",
+    "done": "Done.",
+    "error": "It couldn't be done. Try again.",
+    "reasons": {
+      "MINOR": "Looks under 18",
+      "NON_CONSENSUAL": "No consent, or recording me",
+      "ILLEGAL": "Illegal content",
+      "HARASSMENT": "Harassment or threats",
+      "HATE": "Hate or discrimination",
+      "SPAM": "Spam, scam or advertising",
+      "OTHER": "Something else"
+    }
   }
 }

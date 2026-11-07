@@ -48,13 +48,24 @@ const nextConfig: NextConfig = {
     return [
       {
         // Not the drafts' previews (/site-draft): sandboxed, their origin is opaque, and a
-        // same-origin frame rule would keep them out of the editor's iframe.
-        source: '/:path((?!site-draft/).*)',
+        // same-origin frame rule would keep them out of the editor's iframe. Not the video chat's
+        // room either: it gets the same headers below, with the camera and microphone allowed.
+        source: '/:path((?!site-draft/|(?:en|es)/videochat/room).*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          ...productionHeaders,
+        ],
+      },
+      {
+        source: '/:locale(en|es)/videochat/room',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=()' },
           ...productionHeaders,
         ],
       },

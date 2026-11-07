@@ -656,7 +656,8 @@
       "bookings": "Llamadas",
       "monitoring": "Monitorización",
       "sites": "Webs",
-      "previews": "Vistas previas"
+      "previews": "Vistas previas",
+      "videochat": "Videochat"
     },
     "dashboard": {
       "title": "Panel",
@@ -2821,5 +2822,190 @@
     "phoneView": "Móvil",
     "previewMissing": "Preparando la vista previa…",
     "discardConfirm": "¿Descartar todos los cambios sin publicar? Tu web vuelve a lo que está publicado."
+  },
+  "Videochat": {
+    "metaTitle": "Videochat aleatorio para adultos",
+    "metaDescription": "Habla por vídeo con una persona al azar. Solo mayores de 18 años, con cuenta de Codeqlick.",
+    "brand": "videochat",
+    "homeLabel": "Inicio del videochat",
+    "adultBadge": "+18",
+    "rulesLink": "Normas",
+    "signOut": "Cerrar sesión",
+    "landing": {
+      "eyebrow": "Solo para mayores de 18 años",
+      "title": "Conoce a alguien nuevo, cara a cara.",
+      "lead": "Un clic y hablas por vídeo con una persona al azar. Si no hay química, pasas a la siguiente.",
+      "warningTitle": "Contenido para adultos",
+      "warning": "En este videochat puede aparecer contenido sexual explícito entre adultos que lo consienten. Si eres menor de 18 años o no quieres verlo, sal ahora.",
+      "enter": "Entrar al videochat",
+      "signIn": "Iniciar sesión",
+      "createAccount": "Crear cuenta",
+      "accountNote": "Necesitas una cuenta de Codeqlick con el email confirmado. Si te registras, confirma el email y vuelve aquí para iniciar sesión.",
+      "leave": "Soy menor o no quiero entrar",
+      "howTitle": "Cómo funciona",
+      "how1Title": "Entra con tu cuenta",
+      "how1": "Confirma que tienes 18 años o más y acepta las normas.",
+      "how2Title": "Activa la cámara",
+      "how2": "Te emparejamos al azar con otra persona conectada.",
+      "how3Title": "Habla o pasa",
+      "how3": "Vídeo, voz y chat de texto. «Siguiente» te lleva a otra persona.",
+      "safetyTitle": "Tu seguridad",
+      "safety1": "El vídeo va directamente de navegador a navegador: no lo grabamos.",
+      "safety2": "Bloquea a quien quieras y no volveréis a coincidir.",
+      "safety3": "Reporta lo que incumpla las normas: el equipo lo revisa.",
+      "safety4": "Nadie ve tu nombre ni tu email."
+    },
+    "onboarding": {
+      "title": "Antes de empezar",
+      "lead": "Solo una vez: confirma tu edad y acepta las normas.",
+      "birthDate": "Fecha de nacimiento",
+      "birthDateHint": "Solo la usamos para comprobar que tienes 18 años o más. No la guardamos.",
+      "accept": "Tengo 18 años o más, he leído las normas y las acepto, y entiendo que puedo ver contenido sexual explícito.",
+      "readRules": "Leer las normas",
+      "submit": "Entrar",
+      "submitting": "Comprobando…",
+      "underage": "El videochat es solo para mayores de 18 años.",
+      "invalidDate": "Escribe una fecha de nacimiento válida.",
+      "mustAccept": "Tienes que aceptar las normas para entrar.",
+      "rulesChanged": "Las normas han cambiado: léelas y acéptalas de nuevo.",
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+    },
+    "suspended": {
+      "title": "Tu acceso está suspendido",
+      "body": "Tu cuenta ha recibido reportes y el equipo la está revisando. Si crees que es un error, escríbenos a hello@codeqlick.com."
+    },
+    "ageVerification": {
+      "title": "Falta verificar tu edad",
+      "body": "Para usar el videochat hay que verificar la edad. Escríbenos a hello@codeqlick.com y te explicamos cómo."
+    },
+    "room": {
+      "startTitle": "¿Todo listo?",
+      "startLead": "Activa la cámara y el micrófono para empezar. Puedes apagarlos cuando quieras.",
+      "start": "Activar cámara y empezar",
+      "starting": "Conectando…",
+      "searching": "Buscando a alguien…",
+      "connecting": "Conectando con la otra persona…",
+      "connected": "En llamada",
+      "partnerLeft": "La otra persona se ha ido. Buscando a otra…",
+      "stopped": "Has parado. Pulsa «Empezar» cuando quieras.",
+      "resume": "Empezar",
+      "next": "Siguiente",
+      "stop": "Parar",
+      "report": "Reportar",
+      "block": "Bloquear",
+      "mute": "Silenciar",
+      "unmute": "Activar micro",
+      "cameraOff": "Apagar cámara",
+      "cameraOn": "Encender cámara",
+      "you": "Tú",
+      "stranger": "Otra persona",
+      "chatLabel": "Chat",
+      "chatPlaceholder": "Escribe un mensaje…",
+      "chatSend": "Enviar",
+      "chatEmpty": "Saluda: los mensajes solo se ven durante esta llamada.",
+      "chatMe": "Tú",
+      "chatThem": "Otra persona",
+      "reportTitle": "Reportar a esta persona",
+      "reportLead": "La llamada termina y no volveréis a coincidir. El equipo revisa el reporte con los últimos mensajes del chat.",
+      "reportReason": "Motivo",
+      "reportDetails": "Detalles (opcional)",
+      "reportSend": "Enviar reporte",
+      "reportCancel": "Cancelar",
+      "reported": "Gracias. Hemos recibido el reporte y no volveréis a coincidir.",
+      "blocked": "Persona bloqueada. No volveréis a coincidir.",
+      "noPartner": "Ahora mismo no hay nadie a quien reportar o bloquear.",
+      "rateLimited": "Vas muy rápido. Espera un momento.",
+      "replaced": "Has abierto el videochat en otra pestaña o dispositivo.",
+      "suspended": "Tu acceso al videochat se ha suspendido mientras el equipo revisa los reportes.",
+      "connectionLost": "Se ha perdido la conexión.",
+      "retry": "Reconectar",
+      "ticketError": "No hemos podido conectar con el videochat. Inténtalo de nuevo.",
+      "cameraDenied": "No tenemos permiso para usar la cámara o el micrófono. Actívalo en tu navegador y vuelve a intentarlo.",
+      "cameraMissing": "No encontramos cámara o micrófono en este dispositivo.",
+      "unsupported": "Tu navegador no permite videollamadas. Prueba con una versión reciente de Chrome, Firefox o Safari.",
+      "reasons": {
+        "MINOR": "Parece menor de 18 años",
+        "NON_CONSENSUAL": "Sin consentimiento o me está grabando",
+        "ILLEGAL": "Contenido ilegal",
+        "HARASSMENT": "Acoso o amenazas",
+        "HATE": "Odio o discriminación",
+        "SPAM": "Spam, estafa o publicidad",
+        "OTHER": "Otro motivo"
+      }
+    },
+    "rules": {
+      "title": "Normas del videochat",
+      "updated": "Versión del 7 de noviembre de 2026",
+      "intro": "El videochat de Codeqlick es un servicio para adultos. Al entrar aceptas estas normas. Si las incumples, suspendemos tu acceso.",
+      "sections": [
+        {
+          "title": "1. Solo mayores de 18 años",
+          "body": "Tienes que tener 18 años o más. Si ves a alguien que parece menor, termina la llamada y repórtalo con el motivo «Parece menor de 18 años»: suspendemos su cuenta al momento mientras lo revisamos."
+        },
+        {
+          "title": "2. Contenido explícito, siempre con consentimiento",
+          "body": "Está permitido el contenido sexual explícito entre adultos que lo consienten. Nadie tiene que aguantar lo que no quiere: si la otra persona no está cómoda, respétalo y pulsa «Siguiente». Insistir, presionar o mostrar algo a quien ha dicho que no es acoso."
+        },
+        {
+          "title": "3. Prohibido",
+          "body": "Menores en cualquier forma. Grabar, capturar o difundir a otra persona sin su permiso. Publicar datos personales de otros. Acoso, amenazas, odio o discriminación. Violencia, animales o cualquier contenido ilegal. Spam, estafas, publicidad o pedir dinero. Hacerse pasar por otra persona."
+        },
+        {
+          "title": "4. Moderación",
+          "body": "Puedes bloquear a cualquiera y reportar lo que incumpla estas normas. El equipo revisa los reportes. Varios reportes de personas distintas suspenden la cuenta automáticamente hasta la revisión, y un reporte de posible menor la suspende al momento."
+        },
+        {
+          "title": "5. Privacidad",
+          "body": "El vídeo y el audio van directamente entre los dos navegadores (o a través de nuestro servidor de retransmisión, cifrados) y no se graban. Nadie ve tu nombre ni tu email. Guardamos tu cuenta, cuándo confirmaste tu edad y aceptaste estas normas, tus bloqueos y los reportes, que incluyen los últimos mensajes de texto de esa llamada. La fecha de nacimiento no se guarda."
+        },
+        {
+          "title": "6. Ten cuidado",
+          "body": "No podemos impedir que alguien grabe su pantalla con otro dispositivo. No muestres lo que no quieras que se vea fuera de la llamada y no compartas datos personales."
+        },
+        {
+          "title": "7. Contacto",
+          "body": "Para denunciar contenido, recurrir una suspensión o cualquier duda: hello@codeqlick.com."
+        }
+      ]
+    }
+  },
+  "AdminVideochat": {
+    "title": "Videochat",
+    "lead": "Reportes y suspensiones del videochat.",
+    "online": "En línea",
+    "waiting": "Esperando",
+    "calls": "En llamada",
+    "tabs": {
+      "OPEN": "Abiertos",
+      "ACTIONED": "Con medidas",
+      "DISMISSED": "Descartados"
+    },
+    "empty": "No hay reportes aquí.",
+    "reportedBy": "Reportado por",
+    "reportedUser": "Cuenta reportada",
+    "recent": "{count, plural, one {# reporte} other {# reportes}} en 30 días",
+    "suspendedBadge": "Suspendida",
+    "details": "Detalles",
+    "transcript": "Últimos mensajes",
+    "noTranscript": "Sin mensajes de texto.",
+    "fromReporter": "Quien reporta",
+    "fromReported": "Persona reportada",
+    "dismiss": "Descartar",
+    "suspend": "Suspender cuenta",
+    "reviewedBy": "Revisado por {name}",
+    "suspensionsTitle": "Cuentas suspendidas",
+    "noSuspensions": "No hay cuentas suspendidas.",
+    "lift": "Levantar suspensión",
+    "done": "Hecho.",
+    "error": "No se ha podido hacer. Inténtalo de nuevo.",
+    "reasons": {
+      "MINOR": "Parece menor de 18 años",
+      "NON_CONSENSUAL": "Sin consentimiento o me está grabando",
+      "ILLEGAL": "Contenido ilegal",
+      "HARASSMENT": "Acoso o amenazas",
+      "HATE": "Odio o discriminación",
+      "SPAM": "Spam, estafa o publicidad",
+      "OTHER": "Otro motivo"
+    }
   }
 }
