@@ -71,6 +71,9 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
           <p>
             <Link href="/forgot-password">{t('forgot')}</Link>
           </p>
+          <p>
+            {t('noAccount')} <Link href="/register">{t('register')}</Link>
+          </p>
         </Card>
         <Link href="/" className={styles.back}>
           ← {t('backToSite')}

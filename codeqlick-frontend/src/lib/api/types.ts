@@ -174,7 +174,12 @@ export type ProjectUpdate = {
   approvedAt: string | null;
   approvedBy: { name: string } | null;
   comments: UpdateComment[];
+  /** Set on releases: the version, where it went and its address. */
+  release: { version: string; environment: ReleaseEnvironment; url: string | null } | null;
 };
+
+export const RELEASE_ENVIRONMENTS = ['STAGING', 'PRODUCTION'] as const;
+export type ReleaseEnvironment = (typeof RELEASE_ENVIRONMENTS)[number];
 
 export type ProjectMilestone = {
   id: string;
@@ -208,6 +213,13 @@ export type ClientProject = {
   dueDate: string | null;
   stagingUrl: string | null;
   productionUrl: string | null;
+  /** The client sees the hours logged on it. */
+  showHours: boolean;
+  /** When the current release key (for deploy pipelines) was made; null without one. */
+  releaseKeyCreatedAt: string | null;
+  /** The watched domain and its expiry (`yyyy-mm-dd`). */
+  domainName?: string | null;
+  domainExpiresAt?: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdate[];
   files?: ProjectFile[];
@@ -226,6 +238,7 @@ export type ProjectInput = {
   dueDate?: string | null;
   stagingUrl?: string | null;
   productionUrl?: string | null;
+  showHours?: boolean;
 };
 
 /** The sales process: first contact, talking, discovery call, proposal, then won or lost. */
@@ -246,9 +259,12 @@ export type LeadStatus = (typeof LEAD_STATUSES)[number];
 export type Lead = {
   id: string;
   name: string;
-  email: string;
+  /** Null only for a prospect the team added without one. */
+  email: string | null;
   company: string | null;
   budget: string | null;
+  /** What they need (PROJECT_TYPES); older leads have a budget instead. */
+  projectType: string | null;
   message: string;
   locale: Locale;
   status: LeadStatus;
@@ -258,8 +274,76 @@ export type Lead = {
   followUpOn: string | null;
   /** The client account it became ("Convert to client"). */
   clientId: string | null;
+  /** From the basic-website request form (or a prospect): the style and business details. */
+  siteRequest: SiteRequest | null;
+  /** The request's instant preview, when one was made. */
+  preview: {
+    url: string;
+    status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
+    builtAt: string | null;
+    /** When the requester was asked what they think of it (once, a few days after). */
+    followUpAt: string | null;
+  } | null;
+  /** The proposal drafted from the request ("Preparar propuesta"). */
+  proposalId: string | null;
+  /** Added by the team (a prospect): never emailed automatically. */
+  prospect: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/** A basic-website request as a lead keeps it (and the team edits it). */
+export type SiteRequest = {
+  preset: string;
+  business: {
+    name: string;
+    kind: string;
+    city: string;
+    address?: string;
+    phone?: string;
+    whatsapp?: string;
+    email?: string;
+    hours?: string;
+    services?: string;
+    about?: string;
+    wishes?: string;
+  };
+  domain?: { name: string; owned: boolean };
+};
+
+/** A row of Admin → Vistas previas. */
+export type PreviewListItem = {
+  leadId: string;
+  name: string;
+  email: string | null;
+  business: string | null;
+  preset: string | null;
+  slug: string;
+  url: string;
+  status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED' | null;
+  builtAt: string | null;
+  createdAt: string;
+  prospect: boolean;
+  /** Bought online (decision 20). */
+  purchased: boolean;
+};
+
+/** A request's preview bought online (architecture 8.2, decision 20), on the lead page. */
+export type SitePurchase = {
+  id: string;
+  status: 'PENDING' | 'PAID' | 'EXPIRED';
+  business: string | null;
+  siteUrl: string | null;
+  delayed: boolean;
+  stripeSessionId: string;
+  amountCents: number;
+  currency: string;
+  email: string | null;
+  paidAt: string | null;
+  projectId: string | null;
+  stripeInvoiceId: string | null;
+  error: string | null;
+  createdAt: string;
 };
 
 /** An email answer sent to a lead from the admin panel. */
@@ -276,6 +360,7 @@ export type LeadInput = {
   email: string;
   company?: string;
   budget?: string;
+  projectType?: string;
   message: string;
   locale: Locale;
   website?: string;
@@ -284,14 +369,22 @@ export type LeadInput = {
 /** `locale`: language of the emails the platform sends the user. */
 export type AdminUser = AuthUser & {
   isActive: boolean;
+  /** A person of a client company: the company's main client account. */
+  memberOfId: string | null;
   locale: 'en' | 'es';
   /** Clients: the Monday summary of their projects. */
   weeklyDigest: boolean;
+  /** Clients: the monthly report of their managed website. */
+  monthlyReport: boolean;
+  /** False for a client account the team prepared that its owner hasn't made theirs yet. */
+  registered: boolean;
   createdAt: string;
+  /** What hangs from the account (`GET /admin/users/:id` only). */
+  owns?: { projects: number; members: number; proposals: number; tickets: number };
 };
 
 /** `GET /auth/preferences`: the caller's email preferences. */
-export type Preferences = { weeklyDigest: boolean };
+export type Preferences = { weeklyDigest: boolean; monthlyReport: boolean };
 
 /** Without `password`, the user is emailed a link to choose one. `locale`: language of their emails. */
 export type UserInput = {
@@ -300,6 +393,8 @@ export type UserInput = {
   password?: string;
   role: Role;
   locale: 'en' | 'es';
+  /** A person of a client company: the company's main client account. */
+  memberOfId?: string;
 };
 
 /** `invitationSent` is only there when a welcome email was due (no password given). */
@@ -312,6 +407,7 @@ export type UserPatch = {
   role?: Role;
   locale?: 'en' | 'es';
   weeklyDigest?: boolean;
+  monthlyReport?: boolean;
 };
 
 export type AdminStats = {
@@ -327,6 +423,12 @@ export type AdminStats = {
   clients: number;
   /** Support requests not resolved or closed yet. */
   support: { active: number };
+  /** Proposals sent and waiting for the client's answer. */
+  proposals: { sent: number };
+  /** Draft updates waiting for the team's review. */
+  drafts: { pending: number };
+  /** Calls booked from the website, still to happen. */
+  bookings: { upcoming: number };
 };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
@@ -357,7 +459,8 @@ export type ProblemDetails = {
 export type UploadedMedia = { filename: string; contentType: string; size: number };
 
 /** Content that uses an uploaded image, as a cover or inside its Markdown. */
-export type MediaUsage = { type: 'post' | 'portfolio'; id: string; slug: string };
+/** For a managed site, `id` is its project's. */
+export type MediaUsage = { type: 'post' | 'portfolio' | 'site'; id: string; slug: string };
 
 /** One row of `GET /admin/media`. */
 export type MediaItem = UploadedMedia & { createdAt: string; usedBy: MediaUsage[] };
@@ -395,6 +498,9 @@ export const ACTIVITY_TARGETS = [
   'media',
   'tag',
   'support',
+  'proposal',
+  'settings',
+  'booking',
   'account',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
@@ -473,4 +579,341 @@ export type TicketMessage = {
 
 export type TicketFile = ProjectFile & { author: { name: string; team: boolean } };
 
-export type TicketDetail = Ticket & { messages: TicketMessage[]; files: TicketFile[] };
+export type TicketDetail = Ticket & {
+  messages: TicketMessage[];
+  files: TicketFile[];
+  /** Project tasks made from the request. */
+  tasks: { id: string; title: string; status: TaskStatus; project: { id: string; name: string } }[];
+};
+
+export const PROPOSAL_STATUSES = ['DRAFT', 'SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'] as const;
+export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
+
+/** A line of a proposal; amounts in cents. */
+export type ProposalItem = {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+};
+
+/** A proposal or quote (`/portal/proposals`, `/admin/proposals`); amounts in cents. */
+export type Proposal = {
+  id: string;
+  number: number;
+  title: string;
+  summary: string;
+  terms: string | null;
+  currency: string;
+  validUntil: string | null;
+  status: ProposalStatus;
+  /** Sent and past its last valid day: it can't be accepted any more. */
+  expired: boolean;
+  sentAt: string | null;
+  respondedAt: string | null;
+  acceptedName: string | null;
+  declineReason: string | null;
+  client: { id: string; name: string; email: string };
+  project: { id: string; name: string } | null;
+  items: ProposalItem[];
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ProposalInput = {
+  title: string;
+  summary: string;
+  terms: string | null;
+  validUntil: string | null;
+  projectId: string | null;
+  items: { description: string; quantity: number; unitPrice: number }[];
+};
+
+/** Time logged on a client project (`/admin/projects/:id/time`). */
+export type TimeEntry = {
+  id: string;
+  /** `yyyy-mm-dd`. */
+  date: string;
+  minutes: number;
+  description: string;
+  author: { name: string };
+  project: { id: string; name: string; client: { id: string; name: string } };
+};
+
+/** A project's hours: total, per month (newest first) and the entries (newest first). */
+export type ProjectTime = {
+  totalMinutes: number;
+  months: { month: string; minutes: number }[];
+  entries: TimeEntry[];
+};
+
+/** Every project's hours in one month (`/admin/time`). */
+export type MonthTime = {
+  month: string;
+  totalMinutes: number;
+  projects: { id: string; name: string; client: { id: string; name: string }; minutes: number }[];
+  entries: TimeEntry[];
+};
+
+/** An update sent with a project's release key, waiting for the team's review. */
+export type UpdateDraft = {
+  id: string;
+  project: { id: string; name: string };
+  title: string;
+  body: string;
+  version: string | null;
+  environment: ReleaseEnvironment | null;
+  url: string | null;
+  createdAt: string;
+};
+
+export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE'] as const;
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+/** Work on a client project (`/admin/projects/:id/tasks`); open first, done last. */
+export type ProjectTask = {
+  id: string;
+  title: string;
+  /** For the team; absent in the client's view. */
+  description?: string | null;
+  status: TaskStatus;
+  /** The support request it came from. */
+  ticket: { id: string; number: number } | null;
+  doneAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** The contact form of a client's static site, relayed by the API to the client's inbox. */
+export type SiteForm = {
+  enabled: boolean;
+  /** Public: it goes in the site's HTML. */
+  key: string;
+  recipients: string[];
+  /** Origins the form accepts posts from (the project's production and staging URLs). */
+  origins: string[];
+  submissions: number;
+  lastSubmissionAt: string | null;
+};
+
+/** Uptime monitoring of a client project's production site. */
+export type SiteMonitor = {
+  projectId: string;
+  project: string;
+  client: string;
+  url: string | null;
+  enabled: boolean;
+  status: 'UNKNOWN' | 'UP' | 'DOWN';
+  statusSince: string;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  certExpiresAt: string | null;
+  /** 0–1 over the last 30 days, or null without checks. */
+  uptime30: number | null;
+  /** The last 30 Madrid days, oldest first. */
+  days: { day: string; checks: number; ratio: number | null }[];
+};
+
+/** Access a client shared for a project (never with its secret). */
+export type SharedAccess = {
+  id: string;
+  label: string;
+  url: string | null;
+  username: string | null;
+  createdBy: { name: string };
+  createdAt: string;
+  /** When the team last opened it. */
+  viewedAt: string | null;
+};
+
+/** The client's review of a project (`/portal/projects/:id/review`). */
+export type ClientReview = {
+  /** NONE: not asked for. */
+  status: 'NONE' | 'REQUESTED' | 'SUBMITTED' | 'PUBLISHED' | 'HIDDEN';
+  rating: number | null;
+  quote: string | null;
+  authorName: string | null;
+  authorRole: string | null;
+  consent: boolean;
+  locale: 'en' | 'es';
+  submittedAt: string | null;
+  publishedAt: string | null;
+};
+
+/** A published review, as the website shows it. */
+export type PublicReview = Testimonial & { rating: number };
+
+/** A project's monthly hour allowance and this month's use. */
+export type MaintenancePlan = {
+  active: boolean;
+  name: string;
+  monthlyMinutes: number;
+  alertPercent: number;
+  /** `yyyy-mm` (Madrid). */
+  month: string;
+  usedMinutes: number;
+  remainingMinutes: number;
+  /** Whole percent; can pass 100. */
+  percent: number;
+  /** The last 4 months, newest first. */
+  months: { month: string; minutes: number }[];
+};
+
+export type PlanSummary = {
+  project: { id: string; name: string };
+  client: { id: string; name: string };
+  name: string;
+  monthlyMinutes: number;
+  usedMinutes: number;
+  percent: number;
+};
+
+/** A starting point for new proposals (amounts in cents). */
+export type ProposalTemplate = {
+  id: string;
+  name: string;
+  title: string;
+  summary: string;
+  terms: string | null;
+  /** Days a proposal made from it stays open. */
+  validDays: number | null;
+  items: { description: string; quantity: number; unitPrice: number }[];
+  updatedAt: string;
+};
+
+/** A basic website built from the platform's content (architecture 8.2). */
+export type ManagedSite = {
+  projectId: string;
+  project: { id: string; name: string };
+  client: { id: string; name: string };
+  slug: string;
+  preset: string;
+  domain: string | null;
+  /** Where the domain stands; null without one or before its first check (architecture 8.2). */
+  domainState: SiteDomainState | null;
+  domainCheckedAt: string | null;
+  /** Where the domain's email goes (its MX records); null without a registered domain. */
+  mailState: SiteMailState | null;
+  previewUrl: string;
+  /** The domain once it serves the site, the preview until then. */
+  url: string;
+  status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
+  lastBuildAt: string | null;
+  lastBuildError: string | null;
+  release: string | null;
+  /** The template's `Site` object without url, form and demo. */
+  content: Record<string, unknown>;
+  updatedAt: string;
+};
+
+export const SITE_DOMAIN_STATES = ['UNREGISTERED', 'ELSEWHERE', 'LIVE'] as const;
+export type SiteDomainState = (typeof SITE_DOMAIN_STATES)[number];
+export type SiteMailState = 'NONE' | 'OVH' | 'OTHER';
+
+/** Whether a domain is free (architecture 8.2); null when nobody says. */
+export type DomainAvailability = { domain: string; available: boolean | null };
+
+export type ManagedSiteRevision = {
+  id: string;
+  createdAt: string;
+  author: { name: string } | null;
+};
+
+export const SITE_PRESETS = [
+  'peluqueria',
+  'restaurante',
+  'fisioterapia',
+  'portfolio',
+  'despacho',
+  'comercio',
+  'reformas',
+  'general',
+] as const;
+
+/** The part of a managed site its client edits (architecture 8.2). */
+export type EditableSite = {
+  tagline?: string;
+  contact: {
+    phone?: string;
+    whatsapp?: string;
+    email?: string;
+    address?: { street: string; postalCode?: string; city: string; region: string };
+    mapsUrl?: string;
+    /** The business's "write a review" link on Google. */
+    reviewUrl?: string;
+  };
+  hours?: { days: string; hours: string }[];
+  hero: { title: string; text: string };
+  services?: {
+    title: string;
+    intro?: string;
+    items: { name: string; description?: string; price?: string }[];
+    note?: string;
+  };
+  about?: { title: string; paragraphs: string[] };
+  gallery?: { title: string; intro?: string; images: { file: string; alt: string }[] };
+  testimonials?: { title: string; items: { quote: string; author: string; detail?: string }[] };
+};
+
+export type PortalSite = {
+  status: 'NONE' | 'BUILDING' | 'LIVE' | 'FAILED';
+  /** The demo it started from; its photos are in public/presets/<preset>/. */
+  preset: string;
+  url: string;
+  previewUrl: string;
+  domain: {
+    name: string | null;
+    state: SiteDomainState | null;
+    checkedAt: string | null;
+    mail: SiteMailState | null;
+    /** The team's OVH ID, to make the technical contact; and the server IP for other registrars. */
+    nicHandle: string | null;
+    serverIp: string | null;
+  };
+  lastBuildAt: string | null;
+  /** The business's name and the site's main colours (the review poster). */
+  businessName: string;
+  colors: { primary: string; primaryText: string };
+  editable: EditableSite;
+};
+
+/** Visits of a managed client site, with its form's messages (architecture 8.2). */
+export type ProjectVisits = {
+  enabled: boolean;
+  available: boolean;
+  days: number;
+  visitors: number;
+  pageviews: number;
+  messages: number;
+  daily: { date: string; visitors: number; pageviews: number; messages: number }[];
+  referrers: { source: string; visitors: number }[];
+};
+
+/** A project's domain renewal (architecture 8.2). */
+export type ProjectDomain = {
+  name: string | null;
+  source: 'RDAP' | 'MANUAL' | 'OVH';
+  expiresAt: string | null;
+  daysLeft: number | null;
+  checkedAt: string | null;
+};
+
+/** The website editor (`GET /portal/projects/:id/site/draft`, architecture 8.2). */
+export type SiteEditorView = {
+  /** The whole content: the draft's, or the published one without a draft. */
+  content: { [key: string]: unknown };
+  preset: string;
+  presets: Array<{
+    key: string;
+    theme: { primary: string; background: string; text: string; headingFont: string };
+  }>;
+  published: { content: { [key: string]: unknown }; preset: string };
+  draft: {
+    updatedAt: string;
+    previewUrl: string;
+    previewStatus: 'READY' | 'FAILED' | 'MISSING';
+    previewError?: string;
+  } | null;
+};

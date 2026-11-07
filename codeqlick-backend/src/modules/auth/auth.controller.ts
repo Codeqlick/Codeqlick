@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -18,7 +19,9 @@ import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppRequest } from '../../common/types/request.js';
 import {
+  acceptInvitationSchema,
   changePasswordSchema,
+  confirmSignupSchema,
   confirmPasswordResetSchema,
   disableTwoFactorSchema,
   enableTwoFactorSchema,
@@ -26,9 +29,12 @@ import {
   logoutSchema,
   preferencesSchema,
   refreshSchema,
+  registerSchema,
   requestPasswordResetSchema,
   verifyTwoFactorSchema,
+  type AcceptInvitationInput,
   type ChangePasswordInput,
+  type ConfirmSignupInput,
   type ConfirmPasswordResetInput,
   type DisableTwoFactorInput,
   type EnableTwoFactorInput,
@@ -36,6 +42,7 @@ import {
   type LogoutInput,
   type PreferencesInput,
   type RefreshInput,
+  type RegisterInput,
   type RequestPasswordResetInput,
   type VerifyTwoFactorInput,
 } from './auth.schemas.js';
@@ -51,6 +58,7 @@ import {
 } from './auth.service.js';
 
 const STRICT_LIMIT = { default: { limit: 5, ttl: 60_000 } };
+const SIGNUP_LIMIT = { default: { limit: 3, ttl: 60_000 } };
 
 function clientInfo(request: AppRequest): ClientInfo {
   const userAgent = request.headers['user-agent'];
@@ -82,6 +90,49 @@ export class AuthController {
     @Req() request: AppRequest,
   ): Promise<AuthTokens> {
     return this.auth.refresh(body.refreshToken, clientInfo(request));
+  }
+
+  /** Self-registration (decision 17): always 202, whether or not the email has an account. */
+  @Public()
+  @Throttle(SIGNUP_LIMIT)
+  @Post('register')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async register(@Body({ schema: registerSchema }) body: RegisterInput): Promise<void> {
+    await this.auth.register(body);
+  }
+
+  /** The link of the confirmation email: creates the account and signs in. */
+  @Public()
+  @Throttle(STRICT_LIMIT)
+  @Post('register/confirm')
+  @HttpCode(HttpStatus.OK)
+  confirmSignup(
+    @Body({ schema: confirmSignupSchema }) body: ConfirmSignupInput,
+    @Req() request: AppRequest,
+  ): Promise<AuthTokens> {
+    return this.auth.confirmSignup(body.token, clientInfo(request));
+  }
+
+  /** Who the team's invitation is for, to fill in the sign-up form. */
+  @Public()
+  @Throttle(STRICT_LIMIT)
+  @Get('register/invitation')
+  invitation(
+    @Query({ schema: confirmSignupSchema }) query: ConfirmSignupInput,
+  ): Promise<{ email: string; name: string }> {
+    return this.auth.invitation(query.token);
+  }
+
+  /** Accepts the team's invitation: the account is theirs and they are signed in. */
+  @Public()
+  @Throttle(STRICT_LIMIT)
+  @Post('register/invitation')
+  @HttpCode(HttpStatus.OK)
+  acceptInvitation(
+    @Body({ schema: acceptInvitationSchema }) body: AcceptInvitationInput,
+    @Req() request: AppRequest,
+  ): Promise<AuthTokens> {
+    return this.auth.acceptInvitation(body, clientInfo(request));
   }
 
   /** Always 202, whether or not the email belongs to an account. */

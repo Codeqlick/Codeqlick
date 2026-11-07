@@ -23,6 +23,7 @@ export type AttachmentWithUploader = TicketAttachment & {
 export type TicketDetailRow = TicketSummaryRow & {
   messages: MessageWithAuthor[];
   files: AttachmentWithUploader[];
+  tasks: { id: string; title: string; status: string; project: { id: string; name: string } }[];
 };
 
 const personSelect = {
@@ -43,6 +44,10 @@ const detailInclude = {
   project: projectSelect,
   messages: messagesInclude,
   files: filesInclude,
+  tasks: {
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, title: true, status: true, project: { select: { id: true, name: true } } },
+  },
 } as const;
 
 const OPEN_STATUSES: TicketStatus[] = ['OPEN', 'IN_PROGRESS', 'WAITING_CLIENT'];
@@ -87,18 +92,19 @@ export class SupportRepository {
     });
   }
 
-  /** Opens a request with its description as the first message. */
+  /** Opens a request with its description as the first message, by `authorId`. */
   create(data: {
     clientId: string;
+    authorId: string;
     projectId: string | null;
     type: TicketType;
     priority: TicketPriority;
     title: string;
     body: string;
   }): Promise<TicketDetailRow> {
-    const { body, ...ticket } = data;
+    const { body, authorId, ...ticket } = data;
     return this.prisma.supportTicket.create({
-      data: { ...ticket, messages: { create: { authorId: data.clientId, body } } },
+      data: { ...ticket, messages: { create: { authorId, body } } },
       include: detailInclude,
     });
   }

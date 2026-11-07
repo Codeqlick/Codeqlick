@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
 import { adminListLeads } from '@/lib/api/leads';
 import { LOST_REASONS, type LeadStatus } from '@/lib/api/types';
-import { BUDGET_VALUES } from '@/lib/contact-options';
+import { BUDGET_VALUES, PROJECT_TYPES } from '@/lib/contact-options';
 import { moveLeadAction } from './actions';
 
 /** The sales process; spam stays in the list only. */
@@ -23,6 +23,7 @@ export default async function LeadBoardPage({ params }: { params: Promise<{ loca
   const t = await getTranslations({ locale, namespace: 'Admin.leads' });
   const ts = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tb = await getTranslations({ locale, namespace: 'Contact.budgets' });
+  const tpt = await getTranslations({ locale, namespace: 'Contact.projectTypes' });
   const tr = await getTranslations({ locale, namespace: 'LostReasons' });
 
   // The 50 most recent per column; the header says when there are more.
@@ -55,6 +56,7 @@ export default async function LeadBoardPage({ params }: { params: Promise<{ loca
             string
           >,
           budgets: Object.fromEntries(BUDGET_VALUES.map((value) => [value, tb(value)])),
+          projectTypes: Object.fromEntries(PROJECT_TYPES.map((value) => [value, tpt(value)])),
           hints: Object.fromEntries(COLUMNS.map((status) => [status, t(`boardHints.${status}`)])),
           lostReasons: Object.fromEntries(LOST_REASONS.map((reason) => [reason, tr(reason)])),
           lostWithoutReason: t('lostWithoutReason'),

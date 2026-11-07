@@ -7,11 +7,13 @@ import type {
   ProjectMilestone,
   ProjectUpdate,
   ProjectUpdateComment,
+  ReleaseEnvironment,
+  UpdateDraft,
   User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive'>;
+type ClientRef = Pick<User, 'id' | 'name' | 'email' | 'locale' | 'isActive' | 'memberOfId'>;
 export type CommentWithAuthor = ProjectUpdateComment & {
   author: Pick<User, 'name' | 'role'> | null;
 };
@@ -21,6 +23,7 @@ export type UpdateWithAuthor = ProjectUpdate & {
   comments: CommentWithAuthor[];
 };
 
+export type DraftWithProject = UpdateDraft & { project: { id: string; name: string } };
 export type ProjectWithClient = ClientProject & { client: ClientRef };
 export type ProjectWithUpdates = ProjectWithClient & {
   updates: UpdateWithAuthor[];
@@ -29,7 +32,8 @@ export type ProjectWithUpdates = ProjectWithClient & {
 };
 
 const clientSelect = {
-  select: { id: true, name: true, email: true, locale: true, isActive: true },
+  // memberOfId: people of a client company see its account's projects (weekly summary included).
+  select: { id: true, name: true, email: true, locale: true, isActive: true, memberOfId: true },
 } as const;
 const commentInclude = { author: { select: { name: true, role: true } } } as const;
 const updateInclude = {
@@ -111,6 +115,15 @@ export class ProjectsRepository {
     });
   }
 
+  /** The slug of the project's managed site, if it has one. */
+  async siteSlugOf(projectId: string): Promise<string | null> {
+    const site = await this.prisma.managedSite.findUnique({
+      where: { projectId },
+      select: { slug: true },
+    });
+    return site?.slug ?? null;
+  }
+
   async delete(id: string): Promise<void> {
     await this.prisma.clientProject.delete({ where: { id } });
   }
@@ -136,20 +149,44 @@ export class ProjectsRepository {
   }
 
   /** Adds a progress update and bumps the project's updatedAt. */
+  /**
+   * Posts an update (a release when `release` is given) and bumps the project's updatedAt; a
+   * release with a URL also becomes the project's staging or production address.
+   */
   async addUpdate(
     projectId: string,
-    authorId: string,
+    authorId: string | null,
     title: string,
     body: string,
     approvalRequested: boolean,
+    release?: { version: string; environment: ReleaseEnvironment; url: string | null },
   ): Promise<UpdateWithAuthor> {
     return this.prisma.$transaction(async (tx) => {
       const update = await tx.projectUpdate.create({
-        data: { projectId, authorId, title, body, approvalRequested },
+        data: { projectId, authorId, title, body, approvalRequested, ...release },
         include: updateInclude,
       });
-      await tx.clientProject.update({ where: { id: projectId }, data: { updatedAt: new Date() } });
+      const project: Prisma.ClientProjectUpdateInput = { updatedAt: new Date() };
+      if (release?.url) {
+        if (release.environment === 'PRODUCTION') project.productionUrl = release.url;
+        else project.stagingUrl = release.url;
+      }
+      await tx.clientProject.update({ where: { id: projectId }, data: project });
       return update;
+    });
+  }
+
+  findByReleaseTokenHash(hash: string): Promise<ProjectWithUpdates | null> {
+    return this.prisma.clientProject.findUnique({
+      where: { releaseTokenHash: hash },
+      include: detailInclude,
+    });
+  }
+
+  async setReleaseToken(id: string, hash: string | null): Promise<void> {
+    await this.prisma.clientProject.update({
+      where: { id },
+      data: { releaseTokenHash: hash, releaseTokenCreatedAt: hash ? new Date() : null },
     });
   }
 
@@ -242,6 +279,27 @@ export class ProjectsRepository {
     });
   }
 
+  createDraft(data: Prisma.UpdateDraftUncheckedCreateInput): Promise<UpdateDraft> {
+    return this.prisma.updateDraft.create({ data });
+  }
+
+  /** Drafts waiting for review, oldest first; all projects' when `projectId` is left out. */
+  listDrafts(projectId?: string): Promise<DraftWithProject[]> {
+    return this.prisma.updateDraft.findMany({
+      where: projectId ? { projectId } : {},
+      orderBy: { createdAt: 'asc' },
+      include: { project: { select: { id: true, name: true } } },
+    });
+  }
+
+  findDraft(projectId: string, draftId: string): Promise<UpdateDraft | null> {
+    return this.prisma.updateDraft.findFirst({ where: { id: draftId, projectId } });
+  }
+
+  async deleteDraft(id: string): Promise<void> {
+    await this.prisma.updateDraft.delete({ where: { id } });
+  }
+
   /** Active clients who want the summary and haven't had this week's one. */
   listDigestRecipients(weekStart: Date): Promise<ClientRef[]> {
     return this.prisma.user.findMany({
@@ -249,6 +307,8 @@ export class ProjectsRepository {
         role: 'CLIENT',
         isActive: true,
         weeklyDigest: true,
+        // Not someone who hasn't made the account theirs yet (decision 17).
+        registeredAt: { not: null },
         OR: [{ lastDigestAt: null }, { lastDigestAt: { lt: weekStart } }],
       },
       select: clientSelect.select,

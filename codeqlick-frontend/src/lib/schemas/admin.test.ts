@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { milestoneSchema, portfolioFormSchema, projectFormSchema } from './admin';
+import { milestoneSchema, parseDuration, portfolioFormSchema, projectFormSchema } from './admin';
 
 const issues = (result: {
   success: boolean;
@@ -116,5 +116,25 @@ describe('projectFormSchema', () => {
     expect(projectFormSchema.safeParse(project('40')).data?.progress).toBe(40);
     expect(issues(projectFormSchema.safeParse(project('101')))).toEqual({ progress: 'progress' });
     expect(issues(projectFormSchema.safeParse(project('-1')))).toEqual({ progress: 'progress' });
+  });
+});
+
+describe('parseDuration', () => {
+  it('reads the usual ways of typing time spent', () => {
+    expect(parseDuration('1:30')).toBe(90);
+    expect(parseDuration('1,5')).toBe(90);
+    expect(parseDuration('2')).toBe(120);
+    expect(parseDuration('1h 30m')).toBe(90);
+    expect(parseDuration('45m')).toBe(45);
+    expect(parseDuration('45 min')).toBe(45);
+    expect(parseDuration('3h')).toBe(180);
+  });
+
+  it('refuses nothing, nonsense and more than a day', () => {
+    expect(parseDuration('')).toBeNull();
+    expect(parseDuration('0')).toBeNull();
+    expect(parseDuration('abc')).toBeNull();
+    expect(parseDuration('25')).toBeNull();
+    expect(parseDuration('1:75')).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
+import { ProjectHours } from '@/components/app/ProjectHours';
 import { nextMilestone, ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
 import { Markdown } from '@/components/markdown/Markdown';
@@ -12,6 +13,24 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMyProject } from '@/lib/api/projects';
+import { getMyProjectTime } from '@/lib/api/time';
+import { listMyProjectTasks } from '@/lib/api/tasks';
+import { getMyBrief } from '@/lib/api/briefs';
+import { getMyProjectStatus } from '@/lib/api/monitoring';
+import { listAccess } from '@/lib/api/credentials';
+import { getMyReview } from '@/lib/api/reviews';
+import { getMySite, getProjectVisits } from '@/lib/api/portal-site';
+import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
+import { getMyPlan } from '@/lib/api/plans';
+import { PlanUsage } from '@/components/app/PlanUsage';
+import { SharedAccessList } from '@/components/app/SharedAccessList';
+import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { deleteAccessAction, shareAccessAction } from '../access-actions';
+import { SiteStatus } from '@/components/app/SiteStatus';
+import { Alert } from '@/components/ui/Alert';
+import { Link } from '@/i18n/navigation';
+import { ProjectTasks } from '@/components/app/ProjectTasks';
 import type { ClientProject } from '@/lib/api/types';
 import { getCurrentUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
@@ -36,7 +55,36 @@ export default async function PortalProjectPage({
   }
 
   const user = await getCurrentUser();
+  const th = await getTranslations({ locale, namespace: 'Hours' });
+  const tt = await getTranslations({ locale, namespace: 'Tasks' });
+  // Optional: the project page works without it.
+  const tasks = await listMyProjectTasks(project.id).catch(() => []);
+  const brief = await getMyBrief(project.id).catch(() => undefined);
+  // Only when the team monitors the site (404 otherwise).
+  const siteStatus = await getMyProjectStatus(project.id).catch(() => undefined);
+  const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
+  const access = await listAccess(project.id).catch(() => []);
+  const review = await getMyReview(project.id).catch(() => undefined);
+  // Only with an active maintenance plan (404 otherwise).
+  const plan = await getMyPlan(project.id).catch(() => undefined);
+  // Only for a managed website (404 otherwise).
+  const site = await getMySite(project.id).catch(() => undefined);
+  const visits = site ? await getProjectVisits(project.id).catch(() => undefined) : undefined;
+  const tvis = await getTranslations({ locale, namespace: 'ProjectVisits' });
+  const tdomain = await getTranslations({ locale, namespace: 'Domain' });
+  const tsite = await getTranslations({ locale, namespace: 'PortalSite' });
+  const tpl = await getTranslations({ locale, namespace: 'Plans' });
+  const trev = await getTranslations({ locale, namespace: 'Review' });
+  const tac = await getTranslations({ locale, namespace: 'Access' });
+  const tco = await getTranslations({ locale, namespace: 'Common' });
+  const tbr = await getTranslations({ locale, namespace: 'Brief' });
+  // Optional: the project page works without it.
+  const time = project.showHours
+    ? await getMyProjectTime(project.id).catch(() => undefined)
+    : undefined;
   const milestones = project.milestones ?? [];
+  const releases = (project.updates ?? []).filter((update) => update.release);
+  const te = await getTranslations({ locale, namespace: 'ReleaseEnvironments' });
   const next = nextMilestone(milestones);
 
   return (
@@ -51,8 +99,66 @@ export default async function PortalProjectPage({
         }
       />
 
+      {review?.status === 'REQUESTED' ? (
+        <Alert tone="info">
+          <strong>{trev('bannerTitle')}</strong> {trev('bannerBody')}{' '}
+          <Link href={`/portal/projects/${project.id}/review`}>{trev('bannerLink')}</Link>
+        </Alert>
+      ) : null}
+
+      {brief?.status === 'REQUESTED' ? (
+        <Alert tone="info">
+          <strong>{tbr('bannerTitle')}</strong> {tbr('bannerBody')}{' '}
+          <Link href={`/portal/projects/${project.id}/brief`}>{tbr('bannerLink')}</Link>
+        </Alert>
+      ) : null}
+
+      {site ? (
+        <section className={styles.panel} id="site" aria-labelledby="site-heading">
+          <h2 id="site-heading" className={styles.panelTitle}>
+            {tsite('cardTitle')}
+          </h2>
+          <p className={styles.muted}>{tsite('cardBody')}</p>
+          <p>
+            <a href={site.url} target="_blank" rel="noopener noreferrer">
+              {site.url}
+            </a>
+          </p>
+          <div className={styles.actions}>
+            <Button href={`/portal/projects/${project.id}/site`} size="sm">
+              {tsite('cardLink')}
+            </Button>
+            <Button
+              href={`/portal/projects/${project.id}/site/reviews`}
+              variant="outline"
+              size="sm"
+            >
+              {tsite('cardReviews')}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {visits ? (
+        <section className={styles.panel} id="visits" aria-labelledby="visits-heading">
+          <h2 id="visits-heading" className={styles.panelTitle}>
+            {tvis('title')}
+          </h2>
+          <p className={styles.muted}>{tvis('lead')}</p>
+          <ProjectVisitsPanel visits={visits} locale={locale} />
+        </section>
+      ) : null}
+
       <section className={styles.panel}>
         <dl className={styles.facts}>
+          {brief?.status === 'SUBMITTED' ? (
+            <div>
+              <dt>{tbr('factLabel')}</dt>
+              <dd>
+                <Link href={`/portal/projects/${project.id}/brief`}>{tbr('factLink')}</Link>
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('phase')}</dt>
             <dd>
@@ -74,6 +180,17 @@ export default async function PortalProjectPage({
               <dt>{t('nextMilestone')}</dt>
               <dd>
                 <a href="#milestones">{next.title}</a>
+              </dd>
+            </div>
+          ) : null}
+          {project.domainName && project.domainExpiresAt ? (
+            <div>
+              <dt>{tdomain('portalLabel')}</dt>
+              <dd>
+                {tdomain('portalExpires', {
+                  name: project.domainName,
+                  date: formatDate(project.domainExpiresAt, locale),
+                })}
               </dd>
             </div>
           ) : null}
@@ -108,6 +225,50 @@ export default async function PortalProjectPage({
         </dl>
       </section>
 
+      {releases.length > 0 ? (
+        <section className={styles.panel} aria-labelledby="releases-heading">
+          <h2 id="releases-heading" className={styles.panelTitle}>
+            {t('releases')}
+          </h2>
+          <ul className={styles.files}>
+            {releases.slice(0, 5).map((update) => (
+              <li key={update.id} className={styles.fileRow}>
+                <div className={styles.fileInfo}>
+                  <a href={`#update-${update.id}`} className={styles.fileName}>
+                    {update.release!.version} — {update.title}
+                  </a>
+                  <span className={styles.muted}>
+                    {te(update.release!.environment)} · {formatDate(update.createdAt, locale)}
+                  </span>
+                </div>
+                {update.release!.url ? (
+                  <a href={update.release!.url} target="_blank" rel="noopener noreferrer">
+                    {t('openRelease')}
+                    <span className="visually-hidden"> {update.release!.version}</span>
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {plan ? (
+        <section className={styles.panel} id="plan">
+          <h2 className={styles.panelTitle}>{tpl('clientTitle')}</h2>
+          <p className={styles.muted}>{tpl('clientLead')}</p>
+          <PlanUsage plan={plan} locale={locale} />
+        </section>
+      ) : null}
+
+      {siteStatus ? (
+        <section className={styles.panel} id="status">
+          <h2 className={styles.panelTitle}>{tmon('clientTitle')}</h2>
+          <p className={styles.muted}>{tmon('clientLead', { url: siteStatus.url ?? '' })}</p>
+          <SiteStatus monitor={siteStatus} locale={locale} />
+        </section>
+      ) : null}
+
       {project.description ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('about')}</h2>
@@ -133,6 +294,93 @@ export default async function PortalProjectPage({
           />
         </section>
       ) : null}
+
+      {tasks.length > 0 ? (
+        <section className={styles.panel} id="tasks">
+          <h2 className={styles.panelTitle}>{tt('clientTitle')}</h2>
+          <p className={styles.muted}>{tt('clientLead')}</p>
+          <ProjectTasks
+            items={tasks}
+            locale={locale}
+            empty=""
+            doneLimit={5}
+            ticketHref={(ticketId) => `/${locale}/portal/support/${ticketId}`}
+          />
+        </section>
+      ) : null}
+
+      {time ? (
+        <section className={styles.panel} id="time">
+          <h2 className={styles.panelTitle}>{th('clientTitle')}</h2>
+          <ProjectHours time={time} locale={locale} empty={th('clientEmpty')} />
+        </section>
+      ) : null}
+
+      <section className={styles.panel} id="access" aria-labelledby="access-heading">
+        <h2 id="access-heading" className={styles.panelTitle}>
+          {tac('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{tac('lead')}</p>
+          <SharedAccessList
+            items={access}
+            locale={locale}
+            deleteAction={(id) => deleteAccessAction.bind(null, locale, project.id, id)}
+          />
+          <details className={styles.commentForm}>
+            <summary>{tac('add')}</summary>
+            <ActionForm
+              key={access.length}
+              action={shareAccessAction.bind(null, locale, project.id)}
+              className={styles.form}
+            >
+              <FormInput
+                id="access-label"
+                name="label"
+                label={tac('label')}
+                hint={tac('labelHint')}
+                maxLength={120}
+                required
+              />
+              <div className={styles.row}>
+                <FormInput
+                  id="access-url"
+                  name="url"
+                  type="url"
+                  label={tac('url')}
+                  optionalLabel={tco('optional')}
+                />
+                <FormInput
+                  id="access-username"
+                  name="username"
+                  label={tac('username')}
+                  optionalLabel={tco('optional')}
+                  autoComplete="off"
+                />
+              </div>
+              <FormInput
+                id="access-secret"
+                name="secret"
+                type="password"
+                label={tac('secret')}
+                hint={tac('secretHint')}
+                autoComplete="new-password"
+                required
+              />
+              <FormTextarea
+                id="access-notes"
+                name="notes"
+                label={tac('notes')}
+                optionalLabel={tco('optional')}
+                rows={2}
+              />
+              <div className={styles.actions}>
+                <SubmitButton pendingLabel={tac('sharing')}>{tac('share')}</SubmitButton>
+              </div>
+            </ActionForm>
+          </details>
+        </div>
+      </section>
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('updates')}</h2>

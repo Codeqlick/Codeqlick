@@ -199,14 +199,17 @@ export async function revokeOtherSessionsAction(
   return { status: 'success', message: t('signedOutOthers') };
 }
 
-/** The caller's email preferences (clients: the weekly summary). */
+/** The caller's email preferences (clients: the weekly summary and the monthly website report). */
 export async function updatePreferencesAction(
   locale: AppLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
   try {
-    await updatePreferences({ weeklyDigest: formBoolean(formData, 'weeklyDigest') });
+    await updatePreferences({
+      weeklyDigest: formBoolean(formData, 'weeklyDigest'),
+      monthlyReport: formBoolean(formData, 'monthlyReport'),
+    });
   } catch (error) {
     if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
     const tc = await getTranslations({ locale, namespace: 'Common' });

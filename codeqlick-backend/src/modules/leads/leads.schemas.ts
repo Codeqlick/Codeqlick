@@ -33,7 +33,10 @@ export const createLeadSchema = z
     name: z.string().trim().min(1).max(120),
     email: z.email().max(254),
     company: optionalText(160),
+    /** Left from the old form (cached pages may still send it). */
     budget: optionalText(80),
+    /** What they need: web, custom, mobile, design, support or not-sure. */
+    projectType: optionalText(40),
     message: z.string().trim().min(10).max(5000),
     locale: localeSchema,
     /** Honeypot: humans never see this field, bots fill it in. */
@@ -56,6 +59,10 @@ export const updateLeadSchema = z
     lostReason: lostReasonSchema.nullable().optional(),
     /** `yyyy-mm-dd`; null clears it. */
     followUpOn: z.iso.date().nullable().optional(),
+    /** The contact details, corrected by the team; only a prospect's email may be cleared. */
+    name: z.string().trim().min(1).max(120).optional(),
+    email: z.email().max(254).nullable().optional(),
+    company: z.string().trim().max(160).nullable().optional(),
   })
   .strict();
 export type UpdateLeadInput = z.infer<typeof updateLeadSchema>;

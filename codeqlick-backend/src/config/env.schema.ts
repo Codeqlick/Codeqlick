@@ -30,6 +30,8 @@ export const envSchema = z.object({
     .default('http://localhost:3000')
     .transform((value) => value.replace(/\/+$/, '')),
   JWT_ACCESS_SECRET: z.string().min(32),
+  /** Encrypts the access clients share (project credentials). Unset: derived from JWT_ACCESS_SECRET. */
+  CREDENTIALS_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   SMTP_HOST: z.string().min(1).default('localhost'),
@@ -54,6 +56,37 @@ export const envSchema = z.object({
   UMAMI_WEBSITE_ID: optionalString,
   UMAMI_USERNAME: z.string().min(1).default('admin'),
   UMAMI_PASSWORD: optionalString,
+  /** The tracker managed client sites load (Umami's script, served by its public dashboard). */
+  UMAMI_SCRIPT_URL: z.url().default('https://stats.codeqlick.com/script.js'),
+  /** The site builder (codeqlick-sites/builder); unset: managed sites can't be built. */
+  SITE_BUILDER_URL: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.url().optional(),
+  ),
+  SITE_BUILDER_TOKEN: optionalString,
+  /** Managed sites get a preview at <slug>.<this>. */
+  SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
+  /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */
+  PUBLIC_API_URL: z.url().default('https://api.codeqlick.com/v1'),
+  /** OVH's API (the team's account), for domain availability, DNS and expiry; unset: off. */
+  OVH_ENDPOINT: z.url().default('https://eu.api.ovh.com/1.0'),
+  OVH_APPLICATION_KEY: optionalString,
+  OVH_APPLICATION_SECRET: optionalString,
+  OVH_CONSUMER_KEY: optionalString,
+  /** The team's OVH account ID, which clients make the technical contact of their domain. */
+  OVH_NIC_HANDLE: optionalString,
+  /** The server's public IPv4: managed sites' domains must point here (their A record). */
+  SITES_SERVER_IP: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.ipv4().optional(),
+  ),
+  /** Buying a preview online (architecture 8.2, decision 20); unset: off. */
+  STRIPE_SECRET_KEY: optionalString,
+  STRIPE_WEBHOOK_SECRET: optionalString,
+  /** Price of a basic website bought online, in euro cents before VAT. */
+  SITE_PRICE_CENTS: z.coerce.number().int().min(100).max(1_000_000).default(20000),
+  /** VAT added to it, in percent (Spain's general rate). */
+  SITE_VAT_PERCENT: z.coerce.number().min(0).max(50).default(21),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

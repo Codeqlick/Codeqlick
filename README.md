@@ -2,12 +2,14 @@
 
 > *Redefining information technology in society*
 
-Codeqlick's platform: the public website ([codeqlick.com](https://codeqlick.com)), blog, portfolio, contact pipeline, client portal and admin panel.
+Codeqlick's platform: the public website ([codeqlick.com](https://codeqlick.com)) with blog, portfolio, cost calculator and call booking; the sales pipeline (leads, proposals); the client portal (projects, support, proposals, hours, briefs, reviews, shared access, site status); the admin panel; and the hosting of client websites.
 
 | App | Stack | Docs |
 |---|---|---|
 | [`codeqlick-frontend`](codeqlick-frontend) | Next.js 16 · React 19 · next-intl (EN/ES) | [README](codeqlick-frontend/README.md) |
 | [`codeqlick-backend`](codeqlick-backend) | NestJS 12 · Prisma 7 · PostgreSQL 18 | [README](codeqlick-backend/README.md) |
+| [`deploy`](deploy) | Docker Compose, Nginx, backups, monitoring, client sites | [README](deploy/README.md) |
+| [`tools`](tools) | Scripts for client projects' repositories (drafts, tasks, brief) | [architecture 8.1](docs/architecture.md#81-releases-from-client-projects-pipelines) |
 
 Read [docs/architecture.md](docs/architecture.md) before contributing — it defines the structure, the API contract and the rules both apps follow.
 
@@ -49,7 +51,7 @@ To run an app on the host instead, see its README; `.env.example` in each app ha
 
 ## Deploy
 
-See [deploy/README.md](deploy/README.md) for the OVH VPS setup (`/srv/codeqlick`, Docker Compose, Nginx, Let's Encrypt).
+Merging to `main` deploys on its own once CI passes. See [deploy/README.md](deploy/README.md) for the OVH VPS setup (`/srv/codeqlick`, Docker Compose, Nginx, Let's Encrypt), backups, monitoring, analytics and client sites.
 
 ## Conventions
 

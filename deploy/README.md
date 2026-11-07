@@ -239,3 +239,136 @@ docker compose -f docker-compose.prod.yml exec -T db psql -U codeqlick -d codeql
 - The OpenAPI UI (`/docs`) is disabled in production.
 - Auth cookies are `Secure` in production, so sign-in only works over HTTPS.
 - `.env` holds every secret; it is git-ignored and should stay readable only by the deploy user.
+
+## Client sites
+
+Static client sites are served by the host's Nginx straight from
+`/srv/codeqlick/sites/<name>/current`. There are two kinds:
+
+- **Managed sites** (basic websites): their content lives in the platform's database and the
+  `site-builder` service builds them from the template in `codeqlick-sites/web-basica` whenever it
+  changes. `deploy/sites/sync-sites.sh` (cron, every minute) publishes their domains.
+- **Custom sites**: their own repository (a copy of the template or anything static), built and
+  uploaded from the machine that has it with `deploy/sites/publish-site.sh`.
+
+Both go through:
+
+- `deploy/sites/cq-site`, run as root through `sudo`: creates or removes the Nginx site
+  (`/etc/nginx/sites-available/cq-site-<domain>.conf`) and its Let's Encrypt certificate. It only
+  touches its own files and refuses domains another site already serves (domfeliu, circlesfera…).
+- `deploy/sites/publish-site.sh`, run from the machine that has the site's repository: builds it,
+  uploads it as a new release (the last 5 are kept), switches `current` to it and, the first time,
+  calls `cq-site`.
+
+### One-time setup (root)
+
+The deploy user has no sudo. Install a root-owned **copy** of the helper (never a link to the
+checkout: the deploy user can edit it) and allow only that command:
+
+```bash
+sudo install -o root -g root -m 755 /srv/codeqlick/deploy/sites/cq-site /usr/local/sbin/cq-site
+echo 'cqadmin ALL=(root) NOPASSWD: /usr/local/sbin/cq-site' | sudo tee /etc/sudoers.d/cq-site
+sudo chmod 440 /etc/sudoers.d/cq-site && sudo visudo -c
+```
+
+Repeat the `install` line whenever `deploy/sites/cq-site` changes. Then, as `cqadmin`:
+
+```bash
+mkdir -p /srv/codeqlick/sites
+echo "SITES_USER=$(id -u):$(id -g)" >> .env
+echo "SITE_BUILDER_TOKEN=$(openssl rand -hex 32)" >> .env
+(crontab -l; echo '* * * * * /srv/codeqlick/deploy/sites/sync-sites.sh') | crontab -
+```
+
+`site-builder` runs as `SITES_USER` so the releases it writes belong to the deploy user; the API
+calls it with `SITE_BUILDER_TOKEN` inside the Docker network (it publishes no port). Its log of
+published domains is `~/.codeqlick-sites.log`.
+
+Request previews (`<name>-<random>.demo.codeqlick.com`) are built by the same builder; when one
+expires the builder leaves a `remove` file in its folder and `sync-sites.sh` unpublishes it
+(`cq-site remove`) and deletes the folder.
+
+DNS: demos and previews live under `*.demo.codeqlick.com` (one wildcard `A` record to the
+server). A client's own domain needs its `A` records (`@` and `www`) pointing at the server before
+publishing (see "Client domains" for the managed ones); without it `cq-site` publishes over HTTP only and exits with 3, and running it
+again later adds HTTPS.
+
+### Client domains (OVH)
+
+Clients register and pay their own domain (architecture, decision 15). To connect it without
+their password, they make the team's OVH account its **technical contact**; the API then points
+the apex and `www` at the server and reads the expiry (also for `.es`). Without the keys below,
+availability comes from RDAP (unknown for `.es`) and clients point their DNS themselves.
+
+1. Create the keys at <https://eu.api.ovh.com/createToken/> (signed in with the team's account),
+   with no expiry and these rights:
+
+   | Method | Path |
+   |---|---|
+   | GET | `/domain`, `/domain/*` |
+   | GET, POST, PUT, DELETE | `/domain/zone/*` |
+   | POST | `/order/cart` |
+   | GET | `/order/cart/*` |
+
+2. Add them to `/srv/codeqlick/.env` with the account ID (the NIC handle, `xx12345-ovh`, top right
+   in the OVH manager) and the server IP, then deploy (or `docker compose -f
+   docker-compose.prod.yml up -d api`):
+
+   ```bash
+   OVH_APPLICATION_KEY=…
+   OVH_APPLICATION_SECRET=…
+   OVH_CONSUMER_KEY=…
+   OVH_NIC_HANDLE=xx12345-ovh
+   SITES_SERVER_IP=54.37.159.171
+   ```
+
+The portal shows clients the NIC handle and the IP. Each change OVH's API makes to a zone is in
+the admin activity log; MX and other records are never touched.
+
+### Buying a preview online (Stripe)
+
+Requesters can buy their website from its preview (architecture 8.2, decision 20) for
+`SITE_PRICE_CENTS` + `SITE_VAT_PERCENT` (200 € + 21 % IVA). It uses **Codeqlick's** Stripe account
+(not CircleSfera's) and is off until `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` are set.
+Stripe issues each sale's invoice; the API creates the tax rate "IVA 21 %" in Stripe on the first
+purchase. To switch it on:
+
+1. In Stripe's dashboard (live mode): the business details and tax ID (NIF) that go on invoices
+   (Settings → Business → Public details, and Settings → Billing → Invoices: tax ID shown, invoice
+   numbering), and **email finalized invoices to customers** (Settings → Billing → Customer
+   emails), plus successful-payment receipts if wanted.
+2. Settings → Payment methods: keep the methods you want in Checkout (card, Apple Pay, Link…).
+3. Developers → Webhooks → Add endpoint: URL `https://api.codeqlick.com/v1/payments/stripe`,
+   events `checkout.session.completed`, `checkout.session.async_payment_succeeded` and
+   `checkout.session.expired`. Copy its signing secret (`whsec_…`).
+4. Developers → API keys: the live secret key (`sk_live_…`).
+5. Add them to `/srv/codeqlick/.env` and recreate the API (`docker compose -f
+   docker-compose.prod.yml up -d api`, or deploy):
+
+   ```bash
+   STRIPE_SECRET_KEY=sk_live_…
+   STRIPE_WEBHOOK_SECRET=whsec_…
+   SITE_PRICE_CENTS=20000
+   SITE_VAT_PERCENT=21
+   ```
+
+6. Rebuild the previews that are up (Admin → Vistas previas → each lead → "Reconstruir") so their
+   bar offers the purchase; new ones get it on their own.
+
+To try it locally with Codeqlick's test mode: put its test secret key (`sk_test_…`) in the root
+`.env`, and forward the webhook with the Stripe CLI logged in to Codeqlick (`stripe login
+--project-name codeqlick`): `stripe listen --project-name codeqlick --forward-to
+localhost:4000/v1/payments/stripe`, whose `whsec_…` goes in the `.env` as `STRIPE_WEBHOOK_SECRET`.
+Card `4242 4242 4242 4242`, any future date and CVC.
+
+### Publishing
+
+```bash
+deploy/sites/publish-site.sh peluqueria peluqueria.demo.codeqlick.com ../web-basica examples/peluqueria
+deploy/sites/publish-site.sh peluqueria-marta peluqueriamarta.es ../peluqueria-marta
+```
+
+Each run is a release; to roll back, point `current` at an older folder in `releases/`. To take a
+site down: `sudo cq-site remove <domain>` and delete its folder. On the server,
+`sudo cq-site list` shows the published domains. Turn on the project's uptime monitoring and its
+site form in the admin panel.

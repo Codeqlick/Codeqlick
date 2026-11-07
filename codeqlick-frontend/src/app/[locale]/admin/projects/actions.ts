@@ -11,10 +11,15 @@ import {
   adminCreateMilestone,
   adminCreateProject,
   adminCreateProjectUpdate,
+  adminCreateReleaseKey,
   adminDeleteMilestone,
   adminDeleteProject,
   adminDeleteProjectFile,
+  adminDiscardDraft,
+  adminPublishDraft,
+  adminPublishRelease,
   adminReorderMilestones,
+  adminRevokeReleaseKey,
   adminUpdateMilestone,
   adminUpdateProject,
 } from '@/lib/api/projects';
@@ -23,6 +28,7 @@ import {
   milestoneSchema,
   projectFormSchema,
   projectUpdateSchema,
+  releaseFieldsSchema,
   updateCommentSchema,
 } from '@/lib/schemas/admin';
 
@@ -38,6 +44,7 @@ const PROJECT_FIELDS = [
   'dueDate',
   'stagingUrl',
   'productionUrl',
+  'showHours',
 ] as const;
 
 /** Portal and admin pages both show project data. */
@@ -95,11 +102,19 @@ export async function postProjectUpdateAction(
     notifyClient: formBoolean(formData, 'notifyClient'),
     requestApproval: formBoolean(formData, 'requestApproval'),
   });
+  const release = releaseFieldsSchema.safeParse(
+    formObject(formData, ['version', 'environment', 'url']),
+  );
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
+  if (!release.success) return invalidState(release.error, locale, formData);
 
   let clientNotified: boolean | undefined;
   try {
-    ({ clientNotified } = await adminCreateProjectUpdate(id, parsed.data));
+    // A version makes it a release; the rest of the release fields only count then.
+    const { version, environment, url } = release.data;
+    ({ clientNotified } = version
+      ? await adminPublishRelease(id, { ...parsed.data, version, environment, url })
+      : await adminCreateProjectUpdate(id, parsed.data));
   } catch (error) {
     return failedState(error, locale, formData);
   }
@@ -108,10 +123,100 @@ export async function postProjectUpdateAction(
   const t = await getTranslations({ locale, namespace: 'Admin.projects' });
   // The update is posted either way; only the email can have failed.
   if (clientNotified === false) return { status: 'error', message: t('updatePostedNotNotified') };
+  const isRelease = release.data.version !== null;
   return {
     status: 'success',
-    message: clientNotified ? t('updatePostedNotified') : t('updatePosted'),
+    message: clientNotified
+      ? t('updatePostedNotified')
+      : isRelease
+        ? t('releasePosted')
+        : t('updatePosted'),
   };
+}
+
+export async function publishDraftAction(
+  locale: AppLocale,
+  projectId: string,
+  draftId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = projectUpdateSchema.safeParse({
+    ...formObject(formData, ['title', 'body']),
+    notifyClient: formBoolean(formData, 'notifyClient'),
+    requestApproval: formBoolean(formData, 'requestApproval'),
+  });
+  const release = releaseFieldsSchema.safeParse(
+    formObject(formData, ['version', 'environment', 'url']),
+  );
+  if (!parsed.success) return invalidState(parsed.error, locale, formData);
+  if (!release.success) return invalidState(release.error, locale, formData);
+
+  const { version, environment, url } = release.data;
+  let clientNotified: boolean | undefined;
+  try {
+    ({ clientNotified } = await adminPublishDraft(projectId, draftId, {
+      ...parsed.data,
+      version,
+      environment: version ? environment : null,
+      url,
+    }));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateProjects(locale);
+  const t = await getTranslations({ locale, namespace: 'Admin.projects' });
+  if (clientNotified === false) return { status: 'error', message: t('updatePostedNotNotified') };
+  return { status: 'success', message: t('draftPublished') };
+}
+
+export async function discardDraftAction(
+  locale: AppLocale,
+  projectId: string,
+  draftId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await adminDiscardDraft(projectId, draftId);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateProjects(locale);
+  return { status: 'idle' };
+}
+
+export async function createReleaseKeyAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  let key: string;
+  try {
+    ({ key } = await adminCreateReleaseKey(id));
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateProjects(locale);
+  const t = await getTranslations({ locale, namespace: 'Admin.projects' });
+  // Shown once, by ReleaseKeyReveal; it is never stored in readable form.
+  return { status: 'success', message: t('releaseKeyCreated'), values: { releaseKey: key } };
+}
+
+export async function revokeReleaseKeyAction(
+  locale: AppLocale,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await adminRevokeReleaseKey(id);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateProjects(locale);
+  return { status: 'idle' };
 }
 
 export async function deleteProjectAction(

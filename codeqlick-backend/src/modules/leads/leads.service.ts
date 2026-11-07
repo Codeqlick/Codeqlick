@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -10,15 +11,17 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
-import type {
-  LeadReply as LeadReplyRow,
-  Lead as LeadRow,
-  Prisma,
+import {
+  LeadStatus,
+  type LeadReply as LeadReplyRow,
+  type Lead as LeadRow,
+  type Prisma,
 } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
 import { leadsToCsv } from './leads-csv.js';
 import { leadAcknowledgementEmail, leadNotificationEmail, leadReplyEmail } from './lead-emails.js';
+import { BriefsService } from '../briefs/briefs.service.js';
 import { ProjectsService } from '../projects/projects.service.js';
 import { UsersService } from '../users/users.service.js';
 import { LeadsRepository } from './leads.repository.js';
@@ -36,9 +39,11 @@ export const EXPORT_LIMIT = 10_000;
 export interface Lead {
   id: string;
   name: string;
-  email: string;
+  /** Null only for a prospect the team added without one. */
+  email: string | null;
   company: string | null;
   budget: string | null;
+  projectType: string | null;
   message: string;
   locale: ApiLocale;
   status: LeadRow['status'];
@@ -48,17 +53,33 @@ export interface Lead {
   followUpOn: string | null;
   /** The client account it became, once converted. */
   clientId: string | null;
+  /** The basic-website request it came from, if any (see managed-sites/site-request.ts). */
+  siteRequest: unknown;
+  /** The request's instant preview (architecture 8.2), when one was made. */
+  preview: {
+    url: string;
+    status: 'BUILDING' | 'READY' | 'FAILED' | 'REMOVED';
+    builtAt: string | null;
+    /** When the requester was asked what they think of it (once, a few days after). */
+    followUpAt: string | null;
+  } | null;
+  /** The proposal drafted from the request ("Preparar propuesta"). */
+  proposalId: string | null;
+  /** Added by the team (architecture 8.2): never emailed automatically. */
+  prospect: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export function toLead(row: LeadRow): Lead {
+/** `previewDomain`: SITES_PREVIEW_DOMAIN, where request previews are served. */
+export function toLead(row: LeadRow, previewDomain: string): Lead {
   return {
     id: row.id,
     name: row.name,
     email: row.email,
     company: row.company,
     budget: row.budget,
+    projectType: row.projectType,
     message: row.message,
     locale: toApiLocale(row.locale),
     status: row.status,
@@ -66,6 +87,18 @@ export function toLead(row: LeadRow): Lead {
     lostReason: row.lostReason,
     followUpOn: row.followUpOn?.toISOString().slice(0, 10) ?? null,
     clientId: row.clientId,
+    siteRequest: row.siteRequest ?? null,
+    preview:
+      row.previewSlug && row.previewStatus
+        ? {
+            url: `https://${row.previewSlug}.${previewDomain}`,
+            status: row.previewStatus,
+            builtAt: row.previewBuiltAt?.toISOString() ?? null,
+            followUpAt: row.previewFollowUpAt?.toISOString() ?? null,
+          }
+        : null,
+    proposalId: row.proposalId,
+    prospect: row.createdById !== null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -73,7 +106,7 @@ export function toLead(row: LeadRow): Lead {
 
 export interface ConvertedLead {
   lead: Lead;
-  client: { id: string; created: boolean; invitationSent?: boolean };
+  client: { id: string; created: boolean; registered: boolean; invitationSent?: boolean };
   project: { id: string; name: string };
 }
 
@@ -89,6 +122,12 @@ export interface LeadReply {
 export interface SentLeadReply {
   reply: LeadReply;
   lead: Lead;
+}
+
+/** The lead's email; a prospect without one can't be written to or become a client yet. */
+export function emailOf(lead: Pick<Lead, 'email'>): string {
+  if (!lead.email) throw new BadRequestException("Add the lead's email first");
+  return lead.email;
 }
 
 function toLeadReply(row: LeadReplyRow): LeadReply {
@@ -112,27 +151,31 @@ export class LeadsService {
     private readonly activity: ActivityService,
     private readonly users: UsersService,
     private readonly projects: ProjectsService,
+    private readonly briefs: BriefsService,
   ) {}
 
   /**
-   * "Convert to client": the lead's person gets a client account (welcome email to choose a
-   * password; an existing client account is reused), a project is opened for them in Discovery,
+   * "Convert to client": the lead's person gets a client account (an existing one is reused, else
+   * one is prepared unregistered and they are invited to create it, decision 17), a project is opened for them in Discovery,
    * and the lead is marked WON and linked to the account.
    */
   async convert(actor: AuthUser, id: string, input: ConvertLeadInput): Promise<ConvertedLead> {
     const existing = await this.get(id);
     if (existing.clientId) throw new ConflictException('This lead is already a client');
-    const client = await this.users.findOrCreateClient(actor, {
-      email: existing.email,
-      name: existing.name,
-      locale: existing.locale,
-    });
+    const email = emailOf(existing);
+    const client = await this.users.findOrCreateClient(
+      actor,
+      { email, name: existing.name, locale: existing.locale },
+      'project',
+    );
     const project = await this.projects.create(actor, {
       clientId: client.id,
       name: input.projectName ?? existing.company ?? existing.name,
       phase: 'DISCOVERY',
       progress: 0,
     });
+    // The new project asks for its brief: the portal shows it, the welcome email brings them in.
+    await this.briefs.request(actor, project.id, false);
     const lead = toLead(
       await this.repository.update(id, {
         status: 'WON',
@@ -140,6 +183,7 @@ export class LeadsService {
         followUpOn: null,
         client: { connect: { id: client.id } },
       }),
+      this.config.sitesPreviewDomain,
     );
     await this.activity.record(actor, {
       action: 'lead.converted',
@@ -149,12 +193,18 @@ export class LeadsService {
     });
     return {
       lead,
-      client: { id: client.id, created: client.created, invitationSent: client.invitationSent },
+      client,
       project: { id: project.id, name: project.name },
     };
   }
 
-  async create(input: CreateLeadInput): Promise<{ id: string }> {
+  /** `siteRequest`: the structured request when it came from the basic-website request form. */
+  /** `previewSlug`: the instant preview a website request is getting (SitePreviewsService). */
+  async create(
+    input: CreateLeadInput,
+    siteRequest?: Prisma.InputJsonValue,
+    previewSlug?: string,
+  ): Promise<{ id: string }> {
     if (input.website && input.website.trim() !== '') {
       // Honeypot hit: pretend success so bots learn nothing.
       this.logger.warn('Lead honeypot triggered; submission discarded');
@@ -166,16 +216,103 @@ export class LeadsService {
       email: input.email.trim().toLowerCase(),
       company: input.company ?? null,
       budget: input.budget ?? null,
+      projectType: input.projectType ?? null,
       message: input.message,
       locale: toDbLocale(input.locale),
+      ...(siteRequest ? { siteRequest } : {}),
+      ...(previewSlug ? { previewSlug, previewStatus: 'BUILDING' as const } : {}),
     });
 
-    const lead = toLead(row);
+    const lead = { ...toLead(row, this.config.sitesPreviewDomain), email: row.email! };
     this.sendInBackground(
       leadNotificationEmail(this.config.leadsNotifyTo, lead, this.config.siteUrl),
       'notification',
     );
     this.sendInBackground(leadAcknowledgementEmail(lead, this.config.siteUrl), 'acknowledgement');
+    return { id: row.id };
+  }
+
+  /**
+   * A business the team adds itself, with the website request its preview is built from
+   * (architecture 8.2): nobody is emailed.
+   */
+  async createProspect(
+    actor: AuthUser,
+    input: {
+      name: string;
+      email: string | null;
+      company: string;
+      message: string;
+      locale: ApiLocale;
+      siteRequest: Prisma.InputJsonValue;
+      previewSlug: string;
+    },
+  ): Promise<{ id: string }> {
+    const row = await this.repository.create({
+      name: input.name,
+      email: input.email?.trim().toLowerCase() ?? null,
+      company: input.company,
+      projectType: 'web',
+      message: input.message,
+      locale: toDbLocale(input.locale),
+      siteRequest: input.siteRequest,
+      previewSlug: input.previewSlug,
+      previewStatus: 'BUILDING',
+      createdBy: { connect: { id: actor.id } },
+    });
+    await this.activity.record(actor, {
+      action: 'lead.created',
+      targetId: row.id,
+      targetLabel: input.company,
+    });
+    return { id: row.id };
+  }
+
+  /** The lead's website request, edited by the team: its message is the request's summary. */
+  async replaceRequest(id: string, siteRequest: Prisma.InputJsonValue, message: string) {
+    await this.get(id);
+    await this.repository.update(id, { siteRequest, message, projectType: 'web' });
+  }
+
+  /** Deletes the lead (its preview is taken down first by SitePreviewsService). */
+  async delete(actor: AuthUser, id: string): Promise<void> {
+    const lead = await this.get(id);
+    await this.repository.delete(id);
+    await this.activity.record(actor, {
+      action: 'lead.deleted',
+      targetId: id,
+      targetLabel: lead.company ?? lead.name,
+    });
+  }
+
+  /**
+   * A call booked from the website: the open lead with that email moves to the CALL stage (or a
+   * new one starts there), with the call's day as its follow-up. No emails: the booking sends its own.
+   */
+  async fromBooking(input: {
+    name: string;
+    email: string;
+    company: string | null;
+    message: string | null;
+    locale: ApiLocale;
+    day: string;
+  }): Promise<{ id: string }> {
+    const email = input.email.trim().toLowerCase();
+    const followUpOn = new Date(`${input.day}T00:00:00Z`);
+    const open = await this.repository.findOpenByEmail(email);
+    if (open) {
+      await this.repository.update(open.id, { status: LeadStatus.CALL, followUpOn });
+      return { id: open.id };
+    }
+    const row = await this.repository.create({
+      name: input.name,
+      email,
+      company: input.company,
+      message: input.message ?? '(Call booked from the website)',
+      locale: toDbLocale(input.locale),
+      status: LeadStatus.CALL,
+      followUpOn,
+    });
     return { id: row.id };
   }
 
@@ -186,7 +323,12 @@ export class LeadsService {
       skip,
       take,
     );
-    return paginate(items.map(toLead), total, query.page, query.pageSize);
+    return paginate(
+      items.map((row) => toLead(row, this.config.sitesPreviewDomain)),
+      total,
+      query.page,
+      query.pageSize,
+    );
   }
 
   /** All leads matching the list filters as CSV (capped at EXPORT_LIMIT rows). */
@@ -195,13 +337,13 @@ export class LeadsService {
       { status: query.status, q: query.q || undefined },
       EXPORT_LIMIT,
     );
-    return leadsToCsv(rows.map(toLead));
+    return leadsToCsv(rows.map((row) => toLead(row, this.config.sitesPreviewDomain)));
   }
 
   async get(id: string): Promise<Lead> {
     const row = await this.repository.findById(id);
     if (!row) throw new NotFoundException('Lead not found');
-    return toLead(row);
+    return toLead(row, this.config.sitesPreviewDomain);
   }
 
   async update(actor: AuthUser, id: string, input: UpdateLeadInput): Promise<Lead> {
@@ -209,6 +351,14 @@ export class LeadsService {
     const data: Prisma.LeadUpdateInput = {};
     if (input.status !== undefined) data.status = input.status;
     if (input.notes !== undefined) data.notes = input.notes;
+    if (input.name !== undefined) data.name = input.name;
+    if (input.company !== undefined) data.company = input.company || null;
+    if (input.email !== undefined) {
+      if (input.email === null && !existing.prospect) {
+        throw new BadRequestException('A lead from the website keeps its email');
+      }
+      data.email = input.email?.trim().toLowerCase() ?? null;
+    }
     if (input.followUpOn !== undefined) {
       data.followUpOn =
         input.followUpOn === null ? null : new Date(`${input.followUpOn}T00:00:00Z`);
@@ -217,7 +367,7 @@ export class LeadsService {
     const status = input.status ?? existing.status;
     if (status !== 'LOST') data.lostReason = null;
     else if (input.lostReason !== undefined) data.lostReason = input.lostReason;
-    const lead = toLead(await this.repository.update(id, data));
+    const lead = toLead(await this.repository.update(id, data), this.config.sitesPreviewDomain);
     await this.activity.record(actor, {
       action: 'lead.updated',
       targetId: id,
@@ -228,6 +378,17 @@ export class LeadsService {
           : undefined,
     });
     return lead;
+  }
+
+  /** The proposal drafted from the lead's website request: the lead moves to PROPOSAL. */
+  async linkProposal(id: string, proposalId: string): Promise<Lead> {
+    return toLead(
+      await this.repository.update(id, {
+        status: LeadStatus.PROPOSAL,
+        proposal: { connect: { id: proposalId } },
+      }),
+      this.config.sitesPreviewDomain,
+    );
   }
 
   async listReplies(id: string): Promise<LeadReply[]> {
@@ -241,8 +402,9 @@ export class LeadsService {
    */
   async reply(actor: AuthUser, id: string, input: CreateLeadReplyInput): Promise<SentLeadReply> {
     const lead = await this.get(id);
+    const email = emailOf(lead);
     try {
-      await this.mail.send(leadReplyEmail(lead, input, this.config.siteUrl));
+      await this.mail.send(leadReplyEmail({ ...lead, email }, input, this.config.siteUrl));
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to send the reply to a lead: ${reason}`);
@@ -261,7 +423,10 @@ export class LeadsService {
       targetLabel: lead.name,
       details: { subject: input.subject },
     });
-    return { reply: toLeadReply(saved.reply), lead: toLead(saved.lead) };
+    return {
+      reply: toLeadReply(saved.reply),
+      lead: toLead(saved.lead, this.config.sitesPreviewDomain),
+    };
   }
 
   /** Fire-and-forget: mail problems are logged and never fail the request. */

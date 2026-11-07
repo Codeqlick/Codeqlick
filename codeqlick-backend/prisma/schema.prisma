@@ -48,6 +48,12 @@ enum PublishStatus {
   PUBLISHED
 }
 
+/// Where a release went: the preview (staging) or the live site.
+enum ReleaseEnvironment {
+  STAGING
+  PRODUCTION
+}
+
 enum ProjectPhase {
   DISCOVERY
   DESIGN
@@ -79,6 +85,11 @@ model User {
   weeklyDigest       Boolean   @default(true) @map("weekly_digest")
   /// When the last summary went out, so each client gets one per week even across restarts.
   lastDigestAt       DateTime? @map("last_digest_at") @db.Timestamptz(3)
+  /// Clients with a managed website get its monthly report unless they turn it off.
+  monthlyReport      Boolean   @default(true) @map("monthly_report")
+  /// When the person made the account theirs (signed up, or accepted the invitation). Null: a
+  /// client account the team prepared for an email, which nobody can sign in to yet (decision 17).
+  registeredAt       DateTime? @default(now()) @map("registered_at") @db.Timestamptz(3)
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -90,9 +101,20 @@ model User {
   approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
   updateComments  ProjectUpdateComment[]
   leadsConverted  Lead[]                 @relation("LeadClient")
+  leadsAdded      Lead[]                 @relation("LeadCreator")
   tickets         SupportTicket[]
   ticketMessages  TicketMessage[]
   ticketFiles     TicketAttachment[]
+  proposals       Proposal[]             @relation("ProposalClient")
+  proposalsMade   Proposal[]             @relation("ProposalAuthor")
+  timeEntries     TimeEntry[]
+  credentials     ProjectCredential[]
+  siteRevisions   ManagedSiteRevision[]
+  /// A person of a client company: they see and act on the account of `memberOf` (the company's
+  /// main client account), which owns the projects, requests and proposals.
+  memberOfId      String?                @map("member_of_id") @db.Uuid
+  memberOf        User?                  @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
+  members         User[]                 @relation("ClientTeam")
   projectFiles    ProjectFile[]
   activity        ActivityLog[]
   leadReplies     LeadReply[]
@@ -135,27 +157,62 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
-model Lead {
-  id         String          @id @default(uuid()) @db.Uuid
-  name       String
-  email      String
-  company    String?
-  budget     String?
-  message    String
-  locale     Locale          @default(EN)
-  status     LeadStatus      @default(NEW)
-  notes      String?
-  /// Why it didn't go ahead (status LOST).
-  lostReason LeadLostReason? @map("lost_reason")
-  /// When to get back to them; the board flags it once it has passed.
-  followUpOn DateTime?       @map("follow_up_on") @db.Date
-  /// The client account it became ("Convert to client").
-  clientId   String?         @map("client_id") @db.Uuid
-  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+/// A self-registration waiting for its email to be confirmed (24 hours).
+model SignupToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String
+  name         String
+  passwordHash String    @map("password_hash")
+  locale       Locale
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt       DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  replies LeadReply[]
-  client  User?       @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  @@index([email])
+  @@map("signup_tokens")
+}
+
+model Lead {
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String
+  /// Always set from the forms; a prospect the team added may have none yet.
+  email             String?
+  company           String?
+  budget            String?
+  /// What they need (web, custom, mobile, design, support, not-sure); replaced budget on the form.
+  projectType       String?            @map("project_type")
+  message           String
+  locale            Locale             @default(EN)
+  status            LeadStatus         @default(NEW)
+  notes             String?
+  /// Why it didn't go ahead (status LOST).
+  lostReason        LeadLostReason?    @map("lost_reason")
+  /// When to get back to them; the board flags it once it has passed.
+  followUpOn        DateTime?          @map("follow_up_on") @db.Date
+  /// The client account it became ("Convert to client").
+  clientId          String?            @map("client_id") @db.Uuid
+  /// A basic-website request from /basic-website/request (architecture 8.2): style, business details.
+  siteRequest       Json?              @map("site_request")
+  /// The request's instant preview, served at <slug>.<SITES_PREVIEW_DOMAIN> (architecture 8.2).
+  previewSlug       String?            @unique @map("preview_slug")
+  previewStatus     SitePreviewStatus? @map("preview_status")
+  previewBuiltAt    DateTime?          @map("preview_built_at") @db.Timestamptz(3)
+  /// When the "what do you think of it?" email about the preview went out (once).
+  previewFollowUpAt DateTime?          @map("preview_follow_up_at") @db.Timestamptz(3)
+  /// The proposal drafted from the request ("Preparar propuesta").
+  proposalId        String?            @unique @map("proposal_id") @db.Uuid
+  /// Who on the team added it (a prospect, architecture 8.2); null when it came from a form.
+  createdById       String?            @map("created_by_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  replies   LeadReply[]
+  client    User?          @relation("LeadClient", fields: [clientId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("LeadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  proposal  Proposal?      @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  bookings  Booking[]
+  purchases SitePurchase[]
 
   @@index([status, createdAt])
   @@map("leads")
@@ -281,24 +338,48 @@ model PortfolioTranslation {
 }
 
 model ClientProject {
-  id            String       @id @default(uuid()) @db.Uuid
-  clientId      String       @map("client_id") @db.Uuid
-  name          String
-  description   String?
-  phase         ProjectPhase @default(DISCOVERY)
-  progress      Int          @default(0)
-  startDate     DateTime?    @map("start_date") @db.Timestamptz(3)
-  dueDate       DateTime?    @map("due_date") @db.Timestamptz(3)
-  stagingUrl    String?      @map("staging_url")
-  productionUrl String?      @map("production_url")
-  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                    String       @id @default(uuid()) @db.Uuid
+  clientId              String       @map("client_id") @db.Uuid
+  name                  String
+  description           String?
+  phase                 ProjectPhase @default(DISCOVERY)
+  progress              Int          @default(0)
+  startDate             DateTime?    @map("start_date") @db.Timestamptz(3)
+  dueDate               DateTime?    @map("due_date") @db.Timestamptz(3)
+  stagingUrl            String?      @map("staging_url")
+  productionUrl         String?      @map("production_url")
+  /// The client sees the hours logged on it (a monthly summary and the entries) in the portal.
+  showHours             Boolean      @default(false) @map("show_hours")
+  /// SHA-256 of the project's release key, which a deploy pipeline uses to publish releases.
+  releaseTokenHash      String?      @unique @map("release_token_hash")
+  releaseTokenCreatedAt DateTime?    @map("release_token_created_at") @db.Timestamptz(3)
+  /// The client's domain whose renewal is watched (architecture 8.2).
+  domainName            String?      @map("domain_name")
+  domainSource          DomainSource @default(RDAP) @map("domain_source")
+  domainExpiresAt       DateTime?    @map("domain_expires_at") @db.Date
+  domainCheckedAt       DateTime?    @map("domain_checked_at") @db.Timestamptz(3)
+  /// The last reminder sent: "<expiry day>:<days before>" (30, then 7).
+  domainWarnedFor       String?      @map("domain_warned_for")
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  client     User               @relation(fields: [clientId], references: [id], onDelete: Restrict)
-  updates    ProjectUpdate[]
-  files      ProjectFile[]
-  milestones ProjectMilestone[]
-  tickets    SupportTicket[]
+  client      User                @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  updates     ProjectUpdate[]
+  files       ProjectFile[]
+  milestones  ProjectMilestone[]
+  tickets     SupportTicket[]
+  proposals   Proposal[]
+  time        TimeEntry[]
+  drafts      UpdateDraft[]
+  tasks       ProjectTask[]
+  brief       ProjectBrief?
+  monitor     SiteMonitor?
+  credentials ProjectCredential[]
+  review      ClientReview?
+  plan        MaintenancePlan?
+  form        SiteForm?
+  purchases   SitePurchase[]
+  site        ManagedSite?
 
   @@index([clientId])
   @@map("client_projects")
@@ -338,17 +419,21 @@ model ProjectUpdateComment {
 }
 
 model ProjectUpdate {
-  id                String    @id @default(uuid()) @db.Uuid
-  projectId         String    @map("project_id") @db.Uuid
-  authorId          String?   @map("author_id") @db.Uuid
+  id                String              @id @default(uuid()) @db.Uuid
+  projectId         String              @map("project_id") @db.Uuid
+  authorId          String?             @map("author_id") @db.Uuid
   title             String
   body              String
   /// The client is asked to approve it; `approvedAt` is set when they do.
-  approvalRequested Boolean   @default(false) @map("approval_requested")
-  approvedAt        DateTime? @map("approved_at") @db.Timestamptz(3)
-  approvedById      String?   @map("approved_by_id") @db.Uuid
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  approvalRequested Boolean             @default(false) @map("approval_requested")
+  approvedAt        DateTime?           @map("approved_at") @db.Timestamptz(3)
+  approvedById      String?             @map("approved_by_id") @db.Uuid
+  /// A release: the version deployed, where, and its address. Null on plain updates.
+  version           String?
+  environment       ReleaseEnvironment?
+  url               String?
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project    ClientProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author     User?                  @relation("ProjectUpdateAuthor", fields: [authorId], references: [id], onDelete: SetNull)
@@ -453,6 +538,7 @@ model SupportTicket {
   project  ClientProject?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
   messages TicketMessage[]
   files    TicketAttachment[]
+  tasks    ProjectTask[]
 
   @@index([status, updatedAt])
   @@index([clientId, updatedAt])
@@ -490,4 +576,497 @@ model TicketAttachment {
 
   @@index([ticketId, createdAt])
   @@map("ticket_attachments")
+}
+
+/// DRAFT: only the team sees it. SENT: the client can accept or decline it (until `validUntil`).
+/// WITHDRAWN: the team took it back after sending it.
+enum ProposalStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+/// A proposal or quote for a client: what will be done, item by item with prices, and the terms.
+model Proposal {
+  id            String         @id @default(uuid()) @db.Uuid
+  /// Short reference shown to people (#7).
+  number        Int            @unique @default(autoincrement())
+  clientId      String         @map("client_id") @db.Uuid
+  projectId     String?        @map("project_id") @db.Uuid
+  createdById   String?        @map("created_by_id") @db.Uuid
+  title         String
+  /// Markdown: the scope, what is included and what isn't.
+  summary       String
+  /// Markdown: payment schedule, deadlines, conditions.
+  terms         String?
+  currency      String         @default("EUR")
+  /// Last day the client can accept it.
+  validUntil    DateTime?      @map("valid_until") @db.Date
+  status        ProposalStatus @default(DRAFT)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
+  respondedAt   DateTime?      @map("responded_at") @db.Timestamptz(3)
+  /// The full name the client typed to accept it.
+  acceptedName  String?        @map("accepted_name")
+  declineReason String?        @map("decline_reason")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  client    User           @relation("ProposalClient", fields: [clientId], references: [id], onDelete: Cascade)
+  project   ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  createdBy User?          @relation("ProposalAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  items     ProposalItem[]
+  lead      Lead?
+
+  @@index([status, updatedAt])
+  @@index([clientId, updatedAt])
+  @@map("proposals")
+}
+
+/// A line of a proposal; amounts in cents.
+model ProposalItem {
+  id          String @id @default(uuid()) @db.Uuid
+  proposalId  String @map("proposal_id") @db.Uuid
+  position    Int
+  description String
+  quantity    Int
+  unitPrice   Int    @map("unit_price")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, position])
+  @@map("proposal_items")
+}
+
+/// Time spent on a client project: who, which day (Madrid), how long and on what.
+model TimeEntry {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  date        DateTime @db.Date
+  minutes     Int
+  description String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, date])
+  @@index([date])
+  @@map("time_entries")
+}
+
+/// An update prepared outside the panel (a deploy pipeline, a summary of the work done) waiting for
+/// the team to review it. Publishing it creates the ProjectUpdate and removes the draft.
+model UpdateDraft {
+  id          String              @id @default(uuid()) @db.Uuid
+  projectId   String              @map("project_id") @db.Uuid
+  title       String
+  body        String
+  /// Set when it is a release.
+  version     String?
+  environment ReleaseEnvironment?
+  url         String?
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("update_drafts")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+/// Work to do on a client project: a change the client asked for (from a support request) or one
+/// the team planned. The client sees titles and statuses; the description is for the team.
+model ProjectTask {
+  id          String     @id @default(uuid()) @db.Uuid
+  projectId   String     @map("project_id") @db.Uuid
+  /// The support request it came from, when it did.
+  ticketId    String?    @map("ticket_id") @db.Uuid
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  doneAt      DateTime?  @map("done_at") @db.Timestamptz(3)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ticket  SupportTicket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, status])
+  @@index([ticketId])
+  @@map("project_tasks")
+}
+
+/// Site settings edited in the admin panel, one JSON document per key (e.g. `calculator`).
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("settings")
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+/// A video call booked from the website in one of the team's free slots.
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  name            String
+  email           String
+  company         String?
+  message         String?
+  locale          Locale        @default(EN)
+  startsAt        DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime      @map("ends_at") @db.Timestamptz(3)
+  status          BookingStatus @default(CONFIRMED)
+  /// The start while confirmed, null once cancelled: two confirmed calls can't share a start.
+  slotKey         DateTime?     @unique @map("slot_key") @db.Timestamptz(3)
+  /// SHA-256 of the token in the visitor's cancel link.
+  cancelTokenHash String        @unique @map("cancel_token_hash")
+  /// Calendar invitation revision (bumped when it is cancelled).
+  sequence        Int           @default(0)
+  leadId          String?       @map("lead_id") @db.Uuid
+  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([status, startsAt])
+  @@map("bookings")
+}
+
+enum BriefStatus {
+  REQUESTED
+  SUBMITTED
+}
+
+/// The client's answers to the project questionnaire (goals, audience, must-haves, brand...), one
+/// per project. Saved as they go (REQUESTED) until they send it (SUBMITTED); they can edit it after.
+model ProjectBrief {
+  id          String      @id @default(uuid()) @db.Uuid
+  projectId   String      @unique @map("project_id") @db.Uuid
+  status      BriefStatus @default(REQUESTED)
+  /// The answers, by question key (see briefs.schemas.ts).
+  answers     Json        @default("{}")
+  requestedAt DateTime    @default(now()) @map("requested_at") @db.Timestamptz(3)
+  submittedAt DateTime?   @map("submitted_at") @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_briefs")
+}
+
+enum SiteStatus {
+  UNKNOWN
+  UP
+  DOWN
+}
+
+/// Uptime monitoring of a client project's production site (its `productionUrl`).
+model SiteMonitor {
+  id            String     @id @default(uuid()) @db.Uuid
+  projectId     String     @unique @map("project_id") @db.Uuid
+  enabled       Boolean    @default(true)
+  status        SiteStatus @default(UNKNOWN)
+  /// When the current status started.
+  statusSince   DateTime   @default(now()) @map("status_since") @db.Timestamptz(3)
+  /// Failed checks in a row (DOWN after two).
+  failures      Int        @default(0)
+  lastCheckedAt DateTime?  @map("last_checked_at") @db.Timestamptz(3)
+  lastError     String?    @map("last_error")
+  certExpiresAt DateTime?  @map("cert_expires_at") @db.Timestamptz(3)
+  certCheckedAt DateTime?  @map("cert_checked_at") @db.Timestamptz(3)
+  /// The certificate expiry the team was last warned about (once per certificate).
+  certWarnedFor DateTime?  @map("cert_warned_for") @db.Timestamptz(3)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  checks  SiteCheck[]
+
+  @@map("site_monitors")
+}
+
+/// One check of a monitored site; kept 90 days.
+model SiteCheck {
+  id         String   @id @default(uuid()) @db.Uuid
+  monitorId  String   @map("monitor_id") @db.Uuid
+  checkedAt  DateTime @default(now()) @map("checked_at") @db.Timestamptz(3)
+  ok         Boolean
+  statusCode Int?     @map("status_code")
+  responseMs Int?     @map("response_ms")
+  error      String?
+
+  monitor SiteMonitor @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+
+  @@index([monitorId, checkedAt])
+  @@map("site_checks")
+}
+
+/// Access the client shares for their project (hosting, domain, a service account), encrypted at
+/// rest (AES-256-GCM, CREDENTIALS_SECRET). Clients can add and delete; only the team reads the
+/// secret, and every read is logged.
+model ProjectCredential {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  createdById String?   @map("created_by_id") @db.Uuid
+  label       String
+  url         String?
+  username    String?
+  /// Sealed (see secret-box.ts).
+  secret      String
+  /// Sealed too, when given.
+  notes       String?
+  /// When the team last revealed it.
+  viewedAt    DateTime? @map("viewed_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project   ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("project_credentials")
+}
+
+enum ReviewStatus {
+  REQUESTED
+  SUBMITTED
+  PUBLISHED
+  HIDDEN
+}
+
+/// The client's rating and words about a finished project. Asked for when it is launched; it goes
+/// on the website only with their consent and once the team publishes it.
+model ClientReview {
+  id          String       @id @default(uuid()) @db.Uuid
+  projectId   String       @unique @map("project_id") @db.Uuid
+  status      ReviewStatus @default(REQUESTED)
+  /// 1 to 5.
+  rating      Int?
+  quote       String?
+  authorName  String?      @map("author_name")
+  /// Their role and company, e.g. "CEO, Clínica Sol".
+  authorRole  String?      @map("author_role")
+  /// They allow it on the website.
+  consent     Boolean      @default(false)
+  /// The language they wrote it in (it shows on the site in that language).
+  locale      Locale       @default(EN)
+  requestedAt DateTime     @default(now()) @map("requested_at") @db.Timestamptz(3)
+  submittedAt DateTime?    @map("submitted_at") @db.Timestamptz(3)
+  publishedAt DateTime?    @map("published_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status, publishedAt])
+  @@map("client_reviews")
+}
+
+/// A monthly hour allowance for a project (maintenance and support), drawn down by its time
+/// entries per Madrid calendar month. The team is warned at `alertPercent` and at 100 %.
+model MaintenancePlan {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @unique @map("project_id") @db.Uuid
+  active         Boolean  @default(true)
+  name           String
+  monthlyMinutes Int      @map("monthly_minutes")
+  alertPercent   Int      @default(80) @map("alert_percent")
+  /// The last month (`yyyy-mm`) and level (alertPercent or 100) the team was warned about.
+  alertedMonth   String?  @map("alerted_month")
+  alertedLevel   Int      @default(0) @map("alerted_level")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_plans")
+}
+
+/// The contact form of a client site the team hosts. The site posts to `/v1/forms/:key` and the
+/// message is emailed to `recipients`; only a counter is kept.
+model SiteForm {
+  id               String    @id @default(uuid()) @db.Uuid
+  projectId        String    @unique @map("project_id") @db.Uuid
+  /// Public (it is in the site's HTML); replacing it stops copies of the old one.
+  key              String    @unique
+  enabled          Boolean   @default(true)
+  recipients       String[]
+  submissions      Int       @default(0)
+  lastSubmissionAt DateTime? @map("last_submission_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  days    SiteFormDay[]
+
+  @@map("site_forms")
+}
+
+/// A starting point for proposals ("Web básica"): what a new proposal is filled in with.
+model ProposalTemplate {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  title     String
+  summary   String
+  terms     String?
+  /// Days the proposal stays open from the day it is created.
+  validDays Int?     @map("valid_days")
+  /// `[{ description, quantity, unitPrice }]`, amounts in cents.
+  items     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("proposal_templates")
+}
+
+/// Where a managed site's last build stands.
+enum SiteBuildStatus {
+  NONE
+  BUILDING
+  LIVE
+  FAILED
+}
+
+/// A basic website whose content lives here and which site-builder builds from the web-basica
+/// template (architecture 8.2): one per project. Previewed at <slug>.<SITES_PREVIEW_DOMAIN>.
+model ManagedSite {
+  id              String           @id @default(uuid()) @db.Uuid
+  projectId       String           @unique @map("project_id") @db.Uuid
+  /// Folder and preview subdomain: [a-z0-9-].
+  slug            String           @unique
+  /// The demo it started from; its images are available by name.
+  preset          String
+  /// The template's `Site` object (without `url`, `form` and `demo`, which are set when built).
+  content         Json
+  /// The client's own domain, when there is one.
+  domain          String?          @unique
+  /// Null without a domain; the canonical address is the domain only once LIVE.
+  domainState     SiteDomainState? @map("domain_state")
+  domainCheckedAt DateTime?        @map("domain_checked_at") @db.Timestamptz(3)
+  /// Where the domain's email goes (its MX records), checked with the domain.
+  mailState       SiteMailState?   @map("mail_state")
+  status          SiteBuildStatus  @default(NONE)
+  lastBuildAt     DateTime?        @map("last_build_at") @db.Timestamptz(3)
+  lastBuildError  String?          @map("last_build_error")
+  release         String?
+  /// `yyyy-mm`: the last month its monthly report went out for.
+  reportedMonth   String?          @map("reported_month")
+  /// Its website in Umami (cookieless visit statistics), created on its first build.
+  umamiWebsiteId  String?          @map("umami_website_id")
+  /// The draft the client is editing (decision 18): the whole content, valid as `content`.
+  draftContent    Json?            @map("draft_content")
+  /// The style the draft starts from, when the client changed it.
+  draftPreset     String?          @map("draft_preset")
+  draftUpdatedAt  DateTime?        @map("draft_updated_at") @db.Timestamptz(3)
+  /// Random: the draft's preview is served at /site-draft/<key>/.
+  draftKey        String?          @unique @map("draft_key")
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project   ClientProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  revisions ManagedSiteRevision[]
+
+  @@map("managed_sites")
+}
+
+/// The content a managed site had before a change (the last 20 are kept).
+model ManagedSiteRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  siteId    String   @map("site_id") @db.Uuid
+  content   Json
+  authorId  String?  @map("author_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  site   ManagedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  author User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([siteId, createdAt])
+  @@map("managed_site_revisions")
+}
+
+/// Messages a site form relayed on a day (Madrid), for the client's visits chart.
+model SiteFormDay {
+  formId String   @map("form_id") @db.Uuid
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  form SiteForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@id([formId, day])
+  @@map("site_form_days")
+}
+
+/// Where a project's domain expiry comes from: the registry's RDAP, typed by the team (`.es`
+/// has no public RDAP), or OVH's API when the team is the domain's technical contact.
+enum DomainSource {
+  RDAP
+  MANUAL
+  OVH
+}
+
+/// Where a managed site's own domain stands: nobody has registered it, it is registered but
+/// doesn't resolve to this server, or it resolves here and answers over HTTPS.
+enum SiteDomainState {
+  UNREGISTERED
+  ELSEWHERE
+  LIVE
+}
+
+/// A website request's preview: being built, online, failed, or taken down.
+/// A request's preview bought online through Stripe Checkout (architecture 8.2, decision 20).
+model SitePurchase {
+  id              String             @id @default(uuid()) @db.Uuid
+  leadId          String             @map("lead_id") @db.Uuid
+  /// The Stripe Checkout Session.
+  stripeSessionId String             @unique @map("stripe_session_id")
+  /// The total charged, VAT included.
+  amountCents     Int                @map("amount_cents")
+  currency        String
+  status          SitePurchaseStatus @default(PENDING)
+  /// The buyer's email, from Stripe.
+  email           String?
+  paidAt          DateTime?          @map("paid_at") @db.Timestamptz(3)
+  /// The project of the site made from it.
+  projectId       String?            @map("project_id") @db.Uuid
+  /// The invoice Stripe issued for it.
+  stripeInvoiceId String?            @map("stripe_invoice_id")
+  /// Why the site couldn't be made on its own: the team finishes it.
+  error           String?
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lead    Lead           @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  project ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@map("site_purchases")
+}
+
+enum SitePurchaseStatus {
+  PENDING
+  PAID
+  EXPIRED
+}
+
+enum SitePreviewStatus {
+  BUILDING
+  READY
+  FAILED
+  REMOVED
+}
+
+/// A managed site domain's email: no MX records, OVH's mail servers, or another provider.
+enum SiteMailState {
+  NONE
+  OVH
+  OTHER
 }

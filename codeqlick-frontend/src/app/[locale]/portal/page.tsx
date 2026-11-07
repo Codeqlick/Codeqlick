@@ -8,16 +8,33 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { resolveLocale } from '@/i18n/locale';
 import { listMyProjects } from '@/lib/api/projects';
+import { listMyProposals } from '@/lib/api/proposals';
+import { Alert } from '@/components/ui/Alert';
+import { Link } from '@/i18n/navigation';
 
 export default async function PortalPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Portal' });
   const tp = await getTranslations({ locale, namespace: 'Phases' });
-  const projects = await listMyProjects();
+  const tpr = await getTranslations({ locale, namespace: 'Proposals' });
+  const [projects, proposals] = await Promise.all([
+    listMyProjects(),
+    // Optional: the projects page works without it.
+    listMyProposals().catch(() => undefined),
+  ]);
+  const pending = proposals?.items.find(
+    (proposal) => proposal.status === 'SENT' && !proposal.expired,
+  );
 
   return (
     <>
       <PageHeader title={t('projectsTitle')} lead={t('projectsLead')} />
+      {pending ? (
+        <Alert tone="info">
+          {tpr('pendingBanner', { title: pending.title })}{' '}
+          <Link href={`/portal/proposals/${pending.id}`}>{tpr('pendingLink')}</Link>
+        </Alert>
+      ) : null}
       {projects.length === 0 ? (
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
       ) : (
