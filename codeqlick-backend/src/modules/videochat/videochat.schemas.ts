@@ -157,6 +157,14 @@ export const suspendSchema = z.object({
 });
 export type SuspendInput = z.infer<typeof suspendSchema>;
 
+/** Several reports dismissed or suspended at once from the moderation page. */
+export const bulkReportsSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(100),
+  action: z.enum(['dismiss', 'suspend']),
+  duration: z.enum(SUSPENSION_DURATIONS).default('permanent'),
+});
+export type BulkReportsInput = z.infer<typeof bulkReportsSchema>;
+
 export const suspendUserSchema = z.object({
   reason: z.string().trim().min(1).max(500),
   duration: z.enum(SUSPENSION_DURATIONS),

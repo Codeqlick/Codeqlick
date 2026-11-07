@@ -85,6 +85,14 @@ export type VideochatReport = {
     email: string;
     suspendedAt: string | null;
     recentReports: number;
+    /** Their moderation history, shown beside the report. */
+    history: {
+      memberSince: string;
+      reports: { open: number; actioned: number; dismissed: number; total: number };
+      reporters: number;
+      suspensions: number;
+      lastSuspension: { reason: string | null; createdAt: string } | null;
+    } | null;
   };
 };
 
@@ -254,6 +262,19 @@ export function listVideochatReports(status: ReportStatus) {
 export function dismissVideochatReport(id: string) {
   return apiFetch<void>(`/admin/videochat/reports/${encodeURIComponent(id)}/dismiss`, {
     method: 'POST',
+    auth: 'required',
+  });
+}
+
+/** Dismisses or suspends from several reports at once. */
+export function bulkVideochatReports(
+  ids: string[],
+  action: 'dismiss' | 'suspend',
+  duration: SuspensionDuration,
+) {
+  return apiFetch<{ done: number; skipped: number }>('/admin/videochat/reports/bulk', {
+    method: 'POST',
+    body: { ids, action, duration },
     auth: 'required',
   });
 }

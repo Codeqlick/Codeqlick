@@ -15,6 +15,8 @@ type SubmitButtonProps = {
   name?: string;
   value?: string;
   disabled?: boolean;
+  /** A keyboard shortcut finds the button by this (`data-shortcut`). */
+  shortcut?: string;
 };
 
 /** Submit button that disables itself and shows `pendingLabel` while its <form> is submitting. */
@@ -28,6 +30,7 @@ export function SubmitButton({
   name,
   value,
   disabled,
+  shortcut,
 }: SubmitButtonProps) {
   const { pending } = useFormStatus();
   return (
@@ -35,6 +38,7 @@ export function SubmitButton({
       type="submit"
       name={name}
       value={value}
+      data-shortcut={shortcut}
       className={buttonClassName({ variant, size, block, className })}
       disabled={disabled || pending}
       aria-disabled={disabled || pending}

@@ -3275,6 +3275,34 @@
       "membersChart": "New members and reports per day",
       "day": "Day",
       "none": "—"
+    },
+    "personHistory": {
+      "title": "Their history",
+      "memberSince": "Account since",
+      "open": "Open reports",
+      "actioned": "Acted on",
+      "dismissed": "Dismissed",
+      "reporters": "People who reported them",
+      "suspensions": "Suspensions",
+      "last": "Last suspension: {date} · {reason}"
+    },
+    "bulk": {
+      "selectAll": "Select all",
+      "pick": "Select: {reason} about {name}",
+      "suspend": "Suspend selected",
+      "dismiss": "Dismiss selected",
+      "none": "Select at least one report (its box or the x key).",
+      "done": "Done: {done, plural, one {# report} other {# reports}}{skipped, plural, =0 {} one {, # was no longer open} other {, # were no longer open}}."
+    },
+    "keys": {
+      "title": "Keyboard shortcuts",
+      "next": "next",
+      "previous": "previous",
+      "select": "select",
+      "dismiss": "dismiss",
+      "suspend": "suspend",
+      "open": "open their page",
+      "help": "show the shortcuts"
     }
   }
 }

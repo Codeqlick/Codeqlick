@@ -3275,6 +3275,34 @@
       "membersChart": "Altas y reportes por día",
       "day": "Día",
       "none": "—"
+    },
+    "personHistory": {
+      "title": "Historial de la persona",
+      "memberSince": "Cuenta desde",
+      "open": "Reportes abiertos",
+      "actioned": "Con medidas",
+      "dismissed": "Descartados",
+      "reporters": "Personas que la reportaron",
+      "suspensions": "Suspensiones",
+      "last": "Última suspensión: {date} · {reason}"
+    },
+    "bulk": {
+      "selectAll": "Seleccionar todos",
+      "pick": "Seleccionar: {reason} sobre {name}",
+      "suspend": "Suspender seleccionados",
+      "dismiss": "Descartar seleccionados",
+      "none": "Selecciona al menos un reporte (su casilla o la tecla x).",
+      "done": "Hecho: {done, plural, one {# reporte} other {# reportes}}{skipped, plural, =0 {} one {, # ya no estaba abierto} other {, # ya no estaban abiertos}}."
+    },
+    "keys": {
+      "title": "Atajos de teclado",
+      "next": "siguiente",
+      "previous": "anterior",
+      "select": "seleccionar",
+      "dismiss": "descartar",
+      "suspend": "suspender",
+      "open": "abrir su ficha",
+      "help": "ver los atajos"
     }
   }
 }
