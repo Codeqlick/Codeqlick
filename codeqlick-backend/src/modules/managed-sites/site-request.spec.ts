@@ -84,16 +84,22 @@ describe('site requests', () => {
     });
   });
 
-  it('summarises the request for the team', () => {
-    const text = requestSummary(request);
+  it("summarises the request in the requester's language", () => {
+    const es = requestSummary(request);
+    expect(es).toContain('estilo: Peluquería (Alba Estudio)');
+    expect(es).toContain('Negocio: Barbería Paco (Barbería, Málaga)');
+    const text = requestSummary(request, 'en');
     expect(text).toContain('style: Peluquería (Alba Estudio)');
     expect(text).toContain('Business: Barbería Paco (Barbería, Málaga)');
     expect(text).toContain('Corte y barba - 22 €');
-    const other = requestSummary({
-      ...request,
-      preset: 'general',
-      business: { ...request.business, wishes: 'Un portfolio con mis cuadros' },
-    });
+    const other = requestSummary(
+      {
+        ...request,
+        preset: 'general',
+        business: { ...request.business, wishes: 'Un portfolio con mis cuadros' },
+      },
+      'en',
+    );
     expect(other).toContain('style: Otro tipo de web (Brezo)');
     expect(other).toContain('What they want on the website:\nUn portfolio con mis cuadros');
   });

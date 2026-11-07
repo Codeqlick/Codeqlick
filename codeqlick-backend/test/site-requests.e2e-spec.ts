@@ -126,7 +126,7 @@ describe('Basic-website requests (e2e)', () => {
     const created = await request(server).post('/v1/site-requests').send(body).expect(201);
     const lead = await prisma.lead.findUniqueOrThrow({ where: { id: created.body.id as string } });
     expect(lead).toMatchObject({ company: 'Barbería Paco', projectType: 'web', status: 'NEW' });
-    expect(lead.message).toContain('Business: Barbería Paco (Barbería, Málaga)');
+    expect(lead.message).toContain('Negocio: Barbería Paco (Barbería, Málaga)');
     expect(lead.siteRequest).toMatchObject({
       preset: 'peluqueria',
       business: { kind: 'Barbería' },
