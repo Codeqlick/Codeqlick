@@ -200,6 +200,11 @@ test('two people who like each other become contacts and call each other', async
     await dan.getByRole('button', { name: 'Aceptar' }).click();
     await inCall(cai);
     await inCall(dan);
+
+    // Full screen and back.
+    await cai.getByRole('button', { name: 'Pantalla completa' }).click();
+    await cai.getByRole('button', { name: 'Salir de pantalla completa' }).click();
+    await expect(cai.getByRole('button', { name: 'Pantalla completa' })).toBeVisible();
   } finally {
     for (const id of ids) {
       await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });

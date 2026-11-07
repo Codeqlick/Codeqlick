@@ -66,7 +66,7 @@
   display: block;
 }
 
-.local .video {
+.mirror {
   transform: scaleX(-1);
 }
 
@@ -380,9 +380,22 @@
     aspect-ratio: 3 / 4;
   }
 
+  /* Buttons within thumb reach: a bar held at the bottom of the screen, "Next" the widest. */
   .controls {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin-inline: calc(-1 * var(--space-3));
+    padding: var(--space-2) var(--space-3) calc(var(--space-2) + env(safe-area-inset-bottom));
+    background: rgb(255 255 255 / 94%);
+    border-top: 1px solid var(--color-line);
+    backdrop-filter: blur(8px);
+  }
+
+  .controls > :first-child {
+    grid-column: 1 / -1;
   }
 
   .spacer {
@@ -391,9 +404,12 @@
 
   .primary,
   .secondary,
-  .danger {
+  .danger,
+  .like {
+    min-height: 3rem;
     padding-inline: var(--space-2);
     font-size: 0.875rem;
+    line-height: 1.15;
   }
 
   .chat {
@@ -453,6 +469,7 @@
 
 /* Like and calls between contacts (architecture 4.7) */
 .like {
+  white-space: nowrap;
   min-height: 2.75rem;
   padding: 0 var(--space-5);
   border-radius: var(--radius-pill);
@@ -508,4 +525,114 @@
 .incomingActions {
   display: flex;
   gap: var(--space-2);
+}
+
+/* Weak connection badge on the partner's video */
+.weak {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: rgb(20 16 31 / 78%);
+  color: var(--color-white);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.weak::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: #f5a524;
+}
+
+/* Full screen: the call fills the screen, the buttons over the video */
+.immersive {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: block;
+  background: #000;
+}
+
+.immersive .stage,
+.immersive .remote {
+  width: 100%;
+  height: 100%;
+}
+
+.immersive .remote {
+  aspect-ratio: auto;
+  max-height: none;
+  border-radius: 0;
+}
+
+.immersive .local {
+  top: calc(var(--space-3) + env(safe-area-inset-top));
+  bottom: auto;
+  width: clamp(6rem, 26%, 12rem);
+}
+
+.immersive .chat {
+  display: none;
+}
+
+.immersive .notice,
+.immersive .noticeError {
+  position: absolute;
+  top: calc(var(--space-3) + env(safe-area-inset-top));
+  left: var(--space-3);
+  right: var(--space-3);
+  z-index: 2;
+}
+
+.immersive .controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  margin: 0;
+  padding: var(--space-6) var(--space-3) calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgb(0 0 0 / 65%));
+  border: 0;
+  backdrop-filter: none;
+  /* One row over the video; it scrolls sideways when it doesn't fit. */
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.immersive .controls > * {
+  flex: none;
+  white-space: nowrap;
+  order: 2;
+}
+
+/* "Next", then the way out of full screen, always in view. */
+.immersive .controls > :first-child {
+  order: 0;
+}
+
+.immersive .fullToggle {
+  order: 1;
+}
+
+.immersive .controls > :first-child {
+  min-width: 8rem;
+}
+
+.immersive .spacer {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .immersive .local {
+    bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
 }
