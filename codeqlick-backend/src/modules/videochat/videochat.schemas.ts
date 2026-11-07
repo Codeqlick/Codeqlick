@@ -43,6 +43,15 @@ export const reportsQuerySchema = z.object({
 });
 export type ReportsQuery = z.infer<typeof reportsQuerySchema>;
 
+/** `?days=7|30|90` of the statistics history (default 30). */
+export const historyQuerySchema = z.object({
+  days: z
+    .enum(['7', '30', '90'])
+    .default('30')
+    .transform((days) => Number(days) as 7 | 30 | 90),
+});
+export type HistoryQuery = z.infer<typeof historyQuerySchema>;
+
 export const GENDERS = ['WOMAN', 'MAN', 'NONBINARY'] as const;
 
 /** Interests a profile can show (a fixed list: nothing to moderate; architecture 4.7). */

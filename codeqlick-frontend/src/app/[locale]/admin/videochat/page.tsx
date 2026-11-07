@@ -3,6 +3,7 @@ import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionFor
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -55,7 +56,15 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
 
   return (
     <div className={styles.stack}>
-      <PageHeader title={t('title')} lead={t('lead')} />
+      <PageHeader
+        title={t('title')}
+        lead={t('lead')}
+        actions={
+          <Button href="/admin/videochat/stats" variant="outline" size="sm">
+            {t('statsLink')}
+          </Button>
+        }
+      />
 
       <ul className={styles.stats}>
         {cards.map((card) => (

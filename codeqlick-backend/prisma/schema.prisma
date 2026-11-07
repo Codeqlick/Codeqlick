@@ -124,6 +124,7 @@ model User {
   videochatReviewed          VideochatReport[]           @relation("VideochatReviewer")
   videochatBlocksMade        VideochatBlock[]            @relation("VideochatBlocker")
   videochatBlocksGot         VideochatBlock[]            @relation("VideochatBlocked")
+  videochatActiveDays        VideochatActiveDay[]
   videochatSanctions         VideochatSanction[]         @relation("VideochatSanctioned")
   videochatSanctioned        VideochatSanction[]         @relation("VideochatSanctionedBy")
   videochatAppeals           VideochatAppeal[]           @relation("VideochatAppellant")
@@ -1195,6 +1196,31 @@ model VideochatBlock {
   @@id([blockerId, blockedId])
   @@index([blockedId])
   @@map("videochat_blocks")
+}
+
+/// One finished video chat call, anonymous: no user, only times (statistics; architecture 4.7).
+model VideochatCallLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  startedAt   DateTime @map("started_at") @db.Timestamptz(3)
+  endedAt     DateTime @map("ended_at") @db.Timestamptz(3)
+  durationSec Int      @map("duration_sec")
+  /// Average time the two people waited before this match; null when unknown.
+  waitSec     Int?     @map("wait_sec")
+
+  @@index([startedAt])
+  @@map("videochat_call_logs")
+}
+
+/// An account used the video chat on that day (Europe/Madrid), for daily counts. Kept 180 days.
+model VideochatActiveDay {
+  day    DateTime @db.Date
+  userId String   @map("user_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([day, userId])
+  @@index([userId])
+  @@map("videochat_active_days")
 }
 
 enum VideochatGender {
