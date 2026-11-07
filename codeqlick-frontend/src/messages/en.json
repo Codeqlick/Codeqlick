@@ -2991,7 +2991,11 @@
       "callOffline": "Your contact is no longer in the video chat.",
       "callMissed": "You missed a call from a contact.",
       "notContact": "That person is no longer your contact.",
-      "incomingRing": "● Incoming call"
+      "incomingRing": "● Incoming call",
+      "weakConnection": "Weak connection",
+      "switchCamera": "Switch camera",
+      "fullScreen": "Full screen",
+      "exitFullScreen": "Exit full screen"
     },
     "rules": {
       "title": "Video chat rules",
