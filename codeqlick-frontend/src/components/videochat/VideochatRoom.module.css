@@ -412,6 +412,15 @@
     line-height: 1.15;
   }
 
+  /* The base .like rule (later in this file) keeps it on one line with wide padding and the
+   * page's font size: in the phone bar's narrow cells it matches the other buttons and wraps. */
+  .controls .like {
+    white-space: normal;
+    padding-inline: var(--space-2);
+    font-size: 0.875rem;
+    line-height: 1.15;
+  }
+
   .chat {
     min-height: 12rem;
     max-height: 18rem;
