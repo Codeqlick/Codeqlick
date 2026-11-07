@@ -11,7 +11,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import type { Subscription } from 'rxjs';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import { AppConfigService } from '../../config/app-config.service.js';
-import { Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
+import { hasFilters, Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
 import {
   clientMessageSchema,
   type ClientMessage,
@@ -33,6 +33,10 @@ const AUTH_TIMEOUT_MS = 5_000;
 const MAX_SOCKETS_PER_IP = 5;
 /** After a call, the same two people aren't paired again for this long. */
 const REMATCH_COOLDOWN_MS = 60_000;
+/** People met in this time are matched only when nobody new is waiting… */
+const RECENT_MS = 24 * 60 * 60 * 1000;
+/** …remembering at most this many per account. */
+const RECENT_MAX = 20;
 /** A call that just ended can still be reported or blocked for this long. */
 const REPORT_WINDOW_MS = 5 * 60_000;
 /** Text messages of a call kept for a report. */
@@ -56,8 +60,8 @@ interface Connection {
   authTimer?: NodeJS.Timeout;
   /** Fires when this person has waited alone long enough to notify others (Web Push). */
   waitTimer?: NodeJS.Timeout;
-  /** The `others` this person was last told while waiting. */
-  waitingOthers?: number;
+  /** The last `waiting` this person was told (to send only changes). */
+  waitingSent?: string;
   participant?: Participant;
   /** What partners see of this person. */
   profile?: PublicProfile;
@@ -85,6 +89,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private readonly matchmaker = new Matchmaker();
   private readonly connections = new Map<string, Connection>();
   private readonly byUser = new Map<string, Connection>();
+  /** Per account, who they met and when (in memory; architecture 4.7). */
+  private readonly recentPartners = new Map<string, Map<string, number>>();
   private readonly socketsPerIp = new Map<string, number>();
   private server?: Server;
   private heartbeat?: NodeJS.Timeout;
@@ -204,6 +210,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   }
 
   private ping(): void {
+    this.forgetOldPartners();
     for (const connection of this.connections.values()) {
       if (!connection.alive) {
         connection.socket.terminate();
@@ -260,6 +267,13 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
         this.endCall(connection);
         this.matchmaker.remove(connection.id);
         return;
+      case 'widen':
+        // Only while waiting and with filters to ignore; the next search uses them again.
+        if (!this.matchmaker.isWaiting(connection.id) || !hasFilters(me.prefs) || me.widened)
+          return;
+        me.widened = true;
+        this.rematch();
+        return;
       case 'signal': {
         if (!connection.limits.signal.take()) return this.error(connection, 'rate-limited');
         const partner = this.partnerConnection(connection);
@@ -313,6 +327,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       userId,
       blocked: new Set(await this.videochat.blockedUserIds(userId)),
       prefs: access.prefs,
+      interests: access.publicProfile.interests,
+      recent: this.recentOf(userId),
     };
     connection.profile = access.publicProfile;
     this.byUser.set(userId, connection);
@@ -321,11 +337,13 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
 
   private join(connection: Connection): void {
     const me = connection.participant as Participant;
+    // A widened search lasts one wait.
+    me.widened = false;
+    connection.waitingSent = undefined;
     const result = this.matchmaker.join(me);
     if (connection.waitTimer) clearTimeout(connection.waitTimer);
     if (result.status === 'waiting') {
-      connection.waitingOthers = this.matchmaker.waitingCount - 1;
-      this.send(connection, { type: 'waiting', others: connection.waitingOthers });
+      this.sendWaiting(connection, this.matchmaker.waitingCount - 1);
       if (this.push.enabled) {
         connection.waitTimer = setTimeout(() => this.waitedAlone(connection), PUSH_WAIT_MS);
         connection.waitTimer.unref();
@@ -348,14 +366,20 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     const call: CallLog = { lines: [] };
     for (const connection of [initiator, other]) {
       connection.call = call;
-      connection.waitingOthers = undefined;
+      connection.waitingSent = undefined;
+      if (connection.participant) connection.participant.widened = false;
       if (connection.waitTimer) clearTimeout(connection.waitTimer);
+    }
+    if (initiator.participant && other.participant) {
+      this.remember(initiator.participant.userId, other.participant.userId);
+      this.remember(other.participant.userId, initiator.participant.userId);
     }
     const anonymous: PublicProfile = {
       nickname: null,
       gender: null,
       country: null,
       language: null,
+      interests: [],
     };
     this.send(initiator, {
       type: 'matched',
@@ -367,6 +391,51 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       initiator: false,
       partner: initiator.profile ?? anonymous,
     });
+  }
+
+  /** Tells someone waiting how things stand, when that changed. */
+  private sendWaiting(connection: Connection, others: number): void {
+    const me = connection.participant;
+    const message = {
+      type: 'waiting' as const,
+      others,
+      filtered: hasFilters(me?.prefs),
+      widened: me?.widened === true,
+    };
+    const key = JSON.stringify(message);
+    if (connection.waitingSent === key) return;
+    connection.waitingSent = key;
+    this.send(connection, message);
+  }
+
+  /** Notes that `userId` met `partnerId` (the newest 20 in 24 hours are kept). */
+  private remember(userId: string, partnerId: string, now: number = Date.now()): void {
+    const met = this.recentPartners.get(userId) ?? new Map<string, number>();
+    met.delete(partnerId);
+    met.set(partnerId, now);
+    for (const [id, at] of met) {
+      if (met.size <= RECENT_MAX && at > now - RECENT_MS) break;
+      met.delete(id);
+    }
+    this.recentPartners.set(userId, met);
+  }
+
+  /** Whom an account met in the last 24 hours, as the matchmaker reads it. */
+  private recentOf(userId: string): { has(partnerId: string): boolean } {
+    return {
+      has: (partnerId) => {
+        const at = this.recentPartners.get(userId)?.get(partnerId);
+        return at !== undefined && at > Date.now() - RECENT_MS;
+      },
+    };
+  }
+
+  /** Forgets accounts whose last meeting is over 24 hours old. */
+  private forgetOldPartners(now: number = Date.now()): void {
+    for (const [userId, met] of this.recentPartners) {
+      const newest = [...met.values()].at(-1) ?? 0;
+      if (newest <= now - RECENT_MS) this.recentPartners.delete(userId);
+    }
   }
 
   /**
@@ -389,9 +458,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     const others = this.matchmaker.waitingCount - 1;
     for (const participant of this.matchmaker.waiting) {
       const connection = this.connections.get(participant.id);
-      if (!connection || connection.waitingOthers === others) continue;
-      connection.waitingOthers = others;
-      this.send(connection, { type: 'waiting', others });
+      if (connection) this.sendWaiting(connection, others);
     }
   }
 

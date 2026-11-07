@@ -26,6 +26,8 @@ import {
   VIDEOCHAT_TERMS_VERSION,
   type OnboardingInput,
   type PublicProfile,
+  INTERESTS,
+  type Interest,
   type ReportReason,
   type SuspensionDuration,
   type VideochatSettings,
@@ -59,7 +61,15 @@ function settingsOf(profile: VideochatProfile): VideochatSettings {
     language: profile.language,
     sameCountryOnly: profile.sameCountryOnly,
     sameLanguageOnly: profile.sameLanguageOnly,
+    interests: knownInterests(profile.interests),
   };
+}
+
+/** Stored interests still on the list (one removed from it later is dropped). */
+function knownInterests(stored: string[] | undefined): Interest[] {
+  return (stored ?? []).filter((value): value is Interest =>
+    (INTERESTS as readonly string[]).includes(value),
+  );
 }
 
 export interface VideochatStatus {
@@ -354,6 +364,7 @@ export class VideochatService {
         gender: profile?.gender ?? null,
         country: profile?.country ?? null,
         language: profile?.language ?? null,
+        interests: profile ? knownInterests(profile.interests) : [],
       },
     };
   }

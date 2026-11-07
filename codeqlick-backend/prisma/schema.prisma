@@ -1131,6 +1131,8 @@ model VideochatProfile {
   language         String?
   sameCountryOnly  Boolean           @default(false) @map("same_country_only")
   sameLanguageOnly Boolean           @default(false) @map("same_language_only")
+  /// Up to 5 interests from the fixed list in videochat.schemas.ts (INTERESTS).
+  interests        String[]          @default([])
   /// Last "someone is waiting" notification sent to this account (at most one every 6 hours).
   pushNotifiedAt   DateTime?         @map("push_notified_at") @db.Timestamptz(3)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)

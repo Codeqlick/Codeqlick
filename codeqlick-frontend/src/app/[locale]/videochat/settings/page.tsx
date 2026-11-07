@@ -12,7 +12,7 @@ import { InstallApp } from '@/components/videochat/InstallApp';
 import { PushToggle } from '@/components/videochat/PushToggle';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { GENDERS, getVideochatStatus } from '@/lib/api/videochat';
+import { GENDERS, getVideochatStatus, INTERESTS, MAX_INTERESTS } from '@/lib/api/videochat';
 import { requireUser } from '@/lib/auth/session';
 import { countryOptions, languageOptions } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
@@ -27,6 +27,7 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Videochat.settings' });
   const tg = await getTranslations({ locale, namespace: 'Videochat.genders' });
   const tp = await getTranslations({ locale, namespace: 'Videochat.push' });
+  const ti = await getTranslations({ locale, namespace: 'Videochat.interests' });
   const status = await getVideochatStatus();
   if (!status.profile) redirect(`/${locale}/videochat/room`);
   const profile = status.profile;
@@ -86,6 +87,14 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
           defaultChecked={profile.sameLanguageOnly}
         />
         <p className={styles.hint}>{t('filtersHint')}</p>
+        <FormCheckboxGroup
+          name="interests"
+          legend={t('interests')}
+          options={INTERESTS.map((value) => ({ value, label: ti(value) }))}
+          defaultValues={profile.interests}
+          className={`${styles.fieldset} ${styles.interests}`}
+        />
+        <p className={styles.hint}>{t('interestsHint', { max: MAX_INTERESTS })}</p>
         <SubmitButton block pendingLabel={t('saving')}>
           {t('save')}
         </SubmitButton>
