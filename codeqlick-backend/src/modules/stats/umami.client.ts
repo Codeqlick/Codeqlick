@@ -100,9 +100,7 @@ export class UmamiClient {
         referrers: referrers.map((m) => ({ source: m.x, visitors: m.y })),
         countries: countries.map((m) => ({ code: m.x, visitors: m.y })),
         contactsSent: events.find((m) => m.x === 'contact-sent')?.y ?? 0,
-        events: events
-          .map((m) => ({ name: m.x, count: m.y }))
-          .sort((a, b) => b.count - a.count),
+        events: events.map((m) => ({ name: m.x, count: m.y })).sort((a, b) => b.count - a.count),
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
