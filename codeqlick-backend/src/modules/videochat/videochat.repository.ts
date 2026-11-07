@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type {
   Prisma,
+  VideochatAppealStatus,
   VideochatProfile,
   VideochatReportReason,
   VideochatReportStatus,
+  VideochatSanction,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -24,6 +26,10 @@ export class VideochatRepository {
       create: { userId, adultConfirmedAt: now, termsVersion, termsAcceptedAt: now },
       update: { adultConfirmedAt: now, termsVersion, termsAcceptedAt: now },
     });
+  }
+
+  findUser(id: string) {
+    return this.prisma.user.findUnique({ where: { id }, select: personSelect });
   }
 
   /** Users this one blocked or was blocked by. */
@@ -63,12 +69,51 @@ export class VideochatRepository {
     return rows.length;
   }
 
-  /** Suspends the user (keeps an earlier suspension's date and reason). */
-  async suspend(userId: string, reason: string, now: Date): Promise<void> {
-    await this.prisma.videochatProfile.updateMany({
-      where: { userId, suspendedAt: null },
-      data: { suspendedAt: now, suspensionReason: reason },
+  /** Suspends the user (replacing a current suspension) and records it in their history. */
+  suspend(input: {
+    userId: string;
+    reason: string;
+    until: Date | null;
+    now: Date;
+    byId: string | null;
+    reportId: string | null;
+  }): Promise<VideochatSanction> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.videochatProfile.update({
+        where: { userId: input.userId },
+        data: {
+          suspendedAt: input.now,
+          suspendedUntil: input.until,
+          suspensionReason: input.reason,
+        },
+      });
+      return tx.videochatSanction.create({
+        data: {
+          userId: input.userId,
+          kind: 'SUSPENDED',
+          reason: input.reason,
+          until: input.until,
+          byId: input.byId,
+          reportId: input.reportId,
+          createdAt: input.now,
+        },
+      });
     });
+  }
+
+  saveSettings(
+    userId: string,
+    data: {
+      nickname: string | null;
+      gender: VideochatProfile['gender'];
+      seeking: VideochatProfile['seeking'];
+      country: string | null;
+      language: string | null;
+      sameCountryOnly: boolean;
+      sameLanguageOnly: boolean;
+    },
+  ): Promise<VideochatProfile> {
+    return this.prisma.videochatProfile.update({ where: { userId }, data });
   }
 
   async setAgeVerified(userId: string, at: Date | null): Promise<boolean> {
@@ -79,12 +124,92 @@ export class VideochatRepository {
     return result.count > 0;
   }
 
-  async unsuspend(userId: string): Promise<boolean> {
-    const result = await this.prisma.videochatProfile.updateMany({
-      where: { userId, suspendedAt: { not: null } },
-      data: { suspendedAt: null, suspensionReason: null },
+  /** Lifts a suspension (`now` past a timed one's end counts too) and records it. */
+  async unsuspend(userId: string, byId: string | null, reason: string | null): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.videochatProfile.updateMany({
+        where: { userId, suspendedAt: { not: null } },
+        data: { suspendedAt: null, suspendedUntil: null, suspensionReason: null },
+      });
+      if (result.count === 0) return false;
+      await tx.videochatSanction.create({ data: { userId, kind: 'LIFTED', byId, reason } });
+      return true;
+    });
+  }
+
+  /** The suspension a person is under now (their latest SUSPENDED entry). */
+  latestSuspension(userId: string) {
+    return this.prisma.videochatSanction.findFirst({
+      where: { userId, kind: 'SUSPENDED' },
+      orderBy: { createdAt: 'desc' },
+      include: { appeal: true },
+    });
+  }
+
+  createAppeal(userId: string, sanctionId: string, message: string) {
+    return this.prisma.videochatAppeal.create({ data: { userId, sanctionId, message } });
+  }
+
+  findAppeal(id: string) {
+    return this.prisma.videochatAppeal.findUnique({
+      where: { id },
+      include: { user: { select: { ...personSelect, locale: true } } },
+    });
+  }
+
+  listAppeals(status: VideochatAppealStatus) {
+    return this.prisma.videochatAppeal.findMany({
+      where: { status },
+      orderBy: { createdAt: status === 'OPEN' ? 'asc' : 'desc' },
+      take: 200,
+      include: {
+        user: { select: personSelect },
+        sanction: { select: { reason: true, until: true, createdAt: true } },
+      },
+    });
+  }
+
+  /** Resolves an open appeal; false when it was already resolved. */
+  async resolveAppeal(
+    id: string,
+    status: 'ACCEPTED' | 'REJECTED',
+    response: string | null,
+    reviewerId: string,
+    now: Date,
+  ): Promise<boolean> {
+    const result = await this.prisma.videochatAppeal.updateMany({
+      where: { id, status: 'OPEN' },
+      data: { status, response, reviewedById: reviewerId, reviewedAt: now },
     });
     return result.count > 0;
+  }
+
+  /** Everything the team sees about one person. */
+  userDetail(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        ...personSelect,
+        createdAt: true,
+        videochatProfile: true,
+        videochatReportsGot: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          include: { reporter: { select: personSelect } },
+        },
+        videochatReportsMade: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          include: { reported: { select: personSelect } },
+        },
+        videochatSanctions: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+          include: { by: { select: personSelect } },
+        },
+        videochatAppeals: { orderBy: { createdAt: 'desc' }, take: 50 },
+      },
+    });
   }
 
   listReports(status: VideochatReportStatus) {
@@ -126,9 +251,13 @@ export class VideochatRepository {
     return new Map(groups.map((group) => [group.reportedId, group._count._all]));
   }
 
-  listSuspended() {
+  /** Suspended now: timed suspensions that ended are left out. */
+  listSuspended(now: Date) {
     return this.prisma.videochatProfile.findMany({
-      where: { suspendedAt: { not: null } },
+      where: {
+        suspendedAt: { not: null },
+        OR: [{ suspendedUntil: null }, { suspendedUntil: { gt: now } }],
+      },
       orderBy: { suspendedAt: 'desc' },
       take: 200,
       include: { user: { select: personSelect } },

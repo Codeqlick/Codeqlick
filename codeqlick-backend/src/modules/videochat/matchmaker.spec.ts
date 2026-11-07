@@ -1,11 +1,67 @@
 import { describe, expect, it } from 'vitest';
-import { Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
+import { Matchmaker, WindowLimiter, type MatchPrefs, type Participant } from './matchmaker.js';
 
 function person(id: string, userId = `user-${id}`, blocked: string[] = []): Participant {
   return { id, userId, blocked: new Set(blocked) };
 }
 
+function prefs(overrides: Partial<MatchPrefs>): MatchPrefs {
+  return {
+    gender: null,
+    seeking: [],
+    country: null,
+    language: null,
+    sameCountryOnly: false,
+    sameLanguageOnly: false,
+    ...overrides,
+  };
+}
+
 describe('Matchmaker', () => {
+  it('applies the filters both ways', () => {
+    const woman = { ...person('w'), prefs: prefs({ gender: 'WOMAN', seeking: ['MAN'] }) };
+    const man = { ...person('m'), prefs: prefs({ gender: 'MAN' }) };
+    const otherWoman = { ...person('o'), prefs: prefs({ gender: 'WOMAN' }) };
+    const unset = person('u');
+    expect(Matchmaker.compatible(woman, man)).toBe(true);
+    // She only wants men; the other woman takes anyone, but the filter holds both ways.
+    expect(Matchmaker.compatible(woman, otherWoman)).toBe(false);
+    expect(Matchmaker.compatible(otherWoman, woman)).toBe(false);
+    // Without a gender, only people who take anyone.
+    expect(Matchmaker.compatible(woman, unset)).toBe(false);
+    expect(Matchmaker.compatible(man, unset)).toBe(true);
+  });
+
+  it('keeps "same country" and "same language" to people who share them', () => {
+    const es = { ...person('a'), prefs: prefs({ country: 'ES', sameCountryOnly: true }) };
+    const es2 = { ...person('b'), prefs: prefs({ country: 'ES' }) };
+    const mx = { ...person('c'), prefs: prefs({ country: 'MX' }) };
+    const none = person('d');
+    expect(Matchmaker.compatible(es, es2)).toBe(true);
+    expect(Matchmaker.compatible(es, mx)).toBe(false);
+    expect(Matchmaker.compatible(none, es)).toBe(false);
+    const en = { ...person('e'), prefs: prefs({ language: 'en', sameLanguageOnly: true }) };
+    const en2 = { ...person('f'), prefs: prefs({ language: 'en' }) };
+    expect(Matchmaker.compatible(en, en2)).toBe(true);
+    expect(Matchmaker.compatible(en, mx)).toBe(false);
+    // Asking for the same country without having one matches nobody.
+    const lost = { ...person('g'), prefs: prefs({ sameCountryOnly: true }) };
+    expect(Matchmaker.compatible(lost, es2)).toBe(false);
+  });
+
+  it('skips waiting people the filters rule out and pairs with a later one', () => {
+    const mm = new Matchmaker();
+    const man = { ...person('m'), prefs: prefs({ gender: 'MAN', seeking: ['MAN'] }) };
+    const woman = { ...person('w'), prefs: prefs({ gender: 'WOMAN' }) };
+    expect(mm.join(man)).toEqual({ status: 'waiting' });
+    // The waiting man only wants men, so the woman waits too.
+    expect(mm.join(woman)).toEqual({ status: 'waiting' });
+    const seeker = { ...person('s'), prefs: prefs({ gender: 'MAN', seeking: ['WOMAN'] }) };
+    // Skips the first in line (he wants men) and takes the woman.
+    expect(mm.join(seeker)).toEqual({ status: 'matched', partner: woman });
+    expect(mm.waitingCount).toBe(1);
+  });
+
   it('queues the first person and pairs the second with them', () => {
     const mm = new Matchmaker();
     const a = person('a');

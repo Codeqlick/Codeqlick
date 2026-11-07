@@ -3,6 +3,19 @@
  * so it is unit tested on its own. The gateway owns the sockets and calls it.
  */
 
+export type Gender = 'WOMAN' | 'MAN' | 'NONBINARY';
+
+/** What a person is and looks for (their public profile and filters; architecture 4.7). */
+export interface MatchPrefs {
+  gender: Gender | null;
+  /** Empty: anyone. */
+  seeking: Gender[];
+  country: string | null;
+  language: string | null;
+  sameCountryOnly: boolean;
+  sameLanguageOnly: boolean;
+}
+
 export interface Participant {
   /** One per WebSocket. */
   id: string;
@@ -11,6 +24,17 @@ export interface Participant {
   blocked: Set<string>;
   /** The person they talked to last: not matched again with them until `until` (ms). */
   lastPartner?: { userId: string; until: number };
+  /** Filters; none: anyone, and fits anyone's filters that ask for nothing. */
+  prefs?: MatchPrefs;
+}
+
+/** Whether `a`'s filters accept `b` (one direction). */
+export function accepts(a: MatchPrefs | undefined, b: MatchPrefs | undefined): boolean {
+  if (!a) return true;
+  if (a.seeking.length > 0 && !(b?.gender && a.seeking.includes(b.gender))) return false;
+  if (a.sameCountryOnly && !(a.country && b?.country === a.country)) return false;
+  if (a.sameLanguageOnly && !(a.language && b?.language === a.language)) return false;
+  return true;
 }
 
 export type JoinResult = { status: 'waiting' } | { status: 'matched'; partner: Participant };
@@ -27,7 +51,9 @@ export class Matchmaker {
     if (a.blocked.has(b.userId) || b.blocked.has(a.userId)) return false;
     const recent = (p: Participant, other: Participant) =>
       p.lastPartner?.userId === other.userId && p.lastPartner.until > now;
-    return !recent(a, b) && !recent(b, a);
+    if (recent(a, b) || recent(b, a)) return false;
+    // Filters hold both ways: each one fits what the other is looking for.
+    return accepts(a.prefs, b.prefs) && accepts(b.prefs, a.prefs);
   }
 
   /**

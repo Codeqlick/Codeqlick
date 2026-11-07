@@ -102,6 +102,8 @@ describe('Video chat (e2e)', () => {
   afterAll(async () => {
     for (const tab of tabs) tab.socket.terminate();
     if (prisma) {
+      const ids = Object.values(users).map((user) => user.id);
+      await prisma.activityLog.deleteMany({ where: { targetId: { in: ids } } });
       await prisma.user.deleteMany({ where: { email: { contains: `-${tag}@codeqlick.test` } } });
     }
     await app?.close();
@@ -158,6 +160,41 @@ describe('Video chat (e2e)', () => {
     }
   });
 
+  it('saves the public profile and filters, and shows how many people are online', async () => {
+    const profile = {
+      nickname: 'Ana',
+      gender: 'WOMAN',
+      seeking: [],
+      country: 'ES',
+      language: 'es',
+      sameCountryOnly: false,
+      sameLanguageOnly: false,
+    };
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.admin!.auth)
+      .send(profile)
+      .expect(409);
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.ana!.auth)
+      .send({ ...profile, country: 'Spain' })
+      .expect(400);
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.ana!.auth)
+      .send(profile)
+      .expect(200, profile);
+    const { body } = await request(server())
+      .get('/v1/videochat/me')
+      .set(users.ana!.auth)
+      .expect(200);
+    expect(body.profile).toEqual(profile);
+
+    const { body: online } = await request(server()).get('/v1/videochat/online').expect(200);
+    expect(online).toEqual({ online: expect.any(Number) });
+  });
+
   it('refuses sockets from other origins, and bad or reused tickets', async () => {
     await expect(Tab.open(wsUrl, 'https://evil.example')).rejects.toThrow('HTTP 403');
 
@@ -196,8 +233,17 @@ describe('Video chat (e2e)', () => {
     ana.send({ type: 'join' });
     await ana.next('waiting');
     ben.send({ type: 'join' });
-    expect(await ben.next('matched')).toEqual({ type: 'matched', initiator: true });
-    expect(await ana.next('matched')).toEqual({ type: 'matched', initiator: false });
+    // Each side sees the other's public profile, never the account name.
+    expect(await ben.next('matched')).toEqual({
+      type: 'matched',
+      initiator: true,
+      partner: { nickname: 'Ana', gender: 'WOMAN', country: 'ES', language: 'es' },
+    });
+    expect(await ana.next('matched')).toEqual({
+      type: 'matched',
+      initiator: false,
+      partner: { nickname: null, gender: null, country: null, language: null },
+    });
 
     const offer = { sdp: { type: 'offer', sdp: 'v=0 fake offer' } };
     ben.send({ type: 'signal', data: offer });
@@ -324,6 +370,162 @@ describe('Video chat (e2e)', () => {
       .set(users.ana!.auth)
       .expect(200);
     expect(status).toMatchObject({ suspended: true, allowed: false });
+    cai.socket.close();
+  });
+  it('lets a suspended person appeal once, and the team answer it', async () => {
+    // ana was suspended by the report above, until the team reviews it.
+    const me = () => request(server()).get('/v1/videochat/me').set(users.ana!.auth).expect(200);
+    expect((await me()).body.suspension).toEqual({
+      reason: 'Automatic: reported as possibly under 18',
+      until: null,
+      appeal: null,
+    });
+    await request(server())
+      .post('/v1/videochat/appeal')
+      .set(users.ben!.auth)
+      .send({ message: 'I did nothing wrong at all' })
+      .expect(409);
+    await request(server())
+      .post('/v1/videochat/appeal')
+      .set(users.ana!.auth)
+      .send({ message: 'short' })
+      .expect(400);
+    await request(server())
+      .post('/v1/videochat/appeal')
+      .set(users.ana!.auth)
+      .send({ message: 'I am 31, happy to show an ID.' })
+      .expect(204);
+    await request(server())
+      .post('/v1/videochat/appeal')
+      .set(users.ana!.auth)
+      .send({ message: 'Please, again, I am an adult.' })
+      .expect(409);
+
+    const appeals = async () =>
+      (
+        await request(server())
+          .get('/v1/admin/videochat/appeals')
+          .set(users.admin!.auth)
+          .expect(200)
+      ).body as Array<{ id: string; user: { id: string } }>;
+    const appeal = (await appeals()).find((a) => a.user.id === users.ana!.id);
+    expect(appeal).toMatchObject({
+      message: 'I am 31, happy to show an ID.',
+      status: 'OPEN',
+      sanction: { reason: 'Automatic: reported as possibly under 18', until: null },
+    });
+    const before = sent.length;
+    await request(server())
+      .post(`/v1/admin/videochat/appeals/${appeal!.id}/reject`)
+      .set(users.admin!.auth)
+      .send({ response: 'Send us the ID first.' })
+      .expect(204);
+    await request(server())
+      .post(`/v1/admin/videochat/appeals/${appeal!.id}/accept`)
+      .set(users.admin!.auth)
+      .send({})
+      .expect(409);
+    await vi.waitFor(() => expect(sent.length).toBe(before + 1));
+    expect(sent.at(-1)).toMatchObject({ to: expect.stringContaining('e2e-videochat-ana-') });
+    expect(sent.at(-1)?.text).toContain('Send us the ID first.');
+    expect((await me()).body).toMatchObject({
+      suspended: true,
+      suspension: { appeal: { status: 'REJECTED', response: 'Send us the ID first.' } },
+    });
+
+    // A new suspension (timed, from the team) can be appealed again; accepting lifts it.
+    await request(server())
+      .delete(`/v1/admin/videochat/suspensions/${users.ana!.id}`)
+      .set(users.admin!.auth)
+      .expect(204);
+    await request(server())
+      .post(`/v1/admin/videochat/users/${users.ana!.id}/suspend`)
+      .set(users.admin!.auth)
+      .send({ reason: 'Spam links', duration: '24h' })
+      .expect(204);
+    const { body: status } = await me();
+    const until = new Date(status.suspension.until as string).getTime();
+    expect(until - Date.now()).toBeGreaterThan(23 * 60 * 60 * 1000);
+    expect(status.suspension).toMatchObject({ reason: 'Spam links', appeal: null });
+    await request(server())
+      .post('/v1/videochat/appeal')
+      .set(users.ana!.auth)
+      .send({ message: 'It was a mistake, sorry.' })
+      .expect(204);
+    const second = (await appeals()).find((a) => a.user.id === users.ana!.id);
+    await request(server())
+      .post(`/v1/admin/videochat/appeals/${second!.id}/accept`)
+      .set(users.admin!.auth)
+      .send({ response: 'Welcome back.' })
+      .expect(204);
+    expect((await me()).body).toMatchObject({ suspended: false, suspension: null, allowed: true });
+
+    // The person's page keeps the whole history, and the log has every step.
+    const { body: detail } = await request(server())
+      .get(`/v1/admin/videochat/users/${users.ana!.id}`)
+      .set(users.admin!.auth)
+      .expect(200);
+    expect(detail.sanctions.map((s: { kind: string }) => s.kind)).toEqual([
+      'LIFTED',
+      'SUSPENDED',
+      'LIFTED',
+      'SUSPENDED',
+    ]);
+    expect(detail.sanctions[3]).toMatchObject({ by: null });
+    expect(detail.sanctions[2]).toMatchObject({ by: { id: users.admin!.id } });
+    expect(detail.appeals.map((a: { status: string }) => a.status)).toEqual([
+      'ACCEPTED',
+      'REJECTED',
+    ]);
+    expect(detail.reportsReceived).toHaveLength(1);
+    expect(detail.reportsMade).toHaveLength(1);
+    expect(detail.profile).toMatchObject({ nickname: 'Ana' });
+    const actions = await prisma.activityLog.findMany({
+      where: { targetId: users.ana!.id },
+      orderBy: { createdAt: 'asc' },
+      select: { action: true },
+    });
+    expect(actions.map((a) => a.action)).toEqual([
+      'videochat.suspended',
+      'videochat.appeal_rejected',
+      'videochat.unsuspended',
+      'videochat.suspended',
+      'videochat.appeal_accepted',
+    ]);
+  });
+
+  it('matches only people whose filters fit both ways', async () => {
+    const settings = (gender: string | null, seeking: string[]) => ({
+      nickname: null,
+      gender,
+      seeking,
+      country: null,
+      language: null,
+      sameCountryOnly: false,
+      sameLanguageOnly: false,
+    });
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.ben!.auth)
+      .send(settings('MAN', ['WOMAN']))
+      .expect(200);
+    const ben = await connect('ben');
+    ben.send({ type: 'join' });
+    await ben.next('waiting');
+    // cai has no gender: ben's filter leaves her out.
+    let cai = await connect('cai');
+    cai.send({ type: 'join' });
+    await cai.next('waiting');
+    cai.socket.close();
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.cai!.auth)
+      .send(settings('WOMAN', []))
+      .expect(200);
+    cai = await connect('cai');
+    cai.send({ type: 'join' });
+    expect(await cai.next('matched')).toMatchObject({ partner: { gender: 'MAN' } });
+    ben.socket.close();
     cai.socket.close();
   });
 });

@@ -1,10 +1,16 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
+import type { ActivityService } from '../activity/activity.service.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { VideochatRepository } from './videochat.repository.js';
-import { ageOn, VIDEOCHAT_TERMS_VERSION } from './videochat.schemas.js';
-import { TICKET_TTL_MS, VideochatService } from './videochat.service.js';
+import {
+  ageOn,
+  settingsSchema,
+  suspensionEnd,
+  VIDEOCHAT_TERMS_VERSION,
+} from './videochat.schemas.js';
+import { isSuspended, TICKET_TTL_MS, VideochatService } from './videochat.service.js';
 
 function service(
   profile: object | null = { termsVersion: VIDEOCHAT_TERMS_VERSION, suspendedAt: null },
@@ -13,9 +19,13 @@ function service(
   const repository = {
     findProfile: vi.fn().mockResolvedValue(profile),
     saveOnboarding: vi.fn().mockResolvedValue(undefined),
+    latestSuspension: vi.fn().mockResolvedValue(null),
   } as unknown as VideochatRepository;
   const config = { turn, videochatAgeVerificationRequired: false } as unknown as AppConfigService;
-  return { svc: new VideochatService(repository, config, {} as MailService), repository };
+  return {
+    svc: new VideochatService(repository, config, {} as MailService, {} as ActivityService),
+    repository,
+  };
 }
 
 describe('ageOn', () => {
@@ -77,6 +87,7 @@ describe('VideochatService', () => {
       repository,
       { turn: { urls: [] }, videochatAgeVerificationRequired: true } as unknown as AppConfigService,
       {} as MailService,
+      {} as ActivityService,
     );
     expect(await strict.status('u1')).toMatchObject({ onboarded: true, allowed: false });
     await expect(strict.issueTicket('u1')).rejects.toMatchObject({ status: 403 });
@@ -101,5 +112,47 @@ describe('VideochatService', () => {
       secret: undefined as never,
     });
     expect(svc.iceServers('u1')).toEqual([]);
+  });
+});
+
+describe('suspensions', () => {
+  const now = new Date('2026-11-07T12:00:00Z');
+
+  it('ends timed suspensions by themselves', () => {
+    expect(isSuspended(null, now)).toBe(false);
+    expect(isSuspended({ suspendedAt: now, suspendedUntil: null }, now)).toBe(true);
+    const later = new Date(now.getTime() + 1000);
+    const earlier = new Date(now.getTime() - 1000);
+    expect(isSuspended({ suspendedAt: earlier, suspendedUntil: later }, now)).toBe(true);
+    expect(isSuspended({ suspendedAt: earlier, suspendedUntil: earlier }, now)).toBe(false);
+  });
+
+  it('turns a duration into an end date', () => {
+    expect(suspensionEnd('24h', now)?.toISOString()).toBe('2026-11-08T12:00:00.000Z');
+    expect(suspensionEnd('7d', now)?.toISOString()).toBe('2026-11-14T12:00:00.000Z');
+    expect(suspensionEnd('permanent', now)).toBeNull();
+  });
+});
+
+describe('settingsSchema', () => {
+  const base = {
+    nickname: 'Ada_88',
+    gender: 'WOMAN',
+    seeking: ['MAN', 'MAN'],
+    country: 'ES',
+    language: 'es',
+    sameCountryOnly: false,
+    sameLanguageOnly: true,
+  };
+
+  it('accepts a profile and drops repeated choices', () => {
+    expect(settingsSchema.parse(base).seeking).toEqual(['MAN']);
+    expect(settingsSchema.parse({ ...base, nickname: null, gender: null }).nickname).toBeNull();
+  });
+
+  it('refuses odd nicknames, countries and languages', () => {
+    expect(settingsSchema.safeParse({ ...base, nickname: '<b>x</b>' }).success).toBe(false);
+    expect(settingsSchema.safeParse({ ...base, country: 'es' }).success).toBe(false);
+    expect(settingsSchema.safeParse({ ...base, language: 'spa' }).success).toBe(false);
   });
 });

@@ -10,18 +10,25 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Subject } from 'rxjs';
+import type { VideochatProfile } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { WindowLimiter } from './matchmaker.js';
-import { minorReportEmail } from './videochat-emails.js';
+import { WindowLimiter, type MatchPrefs } from './matchmaker.js';
+import { appealResolvedEmail, minorReportEmail } from './videochat-emails.js';
 import { VideochatRepository } from './videochat.repository.js';
 import {
   ageOn,
+  suspensionEnd,
   VIDEOCHAT_MIN_AGE,
   VIDEOCHAT_TERMS_VERSION,
   type OnboardingInput,
+  type PublicProfile,
   type ReportReason,
+  type SuspensionDuration,
+  type VideochatSettings,
 } from './videochat.schemas.js';
 
 /** A ticket opens one WebSocket, once, within this time. */
@@ -31,6 +38,29 @@ const TURN_TTL_SECONDS = 12 * 60 * 60;
 /** Reports from this many different people within a day suspend the account until reviewed. */
 export const AUTO_SUSPEND_REPORTERS = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Automatic actions in the activity log. */
+const SYSTEM: ActivityActor = { id: null, name: 'Codeqlick' };
+
+/** Suspended right now: a timed suspension that ended no longer counts. */
+export function isSuspended(
+  profile: Pick<VideochatProfile, 'suspendedAt' | 'suspendedUntil'> | null | undefined,
+  now: Date = new Date(),
+): boolean {
+  if (!profile?.suspendedAt) return false;
+  return !profile.suspendedUntil || profile.suspendedUntil > now;
+}
+
+function settingsOf(profile: VideochatProfile): VideochatSettings {
+  return {
+    nickname: profile.nickname,
+    gender: profile.gender,
+    seeking: profile.seeking,
+    country: profile.country,
+    language: profile.language,
+    sameCountryOnly: profile.sameCountryOnly,
+    sameLanguageOnly: profile.sameLanguageOnly,
+  };
+}
 
 export interface VideochatStatus {
   /** 18+ confirmed and the current terms accepted. */
@@ -38,12 +68,31 @@ export interface VideochatStatus {
   termsVersion: string;
   acceptedTermsVersion: string | null;
   suspended: boolean;
+  /** While suspended: why, until when (null: until lifted) and the appeal, if any. */
+  suspension: {
+    reason: string | null;
+    until: string | null;
+    appeal: {
+      status: 'OPEN' | 'ACCEPTED' | 'REJECTED';
+      response: string | null;
+      createdAt: string;
+    } | null;
+  } | null;
   /** The platform asks for a verified age, not only a declared one. */
   ageVerificationRequired: boolean;
   /** This person's age was verified for real. */
   ageVerified: boolean;
   /** May use the video chat now: onboarded, not suspended, age verified when required. */
   allowed: boolean;
+  /** Public profile and filters; null before onboarding. */
+  profile: VideochatSettings | null;
+}
+
+/** What the gateway needs about a person when their socket signs in. */
+export interface Connection {
+  allowed: boolean;
+  prefs: MatchPrefs | undefined;
+  publicProfile: PublicProfile;
 }
 
 export interface IceServer {
@@ -78,6 +127,7 @@ export interface ReportView {
     id: string;
     name: string;
     email: string;
+    /** Set while suspended now. */
     suspendedAt: string | null;
     /** Reports against them in the last 30 days. */
     recentReports: number;
@@ -87,7 +137,61 @@ export interface ReportView {
 export interface SuspensionView {
   user: { id: string; name: string; email: string };
   suspendedAt: string;
+  until: string | null;
   reason: string | null;
+}
+
+export interface AppealView {
+  id: string;
+  message: string;
+  status: 'OPEN' | 'ACCEPTED' | 'REJECTED';
+  response: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  user: { id: string; name: string; email: string };
+  sanction: { reason: string | null; until: string | null; createdAt: string };
+}
+
+type Person = { id: string; name: string; email: string };
+
+export interface UserDetailView {
+  user: Person & { createdAt: string };
+  profile: VideochatSettings;
+  suspension: { since: string; until: string | null; reason: string | null } | null;
+  ageVerified: boolean;
+  onboardedAt: string;
+  reportsReceived: Array<{
+    id: string;
+    reason: ReportReason;
+    status: string;
+    details: string | null;
+    createdAt: string;
+    reporter: Person;
+  }>;
+  reportsMade: Array<{
+    id: string;
+    reason: ReportReason;
+    status: string;
+    details: string | null;
+    createdAt: string;
+    reported: Person;
+  }>;
+  sanctions: Array<{
+    id: string;
+    kind: 'SUSPENDED' | 'LIFTED';
+    reason: string | null;
+    until: string | null;
+    createdAt: string;
+    by: Person | null;
+  }>;
+  appeals: Array<{
+    id: string;
+    message: string;
+    status: 'OPEN' | 'ACCEPTED' | 'REJECTED';
+    response: string | null;
+    createdAt: string;
+    reviewedAt: string | null;
+  }>;
 }
 
 @Injectable()
@@ -104,23 +208,59 @@ export class VideochatService {
     private readonly repository: VideochatRepository,
     private readonly config: AppConfigService,
     private readonly mail: MailService,
+    private readonly activity: ActivityService,
   ) {}
 
-  async status(userId: string): Promise<VideochatStatus> {
+  async status(userId: string, now: Date = new Date()): Promise<VideochatStatus> {
     const profile = await this.repository.findProfile(userId);
     const onboarded = profile?.termsVersion === VIDEOCHAT_TERMS_VERSION;
-    const suspended = Boolean(profile?.suspendedAt);
+    const suspended = isSuspended(profile, now);
     const ageVerificationRequired = this.config.videochatAgeVerificationRequired;
     const ageVerified = Boolean(profile?.ageVerifiedAt);
+    let suspension: VideochatStatus['suspension'] = null;
+    if (suspended && profile) {
+      const sanction = await this.repository.latestSuspension(userId);
+      suspension = {
+        reason: profile.suspensionReason,
+        until: profile.suspendedUntil?.toISOString() ?? null,
+        appeal: sanction?.appeal
+          ? {
+              status: sanction.appeal.status,
+              response: sanction.appeal.response,
+              createdAt: sanction.appeal.createdAt.toISOString(),
+            }
+          : null,
+      };
+    }
     return {
       onboarded,
       termsVersion: VIDEOCHAT_TERMS_VERSION,
       acceptedTermsVersion: profile?.termsVersion ?? null,
       suspended,
+      suspension,
       ageVerificationRequired,
       ageVerified,
       allowed: onboarded && !suspended && (ageVerified || !ageVerificationRequired),
+      profile: profile ? settingsOf(profile) : null,
     };
+  }
+
+  /** Saves the public profile and filters (from the next socket on). */
+  async saveSettings(userId: string, input: VideochatSettings): Promise<VideochatSettings> {
+    const profile = await this.repository.findProfile(userId);
+    if (!profile) throw new ConflictException('Confirm your age and accept the rules first');
+    return settingsOf(await this.repository.saveSettings(userId, input));
+  }
+
+  /** A suspended person asks the team to lift it; one appeal per suspension. */
+  async appeal(userId: string, message: string, now: Date = new Date()): Promise<void> {
+    const profile = await this.repository.findProfile(userId);
+    if (!isSuspended(profile, now)) throw new ConflictException('Your access is not suspended');
+    const sanction = await this.repository.latestSuspension(userId);
+    if (!sanction || sanction.appeal) {
+      throw new ConflictException('This suspension was already appealed');
+    }
+    await this.repository.createAppeal(userId, sanction.id, message);
   }
 
   async onboard(
@@ -190,6 +330,31 @@ export class VideochatService {
     return servers;
   }
 
+  /** Whether the user may connect now, with their filters and what partners see of them. */
+  async connection(userId: string): Promise<Connection> {
+    const status = await this.status(userId);
+    const profile = status.profile;
+    return {
+      allowed: status.allowed,
+      prefs: profile
+        ? {
+            gender: profile.gender,
+            seeking: profile.seeking,
+            country: profile.country,
+            language: profile.language,
+            sameCountryOnly: profile.sameCountryOnly,
+            sameLanguageOnly: profile.sameLanguageOnly,
+          }
+        : undefined,
+      publicProfile: {
+        nickname: profile?.nickname ?? null,
+        gender: profile?.gender ?? null,
+        country: profile?.country ?? null,
+        language: profile?.language ?? null,
+      },
+    };
+  }
+
   /** Whether the user may connect now. */
   async canConnect(userId: string): Promise<boolean> {
     return (await this.status(userId)).allowed;
@@ -223,16 +388,28 @@ export class VideochatService {
       input.reportedId,
       new Date(now.getTime() - DAY_MS),
     );
-    if (input.reason === 'MINOR') {
-      // Explicit content is allowed, so a possible minor can't wait for the team: suspended at
-      // once, and the team reviews it first (and lifts it if the report was wrong).
-      await this.suspendUser(input.reportedId, 'Automatic: reported as possibly under 18', now);
-    } else if (reporters >= AUTO_SUSPEND_REPORTERS) {
-      await this.suspendUser(
-        input.reportedId,
-        `Automatic: reported by ${reporters} people within 24 hours`,
-        now,
-      );
+    // Automatic suspensions last until the team reviews them, and don't replace a current one.
+    const profile = await this.repository.findProfile(input.reportedId);
+    if (profile && !isSuspended(profile, now)) {
+      if (input.reason === 'MINOR') {
+        // Explicit content is allowed, so a possible minor can't wait for the team: suspended at
+        // once, and the team reviews it first (and lifts it if the report was wrong).
+        await this.suspendUser(SYSTEM, {
+          userId: input.reportedId,
+          reason: 'Automatic: reported as possibly under 18',
+          duration: 'permanent',
+          reportId: report.id,
+          now,
+        });
+      } else if (reporters >= AUTO_SUSPEND_REPORTERS) {
+        await this.suspendUser(SYSTEM, {
+          userId: input.reportedId,
+          reason: `Automatic: reported by ${reporters} people within 24 hours`,
+          duration: 'permanent',
+          reportId: report.id,
+          now,
+        });
+      }
     }
     if (input.reason === 'MINOR') {
       // The team looks at these first; the email has no personal data, only the link.
@@ -268,50 +445,231 @@ export class VideochatService {
         id: report.reported.id,
         name: report.reported.name,
         email: report.reported.email,
-        suspendedAt: report.reported.videochatProfile?.suspendedAt?.toISOString() ?? null,
+        suspendedAt: isSuspended(report.reported.videochatProfile)
+          ? (report.reported.videochatProfile?.suspendedAt?.toISOString() ?? null)
+          : null,
         recentReports: counts.get(report.reportedId) ?? 0,
       },
     }));
   }
 
   async dismissReport(admin: AuthUser, id: string): Promise<void> {
-    await this.findReport(id);
+    const report = await this.findReport(id);
     await this.repository.reviewReport(id, 'DISMISSED', admin.id, new Date());
+    await this.activity.record(admin, {
+      action: 'videochat.report_dismissed',
+      targetId: report.reportedId,
+      targetLabel: await this.labelOf(report.reportedId),
+      details: { reason: report.reason },
+    });
   }
 
   /** Suspends the reported account and closes the report as acted on. */
-  async suspendFromReport(admin: AuthUser, id: string, reason?: string): Promise<void> {
+  async suspendFromReport(
+    admin: AuthUser,
+    id: string,
+    reason: string | undefined,
+    duration: SuspensionDuration,
+  ): Promise<void> {
     const report = await this.findReport(id);
     const now = new Date();
-    await this.suspendUser(report.reportedId, reason ?? `Report: ${report.reason}`, now);
+    await this.suspendUser(admin, {
+      userId: report.reportedId,
+      reason: reason ?? `Report: ${report.reason}`,
+      duration,
+      reportId: report.id,
+      now,
+    });
     await this.repository.reviewReport(id, 'ACTIONED', admin.id, now);
   }
 
+  /** The team suspends someone from their page. */
+  async suspend(
+    admin: AuthUser,
+    userId: string,
+    reason: string,
+    duration: SuspensionDuration,
+  ): Promise<void> {
+    if (!(await this.repository.findProfile(userId))) {
+      throw new NotFoundException('That account has not joined the video chat');
+    }
+    await this.suspendUser(admin, { userId, reason, duration, reportId: null, now: new Date() });
+  }
+
   /** Records that the team checked the person's age by hand (or clears it). */
-  async setAgeVerified(userId: string, verified: boolean): Promise<void> {
+  async setAgeVerified(admin: AuthUser, userId: string, verified: boolean): Promise<void> {
     if (!(await this.repository.setAgeVerified(userId, verified ? new Date() : null))) {
       throw new NotFoundException('That account has not joined the video chat');
     }
+    await this.activity.record(admin, {
+      action: verified ? 'videochat.age_verified' : 'videochat.age_unverified',
+      targetId: userId,
+      targetLabel: await this.labelOf(userId),
+    });
   }
 
   async listSuspensions(): Promise<SuspensionView[]> {
-    const profiles = await this.repository.listSuspended();
+    const profiles = await this.repository.listSuspended(new Date());
     return profiles.map((profile) => ({
       user: profile.user,
       suspendedAt: (profile.suspendedAt as Date).toISOString(),
+      until: profile.suspendedUntil?.toISOString() ?? null,
       reason: profile.suspensionReason,
     }));
   }
 
-  async liftSuspension(userId: string): Promise<void> {
-    if (!(await this.repository.unsuspend(userId))) {
+  async liftSuspension(
+    admin: AuthUser,
+    userId: string,
+    reason: string | null = null,
+  ): Promise<void> {
+    if (!(await this.repository.unsuspend(userId, admin.id, reason))) {
       throw new NotFoundException('That account is not suspended');
     }
+    await this.activity.record(admin, {
+      action: 'videochat.unsuspended',
+      targetId: userId,
+      targetLabel: await this.labelOf(userId),
+    });
   }
 
-  private async suspendUser(userId: string, reason: string, now: Date): Promise<void> {
-    await this.repository.suspend(userId, reason, now);
-    this.suspensions.next(userId);
+  async listAppeals(status: 'OPEN' | 'ACCEPTED' | 'REJECTED'): Promise<AppealView[]> {
+    const appeals = await this.repository.listAppeals(status);
+    return appeals.map((appeal) => ({
+      id: appeal.id,
+      message: appeal.message,
+      status: appeal.status,
+      response: appeal.response,
+      createdAt: appeal.createdAt.toISOString(),
+      reviewedAt: appeal.reviewedAt?.toISOString() ?? null,
+      user: appeal.user,
+      sanction: {
+        reason: appeal.sanction.reason,
+        until: appeal.sanction.until?.toISOString() ?? null,
+        createdAt: appeal.sanction.createdAt.toISOString(),
+      },
+    }));
+  }
+
+  /** Accepting lifts the suspension; either way the person gets an email. */
+  async resolveAppeal(
+    admin: AuthUser,
+    id: string,
+    accepted: boolean,
+    response: string | undefined,
+  ): Promise<void> {
+    const appeal = await this.repository.findAppeal(id);
+    if (!appeal) throw new NotFoundException('Appeal not found');
+    const now = new Date();
+    const status = accepted ? 'ACCEPTED' : 'REJECTED';
+    if (!(await this.repository.resolveAppeal(id, status, response ?? null, admin.id, now))) {
+      throw new ConflictException('This appeal was already resolved');
+    }
+    if (accepted) {
+      await this.repository.unsuspend(appeal.userId, admin.id, 'Appeal accepted');
+    }
+    await this.activity.record(admin, {
+      action: accepted ? 'videochat.appeal_accepted' : 'videochat.appeal_rejected',
+      targetId: appeal.userId,
+      targetLabel: appeal.user.name || appeal.user.email,
+    });
+    const locale = toApiLocale(appeal.user.locale);
+    this.mail
+      .send(
+        appealResolvedEmail(
+          { to: appeal.user.email, name: appeal.user.name, locale },
+          { accepted, response: response ?? null },
+          this.config.webappUrl('videochat'),
+          this.config.siteUrl,
+        ),
+      )
+      .catch((error: unknown) => this.logger.error(`Appeal email not sent: ${String(error)}`));
+  }
+
+  async userDetail(userId: string): Promise<UserDetailView> {
+    const user = await this.repository.userDetail(userId);
+    const profile = user?.videochatProfile;
+    if (!user || !profile)
+      throw new NotFoundException('That account has not joined the video chat');
+    const person = (p: Person): Person => ({ id: p.id, name: p.name, email: p.email });
+    return {
+      user: { ...person(user), createdAt: user.createdAt.toISOString() },
+      profile: settingsOf(profile),
+      suspension: isSuspended(profile)
+        ? {
+            since: (profile.suspendedAt as Date).toISOString(),
+            until: profile.suspendedUntil?.toISOString() ?? null,
+            reason: profile.suspensionReason,
+          }
+        : null,
+      ageVerified: Boolean(profile.ageVerifiedAt),
+      onboardedAt: profile.adultConfirmedAt.toISOString(),
+      reportsReceived: user.videochatReportsGot.map((report) => ({
+        id: report.id,
+        reason: report.reason,
+        status: report.status,
+        details: report.details,
+        createdAt: report.createdAt.toISOString(),
+        reporter: person(report.reporter),
+      })),
+      reportsMade: user.videochatReportsMade.map((report) => ({
+        id: report.id,
+        reason: report.reason,
+        status: report.status,
+        details: report.details,
+        createdAt: report.createdAt.toISOString(),
+        reported: person(report.reported),
+      })),
+      sanctions: user.videochatSanctions.map((sanction) => ({
+        id: sanction.id,
+        kind: sanction.kind,
+        reason: sanction.reason,
+        until: sanction.until?.toISOString() ?? null,
+        createdAt: sanction.createdAt.toISOString(),
+        by: sanction.by ? person(sanction.by) : null,
+      })),
+      appeals: user.videochatAppeals.map((appeal) => ({
+        id: appeal.id,
+        message: appeal.message,
+        status: appeal.status,
+        response: appeal.response,
+        createdAt: appeal.createdAt.toISOString(),
+        reviewedAt: appeal.reviewedAt?.toISOString() ?? null,
+      })),
+    };
+  }
+
+  private async suspendUser(
+    actor: ActivityActor,
+    input: {
+      userId: string;
+      reason: string;
+      duration: SuspensionDuration;
+      reportId: string | null;
+      now: Date;
+    },
+  ): Promise<void> {
+    const until = suspensionEnd(input.duration, input.now);
+    await this.repository.suspend({
+      userId: input.userId,
+      reason: input.reason,
+      until,
+      now: input.now,
+      byId: actor.id,
+      reportId: input.reportId,
+    });
+    this.suspensions.next(input.userId);
+    await this.activity.record(actor, {
+      action: 'videochat.suspended',
+      targetId: input.userId,
+      targetLabel: await this.labelOf(input.userId),
+      details: { reason: input.reason, until: until?.toISOString() ?? null },
+    });
+  }
+
+  private async labelOf(userId: string): Promise<string | null> {
+    const user = await this.repository.findUser(userId);
+    return user ? user.name || user.email : null;
   }
 
   private async findReport(id: string) {

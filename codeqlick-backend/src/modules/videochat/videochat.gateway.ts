@@ -15,6 +15,7 @@ import { Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
 import {
   clientMessageSchema,
   type ClientMessage,
+  type PublicProfile,
   type ReportReason,
   type ServerMessage,
   type VideochatErrorCode,
@@ -49,6 +50,8 @@ interface Connection {
   alive: boolean;
   authTimer?: NodeJS.Timeout;
   participant?: Participant;
+  /** What partners see of this person. */
+  profile?: PublicProfile;
   call?: CallLog;
   /** The call that ended last, for a report or block right after it. */
   last?: { userId: string; call: CallLog; endedAt: number };
@@ -276,7 +279,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private async authenticate(connection: Connection, ticket: string): Promise<void> {
     if (connection.participant) return;
     const userId = this.videochat.redeemTicket(ticket);
-    if (!userId || !(await this.videochat.canConnect(userId))) {
+    const access = userId ? await this.videochat.connection(userId) : undefined;
+    if (!userId || !access?.allowed) {
       this.error(connection, 'invalid-ticket');
       this.close(connection, 4401, 'Invalid ticket');
       return;
@@ -293,7 +297,9 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       id: connection.id,
       userId,
       blocked: new Set(await this.videochat.blockedUserIds(userId)),
+      prefs: access.prefs,
     };
+    connection.profile = access.publicProfile;
     this.byUser.set(userId, connection);
     this.send(connection, { type: 'ready' });
   }
@@ -316,8 +322,22 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     connection.call = call;
     partner.call = call;
     // The newcomer makes the WebRTC offer.
-    this.send(connection, { type: 'matched', initiator: true });
-    this.send(partner, { type: 'matched', initiator: false });
+    const anonymous: PublicProfile = {
+      nickname: null,
+      gender: null,
+      country: null,
+      language: null,
+    };
+    this.send(connection, {
+      type: 'matched',
+      initiator: true,
+      partner: partner.profile ?? anonymous,
+    });
+    this.send(partner, {
+      type: 'matched',
+      initiator: false,
+      partner: connection.profile ?? anonymous,
+    });
   }
 
   /** Ends the connection's call, if any: the partner is told and both remember it. */

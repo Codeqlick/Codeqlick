@@ -17,14 +17,26 @@ import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import {
+  appealDecisionSchema,
+  appealsQuerySchema,
   reportsQuerySchema,
   suspendSchema,
+  suspendUserSchema,
   userIdParamSchema,
+  type AppealDecisionInput,
+  type AppealsQuery,
   type ReportsQuery,
   type SuspendInput,
+  type SuspendUserInput,
   type UserIdParam,
 } from './videochat.schemas.js';
-import { VideochatService, type ReportView, type SuspensionView } from './videochat.service.js';
+import {
+  VideochatService,
+  type AppealView,
+  type ReportView,
+  type SuspensionView,
+  type UserDetailView,
+} from './videochat.service.js';
 
 /** Moderation of the video chat: reports and suspensions. */
 @ApiTags('admin: videochat')
@@ -65,20 +77,26 @@ export class VideochatAdminController {
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: suspendSchema }) body: SuspendInput,
   ): Promise<void> {
-    return this.videochat.suspendFromReport(admin, params.id, body.reason);
+    return this.videochat.suspendFromReport(admin, params.id, body.reason, body.duration);
   }
 
   /** The team checked this person's age by hand (needed when VIDEOCHAT_AGE_VERIFICATION_REQUIRED is on). */
   @Put('users/:userId/age-verification')
   @HttpCode(HttpStatus.NO_CONTENT)
-  verifyAge(@Param({ schema: userIdParamSchema }) params: UserIdParam): Promise<void> {
-    return this.videochat.setAgeVerified(params.userId, true);
+  verifyAge(
+    @CurrentUser() admin: AuthUser,
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+  ): Promise<void> {
+    return this.videochat.setAgeVerified(admin, params.userId, true);
   }
 
   @Delete('users/:userId/age-verification')
   @HttpCode(HttpStatus.NO_CONTENT)
-  unverifyAge(@Param({ schema: userIdParamSchema }) params: UserIdParam): Promise<void> {
-    return this.videochat.setAgeVerified(params.userId, false);
+  unverifyAge(
+    @CurrentUser() admin: AuthUser,
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+  ): Promise<void> {
+    return this.videochat.setAgeVerified(admin, params.userId, false);
   }
 
   @Get('suspensions')
@@ -88,7 +106,53 @@ export class VideochatAdminController {
 
   @Delete('suspensions/:userId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  lift(@Param({ schema: userIdParamSchema }) params: UserIdParam): Promise<void> {
-    return this.videochat.liftSuspension(params.userId);
+  lift(
+    @CurrentUser() admin: AuthUser,
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+  ): Promise<void> {
+    return this.videochat.liftSuspension(admin, params.userId);
+  }
+
+  /** Everything about one person: profile, status, reports, sanctions and appeals. */
+  @Get('users/:userId')
+  user(@Param({ schema: userIdParamSchema }) params: UserIdParam): Promise<UserDetailView> {
+    return this.videochat.userDetail(params.userId);
+  }
+
+  @Post('users/:userId/suspend')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  suspendUser(
+    @CurrentUser() admin: AuthUser,
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+    @Body({ schema: suspendUserSchema }) body: SuspendUserInput,
+  ): Promise<void> {
+    return this.videochat.suspend(admin, params.userId, body.reason, body.duration);
+  }
+
+  @Get('appeals')
+  appeals(@Query({ schema: appealsQuerySchema }) query: AppealsQuery): Promise<AppealView[]> {
+    return this.videochat.listAppeals(query.status);
+  }
+
+  /** Lifts the suspension and tells the person. */
+  @Post('appeals/:id/accept')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  acceptAppeal(
+    @CurrentUser() admin: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: appealDecisionSchema }) body: AppealDecisionInput,
+  ): Promise<void> {
+    return this.videochat.resolveAppeal(admin, params.id, true, body.response);
+  }
+
+  /** Keeps the suspension and tells the person. */
+  @Post('appeals/:id/reject')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  rejectAppeal(
+    @CurrentUser() admin: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: appealDecisionSchema }) body: AppealDecisionInput,
+  ): Promise<void> {
+    return this.videochat.resolveAppeal(admin, params.id, false, body.response);
   }
 }

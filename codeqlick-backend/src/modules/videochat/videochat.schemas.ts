@@ -43,10 +43,86 @@ export const reportsQuerySchema = z.object({
 });
 export type ReportsQuery = z.infer<typeof reportsQuerySchema>;
 
+export const GENDERS = ['WOMAN', 'MAN', 'NONBINARY'] as const;
+export const genderSchema = z.enum(GENDERS);
+
+/** Public profile and matching filters (architecture 4.7). All free. */
+export const settingsSchema = z.object({
+  nickname: z
+    .string()
+    .trim()
+    .min(2)
+    .max(24)
+    .regex(/^[\p{L}\p{N} ._-]+$/u, 'Letters, numbers, spaces, dots, dashes and underscores')
+    .nullable(),
+  gender: genderSchema.nullable(),
+  seeking: z
+    .array(genderSchema)
+    .max(3)
+    .transform((list) => [...new Set(list)]),
+  country: z
+    .string()
+    .regex(/^[A-Z]{2}$/)
+    .nullable(),
+  language: z
+    .string()
+    .regex(/^[a-z]{2}$/)
+    .nullable(),
+  sameCountryOnly: z.boolean(),
+  sameLanguageOnly: z.boolean(),
+});
+export type VideochatSettings = z.infer<typeof settingsSchema>;
+
+/** What a partner sees of someone during a call. */
+export interface PublicProfile {
+  nickname: string | null;
+  gender: (typeof GENDERS)[number] | null;
+  country: string | null;
+  language: string | null;
+}
+
+export const SUSPENSION_DURATIONS = ['24h', '7d', '30d', 'permanent'] as const;
+export type SuspensionDuration = (typeof SUSPENSION_DURATIONS)[number];
+const HOUR_MS = 60 * 60 * 1000;
+const DURATION_MS: Record<SuspensionDuration, number | null> = {
+  '24h': 24 * HOUR_MS,
+  '7d': 7 * 24 * HOUR_MS,
+  '30d': 30 * 24 * HOUR_MS,
+  permanent: null,
+};
+
+/** When a suspension of `duration` starting at `now` ends; null: until lifted. */
+export function suspensionEnd(duration: SuspensionDuration, now: Date): Date | null {
+  const ms = DURATION_MS[duration];
+  return ms === null ? null : new Date(now.getTime() + ms);
+}
+
 export const suspendSchema = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
+  duration: z.enum(SUSPENSION_DURATIONS).default('permanent'),
 });
 export type SuspendInput = z.infer<typeof suspendSchema>;
+
+export const suspendUserSchema = z.object({
+  reason: z.string().trim().min(1).max(500),
+  duration: z.enum(SUSPENSION_DURATIONS),
+});
+export type SuspendUserInput = z.infer<typeof suspendUserSchema>;
+
+export const appealSchema = z.object({
+  message: z.string().trim().min(10).max(2_000),
+});
+export type AppealInput = z.infer<typeof appealSchema>;
+
+export const appealsQuerySchema = z.object({
+  status: z.enum(['OPEN', 'ACCEPTED', 'REJECTED']).default('OPEN'),
+});
+export type AppealsQuery = z.infer<typeof appealsQuerySchema>;
+
+export const appealDecisionSchema = z.object({
+  response: z.string().trim().min(1).max(2_000).optional(),
+});
+export type AppealDecisionInput = z.infer<typeof appealDecisionSchema>;
 
 export const userIdParamSchema = z.object({ userId: z.uuid() });
 export type UserIdParam = z.infer<typeof userIdParamSchema>;
@@ -94,7 +170,7 @@ export type ClientMessage = z.infer<typeof clientMessageSchema>;
 export type ServerMessage =
   | { type: 'ready' }
   | { type: 'waiting' }
-  | { type: 'matched'; initiator: boolean }
+  | { type: 'matched'; initiator: boolean; partner: PublicProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }
   | { type: 'partner-left' }
