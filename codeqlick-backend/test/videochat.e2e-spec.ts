@@ -281,6 +281,13 @@ describe('Video chat (e2e)', () => {
 
     ana.send({ type: 'chat', text: '  Hola!  ' });
     expect(await ben.next('chat')).toEqual({ type: 'chat', text: 'Hola!' });
+    // Typing and quick reactions reach the partner; other emojis are refused.
+    ana.send({ type: 'typing', on: true });
+    expect(await ben.next('typing')).toEqual({ type: 'typing', on: true });
+    ben.send({ type: 'react', emoji: '🔥' });
+    expect(await ana.next('react')).toEqual({ type: 'react', emoji: '🔥' });
+    ben.send({ type: 'react', emoji: '💩' });
+    expect(await ben.next('error')).toEqual({ type: 'error', code: 'bad-message' });
     ana.send({ type: 'chat', text: 'x'.repeat(501) });
     expect(await ana.next('error')).toEqual({ type: 'error', code: 'bad-message' });
 

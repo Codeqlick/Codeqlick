@@ -2995,7 +2995,12 @@
       "weakConnection": "Weak connection",
       "switchCamera": "Switch camera",
       "fullScreen": "Full screen",
-      "exitFullScreen": "Exit full screen"
+      "exitFullScreen": "Exit full screen",
+      "typing": "Typing…",
+      "reactions": "Quick reactions",
+      "reactWith": "React with {emoji}",
+      "sounds": "Sounds",
+      "messageTitle": "● New message"
     },
     "rules": {
       "title": "Video chat rules",

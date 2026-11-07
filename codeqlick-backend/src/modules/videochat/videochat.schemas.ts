@@ -220,6 +220,9 @@ export type SignalData = z.infer<typeof signalDataSchema>;
 
 export const CHAT_MAX_LENGTH = 500;
 
+/** Quick reactions a person can send during a call (a fixed set: nothing to moderate). */
+export const REACTIONS = ['❤️', '😂', '😮', '🔥', '👍', '😘'] as const;
+
 export const clientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('auth'), ticket: z.string().min(16).max(128) }),
   z.object({ type: z.literal('join') }),
@@ -229,6 +232,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('widen') }),
   z.object({ type: z.literal('signal'), data: signalDataSchema }),
   z.object({ type: z.literal('chat'), text: z.string().trim().min(1).max(CHAT_MAX_LENGTH) }),
+  z.object({ type: z.literal('typing'), on: z.boolean() }),
+  z.object({ type: z.literal('react'), emoji: z.enum(REACTIONS) }),
   z.object({
     type: z.literal('report'),
     reason: reportReasonSchema,
@@ -254,6 +259,8 @@ export type ServerMessage =
   | { type: 'matched'; initiator: boolean; partner: PublicProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }
+  | { type: 'typing'; on: boolean }
+  | { type: 'react'; emoji: (typeof REACTIONS)[number] }
   | { type: 'partner-left' }
   | { type: 'reported' }
   | { type: 'blocked' }

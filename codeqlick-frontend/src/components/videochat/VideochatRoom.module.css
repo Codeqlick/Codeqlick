@@ -412,6 +412,15 @@
     line-height: 1.15;
   }
 
+  /* The base .like rule (later in this file) keeps it on one line with wide padding and the
+   * page's font size: in the phone bar's narrow cells it matches the other buttons and wraps. */
+  .controls .like {
+    white-space: normal;
+    padding-inline: var(--space-2);
+    font-size: 0.875rem;
+    line-height: 1.15;
+  }
+
   .chat {
     min-height: 12rem;
     max-height: 18rem;
@@ -635,4 +644,128 @@
   .immersive .local {
     bottom: calc(5rem + env(safe-area-inset-bottom));
   }
+}
+
+/* Chat extras: typing, quick reactions, sounds (architecture 4.7) */
+.typing {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.lineReaction {
+  font-size: 1.6rem;
+  line-height: 1.1;
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+}
+
+.lineReaction .lineWho {
+  font-size: 0.65rem;
+  color: var(--color-slate);
+}
+
+.reactions {
+  margin: 0;
+  min-width: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.reaction {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-line);
+  background: var(--color-white);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.reaction:hover:not(:disabled) {
+  background: var(--color-blush);
+  border-color: var(--color-fuchsia);
+}
+
+.reaction:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.reaction:focus-visible {
+  outline: 3px solid var(--color-fuchsia-light);
+  outline-offset: 2px;
+}
+
+.sounds {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--color-slate);
+}
+
+.floats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.float,
+.floatMine {
+  position: absolute;
+  bottom: 12%;
+  font-size: 2.6rem;
+  animation: floatUp 2.4s ease-out forwards;
+}
+
+.float {
+  left: 14%;
+}
+
+.floatMine {
+  right: 30%;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+
+  15% {
+    transform: translateY(-10%) scale(1.1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-260%) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float,
+  .floatMine {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.lineReaction.lineMe {
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.sounds input {
+  accent-color: var(--color-fuchsia);
 }
