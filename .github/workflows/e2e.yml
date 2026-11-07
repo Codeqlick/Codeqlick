@@ -1,18 +1,21 @@
 name: E2E
 
 # Browser tests of the key flows (codeqlick-frontend/e2e) against the whole stack built from this
-# commit: Postgres, the API and the production build of the website.
+# commit: Postgres, the site builder, the API and the production build of the website. The API
+# writes every email it sends to E2E_MAIL_OUTBOX, where the tests read links (confirmations).
 on:
   push:
     branches: [main]
     paths:
       - 'codeqlick-backend/**'
       - 'codeqlick-frontend/**'
+      - 'codeqlick-sites/**'
       - '.github/workflows/e2e.yml'
   pull_request:
     paths:
       - 'codeqlick-backend/**'
       - 'codeqlick-frontend/**'
+      - 'codeqlick-sites/**'
       - '.github/workflows/e2e.yml'
 
 concurrency:
@@ -48,6 +51,9 @@ jobs:
       E2E_ADMIN_PASSWORD: e2e-admin-password-1
       E2E_BASE_URL: http://localhost:3000
       E2E_API_URL: http://localhost:4000/v1
+      E2E_MAIL_OUTBOX: ${{ github.workspace }}/outbox
+      SITE_BUILDER_TOKEN: ci-builder-token
+      UPLOADS_DIR: ${{ github.workspace }}/uploads
       NEXT_TELEMETRY_DISABLED: '1'
 
     steps:
@@ -60,6 +66,18 @@ jobs:
           cache-dependency-path: |
             codeqlick-backend/package-lock.json
             codeqlick-frontend/package-lock.json
+            codeqlick-sites/web-basica/package-lock.json
+
+      # The website editor previews drafts through it (codeqlick-frontend/e2e/site-editor.spec.ts).
+      - name: Start the site builder
+        working-directory: codeqlick-sites
+        run: |
+          (cd web-basica && npm ci)
+          mkdir -p "$RUNNER_TEMP/sites" "$UPLOADS_DIR"
+          TEMPLATE_DIR=$PWD/web-basica SITES_DIR=$RUNNER_TEMP/sites \
+            nohup node builder/server.mjs > ../builder.log 2>&1 &
+          for i in $(seq 1 15); do curl -s -o /dev/null http://127.0.0.1:4100 && exit 0; sleep 1; done
+          cat ../builder.log; exit 1
 
       - name: Start the API
         working-directory: codeqlick-backend
@@ -73,6 +91,8 @@ jobs:
           SITE_URL: http://localhost:3000
           SEED_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
+          SITE_BUILDER_URL: http://127.0.0.1:4100
+          MAIL_OUTBOX_DIR: ${{ env.E2E_MAIL_OUTBOX }}
           LOG_LEVEL: warn
         run: |
           npm ci
@@ -121,4 +141,5 @@ jobs:
             codeqlick-frontend/test-results/
             api.log
             web.log
+            builder.log
           retention-days: 7
