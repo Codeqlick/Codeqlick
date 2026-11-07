@@ -2454,7 +2454,17 @@
     "editorTitle": "Editar tu web",
     "editorBody": "Cambia todo: diseño, colores, textos, fotos, secciones, horario, redes sociales y datos legales. Ves la web mientras la editas y nada se publica hasta que pulsas «Publicar».",
     "editorOpen": "Abrir el editor",
-    "reviewKit": "Kit de reseñas de Google"
+    "reviewKit": "Kit de reseñas de Google",
+    "unpublishedTitle": "Tienes cambios sin publicar",
+    "unpublishedBody": "Los guardaste en el editor el {date}, pero aún no se ven en tu web.",
+    "unpublishedOpen": "Revisar y publicar",
+    "legalMissingTitle": "Completa tus datos legales",
+    "legalMissingBody": "El aviso legal de tu web necesita {missing}. Añádelos en el editor, en «Datos legales».",
+    "legalFields": {
+      "taxId": "el NIF o CIF",
+      "address": "la dirección del titular"
+    },
+    "legalOpen": "Completar datos legales"
   },
   "SiteRequest": {
     "metaTitle": "Pide tu web básica",
@@ -2655,7 +2665,8 @@
     "linkHref": "Adónde lleva",
     "linkHrefHint": "#contacto, #servicios, tel:600111222 o un enlace https://…",
     "status": {
-      "saved": "Todo guardado en el borrador.",
+      "savedUnpublished": "Guardado en el borrador. Pulsa «Publicar» para que se vea en tu web.",
+      "upToDate": "Sin cambios: tu web publicada está al día.",
       "pending": "Cambios sin guardar…",
       "saving": "Guardando…",
       "building": "Actualizando la vista previa…",
@@ -2842,7 +2853,10 @@
     "desktop": "Ordenador",
     "phoneView": "Móvil",
     "previewMissing": "Preparando la vista previa…",
-    "discardConfirm": "¿Descartar todos los cambios sin publicar? Tu web vuelve a lo que está publicado."
+    "discardConfirm": "¿Descartar todos los cambios sin publicar? Tu web vuelve a lo que está publicado.",
+    "invalidGo": "Ir al primero",
+    "partInvalid": "Revisar",
+    "partMissing": "Falta completar"
   },
   "Videochat": {
     "metaTitle": "Videochat aleatorio para adultos",

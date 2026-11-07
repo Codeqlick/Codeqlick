@@ -2454,7 +2454,17 @@
     "editorTitle": "Edit your website",
     "editorBody": "Change everything: design, colours, texts, photos, sections, hours, social media and legal data. You see the website as you edit it and nothing is published until you press “Publish”.",
     "editorOpen": "Open the editor",
-    "reviewKit": "Google review kit"
+    "reviewKit": "Google review kit",
+    "unpublishedTitle": "You have unpublished changes",
+    "unpublishedBody": "You saved them in the editor on {date}, but they are not on your website yet.",
+    "unpublishedOpen": "Review and publish",
+    "legalMissingTitle": "Complete your legal details",
+    "legalMissingBody": "Your website's legal notice needs {missing}. Add them in the editor, under \"Legal data\".",
+    "legalFields": {
+      "taxId": "the tax ID",
+      "address": "the owner's address"
+    },
+    "legalOpen": "Complete legal details"
   },
   "SiteRequest": {
     "metaTitle": "Request your basic website",
@@ -2655,7 +2665,8 @@
     "linkHref": "Where it goes",
     "linkHrefHint": "#contacto, #servicios, tel:600111222 or an https://… link",
     "status": {
-      "saved": "Everything saved in the draft.",
+      "savedUnpublished": "Saved in the draft. Press \"Publish\" to put it on your website.",
+      "upToDate": "No changes: your published website is up to date.",
       "pending": "Unsaved changes…",
       "saving": "Saving…",
       "building": "Updating the preview…",
@@ -2842,7 +2853,10 @@
     "desktop": "Desktop",
     "phoneView": "Phone",
     "previewMissing": "Preparing the preview…",
-    "discardConfirm": "Discard every unpublished change? Your website goes back to what is published."
+    "discardConfirm": "Discard every unpublished change? Your website goes back to what is published.",
+    "invalidGo": "Go to the first one",
+    "partInvalid": "Check",
+    "partMissing": "Incomplete"
   },
   "Videochat": {
     "metaTitle": "Random video chat for adults",

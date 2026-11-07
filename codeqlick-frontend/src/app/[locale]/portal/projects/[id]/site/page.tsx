@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import { Alert } from '@/components/ui/Alert';
 import { ActionForm } from '@/components/app/ActionForm';
 import { DomainField } from '@/components/app/DomainField';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -65,6 +67,25 @@ export default async function PortalSitePage({
           </a>
         </p>
       </section>
+
+      {site.unpublishedSince ? (
+        <Alert>
+          <strong>{t('unpublishedTitle')}.</strong>{' '}
+          {t('unpublishedBody', { date: formatDateTime(site.unpublishedSince, locale) })}{' '}
+          <Link href={`/portal/projects/${id}/site/editor`}>{t('unpublishedOpen')}</Link>
+        </Alert>
+      ) : null}
+      {site.legalMissing.length > 0 ? (
+        <Alert>
+          <strong>{t('legalMissingTitle')}.</strong>{' '}
+          {t('legalMissingBody', {
+            missing: new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+              site.legalMissing.map((key) => t(`legalFields.${key}`)),
+            ),
+          })}{' '}
+          <Link href={`/portal/projects/${id}/site/editor#legal`}>{t('legalOpen')}</Link>
+        </Alert>
+      ) : null}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('editorTitle')}</h2>
