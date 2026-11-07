@@ -103,6 +103,11 @@ export const envSchema = z.object({
   TURN_SECRET: optionalString,
   /** STUN/TURN URLs given to browsers, comma-separated (stun:… and turn:…); unset: none. */
   TURN_URLS: optionalString,
+  /** Web Push (VAPID) keys for the video chat's "someone is there" notifications; unset: off. */
+  VAPID_PUBLIC_KEY: optionalString,
+  VAPID_PRIVATE_KEY: optionalString,
+  /** Contact the push services may use (mailto: or https:). */
+  VAPID_SUBJECT: z.string().default('mailto:hello@codeqlick.com'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

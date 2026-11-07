@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
+import webpush from 'web-push';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 import { AppModule } from '../src/app.module.js';
@@ -71,6 +72,10 @@ describe('Video chat (e2e)', () => {
   const tabs: Tab[] = [];
 
   beforeAll(async () => {
+    // Notifications on, with keys made for this run.
+    const keys = webpush.generateVAPIDKeys();
+    process.env.VAPID_PUBLIC_KEY = keys.publicKey;
+    process.env.VAPID_PRIVATE_KEY = keys.privateKey;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
     configureApp(app);
@@ -527,5 +532,49 @@ describe('Video chat (e2e)', () => {
     expect(await cai.next('matched')).toMatchObject({ partner: { gender: 'MAN' } });
     ben.socket.close();
     cai.socket.close();
+  });
+
+  it("stores and removes a browser's push subscription", async () => {
+    const subscription = {
+      endpoint: `https://push.example.test/${tag}`,
+      keys: { p256dh: 'BPublicKeyOfTheBrowser', auth: 'secretAuth' },
+      locale: 'es',
+    };
+    // Before accepting the rules: no.
+    await request(server())
+      .put('/v1/videochat/push')
+      .set(users.admin!.auth)
+      .send(subscription)
+      .expect(409);
+    await onboard('dan');
+    await request(server())
+      .put('/v1/videochat/push')
+      .set(users.dan!.auth)
+      .send({ ...subscription, endpoint: 'http://push.example.test/insecure' })
+      .expect(400);
+    await request(server())
+      .put('/v1/videochat/push')
+      .set(users.dan!.auth)
+      .send(subscription)
+      .expect(204);
+    const { body } = await request(server())
+      .get('/v1/videochat/me')
+      .set(users.dan!.auth)
+      .expect(200);
+    expect(body.pushPublicKey).toBe(process.env.VAPID_PUBLIC_KEY);
+    expect(
+      await prisma.videochatPushSubscription.count({
+        where: { userId: users.dan!.id, endpoint: subscription.endpoint, locale: 'es' },
+      }),
+    ).toBe(1);
+
+    await request(server())
+      .delete('/v1/videochat/push')
+      .set(users.dan!.auth)
+      .send({ endpoint: subscription.endpoint })
+      .expect(204);
+    expect(await prisma.videochatPushSubscription.count({ where: { userId: users.dan!.id } })).toBe(
+      0,
+    );
   });
 });

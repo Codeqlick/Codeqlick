@@ -35,6 +35,15 @@ export type VideochatStatus = {
   ageVerified: boolean;
   allowed: boolean;
   profile: VideochatSettings | null;
+  /** VAPID key for "someone is waiting" notifications; null while they are off. */
+  pushPublicKey: string | null;
+};
+
+/** A browser's Web Push subscription (PushSubscription.toJSON()). */
+export type PushSubscriptionInput = {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  locale: 'en' | 'es';
 };
 
 export const SUSPENSION_DURATIONS = ['24h', '7d', '30d', 'permanent'] as const;
@@ -157,6 +166,23 @@ export function saveVideochatSettings(input: VideochatSettings) {
   return apiFetch<VideochatSettings>('/videochat/profile', {
     method: 'PUT',
     body: input,
+    auth: 'required',
+  });
+}
+
+export function subscribeVideochatPush(input: PushSubscriptionInput) {
+  return apiFetch<void>('/videochat/push', {
+    method: 'PUT',
+    body: input,
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
+export function unsubscribeVideochatPush(endpoint: string) {
+  return apiFetch<void>('/videochat/push', {
+    method: 'DELETE',
+    body: { endpoint },
     auth: 'required',
   });
 }

@@ -204,6 +204,14 @@ export class AppConfigService {
     return { urls, secret: this.get('TURN_SECRET') };
   }
 
+  /** Web Push for the video chat's notifications, when both VAPID keys are set. */
+  get vapid(): { publicKey: string; privateKey: string; subject: string } | undefined {
+    const publicKey = this.get('VAPID_PUBLIC_KEY');
+    const privateKey = this.get('VAPID_PRIVATE_KEY');
+    if (!publicKey || !privateKey) return undefined;
+    return { publicKey, privateKey, subject: this.get('VAPID_SUBJECT') };
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }

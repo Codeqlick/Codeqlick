@@ -3032,6 +3032,25 @@
       "saved": "Guardado. Se aplica en tu próxima conexión a la sala.",
       "error": "No se ha podido guardar. Inténtalo de nuevo.",
       "backToRoom": "Volver a la sala"
+    },
+    "install": {
+      "title": "Llévalo en el móvil",
+      "lead": "Instala el videochat como una app: se abre a pantalla completa desde tu pantalla de inicio.",
+      "button": "Instalar la app",
+      "iosSteps": "En iPhone o iPad: abre esta página en Safari, toca Compartir y luego «Añadir a pantalla de inicio».",
+      "installed": "App instalada."
+    },
+    "push": {
+      "title": "Avisos",
+      "lead": "Te avisamos en este dispositivo cuando haya alguien esperando y encaje con tus filtros. Como mucho un aviso cada 6 horas.",
+      "enable": "Avisarme cuando haya gente",
+      "disable": "Desactivar los avisos en este dispositivo",
+      "working": "Un momento…",
+      "on": "Los avisos están activados en este dispositivo.",
+      "denied": "Has bloqueado las notificaciones para esta web. Permítelas en los ajustes del navegador y vuelve a intentarlo.",
+      "unsupported": "Este navegador no admite avisos.",
+      "iosInstall": "En iPhone, primero instala la app (Compartir → «Añadir a pantalla de inicio») y activa los avisos desde ella.",
+      "error": "No se han podido activar los avisos. Inténtalo de nuevo."
     }
   },
   "AdminVideochat": {

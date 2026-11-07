@@ -7,8 +7,8 @@
 # It asks for sudo (firewall, Nginx, certbot). Safe to run again: every step checks first.
 #   1. DNS: an A record videochat.codeqlick.com -> SITES_SERVER_IP, through OVH's API with the
 #      keys already in .env (the client-domains keys, with rights on /domain/zone/*).
-#   2. .env: TURN_SECRET (a new random one if missing), TURN_URLS, VIDEOCHAT_URL and
-#      COMPOSE_PROFILES=videochat, which turns coturn on.
+#   2. .env: TURN_SECRET (a new random one if missing), TURN_URLS, VIDEOCHAT_URL,
+#      COMPOSE_PROFILES=videochat (turns coturn on) and the VAPID keys for notifications.
 #   3. Firewall: 3478/tcp+udp and 49160-49400/udp, when ufw is active.
 #   4. The Nginx site and its Let's Encrypt certificate (once the DNS answers).
 #   5. A release (deploy.sh --no-pull), then checks that the page answers and coturn runs.
@@ -91,6 +91,20 @@ case ",$profiles," in
   *) set_setting COMPOSE_PROFILES "${profiles:+$profiles,}videochat" ;;
 esac
 echo "TURN_SECRET, TURN_URLS, VIDEOCHAT_URL and COMPOSE_PROFILES are set."
+
+# Web Push keys for the "someone is waiting" notifications, made by the API image's web-push.
+if [ -z "$(setting VAPID_PUBLIC_KEY)" ] || [ -z "$(setting VAPID_PRIVATE_KEY)" ]; then
+  keys="$(docker compose -f docker-compose.prod.yml run --rm --no-deps -T api node --input-type=module \
+    -e "import w from 'web-push'; const k = w.generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)" |
+    tail -n 1)" || keys=""
+  if [ -n "$keys" ]; then
+    set_setting VAPID_PUBLIC_KEY "${keys%% *}"
+    set_setting VAPID_PRIVATE_KEY "${keys##* }"
+    echo "VAPID keys for notifications are set."
+  else
+    echo "Couldn't make the VAPID keys (notifications stay off); see deploy/.env.example."
+  fi
+fi
 
 # --- 3. Firewall --------------------------------------------------------------------------------
 log "Firewall"

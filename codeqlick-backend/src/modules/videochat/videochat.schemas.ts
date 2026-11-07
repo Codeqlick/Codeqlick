@@ -114,6 +114,22 @@ export const appealSchema = z.object({
 });
 export type AppealInput = z.infer<typeof appealSchema>;
 
+/** A browser's Web Push subscription (PushSubscription.toJSON()) and the notification language. */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/ }).max(2_000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+  locale: z.enum(['en', 'es']).default('en'),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+
+export const pushUnsubscribeSchema = z.object({
+  endpoint: z.string().min(1).max(2_000),
+});
+export type PushUnsubscribeInput = z.infer<typeof pushUnsubscribeSchema>;
+
 export const appealsQuerySchema = z.object({
   status: z.enum(['OPEN', 'ACCEPTED', 'REJECTED']).default('OPEN'),
 });

@@ -93,41 +93,42 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions             Session[]
-  passwordResets       PasswordResetToken[]
-  clientProjects       ClientProject[]
-  posts                Post[]
-  projectUpdates       ProjectUpdate[]        @relation("ProjectUpdateAuthor")
-  approvedUpdates      ProjectUpdate[]        @relation("ProjectUpdateApprover")
-  updateComments       ProjectUpdateComment[]
-  leadsConverted       Lead[]                 @relation("LeadClient")
-  leadsAdded           Lead[]                 @relation("LeadCreator")
-  tickets              SupportTicket[]
-  ticketMessages       TicketMessage[]
-  ticketFiles          TicketAttachment[]
-  proposals            Proposal[]             @relation("ProposalClient")
-  proposalsMade        Proposal[]             @relation("ProposalAuthor")
-  timeEntries          TimeEntry[]
-  credentials          ProjectCredential[]
-  siteRevisions        ManagedSiteRevision[]
+  sessions                   Session[]
+  passwordResets             PasswordResetToken[]
+  clientProjects             ClientProject[]
+  posts                      Post[]
+  projectUpdates             ProjectUpdate[]             @relation("ProjectUpdateAuthor")
+  approvedUpdates            ProjectUpdate[]             @relation("ProjectUpdateApprover")
+  updateComments             ProjectUpdateComment[]
+  leadsConverted             Lead[]                      @relation("LeadClient")
+  leadsAdded                 Lead[]                      @relation("LeadCreator")
+  tickets                    SupportTicket[]
+  ticketMessages             TicketMessage[]
+  ticketFiles                TicketAttachment[]
+  proposals                  Proposal[]                  @relation("ProposalClient")
+  proposalsMade              Proposal[]                  @relation("ProposalAuthor")
+  timeEntries                TimeEntry[]
+  credentials                ProjectCredential[]
+  siteRevisions              ManagedSiteRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
-  memberOfId           String?                @map("member_of_id") @db.Uuid
-  memberOf             User?                  @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
-  members              User[]                 @relation("ClientTeam")
-  projectFiles         ProjectFile[]
-  activity             ActivityLog[]
-  leadReplies          LeadReply[]
-  videochatProfile     VideochatProfile?
-  videochatReportsMade VideochatReport[]      @relation("VideochatReporter")
-  videochatReportsGot  VideochatReport[]      @relation("VideochatReported")
-  videochatReviewed    VideochatReport[]      @relation("VideochatReviewer")
-  videochatBlocksMade  VideochatBlock[]       @relation("VideochatBlocker")
-  videochatBlocksGot   VideochatBlock[]       @relation("VideochatBlocked")
-  videochatSanctions   VideochatSanction[]    @relation("VideochatSanctioned")
-  videochatSanctioned  VideochatSanction[]    @relation("VideochatSanctionedBy")
-  videochatAppeals     VideochatAppeal[]      @relation("VideochatAppellant")
-  videochatAppealsDone VideochatAppeal[]      @relation("VideochatAppealReviewer")
+  memberOfId                 String?                     @map("member_of_id") @db.Uuid
+  memberOf                   User?                       @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
+  members                    User[]                      @relation("ClientTeam")
+  projectFiles               ProjectFile[]
+  activity                   ActivityLog[]
+  leadReplies                LeadReply[]
+  videochatProfile           VideochatProfile?
+  videochatReportsMade       VideochatReport[]           @relation("VideochatReporter")
+  videochatReportsGot        VideochatReport[]           @relation("VideochatReported")
+  videochatReviewed          VideochatReport[]           @relation("VideochatReviewer")
+  videochatBlocksMade        VideochatBlock[]            @relation("VideochatBlocker")
+  videochatBlocksGot         VideochatBlock[]            @relation("VideochatBlocked")
+  videochatSanctions         VideochatSanction[]         @relation("VideochatSanctioned")
+  videochatSanctioned        VideochatSanction[]         @relation("VideochatSanctionedBy")
+  videochatAppeals           VideochatAppeal[]           @relation("VideochatAppellant")
+  videochatAppealsDone       VideochatAppeal[]           @relation("VideochatAppealReviewer")
+  videochatPushSubscriptions VideochatPushSubscription[]
 
   @@map("users")
 }
@@ -1130,6 +1131,8 @@ model VideochatProfile {
   language         String?
   sameCountryOnly  Boolean           @default(false) @map("same_country_only")
   sameLanguageOnly Boolean           @default(false) @map("same_language_only")
+  /// Last "someone is waiting" notification sent to this account (at most one every 6 hours).
+  pushNotifiedAt   DateTime?         @map("push_notified_at") @db.Timestamptz(3)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -1137,6 +1140,23 @@ model VideochatProfile {
 
   @@index([suspendedAt])
   @@map("videochat_profiles")
+}
+
+/// A browser that asked to be told when someone is in the video chat (Web Push; architecture 4.7).
+model VideochatPushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  /// Language of the notification text (en or es).
+  locale    String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("videochat_push_subscriptions")
 }
 
 model VideochatReport {

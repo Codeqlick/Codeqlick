@@ -4,7 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { isApiError } from '@/lib/api/errors';
-import { GENDERS, saveVideochatSettings, type Gender } from '@/lib/api/videochat';
+import {
+  GENDERS,
+  saveVideochatSettings,
+  subscribeVideochatPush,
+  unsubscribeVideochatPush,
+  type Gender,
+  type PushSubscriptionInput,
+} from '@/lib/api/videochat';
 import type { FormState } from '@/lib/forms';
 import { isCountry, isLanguage } from '@/lib/videochat-options';
 
@@ -64,4 +71,28 @@ export async function settingsAction(_previous: FormState, formData: FormData): 
   }
   revalidatePath(`/${locale}/videochat/settings`);
   return { status: 'success', message: t('saved') };
+}
+
+/** Stores this browser's push subscription (PUT /videochat/push). */
+export async function pushSubscribeAction(input: PushSubscriptionInput): Promise<{ ok: boolean }> {
+  try {
+    await subscribeVideochatPush({
+      endpoint: String(input.endpoint),
+      keys: { p256dh: String(input.keys?.p256dh), auth: String(input.keys?.auth) },
+      locale: input.locale === 'es' ? 'es' : 'en',
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Forgets this browser's push subscription (DELETE /videochat/push). */
+export async function pushUnsubscribeAction(endpoint: string): Promise<{ ok: boolean }> {
+  try {
+    await unsubscribeVideochatPush(String(endpoint));
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
 }

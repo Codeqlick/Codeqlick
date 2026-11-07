@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
+import { InstallApp } from '@/components/videochat/InstallApp';
 import { resolveLocale } from '@/i18n/locale';
 import { getVideochatOnline } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -47,6 +48,7 @@ export default async function VideochatLandingPage({ params }: PageProps) {
           </a>
         </div>
         {user ? null : <p className={styles.note}>{t('accountNote')}</p>}
+        <InstallApp className={styles.install} />
       </section>
 
       <section className={styles.columns}>

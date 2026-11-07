@@ -20,6 +20,7 @@ import {
   type ServerMessage,
   type VideochatErrorCode,
 } from './videochat.schemas.js';
+import { VideochatPushService } from './videochat-push.service.js';
 import { VideochatService, type TranscriptLine } from './videochat.service.js';
 
 /** Where browsers open the signaling socket (Nginx maps wss://videochat.codeqlick.com/ws here). */
@@ -38,6 +39,8 @@ const REPORT_WINDOW_MS = 5 * 60_000;
 const TRANSCRIPT_LINES = 30;
 /** Sent every 30 s; a socket that didn't answer the previous one is dropped. */
 const HEARTBEAT_MS = 30_000;
+/** Someone waiting alone this long makes the API notify people who asked to know. */
+const PUSH_WAIT_MS = 20_000;
 
 interface CallLog {
   lines: Array<{ userId: string; text: string; at: string }>;
@@ -49,6 +52,8 @@ interface Connection {
   ip: string;
   alive: boolean;
   authTimer?: NodeJS.Timeout;
+  /** Fires when this person has waited alone long enough to notify others (Web Push). */
+  waitTimer?: NodeJS.Timeout;
   participant?: Participant;
   /** What partners see of this person. */
   profile?: PublicProfile;
@@ -87,6 +92,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     private readonly adapterHost: HttpAdapterHost,
     private readonly videochat: VideochatService,
     private readonly config: AppConfigService,
+    private readonly push: VideochatPushService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -179,6 +185,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private disconnected(connection: Connection): void {
     if (!this.connections.delete(connection.id)) return;
     if (connection.authTimer) clearTimeout(connection.authTimer);
+    if (connection.waitTimer) clearTimeout(connection.waitTimer);
     this.endCall(connection);
     if (connection.participant && this.byUser.get(connection.participant.userId) === connection) {
       this.byUser.delete(connection.participant.userId);
@@ -307,8 +314,13 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private join(connection: Connection): void {
     const me = connection.participant as Participant;
     const result = this.matchmaker.join(me);
+    if (connection.waitTimer) clearTimeout(connection.waitTimer);
     if (result.status === 'waiting') {
       this.send(connection, { type: 'waiting' });
+      if (this.push.enabled) {
+        connection.waitTimer = setTimeout(() => this.waitedAlone(connection), PUSH_WAIT_MS);
+        connection.waitTimer.unref();
+      }
       return;
     }
     const partner = this.connections.get(result.partner.id);
@@ -338,6 +350,21 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       initiator: false,
       partner: connection.profile ?? anonymous,
     });
+  }
+
+  /** Still waiting, and nobody else is: tell people who asked to know (Web Push). */
+  private waitedAlone(connection: Connection): void {
+    const me = connection.participant;
+    if (!me || !this.matchmaker.isWaiting(connection.id) || this.matchmaker.waitingCount > 1)
+      return;
+    void this.push
+      .someoneWaiting(
+        { userId: me.userId, blocked: me.blocked, prefs: me.prefs },
+        this.byUser.keys(),
+      )
+      .catch((error: unknown) => {
+        this.logger.error(`Videochat notifications failed: ${String(error)}`);
+      });
   }
 
   /** Ends the connection's call, if any: the partner is told and both remember it. */
