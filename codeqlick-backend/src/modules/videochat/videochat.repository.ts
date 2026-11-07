@@ -111,6 +111,7 @@ export class VideochatRepository {
       language: string | null;
       sameCountryOnly: boolean;
       sameLanguageOnly: boolean;
+      interests: string[];
     },
   ): Promise<VideochatProfile> {
     return this.prisma.videochatProfile.update({ where: { userId }, data });

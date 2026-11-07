@@ -88,6 +88,8 @@ test('two people meet in the video chat, talk and move on', async ({
     await ana.getByRole('combobox', { name: 'Género' }).selectOption('WOMAN');
     await ana.getByRole('combobox', { name: 'País' }).selectOption('ES');
     await ana.getByRole('combobox', { name: 'Idioma' }).selectOption('es');
+    await ana.getByLabel('Música').check();
+    await ana.getByLabel('Viajar').check();
     // The selects keep what was saved after each save (the form reset used to blank them) and
     // after a reload.
     for (let save = 0; save < 2; save++) {
@@ -109,6 +111,9 @@ test('two people meet in the video chat, talk and move on', async ({
     await inCall(ana);
     await inCall(ben);
     await expect(ben.getByText(`Ana ${tag}`)).toBeVisible();
+    // Ben sees the interests Ana picked.
+    await expect(ben.getByRole('list', { name: 'Sus intereses' })).toContainText('Música');
+    await expect(ben.getByRole('list', { name: 'Sus intereses' })).toContainText('Viajar');
 
     await ana.getByPlaceholder('Escribe un mensaje…').fill('¡Hola!');
     await ana.getByRole('button', { name: 'Enviar' }).click();

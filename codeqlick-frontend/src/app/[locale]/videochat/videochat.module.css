@@ -310,3 +310,9 @@
 .install p {
   margin: 0;
 }
+
+/* Interests: a list of 20, in columns where there is room. */
+.interests {
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  column-gap: var(--space-4);
+}

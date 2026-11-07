@@ -6,10 +6,13 @@ import { localeOrDefault } from '@/i18n/locale';
 import { isApiError } from '@/lib/api/errors';
 import {
   GENDERS,
+  INTERESTS,
+  MAX_INTERESTS,
   saveVideochatSettings,
   subscribeVideochatPush,
   unsubscribeVideochatPush,
   type Gender,
+  type Interest,
   type PushSubscriptionInput,
 } from '@/lib/api/videochat';
 import type { FormState } from '@/lib/forms';
@@ -32,8 +35,18 @@ export async function settingsAction(_previous: FormState, formData: FormData): 
     .getAll('seeking')
     .map(gender)
     .filter((g): g is Gender => g !== null);
+  const interests = [
+    ...new Set(
+      formData
+        .getAll('interests')
+        .filter((value): value is Interest =>
+          (INTERESTS as readonly FormDataEntryValue[]).includes(value),
+        ),
+    ),
+  ];
   const values: Record<string, string> = {
     nickname,
+    interests: interests.join('\n'),
     gender: String(formData.get('gender') ?? ''),
     seeking: seeking.join('\n'),
     country,
@@ -42,6 +55,13 @@ export async function settingsAction(_previous: FormState, formData: FormData): 
   if (formData.get('sameCountryOnly') === 'on') values.sameCountryOnly = 'on';
   if (formData.get('sameLanguageOnly') === 'on') values.sameLanguageOnly = 'on';
 
+  if (interests.length > MAX_INTERESTS) {
+    return {
+      status: 'error',
+      fieldErrors: { interests: t('interestsTooMany', { max: MAX_INTERESTS }) },
+      values,
+    };
+  }
   if (nickname && !NICKNAME.test(nickname)) {
     return { status: 'error', fieldErrors: { nickname: t('nicknameInvalid') }, values };
   }
@@ -61,6 +81,7 @@ export async function settingsAction(_previous: FormState, formData: FormData): 
       language: isLanguage(language) ? language : null,
       sameCountryOnly: Boolean(values.sameCountryOnly),
       sameLanguageOnly: Boolean(values.sameLanguageOnly),
+      interests,
     });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
