@@ -190,6 +190,11 @@ export class AppConfigService {
     return this.get('VIDEOCHAT_AGE_VERIFICATION_REQUIRED');
   }
 
+  /** A web app's public URL (architecture 6.3): the first of its allowed origins. */
+  webappUrl(app: 'videochat'): string {
+    return this.videochatOrigins[0] ?? `${this.siteUrl}`.replace('://', `://${app}.`);
+  }
+
   /** STUN/TURN for the video chat: the URLs and coturn's shared secret (TURN needs both). */
   get turn(): { urls: string[]; secret: string | undefined } {
     const urls = (this.get('TURN_URLS') ?? '')

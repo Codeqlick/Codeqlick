@@ -6,7 +6,8 @@ import { localeOrDefault } from '@/i18n/locale';
 import { acceptInvitation, confirmSignup, register } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import type { AuthTokens } from '@/lib/api/types';
-import { homeForRole, setAuthCookies } from '@/lib/auth/session';
+import { setAuthCookies } from '@/lib/auth/session';
+import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { registerSchema } from '@/lib/schemas/auth';
 
@@ -65,7 +66,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       return failure(locale, error, formData);
     }
     await setAuthCookies(tokens);
-    redirect(homeForRole(locale, tokens.user.role));
+    redirect(await homeAfterSignIn(locale, tokens.user.role));
   }
 
   try {
@@ -76,6 +77,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       locale,
       acceptPrivacy: true,
       website: formString(formData, 'website'),
+      app: (await requestWebapp()) ?? undefined,
     });
   } catch (error) {
     return failure(locale, error, formData);
@@ -96,5 +98,5 @@ export async function confirmSignupAction(
     return failure(locale, error, formData);
   }
   await setAuthCookies(tokens);
-  redirect(homeForRole(locale, tokens.user.role));
+  redirect(await homeAfterSignIn(locale, tokens.user.role));
 }

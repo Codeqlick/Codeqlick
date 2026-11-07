@@ -101,6 +101,22 @@ describe('Clients create their own account (e2e)', () => {
     expect(sent.length).toBe(before);
   });
 
+  it('sends the confirmation link back to the web app the person signed up from', async () => {
+    const email = `e2e-su-app-${tag}@codeqlick.test`;
+    await request(app.getHttpServer())
+      .post('/v1/auth/register')
+      .set('X-Forwarded-For', '203.0.113.23')
+      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'videochat' })
+      .expect(202);
+    const text = to(email).at(-1)?.text ?? '';
+    expect(text).toContain('http://videochat.localhost:3000/en/register/confirm?token=');
+    await request(app.getHttpServer())
+      .post('/v1/auth/register')
+      .set('X-Forwarded-For', '203.0.113.23')
+      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'other' })
+      .expect(400);
+  });
+
   it('keeps what the team prepared for an email until its owner registers with it', async () => {
     const server = app.getHttpServer();
     const row = await prisma.lead.create({
