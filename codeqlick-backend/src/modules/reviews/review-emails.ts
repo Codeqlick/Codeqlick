@@ -26,8 +26,8 @@ export function reviewRequestEmail(
         greeting: es ? `Hola ${person.name}:` : `Hi ${person.name},`,
         intro: [
           es
-            ? `${project.name} ya está publicado. Gracias por confiar en nosotros. ¿Nos cuentas en dos minutos qué tal ha ido? Tu opinión nos ayuda a mejorar y, si nos das permiso, a que otras empresas nos conozcan.`
-            : `${project.name} is live. Thank you for trusting us. Could you take two minutes to tell us how it went? Your opinion helps us improve and, with your permission, helps other businesses find us.`,
+            ? `Ya hemos terminado «${project.name}». Gracias por confiar en nosotros. ¿Nos cuentas en dos minutos qué tal ha ido? Tu opinión nos ayuda a mejorar y, si nos das permiso, a que otras empresas nos conozcan.`
+            : `We've finished “${project.name}”. Thank you for trusting us. Could you take two minutes to tell us how it went? Your opinion helps us improve and, with your permission, helps other businesses find us.`,
         ],
         button: { label: es ? 'Dejar mi valoración' : 'Leave my review', url: link },
       },

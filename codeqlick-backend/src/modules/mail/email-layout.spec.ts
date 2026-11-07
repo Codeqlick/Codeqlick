@@ -90,6 +90,23 @@ describe('renderEmail', () => {
     expect(html).toContain('O&#39;Brien &lt;evil@x.com&gt;');
   });
 
+  it('links web addresses in the text, breakable on phones, leaving a final full stop out', () => {
+    const { html } = renderEmail(
+      {
+        locale: 'es',
+        preheader: 'Preview',
+        intro: ['Mira https://codeqlick.com/es/x?a=1&b=2.'],
+        note: 'Cancela aquí: https://codeqlick.com/es/book/cancel?token=abc',
+      },
+      siteUrl,
+    );
+    expect(html).toContain(
+      'Mira <a href="https://codeqlick.com/es/x?a=1&amp;b=2" target="_blank" style="color:#D9177E;text-decoration:underline;word-break:break-all;">https://codeqlick.com/es/x?a=1&amp;b=2</a>.',
+    );
+    expect(html).toContain('href="https://codeqlick.com/es/book/cancel?token=abc"');
+    expect(html).toContain('.cq-card { padding: 24px 20px !important; }');
+  });
+
   it('can end without a signature', () => {
     const { text } = renderEmail(
       { locale: 'en', preheader: 'x', intro: ['Only this.'], signoff: [] },

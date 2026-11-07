@@ -161,7 +161,7 @@ describe('Client domains (e2e)', () => {
       .expect(201);
     const lead = await prisma.lead.findUniqueOrThrow({ where: { id: created.body.id } });
     expect(lead.siteRequest).toMatchObject({ domain: { name: domain, owned: false } });
-    expect(lead.message).toContain(`Domain: ${domain} (they want to register it)`);
+    expect(lead.message).toContain(`Dominio: ${domain} (quiere registrarlo)`);
   });
 
   it('follows the domain from unregistered to live, and the address with it', async () => {

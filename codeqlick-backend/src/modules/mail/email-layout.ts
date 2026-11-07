@@ -81,9 +81,23 @@ function escapeHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
-/** Escaped text with its line breaks kept. */
+const URL_PATTERN = /(https?:\/\/[^\s<>"]+)/;
+
+/** An escaped web address made a link; a long one may break anywhere (phones). */
+function link(url: string): string {
+  // A sentence's full stop or closing bracket after the address isn't part of it.
+  const [, href = url, tail = ''] = /^(.*?)([.,;:!?)»]*)$/.exec(url) ?? [];
+  const safe = escapeHtml(href);
+  return `<a href="${safe}" target="_blank" style="color:${BRAND.fuchsia};text-decoration:underline;word-break:break-all;">${safe}</a>${escapeHtml(tail)}`;
+}
+
+/** Escaped text with its line breaks kept and its web addresses linked. */
 function multiline(value: string): string {
-  return escapeHtml(value).replaceAll('\n', '<br>');
+  return value
+    .split(URL_PATTERN)
+    .map((part, index) => (index % 2 === 1 ? link(part) : escapeHtml(part)))
+    .join('')
+    .replaceAll('\n', '<br>');
 }
 
 function quotes(content: EmailContent): EmailQuote[] {
@@ -209,14 +223,20 @@ function renderHtml(content: EmailContent, siteUrl: string): string {
 <meta name="supported-color-schemes" content="light">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&amp;family=Space+Grotesk:wght@700&amp;display=swap" rel="stylesheet">
 <title>${escapeHtml(content.title ?? 'Codeqlick')}</title>
+<style>
+@media (max-width: 480px) {
+  .cq-outer { padding: 24px 10px !important; }
+  .cq-card { padding: 24px 20px !important; }
+}
+</style>
 </head>
 <body style="margin:0;padding:0;background-color:${BRAND.surface};-webkit-font-smoothing:antialiased;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(content.preheader)}</div>
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${BRAND.surface}" style="background-color:${BRAND.surface};">
-<tr><td align="center" style="padding:40px 16px;">
+<tr><td align="center" class="cq-outer" style="padding:40px 16px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:580px;">
 <tr><td style="padding:0 4px 24px 4px;"><a href="${home}" target="_blank" style="text-decoration:none;"><img src="${site}/email/logo.png" width="152" height="38" alt="codeqlick" style="display:block;border:0;"></a></td></tr>
-<tr><td bgcolor="${BRAND.white}" style="background-color:${BRAND.white};border:1px solid ${BRAND.line};border-radius:20px;padding:32px 36px;">
+<tr><td bgcolor="${BRAND.white}" class="cq-card" style="background-color:${BRAND.white};border:1px solid ${BRAND.line};border-radius:20px;padding:32px 36px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
 <tr><td style="padding:0 0 24px 0;"><table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td width="56" height="5" bgcolor="${BRAND.fuchsia}" style="width:56px;height:5px;line-height:5px;font-size:0;border-radius:999px;background-color:${BRAND.fuchsia};background-image:${GRADIENT};">&nbsp;</td></tr></table></td></tr>
 ${rows.join('\n')}
