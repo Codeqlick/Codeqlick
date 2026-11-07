@@ -18,6 +18,10 @@ import { initialFormState, type FormState } from '@/lib/forms';
 export type FormAction = (state: FormState, formData: FormData) => Promise<FormState>;
 
 const FormStateContext = createContext<FormState>(initialFormState);
+/** How many times the surrounding form has been submitted (0 before the first). */
+const SubmissionContext = createContext(0);
+
+type CountedState = FormState & { submission: number };
 
 /**
  * <form> wired to a Server Action with useActionState. It shows the action's message and shares
@@ -32,14 +36,22 @@ export function ActionForm({
   className?: string;
   children: ReactNode;
 }) {
-  const [state, formAction] = useActionState(action, initialFormState);
+  const [state, formAction] = useActionState(
+    async (previous: CountedState, formData: FormData): Promise<CountedState> => ({
+      ...(await action(previous, formData)),
+      submission: previous.submission + 1,
+    }),
+    { ...initialFormState, submission: 0 },
+  );
 
   return (
     <form action={formAction} className={className} noValidate>
       {state.message ? (
         <Alert tone={state.status === 'success' ? 'success' : 'error'}>{state.message}</Alert>
       ) : null}
-      <FormStateContext value={state}>{children}</FormStateContext>
+      <FormStateContext value={state}>
+        <SubmissionContext value={state.submission}>{children}</SubmissionContext>
+      </FormStateContext>
     </form>
   );
 }
@@ -68,11 +80,13 @@ export function FormTextarea(props: Omit<TextareaProps, 'error'>) {
 
 export function FormSelect(props: Omit<SelectProps, 'error'>) {
   const { error, submitted } = useField(props.name);
-  // React doesn't re-apply a select's defaultValue: after a failed submit the form reset would
-  // put back the first value. Keyed by the echoed value, it remounts showing what was sent.
+  const submission = useContext(SubmissionContext);
+  // React doesn't re-apply a select's defaultValue: after every submit (failed or saved) the form
+  // reset would put back the first option. Keyed by the submit count, it remounts showing what was
+  // sent on a failure, or the saved value (the page's fresh defaultValue) on success.
   return (
     <Select
-      key={submitted ?? '\u0000initial'}
+      key={submission}
       {...props}
       error={error}
       defaultValue={submitted ?? props.defaultValue}
