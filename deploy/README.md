@@ -74,13 +74,25 @@ https://api.codeqlick.com/v1/health.
 ### Video chat (videochat.codeqlick.com)
 
 The random video chat (architecture 4.7 and 6.3) is served by the same web and API containers;
-it needs its own host name, a TURN server and a few settings. One-time setup:
+it needs its own host name, a TURN server and a few settings. Until it is set up, coturn stays
+off (it is in the `videochat` Compose profile), so releases work without `TURN_SECRET`.
+
+**One command** does the whole setup below, and is safe to run again:
+
+```bash
+cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-videochat.sh
+```
+
+It creates the DNS record through OVH's API (the client-domains keys in `.env`), fills in the
+settings (a new `TURN_SECRET`, `TURN_URLS`, `VIDEOCHAT_URL`, `COMPOSE_PROFILES=videochat`), opens
+the ports in ufw, installs the Nginx site, gets the certificate once the DNS answers, releases and
+checks. It asks for sudo. The same steps by hand:
 
 1. **DNS:** an `A` record `videochat.codeqlick.com` → the server's IPv4 (`SITES_SERVER_IP`).
 2. **Settings** in `/srv/codeqlick/.env` (template in `deploy/.env.example`): `TURN_SECRET`
-   (`openssl rand -hex 32`), `TURN_URLS` (the default in the template) and, if it isn't
-   https://videochat.codeqlick.com, `VIDEOCHAT_URL`. `SITES_SERVER_IP` must be set: coturn
-   announces it.
+   (`openssl rand -hex 32`), `TURN_URLS` (the default in the template), `COMPOSE_PROFILES=videochat`
+   (turns coturn on) and, if it isn't https://videochat.codeqlick.com, `VIDEOCHAT_URL`.
+   `SITES_SERVER_IP` must be set: coturn announces it.
 3. **Firewall:** open `3478/tcp`, `3478/udp` and the relay range `49160-49400/udp`
    (`sudo ufw allow 3478 && sudo ufw allow 49160:49400/udp`, or the OVH firewall).
 4. **Nginx and TLS:**
