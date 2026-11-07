@@ -39,6 +39,8 @@ export const envSchema = z.object({
   SMTP_SECURE: booleanString,
   SMTP_USER: optionalString,
   SMTP_PASSWORD: optionalString,
+  /** Tests only (NODE_ENV=test): each email is also written there as JSON, for browser tests. */
+  MAIL_OUTBOX_DIR: optionalString,
   MAIL_FROM: z.string().min(1).default('Codeqlick <hello@codeqlick.com>'),
   LEADS_NOTIFY_TO: z.string().min(1).default('hello@codeqlick.com'),
   /** Folder for uploaded images; relative paths resolve against the working directory. */
