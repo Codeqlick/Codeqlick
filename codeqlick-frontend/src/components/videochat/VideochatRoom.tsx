@@ -103,6 +103,21 @@ const REASONS = [
   'OTHER',
 ] as const;
 const CHAT_MAX = 500;
+/** How often a call's connection quality is checked, and the limits of a weak connection. */
+const QUALITY_EVERY_MS = 3_000;
+const WEAK_RTT_S = 0.6;
+const WEAK_LOSS = 0.08;
+const WEAK_FPS = 8;
+
+/** A short vibration where the phone supports it (a match, a contact's call). */
+function buzz(pattern: number | number[]): void {
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    // Not supported: nothing to do.
+  }
+}
+
 /** A call with no media after this long moves on to the next person. */
 const CALL_TIMEOUT_MS = 15_000;
 /** Waits between reconnection attempts (the last one repeats), and how many attempts. */
@@ -172,6 +187,16 @@ export function VideochatRoom({
   const [canWiden, setCanWiden] = useState(false);
   /** The camera stream is on (kept in a ref; this mirrors it for rendering). */
   const [hasCamera, setHasCamera] = useState(false);
+  /** Which camera is on (phones): the front one is mirrored, the back one isn't. */
+  const [facing, setFacing] = useState<'user' | 'environment'>('user');
+  /** The device has more than one camera. */
+  const [canSwitch, setCanSwitch] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  /** The call fills the screen. */
+  const [immersive, setImmersive] = useState(false);
+  /** The call's connection is poor (see QUALITY_EVERY_MS). */
+  const [weak, setWeak] = useState(false);
+  const roomRef = useRef<HTMLDivElement>(null);
 
   const localVideo = useRef<HTMLVideoElement>(null);
   const remoteVideo = useRef<HTMLVideoElement>(null);
@@ -345,6 +370,8 @@ export function VideochatRoom({
           setFilters({ filtered: message.filtered, widened: message.widened });
           return;
         case 'matched':
+          buzz(120);
+          setWeak(false);
           setRing(null);
           setLiked(false);
           setOthersWaiting(0);
@@ -390,6 +417,7 @@ export function VideochatRoom({
           setPhase('calling');
           return;
         case 'incoming':
+          buzz([200, 100, 200]);
           setRing({ callId: message.callId, partner: message.partner, direction: 'in' });
           chime();
           flashTitle(t('incomingRing'));
@@ -534,6 +562,12 @@ export function VideochatRoom({
     }
     if (localVideo.current) localVideo.current.srcObject = stream.current;
     setHasCamera(true);
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setCanSwitch(devices.filter((device) => device.kind === 'videoinput').length > 1);
+    } catch {
+      setCanSwitch(false);
+    }
     await connect();
   }, [connect]);
 
@@ -560,13 +594,147 @@ export function VideochatRoom({
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented || reportDialog.current?.open) return;
+      // In the in-page full screen, Esc leaves it (the browser's own full screen does that itself).
+      if (immersive) {
+        setImmersive(false);
+        return;
+      }
       if (!online) return;
       setNotice(null);
       next();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [next, online]);
+  }, [immersive, next, online]);
+
+  // Leaving the browser's full screen (its own gesture or Esc) leaves ours too.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setImmersive(false);
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // The screen stays on during a call (Wake Lock, where supported).
+  const inCallNow = phase === 'connecting' || phase === 'connected';
+  useEffect(() => {
+    if (!inCallNow || !('wakeLock' in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+    const acquire = () => {
+      if (document.visibilityState !== 'visible') return;
+      navigator.wakeLock
+        .request('screen')
+        .then((sentinel) => {
+          if (cancelled) void sentinel.release();
+          else lock = sentinel;
+        })
+        .catch(() => undefined);
+    };
+    acquire();
+    // The lock goes when the tab is hidden: take it again on coming back.
+    document.addEventListener('visibilitychange', acquire);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', acquire);
+      void lock?.release().catch(() => undefined);
+    };
+  }, [inCallNow]);
+
+  // Connection quality during a call: two bad samples in a row show the badge, two good hide it.
+  useEffect(() => {
+    // The badge only shows while connected; each new call starts without it (see 'matched').
+    if (phase !== 'connected') return;
+    let previous: { lost: number; received: number } | null = null;
+    let bad = 0;
+    let good = 0;
+    const timer = setInterval(() => {
+      const connection = peer.current;
+      if (!connection) return;
+      void connection
+        .getStats()
+        .then((report) => {
+          let rtt: number | undefined;
+          let lost = 0;
+          let received = 0;
+          let fps: number | undefined;
+          report.forEach((entry: RTCStats & Record<string, unknown>) => {
+            if (entry.type === 'candidate-pair' && entry.state === 'succeeded' && entry.nominated) {
+              rtt = entry.currentRoundTripTime as number | undefined;
+            } else if (entry.type === 'inbound-rtp' && entry.kind === 'video') {
+              lost = (entry.packetsLost as number | undefined) ?? 0;
+              received = (entry.packetsReceived as number | undefined) ?? 0;
+              fps = entry.framesPerSecond as number | undefined;
+            }
+          });
+          const deltaLost = previous ? lost - previous.lost : 0;
+          const deltaReceived = previous ? received - previous.received : 0;
+          previous = { lost, received };
+          const total = deltaLost + deltaReceived;
+          const loss = total > 0 ? deltaLost / total : 0;
+          const isBad =
+            (rtt !== undefined && rtt > WEAK_RTT_S) ||
+            loss > WEAK_LOSS ||
+            (fps !== undefined && fps < WEAK_FPS);
+          if (isBad) {
+            bad += 1;
+            good = 0;
+            if (bad >= 2) setWeak(true);
+          } else {
+            good += 1;
+            bad = 0;
+            if (good >= 2) setWeak(false);
+          }
+        })
+        .catch(() => undefined);
+    }, QUALITY_EVERY_MS);
+    return () => clearInterval(timer);
+  }, [phase]);
+
+  /** Front ↔ back camera; the call keeps going (the new track replaces the old one). */
+  const switchCamera = async () => {
+    const current = stream.current;
+    if (!current || switching) return;
+    const next = facing === 'user' ? 'environment' : 'user';
+    const old = current.getVideoTracks()[0];
+    setSwitching(true);
+    // Many phones open one camera at a time: free the current one first.
+    old?.stop();
+    const open = (mode: 'user' | 'environment') =>
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: { ideal: mode } } })
+        .then((fresh) => fresh.getVideoTracks()[0]);
+    let track: MediaStreamTrack | undefined;
+    let mode: 'user' | 'environment' = next;
+    try {
+      track = await open(next);
+    } catch {
+      mode = facing;
+      track = await open(facing).catch(() => undefined);
+    }
+    if (old) current.removeTrack(old);
+    if (track) {
+      track.enabled = camOn;
+      current.addTrack(track);
+      const sender = peer.current?.getSenders().find((item) => item.track?.kind === 'video');
+      await sender?.replaceTrack(track).catch(() => undefined);
+      setFacing(mode);
+    }
+    if (localVideo.current) localVideo.current.srcObject = current;
+    setSwitching(false);
+  };
+
+  const toggleImmersive = () => {
+    if (immersive) {
+      setImmersive(false);
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    setImmersive(true);
+    // The browser's full screen where there is one (not on iPhone): the page layout does the rest.
+    void roomRef.current?.requestFullscreen?.().catch(() => undefined);
+  };
 
   const answer = (accept: boolean) => {
     if (!ringing) return;
@@ -655,11 +823,14 @@ export function VideochatRoom({
   const status = statusText[phase] ?? null;
 
   return (
-    <div className={styles.room}>
+    <div ref={roomRef} className={immersive ? `${styles.room} ${styles.immersive}` : styles.room}>
       <div className={styles.stage}>
         <div className={styles.remote}>
           {/* oxlint-disable-next-line jsx-a11y/media-has-caption -- a live call: no captions exist */}
           <video ref={remoteVideo} autoPlay playsInline className={styles.video} />
+          {weak && phase === 'connected' ? (
+            <output className={styles.weak}>{t('weakConnection')}</output>
+          ) : null}
           {phase !== 'connected' ? (
             <div className={styles.overlay}>
               {ringing?.direction === 'in' ? (
@@ -758,7 +929,13 @@ export function VideochatRoom({
           ) : null}
         </div>
         <div className={styles.local}>
-          <video ref={localVideo} autoPlay playsInline muted className={styles.video} />
+          <video
+            ref={localVideo}
+            autoPlay
+            playsInline
+            muted
+            className={facing === 'user' ? `${styles.video} ${styles.mirror}` : styles.video}
+          />
           <span className={styles.tag}>{t('you')}</span>
         </div>
       </div>
@@ -816,6 +993,25 @@ export function VideochatRoom({
           aria-pressed={!camOn}
         >
           {camOn ? t('cameraOff') : t('cameraOn')}
+        </button>
+        {canSwitch ? (
+          <button
+            type="button"
+            className={styles.secondary}
+            onClick={() => void switchCamera()}
+            disabled={!hasCamera || switching}
+          >
+            {t('switchCamera')}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={`${styles.secondary} ${styles.fullToggle}`}
+          onClick={toggleImmersive}
+          disabled={!hasCamera}
+          aria-pressed={immersive}
+        >
+          {immersive ? t('exitFullScreen') : t('fullScreen')}
         </button>
         <span className={styles.spacer} />
         <button
