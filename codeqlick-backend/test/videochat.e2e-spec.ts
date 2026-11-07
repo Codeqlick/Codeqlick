@@ -269,7 +269,8 @@ describe('Video chat (e2e)', () => {
     await ana.next('partner-left');
     await ben.next('waiting');
     ana.send({ type: 'join' });
-    await ana.next('waiting');
+    // She is told someone else waits but can't be paired with her now.
+    expect(await ana.next('waiting')).toEqual({ type: 'waiting', others: 1 });
 
     // A third person gets one of them.
     const cai = await connect('cai');
