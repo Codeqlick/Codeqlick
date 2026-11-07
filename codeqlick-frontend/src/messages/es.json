@@ -2995,7 +2995,12 @@
       "weakConnection": "Conexión débil",
       "switchCamera": "Cambiar cámara",
       "fullScreen": "Pantalla completa",
-      "exitFullScreen": "Salir de pantalla completa"
+      "exitFullScreen": "Salir de pantalla completa",
+      "typing": "Escribiendo…",
+      "reactions": "Reacciones rápidas",
+      "reactWith": "Reaccionar con {emoji}",
+      "sounds": "Sonidos",
+      "messageTitle": "● Nuevo mensaje"
     },
     "rules": {
       "title": "Normas del videochat",
