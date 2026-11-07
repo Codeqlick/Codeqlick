@@ -279,6 +279,63 @@ docker compose -f docker-compose.prod.yml exec -T db psql -U codeqlick -d codeql
    totp_recovery_hashes = '{}' WHERE email = 'person@example.com';"
 ```
 
+## Staging
+
+A second copy of the website and API on the same server, to try a branch before it reaches
+production: https://staging.codeqlick.com, behind the team's password. It runs from its own
+checkout (`/srv/codeqlick-staging`) as the `codeqlick-staging` Compose project
+(`docker-compose.staging.yml`): its own database, API and website on `127.0.0.1:3011`/`4011`, and
+Mailpit, which keeps every email instead of sending it (inbox at https://staging.codeqlick.com/mail/).
+Stripe, OVH, Umami, the site builder and the video chat are off.
+
+### Put a branch on staging
+
+Actions → **Staging** → Run workflow, with the branch. Tick **With data** to first replace
+staging's data with production's newest backup (`/srv/codeqlick/backups`) and uploaded files: the
+way to see a migration run on real data before merging. That copy loses everyone's sessions, their
+two-step verification (staging doesn't ask for it) and the clients' stored access. Passwords are
+the same as in production.
+
+On the server, as the deploy user, the same thing:
+
+```bash
+cd /srv/codeqlick-staging
+./deploy/staging.sh my-branch               # or: ./deploy/staging.sh my-branch --with-data
+```
+
+### One-time setup
+
+1. **DNS:** an `A` record (and `AAAA` if the others have one) for `staging.codeqlick.com` pointing
+   at the server, like `codeqlick.com`.
+2. **Checkout and settings** (deploy user):
+
+   ```bash
+   git clone https://github.com/Codeqlick/Codeqlick.git /srv/codeqlick-staging
+   cd /srv/codeqlick-staging
+   cp deploy/.env.staging.example .env && chmod 600 .env
+   nano .env      # new secrets: openssl rand -hex 24 / openssl rand -base64 48
+   ./deploy/staging.sh
+   ```
+
+3. **Nginx, password and TLS** (root):
+
+   ```bash
+   sudo apt install apache2-utils     # for htpasswd, if missing
+   sudo htpasswd -c /etc/nginx/staging.htpasswd codeqlick
+   sudo chown root:www-data /etc/nginx/staging.htpasswd && sudo chmod 640 /etc/nginx/staging.htpasswd
+   sudo cp /srv/codeqlick-staging/deploy/nginx/staging.codeqlick.com.conf /etc/nginx/sites-available/
+   sudo ln -s /etc/nginx/sites-available/staging.codeqlick.com.conf /etc/nginx/sites-enabled/
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo certbot --nginx -d staging.codeqlick.com
+   ```
+
+4. **The workflow** needs nothing more: it uses the deploy key, whose `deploy/ci-deploy.sh` reads
+   `staging <branch> [--with-data]` and runs the script in `/srv/codeqlick-staging` (it refuses
+   anything else). Keep `/srv/codeqlick` on a `main` that has this version of `ci-deploy.sh`.
+
+The staging containers use memory and disk while they run. Stop them when not needed:
+`docker compose -f docker-compose.staging.yml down` (add `-v` to also delete staging's data).
+
 ## Notes
 
 - The OpenAPI UI (`/docs`) is disabled in production.

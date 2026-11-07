@@ -1,0 +1,30 @@
+name: Audit
+
+# Every Monday (and by hand): known vulnerabilities in what the apps run in production. A failed
+# run emails the repository's owner; Dependabot then usually has the fix as a pull request.
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [codeqlick-backend, codeqlick-frontend, codeqlick-sites/web-basica]
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: High and critical vulnerabilities in production dependencies
+        run: npm audit --omit=dev --audit-level=high
