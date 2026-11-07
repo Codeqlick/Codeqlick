@@ -86,6 +86,8 @@ export interface VideochatStatus {
   allowed: boolean;
   /** Public profile and filters; null before onboarding. */
   profile: VideochatSettings | null;
+  /** VAPID key for Web Push subscriptions; null while notifications are off. */
+  pushPublicKey: string | null;
 }
 
 /** What the gateway needs about a person when their socket signs in. */
@@ -242,6 +244,7 @@ export class VideochatService {
       ageVerified,
       allowed: onboarded && !suspended && (ageVerified || !ageVerificationRequired),
       profile: profile ? settingsOf(profile) : null,
+      pushPublicKey: this.config.vapid?.publicKey ?? null,
     };
   }
 

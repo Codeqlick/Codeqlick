@@ -84,14 +84,17 @@ cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-videochat.sh
 ```
 
 It creates the DNS record through OVH's API (the client-domains keys in `.env`), fills in the
-settings (a new `TURN_SECRET`, `TURN_URLS`, `VIDEOCHAT_URL`, `COMPOSE_PROFILES=videochat`), opens
+settings (a new `TURN_SECRET`, `TURN_URLS`, `VIDEOCHAT_URL`, `COMPOSE_PROFILES=videochat`, and the
+`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` pair for notifications), opens
 the ports in ufw, installs the Nginx site, gets the certificate once the DNS answers, releases and
 checks. It asks for sudo. The same steps by hand:
 
 1. **DNS:** an `A` record `videochat.codeqlick.com` → the server's IPv4 (`SITES_SERVER_IP`).
 2. **Settings** in `/srv/codeqlick/.env` (template in `deploy/.env.example`): `TURN_SECRET`
    (`openssl rand -hex 32`), `TURN_URLS` (the default in the template), `COMPOSE_PROFILES=videochat`
-   (turns coturn on) and, if it isn't https://videochat.codeqlick.com, `VIDEOCHAT_URL`.
+   (turns coturn on) and, if it isn't https://videochat.codeqlick.com, `VIDEOCHAT_URL`. For the
+   "someone is waiting" notifications, a VAPID key pair (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`;
+   the command is in `deploy/.env.example`); without it they stay off.
    `SITES_SERVER_IP` must be set: coturn announces it.
 3. **Firewall:** open `3478/tcp`, `3478/udp` and the relay range `49160-49400/udp`
    (`sudo ufw allow 3478 && sudo ufw allow 49160:49400/udp`, or the OVH firewall).

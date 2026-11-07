@@ -8,6 +8,8 @@ import {
   FormSelect,
 } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { InstallApp } from '@/components/videochat/InstallApp';
+import { PushToggle } from '@/components/videochat/PushToggle';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { GENDERS, getVideochatStatus } from '@/lib/api/videochat';
@@ -24,6 +26,7 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
   await requireUser(locale, `/${locale}/videochat/settings`);
   const t = await getTranslations({ locale, namespace: 'Videochat.settings' });
   const tg = await getTranslations({ locale, namespace: 'Videochat.genders' });
+  const tp = await getTranslations({ locale, namespace: 'Videochat.push' });
   const status = await getVideochatStatus();
   if (!status.profile) redirect(`/${locale}/videochat/room`);
   const profile = status.profile;
@@ -87,6 +90,16 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
           {t('save')}
         </SubmitButton>
       </ActionForm>
+      {status.pushPublicKey ? (
+        <section className={styles.subsection} aria-labelledby="videochat-push">
+          <h2 id="videochat-push" className={styles.sectionTitle}>
+            {tp('title')}
+          </h2>
+          <p className={styles.muted}>{tp('lead')}</p>
+          <PushToggle publicKey={status.pushPublicKey} locale={locale} />
+        </section>
+      ) : null}
+      <InstallApp className={styles.subsection} />
       <p className={styles.backLink}>
         <Link href="/videochat/room" className={styles.inlineLink}>
           {t('backToRoom')}

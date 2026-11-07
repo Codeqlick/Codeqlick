@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
@@ -20,8 +20,12 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     description: t('metaDescription'),
     // Adult content: kept out of search results.
     robots: { index: false, follow: false },
+    // Installed on a phone it opens as its own app (manifest: app/manifest.ts on this host).
+    appleWebApp: { capable: true, title: 'Videochat', statusBarStyle: 'default' },
   };
 }
+
+export const viewport: Viewport = { themeColor: '#ffffff' };
 
 /** The video chat's own frame (videochat.codeqlick.com): Codeqlick's light colours, no site header or footer. */
 export default async function VideochatLayout({ children, params }: LayoutProps) {

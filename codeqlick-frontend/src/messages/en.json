@@ -3032,6 +3032,25 @@
       "saved": "Saved. It applies the next time you join the room.",
       "error": "Couldn't save. Please try again.",
       "backToRoom": "Back to the room"
+    },
+    "install": {
+      "title": "Take it on your phone",
+      "lead": "Install the video chat as an app: it opens full screen from your home screen.",
+      "button": "Install the app",
+      "iosSteps": "On iPhone or iPad: open this page in Safari, tap Share, then “Add to Home Screen”.",
+      "installed": "App installed."
+    },
+    "push": {
+      "title": "Notifications",
+      "lead": "We tell you on this device when someone is waiting and fits your filters. At most one notification every 6 hours.",
+      "enable": "Tell me when someone is there",
+      "disable": "Turn off notifications on this device",
+      "working": "One moment…",
+      "on": "Notifications are on for this device.",
+      "denied": "You blocked notifications for this site. Allow them in your browser settings and try again.",
+      "unsupported": "This browser does not support notifications.",
+      "iosInstall": "On iPhone, install the app first (Share → “Add to Home Screen”) and turn notifications on from it.",
+      "error": "Notifications could not be turned on. Please try again."
     }
   },
   "AdminVideochat": {
