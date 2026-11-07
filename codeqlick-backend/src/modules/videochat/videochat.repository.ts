@@ -263,4 +263,91 @@ export class VideochatRepository {
       include: { user: { select: personSelect } },
     });
   }
+
+  // --- Web Push ("someone is waiting" notifications) ---
+
+  /** Stores a browser's subscription (moving it to this account if another had it); keeps the
+   * account's 10 newest. */
+  async savePushSubscription(
+    userId: string,
+    data: { endpoint: string; p256dh: string; auth: string; locale: string },
+  ): Promise<void> {
+    await this.prisma.videochatPushSubscription.upsert({
+      where: { endpoint: data.endpoint },
+      create: { userId, ...data },
+      update: { userId, p256dh: data.p256dh, auth: data.auth, locale: data.locale },
+    });
+    const extra = await this.prisma.videochatPushSubscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: 10,
+      select: { id: true },
+    });
+    if (extra.length > 0) {
+      await this.prisma.videochatPushSubscription.deleteMany({
+        where: { id: { in: extra.map((row) => row.id) } },
+      });
+    }
+  }
+
+  async deletePushSubscription(endpoint: string, userId?: string): Promise<void> {
+    await this.prisma.videochatPushSubscription.deleteMany({
+      where: userId ? { endpoint, userId } : { endpoint },
+    });
+  }
+
+  /**
+   * Subscriptions of accounts that may be told someone is waiting: onboarded with the current
+   * rules, not suspended, not notified since `notifiedBefore`, and not in `excludeUserIds`.
+   */
+  pushCandidates(input: {
+    termsVersion: string;
+    notifiedBefore: Date;
+    now: Date;
+    excludeUserIds: string[];
+    take: number;
+  }) {
+    return this.prisma.videochatPushSubscription.findMany({
+      where: {
+        userId: { notIn: input.excludeUserIds },
+        user: {
+          videochatProfile: {
+            termsVersion: input.termsVersion,
+            OR: [{ suspendedAt: null }, { suspendedUntil: { lte: input.now } }],
+            AND: [
+              {
+                OR: [{ pushNotifiedAt: null }, { pushNotifiedAt: { lt: input.notifiedBefore } }],
+              },
+            ],
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: input.take,
+      include: {
+        user: {
+          select: {
+            videochatProfile: {
+              select: {
+                gender: true,
+                seeking: true,
+                country: true,
+                language: true,
+                sameCountryOnly: true,
+                sameLanguageOnly: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async markPushNotified(userIds: string[], at: Date): Promise<void> {
+    if (userIds.length === 0) return;
+    await this.prisma.videochatProfile.updateMany({
+      where: { userId: { in: userIds } },
+      data: { pushNotifiedAt: at },
+    });
+  }
 }

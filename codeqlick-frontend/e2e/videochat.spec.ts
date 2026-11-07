@@ -123,3 +123,24 @@ test('two people meet in the video chat, talk and move on', async ({
     }
   }
 });
+
+test('the video chat installs as its own app', async ({ page, baseURL }) => {
+  // Through the browser: it, unlike Node, sends *.localhost to this machine.
+  const base = videochatUrl(baseURL);
+  const manifest = await page.goto(`${base}/manifest.webmanifest`);
+  expect(manifest?.ok()).toBe(true);
+  expect(await manifest?.json()).toMatchObject({
+    id: '/videochat',
+    name: 'Codeqlick Videochat',
+    start_url: '/',
+    display: 'standalone',
+  });
+  const worker = await page.goto(`${base}/videochat-sw.js`);
+  expect(worker?.ok()).toBe(true);
+  expect(await worker?.text()).toContain("addEventListener('push'");
+
+  // The studio's own site keeps its own manifest.
+  const studio = await page.goto(`${baseURL ?? 'http://localhost:3001'}/manifest.webmanifest`);
+  const studioManifest = (await studio?.json()) as { name?: string } | undefined;
+  expect(studioManifest?.name).not.toBe('Codeqlick Videochat');
+});

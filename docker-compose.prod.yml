@@ -99,6 +99,9 @@ services:
       VIDEOCHAT_AGE_VERIFICATION_REQUIRED: ${VIDEOCHAT_AGE_VERIFICATION_REQUIRED:-false}
       TURN_SECRET: ${TURN_SECRET:-}
       TURN_URLS: ${TURN_URLS:-}
+      # "Someone is waiting" notifications (Web Push); off while the keys are empty.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
     volumes:
       - uploads-data:/app/uploads
     ports:

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -6,12 +6,17 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { VideochatGateway } from './videochat.gateway.js';
+import { VideochatPushService } from './videochat-push.service.js';
 import {
   appealSchema,
   onboardingSchema,
+  pushSubscriptionSchema,
+  pushUnsubscribeSchema,
   settingsSchema,
   type AppealInput,
   type OnboardingInput,
+  type PushSubscriptionInput,
+  type PushUnsubscribeInput,
   type VideochatSettings,
 } from './videochat.schemas.js';
 import {
@@ -26,7 +31,10 @@ import {
 @Roles('CLIENT', 'ADMIN')
 @Controller('videochat')
 export class VideochatController {
-  constructor(private readonly videochat: VideochatService) {}
+  constructor(
+    private readonly videochat: VideochatService,
+    private readonly push: VideochatPushService,
+  ) {}
 
   @Get('me')
   status(@CurrentUser() user: AuthUser): Promise<VideochatStatus> {
@@ -62,6 +70,27 @@ export class VideochatController {
     @Body({ schema: appealSchema }) body: AppealInput,
   ): Promise<void> {
     return this.videochat.appeal(user.id, body.message);
+  }
+
+  /** This browser wants "someone is waiting" notifications (Web Push). */
+  @Put('push')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  subscribePush(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: pushSubscriptionSchema }) body: PushSubscriptionInput,
+  ): Promise<void> {
+    return this.push.subscribe(user.id, body);
+  }
+
+  /** This browser no longer wants them. */
+  @Delete('push')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  unsubscribePush(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: pushUnsubscribeSchema }) body: PushUnsubscribeInput,
+  ): Promise<void> {
+    return this.push.unsubscribe(user.id, body.endpoint);
   }
 
   /** A single-use ticket (30 s) to open the WebSocket, and the ICE servers for the call. Also
