@@ -116,6 +116,13 @@
   color: var(--color-ink);
 }
 
+/* Phones zoom in on a field whose text is under 16px when it's tapped. */
+@media (pointer: coarse) {
+  .move select {
+    font-size: 1rem;
+  }
+}
+
 .hint {
   margin: 0;
   font-size: 0.8rem;

@@ -118,29 +118,33 @@ export function BarChart({
           </li>
         ))}
       </ul>
-      <table className="visually-hidden">
-        <caption>{title}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{rowHeading}</th>
-            {series.map((item) => (
-              <th key={item.label} scope="col">
-                {item.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {longLabels.map((label, index) => (
-            <tr key={label}>
-              <th scope="row">{label}</th>
+      {/* The numbers for screen readers. Hidden in a box, not on the table itself: a table is never
+          narrower than its contents, and a wider page makes phones zoom out to fit it. */}
+      <div className="visually-hidden">
+        <table>
+          <caption>{title}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{rowHeading}</th>
               {series.map((item) => (
-                <td key={item.label}>{item.values[index] ?? 0}</td>
+                <th key={item.label} scope="col">
+                  {item.label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {longLabels.map((label, index) => (
+              <tr key={label}>
+                <th scope="row">{label}</th>
+                {series.map((item) => (
+                  <td key={item.label}>{item.values[index] ?? 0}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }
