@@ -1276,7 +1276,23 @@
       "topPages": "Páginas más vistas",
       "referrers": "De dónde llegan",
       "countries": "Países",
-      "none": "Todavía sin datos."
+      "none": "Todavía sin datos.",
+      "goals": "Conversiones (y % de visitantes)",
+      "goalNames": {
+        "contact-sent": "Contactos enviados",
+        "call-booked": "Llamadas reservadas",
+        "site-request-sent": "Solicitudes de web básica",
+        "site-buy-click": "Clics en «Comprar» la web",
+        "site-bought": "Webs pagadas"
+      },
+      "buttons": "Botones más pulsados",
+      "buttonNames": {
+        "cta-header": "Cabecera: Empezar un proyecto",
+        "cta-home-hero": "Portada: botón principal",
+        "cta-home-bottom": "Portada: botón final",
+        "cta-basic-website-top": "Web básica: pedir (arriba)",
+        "cta-basic-website-bottom": "Web básica: pedir (abajo)"
+      }
     },
     "savedReplies": {
       "title": "Respuestas guardadas",

@@ -537,6 +537,8 @@ export type SiteVisits = {
   referrers: { source: string; visitors: number }[];
   countries: { code: string; visitors: number }[];
   contactsSent: number;
+  /** Every tracked event (requests sent, calls booked, button clicks), most counted first. */
+  events: { name: string; count: number }[];
 };
 
 /** `GET /admin/saved-replies`: a reusable text; `{name}` and `{project}` are filled in on insert. */

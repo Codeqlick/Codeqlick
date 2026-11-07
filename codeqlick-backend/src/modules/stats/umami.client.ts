@@ -24,6 +24,8 @@ export interface SiteVisits {
   referrers: Array<{ source: string; visitors: number }>;
   countries: Array<{ code: string; visitors: number }>;
   contactsSent: number;
+  /** Every tracked event (requests sent, calls booked, button clicks), most counted first. */
+  events: Array<{ name: string; count: number }>;
 }
 
 const EMPTY_TOTALS = { visitors: 0, visits: 0, pageviews: 0, bounceRate: 0, avgVisitSeconds: 0 };
@@ -59,6 +61,7 @@ export class UmamiClient {
       referrers: [],
       countries: [],
       contactsSent: 0,
+      events: [],
     };
     if (!empty.enabled) return empty;
 
@@ -97,6 +100,7 @@ export class UmamiClient {
         referrers: referrers.map((m) => ({ source: m.x, visitors: m.y })),
         countries: countries.map((m) => ({ code: m.x, visitors: m.y })),
         contactsSent: events.find((m) => m.x === 'contact-sent')?.y ?? 0,
+        events: events.map((m) => ({ name: m.x, count: m.y })).sort((a, b) => b.count - a.count),
       };
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);

@@ -91,7 +91,9 @@ export default async function BuyPage({ params, searchParams }: PageProps) {
                   ),
                 })}
               />
-              <SubmitButton>{t('buyButton', { price: total })}</SubmitButton>
+              <SubmitButton trackEvent="site-buy-click">
+                {t('buyButton', { price: total })}
+              </SubmitButton>
               <p className={styles.hint}>{t('buySecure')}</p>
             </ActionForm>
           ) : (

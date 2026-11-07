@@ -15,6 +15,7 @@ import { pageMetadata } from '@/lib/seo';
 import home from '../../page.module.css';
 import { submitSiteRequest } from './actions';
 import styles from './request.module.css';
+import { TrackEvent } from '@/components/layout/TrackEvent';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -61,6 +62,7 @@ export default async function SiteRequestPage({ params, searchParams }: PageProp
         <div className={home.intro}>
           <p className="eyebrow">{t('eyebrow')}</p>
           <h1 className={home.title}>{t('sentTitle')}</h1>
+          <TrackEvent event="site-request-sent" />
           <p className={home.lead}>{t('sentBody')}</p>
           {previewHref ? (
             <div className={styles.preview}>
