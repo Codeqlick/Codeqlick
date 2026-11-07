@@ -67,6 +67,19 @@ export const INTERESTS = [
   'nature',
   'pets',
   'fashion',
+  // Adult (+18) interests: the video chat allows explicit content between consenting adults.
+  'spicy',
+  'explicit',
+  'showing',
+  'watching',
+  'roleplay',
+  'fetish',
+  'bdsm',
+  'striptease',
+  'mutual',
+  'couples',
+  'lgbtq',
+  'nostrings',
 ] as const;
 export type Interest = (typeof INTERESTS)[number];
 export const MAX_INTERESTS = 5;
