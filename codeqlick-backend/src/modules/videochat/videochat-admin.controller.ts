@@ -15,16 +15,19 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { VideochatStatsService, type VideochatHistory } from './videochat-stats.service.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import {
   appealDecisionSchema,
   appealsQuerySchema,
+  historyQuerySchema,
   reportsQuerySchema,
   suspendSchema,
   suspendUserSchema,
   userIdParamSchema,
   type AppealDecisionInput,
   type AppealsQuery,
+  type HistoryQuery,
   type ReportsQuery,
   type SuspendInput,
   type SuspendUserInput,
@@ -47,12 +50,19 @@ export class VideochatAdminController {
   constructor(
     private readonly videochat: VideochatService,
     private readonly gateway: VideochatGateway,
+    private readonly statistics: VideochatStatsService,
   ) {}
 
   /** People online, waiting and in a call right now. */
   @Get('stats')
   stats(): { online: number; waiting: number; calls: number } {
     return this.gateway.stats;
+  }
+
+  /** Usage over the last 7, 30 or 90 days (Europe/Madrid days). */
+  @Get('stats/history')
+  history(@Query({ schema: historyQuerySchema }) query: HistoryQuery): Promise<VideochatHistory> {
+    return this.statistics.history(query.days);
   }
 
   @Get('reports')
