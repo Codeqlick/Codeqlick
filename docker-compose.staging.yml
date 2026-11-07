@@ -1,0 +1,87 @@
+# Staging stack: a second copy of the website and API on the same VPS, to try a branch before it
+# reaches production (architecture 8, deploy/README.md "Staging"). Runs from its own checkout,
+# /srv/codeqlick-staging, with its own `.env` (template: deploy/.env.staging.example):
+#   ./deploy/staging.sh <branch> [--with-data]
+# Only what a release can break runs here: database, API and website. Every email lands in Mailpit
+# (nothing is ever sent), and Stripe, OVH, Umami, the site builder and the video chat stay off.
+name: codeqlick-staging
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeqlick
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: codeqlick
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codeqlick -d codeqlick"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # Catches every email the API sends; its inbox is at <staging>/mail/ (behind the same password).
+  mailpit:
+    image: axllent/mailpit:v1.33.0
+    restart: unless-stopped
+    environment:
+      MP_WEBROOT: /mail/
+      MP_MAX_MESSAGES: "2000"
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-8026}:8025"
+
+  api:
+    build: ./codeqlick-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://codeqlick:${POSTGRES_PASSWORD}@db:5432/codeqlick
+      CORS_ORIGINS: ${SITE_URL:?set SITE_URL in .env}
+      SITE_URL: ${SITE_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
+      CREDENTIALS_SECRET: ${CREDENTIALS_SECRET:?set CREDENTIALS_SECRET in .env}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_SECURE: "false"
+      MAIL_FROM: Codeqlick staging <hello@codeqlick.com>
+      LEADS_NOTIFY_TO: hello@codeqlick.com
+      # A copy of production's data comes without anyone's authenticator (deploy/staging.sh).
+      ADMIN_TWO_FACTOR_REQUIRED: "false"
+    volumes:
+      - uploads-data:/app/uploads
+    ports:
+      - "127.0.0.1:${API_PORT:-4011}:4000"
+
+  web:
+    build:
+      context: ./codeqlick-frontend
+      args:
+        LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
+        LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
+        LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_URL: http://api:4000/v1
+      SITE_URL: ${SITE_URL}
+      NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+      LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
+      LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
+      LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3011}:3000"
+
+volumes:
+  db-data:
+  uploads-data:
