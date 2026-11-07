@@ -636,7 +636,21 @@
     "sending": "Sending…",
     "askSupport": "Open a request",
     "releases": "Releases",
-    "openRelease": "Open this version"
+    "openRelease": "Open this version",
+    "cardNext": "Next milestone: {title}",
+    "cardNextDated": "Next milestone: {title}, due {date}",
+    "cardWaiting": "{count, plural, one {# thing waiting on you} other {# things waiting on you}}"
+  },
+  "PortalTodo": {
+    "title": "{count, plural, one {Waiting on you: # thing} other {Waiting on you: # things}}",
+    "since": "since {date}",
+    "kinds": {
+      "approval": "Review and approve “{title}”",
+      "proposal": "Answer the proposal “{title}”",
+      "ticket": "Reply to your request {title}",
+      "brief": "Fill in the project questionnaire",
+      "review": "Tell us what you thought of the project"
+    }
   },
   "Admin": {
     "title": "Admin",
@@ -1724,8 +1738,6 @@
     "declineReasonHint": "Optional, but it helps us improve or prepare another version.",
     "decline": "Decline proposal",
     "declining": "Sending…",
-    "pendingBanner": "You have a proposal awaiting your answer: {title}.",
-    "pendingLink": "See the proposal",
     "statuses": {
       "DRAFT": "Draft",
       "SENT": "Sent",
@@ -1906,9 +1918,6 @@
     "missing": "We've saved what you have, but a few answers are missing to send it.",
     "required": "We need this answer to start.",
     "submittedNotice": "You sent it on {date}. You can change any answer and send it again.",
-    "bannerTitle": "Tell us about your project.",
-    "bannerBody": "A few questions about goals, audience, features and brand to get off to a good start.",
-    "bannerLink": "Answer now",
     "factLabel": "Brief",
     "factLink": "View or edit",
     "adminTitle": "Project brief",
@@ -2120,9 +2129,6 @@
     "sending": "Sending…",
     "thanks": "Thank you so much! It really helps.",
     "alreadySent": "You already sent us your review, thank you! You can change it and send it again.",
-    "bannerTitle": "How did it go?",
-    "bannerBody": "Your project is live: tell us what you thought.",
-    "bannerLink": "Leave my review",
     "adminTitle": "Client review",
     "request": "Ask the client for a review",
     "publish": "Publish on the website",

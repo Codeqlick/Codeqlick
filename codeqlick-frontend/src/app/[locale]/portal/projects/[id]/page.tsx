@@ -12,13 +12,13 @@ import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
-import { getMyProject } from '@/lib/api/projects';
+import { getMyProject, getMyTodo } from '@/lib/api/projects';
+import { PortalTodo } from '@/components/portal/PortalTodo';
 import { getMyProjectTime } from '@/lib/api/time';
 import { listMyProjectTasks } from '@/lib/api/tasks';
 import { getMyBrief } from '@/lib/api/briefs';
 import { getMyProjectStatus } from '@/lib/api/monitoring';
 import { listAccess } from '@/lib/api/credentials';
-import { getMyReview } from '@/lib/api/reviews';
 import { getMySite, getProjectVisits } from '@/lib/api/portal-site';
 import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
 import { getMyPlan } from '@/lib/api/plans';
@@ -28,7 +28,6 @@ import { ActionForm, FormInput, FormTextarea } from '@/components/app/ActionForm
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { deleteAccessAction, shareAccessAction } from '../access-actions';
 import { SiteStatus } from '@/components/app/SiteStatus';
-import { Alert } from '@/components/ui/Alert';
 import { Link } from '@/i18n/navigation';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
 import type { ClientProject } from '@/lib/api/types';
@@ -57,31 +56,30 @@ export default async function PortalProjectPage({
   const user = await getCurrentUser();
   const th = await getTranslations({ locale, namespace: 'Hours' });
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
-  // Optional: the project page works without it.
-  const tasks = await listMyProjectTasks(project.id).catch(() => []);
-  const brief = await getMyBrief(project.id).catch(() => undefined);
-  // Only when the team monitors the site (404 otherwise).
-  const siteStatus = await getMyProjectStatus(project.id).catch(() => undefined);
-  const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
-  const access = await listAccess(project.id).catch(() => []);
-  const review = await getMyReview(project.id).catch(() => undefined);
-  // Only with an active maintenance plan (404 otherwise).
-  const plan = await getMyPlan(project.id).catch(() => undefined);
-  // Only for a managed website (404 otherwise).
-  const site = await getMySite(project.id).catch(() => undefined);
+  // All optional (the page works without each), so fetched together rather than one by one.
+  const [tasks, brief, siteStatus, access, plan, site, time, todo] = await Promise.all([
+    listMyProjectTasks(project.id).catch(() => []),
+    getMyBrief(project.id).catch(() => undefined),
+    // Only when the team monitors the site (404 otherwise).
+    getMyProjectStatus(project.id).catch(() => undefined),
+    listAccess(project.id).catch(() => []),
+    // Only with an active maintenance plan (404 otherwise).
+    getMyPlan(project.id).catch(() => undefined),
+    // Only for a managed website (404 otherwise).
+    getMySite(project.id).catch(() => undefined),
+    project.showHours ? getMyProjectTime(project.id).catch(() => undefined) : undefined,
+    getMyTodo().catch(() => ({ items: [] })),
+  ]);
   const visits = site ? await getProjectVisits(project.id).catch(() => undefined) : undefined;
+  const waiting = todo.items.filter((item) => item.projectId === project.id);
+  const tmon = await getTranslations({ locale, namespace: 'Monitoring' });
   const tvis = await getTranslations({ locale, namespace: 'ProjectVisits' });
   const tdomain = await getTranslations({ locale, namespace: 'Domain' });
   const tsite = await getTranslations({ locale, namespace: 'PortalSite' });
   const tpl = await getTranslations({ locale, namespace: 'Plans' });
-  const trev = await getTranslations({ locale, namespace: 'Review' });
   const tac = await getTranslations({ locale, namespace: 'Access' });
   const tco = await getTranslations({ locale, namespace: 'Common' });
   const tbr = await getTranslations({ locale, namespace: 'Brief' });
-  // Optional: the project page works without it.
-  const time = project.showHours
-    ? await getMyProjectTime(project.id).catch(() => undefined)
-    : undefined;
   const milestones = project.milestones ?? [];
   const releases = (project.updates ?? []).filter((update) => update.release);
   const te = await getTranslations({ locale, namespace: 'ReleaseEnvironments' });
@@ -99,19 +97,7 @@ export default async function PortalProjectPage({
         }
       />
 
-      {review?.status === 'REQUESTED' ? (
-        <Alert tone="info">
-          <strong>{trev('bannerTitle')}</strong> {trev('bannerBody')}{' '}
-          <Link href={`/portal/projects/${project.id}/review`}>{trev('bannerLink')}</Link>
-        </Alert>
-      ) : null}
-
-      {brief?.status === 'REQUESTED' ? (
-        <Alert tone="info">
-          <strong>{tbr('bannerTitle')}</strong> {tbr('bannerBody')}{' '}
-          <Link href={`/portal/projects/${project.id}/brief`}>{tbr('bannerLink')}</Link>
-        </Alert>
-      ) : null}
+      <PortalTodo items={waiting} locale={locale} showProject={false} />
 
       {site ? (
         <section className={styles.panel} id="site" aria-labelledby="site-heading">
@@ -194,14 +180,18 @@ export default async function PortalProjectPage({
               </dd>
             </div>
           ) : null}
-          <div>
-            <dt>{t('startDate')}</dt>
-            <dd>{formatDate(project.startDate, locale)}</dd>
-          </div>
-          <div>
-            <dt>{t('dueDate')}</dt>
-            <dd>{formatDate(project.dueDate, locale)}</dd>
-          </div>
+          {project.startDate ? (
+            <div>
+              <dt>{t('startDate')}</dt>
+              <dd>{formatDate(project.startDate, locale)}</dd>
+            </div>
+          ) : null}
+          {project.dueDate ? (
+            <div>
+              <dt>{t('dueDate')}</dt>
+              <dd>{formatDate(project.dueDate, locale)}</dd>
+            </div>
+          ) : null}
           {project.stagingUrl ? (
             <div>
               <dt>{t('staging')}</dt>
@@ -316,6 +306,22 @@ export default async function PortalProjectPage({
         </section>
       ) : null}
 
+      <section className={styles.panel}>
+        <h2 className={styles.panelTitle}>{t('updates')}</h2>
+        <ProjectUpdates
+          updates={project.updates ?? []}
+          locale={locale}
+          empty={t('noUpdates')}
+          commentAction={(updateId) => commentAction.bind(null, locale, project.id, updateId)}
+          // Approving is the client's call; admins looking at the portal only comment.
+          approveAction={
+            user?.role === 'CLIENT'
+              ? (updateId) => approveAction.bind(null, locale, project.id, updateId)
+              : undefined
+          }
+        />
+      </section>
+
       <section className={styles.panel} id="access" aria-labelledby="access-heading">
         <h2 id="access-heading" className={styles.panelTitle}>
           {tac('title')}
@@ -380,22 +386,6 @@ export default async function PortalProjectPage({
             </ActionForm>
           </details>
         </div>
-      </section>
-
-      <section className={styles.panel}>
-        <h2 className={styles.panelTitle}>{t('updates')}</h2>
-        <ProjectUpdates
-          updates={project.updates ?? []}
-          locale={locale}
-          empty={t('noUpdates')}
-          commentAction={(updateId) => commentAction.bind(null, locale, project.id, updateId)}
-          // Approving is the client's call; admins looking at the portal only comment.
-          approveAction={
-            user?.role === 'CLIENT'
-              ? (updateId) => approveAction.bind(null, locale, project.id, updateId)
-              : undefined
-          }
-        />
       </section>
     </div>
   );

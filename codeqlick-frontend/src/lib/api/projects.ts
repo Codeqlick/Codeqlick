@@ -24,6 +24,24 @@ export function listMyProjects() {
   return apiFetch<ClientProject[]>('/portal/projects', { auth: 'required' });
 }
 
+export type TodoKind = 'approval' | 'proposal' | 'ticket' | 'brief' | 'review';
+
+/** Something waiting on the client (`GET /portal/todo`). */
+export type TodoItem = {
+  kind: TodoKind;
+  /** The update, proposal or request; the project for a brief or a review. */
+  id: string;
+  title: string;
+  projectId: string | null;
+  projectName: string | null;
+  since: string;
+};
+
+/** What waits on the caller's account, oldest first. */
+export function getMyTodo() {
+  return apiFetch<{ items: TodoItem[] }>('/portal/todo', { auth: 'required' });
+}
+
 export function getMyProject(id: string) {
   return apiFetch<ClientProject>(`/portal/projects/${encodeURIComponent(id)}`, {
     auth: 'required',

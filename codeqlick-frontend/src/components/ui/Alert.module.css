@@ -21,3 +21,8 @@
   background: var(--color-blush);
   color: var(--color-fuchsia-dark);
 }
+
+/* Links take the message's colour: the brand fuchsia is too light on these backgrounds. */
+.alert a {
+  color: inherit;
+}
