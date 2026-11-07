@@ -316,3 +316,114 @@
   grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
   column-gap: var(--space-4);
 }
+
+/* Contacts (architecture 4.7) */
+.empty {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
+  color: var(--color-ink);
+}
+
+.contacts {
+  list-style: none;
+  margin: var(--space-6) 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.contactMain {
+  min-width: 0;
+  flex: 1 1 14rem;
+}
+
+.contactName {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.contactMeta {
+  margin: var(--space-1) 0 0;
+  color: var(--color-slate);
+  font-size: 0.875rem;
+}
+
+.contactInterests {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.contactInterests li {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-blush);
+  font-size: 0.8125rem;
+}
+
+.presence {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  flex: none;
+  background: var(--color-line);
+}
+
+.presence_online {
+  background: #1f9d55;
+}
+
+.presence_busy {
+  background: var(--color-fuchsia-light);
+}
+
+.presence_offline {
+  background: var(--color-line);
+}
+
+.contactActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.callButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border-radius: 999px;
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.callButton:hover {
+  background: var(--color-fuchsia-dark);
+}
+
+.callDisabled,
+.callDisabled:hover {
+  background: var(--color-line);
+  color: var(--color-slate);
+  cursor: not-allowed;
+}

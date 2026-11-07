@@ -42,11 +42,91 @@ export class VideochatRepository {
   }
 
   async block(blockerId: string, blockedId: string): Promise<void> {
-    await this.prisma.videochatBlock.upsert({
-      where: { blockerId_blockedId: { blockerId, blockedId } },
-      create: { blockerId, blockedId },
+    await this.prisma.$transaction([
+      this.prisma.videochatBlock.upsert({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+        create: { blockerId, blockedId },
+        update: {},
+      }),
+      // A block ends a contact.
+      this.prisma.videochatLike.deleteMany({
+        where: {
+          OR: [
+            { fromId: blockerId, toId: blockedId },
+            { fromId: blockedId, toId: blockerId },
+          ],
+        },
+      }),
+    ]);
+  }
+
+  /** Likes `toId`; returns whether `toId` already liked `fromId` (they are contacts now). */
+  async like(fromId: string, toId: string): Promise<boolean> {
+    await this.prisma.videochatLike.upsert({
+      where: { fromId_toId: { fromId, toId } },
+      create: { fromId, toId },
       update: {},
     });
+    const back = await this.prisma.videochatLike.findUnique({
+      where: { fromId_toId: { fromId: toId, toId: fromId } },
+      select: { fromId: true },
+    });
+    return back !== null;
+  }
+
+  async unlike(fromId: string, toId: string): Promise<void> {
+    await this.prisma.videochatLike.deleteMany({ where: { fromId, toId } });
+  }
+
+  /** Removes the likes between two people, both ways (a block ends a contact). */
+  async deleteLikesBetween(a: string, b: string): Promise<void> {
+    await this.prisma.videochatLike.deleteMany({
+      where: {
+        OR: [
+          { fromId: a, toId: b },
+          { fromId: b, toId: a },
+        ],
+      },
+    });
+  }
+
+  async isMutual(a: string, b: string): Promise<boolean> {
+    const count = await this.prisma.videochatLike.count({
+      where: {
+        OR: [
+          { fromId: a, toId: b },
+          { fromId: b, toId: a },
+        ],
+      },
+    });
+    return count === 2;
+  }
+
+  /** The people `userId` liked who liked them back, with their public profile; newest first. */
+  async contacts(userId: string) {
+    const liked = await this.prisma.videochatLike.findMany({
+      where: { fromId: userId, to: { videochatLikesGiven: { some: { toId: userId } } } },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: {
+        toId: true,
+        createdAt: true,
+        to: {
+          select: {
+            videochatProfile: {
+              select: {
+                nickname: true,
+                gender: true,
+                country: true,
+                language: true,
+                interests: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    return liked;
   }
 
   createReport(data: {

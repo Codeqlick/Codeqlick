@@ -1,10 +1,21 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { Public } from '../../common/decorators/public.decorator.js';
+import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import { VideochatPushService } from './videochat-push.service.js';
 import {
@@ -21,6 +32,7 @@ import {
 } from './videochat.schemas.js';
 import {
   VideochatService,
+  type VideochatContact,
   type VideochatStatus,
   type VideochatTicket,
 } from './videochat.service.js';
@@ -34,7 +46,23 @@ export class VideochatController {
   constructor(
     private readonly videochat: VideochatService,
     private readonly push: VideochatPushService,
+    private readonly gateway: VideochatGateway,
   ) {}
+
+  /** Mutual contacts and whether each is in the video chat now. */
+  @Get('contacts')
+  contacts(@CurrentUser() user: AuthUser): Promise<{ items: VideochatContact[] }> {
+    return this.videochat.contacts(user.id, (contactId) => this.gateway.presence(contactId));
+  }
+
+  @Delete('contacts/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeContact(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.videochat.removeContact(user.id, params.id);
+  }
 
   @Get('me')
   status(@CurrentUser() user: AuthUser): Promise<VideochatStatus> {

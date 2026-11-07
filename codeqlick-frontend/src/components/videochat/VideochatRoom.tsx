@@ -32,7 +32,19 @@ type ServerMessage =
   | { type: 'reported' }
   | { type: 'blocked' }
   | { type: 'suspended' }
+  | { type: 'liked' }
+  | { type: 'mutual'; nickname: string | null }
+  | { type: 'calling'; callId: string; partner: PartnerProfile }
+  | { type: 'incoming'; callId: string; partner: PartnerProfile }
+  | {
+      type: 'call-ended';
+      callId: string;
+      reason: 'declined' | 'timeout' | 'busy' | 'offline' | 'cancelled';
+    }
   | { type: 'error'; code: string };
+
+/** A call to or from a contact that is ringing. */
+type Ringing = { callId: string; partner: PartnerProfile; direction: 'out' | 'in' };
 
 type PartnerProfile = {
   nickname: string | null;
@@ -45,7 +57,8 @@ type PartnerProfile = {
 /** After this long waiting with filters on, the room offers to search without them once. */
 const WIDEN_AFTER_MS = 30_000;
 
-type Phase = 'idle' | 'starting' | 'searching' | 'connecting' | 'connected' | 'stopped' | 'closed';
+type Phase =
+  'idle' | 'starting' | 'searching' | 'calling' | 'connecting' | 'connected' | 'stopped' | 'closed';
 
 type NoticeKey =
   | 'partnerLeft'
@@ -61,7 +74,24 @@ type NoticeKey =
   | 'ticketError'
   | 'cameraDenied'
   | 'cameraMissing'
-  | 'unsupported';
+  | 'unsupported'
+  | 'liked'
+  | 'mutual'
+  | 'mutualAnonymous'
+  | 'callDeclined'
+  | 'callTimeout'
+  | 'callBusy'
+  | 'callOffline'
+  | 'callMissed'
+  | 'notContact';
+
+const CALL_END_NOTICE = {
+  declined: 'callDeclined',
+  timeout: 'callTimeout',
+  busy: 'callBusy',
+  offline: 'callOffline',
+  cancelled: 'callMissed',
+} as const;
 
 const REASONS = [
   'MINOR',
@@ -106,19 +136,29 @@ export function VideochatRoom({
   getTicket,
   locale,
   myInterests = [],
+  callContactId,
 }: {
   wsUrl: string;
   getTicket: () => Promise<TicketResult>;
   locale: string;
   /** This person's interests, to highlight the ones a partner shares. */
   myInterests?: string[];
+  /** Opened from the contacts page to call this contact (their account id). */
+  callContactId?: string;
 }) {
   const t = useTranslations('Videochat.room');
   const ti = useTranslations('Videochat.interests');
   const tg = useTranslations('Videochat.genders');
   const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
-  const [notice, setNotice] = useState<{ key: NoticeKey; tone: 'info' | 'error' } | null>(null);
+  const [notice, setNotice] = useState<{
+    key: NoticeKey;
+    tone: 'info' | 'error';
+    values?: Record<string, string>;
+  } | null>(null);
+  const [ringing, setRinging] = useState<Ringing | null>(null);
+  /** Liked the current (or last) partner. */
+  const [liked, setLiked] = useState(false);
   const [chat, setChat] = useState<ChatLine[]>([]);
   const [draft, setDraft] = useState('');
   const [micOn, setMicOn] = useState(true);
@@ -151,6 +191,13 @@ export function VideochatRoom({
   /** The person pressed Stop: a reconnection doesn't start searching again by itself. */
   const paused = useRef(false);
   const connectRef = useRef<() => Promise<void>>(async () => undefined);
+  /** A contact to call once the socket is ready (from the contacts page), used once. */
+  const pendingCall = useRef(callContactId);
+  const ringingRef = useRef<Ringing | null>(null);
+  const setRing = useCallback((ring: Ringing | null) => {
+    ringingRef.current = ring;
+    setRinging(ring);
+  }, []);
 
   const send = useCallback((message: object) => {
     if (socket.current?.readyState === WebSocket.OPEN) {
@@ -278,6 +325,13 @@ export function VideochatRoom({
         case 'ready':
           reconnectAttempt.current = 0;
           setNotice(null);
+          if (pendingCall.current) {
+            send({ type: 'call', contactId: pendingCall.current });
+            pendingCall.current = undefined;
+            window.history.replaceState(null, '', window.location.pathname);
+            setPhase('calling');
+            return;
+          }
           if (paused.current) {
             setPhase('stopped');
             return;
@@ -291,6 +345,8 @@ export function VideochatRoom({
           setFilters({ filtered: message.filtered, widened: message.widened });
           return;
         case 'matched':
+          setRing(null);
+          setLiked(false);
           setOthersWaiting(0);
           setCanWiden(false);
           setChat([]);
@@ -317,6 +373,41 @@ export function VideochatRoom({
           setNotice({ key: message.type, tone: 'info' });
           searchAgain();
           return;
+        case 'liked':
+          setLiked(true);
+          setNotice({ key: 'liked', tone: 'info' });
+          return;
+        case 'mutual':
+          setNotice(
+            message.nickname
+              ? { key: 'mutual', tone: 'info', values: { name: message.nickname } }
+              : { key: 'mutualAnonymous', tone: 'info' },
+          );
+          chime();
+          return;
+        case 'calling':
+          setRing({ callId: message.callId, partner: message.partner, direction: 'out' });
+          setPhase('calling');
+          return;
+        case 'incoming':
+          setRing({ callId: message.callId, partner: message.partner, direction: 'in' });
+          chime();
+          flashTitle(t('incomingRing'));
+          return;
+        case 'call-ended': {
+          const ring = ringingRef.current;
+          setRing(null);
+          if (ring?.direction === 'in') {
+            // Missed (they hung up or it rang out); declining was our own doing.
+            if (message.reason !== 'declined') setNotice({ key: 'callMissed', tone: 'info' });
+            return;
+          }
+          if (message.reason === 'cancelled') return;
+          setNotice({ key: CALL_END_NOTICE[message.reason], tone: 'info' });
+          paused.current = true;
+          setPhase('stopped');
+          return;
+        }
         case 'suspended':
           setNotice({ key: 'suspended', tone: 'error' });
           shutdown('closed');
@@ -329,6 +420,11 @@ export function VideochatRoom({
             setNotice({ key: 'rateLimited', tone: 'error' });
           } else if (message.code === 'no-partner') {
             setNotice({ key: 'noPartner', tone: 'info' });
+          } else if (message.code === 'not-contact') {
+            setRing(null);
+            setNotice({ key: 'notContact', tone: 'info' });
+            paused.current = true;
+            setPhase('stopped');
           } else if (message.code === 'invalid-ticket') {
             setNotice({ key: 'ticketError', tone: 'error' });
             shutdown('closed');
@@ -336,7 +432,7 @@ export function VideochatRoom({
           return;
       }
     },
-    [onSignal, searchAgain, send, shutdown, startPeer, t],
+    [onSignal, searchAgain, send, setRing, shutdown, startPeer, t],
   );
 
   const connect = useCallback(async () => {
@@ -459,7 +555,8 @@ export function VideochatRoom({
   }, [chat]);
 
   // Esc is "next" (unless the report dialog is open: there it closes the dialog).
-  const online = phase === 'connecting' || phase === 'connected' || phase === 'searching';
+  const online =
+    phase === 'connecting' || phase === 'connected' || phase === 'searching' || phase === 'calling';
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented || reportDialog.current?.open) return;
@@ -471,8 +568,21 @@ export function VideochatRoom({
     return () => window.removeEventListener('keydown', onKey);
   }, [next, online]);
 
+  const answer = (accept: boolean) => {
+    if (!ringing) return;
+    send({ type: 'answer', callId: ringing.callId, accept });
+    setRing(null);
+    if (accept) {
+      paused.current = false;
+      closePeer();
+      setChat([]);
+      setPhase('connecting');
+    }
+  };
+
   const stop = () => {
     paused.current = true;
+    setRing(null);
     closePeer();
     setChat([]);
     setPhase('stopped');
@@ -533,20 +643,16 @@ export function VideochatRoom({
     (partner?.interests ?? []).filter((interest) => myInterests.includes(interest)),
   );
 
-  const status =
-    phase === 'starting'
-      ? t('starting')
-      : phase === 'searching'
-        ? filters.widened
-          ? t('widened')
-          : t('searching')
-        : phase === 'connecting'
-          ? t('connecting')
-          : phase === 'connected'
-            ? t('connected')
-            : phase === 'stopped'
-              ? t('stopped')
-              : null;
+  const callingName = ringing?.partner.nickname;
+  const statusText: Partial<Record<Phase, string>> = {
+    starting: t('starting'),
+    searching: filters.widened ? t('widened') : t('searching'),
+    calling: callingName ? t('calling', { name: callingName }) : t('callingAnonymous'),
+    connecting: t('connecting'),
+    connected: t('connected'),
+    stopped: t('stopped'),
+  };
+  const status = statusText[phase] ?? null;
 
   return (
     <div className={styles.room}>
@@ -556,7 +662,31 @@ export function VideochatRoom({
           <video ref={remoteVideo} autoPlay playsInline className={styles.video} />
           {phase !== 'connected' ? (
             <div className={styles.overlay}>
-              {phase === 'idle' || phase === 'closed' ? (
+              {ringing?.direction === 'in' ? (
+                <div
+                  className={styles.incoming}
+                  role="alertdialog"
+                  aria-labelledby="videochat-incoming"
+                >
+                  <p id="videochat-incoming" className={styles.incomingTitle}>
+                    {ringing.partner.nickname
+                      ? t('incomingTitle', { name: ringing.partner.nickname })
+                      : t('incomingAnonymous')}
+                  </p>
+                  <div className={styles.incomingActions}>
+                    <button type="button" className={styles.primary} onClick={() => answer(true)}>
+                      {t('accept')}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.secondary}
+                      onClick={() => answer(false)}
+                    >
+                      {t('decline')}
+                    </button>
+                  </div>
+                </div>
+              ) : phase === 'idle' || phase === 'closed' ? (
                 <div className={styles.startBox}>
                   <h1 className={styles.startTitle}>{t('startTitle')}</h1>
                   <p>{t('startLead')}</p>
@@ -570,12 +700,20 @@ export function VideochatRoom({
                 </div>
               ) : (
                 <p className={styles.status} aria-live="polite">
-                  {phase === 'searching' || phase === 'connecting' || phase === 'starting' ? (
+                  {phase === 'searching' ||
+                  phase === 'connecting' ||
+                  phase === 'starting' ||
+                  phase === 'calling' ? (
                     <span className={styles.spinner} aria-hidden="true" />
                   ) : null}
                   {status}
                 </p>
               )}
+              {phase === 'calling' ? (
+                <button type="button" className={styles.secondary} onClick={stop}>
+                  {t('cancelCall')}
+                </button>
+              ) : null}
               {phase === 'searching' && othersWaiting > 0 ? (
                 <p className={styles.statusHint}>
                   {t('othersWaiting', { count: othersWaiting })}{' '}
@@ -630,7 +768,7 @@ export function VideochatRoom({
           className={notice.tone === 'error' ? styles.noticeError : styles.notice}
           role={notice.tone === 'error' ? 'alert' : 'status'}
         >
-          {t(notice.key)}
+          {t(notice.key, notice.values)}
         </p>
       ) : null}
 
@@ -680,6 +818,15 @@ export function VideochatRoom({
           {camOn ? t('cameraOff') : t('cameraOn')}
         </button>
         <span className={styles.spacer} />
+        <button
+          type="button"
+          className={styles.like}
+          onClick={() => send({ type: 'like' })}
+          disabled={!hadPartner || !inRoom || liked}
+          aria-pressed={liked}
+        >
+          ♥ {t('like')}
+        </button>
         <button
           type="button"
           className={styles.danger}

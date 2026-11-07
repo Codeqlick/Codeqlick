@@ -14,6 +14,7 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import { hasFilters, Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
 import {
   clientMessageSchema,
+  type CallEndReason,
   type ClientMessage,
   type PublicProfile,
   type ReportReason,
@@ -48,6 +49,26 @@ const HEARTBEAT_MS = 30_000;
 const PUSH_WAIT_MS = 20_000;
 /** How often people left waiting are paired again (a cooldown ran out) and told who else waits. */
 const REMATCH_EVERY_MS = 5_000;
+/** A call to a contact rings this long before it counts as declined. */
+const RING_MS = 30_000;
+
+const ANONYMOUS: PublicProfile = {
+  nickname: null,
+  gender: null,
+  country: null,
+  language: null,
+  interests: [],
+};
+
+/** A contact being called: rings until they answer, `RING_MS` pass, or either side moves. */
+interface Ring {
+  id: string;
+  from: Connection;
+  to: Connection;
+  timer: NodeJS.Timeout;
+  /** The contact was searching when the call came: they search again if it doesn't start. */
+  toWasWaiting: boolean;
+}
 
 interface CallLog {
   lines: Array<{ userId: string; text: string; at: string }>;
@@ -70,6 +91,8 @@ interface Connection {
   /** The last `waiting` this person was told (to send only changes). */
   waitingSent?: string;
   participant?: Participant;
+  /** The call to or from a contact ringing now. */
+  ring?: string;
   /** What partners see of this person. */
   profile?: PublicProfile;
   call?: CallLog;
@@ -81,6 +104,7 @@ interface Connection {
     chat: WindowLimiter;
     signal: WindowLimiter;
     reports: WindowLimiter;
+    calls: WindowLimiter;
   };
 }
 
@@ -99,6 +123,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   /** Per account, who they met and when (in memory; architecture 4.7). */
   private readonly recentPartners = new Map<string, Map<string, number>>();
   private readonly socketsPerIp = new Map<string, number>();
+  private readonly rings = new Map<string, Ring>();
   private server?: Server;
   private heartbeat?: NodeJS.Timeout;
   private rematcher?: NodeJS.Timeout;
@@ -145,6 +170,16 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     };
   }
 
+  /** Whether an account is in the video chat now, and in a call (or ringing). */
+  presence(userId: string): { online: boolean; busy: boolean } {
+    const connection = this.byUser.get(userId);
+    if (!connection) return { online: false, busy: false };
+    return {
+      online: true,
+      busy: !!connection.ring || !!this.matchmaker.partnerOf(connection.id),
+    };
+  }
+
   // --- Connection lifecycle ------------------------------------------------------------------
 
   private upgrade(request: IncomingMessage, socket: Duplex, head: Buffer): void {
@@ -185,6 +220,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
         chat: new WindowLimiter(20, 10_000),
         signal: new WindowLimiter(200, 60_000),
         reports: new WindowLimiter(5, 60_000),
+        calls: new WindowLimiter(10, 60_000),
       },
     };
     this.connections.set(connection.id, connection);
@@ -208,6 +244,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (!this.connections.delete(connection.id)) return;
     if (connection.authTimer) clearTimeout(connection.authTimer);
     if (connection.waitTimer) clearTimeout(connection.waitTimer);
+    if (connection.ring) this.finishRing(connection.ring, 'offline', connection);
     this.endCall(connection);
     if (connection.participant && this.byUser.get(connection.participant.userId) === connection) {
       this.byUser.delete(connection.participant.userId);
@@ -256,6 +293,13 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (!me) {
       this.error(connection, 'not-authenticated');
       return;
+    }
+    // Searching, skipping or stopping also hangs up a contact's call that is ringing.
+    if (
+      connection.ring &&
+      (message.type === 'join' || message.type === 'next' || message.type === 'leave')
+    ) {
+      this.finishRing(connection.ring, 'cancelled', connection);
     }
     switch (message.type) {
       case 'join':
@@ -310,6 +354,17 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       case 'block':
         if (!connection.limits.reports.take()) return this.error(connection, 'rate-limited');
         await this.block(connection);
+        return;
+      case 'like':
+        if (!connection.limits.reports.take()) return this.error(connection, 'rate-limited');
+        await this.like(connection);
+        return;
+      case 'call':
+        if (!connection.limits.calls.take()) return this.error(connection, 'rate-limited');
+        await this.call(connection, message.contactId);
+        return;
+      case 'answer':
+        this.answer(connection, message.callId, message.accept);
         return;
     }
   }
@@ -394,13 +449,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       this.remember(initiator.participant.userId, other.participant.userId);
       this.remember(other.participant.userId, initiator.participant.userId);
     }
-    const anonymous: PublicProfile = {
-      nickname: null,
-      gender: null,
-      country: null,
-      language: null,
-      interests: [],
-    };
+    const anonymous = ANONYMOUS;
     this.send(initiator, {
       type: 'matched',
       initiator: true,
@@ -568,6 +617,101 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (this.matchmaker.partnerOf(connection.id)?.userId === blockedUserId) {
       this.endCall(connection);
     }
+  }
+
+  // --- Mutual contacts ---------------------------------------------------------------------
+
+  /** "I like them"; when it is mutual, both are told they are contacts now. */
+  private async like(connection: Connection): Promise<void> {
+    const me = connection.participant as Participant;
+    const target = this.target(connection);
+    if (!target || me.blocked.has(target.userId)) return this.error(connection, 'no-partner');
+    const mutual = await this.videochat.like(me.userId, target.userId);
+    this.send(connection, { type: 'liked' });
+    if (!mutual) return;
+    const other = this.byUser.get(target.userId);
+    this.send(connection, { type: 'mutual', nickname: other?.profile?.nickname ?? null });
+    if (other) this.send(other, { type: 'mutual', nickname: connection.profile?.nickname ?? null });
+  }
+
+  /** Rings a mutual contact who is here and free. */
+  private async call(connection: Connection, contactId: string): Promise<void> {
+    const me = connection.participant as Participant;
+    if (me.blocked.has(contactId) || !(await this.videochat.areContacts(me.userId, contactId))) {
+      return this.error(connection, 'not-contact');
+    }
+    if (!this.connections.has(connection.id)) return;
+    const other = this.byUser.get(contactId);
+    const callId = randomUUID();
+    if (!other?.participant) {
+      return this.send(connection, { type: 'call-ended', callId, reason: 'offline' });
+    }
+    if (other.ring || this.matchmaker.partnerOf(other.id)) {
+      return this.send(connection, { type: 'call-ended', callId, reason: 'busy' });
+    }
+    if (connection.ring) this.finishRing(connection.ring, 'cancelled', connection);
+    // The caller leaves whatever they were in; the contact stops searching while it rings.
+    this.endCall(connection);
+    this.matchmaker.remove(connection.id);
+    connection.searchingSince = undefined;
+    if (connection.waitTimer) clearTimeout(connection.waitTimer);
+    const toWasWaiting = this.matchmaker.isWaiting(other.id);
+    this.matchmaker.remove(other.id);
+    if (other.waitTimer) clearTimeout(other.waitTimer);
+    const timer = setTimeout(() => this.finishRing(callId, 'timeout'), RING_MS);
+    timer.unref();
+    this.rings.set(callId, { id: callId, from: connection, to: other, timer, toWasWaiting });
+    connection.ring = callId;
+    other.ring = callId;
+    this.send(connection, { type: 'calling', callId, partner: other.profile ?? ANONYMOUS });
+    this.send(other, { type: 'incoming', callId, partner: connection.profile ?? ANONYMOUS });
+  }
+
+  /** The contact accepts (the call starts; the caller makes the offer) or declines. */
+  private answer(connection: Connection, callId: string, accept: boolean): void {
+    const ring = this.rings.get(callId);
+    if (!ring || ring.to !== connection) return;
+    if (!accept) {
+      this.finishRing(callId, 'declined', connection);
+      // Declining while searching goes on searching.
+      if (ring.toWasWaiting) this.join(connection);
+      return;
+    }
+    this.clearRing(ring);
+    const caller = ring.from.participant as Participant;
+    const callee = connection.participant as Participant;
+    connection.searchingSince = undefined;
+    this.matchmaker.pair(caller, callee);
+    this.startCall(ring.from, connection);
+  }
+
+  /**
+   * Ends a ringing call that won't start: both sides hear why. The contact searches again if
+   * they were searching, unless they are the one who moved on.
+   */
+  private finishRing(callId: string, reason: CallEndReason, by?: Connection): void {
+    const ring = this.rings.get(callId);
+    if (!ring) return;
+    this.clearRing(ring);
+    for (const side of [ring.from, ring.to]) {
+      if (side !== by || reason === 'declined')
+        this.send(side, { type: 'call-ended', callId, reason });
+    }
+    if (
+      ring.toWasWaiting &&
+      by !== ring.to &&
+      this.connections.has(ring.to.id) &&
+      !this.matchmaker.partnerOf(ring.to.id)
+    ) {
+      this.join(ring.to);
+    }
+  }
+
+  private clearRing(ring: Ring): void {
+    clearTimeout(ring.timer);
+    this.rings.delete(ring.id);
+    ring.from.ring = undefined;
+    ring.to.ring = undefined;
   }
 
   private suspended(userId: string): void {

@@ -94,6 +94,8 @@ describe('Video chat (e2e)', () => {
       ['ben', Role.CLIENT],
       ['cai', Role.CLIENT],
       ['dan', Role.CLIENT],
+      ['eva', Role.CLIENT],
+      ['fay', Role.CLIENT],
     ] as const) {
       const email = `e2e-videochat-${key}-${tag}@codeqlick.test`;
       const user = await prisma.user.create({
@@ -635,6 +637,96 @@ describe('Video chat (e2e)', () => {
     expect(await prisma.videochatPushSubscription.count({ where: { userId: users.dan!.id } })).toBe(
       0,
     );
+  });
+
+  it('makes contacts of two people who like each other, who can then call each other', async () => {
+    await onboard('eva');
+    await onboard('fay');
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.fay!.auth)
+      .send({
+        nickname: 'Fay',
+        gender: null,
+        seeking: [],
+        country: null,
+        language: null,
+        sameCountryOnly: false,
+        sameLanguageOnly: false,
+      })
+      .expect(200);
+    const eva = await connect('eva');
+    const fay = await connect('fay');
+    eva.send({ type: 'join' });
+    await eva.next('waiting');
+    fay.send({ type: 'join' });
+    await fay.next('matched');
+    await eva.next('matched');
+
+    // One like is not a contact yet.
+    eva.send({ type: 'like' });
+    await eva.next('liked');
+    const none = await request(server()).get('/v1/videochat/contacts').set(users.eva!.auth);
+    expect(none.body.items).toEqual([]);
+    fay.send({ type: 'like' });
+    await fay.next('liked');
+    expect(await eva.next('mutual')).toEqual({ type: 'mutual', nickname: 'Fay' });
+    expect(await fay.next('mutual')).toEqual({ type: 'mutual', nickname: null });
+    const contacts = await request(server())
+      .get('/v1/videochat/contacts')
+      .set(users.eva!.auth)
+      .expect(200);
+    expect(contacts.body.items).toEqual([
+      expect.objectContaining({
+        contactId: users.fay!.id,
+        nickname: 'Fay',
+        online: true,
+        busy: true,
+      }),
+    ]);
+
+    // A call to a contact who is idle: declined.
+    eva.send({ type: 'leave' });
+    await fay.next('partner-left');
+    fay.send({ type: 'leave' });
+    eva.send({ type: 'call', contactId: users.fay!.id });
+    const calling = await eva.next('calling');
+    expect(calling).toMatchObject({ partner: { nickname: 'Fay' } });
+    const incoming = await fay.next('incoming');
+    expect(incoming.callId).toBe(calling.callId);
+    fay.send({ type: 'answer', callId: incoming.callId, accept: false });
+    expect(await eva.next('call-ended')).toMatchObject({ reason: 'declined' });
+
+    // While searching, the contact gets the call and accepts: a normal call, the caller offers.
+    fay.send({ type: 'join' });
+    await fay.next('waiting');
+    eva.send({ type: 'call', contactId: users.fay!.id });
+    const ring = await fay.next('incoming');
+    fay.send({ type: 'answer', callId: ring.callId, accept: true });
+    expect(await eva.next('matched')).toMatchObject({ initiator: true });
+    expect(await fay.next('matched')).toMatchObject({
+      initiator: false,
+      partner: { nickname: null },
+    });
+
+    // Only contacts can call.
+    const dan = await connect('dan');
+    dan.send({ type: 'call', contactId: users.fay!.id });
+    expect(await dan.next('error')).toEqual({ type: 'error', code: 'not-contact' });
+    dan.socket.close();
+
+    // Removing the contact ends it for both.
+    eva.send({ type: 'leave' });
+    await request(server())
+      .delete(`/v1/videochat/contacts/${users.eva!.id}`)
+      .set(users.fay!.auth)
+      .expect(204);
+    const after = await request(server()).get('/v1/videochat/contacts').set(users.eva!.auth);
+    expect(after.body.items).toEqual([]);
+    eva.send({ type: 'call', contactId: users.fay!.id });
+    expect(await eva.next('error')).toEqual({ type: 'error', code: 'not-contact' });
+    eva.socket.close();
+    fay.socket.close();
   });
 
   it('gives the team the usage history: active people, calls and waits by day and hour', async () => {

@@ -183,6 +183,33 @@ export function subscribeVideochatPush(input: PushSubscriptionInput) {
   });
 }
 
+/** A mutual contact (architecture 4.7). */
+export type VideochatContact = {
+  contactId: string;
+  nickname: string | null;
+  gender: Gender | null;
+  country: string | null;
+  language: string | null;
+  interests: string[];
+  /** In the video chat now… */
+  online: boolean;
+  /** …and in a call. */
+  busy: boolean;
+  since: string;
+};
+
+export function listVideochatContacts() {
+  return apiFetch<{ items: VideochatContact[] }>('/videochat/contacts', { auth: 'required' });
+}
+
+/** Stops being their contact (my like goes). */
+export function removeVideochatContact(contactId: string) {
+  return apiFetch<void>(`/videochat/contacts/${encodeURIComponent(contactId)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
 export function unsubscribeVideochatPush(endpoint: string) {
   return apiFetch<void>('/videochat/push', {
     method: 'DELETE',

@@ -235,6 +235,11 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
     details: z.string().trim().max(1_000).optional(),
   }),
   z.object({ type: z.literal('block') }),
+  /** "I like them": the current partner or the one of a call that just ended. */
+  z.object({ type: z.literal('like') }),
+  /** Call a mutual contact who is in the video chat and free. */
+  z.object({ type: z.literal('call'), contactId: z.uuid() }),
+  z.object({ type: z.literal('answer'), callId: z.uuid(), accept: z.boolean() }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 
@@ -253,7 +258,17 @@ export type ServerMessage =
   | { type: 'reported' }
   | { type: 'blocked' }
   | { type: 'suspended' }
+  | { type: 'liked' }
+  /** We liked each other: contacts now. */
+  | { type: 'mutual'; nickname: string | null }
+  /** Ringing a contact; `incoming` is what they get. */
+  | { type: 'calling'; callId: string; partner: PublicProfile }
+  | { type: 'incoming'; callId: string; partner: PublicProfile }
+  | { type: 'call-ended'; callId: string; reason: CallEndReason }
   | { type: 'error'; code: VideochatErrorCode };
+
+/** Why a call to a contact did not start. */
+export type CallEndReason = 'declined' | 'timeout' | 'busy' | 'offline' | 'cancelled';
 
 export type VideochatErrorCode =
   | 'bad-message'
@@ -261,4 +276,5 @@ export type VideochatErrorCode =
   | 'invalid-ticket'
   | 'rate-limited'
   | 'no-partner'
-  | 'replaced';
+  | 'replaced'
+  | 'not-contact';

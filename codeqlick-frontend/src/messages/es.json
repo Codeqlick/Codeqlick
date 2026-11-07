@@ -2973,7 +2973,25 @@
       "widened": "Buscando sin tus filtros (solo esta vez)…",
       "widenHint": "Nadie con tus filtros por ahora.",
       "shared": "En común",
-      "partnerInterests": "Sus intereses"
+      "partnerInterests": "Sus intereses",
+      "like": "Me gusta",
+      "liked": "Le has dado «Me gusta». Si también te lo da, seréis contactos.",
+      "mutual": "¡Os gustáis! {name} y tú ya sois contactos.",
+      "mutualAnonymous": "¡Os gustáis! Ya sois contactos.",
+      "calling": "Llamando a {name}…",
+      "callingAnonymous": "Llamando a tu contacto…",
+      "cancelCall": "Colgar",
+      "incomingTitle": "{name} te está llamando",
+      "incomingAnonymous": "Un contacto te está llamando",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "callDeclined": "Tu contacto no ha aceptado la llamada.",
+      "callTimeout": "Tu contacto no ha contestado.",
+      "callBusy": "Tu contacto está en otra llamada. Prueba más tarde.",
+      "callOffline": "Tu contacto ya no está en el videochat.",
+      "callMissed": "Te has perdido una llamada de un contacto.",
+      "notContact": "Esa persona ya no es tu contacto.",
+      "incomingRing": "● Te están llamando"
     },
     "rules": {
       "title": "Normas del videochat",
@@ -3097,6 +3115,23 @@
       "couples": "En pareja",
       "lgbtq": "LGTBIQ+",
       "nostrings": "Sin compromiso"
+    },
+    "contactsLink": "Contactos",
+    "contacts": {
+      "title": "Contactos",
+      "lead": "Personas con las que os habéis dado «Me gusta» mutuamente. Puedes llamarlas cuando estén en el videochat y libres.",
+      "empty": "Aún no tienes contactos. Durante una llamada (o justo después), pulsa «Me gusta»: si la otra persona también lo hace, aparecerá aquí.",
+      "online": "En el videochat",
+      "busy": "En una llamada",
+      "offline": "No está ahora",
+      "call": "Llamar",
+      "remove": "Quitar contacto",
+      "removed": "Contacto quitado.",
+      "error": "No se ha podido quitar. Inténtalo de nuevo.",
+      "since": "Contactos desde el {date}",
+      "anonymous": "Sin apodo",
+      "interests": "Intereses",
+      "refresh": "Actualizar"
     }
   },
   "AdminVideochat": {

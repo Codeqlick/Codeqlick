@@ -124,6 +124,8 @@ model User {
   videochatReviewed          VideochatReport[]           @relation("VideochatReviewer")
   videochatBlocksMade        VideochatBlock[]            @relation("VideochatBlocker")
   videochatBlocksGot         VideochatBlock[]            @relation("VideochatBlocked")
+  videochatLikesGiven        VideochatLike[]             @relation("VideochatLiker")
+  videochatLikesGot          VideochatLike[]             @relation("VideochatLiked")
   videochatActiveDays        VideochatActiveDay[]
   videochatSanctions         VideochatSanction[]         @relation("VideochatSanctioned")
   videochatSanctioned        VideochatSanction[]         @relation("VideochatSanctionedBy")
@@ -1196,6 +1198,20 @@ model VideochatBlock {
   @@id([blockerId, blockedId])
   @@index([blockedId])
   @@map("videochat_blocks")
+}
+
+/// "I like them" after a call; two people who liked each other are contacts (architecture 4.7).
+model VideochatLike {
+  fromId    String   @map("from_id") @db.Uuid
+  toId      String   @map("to_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  from User @relation("VideochatLiker", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("VideochatLiked", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@id([fromId, toId])
+  @@index([toId])
+  @@map("videochat_likes")
 }
 
 /// One finished video chat call, anonymous: no user, only times (statistics; architecture 4.7).
