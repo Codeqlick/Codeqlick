@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { CoverImage } from '@/components/content/CoverImage';
 import { FilterChips } from '@/components/content/FilterChips';
 import { SERVICES } from '@/components/content/services';
 import { getPortfolioFilters, listPortfolio } from '@/lib/api/portfolio';
@@ -140,14 +141,12 @@ export default async function WorkPage({ params, searchParams }: PageProps) {
             {portfolio.items.map((item, index) => (
               <Card as="li" bordered key={item.slug}>
                 {item.coverImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-                  <img
+                  <CoverImage
                     src={item.coverImageUrl}
-                    alt=""
                     className={styles.cover}
+                    variant="card"
                     // The first covers are on screen at once: the page's largest paint.
-                    loading={index < 3 ? 'eager' : 'lazy'}
-                    fetchPriority={index < 3 ? 'high' : undefined}
+                    priority={index < 3}
                   />
                 ) : null}
                 {item.clientName ? <p className={styles.meta}>{item.clientName}</p> : null}

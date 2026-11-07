@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { PostSummary } from '@/lib/api/types';
 import { formatDate } from '@/lib/format';
+import { CoverImage } from './CoverImage';
 import { TagLinks } from './TagLinks';
 
 /** A post in a list: the blog index and "related posts". */
@@ -26,13 +27,11 @@ export async function PostCard({
   return (
     <Card as="li" bordered>
       {post.coverImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element -- covers are arbitrary remote URLs
-        <img
+        <CoverImage
           src={post.coverImageUrl}
-          alt=""
           className={styles.cover}
-          loading={priority ? 'eager' : 'lazy'}
-          fetchPriority={priority ? 'high' : undefined}
+          variant="card"
+          priority={priority}
         />
       ) : null}
       <p className={styles.meta}>
