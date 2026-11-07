@@ -228,7 +228,7 @@
 .stepNumber {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-fuchsia);
+  color: var(--color-fuchsia-dark);
 }
 
 .stepTitle {

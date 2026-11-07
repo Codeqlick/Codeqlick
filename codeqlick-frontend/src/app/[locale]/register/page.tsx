@@ -28,7 +28,13 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Register' });
-  return pageMetadata({ locale, path: '/register', title: t('metaTitle'), noindex: true });
+  return pageMetadata({
+    locale,
+    path: '/register',
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+    noindex: true,
+  });
 }
 
 /**
