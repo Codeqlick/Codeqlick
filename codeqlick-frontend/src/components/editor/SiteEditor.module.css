@@ -213,6 +213,13 @@
   font-size: 0.95rem;
 }
 
+/* Phones zoom in on a field whose text is under 16px when it's tapped. */
+@media (pointer: coarse) {
+  .input {
+    font-size: 1rem;
+  }
+}
+
 textarea.input {
   resize: vertical;
 }
