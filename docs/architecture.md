@@ -379,7 +379,8 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 
 | Method | Path | Response |
 |---|---|---|
-| GET | `/portal/projects` | `ClientProject[]` owned by the caller |
+| GET | `/portal/projects` | `ClientProject[]` owned by the caller, each with its `milestones[]` |
+| GET | `/portal/todo` | What waits on the client, oldest first: `{ items: [{ kind, id, title, projectId, projectName, since }] }`, `kind` being `approval` (an update asking for approval, `id` the update's), `proposal` (sent, not expired), `ticket` (a request `WAITING_CLIENT`, `title` with its `#number`), `brief` (questionnaire requested, not sent; `id` the project's) or `review` (review requested; `id` the project's) |
 | GET | `/portal/projects/:id` | `ClientProject` with `updates[]` and `files[]` (`{ id, name, contentType, size, createdAt }`), newest first, and `milestones[]` (`{ id, title, description, dueDate, completedAt }`) in the admin's order; 404 if not the caller's |
 | POST | `/portal/projects/:id/updates/:updateId/comments` | `{ body }` → `201 UpdateComment` (`{ id, body, createdAt, author: { name, team } }`). A client's comment emails the team inbox (`LEADS_NOTIFY_TO`, reply-to the client) |
 | POST | `/portal/projects/:id/updates/:updateId/approval` | Role CLIENT only (403 for admins) → `ProjectUpdate` with `approvedAt`; 400 when the update doesn't ask for approval; approving again keeps the first approval. Emails the team inbox |
@@ -675,6 +676,7 @@ src/
 - **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images. Covers that are our own uploads go through `next/image` (`images.localPatterns` allows only `/media/**` and the basic-website demo screenshots in `/demos/**`), so the browser gets a WebP resized to the width it shows; covers at any other URL are shown as they are.
 - **No secrets in the client bundle.** Only `NEXT_PUBLIC_SITE_URL` is public.
 - **Security headers** (`next.config.ts`): nosniff, referrer policy, `X-Frame-Options`, permissions policy; in production also a Content Security Policy (scripts, styles, fonts and connections from the site only; scripts need `'unsafe-inline'` for the Next.js bootstrap, since a nonce would make every page dynamic) and HSTS for a year.
+- **Client portal, what waits on the client:** the portal home starts with "Waiting on you" (from `GET /portal/todo`): each item with a link to where it is done (an update's approval opens the project at `#update-<id>`); nothing is shown when nothing waits. Each project card shows its next milestone and how many items wait on that project. The project page shows the same items for that project at the top, puts the updates before the shared access, and leaves out start and delivery dates that aren't set. Its optional data (tasks, brief, status, access, review, plan, site, hours) is fetched in parallel.
 - **Accessibility:** semantic HTML, labels on every input, visible focus, 4.5:1 contrast (small fuchsia text on white uses `--color-fuchsia-dark`: the brand fuchsia is 4.3:1), works without JavaScript for reading content.
 
 ### 6.3 Web apps on subdomains (`lib/webapps.ts`)

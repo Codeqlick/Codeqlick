@@ -25,6 +25,7 @@ import {
   type CommentWithAuthor,
   type DraftWithProject,
   type ProjectWithClient,
+  type ProjectWithMilestones,
   type ProjectWithUpdates,
   type UpdateWithAuthor,
 } from './projects.repository.js';
@@ -41,6 +42,7 @@ import {
 } from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
 import { hashKey } from './release-key.js';
+import { buildTodo, type TodoItem } from './portal-todo.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
   CreateMilestoneInput,
@@ -190,7 +192,9 @@ function toMilestoneView(milestone: ProjectMilestone): ProjectMilestoneView {
   };
 }
 
-function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectView {
+function toView(
+  project: ProjectWithClient | ProjectWithMilestones | ProjectWithUpdates,
+): ClientProjectView {
   const view: ClientProjectView = {
     id: project.id,
     name: project.name,
@@ -268,6 +272,11 @@ export class ProjectsService {
   ) {}
 
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
+
+  /** What waits on the caller's account, oldest first (`GET /portal/todo`). */
+  async todoForCaller(caller: AuthUser): Promise<{ items: TodoItem[] }> {
+    return { items: buildTodo(await this.repository.todoRows(accountOf(caller)), new Date()) };
+  }
 
   async listForCaller(caller: AuthUser): Promise<ClientProjectView[]> {
     const projects = await this.repository.listByClient(accountOf(caller));
