@@ -50,8 +50,10 @@ export class SiteRequestsController {
     const slug = await this.previews.reserve(body.business.name);
     const previewUrl = slug ? this.previews.urlOf(slug) : undefined;
     const summary =
-      requestSummary(request) +
-      (slug ? `\n\nPreview: ${this.previews.waitingUrlOf(slug, body.locale)}` : '');
+      requestSummary(request, body.locale) +
+      (slug
+        ? `\n\n${body.locale === 'en' ? 'Preview' : 'Vista previa'}: ${this.previews.waitingUrlOf(slug, body.locale)}`
+        : '');
     const lead = await this.leads.create(
       {
         name: body.name,

@@ -8,6 +8,44 @@ const excerpt = (text: string) =>
 
 type Ticket = { number: number; title: string };
 
+const STATUS_TITLES: Record<ApiLocale, Record<string, string>> = {
+  es: {
+    IN_PROGRESS: 'Estamos con tu petición',
+    WAITING_CLIENT: 'Necesitamos tu respuesta',
+    RESOLVED: 'Petición resuelta',
+    CLOSED: 'Petición cerrada',
+  },
+  en: {
+    IN_PROGRESS: "We're on your request",
+    WAITING_CLIENT: 'We need your reply',
+    RESOLVED: 'Request resolved',
+    CLOSED: 'Request closed',
+  },
+};
+
+/** What the new status means for the client, in one sentence. */
+function statusIntro(locale: ApiLocale, number: number, code: string, status: string): string {
+  const es = locale === 'es';
+  switch (code) {
+    case 'IN_PROGRESS':
+      return es
+        ? `Ya estamos trabajando en tu petición #${number}. Te avisamos cuando haya novedades.`
+        : `We're now working on your request #${number}. We'll let you know when there's news.`;
+    case 'WAITING_CLIENT':
+      return es
+        ? `Para seguir con tu petición #${number} necesitamos que nos respondas. Puedes hacerlo desde la petición.`
+        : `To carry on with your request #${number} we need your reply. You can answer from the request.`;
+    case 'RESOLVED':
+      return es
+        ? `Hemos resuelto tu petición #${number}. Si algo no queda como esperabas, escríbenos en la petición.`
+        : `We've resolved your request #${number}. If anything isn't as you expected, write to us on the request.`;
+    default:
+      return es
+        ? `Tu petición #${number} ha pasado a «${status}».`
+        : `Your request #${number} is now “${status}”.`;
+  }
+}
+
 const STATUS: Record<ApiLocale, Record<string, string>> = {
   es: {
     OPEN: 'Abierta',
@@ -93,20 +131,24 @@ export function ticketClientEmail(
           ? es
             ? 'Tenemos respuesta a tu petición'
             : "We've answered your request"
-          : es
-            ? `Petición ${status.toLowerCase()}`
-            : `Request ${status.toLowerCase()}`,
+          : (STATUS_TITLES[locale][ticket.status] ??
+            (es ? 'Tu petición ha cambiado' : 'Your request changed')),
         greeting: es ? `Hola ${client.name}:` : `Hi ${client.name},`,
         intro: [
           replied
             ? es
               ? `${event.authorName} ha respondido a tu petición #${ticket.number}:`
               : `${event.authorName} replied to your request #${ticket.number}:`
-            : es
-              ? `Tu petición #${ticket.number} ha pasado a «${status}».`
-              : `Your request #${ticket.number} is now “${status}”.`,
+            : statusIntro(locale, ticket.number, ticket.status, status),
         ],
-        quote: { title: ticket.title, body: replied ? excerpt(event.body) : status },
+        ...(replied
+          ? { quote: { title: ticket.title, body: excerpt(event.body) } }
+          : {
+              details: [
+                [es ? 'Petición' : 'Request', `#${ticket.number} ${ticket.title}`],
+                [es ? 'Estado' : 'Status', status],
+              ] as Array<[string, string]>,
+            }),
         button: { label: es ? 'Ver la petición' : 'See the request', url: link },
       },
       siteUrl,

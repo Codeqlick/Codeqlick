@@ -191,7 +191,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
       name,
       email: input.email ?? null,
       company: input.business.name,
-      message: requestSummary(request).slice(0, 5000),
+      message: requestSummary(request, input.locale).slice(0, 5000),
       locale: input.locale,
       siteRequest: request as Prisma.InputJsonValue,
       previewSlug: slug,
@@ -208,10 +208,11 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
 
   /** Replaces the lead's website request and rebuilds its preview from it. */
   async editRequest(leadId: string, request: SiteRequest): Promise<Lead> {
+    const { locale } = await this.leads.get(leadId);
     await this.leads.replaceRequest(
       leadId,
       request as Prisma.InputJsonValue,
-      requestSummary(request).slice(0, 5000),
+      requestSummary(request, locale).slice(0, 5000),
     );
     await this.rebuild(leadId);
     return this.leads.get(leadId);

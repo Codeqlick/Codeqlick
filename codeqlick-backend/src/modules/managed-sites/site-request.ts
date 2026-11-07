@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { localeSchema, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { sitePresetSchema, type SiteContent } from './managed-sites.schemas.js';
 
 const optionalText = (max: number) =>
@@ -96,23 +96,58 @@ const PRESET_NAMES: Record<string, string> = {
   general: 'Otro tipo de web (Brezo)',
 };
 
-/** The lead's message: the request in plain text, as the team reads it in the email and panel. */
-export function requestSummary(request: SiteRequest): string {
+const SUMMARY_LABELS = {
+  en: {
+    title: 'Basic website request — style',
+    business: 'Business',
+    address: 'Address',
+    phone: 'Phone',
+    email: 'Email',
+    hours: 'Opening hours',
+    services: 'Services',
+    about: 'About',
+    wishes: 'What they want on the website',
+    domain: 'Domain',
+    owned: 'they already have it',
+    wanted: 'they want to register it',
+  },
+  es: {
+    title: 'Solicitud de web básica — estilo',
+    business: 'Negocio',
+    address: 'Dirección',
+    phone: 'Teléfono',
+    email: 'Email',
+    hours: 'Horario',
+    services: 'Servicios',
+    about: 'Sobre el negocio',
+    wishes: 'Qué quiere en la web',
+    domain: 'Dominio',
+    owned: 'ya lo tiene',
+    wanted: 'quiere registrarlo',
+  },
+} as const;
+
+/**
+ * The lead's message: the request in plain text, as the team reads it in the email and panel and
+ * the requester in their acknowledgement, so in the requester's language.
+ */
+export function requestSummary(request: SiteRequest, locale: ApiLocale = 'es'): string {
   const b = request.business;
+  const l = SUMMARY_LABELS[locale];
   const lines = [
-    `Basic website request — style: ${PRESET_NAMES[request.preset] ?? request.preset}`,
+    `${l.title}: ${PRESET_NAMES[request.preset] ?? request.preset}`,
     '',
-    `Business: ${b.name} (${b.kind}, ${b.city})`,
-    b.address ? `Address: ${b.address}` : null,
-    b.phone ? `Phone: ${b.phone}` : null,
+    `${l.business}: ${b.name} (${b.kind}, ${b.city})`,
+    b.address ? `${l.address}: ${b.address}` : null,
+    b.phone ? `${l.phone}: ${b.phone}` : null,
     b.whatsapp ? `WhatsApp: ${b.whatsapp}` : null,
-    b.email ? `Email: ${b.email}` : null,
-    b.hours ? `\nOpening hours:\n${b.hours}` : null,
-    b.services ? `\nServices:\n${b.services}` : null,
-    b.about ? `\nAbout:\n${b.about}` : null,
-    b.wishes ? `\nWhat they want on the website:\n${b.wishes}` : null,
+    b.email ? `${l.email}: ${b.email}` : null,
+    b.hours ? `\n${l.hours}:\n${b.hours}` : null,
+    b.services ? `\n${l.services}:\n${b.services}` : null,
+    b.about ? `\n${l.about}:\n${b.about}` : null,
+    b.wishes ? `\n${l.wishes}:\n${b.wishes}` : null,
     request.domain
-      ? `\nDomain: ${request.domain.name} (${request.domain.owned ? 'they already have it' : 'they want to register it'})`
+      ? `\n${l.domain}: ${request.domain.name} (${request.domain.owned ? l.owned : l.wanted})`
       : null,
   ];
   return lines.filter((line) => line !== null).join('\n');
