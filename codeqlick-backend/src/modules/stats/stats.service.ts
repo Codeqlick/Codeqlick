@@ -10,6 +10,12 @@ export interface AdminStats {
   clients: number;
   /** Support requests not resolved or closed yet. */
   support: { active: number };
+  /** Proposals sent and waiting for the client's answer. */
+  proposals: { sent: number };
+  /** Draft updates waiting for the team's review. */
+  drafts: { pending: number };
+  /** Calls booked from the website, still to happen. */
+  bookings: { upcoming: number };
 }
 
 export interface AdminTimeline {
@@ -49,6 +55,9 @@ export class StatsService {
       projects: { active: c.projectsActive },
       clients: c.clients,
       support: { active: c.ticketsActive },
+      proposals: { sent: c.proposalsSent },
+      drafts: { pending: c.draftsPending },
+      bookings: { upcoming: c.bookingsUpcoming },
     };
   }
 

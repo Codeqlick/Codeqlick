@@ -9,6 +9,7 @@ import styles from './SiteFooter.module.css';
 export async function SiteFooter({ locale }: { locale: AppLocale }) {
   const t = await getTranslations({ locale, namespace: 'Footer' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
+  const tw = await getTranslations({ locale, namespace: 'BasicWebsite' });
   // Server Component: rendered once per request (or per revalidation), never re-rendered.
   // oxlint-disable-next-line react/purity
   const year = new Date().getFullYear();
@@ -29,6 +30,9 @@ export async function SiteFooter({ locale }: { locale: AppLocale }) {
         </ul>
         <div className={styles.meta}>
           <p>{t('copyright', { year })}</p>
+          <Link href="/basic-website" className={styles.login}>
+            {tw('footerLink')}
+          </Link>
           {legalOwner ? (
             <>
               <Link href="/legal" className={styles.login}>

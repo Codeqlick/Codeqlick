@@ -4,12 +4,16 @@ import { SERVICE_SLUGS } from '@/components/content/services';
 import { routing } from '@/i18n/routing';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
+import { getCalculator } from '@/lib/api/calculator';
+import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
 
 const STATIC_PATHS = [
   '',
   '/services',
+  '/basic-website',
+  '/basic-website/request',
   ...Object.values(SERVICE_SLUGS).map((slug) => `/services/${slug}`),
   '/work',
   '/blog',
@@ -40,7 +44,14 @@ async function contentPaths(): Promise<{ path: string; lastModified?: string }[]
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
-  const entries = [...STATIC_PATHS.map((path) => ({ path })), ...(await contentPaths())];
+  const calculator = (await getCalculator()) ? [{ path: '/calculator' }] : [];
+  const booking = (await getBookingSlots()) ? [{ path: '/book' }] : [];
+  const entries = [
+    ...STATIC_PATHS.map((path) => ({ path })),
+    ...calculator,
+    ...booking,
+    ...(await contentPaths()),
+  ];
 
   return entries.flatMap(({ path, lastModified }: { path: string; lastModified?: string }) =>
     routing.locales.map((locale) => ({

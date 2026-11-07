@@ -1,13 +1,24 @@
+import { ReviewsModule } from '../reviews/reviews.module.js';
+import { AccountsModule } from '../accounts/accounts.module.js';
 import { Module } from '@nestjs/common';
 import { AdminProjectsController } from './admin-projects.controller.js';
 import { PortalProjectsController } from './portal-projects.controller.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
+import { DraftsController } from './drafts.controller.js';
+import { ReleasesController } from './releases.controller.js';
+import { SiteBuilderModule } from '../managed-sites/site-builder.module.js';
 import { ProjectsRepository } from './projects.repository.js';
 import { WeeklyDigestService } from './weekly-digest.service.js';
 import { ProjectsService } from './projects.service.js';
 
 @Module({
-  controllers: [PortalProjectsController, AdminProjectsController],
+  imports: [AccountsModule, ReviewsModule, SiteBuilderModule],
+  controllers: [
+    PortalProjectsController,
+    AdminProjectsController,
+    ReleasesController,
+    DraftsController,
+  ],
   providers: [ProjectsService, ProjectsRepository, ProjectFilesStorage, WeeklyDigestService],
   exports: [ProjectsService],
 })

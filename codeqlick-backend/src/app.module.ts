@@ -3,6 +3,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { ActivityModule } from './modules/activity/activity.module.js';
+import { SiteFormsModule } from './modules/site-forms/site-forms.module.js';
+import { ManagedSitesModule } from './modules/managed-sites/managed-sites.module.js';
+import { DomainsModule } from './modules/domains/domains.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AppConfigService } from './config/app-config.service.js';
@@ -18,7 +21,16 @@ import { PostsModule } from './modules/posts/posts.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
 import { SavedRepliesModule } from './modules/saved-replies/saved-replies.module.js';
 import { StatsModule } from './modules/stats/stats.module.js';
+import { ProposalsModule } from './modules/proposals/proposals.module.js';
 import { SupportModule } from './modules/support/support.module.js';
+import { BookingsModule } from './modules/bookings/bookings.module.js';
+import { BriefsModule } from './modules/briefs/briefs.module.js';
+import { CredentialsModule } from './modules/credentials/credentials.module.js';
+import { ReviewsModule } from './modules/reviews/reviews.module.js';
+import { MonitoringModule } from './modules/monitoring/monitoring.module.js';
+import { CalculatorModule } from './modules/calculator/calculator.module.js';
+import { TasksModule } from './modules/tasks/tasks.module.js';
+import { TimeModule } from './modules/time/time.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
@@ -44,6 +56,18 @@ import { PrismaModule } from './prisma/prisma.module.js';
     SavedRepliesModule,
     StatsModule,
     SupportModule,
+    ProposalsModule,
+    TimeModule,
+    TasksModule,
+    CalculatorModule,
+    BookingsModule,
+    BriefsModule,
+    MonitoringModule,
+    SiteFormsModule,
+    ManagedSitesModule,
+    DomainsModule,
+    CredentialsModule,
+    ReviewsModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.

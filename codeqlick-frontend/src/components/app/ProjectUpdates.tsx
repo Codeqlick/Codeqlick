@@ -31,12 +31,26 @@ export async function ProjectUpdates({
   commentTools?: ReactNode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Portal' });
+  const te = await getTranslations({ locale, namespace: 'ReleaseEnvironments' });
   if (updates.length === 0) return <p className={styles.muted}>{empty}</p>;
 
   return (
     <ol className={styles.updates}>
       {updates.map((update) => (
         <li key={update.id} id={`update-${update.id}`} className={styles.update}>
+          {update.release ? (
+            <p className={styles.release}>
+              <Badge tone={update.release.environment === 'PRODUCTION' ? 'success' : 'brand'}>
+                {update.release.version} · {te(update.release.environment)}
+              </Badge>
+              {update.release.url ? (
+                <a href={update.release.url} target="_blank" rel="noopener noreferrer">
+                  {t('openRelease')}
+                  <span className="visually-hidden"> {update.release.version}</span>
+                </a>
+              ) : null}
+            </p>
+          ) : null}
           <h3 className={styles.updateTitle}>{update.title}</h3>
           <p className={styles.updateMeta}>
             {t('postedBy', {

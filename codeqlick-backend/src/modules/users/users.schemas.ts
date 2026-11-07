@@ -14,6 +14,8 @@ export const createUserSchema = z
     role: roleSchema,
     /** Language of the emails the platform sends this user. */
     locale: localeSchema.default('en'),
+    /** A person of a client company: the company's main client account. Clients only. */
+    memberOfId: z.uuid().optional(),
   })
   .strict();
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -26,6 +28,7 @@ export const updateUserSchema = z
     role: roleSchema.optional(),
     locale: localeSchema.optional(),
     weeklyDigest: z.boolean().optional(),
+    monthlyReport: z.boolean().optional(),
   })
   .strict();
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
@@ -36,5 +39,12 @@ export type InvitationInput = z.infer<typeof invitationSchema>;
 
 export const listUsersQuerySchema = paginationSchema.extend({
   role: roleSchema.optional(),
+  /** The people of a client company (members of that account). */
+  memberOf: z.uuid().optional(),
+  /** `true`: client accounts only, without their members (e.g. to pick a project's client). */
+  accounts: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((value) => value === 'true'),
 });
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;

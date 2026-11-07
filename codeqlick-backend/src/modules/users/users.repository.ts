@@ -7,16 +7,35 @@ export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(
-    role: Role | undefined,
+    filter: { role?: Role; memberOf?: string; accounts?: boolean },
     skip: number,
     take: number,
   ): Promise<{ items: User[]; total: number }> {
-    const where: Prisma.UserWhereInput = role ? { role } : {};
+    const where: Prisma.UserWhereInput = {};
+    if (filter.role) where.role = filter.role;
+    if (filter.memberOf) where.memberOfId = filter.memberOf;
+    else if (filter.accounts) where.memberOfId = null;
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
       this.prisma.user.count({ where }),
     ]);
     return { items, total };
+  }
+
+  /** What hangs from the account: what deleting it takes with it, or prevents it. */
+  async owns(id: string) {
+    const [projects, members, proposals, tickets] = await this.prisma.$transaction([
+      this.prisma.clientProject.count({ where: { clientId: id } }),
+      this.prisma.user.count({ where: { memberOfId: id } }),
+      this.prisma.proposal.count({ where: { clientId: id } }),
+      this.prisma.supportTicket.count({ where: { clientId: id } }),
+    ]);
+    return { projects, members, proposals, tickets };
+  }
+
+  /** Sessions, its company's people, proposals and support requests go with it (cascade). */
+  async delete(id: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id } });
   }
 
   findById(id: string): Promise<User | null> {
@@ -27,7 +46,7 @@ export class UsersRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  create(data: Prisma.UserCreateInput): Promise<User> {
+  create(data: Prisma.UserUncheckedCreateInput): Promise<User> {
     return this.prisma.user.create({ data });
   }
 

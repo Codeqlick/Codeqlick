@@ -10,6 +10,8 @@ import type {
   ProjectInput,
   ProjectMilestone,
   ProjectUpdate,
+  ReleaseEnvironment,
+  UpdateDraft,
   UpdateComment,
 } from './types';
 
@@ -59,10 +61,12 @@ export function adminAddUpdateComment(id: string, updateId: string, body: string
   );
 }
 
-export function adminListProjects(params: { page?: number; pageSize?: number } = {}) {
+export function adminListProjects(
+  params: { page?: number; pageSize?: number; clientId?: string } = {},
+) {
   return apiFetch<Paginated<ClientProject>>('/admin/projects', {
     auth: 'required',
-    query: { page: params.page, pageSize: params.pageSize },
+    query: { page: params.page, pageSize: params.pageSize, clientId: params.clientId },
   });
 }
 
@@ -96,6 +100,76 @@ export function adminDeleteProject(id: string) {
 }
 
 /** With `notifyClient`, `clientNotified` in the answer says whether the client was emailed. */
+/** A release: an update with the version, where it went and its address. */
+export function adminPublishRelease(
+  id: string,
+  input: {
+    version: string;
+    environment: ReleaseEnvironment;
+    url: string | null;
+    title: string;
+    body: string;
+    notifyClient: boolean;
+    requestApproval: boolean;
+  },
+) {
+  return apiFetch<ProjectUpdate & { clientNotified?: boolean }>(
+    `/admin/projects/${encodeURIComponent(id)}/releases`,
+    { method: 'POST', body: input, auth: 'required' },
+  );
+}
+
+/** A new key for the project's deploy pipeline (replaces the previous one); shown only once. */
+export function adminCreateReleaseKey(id: string) {
+  return apiFetch<{ key: string }>(`/admin/projects/${encodeURIComponent(id)}/release-key`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
+export function adminRevokeReleaseKey(id: string) {
+  return apiFetch<void>(`/admin/projects/${encodeURIComponent(id)}/release-key`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+/** Drafts waiting for review: one project's, or every project's. */
+export function adminListDrafts(projectId?: string) {
+  return apiFetch<UpdateDraft[]>(
+    projectId
+      ? `/admin/projects/${encodeURIComponent(projectId)}/drafts`
+      : '/admin/projects/drafts',
+    { auth: 'required' },
+  );
+}
+
+export function adminPublishDraft(
+  projectId: string,
+  draftId: string,
+  input: {
+    title: string;
+    body: string;
+    version: string | null;
+    environment: ReleaseEnvironment | null;
+    url: string | null;
+    notifyClient: boolean;
+    requestApproval: boolean;
+  },
+) {
+  return apiFetch<ProjectUpdate & { clientNotified?: boolean }>(
+    `/admin/projects/${encodeURIComponent(projectId)}/drafts/${encodeURIComponent(draftId)}/publish`,
+    { method: 'POST', body: input, auth: 'required' },
+  );
+}
+
+export function adminDiscardDraft(projectId: string, draftId: string) {
+  return apiFetch<void>(
+    `/admin/projects/${encodeURIComponent(projectId)}/drafts/${encodeURIComponent(draftId)}`,
+    { method: 'DELETE', auth: 'required' },
+  );
+}
+
 export function adminCreateProjectUpdate(
   id: string,
   input: { title: string; body: string; notifyClient: boolean; requestApproval: boolean },

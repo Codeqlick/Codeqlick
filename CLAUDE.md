@@ -12,13 +12,15 @@ This repo holds the whole platform:
 |---|---|---|
 | `codeqlick-backend/` | NestJS 12 (ESM) + Prisma 7.10 + PostgreSQL 18 REST API under `/v1` | Running; lint, typecheck, unit and e2e tests and build pass |
 | `codeqlick-frontend/` | Next.js 16 + React 19 + next-intl (EN/ES) website, blog, portfolio, contact, client portal, admin panel | Running; all sections of architecture 6 exist; the landing follows the approved design ("Codeqlick Website" canvas); lint, typecheck, unit tests and build pass |
-| `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook) | Deployed |
+| `codeqlick-sites/` | Astro template of the basic websites (`web-basica`, demos in `examples/`) + `builder/`, the service that builds managed client sites | Running |
+| `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook); `deploy/sites/` publishes static client sites | Deployed |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
+| `tools/` | Scripts for client projects' repositories (architecture 8.1): `codeqlick-draft.sh` sends a work summary as a draft update, `codeqlick-tasks.sh` reads and closes the project's tasks, `codeqlick-brief.sh` prints the client's brief | Ready |
 
 ## Non-negotiable rules
 
 - **Exact dependency versions, no `^` or `~`.** Use the latest *stable* release. `.npmrc` has `save-exact=true`. Install with `npm install <pkg>@<exact-version>`.
-- **TypeScript 6.0.3, not 7.x** — TS 7's API isn't supported by linters/test tooling yet. Prisma **7.10.0, not 8.x RC**. Node **24 LTS**.
+- **TypeScript 7.0.2** in the API and the website (decision 19). TS 7.0 ships only the `tsc` executable, no programmatic API: the API builds and watches with `tsc` (no Nest CLI; `@nestjs/swagger`'s optional TS peer is overridden), and anything needing the API stays out until 7.1. The site template (`codeqlick-sites/web-basica`) keeps TypeScript 6.0.3 because `astro check` refuses 7.0. Prisma **7.10.1, not 8.x RC** (npm's `latest` tag points at the RC). Node **24 LTS**, so `@types/node` stays on 24.x.
 - Backend is **ESM**: relative imports end in `.js`, use `import.meta.dirname`, no `require`.
 - Backend validation uses **Zod 4 via NestJS 12 Standard Schema**: `@Body({ schema })` + global `StandardSchemaValidationPipe`. Not class-validator.
 - Backend layers: controller → service → repository → PrismaService. Only repositories touch Prisma.
@@ -27,6 +29,7 @@ This repo holds the whole platform:
 - Next.js 16: middleware is **`src/proxy.ts`**, `params`/`searchParams` are Promises, `cookies()` is async, use `revalidatePath` (not `revalidateTag`), no `next lint` (we use oxlint).
 - Styling: CSS Modules + brand tokens. No Tailwind or UI kits.
 - Lint with oxlint, format with Prettier (`singleQuote`, `trailingComma: all`, `printWidth: 100`).
+- **Document before implementing:** a feature's spec goes into `docs/architecture.md` and its row into the Notion roadmap before its code.
 - Commits: Conventional Commits. Work on branches, open PRs to `main`.
 
 ## Brand
@@ -53,7 +56,10 @@ container sets `NODE_ENV=development`, which breaks production builds.
 
 ## Next steps (in order)
 
-1. **Content.** Publish the first blog posts and case studies from `/en/admin`.
+1. **Content.** Three blog posts and the three demo case studies are drafts in `/es/admin`: review and publish them.
+2. **First basic-website clients.** Admin → Webs → "Nueva web básica" (or from a lead of `/basic-website/request`); the client then edits it from the portal and chooses their domain there.
+
+Client domains use OVH's API with the team's keys (in `/srv/codeqlick/.env`, restricted to the server's IP; setup in `deploy/README.md`).
 
 Outgoing email in production goes through OVH's SMTP (`ssl0.ovh.net:465`) as `hello@codeqlick.com`; the settings live in `/srv/codeqlick/.env`. Every email is plain text plus branded HTML (`codeqlick-backend/src/modules/mail/email-layout.ts`).
 

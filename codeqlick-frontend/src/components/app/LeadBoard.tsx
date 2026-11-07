@@ -15,6 +15,7 @@ export type BoardLabels = {
   /** What each status means, under its column title. */
   hints: Partial<Record<LeadStatus, string>>;
   budgets: Record<string, string>;
+  projectTypes: Record<string, string>;
   moveTo: string;
   empty: string;
   /** With `{count}`: leads in the column whose follow-up date has arrived. */
@@ -25,7 +26,15 @@ export type BoardLabels = {
 
 type Card = Pick<
   Lead,
-  'id' | 'name' | 'company' | 'budget' | 'status' | 'createdAt' | 'lostReason' | 'followUpOn'
+  | 'id'
+  | 'name'
+  | 'company'
+  | 'budget'
+  | 'projectType'
+  | 'status'
+  | 'createdAt'
+  | 'lostReason'
+  | 'followUpOn'
 >;
 
 /** An open lead whose follow-up date has arrived (dates compared as `yyyy-mm-dd`). */
@@ -149,7 +158,11 @@ export function LeadBoard({
                     </Link>
                     {card.company ? <p className={styles.meta}>{card.company}</p> : null}
                     <p className={styles.meta}>
-                      {card.budget ? `${labels.budgets[card.budget] ?? card.budget} · ` : ''}
+                      {card.projectType
+                        ? `${labels.projectTypes[card.projectType] ?? card.projectType} · `
+                        : card.budget
+                          ? `${labels.budgets[card.budget] ?? card.budget} · `
+                          : ''}
                       {date.format(new Date(card.createdAt))}
                     </p>
                     {card.status === 'LOST' ? (

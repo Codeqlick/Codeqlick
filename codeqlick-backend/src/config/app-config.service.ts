@@ -49,6 +49,11 @@ export class AppConfigService {
     return this.get('JWT_ACCESS_SECRET');
   }
 
+  /** Key material for project credentials; falls back to JWT_ACCESS_SECRET (see env.schema.ts). */
+  get credentialsSecret(): string {
+    return this.get('CREDENTIALS_SECRET') ?? this.get('JWT_ACCESS_SECRET');
+  }
+
   /** Access token lifetime in seconds. */
   get jwtAccessTtl(): number {
     return this.get('JWT_ACCESS_TTL');
@@ -76,6 +81,77 @@ export class AppConfigService {
 
   get mailFrom(): string {
     return this.get('MAIL_FROM');
+  }
+
+  /** The site builder's URL and token; undefined while it isn't configured. */
+  get siteBuilder(): { url: string; token: string } | undefined {
+    const url = this.get('SITE_BUILDER_URL');
+    const token = this.get('SITE_BUILDER_TOKEN');
+    return url && token ? { url: url.replace(/\/+$/, ''), token } : undefined;
+  }
+
+  /** Stripe's keys for buying a preview online; undefined while it is off (decision 20). */
+  get stripe(): { secretKey: string; webhookSecret: string } | undefined {
+    const secretKey = this.get('STRIPE_SECRET_KEY');
+    const webhookSecret = this.get('STRIPE_WEBHOOK_SECRET');
+    return secretKey && webhookSecret ? { secretKey, webhookSecret } : undefined;
+  }
+
+  /** Price of a website bought online, before VAT. */
+  get sitePriceCents(): number {
+    return this.get('SITE_PRICE_CENTS');
+  }
+
+  get siteVatPercent(): number {
+    return this.get('SITE_VAT_PERCENT');
+  }
+
+  /** What a website bought online costs with VAT. */
+  get siteTotalCents(): number {
+    return Math.round((this.sitePriceCents * (100 + this.siteVatPercent)) / 100);
+  }
+
+  get sitesPreviewDomain(): string {
+    return this.get('SITES_PREVIEW_DOMAIN');
+  }
+
+  get publicApiUrl(): string {
+    return this.get('PUBLIC_API_URL').replace(/\/+$/, '');
+  }
+
+  /** Umami's API without a website (managed client sites have their own); undefined when off. */
+  get umamiApi(): { url: string; username: string; password: string } | undefined {
+    const url = this.get('UMAMI_URL');
+    const password = this.get('UMAMI_PASSWORD');
+    if (!url || !password) return undefined;
+    return { url: url.replace(/\/+$/, ''), username: this.get('UMAMI_USERNAME'), password };
+  }
+
+  /** OVH's API with the team's keys; undefined until all three are set. */
+  get ovh():
+    { endpoint: string; appKey: string; appSecret: string; consumerKey: string } | undefined {
+    const appKey = this.get('OVH_APPLICATION_KEY');
+    const appSecret = this.get('OVH_APPLICATION_SECRET');
+    const consumerKey = this.get('OVH_CONSUMER_KEY');
+    if (!appKey || !appSecret || !consumerKey) return undefined;
+    return {
+      endpoint: this.get('OVH_ENDPOINT').replace(/\/+$/, ''),
+      appKey,
+      appSecret,
+      consumerKey,
+    };
+  }
+
+  get ovhNicHandle(): string | undefined {
+    return this.get('OVH_NIC_HANDLE');
+  }
+
+  get sitesServerIp(): string | undefined {
+    return this.get('SITES_SERVER_IP');
+  }
+
+  get umamiScriptUrl(): string {
+    return this.get('UMAMI_SCRIPT_URL');
   }
 
   /** Umami's API and the site's id in it; undefined while analytics isn't set up. */

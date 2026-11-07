@@ -2,19 +2,52 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
+import { SiteRequestFields } from '@/components/app/SiteRequestFields';
 import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
+import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
-import { adminGetLead, adminListLeadReplies } from '@/lib/api/leads';
+import { adminGetLead, adminListLeadPurchases, adminListLeadReplies } from '@/lib/api/leads';
 import { adminListSavedReplies } from '@/lib/api/saved-replies';
-import { LEAD_STATUSES, LOST_REASONS, type Lead, type LeadReply } from '@/lib/api/types';
+import {
+  LEAD_STATUSES,
+  LOST_REASONS,
+  type Lead,
+  type LeadReply,
+  type SitePurchase,
+} from '@/lib/api/types';
 import { Link } from '@/i18n/navigation';
 import { formatDateTime } from '@/lib/format';
-import { BUDGET_VALUES, type BudgetValue } from '@/lib/schemas/contact';
-import { convertLeadAction, replyToLeadAction, updateLeadAction } from '../actions';
+import {
+  BUDGET_VALUES,
+  PROJECT_TYPES,
+  type BudgetValue,
+  type ProjectType,
+} from '@/lib/schemas/contact';
+import {
+  convertLeadAction,
+  deleteLeadAction,
+  editLeadRequestAction,
+  proposeFromRequestAction,
+  rebuildLeadPreviewAction,
+  removeLeadPreviewAction,
+  replyToLeadAction,
+  updateLeadAction,
+  updateLeadContactAction,
+} from '../actions';
+
+const PURCHASE_TONES = { PENDING: 'warning', PAID: 'success', EXPIRED: 'neutral' } as const;
+
+const PREVIEW_TONES = {
+  BUILDING: 'warning',
+  READY: 'success',
+  FAILED: 'danger',
+  REMOVED: 'neutral',
+} as const;
 
 export default async function AdminLeadPage({
   params,
@@ -24,9 +57,11 @@ export default async function AdminLeadPage({
   const { locale: rawLocale, id } = await params;
   const locale = resolveLocale(rawLocale);
   const t = await getTranslations({ locale, namespace: 'Admin.leads' });
+  const tsite = await getTranslations({ locale, namespace: 'Admin.sites' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const ts = await getTranslations({ locale, namespace: 'LeadStatuses' });
   const tb = await getTranslations({ locale, namespace: 'Contact.budgets' });
+  const tpt = await getTranslations({ locale, namespace: 'Contact.projectTypes' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
   const tr = await getTranslations({ locale, namespace: 'LostReasons' });
   const tsr = await getTranslations({ locale, namespace: 'Admin.savedReplies' });
@@ -35,13 +70,20 @@ export default async function AdminLeadPage({
 
   let lead: Lead;
   let replies: LeadReply[];
+  let purchases: SitePurchase[];
   try {
-    [lead, replies] = await Promise.all([adminGetLead(id), adminListLeadReplies(id)]);
+    [lead, replies, purchases] = await Promise.all([
+      adminGetLead(id),
+      adminListLeadReplies(id),
+      adminListLeadPurchases(id),
+    ]);
   } catch (error) {
     if (isNotFound(error)) notFound();
     throw error;
   }
 
+  const knownType = PROJECT_TYPES.find((value) => value === lead.projectType) as
+    ProjectType | undefined;
   const knownBudget = BUDGET_VALUES.find((value) => value === lead.budget) as
     BudgetValue | undefined;
 
@@ -62,7 +104,11 @@ export default async function AdminLeadPage({
           <div>
             <dt>{t('email')}</dt>
             <dd>
-              <a href={`mailto:${lead.email}`}>{lead.email}</a>
+              {lead.email ? (
+                <a href={`mailto:${lead.email}`}>{lead.email}</a>
+              ) : (
+                <span className={styles.muted}>{t('noEmail')}</span>
+              )}
             </dd>
           </div>
           <div>
@@ -70,19 +116,207 @@ export default async function AdminLeadPage({
             <dd>{lead.company ?? tc('none')}</dd>
           </div>
           <div>
-            <dt>{t('budget')}</dt>
-            <dd>{knownBudget ? tb(knownBudget) : (lead.budget ?? tc('none'))}</dd>
+            <dt>{t('projectType')}</dt>
+            <dd>{knownType ? tpt(knownType) : (lead.projectType ?? tc('none'))}</dd>
           </div>
+          {/* Only older leads have one: the form asked for a budget before. */}
+          {lead.budget ? (
+            <div>
+              <dt>{t('budget')}</dt>
+              <dd>{knownBudget ? tb(knownBudget) : lead.budget}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('locale')}</dt>
             <dd>{tl(lead.locale)}</dd>
           </div>
           <div>
-            <dt>{t('received')}</dt>
-            <dd>{formatDateTime(lead.createdAt, locale)}</dd>
+            <dt>{lead.prospect ? t('added') : t('received')}</dt>
+            <dd>
+              {formatDateTime(lead.createdAt, locale)}
+              {lead.prospect ? (
+                <>
+                  {' '}
+                  <Badge tone="neutral">{t('prospect')}</Badge>
+                </>
+              ) : null}
+            </dd>
           </div>
         </dl>
+        <details>
+          <summary>{t('contactEdit')}</summary>
+          <ActionForm
+            key={`contact-${lead.updatedAt}`}
+            action={updateLeadContactAction.bind(null, locale, lead.id)}
+            className={styles.form}
+          >
+            <div className={styles.row}>
+              <FormInput
+                id="contact-name"
+                name="name"
+                label={t('name')}
+                defaultValue={lead.name}
+                required
+                maxLength={120}
+              />
+              <FormInput
+                id="contact-email"
+                name="email"
+                type="email"
+                label={t('email')}
+                hint={lead.prospect ? t('emailProspectHint') : undefined}
+                defaultValue={lead.email ?? ''}
+                required={!lead.prospect}
+                maxLength={254}
+              />
+              <FormInput
+                id="contact-company"
+                name="company"
+                label={t('company')}
+                optionalLabel={tc('optional')}
+                defaultValue={lead.company ?? ''}
+                maxLength={160}
+              />
+            </div>
+            <div className={styles.actions}>
+              <SubmitButton size="sm" pendingLabel={tc('saving')}>
+                {tc('save')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </details>
       </section>
+
+      {lead.preview || lead.siteRequest ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('previewTitle')}</h2>
+          {lead.preview ? (
+            <p>
+              <Badge tone={PREVIEW_TONES[lead.preview.status]}>
+                {t(`previewStatuses.${lead.preview.status}`)}
+              </Badge>{' '}
+              {lead.preview.status === 'READY' ? (
+                <a href={lead.preview.url} target="_blank" rel="noopener noreferrer">
+                  {lead.preview.url}
+                </a>
+              ) : null}
+            </p>
+          ) : (
+            <p className={styles.muted}>{t('previewNone')}</p>
+          )}
+          {lead.preview?.followUpAt ? (
+            <p className={styles.muted}>
+              {t('previewFollowUp', { date: formatDateTime(lead.preview.followUpAt, locale) })}
+            </p>
+          ) : null}
+          {lead.prospect ? <p className={styles.muted}>{t('previewProspect')}</p> : null}
+          <div className={styles.actions}>
+            {lead.siteRequest ? (
+              <ActionForm action={rebuildLeadPreviewAction.bind(null, locale, lead.id)}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRebuilding')}>
+                  {lead.preview && lead.preview.status !== 'REMOVED'
+                    ? t('previewRebuild')
+                    : t('previewBuild')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+            {lead.preview && lead.preview.status !== 'REMOVED' ? (
+              <ActionForm action={removeLeadPreviewAction.bind(null, locale, lead.id)}>
+                <SubmitButton variant="outline" size="sm" pendingLabel={t('previewRemoving')}>
+                  {t('previewRemove')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+          </div>
+          {lead.siteRequest ? (
+            <details>
+              <summary>{t('requestEdit')}</summary>
+              <ActionForm
+                key={`request-${lead.updatedAt}`}
+                action={editLeadRequestAction.bind(null, locale, lead.id)}
+                className={styles.form}
+              >
+                <p className={styles.muted}>{t('requestEditBody')}</p>
+                <SiteRequestFields locale={locale} request={lead.siteRequest} />
+                <div className={styles.actions}>
+                  <SubmitButton size="sm" pendingLabel={t('requestSaving')}>
+                    {t('requestSave')}
+                  </SubmitButton>
+                </div>
+              </ActionForm>
+            </details>
+          ) : null}
+        </section>
+      ) : null}
+
+      {purchases.length > 0 ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('purchasesTitle')}</h2>
+          {purchases.map((purchase) => (
+            <div key={purchase.id} className={styles.form}>
+              <p>
+                <Badge tone={PURCHASE_TONES[purchase.status]}>
+                  {t(`purchaseStatuses.${purchase.status}`)}
+                </Badge>{' '}
+                {t('purchaseLine', {
+                  amount: new Intl.NumberFormat(locale, {
+                    style: 'currency',
+                    currency: purchase.currency.toUpperCase(),
+                  }).format(purchase.amountCents / 100),
+                  date: formatDateTime(purchase.paidAt ?? purchase.createdAt, locale),
+                })}
+              </p>
+              {purchase.email ? (
+                <p className={styles.muted}>{t('purchaseBuyer', { email: purchase.email })}</p>
+              ) : null}
+              <p className={styles.muted}>
+                {t('purchaseSession', { id: purchase.stripeSessionId })}
+              </p>
+              {purchase.error ? (
+                <p className={styles.muted}>{t('purchaseError', { error: purchase.error })}</p>
+              ) : null}
+              {purchase.stripeInvoiceId ? (
+                <p>
+                  <a
+                    href={`https://dashboard.stripe.com/invoices/${encodeURIComponent(purchase.stripeInvoiceId)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('purchaseInvoice')}
+                  </a>
+                </p>
+              ) : null}
+              {purchase.projectId ? (
+                <p>
+                  <Link href={`/admin/projects/${purchase.projectId}`}>{t('purchaseProject')}</Link>
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      {lead.siteRequest && (lead.proposalId || (!lead.clientId && lead.status !== 'SPAM')) ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('proposalTitle')}</h2>
+          {lead.proposalId ? (
+            <p>
+              <Link href={`/admin/proposals/${lead.proposalId}`}>{t('proposalOpen')}</Link>
+            </p>
+          ) : !lead.email ? (
+            <p className={styles.muted}>{t('proposalNoEmail')}</p>
+          ) : (
+            <ActionForm action={proposeFromRequestAction.bind(null, locale, lead.id)}>
+              <p className={styles.muted}>{t('proposalBody')}</p>
+              <div className={styles.actions}>
+                <SubmitButton size="sm" pendingLabel={t('proposalCreating')}>
+                  {t('proposalCreate')}
+                </SubmitButton>
+              </div>
+            </ActionForm>
+          )}
+        </section>
+      ) : null}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('message')}</h2>
@@ -110,41 +344,45 @@ export default async function AdminLeadPage({
               ))}
             </ol>
           )}
-          <ActionForm
-            action={replyToLeadAction.bind(null, locale, lead.id)}
-            className={styles.form}
-          >
-            <FormInput
-              name="subject"
-              label={t('replySubject')}
-              required
-              defaultValue={
-                lead.locale === 'es'
-                  ? 'Re: tu mensaje a Codeqlick'
-                  : 'Re: your message to Codeqlick'
-              }
-            />
-            <SavedReplyPicker
-              target="body"
-              replies={savedReplies}
-              values={{ name: lead.name }}
-              label={tsr('insert')}
-              placeholder={tsr('insertPlaceholder')}
-            />
-            <FormTextarea
-              name="body"
-              label={t('replyBody')}
-              hint={t('replyHint', { email: lead.email, language: tl(lead.locale) })}
-              rows={10}
-              required
-              defaultValue={
-                lead.locale === 'es' ? `Hola ${lead.name}:\n\n` : `Hi ${lead.name},\n\n`
-              }
-            />
-            <div className={styles.actions}>
-              <SubmitButton pendingLabel={t('replySending')}>{t('replySend')}</SubmitButton>
-            </div>
-          </ActionForm>
+          {lead.email ? (
+            <ActionForm
+              action={replyToLeadAction.bind(null, locale, lead.id)}
+              className={styles.form}
+            >
+              <FormInput
+                name="subject"
+                label={t('replySubject')}
+                required
+                defaultValue={
+                  lead.locale === 'es'
+                    ? 'Re: tu mensaje a Codeqlick'
+                    : 'Re: your message to Codeqlick'
+                }
+              />
+              <SavedReplyPicker
+                target="body"
+                replies={savedReplies}
+                values={{ name: lead.name }}
+                label={tsr('insert')}
+                placeholder={tsr('insertPlaceholder')}
+              />
+              <FormTextarea
+                name="body"
+                label={t('replyBody')}
+                hint={t('replyHint', { email: lead.email, language: tl(lead.locale) })}
+                rows={10}
+                required
+                defaultValue={
+                  lead.locale === 'es' ? `Hola ${lead.name}:\n\n` : `Hi ${lead.name},\n\n`
+                }
+              />
+              <div className={styles.actions}>
+                <SubmitButton pendingLabel={t('replySending')}>{t('replySend')}</SubmitButton>
+              </div>
+            </ActionForm>
+          ) : (
+            <p className={styles.muted}>{t('replyNoEmail')}</p>
+          )}
         </div>
       </section>
 
@@ -207,7 +445,7 @@ export default async function AdminLeadPage({
             action={convertLeadAction.bind(null, locale, lead.id)}
             className={styles.form}
           >
-            <p className={styles.muted}>{t('convertBody')}</p>
+            <p className={styles.muted}>{lead.email ? t('convertBody') : t('convertNoEmail')}</p>
             <FormInput
               name="projectName"
               label={t('projectName')}
@@ -218,8 +456,24 @@ export default async function AdminLeadPage({
               <SubmitButton pendingLabel={t('converting')}>{t('convert')}</SubmitButton>
             </div>
           </ActionForm>
+          <p className={styles.muted}>{tsite('leadHint')}</p>
+          <p>
+            <Link href={{ pathname: '/admin/sites/new', query: { lead: lead.id } }}>
+              {tsite('leadButton')}
+            </Link>
+          </p>
         </section>
       ) : null}
+
+      <DeleteForm
+        action={deleteLeadAction.bind(null, locale, lead.id)}
+        title={t('deleteTitle')}
+        body={
+          lead.preview && lead.preview.status !== 'REMOVED'
+            ? t('deleteBodyPreview')
+            : t('deleteBody')
+        }
+      />
     </div>
   );
 }

@@ -4,11 +4,12 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import type { ReadStream } from 'node:fs';
-import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
-import type { AuthUser } from '../../common/types/auth-user.js';
+import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import {
@@ -17,25 +18,39 @@ import {
   type ProjectFile,
   type ProjectMilestone,
   type ProjectPhase,
+  type ReleaseEnvironment,
 } from '../../generated/prisma/client.js';
 import {
   ProjectsRepository,
   type CommentWithAuthor,
+  type DraftWithProject,
   type ProjectWithClient,
   type ProjectWithUpdates,
   type UpdateWithAuthor,
 } from './projects.repository.js';
-import { ActivityService } from '../activity/activity.service.js';
+import { SiteBuilderClient } from '../managed-sites/site-builder.client.js';
+import { AccountsService, type AccountPerson } from '../accounts/accounts.service.js';
+import { ReviewsService } from '../reviews/reviews.service.js';
+import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
-import { clientActivityEmail, projectUpdateEmail, teamCommentEmail } from './project-emails.js';
+import {
+  clientActivityEmail,
+  draftReadyEmail,
+  projectUpdateEmail,
+  teamCommentEmail,
+} from './project-emails.js';
 import { cleanContentType, cleanFileName } from './project-file-name.js';
+import { hashKey } from './release-key.js';
 import { ProjectFilesStorage } from './project-files.storage.js';
 import type {
   CreateMilestoneInput,
   CreateProjectInput,
   CreateProjectUpdateInput,
+  CreateDraftInput,
+  CreateReleaseInput,
   CreateUpdateCommentInput,
   ListProjectsQuery,
+  PublishDraftInput,
   ReorderMilestonesInput,
   UpdateMilestoneInput,
   UpdateProjectInput,
@@ -59,6 +74,8 @@ export interface ProjectUpdateView {
   approvedAt: string | null;
   approvedBy: { name: string } | null;
   comments: UpdateCommentView[];
+  /** Set on releases: the version, where it went and its address. */
+  release: { version: string; environment: 'STAGING' | 'PRODUCTION'; url: string | null } | null;
 }
 
 /** A comment posted by the team; `clientNotified` says whether the client was emailed it. */
@@ -108,6 +125,12 @@ export interface ClientProjectView {
   dueDate: string | null;
   stagingUrl: string | null;
   productionUrl: string | null;
+  showHours: boolean;
+  /** When the current release key was made; null without one. */
+  releaseKeyCreatedAt: string | null;
+  /** The watched domain and its expiry (`yyyy-mm-dd`), if known. */
+  domainName: string | null;
+  domainExpiresAt: string | null;
   client: { id: string; name: string; email: string };
   updates?: ProjectUpdateView[];
   files?: ProjectFileView[];
@@ -140,6 +163,10 @@ function toUpdateView(update: UpdateWithAuthor): ProjectUpdateView {
     approvedAt: update.approvedAt?.toISOString() ?? null,
     approvedBy: update.approvedAt ? { name: update.approvedBy?.name ?? '—' } : null,
     comments: update.comments.map(toCommentView),
+    release:
+      update.version && update.environment
+        ? { version: update.version, environment: update.environment, url: update.url }
+        : null,
   };
 }
 
@@ -174,6 +201,10 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
     dueDate: project.dueDate?.toISOString() ?? null,
     stagingUrl: project.stagingUrl,
     productionUrl: project.productionUrl,
+    showHours: project.showHours,
+    releaseKeyCreatedAt: project.releaseTokenCreatedAt?.toISOString() ?? null,
+    domainName: project.domainName,
+    domainExpiresAt: project.domainExpiresAt?.toISOString().slice(0, 10) ?? null,
     client: { id: project.client.id, name: project.client.name, email: project.client.email },
     createdAt: project.createdAt.toISOString(),
     updatedAt: project.updatedAt.toISOString(),
@@ -182,6 +213,37 @@ function toView(project: ProjectWithClient | ProjectWithUpdates): ClientProjectV
   if ('files' in project) view.files = project.files.map(toFileView);
   if ('milestones' in project) view.milestones = project.milestones.map(toMilestoneView);
   return view;
+}
+
+/** Who acts when a request comes with a release key instead of a session. */
+const PIPELINE = { id: null, name: 'Despliegue automático' } as const;
+
+export interface UpdateDraftView {
+  id: string;
+  project: { id: string; name: string };
+  title: string;
+  body: string;
+  version: string | null;
+  environment: 'STAGING' | 'PRODUCTION' | null;
+  url: string | null;
+  createdAt: string;
+}
+
+function toDraftView(draft: DraftWithProject): UpdateDraftView {
+  return {
+    id: draft.id,
+    project: draft.project,
+    title: draft.title,
+    body: draft.body,
+    version: draft.version,
+    environment: draft.environment,
+    url: draft.url,
+    createdAt: draft.createdAt.toISOString(),
+  };
+}
+
+function releaseOf(input: CreateReleaseInput) {
+  return { version: input.version, environment: input.environment, url: input.url ?? null };
 }
 
 function toDate(value: string | null | undefined): Date | null | undefined {
@@ -198,14 +260,17 @@ export class ProjectsService {
     private readonly repository: ProjectsRepository,
     private readonly storage: ProjectFilesStorage,
     private readonly activity: ActivityService,
+    private readonly accounts: AccountsService,
+    private readonly reviews: ReviewsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly builder: SiteBuilderClient,
   ) {}
 
   // ---- Portal (CLIENT, or ADMIN) ------------------------------------------------------
 
   async listForCaller(caller: AuthUser): Promise<ClientProjectView[]> {
-    const projects = await this.repository.listByClient(caller.id);
+    const projects = await this.repository.listByClient(accountOf(caller));
     return projects.map(toView);
   }
 
@@ -252,6 +317,7 @@ export class ProjectsService {
       dueDate: toDate(input.dueDate) ?? null,
       stagingUrl: input.stagingUrl ?? null,
       productionUrl: input.productionUrl ?? null,
+      showHours: input.showHours ?? false,
     });
     await this.activity.record(actor, {
       action: 'project.created',
@@ -275,6 +341,7 @@ export class ProjectsService {
     if (input.dueDate !== undefined) data.dueDate = toDate(input.dueDate);
     if (input.stagingUrl !== undefined) data.stagingUrl = input.stagingUrl;
     if (input.productionUrl !== undefined) data.productionUrl = input.productionUrl;
+    if (input.showHours !== undefined) data.showHours = input.showHours;
 
     const project = await this.repository.update(id, data);
     // The client sees phase and progress first: worth spelling out when they move.
@@ -289,11 +356,16 @@ export class ProjectsService {
       targetLabel: project.name,
       details: Object.keys(details).length > 0 ? details : undefined,
     });
+    // Launched: time to ask the client how it went (once per project).
+    if (details.phase === 'LAUNCHED') await this.reviews.request(actor, id);
     return toView(project);
   }
 
   async delete(actor: AuthUser, id: string): Promise<void> {
     const project = await this.findOrThrow(id);
+    // Its managed site is taken down first (architecture 8.2): the row goes with the project.
+    const slug = await this.repository.siteSlugOf(id);
+    if (slug) await this.builder.remove(slug);
     await this.repository.delete(id);
     // The rows went with the project (cascade); the content goes once they are gone.
     await Promise.all(project.files.map((file) => this.storage.remove(file.id)));
@@ -438,19 +510,148 @@ export class ProjectsService {
     projectId: string,
     input: CreateProjectUpdateInput,
   ): Promise<PostedProjectUpdate> {
+    return this.post(author, await this.findOrThrow(projectId), input);
+  }
+
+  /** A release from the admin panel. */
+  async addRelease(
+    author: AuthUser,
+    projectId: string,
+    input: CreateReleaseInput,
+  ): Promise<PostedProjectUpdate> {
+    return this.post(author, await this.findOrThrow(projectId), input, releaseOf(input));
+  }
+
+  /**
+   * A release from a deploy pipeline, authenticated by the project's release key (no user). 401
+   * for an unknown key, so a wrong one says nothing about which projects exist.
+   */
+  async publishWithKey(key: string, input: CreateReleaseInput): Promise<PostedProjectUpdate> {
+    const project = key ? await this.repository.findByReleaseTokenHash(hashKey(key)) : null;
+    if (!project) throw new UnauthorizedException('Unknown release key');
+    return this.post(PIPELINE, project, input, releaseOf(input));
+  }
+
+  /**
+   * A draft sent with the project's release key: stored for review and the team is emailed.
+   * Nothing reaches the client until it is published.
+   */
+  async receiveDraft(key: string, input: CreateDraftInput): Promise<UpdateDraftView> {
+    const project = key ? await this.repository.findByReleaseTokenHash(hashKey(key)) : null;
+    if (!project) throw new UnauthorizedException('Unknown release key');
+    const draft = await this.repository.createDraft({
+      projectId: project.id,
+      title: input.title,
+      body: input.body,
+      version: input.version ?? null,
+      environment: input.version ? (input.environment ?? null) : null,
+      url: input.url ?? null,
+    });
+    this.mail
+      .send(
+        draftReadyEmail(
+          this.config.leadsNotifyTo,
+          project,
+          draft,
+          `${this.config.siteUrl}/es/admin/projects/${project.id}#drafts`,
+          this.config.siteUrl,
+        ),
+      )
+      .catch((error: unknown) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to email the team about a draft: ${reason}`);
+      });
+    await this.activity.record(PIPELINE, {
+      action: 'project.draft_received',
+      targetId: project.id,
+      targetLabel: project.name,
+      details: { title: draft.title },
+    });
+    return toDraftView({ ...draft, project: { id: project.id, name: project.name } });
+  }
+
+  /** Drafts waiting for review: one project's, or every project's. */
+  async listDrafts(projectId?: string): Promise<UpdateDraftView[]> {
+    if (projectId) await this.findOrThrow(projectId);
+    return (await this.repository.listDrafts(projectId)).map(toDraftView);
+  }
+
+  /** Publishes a draft as reviewed (an update, or a release with a version) and removes it. */
+  async publishDraft(
+    author: AuthUser,
+    projectId: string,
+    draftId: string,
+    input: PublishDraftInput,
+  ): Promise<PostedProjectUpdate> {
     const project = await this.findOrThrow(projectId);
+    const draft = await this.repository.findDraft(projectId, draftId);
+    if (!draft) throw new NotFoundException('Draft not found');
+    const release =
+      input.version && input.environment
+        ? { version: input.version, environment: input.environment, url: input.url ?? null }
+        : undefined;
+    const posted = await this.post(author, project, input, release);
+    await this.repository.deleteDraft(draft.id);
+    return posted;
+  }
+
+  async discardDraft(author: AuthUser, projectId: string, draftId: string): Promise<void> {
+    const project = await this.findOrThrow(projectId);
+    const draft = await this.repository.findDraft(projectId, draftId);
+    if (!draft) throw new NotFoundException('Draft not found');
+    await this.repository.deleteDraft(draft.id);
+    await this.activity.record(author, {
+      action: 'project.draft_discarded',
+      targetId: projectId,
+      targetLabel: project.name,
+      details: { title: draft.title },
+    });
+  }
+
+  /** A new release key for the project, replacing the previous one; shown only this once. */
+  async createReleaseKey(actor: AuthUser, projectId: string): Promise<{ key: string }> {
+    const project = await this.findOrThrow(projectId);
+    const key = `cqr_${randomBytes(32).toString('base64url')}`;
+    await this.repository.setReleaseToken(projectId, hashKey(key));
+    await this.activity.record(actor, {
+      action: 'project.release_key_created',
+      targetId: projectId,
+      targetLabel: project.name,
+    });
+    return { key };
+  }
+
+  async revokeReleaseKey(actor: AuthUser, projectId: string): Promise<void> {
+    const project = await this.findOrThrow(projectId);
+    await this.repository.setReleaseToken(projectId, null);
+    await this.activity.record(actor, {
+      action: 'project.release_key_revoked',
+      targetId: projectId,
+      targetLabel: project.name,
+    });
+  }
+
+  private async post(
+    author: ActivityActor,
+    project: ProjectWithUpdates,
+    input: CreateProjectUpdateInput,
+    release?: { version: string; environment: ReleaseEnvironment; url: string | null },
+  ): Promise<PostedProjectUpdate> {
+    const projectId = project.id;
     const update = await this.repository.addUpdate(
       projectId,
       author.id,
       input.title,
       input.body,
       input.requestApproval,
+      release,
     );
     const view = toUpdateView(update);
     const clientNotified = input.notifyClient
       ? await this.notifyClient(project, {
           ...input,
           approvalRequested: input.requestApproval,
+          release,
         }).then(
           () => true,
           (error: unknown) => {
@@ -461,11 +662,11 @@ export class ProjectsService {
         )
       : undefined;
     await this.activity.record(author, {
-      action: 'project.update_posted',
+      action: release ? 'project.release_published' : 'project.update_posted',
       targetId: projectId,
       targetLabel: project.name,
       details: {
-        title: input.title,
+        title: release ? `${release.version} · ${input.title}` : input.title,
         ...(input.requestApproval && { approvalRequested: true }),
         ...(clientNotified !== undefined && { clientNotified }),
       },
@@ -486,7 +687,7 @@ export class ProjectsService {
     const update = await this.findUpdateOrThrow(projectId, updateId);
     const comment = await this.repository.addComment(projectId, updateId, caller.id, input.body);
     if (caller.role === 'CLIENT') {
-      this.notifyTeam(project, update, { kind: 'comment', body: input.body });
+      this.notifyTeam(caller, project, update, { kind: 'comment', body: input.body });
     }
     await this.activity.record(caller, {
       action: 'project.comment_added',
@@ -508,9 +709,9 @@ export class ProjectsService {
     const update = await this.findUpdateOrThrow(projectId, updateId);
     const comment = await this.repository.addComment(projectId, updateId, author.id, input.body);
     const view = toCommentView(comment);
-    const clientNotified = await this.emailClient(project, (link, locale) =>
+    const clientNotified = await this.emailClient(project, (person, link, locale) =>
       teamCommentEmail(
-        project.client,
+        person,
         project,
         update,
         { body: input.body, authorName: view.author.name },
@@ -544,7 +745,7 @@ export class ProjectsService {
     if (update.approvedAt) return toUpdateView(update);
 
     const approved = await this.repository.approveUpdate(updateId, caller.id);
-    this.notifyTeam(project, update, { kind: 'approval' });
+    this.notifyTeam(caller, project, update, { kind: 'approval' });
     await this.activity.record(caller, {
       action: 'project.update_approved',
       targetId: projectId,
@@ -556,6 +757,7 @@ export class ProjectsService {
 
   /** Fire-and-forget email to the team inbox; mail problems are logged, never thrown. */
   private notifyTeam(
+    person: { name: string; email: string },
     project: ProjectWithClient,
     update: { id: string; title: string },
     event: { kind: 'comment'; body: string } | { kind: 'approval' },
@@ -563,7 +765,7 @@ export class ProjectsService {
     const link = `${this.config.siteUrl}/es/admin/projects/${project.id}#update-${update.id}`;
     const message = clientActivityEmail(
       this.config.leadsNotifyTo,
-      project.client,
+      person,
       project,
       update,
       event,
@@ -577,21 +779,34 @@ export class ProjectsService {
   }
 
   /** Emails the client (built with their portal link and language); false when it failed. */
+  /**
+   * Emails every active person of the client account (owner and members), each in their language;
+   * true when at least one email went out.
+   */
   private async emailClient(
     project: ProjectWithClient,
-    build: (link: string, locale: ApiLocale) => MailMessage,
+    build: (person: AccountPerson, link: string, locale: ApiLocale) => MailMessage,
   ): Promise<boolean> {
-    try {
-      if (!project.client.isActive) throw new Error('the client account is deactivated');
-      const locale = toApiLocale(project.client.locale);
-      const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
-      await this.mail.send(build(link, locale));
-      return true;
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to email the client: ${reason}`);
-      return false;
+    const people = await this.accounts.people(project.clientId);
+    const results = await Promise.allSettled(
+      people.map((person) =>
+        this.mail.send(
+          build(
+            person,
+            `${this.config.siteUrl}/${person.locale}/portal/projects/${project.id}`,
+            person.locale,
+          ),
+        ),
+      ),
+    );
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        const reason =
+          result.reason instanceof Error ? result.reason.message : String(result.reason);
+        this.logger.error(`Failed to email the client: ${reason}`);
+      }
     }
+    return results.some((result) => result.status === 'fulfilled');
   }
 
   private async findUpdateOrThrow(projectId: string, updateId: string): Promise<UpdateWithAuthor> {
@@ -600,23 +815,21 @@ export class ProjectsService {
     return update;
   }
 
+  /** Emails an update to every person of the client account; throws when nobody got it. */
   private async notifyClient(
     project: ProjectWithClient,
-    update: { title: string; body: string; approvalRequested?: boolean },
+    update: Parameters<typeof projectUpdateEmail>[2],
   ): Promise<void> {
-    // A deactivated client can't sign in to read it.
-    if (!project.client.isActive) throw new Error('the client account is deactivated');
-    const locale = toApiLocale(project.client.locale);
-    const link = `${this.config.siteUrl}/${locale}/portal/projects/${project.id}`;
-    await this.mail.send(
-      projectUpdateEmail(project.client, project, update, link, locale, this.config.siteUrl),
+    const sent = await this.emailClient(project, (person, link, locale) =>
+      projectUpdateEmail(person, project, update, link, locale, this.config.siteUrl),
     );
+    if (!sent) throw new Error('no active person of the client account could be emailed');
   }
 
   private async findForCallerOrThrow(caller: AuthUser, id: string): Promise<ProjectWithUpdates> {
     const project = await this.repository.findById(id);
     // Clients only see their own projects; admins may look at any project.
-    if (!project || (caller.role !== 'ADMIN' && project.clientId !== caller.id)) {
+    if (!project || (caller.role !== 'ADMIN' && project.clientId !== accountOf(caller))) {
       throw new NotFoundException('Project not found');
     }
     return project;
@@ -632,6 +845,12 @@ export class ProjectsService {
     const user = await this.repository.findUserById(clientId);
     if (!user || user.role !== Role.CLIENT) {
       throw new BadRequestException('clientId must reference an existing CLIENT user');
+    }
+    // Projects belong to the company's account; its members see them through it.
+    if (user.memberOfId) {
+      throw new BadRequestException(
+        'clientId must be the main client account, not one of its people',
+      );
     }
   }
 }

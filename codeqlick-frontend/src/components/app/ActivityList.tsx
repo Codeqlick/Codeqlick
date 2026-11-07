@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { ActivityEntry } from '@/lib/api/types';
-import { formatDateTime } from '@/lib/format';
+import { formatDateTime, formatMinutes } from '@/lib/format';
 import styles from './app.module.css';
 
 const ADMIN_SECTIONS: Record<string, string> = {
@@ -13,6 +13,7 @@ const ADMIN_SECTIONS: Record<string, string> = {
   lead: 'leads',
   user: 'users',
   support: 'support',
+  proposal: 'proposals',
 };
 
 /** Admin page of the thing an entry is about, while it can still exist. */
@@ -46,6 +47,7 @@ export async function ActivityList({
   const tr = await getTranslations({ locale, namespace: 'Roles' });
   const ts = await getTranslations({ locale, namespace: 'PublishStatuses' });
   const tt = await getTranslations({ locale, namespace: 'Support.statuses' });
+  const tk = await getTranslations({ locale, namespace: 'Tasks.statuses' });
 
   /** Short notes on what changed, in the reader's language. Unknown keys are skipped. */
   function detailNotes(entry: ActivityEntry): string[] {
@@ -73,6 +75,12 @@ export async function ActivityList({
       notes.push(t('details.publishedAt', { value: formatDateTime(details.publishedAt, locale) }));
     }
     if ('file' in details) notes.push(t('details.file', { value: text(details.file) }));
+    if (typeof details.taskStatus === 'string') {
+      notes.push(t('details.taskStatus', { value: tk(details.taskStatus as never) }));
+    }
+    if (typeof details.minutes === 'number') {
+      notes.push(t('details.minutes', { value: formatMinutes(details.minutes) }));
+    }
     if ('milestone' in details) {
       notes.push(t('details.milestone', { value: text(details.milestone) }));
     }

@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# Publishes a client site through the host's Nginx, with a Let's Encrypt certificate.
+#
+# Installed once by root as /usr/local/sbin/cq-site (a root-owned COPY, never a link to this
+# file: the deploy user can edit the checkout) and allowed to the deploy user with sudo:
+#
+#   cqadmin ALL=(root) NOPASSWD: /usr/local/sbin/cq-site
+#
+# It only touches its own files (/etc/nginx/sites-available/cq-site-<domain>.conf) and refuses
+# any domain another Nginx site already serves, so the other projects on the server are safe.
+#
+#   cq-site add <domain> static <dir>    serve a built static site (<dir>: /srv/codeqlick/sites/<name>/current)
+#   cq-site add <domain> proxy <port>    proxy to a container on 127.0.0.1:<port> (5000-5999)
+#   cq-site remove <domain>              unpublish it and delete its certificate
+#   cq-site list                         the sites it manages
+set -euo pipefail
+
+SITES_ROOT=/srv/codeqlick/sites
+AVAILABLE=/etc/nginx/sites-available
+ENABLED=/etc/nginx/sites-enabled
+PREFIX=cq-site-
+
+die() {
+  echo "cq-site: $*" >&2
+  exit 1
+}
+
+[[ $EUID -eq 0 ]] || die "run it with sudo"
+
+valid_domain() {
+  [[ ${#1} -le 253 && $1 =~ ^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$ ]]
+}
+
+conf_of() { echo "$AVAILABLE/$PREFIX$1.conf"; }
+
+# Any Nginx site that isn't ours and already names the domain.
+served_elsewhere() {
+  local domain=$1 file
+  for file in /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf; do
+    [[ -e $file ]] || continue
+    [[ $(basename "$file") == "$PREFIX"* ]] && continue
+    if grep -Eq "server_name[^;]*[[:space:]]$(sed 's/\./\\./g' <<<"$domain")([[:space:];]|$)" "$file"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+write_conf() {
+  local domain=$1 kind=$2 target=$3 conf
+  conf=$(conf_of "$domain")
+  {
+    echo "# Managed by cq-site (deploy/sites/cq-site in the Codeqlick repo). Don't edit by hand."
+    echo "server {"
+    echo "    listen 80;"
+    echo "    listen [::]:80;"
+    echo "    server_name $domain;"
+    echo "    http2 on;"
+    echo
+    echo "    add_header X-Content-Type-Options nosniff always;"
+    echo "    add_header Referrer-Policy strict-origin-when-cross-origin always;"
+    echo "    add_header X-Frame-Options SAMEORIGIN always;"
+    echo
+    if [[ $kind == static ]]; then
+      echo "    root $target;"
+      echo "    index index.html;"
+      echo "    error_page 404 /404.html;"
+      echo
+      echo "    gzip on;"
+      echo "    gzip_types text/css application/javascript image/svg+xml application/xml text/plain;"
+      echo
+      echo "    location / {"
+      echo "        try_files \$uri \$uri.html \$uri/ =404;"
+      echo "    }"
+      echo
+      echo "    # Hashed file names: cache them for a year."
+      echo "    location /_astro/ {"
+      echo "        add_header Cache-Control \"public, max-age=31536000, immutable\";"
+      echo "        add_header X-Content-Type-Options nosniff always;"
+      echo "    }"
+    else
+      echo "    location / {"
+      echo "        proxy_pass http://127.0.0.1:$target;"
+      echo "        proxy_http_version 1.1;"
+      echo "        proxy_set_header Host \$host;"
+      echo "        proxy_set_header X-Forwarded-Proto \$scheme;"
+      echo "        proxy_set_header X-Real-IP \$remote_addr;"
+      echo "        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
+      echo "    }"
+    fi
+    echo "}"
+  } >"$conf.new"
+}
+
+reload_or_rollback() {
+  if ! nginx -t -q 2>/dev/null; then
+    nginx -t || true
+    return 1
+  fi
+  systemctl reload nginx
+}
+
+cmd_add() {
+  local domain=${1:-} kind=${2:-} target=${3:-} conf
+  valid_domain "$domain" || die "invalid domain: '$domain'"
+  served_elsewhere "$domain" && die "$domain is already served by another Nginx site"
+  case $kind in
+    static)
+      # Always <name>/current: a link the publisher swaps to the new release.
+      [[ $target =~ ^$SITES_ROOT/[a-z0-9-]+/current$ ]] ||
+        die "static sites are served from $SITES_ROOT/<name>/current"
+      [[ -f $target/index.html ]] || die "$target has no index.html"
+      ;;
+    proxy)
+      [[ $target =~ ^5[0-9]{3}$ ]] || die "port must be between 5000 and 5999"
+      ;;
+    *) die "usage: cq-site add <domain> static <dir> | proxy <port>" ;;
+  esac
+
+  conf=$(conf_of "$domain")
+  write_conf "$domain" "$kind" "$target"
+  [[ -f $conf ]] && cp "$conf" "$conf.bak"
+  mv "$conf.new" "$conf"
+  ln -sfn "$conf" "$ENABLED/$PREFIX$domain.conf"
+  if ! reload_or_rollback; then
+    if [[ -f $conf.bak ]]; then mv "$conf.bak" "$conf"; else rm -f "$conf" "$ENABLED/$PREFIX$domain.conf"; fi
+    nginx -t -q && systemctl reload nginx
+    die "Nginx rejected the configuration; nothing changed"
+  fi
+  rm -f "$conf.bak"
+
+  # HTTPS: certbot adds the TLS listener and the redirect to the file we just wrote (an existing
+  # certificate is reused). It needs the domain to point at this server already.
+  local ips
+  ips=$(hostname -I)
+  if ! getent ahostsv4 "$domain" | awk '{print $1}' | grep -qxF -f <(tr ' ' '\n' <<<"$ips" | grep .); then
+    echo "cq-site: $domain doesn't point at this server yet: published over HTTP only." >&2
+    echo "cq-site: add the DNS record and run the same command again for HTTPS." >&2
+    exit 3
+  fi
+  certbot --nginx -d "$domain" --redirect --non-interactive --keep-until-expiring >/dev/null
+  echo "cq-site: https://$domain is live"
+}
+
+cmd_remove() {
+  local domain=${1:-}
+  valid_domain "$domain" || die "invalid domain: '$domain'"
+  [[ -f $(conf_of "$domain") ]] || die "$domain is not managed by cq-site"
+  rm -f "$ENABLED/$PREFIX$domain.conf" "$(conf_of "$domain")"
+  nginx -t -q && systemctl reload nginx
+  certbot delete --cert-name "$domain" --non-interactive >/dev/null 2>&1 || true
+  echo "cq-site: $domain removed"
+}
+
+cmd_list() {
+  local file
+  for file in "$AVAILABLE/$PREFIX"*.conf; do
+    [[ -e $file ]] || continue
+    basename "$file" .conf | sed "s/^$PREFIX//"
+  done
+}
+
+case ${1:-} in
+  add) shift && cmd_add "$@" ;;
+  remove) shift && cmd_remove "$@" ;;
+  list) cmd_list ;;
+  *) die "usage: cq-site add <domain> static <dir> | add <domain> proxy <port> | remove <domain> | list" ;;
+esac

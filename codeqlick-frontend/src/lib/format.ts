@@ -106,3 +106,30 @@ export function isScheduled(
 ): boolean {
   return item.status === 'PUBLISHED' && !!item.publishedAt && Date.parse(item.publishedAt) > now;
 }
+
+/** Cents as money: "1250,00 €" in Spanish, "€1,250.00" in English. */
+export function formatMoney(cents: number, currency: string, locale: string): string {
+  return new Intl.NumberFormat(tag(locale), { style: 'currency', currency }).format(cents / 100);
+}
+
+/** Minutes as a duration: "1 h 30 min", "45 min", "3 h". */
+export function formatMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${rest} min`;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+}
+
+/** `yyyy-mm` as "octubre de 2026" / "October 2026". */
+export function formatMonth(month: string, locale: string): string {
+  return new Intl.DateTimeFormat(tag(locale), {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${month}-15T12:00:00Z`));
+}
+
+/** Today in Madrid, as `yyyy-mm-dd` (for date inputs). */
+export function madridToday(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now);
+}

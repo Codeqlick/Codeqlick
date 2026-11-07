@@ -4,6 +4,7 @@ import { connection } from 'next/server';
 import { BrandSymbol } from '@/components/brand/Symbol';
 import { SERVICE_SLUGS, SERVICES, ServiceIcon } from '@/components/content/services';
 import { TestimonialQuote } from '@/components/content/TestimonialQuote';
+import { listPublishedReviews } from '@/lib/api/reviews';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Button } from '@/components/ui/Button';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -88,7 +89,13 @@ export default async function HomePage({ params }: PageProps) {
   await connection();
   const t = await getTranslations({ locale, namespace: 'Home' });
   const tw = await getTranslations({ locale, namespace: 'Work' });
-  const [work, quotes] = await Promise.all([featuredWork(locale), testimonials(locale)]);
+  const [work, quotes, reviews] = await Promise.all([
+    featuredWork(locale),
+    testimonials(locale),
+    listPublishedReviews(locale, 3),
+  ]);
+  // Case-study testimonials first, then clients' reviews: three at most.
+  const reviewQuotes = reviews.slice(0, Math.max(0, 3 - quotes.length));
 
   return (
     <>
@@ -227,7 +234,7 @@ export default async function HomePage({ params }: PageProps) {
         </section>
       ) : null}
 
-      {quotes.length > 0 ? (
+      {quotes.length + reviewQuotes.length > 0 ? (
         <section
           className={`wrap ${styles.section} ${styles.testimonials}`}
           aria-labelledby="testimonials-title"
@@ -254,6 +261,11 @@ export default async function HomePage({ params }: PageProps) {
                 </li>
               ) : null,
             )}
+            {reviewQuotes.map((review) => (
+              <li key={`${review.author}-${review.quote.slice(0, 20)}`}>
+                <TestimonialQuote testimonial={review} className={styles.testimonialCard} />
+              </li>
+            ))}
           </ul>
         </section>
       ) : null}

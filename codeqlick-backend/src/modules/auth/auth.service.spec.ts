@@ -22,6 +22,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     totpEnabledAt: null,
     totpLastStep: null,
     totpRecoveryHashes: [],
+    registeredAt: new Date('2026-01-01T00:00:00Z'),
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z'),
     ...overrides,
