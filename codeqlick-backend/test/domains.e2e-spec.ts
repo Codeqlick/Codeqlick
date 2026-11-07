@@ -17,8 +17,13 @@ const tag = randomUUID().slice(0, 8);
 const password = 'domain-password-1';
 const admin = { email: `e2e-dom-admin-${tag}@codeqlick.test`, password };
 const clientEmail = `e2e-dom-client-${tag}@codeqlick.test`;
-const day = (offset: number) =>
-  new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+/** Madrid's date `offset` days from today: days left are counted in Madrid (rdap.ts). */
+const day = (offset: number) => {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  return new Date(Date.parse(`${today}T00:00:00Z`) + offset * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+};
 
 describe('Domain renewal (e2e)', () => {
   let app: NestExpressApplication;

@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { adminHeaders, API_URL, asAdmin, runTag, signIn } from './helpers';
 
 /*
@@ -20,11 +20,23 @@ function videochatUrl(baseURL: string | undefined): string {
   return url.origin;
 }
 
+/** The people's browsers of the running test, closed before their accounts are deleted. */
+const open: BrowserContext[] = [];
+
+/**
+ * Closes the people's browsers. Left open, they would stay in the queue after their accounts are
+ * gone, and the next test's people would be paired with them.
+ */
+async function leave() {
+  await Promise.all(open.splice(0).map((context) => context.close()));
+}
+
 async function person(browser: Browser, base: string, user: { email: string; password: string }) {
   const context = await browser.newContext({
     baseURL: base,
     permissions: ['camera', 'microphone'],
   });
+  open.push(context);
   const page = await context.newPage();
   await signIn(page, user, '/es/videochat/room');
   await expect(page).toHaveURL(`${base}/es/videochat/room`);
@@ -133,6 +145,7 @@ test('two people meet in the video chat, talk and move on', async ({
     // They just talked, so they can't meet again for a minute: Ana is told why she waits.
     await expect(ana.getByText('Hay 1 persona más esperando', { exact: false })).toBeVisible();
   } finally {
+    await leave();
     for (const id of ids) {
       await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
     }
@@ -212,6 +225,7 @@ test('two people who like each other become contacts and call each other', async
     await cai.getByRole('button', { name: 'Salir de pantalla completa' }).click();
     await expect(cai.getByRole('button', { name: 'Pantalla completa' })).toBeVisible();
   } finally {
+    await leave();
     for (const id of ids) {
       await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
     }

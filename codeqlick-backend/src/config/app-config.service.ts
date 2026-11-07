@@ -28,6 +28,11 @@ export class AppConfigService {
     return this.nodeEnv === 'test';
   }
 
+  /** Where emails are also written in tests (browser tests read them); never outside tests. */
+  get mailOutboxDir(): string | undefined {
+    return this.isTest ? this.get('MAIL_OUTBOX_DIR') : undefined;
+  }
+
   get port(): number {
     return this.get('PORT');
   }

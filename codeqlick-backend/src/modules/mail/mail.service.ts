@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { createTransport } from 'nodemailer';
 import { AppConfigService } from '../../config/app-config.service.js';
@@ -32,9 +35,11 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
   private readonly transporter: MailTransport;
   private readonly from: string;
+  private readonly outbox: string | undefined;
 
   constructor(config: AppConfigService) {
     this.from = config.mailFrom;
+    this.outbox = config.mailOutboxDir;
     if (config.isTest) {
       this.transporter = createTransport({ jsonTransport: true });
     } else {
@@ -58,6 +63,18 @@ export class MailService {
       replyTo: message.replyTo,
       icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
     });
+    if (this.outbox) await this.keep(message);
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);
+  }
+
+  /** Tests: the email as `<time>-<random>.json` in the outbox folder, for browser tests. */
+  private async keep(message: MailMessage): Promise<void> {
+    const folder = this.outbox!;
+    await mkdir(folder, { recursive: true });
+    const name = `${Date.now()}-${randomBytes(4).toString('hex')}.json`;
+    await writeFile(
+      join(folder, name),
+      JSON.stringify({ to: message.to, subject: message.subject, text: message.text }),
+    );
   }
 }
