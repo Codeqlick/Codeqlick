@@ -93,31 +93,37 @@ model User {
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions        Session[]
-  passwordResets  PasswordResetToken[]
-  clientProjects  ClientProject[]
-  posts           Post[]
-  projectUpdates  ProjectUpdate[]        @relation("ProjectUpdateAuthor")
-  approvedUpdates ProjectUpdate[]        @relation("ProjectUpdateApprover")
-  updateComments  ProjectUpdateComment[]
-  leadsConverted  Lead[]                 @relation("LeadClient")
-  leadsAdded      Lead[]                 @relation("LeadCreator")
-  tickets         SupportTicket[]
-  ticketMessages  TicketMessage[]
-  ticketFiles     TicketAttachment[]
-  proposals       Proposal[]             @relation("ProposalClient")
-  proposalsMade   Proposal[]             @relation("ProposalAuthor")
-  timeEntries     TimeEntry[]
-  credentials     ProjectCredential[]
-  siteRevisions   ManagedSiteRevision[]
+  sessions             Session[]
+  passwordResets       PasswordResetToken[]
+  clientProjects       ClientProject[]
+  posts                Post[]
+  projectUpdates       ProjectUpdate[]        @relation("ProjectUpdateAuthor")
+  approvedUpdates      ProjectUpdate[]        @relation("ProjectUpdateApprover")
+  updateComments       ProjectUpdateComment[]
+  leadsConverted       Lead[]                 @relation("LeadClient")
+  leadsAdded           Lead[]                 @relation("LeadCreator")
+  tickets              SupportTicket[]
+  ticketMessages       TicketMessage[]
+  ticketFiles          TicketAttachment[]
+  proposals            Proposal[]             @relation("ProposalClient")
+  proposalsMade        Proposal[]             @relation("ProposalAuthor")
+  timeEntries          TimeEntry[]
+  credentials          ProjectCredential[]
+  siteRevisions        ManagedSiteRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
-  memberOfId      String?                @map("member_of_id") @db.Uuid
-  memberOf        User?                  @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
-  members         User[]                 @relation("ClientTeam")
-  projectFiles    ProjectFile[]
-  activity        ActivityLog[]
-  leadReplies     LeadReply[]
+  memberOfId           String?                @map("member_of_id") @db.Uuid
+  memberOf             User?                  @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
+  members              User[]                 @relation("ClientTeam")
+  projectFiles         ProjectFile[]
+  activity             ActivityLog[]
+  leadReplies          LeadReply[]
+  videochatProfile     VideochatProfile?
+  videochatReportsMade VideochatReport[]      @relation("VideochatReporter")
+  videochatReportsGot  VideochatReport[]      @relation("VideochatReported")
+  videochatReviewed    VideochatReport[]      @relation("VideochatReviewer")
+  videochatBlocksMade  VideochatBlock[]       @relation("VideochatBlocker")
+  videochatBlocksGot   VideochatBlock[]       @relation("VideochatBlocked")
 
   @@map("users")
 }
@@ -1069,4 +1075,85 @@ enum SiteMailState {
   NONE
   OVH
   OTHER
+}
+
+// ---------------------------------------------------------------------------------------------
+// Random video chat (videochat.codeqlick.com). Spec: the Notion roadmap row and architecture 4.7.
+
+/// Explicit content between consenting adults is allowed (owner's decision, 2026-11-07), so
+/// nudity is not a reason. A MINOR report suspends the account at once until reviewed.
+enum VideochatReportReason {
+  MINOR
+  /// Pressure, no consent, or recording/sharing someone without their consent.
+  NON_CONSENSUAL
+  /// Illegal content (violence, animals, anything unlawful).
+  ILLEGAL
+  HARASSMENT
+  HATE
+  SPAM
+  OTHER
+}
+
+enum VideochatReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+/// Whether a user may use the video chat: 18+ confirmed, rules accepted, not suspended. The date
+/// of birth is checked when given and not stored.
+model VideochatProfile {
+  userId           String    @id @map("user_id") @db.Uuid
+  adultConfirmedAt DateTime  @map("adult_confirmed_at") @db.Timestamptz(3)
+  termsVersion     String    @map("terms_version")
+  termsAcceptedAt  DateTime  @map("terms_accepted_at") @db.Timestamptz(3)
+  /// Age checked for real (an age verification provider, or the team by hand); required when
+  /// VIDEOCHAT_AGE_VERIFICATION_REQUIRED is on. Null: only declared.
+  ageVerifiedAt    DateTime? @map("age_verified_at") @db.Timestamptz(3)
+  /// Set by the team, or automatically after several reports; null: allowed.
+  suspendedAt      DateTime? @map("suspended_at") @db.Timestamptz(3)
+  suspensionReason String?   @map("suspension_reason")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([suspendedAt])
+  @@map("videochat_profiles")
+}
+
+model VideochatReport {
+  id           String                @id @default(uuid()) @db.Uuid
+  reporterId   String                @map("reporter_id") @db.Uuid
+  reportedId   String                @map("reported_id") @db.Uuid
+  reason       VideochatReportReason
+  details      String?
+  /// The call's last text messages: [{ from: 'reporter' | 'reported', text, at }].
+  transcript   Json                  @default("[]")
+  status       VideochatReportStatus @default(OPEN)
+  reviewedById String?               @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?             @map("reviewed_at") @db.Timestamptz(3)
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reporter   User  @relation("VideochatReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported   User  @relation("VideochatReported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("VideochatReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reportedId, createdAt])
+  @@map("videochat_reports")
+}
+
+/// Two people who blocked each other are never matched again (either direction).
+model VideochatBlock {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  blocker User @relation("VideochatBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("VideochatBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("videochat_blocks")
 }

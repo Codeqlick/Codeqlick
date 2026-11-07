@@ -180,6 +180,25 @@ export class AppConfigService {
     return this.get('UPLOADS_DIR');
   }
 
+  /** Origins allowed to open the video chat's WebSocket. */
+  get videochatOrigins(): string[] {
+    return this.get('VIDEOCHAT_ORIGINS');
+  }
+
+  /** The video chat needs a verified age (not only a declared one). */
+  get videochatAgeVerificationRequired(): boolean {
+    return this.get('VIDEOCHAT_AGE_VERIFICATION_REQUIRED');
+  }
+
+  /** STUN/TURN for the video chat: the URLs and coturn's shared secret (TURN needs both). */
+  get turn(): { urls: string[]; secret: string | undefined } {
+    const urls = (this.get('TURN_URLS') ?? '')
+      .split(',')
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
+    return { urls, secret: this.get('TURN_SECRET') };
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }
