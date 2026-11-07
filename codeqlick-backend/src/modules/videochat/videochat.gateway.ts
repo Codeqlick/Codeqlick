@@ -20,6 +20,7 @@ import {
   type ServerMessage,
   type VideochatErrorCode,
 } from './videochat.schemas.js';
+import { VideochatStatsService } from './videochat-stats.service.js';
 import { VideochatPushService } from './videochat-push.service.js';
 import { VideochatService, type TranscriptLine } from './videochat.service.js';
 
@@ -50,6 +51,10 @@ const REMATCH_EVERY_MS = 5_000;
 
 interface CallLog {
   lines: Array<{ userId: string; text: string; at: string }>;
+  /** When the call started (ms), for the anonymous statistics. */
+  startedAt?: number;
+  /** How long the two waited before it, on average (ms). */
+  waitedMs?: number | null;
 }
 
 interface Connection {
@@ -60,6 +65,8 @@ interface Connection {
   authTimer?: NodeJS.Timeout;
   /** Fires when this person has waited alone long enough to notify others (Web Push). */
   waitTimer?: NodeJS.Timeout;
+  /** Since when this person has been looking for someone (ms), for the statistics. */
+  searchingSince?: number;
   /** The last `waiting` this person was told (to send only changes). */
   waitingSent?: string;
   participant?: Participant;
@@ -104,6 +111,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     private readonly videochat: VideochatService,
     private readonly config: AppConfigService,
     private readonly push: VideochatPushService,
+    private readonly statistics: VideochatStatsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -266,6 +274,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       case 'leave':
         this.endCall(connection);
         this.matchmaker.remove(connection.id);
+        connection.searchingSince = undefined;
         return;
       case 'widen':
         // Only while waiting and with filters to ignore; the next search uses them again.
@@ -332,6 +341,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     };
     connection.profile = access.publicProfile;
     this.byUser.set(userId, connection);
+    this.statistics.markActive(userId);
     this.send(connection, { type: 'ready' });
   }
 
@@ -340,6 +350,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     // A widened search lasts one wait.
     me.widened = false;
     connection.waitingSent = undefined;
+    connection.searchingSince ??= Date.now();
     const result = this.matchmaker.join(me);
     if (connection.waitTimer) clearTimeout(connection.waitTimer);
     if (result.status === 'waiting') {
@@ -363,8 +374,17 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
 
   /** Puts two connections in a call; `initiator` makes the WebRTC offer. */
   private startCall(initiator: Connection, other: Connection): void {
-    const call: CallLog = { lines: [] };
+    const now = Date.now();
+    const waits = [initiator, other].flatMap((c) =>
+      c.searchingSince === undefined ? [] : [now - c.searchingSince],
+    );
+    const call: CallLog = {
+      lines: [],
+      startedAt: now,
+      waitedMs: waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : null,
+    };
     for (const connection of [initiator, other]) {
+      connection.searchingSince = undefined;
       connection.call = call;
       connection.waitingSent = undefined;
       if (connection.participant) connection.participant.widened = false;
@@ -489,6 +509,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     partnerParticipant.lastPartner = { userId: me.userId, until: now + REMATCH_COOLDOWN_MS };
     connection.last = { userId: partnerParticipant.userId, call, endedAt: now };
     connection.call = undefined;
+    if (call.startedAt !== undefined)
+      this.statistics.logCall(call.startedAt, now, call.waitedMs ?? null);
     if (partner) {
       partner.last = { userId: me.userId, call, endedAt: now };
       partner.call = undefined;

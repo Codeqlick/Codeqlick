@@ -304,3 +304,37 @@ export function setVideochatAgeVerified(userId: string, verified: boolean) {
 export function getVideochatStats() {
   return apiFetch<VideochatStats>('/admin/videochat/stats', { auth: 'required' });
 }
+
+export const HISTORY_PERIODS = [7, 30, 90] as const;
+export type HistoryPeriod = (typeof HISTORY_PERIODS)[number];
+
+export type VideochatHistoryDay = {
+  /** `yyyy-mm-dd` in Europe/Madrid. */
+  date: string;
+  activeUsers: number;
+  newMembers: number;
+  calls: number;
+  /** Calls of a minute or more. */
+  longCalls: number;
+  avgDurationSec: number | null;
+  avgWaitSec: number | null;
+  reports: number;
+};
+
+export type VideochatHistory = {
+  days: VideochatHistoryDay[];
+  /** Calls started in each hour (0–23, Europe/Madrid). */
+  hours: number[];
+  totals: Omit<VideochatHistoryDay, 'date'> & {
+    members: number;
+    openReports: number;
+    suspended: number;
+  };
+};
+
+/** Usage over the last 7, 30 or 90 days (architecture 4.7). */
+export function getVideochatHistory(days: HistoryPeriod) {
+  return apiFetch<VideochatHistory>(`/admin/videochat/stats/history?days=${days}`, {
+    auth: 'required',
+  });
+}

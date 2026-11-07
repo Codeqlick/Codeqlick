@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { adminHeaders, API_URL, runTag, signIn } from './helpers';
+import { adminHeaders, API_URL, asAdmin, runTag, signIn } from './helpers';
 
 /*
  * The video chat on its own host (videochat.localhost: browsers send *.localhost to this machine)
@@ -152,4 +152,22 @@ test('the video chat installs as its own app', async ({ page, baseURL }) => {
   const studio = await page.goto(`${baseURL ?? 'http://localhost:3001'}/manifest.webmanifest`);
   const studioManifest = (await studio?.json()) as { name?: string } | undefined;
   expect(studioManifest?.name).not.toBe('Codeqlick Videochat');
+});
+
+test('the team sees the video chat statistics', async ({ page, context, baseURL }) => {
+  await asAdmin(context, baseURL ?? '');
+  await page.goto('/es/admin/videochat');
+  await page.getByRole('link', { name: 'Ver estadísticas' }).click();
+  await expect(page.getByRole('heading', { name: 'Estadísticas del videochat' })).toBeVisible();
+  await expect(page.getByText('Personas que lo usaron')).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Llamadas por día' })).toHaveCount(1);
+  await page
+    .getByRole('navigation', { name: 'Periodo' })
+    .getByRole('link', { name: '7 días' })
+    .click();
+  await expect(page).toHaveURL(/days=7/);
+  // One row per day in the chart's table.
+  await expect(
+    page.getByRole('table', { name: 'Personas por día' }).locator('tbody tr'),
+  ).toHaveCount(7);
 });

@@ -636,4 +636,49 @@ describe('Video chat (e2e)', () => {
       0,
     );
   });
+
+  it('gives the team the usage history: active people, calls and waits by day and hour', async () => {
+    // The calls of the tests above are logged when they end (fire and forget).
+    await vi.waitFor(async () => expect(await prisma.videochatCallLog.count()).toBeGreaterThan(0));
+    const { body } = await request(server())
+      .get('/v1/admin/videochat/stats/history?days=7')
+      .set(users.admin!.auth)
+      .expect(200);
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(
+      new Date(),
+    );
+    expect(body.days).toHaveLength(7);
+    const last = body.days.at(-1);
+    expect(last.date).toBe(today);
+    expect(last.activeUsers).toBeGreaterThanOrEqual(3);
+    expect(last.newMembers).toBeGreaterThanOrEqual(3);
+    expect(last.calls).toBeGreaterThanOrEqual(1);
+    expect(last.avgDurationSec).toEqual(expect.any(Number));
+    expect(last.avgWaitSec).toEqual(expect.any(Number));
+    expect(last.reports).toBeGreaterThanOrEqual(3);
+    expect(body.hours).toHaveLength(24);
+    expect(body.hours.reduce((a: number, b: number) => a + b, 0)).toBe(body.totals.calls);
+    expect(body.totals).toMatchObject({
+      activeUsers: expect.any(Number),
+      calls: expect.any(Number),
+      longCalls: expect.any(Number),
+      members: expect.any(Number),
+      openReports: expect.any(Number),
+      suspended: expect.any(Number),
+    });
+
+    const thirty = await request(server())
+      .get('/v1/admin/videochat/stats/history')
+      .set(users.admin!.auth)
+      .expect(200);
+    expect(thirty.body.days).toHaveLength(30);
+    await request(server())
+      .get('/v1/admin/videochat/stats/history?days=5')
+      .set(users.admin!.auth)
+      .expect(400);
+    await request(server())
+      .get('/v1/admin/videochat/stats/history')
+      .set(users.ana!.auth)
+      .expect(403);
+  });
 });

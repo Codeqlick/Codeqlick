@@ -3195,6 +3195,40 @@
       "reportsReceived": "Reportes recibidos",
       "reportsMade": "Reportes que ha hecho",
       "noReports": "Ninguno."
+    },
+    "statsLink": "Ver estadísticas",
+    "history": {
+      "title": "Estadísticas del videochat",
+      "lead": "Uso de los últimos días (hora de Madrid). Los datos son anónimos y se borran a los 180 días.",
+      "back": "Volver a moderación",
+      "period": "Periodo",
+      "periods": {
+        "7": "7 días",
+        "30": "30 días",
+        "90": "90 días"
+      },
+      "activeUsers": "Personas que lo usaron",
+      "newMembers": "Altas nuevas (18+)",
+      "calls": "Llamadas",
+      "longCalls": "De 1 minuto o más",
+      "avgDuration": "Duración media",
+      "avgWait": "Espera media",
+      "reports": "Reportes",
+      "members": "Cuentas en total",
+      "openReports": "Reportes pendientes",
+      "suspended": "Cuentas suspendidas ahora",
+      "periodTotals": "En el periodo",
+      "now": "Ahora",
+      "activeChart": "Personas por día",
+      "activeSeries": "Personas",
+      "callsChart": "Llamadas por día",
+      "shortCalls": "Menos de 1 minuto",
+      "longSeries": "1 minuto o más",
+      "hoursChart": "Llamadas por hora del día",
+      "hour": "Hora",
+      "membersChart": "Altas y reportes por día",
+      "day": "Día",
+      "none": "—"
     }
   }
 }
