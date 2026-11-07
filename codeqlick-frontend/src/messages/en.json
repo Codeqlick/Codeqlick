@@ -402,6 +402,7 @@
   },
   "Login": {
     "metaTitle": "Sign in",
+    "metaDescription": "Sign in to your Codeqlick client area to follow your projects, review progress and talk to the team.",
     "title": "Sign in",
     "subtitle": "Access your client portal or the admin panel.",
     "email": "Email",
@@ -420,6 +421,7 @@
   },
   "Register": {
     "metaTitle": "Create an account",
+    "metaDescription": "Create your Codeqlick client account to follow your projects and manage your website in one place.",
     "title": "Create your account",
     "subtitle": "To follow your projects, read your proposals and edit your website.",
     "invitedSubtitle": "We were expecting you: choose your password and enter your client area.",
