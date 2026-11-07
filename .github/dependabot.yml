@@ -1,0 +1,48 @@
+# Weekly dependency updates (architecture 9): one grouped pull request per app every Monday with
+# the patch and minor releases, plus a pull request as soon as a dependency has a security fix.
+# Versions stay exact (no ^ or ~: Dependabot keeps the pinning style). Majors are left to people,
+# and so are the pins CLAUDE.md explains: TypeScript (7.0 in the apps, 6.0 in the site template,
+# whose `astro check` refuses 7), Prisma 7.x (npm's `latest` points at an 8 release candidate) and
+# @types/node 24.x (Node 24 LTS).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories:
+      - /codeqlick-backend
+      - /codeqlick-frontend
+      - /codeqlick-sites/web-basica
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      minor-and-patch:
+        applies-to: version-updates
+        update-types: [minor, patch]
+      security:
+        applies-to: security-updates
+        patterns: ['*']
+    ignore:
+      - dependency-name: '*'
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-minor]
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Madrid
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']

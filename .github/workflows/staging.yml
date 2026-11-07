@@ -1,0 +1,50 @@
+name: Staging
+
+# Puts a branch on staging (https://staging.codeqlick.com, password protected) to try it before it
+# reaches production: Actions → Staging → Run workflow. "With data" first replaces staging's data
+# with production's newest backup, which is how to try a migration (deploy/README.md, "Staging").
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch, tag or commit
+        required: true
+        default: main
+      with_data:
+        description: Replace staging's data with production's newest backup
+        type: boolean
+        default: false
+
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  staging:
+    name: Put ${{ inputs.branch }} on staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check the branch name
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: printf '%s' "$BRANCH" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$'
+
+      - name: Deploy over SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TARGET }}
+          BRANCH: ${{ inputs.branch }}
+          WITH_DATA: ${{ inputs.with_data && '--with-data' || '' }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The key only runs deploy/ci-deploy.sh, which reads this command.
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 "$DEPLOY_TARGET" staging "$BRANCH" $WITH_DATA

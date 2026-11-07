@@ -706,6 +706,7 @@ Besides client work, Codeqlick runs its own web apps, each on `<app>.codeqlick.c
 |---|---|
 | Local | `docker compose up --build -d`: PostgreSQL, Mailpit, `api` and `web` (the `dev` target of each Dockerfile, source bind-mounted for hot reload) |
 | Production | VPS (OVH): `docker compose -f docker-compose.prod.yml up -d --build` in `/srv/codeqlick`, Nginx in front with Let's Encrypt |
+| Staging | Same VPS, `/srv/codeqlick-staging`: `docker-compose.staging.yml` (database, API, website and Mailpit; Stripe, OVH, Umami, site builder and video chat off) at https://staging.codeqlick.com behind a password. The Staging workflow (`workflow_dispatch`: branch, optionally production's newest backup as data) runs `deploy/staging.sh` over the deploy key |
 
 Production compose runs `db` (PostgreSQL, volume), `backup` (daily `pg_dump` to `/srv/codeqlick/backups`, 14 days kept, plus a copy of the uploaded images), `api` (runs `prisma migrate deploy` on start, keeps uploaded images in the `uploads-data` volume), `web`, `site-builder` (builds managed client sites, 8.2) and `umami` with its own `umami-db` (analytics; dashboard at stats.codeqlick.com). Only Nginx is exposed publicly; the services bind to `127.0.0.1`. Merging to `main` deploys on its own once the commit's CI passes (`.github/workflows/deploy.yml`). Step-by-step instructions, the env template and the Nginx sites are in [`deploy/`](../deploy/README.md).
 
@@ -883,6 +884,11 @@ Each app has its own workflow, triggered by changes in its folder:
 - **Deploy:** after all of a commit's CI on `main` has passed, runs `deploy/ci-deploy.sh` on the server.
 
 Changes that touch neither app (only `deploy/` or docs) run no CI and aren't deployed on their own.
+
+**Dependencies (weekly).** Versions stay exact, so nothing updates on its own:
+
+- **Dependabot** (`.github/dependabot.yml`) opens, every Monday, one grouped pull request per app (backend, frontend, `codeqlick-sites/web-basica`) with the patch and minor releases, one for GitHub Actions, and a pull request as soon as a dependency has a security fix (with "Dependabot security updates" on in the repository settings). Majors are left to people, and so are TypeScript minors and `@types/node` majors (the pins in section 2). Each pull request runs the normal CI; merging it deploys.
+- **Audit** (`.github/workflows/audit.yml`) runs `npm audit --omit=dev --audit-level=high` in each app every Monday and by hand; a failed run emails the repository's owner.
 
 ## 10. Decisions log
 
