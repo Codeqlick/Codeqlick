@@ -95,6 +95,7 @@ describe('Website visits in the portal (e2e)', () => {
         referrers: [{ source: 'google.com', visitors: 20 }],
         countries: [],
         contactsSent: 0,
+        events: [],
       }),
     );
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });

@@ -7,6 +7,15 @@ import styles from './app.module.css';
 import { BarChart } from './BarChart';
 import own from './SiteVisits.module.css';
 
+/** What the site exists for, in funnel order (see TrackEvent and the `data-umami-event` buttons). */
+const GOALS = [
+  'contact-sent',
+  'call-booked',
+  'site-request-sent',
+  'site-buy-click',
+  'site-bought',
+] as const;
+
 export const VISIT_RANGES = [7, 30, 90] as const;
 export type VisitRange = (typeof VISIT_RANGES)[number];
 
@@ -36,6 +45,10 @@ export async function SiteVisits({ visits, locale }: { visits: Visits; locale: A
   const t = await getTranslations({ locale, namespace: 'Admin.visits' });
   const number = new Intl.NumberFormat(locale);
   const percent = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
+  const percentOne = new Intl.NumberFormat(locale, {
+    style: 'percent',
+    maximumFractionDigits: 1,
+  });
   const date = (iso: string, options: Intl.DateTimeFormatOptions) =>
     new Intl.DateTimeFormat(locale, { ...options, timeZone: 'UTC' }).format(
       new Date(`${iso}T12:00:00Z`),
@@ -148,6 +161,28 @@ export async function SiteVisits({ visits, locale }: { visits: Visits; locale: A
           />
         </div>
         <div className={own.lists}>
+          {list(
+            t('goals'),
+            GOALS.map((goal) => {
+              const count = visits.events.find((event) => event.name === goal)?.count ?? 0;
+              const rate = totals.visitors > 0 ? count / totals.visitors : 0;
+              return {
+                label: `${t(`goalNames.${goal}`)} · ${percentOne.format(rate)}`,
+                value: count,
+              };
+            }),
+          )}
+          {list(
+            t('buttons'),
+            visits.events
+              .filter((event) => event.name.startsWith('cta-'))
+              .map((event) => ({
+                label: t.has(`buttonNames.${event.name}` as never)
+                  ? t(`buttonNames.${event.name}` as never)
+                  : event.name,
+                value: event.count,
+              })),
+          )}
           {list(
             t('topPages'),
             visits.topPages.map((page) => ({ label: page.path, value: page.visitors })),

@@ -107,7 +107,7 @@ ${ownerLines(owner, locale)}
 
 **Compra de tu web.** Si compras tu web desde su vista previa, el pago lo procesa Stripe: tú le das los datos de tu tarjeta, tu nombre, tu dirección de facturación y, si quieres, tu NIF, y nosotros no vemos ni guardamos los datos de tu tarjeta. Conservamos tu correo, el importe, la fecha y la factura que emite Stripe. La base legal es el contrato (artículo 6.1.b del RGPD) y nuestras obligaciones fiscales y contables (artículo 6.1.c).
 
-**Estadísticas de visitas.** Medimos las visitas con Umami, una herramienta instalada en nuestro propio servidor que no usa cookies ni guarda datos que te identifiquen: solo cuenta páginas vistas, de dónde llegan las visitas, el país, el tipo de dispositivo y el navegador, de forma agregada. Si tu navegador tiene activada la opción «No rastrear», no se registra nada.
+**Estadísticas de visitas.** Medimos las visitas con Umami, una herramienta instalada en nuestro propio servidor que no usa cookies ni guarda datos que te identifiquen: solo cuenta páginas vistas, de dónde llegan las visitas, el país, el tipo de dispositivo, el navegador y acciones como enviar un formulario o pulsar un botón, de forma agregada. Si tu navegador tiene activada la opción «No rastrear», no se registra nada.
 
 ## Cuánto tiempo los guardamos
 
@@ -147,7 +147,7 @@ ${ownerLines(owner, locale)}
 
 **Buying your website.** If you buy your website from its preview, Stripe processes the payment: you give it your card details, your name, your billing address and, if you like, your tax ID, and we never see or keep your card details. We keep your email, the amount, the date and the invoice Stripe issues. The legal basis is the contract (article 6.1.b GDPR) and our tax and accounting obligations (article 6.1.c).
 
-**Visit statistics.** We measure visits with Umami, a tool running on our own server that uses no cookies and stores nothing that identifies you: it only counts page views, where visits come from, the country, the type of device and the browser, in aggregate. If your browser has "Do Not Track" on, nothing is recorded.
+**Visit statistics.** We measure visits with Umami, a tool running on our own server that uses no cookies and stores nothing that identifies you: it only counts page views, where visits come from, the country, the type of device, the browser and actions such as sending a form or clicking a button, in aggregate. If your browser has "Do Not Track" on, nothing is recorded.
 
 ## How long we keep it
 

@@ -1276,7 +1276,23 @@
       "topPages": "Top pages",
       "referrers": "Where they come from",
       "countries": "Countries",
-      "none": "No data yet."
+      "none": "No data yet.",
+      "goals": "Conversions (and % of visitors)",
+      "goalNames": {
+        "contact-sent": "Contact requests sent",
+        "call-booked": "Calls booked",
+        "site-request-sent": "Basic website requests",
+        "site-buy-click": "Clicks on \"Buy\" the website",
+        "site-bought": "Websites paid"
+      },
+      "buttons": "Most clicked buttons",
+      "buttonNames": {
+        "cta-header": "Header: Start a project",
+        "cta-home-hero": "Home: main button",
+        "cta-home-bottom": "Home: final button",
+        "cta-basic-website-top": "Basic website: request (top)",
+        "cta-basic-website-bottom": "Basic website: request (bottom)"
+      }
     },
     "savedReplies": {
       "title": "Saved replies",

@@ -9,6 +9,7 @@ import { BOOKING_TIME_ZONE } from '@/lib/booking';
 import { initialFormState } from '@/lib/forms';
 import { bookCallAction } from './actions';
 import styles from './Book.module.css';
+import { TrackEvent } from '@/components/layout/TrackEvent';
 
 /**
  * Pick a day, then a time (Madrid time, with the visitor's own time when it differs), then who you
@@ -60,6 +61,7 @@ export function BookingForm({ slots, renderedAt }: { slots: string[]; renderedAt
     const booked = state.values?.startsAt;
     return (
       <Alert tone="success">
+        <TrackEvent event="call-booked" />
         <strong>{t('doneTitle')}</strong>{' '}
         {booked ? t('doneBody', { when: fullLabel.format(new Date(booked)) }) : t('doneBodyShort')}
       </Alert>
