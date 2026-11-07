@@ -52,7 +52,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   images: {
     // Only uploads from the admin panel (served by app/media) are resized and re-encoded.
-    localPatterns: [{ pathname: '/media/**', search: '' }],
+    localPatterns: [
+      { pathname: '/media/**', search: '' },
+      { pathname: '/demos/**', search: '' },
+    ],
     formats: ['image/webp'],
   },
   experimental: {

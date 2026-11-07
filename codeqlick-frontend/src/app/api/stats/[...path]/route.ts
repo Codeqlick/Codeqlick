@@ -1,3 +1,4 @@
+import { gzipSync } from 'node:zlib';
 import { env } from '@/lib/env';
 
 /*
@@ -38,8 +39,20 @@ async function forward(request: Request, { params }: Context): Promise<Response>
   }
 
   const out = new Headers({ 'Content-Type': response.headers.get('content-type') ?? 'text/plain' });
-  out.set('Cache-Control', path === 'script.js' ? 'public, max-age=3600' : 'no-store');
-  return new Response(response.body, { status: response.status, headers: out });
+  if (path !== 'script.js' || !response.ok) {
+    out.set('Cache-Control', 'no-store');
+    return new Response(response.body, { status: response.status, headers: out });
+  }
+  // The tracker barely changes: a day in the browser, a week more while it refreshes, and gzipped
+  // (Nginx doesn't compress what the app sends).
+  out.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+  out.set('Vary', 'Accept-Encoding');
+  const script = await response.text();
+  if (!/\bgzip\b/.test(request.headers.get('accept-encoding') ?? '')) {
+    return new Response(script, { status: 200, headers: out });
+  }
+  out.set('Content-Encoding', 'gzip');
+  return new Response(gzipSync(script), { status: 200, headers: out });
 }
 
 export const GET = forward;

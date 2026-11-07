@@ -13,6 +13,8 @@
   margin-bottom: var(--space-3);
   font-size: 0.9rem;
   font-weight: 600;
+  /* The darker fuchsia: the brand one is under 4.5:1 on white at this size. */
+  color: var(--color-fuchsia-dark);
   text-decoration: none;
 }
 

@@ -27,7 +27,13 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Login' });
-  return pageMetadata({ locale, path: '/login', title: t('metaTitle'), noindex: true });
+  return pageMetadata({
+    locale,
+    path: '/login',
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+    noindex: true,
+  });
 }
 
 export default async function LoginPage({ params, searchParams }: PageProps) {
