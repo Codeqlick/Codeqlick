@@ -133,6 +133,80 @@ test('two people meet in the video chat, talk and move on', async ({
   }
 });
 
+test('two people who like each other become contacts and call each other', async ({
+  browser,
+  request,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  const tag = runTag();
+  const base = videochatUrl(baseURL);
+  const users = ['cai', 'dan'].map((name) => ({
+    name,
+    email: `e2e-vc-${name}-${tag}@codeqlick.test`,
+    password: `videochat-pass-${tag}-0`,
+  }));
+  const ids: string[] = [];
+  for (const user of users) {
+    const response = await request.post(`${API_URL}/admin/users`, {
+      headers: adminHeaders(),
+      data: {
+        email: user.email,
+        name: user.name,
+        role: 'CLIENT',
+        password: user.password,
+        locale: 'es',
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    ids.push(((await response.json()) as { id: string }).id);
+  }
+
+  try {
+    const [cai, dan] = [
+      await person(browser, base, users[0]!),
+      await person(browser, base, users[1]!),
+    ];
+    await dan.goto('/es/videochat/settings');
+    await dan.getByLabel('Apodo').fill(`Dan ${tag}`);
+    await dan.getByRole('button', { name: 'Guardar' }).click();
+    await expect(dan.getByText('Guardado.', { exact: false })).toBeVisible();
+    await dan.goto('/es/videochat/room');
+
+    await cai.getByRole('button', { name: 'Activar cámara y empezar' }).click();
+    await dan.getByRole('button', { name: 'Activar cámara y empezar' }).click();
+    await inCall(cai);
+    await inCall(dan);
+
+    // Both press "Like": they are contacts now, and both are told.
+    await cai.getByRole('button', { name: /Me gusta/ }).click();
+    await expect(
+      cai.getByText('Si también te lo da, seréis contactos', { exact: false }),
+    ).toBeVisible();
+    await dan.getByRole('button', { name: /Me gusta/ }).click();
+    await expect(cai.getByText(`¡Os gustáis! Dan ${tag} y tú ya sois contactos.`)).toBeVisible();
+    await expect(dan.getByText('¡Os gustáis! Ya sois contactos.')).toBeVisible();
+
+    // Dan stops; Cai sees him on her contacts, free, and calls him.
+    await dan.getByRole('button', { name: 'Parar' }).click();
+    await cai.getByRole('button', { name: 'Parar' }).click();
+    await cai.goto('/es/videochat/contacts');
+    await expect(cai.getByText(`Dan ${tag}`)).toBeVisible();
+    await expect(cai.getByText(/^En el videochat · Contactos desde/)).toBeVisible();
+    await cai.getByRole('link', { name: 'Llamar' }).click();
+    await cai.getByRole('button', { name: 'Activar cámara y empezar' }).click();
+    await expect(cai.getByText(`Llamando a Dan ${tag}…`)).toBeVisible();
+    await expect(dan.getByText('Un contacto te está llamando')).toBeVisible();
+    await dan.getByRole('button', { name: 'Aceptar' }).click();
+    await inCall(cai);
+    await inCall(dan);
+  } finally {
+    for (const id of ids) {
+      await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
+    }
+  }
+});
+
 test('the video chat installs as its own app', async ({ page, baseURL }) => {
   // Through the browser: it, unlike Node, sends *.localhost to this machine.
   const base = videochatUrl(baseURL);

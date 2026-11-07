@@ -100,6 +100,16 @@ export interface VideochatStatus {
   pushPublicKey: string | null;
 }
 
+/** A mutual contact, as their contacts see them. */
+export interface VideochatContact extends PublicProfile {
+  contactId: string;
+  /** In the video chat now… */
+  online: boolean;
+  /** …and in a call. */
+  busy: boolean;
+  since: string;
+}
+
 /** What the gateway needs about a person when their socket signs in. */
 export interface Connection {
   allowed: boolean;
@@ -380,6 +390,44 @@ export class VideochatService {
 
   block(blockerId: string, blockedId: string): Promise<void> {
     return this.repository.block(blockerId, blockedId);
+  }
+
+  /** "I like them"; true when they had liked me too (we are contacts now). */
+  like(userId: string, otherId: string): Promise<boolean> {
+    return this.repository.like(userId, otherId);
+  }
+
+  /** Whether two people are contacts (liked each other). */
+  areContacts(a: string, b: string): Promise<boolean> {
+    return this.repository.isMutual(a, b);
+  }
+
+  /** My contacts, newest first, with where they are now (`presence`, from the gateway). */
+  async contacts(
+    userId: string,
+    presence: (contactId: string) => { online: boolean; busy: boolean },
+  ): Promise<{ items: VideochatContact[] }> {
+    const rows = await this.repository.contacts(userId);
+    return {
+      items: rows.map((row) => {
+        const profile = row.to.videochatProfile;
+        return {
+          contactId: row.toId,
+          nickname: profile?.nickname ?? null,
+          gender: profile?.gender ?? null,
+          country: profile?.country ?? null,
+          language: profile?.language ?? null,
+          interests: knownInterests(profile?.interests),
+          ...presence(row.toId),
+          since: row.createdAt.toISOString(),
+        };
+      }),
+    };
+  }
+
+  /** Stops being someone's contact (my like goes; theirs stays). */
+  removeContact(userId: string, contactId: string): Promise<void> {
+    return this.repository.unlike(userId, contactId);
   }
 
   /** Records a report from a call; suspends the reported account after several of them. */

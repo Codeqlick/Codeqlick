@@ -74,6 +74,20 @@ describe('Matchmaker', () => {
     expect(mm.callCount).toBe(1);
   });
 
+  it('puts two contacts in a call directly, taking them out of the queue', () => {
+    const mm = new Matchmaker();
+    const a = person('a');
+    const b = person('b');
+    const c = person('c', 'user-c', ['user-a']);
+    mm.join(c);
+    mm.join(a);
+    mm.pair(a, b);
+    expect(mm.partnerOf('a')).toBe(b);
+    expect(mm.partnerOf('b')).toBe(a);
+    expect(mm.isWaiting('a')).toBe(false);
+    expect(mm.waitingCount).toBe(1);
+  });
+
   it('never pairs people who blocked each other, in either direction', () => {
     const mm = new Matchmaker();
     mm.join(person('a', 'ua', ['ub']));
