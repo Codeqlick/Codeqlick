@@ -85,8 +85,22 @@ test('two people meet in the video chat, talk and move on', async ({
     // Ana picks a nickname: that, not her name, is what Ben sees.
     await ana.goto('/es/videochat/settings');
     await ana.getByLabel('Apodo').fill(`Ana ${tag}`);
-    await ana.getByRole('button', { name: 'Guardar' }).click();
-    await expect(ana.getByText('Guardado.', { exact: false })).toBeVisible();
+    await ana.getByRole('combobox', { name: 'Género' }).selectOption('WOMAN');
+    await ana.getByRole('combobox', { name: 'País' }).selectOption('ES');
+    await ana.getByRole('combobox', { name: 'Idioma' }).selectOption('es');
+    // The selects keep what was saved after each save (the form reset used to blank them) and
+    // after a reload.
+    for (let save = 0; save < 2; save++) {
+      await ana.getByRole('button', { name: 'Guardar' }).click();
+      await ana.waitForLoadState('networkidle');
+      await expect(ana.getByText('Guardado.', { exact: false })).toBeVisible();
+      await expect(ana.getByRole('combobox', { name: 'Género' })).toHaveValue('WOMAN');
+      await expect(ana.getByRole('combobox', { name: 'País' })).toHaveValue('ES');
+      await expect(ana.getByRole('combobox', { name: 'Idioma' })).toHaveValue('es');
+    }
+    await ana.reload();
+    await expect(ana.getByRole('combobox', { name: 'Género' })).toHaveValue('WOMAN');
+    await expect(ana.getByRole('combobox', { name: 'País' })).toHaveValue('ES');
     await ana.goto('/es/videochat/room');
 
     await ana.getByRole('button', { name: 'Activar cámara y empezar' }).click();
