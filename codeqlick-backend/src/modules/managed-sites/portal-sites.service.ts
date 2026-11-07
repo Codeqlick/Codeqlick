@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
@@ -33,6 +34,10 @@ export interface PortalSiteView {
   businessName: string;
   colors: { primary: string; primaryText: string };
   editable: EditableSite;
+  /** When the editor's draft was last saved, if it differs from what is online; null otherwise. */
+  unpublishedSince: string | null;
+  /** Legal data the online site still lacks (its legal notice needs them). */
+  legalMissing: ('taxId' | 'address')[];
 }
 
 /** Photos a site can use: the template optimises these. */
@@ -161,6 +166,20 @@ export class PortalSitesService {
       businessName: content.business.name,
       colors: { primary: content.theme.primary, primaryText: content.theme.primaryText },
       editable: editableOf(content),
+      unpublishedSince:
+        site.draftContent && site.draftUpdatedAt && hasChanges(site)
+          ? site.draftUpdatedAt.toISOString()
+          : null,
+      legalMissing: (['taxId', 'address'] as const).filter((key) => !content.legal[key]?.trim()),
     };
   }
+}
+
+/** The draft differs from the published site (content or style). */
+export function hasChanges(
+  site: Pick<SiteRow, 'content' | 'draftContent' | 'draftPreset' | 'preset'>,
+): boolean {
+  if (!site.draftContent) return false;
+  if (site.draftPreset && site.draftPreset !== site.preset) return true;
+  return !isDeepStrictEqual(site.draftContent, site.content);
 }

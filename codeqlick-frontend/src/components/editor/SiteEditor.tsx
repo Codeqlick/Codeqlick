@@ -1,6 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useTranslations } from 'next-intl';
 import {
   applyStyleAction,
@@ -293,6 +301,21 @@ export function SiteEditor({
     const order = Array.isArray(content.sections) ? (content.sections as string[]) : [];
     return [...new Set([...order, ...SECTION_KEYS])];
   }, [content.sections]);
+  // The legal notice needs these: an empty one is pointed out on its part of the form.
+  const legalMissing = (['legal.taxId', 'legal.address'] as const).some(
+    (path) => !String(getAt(content, path) ?? '').trim(),
+  );
+  const statusLabel = published
+    ? t('status.published')
+    : status === 'saved'
+      ? t(changed ? 'status.savedUnpublished' : 'status.upToDate')
+      : t(`status.${status}`);
+  /** Opens (already done by its part) and focuses the first field to fix. */
+  const firstError = () => {
+    const field = document.querySelector<HTMLElement>('[data-editor-forms] [aria-invalid="true"]');
+    field?.scrollIntoView({ block: 'center' });
+    field?.focus({ preventScroll: true });
+  };
   const fonts = (['fraunces', 'playfair', 'outfit', 'inter'] as const).map((value) => ({
     value,
     label: t(`fonts.${value}`),
@@ -302,7 +325,7 @@ export function SiteEditor({
     <EditorContext.Provider value={context}>
       <div className={styles.toolbar}>
         <output className={styles.status} aria-live="polite">
-          {published ? t('status.published') : t(`status.${status}`)}
+          {statusLabel}
         </output>
         <div className={styles.toolbarActions}>
           <div className={styles.tabs} role="tablist">
@@ -343,7 +366,14 @@ export function SiteEditor({
           </button>
         </div>
       </div>
-      {status === 'invalid' ? <p className={styles.banner}>{t('invalidBody')}</p> : null}
+      {status === 'invalid' ? (
+        <p className={styles.banner}>
+          {t('invalidBody')}{' '}
+          <button type="button" className={styles.bannerLink} onClick={firstError}>
+            {t('invalidGo')}
+          </button>
+        </p>
+      ) : null}
       {view.draft?.previewStatus === 'FAILED' ? (
         <p className={styles.banner}>{t('buildFailed')}</p>
       ) : null}
@@ -357,9 +387,8 @@ export function SiteEditor({
       ) : null}
 
       <div className={styles.layout} data-tab={tab}>
-        <div className={styles.forms}>
-          <details className={styles.part} open>
-            <summary>{t('parts.design')}</summary>
+        <div className={styles.forms} data-editor-forms>
+          <Part paths={['theme']} summary={t('parts.design')} open>
             <div className={styles.stack}>
               <div>
                 <p className={styles.label}>{t('style')}</p>
@@ -428,13 +457,13 @@ export function SiteEditor({
                 />
               </div>
             </div>
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('notices')}
+          <Part
+            paths={['notices']}
+            summary={t('parts.notices')}
+            onOpen={() => scrollPreview('notices')}
           >
-            <summary>{t('parts.notices')}</summary>
             <div className={styles.stack}>
               <p className={styles.hint}>{t('noticesHint')}</p>
               <ListField
@@ -479,10 +508,9 @@ export function SiteEditor({
                 }}
               />
             </div>
-          </details>
+          </Part>
 
-          <details className={styles.part}>
-            <summary>{t('parts.business')}</summary>
+          <Part paths={['business']} summary={t('parts.business')}>
             <div className={styles.stack}>
               <TextField path="business.name" label={t('businessName')} max={80} required />
               <TextField
@@ -524,10 +552,9 @@ export function SiteEditor({
                 />
               </div>
             </div>
-          </details>
+          </Part>
 
-          <details className={styles.part}>
-            <summary>{t('parts.hero')}</summary>
+          <Part paths={['hero']} summary={t('parts.hero')}>
             <div className={styles.stack}>
               <TextField
                 path="hero.eyebrow"
@@ -572,10 +599,9 @@ export function SiteEditor({
                 )}
               />
             </div>
-          </details>
+          </Part>
 
-          <details className={styles.part}>
-            <summary>{t('parts.sections')}</summary>
+          <Part paths={['sections', 'navLabels']} summary={t('parts.sections')}>
             <div className={styles.stack}>
               <p className={styles.hint}>{t('sectionsHint')}</p>
               <ol className={styles.order}>
@@ -628,13 +654,13 @@ export function SiteEditor({
                 ))}
               </div>
             </div>
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('services')}
+          <Part
+            paths={['services']}
+            summary={t('sectionNames.services')}
+            onOpen={() => scrollPreview('services')}
           >
-            <summary>{t('sectionNames.services')}</summary>
             <Toggle
               path="services"
               label={t('show', { section: t('sectionNames.services') })}
@@ -671,13 +697,13 @@ export function SiteEditor({
               />
               <TextField path="services.note" label={t('note')} max={300} />
             </Toggle>
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('about')}
+          <Part
+            paths={['about']}
+            summary={t('sectionNames.about')}
+            onOpen={() => scrollPreview('about')}
           >
-            <summary>{t('sectionNames.about')}</summary>
             <Toggle
               path="about"
               label={t('show', { section: t('sectionNames.about') })}
@@ -707,13 +733,13 @@ export function SiteEditor({
                 )}
               />
             </Toggle>
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('gallery')}
+          <Part
+            paths={['gallery']}
+            summary={t('sectionNames.gallery')}
+            onOpen={() => scrollPreview('gallery')}
           >
-            <summary>{t('sectionNames.gallery')}</summary>
             <Toggle
               path="gallery"
               label={t('show', { section: t('sectionNames.gallery') })}
@@ -726,13 +752,13 @@ export function SiteEditor({
               <TextField path="gallery.intro" label={t('intro')} max={300} rows={2} />
               <Gallery />
             </Toggle>
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('testimonials')}
+          <Part
+            paths={['testimonials', 'contact.reviewUrl']}
+            summary={t('sectionNames.testimonials')}
+            onOpen={() => scrollPreview('testimonials')}
           >
-            <summary>{t('sectionNames.testimonials')}</summary>
             <Toggle
               path="testimonials"
               label={t('show', { section: t('sectionNames.testimonials') })}
@@ -774,13 +800,13 @@ export function SiteEditor({
               placeholder="https://g.page/r/…/review"
               max={500}
             />
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('banner')}
+          <Part
+            paths={['banner']}
+            summary={t('parts.banner')}
+            onOpen={() => scrollPreview('banner')}
           >
-            <summary>{t('parts.banner')}</summary>
             <Toggle
               path="banner"
               label={t('showBanner')}
@@ -793,13 +819,13 @@ export function SiteEditor({
               <TextField path="banner.text" label={t('bannerText')} max={300} rows={2} />
               <LinkField path="banner.link" label={t('bannerLink')} />
             </Toggle>
-          </details>
+          </Part>
 
-          <details
-            className={styles.part}
-            onToggle={(event) => event.currentTarget.open && scrollPreview('contact')}
+          <Part
+            paths={['contactSection', 'contact', 'hours']}
+            summary={t('parts.contact')}
+            onOpen={() => scrollPreview('contact')}
           >
-            <summary>{t('parts.contact')}</summary>
             <div className={styles.stack}>
               <TextField path="contactSection.title" label={t('contactTitle')} max={80} required />
               <TextField path="contactSection.intro" label={t('intro')} max={300} rows={2} />
@@ -859,10 +885,9 @@ export function SiteEditor({
                 )}
               />
             </div>
-          </details>
+          </Part>
 
-          <details className={styles.part}>
-            <summary>{t('parts.social')}</summary>
+          <Part paths={['social']} summary={t('parts.social')}>
             <div className={styles.stack}>
               {(['instagram', 'facebook', 'tiktok', 'x'] as const).map((network) => (
                 <TextField
@@ -874,10 +899,14 @@ export function SiteEditor({
                 />
               ))}
             </div>
-          </details>
+          </Part>
 
-          <details className={styles.part}>
-            <summary>{t('parts.legal')}</summary>
+          <Part
+            paths={['legal', 'footerNote']}
+            summary={t('parts.legal')}
+            missing={legalMissing}
+            id="legal"
+          >
             <div className={styles.stack}>
               <p className={styles.hint}>{t('legalHint')}</p>
               <TextField path="legal.owner" label={t('legalOwner')} max={160} required />
@@ -899,7 +928,7 @@ export function SiteEditor({
                 max={300}
               />
             </div>
-          </details>
+          </Part>
         </div>
 
         <div className={styles.preview}>
@@ -951,6 +980,69 @@ export function SiteEditor({
         </div>
       </div>
     </EditorContext.Provider>
+  );
+}
+
+/**
+ * A part of the form, folded: its title says when a field inside has to be fixed (it then opens)
+ * or when something the site needs is missing.
+ */
+function Part({
+  paths,
+  summary,
+  id,
+  open,
+  onOpen,
+  missing,
+  children,
+}: {
+  /** The content paths its fields edit. */
+  paths: string[];
+  summary: string;
+  /** Linked to as `#<id>`: such a link opens it. */
+  id?: string;
+  open?: boolean;
+  onOpen?: () => void;
+  missing?: boolean;
+  children: ReactNode;
+}) {
+  const t = useTranslations('SiteEditor');
+  const errors = useContext(EditorContext)?.errors ?? {};
+  const invalid = Object.keys(errors).some((key) =>
+    paths.some((path) => key === path || key.startsWith(`${path}.`)),
+  );
+  const ref = useRef<HTMLDetailsElement>(null);
+  // A field to fix is never left folded away.
+  useEffect(() => {
+    if (invalid && ref.current) ref.current.open = true;
+  }, [invalid]);
+  useEffect(() => {
+    if (!id || window.location.hash !== `#${id}` || !ref.current) return;
+    ref.current.open = true;
+    ref.current.scrollIntoView({ block: 'start' });
+  }, [id]);
+  return (
+    <details
+      ref={ref}
+      id={id}
+      className={styles.part}
+      open={open}
+      onToggle={(event) => {
+        if (event.currentTarget.open) onOpen?.();
+      }}
+    >
+      <summary>
+        {summary}
+        {invalid ? (
+          <span className={styles.flag} data-tone="danger">
+            {t('partInvalid')}
+          </span>
+        ) : missing ? (
+          <span className={styles.flag}>{t('partMissing')}</span>
+        ) : null}
+      </summary>
+      {children}
+    </details>
   );
 }
 

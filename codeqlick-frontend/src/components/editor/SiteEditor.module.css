@@ -125,6 +125,33 @@
   cursor: pointer;
 }
 
+.flag {
+  margin-left: var(--space-2);
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-size: 0.8rem;
+  font-weight: 600;
+  vertical-align: 0.1em;
+}
+
+.flag[data-tone='danger'] {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.bannerLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .part > :not(summary) {
   padding: 0 var(--space-5) var(--space-5);
 }

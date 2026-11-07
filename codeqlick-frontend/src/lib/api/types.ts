@@ -878,6 +878,10 @@ export type PortalSite = {
   businessName: string;
   colors: { primary: string; primaryText: string };
   editable: EditableSite;
+  /** When the editor's draft was saved, if it is not online yet. */
+  unpublishedSince: string | null;
+  /** Legal data the online site lacks (its legal notice needs them). */
+  legalMissing: ('taxId' | 'address')[];
 };
 
 /** Visits of a managed client site, with its form's messages (architecture 8.2). */
