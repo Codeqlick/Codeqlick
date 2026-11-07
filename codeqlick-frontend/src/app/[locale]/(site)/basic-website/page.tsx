@@ -49,7 +49,7 @@ export default async function BasicWebsitePage({ params }: PageProps) {
         <div className={styles.priceBox}>
           <p className={styles.price}>{t('price')}</p>
           <p className={styles.priceNote}>{t('priceNote')}</p>
-          <Button href={REQUEST_HREF} block>
+          <Button href={REQUEST_HREF} block data-umami-event="cta-basic-website-top">
             {t('request')}
           </Button>
           <a href="#demos" className={styles.secondary}>
@@ -155,7 +155,12 @@ export default async function BasicWebsitePage({ params }: PageProps) {
             <p className={home.ctaBody}>{t('ctaBody')}</p>
           </div>
           <div className={home.ctaActions}>
-            <Button href={REQUEST_HREF} variant="ink" block>
+            <Button
+              href={REQUEST_HREF}
+              variant="ink"
+              block
+              data-umami-event="cta-basic-website-bottom"
+            >
               {t('request')}
             </Button>
           </div>

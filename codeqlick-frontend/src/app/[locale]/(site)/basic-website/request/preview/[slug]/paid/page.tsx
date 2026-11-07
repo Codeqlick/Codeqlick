@@ -7,6 +7,7 @@ import { getPurchase } from '@/lib/api/site-requests';
 import { firstParam } from '@/lib/format';
 import home from '../../../../../page.module.css';
 import styles from '../../../request.module.css';
+import { TrackEvent } from '@/components/layout/TrackEvent';
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -52,6 +53,7 @@ export default async function PaidPage({ params, searchParams }: PageProps) {
       <div className={home.intro}>
         <p className="eyebrow">{t('buyEyebrow')}</p>
         <h1 className={home.title}>{title}</h1>
+        {purchase?.status === 'PAID' ? <TrackEvent event="site-bought" /> : null}
         <p className={home.lead}>{body}</p>
         {refresh ? <AutoRefresh seconds={5} /> : null}
         {purchase?.siteUrl ? (

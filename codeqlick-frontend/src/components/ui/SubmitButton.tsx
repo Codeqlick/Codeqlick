@@ -17,6 +17,8 @@ type SubmitButtonProps = {
   disabled?: boolean;
   /** A keyboard shortcut finds the button by this (`data-shortcut`). */
   shortcut?: string;
+  /** Analytics: a click counts as this event (Umami's `data-umami-event`). */
+  trackEvent?: string;
 };
 
 /** Submit button that disables itself and shows `pendingLabel` while its <form> is submitting. */
@@ -31,6 +33,7 @@ export function SubmitButton({
   value,
   disabled,
   shortcut,
+  trackEvent,
 }: SubmitButtonProps) {
   const { pending } = useFormStatus();
   return (
@@ -39,6 +42,7 @@ export function SubmitButton({
       name={name}
       value={value}
       data-shortcut={shortcut}
+      data-umami-event={trackEvent}
       className={buttonClassName({ variant, size, block, className })}
       disabled={disabled || pending}
       aria-disabled={disabled || pending}

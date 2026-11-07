@@ -30,7 +30,7 @@ export async function SiteHeader({ locale }: { locale: AppLocale }) {
             </Link>
           ))}
           <LocaleSwitcher className={styles.desktopOnly} />
-          <Button href="/contact" size="sm">
+          <Button href="/contact" size="sm" data-umami-event="cta-header">
             {t('startProject')}
           </Button>
           <MobileNav

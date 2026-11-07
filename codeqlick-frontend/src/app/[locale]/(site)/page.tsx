@@ -117,7 +117,9 @@ export default async function HomePage({ params }: PageProps) {
           <h1 className={styles.heroTitle}>{t('hero.title')}</h1>
           <p className={styles.heroSub}>{t('hero.sub')}</p>
           <div className={styles.actions}>
-            <Button href="/contact">{t('hero.primary')}</Button>
+            <Button href="/contact" data-umami-event="cta-home-hero">
+              {t('hero.primary')}
+            </Button>
             <a href="#services" className={buttonClassName({ variant: 'outline' })}>
               {t('hero.secondary')}
             </a>
@@ -279,7 +281,7 @@ export default async function HomePage({ params }: PageProps) {
             <p className={styles.ctaBody}>{t('contact.body')}</p>
           </div>
           <div className={styles.ctaActions}>
-            <Button href="/contact" variant="ink" block>
+            <Button href="/contact" variant="ink" block data-umami-event="cta-home-bottom">
               {t('contact.cta')}
             </Button>
             <a href={`mailto:${CONTACT_EMAIL}`} className={styles.ctaEmail}>
