@@ -1,9 +1,9 @@
-/* videochat.codeqlick.com: a dark frame so the video stands out; brand tokens only. */
+/* videochat.codeqlick.com: Codeqlick's light colours (like the website); brand tokens only. */
 
 .frame {
   min-height: 100dvh;
-  background: var(--color-ink);
-  color: var(--color-white);
+  background: var(--color-surface-app);
+  color: var(--color-ink);
   display: flex;
   flex-direction: column;
 }
@@ -14,7 +14,8 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) var(--gutter);
-  border-bottom: 1px solid var(--color-ink-hover);
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-line);
 }
 
 .brand {
@@ -26,7 +27,7 @@
 .brandApp {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-fuchsia-light);
+  color: var(--color-fuchsia-dark);
 }
 
 .adultBadge {
@@ -46,14 +47,14 @@
 }
 
 .headerLink {
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
   text-decoration: none;
   font-size: 0.95rem;
 }
 
 .headerLink:hover,
 .inlineLink:hover {
-  color: var(--color-fuchsia-light);
+  color: var(--color-fuchsia-dark);
 }
 
 .locale {
@@ -61,7 +62,7 @@
 }
 
 .signOut {
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
 }
 
 .main {
@@ -87,7 +88,7 @@
 .eyebrow {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-fuchsia-light);
+  color: var(--color-fuchsia-dark);
   margin: 0 0 var(--space-3);
 }
 
@@ -100,13 +101,13 @@
 
 .heroLead {
   font-size: 1.15rem;
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
   margin: 0 0 var(--space-6);
 }
 
 .warning {
   border: 1.5px solid var(--color-fuchsia);
-  background: rgb(217 23 126 / 12%);
+  background: var(--color-blush);
   border-radius: var(--radius-md);
   padding: var(--space-4);
   margin: 0 0 var(--space-6);
@@ -120,19 +121,14 @@
   gap: var(--space-3);
 }
 
-.outlineLight {
-  color: var(--color-white);
-  border-color: var(--color-white);
-}
-
 .leaveLink {
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
   font-size: 0.9rem;
 }
 
 .note,
 .muted {
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
   font-size: 0.95rem;
 }
 
@@ -154,7 +150,7 @@
   padding-left: 1.2rem;
   display: grid;
   gap: var(--space-3);
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
 }
 
 .steps li {
@@ -163,7 +159,7 @@
 }
 
 .steps strong {
-  color: var(--color-white);
+  color: var(--color-ink);
 }
 
 /* Rules, onboarding and notices */
@@ -186,14 +182,8 @@
   border-radius: var(--radius-lg);
   background: var(--color-white);
   color: var(--color-ink);
-}
-
-.panel .muted {
-  color: var(--color-slate);
-}
-
-.panel .warning {
-  background: var(--color-blush);
+  border: 1px solid var(--color-line);
+  box-shadow: var(--shadow-md);
 }
 
 .form {
@@ -242,8 +232,8 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: #2ecc71;
-  box-shadow: 0 0 0 3px rgb(46 204 113 / 25%);
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-bg);
 }
 
 .suspension {

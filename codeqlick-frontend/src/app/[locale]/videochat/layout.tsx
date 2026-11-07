@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   };
 }
 
-/** The video chat's own frame (videochat.codeqlick.com): dark, no site header or footer. */
+/** The video chat's own frame (videochat.codeqlick.com): Codeqlick's light colours, no site header or footer. */
 export default async function VideochatLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
@@ -34,7 +34,7 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
     <div className={styles.frame}>
       <header className={styles.header}>
         <div className={styles.brand}>
-          <Logo href="/videochat" size="sm" tone="light" label={t('homeLabel')} />
+          <Logo href="/videochat" size="sm" label={t('homeLabel')} />
           <span className={styles.brandApp}>{t('brand')}</span>
           <span className={styles.adultBadge}>{t('adultBadge')}</span>
         </div>

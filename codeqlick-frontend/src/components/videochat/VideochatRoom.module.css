@@ -54,8 +54,9 @@
   aspect-ratio: 4 / 3;
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--color-ink-hover);
-  border: 2px solid var(--color-ink);
+  background: var(--color-line-strong);
+  border: 2px solid var(--color-white);
+  box-shadow: var(--shadow-md);
 }
 
 .video {
@@ -88,7 +89,7 @@
   place-items: center;
   padding: var(--space-6);
   text-align: center;
-  background: radial-gradient(circle at center, var(--color-ink-hover), var(--color-ink));
+  background: radial-gradient(circle at center, var(--color-white), var(--color-blush));
 }
 
 .startBox {
@@ -96,14 +97,14 @@
   display: grid;
   gap: var(--space-3);
   justify-items: center;
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
 }
 
 .startTitle {
   font-family: var(--font-family-display);
   font-size: 1.8rem;
   margin: 0;
-  color: var(--color-white);
+  color: var(--color-ink);
 }
 
 .status {
@@ -111,14 +112,14 @@
   align-items: center;
   gap: var(--space-3);
   font-size: 1.1rem;
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
 }
 
 .spinner {
   width: 1.2rem;
   height: 1.2rem;
   border-radius: 50%;
-  border: 3px solid var(--color-ink-hover);
+  border: 3px solid var(--color-line-strong);
   border-top-color: var(--color-fuchsia);
   animation: spin 0.9s linear infinite;
 }
@@ -140,8 +141,8 @@
   margin: 0;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
-  background: var(--color-ink-hover);
-  color: var(--color-white);
+  background: var(--color-blush);
+  color: var(--color-ink);
 }
 
 .noticeError {
@@ -182,23 +183,23 @@
 }
 
 .secondary {
-  background: transparent;
-  color: var(--color-white);
-  border-color: var(--color-muted-on-ink);
+  background: var(--color-white);
+  color: var(--color-ink);
+  border-color: var(--color-line-strong);
 }
 
 .secondary:hover:not(:disabled) {
-  border-color: var(--color-white);
+  border-color: var(--color-ink);
 }
 
 .danger {
-  background: transparent;
-  color: var(--color-fuchsia-light);
-  border-color: var(--color-fuchsia-light);
+  background: var(--color-white);
+  color: var(--color-fuchsia-dark);
+  border-color: var(--color-fuchsia-dark);
 }
 
 .danger:hover:not(:disabled) {
-  background: rgb(255 125 190 / 12%);
+  background: var(--color-blush);
 }
 
 .primary:disabled,
@@ -213,15 +214,16 @@
 .danger:focus-visible,
 .chatInput:focus-visible,
 .select:focus-visible {
-  outline: 3px solid var(--color-fuchsia-light);
+  outline: 3px solid var(--color-fuchsia);
   outline-offset: 2px;
 }
 
 .chat {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-ink-hover);
+  border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
+  background: var(--color-white);
   min-height: 16rem;
   max-height: 32rem;
   overflow: hidden;
@@ -237,7 +239,7 @@
 }
 
 .chatEmpty {
-  color: var(--color-muted-on-ink);
+  color: var(--color-slate);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -256,11 +258,13 @@
 .lineMe {
   justify-self: end;
   background: var(--color-fuchsia);
+  color: var(--color-white);
 }
 
 .lineThem {
   justify-self: start;
-  background: var(--color-ink-hover);
+  background: var(--color-blush);
+  color: var(--color-ink);
 }
 
 .lineWho {
@@ -273,7 +277,7 @@
   display: flex;
   gap: var(--space-2);
   padding: var(--space-3);
-  border-top: 1px solid var(--color-ink-hover);
+  border-top: 1px solid var(--color-line);
 }
 
 .chatInput,
@@ -343,7 +347,7 @@
   margin-left: var(--space-1);
   padding: 0 0.3rem;
   border-radius: 0.25rem;
-  border: 1px solid rgb(255 255 255 / 40%);
+  border: 1px solid currentColor;
   font-family: var(--font-family-mono);
   font-size: 0.7rem;
   opacity: 0.8;
