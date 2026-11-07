@@ -2916,6 +2916,8 @@
       "start": "Turn on camera and start",
       "starting": "Connecting…",
       "searching": "Looking for someone…",
+      "othersWaiting": "{count, plural, one {# more person is waiting, but you can't be paired right now: your filters, a block, or you just talked (you can meet again after a minute).} other {# more people are waiting, but you can't be paired right now: your filters, a block, or you just talked (you can meet again after a minute).}}",
+      "checkFilters": "Check my filters",
       "connecting": "Connecting to them…",
       "connected": "Connected",
       "partnerLeft": "They left. Looking for someone else…",

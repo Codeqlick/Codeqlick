@@ -79,6 +79,34 @@ export class Matchmaker {
     return { status: 'matched', partner };
   }
 
+  /**
+   * Pairs people already waiting who may meet now (a rematch cooldown ran out). Oldest first;
+   * in each pair the first one waited longer.
+   */
+  pairWaiting(now: number = Date.now()): Array<[Participant, Participant]> {
+    const pairs: Array<[Participant, Participant]> = [];
+    for (let i = 0; i < this.queue.length; i++) {
+      const older = this.queue[i] as Participant;
+      const j = this.queue.findIndex(
+        (other, index) => index > i && Matchmaker.compatible(older, other, now),
+      );
+      if (j === -1) continue;
+      const newer = this.queue[j] as Participant;
+      this.queue.splice(j, 1);
+      this.queue.splice(i, 1);
+      i--;
+      this.pairs.set(older.id, newer);
+      this.pairs.set(newer.id, older);
+      pairs.push([older, newer]);
+    }
+    return pairs;
+  }
+
+  /** Everyone waiting, oldest first. */
+  get waiting(): readonly Participant[] {
+    return this.queue;
+  }
+
   partnerOf(participantId: string): Participant | undefined {
     return this.pairs.get(participantId);
   }

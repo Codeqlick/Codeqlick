@@ -117,6 +117,8 @@ test('two people meet in the video chat, talk and move on', async ({
     // Esc is "next": Ana is told and both look for someone else.
     await ben.keyboard.press('Escape');
     await expect(ana.getByText('La otra persona se ha ido. Buscando a otra…')).toBeVisible();
+    // They just talked, so they can't meet again for a minute: Ana is told why she waits.
+    await expect(ana.getByText('Hay 1 persona más esperando', { exact: false })).toBeVisible();
   } finally {
     for (const id of ids) {
       await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });

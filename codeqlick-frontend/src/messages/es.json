@@ -2916,6 +2916,8 @@
       "start": "Activar cámara y empezar",
       "starting": "Conectando…",
       "searching": "Buscando a alguien…",
+      "othersWaiting": "{count, plural, one {Hay # persona más esperando, pero ahora no podéis coincidir: por vuestros filtros, por un bloqueo o porque acabáis de hablar (podréis volver a coincidir en un minuto).} other {Hay # personas más esperando, pero ahora no podéis coincidir: por vuestros filtros, por un bloqueo o porque acabáis de hablar (podréis volver a coincidir en un minuto).}}",
+      "checkFilters": "Revisar mis filtros",
       "connecting": "Conectando con la otra persona…",
       "connected": "En llamada",
       "partnerLeft": "La otra persona se ha ido. Buscando a otra…",
