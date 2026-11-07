@@ -146,6 +146,14 @@ export class Matchmaker {
     return pairs;
   }
 
+  /** Puts two people in a call directly (a call between contacts), out of the queue. */
+  pair(a: Participant, b: Participant): void {
+    this.remove(a.id);
+    this.remove(b.id);
+    this.pairs.set(a.id, b);
+    this.pairs.set(b.id, a);
+  }
+
   /** Everyone waiting, oldest first. */
   get waiting(): readonly Participant[] {
     return this.queue;

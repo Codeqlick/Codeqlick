@@ -2973,7 +2973,25 @@
       "widened": "Searching without your filters (this time only)…",
       "widenHint": "Nobody fits your filters right now.",
       "shared": "In common",
-      "partnerInterests": "Their interests"
+      "partnerInterests": "Their interests",
+      "like": "Like",
+      "liked": "You liked them. If they like you too, you will be contacts.",
+      "mutual": "You like each other! You and {name} are contacts now.",
+      "mutualAnonymous": "You like each other! You are contacts now.",
+      "calling": "Calling {name}…",
+      "callingAnonymous": "Calling your contact…",
+      "cancelCall": "Hang up",
+      "incomingTitle": "{name} is calling you",
+      "incomingAnonymous": "A contact is calling you",
+      "accept": "Accept",
+      "decline": "Decline",
+      "callDeclined": "Your contact declined the call.",
+      "callTimeout": "Your contact did not answer.",
+      "callBusy": "Your contact is in another call. Try later.",
+      "callOffline": "Your contact is no longer in the video chat.",
+      "callMissed": "You missed a call from a contact.",
+      "notContact": "That person is no longer your contact.",
+      "incomingRing": "● Incoming call"
     },
     "rules": {
       "title": "Video chat rules",
@@ -3097,6 +3115,23 @@
       "couples": "Couples",
       "lgbtq": "LGBTQ+",
       "nostrings": "No strings"
+    },
+    "contactsLink": "Contacts",
+    "contacts": {
+      "title": "Contacts",
+      "lead": "People you both liked. You can call them when they are in the video chat and free.",
+      "empty": "No contacts yet. During a call (or right after), press “Like”: if they do too, they will show up here.",
+      "online": "In the video chat",
+      "busy": "In a call",
+      "offline": "Not here now",
+      "call": "Call",
+      "remove": "Remove contact",
+      "removed": "Contact removed.",
+      "error": "Could not remove it. Try again.",
+      "since": "Contacts since {date}",
+      "anonymous": "No nickname",
+      "interests": "Interests",
+      "refresh": "Refresh"
     }
   },
   "AdminVideochat": {

@@ -450,3 +450,62 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+
+/* Like and calls between contacts (architecture 4.7) */
+.like {
+  min-height: 2.75rem;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+  border: 1.5px solid var(--color-fuchsia);
+}
+
+.like:hover:not(:disabled) {
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+}
+
+.like:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.like[aria-pressed='true'] {
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  opacity: 1;
+}
+
+.like:focus-visible {
+  outline: 3px solid var(--color-fuchsia-light);
+  outline-offset: 2px;
+}
+
+.incoming {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  max-width: 22rem;
+  padding: var(--space-6);
+  border: 1.5px solid var(--color-fuchsia);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+.incomingTitle {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.incomingActions {
+  display: flex;
+  gap: var(--space-2);
+}

@@ -47,6 +47,11 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
             {t('rulesLink')}
           </Link>
           {user ? (
+            <Link href="/videochat/contacts" className={styles.headerLink}>
+              {t('contactsLink')}
+            </Link>
+          ) : null}
+          {user ? (
             <Link href="/videochat/settings" className={styles.headerLink}>
               {t('settingsLink')}
             </Link>

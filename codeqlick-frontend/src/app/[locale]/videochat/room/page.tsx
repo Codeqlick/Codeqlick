@@ -11,7 +11,12 @@ import { env } from '@/lib/env';
 import styles from '../videochat.module.css';
 import { appealAction, onboardAction, ticketAction } from './actions';
 
-type PageProps = { params: Promise<{ locale: string }> };
+type PageProps = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ call?: string | string[] }>;
+};
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * The signaling WebSocket as this browser opens it: VIDEOCHAT_WS_URL when set, else
@@ -24,9 +29,11 @@ async function websocketUrl(): Promise<string> {
   return `wss://${host}/ws`;
 }
 
-export default async function VideochatRoomPage({ params }: PageProps) {
+export default async function VideochatRoomPage({ params, searchParams }: PageProps) {
   const locale = resolveLocale((await params).locale);
   await requireUser(locale, `/${locale}/videochat/room`);
+  const call = (await searchParams).call;
+  const callContactId = typeof call === 'string' && UUID.test(call) ? call : undefined;
   const t = await getTranslations({ locale, namespace: 'Videochat' });
   const status = await getVideochatStatus();
 
@@ -125,6 +132,7 @@ export default async function VideochatRoomPage({ params }: PageProps) {
       getTicket={ticketAction}
       locale={locale}
       myInterests={status.profile?.interests ?? []}
+      callContactId={callContactId}
     />
   );
 }
