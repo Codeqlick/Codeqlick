@@ -112,12 +112,41 @@ describe('Matchmaker', () => {
     expect(matchmaker.waiting).toEqual([cai]);
   });
 
-  it('picks among the five who waited longest', () => {
+  it('picks among the three who waited longest when nothing else tells them apart', () => {
     const mm = new Matchmaker();
     // One account in eight tabs: they never pair with each other, so all eight wait.
     for (let i = 0; i < 8; i += 1) mm.join(person(`w${i}`, 'waiter'));
     const result = mm.join(person('new'), () => 0.99);
-    expect(result).toEqual({ status: 'matched', partner: expect.objectContaining({ id: 'w4' }) });
+    expect(result).toEqual({ status: 'matched', partner: expect.objectContaining({ id: 'w2' }) });
+  });
+
+  it('prefers someone not met today, then more interests in common', () => {
+    const mm = new Matchmaker();
+    const met = { ...person('met'), interests: ['music', 'travel'] };
+    const one = { ...person('one'), interests: ['music'] };
+    const two = { ...person('two'), interests: ['music', 'travel', 'books'] };
+    for (const p of [met, one, two]) mm.join(p);
+    const me = {
+      ...person('me'),
+      interests: ['music', 'travel'],
+      recent: new Set(['user-met']),
+    };
+    expect(mm.join(me, () => 0)).toEqual({ status: 'matched', partner: two });
+    // Only someone already met is left: they still meet.
+    mm.remove('me');
+    mm.join(one);
+    const again = { ...person('me2', 'user-me'), recent: new Set(['user-met', 'user-one']) };
+    expect(Matchmaker.best(again, [met, one])).toEqual([met, one]);
+  });
+
+  it('a widened wait skips only its own filters', () => {
+    const picky = { ...person('p'), prefs: prefs({ gender: 'MAN', seeking: ['WOMAN'] }) };
+    const man = { ...person('m'), prefs: prefs({ gender: 'MAN' }) };
+    const choosy = { ...person('c'), prefs: prefs({ gender: 'MAN', seeking: ['WOMAN'] }) };
+    expect(Matchmaker.compatible(picky, man)).toBe(false);
+    expect(Matchmaker.compatible({ ...picky, widened: true }, man)).toBe(true);
+    // The other person's filters still hold.
+    expect(Matchmaker.compatible({ ...picky, widened: true }, choosy)).toBe(false);
   });
 
   it('remove ends a call and returns the partner; ends a wait silently', () => {

@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from '@/i18n/navigation';
+import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
 import styles from './VideochatRoom.module.css';
 
@@ -23,7 +24,7 @@ type SignalData =
 
 type ServerMessage =
   | { type: 'ready' }
-  | { type: 'waiting'; others: number }
+  | { type: 'waiting'; others: number; filtered: boolean; widened: boolean }
   | { type: 'matched'; initiator: boolean; partner: PartnerProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }
@@ -38,7 +39,11 @@ type PartnerProfile = {
   gender: 'WOMAN' | 'MAN' | 'NONBINARY' | null;
   country: string | null;
   language: string | null;
+  interests?: string[];
 };
+
+/** After this long waiting with filters on, the room offers to search without them once. */
+const WIDEN_AFTER_MS = 30_000;
 
 type Phase = 'idle' | 'starting' | 'searching' | 'connecting' | 'connected' | 'stopped' | 'closed';
 
@@ -100,12 +105,16 @@ export function VideochatRoom({
   wsUrl,
   getTicket,
   locale,
+  myInterests = [],
 }: {
   wsUrl: string;
   getTicket: () => Promise<TicketResult>;
   locale: string;
+  /** This person's interests, to highlight the ones a partner shares. */
+  myInterests?: string[];
 }) {
   const t = useTranslations('Videochat.room');
+  const ti = useTranslations('Videochat.interests');
   const tg = useTranslations('Videochat.genders');
   const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
@@ -117,6 +126,10 @@ export function VideochatRoom({
   const [hadPartner, setHadPartner] = useState(false);
   /** People waiting who can't be paired with this person now (filters, blocks, just met). */
   const [othersWaiting, setOthersWaiting] = useState(0);
+  /** This person has filters, and whether this wait ignores them. */
+  const [filters, setFilters] = useState({ filtered: false, widened: false });
+  /** Waited long enough with filters on to be offered a wider search. */
+  const [canWiden, setCanWiden] = useState(false);
   /** The camera stream is on (kept in a ref; this mirrors it for rendering). */
   const [hasCamera, setHasCamera] = useState(false);
 
@@ -275,9 +288,11 @@ export function VideochatRoom({
         case 'waiting':
           setPhase('searching');
           setOthersWaiting(message.others);
+          setFilters({ filtered: message.filtered, widened: message.widened });
           return;
         case 'matched':
           setOthersWaiting(0);
+          setCanWiden(false);
           setChat([]);
           setNotice(null);
           setHadPartner(true);
@@ -507,11 +522,24 @@ export function VideochatRoom({
   };
 
   const inRoom = online || phase === 'stopped';
+  const offerWiden = phase === 'searching' && filters.filtered && !filters.widened;
+  useEffect(() => {
+    if (!offerWiden) return;
+    const timer = setTimeout(() => setCanWiden(true), WIDEN_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [offerWiden]);
+
+  const sharedInterests = new Set(
+    (partner?.interests ?? []).filter((interest) => myInterests.includes(interest)),
+  );
+
   const status =
     phase === 'starting'
       ? t('starting')
       : phase === 'searching'
-        ? t('searching')
+        ? filters.widened
+          ? t('widened')
+          : t('searching')
         : phase === 'connecting'
           ? t('connecting')
           : phase === 'connected'
@@ -554,6 +582,18 @@ export function VideochatRoom({
                   <Link href="/videochat/settings">{t('checkFilters')}</Link>
                 </p>
               ) : null}
+              {offerWiden && canWiden ? (
+                <div className={styles.widen}>
+                  <p className={styles.statusHint}>{t('widenHint')}</p>
+                  <button
+                    type="button"
+                    className={styles.secondary}
+                    onClick={() => send({ type: 'widen' })}
+                  >
+                    {t('widen')}
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
           <span className={styles.tag}>
@@ -564,6 +604,20 @@ export function VideochatRoom({
               : ''}
             {partner?.language ? ` · ${languageName(partner.language, locale)}` : ''}
           </span>
+          {partner?.interests?.length ? (
+            <ul className={styles.interests} aria-label={t('partnerInterests')}>
+              {partner.interests.map((interest) => (
+                <li
+                  key={interest}
+                  className={sharedInterests.has(interest) ? styles.sharedInterest : undefined}
+                  title={sharedInterests.has(interest) ? t('shared') : undefined}
+                >
+                  {sharedInterests.has(interest) ? '★ ' : ''}
+                  {isInterest(interest) ? ti(interest) : interest}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
         <div className={styles.local}>
           <video ref={localVideo} autoPlay playsInline muted className={styles.video} />

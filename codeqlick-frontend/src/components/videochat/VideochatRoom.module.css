@@ -415,3 +415,38 @@
 .statusHint a {
   color: var(--color-fuchsia-dark);
 }
+
+/* The partner's interests, under their tag; the shared ones stand out. */
+.interests {
+  position: absolute;
+  left: var(--space-2);
+  top: calc(var(--space-2) + 1.6rem);
+  right: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+}
+
+.interests li {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgb(20 16 31 / 55%);
+  color: var(--color-white);
+}
+
+.interests .sharedInterest {
+  background: var(--color-fuchsia);
+  font-weight: 600;
+}
+
+/* "Search without my filters this time", after 30 s with nobody. */
+.widen {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

@@ -1,11 +1,14 @@
 import 'server-only';
 import { apiFetch } from './client';
 import { isApiError } from './errors';
+import type { Interest } from '../videochat-interests';
 
 /** The video chat (architecture 4.7). Shapes mirror the API's videochat module. */
 
 export const GENDERS = ['WOMAN', 'MAN', 'NONBINARY'] as const;
 export type Gender = (typeof GENDERS)[number];
+
+export { INTERESTS, MAX_INTERESTS, type Interest } from '../videochat-interests';
 
 /** Public profile and matching filters (all free). */
 export type VideochatSettings = {
@@ -16,6 +19,7 @@ export type VideochatSettings = {
   language: string | null;
   sameCountryOnly: boolean;
   sameLanguageOnly: boolean;
+  interests: Interest[];
 };
 
 export type AppealStatus = 'OPEN' | 'ACCEPTED' | 'REJECTED';

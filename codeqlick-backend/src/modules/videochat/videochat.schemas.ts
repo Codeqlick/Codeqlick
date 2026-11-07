@@ -44,6 +44,32 @@ export const reportsQuerySchema = z.object({
 export type ReportsQuery = z.infer<typeof reportsQuerySchema>;
 
 export const GENDERS = ['WOMAN', 'MAN', 'NONBINARY'] as const;
+
+/** Interests a profile can show (a fixed list: nothing to moderate; architecture 4.7). */
+export const INTERESTS = [
+  'chat',
+  'friends',
+  'flirting',
+  'music',
+  'movies',
+  'series',
+  'gaming',
+  'sports',
+  'fitness',
+  'travel',
+  'books',
+  'art',
+  'photography',
+  'tech',
+  'food',
+  'anime',
+  'languages',
+  'nature',
+  'pets',
+  'fashion',
+] as const;
+export type Interest = (typeof INTERESTS)[number];
+export const MAX_INTERESTS = 5;
 export const genderSchema = z.enum(GENDERS);
 
 /** Public profile and matching filters (architecture 4.7). All free. */
@@ -70,6 +96,11 @@ export const settingsSchema = z.object({
     .nullable(),
   sameCountryOnly: z.boolean(),
   sameLanguageOnly: z.boolean(),
+  interests: z
+    .array(z.enum(INTERESTS))
+    .transform((list) => [...new Set(list)])
+    .pipe(z.array(z.enum(INTERESTS)).max(MAX_INTERESTS))
+    .default([]),
 });
 export type VideochatSettings = z.infer<typeof settingsSchema>;
 
@@ -79,6 +110,7 @@ export interface PublicProfile {
   gender: (typeof GENDERS)[number] | null;
   country: string | null;
   language: string | null;
+  interests: Interest[];
 }
 
 export const SUSPENSION_DURATIONS = ['24h', '7d', '30d', 'permanent'] as const;
@@ -171,6 +203,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('join') }),
   z.object({ type: z.literal('next') }),
   z.object({ type: z.literal('leave') }),
+  /** Search without my own filters, for this wait only. */
+  z.object({ type: z.literal('widen') }),
   z.object({ type: z.literal('signal'), data: signalDataSchema }),
   z.object({ type: z.literal('chat'), text: z.string().trim().min(1).max(CHAT_MAX_LENGTH) }),
   z.object({
@@ -185,8 +219,11 @@ export type ClientMessage = z.infer<typeof clientMessageSchema>;
 /** Server → browser. */
 export type ServerMessage =
   | { type: 'ready' }
-  /** `others`: people waiting who can't be paired with this one now (filters, blocks, cooldown). */
-  | { type: 'waiting'; others: number }
+  /**
+   * `others`: people waiting who can't be paired with this one now (filters, blocks, cooldown);
+   * `filtered`: this person has filters; `widened`: this wait ignores them.
+   */
+  | { type: 'waiting'; others: number; filtered: boolean; widened: boolean }
   | { type: 'matched'; initiator: boolean; partner: PublicProfile }
   | { type: 'signal'; data: SignalData }
   | { type: 'chat'; text: string }

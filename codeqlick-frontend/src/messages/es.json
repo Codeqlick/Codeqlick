@@ -2968,7 +2968,12 @@
       },
       "reconnecting": "Se perdió la conexión. Reconectando…",
       "callFailed": "No se pudo conectar con esa persona. Buscando a otra…",
-      "matchedTitle": "● ¡Nueva persona!"
+      "matchedTitle": "● ¡Nueva persona!",
+      "widen": "Buscar sin mis filtros esta vez",
+      "widened": "Buscando sin tus filtros (solo esta vez)…",
+      "widenHint": "Nadie con tus filtros por ahora.",
+      "shared": "En común",
+      "partnerInterests": "Sus intereses"
     },
     "rules": {
       "title": "Normas del videochat",
@@ -3033,7 +3038,10 @@
       "saving": "Guardando…",
       "saved": "Guardado. Se aplica en tu próxima conexión a la sala.",
       "error": "No se ha podido guardar. Inténtalo de nuevo.",
-      "backToRoom": "Volver a la sala"
+      "backToRoom": "Volver a la sala",
+      "interests": "Tus intereses",
+      "interestsHint": "Elige hasta {max}. No dejan fuera a nadie: sirven para que conozcas antes a gente con gustos en común, y la otra persona los verá.",
+      "interestsTooMany": "Elige como mucho {max} intereses."
     },
     "install": {
       "title": "Llévalo en el móvil",
@@ -3053,6 +3061,28 @@
       "unsupported": "Este navegador no admite avisos.",
       "iosInstall": "En iPhone, primero instala la app (Compartir → «Añadir a pantalla de inicio») y activa los avisos desde ella.",
       "error": "No se han podido activar los avisos. Inténtalo de nuevo."
+    },
+    "interests": {
+      "chat": "Charlar",
+      "friends": "Hacer amistades",
+      "flirting": "Ligar",
+      "music": "Música",
+      "movies": "Cine",
+      "series": "Series",
+      "gaming": "Videojuegos",
+      "sports": "Deporte",
+      "fitness": "Gimnasio",
+      "travel": "Viajar",
+      "books": "Libros",
+      "art": "Arte",
+      "photography": "Fotografía",
+      "tech": "Tecnología",
+      "food": "Cocina",
+      "anime": "Anime",
+      "languages": "Idiomas",
+      "nature": "Naturaleza",
+      "pets": "Mascotas",
+      "fashion": "Moda"
     }
   },
   "AdminVideochat": {

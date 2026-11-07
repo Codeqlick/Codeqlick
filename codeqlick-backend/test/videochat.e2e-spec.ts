@@ -174,6 +174,7 @@ describe('Video chat (e2e)', () => {
       language: 'es',
       sameCountryOnly: false,
       sameLanguageOnly: false,
+      interests: ['music', 'travel'],
     };
     await request(server())
       .put('/v1/videochat/profile')
@@ -184,6 +185,17 @@ describe('Video chat (e2e)', () => {
       .put('/v1/videochat/profile')
       .set(users.ana!.auth)
       .send({ ...profile, country: 'Spain' })
+      .expect(400);
+    // Interests: only from the list, at most five.
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.ana!.auth)
+      .send({ ...profile, interests: ['knitting'] })
+      .expect(400);
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.ana!.auth)
+      .send({ ...profile, interests: ['music', 'travel', 'books', 'art', 'food', 'pets'] })
       .expect(400);
     await request(server())
       .put('/v1/videochat/profile')
@@ -242,12 +254,18 @@ describe('Video chat (e2e)', () => {
     expect(await ben.next('matched')).toEqual({
       type: 'matched',
       initiator: true,
-      partner: { nickname: 'Ana', gender: 'WOMAN', country: 'ES', language: 'es' },
+      partner: {
+        nickname: 'Ana',
+        gender: 'WOMAN',
+        country: 'ES',
+        language: 'es',
+        interests: ['music', 'travel'],
+      },
     });
     expect(await ana.next('matched')).toEqual({
       type: 'matched',
       initiator: false,
-      partner: { nickname: null, gender: null, country: null, language: null },
+      partner: { nickname: null, gender: null, country: null, language: null, interests: [] },
     });
 
     const offer = { sdp: { type: 'offer', sdp: 'v=0 fake offer' } };
@@ -270,7 +288,12 @@ describe('Video chat (e2e)', () => {
     await ben.next('waiting');
     ana.send({ type: 'join' });
     // She is told someone else waits but can't be paired with her now.
-    expect(await ana.next('waiting')).toEqual({ type: 'waiting', others: 1 });
+    expect(await ana.next('waiting')).toEqual({
+      type: 'waiting',
+      others: 1,
+      filtered: false,
+      widened: false,
+    });
 
     // A third person gets one of them.
     const cai = await connect('cai');
@@ -531,6 +554,41 @@ describe('Video chat (e2e)', () => {
     cai = await connect('cai');
     cai.send({ type: 'join' });
     expect(await cai.next('matched')).toMatchObject({ partner: { gender: 'MAN' } });
+    ben.socket.close();
+    cai.socket.close();
+  });
+
+  it("widens one wait: own filters off, the other person's still on", async () => {
+    const settings = (gender: string | null, seeking: string[]) => ({
+      nickname: null,
+      gender,
+      seeking,
+      country: null,
+      language: null,
+      sameCountryOnly: false,
+      sameLanguageOnly: false,
+      interests: [],
+    });
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.ben!.auth)
+      .send(settings('MAN', ['WOMAN']))
+      .expect(200);
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.cai!.auth)
+      .send(settings(null, []))
+      .expect(200);
+    const ben = await connect('ben');
+    ben.send({ type: 'join' });
+    expect(await ben.next('waiting')).toMatchObject({ filtered: true, widened: false });
+    const cai = await connect('cai');
+    cai.send({ type: 'join' });
+    await cai.next('waiting');
+    // Ben searches without his filters this time: cai (no gender) fits now.
+    ben.send({ type: 'widen' });
+    expect(await ben.next('matched')).toMatchObject({ partner: { gender: null, interests: [] } });
+    await cai.next('matched');
     ben.socket.close();
     cai.socket.close();
   });

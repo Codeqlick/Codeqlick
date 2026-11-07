@@ -26,7 +26,27 @@ export interface Participant {
   lastPartner?: { userId: string; until: number };
   /** Filters; none: anyone, and fits anyone's filters that ask for nothing. */
   prefs?: MatchPrefs;
+  /** This wait ignores the person's own filters (never the other person's). */
+  widened?: boolean;
+  /** Interests from the fixed list: people sharing more meet first. */
+  interests?: readonly string[];
+  /** Accounts talked to in the last 24 hours: people not in it meet first. */
+  recent?: { has(userId: string): boolean };
 }
+
+/** Whether the person's filters narrow who they meet. */
+export function hasFilters(prefs: MatchPrefs | undefined): boolean {
+  return !!prefs && (prefs.seeking.length > 0 || prefs.sameCountryOnly || prefs.sameLanguageOnly);
+}
+
+/** Interests two people share. */
+export function sharedInterests(a: Participant, b: Participant): string[] {
+  const theirs = new Set(b.interests ?? []);
+  return (a.interests ?? []).filter((interest) => theirs.has(interest));
+}
+
+/** How many of the best-ranked candidates the pick is random among. */
+const PICK_AMONG = 3;
 
 /** Whether `a`'s filters accept `b` (one direction). */
 export function accepts(a: MatchPrefs | undefined, b: MatchPrefs | undefined): boolean {
@@ -52,13 +72,37 @@ export class Matchmaker {
     const recent = (p: Participant, other: Participant) =>
       p.lastPartner?.userId === other.userId && p.lastPartner.until > now;
     if (recent(a, b) || recent(b, a)) return false;
-    // Filters hold both ways: each one fits what the other is looking for.
-    return accepts(a.prefs, b.prefs) && accepts(b.prefs, a.prefs);
+    // Filters hold both ways: each one fits what the other is looking for (a widened wait skips
+    // only that person's own filters).
+    return (a.widened || accepts(a.prefs, b.prefs)) && (b.widened || accepts(b.prefs, a.prefs));
   }
 
   /**
-   * Puts someone in the queue, or pairs them with someone waiting (picked at random among the
-   * compatible ones; only the five oldest are candidates, so nobody waits forever).
+   * The candidates `participant` should meet now: those tied for best on, in order, not having
+   * met in the last 24 hours and most interests in common; at most three, who waited longest.
+   */
+  static best(participant: Participant, candidates: Participant[]): Participant[] {
+    const met = (other: Participant) =>
+      participant.recent?.has(other.userId) || other.recent?.has(participant.userId) ? 1 : 0;
+    const ranked = candidates
+      .map((other, index) => ({
+        other,
+        index,
+        met: met(other),
+        shared: sharedInterests(participant, other).length,
+      }))
+      .sort((x, y) => x.met - y.met || y.shared - x.shared || x.index - y.index);
+    const top = ranked[0];
+    if (!top) return [];
+    return ranked
+      .filter((entry) => entry.met === top.met && entry.shared === top.shared)
+      .slice(0, PICK_AMONG)
+      .map((entry) => entry.other);
+  }
+
+  /**
+   * Puts someone in the queue, or pairs them with someone waiting: at random among the best
+   * compatible people (see `best`).
    */
   join(
     participant: Participant,
@@ -71,7 +115,7 @@ export class Matchmaker {
       this.queue.push(participant);
       return { status: 'waiting' };
     }
-    const pool = candidates.slice(0, 5);
+    const pool = Matchmaker.best(participant, candidates);
     const partner = pool[Math.floor(random() * pool.length)] as Participant;
     this.queue.splice(this.queue.indexOf(partner), 1);
     this.pairs.set(participant.id, partner);

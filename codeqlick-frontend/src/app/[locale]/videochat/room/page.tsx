@@ -119,5 +119,12 @@ export default async function VideochatRoomPage({ params }: PageProps) {
     );
   }
 
-  return <VideochatRoom wsUrl={await websocketUrl()} getTicket={ticketAction} locale={locale} />;
+  return (
+    <VideochatRoom
+      wsUrl={await websocketUrl()}
+      getTicket={ticketAction}
+      locale={locale}
+      myInterests={status.profile?.interests ?? []}
+    />
+  );
 }

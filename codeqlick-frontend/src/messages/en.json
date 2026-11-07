@@ -2968,7 +2968,12 @@
       },
       "reconnecting": "Connection lost. Reconnecting…",
       "callFailed": "Couldn't connect with that person. Looking for someone else…",
-      "matchedTitle": "● Someone new!"
+      "matchedTitle": "● Someone new!",
+      "widen": "Search without my filters this time",
+      "widened": "Searching without your filters (this time only)…",
+      "widenHint": "Nobody fits your filters right now.",
+      "shared": "In common",
+      "partnerInterests": "Their interests"
     },
     "rules": {
       "title": "Video chat rules",
@@ -3033,7 +3038,10 @@
       "saving": "Saving…",
       "saved": "Saved. It applies the next time you join the room.",
       "error": "Couldn't save. Please try again.",
-      "backToRoom": "Back to the room"
+      "backToRoom": "Back to the room",
+      "interests": "Your interests",
+      "interestsHint": "Pick up to {max}. They don't leave anyone out: you meet people who share them first, and your partner sees them.",
+      "interestsTooMany": "Pick at most {max} interests."
     },
     "install": {
       "title": "Take it on your phone",
@@ -3053,6 +3061,28 @@
       "unsupported": "This browser does not support notifications.",
       "iosInstall": "On iPhone, install the app first (Share → “Add to Home Screen”) and turn notifications on from it.",
       "error": "Notifications could not be turned on. Please try again."
+    },
+    "interests": {
+      "chat": "Chatting",
+      "friends": "Making friends",
+      "flirting": "Flirting",
+      "music": "Music",
+      "movies": "Movies",
+      "series": "TV series",
+      "gaming": "Gaming",
+      "sports": "Sports",
+      "fitness": "Fitness",
+      "travel": "Travel",
+      "books": "Books",
+      "art": "Art",
+      "photography": "Photography",
+      "tech": "Tech",
+      "food": "Cooking",
+      "anime": "Anime",
+      "languages": "Languages",
+      "nature": "Nature",
+      "pets": "Pets",
+      "fashion": "Fashion"
     }
   },
   "AdminVideochat": {
