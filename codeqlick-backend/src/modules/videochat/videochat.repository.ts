@@ -11,6 +11,15 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 
 const personSelect = { id: true, name: true, email: true } as const;
 
+/** What the moderation page shows beside a report about the reported person. */
+export interface ReportHistory {
+  memberSince: Date;
+  reports: Record<VideochatReportStatus, number>;
+  reporters: number;
+  suspensions: number;
+  lastSuspension: { reason: string | null; createdAt: Date } | null;
+}
+
 @Injectable()
 export class VideochatRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -306,8 +315,77 @@ export class VideochatRepository {
     });
   }
 
+  /** Each person's moderation history: reports against them by status, distinct reporters,
+   * suspensions and the last one. */
+  async reportHistories(userIds: string[]): Promise<Map<string, ReportHistory>> {
+    if (userIds.length === 0) return new Map();
+    const [byStatus, reporters, sanctions, last, users] = await Promise.all([
+      this.prisma.videochatReport.groupBy({
+        by: ['reportedId', 'status'],
+        where: { reportedId: { in: userIds } },
+        _count: { _all: true },
+      }),
+      this.prisma.videochatReport.groupBy({
+        by: ['reportedId', 'reporterId'],
+        where: { reportedId: { in: userIds } },
+      }),
+      this.prisma.videochatSanction.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds }, kind: 'SUSPENDED' },
+        _count: { _all: true },
+      }),
+      this.prisma.videochatSanction.findMany({
+        where: { userId: { in: userIds }, kind: 'SUSPENDED' },
+        distinct: ['userId'],
+        orderBy: [{ userId: 'asc' }, { createdAt: 'desc' }],
+        select: { userId: true, reason: true, createdAt: true },
+      }),
+      this.prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, createdAt: true },
+      }),
+    ]);
+    const histories = new Map<string, ReportHistory>(
+      users.map((user) => [
+        user.id,
+        {
+          memberSince: user.createdAt,
+          reports: { OPEN: 0, ACTIONED: 0, DISMISSED: 0 },
+          reporters: 0,
+          suspensions: 0,
+          lastSuspension: null,
+        },
+      ]),
+    );
+    for (const group of byStatus) {
+      const history = histories.get(group.reportedId);
+      if (history) history.reports[group.status] = group._count._all;
+    }
+    for (const pair of reporters) {
+      const history = histories.get(pair.reportedId);
+      if (history) history.reporters += 1;
+    }
+    for (const group of sanctions) {
+      const history = histories.get(group.userId);
+      if (history) history.suspensions = group._count._all;
+    }
+    for (const sanction of last) {
+      const history = histories.get(sanction.userId);
+      if (history)
+        history.lastSuspension = { reason: sanction.reason, createdAt: sanction.createdAt };
+    }
+    return histories;
+  }
+
   findReport(id: string) {
     return this.prisma.videochatReport.findUnique({ where: { id } });
+  }
+
+  findReports(ids: string[]) {
+    return this.prisma.videochatReport.findMany({
+      where: { id: { in: ids } },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
   async reviewReport(

@@ -1,0 +1,137 @@
+/* Video chat moderation: a report with the person's history beside it, keys and bulk actions. */
+.report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  border-radius: 8px;
+  outline-offset: 4px;
+}
+
+.report:focus {
+  outline: 2px solid var(--color-fuchsia-dark);
+}
+
+@media (min-width: 900px) {
+  .report {
+    grid-template-columns: minmax(0, 1fr) 16rem;
+  }
+}
+
+.reportMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.pick input,
+.selectAll input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-fuchsia-dark);
+}
+
+.history {
+  align-self: start;
+  background: var(--color-blush);
+  border-radius: 8px;
+  padding: var(--space-3);
+  font-size: 0.9rem;
+}
+
+.historyTitle {
+  font-size: 0.95rem;
+  margin-bottom: var(--space-2);
+}
+
+.history dl {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+}
+
+.history dt {
+  color: var(--color-slate);
+}
+
+.history dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+
+.historyNote {
+  margin-top: var(--space-2);
+  color: var(--color-slate);
+}
+
+.bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 2px solid var(--color-ink);
+}
+
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.selectAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.keysToggle {
+  margin-left: auto;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--color-slate);
+  cursor: pointer;
+}
+
+.keyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  width: 100%;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.keyList div {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.keyList dd {
+  margin: 0;
+}
+
+.keys kbd {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  border: 1px solid var(--color-slate);
+  border-radius: 4px;
+  padding: 0 0.3rem;
+}

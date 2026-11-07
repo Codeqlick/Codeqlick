@@ -18,7 +18,7 @@ import { ActivityService, type ActivityActor } from '../activity/activity.servic
 import { MailService } from '../mail/mail.service.js';
 import { WindowLimiter, type MatchPrefs } from './matchmaker.js';
 import { appealResolvedEmail, minorReportEmail } from './videochat-emails.js';
-import { VideochatRepository } from './videochat.repository.js';
+import { VideochatRepository, type ReportHistory } from './videochat.repository.js';
 import {
   ageOn,
   suspensionEnd,
@@ -153,6 +153,14 @@ export interface ReportView {
     suspendedAt: string | null;
     /** Reports against them in the last 30 days. */
     recentReports: number;
+    /** Their moderation history, shown beside the report. */
+    history: {
+      memberSince: string;
+      reports: { open: number; actioned: number; dismissed: number; total: number };
+      reporters: number;
+      suspensions: number;
+      lastSuspension: { reason: string | null; createdAt: string } | null;
+    } | null;
   };
 }
 
@@ -485,10 +493,11 @@ export class VideochatService {
 
   async listReports(status: 'OPEN' | 'DISMISSED' | 'ACTIONED'): Promise<ReportView[]> {
     const reports = await this.repository.listReports(status);
-    const counts = await this.repository.reportCounts(
-      [...new Set(reports.map((report) => report.reportedId))],
-      new Date(Date.now() - 30 * DAY_MS),
-    );
+    const people = [...new Set(reports.map((report) => report.reportedId))];
+    const [counts, histories] = await Promise.all([
+      this.repository.reportCounts(people, new Date(Date.now() - 30 * DAY_MS)),
+      this.repository.reportHistories(people),
+    ]);
     return reports.map((report) => ({
       id: report.id,
       reason: report.reason,
@@ -511,8 +520,57 @@ export class VideochatService {
           ? (report.reported.videochatProfile?.suspendedAt?.toISOString() ?? null)
           : null,
         recentReports: counts.get(report.reportedId) ?? 0,
+        history: historyView(histories.get(report.reportedId)),
       },
     }));
+  }
+
+  /**
+   * Dismisses or suspends from several open reports at once. A person is suspended once and all
+   * their selected reports close as ACTIONED; reports not found or no longer open are skipped.
+   */
+  async bulkReports(
+    admin: AuthUser,
+    ids: string[],
+    action: 'dismiss' | 'suspend',
+    duration: SuspensionDuration,
+  ): Promise<{ done: number; skipped: number }> {
+    const unique = [...new Set(ids)];
+    const reports = (await this.repository.findReports(unique)).filter(
+      (report) => report.status === 'OPEN',
+    );
+    const now = new Date();
+    if (action === 'dismiss') {
+      for (const report of reports) {
+        await this.repository.reviewReport(report.id, 'DISMISSED', admin.id, now);
+        await this.activity.record(admin, {
+          action: 'videochat.report_dismissed',
+          targetId: report.reportedId,
+          targetLabel: await this.labelOf(report.reportedId),
+          details: { reason: report.reason },
+        });
+      }
+    } else {
+      const byPerson = new Map<string, typeof reports>();
+      for (const report of reports) {
+        byPerson.set(report.reportedId, [...(byPerson.get(report.reportedId) ?? []), report]);
+      }
+      for (const [userId, theirs] of byPerson) {
+        const first = theirs[0]!;
+        const reasons = [...new Set(theirs.map((report) => report.reason))].join(', ');
+        await this.suspendUser(admin, {
+          userId,
+          reason: `Report: ${reasons}`,
+          duration,
+          reportId: first.id,
+          now,
+        });
+        for (const report of theirs) {
+          await this.repository.reviewReport(report.id, 'ACTIONED', admin.id, now);
+        }
+      }
+    }
+    return { done: reports.length, skipped: unique.length - reports.length };
   }
 
   async dismissReport(admin: AuthUser, id: string): Promise<void> {
@@ -751,4 +809,22 @@ export class VideochatService {
 
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/** The repository's history as the moderation page gets it. */
+function historyView(history: ReportHistory | undefined): ReportView['reported']['history'] {
+  if (!history) return null;
+  const { OPEN: open, ACTIONED: actioned, DISMISSED: dismissed } = history.reports;
+  return {
+    memberSince: history.memberSince.toISOString(),
+    reports: { open, actioned, dismissed, total: open + actioned + dismissed },
+    reporters: history.reporters,
+    suspensions: history.suspensions,
+    lastSuspension: history.lastSuspension
+      ? {
+          reason: history.lastSuspension.reason,
+          createdAt: history.lastSuspension.createdAt.toISOString(),
+        }
+      : null,
+  };
 }
