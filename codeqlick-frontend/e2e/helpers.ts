@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { BrowserContext, Page } from '@playwright/test';
+import { test, type BrowserContext, type Page } from '@playwright/test';
 
 export const API_URL = process.env.E2E_API_URL ?? 'http://localhost:4000/v1';
 export const ADMIN = {
@@ -28,13 +28,31 @@ export async function asAdmin(context: BrowserContext, baseURL: string) {
   await context.addCookies([{ name: 'cq_at', value: adminToken(), url: baseURL, httpOnly: true }]);
 }
 
-/** Signs in through the login page, like a person. */
+/**
+ * Signs in through the login page, like a person. The API allows 5 logins per minute and per IP,
+ * and every test signs in from the same machine: when the page says to wait, it waits out the
+ * minute (adding it to the test's time limit) and tries again.
+ */
 export async function signIn(page: Page, user: { email: string; password: string }, next = '') {
-  await page.goto(`/es/login${next ? `?next=${encodeURIComponent(next)}` : ''}`);
-  await page.getByLabel('Correo electrónico').fill(user.email);
-  await page.getByLabel('Contraseña').fill(user.password);
-  await page.getByRole('button', { name: 'Entrar' }).click();
-  await page.waitForURL((url) => !url.pathname.endsWith('/login'));
+  const rateLimited = page.getByText('Demasiados intentos', { exact: false });
+  for (let attempt = 0; ; attempt++) {
+    await page.goto(`/es/login${next ? `?next=${encodeURIComponent(next)}` : ''}`);
+    await page.getByLabel('Correo electrónico').fill(user.email);
+    await page.getByLabel('Contraseña').fill(user.password);
+    await page.getByRole('button', { name: 'Entrar' }).click();
+    const signedIn = page.waitForURL((url) => !url.pathname.endsWith('/login'));
+    const toldToWait = rateLimited.waitFor();
+    // Whichever comes second is dropped: keep its later failure from going unhandled.
+    for (const pending of [signedIn, toldToWait]) pending.catch(() => {});
+    const outcome = await Promise.race([
+      signedIn.then(() => 'in' as const),
+      toldToWait.then(() => 'wait' as const),
+    ]);
+    if (outcome === 'in') return;
+    if (attempt === 2) throw new Error('Login still rate limited after waiting');
+    test.info().setTimeout(test.info().timeout + 65_000);
+    await page.waitForTimeout(61_000);
+  }
 }
 
 /** Where the API writes the emails it sends (MAIL_OUTBOX_DIR, tests only). */
