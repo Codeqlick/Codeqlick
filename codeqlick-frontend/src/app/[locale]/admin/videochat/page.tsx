@@ -66,9 +66,14 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
         title={t('title')}
         lead={t('lead')}
         actions={
-          <Button href="/admin/videochat/stats" variant="outline" size="sm">
-            {t('statsLink')}
-          </Button>
+          <div className={styles.actions}>
+            <Button href="/admin/videochat/suspicious" variant="outline" size="sm">
+              {t('suspiciousLink')}
+            </Button>
+            <Button href="/admin/videochat/stats" variant="outline" size="sm">
+              {t('statsLink')}
+            </Button>
+          </div>
         }
       />
 

@@ -60,12 +60,18 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           DEPLOY_TARGET: ${{ secrets.DEPLOY_TARGET }}
+          # Settings kept as Actions secrets; ci-deploy.sh writes them to the server's .env.
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          # The server runs deploy/ci-deploy.sh whatever the command (forced by the key).
+          # The server runs deploy/ci-deploy.sh whatever the command (forced by the key); the
+          # settings go on its standard input, never on a command line.
+          printf 'TURNSTILE_SITE_KEY=%s\nTURNSTILE_SECRET_KEY=%s\n' \
+            "$TURNSTILE_SITE_KEY" "$TURNSTILE_SECRET_KEY" |
           ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             -o ServerAliveInterval=30 "$DEPLOY_TARGET" deploy
 

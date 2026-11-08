@@ -12,7 +12,7 @@ import type {
   TwoFactorStatus,
 } from './types';
 
-export function login(input: { email: string; password: string }) {
+export function login(input: { email: string; password: string; captcha?: string }) {
   return apiFetch<LoginResult>('/auth/login', {
     method: 'POST',
     body: input,
@@ -143,6 +143,7 @@ export function register(input: {
   acceptPrivacy: true;
   website?: string;
   app?: Webapp;
+  captcha?: string;
 }) {
   return apiFetch<void>('/auth/register', { method: 'POST', body: input, forwardClientIp: true });
 }

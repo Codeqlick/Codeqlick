@@ -232,6 +232,11 @@ export class AppConfigService {
     return { publicKey, privateKey, subject: this.get('VAPID_SUBJECT') };
   }
 
+  /** Cloudflare Turnstile's secret key (architecture 4.3); undefined: no check. */
+  get turnstileSecret(): string | undefined {
+    return this.get('TURNSTILE_SECRET_KEY');
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { login } from '@/lib/api/auth';
-import { isApiError } from '@/lib/api/errors';
+import { isApiError, isCaptchaError } from '@/lib/api/errors';
 import type { LoginResult } from '@/lib/api/types';
 import { TWO_FACTOR_COOKIE, TWO_FACTOR_MAX_AGE } from '@/lib/auth/constants';
 import { authCookieOptions, isSecureCookieEnv } from '@/lib/auth/refresh';
@@ -29,11 +29,12 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
 
   let result: LoginResult;
   try {
-    result = await login(parsed.data);
+    result = await login({ ...parsed.data, captcha: formString(formData, 'captcha') || undefined });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
-    const message =
-      status === 401 || status === 400 || status === 403
+    const message = isCaptchaError(error)
+      ? t('captcha')
+      : status === 401 || status === 400 || status === 403
         ? t('invalid')
         : status === 429
           ? t('rateLimited')

@@ -26,6 +26,8 @@ const envSchema = z.object({
    */
   VIDEOCHAT_WS_URL: z.url().optional(),
   MEETINGS_WS_URL: z.url().optional(),
+  /** Cloudflare Turnstile's public site key: sign-in and sign-up show its widget; unset: none. */
+  TURNSTILE_SITE_KEY: z.string().trim().min(1).optional(),
 });
 
 const parsed = envSchema.safeParse({
@@ -41,6 +43,7 @@ const parsed = envSchema.safeParse({
   SITES_PREVIEW_DOMAIN: process.env.SITES_PREVIEW_DOMAIN || undefined,
   VIDEOCHAT_WS_URL: process.env.VIDEOCHAT_WS_URL || undefined,
   MEETINGS_WS_URL: process.env.MEETINGS_WS_URL || undefined,
+  TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || undefined,
 });
 
 if (!parsed.success) {

@@ -963,4 +963,59 @@ describe('Video chat (e2e)', () => {
       .set(users.ana!.auth)
       .expect(403);
   });
+
+  it("counts each person's calls and lists suspicious accounts for the team", async () => {
+    // The calls above were counted on both people's day (fire and forget).
+    await vi.waitFor(async () => {
+      const day = await prisma.videochatActiveDay.findFirst({
+        where: { userId: users.ana!.id, calls: { gt: 0 } },
+      });
+      expect(day).not.toBeNull();
+    });
+    // A bot-like account: reported by one person, joined today, skipped at once in 20 of 20 calls.
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(
+      new Date(),
+    );
+    await prisma.videochatActiveDay.upsert({
+      where: { day_userId: { day: new Date(`${today}T00:00:00Z`), userId: users.jon!.id } },
+      create: {
+        day: new Date(`${today}T00:00:00Z`),
+        userId: users.jon!.id,
+        calls: 20,
+        shortCalls: 20,
+        skippedFast: 20,
+      },
+      update: { calls: 20, shortCalls: 20, skippedFast: 20 },
+    });
+    await prisma.videochatReport.create({
+      data: { reporterId: users.ivo!.id, reportedId: users.jon!.id, reason: 'SPAM' },
+    });
+    const list = async () =>
+      (
+        await request(server())
+          .get('/v1/admin/videochat/suspicious')
+          .set(users.admin!.auth)
+          .expect(200)
+      ).body as Array<{ userId: string; score: number; reasons: string[] }>;
+    const jon = (await list()).find((item) => item.userId === users.jon!.id);
+    expect(jon).toMatchObject({ reasons: expect.arrayContaining(['reported', 'skipped']) });
+    expect(jon!.score).toBeGreaterThanOrEqual(6);
+
+    await request(server())
+      .post(`/v1/admin/videochat/users/${users.jon!.id}/not-suspicious`)
+      .set(users.admin!.auth)
+      .expect(204);
+    expect((await list()).some((item) => item.userId === users.jon!.id)).toBe(false);
+    // A new report after that brings it back.
+    await prisma.videochatReport.create({
+      data: { reporterId: users.hal!.id, reportedId: users.jon!.id, reason: 'SPAM' },
+    });
+    expect((await list()).some((item) => item.userId === users.jon!.id)).toBe(true);
+
+    await request(server())
+      .post(`/v1/admin/videochat/users/${users.admin!.id}/not-suspicious`)
+      .set(users.admin!.auth)
+      .expect(404);
+    await request(server()).get('/v1/admin/videochat/suspicious').set(users.ana!.auth).expect(403);
+  });
 });

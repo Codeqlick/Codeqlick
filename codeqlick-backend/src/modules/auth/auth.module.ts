@@ -7,6 +7,7 @@ import { AccountService } from './account.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService } from './auth.service.js';
+import { CaptchaService } from './captcha.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenCleanupService } from './token-cleanup.service.js';
 
@@ -25,6 +26,7 @@ import { TokenCleanupService } from './token-cleanup.service.js';
   providers: [
     AuthService,
     AuthRepository,
+    CaptchaService,
     AccountService,
     AccountRepository,
     PasswordService,

@@ -16,6 +16,10 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { VideochatStatsService, type VideochatHistory } from './videochat-stats.service.js';
+import {
+  VideochatSuspiciousService,
+  type SuspiciousAccount,
+} from './videochat-suspicious.service.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import {
   appealDecisionSchema,
@@ -53,7 +57,21 @@ export class VideochatAdminController {
     private readonly videochat: VideochatService,
     private readonly gateway: VideochatGateway,
     private readonly statistics: VideochatStatsService,
+    private readonly suspicious: VideochatSuspiciousService,
   ) {}
+
+  /** Accounts that look like bots or fake profiles, highest score first (architecture 4.7). */
+  @Get('suspicious')
+  suspiciousAccounts(): Promise<SuspiciousAccount[]> {
+    return this.suspicious.list();
+  }
+
+  /** Hides the account from the suspicious list for 30 days. */
+  @Post('users/:userId/not-suspicious')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  notSuspicious(@Param({ schema: userIdParamSchema }) params: UserIdParam): Promise<void> {
+    return this.suspicious.clear(params.userId);
+  }
 
   /** People online, waiting and in a call right now. */
   @Get('stats')
