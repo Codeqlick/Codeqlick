@@ -1109,9 +1109,6 @@
       "searchPlaceholder": "Name or email",
       "noMatchTitle": "No account matches",
       "noMatchBody": "Try another type, app or search.",
-      "signedUpFrom": "Signed up from {app}",
-      "signedUpOnSite": "Signed up on codeqlick.com",
-      "usesApps": "Uses {apps}",
       "kinds": {
         "admin": "Administrator",
         "client": "Client",

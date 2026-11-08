@@ -133,7 +133,7 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
                       ) : null}
                     </th>
                     <td>
-                      <AccountKindBadge user={user} withApps={false} />
+                      <AccountKindBadge user={user} />
                     </td>
                     <td>
                       <Badge tone={user.isActive ? 'success' : 'neutral'}>
