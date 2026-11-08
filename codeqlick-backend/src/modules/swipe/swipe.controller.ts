@@ -85,7 +85,7 @@ export class SwipeController {
     return { publicKey: this.push.publicKey };
   }
 
-  /** This browser wants notifications of matches, messages and «me encanta» (Web Push). */
+  /** This browser wants notifications of matches, messages and "love" (Web Push). */
   @Put('push')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
