@@ -9,7 +9,7 @@ import { isApiError } from '@/lib/api/errors';
 import type { AuthTokens } from '@/lib/api/types';
 import { TWO_FACTOR_COOKIE } from '@/lib/auth/constants';
 import { safeNextPath, setAuthCookies } from '@/lib/auth/session';
-import { homeAfterSignIn } from '@/lib/webapp-request';
+import { homeAfterSignIn, shortNext } from '@/lib/webapp-request';
 import { formString, type FormState } from '@/lib/forms';
 
 /** Second step of the sign-in: the authenticator or recovery code finishes it. */
@@ -46,6 +46,7 @@ export async function verifyTwoFactorAction(
   store.delete(TWO_FACTOR_COOKIE);
   await setAuthCookies(tokens);
   redirect(
-    safeNextPath(formData.get('next'), locale) ?? (await homeAfterSignIn(locale, tokens.user.role)),
+    (await shortNext(safeNextPath(formData.get('next'), locale), locale)) ??
+      (await homeAfterSignIn(locale, tokens.user.role)),
   );
 }

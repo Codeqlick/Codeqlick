@@ -29,8 +29,13 @@ const handleI18nRouting = createMiddleware(routing);
 export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // Behind Nginx the request URL says http://localhost; the Host header is the visitor's.
-  const host = request.headers.get('host') ?? request.nextUrl.host;
+  // Behind Nginx the request URL says http://localhost; the Host header is the visitor's. When a
+  // Server Action redirects, Next.js fetches the new page from itself with the visitor's host only
+  // in X-Forwarded-Host (Nginx sets it, so visitors can't choose it).
+  const host =
+    request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() ||
+    request.headers.get('host') ||
+    request.nextUrl.host;
   const protocol =
     request.headers.get('x-forwarded-proto') === 'https' ? 'https:' : request.nextUrl.protocol;
   // Old addresses are redirected only on navigations; images and form posts are just served.
