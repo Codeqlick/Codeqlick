@@ -47,7 +47,8 @@
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "menu": "Menu",
-    "about": "About"
+    "about": "About",
+    "apps": "Apps"
   },
   "LocaleSwitcher": {
     "label": "Language",
@@ -3431,5 +3432,20 @@
     "markedUnpaid": "Marked as unpaid.",
     "deleteHint": "Only for an invoice uploaded by mistake. A real invoice is corrected with a credit note.",
     "deleted": "Invoice deleted."
+  },
+  "Apps": {
+    "metaTitle": "Our apps",
+    "metaDescription": "The web apps Codeqlick builds and runs on its own, with the same Codeqlick account.",
+    "eyebrow": "Our apps",
+    "title": "What we build for ourselves",
+    "lead": "Besides building websites and apps for our clients, we build and run our own web apps. You sign in to all of them with your Codeqlick account.",
+    "listLabel": "Codeqlick apps",
+    "videochat": {
+      "title": "Video chat",
+      "adult": "18+",
+      "body": "Video chat with a random person and, if there is no spark, move on to the next one. With filters by interests, country and language, and mutual contacts.",
+      "warning": "Adults only (18+): there may be adult content. You need a verified Codeqlick account.",
+      "open": "Open the video chat"
+    }
   }
 }
