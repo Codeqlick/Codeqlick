@@ -1,6 +1,6 @@
-# Créditos de las fotos
+# Photo credits
 
-Todas las fotos tienen licencia CC0 (dominio público): se pueden usar sin atribución. Se citan por cortesía.
+All photos are CC0 (public domain): they can be used without attribution. They are credited as a courtesy.
 
 - `hero.jpg`: "Restaurant Food", Jay Wennington (stocksnap, CC0) — https://stocksnap.io/photo/restaurant-food-47E77904CB
 - `about.jpg`: "Restaurant Kitchen", Michael Browning (stocksnap, CC0) — https://stocksnap.io/photo/restaurant-kitchen-0HCMIT272C

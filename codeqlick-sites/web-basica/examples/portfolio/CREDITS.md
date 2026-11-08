@@ -1,6 +1,6 @@
-# Créditos de las fotos
+# Photo credits
 
-Todas las fotos tienen licencia CC0 (dominio público): se pueden usar sin atribución. Se citan por cortesía.
+All photos are CC0 (public domain): they can be used without attribution. They are credited as a courtesy.
 
 - `hero.jpg`: "Camera Girl", Elliott Chau (stocksnap, CC0) — https://stocksnap.io/photo/camera-girl-WJL4RY6N6Z
 - `about.jpg`: "Pictures Photographs", Michal Jarmoluk (stocksnap, CC0) — https://stocksnap.io/photo/pictures-photographs-S04DBIVVHM

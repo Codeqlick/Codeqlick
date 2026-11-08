@@ -1,6 +1,6 @@
-# Créditos de las fotos
+# Photo credits
 
-Todas las fotos tienen licencia CC0 (dominio público): se pueden usar sin atribución. Se citan por cortesía.
+All photos are CC0 (public domain): they can be used without attribution. They are credited as a courtesy.
 
 - `hero.jpg`: "Shop Store", Mike Petrucci (stocksnap, CC0) — https://stocksnap.io/photo/shop-store-I93PW8NE0F
 - `about.jpg`: "Laptop Apple", Tran Mau Tri Tam (stocksnap, CC0) — https://stocksnap.io/photo/laptop-apple-DT4AR42MPF
