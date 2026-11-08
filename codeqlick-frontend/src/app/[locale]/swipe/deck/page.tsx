@@ -4,7 +4,7 @@ import { SwipeDeck } from '@/components/swipe/SwipeDeck';
 import { resolveLocale } from '@/i18n/locale';
 import { getSwipeDeck, getSwipeStatus } from '@/lib/api/swipe';
 import { requireUser } from '@/lib/auth/session';
-import { deckAction, reportAction, voteAction } from '../actions';
+import { deckAction, reportAction, undoAction, voteAction } from '../actions';
 import { SwipeGate } from '../Gate';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -26,9 +26,12 @@ export default async function SwipeDeckPage({ params }: PageProps) {
         locale={locale}
         initial={cards}
         vote={voteAction}
+        undo={undoAction}
         more={deckAction}
         report={reportAction}
         canUpload={status.canUpload}
+        superLikesLeft={status.superLikesLeft}
+        blur={status.profile?.blurPhotos ?? false}
       />
     </>
   );

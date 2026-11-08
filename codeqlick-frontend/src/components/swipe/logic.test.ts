@@ -12,6 +12,8 @@ function card(id: string): SwipeCard {
     nickname: 'Ana',
     gender: null,
     interests: [],
+    bio: null,
+    lovesYou: false,
   };
 }
 

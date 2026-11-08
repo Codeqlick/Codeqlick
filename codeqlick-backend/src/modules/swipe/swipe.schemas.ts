@@ -19,7 +19,7 @@ export {
 } from '../videochat/videochat.schemas.js';
 
 /** Version of Swipe's rules; bump it to ask everyone to accept them again. */
-export const SWIPE_TERMS_VERSION = '2026-11-08';
+export const SWIPE_TERMS_VERSION = '2026-11-08.2';
 export const SWIPE_MIN_AGE = 18;
 
 /** Photos a person can have that aren't rejected or removed (pending or live). */

@@ -20,6 +20,8 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     description: t('metaDescription'),
     // Adult content: kept out of search results.
     robots: { index: false, follow: false },
+    icons: { icon: '/swipe-192.png', apple: '/swipe-192.png' },
+    appleWebApp: { capable: true, title: 'Swipe', statusBarStyle: 'default' },
   };
 }
 
@@ -81,6 +83,14 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
             {' · '}
             <Link href="/swipe/rules" className={vc.inlineLink}>
               {t('nav.rules')}
+            </Link>
+            {' · '}
+            <Link href="/swipe/terms-of-use" className={vc.inlineLink}>
+              {t('legal.terms')}
+            </Link>
+            {' · '}
+            <Link href="/swipe/privacy-policy" className={vc.inlineLink}>
+              {t('legal.privacy')}
             </Link>
           </p>
         </footer>

@@ -3876,8 +3876,8 @@
       "title": "Before you enter",
       "lead": "Confirm you are an adult and accept the rules.",
       "birthDate": "Date of birth",
-      "birthDateHint": "We only check you are 18 or over. We don't keep it.",
-      "accept": "I am 18 or over and I accept Swipe's rules",
+      "birthDateHint": "We check that you are 18 or older. We only keep the year, for the age filter.",
+      "accept": "I'm 18 or older and accept Swipe's rules and terms of use",
       "readRules": "Read the rules",
       "submit": "Enter",
       "submitting": "Entering…",
@@ -3905,14 +3905,20 @@
       "empty": "No more photos for now. Come back later.",
       "loading": "Loading photos…",
       "shareYours": "Want to share yours?",
-      "keysHint": "On a computer: ← skip · → like",
+      "keysHint": "On a computer: ← skip · → like · ↑ love",
       "voteError": "We couldn't save your vote.",
       "reported": "Thanks. We'll review it and you won't see it again.",
       "reportError": "We couldn't send the report. Try again.",
       "matchTitle": "It's a match with {nickname}!",
       "matchBody": "You like each other's photos. You can talk now.",
       "matchChat": "Write",
-      "matchKeep": "Keep swiping"
+      "matchKeep": "Keep swiping",
+      "undo": "Undo",
+      "undoError": "That can't be undone any more.",
+      "love": "{count, plural, =0 {No «me encanta» left today} one {Love it (# left today)} other {Love it (# left today)}}",
+      "noLovesLeft": "You've used today's «me encanta». You'll have more tomorrow.",
+      "lovesYou": "Loves you",
+      "reveal": "Show photo"
     },
     "report": {
       "title": "Why are you reporting it?",
@@ -3948,7 +3954,24 @@
       "save": "Save",
       "saving": "Saving…",
       "saved": "Profile saved.",
-      "error": "We couldn't save your profile."
+      "error": "We couldn't save your profile.",
+      "bio": "A sentence about you",
+      "bioHint": "Optional, up to 160 characters. Shown under your photos. No phone numbers, emails or links.",
+      "birthYear": "Year of birth",
+      "birthYearHint": "For the age filter. We only keep the year.",
+      "birthYearInvalid": "Enter a valid year (you must be 18 or older).",
+      "country": "Country",
+      "countryNone": "I'd rather not say",
+      "ages": "Age of the people I want to see",
+      "ageMin": "From",
+      "ageMax": "To",
+      "agesHint": "Between 18 and 99. People who haven't given their year only appear if you keep 18 to 99.",
+      "sameCountry": "Only people from my country",
+      "sameCountryHint": "You need to have chosen your country.",
+      "blurPhotos": "Blur photos until I tap them",
+      "blurPhotosHint": "Handy if you use Swipe with people around.",
+      "emailAlerts": "Email me about matches, «me encanta» and messages",
+      "emailAlertsHint": "Emails never show photos, nicknames or messages. The team's notices (verification, photos) always reach you."
     },
     "verification": {
       "title": "Verification photo",
@@ -4023,7 +4046,9 @@
       "unmatch": "End the match",
       "block": "End and block",
       "report": "Report",
-      "safety": "Text only. Never send money or share details you want to keep private."
+      "safety": "Text only. Never send money or share details you want to keep private.",
+      "contactBlocked": "Phone numbers, emails, links and other apps can't be shared yet. Keep talking here: each of you has to send at least {count} messages.",
+      "guard": "For your safety, phone numbers, emails, links and other apps can't be shared until each of you has sent {count} messages."
     },
     "rules": {
       "title": "Swipe's rules",
@@ -4045,7 +4070,7 @@
       "rule8Title": "Don't copy",
       "rule8": "Don't take screenshots of or share other people's photos outside Swipe.",
       "privacyTitle": "Your data",
-      "privacy": "Your date of birth isn't kept. Your photos are stored without camera data or location and are only shown inside Swipe. You can delete any photo at any time, and deleting your account deletes them all.",
+      "privacy": "Of your date of birth we only keep the year, for the age filter. Your photos are stored without camera data or location, with your nickname as a watermark, and are only seen inside Swipe. You can delete any photo whenever you like, and deleting your account deletes them all.",
       "takedownTitle": "Removing photos",
       "takedown": "If you find a photo of you that you didn't upload, or a photo that shouldn't be here, anyone can ask us to remove it, without an account. It is hidden at once when you give its reference, and we answer within 24 hours.",
       "takedownLink": "Ask for a photo to be removed"
@@ -4068,6 +4093,22 @@
       "sending": "Sending…",
       "sent": "Received. We emailed you a confirmation and will answer within 24 hours.",
       "error": "We couldn't send it. Try again or write to hello@codeqlick.com."
+    },
+    "legal": {
+      "terms": "Terms of use",
+      "privacy": "Privacy"
+    },
+    "push": {
+      "title": "Notifications",
+      "lead": "We let you know on this device about new matches, messages and «me encanta», with a discreet text.",
+      "enable": "Turn on notifications",
+      "disable": "Turn off on this device",
+      "working": "One moment…",
+      "on": "Notifications are on for this device.",
+      "denied": "You have blocked notifications for this site. Allow them in your browser settings and try again.",
+      "unsupported": "This browser doesn't support notifications.",
+      "iosInstall": "On iPhone, first install Swipe (Share → \"Add to Home Screen\") and turn them on from the app.",
+      "error": "They couldn't be turned on. Try again."
     }
   },
   "AdminSwipe": {
