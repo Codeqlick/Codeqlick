@@ -48,6 +48,8 @@ COPY --from=build --chown=node:node /app/src/generated ./src/generated
 # Uploaded images, and Swipe's private photos. Created here so the volumes mounted on them start
 # out owned by `node`.
 RUN mkdir uploads swipe-uploads && chown node:node uploads swipe-uploads
+# A font for the watermark Swipe burns into its photos (sharp renders it from SVG text).
+RUN apk add --no-cache font-dejavu
 
 USER node
 EXPOSE 4000

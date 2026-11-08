@@ -10,6 +10,13 @@ import {
 
 export { ageOn, INTERESTS, MAX_INTERESTS, SUSPENSION_DURATIONS, type Interest };
 export { suspensionEnd, type SuspensionDuration } from '../videochat/videochat.schemas.js';
+/** Same shape as the video chat's: a browser's PushSubscription.toJSON() and its language. */
+export {
+  pushSubscriptionSchema,
+  pushUnsubscribeSchema,
+  type PushSubscriptionInput,
+  type PushUnsubscribeInput,
+} from '../videochat/videochat.schemas.js';
 
 /** Version of Swipe's rules; bump it to ask everyone to accept them again. */
 export const SWIPE_TERMS_VERSION = '2026-11-08';
@@ -27,6 +34,60 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const DECK_SIZE = 10;
 /** Messages of a match's chat kept with a report about it. */
 export const TRANSCRIPT_LINES = 30;
+/** «Me encanta» votes per account and day. */
+export const SUPER_LIKES_PER_DAY = 3;
+/** A vote can be undone this long after it was made (and only when it made no match). */
+export const UNDO_WINDOW_MS = 10 * 60 * 1000;
+/** Contact details are refused in a chat until each person has sent this many messages. */
+export const SAFE_CHAT_MESSAGES = 5;
+export const MIN_AGE_FILTER = 18;
+export const MAX_AGE_FILTER = 99;
+
+/** Countries a profile can name (ISO 3166-1 alpha-2): Spain, Latin America, Europe, the US. */
+export const COUNTRIES = [
+  'ES',
+  'MX',
+  'AR',
+  'CO',
+  'CL',
+  'PE',
+  'VE',
+  'EC',
+  'GT',
+  'CU',
+  'BO',
+  'DO',
+  'HN',
+  'PY',
+  'SV',
+  'NI',
+  'CR',
+  'PA',
+  'UY',
+  'PR',
+  'US',
+  'CA',
+  'GB',
+  'IE',
+  'FR',
+  'PT',
+  'IT',
+  'DE',
+  'NL',
+  'BE',
+  'CH',
+  'AT',
+  'SE',
+  'NO',
+  'DK',
+  'FI',
+  'PL',
+  'RO',
+  'GR',
+  'AD',
+  'AU',
+] as const;
+export type Country = (typeof COUNTRIES)[number];
 
 export const GENDERS = ['WOMAN', 'MAN', 'NONBINARY'] as const;
 export const genderSchema = z.enum(GENDERS);
@@ -73,6 +134,21 @@ export const profileSchema = z.object({
     .array(z.enum(INTERESTS))
     .max(MAX_INTERESTS)
     .transform((list) => [...new Set(list)]),
+  bio: z
+    .string()
+    .trim()
+    .max(160)
+    .transform((value) => value || null)
+    .nullable()
+    .default(null),
+  /** Only the year; checked against 18+ (for people who entered before it was asked). */
+  birthYear: z.number().int().min(1900).nullable().default(null),
+  country: z.enum(COUNTRIES).nullable().default(null),
+  ageMin: z.number().int().min(MIN_AGE_FILTER).max(MAX_AGE_FILTER).default(MIN_AGE_FILTER),
+  ageMax: z.number().int().min(MIN_AGE_FILTER).max(MAX_AGE_FILTER).default(MAX_AGE_FILTER),
+  sameCountry: z.boolean().default(false),
+  emailAlerts: z.boolean().default(true),
+  blurPhotos: z.boolean().default(false),
 });
 export type SwipeProfileInput = z.infer<typeof profileSchema>;
 
@@ -80,7 +156,12 @@ export type SwipeProfileInput = z.infer<typeof profileSchema>;
 export const uploadFieldsSchema = z.object({ consent: z.literal('true') });
 export type UploadFields = z.infer<typeof uploadFieldsSchema>;
 
-export const voteSchema = z.object({ photoId: z.uuid(), like: z.boolean() });
+export const voteSchema = z.object({
+  photoId: z.uuid(),
+  like: z.boolean(),
+  /** A «me encanta» (a like the owner is told about). */
+  superLike: z.boolean().default(false),
+});
 export type VoteInput = z.infer<typeof voteSchema>;
 
 export const messageSchema = z.object({ text: z.string().trim().min(1).max(1000) });

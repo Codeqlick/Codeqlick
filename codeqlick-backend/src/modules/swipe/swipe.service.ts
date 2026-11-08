@@ -18,11 +18,24 @@ import { toApiLocale, toDbLocale } from '../../common/schemas/common.schemas.js'
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
-import { swipeAlertEmail, takedownEmail } from './swipe-emails.js';
-import { isBlockedImage, processImage } from './swipe-image.js';
-import { SwipeRepository } from './swipe.repository.js';
+import { sharesContact } from './swipe-chat-guard.js';
+import {
+  swipeAlertEmail,
+  swipeDigestEmail,
+  swipeNoticeEmail,
+  takedownEmail,
+  type SwipeNotice,
+} from './swipe-emails.js';
+import { isBlockedImage, processImage, watermark, watermarkText } from './swipe-image.js';
+import { SwipePushService, type SwipePushKind } from './swipe-push.service.js';
+import { SwipeRepository, type DeckFilter } from './swipe.repository.js';
 import {
   ageOn,
+  MAX_AGE_FILTER,
+  MIN_AGE_FILTER,
+  SAFE_CHAT_MESSAGES,
+  SUPER_LIKES_PER_DAY,
+  UNDO_WINDOW_MS,
   DECK_SIZE,
   HIDE_AT_ONCE,
   INTERESTS,
@@ -34,6 +47,7 @@ import {
   SWIPE_TERMS_VERSION,
   TRANSCRIPT_LINES,
   UPLOADS_PER_DAY,
+  type Country,
   type Gender,
   type Interest,
   type OnboardingInput,
@@ -55,6 +69,34 @@ const CLEANUP_EVERY_MS = 6 * 60 * 60 * 1000;
 /** A file nothing points to is deleted once it is this old (an upload may still be saving it). */
 const ORPHAN_AGE_MS = 60 * 60 * 1000;
 const REF_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/** Unread messages are emailed once they have waited this long… */
+const UNREAD_AFTER_MS = 15 * 60 * 1000;
+/** …checked this often, for chats active in the last week. */
+const UNREAD_EVERY_MS = 10 * 60 * 1000;
+const UNREAD_LOOKBACK_MS = 7 * DAY_MS;
+/** The team's digest: checked this often, sent at most once in DIGEST_MIN_GAP_MS. */
+const DIGEST_EVERY_MS = 30 * 60 * 1000;
+const DIGEST_MIN_GAP_MS = 60 * 60 * 1000;
+/** A chat's partner gets at most one push about new messages in this time. */
+const MESSAGE_PUSH_GAP_MS = 2 * 60 * 1000;
+/** Photos watermarked per background run. */
+const WATERMARK_BATCH = 50;
+
+/** The deck's birth years for an age range, or undefined for the full range (anyone). */
+export function birthYearsFor(
+  ageMin: number,
+  ageMax: number,
+  now: Date,
+): { from: number; to: number } | undefined {
+  if (ageMin <= MIN_AGE_FILTER && ageMax >= MAX_AGE_FILTER) return undefined;
+  const year = now.getUTCFullYear();
+  return { from: year - ageMax, to: year - ageMin };
+}
+
+/** Age from a birth year (the year only: at most one year off). */
+export function ageFromYear(birthYear: number | null | undefined, now: Date): number | null {
+  return birthYear ? now.getUTCFullYear() - birthYear : null;
+}
 
 /** Suspended right now: a timed suspension that ended no longer counts. */
 export function isSuspended(
@@ -82,6 +124,14 @@ export interface SwipeProfileView {
   gender: Gender | null;
   seeking: Gender[];
   interests: Interest[];
+  bio: string | null;
+  birthYear: number | null;
+  country: Country | null;
+  ageMin: number;
+  ageMax: number;
+  sameCountry: boolean;
+  emailAlerts: boolean;
+  blurPhotos: boolean;
 }
 
 export interface SwipeStatus {
@@ -100,6 +150,8 @@ export interface SwipeStatus {
   };
   /** May upload photos: verified, with a nickname, not suspended. */
   canUpload: boolean;
+  /** «Me encanta» left today. */
+  superLikesLeft: number;
 }
 
 export interface MyPhotoView {
@@ -121,6 +173,9 @@ export interface CardView {
   nickname: string;
   gender: Gender | null;
   interests: Interest[];
+  bio: string | null;
+  /** They gave one of my photos a «me encanta». */
+  lovesYou: boolean;
 }
 
 export interface MatchView {
@@ -129,6 +184,7 @@ export interface MatchView {
     nickname: string;
     gender: Gender | null;
     interests: Interest[];
+    bio: string | null;
     photoId: string | null;
   };
   lastMessage: { text: string; mine: boolean; at: string } | null;
@@ -151,26 +207,155 @@ export interface PhotoFile {
 @Injectable()
 export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(SwipeService.name);
-  private timer: NodeJS.Timeout | undefined;
+  private timers: NodeJS.Timeout[] = [];
+  private lastDigestAt = 0;
+  private readonly messagePushedAt = new Map<string, number>();
 
   constructor(
     private readonly repository: SwipeRepository,
     private readonly storage: SwipeStorage,
     private readonly activity: ActivityService,
     private readonly mail: MailService,
+    private readonly push: SwipePushService,
     private readonly config: AppConfigService,
   ) {}
 
   onApplicationBootstrap(): void {
     if (this.config.isTest) return;
-    this.timer = setTimeout(() => {
-      void this.cleanupFiles();
-      this.timer = setInterval(() => void this.cleanupFiles(), CLEANUP_EVERY_MS).unref();
+    const first = setTimeout(() => {
+      void this.cleanupFiles().then(() => this.watermarkStored());
+      this.timers.push(
+        setInterval(() => {
+          void this.cleanupFiles().then(() => this.watermarkStored());
+        }, CLEANUP_EVERY_MS).unref(),
+      );
     }, CLEANUP_FIRST_MS).unref();
+    this.timers.push(
+      first,
+      setInterval(() => void this.emailUnread(), UNREAD_EVERY_MS).unref(),
+      setInterval(() => void this.sendDigest(), DIGEST_EVERY_MS).unref(),
+    );
   }
 
   onApplicationShutdown(): void {
-    clearTimeout(this.timer);
+    for (const timer of this.timers) clearTimeout(timer);
+  }
+
+  private get swipeUrl(): string {
+    return this.config.webappUrl('swipe');
+  }
+
+  /**
+   * Tells a person about something: an email (decisions always; matches, messages and «me
+   * encanta» unless they turned them off) and, for those, a push to their browsers.
+   */
+  private async notifyUser(
+    userId: string,
+    notice: SwipeNotice,
+    note: string | null = null,
+    now = new Date(),
+  ): Promise<void> {
+    try {
+      const user = await this.repository.recipient(userId);
+      if (!user || isSuspended(user.swipeProfile, now)) return;
+      const pushKind: Record<string, SwipePushKind> = { match: 'match', loved: 'loved' };
+      if (pushKind[notice]) void this.push.notify(userId, pushKind[notice]);
+      const optional = notice === 'match' || notice === 'loved' || notice === 'unread';
+      if (optional && user.swipeProfile?.emailAlerts === false) return;
+      this.sendMail(
+        swipeNoticeEmail(
+          user.email,
+          toApiLocale(user.locale),
+          notice,
+          note,
+          this.swipeUrl,
+          this.config.siteUrl,
+        ),
+      );
+    } catch (error) {
+      this.logger.error(`Swipe notice not sent: ${String(error)}`);
+    }
+  }
+
+  /** Emails each person whose match's messages have waited unread (once until they read). */
+  async emailUnread(now = new Date()): Promise<number> {
+    let sent = 0;
+    try {
+      const matches = await this.repository.recentlyActiveMatches(
+        new Date(now.getTime() - UNREAD_LOOKBACK_MS),
+        new Date(now.getTime() - UNREAD_AFTER_MS),
+      );
+      for (const match of matches) {
+        const sender = match.messages[0]?.senderId;
+        if (!sender || !match.lastMessageAt) continue;
+        const reader = sender === match.userAId ? match.userBId : match.userAId;
+        const isA = reader === match.userAId;
+        const readAt = isA ? match.readAAt : match.readBAt;
+        const notifiedAt = isA ? match.notifiedAAt : match.notifiedBAt;
+        if (readAt && readAt >= match.lastMessageAt) continue;
+        // Told already, and they haven't read since.
+        if (notifiedAt && (!readAt || notifiedAt > readAt)) continue;
+        await this.repository.markNotified(match, reader, now);
+        await this.notifyUser(reader, 'unread', null, now);
+        sent += 1;
+      }
+    } catch (error) {
+      this.logger.error(`Swipe unread emails failed: ${String(error)}`);
+    }
+    return sent;
+  }
+
+  /** The team's digest, when something new is waiting since the last one (at most hourly). */
+  async sendDigest(now = new Date()): Promise<boolean> {
+    if (!this.config.leadsNotifyTo) return false;
+    if (now.getTime() - this.lastDigestAt < DIGEST_MIN_GAP_MS) return false;
+    try {
+      const newest = await this.repository.newestPendingAt();
+      if (!newest || newest.getTime() <= this.lastDigestAt) return false;
+      const overview = await this.repository.overview(now);
+      this.lastDigestAt = now.getTime();
+      this.sendMail(
+        swipeDigestEmail(
+          this.config.leadsNotifyTo,
+          {
+            verifications: overview.pendingVerifications,
+            photos: overview.pendingPhotos,
+            reports: overview.openReports,
+            takedowns: overview.openTakedowns,
+          },
+          this.config.siteUrl,
+        ),
+      );
+      return true;
+    } catch (error) {
+      this.logger.error(`Swipe digest failed: ${String(error)}`);
+      return false;
+    }
+  }
+
+  /** Burns the watermark into photos stored before it existed. */
+  async watermarkStored(): Promise<number> {
+    let done = 0;
+    try {
+      for (const photo of await this.repository.photosToWatermark(WATERMARK_BATCH)) {
+        const data = await this.storage.readAll(photo.storageKey);
+        if (!data) {
+          await this.repository.updatePhoto(photo.id, { watermarked: true });
+          continue;
+        }
+        const marked = await watermark(
+          data,
+          watermarkText(photo.owner.swipeProfile?.nickname, photo.ref),
+        );
+        const storageKey = await this.storage.write(marked);
+        await this.repository.updatePhoto(photo.id, { storageKey, watermarked: true });
+        await this.storage.remove(photo.storageKey);
+        done += 1;
+      }
+    } catch (error) {
+      this.logger.error(`Swipe watermarking failed: ${String(error)}`);
+    }
+    return done;
   }
 
   /** Deletes files no photo or profile points to (deleted accounts, failed saves). */
@@ -194,7 +379,15 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return this.statusOf(await this.repository.findProfile(userId), now);
   }
 
-  private statusOf(profile: SwipeProfile | null, now: Date): SwipeStatus {
+  private async superLikesLeft(userId: string, now: Date): Promise<number> {
+    const used = await this.repository.countSuperLikesSince(
+      userId,
+      new Date(now.getTime() - DAY_MS),
+    );
+    return Math.max(0, SUPER_LIKES_PER_DAY - used);
+  }
+
+  private async statusOf(profile: SwipeProfile | null, now: Date): Promise<SwipeStatus> {
     const onboarded = !!profile && profile.termsVersion === SWIPE_TERMS_VERSION;
     const suspended = isSuspended(profile, now);
     return {
@@ -215,6 +408,14 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
             gender: profile.gender,
             seeking: profile.seeking,
             interests: knownInterests(profile.interests),
+            bio: profile.bio,
+            birthYear: profile.birthYear,
+            country: (profile.country as Country | null) ?? null,
+            ageMin: profile.ageMin,
+            ageMax: profile.ageMax,
+            sameCountry: profile.sameCountry,
+            emailAlerts: profile.emailAlerts,
+            blurPhotos: profile.blurPhotos,
           }
         : null,
       verification: {
@@ -224,6 +425,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       },
       canUpload:
         onboarded && !suspended && profile?.verificationStatus === 'APPROVED' && !!profile.nickname,
+      superLikesLeft: profile ? await this.superLikesLeft(profile.userId, now) : 0,
     };
   }
 
@@ -235,7 +437,13 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     if (ageOn(input.birthDate, now) < SWIPE_MIN_AGE) {
       throw new ForbiddenException('Swipe is only for people aged 18 or over');
     }
-    const profile = await this.repository.saveOnboarding(userId, SWIPE_TERMS_VERSION, now);
+    const birthYear = Number(input.birthDate.slice(0, 4));
+    const profile = await this.repository.saveOnboarding(
+      userId,
+      SWIPE_TERMS_VERSION,
+      birthYear,
+      now,
+    );
     return this.statusOf(profile, now);
   }
 
@@ -255,11 +463,25 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     now = new Date(),
   ): Promise<SwipeStatus> {
     await this.allowedProfile(userId, now);
+    if (input.birthYear !== null && now.getUTCFullYear() - input.birthYear < SWIPE_MIN_AGE) {
+      throw new ForbiddenException('Swipe is only for people aged 18 or over');
+    }
+    const [ageMin, ageMax] =
+      input.ageMin <= input.ageMax ? [input.ageMin, input.ageMax] : [input.ageMax, input.ageMin];
     const profile = await this.repository.updateProfile(userId, {
       nickname: input.nickname,
       gender: input.gender,
       seeking: input.seeking,
       interests: input.interests,
+      bio: input.bio,
+      // A year already given stays when the form leaves it empty.
+      ...(input.birthYear !== null ? { birthYear: input.birthYear } : {}),
+      country: input.country,
+      ageMin,
+      ageMax,
+      sameCountry: input.sameCountry,
+      emailAlerts: input.emailAlerts,
+      blurPhotos: input.blurPhotos,
     });
     return this.statusOf(profile, now);
   }
@@ -323,15 +545,20 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       throw new ConflictException(`You can have up to ${MAX_PHOTOS} photos: delete one first`);
     }
     const image = await this.prepareUpload(userId, data, now);
-    const storageKey = await this.storage.write(image.data);
+    const ref = newRef();
+    // The hash is the clean image's; the stored file carries the watermark.
+    const storageKey = await this.storage.write(
+      await watermark(image.data, watermarkText(profile.nickname, ref)),
+    );
     try {
       const photo = await this.repository.createPhoto({
-        ref: newRef(),
+        ref,
         ownerId: userId,
         storageKey,
         width: image.width,
         height: image.height,
         hash: image.hash,
+        watermarked: true,
         createdAt: now,
       });
       return this.myPhotoView(photo);
@@ -402,8 +629,37 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
 
   async deck(userId: string, now = new Date()): Promise<CardView[]> {
     const profile = await this.allowedProfile(userId, now);
-    const photos = await this.repository.deck(userId, profile.seeking, now, DECK_SIZE);
-    return photos.map((photo) => ({
+    const filter: DeckFilter = {
+      seeking: profile.seeking,
+      birthYears: birthYearsFor(profile.ageMin, profile.ageMax, now),
+      country: profile.sameCountry && profile.country ? profile.country : undefined,
+    };
+    // Whoever loved one of my photos comes first.
+    const loved = await this.repository.deck(userId, filter, now, DECK_SIZE, true);
+    const rest =
+      loved.length < DECK_SIZE
+        ? await this.repository.deck(userId, filter, now, DECK_SIZE + loved.length, false)
+        : [];
+    const lovedIds = new Set(loved.map((photo) => photo.id));
+    return [...loved, ...rest.filter((photo) => !lovedIds.has(photo.id))]
+      .slice(0, DECK_SIZE)
+      .map((photo) => this.cardView(photo, lovedIds.has(photo.id)));
+  }
+
+  private cardView(
+    photo: Pick<SwipePhoto, 'id' | 'ref' | 'width' | 'height'> & {
+      owner: {
+        swipeProfile: {
+          nickname: string | null;
+          gender: Gender | null;
+          interests: string[];
+          bio: string | null;
+        } | null;
+      };
+    },
+    lovesYou: boolean,
+  ): CardView {
+    return {
       id: photo.id,
       ref: photo.ref,
       width: photo.width,
@@ -411,7 +667,9 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       nickname: photo.owner.swipeProfile?.nickname ?? '—',
       gender: photo.owner.swipeProfile?.gender ?? null,
       interests: knownInterests(photo.owner.swipeProfile?.interests),
-    }));
+      bio: photo.owner.swipeProfile?.bio ?? null,
+      lovesYou,
+    };
   }
 
   /**
@@ -422,6 +680,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     userId: string,
     photoId: string,
     like: boolean,
+    superLike = false,
     now = new Date(),
   ): Promise<{ match: { id: string; nickname: string } | null }> {
     await this.allowedProfile(userId, now);
@@ -432,12 +691,42 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     if (await this.repository.isBlockedEitherWay(userId, photo.ownerId)) {
       throw new NotFoundException('Photo not found');
     }
-    const recorded = await this.repository.vote(userId, photo, like);
+    const loves = like && superLike;
+    if (loves && (await this.superLikesLeft(userId, now)) <= 0) {
+      throw new HttpException(
+        `You can give ${SUPER_LIKES_PER_DAY} «me encanta» a day: try again tomorrow`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    const recorded = await this.repository.vote(userId, photo, like, loves, now);
     if (!recorded || !like) return { match: null };
-    if (!(await this.repository.hasLikedSomePhotoOf(photo.ownerId, userId))) return { match: null };
-    const match = await this.repository.createMatch(userId, photo.ownerId);
-    if (!match) return { match: null };
-    return { match: { id: match.id, nickname: photo.owner.swipeProfile?.nickname ?? '—' } };
+    const match = (await this.repository.hasLikedSomePhotoOf(photo.ownerId, userId))
+      ? await this.repository.createMatch(userId, photo.ownerId)
+      : null;
+    if (match) {
+      void this.notifyUser(photo.ownerId, 'match', null, now);
+      return { match: { id: match.id, nickname: photo.owner.swipeProfile?.nickname ?? '—' } };
+    }
+    if (loves && !(await this.repository.hasMatch(userId, photo.ownerId))) {
+      void this.notifyUser(photo.ownerId, 'loved', null, now);
+    }
+    return { match: null };
+  }
+
+  /** Undoes my last vote when it is under 10 minutes old and the two of us have no match. */
+  async undoVote(userId: string, now = new Date()): Promise<{ card: CardView }> {
+    await this.allowedProfile(userId, now);
+    const vote = await this.repository.lastVote(userId);
+    if (!vote || now.getTime() - vote.createdAt.getTime() > UNDO_WINDOW_MS) {
+      throw new NotFoundException('There is no recent swipe to undo');
+    }
+    if (vote.photo.status !== 'LIVE') throw new NotFoundException('That photo is gone');
+    if (await this.repository.hasMatch(userId, vote.ownerId)) {
+      throw new ConflictException('That swipe made a match: end the match from the chat instead');
+    }
+    await this.repository.undoVote(userId, vote.photoId, vote.like);
+    const lovesYou = await this.repository.lovesSomePhotoOf(vote.ownerId, userId);
+    return { card: this.cardView(vote.photo, lovesYou) };
   }
 
   async matches(userId: string): Promise<MatchView[]> {
@@ -455,6 +744,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
             nickname: partner.swipeProfile?.nickname ?? '—',
             gender: partner.swipeProfile?.gender ?? null,
             interests: knownInterests(partner.swipeProfile?.interests),
+            bio: partner.swipeProfile?.bio ?? null,
             photoId: photos.get(partner.id) ?? null,
           },
           lastMessage: last
@@ -500,8 +790,25 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     now = new Date(),
   ): Promise<MessageView> {
     await this.allowedProfile(userId, now);
-    const { match } = await this.myMatch(userId, matchId);
+    const { match, partnerId } = await this.myMatch(userId, matchId);
+    if (sharesContact(text)) {
+      const counts = await this.repository.messageCounts(match.id);
+      if (
+        (counts.get(userId) ?? 0) < SAFE_CHAT_MESSAGES ||
+        (counts.get(partnerId) ?? 0) < SAFE_CHAT_MESSAGES
+      ) {
+        throw new BadRequestException(
+          `For your safety, phone numbers, emails, links and other apps can only be shared once you have both sent ${SAFE_CHAT_MESSAGES} messages`,
+        );
+      }
+    }
     const message = await this.repository.addMessage(match, userId, text, now);
+    const key = `${match.id}:${partnerId}`;
+    if (now.getTime() - (this.messagePushedAt.get(key) ?? 0) > MESSAGE_PUSH_GAP_MS) {
+      this.messagePushedAt.set(key, now.getTime());
+      if (this.messagePushedAt.size > 5000) this.messagePushedAt.clear();
+      void this.push.notify(partnerId, 'message');
+    }
     return {
       id: message.id,
       mine: true,
@@ -651,6 +958,11 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       });
       await this.storage.remove(profile.verificationKey);
     }
+    void this.notifyUser(
+      userId,
+      input.approve ? 'verification-approved' : 'verification-rejected',
+      input.note || null,
+    );
     await this.activity.record(actor, {
       action: input.approve ? 'swipe.verification_approved' : 'swipe.verification_rejected',
       targetId: userId,
@@ -702,6 +1014,8 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       reviewedById: actor.id,
       reviewedAt: now,
     });
+    // Only a first publication is news; one that comes back after a report isn't mailed.
+    if (photo.status === 'PENDING') void this.notifyUser(photo.ownerId, 'photo-live', null, now);
     await this.activity.record(actor, {
       action: 'swipe.photo_approved',
       targetId: photo.id,
@@ -727,6 +1041,10 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       reviewedAt: now,
     });
     await this.storage.remove(photo.storageKey);
+    // The owner is told why (EU Digital Services Act, statement of reasons).
+    if (photo.status !== 'REJECTED') {
+      void this.notifyUser(photo.ownerId, 'photo-rejected', reason, now);
+    }
     await this.activity.record(actor, {
       action: 'swipe.photo_rejected',
       targetId: photo.id,
