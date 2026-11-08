@@ -93,8 +93,9 @@ checks. It asks for sudo. The same steps by hand:
 2. **Settings** in `/srv/codeqlick/.env` (template in `deploy/.env.example`): `TURN_SECRET`
    (`openssl rand -hex 32`), `TURN_URLS` (the default in the template), `COMPOSE_PROFILES=videochat`
    (turns coturn on) and, if it isn't https://videochat.codeqlick.com, `VIDEOCHAT_URL`. For the
-   "someone is waiting" notifications, a VAPID key pair (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`;
-   the command is in `deploy/.env.example`); without it they stay off.
+   "someone is waiting" notifications, a VAPID key pair (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`);
+   `deploy/deploy.sh` creates and saves it on the first release without it, so nothing is needed by
+   hand (the manual command is in `deploy/.env.example`).
    `SITES_SERVER_IP` must be set: coturn announces it.
 3. **Firewall:** open `3478/tcp`, `3478/udp` and the relay range `49160-49400/udp`
    (`sudo ufw allow 3478 && sudo ufw allow 49160:49400/udp`, or the OVH firewall).

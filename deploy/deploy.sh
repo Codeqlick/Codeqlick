@@ -54,6 +54,27 @@ log "Releasing $(git log --oneline -1)"
 log "Building images (the running containers keep serving)"
 $COMPOSE build
 
+# Web Push keys (video chat and Swipe notifications): made once with the new API image's web-push
+# and kept in .env, so the containers started below already have them. Never fails the release.
+if [ -z "$(setting VAPID_PUBLIC_KEY)" ] || [ -z "$(setting VAPID_PRIVATE_KEY)" ]; then
+  log "Creating the VAPID keys for notifications"
+  keys="$($COMPOSE run --rm --no-deps -T api node --input-type=module \
+    -e "import w from 'web-push'; const k = w.generateVAPIDKeys(); console.log(k.publicKey + ' ' + k.privateKey)" \
+    2>/dev/null | tail -n 1)" || keys=""
+  public="${keys%% *}"
+  private="${keys##* }"
+  if printf '%s' "$public" | grep -Eq '^[A-Za-z0-9_-]{80,}$' &&
+    printf '%s' "$private" | grep -Eq '^[A-Za-z0-9_-]{40,}$'; then
+    for name in VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY; do
+      sed -i "/^$name=/d" .env
+    done
+    printf 'VAPID_PUBLIC_KEY=%s\nVAPID_PRIVATE_KEY=%s\n' "$public" "$private" >>.env
+    echo "VAPID keys saved in .env."
+  else
+    echo "Warning: couldn't make the VAPID keys; notifications stay off until the next release."
+  fi
+fi
+
 log "Starting the new containers"
 $COMPOSE up -d || true
 
