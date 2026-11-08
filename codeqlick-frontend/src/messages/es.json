@@ -47,7 +47,8 @@
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
     "menu": "Menú",
-    "about": "Nosotros"
+    "about": "Nosotros",
+    "apps": "Apps"
   },
   "LocaleSwitcher": {
     "label": "Idioma",
@@ -3431,5 +3432,20 @@
     "markedUnpaid": "Marcada como pendiente.",
     "deleteHint": "Solo para una factura subida por error. Una factura real se corrige con una factura rectificativa.",
     "deleted": "Factura eliminada."
+  },
+  "Apps": {
+    "metaTitle": "Nuestras apps",
+    "metaDescription": "Las aplicaciones web que Codeqlick crea y mantiene por su cuenta, con tu misma cuenta de Codeqlick.",
+    "eyebrow": "Nuestras apps",
+    "title": "Lo que construimos para nosotros",
+    "lead": "Además de hacer webs y aplicaciones para nuestros clientes, creamos y mantenemos nuestras propias aplicaciones web. Entras a todas con tu cuenta de Codeqlick.",
+    "listLabel": "Aplicaciones de Codeqlick",
+    "videochat": {
+      "title": "Videochat",
+      "adult": "+18",
+      "body": "Habla por vídeo con una persona al azar y, si no hay química, pasa a la siguiente. Con filtros por intereses, país e idioma, y contactos mutuos.",
+      "warning": "Solo para mayores de 18 años: puede haber contenido para adultos. Necesitas una cuenta verificada de Codeqlick.",
+      "open": "Abrir el videochat"
+    }
   }
 }
