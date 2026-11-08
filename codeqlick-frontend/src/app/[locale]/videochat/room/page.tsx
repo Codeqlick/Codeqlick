@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormTextarea } from '@/components/app/ActionForm';
@@ -10,6 +11,9 @@ import { requireUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
 import styles from '../videochat.module.css';
 import { appealAction, onboardAction, ticketAction } from './actions';
+
+/** Behind the account: nothing here for search engines. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type PageProps = {
   params: Promise<{ locale: string }>;

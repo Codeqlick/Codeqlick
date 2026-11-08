@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { headers } from 'next/headers';
 import { connection } from 'next/server';
 import { SERVICE_SLUGS } from '@/components/content/services';
 import { routing } from '@/i18n/routing';
@@ -8,6 +9,8 @@ import { getCalculator } from '@/lib/api/calculator';
 import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
+import { webappForHost } from '@/lib/webapps';
+import { WEBAPP_PUBLIC_PATHS, webappUrl } from '@/lib/webapp-seo';
 
 const STATIC_PATHS = [
   '',
@@ -45,6 +48,21 @@ async function contentPaths(): Promise<{ path: string; lastModified?: string }[]
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
+  const app = webappForHost((await headers()).get('host'));
+  const appPaths = app ? WEBAPP_PUBLIC_PATHS[app] : undefined;
+  // A web app's host that is meant for search lists only its own public pages.
+  if (app && appPaths) {
+    return appPaths.flatMap((path) =>
+      routing.locales.map((locale) => ({
+        url: webappUrl(app, locale, path),
+        changeFrequency: 'weekly' as const,
+        priority: path === '' ? 1 : 0.5,
+        alternates: {
+          languages: Object.fromEntries(routing.locales.map((l) => [l, webappUrl(app, l, path)])),
+        },
+      })),
+    );
+  }
   const calculator = (await getCalculator()) ? [{ path: '/calculator' }] : [];
   const booking = (await getBookingSlots()) ? [{ path: '/book' }] : [];
   const entries = [

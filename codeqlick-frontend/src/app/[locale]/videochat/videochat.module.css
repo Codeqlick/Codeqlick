@@ -162,6 +162,58 @@
   color: var(--color-ink);
 }
 
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.features li {
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.features p {
+  margin: 0;
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+
+.featureTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.05rem;
+  margin: 0 0 var(--space-2);
+}
+
+.faq {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 48rem;
+}
+
+.faqItem {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  padding: var(--space-3) var(--space-4);
+}
+
+.faqItem summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.faqItem p {
+  margin: var(--space-2) 0 0;
+  color: var(--color-slate);
+  line-height: 1.5;
+}
+
 /* Rules, onboarding and notices */
 
 .rules {

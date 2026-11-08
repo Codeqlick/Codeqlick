@@ -1,9 +1,24 @@
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { resolveLocale } from '@/i18n/locale';
+import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import styles from '../videochat.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 type Section = { title: string; body: string };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'Videochat.rules' });
+  const title = t('metaTitle');
+  const description = t('metaDescription');
+  return {
+    title,
+    description,
+    alternates: webappAlternates('videochat', locale, '/rules'),
+    openGraph: { title, description, url: webappPath('videochat', locale, '/rules') },
+  };
+}
 
 /** The rules people accept before entering (version VIDEOCHAT_TERMS_VERSION in the API). */
 export default async function VideochatRulesPage({ params }: PageProps) {

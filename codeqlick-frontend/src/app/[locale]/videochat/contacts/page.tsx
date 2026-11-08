@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -10,6 +11,9 @@ import { countryFlag, countryName } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
 import { removeContactAction } from './actions';
 import { appPath } from '@/lib/webapp-request';
+
+/** Behind the account: nothing here for search engines. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type PageProps = { params: Promise<{ locale: string }> };
 
