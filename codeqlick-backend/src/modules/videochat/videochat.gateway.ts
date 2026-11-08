@@ -11,6 +11,7 @@ import { HttpAdapterHost } from '@nestjs/core';
 import type { Subscription } from 'rxjs';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { clientIp, ownUpgrade, rejectUpgrade, WS_PATHS } from '../../common/websocket/websocket.js';
 import { hasFilters, Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
 import {
   clientMessageSchema,
@@ -26,7 +27,7 @@ import { VideochatPushService } from './videochat-push.service.js';
 import { VideochatService, type TranscriptLine } from './videochat.service.js';
 
 /** Where browsers open the signaling socket (Nginx maps wss://videochat.codeqlick.com/ws here). */
-export const VIDEOCHAT_WS_PATH = '/v1/videochat/ws';
+export const VIDEOCHAT_WS_PATH = WS_PATHS.videochat;
 /** Largest message accepted (an SDP offer is a few KB). */
 const MAX_MESSAGE_BYTES = 64 * 1024;
 /** A socket must authenticate within this time. */
@@ -183,22 +184,18 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   // --- Connection lifecycle ------------------------------------------------------------------
 
   private upgrade(request: IncomingMessage, socket: Duplex, head: Buffer): void {
-    const path = (request.url ?? '').split('?')[0];
-    if (path !== VIDEOCHAT_WS_PATH) {
-      socket.destroy();
-      return;
-    }
+    if (!ownUpgrade(request, socket, VIDEOCHAT_WS_PATH)) return;
     const origin = request.headers.origin?.replace(/\/+$/, '');
     const originAllowed = origin
       ? this.config.videochatOrigins.includes(origin)
       : !this.config.isProduction;
     if (!originAllowed) {
-      reject(socket, 403, 'Forbidden');
+      rejectUpgrade(socket, 403, 'Forbidden');
       return;
     }
     const ip = clientIp(request);
     if ((this.socketsPerIp.get(ip) ?? 0) >= MAX_SOCKETS_PER_IP) {
-      reject(socket, 429, 'Too Many Requests');
+      rejectUpgrade(socket, 429, 'Too Many Requests');
       return;
     }
     this.wss.handleUpgrade(request, socket, head, (ws) => {
@@ -756,21 +753,4 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     // The partner hears at once, not when the close handshake ends.
     this.disconnected(connection);
   }
-}
-
-/** The visitor's IP: Nginx's X-Real-IP, else the last X-Forwarded-For hop, else the socket's. */
-function clientIp(request: IncomingMessage): string {
-  const realIp = request.headers['x-real-ip'];
-  if (typeof realIp === 'string' && realIp) return realIp;
-  const forwarded = request.headers['x-forwarded-for'];
-  const hops = (Array.isArray(forwarded) ? forwarded.join(',') : (forwarded ?? ''))
-    .split(',')
-    .map((hop) => hop.trim())
-    .filter(Boolean);
-  return hops.at(-1) ?? request.socket.remoteAddress ?? 'unknown';
-}
-
-function reject(socket: Duplex, status: number, text: string): void {
-  socket.write(`HTTP/1.1 ${status} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
-  socket.destroy();
 }
