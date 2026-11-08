@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -12,6 +12,7 @@ import {
 import { Subject } from 'rxjs';
 import type { VideochatProfile } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { iceServersFor, type IceServer } from '../../common/websocket/turn.js';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
@@ -35,8 +36,6 @@ import {
 
 /** A ticket opens one WebSocket, once, within this time. */
 export const TICKET_TTL_MS = 30_000;
-/** TURN credentials last this long (a long call keeps working). */
-const TURN_TTL_SECONDS = 12 * 60 * 60;
 /** Reports from this many different people within a day suspend the account until reviewed. */
 export const AUTO_SUSPEND_REPORTERS = 3;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -117,11 +116,7 @@ export interface Connection {
   publicProfile: PublicProfile;
 }
 
-export interface IceServer {
-  urls: string[];
-  username?: string;
-  credential?: string;
-}
+export type { IceServer };
 
 export interface VideochatTicket {
   ticket: string;
@@ -343,22 +338,9 @@ export class VideochatService {
     return entry.expiresAt > now ? entry.userId : undefined;
   }
 
-  /**
-   * STUN as configured; TURN with time-limited credentials (coturn's `use-auth-secret`): the
-   * username is `<expiry>:<user id>` and the password its HMAC-SHA1 with the shared secret.
-   */
+  /** STUN, and TURN with time-limited credentials for this account. */
   iceServers(userId: string, now: number = Date.now()): IceServer[] {
-    const { urls, secret } = this.config.turn;
-    const stun = urls.filter((url) => url.startsWith('stun:'));
-    const turn = urls.filter((url) => url.startsWith('turn:') || url.startsWith('turns:'));
-    const servers: IceServer[] = [];
-    if (stun.length > 0) servers.push({ urls: stun });
-    if (turn.length > 0 && secret) {
-      const username = `${Math.floor(now / 1000) + TURN_TTL_SECONDS}:${userId}`;
-      const credential = createHmac('sha1', secret).update(username).digest('base64');
-      servers.push({ urls: turn, username, credential });
-    }
-    return servers;
+    return iceServersFor(this.config.turn, userId, now);
   }
 
   /** Whether the user may connect now, with their filters and what partners see of them. */

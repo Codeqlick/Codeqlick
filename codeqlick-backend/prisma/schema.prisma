@@ -133,6 +133,7 @@ model User {
   videochatSanctioned        VideochatSanction[]         @relation("VideochatSanctionedBy")
   videochatAppeals           VideochatAppeal[]           @relation("VideochatAppellant")
   videochatAppealsDone       VideochatAppeal[]           @relation("VideochatAppealReviewer")
+  meetingRooms               MeetingRoom[]
   videochatPushSubscriptions VideochatPushSubscription[]
 
   @@map("users")
@@ -1344,4 +1345,23 @@ model VideochatAppeal {
   @@index([status, createdAt])
   @@index([userId])
   @@map("videochat_appeals")
+}
+
+/// A meeting room of meetings.codeqlick.com (architecture 4.8): a permanent link until its owner
+/// deletes it. Nothing about the meetings held in it is stored, only when it was last used.
+model MeetingRoom {
+  id         String    @id @default(uuid()) @db.Uuid
+  /// `abc-defg-hij`: the room's link.
+  code       String    @unique @db.VarChar(12)
+  ownerId    String    @map("owner_id") @db.Uuid
+  title      String    @db.VarChar(80)
+  /// Waiting room: everyone but the owner knocks and waits to be let in.
+  lobby      Boolean   @default(true)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, createdAt])
+  @@map("meeting_rooms")
 }

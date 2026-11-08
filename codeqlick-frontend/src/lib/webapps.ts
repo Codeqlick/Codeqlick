@@ -6,7 +6,7 @@
  * Adding an app: its name here, its pages under `app/[locale]/<name>/`, an Nginx server block for
  * <name>.codeqlick.com and its certificate.
  */
-export const WEBAPPS = ['videochat'] as const;
+export const WEBAPPS = ['videochat', 'meetings'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
 /** Pages of the main site a web app's host also serves: signing in and creating the account. */

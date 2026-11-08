@@ -3446,6 +3446,144 @@
       "body": "Video chat with a random person and, if there is no spark, move on to the next one. With filters by interests, country and language, and mutual contacts.",
       "warning": "Adults only (18+): there may be adult content. You need a verified Codeqlick account.",
       "open": "Open the video chat"
+    },
+    "meetings": {
+      "title": "Meetings",
+      "badge": "For everyone",
+      "body": "Video calls with a link for up to 6 people: create your room, share it and your guests join from the browser, no account needed. With a waiting room, chat and screen sharing.",
+      "open": "Open Meetings"
+    }
+  },
+  "Meetings": {
+    "metaTitle": "Meetings: video calls with a link",
+    "metaDescription": "Create a room, share the link and talk by video with up to 6 people. Nothing to install and no account needed for your guests.",
+    "brand": "meetings",
+    "homeLabel": "Meetings home",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "landing": {
+      "eyebrow": "Video calls by Codeqlick",
+      "title": "Video meetings with a single link.",
+      "lead": "Create your room, share the link and start talking. Your guests join from the browser, with nothing to install and no account to create.",
+      "createAccount": "Create my free account",
+      "joinTitle": "Join a meeting",
+      "codeLabel": "Room code or link",
+      "join": "Join",
+      "joinNote": "The code has 10 letters, like abc-defg-hjk.",
+      "codeInvalid": "That code isn't valid: it has 10 letters, like abc-defg-hjk.",
+      "featuresTitle": "How it works",
+      "feature1Title": "One room, one link",
+      "feature1": "Each room keeps its link: use it for your weekly meeting or for a quick call.",
+      "feature2Title": "Waiting room",
+      "feature2": "You decide who gets in. Turn it off to let anyone with the link in.",
+      "feature3Title": "Up to 6 people",
+      "feature3": "Video, voice, text chat and screen sharing from a computer.",
+      "feature4Title": "Private",
+      "feature4": "Video goes from browser to browser. We record nothing and don't keep the chat."
+    },
+    "rooms": {
+      "title": "Your rooms",
+      "newLabel": "New room",
+      "newPlaceholder": "For example: Team meeting",
+      "create": "Create room",
+      "created": "Room created. Share its link to invite people.",
+      "titleInvalid": "Give it a name of up to 80 characters.",
+      "tooMany": "You already have 20 rooms. Delete one to create another.",
+      "error": "The room couldn't be created. Please try again.",
+      "loadError": "Your rooms couldn't be loaded.",
+      "empty": "You have no rooms yet. Create the first one above.",
+      "live": "{count, plural, one {# person inside} other {# people inside}}",
+      "lastUsed": "Last meeting: {date}",
+      "neverUsed": "No meetings yet",
+      "copy": "Copy link",
+      "copied": "Copied",
+      "open": "Join",
+      "lobbyOn": "Waiting room: on",
+      "lobbyOff": "Waiting room: off",
+      "delete": "Delete"
+    },
+    "notFound": {
+      "title": "This room doesn't exist",
+      "body": "The link may be mistyped, or whoever created the room deleted it.",
+      "back": "Go to Meetings"
+    },
+    "room": {
+      "hostedBy": "{name}'s room",
+      "nameLabel": "Your name",
+      "nameInvalid": "Type a name of 2 to 40 characters.",
+      "joiningAs": "You'll join as {name}.",
+      "join": "Join",
+      "joining": "Joining…",
+      "joinError": "You couldn't join. Please try again.",
+      "slowDown": "Too many attempts in a row. Wait a moment.",
+      "noDevices": "We couldn't use your camera or microphone. You can still join and listen.",
+      "guestNote": "You're joining as a guest.",
+      "signIn": "Have an account? Sign in",
+      "waitingTitle": "Waiting to be let in",
+      "waitingBody": "The host already knows you're here.",
+      "cancel": "Cancel",
+      "you": "you",
+      "muted": "muted",
+      "sharingScreen": "screen",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "cameraOff": "Turn camera off",
+      "cameraOn": "Turn camera on",
+      "share": "Share screen",
+      "stopSharing": "Stop sharing",
+      "people": "{count, plural, one {# person} other {# people}}",
+      "lobbyOn": "waiting room on",
+      "lobbyOff": "anyone with the link joins",
+      "copyLink": "Copy link",
+      "copied": "Link copied",
+      "knocking": "{name} wants to join",
+      "admit": "Let in",
+      "decline": "Decline",
+      "chat": "Chat",
+      "chatEmpty": "No messages yet.",
+      "chatPlaceholder": "Type a message",
+      "chatNotStored": "Messages aren't saved: they're gone when you leave.",
+      "send": "Send",
+      "peopleTitle": "People",
+      "host": "host",
+      "guest": "guest",
+      "remove": "Remove",
+      "lobbyToggle": "Waiting room",
+      "lobbyHelp": "On, you decide who gets in. Off, anyone with the link joins.",
+      "endForAll": "End for everyone",
+      "leave": "Leave",
+      "rejoin": "Join again",
+      "backHome": "Go to Meetings",
+      "over": {
+        "left": {
+          "title": "You left the meeting",
+          "body": "You can join again with the same link whenever you like."
+        },
+        "declined": {
+          "title": "You weren't let in",
+          "body": "The host declined your request to join."
+        },
+        "removed": {
+          "title": "You were removed from the meeting",
+          "body": "The host removed you."
+        },
+        "ended": {
+          "title": "The meeting has ended",
+          "body": "The host ended it for everyone."
+        },
+        "full": {
+          "title": "The meeting is full",
+          "body": "Up to 6 people fit at once. Try again in a while."
+        },
+        "gone": {
+          "title": "This room no longer exists",
+          "body": "Whoever created it deleted it."
+        },
+        "lost": {
+          "title": "The connection was lost",
+          "body": "Check your internet connection and join again."
+        }
+      }
     }
   }
 }

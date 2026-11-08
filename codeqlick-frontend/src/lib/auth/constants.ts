@@ -12,3 +12,9 @@ export const TWO_FACTOR_MAX_AGE = 5 * 60;
 
 /** Paths that need a session: /en/portal, /es/admin/leads, /es/videochat/room ... */
 export const PROTECTED_PATH = /^\/(en|es)\/(portal|admin|videochat\/room)(\/|$)/;
+
+/**
+ * Paths open to everyone that still show the signed-in person when there is one: the proxy
+ * refreshes an expiring session there, but never sends anyone to sign in (meetings take guests).
+ */
+export const OPTIONAL_SESSION_PATH = /^\/(en|es)\/meetings(\/|$)/;

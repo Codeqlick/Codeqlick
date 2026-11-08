@@ -22,7 +22,13 @@
  * 3. Role checks are NOT done here; they live in the portal/admin layouts (`requireRole`).
  */
 import { NextResponse } from 'next/server';
-import { ACCESS_COOKIE, PROTECTED_PATH, REFRESH_COOKIE, REFRESH_TOKEN_MAX_AGE } from './constants';
+import {
+  ACCESS_COOKIE,
+  OPTIONAL_SESSION_PATH,
+  PROTECTED_PATH,
+  REFRESH_COOKIE,
+  REFRESH_TOKEN_MAX_AGE,
+} from './constants';
 
 export type RefreshedTokens = { accessToken: string; refreshToken: string; expiresIn: number };
 
@@ -68,6 +74,11 @@ export function protectedPathLocale(pathname: string): 'en' | 'es' | null {
   const match = PROTECTED_PATH.exec(pathname);
   if (!match) return null;
   return match[1] === 'es' ? 'es' : 'en';
+}
+
+/** Whether a path shows the signed-in person if there is one, without requiring it (meetings). */
+export function isOptionalSessionPath(pathname: string): boolean {
+  return OPTIONAL_SESSION_PATH.test(pathname);
 }
 
 /**

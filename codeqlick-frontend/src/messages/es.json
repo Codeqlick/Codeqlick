@@ -3446,6 +3446,144 @@
       "body": "Habla por vídeo con una persona al azar y, si no hay química, pasa a la siguiente. Con filtros por intereses, país e idioma, y contactos mutuos.",
       "warning": "Solo para mayores de 18 años: puede haber contenido para adultos. Necesitas una cuenta verificada de Codeqlick.",
       "open": "Abrir el videochat"
+    },
+    "meetings": {
+      "title": "Meetings",
+      "badge": "Para todos",
+      "body": "Videollamadas con un enlace para hasta 6 personas: crea tu sala, compártela y tus invitados entran desde el navegador, sin cuenta. Con sala de espera, chat y compartir pantalla.",
+      "open": "Abrir Meetings"
+    }
+  },
+  "Meetings": {
+    "metaTitle": "Meetings: videollamadas con un enlace",
+    "metaDescription": "Crea una sala, comparte el enlace y habla por vídeo con hasta 6 personas. Sin instalar nada y sin cuenta para tus invitados.",
+    "brand": "meetings",
+    "homeLabel": "Inicio de Meetings",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "landing": {
+      "eyebrow": "Videollamadas de Codeqlick",
+      "title": "Reuniones por vídeo con un solo enlace.",
+      "lead": "Crea tu sala, comparte el enlace y empieza a hablar. Tus invitados entran desde el navegador, sin instalar nada y sin crear cuenta.",
+      "createAccount": "Crear mi cuenta gratis",
+      "joinTitle": "Unirme a una reunión",
+      "codeLabel": "Código o enlace de la sala",
+      "join": "Entrar",
+      "joinNote": "El código tiene 10 letras, como abc-defg-hjk.",
+      "codeInvalid": "Ese código no es válido: son 10 letras, como abc-defg-hjk.",
+      "featuresTitle": "Cómo funciona",
+      "feature1Title": "Una sala, un enlace",
+      "feature1": "Cada sala tiene su enlace fijo: úsalo para tu reunión semanal o para una llamada rápida.",
+      "feature2Title": "Sala de espera",
+      "feature2": "Tú decides quién entra. Puedes quitarla para que entre cualquiera con el enlace.",
+      "feature3Title": "Hasta 6 personas",
+      "feature3": "Vídeo, voz, chat de texto y compartir pantalla desde el ordenador.",
+      "feature4Title": "Privado",
+      "feature4": "El vídeo va de navegador a navegador. No grabamos nada ni guardamos el chat."
+    },
+    "rooms": {
+      "title": "Tus salas",
+      "newLabel": "Nueva sala",
+      "newPlaceholder": "Por ejemplo: Reunión de equipo",
+      "create": "Crear sala",
+      "created": "Sala creada. Comparte su enlace para invitar.",
+      "titleInvalid": "Ponle un nombre de hasta 80 caracteres.",
+      "tooMany": "Ya tienes 20 salas. Borra alguna para crear otra.",
+      "error": "No se ha podido crear la sala. Inténtalo de nuevo.",
+      "loadError": "No se han podido cargar tus salas.",
+      "empty": "Aún no tienes salas. Crea la primera arriba.",
+      "live": "{count, plural, one {# persona dentro} other {# personas dentro}}",
+      "lastUsed": "Última reunión: {date}",
+      "neverUsed": "Sin reuniones todavía",
+      "copy": "Copiar enlace",
+      "copied": "Copiado",
+      "open": "Entrar",
+      "lobbyOn": "Sala de espera: sí",
+      "lobbyOff": "Sala de espera: no",
+      "delete": "Borrar"
+    },
+    "notFound": {
+      "title": "Esta sala no existe",
+      "body": "Puede que el enlace esté mal escrito o que quien la creó la haya borrado.",
+      "back": "Ir a Meetings"
+    },
+    "room": {
+      "hostedBy": "Sala de {name}",
+      "nameLabel": "Tu nombre",
+      "nameInvalid": "Escribe un nombre de 2 a 40 caracteres.",
+      "joiningAs": "Entrarás como {name}.",
+      "join": "Unirme",
+      "joining": "Entrando…",
+      "joinError": "No se ha podido entrar. Inténtalo de nuevo.",
+      "slowDown": "Demasiados intentos seguidos. Espera un momento.",
+      "noDevices": "No hemos podido usar tu cámara ni tu micrófono. Puedes entrar igualmente y escuchar.",
+      "guestNote": "Entras como invitado.",
+      "signIn": "¿Tienes cuenta? Inicia sesión",
+      "waitingTitle": "Esperando a que te dejen pasar",
+      "waitingBody": "Quien organiza la reunión ya sabe que estás aquí.",
+      "cancel": "Cancelar",
+      "you": "tú",
+      "muted": "silenciado",
+      "sharingScreen": "pantalla",
+      "mute": "Silenciar",
+      "unmute": "Activar micro",
+      "cameraOff": "Apagar cámara",
+      "cameraOn": "Encender cámara",
+      "share": "Compartir pantalla",
+      "stopSharing": "Dejar de compartir",
+      "people": "{count, plural, one {# persona} other {# personas}}",
+      "lobbyOn": "sala de espera activada",
+      "lobbyOff": "entra cualquiera con el enlace",
+      "copyLink": "Copiar enlace",
+      "copied": "Enlace copiado",
+      "knocking": "{name} quiere entrar",
+      "admit": "Dejar pasar",
+      "decline": "Rechazar",
+      "chat": "Chat",
+      "chatEmpty": "Aún no hay mensajes.",
+      "chatPlaceholder": "Escribe un mensaje",
+      "chatNotStored": "Los mensajes no se guardan: desaparecen al salir.",
+      "send": "Enviar",
+      "peopleTitle": "Personas",
+      "host": "organiza",
+      "guest": "invitado",
+      "remove": "Expulsar",
+      "lobbyToggle": "Sala de espera",
+      "lobbyHelp": "Activada, tú decides quién entra. Desactivada, entra cualquiera que tenga el enlace.",
+      "endForAll": "Terminar para todos",
+      "leave": "Salir",
+      "rejoin": "Volver a entrar",
+      "backHome": "Ir a Meetings",
+      "over": {
+        "left": {
+          "title": "Has salido de la reunión",
+          "body": "Puedes volver a entrar con el mismo enlace cuando quieras."
+        },
+        "declined": {
+          "title": "No te han dejado pasar",
+          "body": "Quien organiza la reunión ha rechazado tu entrada."
+        },
+        "removed": {
+          "title": "Te han sacado de la reunión",
+          "body": "Quien organiza la reunión te ha expulsado."
+        },
+        "ended": {
+          "title": "La reunión ha terminado",
+          "body": "Quien la organizaba la ha cerrado para todos."
+        },
+        "full": {
+          "title": "La reunión está llena",
+          "body": "Caben 6 personas a la vez. Prueba de nuevo dentro de un rato."
+        },
+        "gone": {
+          "title": "Esta sala ya no existe",
+          "body": "Quien la creó la ha borrado."
+        },
+        "lost": {
+          "title": "Se ha perdido la conexión",
+          "body": "Comprueba tu conexión a internet y vuelve a entrar."
+        }
+      }
     }
   }
 }

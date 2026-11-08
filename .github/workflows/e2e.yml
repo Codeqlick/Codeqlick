@@ -113,6 +113,8 @@ jobs:
           # The video chat test opens http://videochat.localhost:3000 (the API's default allowed
           # origin there) and its socket goes straight to the API (also allowed by the CSP).
           VIDEOCHAT_WS_URL: ws://localhost:4000/v1/videochat/ws
+          # Same for the meetings, at http://meetings.localhost:3000.
+          MEETINGS_WS_URL: ws://localhost:4000/v1/meetings/ws
         run: |
           npm ci
           npm run build

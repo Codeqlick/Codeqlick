@@ -10,16 +10,19 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
  * remote because Markdown content can reference them.
  */
 /**
- * The video chat's WebSocket, when it isn't on the page's own host (VIDEOCHAT_WS_URL, read at
- * build time; in production it is wss://<host>/ws, which 'self' covers).
+ * The web apps' WebSockets when they aren't on the page's own host (VIDEOCHAT_WS_URL and
+ * MEETINGS_WS_URL, read at build time; in production they are wss://<host>/ws, which 'self'
+ * covers).
  */
-const videochatSocket = (() => {
-  try {
-    return process.env.VIDEOCHAT_WS_URL ? new URL(process.env.VIDEOCHAT_WS_URL).origin : '';
-  } catch {
-    return '';
-  }
-})();
+const appSockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL]
+  .map((url) => {
+    try {
+      return url ? new URL(url).origin : '';
+    } catch {
+      return '';
+    }
+  })
+  .filter((origin, index, all) => origin && all.indexOf(origin) === index);
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -27,15 +30,15 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self'",
-  `connect-src 'self'${videochatSocket ? ` ${videochatSocket}` : ''}`,
+  ['connect-src', "'self'", ...appSockets].join(' '),
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self'",
 ].join('; ');
 
-/** videochat.codeqlick.com, videochat.localhost (architecture 6.3). */
-const VIDEOCHAT_HOST = 'videochat\\..+';
+/** Hosts of the web apps that make calls: videochat.codeqlick.com, meetings.localhost… (6.3). */
+const CALL_HOSTS = '(videochat|meetings)\\..+';
 
 const productionHeaders =
   process.env.NODE_ENV === 'production'
@@ -71,10 +74,11 @@ const nextConfig: NextConfig = {
     return [
       {
         // Not the drafts' previews (/site-draft): sandboxed, their origin is opaque, and a
-        // same-origin frame rule would keep them out of the editor's iframe. Not the video chat's
-        // host either: it gets the same headers below, with the camera and microphone allowed.
+        // same-origin frame rule would keep them out of the editor's iframe. Not the hosts of the
+        // apps that make calls either: they get the same headers below, with the camera, the
+        // microphone and screen sharing allowed.
         source: '/:path((?!site-draft/).*)',
-        missing: [{ type: 'host', value: VIDEOCHAT_HOST }],
+        missing: [{ type: 'host', value: CALL_HOSTS }],
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -84,15 +88,18 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // Every page of the video chat's host may use the camera: navigating inside the app keeps
+        // Every page of a calling app's host may use the camera: navigating inside the app keeps
         // the policy of the first page loaded (the landing or the sign-in), not the room's.
         source: '/:path((?!site-draft/).*)',
-        has: [{ type: 'host', value: VIDEOCHAT_HOST }],
+        has: [{ type: 'host', value: CALL_HOSTS }],
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'Permissions-Policy', value: 'camera=(self), microphone=(self), geolocation=()' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(self), microphone=(self), display-capture=(self), geolocation=()',
+          },
           ...productionHeaders,
         ],
       },
