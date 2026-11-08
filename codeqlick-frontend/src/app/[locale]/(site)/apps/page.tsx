@@ -56,6 +56,20 @@ export default async function AppsPage({ params }: PageProps) {
               {t('videochat.open')}
             </a>
           </li>
+          <li className={`${home.service} ${styles.card}`}>
+            <div className={styles.head}>
+              <h2 className={home.serviceTitle}>{t('meetings.title')}</h2>
+              <Badge>{t('meetings.badge')}</Badge>
+            </div>
+            <p className={home.serviceBody}>{t('meetings.body')}</p>
+            <a
+              href={`/${locale}/meetings`}
+              className={buttonClassName({})}
+              data-umami-event="apps-meetings"
+            >
+              {t('meetings.open')}
+            </a>
+          </li>
         </ul>
       </section>
 

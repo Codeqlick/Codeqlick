@@ -99,6 +99,16 @@ export const envSchema = z.object({
         .map((origin) => origin.trim().replace(/\/+$/, ''))
         .filter((origin) => origin.length > 0),
     ),
+  /** Pages allowed to open the meetings' WebSocket (its Origin header), comma-separated. */
+  MEETINGS_ORIGINS: z
+    .string()
+    .default('http://meetings.localhost:3000,http://localhost:3000')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim().replace(/\/+$/, ''))
+        .filter((origin) => origin.length > 0),
+    ),
   /** Only people whose age was verified for real may use the video chat (off: declared 18+). */
   VIDEOCHAT_AGE_VERIFICATION_REQUIRED: booleanString,
   /** coturn's `static-auth-secret`: signs the video chat's short-lived TURN credentials. */

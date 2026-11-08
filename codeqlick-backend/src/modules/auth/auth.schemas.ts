@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { WEBAPPS } from '../../common/webapps.js';
 
 export const loginSchema = z
   .object({
@@ -46,7 +47,7 @@ export const registerSchema = z
     /** Honeypot: humans never see this field, bots fill it in. */
     website: z.string().max(500).optional(),
     /** Signed up from one of Codeqlick's web apps: the emailed links lead back to it. */
-    app: z.enum(['videochat']).optional(),
+    app: z.enum(WEBAPPS).optional(),
   })
   .strict();
 export type RegisterInput = z.infer<typeof registerSchema>;
