@@ -41,6 +41,8 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       ],
       apple: '/apple-touch-icon.png',
     },
+    // ExoClick's ownership check for the video chat's ads (architecture 4.7).
+    other: { '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449' },
   };
 }
 
