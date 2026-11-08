@@ -12,7 +12,8 @@ import styles from './Swipe.module.css';
 type SwipeDeckProps = {
   locale: string;
   initial: SwipeCard[];
-  vote: (photoId: string, like: boolean) => Promise<VoteResult>;
+  vote: (photoId: string, like: boolean, superLike?: boolean) => Promise<VoteResult>;
+  undo: () => Promise<{ ok: true; card: SwipeCard } | { ok: false }>;
   more: () => Promise<SwipeCard[]>;
   report: (input: {
     photoId: string;
@@ -20,10 +21,27 @@ type SwipeDeckProps = {
     details?: string;
   }) => Promise<{ ok: boolean }>;
   canUpload: boolean;
+  /** «Me encanta» left today. */
+  superLikesLeft: number;
+  /** Photos start blurred until tapped (profile setting). */
+  blur: boolean;
 };
 
-/** The stack of photos: drag, the buttons or the arrow keys like (→) or skip (←). */
-export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: SwipeDeckProps) {
+/**
+ * The stack of photos: drag, the buttons or the arrow keys like (→) or skip (←); ↑ gives a
+ * «me encanta» and the undo button brings the last card back (architecture 4.10).
+ */
+export function SwipeDeck({
+  locale,
+  initial,
+  vote,
+  undo,
+  more,
+  report,
+  canUpload,
+  superLikesLeft,
+  blur,
+}: SwipeDeckProps) {
   const t = useTranslations('Swipe.deck');
   const tg = useTranslations('Swipe.genders');
   const ti = useTranslations('Videochat.interests');
@@ -33,6 +51,9 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
   const [reporting, setReporting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [exhausted, setExhausted] = useState(initial.length === 0);
+  const [loves, setLoves] = useState(superLikesLeft);
+  const [canUndo, setCanUndo] = useState(false);
+  const [revealed, setRevealed] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const seen = useRef(new Set<string>());
   const drag = useRef<{ x: number; id: number } | null>(null);
@@ -66,18 +87,45 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
   }, []);
 
   const decide = useCallback(
-    (like: boolean) => {
+    (like: boolean, superLike = false) => {
       if (!card) return;
+      if (superLike && loves <= 0) {
+        setNotice(t('noLovesLeft'));
+        return;
+      }
       const id = card.id;
       next();
+      setNotice(null);
+      if (superLike) setLoves((left) => left - 1);
       startTransition(async () => {
-        const result = await vote(id, like);
-        if (!result.ok) setNotice(t('voteError'));
-        else if (result.match) setMatch(result.match);
+        const result = await vote(id, like, superLike);
+        if (!result.ok) {
+          setCanUndo(false);
+          if (superLike) setLoves(result.noLovesLeft ? 0 : (left) => left + 1);
+          setNotice(result.noLovesLeft ? t('noLovesLeft') : t('voteError'));
+          return;
+        }
+        setCanUndo(!result.match);
+        if (result.match) setMatch(result.match);
       });
     },
-    [card, next, vote, t],
+    [card, loves, next, vote, t],
   );
+
+  const takeBack = useCallback(() => {
+    setCanUndo(false);
+    startTransition(async () => {
+      const result = await undo();
+      if (!result.ok) {
+        setNotice(t('undoError'));
+        return;
+      }
+      setNotice(null);
+      seen.current.delete(result.card.id);
+      setExhausted(false);
+      setCards((current) => [result.card, ...current.filter((c) => c.id !== result.card.id)]);
+    });
+  }, [undo, t]);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -85,6 +133,10 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
       if (reporting || target?.closest('input, textarea, select')) return;
       if (event.key === 'ArrowRight') decide(true);
       if (event.key === 'ArrowLeft') decide(false);
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        decide(true, true);
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -118,6 +170,7 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
   }
 
   const verdict = dragVote(dx);
+  const blurred = blur && card !== undefined && revealed !== card.id;
 
   return (
     <div className={styles.deck}>
@@ -159,12 +212,15 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
             <img
               src={`/${locale}/swipe/img/${card.id}`}
               alt={t('photoAlt', { nickname: card.nickname })}
-              className={styles.photo}
+              className={`${styles.photo} ${blurred ? styles.blurred : ''}`}
               draggable={false}
             />
-            <span className={styles.watermark} aria-hidden="true">
-              {card.nickname} · swipe.codeqlick.com
-            </span>
+            {blurred ? (
+              <button type="button" className={styles.reveal} onClick={() => setRevealed(card.id)}>
+                {t('reveal')}
+              </button>
+            ) : null}
+            {card.lovesYou ? <span className={styles.lovesYou}>{t('lovesYou')}</span> : null}
             {verdict ? (
               <span
                 className={verdict === 'like' ? styles.stampLike : styles.stampSkip}
@@ -179,6 +235,7 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
               {card.nickname}
               {card.gender ? <span className={styles.gender}> · {tg(card.gender)}</span> : null}
             </p>
+            {card.bio ? <p className={styles.bio}>{card.bio}</p> : null}
             {card.interests.length > 0 ? (
               <ul className={styles.chips}>
                 {card.interests.map((interest) => (
@@ -201,10 +258,23 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
             </button>
             <button
               type="button"
-              className={styles.reportLink}
-              onClick={() => setReporting((open) => !open)}
+              className={styles.undo}
+              onClick={takeBack}
+              disabled={!canUndo}
+              aria-label={t('undo')}
+              title={t('undo')}
             >
-              {t('report')}
+              ↺
+            </button>
+            <button
+              type="button"
+              className={styles.love}
+              onClick={() => decide(true, true)}
+              disabled={loves <= 0}
+              aria-label={t('love', { count: loves })}
+              title={t('love', { count: loves })}
+            >
+              ★
             </button>
             <button
               type="button"
@@ -215,6 +285,13 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
               ♥
             </button>
           </div>
+          <button
+            type="button"
+            className={styles.reportLink}
+            onClick={() => setReporting((open) => !open)}
+          >
+            {t('report')}
+          </button>
           {reporting ? (
             <ReportForm onSend={sendReport} onCancel={() => setReporting(false)} />
           ) : null}
@@ -222,6 +299,11 @@ export function SwipeDeck({ locale, initial, vote, more, report, canUpload }: Sw
       ) : (
         <div className={styles.empty}>
           <p>{exhausted ? t('empty') : t('loading')}</p>
+          {canUndo ? (
+            <button type="button" className={styles.ghost} onClick={takeBack}>
+              {t('undo')}
+            </button>
+          ) : null}
           {canUpload ? null : (
             <Link href="/swipe/photos" className={styles.inlineLink}>
               {t('shareYours')}

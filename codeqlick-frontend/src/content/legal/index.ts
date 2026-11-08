@@ -20,7 +20,7 @@ export type LegalPage = 'legal' | 'privacy' | 'terms';
 
 const UPDATED = { es: '28 de octubre de 2026', en: '28 October 2026' } as const;
 
-function ownerLines(owner: LegalOwner, locale: AppLocale): string {
+export function ownerLines(owner: LegalOwner, locale: AppLocale): string {
   const es = locale === 'es';
   const lines = [`- **${es ? 'Titular' : 'Owner'}:** ${owner.name}`];
   if (owner.taxId) lines.push(`- **${es ? 'NIF' : 'Tax ID'}:** ${owner.taxId}`);

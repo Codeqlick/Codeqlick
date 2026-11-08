@@ -35,6 +35,7 @@ export default async function SwipeChatPage({ params }: PageProps) {
       locale={locale}
       matchId={id}
       nickname={match.partner.nickname}
+      bio={match.partner.bio}
       initial={messages}
       load={messagesAction}
       send={sendMessageAction}

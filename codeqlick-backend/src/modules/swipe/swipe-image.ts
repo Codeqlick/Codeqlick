@@ -69,3 +69,29 @@ export function hashDistance(a: string, b: string): number {
 export function isBlockedImage(hash: string, blocked: readonly string[]): boolean {
   return blocked.some((other) => hashDistance(hash, other) <= SAME_IMAGE_DISTANCE);
 }
+
+function escapeXml(text: string): string {
+  return text.replace(/[<>&"']/g, (char) => `&#${char.charCodeAt(0)};`);
+}
+
+/**
+ * Burns `text` (nickname · ref · swipe.codeqlick.com) into the bottom right corner of a stored
+ * photo, white with a dark outline so it reads on any background. Returns the new WebP.
+ */
+export async function watermark(image: Buffer, text: string): Promise<Buffer> {
+  const { width = 800, height = 800 } = await sharp(image).metadata();
+  const size = Math.max(14, Math.round(Math.min(width, height) / 32));
+  const margin = Math.round(size * 0.8);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+<text x="${width - margin}" y="${height - margin}" text-anchor="end" font-family="DejaVu Sans, sans-serif" font-size="${size}" font-weight="bold" fill="#ffffff" fill-opacity="0.8" stroke="#000000" stroke-opacity="0.55" stroke-width="${Math.max(1, Math.round(size / 10))}" paint-order="stroke">${escapeXml(text)}</text>
+</svg>`;
+  return sharp(image)
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .webp({ quality: 82 })
+    .toBuffer();
+}
+
+/** The watermark's text for a photo. */
+export function watermarkText(nickname: string | null | undefined, ref: string): string {
+  return `${nickname ? `@${nickname} · ` : ''}${ref} · swipe.codeqlick.com`;
+}

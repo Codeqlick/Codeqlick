@@ -11,6 +11,7 @@ const RULES = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
 export default async function SwipeRulesPage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Swipe.rules' });
+  const tl = await getTranslations({ locale, namespace: 'Swipe.legal' });
   return (
     <article className={vc.rules}>
       <h1 className={vc.pageTitle}>{t('title')}</h1>
@@ -24,6 +25,15 @@ export default async function SwipeRulesPage({ params }: PageProps) {
       </ol>
       <h2 className={vc.sectionTitle}>{t('privacyTitle')}</h2>
       <p>{t('privacy')}</p>
+      <p>
+        <Link href="/swipe/terms-of-use" className={vc.inlineLink}>
+          {tl('terms')}
+        </Link>
+        {' · '}
+        <Link href="/swipe/privacy-policy" className={vc.inlineLink}>
+          {tl('privacy')}
+        </Link>
+      </p>
       <h2 className={vc.sectionTitle}>{t('takedownTitle')}</h2>
       <p>
         {t('takedown')}{' '}

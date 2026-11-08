@@ -3876,8 +3876,8 @@
       "title": "Antes de entrar",
       "lead": "Confirma que eres mayor de edad y acepta las normas.",
       "birthDate": "Fecha de nacimiento",
-      "birthDateHint": "Solo comprobamos que tienes 18 años o más. No la guardamos.",
-      "accept": "Tengo 18 años o más y acepto las normas de Swipe",
+      "birthDateHint": "Comprobamos que tienes 18 años o más. Solo guardamos el año, para el filtro de edad.",
+      "accept": "Tengo 18 años o más y acepto las normas y las condiciones de uso de Swipe",
       "readRules": "Leer las normas",
       "submit": "Entrar",
       "submitting": "Entrando…",
@@ -3905,14 +3905,20 @@
       "empty": "No hay más fotos por ahora. Vuelve más tarde.",
       "loading": "Cargando fotos…",
       "shareYours": "¿Quieres compartir las tuyas?",
-      "keysHint": "En el ordenador: ← pasar · → me gusta",
+      "keysHint": "En el ordenador: ← pasar · → me gusta · ↑ me encanta",
       "voteError": "No hemos podido guardar tu voto.",
       "reported": "Gracias. La revisaremos y no volverás a verla.",
       "reportError": "No hemos podido enviar la denuncia. Inténtalo de nuevo.",
       "matchTitle": "¡Match con {nickname}!",
       "matchBody": "Os gustan vuestras fotos. Ya podéis hablar.",
       "matchChat": "Escribir",
-      "matchKeep": "Seguir deslizando"
+      "matchKeep": "Seguir deslizando",
+      "undo": "Deshacer",
+      "undoError": "Ya no se puede deshacer.",
+      "love": "{count, plural, =0 {Sin «me encanta» hoy} one {Me encanta (te queda # hoy)} other {Me encanta (te quedan # hoy)}}",
+      "noLovesLeft": "Has usado tus «me encanta» de hoy. Mañana tendrás más.",
+      "lovesYou": "Le encantas",
+      "reveal": "Ver foto"
     },
     "report": {
       "title": "¿Por qué la denuncias?",
@@ -3948,7 +3954,24 @@
       "save": "Guardar",
       "saving": "Guardando…",
       "saved": "Perfil guardado.",
-      "error": "No hemos podido guardar el perfil."
+      "error": "No hemos podido guardar el perfil.",
+      "bio": "Una frase sobre ti",
+      "bioHint": "Opcional, hasta 160 caracteres. Sale bajo tus fotos. Sin teléfonos, correos ni enlaces.",
+      "birthYear": "Año de nacimiento",
+      "birthYearHint": "Para el filtro de edad. Solo guardamos el año.",
+      "birthYearInvalid": "Escribe un año válido (tienes que tener 18 años o más).",
+      "country": "País",
+      "countryNone": "Prefiero no decirlo",
+      "ages": "Edad de las personas que quiero ver",
+      "ageMin": "Desde",
+      "ageMax": "Hasta",
+      "agesHint": "Entre 18 y 99. Quien no ha indicado su año solo aparece si dejas de 18 a 99.",
+      "sameCountry": "Solo personas de mi país",
+      "sameCountryHint": "Necesitas haber elegido tu país.",
+      "blurPhotos": "Fotos borrosas hasta que las toque",
+      "blurPhotosHint": "Útil si usas Swipe en sitios con gente alrededor.",
+      "emailAlerts": "Avisarme por correo de matches, «me encanta» y mensajes",
+      "emailAlertsHint": "Los correos nunca muestran fotos, apodos ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre."
     },
     "verification": {
       "title": "Foto de verificación",
@@ -4023,7 +4046,9 @@
       "unmatch": "Terminar el match",
       "block": "Terminar y bloquear",
       "report": "Denunciar",
-      "safety": "Solo texto. Nunca envíes dinero ni compartas datos que no quieras que se sepan."
+      "safety": "Solo texto. Nunca envíes dinero ni compartas datos que no quieras que se sepan.",
+      "contactBlocked": "Aún no se pueden compartir teléfonos, correos, enlaces ni otras apps. Seguid hablando aquí: cada uno tiene que enviar al menos {count} mensajes.",
+      "guard": "Por tu seguridad, hasta que cada uno haya enviado {count} mensajes no se pueden compartir teléfonos, correos, enlaces ni otras apps."
     },
     "rules": {
       "title": "Normas de Swipe",
@@ -4045,7 +4070,7 @@
       "rule8Title": "No copies",
       "rule8": "No hagas capturas ni compartas fotos de otras personas fuera de Swipe.",
       "privacyTitle": "Tus datos",
-      "privacy": "Tu fecha de nacimiento no se guarda. Tus fotos se guardan sin los datos de la cámara ni la ubicación y solo se ven dentro de Swipe. Puedes borrar cualquier foto cuando quieras, y si borras tu cuenta se borran todas.",
+      "privacy": "De tu fecha de nacimiento solo guardamos el año, para el filtro de edad. Tus fotos se guardan sin los datos de la cámara ni la ubicación, con tu apodo como marca de agua, y solo se ven dentro de Swipe. Puedes borrar cualquier foto cuando quieras, y si borras tu cuenta se borran todas.",
       "takedownTitle": "Retirada de fotos",
       "takedown": "Si encuentras una foto tuya que no has subido tú, o una foto que no debería estar aquí, cualquiera puede pedir que la retiremos, sin cuenta. Se oculta al momento si indicas su referencia, y respondemos en 24 horas.",
       "takedownLink": "Pedir la retirada de una foto"
@@ -4068,6 +4093,22 @@
       "sending": "Enviando…",
       "sent": "Recibido. Te hemos enviado un correo de confirmación y te responderemos en 24 horas.",
       "error": "No hemos podido enviarla. Inténtalo de nuevo o escribe a hello@codeqlick.com."
+    },
+    "legal": {
+      "terms": "Condiciones de uso",
+      "privacy": "Privacidad"
+    },
+    "push": {
+      "title": "Notificaciones",
+      "lead": "Te avisamos en este dispositivo de matches nuevos, mensajes y «me encanta», con un texto discreto.",
+      "enable": "Activar las notificaciones",
+      "disable": "Desactivar en este dispositivo",
+      "working": "Un momento…",
+      "on": "Las notificaciones están activadas en este dispositivo.",
+      "denied": "Has bloqueado las notificaciones para esta web. Permítelas en los ajustes del navegador y vuelve a intentarlo.",
+      "unsupported": "Este navegador no admite notificaciones.",
+      "iosInstall": "En iPhone, primero instala Swipe (Compartir → «Añadir a pantalla de inicio») y actívalas desde la app.",
+      "error": "No se han podido activar. Inténtalo de nuevo."
     }
   },
   "AdminSwipe": {

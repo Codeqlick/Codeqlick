@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import type { SwipeMessage } from '@/lib/api/swipe';
-import { mergeMessages, POLL_MS } from './logic';
+import { mergeMessages, POLL_MS, SAFE_CHAT_MESSAGES } from './logic';
 import { ReportForm } from './ReportForm';
 import styles from './Swipe.module.css';
 
@@ -12,6 +12,8 @@ type SwipeChatProps = {
   locale: string;
   matchId: string;
   nickname: string;
+  /** The partner's sentence, under their name. */
+  bio: string | null;
   initial: SwipeMessage[];
   load: (
     matchId: string,
@@ -20,7 +22,7 @@ type SwipeChatProps = {
   send: (
     matchId: string,
     text: string,
-  ) => Promise<{ ok: true; message: SwipeMessage } | { ok: false }>;
+  ) => Promise<{ ok: true; message: SwipeMessage } | { ok: false; contactBlocked?: boolean }>;
   end: (matchId: string, block: boolean) => Promise<{ ok: boolean }>;
   report: (input: {
     matchId: string;
@@ -34,6 +36,7 @@ export function SwipeChat({
   locale,
   matchId,
   nickname,
+  bio,
   initial,
   load,
   send,
@@ -82,7 +85,11 @@ export function SwipeChat({
         setError(null);
         setMessages((current) => mergeMessages(current, [result.message]));
       } else {
-        setError(t('sendError'));
+        setError(
+          result.contactBlocked
+            ? t('contactBlocked', { count: SAFE_CHAT_MESSAGES })
+            : t('sendError'),
+        );
       }
     });
   }
@@ -107,7 +114,10 @@ export function SwipeChat({
   return (
     <div className={styles.chat}>
       <div className={styles.chatHeader}>
-        <h1 className={styles.chatTitle}>{nickname}</h1>
+        <div>
+          <h1 className={styles.chatTitle}>{nickname}</h1>
+          {bio ? <p className={styles.hint}>{bio}</p> : null}
+        </div>
         <div className={styles.matchActions}>
           <button
             type="button"
@@ -190,6 +200,7 @@ export function SwipeChat({
         </p>
       ) : null}
       <p className={styles.hint}>{t('safety')}</p>
+      <p className={styles.guard}>{t('guard', { count: SAFE_CHAT_MESSAGES })}</p>
     </div>
   );
 }

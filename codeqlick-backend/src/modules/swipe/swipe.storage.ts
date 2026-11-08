@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { createReadStream, type ReadStream } from 'node:fs';
-import { mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { AppConfigService } from '../../config/app-config.service.js';
 
@@ -46,6 +46,15 @@ export class SwipeStorage {
 
   read(key: string): ReadStream {
     return createReadStream(this.path(key));
+  }
+
+  /** The whole file, or undefined when there is no such file. */
+  async readAll(key: string): Promise<Buffer | undefined> {
+    try {
+      return await readFile(this.path(key));
+    } catch {
+      return undefined;
+    }
   }
 
   async remove(key: string | null | undefined): Promise<void> {

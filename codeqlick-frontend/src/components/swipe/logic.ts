@@ -1,5 +1,8 @@
 import type { SwipeCard, SwipeMessage } from '@/lib/api/swipe';
 
+/** Messages each person sends in a match before contact details can be shared (the API's). */
+export const SAFE_CHAT_MESSAGES = 5;
+
 // The deck's and the chat's pure helpers, kept apart from React so they can be unit tested.
 
 /** Pixels a card must be dragged sideways to count as a like or a skip. */
