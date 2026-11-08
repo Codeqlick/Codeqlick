@@ -127,4 +127,14 @@ export class VideochatStatsRepository {
       current: current[0] ?? { members: 0, openReports: 0, suspended: 0 },
     };
   }
+
+  /** Calls started in each hour of the day (Europe/Madrid) since `since`. */
+  callsByHour(since: Date): Promise<{ hour: number; total: number }[]> {
+    return this.prisma.$queryRaw<{ hour: number; total: number }[]>`
+      SELECT extract(hour FROM started_at AT TIME ZONE ${STATS_TIME_ZONE})::int AS hour,
+             count(*)::int AS total
+      FROM videochat_call_logs
+      WHERE started_at >= ${since}
+      GROUP BY 1`;
+  }
 }

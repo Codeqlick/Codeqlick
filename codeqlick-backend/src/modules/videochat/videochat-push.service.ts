@@ -2,6 +2,7 @@ import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import webpush from 'web-push';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { accepts, type MatchPrefs } from './matchmaker.js';
+import { STATS_TIME_ZONE, VideochatStatsRepository } from './videochat-stats.repository.js';
 import { VideochatRepository } from './videochat.repository.js';
 import { VIDEOCHAT_TERMS_VERSION, type PushSubscriptionInput } from './videochat.schemas.js';
 
@@ -11,6 +12,51 @@ export const PUSH_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 export const PUSH_MAX_ACCOUNTS = 20;
 /** …and at most one round in this time. */
 export const PUSH_ROUND_MS = 60_000;
+
+/** Peak time: at least this many people connected now… */
+export const PEAK_MIN_ONLINE = 5;
+/** …in one of the busiest hours (most calls over the last PEAK_DAYS days, at least PEAK_MIN_CALLS). */
+export const PEAK_TOP_HOURS = 3;
+export const PEAK_MIN_CALLS = 3;
+export const PEAK_DAYS = 14;
+/** An account gets at most one peak time alert in this time… */
+export const PEAK_COOLDOWN_MS = 20 * 60 * 60 * 1000;
+/** …and at most this many accounts are alerted per round. */
+export const PEAK_MAX_SUBSCRIPTIONS = 500;
+/** The busiest hours are computed again after this long. */
+const PEAK_HOURS_TTL_MS = 60 * 60 * 1000;
+
+const PEAK_TEXT = {
+  en: (count: number) => ({
+    title: 'Codeqlick Videochat',
+    body: `It's peak time in the video chat: ${count} people are online now.`,
+  }),
+  es: (count: number) => ({
+    title: 'Codeqlick Videochat',
+    body: `Es hora punta en el videochat: hay ${count} personas conectadas ahora.`,
+  }),
+} as const;
+
+/** The busiest hours of the day (0–23): the top PEAK_TOP_HOURS with at least PEAK_MIN_CALLS calls. */
+export function peakHours(rows: Array<{ hour: number; total: number }>): Set<number> {
+  return new Set(
+    rows
+      .filter((row) => row.total >= PEAK_MIN_CALLS && row.hour >= 0 && row.hour < 24)
+      .toSorted((a, b) => b.total - a.total || a.hour - b.hour)
+      .slice(0, PEAK_TOP_HOURS)
+      .map((row) => row.hour),
+  );
+}
+
+/** The hour of the day (0–23) of `date` in Europe/Madrid. */
+export function madridHour(date: Date): number {
+  const hour = new Intl.DateTimeFormat('en-GB', {
+    timeZone: STATS_TIME_ZONE,
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+  return Number(hour) % 24;
+}
 
 const TEXT = {
   en: { title: 'Codeqlick Videochat', body: 'Someone is waiting in the video chat. Come say hi!' },
@@ -54,9 +100,11 @@ export function pickRecipients(waiter: Waiter, candidates: PushCandidate[], max:
 export class VideochatPushService {
   private readonly logger = new Logger(VideochatPushService.name);
   private lastRound = 0;
+  private busiest?: { hours: Set<number>; at: number };
 
   constructor(
     private readonly repository: VideochatRepository,
+    private readonly stats: VideochatStatsRepository,
     private readonly config: AppConfigService,
   ) {}
 
@@ -81,6 +129,75 @@ export class VideochatPushService {
       auth: input.keys.auth,
       locale: input.locale,
     });
+  }
+
+  /** Peak time alerts for the account (on any of its subscribed browsers). */
+  async setPeakAlerts(userId: string, on: boolean): Promise<{ on: boolean }> {
+    const profile = await this.repository.findProfile(userId);
+    if (profile?.termsVersion !== VIDEOCHAT_TERMS_VERSION) {
+      throw new ConflictException('Confirm your age and accept the rules first');
+    }
+    await this.repository.setPeakAlerts(userId, on);
+    return { on };
+  }
+
+  /** Whether `now` is peak time with `online` people connected (the busiest hours are cached). */
+  async isPeak(online: number, now: Date = new Date()): Promise<boolean> {
+    if (online < PEAK_MIN_ONLINE) return false;
+    if (!this.busiest || now.getTime() - this.busiest.at >= PEAK_HOURS_TTL_MS) {
+      const since = new Date(now.getTime() - PEAK_DAYS * 24 * 60 * 60 * 1000);
+      this.busiest = { hours: peakHours(await this.stats.callsByHour(since)), at: now.getTime() };
+    }
+    return this.busiest.hours.has(madridHour(now));
+  }
+
+  /**
+   * At peak time, alerts the accounts that asked for it and aren't connected (`onlineUserIds`),
+   * at most once every 20 hours each. Returns how many accounts were alerted.
+   */
+  async peakTime(online: number, onlineUserIds: string[], now: Date = new Date()): Promise<number> {
+    const vapid = this.config.vapid;
+    if (!vapid || !(await this.isPeak(online, now))) return 0;
+    const rows = await this.repository.peakCandidates({
+      termsVersion: VIDEOCHAT_TERMS_VERSION,
+      notifiedBefore: new Date(now.getTime() - PEAK_COOLDOWN_MS),
+      now,
+      excludeUserIds: onlineUserIds,
+      take: PEAK_MAX_SUBSCRIPTIONS,
+    });
+    const accounts = [...new Set(rows.map((row) => row.userId))];
+    if (accounts.length === 0) return 0;
+    await this.repository.markPeakNotified(accounts, now);
+    const options = { vapidDetails: vapid, TTL: 30 * 60, urgency: 'normal' as const };
+    await Promise.all(
+      rows.map((row) => {
+        const text = (row.locale === 'es' ? PEAK_TEXT.es : PEAK_TEXT.en)(online);
+        return this.deliver(row, JSON.stringify({ ...text, url: `/${row.locale}/room` }), options);
+      }),
+    );
+    return accounts.length;
+  }
+
+  /** Sends one notification; a subscription the push service says is gone is deleted. */
+  private async deliver(
+    row: { endpoint: string; p256dh: string; auth: string },
+    payload: string,
+    options: webpush.RequestOptions,
+  ): Promise<void> {
+    try {
+      await webpush.sendNotification(
+        { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
+        payload,
+        options,
+      );
+    } catch (error) {
+      const status = (error as { statusCode?: number }).statusCode;
+      if (status === 404 || status === 410) {
+        await this.repository.deletePushSubscription(row.endpoint);
+      } else {
+        this.logger.warn(`Push notification failed (${status ?? 'network'})`);
+      }
+    }
   }
 
   unsubscribe(userId: string, endpoint: string): Promise<void> {
@@ -132,20 +249,7 @@ export class VideochatPushService {
         .map(async (row) => {
           const text = row.locale === 'es' ? TEXT.es : TEXT.en;
           const payload = JSON.stringify({ ...text, url: `/${row.locale}/room` });
-          try {
-            await webpush.sendNotification(
-              { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },
-              payload,
-              options,
-            );
-          } catch (error) {
-            const status = (error as { statusCode?: number }).statusCode;
-            if (status === 404 || status === 410) {
-              await this.repository.deletePushSubscription(row.endpoint);
-            } else {
-              this.logger.warn(`Push notification failed (${status ?? 'network'})`);
-            }
-          }
+          await this.deliver(row, payload, options);
         }),
     );
     return recipients.size;

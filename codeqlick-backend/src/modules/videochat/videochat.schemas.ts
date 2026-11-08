@@ -187,6 +187,9 @@ export const pushSubscriptionSchema = z.object({
 });
 export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
 
+export const peakAlertsSchema = z.object({ on: z.boolean() });
+export type PeakAlertsInput = z.infer<typeof peakAlertsSchema>;
+
 export const pushUnsubscribeSchema = z.object({
   endpoint: z.string().min(1).max(2_000),
 });
@@ -228,6 +231,9 @@ export type SignalData = z.infer<typeof signalDataSchema>;
 
 export const CHAT_MAX_LENGTH = 500;
 
+/** People in a group call at once (browser-to-browser mesh: each one sends to all the others). */
+export const GROUP_MAX = 4;
+
 /** Quick reactions a person can send during a call (a fixed set: nothing to moderate). */
 export const REACTIONS = ['❤️', '😂', '😮', '🔥', '👍', '😘'] as const;
 
@@ -253,6 +259,23 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   /** Call a mutual contact who is in the video chat and free. */
   z.object({ type: z.literal('call'), contactId: z.uuid() }),
   z.object({ type: z.literal('answer'), callId: z.uuid(), accept: z.boolean() }),
+  // --- Group calls (mutual contacts, up to GROUP_MAX people) ---
+  /** Invite a contact to my group (one is created when I'm in none). */
+  z.object({ type: z.literal('group-invite'), contactId: z.uuid() }),
+  z.object({ type: z.literal('group-answer'), groupId: z.uuid(), accept: z.boolean() }),
+  z.object({ type: z.literal('group-leave') }),
+  /** WebRTC negotiation with one member of my group. */
+  z.object({ type: z.literal('group-signal'), to: z.uuid(), data: signalDataSchema }),
+  z.object({ type: z.literal('group-chat'), text: z.string().trim().min(1).max(CHAT_MAX_LENGTH) }),
+  z.object({
+    type: z.literal('group-report'),
+    memberId: z.uuid(),
+    reason: reportReasonSchema,
+    details: z.string().trim().max(1_000).optional(),
+  }),
+  z.object({ type: z.literal('group-block'), memberId: z.uuid() }),
+  /** My contacts and whether each can be invited now. */
+  z.object({ type: z.literal('group-contacts') }),
 ]);
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
 
@@ -280,7 +303,42 @@ export type ServerMessage =
   | { type: 'calling'; callId: string; partner: PublicProfile }
   | { type: 'incoming'; callId: string; partner: PublicProfile }
   | { type: 'call-ended'; callId: string; reason: CallEndReason }
+  /** People connected to the video chat now. */
+  | { type: 'online'; count: number }
+  /** I'm in a group: my member id and the others (I make an offer to each one). */
+  | { type: 'group'; groupId: string; self: string; members: GroupMember[] }
+  | { type: 'group-joined'; member: GroupMember }
+  | { type: 'group-left'; memberId: string }
+  /** A contact invites me to their group of `size` people. */
+  | { type: 'group-invited'; groupId: string; from: PublicProfile; size: number }
+  | {
+      type: 'group-invite-ended';
+      groupId: string;
+      /** Who was invited (to the inviter), or who invited (to the invited). */
+      nickname: string | null;
+      reason: GroupInviteEndReason;
+    }
+  | { type: 'group-signal'; from: string; data: SignalData }
+  | { type: 'group-chat'; from: string; text: string }
+  | { type: 'group-contacts'; items: GroupContact[] }
   | { type: 'error'; code: VideochatErrorCode };
+
+/** Someone in a group, as the others see them (the id is per connection, not the account's). */
+export interface GroupMember {
+  memberId: string;
+  profile: PublicProfile;
+}
+
+/** A contact and whether they can be invited to a group now. */
+export interface GroupContact {
+  contactId: string;
+  nickname: string | null;
+  status: 'free' | 'busy' | 'offline' | 'in-group' | 'invited';
+}
+
+/** Why an invitation to a group did not end in someone joining. */
+export type GroupInviteEndReason =
+  'declined' | 'timeout' | 'busy' | 'offline' | 'full' | 'gone' | 'blocked' | 'not-contact';
 
 /** Why a call to a contact did not start. */
 export type CallEndReason = 'declined' | 'timeout' | 'busy' | 'offline' | 'cancelled';
@@ -292,4 +350,5 @@ export type VideochatErrorCode =
   | 'rate-limited'
   | 'no-partner'
   | 'replaced'
-  | 'not-contact';
+  | 'not-contact'
+  | 'not-in-group';
