@@ -48,6 +48,8 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       rating: 'adult',
       // `other` replaces the root layout's: ExoClick's ownership check stays (architecture 4.7).
       '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449',
+      // Google Search Console's ownership check (property https://videochat.codeqlick.com).
+      'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
     },
     // Installed on a phone it opens as its own app (manifest: app/manifest.ts on this host).
     appleWebApp: { capable: true, title: 'Videochat', statusBarStyle: 'default' },
