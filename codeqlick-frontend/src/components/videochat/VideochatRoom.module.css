@@ -10,6 +10,7 @@
     grid-template-areas:
       'stage chat'
       'notice chat'
+      'invite chat'
       'controls chat'
       'ad chat';
     align-items: start;
@@ -30,6 +31,10 @@
 
   .controls {
     grid-area: controls;
+  }
+
+  .groupInvite {
+    grid-area: invite;
   }
 
   .chat {
@@ -778,4 +783,60 @@
 
 .sounds input {
   accent-color: var(--color-fuchsia);
+}
+
+/* Chat translation: the switch back to the original text. */
+.original {
+  margin-left: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-slate);
+  font: inherit;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* People online, shown in the room while not in a call. */
+.online {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-slate);
+}
+
+.online::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+/* An invitation to a group call, above the buttons. */
+.groupInvite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-fuchsia);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.groupInvite p {
+  margin: 0;
+}
+
+.immersive .groupInvite {
+  position: absolute;
+  top: calc(var(--space-3) + env(safe-area-inset-top));
+  left: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
 }

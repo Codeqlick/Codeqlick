@@ -3154,7 +3154,26 @@
       "reactions": "Reacciones rápidas",
       "reactWith": "Reaccionar con {emoji}",
       "sounds": "Sonidos",
-      "messageTitle": "● Nuevo mensaje"
+      "messageTitle": "● Nuevo mensaje",
+      "online": "{count, plural, =1 {1 persona conectada} other {# personas conectadas}}",
+      "translate": "Traducir mensajes",
+      "seeOriginal": "Ver original",
+      "seeTranslation": "Ver traducción",
+      "groupInvited": "{name} te invita a una llamada de grupo ({count, plural, =1 {1 persona dentro} other {# personas dentro}}).",
+      "groupJoin": "Unirme",
+      "groupInvitedTitle": "Te invitan a un grupo",
+      "groupLeft": "Has salido del grupo.",
+      "groupReported": "Gracias. Lo revisaremos. Has salido del grupo y no volverás a coincidir con esa persona.",
+      "groupBlocked": "Bloqueado. Has salido del grupo y no volverás a coincidir con esa persona.",
+      "groupInviteMissed": "La invitación al grupo ya no está disponible.",
+      "groupInvite_declined": "{name} no se ha unido al grupo.",
+      "groupInvite_timeout": "{name} no ha contestado a la invitación.",
+      "groupInvite_busy": "{name} está en otra llamada.",
+      "groupInvite_offline": "{name} no está en el videochat ahora.",
+      "groupInvite_full": "El grupo está completo (4 personas).",
+      "groupInvite_gone": "El grupo ya no existe.",
+      "groupInvite_blocked": "No se puede invitar a {name} a este grupo.",
+      "groupInvite_not-contact": "Solo puedes invitar a tus contactos."
     },
     "rules": {
       "title": "Normas del videochat",
@@ -3245,7 +3264,9 @@
       "denied": "Has bloqueado las notificaciones para esta web. Permítelas en los ajustes del navegador y vuelve a intentarlo.",
       "unsupported": "Este navegador no admite avisos.",
       "iosInstall": "En iPhone, primero instala la app (Compartir → «Añadir a pantalla de inicio») y activa los avisos desde ella.",
-      "error": "No se han podido activar los avisos. Inténtalo de nuevo."
+      "error": "No se han podido activar los avisos. Inténtalo de nuevo.",
+      "peak": "Avisarme también en la hora punta",
+      "peakHint": "Un aviso como mucho al día, cuando más gente hay conectada."
     },
     "interests": {
       "chat": "Charlar",
@@ -3284,7 +3305,7 @@
     "contactsLink": "Contactos",
     "contacts": {
       "title": "Contactos",
-      "lead": "Personas con las que os habéis dado «Me gusta» mutuamente. Puedes llamarlas cuando estén en el videochat y libres.",
+      "lead": "Personas con las que os habéis dado «Me gusta» mutuamente. Puedes llamarlas, o empezar una llamada de grupo (hasta 4 personas), cuando estén en el videochat y libres.",
       "empty": "Aún no tienes contactos. Durante una llamada (o justo después), pulsa «Me gusta»: si la otra persona también lo hace, aparecerá aquí.",
       "online": "En el videochat",
       "busy": "En una llamada",
@@ -3296,11 +3317,33 @@
       "since": "Contactos desde el {date}",
       "anonymous": "Sin apodo",
       "interests": "Intereses",
-      "refresh": "Actualizar"
+      "refresh": "Actualizar",
+      "group": "Grupo"
     },
     "metaSuffix": "Codeqlick Videochat",
     "ogEyebrow": "Videochat · solo +18",
-    "ogTitle": "Videochat aleatorio gratis: conoce a alguien nuevo, cara a cara"
+    "ogTitle": "Videochat aleatorio gratis: conoce a alguien nuevo, cara a cara",
+    "group": {
+      "title": "Llamada de grupo",
+      "count": "{count} de {max}",
+      "alone": "De momento estás tú solo. Invita a tus contactos con «Invitar».",
+      "invite": "Invitar",
+      "inviteOne": "Invitar",
+      "inviteTitle": "Invitar a un contacto",
+      "close": "Cerrar",
+      "full": "Grupo completo",
+      "noContacts": "Buscando tus contactos… Si no aparece nadie, aún no tienes contactos.",
+      "leave": "Salir del grupo",
+      "chatEmpty": "Los mensajes del grupo aparecerán aquí.",
+      "reportTitle": "Reportar a {name}",
+      "reportLead": "Saldrás del grupo y no volveréis a coincidir. El equipo revisará el reporte con sus últimos mensajes.",
+      "status": {
+        "busy": "En otra llamada",
+        "offline": "No está ahora",
+        "in-group": "Ya está en el grupo",
+        "invited": "Invitado"
+      }
+    }
   },
   "AdminVideochat": {
     "title": "Videochat",

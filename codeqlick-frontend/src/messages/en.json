@@ -3154,7 +3154,26 @@
       "reactions": "Quick reactions",
       "reactWith": "React with {emoji}",
       "sounds": "Sounds",
-      "messageTitle": "● New message"
+      "messageTitle": "● New message",
+      "online": "{count, plural, =1 {1 person online} other {# people online}}",
+      "translate": "Translate messages",
+      "seeOriginal": "See original",
+      "seeTranslation": "See translation",
+      "groupInvited": "{name} invites you to a group call ({count, plural, =1 {1 person inside} other {# people inside}}).",
+      "groupJoin": "Join",
+      "groupInvitedTitle": "Group call invitation",
+      "groupLeft": "You left the group.",
+      "groupReported": "Thanks. We'll review it. You left the group and won't meet that person again.",
+      "groupBlocked": "Blocked. You left the group and won't meet that person again.",
+      "groupInviteMissed": "The group invitation is no longer available.",
+      "groupInvite_declined": "{name} didn't join the group.",
+      "groupInvite_timeout": "{name} didn't answer the invitation.",
+      "groupInvite_busy": "{name} is in another call.",
+      "groupInvite_offline": "{name} isn't in the video chat now.",
+      "groupInvite_full": "The group is full (4 people).",
+      "groupInvite_gone": "The group no longer exists.",
+      "groupInvite_blocked": "{name} can't be invited to this group.",
+      "groupInvite_not-contact": "You can only invite your contacts."
     },
     "rules": {
       "title": "Video chat rules",
@@ -3245,7 +3264,9 @@
       "denied": "You blocked notifications for this site. Allow them in your browser settings and try again.",
       "unsupported": "This browser does not support notifications.",
       "iosInstall": "On iPhone, install the app first (Share → “Add to Home Screen”) and turn notifications on from it.",
-      "error": "Notifications could not be turned on. Please try again."
+      "error": "Notifications could not be turned on. Please try again.",
+      "peak": "Also tell me at peak time",
+      "peakHint": "At most one a day, when the most people are online."
     },
     "interests": {
       "chat": "Chatting",
@@ -3284,7 +3305,7 @@
     "contactsLink": "Contacts",
     "contacts": {
       "title": "Contacts",
-      "lead": "People you both liked. You can call them when they are in the video chat and free.",
+      "lead": "People you and they both liked. You can call them, or start a group call (up to 4 people), when they're in the video chat and free.",
       "empty": "No contacts yet. During a call (or right after), press “Like”: if they do too, they will show up here.",
       "online": "In the video chat",
       "busy": "In a call",
@@ -3296,11 +3317,33 @@
       "since": "Contacts since {date}",
       "anonymous": "No nickname",
       "interests": "Interests",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "group": "Group"
     },
     "metaSuffix": "Codeqlick Videochat",
     "ogEyebrow": "Video chat · 18+ only",
-    "ogTitle": "Free random video chat: meet someone new, face to face"
+    "ogTitle": "Free random video chat: meet someone new, face to face",
+    "group": {
+      "title": "Group call",
+      "count": "{count} of {max}",
+      "alone": "It's just you for now. Invite your contacts with “Invite”.",
+      "invite": "Invite",
+      "inviteOne": "Invite",
+      "inviteTitle": "Invite a contact",
+      "close": "Close",
+      "full": "Group full",
+      "noContacts": "Looking for your contacts… If nobody shows up, you don't have contacts yet.",
+      "leave": "Leave the group",
+      "chatEmpty": "The group's messages will show up here.",
+      "reportTitle": "Report {name}",
+      "reportLead": "You'll leave the group and won't meet again. The team will review the report with their last messages.",
+      "status": {
+        "busy": "In another call",
+        "offline": "Not here now",
+        "in-group": "Already in the group",
+        "invited": "Invited"
+      }
+    }
   },
   "AdminVideochat": {
     "title": "Video chat",
