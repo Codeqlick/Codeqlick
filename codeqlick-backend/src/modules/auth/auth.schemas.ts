@@ -104,3 +104,24 @@ export const preferencesSchema = z
   .object({ weeklyDigest: z.boolean().optional(), monthlyReport: z.boolean().optional() })
   .strict();
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
+
+export const updateMeSchema = z
+  .object({ name: z.string().trim().min(1).max(120).optional(), locale: localeSchema.optional() })
+  .strict();
+export type UpdateMeInput = z.infer<typeof updateMeSchema>;
+
+export const changeEmailSchema = z
+  .object({
+    email: z.email().max(254),
+    password: z.string().min(1).max(1024),
+    /** Language of the confirmation email and of the page its link opens. */
+    locale: localeSchema.default('en'),
+  })
+  .strict();
+export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
+
+export const confirmEmailChangeSchema = z.object({ token: z.string().min(1).max(512) }).strict();
+export type ConfirmEmailChangeInput = z.infer<typeof confirmEmailChangeSchema>;
+
+export const deleteAccountSchema = z.object({ password: z.string().min(1).max(1024) }).strict();
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

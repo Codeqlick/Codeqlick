@@ -417,7 +417,9 @@
     "noAccount": "No account yet?",
     "register": "Create one",
     "passwordReset": "Your password has been changed. Sign in with the new one.",
-    "passwordCreated": "Password created. You can now sign in with your email and the password you chose."
+    "passwordCreated": "Password created. You can now sign in with your email and the password you chose.",
+    "emailChanged": "Email changed. Sign in now with {email}.",
+    "accountDeleted": "Your account has been deleted. Thank you for having been with us."
   },
   "Register": {
     "metaTitle": "Create an account",
@@ -508,7 +510,33 @@
     "weeklyDigest": "Weekly summary of my projects",
     "weeklyDigestHint": "Every Monday, if there's news or something waiting for your approval, we email you a summary.",
     "monthlyReport": "Monthly report of my website",
-    "monthlyReportHint": "On the 1st of each month we email you your website's visits, form messages and time online."
+    "monthlyReportHint": "On the 1st of each month we email you your website's visits, form messages and time online.",
+    "profile": "Your details",
+    "name": "Name",
+    "nameInvalid": "Enter your name (120 characters at most).",
+    "changeEmail": "Change your email",
+    "changeEmailBody": "You sign in with {email}. We will send a link to the new address: the change happens when you open it, and then you sign in again.",
+    "newEmail": "New email",
+    "password": "Your password",
+    "passwordNeeded": "Enter your password to confirm.",
+    "wrongPassword": "The password is not correct.",
+    "emailInvalid": "Enter a valid email.",
+    "emailTaken": "That email already has an account.",
+    "emailSame": "That is already your email.",
+    "emailSent": "We sent a link to {email}. Open it within 24 hours to finish the change.",
+    "sending": "Sending…",
+    "changeEmailSubmit": "Send link",
+    "yourData": "Your personal data",
+    "yourDataBody": "Download as a file (JSON) everything we keep about you: your account, sessions, projects, proposals and requests, and your video chat profile if you use it.",
+    "download": "Download my data",
+    "deleteTitle": "Delete account",
+    "deleteBody": "Your account and what hangs from it (requests, proposals, your video chat profile…) will be deleted. This cannot be undone. You will get a confirmation email.",
+    "deleteConfirm": "I understand this cannot be undone",
+    "deleteConfirmNeeded": "Tick the box to confirm.",
+    "deleteSubmit": "Delete my account",
+    "deleting": "Deleting…",
+    "deleteHasProjects": "Your account has projects with us, with their contracts and invoices, so we close it for you: open a support request or write to hello@codeqlick.com and we will.",
+    "deleteAdmin": "Team accounts are deleted by another admin from Users."
   },
   "TwoFactor": {
     "title": "Two-step verification",
@@ -1171,7 +1199,9 @@
           "two_factor_enabled": "turned on two-step verification",
           "two_factor_disabled": "turned off two-step verification",
           "sessions_revoked": "{scope, select, one {signed out one of their other devices} other {signed out all their other devices}}",
-          "registered": "created their account"
+          "registered": "created their account",
+          "email_changed": "changed their account email to <target>{label}</target>",
+          "deleted": "deleted their account"
         },
         "unknown": "made a change ({action})",
         "tag": {
@@ -3340,5 +3370,14 @@
       "open": "open their page",
       "help": "show the shortcuts"
     }
+  },
+  "ConfirmEmail": {
+    "title": "Confirm your new email",
+    "body": "Press the button for your account to use this email. Then sign in again.",
+    "confirm": "Confirm the email",
+    "confirming": "Confirming…",
+    "invalidLink": "This link is invalid or has expired. Ask for the change again from \"Your account\".",
+    "taken": "That email already has another account, so it cannot be used.",
+    "rateLimited": "Too many attempts. Wait a minute and try again."
   }
 }

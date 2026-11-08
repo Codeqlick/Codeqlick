@@ -115,6 +115,8 @@ export const ACTIVITY_ACTIONS = [
   'account.two_factor_disabled',
   'account.sessions_revoked',
   'account.registered',
+  'account.email_changed',
+  'account.deleted',
   'videochat.suspended',
   'videochat.unsuspended',
   'videochat.report_dismissed',

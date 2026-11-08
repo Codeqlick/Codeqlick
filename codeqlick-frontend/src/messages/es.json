@@ -417,7 +417,9 @@
     "noAccount": "¿Aún no tienes cuenta?",
     "register": "Créala aquí",
     "passwordReset": "Tu contraseña se ha cambiado. Inicia sesión con la nueva.",
-    "passwordCreated": "Contraseña creada. Ya puedes entrar con tu correo y la contraseña que has elegido."
+    "passwordCreated": "Contraseña creada. Ya puedes entrar con tu correo y la contraseña que has elegido.",
+    "emailChanged": "Correo cambiado. Entra ahora con {email}.",
+    "accountDeleted": "Tu cuenta se ha eliminado. Gracias por haber estado con nosotros."
   },
   "Register": {
     "metaTitle": "Crear cuenta",
@@ -508,7 +510,33 @@
     "weeklyDigest": "Resumen semanal de mis proyectos",
     "weeklyDigestHint": "Cada lunes, si hay novedades o algo pendiente de tu aprobación, te enviamos un resumen.",
     "monthlyReport": "Informe mensual de mi web",
-    "monthlyReportHint": "El día 1 de cada mes te enviamos las visitas, los mensajes del formulario y el tiempo en línea de tu web."
+    "monthlyReportHint": "El día 1 de cada mes te enviamos las visitas, los mensajes del formulario y el tiempo en línea de tu web.",
+    "profile": "Tus datos",
+    "name": "Nombre",
+    "nameInvalid": "Escribe tu nombre (máximo 120 caracteres).",
+    "changeEmail": "Cambiar el correo",
+    "changeEmailBody": "Ahora entras con {email}. Te mandaremos un enlace al correo nuevo: el cambio se hace al abrirlo, y entonces tendrás que volver a entrar.",
+    "newEmail": "Correo nuevo",
+    "password": "Tu contraseña",
+    "passwordNeeded": "Escribe tu contraseña para confirmar.",
+    "wrongPassword": "La contraseña no es correcta.",
+    "emailInvalid": "Escribe un correo válido.",
+    "emailTaken": "Ese correo ya tiene una cuenta.",
+    "emailSame": "Ese ya es tu correo.",
+    "emailSent": "Te hemos mandado un enlace a {email}. Ábrelo en las próximas 24 horas para completar el cambio.",
+    "sending": "Enviando…",
+    "changeEmailSubmit": "Enviar enlace",
+    "yourData": "Tus datos personales",
+    "yourDataBody": "Descarga en un archivo (JSON) todo lo que guardamos de ti: tu cuenta, tus sesiones, tus proyectos, propuestas y peticiones, y tu perfil del videochat si lo usas.",
+    "download": "Descargar mis datos",
+    "deleteTitle": "Eliminar cuenta",
+    "deleteBody": "Se borrará tu cuenta y lo que cuelga de ella (peticiones, propuestas, tu perfil del videochat…). No se puede deshacer. Te llegará un correo de confirmación.",
+    "deleteConfirm": "Entiendo que no se puede deshacer",
+    "deleteConfirmNeeded": "Marca la casilla para confirmar.",
+    "deleteSubmit": "Eliminar mi cuenta",
+    "deleting": "Eliminando…",
+    "deleteHasProjects": "Tu cuenta tiene proyectos con nosotros, con sus contratos y facturas, así que la cerramos nosotros: abre una petición de soporte o escríbenos a hello@codeqlick.com y la damos de baja.",
+    "deleteAdmin": "Las cuentas del equipo las elimina otro administrador desde Usuarios."
   },
   "TwoFactor": {
     "title": "Verificación en dos pasos",
@@ -1171,7 +1199,9 @@
           "two_factor_enabled": "activó la verificación en dos pasos",
           "two_factor_disabled": "desactivó la verificación en dos pasos",
           "sessions_revoked": "{scope, select, one {cerró la sesión de otro de sus dispositivos} other {cerró la sesión en todos sus demás dispositivos}}",
-          "registered": "creó su cuenta"
+          "registered": "creó su cuenta",
+          "email_changed": "cambió el correo de su cuenta a <target>{label}</target>",
+          "deleted": "eliminó su cuenta"
         },
         "unknown": "hizo un cambio ({action})",
         "tag": {
@@ -3340,5 +3370,14 @@
       "open": "abrir su ficha",
       "help": "ver los atajos"
     }
+  },
+  "ConfirmEmail": {
+    "title": "Confirma tu nuevo correo",
+    "body": "Pulsa el botón para que tu cuenta use este correo. Después tendrás que volver a entrar.",
+    "confirm": "Confirmar el correo",
+    "confirming": "Confirmando…",
+    "invalidLink": "Este enlace no es válido o ha caducado. Pide el cambio otra vez desde «Mi cuenta».",
+    "taken": "Ese correo ya tiene otra cuenta, así que no se puede usar.",
+    "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
   }
 }

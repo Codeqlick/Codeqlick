@@ -177,3 +177,44 @@ export function acceptInvitation(input: {
     forwardClientIp: true,
   });
 }
+
+/** The caller's own name (and email language). */
+export function updateMe(input: { name?: string; locale?: Locale }) {
+  return apiFetch<AuthUser>('/auth/me', { method: 'PATCH', body: input, auth: 'required' });
+}
+
+/** Emails a confirmation link to the new address; the email changes once it is opened. */
+export function requestEmailChange(input: { email: string; password: string; locale: Locale }) {
+  return apiFetch<void>('/auth/email', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
+export function confirmEmailChange(token: string) {
+  return apiFetch<{ email: string }>('/auth/email/confirm', {
+    method: 'POST',
+    body: { token },
+    forwardClientIp: true,
+  });
+}
+
+/** Everything the platform keeps about the caller, as JSON text (GDPR). */
+export function exportMyData() {
+  return apiFetch<string>('/auth/me/export', {
+    auth: 'required',
+    responseType: 'text',
+    signal: AbortSignal.timeout(30_000),
+  });
+}
+
+export function deleteMe(password: string) {
+  return apiFetch<void>('/auth/me', {
+    method: 'DELETE',
+    body: { password },
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}

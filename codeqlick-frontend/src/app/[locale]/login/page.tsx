@@ -21,6 +21,9 @@ type PageProps = {
     next?: string | string[];
     reset?: string | string[];
     welcome?: string | string[];
+    emailChanged?: string | string[];
+    email?: string | string[];
+    accountDeleted?: string | string[];
   }>;
 };
 
@@ -58,6 +61,12 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
           <p className={styles.muted}>{t('subtitle')}</p>
           {query.reset ? <Alert tone="success">{t('passwordReset')}</Alert> : null}
           {query.welcome ? <Alert tone="success">{t('passwordCreated')}</Alert> : null}
+          {query.emailChanged ? (
+            <Alert tone="success">
+              {t('emailChanged', { email: firstParam(query.email) ?? '' })}
+            </Alert>
+          ) : null}
+          {query.accountDeleted ? <Alert tone="success">{t('accountDeleted')}</Alert> : null}
           <ActionForm action={loginAction} className={styles.form}>
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="next" value={firstParam(query.next) ?? ''} />
