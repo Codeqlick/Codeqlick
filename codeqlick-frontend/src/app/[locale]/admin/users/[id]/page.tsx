@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
+import { AccountKindBadge } from '@/components/app/AccountKindBadge';
 import styles from '@/components/app/app.module.css';
 import { DeleteForm } from '@/components/app/DeleteForm';
 import { PageHeader } from '@/components/app/PageHeader';
@@ -32,6 +33,7 @@ export default async function EditUserPage({
   const tpr = await getTranslations({ locale, namespace: 'Admin.proposals' });
   const tr = await getTranslations({ locale, namespace: 'Roles' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
+  const ta = await getTranslations({ locale, namespace: 'Apps' });
   const back = { href: '/admin/users', label: t('back') };
 
   const [user, me] = await Promise.all([adminGetUser(id), getCurrentUser()]);
@@ -68,13 +70,29 @@ export default async function EditUserPage({
         }
       />
 
+      <p>
+        <AccountKindBadge user={user} withApps={false} />{' '}
+        <span className={styles.muted}>
+          {user.signupApp
+            ? t('signedUpFrom', { app: ta(`${user.signupApp}.title`) })
+            : user.role === 'CLIENT' && user.registered
+              ? t('signedUpOnSite')
+              : null}
+          {user.apps.length > 0
+            ? ` · ${t('usesApps', { apps: user.apps.map((app) => ta(`${app}.title`)).join(', ') })}`
+            : null}
+        </span>
+      </p>
+      <p className={styles.muted}>{t(`kindHint.${user.kind ?? 'admin'}`)}</p>
+
       {account ? (
         <Alert tone="info">
           {t('memberOf')} <Link href={`/admin/users/${account.id}`}>{account.name}</Link>
         </Alert>
       ) : null}
 
-      {isAccount ? (
+      {/* People of a company only make sense for clients, not for people who just use our apps. */}
+      {isAccount && user.kind === 'client' ? (
         <section className={styles.panel} id="people" aria-labelledby="people-heading">
           <h2 id="people-heading" className={styles.panelTitle}>
             {t('peopleTitle')}

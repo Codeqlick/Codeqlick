@@ -131,6 +131,74 @@ describe('Clients create their own account (e2e)', () => {
       .set('X-Forwarded-For', '203.0.113.23')
       .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'other' })
       .expect(400);
+
+    // Confirmed, the account remembers the app: the team sees an app user, not a client.
+    const token = tokenIn(to(email).at(-1), '/en/register/confirm');
+    await request(app.getHttpServer())
+      .post('/v1/auth/register/confirm')
+      .send({ token })
+      .expect(200);
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    expect(user.signupApp).toBe('videochat');
+    const shown = await request(app.getHttpServer())
+      .get(`/v1/admin/users/${user.id}`)
+      .set(auth)
+      .expect(200);
+    expect(shown.body).toMatchObject({ kind: 'app', apps: ['videochat'], signupApp: 'videochat' });
+  });
+
+  it('tells clients apart from the people who use our web apps', async () => {
+    const server = app.getHttpServer();
+    const make = (key: string, data: { registeredAt?: null; signupApp?: string } = {}) =>
+      prisma.user.create({
+        data: {
+          email: `e2e-su-kind-${key}-${tag}@codeqlick.test`,
+          name: `Kind ${key} ${tag}`,
+          role: Role.CLIENT,
+          passwordHash: 'x',
+          ...data,
+        },
+      });
+    const prepared = await make('prepared', { registeredAt: null });
+    const swiper = await make('swiper', { signupApp: 'swipe' });
+    const host = await make('host');
+    await prisma.meetingRoom.create({
+      data: { code: `${tag.slice(0, 3)}-${tag.slice(3, 7)}-kin`, ownerId: host.id, title: 'x' },
+    });
+    const plain = await make('plain');
+    // An app user who gets a proposal becomes a client, and keeps their app.
+    const both = await make('both', { signupApp: 'videochat' });
+    await prisma.proposal.create({
+      data: { clientId: both.id, title: 'Web', summary: 'x', terms: 'x' },
+    });
+
+    const list = async (query: Record<string, string>) => {
+      const response = await request(server)
+        .get('/v1/admin/users')
+        .query({ q: `Kind`, pageSize: '50', ...query })
+        .set(auth)
+        .expect(200);
+      const mine = (response.body.items as { id: string; kind: string; apps: string[] }[]).filter(
+        (item) => [prepared, swiper, host, plain, both].some((user) => user.id === item.id),
+      );
+      return Object.fromEntries(mine.map((item) => [item.id, item]));
+    };
+    const all = await list({});
+    expect(all[prepared.id]).toMatchObject({ kind: 'client', apps: [] });
+    expect(all[swiper.id]).toMatchObject({ kind: 'app', apps: ['swipe'], signupApp: 'swipe' });
+    expect(all[host.id]).toMatchObject({ kind: 'app', apps: ['meetings'], signupApp: null });
+    expect(all[plain.id]).toMatchObject({ kind: 'none', apps: [] });
+    expect(all[both.id]).toMatchObject({ kind: 'client', apps: ['videochat'] });
+
+    expect(Object.keys(await list({ kind: 'client' })).toSorted()).toEqual(
+      [prepared.id, both.id].toSorted(),
+    );
+    expect(Object.keys(await list({ kind: 'app' })).toSorted()).toEqual(
+      [swiper.id, host.id].toSorted(),
+    );
+    expect(Object.keys(await list({ kind: 'none' }))).toEqual([plain.id]);
+    expect(Object.keys(await list({ app: 'videochat' }))).toEqual([both.id]);
+    await request(server).get('/v1/admin/users').query({ kind: 'other' }).set(auth).expect(400);
   });
 
   it('keeps what the team prepared for an email until its owner registers with it', async () => {
