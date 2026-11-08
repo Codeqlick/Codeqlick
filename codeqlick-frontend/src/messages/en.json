@@ -2928,8 +2928,8 @@
     "partMissing": "Incomplete"
   },
   "Videochat": {
-    "metaTitle": "Random video chat for adults",
-    "metaDescription": "Talk by video with a random person. Adults only (18+), with a Codeqlick account.",
+    "metaTitle": "Free random video chat for adults (18+) | Codeqlick",
+    "metaDescription": "Video chat with strangers at random, free and with nothing to download. Camera to camera on your phone or computer, with filters, contacts and verified accounts.",
     "brand": "videochat",
     "homeLabel": "Video chat home",
     "adultBadge": "18+",
@@ -2938,8 +2938,8 @@
     "signOut": "Sign out",
     "landing": {
       "eyebrow": "Adults only (18+)",
-      "title": "Meet someone new, face to face.",
-      "lead": "One click and you're on video with a random person. No spark? Move on to the next one.",
+      "title": "Random video chat: meet someone new, face to face.",
+      "lead": "One click and you're on camera with a random person, free and with nothing to download. No spark? Move on to the next one.",
       "warningTitle": "Adult content",
       "warning": "Explicit sexual content between consenting adults may appear in this video chat. If you are under 18 or don't want to see it, leave now.",
       "enter": "Enter the video chat",
@@ -2959,7 +2959,69 @@
       "safety2": "Block anyone and you'll never be paired again.",
       "safety3": "Report anything that breaks the rules: the team reviews it.",
       "safety4": "Nobody sees your name or email.",
-      "online": "{count, plural, =0 {Nobody online right now} one {# person online now} other {# people online now}}"
+      "online": "{count, plural, =0 {Nobody online right now} one {# person online now} other {# people online now}}",
+      "featuresTitle": "Why this video chat",
+      "features": [
+        {
+          "title": "Actually free",
+          "body": "Matching, filters, contacts and calls: all free, no coins or subscriptions."
+        },
+        {
+          "title": "Nothing to download",
+          "body": "Works in the browser on your phone and computer. Install it as an app if you like."
+        },
+        {
+          "title": "Made for phones",
+          "body": "Front or back camera, full screen and big buttons to move on to the next person."
+        },
+        {
+          "title": "Filters and interests",
+          "body": "Choose gender, country and language, and pick your interests to meet like-minded people."
+        },
+        {
+          "title": "Contacts",
+          "body": "If you both press “I like them”, you are saved as contacts and can call each other when you are online."
+        },
+        {
+          "title": "Verified accounts",
+          "body": "Everyone comes in with their own account and confirmed email: fewer bots, fewer trolls and real moderation."
+        }
+      ],
+      "faqTitle": "Frequently asked questions",
+      "faq": [
+        {
+          "q": "Is the video chat free?",
+          "a": "Yes. Getting matched, using the filters, saving contacts and calling them is free. It is paid for by discreet ads that never show during a call."
+        },
+        {
+          "q": "Do I have to download anything?",
+          "a": "No. It works in the browser on your phone or computer (Chrome, Safari, Firefox or Edge). You only need a camera and to allow it. You can also install it as an app on your phone."
+        },
+        {
+          "q": "Why do I need an account?",
+          "a": "So that everyone answers for what they do: blocks and reports point to a real account, and people who break the rules stay out. It is free and only asks you to confirm your email."
+        },
+        {
+          "q": "Who sees my name or email?",
+          "a": "Nobody. The other person only sees your video and, if you add them, your nickname, country, language and interests."
+        },
+        {
+          "q": "Are the video calls recorded?",
+          "a": "No. The video goes from your browser to the other person’s and we neither record nor keep it. Recording someone without their permission is against the rules."
+        },
+        {
+          "q": "Can I choose who I talk to?",
+          "a": "You can filter by gender, country and language and pick up to five interests. If nobody matches, you can search without your filters that time so you don’t wait too long."
+        },
+        {
+          "q": "What if someone breaks the rules?",
+          "a": "Press “Report”: the call ends, you are never paired again and the team reviews it. Reporting someone who looks under 18 suspends their account at once."
+        },
+        {
+          "q": "Is it an alternative to Omegle or Chatroulette?",
+          "a": "Yes. If you are looking for a chat with strangers on camera like Omegle was, here you video chat with random people, but with verified accounts, filters, contacts and moderation."
+        }
+      ]
     },
     "onboarding": {
       "title": "Before you start",
@@ -3127,7 +3189,9 @@
           "title": "7. Contact",
           "body": "To report content, appeal a suspension or ask anything: hello@codeqlick.com."
         }
-      ]
+      ],
+      "metaTitle": "Adult video chat rules",
+      "metaDescription": "The rules of Codeqlick's random video chat: adults only (18+), consent always, no recording without permission, reports and suspensions."
     },
     "settingsLink": "Your profile",
     "genders": {
@@ -3233,7 +3297,10 @@
       "anonymous": "No nickname",
       "interests": "Interests",
       "refresh": "Refresh"
-    }
+    },
+    "metaSuffix": "Codeqlick Videochat",
+    "ogEyebrow": "Video chat · 18+ only",
+    "ogTitle": "Free random video chat: meet someone new, face to face"
   },
   "AdminVideochat": {
     "title": "Video chat",
