@@ -26,6 +26,7 @@ import {
   zodFieldErrors,
   type FormState,
 } from '@/lib/forms';
+import { appPath } from '@/lib/webapp-request';
 
 function whole(formData: FormData, name: string, fallback: number, max: number): number {
   const value = Math.round(Number(formString(formData, name)));
@@ -112,7 +113,7 @@ export async function savePageAction(
     return { status: 'error', message: t('failed'), values };
   }
   revalidatePath(`/${lang}/citas`);
-  redirect(`/${lang}/citas`);
+  redirect(await appPath(`/${lang}/citas`, lang));
 }
 
 /** Pauses a page or takes bookings again. */

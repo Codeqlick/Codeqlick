@@ -108,7 +108,7 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
                       : t('rooms.neverUsed')}
                   </span>
                   <CopyLink
-                    url={`${origin}/${locale}/meetings/${room.code}`}
+                    url={`${origin}/${locale}/${room.code}`}
                     labels={{ copy: t('rooms.copy'), copied: t('rooms.copied') }}
                   />
                   <div className={styles.actions}>

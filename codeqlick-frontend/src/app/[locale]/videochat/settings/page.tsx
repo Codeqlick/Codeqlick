@@ -19,6 +19,7 @@ import { requireUser } from '@/lib/auth/session';
 import { countryOptions, languageOptions } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
 import { settingsAction } from './actions';
+import { appPath } from '@/lib/webapp-request';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -31,7 +32,7 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
   const tp = await getTranslations({ locale, namespace: 'Videochat.push' });
   const ti = await getTranslations({ locale, namespace: 'Videochat.interests' });
   const status = await getVideochatStatus();
-  if (!status.profile) redirect(`/${locale}/videochat/room`);
+  if (!status.profile) redirect(await appPath(`/${locale}/videochat/room`, locale));
   const profile = status.profile;
   const genders = GENDERS.map((value) => ({ value, label: tg(value) }));
 

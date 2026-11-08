@@ -77,7 +77,7 @@ export function appealResolvedEmail(
         greeting: copy.greeting(person.name),
         intro: [outcome.intro],
         quote: decision.response ? { title: copy.answer, body: decision.response } : undefined,
-        button: { label: copy.button, url: `${videochatUrl}/${person.locale}/videochat` },
+        button: { label: copy.button, url: `${videochatUrl}/${person.locale}` },
       },
       siteUrl,
     ),

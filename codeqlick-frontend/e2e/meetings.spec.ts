@@ -58,13 +58,13 @@ test('an owner and a guest meet by link, chat, and the owner ends it', async ({
   try {
     const host = await ownerContext.newPage();
     await signIn(host, owner, '/es/meetings');
-    await expect(host).toHaveURL(`${base}/es/meetings`);
+    await expect(host).toHaveURL(`${base}/es`);
 
     await host.getByLabel('Nueva sala').fill(`Equipo ${tag}`);
     await host.getByRole('button', { name: 'Crear sala' }).click();
     await expect(host.getByText(`Equipo ${tag}`)).toBeVisible();
     const link = (await host.locator('code').first().textContent()) ?? '';
-    expect(link).toMatch(/\/es\/meetings\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/);
+    expect(link).toMatch(/\/es\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/);
 
     await host.getByRole('link', { name: 'Entrar' }).first().click();
     await expect(host.getByText(`Entrarás como Olga ${tag}.`)).toBeVisible();

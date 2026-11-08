@@ -131,7 +131,7 @@ export class VideochatPushService {
         .filter((row) => recipients.has(row.userId))
         .map(async (row) => {
           const text = row.locale === 'es' ? TEXT.es : TEXT.en;
-          const payload = JSON.stringify({ ...text, url: `/${row.locale}/videochat/room` });
+          const payload = JSON.stringify({ ...text, url: `/${row.locale}/room` });
           try {
             await webpush.sendNotification(
               { endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } },

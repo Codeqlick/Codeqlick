@@ -11,7 +11,7 @@ import { TWO_FACTOR_COOKIE, TWO_FACTOR_MAX_AGE } from '@/lib/auth/constants';
 import { authCookieOptions, isSecureCookieEnv } from '@/lib/auth/refresh';
 import { invalidState } from '@/lib/actions';
 import { safeNextPath, setAuthCookies } from '@/lib/auth/session';
-import { homeAfterSignIn } from '@/lib/webapp-request';
+import { homeAfterSignIn, shortNext } from '@/lib/webapp-request';
 import { formString, type FormState } from '@/lib/forms';
 import { loginSchema } from '@/lib/schemas/auth';
 
@@ -41,7 +41,7 @@ export async function loginAction(_previous: FormState, formData: FormData): Pro
     return { status: 'error', message, values: { email } };
   }
 
-  const next = safeNextPath(formData.get('next'), locale);
+  const next = await shortNext(safeNextPath(formData.get('next'), locale), locale);
   if ('twoFactorRequired' in result) {
     // The password was right; the code is asked on the next page.
     const store = await cookies();

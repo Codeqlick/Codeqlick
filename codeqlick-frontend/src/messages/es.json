@@ -3474,6 +3474,13 @@
       "badge": "Para todos",
       "body": "Tu página de reservas con un enlace: publica tus horas libres y tus clientes eligen cita sin llamarte y sin cuenta. Con correos de confirmación, calendario y videollamada opcional.",
       "open": "Abrir Citas"
+    },
+    "swipe": {
+      "title": "Swipe",
+      "adult": "+18",
+      "body": "Desliza fotos íntimas de adultos que las comparten porque quieren: a la derecha si te gusta, a la izquierda si no. Si os gustáis los dos, hay match y podéis hablar. Revisamos cada foto antes de publicarla.",
+      "warning": "Solo para mayores de 18 años: hay desnudos y contenido sexual explícito. Necesitas una cuenta verificada de Codeqlick.",
+      "open": "Abrir Swipe"
     }
   },
   "Meetings": {

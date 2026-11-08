@@ -4,10 +4,11 @@ import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
+import { Link, WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { logoutAction } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
+import { requestWebapp } from '@/lib/webapp-request';
 import styles from './meetings.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
@@ -31,30 +32,34 @@ export default async function MeetingsLayout({ children, params }: LayoutProps) 
   const t = await getTranslations({ locale, namespace: 'Meetings' });
   const user = await getCurrentUser();
 
+  const webapp = (await requestWebapp()) === 'meetings' ? 'meetings' : null;
+
   return (
-    <div className={styles.frame}>
-      <header className={styles.header}>
-        <div className={styles.brand}>
-          <Logo href="/meetings" size="sm" label={t('homeLabel')} />
-          <span className={styles.brandApp}>{t('brand')}</span>
-        </div>
-        <nav className={styles.headerNav}>
-          <LocaleSwitcher className={styles.locale} />
-          {user ? (
-            <form action={logoutAction}>
-              <input type="hidden" name="locale" value={locale} />
-              <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
-                {t('signOut')}
-              </SubmitButton>
-            </form>
-          ) : (
-            <Link href="/login?next=/meetings" className={styles.headerLink}>
-              {t('signIn')}
-            </Link>
-          )}
-        </nav>
-      </header>
-      <main className={styles.main}>{children}</main>
-    </div>
+    <WebappProvider app={webapp}>
+      <div className={styles.frame}>
+        <header className={styles.header}>
+          <div className={styles.brand}>
+            <Logo href="/meetings" size="sm" label={t('homeLabel')} />
+            <span className={styles.brandApp}>{t('brand')}</span>
+          </div>
+          <nav className={styles.headerNav}>
+            <LocaleSwitcher className={styles.locale} />
+            {user ? (
+              <form action={logoutAction}>
+                <input type="hidden" name="locale" value={locale} />
+                <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
+                  {t('signOut')}
+                </SubmitButton>
+              </form>
+            ) : (
+              <Link href="/login?next=/meetings" className={styles.headerLink}>
+                {t('signIn')}
+              </Link>
+            )}
+          </nav>
+        </header>
+        <main className={styles.main}>{children}</main>
+      </div>
+    </WebappProvider>
   );
 }

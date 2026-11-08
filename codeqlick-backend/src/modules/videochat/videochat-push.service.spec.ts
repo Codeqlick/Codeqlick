@@ -102,7 +102,7 @@ describe('VideochatPushService', () => {
       .mocked(webpush.sendNotification)
       .mock.calls.map((call) => JSON.parse(String(call[1])) as { body: string; url: string });
     expect(payloads[0]?.body).toContain('Hay alguien esperando');
-    expect(payloads[1]?.url).toBe('/en/videochat/room');
+    expect(payloads[1]?.url).toBe('/en/room');
     expect(repository.deletePushSubscription).toHaveBeenCalledWith('https://push.example/b');
 
     // A second round within the minute does nothing.

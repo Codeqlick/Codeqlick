@@ -119,7 +119,8 @@ jobs:
           npm ci
           npm run build
           cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/
-          (cd .next/standalone && PORT=3000 HOSTNAME=127.0.0.1 nohup node server.js > ../../../web.log 2>&1 &)
+          # HOSTNAME as in production (Dockerfile): the proxy's rewrites stay on this server.
+          (cd .next/standalone && PORT=3000 HOSTNAME=0.0.0.0 nohup node server.js > ../../../web.log 2>&1 &)
           for i in $(seq 1 30); do curl -fs -o /dev/null http://localhost:3000/en && exit 0; sleep 2; done
           cat ../web.log; exit 1
 

@@ -149,7 +149,7 @@ describe('Citas (e2e)', () => {
     );
     const toBooker = sent.find((message) => message.to === 'ana@example.com')!;
     expect(toBooker.icalEvent?.method).toBe('REQUEST');
-    expect(toBooker.text).toContain('/es/citas/cancelar?token=');
+    expect(toBooker.text).toContain('/es/cancelar?token=');
 
     await book(slug, first!).expect(409);
     // Same person, another of their pages, same time: not free either.
