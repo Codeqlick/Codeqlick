@@ -1,11 +1,21 @@
 import 'server-only';
 import { apiFetch } from './client';
 import { isApiError } from './errors';
-import type { AdminUser, CreatedUser, Paginated, Role, UserInput, UserPatch } from './types';
+import type { Webapp } from '@/lib/webapps';
+import type {
+  AccountKind,
+  AdminUser,
+  CreatedUser,
+  Paginated,
+  Role,
+  UserInput,
+  UserPatch,
+} from './types';
 
 /**
  * `memberOf`: the people of a client company. `accounts`: client accounts only, without their
- * people (e.g. to pick a project's client).
+ * people (e.g. to pick a project's client). `kind`: clients, app users or neither yet; `app`:
+ * accounts that signed up from or use that web app; `q`: part of the name or email.
  */
 export function adminListUsers(
   params: {
@@ -14,6 +24,9 @@ export function adminListUsers(
     pageSize?: number;
     memberOf?: string;
     accounts?: boolean;
+    kind?: AccountKind;
+    app?: Webapp;
+    q?: string;
   } = {},
 ) {
   return apiFetch<Paginated<AdminUser>>('/admin/users', {
@@ -24,6 +37,9 @@ export function adminListUsers(
       pageSize: params.pageSize,
       memberOf: params.memberOf,
       accounts: params.accounts ? 'true' : undefined,
+      kind: params.kind,
+      app: params.app,
+      q: params.q,
     },
   });
 }

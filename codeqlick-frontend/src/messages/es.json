@@ -1100,7 +1100,35 @@
       "deleteTitle": "Eliminar el usuario",
       "deleteBlocked": "{count, plural, one {Tiene un proyecto} other {Tiene # proyectos}}. Bórralos antes desde Proyectos para poder eliminar la cuenta.",
       "deleteBody": "Se borran la cuenta y lo que depende de ella: sus sesiones{members, plural, =0 {} one {, la persona de su empresa} other {, las # personas de su empresa}}{proposals, plural, =0 {} one {, su propuesta} other {, sus # propuestas}}{tickets, plural, =0 {} one {, su solicitud de soporte} other {, sus # solicitudes de soporte}}. Sus comentarios, archivos y horas se quedan sin autor.",
-      "deleteHasProjects": "Esta cuenta tiene proyectos: bórralos antes."
+      "deleteHasProjects": "Esta cuenta tiene proyectos: bórralos antes.",
+      "kind": "Tipo",
+      "kindsLabel": "Tipos de cuenta",
+      "allAccounts": "Todas",
+      "app": "App",
+      "search": "Buscar",
+      "searchPlaceholder": "Nombre o correo",
+      "noMatchTitle": "Ninguna cuenta coincide",
+      "noMatchBody": "Prueba con otro tipo, otra app u otra búsqueda.",
+      "signedUpFrom": "Se registró desde {app}",
+      "signedUpOnSite": "Se registró en codeqlick.com",
+      "usesApps": "Usa {apps}",
+      "kinds": {
+        "admin": "Administrador",
+        "client": "Cliente",
+        "app": "Usuario de apps",
+        "none": "Sin actividad",
+        "adminPlural": "Administradores",
+        "clientPlural": "Clientes",
+        "appPlural": "Usuarios de apps",
+        "nonePlural": "Sin actividad"
+      },
+      "kindHint": {
+        "all": "Todas las cuentas. Los clientes son a quienes hacemos webs o apps; los usuarios de apps solo usan nuestras apps.",
+        "client": "Personas y empresas para las que trabajamos: tienen proyectos, propuestas, solicitudes de soporte o una cuenta que preparó el equipo.",
+        "app": "Solo usan nuestras apps. Si les envías una propuesta o un proyecto, pasan a ser clientes.",
+        "none": "Se registraron en codeqlick.com pero aún no tienen proyectos ni usan ninguna app.",
+        "admin": "El equipo de Codeqlick."
+      }
     },
     "activity": {
       "title": "Actividad",

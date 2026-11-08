@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { localeSchema, paginationSchema } from '../../common/schemas/common.schemas.js';
+import { WEBAPPS } from '../../common/webapps.js';
+import { ACCOUNT_KINDS } from './account-kind.js';
 
 export const roleSchema = z.enum(['ADMIN', 'CLIENT']);
 
@@ -46,5 +48,11 @@ export const listUsersQuerySchema = paginationSchema.extend({
     .enum(['true', 'false'])
     .optional()
     .transform((value) => value === 'true'),
+  /** Clients, app users or neither yet (decision 29). */
+  kind: z.enum(ACCOUNT_KINDS).optional(),
+  /** Accounts that signed up from this web app or use it, clients included. */
+  app: z.enum(WEBAPPS).optional(),
+  /** Part of the name or the email. */
+  q: z.string().trim().min(1).max(120).optional(),
 });
 export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;

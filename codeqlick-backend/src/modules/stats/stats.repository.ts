@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { LeadStatus, ProjectPhase, PublishStatus, Role } from '../../generated/prisma/client.js';
+import { LeadStatus, ProjectPhase, PublishStatus } from '../../generated/prisma/client.js';
 import { liveWhere } from '../../common/publishing.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { CLIENT_WHERE } from '../users/account-kind.js';
 
 export interface StatsCounts {
   leadsNew: number;
@@ -68,7 +69,8 @@ export class StatsRepository {
       }),
       this.prisma.portfolioItem.count({ where: liveWhere(now) }),
       this.prisma.clientProject.count({ where: { phase: { in: ACTIVE_PHASES } } }),
-      this.prisma.user.count({ where: { role: Role.CLIENT, isActive: true } }),
+      // Clients only: people who just use our web apps aren't (decision 29).
+      this.prisma.user.count({ where: { AND: [CLIENT_WHERE, { isActive: true }] } }),
       this.prisma.supportTicket.count({
         where: { status: { in: ['OPEN', 'IN_PROGRESS', 'WAITING_CLIENT'] } },
       }),

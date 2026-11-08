@@ -15,6 +15,14 @@ import { ActivityService } from '../activity/activity.service.js';
 import type { SignupReason } from '../auth/auth-emails.js';
 import { AuthService } from '../auth/auth.service.js';
 import { PasswordService } from '../auth/password.service.js';
+import type { Webapp } from '../../common/webapps.js';
+import {
+  appsOf,
+  kindOf,
+  signupAppOf,
+  type AccountKind,
+  type UserWithUsage,
+} from './account-kind.js';
 import { UsersRepository } from './users.repository.js';
 import type { CreateUserInput, ListUsersQuery, UpdateUserInput } from './users.schemas.js';
 
@@ -29,6 +37,12 @@ export type AdminUser = AuthUser & {
   registered: boolean;
   /** A person of a client company: the company's main client account. */
   memberOfId: string | null;
+  /** Client, app user or neither yet (decision 29); null for admins. */
+  kind: AccountKind | null;
+  /** The web apps it signed up from or uses. */
+  apps: Webapp[];
+  /** The web app it signed up from; null on codeqlick.com or created by the team. */
+  signupApp: Webapp | null;
   createdAt: string;
 };
 
@@ -38,7 +52,7 @@ export type UserOwns = { projects: number; members: number; proposals: number; t
 /** A created user; `invitationSent` only when no password was given and a welcome email was due. */
 export type CreatedUser = AdminUser & { invitationSent?: boolean };
 
-export function toAdminUser(user: User): AdminUser {
+export function toAdminUser(user: UserWithUsage): AdminUser {
   return {
     id: user.id,
     email: user.email,
@@ -50,6 +64,9 @@ export function toAdminUser(user: User): AdminUser {
     monthlyReport: user.monthlyReport,
     registered: Boolean(user.registeredAt),
     memberOfId: user.memberOfId,
+    kind: kindOf(user),
+    apps: appsOf(user),
+    signupApp: signupAppOf(user),
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -68,7 +85,14 @@ export class UsersService {
   async list(query: ListUsersQuery): Promise<Paginated<AdminUser>> {
     const { skip, take } = pageToSkipTake(query.page, query.pageSize);
     const { items, total } = await this.repository.list(
-      { role: query.role, memberOf: query.memberOf, accounts: query.accounts },
+      {
+        role: query.role,
+        memberOf: query.memberOf,
+        accounts: query.accounts,
+        kind: query.kind,
+        app: query.app,
+        q: query.q,
+      },
       skip,
       take,
     );
@@ -140,7 +164,7 @@ export class UsersService {
     actor: AuthUser,
     input: Pick<CreateUserInput, 'name' | 'role' | 'locale' | 'memberOfId' | 'password'>,
     email: string,
-  ): Promise<User> {
+  ): Promise<UserWithUsage> {
     const password = input.password ?? randomBytes(32).toString('base64url');
     const user = await this.repository.create({
       email,
@@ -187,7 +211,7 @@ export class UsersService {
   }
 
   async get(id: string): Promise<AdminUser & { owns: UserOwns }> {
-    const user = await this.repository.findById(id);
+    const user = await this.repository.findWithUsage(id);
     if (!user) throw new NotFoundException('User not found');
     return { ...toAdminUser(user), owns: await this.repository.owns(id) };
   }

@@ -118,7 +118,13 @@ export class AuthRepository {
       const own = { name: token.name, passwordHash: token.passwordHash, locale: token.locale };
       if (!existing) {
         return tx.user.create({
-          data: { ...own, email: token.email, role: 'CLIENT', registeredAt: now },
+          data: {
+            ...own,
+            email: token.email,
+            role: 'CLIENT',
+            registeredAt: now,
+            signupApp: token.app,
+          },
         });
       }
       if (existing.registeredAt || !existing.isActive) return null;

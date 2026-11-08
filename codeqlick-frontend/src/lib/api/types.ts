@@ -2,6 +2,7 @@
  * Types from the API contract — docs/architecture.md, section 5 (v1).
  * Keep in sync with the backend; the HTTP API is the only contract between the two apps.
  */
+import type { Webapp } from '@/lib/webapps';
 
 export type Locale = 'en' | 'es';
 
@@ -366,6 +367,10 @@ export type LeadInput = {
   website?: string;
 };
 
+/** Who an account is for the team (decision 29). */
+export const ACCOUNT_KINDS = ['client', 'app', 'none'] as const;
+export type AccountKind = (typeof ACCOUNT_KINDS)[number];
+
 /** `locale`: language of the emails the platform sends the user. */
 export type AdminUser = AuthUser & {
   isActive: boolean;
@@ -378,6 +383,12 @@ export type AdminUser = AuthUser & {
   monthlyReport: boolean;
   /** False for a client account the team prepared that its owner hasn't made theirs yet. */
   registered: boolean;
+  /** Client, user of our web apps or neither yet (decision 29); null for admins. */
+  kind: AccountKind | null;
+  /** The web apps it signed up from or uses. */
+  apps: Webapp[];
+  /** The web app it signed up from; null on codeqlick.com or created by the team. */
+  signupApp: Webapp | null;
   createdAt: string;
   /** What hangs from the account (`GET /admin/users/:id` only). */
   owns?: { projects: number; members: number; proposals: number; tickets: number };

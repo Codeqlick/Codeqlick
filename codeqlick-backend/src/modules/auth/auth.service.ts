@@ -420,6 +420,7 @@ export class AuthService {
         locale: toDbLocale(input.locale),
         tokenHash: hashRefreshToken(token),
         expiresAt: new Date(Date.now() + SIGNUP_TTL_HOURS * 3_600_000),
+        app: input.app ?? null,
       });
       message = signupConfirmEmail(
         { name: input.name, email },

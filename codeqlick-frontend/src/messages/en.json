@@ -1100,7 +1100,35 @@
       "deleteTitle": "Delete the user",
       "deleteBlocked": "{count, plural, one {It has a project} other {It has # projects}}. Delete them from Projects first to delete the account.",
       "deleteBody": "The account and what hangs from it are deleted: its sessions{members, plural, =0 {} one {, the person of its company} other {, the # people of its company}}{proposals, plural, =0 {} one {, its proposal} other {, its # proposals}}{tickets, plural, =0 {} one {, its support request} other {, its # support requests}}. Its comments, files and hours stay without author.",
-      "deleteHasProjects": "This account has projects: delete them first."
+      "deleteHasProjects": "This account has projects: delete them first.",
+      "kind": "Type",
+      "kindsLabel": "Account types",
+      "allAccounts": "All",
+      "app": "App",
+      "search": "Search",
+      "searchPlaceholder": "Name or email",
+      "noMatchTitle": "No account matches",
+      "noMatchBody": "Try another type, app or search.",
+      "signedUpFrom": "Signed up from {app}",
+      "signedUpOnSite": "Signed up on codeqlick.com",
+      "usesApps": "Uses {apps}",
+      "kinds": {
+        "admin": "Administrator",
+        "client": "Client",
+        "app": "App user",
+        "none": "No activity",
+        "adminPlural": "Administrators",
+        "clientPlural": "Clients",
+        "appPlural": "App users",
+        "nonePlural": "No activity"
+      },
+      "kindHint": {
+        "all": "Every account. Clients are the people we build websites or apps for; app users only use our apps.",
+        "client": "People and companies we work for: they have projects, proposals, support requests or an account the team prepared.",
+        "app": "They only use our apps. Send them a proposal or a project and they become clients.",
+        "none": "They signed up on codeqlick.com but have no projects yet and use no app.",
+        "admin": "The Codeqlick team."
+      }
     },
     "activity": {
       "title": "Activity",
