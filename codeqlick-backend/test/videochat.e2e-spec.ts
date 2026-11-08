@@ -96,6 +96,10 @@ describe('Video chat (e2e)', () => {
       ['dan', Role.CLIENT],
       ['eva', Role.CLIENT],
       ['fay', Role.CLIENT],
+      ['gia', Role.CLIENT],
+      ['hal', Role.CLIENT],
+      ['ivo', Role.CLIENT],
+      ['jon', Role.CLIENT],
     ] as const) {
       const email = `e2e-videochat-${key}-${tag}@codeqlick.test`;
       const user = await prisma.user.create({
@@ -767,6 +771,152 @@ describe('Video chat (e2e)', () => {
     expect(await eva.next('error')).toEqual({ type: 'error', code: 'not-contact' });
     eva.socket.close();
     fay.socket.close();
+  });
+
+  it('runs group calls between mutual contacts, with blocks and reports', async () => {
+    // Onboarded directly: the endpoint allows 10 a minute per IP.
+    const now = new Date();
+    await prisma.videochatProfile.createMany({
+      data: ['gia', 'hal', 'ivo', 'jon'].map((key) => ({
+        userId: users[key]!.id,
+        adultConfirmedAt: now,
+        termsVersion: VIDEOCHAT_TERMS_VERSION,
+        termsAcceptedAt: now,
+      })),
+    });
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.gia!.auth)
+      .send({
+        nickname: 'Gia',
+        gender: null,
+        seeking: [],
+        country: null,
+        language: null,
+        sameCountryOnly: false,
+        sameLanguageOnly: false,
+      })
+      .expect(200);
+    const id = (key: string) => users[key]!.id;
+    const pairs = [
+      ['gia', 'hal'],
+      ['gia', 'ivo'],
+      ['hal', 'jon'],
+    ];
+    await prisma.videochatLike.createMany({
+      data: pairs.flatMap(([a, b]) => [
+        { fromId: id(a!), toId: id(b!) },
+        { fromId: id(b!), toId: id(a!) },
+      ]),
+    });
+    await prisma.videochatBlock.create({ data: { blockerId: id('ivo'), blockedId: id('jon') } });
+
+    const gia = await connect('gia');
+    expect(await gia.next('online')).toMatchObject({ count: expect.any(Number) });
+    const hal = await connect('hal');
+    const ivo = await connect('ivo');
+    const jon = await connect('jon');
+
+    // The first invitation starts the group; the contact accepts and gets the members.
+    gia.send({ type: 'group-invite', contactId: id('hal') });
+    const group = await gia.next('group');
+    expect(group).toMatchObject({ members: [] });
+    const invited = await hal.next('group-invited');
+    expect(invited).toMatchObject({ groupId: group.groupId, from: { nickname: 'Gia' }, size: 1 });
+    hal.send({ type: 'group-answer', groupId: group.groupId, accept: true });
+    const halGroup = await hal.next('group');
+    expect(halGroup).toMatchObject({
+      groupId: group.groupId,
+      members: [{ memberId: group.self, profile: { nickname: 'Gia' } }],
+    });
+    expect(await gia.next('group-joined')).toMatchObject({ member: { memberId: halGroup.self } });
+
+    // Negotiation is relayed only to the member named.
+    const offer = { sdp: { type: 'offer', sdp: 'v=0' } };
+    hal.send({ type: 'group-signal', to: group.self, data: offer });
+    expect(await gia.next('group-signal')).toEqual({
+      type: 'group-signal',
+      from: halGroup.self,
+      data: offer,
+    });
+
+    // A second contact joins; the chat reaches everyone else.
+    gia.send({ type: 'group-invite', contactId: id('ivo') });
+    const ivoInvite = await ivo.next('group-invited');
+    expect(ivoInvite.size).toBe(2);
+    ivo.send({ type: 'group-answer', groupId: group.groupId, accept: true });
+    const ivoGroup = await ivo.next('group');
+    expect((ivoGroup.members as unknown[]).length).toBe(2);
+    await gia.next('group-joined');
+    await hal.next('group-joined');
+    ivo.send({ type: 'group-chat', text: 'hola grupo' });
+    expect(await gia.next('group-chat')).toEqual({
+      type: 'group-chat',
+      from: ivoGroup.self,
+      text: 'hola grupo',
+    });
+    await hal.next('group-chat');
+
+    // Nobody joins where a member blocked them; only contacts can be invited.
+    hal.send({ type: 'group-invite', contactId: id('jon') });
+    expect(await hal.next('group-invite-ended')).toMatchObject({ reason: 'blocked' });
+    gia.send({ type: 'group-invite', contactId: id('jon') });
+    expect(await gia.next('group-invite-ended')).toMatchObject({ reason: 'not-contact' });
+    expect(jon.inbox.some((m) => m.type === 'group-invited')).toBe(false);
+
+    // The room lists contacts with whether they can be invited; members are busy elsewhere.
+    gia.send({ type: 'group-contacts' });
+    const listed = await gia.next('group-contacts');
+    expect(listed.items).toEqual(
+      expect.arrayContaining([
+        { contactId: id('hal'), nickname: null, status: 'in-group' },
+        { contactId: id('ivo'), nickname: null, status: 'in-group' },
+      ]),
+    );
+    const contacts = await request(server()).get('/v1/videochat/contacts').set(users.jon!.auth);
+    expect(contacts.body.items).toEqual([
+      expect.objectContaining({ contactId: id('hal'), online: true, busy: true }),
+    ]);
+
+    // Reporting a member blocks them, keeps their messages and takes the reporter out.
+    hal.send({ type: 'group-report', memberId: ivoGroup.self, reason: 'HARASSMENT' });
+    await hal.next('reported');
+    expect(await gia.next('group-left')).toEqual({ type: 'group-left', memberId: halGroup.self });
+    await ivo.next('group-left');
+    const report = await prisma.videochatReport.findFirstOrThrow({
+      where: { reporterId: id('hal'), reportedId: id('ivo') },
+    });
+    expect(report.transcript).toEqual([
+      expect.objectContaining({ from: 'reported', text: 'hola grupo' }),
+    ]);
+    hal.send({ type: 'group-chat', text: 'still here?' });
+    expect(await hal.next('error')).toEqual({ type: 'error', code: 'not-in-group' });
+
+    // Leaving: the last one may stay; an empty group is gone and its invitations end.
+    ivo.send({ type: 'group-leave' });
+    await gia.next('group-left');
+    gia.send({ type: 'group-invite', contactId: id('hal') });
+    await hal.next('group-invited');
+    gia.send({ type: 'group-leave' });
+    expect(await hal.next('group-invite-ended')).toMatchObject({ reason: 'gone' });
+    hal.send({ type: 'group-answer', groupId: group.groupId, accept: true });
+    expect(await hal.next('group-invite-ended')).toMatchObject({ reason: 'gone' });
+    for (const tab of [gia, hal, ivo, jon]) tab.socket.close();
+  });
+
+  it("turns an account's peak time alerts on and off", async () => {
+    await request(server())
+      .put('/v1/videochat/push/peak')
+      .set(users.jon!.auth)
+      .send({ on: true })
+      .expect(200, { on: true });
+    const me = await request(server()).get('/v1/videochat/me').set(users.jon!.auth).expect(200);
+    expect(me.body.peakAlerts).toBe(true);
+    await request(server())
+      .put('/v1/videochat/push/peak')
+      .set(users.admin!.auth)
+      .send({ on: true })
+      .expect(409);
   });
 
   it('gives the team the usage history: active people, calls and waits by day and hour', async () => {

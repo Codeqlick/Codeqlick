@@ -97,6 +97,8 @@ export interface VideochatStatus {
   profile: VideochatSettings | null;
   /** VAPID key for Web Push subscriptions; null while notifications are off. */
   pushPublicKey: string | null;
+  /** Asked for peak time alerts. */
+  peakAlerts: boolean;
 }
 
 /** A mutual contact, as their contacts see them. */
@@ -268,6 +270,7 @@ export class VideochatService {
       allowed: onboarded && !suspended && (ageVerified || !ageVerificationRequired),
       profile: profile ? settingsOf(profile) : null,
       pushPublicKey: this.config.vapid?.publicKey ?? null,
+      peakAlerts: profile?.peakAlerts ?? false,
     };
   }
 

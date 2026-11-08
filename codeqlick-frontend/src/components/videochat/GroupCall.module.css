@@ -1,0 +1,113 @@
+.header {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-family-mono);
+  font-size: 0.8125rem;
+  color: var(--color-slate);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid[data-count='1'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.tile {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #000;
+}
+
+.connecting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--color-white);
+  font-size: 0.875rem;
+}
+
+.tileActions {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  display: flex;
+  gap: var(--space-1);
+}
+
+.tileButton {
+  min-height: 2rem;
+  padding: 0.2rem 0.6rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgb(20 16 31 / 70%);
+  color: var(--color-white);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.tileButton:hover,
+.tileButton:focus-visible {
+  background: var(--color-fuchsia-dark);
+}
+
+.alone {
+  margin: var(--space-2) 0 0;
+  color: var(--color-slate);
+}
+
+.invite {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.inviteHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.inviteTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.inviteList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inviteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.inviteStatus {
+  font-size: 0.8125rem;
+  color: var(--color-slate);
+}
+
+@media (min-width: 64rem) {
+  .invite {
+    grid-area: invite;
+  }
+}

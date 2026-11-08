@@ -11,6 +11,15 @@ import {
 } from 'react';
 import { Link } from '@/i18n/navigation';
 import { AdZone } from './AdZone';
+import {
+  GroupCall,
+  type GroupContact,
+  type GroupEvent,
+  type GroupMember,
+  type GroupState,
+} from './GroupCall';
+import { TranslatedText } from './TranslatedText';
+import { useChatTranslation } from './translate';
 import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
 import styles from './VideochatRoom.module.css';
@@ -51,7 +60,27 @@ type ServerMessage =
       callId: string;
       reason: 'declined' | 'timeout' | 'busy' | 'offline' | 'cancelled';
     }
+  | { type: 'online'; count: number }
+  | { type: 'group'; groupId: string; self: string; members: GroupMember[] }
+  | { type: 'group-joined'; member: GroupMember }
+  | { type: 'group-left'; memberId: string }
+  | { type: 'group-signal'; from: string; data: SignalData }
+  | { type: 'group-chat'; from: string; text: string }
+  | { type: 'group-contacts'; items: GroupContact[] }
+  | { type: 'group-invited'; groupId: string; from: PartnerProfile; size: number }
+  | {
+      type: 'group-invite-ended';
+      groupId: string;
+      nickname: string | null;
+      reason: GroupInviteEndReason;
+    }
   | { type: 'error'; code: string };
+
+type GroupInviteEndReason =
+  'declined' | 'timeout' | 'busy' | 'offline' | 'full' | 'gone' | 'blocked' | 'not-contact';
+
+/** An invitation to a contact's group, waiting for an answer. */
+type GroupInvitation = { groupId: string; from: PartnerProfile; size: number };
 
 /** A call to or from a contact that is ringing. */
 type Ringing = { callId: string; partner: PartnerProfile; direction: 'out' | 'in' };
@@ -68,7 +97,15 @@ type PartnerProfile = {
 const WIDEN_AFTER_MS = 30_000;
 
 type Phase =
-  'idle' | 'starting' | 'searching' | 'calling' | 'connecting' | 'connected' | 'stopped' | 'closed';
+  | 'idle'
+  | 'starting'
+  | 'searching'
+  | 'calling'
+  | 'connecting'
+  | 'connected'
+  | 'stopped'
+  | 'group'
+  | 'closed';
 
 type NoticeKey =
   | 'partnerLeft'
@@ -93,7 +130,12 @@ type NoticeKey =
   | 'callBusy'
   | 'callOffline'
   | 'callMissed'
-  | 'notContact';
+  | 'notContact'
+  | 'groupLeft'
+  | 'groupReported'
+  | 'groupBlocked'
+  | 'groupInviteMissed'
+  | `groupInvite_${GroupInviteEndReason}`;
 
 const CALL_END_NOTICE = {
   declined: 'callDeclined',
@@ -154,7 +196,14 @@ function chime(): void {
   }
 }
 
-type ChatLine = { id: number; from: 'me' | 'them'; text: string; reaction?: boolean };
+type ChatLine = {
+  id: number;
+  from: 'me' | 'them';
+  text: string;
+  reaction?: boolean;
+  /** The text in the page's language (chat translation). */
+  translated?: string;
+};
 
 /** Quick reactions (the server accepts only these). */
 const REACTIONS = ['❤️', '😂', '😮', '🔥', '👍', '😘'] as const;
@@ -214,6 +263,7 @@ export function VideochatRoom({
   locale,
   myInterests = [],
   callContactId,
+  groupContactId,
 }: {
   wsUrl: string;
   getTicket: () => Promise<TicketResult>;
@@ -222,6 +272,8 @@ export function VideochatRoom({
   myInterests?: string[];
   /** Opened from the contacts page to call this contact (their account id). */
   callContactId?: string;
+  /** Opened from the contacts page to start a group call with this contact. */
+  groupContactId?: string;
 }) {
   const t = useTranslations('Videochat.room');
   const ti = useTranslations('Videochat.interests');
@@ -234,6 +286,40 @@ export function VideochatRoom({
     values?: Record<string, string>;
   } | null>(null);
   const [ringing, setRinging] = useState<Ringing | null>(null);
+  /** People connected to the video chat now. */
+  const [onlineCount, setOnlineCount] = useState<number | null>(null);
+  /** The group call this person is in. */
+  const [group, setGroup] = useState<GroupState | null>(null);
+  const groupRef = useRef<GroupState | null>(null);
+  /** The camera and ICE servers the group call uses (taken when it starts). */
+  const [groupMedia, setGroupMedia] = useState<{
+    stream: MediaStream | null;
+    iceServers: IceServer[];
+  }>({ stream: null, iceServers: [] });
+  /** An invitation to a contact's group. */
+  const [groupInvite, setGroupInvite] = useState<GroupInvitation | null>(null);
+  const groupInviteRef = useRef<GroupInvitation | null>(null);
+  const showInvite = useCallback((invitation: GroupInvitation | null) => {
+    groupInviteRef.current = invitation;
+    setGroupInvite(invitation);
+  }, []);
+  const enterGroup = useCallback((state: GroupState | null) => {
+    groupRef.current = state;
+    setGroup(state);
+  }, []);
+  /** Who listens to the group's messages (the group call, while it is on screen). */
+  const groupListeners = useRef(new Set<(event: GroupEvent) => void>());
+  const subscribeGroup = useCallback((handler: (event: GroupEvent) => void) => {
+    groupListeners.current.add(handler);
+    return () => {
+      groupListeners.current.delete(handler);
+    };
+  }, []);
+  const translation = useChatTranslation(locale);
+  const translationRef = useRef(translation);
+  useEffect(() => {
+    translationRef.current = translation;
+  }, [translation]);
   /** Liked the current (or last) partner. */
   const [liked, setLiked] = useState(false);
   const [chat, setChat] = useState<ChatLine[]>([]);
@@ -291,6 +377,8 @@ export function VideochatRoom({
   const connectRef = useRef<() => Promise<void>>(async () => undefined);
   /** A contact to call once the socket is ready (from the contacts page), used once. */
   const pendingCall = useRef(callContactId);
+  /** A contact to invite to a new group once the socket is ready, used once. */
+  const pendingGroup = useRef(groupContactId);
   const ringingRef = useRef<Ringing | null>(null);
   const setRing = useCallback((ring: Ringing | null) => {
     ringingRef.current = ring;
@@ -451,6 +539,14 @@ export function VideochatRoom({
         case 'ready':
           reconnectAttempt.current = 0;
           setNotice(null);
+          if (pendingGroup.current) {
+            send({ type: 'group-invite', contactId: pendingGroup.current });
+            pendingGroup.current = undefined;
+            window.history.replaceState(null, '', window.location.pathname);
+            paused.current = true;
+            setPhase('stopped');
+            return;
+          }
           if (pendingCall.current) {
             send({ type: 'call', contactId: pendingCall.current });
             pendingCall.current = undefined;
@@ -488,13 +584,23 @@ export function VideochatRoom({
         case 'signal':
           void onSignal(message.data).catch(() => undefined);
           return;
-        case 'chat':
+        case 'chat': {
           lineId.current += 1;
-          setChat((lines) => [...lines, { id: lineId.current, from: 'them', text: message.text }]);
+          const id = lineId.current;
+          setChat((lines) => [...lines, { id, from: 'them', text: message.text }]);
+          if (translationRef.current.on) {
+            void translationRef.current.translate(message.text).then((translated) => {
+              if (translated)
+                setChat((lines) =>
+                  lines.map((line) => (line.id === id ? { ...line, translated } : line)),
+                );
+            });
+          }
           if (partnerTypingTimer.current) clearTimeout(partnerTypingTimer.current);
           setPartnerTyping(false);
           notify(t('messageTitle'));
           return;
+        }
         case 'typing':
           if (partnerTypingTimer.current) clearTimeout(partnerTypingTimer.current);
           setPartnerTyping(message.on);
@@ -517,9 +623,68 @@ export function VideochatRoom({
           return;
         case 'reported':
         case 'blocked':
+          if (groupRef.current) {
+            // Reported or blocked from a group: out of it, and stopped.
+            enterGroup(null);
+            paused.current = true;
+            setPhase('stopped');
+            setNotice({
+              key: message.type === 'reported' ? 'groupReported' : 'groupBlocked',
+              tone: 'info',
+            });
+            return;
+          }
           setNotice({ key: message.type, tone: 'info' });
           searchAgain();
           return;
+        case 'online':
+          setOnlineCount(message.count);
+          return;
+        case 'group':
+          closePeer();
+          setChat([]);
+          setRing(null);
+          showInvite(null);
+          paused.current = true;
+          setNotice(null);
+          setGroupMedia({ stream: stream.current, iceServers: iceServers.current });
+          enterGroup({ groupId: message.groupId, self: message.self, members: message.members });
+          setPhase('group');
+          return;
+        case 'group-joined':
+          chime();
+          for (const listener of groupListeners.current) listener(message);
+          return;
+        case 'group-chat':
+          notify(t('messageTitle'));
+          for (const listener of groupListeners.current) listener(message);
+          return;
+        case 'group-left':
+        case 'group-signal':
+        case 'group-contacts':
+          for (const listener of groupListeners.current) listener(message);
+          return;
+        case 'group-invited':
+          buzz([200, 100, 200]);
+          showInvite({ groupId: message.groupId, from: message.from, size: message.size });
+          chime();
+          flashTitle(t('groupInvitedTitle'));
+          return;
+        case 'group-invite-ended': {
+          if (groupInviteRef.current?.groupId === message.groupId) {
+            // An invitation to me that went away (declining was my own doing).
+            showInvite(null);
+            if (message.reason === 'timeout' || message.reason === 'gone')
+              setNotice({ key: 'groupInviteMissed', tone: 'info' });
+            return;
+          }
+          setNotice({
+            key: `groupInvite_${message.reason}`,
+            tone: 'info',
+            values: { name: message.nickname ?? t('stranger') },
+          });
+          return;
+        }
         case 'liked':
           setLiked(true);
           setNotice({ key: 'liked', tone: 'info' });
@@ -580,7 +745,20 @@ export function VideochatRoom({
           return;
       }
     },
-    [float, notify, onSignal, searchAgain, send, setRing, shutdown, startPeer, t],
+    [
+      closePeer,
+      enterGroup,
+      float,
+      notify,
+      onSignal,
+      searchAgain,
+      send,
+      setRing,
+      showInvite,
+      shutdown,
+      startPeer,
+      t,
+    ],
   );
 
   const connect = useCallback(async () => {
@@ -634,6 +812,12 @@ export function VideochatRoom({
       socket.current = null;
       clearTimeout(readyTimer);
       closePeer();
+      // A group call ends with the socket: back stopped after reconnecting.
+      if (groupRef.current) {
+        enterGroup(null);
+        paused.current = true;
+      }
+      showInvite(null);
       if (!closingOnPurpose.current) retryLater();
     };
     // A socket the browser blocks (a policy, a proxy) may never open nor close: give it 10 s.
@@ -656,7 +840,7 @@ export function VideochatRoom({
       }
     };
     ws.onclose = lost;
-  }, [closePeer, getTicket, onMessage, wsUrl]);
+  }, [closePeer, enterGroup, getTicket, onMessage, showInvite, wsUrl]);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -707,6 +891,14 @@ export function VideochatRoom({
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ block: 'nearest' });
   }, [chat, partnerTyping]);
+
+  // Back from a group call: the own video element is a new one.
+  useEffect(() => {
+    if (phase !== 'group' && localVideo.current && stream.current) {
+      if (localVideo.current.srcObject !== stream.current)
+        localVideo.current.srcObject = stream.current;
+    }
+  }, [phase]);
 
   // Esc is "next" (unless the report dialog is open: there it closes the dialog).
   const online =
@@ -868,6 +1060,20 @@ export function VideochatRoom({
     }
   };
 
+  const answerGroup = (accept: boolean) => {
+    if (!groupInvite) return;
+    send({ type: 'group-answer', groupId: groupInvite.groupId, accept });
+    showInvite(null);
+  };
+
+  const leaveGroup = () => {
+    send({ type: 'group-leave' });
+    enterGroup(null);
+    paused.current = true;
+    setPhase('stopped');
+    setNotice({ key: 'groupLeft', tone: 'info' });
+  };
+
   const stop = () => {
     paused.current = true;
     setRing(null);
@@ -967,6 +1173,38 @@ export function VideochatRoom({
   };
   const status = statusText[phase] ?? null;
 
+  const noticeBox = notice ? (
+    <p
+      className={notice.tone === 'error' ? styles.noticeError : styles.notice}
+      role={notice.tone === 'error' ? 'alert' : 'status'}
+    >
+      {t(notice.key, notice.values)}
+    </p>
+  ) : null;
+
+  if (phase === 'group' && group) {
+    return (
+      <div ref={roomRef} className={styles.room}>
+        <GroupCall
+          key={group.groupId}
+          group={group}
+          send={send}
+          subscribe={subscribeGroup}
+          stream={groupMedia.stream}
+          iceServers={groupMedia.iceServers}
+          translation={translation}
+          micOn={micOn}
+          camOn={camOn}
+          onToggleMic={toggleMic}
+          onToggleCam={toggleCam}
+          onLeave={leaveGroup}
+          mirror={facing === 'user'}
+        />
+        {noticeBox}
+      </div>
+    );
+  }
+
   return (
     <div ref={roomRef} className={immersive ? `${styles.room} ${styles.immersive}` : styles.room}>
       <div className={styles.stage}>
@@ -1037,6 +1275,9 @@ export function VideochatRoom({
                   {t('cancelCall')}
                 </button>
               ) : null}
+              {onlineCount !== null && phase !== 'connecting' ? (
+                <p className={styles.online}>{t('online', { count: onlineCount })}</p>
+              ) : null}
               {phase === 'searching' && othersWaiting > 0 ? (
                 <p className={styles.statusHint}>
                   {t('othersWaiting', { count: othersWaiting })}{' '}
@@ -1092,13 +1333,29 @@ export function VideochatRoom({
         </div>
       </div>
 
-      {notice ? (
-        <p
-          className={notice.tone === 'error' ? styles.noticeError : styles.notice}
-          role={notice.tone === 'error' ? 'alert' : 'status'}
+      {noticeBox}
+
+      {groupInvite ? (
+        <div
+          className={styles.groupInvite}
+          role="alertdialog"
+          aria-labelledby="videochat-group-invite"
         >
-          {t(notice.key, notice.values)}
-        </p>
+          <p id="videochat-group-invite">
+            {t('groupInvited', {
+              name: groupInvite.from.nickname ?? t('stranger'),
+              count: groupInvite.size,
+            })}
+          </p>
+          <div className={styles.incomingActions}>
+            <button type="button" className={styles.primary} onClick={() => answerGroup(true)}>
+              {t('groupJoin')}
+            </button>
+            <button type="button" className={styles.secondary} onClick={() => answerGroup(false)}>
+              {t('decline')}
+            </button>
+          </div>
+        </div>
       ) : null}
 
       <div className={styles.controls}>
@@ -1210,7 +1467,11 @@ export function VideochatRoom({
               <span className={styles.lineWho}>
                 {line.from === 'me' ? t('chatMe') : t('chatThem')}
               </span>
-              {line.text}
+              {line.reaction ? (
+                line.text
+              ) : (
+                <TranslatedText text={line.text} translated={line.translated} />
+              )}
             </p>
           ))}
           {partnerTyping && phase === 'connected' ? (
@@ -1240,6 +1501,16 @@ export function VideochatRoom({
             />
             {t('sounds')}
           </label>
+          {translation.supported ? (
+            <label className={styles.sounds}>
+              <input
+                type="checkbox"
+                checked={translation.on}
+                onChange={(event) => translation.setOn(event.target.checked)}
+              />
+              {t('translate')}
+            </label>
+          ) : null}
         </fieldset>
         <form className={styles.chatForm} onSubmit={sendChat}>
           <label className="visually-hidden" htmlFor="videochat-message">

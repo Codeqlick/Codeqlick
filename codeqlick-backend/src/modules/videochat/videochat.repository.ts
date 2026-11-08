@@ -509,4 +509,56 @@ export class VideochatRepository {
       data: { pushNotifiedAt: at },
     });
   }
+
+  // --- Peak time alerts ---
+
+  /** Turns the account's peak time alerts on or off; false when it has no profile yet. */
+  async setPeakAlerts(userId: string, on: boolean): Promise<boolean> {
+    const { count } = await this.prisma.videochatProfile.updateMany({
+      where: { userId },
+      data: { peakAlerts: on },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Subscriptions of accounts that asked for peak time alerts and may get one: onboarded with
+   * the current rules, not suspended, not alerted since `notifiedBefore`, not in `excludeUserIds`.
+   */
+  peakCandidates(input: {
+    termsVersion: string;
+    notifiedBefore: Date;
+    now: Date;
+    excludeUserIds: string[];
+    take: number;
+  }) {
+    return this.prisma.videochatPushSubscription.findMany({
+      where: {
+        userId: { notIn: input.excludeUserIds },
+        user: {
+          videochatProfile: {
+            peakAlerts: true,
+            termsVersion: input.termsVersion,
+            OR: [{ suspendedAt: null }, { suspendedUntil: { lte: input.now } }],
+            AND: [
+              {
+                OR: [{ peakNotifiedAt: null }, { peakNotifiedAt: { lt: input.notifiedBefore } }],
+              },
+            ],
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: input.take,
+      select: { userId: true, endpoint: true, p256dh: true, auth: true, locale: true },
+    });
+  }
+
+  async markPeakNotified(userIds: string[], at: Date): Promise<void> {
+    if (userIds.length === 0) return;
+    await this.prisma.videochatProfile.updateMany({
+      where: { userId: { in: userIds } },
+      data: { peakNotifiedAt: at },
+    });
+  }
 }

@@ -17,7 +17,7 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type PageProps = {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ call?: string | string[] }>;
+  searchParams: Promise<{ call?: string | string[]; group?: string | string[] }>;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,8 +36,9 @@ async function websocketUrl(): Promise<string> {
 export default async function VideochatRoomPage({ params, searchParams }: PageProps) {
   const locale = resolveLocale((await params).locale);
   await requireUser(locale, `/${locale}/videochat/room`);
-  const call = (await searchParams).call;
+  const { call, group } = await searchParams;
   const callContactId = typeof call === 'string' && UUID.test(call) ? call : undefined;
+  const groupContactId = typeof group === 'string' && UUID.test(group) ? group : undefined;
   const t = await getTranslations({ locale, namespace: 'Videochat' });
   const status = await getVideochatStatus();
 
@@ -137,6 +138,7 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
       locale={locale}
       myInterests={status.profile?.interests ?? []}
       callContactId={callContactId}
+      groupContactId={groupContactId}
     />
   );
 }

@@ -15,8 +15,12 @@ import { clientIp, ownUpgrade, rejectUpgrade, WS_PATHS } from '../../common/webs
 import { hasFilters, Matchmaker, WindowLimiter, type Participant } from './matchmaker.js';
 import {
   clientMessageSchema,
+  GROUP_MAX,
   type CallEndReason,
   type ClientMessage,
+  type GroupContact,
+  type GroupInviteEndReason,
+  type GroupMember,
   type PublicProfile,
   type ReportReason,
   type ServerMessage,
@@ -52,6 +56,12 @@ const PUSH_WAIT_MS = 20_000;
 const REMATCH_EVERY_MS = 5_000;
 /** A call to a contact rings this long before it counts as declined. */
 const RING_MS = 30_000;
+/** An invitation to a group waits this long for an answer. */
+const GROUP_INVITE_MS = 60_000;
+/** Text messages of a group kept for a report. */
+const GROUP_TRANSCRIPT_LINES = 100;
+/** How often the API checks whether it is peak time (Web Push alerts). */
+const PEAK_EVERY_MS = 5 * 60_000;
 
 const ANONYMOUS: PublicProfile = {
   nickname: null,
@@ -69,6 +79,23 @@ interface Ring {
   timer: NodeJS.Timeout;
   /** The contact was searching when the call came: they search again if it doesn't start. */
   toWasWaiting: boolean;
+}
+
+/** A group call between mutual contacts (in memory, up to GROUP_MAX people). */
+interface Group {
+  id: string;
+  /** By connection id. */
+  members: Map<string, Connection>;
+  /** Pending invitations, by the invited account's id. */
+  invites: Map<string, GroupInvite>;
+  /** The group's last text messages, for a report. */
+  lines: Array<{ userId: string; text: string; at: string }>;
+}
+
+interface GroupInvite {
+  from: Connection;
+  to: Connection;
+  timer: NodeJS.Timeout;
 }
 
 interface CallLog {
@@ -99,6 +126,12 @@ interface Connection {
   call?: CallLog;
   /** The call that ended last, for a report or block right after it. */
   last?: { userId: string; call: CallLog; endedAt: number };
+  /** The group call this person is in. */
+  group?: Group;
+  /** Groups that invited this person and wait for an answer. */
+  groupInvites: Set<string>;
+  /** The last people-online count this person was told (to send only changes). */
+  onlineSent?: number;
   limits: {
     all: WindowLimiter;
     next: WindowLimiter;
@@ -125,9 +158,11 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
   private readonly recentPartners = new Map<string, Map<string, number>>();
   private readonly socketsPerIp = new Map<string, number>();
   private readonly rings = new Map<string, Ring>();
+  private readonly groups = new Map<string, Group>();
   private server?: Server;
   private heartbeat?: NodeJS.Timeout;
   private rematcher?: NodeJS.Timeout;
+  private peakChecker?: NodeJS.Timeout;
   private suspensions?: Subscription;
   private readonly onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) =>
     this.upgrade(request, socket, head);
@@ -150,6 +185,10 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     this.heartbeat.unref();
     this.rematcher = setInterval(() => this.rematch(), REMATCH_EVERY_MS);
     this.rematcher.unref();
+    if (this.config.nodeEnv !== 'test') {
+      this.peakChecker = setInterval(() => this.checkPeak(), PEAK_EVERY_MS);
+      this.peakChecker.unref();
+    }
     this.suspensions = this.videochat.suspensions.subscribe((userId) => this.suspended(userId));
   }
 
@@ -157,6 +196,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     this.server?.off('upgrade', this.onUpgrade);
     if (this.heartbeat) clearInterval(this.heartbeat);
     if (this.rematcher) clearInterval(this.rematcher);
+    if (this.peakChecker) clearInterval(this.peakChecker);
     this.suspensions?.unsubscribe();
     for (const connection of this.connections.values()) connection.socket.terminate();
     this.wss.close();
@@ -177,8 +217,13 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (!connection) return { online: false, busy: false };
     return {
       online: true,
-      busy: !!connection.ring || !!this.matchmaker.partnerOf(connection.id),
+      busy: this.isBusy(connection),
     };
+  }
+
+  /** In a call, a group, or ringing. */
+  private isBusy(connection: Connection): boolean {
+    return !!connection.ring || !!connection.group || !!this.matchmaker.partnerOf(connection.id);
   }
 
   // --- Connection lifecycle ------------------------------------------------------------------
@@ -211,6 +256,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       socket,
       ip,
       alive: true,
+      groupInvites: new Set(),
       limits: {
         all: new WindowLimiter(400, 60_000),
         next: new WindowLimiter(20, 60_000),
@@ -243,6 +289,12 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (connection.waitTimer) clearTimeout(connection.waitTimer);
     if (connection.ring) this.finishRing(connection.ring, 'offline', connection);
     this.endCall(connection);
+    this.leaveGroup(connection);
+    for (const groupId of connection.groupInvites) {
+      const group = this.groups.get(groupId);
+      const userId = connection.participant?.userId;
+      if (group && userId) this.endInvite(group, userId, 'offline', connection);
+    }
     if (connection.participant && this.byUser.get(connection.participant.userId) === connection) {
       this.byUser.delete(connection.participant.userId);
     }
@@ -297,6 +349,10 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       (message.type === 'join' || message.type === 'next' || message.type === 'leave')
     ) {
       this.finishRing(connection.ring, 'cancelled', connection);
+    }
+    // Searching or skipping leaves a group call.
+    if (connection.group && (message.type === 'join' || message.type === 'next')) {
+      this.leaveGroup(connection);
     }
     switch (message.type) {
       case 'join':
@@ -376,6 +432,47 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       case 'answer':
         this.answer(connection, message.callId, message.accept);
         return;
+      case 'group-invite':
+        if (!connection.limits.calls.take()) return this.error(connection, 'rate-limited');
+        await this.groupInvite(connection, message.contactId);
+        return;
+      case 'group-answer':
+        this.groupAnswer(connection, message.groupId, message.accept);
+        return;
+      case 'group-leave':
+        this.leaveGroup(connection);
+        return;
+      case 'group-signal': {
+        if (!connection.limits.signal.take()) return this.error(connection, 'rate-limited');
+        const target = connection.group?.members.get(message.to);
+        if (!target || target === connection) return this.error(connection, 'not-in-group');
+        this.send(target, { type: 'group-signal', from: connection.id, data: message.data });
+        return;
+      }
+      case 'group-chat': {
+        if (!connection.limits.chat.take()) return this.error(connection, 'rate-limited');
+        const group = connection.group;
+        if (!group) return this.error(connection, 'not-in-group');
+        group.lines.push({ userId: me.userId, text: message.text, at: new Date().toISOString() });
+        if (group.lines.length > GROUP_TRANSCRIPT_LINES) group.lines.shift();
+        for (const member of group.members.values()) {
+          if (member !== connection)
+            this.send(member, { type: 'group-chat', from: connection.id, text: message.text });
+        }
+        return;
+      }
+      case 'group-report':
+        if (!connection.limits.reports.take()) return this.error(connection, 'rate-limited');
+        await this.groupReport(connection, message.memberId, message.reason, message.details);
+        return;
+      case 'group-block':
+        if (!connection.limits.reports.take()) return this.error(connection, 'rate-limited');
+        await this.groupBlock(connection, message.memberId);
+        return;
+      case 'group-contacts':
+        if (!connection.limits.calls.take()) return this.error(connection, 'rate-limited');
+        await this.groupContacts(connection);
+        return;
     }
   }
 
@@ -408,6 +505,7 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     this.byUser.set(userId, connection);
     this.statistics.markActive(userId);
     this.send(connection, { type: 'ready' });
+    this.sendOnline(connection);
   }
 
   private join(connection: Connection): void {
@@ -539,6 +637,26 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       const connection = this.connections.get(participant.id);
       if (connection) this.sendWaiting(connection, others);
     }
+    // People not in a call or a group see how many are online, when it changed.
+    for (const connection of this.byUser.values()) {
+      if (!connection.group && !this.matchmaker.partnerOf(connection.id))
+        this.sendOnline(connection);
+    }
+  }
+
+  private sendOnline(connection: Connection): void {
+    const count = this.byUser.size;
+    if (connection.onlineSent === count) return;
+    connection.onlineSent = count;
+    this.send(connection, { type: 'online', count });
+  }
+
+  /** Peak time alerts (Web Push), when it is peak time now. */
+  private checkPeak(): void {
+    if (!this.push.enabled) return;
+    void this.push.peakTime(this.byUser.size, [...this.byUser.keys()]).catch((error: unknown) => {
+      this.logger.error(`Videochat peak time alerts failed: ${String(error)}`);
+    });
   }
 
   /** Still waiting, and nobody else is: tell people who asked to know (Web Push). */
@@ -656,10 +774,11 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     if (!other?.participant) {
       return this.send(connection, { type: 'call-ended', callId, reason: 'offline' });
     }
-    if (other.ring || this.matchmaker.partnerOf(other.id)) {
+    if (this.isBusy(other)) {
       return this.send(connection, { type: 'call-ended', callId, reason: 'busy' });
     }
     if (connection.ring) this.finishRing(connection.ring, 'cancelled', connection);
+    this.leaveGroup(connection);
     // The caller leaves whatever they were in; the contact stops searching while it rings.
     this.endCall(connection);
     this.matchmaker.remove(connection.id);
@@ -688,6 +807,8 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
       return;
     }
     this.clearRing(ring);
+    this.leaveGroup(connection);
+    this.leaveGroup(ring.from);
     const caller = ring.from.participant as Participant;
     const callee = connection.participant as Participant;
     connection.searchingSince = undefined;
@@ -722,6 +843,244 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     this.rings.delete(ring.id);
     ring.from.ring = undefined;
     ring.to.ring = undefined;
+  }
+
+  // --- Group calls ---------------------------------------------------------------------------
+
+  private memberOf(connection: Connection): GroupMember {
+    return { memberId: connection.id, profile: connection.profile ?? ANONYMOUS };
+  }
+
+  /** Leaves 1:1 calls, rings and the queue (to start or join a group). */
+  private leaveOneToOne(connection: Connection): void {
+    if (connection.ring) this.finishRing(connection.ring, 'cancelled', connection);
+    this.endCall(connection);
+    this.matchmaker.remove(connection.id);
+    connection.searchingSince = undefined;
+    if (connection.waitTimer) clearTimeout(connection.waitTimer);
+  }
+
+  /** Whether `connection` and anyone in the group blocked each other (either way). */
+  private blockedWith(group: Group, connection: Connection): boolean {
+    const me = connection.participant;
+    if (!me) return true;
+    for (const member of group.members.values()) {
+      const other = member.participant;
+      if (!other) continue;
+      if (me.blocked.has(other.userId) || other.blocked.has(me.userId)) return true;
+    }
+    return false;
+  }
+
+  /** Invites a mutual contact to my group; the first invitation starts the group. */
+  private async groupInvite(connection: Connection, contactId: string): Promise<void> {
+    const me = connection.participant as Participant;
+    const known =
+      !me.blocked.has(contactId) && (await this.videochat.areContacts(me.userId, contactId));
+    if (!this.connections.has(connection.id)) return;
+    const other = this.byUser.get(contactId);
+    const nickname = other?.profile?.nickname ?? null;
+    if (!known) {
+      this.send(connection, {
+        type: 'group-invite-ended',
+        groupId: connection.group?.id ?? randomUUID(),
+        nickname,
+        reason: 'not-contact',
+      });
+      return;
+    }
+    let group = connection.group;
+    if (!group) {
+      this.leaveOneToOne(connection);
+      group = {
+        id: randomUUID(),
+        members: new Map([[connection.id, connection]]),
+        invites: new Map(),
+        lines: [],
+      };
+      this.groups.set(group.id, group);
+      connection.group = group;
+      this.send(connection, { type: 'group', groupId: group.id, self: connection.id, members: [] });
+    }
+    const fail = (reason: GroupInviteEndReason) =>
+      this.send(connection, {
+        type: 'group-invite-ended',
+        groupId: (group as Group).id,
+        nickname,
+        reason,
+      });
+    if (group.invites.has(contactId) || other?.group === group) return;
+    if (!other?.participant) return fail('offline');
+    if (group.members.size + group.invites.size >= GROUP_MAX) return fail('full');
+    if (this.blockedWith(group, other)) return fail('blocked');
+    if (this.isBusy(other)) return fail('busy');
+    const groupId = group.id;
+    const timer = setTimeout(() => {
+      const current = this.groups.get(groupId);
+      if (current) this.endInvite(current, contactId, 'timeout');
+    }, GROUP_INVITE_MS);
+    timer.unref();
+    group.invites.set(contactId, { from: connection, to: other, timer });
+    other.groupInvites.add(groupId);
+    this.send(other, {
+      type: 'group-invited',
+      groupId,
+      from: connection.profile ?? ANONYMOUS,
+      size: group.members.size,
+    });
+  }
+
+  /** Ends an invitation that won't be used: both sides hear why (but whoever ended it). */
+  private endInvite(
+    group: Group,
+    userId: string,
+    reason: GroupInviteEndReason,
+    by?: Connection,
+  ): void {
+    const invite = group.invites.get(userId);
+    if (!invite) return;
+    clearTimeout(invite.timer);
+    group.invites.delete(userId);
+    invite.to.groupInvites.delete(group.id);
+    if (invite.from !== by && this.connections.has(invite.from.id)) {
+      this.send(invite.from, {
+        type: 'group-invite-ended',
+        groupId: group.id,
+        nickname: invite.to.profile?.nickname ?? null,
+        reason,
+      });
+    }
+    if (invite.to !== by) {
+      this.send(invite.to, {
+        type: 'group-invite-ended',
+        groupId: group.id,
+        nickname: invite.from.profile?.nickname ?? null,
+        reason,
+      });
+    }
+  }
+
+  /** The invited person joins the group (and makes an offer to each member) or declines. */
+  private groupAnswer(connection: Connection, groupId: string, accept: boolean): void {
+    const me = connection.participant as Participant;
+    const group = this.groups.get(groupId);
+    const invite = group?.invites.get(me.userId);
+    if (!group || !invite || invite.to !== connection) {
+      if (accept) {
+        this.send(connection, {
+          type: 'group-invite-ended',
+          groupId,
+          nickname: null,
+          reason: 'gone',
+        });
+      }
+      return;
+    }
+    if (!accept) return this.endInvite(group, me.userId, 'declined', connection);
+    if (this.blockedWith(group, connection)) return this.endInvite(group, me.userId, 'blocked');
+    if (group.members.size >= GROUP_MAX) return this.endInvite(group, me.userId, 'full');
+    clearTimeout(invite.timer);
+    group.invites.delete(me.userId);
+    connection.groupInvites.delete(groupId);
+    this.leaveGroup(connection);
+    this.leaveOneToOne(connection);
+    const members = [...group.members.values()].map((member) => this.memberOf(member));
+    for (const member of group.members.values()) {
+      this.send(member, { type: 'group-joined', member: this.memberOf(connection) });
+    }
+    group.members.set(connection.id, connection);
+    connection.group = group;
+    this.send(connection, { type: 'group', groupId, self: connection.id, members });
+  }
+
+  /** Leaves the group; the others are told. An empty group ends with its invitations. */
+  private leaveGroup(connection: Connection): void {
+    const group = connection.group;
+    if (!group) return;
+    group.members.delete(connection.id);
+    connection.group = undefined;
+    connection.onlineSent = undefined;
+    for (const member of group.members.values()) {
+      this.send(member, { type: 'group-left', memberId: connection.id });
+    }
+    if (group.members.size === 0) {
+      for (const userId of group.invites.keys()) this.endInvite(group, userId, 'gone');
+      this.groups.delete(group.id);
+    }
+  }
+
+  /** A member of my group, by their member id (never myself). */
+  private groupTarget(connection: Connection, memberId: string): string | undefined {
+    const target = connection.group?.members.get(memberId);
+    if (!target || target === connection) return undefined;
+    return target.participant?.userId;
+  }
+
+  /** Reports a member: the reporter leaves the group and blocks them; the report keeps both
+   * people's last group messages. */
+  private async groupReport(
+    connection: Connection,
+    memberId: string,
+    reason: ReportReason,
+    details: string | undefined,
+  ): Promise<void> {
+    const me = connection.participant as Participant;
+    const group = connection.group;
+    const targetId = this.groupTarget(connection, memberId);
+    if (!group || !targetId) return this.error(connection, 'not-in-group');
+    const transcript: TranscriptLine[] = group.lines
+      .filter((line) => line.userId === me.userId || line.userId === targetId)
+      .slice(-TRANSCRIPT_LINES)
+      .map((line) => ({
+        from: line.userId === me.userId ? 'reporter' : 'reported',
+        text: line.text,
+        at: line.at,
+      }));
+    this.leaveGroup(connection);
+    await this.applyBlock(connection, targetId);
+    await this.videochat.report({
+      reporterId: me.userId,
+      reportedId: targetId,
+      reason,
+      details,
+      transcript,
+    });
+    this.send(connection, { type: 'reported' });
+  }
+
+  private async groupBlock(connection: Connection, memberId: string): Promise<void> {
+    const targetId = this.groupTarget(connection, memberId);
+    if (!targetId) return this.error(connection, 'not-in-group');
+    this.leaveGroup(connection);
+    await this.applyBlock(connection, targetId);
+    this.send(connection, { type: 'blocked' });
+  }
+
+  /** My contacts and whether each one can be invited to my group now. */
+  private async groupContacts(connection: Connection): Promise<void> {
+    const me = connection.participant as Participant;
+    const { items } = await this.videochat.contacts(me.userId, () => ({
+      online: false,
+      busy: false,
+    }));
+    const group = connection.group;
+    const status = (contactId: string): GroupContact['status'] => {
+      const other = this.byUser.get(contactId);
+      if (!other?.participant) return 'offline';
+      if (group && other.group === group) return 'in-group';
+      if (group?.invites.has(contactId)) return 'invited';
+      return this.isBusy(other) ? 'busy' : 'free';
+    };
+    this.send(connection, {
+      type: 'group-contacts',
+      items: items
+        .filter((item) => !me.blocked.has(item.contactId))
+        .map((item) => ({
+          contactId: item.contactId,
+          nickname: item.nickname,
+          status: status(item.contactId),
+        })),
+    });
   }
 
   private suspended(userId: string): void {

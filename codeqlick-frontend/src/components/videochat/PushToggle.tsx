@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import {
+  peakAlertsAction,
   pushSubscribeAction,
   pushUnsubscribeAction,
 } from '@/app/[locale]/videochat/settings/actions';
@@ -45,6 +46,7 @@ export function PushToggle({
   namespace = 'Videochat.push',
   subscribe = pushSubscribeAction,
   unsubscribe = pushUnsubscribeAction,
+  peakAlerts,
 }: {
   publicKey: string;
   locale: 'en' | 'es';
@@ -52,9 +54,14 @@ export function PushToggle({
   namespace?: 'Videochat.push' | 'Swipe.push';
   subscribe?: (input: Subscription) => Promise<{ ok: boolean }>;
   unsubscribe?: (endpoint: string) => Promise<{ ok: boolean }>;
+  /** Video chat only: the account asked for peak time alerts (the switch shows when given). */
+  peakAlerts?: boolean;
 }) {
   const t = useTranslations(namespace);
+  const tv = useTranslations('Videochat.push');
   const [state, setState] = useState<State>('loading');
+  const [peak, setPeak] = useState(peakAlerts ?? false);
+  const [peakBusy, setPeakBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 
@@ -132,6 +139,15 @@ export function PushToggle({
     }
   }
 
+  async function togglePeak(on: boolean) {
+    setPeakBusy(true);
+    setError(false);
+    const result = await peakAlertsAction(on).catch(() => ({ ok: false }));
+    if (result.ok) setPeak(on);
+    else setError(true);
+    setPeakBusy(false);
+  }
+
   if (state === 'loading') return null;
   return (
     <div>
@@ -144,6 +160,21 @@ export function PushToggle({
         <Button type="button" variant="primary" onClick={enable} disabled={busy}>
           {busy ? t('working') : t('enable')}
         </Button>
+      ) : null}
+      {state === 'on' && peakAlerts !== undefined ? (
+        <p>
+          <label>
+            <input
+              type="checkbox"
+              checked={peak}
+              disabled={peakBusy}
+              onChange={(event) => void togglePeak(event.target.checked)}
+            />{' '}
+            {tv('peak')}
+          </label>
+          <br />
+          <small>{tv('peakHint')}</small>
+        </p>
       ) : null}
       {state === 'on' ? (
         <Button type="button" variant="outline" onClick={disable} disabled={busy}>

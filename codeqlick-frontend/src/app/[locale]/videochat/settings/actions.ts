@@ -9,6 +9,7 @@ import {
   INTERESTS,
   MAX_INTERESTS,
   saveVideochatSettings,
+  setVideochatPeakAlerts,
   subscribeVideochatPush,
   unsubscribeVideochatPush,
   type Gender,
@@ -111,6 +112,16 @@ export async function pushSubscribeAction(input: PushSubscriptionInput): Promise
 export async function pushUnsubscribeAction(endpoint: string): Promise<{ ok: boolean }> {
   try {
     await unsubscribeVideochatPush(String(endpoint));
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** "Also tell me at peak time" for the account (PUT /videochat/push/peak). */
+export async function peakAlertsAction(on: boolean): Promise<{ ok: boolean }> {
+  try {
+    await setVideochatPeakAlerts(on === true);
     return { ok: true };
   } catch {
     return { ok: false };

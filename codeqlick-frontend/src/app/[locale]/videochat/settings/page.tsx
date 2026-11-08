@@ -123,7 +123,11 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
             {tp('title')}
           </h2>
           <p className={styles.muted}>{tp('lead')}</p>
-          <PushToggle publicKey={status.pushPublicKey} locale={locale} />
+          <PushToggle
+            publicKey={status.pushPublicKey}
+            locale={locale}
+            peakAlerts={status.peakAlerts}
+          />
         </section>
       ) : null}
       <InstallApp className={styles.subsection} />
