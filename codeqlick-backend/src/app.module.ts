@@ -19,6 +19,7 @@ import { MediaModule } from './modules/media/media.module.js';
 import { PortfolioModule } from './modules/portfolio/portfolio.module.js';
 import { PostsModule } from './modules/posts/posts.module.js';
 import { ProjectsModule } from './modules/projects/projects.module.js';
+import { InvoicesModule } from './modules/invoices/invoices.module.js';
 import { SavedRepliesModule } from './modules/saved-replies/saved-replies.module.js';
 import { StatsModule } from './modules/stats/stats.module.js';
 import { ProposalsModule } from './modules/proposals/proposals.module.js';
@@ -53,6 +54,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PostsModule,
     PortfolioModule,
     ProjectsModule,
+    InvoicesModule,
     MediaModule,
     SavedRepliesModule,
     StatsModule,

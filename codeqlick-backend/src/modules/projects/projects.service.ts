@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -372,6 +373,9 @@ export class ProjectsService {
 
   async delete(actor: AuthUser, id: string): Promise<void> {
     const project = await this.findOrThrow(id);
+    if ((await this.repository.invoiceCount(id)) > 0) {
+      throw new ConflictException('This project has invoices, which must be kept');
+    }
     // Its managed site is taken down first (architecture 8.2): the row goes with the project.
     const slug = await this.repository.siteSlugOf(id);
     if (slug) await this.builder.remove(slug);

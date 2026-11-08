@@ -18,6 +18,8 @@ function hrefOf(item: TodoItem): string {
       return `/portal/projects/${item.id}/brief`;
     case 'review':
       return `/portal/projects/${item.id}/review`;
+    case 'invoice':
+      return '/portal/invoices';
   }
 }
 
@@ -27,6 +29,7 @@ const ICON: Record<TodoKind, string> = {
   ticket: '?',
   brief: '✎',
   review: '★',
+  invoice: '€',
 };
 
 /**
