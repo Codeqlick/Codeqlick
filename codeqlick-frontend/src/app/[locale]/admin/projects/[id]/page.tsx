@@ -15,6 +15,12 @@ import { MarkdownField } from '@/components/app/MarkdownField';
 import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
 import { ProjectFiles } from '@/components/app/ProjectFiles';
+import { InvoiceList } from '@/components/app/InvoiceList';
+import { FilePicker } from '@/components/ui/FilePicker';
+import { Checkbox, Input } from '@/components/ui/Field';
+import { adminListInvoices, MAX_INVOICE_BYTES } from '@/lib/api/invoices';
+import { deleteInvoiceAction, setInvoicePaidAction } from '../invoice-actions';
+import type { InvoiceUploadOutcome } from './invoices/route';
 import { ProjectHours } from '@/components/app/ProjectHours';
 import { ProjectTimeline } from '@/components/app/ProjectTimeline';
 import { ProjectUpdates } from '@/components/app/ProjectUpdates';
@@ -71,6 +77,19 @@ import { deleteTimeAction, logTimeAction } from '../time-actions';
 import { createTaskAction, deleteTaskAction, setTaskStatusAction } from '../task-actions';
 import { ProjectForm } from '../ProjectForm';
 
+/** Result of an invoice upload (the route handler redirects back with it). */
+const INVOICE_RESULTS: Record<
+  InvoiceUploadOutcome,
+  { tone: 'success' | 'error'; key: InvoiceUploadOutcome }
+> = {
+  uploaded: { tone: 'success', key: 'uploaded' },
+  tooLarge: { tone: 'error', key: 'tooLarge' },
+  notPdf: { tone: 'error', key: 'notPdf' },
+  numberTaken: { tone: 'error', key: 'numberTaken' },
+  invalid: { tone: 'error', key: 'invalid' },
+  failed: { tone: 'error', key: 'failed' },
+};
+
 /** Result of an upload made without JavaScript (the route handler redirects back with it). */
 const UPLOAD_RESULTS = {
   uploaded: { tone: 'success', key: 'fileUploaded' },
@@ -83,10 +102,16 @@ export default async function EditProjectPage({
   searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
-  searchParams: Promise<{ files?: string | string[] }>;
+  searchParams: Promise<{ files?: string | string[]; invoices?: string | string[] }>;
 }) {
   const { locale: rawLocale, id } = await params;
-  const filesParam = firstParam((await searchParams).files);
+  const query = await searchParams;
+  const filesParam = firstParam(query.files);
+  const invoicesParam = firstParam(query.invoices) as InvoiceUploadOutcome | undefined;
+  const invoiceResult =
+    invoicesParam && Object.hasOwn(INVOICE_RESULTS, invoicesParam)
+      ? INVOICE_RESULTS[invoicesParam]
+      : undefined;
   const uploadResult =
     filesParam && Object.hasOwn(UPLOAD_RESULTS, filesParam)
       ? UPLOAD_RESULTS[filesParam as keyof typeof UPLOAD_RESULTS]
@@ -119,6 +144,8 @@ export default async function EditProjectPage({
       adminGetSiteForm(project.id),
       adminGetSite(project.id),
     ]);
+  const invoices = await adminListInvoices(project.id);
+  const tin = await getTranslations({ locale, namespace: 'Invoices' });
   const site = 'slug' in managedSite ? managedSite : null;
   const siteRevisions = site ? await adminSiteRevisions(project.id) : [];
   const siteVisits = site
@@ -735,6 +762,100 @@ export default async function EditProjectPage({
               deleteProjectFileAction.bind(null, locale, project.id, fileId)
             }
           />
+        </div>
+      </section>
+
+      <section className={styles.panel} id="invoices" aria-labelledby="invoices-heading">
+        <h2 id="invoices-heading" className={styles.panelTitle}>
+          {tin('title')}
+        </h2>
+        <div className={styles.stack}>
+          <p className={styles.muted}>{tin('adminLead')}</p>
+          {invoiceResult ? (
+            <Alert tone={invoiceResult.tone}>{tin(`upload.${invoiceResult.key}`)}</Alert>
+          ) : null}
+          {invoices.length > 0 ? (
+            <InvoiceList
+              invoices={invoices}
+              locale={locale}
+              paidAction={(invoice) =>
+                setInvoicePaidAction.bind(
+                  null,
+                  locale,
+                  project.id,
+                  invoice.id,
+                  invoice.status !== 'PAID',
+                )
+              }
+              deleteAction={(invoice) =>
+                deleteInvoiceAction.bind(null, locale, project.id, invoice.id)
+              }
+            />
+          ) : (
+            <p className={styles.muted}>{tin('adminEmpty')}</p>
+          )}
+          <details className={styles.commentForm}>
+            <summary>{tin('add')}</summary>
+            {/* A plain form: the route handler streams the PDF to the API and comes back here. */}
+            <form
+              method="post"
+              encType="multipart/form-data"
+              action={`/${locale}/admin/projects/${project.id}/invoices`}
+              className={styles.form}
+            >
+              <div className={styles.row}>
+                <Input
+                  id="invoice-number"
+                  name="number"
+                  label={tin('number')}
+                  maxLength={40}
+                  required
+                />
+                <Input
+                  id="invoice-amount"
+                  name="amount"
+                  label={tin('amountField')}
+                  hint={tin('amountHint')}
+                  inputMode="decimal"
+                  pattern="[0-9]{1,7}([.,][0-9]{1,2})?"
+                  required
+                />
+              </div>
+              <div className={styles.row}>
+                <Input
+                  id="invoice-issued"
+                  name="issuedOn"
+                  type="date"
+                  label={tin('issuedOn')}
+                  defaultValue={madridToday()}
+                  required
+                />
+                <Input
+                  id="invoice-due"
+                  name="dueOn"
+                  type="date"
+                  label={tin('dueOnField')}
+                  optionalLabel={tc('optional')}
+                />
+              </div>
+              <FilePicker
+                name="file"
+                label={tin('choosePdf', { size: MAX_INVOICE_BYTES / 1024 / 1024 })}
+                accept="application/pdf,.pdf"
+                required
+              />
+              <Checkbox
+                id="invoice-notify"
+                name="notify"
+                value="true"
+                label={tin('notify')}
+                defaultChecked
+              />
+              <div className={styles.actions}>
+                <SubmitButton pendingLabel={tin('uploading')}>{tin('upload.submit')}</SubmitButton>
+              </div>
+            </form>
+          </details>
         </div>
       </section>
 

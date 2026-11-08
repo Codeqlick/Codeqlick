@@ -619,7 +619,8 @@
     "nav": {
       "projects": "Projects",
       "support": "Support",
-      "proposals": "Proposals"
+      "proposals": "Proposals",
+      "invoices": "Invoices"
     },
     "projectsTitle": "Your projects",
     "projectsLead": "Follow the progress of everything we're building together.",
@@ -677,7 +678,8 @@
       "proposal": "Answer the proposal “{title}”",
       "ticket": "Reply to your request {title}",
       "brief": "Fill in the project questionnaire",
-      "review": "Tell us what you thought of the project"
+      "review": "Tell us what you thought of the project",
+      "invoice": "Pay invoice {title}"
     }
   },
   "Admin": {
@@ -1174,7 +1176,11 @@
           "site_updated": "changed the managed website of <target>{label}</target>",
           "site_restored": "restored a version of the website of <target>{label}</target>",
           "domain_updated": "changed the domain of <target>{label}</target>",
-          "site_deleted": "took down the website of <target>{label}</target>"
+          "site_deleted": "took down the website of <target>{label}</target>",
+          "invoice_added": "uploaded an invoice to <target>{label}</target>",
+          "invoice_paid": "marked an invoice of <target>{label}</target> paid",
+          "invoice_unpaid": "marked an invoice of <target>{label}</target> unpaid",
+          "invoice_deleted": "deleted an invoice of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -1262,7 +1268,8 @@
         "taskStatus": "Status: {value}",
         "reason": "Reason: {value}",
         "until": "Until {value}",
-        "untilLifted": "Until lifted"
+        "untilLifted": "Until lifted",
+        "invoice": "Invoice: {value}"
       }
     },
     "tags": {
@@ -3379,5 +3386,50 @@
     "invalidLink": "This link is invalid or has expired. Ask for the change again from \"Your account\".",
     "taken": "That email already has another account, so it cannot be used.",
     "rateLimited": "Too many attempts. Wait a minute and try again."
+  },
+  "Invoices": {
+    "title": "Invoices",
+    "lead": "All your invoices, with their PDF and whether they are paid.",
+    "emptyTitle": "No invoices yet",
+    "emptyBody": "When we issue you an invoice it will show up here, and we will email you.",
+    "invoice": "Invoice",
+    "date": "Date",
+    "amount": "Amount (VAT incl.)",
+    "status": "Status",
+    "pdf": "PDF",
+    "download": "Download PDF",
+    "dueOn": "Due on {date}",
+    "stripeInvoice": "Your website purchase (card payment)",
+    "statuses": {
+      "PAID": "Paid",
+      "DUE": "Due",
+      "OVERDUE": "Overdue"
+    },
+    "adminLead": "Upload the project's invoices here as PDFs (the ones your invoicing tool makes). The client sees them under \"Invoices\" in their area, and unpaid ones under \"Waiting on you\".",
+    "adminEmpty": "This project has no invoices yet.",
+    "add": "Upload an invoice",
+    "number": "Invoice number",
+    "amountField": "Total amount (€)",
+    "amountHint": "VAT included, e.g. 1210.50.",
+    "issuedOn": "Issue date",
+    "dueOnField": "Due date",
+    "choosePdf": "Choose the PDF ({size} MB at most)",
+    "notify": "Email the client",
+    "uploading": "Uploading…",
+    "upload": {
+      "submit": "Upload invoice",
+      "uploaded": "Invoice uploaded.",
+      "tooLarge": "The PDF is too large (10 MB at most).",
+      "notPdf": "The file must be a PDF.",
+      "numberTaken": "There is already an invoice with that number.",
+      "invalid": "Check the number, the dates and the amount (e.g. 1210.50).",
+      "failed": "The invoice could not be uploaded. Please try again."
+    },
+    "markPaid": "Mark paid",
+    "markUnpaid": "Mark unpaid",
+    "markedPaid": "Marked as paid.",
+    "markedUnpaid": "Marked as unpaid.",
+    "deleteHint": "Only for an invoice uploaded by mistake. A real invoice is corrected with a credit note.",
+    "deleted": "Invoice deleted."
   }
 }

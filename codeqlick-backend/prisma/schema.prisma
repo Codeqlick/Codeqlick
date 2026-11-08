@@ -117,6 +117,7 @@ model User {
   memberOf                   User?                       @relation("ClientTeam", fields: [memberOfId], references: [id], onDelete: Cascade)
   members                    User[]                      @relation("ClientTeam")
   projectFiles               ProjectFile[]
+  invoicesUploaded           ProjectInvoice[]
   activity                   ActivityLog[]
   leadReplies                LeadReply[]
   videochatProfile           VideochatProfile?
@@ -398,6 +399,7 @@ model ClientProject {
   client      User                @relation(fields: [clientId], references: [id], onDelete: Restrict)
   updates     ProjectUpdate[]
   files       ProjectFile[]
+  invoices    ProjectInvoice[]
   milestones  ProjectMilestone[]
   tickets     SupportTicket[]
   proposals   Proposal[]
@@ -494,6 +496,32 @@ model ProjectFile {
 
   @@index([projectId, createdAt])
   @@map("project_files")
+}
+
+/// An invoice the team issued for a project, uploaded as the PDF of its invoicing tool
+/// (architecture 4.2, decision 23). Stored at `UPLOADS_DIR/invoices/<id>`.
+model ProjectInvoice {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  /// The invoice's own number, as printed on it.
+  number       String    @unique
+  issuedOn     DateTime  @map("issued_on") @db.Date
+  dueOn        DateTime? @map("due_on") @db.Date
+  /// The total, VAT included.
+  amountCents  Int       @map("amount_cents")
+  currency     String    @default("eur")
+  paidAt       DateTime? @map("paid_at") @db.Timestamptz(3)
+  fileName     String    @map("file_name")
+  size         Int
+  uploadedById String?   @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project    ClientProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  uploadedBy User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, issuedOn])
+  @@map("project_invoices")
 }
 
 /// Who changed what: one row per change made from the admin panel or to one's own account.
@@ -622,28 +650,30 @@ enum ProposalStatus {
 
 /// A proposal or quote for a client: what will be done, item by item with prices, and the terms.
 model Proposal {
-  id            String         @id @default(uuid()) @db.Uuid
+  id               String         @id @default(uuid()) @db.Uuid
   /// Short reference shown to people (#7).
-  number        Int            @unique @default(autoincrement())
-  clientId      String         @map("client_id") @db.Uuid
-  projectId     String?        @map("project_id") @db.Uuid
-  createdById   String?        @map("created_by_id") @db.Uuid
-  title         String
+  number           Int            @unique @default(autoincrement())
+  clientId         String         @map("client_id") @db.Uuid
+  projectId        String?        @map("project_id") @db.Uuid
+  createdById      String?        @map("created_by_id") @db.Uuid
+  title            String
   /// Markdown: the scope, what is included and what isn't.
-  summary       String
+  summary          String
   /// Markdown: payment schedule, deadlines, conditions.
-  terms         String?
-  currency      String         @default("EUR")
+  terms            String?
+  currency         String         @default("EUR")
   /// Last day the client can accept it.
-  validUntil    DateTime?      @map("valid_until") @db.Date
-  status        ProposalStatus @default(DRAFT)
-  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
-  respondedAt   DateTime?      @map("responded_at") @db.Timestamptz(3)
+  validUntil       DateTime?      @map("valid_until") @db.Date
+  status           ProposalStatus @default(DRAFT)
+  sentAt           DateTime?      @map("sent_at") @db.Timestamptz(3)
+  respondedAt      DateTime?      @map("responded_at") @db.Timestamptz(3)
   /// The full name the client typed to accept it.
-  acceptedName  String?        @map("accepted_name")
-  declineReason String?        @map("decline_reason")
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  acceptedName     String?        @map("accepted_name")
+  declineReason    String?        @map("decline_reason")
+  /// When the client was reminded that it is about to expire (once).
+  expiryRemindedAt DateTime?      @map("expiry_reminded_at") @db.Timestamptz(3)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   client    User           @relation("ProposalClient", fields: [clientId], references: [id], onDelete: Cascade)
   project   ClientProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)

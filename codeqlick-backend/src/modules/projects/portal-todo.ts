@@ -1,9 +1,9 @@
 /** What waits on a client in the portal (`GET /portal/todo`). */
-export type TodoKind = 'approval' | 'proposal' | 'ticket' | 'brief' | 'review';
+export type TodoKind = 'approval' | 'proposal' | 'ticket' | 'brief' | 'review' | 'invoice';
 
 export interface TodoItem {
   kind: TodoKind;
-  /** The update, proposal or request; the project for a brief or a review. */
+  /** The update, proposal, request or invoice; the project for a brief or a review. */
   id: string;
   title: string;
   projectId: string | null;
@@ -35,6 +35,14 @@ export interface TodoRows {
   }>;
   briefs: Array<{ requestedAt: Date; project: { id: string; name: string } }>;
   reviews: Array<{ requestedAt: Date; project: { id: string; name: string } }>;
+  /** The team's invoices not paid yet. */
+  invoices: Array<{
+    id: string;
+    number: string;
+    issuedOn: Date;
+    dueOn: Date | null;
+    project: { id: string; name: string };
+  }>;
 }
 
 /** Start of today (UTC): a proposal can be accepted through its `validUntil` day. */
@@ -87,6 +95,14 @@ export function buildTodo(rows: TodoRows, now: Date): TodoItem[] {
       projectId: review.project.id,
       projectName: review.project.name,
       at: review.requestedAt,
+    })),
+    ...rows.invoices.map((invoice) => ({
+      kind: 'invoice' as const,
+      id: invoice.id,
+      title: invoice.number,
+      projectId: invoice.project.id,
+      projectName: invoice.project.name,
+      at: invoice.issuedOn,
     })),
   ].map((item) => ({ ...item, since: item.at.toISOString() }));
   items.sort((a, b) => a.at.getTime() - b.at.getTime());

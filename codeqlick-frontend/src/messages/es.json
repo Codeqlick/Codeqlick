@@ -619,7 +619,8 @@
     "nav": {
       "projects": "Proyectos",
       "support": "Soporte",
-      "proposals": "Propuestas"
+      "proposals": "Propuestas",
+      "invoices": "Facturas"
     },
     "projectsTitle": "Tus proyectos",
     "projectsLead": "Sigue el avance de todo lo que estamos construyendo juntos.",
@@ -677,7 +678,8 @@
       "proposal": "Responder a la propuesta «{title}»",
       "ticket": "Contestar a tu petición {title}",
       "brief": "Rellenar el cuestionario del proyecto",
-      "review": "Contarnos qué te ha parecido el proyecto"
+      "review": "Contarnos qué te ha parecido el proyecto",
+      "invoice": "Pagar la factura {title}"
     }
   },
   "Admin": {
@@ -1174,7 +1176,11 @@
           "site_updated": "cambió la web gestionada de <target>{label}</target>",
           "site_restored": "restauró una versión de la web de <target>{label}</target>",
           "domain_updated": "cambió el dominio de <target>{label}</target>",
-          "site_deleted": "dio de baja la web de <target>{label}</target>"
+          "site_deleted": "dio de baja la web de <target>{label}</target>",
+          "invoice_added": "subió una factura a <target>{label}</target>",
+          "invoice_paid": "marcó pagada una factura de <target>{label}</target>",
+          "invoice_unpaid": "marcó pendiente una factura de <target>{label}</target>",
+          "invoice_deleted": "eliminó una factura de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -1262,7 +1268,8 @@
         "taskStatus": "Estado: {value}",
         "reason": "Motivo: {value}",
         "until": "Hasta el {value}",
-        "untilLifted": "Hasta levantarla"
+        "untilLifted": "Hasta levantarla",
+        "invoice": "Factura: {value}"
       }
     },
     "tags": {
@@ -3379,5 +3386,50 @@
     "invalidLink": "Este enlace no es válido o ha caducado. Pide el cambio otra vez desde «Mi cuenta».",
     "taken": "Ese correo ya tiene otra cuenta, así que no se puede usar.",
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
+  },
+  "Invoices": {
+    "title": "Facturas",
+    "lead": "Todas tus facturas, con su PDF y si están pagadas.",
+    "emptyTitle": "Todavía no tienes facturas",
+    "emptyBody": "Cuando te emitamos una factura aparecerá aquí, y te avisaremos por correo.",
+    "invoice": "Factura",
+    "date": "Fecha",
+    "amount": "Importe (IVA incl.)",
+    "status": "Estado",
+    "pdf": "PDF",
+    "download": "Descargar PDF",
+    "dueOn": "Vence el {date}",
+    "stripeInvoice": "Compra de tu web (pago con tarjeta)",
+    "statuses": {
+      "PAID": "Pagada",
+      "DUE": "Pendiente",
+      "OVERDUE": "Vencida"
+    },
+    "adminLead": "Sube aquí las facturas del proyecto en PDF (las que hace vuestro programa de facturación). El cliente las ve en «Facturas» de su área y las pendientes le salen en «Pendiente de ti».",
+    "adminEmpty": "Este proyecto aún no tiene facturas.",
+    "add": "Subir una factura",
+    "number": "Número de factura",
+    "amountField": "Importe total (€)",
+    "amountHint": "Con IVA incluido, por ejemplo 1210,50.",
+    "issuedOn": "Fecha de emisión",
+    "dueOnField": "Fecha de vencimiento",
+    "choosePdf": "Elegir el PDF (máximo {size} MB)",
+    "notify": "Avisar al cliente por correo",
+    "uploading": "Subiendo…",
+    "upload": {
+      "submit": "Subir factura",
+      "uploaded": "Factura subida.",
+      "tooLarge": "El PDF es demasiado grande (máximo 10 MB).",
+      "notPdf": "El archivo tiene que ser un PDF.",
+      "numberTaken": "Ya hay una factura con ese número.",
+      "invalid": "Revisa el número, las fechas y el importe (por ejemplo 1210,50).",
+      "failed": "No se ha podido subir la factura. Vuelve a intentarlo."
+    },
+    "markPaid": "Marcar pagada",
+    "markUnpaid": "Marcar pendiente",
+    "markedPaid": "Marcada como pagada.",
+    "markedUnpaid": "Marcada como pendiente.",
+    "deleteHint": "Solo para una factura subida por error. Una factura real se corrige con una factura rectificativa.",
+    "deleted": "Factura eliminada."
   }
 }

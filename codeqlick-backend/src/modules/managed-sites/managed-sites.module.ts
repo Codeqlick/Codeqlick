@@ -28,7 +28,7 @@ import { SiteEditorService } from './site-editor.service.js';
 import { SiteVisitsService } from './site-visits.service.js';
 import { SitePurchasesRepository } from './site-purchases.repository.js';
 import { SitePurchasesService } from './site-purchases.service.js';
-import { StripeClient } from './stripe.client.js';
+import { StripeModule } from './stripe.module.js';
 import { StripeWebhookController } from './stripe-webhook.controller.js';
 
 @Module({
@@ -44,6 +44,7 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
     DomainsModule,
     AccountsModule,
     SiteBuilderModule,
+    StripeModule,
   ],
   controllers: [
     ManagedSitesController,
@@ -67,7 +68,6 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
     SiteEditorService,
     SitePurchasesService,
     SitePurchasesRepository,
-    StripeClient,
   ],
   exports: [ManagedSitesService],
 })

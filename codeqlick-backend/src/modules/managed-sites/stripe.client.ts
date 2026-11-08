@@ -7,8 +7,9 @@ export type CheckoutSession = Stripe.Checkout.Session;
 export type CheckoutParams = Stripe.Checkout.SessionCreateParams;
 
 /**
- * Stripe, for buying a preview online (architecture 8.2, decision 20): Checkout Sessions and the
- * webhook's signature. Off while STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET is missing.
+ * Stripe, for buying a preview online (architecture 8.2, decision 20): Checkout Sessions, the
+ * webhook's signature and the invoices' PDFs. Off while STRIPE_SECRET_KEY or
+ * STRIPE_WEBHOOK_SECRET is missing.
  */
 @Injectable()
 export class StripeClient {
@@ -60,6 +61,12 @@ export class StripeClient {
       tax_type: 'vat',
     });
     return created.id;
+  }
+
+  /** The PDF of an invoice Stripe issued; `null` while it has none (a draft). */
+  async invoicePdf(id: string): Promise<string | null> {
+    const invoice = await this.stripe().invoices.retrieve(id);
+    return invoice.invoice_pdf ?? null;
   }
 
   /** The webhook's event, once its signature is checked; throws when it doesn't match. */

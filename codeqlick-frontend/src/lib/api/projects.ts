@@ -24,7 +24,7 @@ export function listMyProjects() {
   return apiFetch<ClientProject[]>('/portal/projects', { auth: 'required' });
 }
 
-export type TodoKind = 'approval' | 'proposal' | 'ticket' | 'brief' | 'review';
+export type TodoKind = 'approval' | 'proposal' | 'ticket' | 'brief' | 'review' | 'invoice';
 
 /** Something waiting on the client (`GET /portal/todo`). */
 export type TodoItem = {

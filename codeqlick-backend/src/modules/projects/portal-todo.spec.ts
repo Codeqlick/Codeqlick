@@ -39,6 +39,7 @@ describe('buildTodo', () => {
         ],
         briefs: [{ requestedAt: new Date('2026-10-20T08:00:00Z'), project }],
         reviews: [],
+        invoices: [],
       },
       new Date('2026-11-07T15:00:00Z'),
     );

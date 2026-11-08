@@ -25,6 +25,7 @@ export default async function PortalLayout({ children, params }: LayoutProps) {
     // Exact: /portal/account must not highlight it too.
     { href: '/portal', label: t('nav.projects'), exact: true },
     { href: '/portal/proposals', label: t('nav.proposals') },
+    { href: '/portal/invoices', label: t('nav.invoices') },
     { href: '/portal/support', label: t('nav.support') },
     { href: '/portal/account', label: tc('nav') },
   ];
