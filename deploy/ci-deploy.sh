@@ -10,7 +10,13 @@
 #   staging <branch> [--with-data]  put a branch on staging (/srv/codeqlick-staging)
 #
 # A lock per environment keeps releases one at a time (two CI workflows can finish at once).
+#
+# A production release may get settings on its standard input, `NAME=value` lines from GitHub's
+# Actions secrets (deploy.yml). Only the names in SETTINGS are taken, with plain values, and they
+# are written to .env before the release, so the new containers start with them.
 set -eu
+
+SETTINGS="TURNSTILE_SITE_KEY TURNSTILE_SECRET_KEY"
 
 cd "$(dirname "$0")/.."
 
@@ -34,6 +40,21 @@ case "$1" in
     exec flock --wait 1200 /tmp/codeqlick-staging.lock ./deploy/staging.sh "$branch" $data
     ;;
   *)
+    input="$(timeout 10 cat 2>/dev/null || true)"
+    printf '%s\n' "$input" | while IFS= read -r line; do
+      name="${line%%=*}"
+      value="${line#*=}"
+      case " $SETTINGS " in *" $name "*) ;; *) continue ;; esac
+      [ -n "$value" ] || continue
+      if ! printf '%s' "$value" | grep -Eq '^[A-Za-z0-9._-]{1,200}$'; then
+        echo "Ignoring $name: unexpected characters" >&2
+        continue
+      fi
+      [ "$(sed -n "s/^$name=//p" .env | tail -n 1)" = "$value" ] && continue
+      sed -i "/^$name=/d" .env
+      printf '%s=%s\n' "$name" "$value" >>.env
+      echo "$name updated from GitHub."
+    done
     exec flock --wait 1200 /tmp/codeqlick-deploy.lock ./deploy/deploy.sh
     ;;
 esac

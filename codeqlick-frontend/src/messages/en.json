@@ -420,7 +420,8 @@
     "passwordReset": "Your password has been changed. Sign in with the new one.",
     "passwordCreated": "Password created. You can now sign in with your email and the password you chose.",
     "emailChanged": "Email changed. Sign in now with {email}.",
-    "accountDeleted": "Your account has been deleted. Thank you for having been with us."
+    "accountDeleted": "Your account has been deleted. Thank you for having been with us.",
+    "captcha": "We couldn't check that you're a person. Wait for the check to finish and try again."
   },
   "Register": {
     "metaTitle": "Create an account",
@@ -450,7 +451,9 @@
     "invalidLink": "This link is invalid or has expired. Sign up again to get a new one.",
     "startAgain": "Sign up again",
     "rateLimited": "Too many attempts. Wait a minute and try again.",
-    "error": "We can't create your account right now. Please try again."
+    "error": "We can't create your account right now. Please try again.",
+    "captcha": "We couldn't check that you're a person. Wait for the check to finish and try again.",
+    "disposableEmail": "We don't accept temporary email addresses. Please use your usual email."
   },
   "TwoFactorLogin": {
     "title": "Two-step verification",
@@ -537,7 +540,8 @@
     "deleteSubmit": "Delete my account",
     "deleting": "Deleting…",
     "deleteHasProjects": "Your account has projects with us, with their contracts and invoices, so we close it for you: open a support request or write to hello@codeqlick.com and we will.",
-    "deleteAdmin": "Team accounts are deleted by another admin from Users."
+    "deleteAdmin": "Team accounts are deleted by another admin from Users.",
+    "emailDisposable": "We don't accept temporary email addresses. Please use your usual email."
   },
   "TwoFactor": {
     "title": "Two-step verification",
@@ -3503,6 +3507,27 @@
       "suspend": "suspend",
       "open": "open their page",
       "help": "show the shortcuts"
+    },
+    "suspiciousLink": "Suspicious accounts",
+    "suspicious": {
+      "title": "Suspicious accounts",
+      "lead": "Accounts that look like bots or fake profiles over the last 7 days (reports over 30 days). Review them and suspend the ones that are.",
+      "back": "Back to moderation",
+      "empty": "No suspicious accounts right now.",
+      "score": "{score} points",
+      "noNickname": "No nickname",
+      "joined": "In the video chat since {date}",
+      "reasonsLabel": "Reasons",
+      "reasons": {
+        "reported": "Reported",
+        "skipped": "Skipped at once",
+        "volume": "Too many calls in a day",
+        "disposable": "Disposable email",
+        "new": "New account with many calls"
+      },
+      "figures": "{reporters, plural, =0 {No reports} one {Reported by # person} other {Reported by # people}} · {calls} calls in 7 days, {skippedFast} skipped at once by the other person, {shortCalls} under 10 s · at most {maxCallsInDay} in a day",
+      "open": "Open and suspend",
+      "clear": "Not suspicious"
     }
   },
   "ConfirmEmail": {

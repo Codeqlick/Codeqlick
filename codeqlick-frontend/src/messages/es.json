@@ -420,7 +420,8 @@
     "passwordReset": "Tu contraseña se ha cambiado. Inicia sesión con la nueva.",
     "passwordCreated": "Contraseña creada. Ya puedes entrar con tu correo y la contraseña que has elegido.",
     "emailChanged": "Correo cambiado. Entra ahora con {email}.",
-    "accountDeleted": "Tu cuenta se ha eliminado. Gracias por haber estado con nosotros."
+    "accountDeleted": "Tu cuenta se ha eliminado. Gracias por haber estado con nosotros.",
+    "captcha": "No hemos podido comprobar que eres una persona. Espera a que termine la verificación y vuelve a intentarlo."
   },
   "Register": {
     "metaTitle": "Crear cuenta",
@@ -450,7 +451,9 @@
     "invalidLink": "Este enlace no es válido o ha caducado. Vuelve a crear tu cuenta para recibir uno nuevo.",
     "startAgain": "Crear la cuenta de nuevo",
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
-    "error": "Ahora mismo no podemos crear tu cuenta. Vuelve a intentarlo."
+    "error": "Ahora mismo no podemos crear tu cuenta. Vuelve a intentarlo.",
+    "captcha": "No hemos podido comprobar que eres una persona. Espera a que termine la verificación y vuelve a intentarlo.",
+    "disposableEmail": "No aceptamos correos temporales. Usa tu correo de siempre."
   },
   "TwoFactorLogin": {
     "title": "Verificación en dos pasos",
@@ -537,7 +540,8 @@
     "deleteSubmit": "Eliminar mi cuenta",
     "deleting": "Eliminando…",
     "deleteHasProjects": "Tu cuenta tiene proyectos con nosotros, con sus contratos y facturas, así que la cerramos nosotros: abre una petición de soporte o escríbenos a hello@codeqlick.com y la damos de baja.",
-    "deleteAdmin": "Las cuentas del equipo las elimina otro administrador desde Usuarios."
+    "deleteAdmin": "Las cuentas del equipo las elimina otro administrador desde Usuarios.",
+    "emailDisposable": "No aceptamos correos temporales. Usa tu correo de siempre."
   },
   "TwoFactor": {
     "title": "Verificación en dos pasos",
@@ -3503,6 +3507,27 @@
       "suspend": "suspender",
       "open": "abrir su ficha",
       "help": "ver los atajos"
+    },
+    "suspiciousLink": "Cuentas sospechosas",
+    "suspicious": {
+      "title": "Cuentas sospechosas",
+      "lead": "Cuentas que parecen bots o perfiles falsos según los últimos 7 días (denuncias de 30 días). Revísalas y suspende las que lo sean.",
+      "back": "Volver a moderación",
+      "empty": "Ahora mismo no hay ninguna cuenta sospechosa.",
+      "score": "{score} puntos",
+      "noNickname": "Sin apodo",
+      "joined": "En el videochat desde {date}",
+      "reasonsLabel": "Motivos",
+      "reasons": {
+        "reported": "Denunciada",
+        "skipped": "La saltan al instante",
+        "volume": "Demasiadas llamadas en un día",
+        "disposable": "Correo temporal",
+        "new": "Cuenta nueva con muchas llamadas"
+      },
+      "figures": "{reporters, plural, =0 {Sin denuncias} one {# persona la denunció} other {# personas la denunciaron}} · {calls} llamadas en 7 días, {skippedFast} saltadas al instante por la otra persona, {shortCalls} de menos de 10 s · máximo {maxCallsInDay} en un día",
+      "open": "Ver ficha y suspender",
+      "clear": "No es sospechosa"
     }
   },
   "ConfirmEmail": {

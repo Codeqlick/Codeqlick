@@ -186,6 +186,24 @@ How it is wired:
   from `ssh-keyscan`) and `DEPLOY_TARGET` (`cqadmin@<server>`).
 - To revoke it, delete that line from `authorized_keys`. To rotate it, generate a new key and
   replace both the line and the `DEPLOY_SSH_KEY` secret.
+- Settings from GitHub: the workflow also sends the Actions secrets `TURNSTILE_SITE_KEY` and
+  `TURNSTILE_SECRET_KEY` on the release's standard input, and `deploy/ci-deploy.sh` writes them to
+  `.env` (only those names, only plain values, empty ones ignored) before releasing. Changing them
+  in GitHub and running the workflow is enough; nothing is typed on the server.
+
+### Turnstile (anti-bot on sign-up and sign-in)
+
+Cloudflare Turnstile is free and needs no Cloudflare DNS (architecture 4.3, decision 28):
+
+1. In the Cloudflare dashboard → Turnstile → Add widget: name `Codeqlick`, hostname
+   `codeqlick.com` (it covers the web apps' subdomains), mode Managed.
+2. In GitHub → Settings → Secrets and variables → Actions, add `TURNSTILE_SITE_KEY` (the site
+   key) and `TURNSTILE_SECRET_KEY` (the secret key).
+3. Run Actions → Deploy → Run workflow. The release writes both to `.env`; `/login` and
+   `/register` show the widget and the API checks every token.
+
+To turn it off, empty both lines of `.env` (as the deploy user) and release with
+`./deploy/deploy.sh --no-pull`, then delete the two secrets.
 
 ## Operations
 

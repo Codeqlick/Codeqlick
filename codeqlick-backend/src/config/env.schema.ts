@@ -122,6 +122,8 @@ export const envSchema = z.object({
   VAPID_PRIVATE_KEY: optionalString,
   /** Contact the push services may use (mailto: or https:). */
   VAPID_SUBJECT: z.string().default('mailto:hello@codeqlick.com'),
+  /** Cloudflare Turnstile's secret key: sign-up and sign-in need a valid token; unset: off. */
+  TURNSTILE_SECRET_KEY: optionalString,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

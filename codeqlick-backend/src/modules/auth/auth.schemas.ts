@@ -6,6 +6,8 @@ export const loginSchema = z
   .object({
     email: z.email().max(254),
     password: z.string().min(1).max(1024),
+    /** Cloudflare Turnstile's token (required while TURNSTILE_SECRET_KEY is set). */
+    captcha: z.string().max(4096).optional(),
   })
   .strict();
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -48,6 +50,8 @@ export const registerSchema = z
     website: z.string().max(500).optional(),
     /** Signed up from one of Codeqlick's web apps: the emailed links lead back to it. */
     app: z.enum(WEBAPPS).optional(),
+    /** Cloudflare Turnstile's token (required while TURNSTILE_SECRET_KEY is set). */
+    captcha: z.string().max(4096).optional(),
   })
   .strict();
 export type RegisterInput = z.infer<typeof registerSchema>;

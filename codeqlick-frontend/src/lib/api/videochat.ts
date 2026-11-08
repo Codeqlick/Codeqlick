@@ -398,3 +398,31 @@ export function getVideochatHistory(days: HistoryPeriod) {
     auth: 'required',
   });
 }
+
+export type SuspicionReason = 'reported' | 'skipped' | 'volume' | 'disposable' | 'new';
+
+/** An account that looks like a bot or a fake profile (architecture 4.7). */
+export interface SuspiciousAccount {
+  userId: string;
+  nickname: string | null;
+  email: string;
+  joinedAt: string;
+  score: number;
+  reasons: SuspicionReason[];
+  reporters: number;
+  calls: number;
+  shortCalls: number;
+  skippedFast: number;
+  maxCallsInDay: number;
+}
+
+export function listSuspiciousVideochatAccounts() {
+  return apiFetch<SuspiciousAccount[]>('/admin/videochat/suspicious', { auth: 'required' });
+}
+
+export function clearVideochatSuspicion(userId: string) {
+  return apiFetch<void>(`/admin/videochat/users/${encodeURIComponent(userId)}/not-suspicious`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}

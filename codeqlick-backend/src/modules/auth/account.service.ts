@@ -8,6 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { User } from '../../generated/prisma/client.js';
@@ -55,6 +56,9 @@ export class AccountService {
     const user = await this.activeUser(userId);
     await this.checkPassword(user, input.password);
     const email = input.email.trim().toLowerCase();
+    if (isDisposableEmail(email)) {
+      throw new BadRequestException({ errors: [DISPOSABLE_EMAIL_ERROR] });
+    }
     if (email === user.email) {
       throw new BadRequestException({
         errors: [{ path: 'email', message: 'This is already your email' }],
