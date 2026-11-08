@@ -207,7 +207,7 @@ export function MeetingRoom({
 
   // The camera and microphone, as soon as the page opens (the preview before joining).
   useEffect(() => {
-    let cancelled = false;
+    const effect = { cancelled: false };
     const open = async () => {
       const attempts: MediaStreamConstraints[] = [
         { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 } } },
@@ -217,7 +217,7 @@ export function MeetingRoom({
       for (const constraints of attempts) {
         try {
           const media = await navigator.mediaDevices.getUserMedia(constraints);
-          if (cancelled) {
+          if (effect.cancelled) {
             for (const track of media.getTracks()) track.stop();
             return;
           }
@@ -229,7 +229,7 @@ export function MeetingRoom({
       return null;
     };
     void open().then((media) => {
-      if (cancelled) return;
+      if (effect.cancelled) return;
       setCanShare(
         typeof navigator !== 'undefined' &&
           Boolean(navigator.mediaDevices && 'getDisplayMedia' in navigator.mediaDevices),
@@ -248,7 +248,7 @@ export function MeetingRoom({
       if (media.getVideoTracks().length === 0) setCamOn(false);
     });
     return () => {
-      cancelled = true;
+      effect.cancelled = true;
     };
   }, [t]);
 

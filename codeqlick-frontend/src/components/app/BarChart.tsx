@@ -78,13 +78,19 @@ export function BarChart({
         ))}
         {labels.map((label, index) => {
           const x = PAD.left + slot * index + (slot - barWidth) / 2;
-          let base = 0;
+          // Each bar starts where the positive values before it end.
+          const bases = series.map((_, at) =>
+            series
+              .slice(0, at)
+              .reduce((sum, item) => sum + Math.max(0, item.values[index] ?? 0), 0),
+          );
           return (
             <g key={longLabels[index] ?? index}>
-              {series.map((item) => {
+              {series.map((item, at) => {
                 const value = item.values[index] ?? 0;
                 if (value <= 0) return null;
-                const rect = (
+                const base = bases[at] ?? 0;
+                return (
                   <rect
                     key={item.label}
                     x={x}
@@ -95,8 +101,6 @@ export function BarChart({
                     fill={item.color}
                   />
                 );
-                base += value;
-                return rect;
               })}
               <text
                 className={styles.axisLabel}
