@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
+import { AdZone } from '@/components/videochat/AdZone';
 import { InstallApp } from '@/components/videochat/InstallApp';
 import { resolveLocale } from '@/i18n/locale';
 import { getVideochatOnline } from '@/lib/api/videochat';
@@ -72,6 +73,8 @@ export default async function VideochatLandingPage({ params }: PageProps) {
           </ul>
         </div>
       </section>
+
+      <AdZone zone="pages" />
     </div>
   );
 }

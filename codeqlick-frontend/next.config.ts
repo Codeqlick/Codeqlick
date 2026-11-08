@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { EXOCLICK_HOSTS } from './src/lib/videochat-ads';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -24,18 +25,25 @@ const appSockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL]
   })
   .filter((origin, index, all) => origin && all.indexOf(origin) === index);
 
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self'",
-  ['connect-src', "'self'", ...appSockets].join(' '),
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'self'",
-].join('; ');
+/** `extra` adds third-party hosts to scripts, frames and connections (the video chat's ads). */
+const policy = (extra: string[] = []) =>
+  [
+    "default-src 'self'",
+    ['script-src', "'self'", "'unsafe-inline'", ...extra].join(' '),
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self'",
+    ['connect-src', "'self'", ...appSockets, ...extra].join(' '),
+    ...(extra.length ? [['frame-src', "'self'", ...extra].join(' ')] : []),
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+  ].join('; ');
+
+const contentSecurityPolicy = policy();
+/** The video chat's host also loads ExoClick's ad zones (architecture 4.7); no other host does. */
+const videochatSecurityPolicy = policy(EXOCLICK_HOSTS);
 
 /** Hosts of the web apps that make calls: videochat.codeqlick.com, meetings.localhost… (6.3). */
 const CALL_HOSTS = '(videochat|meetings)\\..+';
@@ -103,6 +111,16 @@ const nextConfig: NextConfig = {
           ...productionHeaders,
         ],
       },
+      ...(process.env.NODE_ENV === 'production'
+        ? [
+            {
+              // Last match wins: the video chat's host swaps in the policy that allows its ads.
+              source: '/:path((?!site-draft/).*)',
+              has: [{ type: 'host' as const, value: 'videochat\\..+' }],
+              headers: [{ key: 'Content-Security-Policy', value: videochatSecurityPolicy }],
+            },
+          ]
+        : []),
       {
         source: '/site-draft/:path*',
         headers: [
