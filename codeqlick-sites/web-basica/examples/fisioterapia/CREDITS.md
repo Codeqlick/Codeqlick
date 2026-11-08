@@ -1,6 +1,6 @@
-# Créditos de las fotos
+# Photo credits
 
-Todas las fotos tienen licencia CC0 (dominio público): se pueden usar sin atribución. Se citan por cortesía.
+All photos are CC0 (public domain): they can be used without attribution. They are credited as a courtesy.
 
 - `hero.jpg`: "Free back massage spa image" (rawpixel, CC0) — https://www.rawpixel.com/image/5924895/photo-image-public-domain-people-free
 - `about.jpg`: "Physiotherapy hospital" (rawpixel, CC0) — https://www.rawpixel.com/image/6038567/photo-image-public-domain-house-person
