@@ -6,6 +6,7 @@ describe('web apps on subdomains', () => {
     expect(webappForHost('videochat.codeqlick.com')).toBe('videochat');
     expect(webappForHost('videochat.localhost:3000')).toBe('videochat');
     expect(webappForHost('meetings.codeqlick.com')).toBe('meetings');
+    expect(webappForHost('swipe.codeqlick.com')).toBe('swipe');
     expect(webappForHost('codeqlick.com')).toBeNull();
     expect(webappForHost('www.codeqlick.com')).toBeNull();
     expect(webappForHost(undefined)).toBeNull();

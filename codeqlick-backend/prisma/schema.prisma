@@ -137,6 +137,19 @@ model User {
   bookingPages               BookingPage[]
   appointments               Appointment[]
   videochatPushSubscriptions VideochatPushSubscription[]
+  swipeProfile               SwipeProfile?
+  swipePhotos                SwipePhoto[]                @relation("SwipePhotoOwner")
+  swipePhotosReviewed        SwipePhoto[]                @relation("SwipePhotoReviewer")
+  swipeVotes                 SwipeVote[]
+  swipeMatchesA              SwipeMatch[]                @relation("SwipeMatchA")
+  swipeMatchesB              SwipeMatch[]                @relation("SwipeMatchB")
+  swipeMessages              SwipeMessage[]
+  swipeReportsMade           SwipeReport[]               @relation("SwipeReporter")
+  swipeReportsGot            SwipeReport[]               @relation("SwipeReported")
+  swipeReportsReviewed       SwipeReport[]               @relation("SwipeReportReviewer")
+  swipeBlocksMade            SwipeBlock[]                @relation("SwipeBlocker")
+  swipeBlocksGot             SwipeBlock[]                @relation("SwipeBlocked")
+  swipeTakedownsReviewed     SwipeTakedown[]
 
   @@map("users")
 }
@@ -1429,4 +1442,238 @@ model Appointment {
   @@index([ownerId, status, startsAt])
   @@index([pageId, startsAt])
   @@map("appointments")
+}
+
+// ---- Swipe (architecture 4.10) -----------------------------------------------------------------
+
+enum SwipeGender {
+  WOMAN
+  MAN
+  NONBINARY
+}
+
+/// The verification photo of someone who wants to upload: themselves holding a paper with their
+/// nickname and the date. The team approves it before any of their photos can be sent.
+enum SwipeVerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SwipePhotoStatus {
+  /// Waiting for the team: nobody else sees it.
+  PENDING
+  LIVE
+  REJECTED
+  /// Taken down after a report or a removal request, or by the team.
+  HIDDEN
+}
+
+enum SwipeReportReason {
+  MINOR
+  /// Shared without the consent of the person in it.
+  NON_CONSENSUAL
+  /// Someone else's photo.
+  STOLEN
+  ILLEGAL
+  HARASSMENT
+  SPAM
+  OTHER
+}
+
+enum SwipeReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+enum SwipeTakedownStatus {
+  OPEN
+  /// The photo was removed.
+  REMOVED
+  /// Nothing to remove (not found, or not the person's image).
+  CLOSED
+}
+
+/// A person in Swipe: 18+ declared (the date of birth is checked, not stored), rules accepted,
+/// public profile, and their verification as an uploader.
+model SwipeProfile {
+  userId             String                  @id @map("user_id") @db.Uuid
+  adultConfirmedAt   DateTime                @map("adult_confirmed_at") @db.Timestamptz(3)
+  termsVersion       String                  @map("terms_version")
+  termsAcceptedAt    DateTime                @map("terms_accepted_at") @db.Timestamptz(3)
+  nickname           String?
+  gender             SwipeGender?
+  /// Whose photos they want to see; empty: everyone.
+  seeking            SwipeGender[]           @default([])
+  /// Up to 5 from the fixed list in swipe.schemas.ts.
+  interests          String[]                @default([])
+  verificationStatus SwipeVerificationStatus @default(NONE) @map("verification_status")
+  /// File of the verification photo (private storage), while there is one.
+  verificationKey    String?                 @map("verification_key")
+  verificationNote   String?                 @map("verification_note")
+  verificationSentAt DateTime?               @map("verification_sent_at") @db.Timestamptz(3)
+  verifiedAt         DateTime?               @map("verified_at") @db.Timestamptz(3)
+  suspendedAt        DateTime?               @map("suspended_at") @db.Timestamptz(3)
+  /// End of a timed suspension; null with suspendedAt: until the team lifts it.
+  suspendedUntil     DateTime?               @map("suspended_until") @db.Timestamptz(3)
+  suspensionReason   String?                 @map("suspension_reason")
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([verificationStatus, verificationSentAt])
+  @@map("swipe_profiles")
+}
+
+/// A photo someone uploaded. Re-encoded on upload (no metadata) and kept in private storage.
+model SwipePhoto {
+  id           String           @id @default(uuid()) @db.Uuid
+  /// Short public reference shown on the card, for reports and removal requests.
+  ref          String           @unique @db.VarChar(12)
+  ownerId      String           @map("owner_id") @db.Uuid
+  storageKey   String           @unique @map("storage_key")
+  width        Int
+  height       Int
+  /// Perceptual hash (dHash, 16 hex digits): re-uploads of a removed image are refused.
+  hash         String           @db.VarChar(16)
+  status       SwipePhotoStatus @default(PENDING)
+  rejectReason String?          @map("reject_reason")
+  likes        Int              @default(0)
+  reviewedById String?          @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?        @map("reviewed_at") @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  owner      User            @relation("SwipePhotoOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  reviewedBy User?           @relation("SwipePhotoReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  votes      SwipeVote[]
+  reports    SwipeReport[]
+  takedowns  SwipeTakedown[]
+
+  @@index([status, createdAt])
+  @@index([ownerId, createdAt])
+  @@map("swipe_photos")
+}
+
+/// A like or a skip. `ownerId` is the photo's owner, kept here to find matches quickly.
+model SwipeVote {
+  voterId   String   @map("voter_id") @db.Uuid
+  photoId   String   @map("photo_id") @db.Uuid
+  ownerId   String   @map("owner_id") @db.Uuid
+  like      Boolean
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  voter User       @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  photo SwipePhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@id([voterId, photoId])
+  @@index([voterId, ownerId, like])
+  @@map("swipe_votes")
+}
+
+/// Two people who liked a photo of each other. `userAId` < `userBId`.
+model SwipeMatch {
+  id            String    @id @default(uuid()) @db.Uuid
+  userAId       String    @map("user_a_id") @db.Uuid
+  userBId       String    @map("user_b_id") @db.Uuid
+  lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz(3)
+  readAAt       DateTime? @map("read_a_at") @db.Timestamptz(3)
+  readBAt       DateTime? @map("read_b_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  userA    User           @relation("SwipeMatchA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User           @relation("SwipeMatchB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages SwipeMessage[]
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+  @@map("swipe_matches")
+}
+
+/// A text message between two matches (text only: no images, nothing to moderate before).
+model SwipeMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  matchId   String   @map("match_id") @db.Uuid
+  senderId  String   @map("sender_id") @db.Uuid
+  text      String   @db.VarChar(1000)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  match  SwipeMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender User       @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, createdAt])
+  @@map("swipe_messages")
+}
+
+model SwipeReport {
+  id           String            @id @default(uuid()) @db.Uuid
+  reporterId   String            @map("reporter_id") @db.Uuid
+  reportedId   String            @map("reported_id") @db.Uuid
+  photoId      String?           @map("photo_id") @db.Uuid
+  reason       SwipeReportReason
+  details      String?           @db.VarChar(1000)
+  /// From a match's chat: its last messages, [{ from: 'reporter' | 'reported', text, at }].
+  transcript   Json              @default("[]")
+  status       SwipeReportStatus @default(OPEN)
+  reviewedById String?           @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?         @map("reviewed_at") @db.Timestamptz(3)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reporter   User        @relation("SwipeReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported   User        @relation("SwipeReported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reviewedBy User?       @relation("SwipeReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  photo      SwipePhoto? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reportedId])
+  @@map("swipe_reports")
+}
+
+/// Either direction: they never see each other's photos again.
+model SwipeBlock {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  blocker User @relation("SwipeBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("SwipeBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("swipe_blocks")
+}
+
+/// A removal request from anyone, with or without an account (EU Digital Services Act).
+model SwipeTakedown {
+  id           String              @id @default(uuid()) @db.Uuid
+  email        String              @db.VarChar(254)
+  /// What they gave: the photo's reference, or a description.
+  photoRef     String?             @map("photo_ref") @db.VarChar(40)
+  photoId      String?             @map("photo_id") @db.Uuid
+  reason       SwipeReportReason
+  details      String              @db.VarChar(2000)
+  /// Language of the emails sent to them.
+  locale       Locale              @default(ES)
+  status       SwipeTakedownStatus @default(OPEN)
+  response     String?             @db.VarChar(2000)
+  reviewedById String?             @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?           @map("reviewed_at") @db.Timestamptz(3)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  photo      SwipePhoto? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+  reviewedBy User?       @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("swipe_takedowns")
+}
+
+/// Perceptual hashes of removed images: an upload that looks the same is refused.
+model SwipeBlockedHash {
+  hash      String            @id @db.VarChar(16)
+  reason    SwipeReportReason
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("swipe_blocked_hashes")
 }

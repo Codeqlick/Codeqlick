@@ -106,6 +106,8 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
     volumes:
       - uploads-data:/app/uploads
+      # Swipe's photos: private, served only through the API (architecture 4.10).
+      - swipe-data:/app/swipe-uploads
     ports:
       - "127.0.0.1:${API_PORT:-4010}:4000"
 
@@ -229,4 +231,6 @@ volumes:
   db-data:
   # Images uploaded from the admin panel.
   uploads-data:
+  # Swipe's photos (not in the public uploads, not in the backups).
+  swipe-data:
   umami-db-data:

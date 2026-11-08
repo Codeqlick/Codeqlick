@@ -16,6 +16,7 @@ export const ACTIVITY_TARGETS = [
   'settings',
   'booking',
   'videochat',
+  'swipe',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -128,6 +129,17 @@ export const ACTIVITY_ACTIONS = [
   'videochat.appeal_rejected',
   'videochat.age_verified',
   'videochat.age_unverified',
+  'swipe.verification_approved',
+  'swipe.verification_rejected',
+  'swipe.photo_approved',
+  'swipe.photo_rejected',
+  'swipe.photo_hidden',
+  'swipe.report_dismissed',
+  'swipe.report_actioned',
+  'swipe.takedown_removed',
+  'swipe.takedown_closed',
+  'swipe.suspended',
+  'swipe.unsuspended',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
