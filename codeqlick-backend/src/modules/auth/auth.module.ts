@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { AccountController } from './account.controller.js';
+import { AccountRepository } from './account.repository.js';
+import { AccountService } from './account.service.js';
 import { AuthController } from './auth.controller.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService } from './auth.service.js';
@@ -18,8 +21,15 @@ import { TokenCleanupService } from './token-cleanup.service.js';
       }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, AuthRepository, PasswordService, TokenCleanupService],
+  controllers: [AuthController, AccountController],
+  providers: [
+    AuthService,
+    AuthRepository,
+    AccountService,
+    AccountRepository,
+    PasswordService,
+    TokenCleanupService,
+  ],
   // JwtModule is re-exported for the global JwtAuthGuard registered in AppModule; AuthService
   // for the welcome emails sent from the users module.
   exports: [JwtModule, PasswordService, AuthService],

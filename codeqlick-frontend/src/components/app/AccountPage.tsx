@@ -5,6 +5,7 @@ import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TwoFactorSetup } from '@/components/app/TwoFactorSetup';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import type { AppLocale } from '@/i18n/routing';
 import { getPreferences, getTwoFactorStatus } from '@/lib/api/auth';
 import {
@@ -14,6 +15,11 @@ import {
   enableTwoFactorAction,
   startTwoFactorAction,
 } from '@/lib/auth/actions';
+import {
+  changeEmailAction,
+  deleteAccountAction,
+  updateNameAction,
+} from '@/lib/auth/account-actions';
 import { requireUser } from '@/lib/auth/session';
 
 /** "Your account" page, shared by the client portal and the admin panel. */
@@ -27,6 +33,45 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
   return (
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('signedInAs', { email: user.email })} />
+
+      <section className={styles.panel}>
+        <h2 className={styles.panelTitle}>{t('profile')}</h2>
+        <ActionForm action={updateNameAction.bind(null, locale)} className={styles.form}>
+          <FormInput
+            name="name"
+            label={t('name')}
+            defaultValue={user.name}
+            autoComplete="name"
+            required
+          />
+          <div className={styles.actions}>
+            <SubmitButton pendingLabel={tc('saving')}>{tc('save')}</SubmitButton>
+          </div>
+        </ActionForm>
+        <ActionForm action={changeEmailAction.bind(null, locale)} className={styles.form}>
+          <h3>{t('changeEmail')}</h3>
+          <p className={styles.muted}>{t('changeEmailBody', { email: user.email })}</p>
+          <FormInput
+            name="email"
+            type="email"
+            label={t('newEmail')}
+            autoComplete="email"
+            required
+          />
+          <FormInput
+            name="password"
+            type="password"
+            label={t('password')}
+            autoComplete="current-password"
+            required
+          />
+          <div className={styles.actions}>
+            <SubmitButton variant="outline" pendingLabel={t('sending')}>
+              {t('changeEmailSubmit')}
+            </SubmitButton>
+          </div>
+        </ActionForm>
+      </section>
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('changePassword')}</h2>
@@ -147,6 +192,44 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
       ) : null}
 
       <ActiveSessions locale={locale} />
+
+      <section className={styles.panel}>
+        <h2 className={styles.panelTitle}>{t('yourData')}</h2>
+        <p className={styles.muted}>{t('yourDataBody')}</p>
+        <div className={styles.actions}>
+          <a
+            className={buttonClassName({ variant: 'outline' })}
+            href={`/${locale}/${user.role === 'ADMIN' ? 'admin' : 'portal'}/account/export`}
+            download
+          >
+            {t('download')}
+          </a>
+        </div>
+      </section>
+
+      <section className={styles.panel}>
+        <h2 className={styles.panelTitle}>{t('deleteTitle')}</h2>
+        {user.role === 'ADMIN' ? (
+          <p className={styles.muted}>{t('deleteAdmin')}</p>
+        ) : (
+          <ActionForm action={deleteAccountAction.bind(null, locale)} className={styles.form}>
+            <p className={styles.muted}>{t('deleteBody')}</p>
+            <FormInput
+              name="password"
+              type="password"
+              label={t('password')}
+              autoComplete="current-password"
+              required
+            />
+            <FormCheckbox name="confirm" label={t('deleteConfirm')} />
+            <div className={styles.actions}>
+              <SubmitButton variant="danger" pendingLabel={t('deleting')}>
+                {t('deleteSubmit')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        )}
+      </section>
     </div>
   );
 }
