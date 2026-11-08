@@ -34,7 +34,7 @@ export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 export const DECK_SIZE = 10;
 /** Messages of a match's chat kept with a report about it. */
 export const TRANSCRIPT_LINES = 30;
-/** «Me encanta» votes per account and day. */
+/** "Love" votes per account and day. */
 export const SUPER_LIKES_PER_DAY = 3;
 /** A vote can be undone this long after it was made (and only when it made no match). */
 export const UNDO_WINDOW_MS = 10 * 60 * 1000;
@@ -159,7 +159,7 @@ export type UploadFields = z.infer<typeof uploadFieldsSchema>;
 export const voteSchema = z.object({
   photoId: z.uuid(),
   like: z.boolean(),
-  /** A «me encanta» (a like the owner is told about). */
+  /** A "love" (a like the owner is told about). */
   superLike: z.boolean().default(false),
 });
 export type VoteInput = z.infer<typeof voteSchema>;

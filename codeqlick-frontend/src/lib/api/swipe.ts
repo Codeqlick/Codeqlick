@@ -140,7 +140,7 @@ export type SwipeCard = {
   gender: SwipeGender | null;
   interests: Interest[];
   bio: string | null;
-  /** They gave one of my photos a «me encanta». */
+  /** They gave one of my photos a "love". */
   lovesYou: boolean;
 };
 

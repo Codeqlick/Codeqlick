@@ -21,7 +21,7 @@ type SwipeDeckProps = {
     details?: string;
   }) => Promise<{ ok: boolean }>;
   canUpload: boolean;
-  /** «Me encanta» left today. */
+  /** "Love" left today. */
   superLikesLeft: number;
   /** Photos start blurred until tapped (profile setting). */
   blur: boolean;
@@ -29,7 +29,7 @@ type SwipeDeckProps = {
 
 /**
  * The stack of photos: drag, the buttons or the arrow keys like (→) or skip (←); ↑ gives a
- * «me encanta» and the undo button brings the last card back (architecture 4.10).
+ * "love" and the undo button brings the last card back (architecture 4.10).
  */
 export function SwipeDeck({
   locale,

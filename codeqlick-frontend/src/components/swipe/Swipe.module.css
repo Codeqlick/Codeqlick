@@ -568,7 +568,7 @@
   border-radius: var(--radius-pill);
 }
 
-/* ---- Round 2: «me encanta», undo, blur, bio, age range ---- */
+/* ---- Round 2: "love", undo, blur, bio, age range ---- */
 
 .blurred {
   filter: blur(28px);

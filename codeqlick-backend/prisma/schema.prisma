@@ -1525,7 +1525,7 @@ model SwipeProfile {
   ageMax             Int                     @default(99) @map("age_max")
   /// Only people from their own country.
   sameCountry        Boolean                 @default(false) @map("same_country")
-  /// Emails about matches, messages, «me encanta» and the team's decisions.
+  /// Emails about matches, messages, "love" and the team's decisions.
   emailAlerts        Boolean                 @default(true) @map("email_alerts")
   /// Photos shown blurred until tapped.
   blurPhotos         Boolean                 @default(false) @map("blur_photos")
@@ -1585,7 +1585,7 @@ model SwipeVote {
   photoId   String   @map("photo_id") @db.Uuid
   ownerId   String   @map("owner_id") @db.Uuid
   like      Boolean
-  /// A «me encanta»: the owner is told and the voter's photos come first in their deck.
+  /// A "love": the owner is told and the voter's photos come first in their deck.
   superLike Boolean  @default(false) @map("super_like")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -1696,7 +1696,7 @@ model SwipeTakedown {
   @@map("swipe_takedowns")
 }
 
-/// A browser that gets Swipe's Web Push notifications (matches, messages, «me encanta»).
+/// A browser that gets Swipe's Web Push notifications (matches, messages, "love").
 model SwipePushSubscription {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
