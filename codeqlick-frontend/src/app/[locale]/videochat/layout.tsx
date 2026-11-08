@@ -9,6 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { logoutAction } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
+import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
 import styles from './videochat.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
@@ -16,11 +17,38 @@ type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Videochat' });
+  const title = t('metaTitle');
+  const description = t('metaDescription');
+  const image = {
+    url: webappPath('videochat', locale, '/og'),
+    width: 1200,
+    height: 630,
+    alt: title,
+  };
   return {
-    title: { absolute: `${t('metaTitle')} — Codeqlick` },
-    description: t('metaDescription'),
-    // Adult content: kept out of search results.
-    robots: { index: false, follow: false },
+    // Relative URLs (canonical, images) resolve on the video chat's own host.
+    metadataBase: new URL(webappOrigin('videochat')),
+    title: { absolute: title, template: `%s · ${t('metaSuffix')}` },
+    description,
+    alternates: webappAlternates('videochat', locale),
+    openGraph: {
+      type: 'website',
+      siteName: t('metaSuffix'),
+      title,
+      description,
+      url: webappPath('videochat', locale),
+      locale: locale === 'es' ? 'es_ES' : 'en_US',
+      images: [image],
+    },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+    // Public pages are indexed; the account-only ones (room, contacts, settings) opt out.
+    robots: { index: true, follow: true, 'max-image-preview': 'large' },
+    other: {
+      // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
+      rating: 'adult',
+      // `other` replaces the root layout's: ExoClick's ownership check stays (architecture 4.7).
+      '6a97888e-site-verification': '5e55aa28a6c9210038f92e69880e6449',
+    },
     // Installed on a phone it opens as its own app (manifest: app/manifest.ts on this host).
     appleWebApp: { capable: true, title: 'Videochat', statusBarStyle: 'default' },
   };

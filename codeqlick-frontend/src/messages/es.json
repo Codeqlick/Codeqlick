@@ -2928,8 +2928,8 @@
     "partMissing": "Falta completar"
   },
   "Videochat": {
-    "metaTitle": "Videochat aleatorio para adultos",
-    "metaDescription": "Habla por vídeo con una persona al azar. Solo mayores de 18 años, con cuenta de Codeqlick.",
+    "metaTitle": "Videochat aleatorio gratis para adultos (+18) | Codeqlick",
+    "metaDescription": "Videochat con desconocidos al azar, gratis y sin descargar nada. Cámara a cámara desde el móvil o el ordenador, con filtros, contactos y cuentas verificadas.",
     "brand": "videochat",
     "homeLabel": "Inicio del videochat",
     "adultBadge": "+18",
@@ -2938,8 +2938,8 @@
     "signOut": "Cerrar sesión",
     "landing": {
       "eyebrow": "Solo para mayores de 18 años",
-      "title": "Conoce a alguien nuevo, cara a cara.",
-      "lead": "Un clic y hablas por vídeo con una persona al azar. Si no hay química, pasas a la siguiente.",
+      "title": "Videochat aleatorio: conoce a alguien nuevo, cara a cara.",
+      "lead": "Un clic y hablas por cámara con una persona al azar, gratis y sin descargar nada. Si no hay química, pasas a la siguiente.",
       "warningTitle": "Contenido para adultos",
       "warning": "En este videochat puede aparecer contenido sexual explícito entre adultos que lo consienten. Si eres menor de 18 años o no quieres verlo, sal ahora.",
       "enter": "Entrar al videochat",
@@ -2959,7 +2959,69 @@
       "safety2": "Bloquea a quien quieras y no volveréis a coincidir.",
       "safety3": "Reporta lo que incumpla las normas: el equipo lo revisa.",
       "safety4": "Nadie ve tu nombre ni tu email.",
-      "online": "{count, plural, =0 {Nadie conectado ahora mismo} one {# persona conectada ahora} other {# personas conectadas ahora}}"
+      "online": "{count, plural, =0 {Nadie conectado ahora mismo} one {# persona conectada ahora} other {# personas conectadas ahora}}",
+      "featuresTitle": "Por qué este videochat",
+      "features": [
+        {
+          "title": "Gratis de verdad",
+          "body": "Emparejamiento, filtros, contactos y llamadas: todo gratis, sin monedas ni suscripciones."
+        },
+        {
+          "title": "Sin descargar nada",
+          "body": "Funciona en el navegador del móvil y del ordenador. Si quieres, lo instalas como app."
+        },
+        {
+          "title": "Pensado para el móvil",
+          "body": "Cámara delantera o trasera, pantalla completa y botones grandes para pasar a la siguiente persona."
+        },
+        {
+          "title": "Filtros e intereses",
+          "body": "Elige género, país e idioma, y marca tus intereses para coincidir con gente afín."
+        },
+        {
+          "title": "Contactos",
+          "body": "Si los dos pulsáis «Me gusta», os guardáis como contactos y podéis llamaros cuando estéis conectados."
+        },
+        {
+          "title": "Cuentas verificadas",
+          "body": "Cada persona entra con su cuenta y su email confirmado: menos bots, menos trolls y moderación real."
+        }
+      ],
+      "faqTitle": "Preguntas frecuentes",
+      "faq": [
+        {
+          "q": "¿El videochat es gratis?",
+          "a": "Sí. Emparejarte, usar los filtros, guardar contactos y llamarlos es gratis. Se mantiene con publicidad discreta que nunca aparece durante una llamada."
+        },
+        {
+          "q": "¿Tengo que descargar algo?",
+          "a": "No. Funciona en el navegador del móvil o del ordenador (Chrome, Safari, Firefox o Edge). Solo necesitas cámara y permitir su uso. Si quieres, puedes instalarlo como app en el móvil."
+        },
+        {
+          "q": "¿Por qué hace falta una cuenta?",
+          "a": "Para que cada persona responda de lo que hace: los bloqueos y los reportes apuntan a una cuenta real, y quien incumple las normas se queda fuera. Crearla es gratis y solo pide confirmar tu email."
+        },
+        {
+          "q": "¿Quién ve mi nombre o mi email?",
+          "a": "Nadie. La otra persona solo ve tu vídeo y, si los añades, tu apodo, tu país, tu idioma y tus intereses."
+        },
+        {
+          "q": "¿Se graban las videollamadas?",
+          "a": "No. El vídeo va de tu navegador al de la otra persona y no lo grabamos ni lo guardamos. Grabar a alguien sin su permiso está prohibido por las normas."
+        },
+        {
+          "q": "¿Puedo elegir con quién hablar?",
+          "a": "Puedes filtrar por género, país e idioma y marcar hasta cinco intereses. Si nadie encaja, puedes buscar sin tus filtros esa vez para no esperar demasiado."
+        },
+        {
+          "q": "¿Qué hago si alguien incumple las normas?",
+          "a": "Pulsa «Reportar»: la llamada se corta, no volvéis a coincidir y el equipo lo revisa. Reportar a alguien que parece menor de 18 años suspende su cuenta al momento."
+        },
+        {
+          "q": "¿Es una alternativa a Omegle o Chatroulette?",
+          "a": "Sí. Si buscas un chat con desconocidos por cámara como lo era Omegle, aquí hablas por vídeo con personas al azar, pero con cuentas verificadas, filtros, contactos y moderación."
+        }
+      ]
     },
     "onboarding": {
       "title": "Antes de empezar",
@@ -3127,7 +3189,9 @@
           "title": "7. Contacto",
           "body": "Para denunciar contenido, recurrir una suspensión o cualquier duda: hello@codeqlick.com."
         }
-      ]
+      ],
+      "metaTitle": "Normas del videochat para adultos",
+      "metaDescription": "Las normas del videochat aleatorio de Codeqlick: solo mayores de 18 años, consentimiento siempre, nada de grabar sin permiso, reportes y suspensiones."
     },
     "settingsLink": "Tu perfil",
     "genders": {
@@ -3233,7 +3297,10 @@
       "anonymous": "Sin apodo",
       "interests": "Intereses",
       "refresh": "Actualizar"
-    }
+    },
+    "metaSuffix": "Codeqlick Videochat",
+    "ogEyebrow": "Videochat · solo +18",
+    "ogTitle": "Videochat aleatorio gratis: conoce a alguien nuevo, cara a cara"
   },
   "AdminVideochat": {
     "title": "Videochat",
