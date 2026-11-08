@@ -134,6 +134,8 @@ model User {
   videochatAppeals           VideochatAppeal[]           @relation("VideochatAppellant")
   videochatAppealsDone       VideochatAppeal[]           @relation("VideochatAppealReviewer")
   meetingRooms               MeetingRoom[]
+  bookingPages               BookingPage[]
+  appointments               Appointment[]
   videochatPushSubscriptions VideochatPushSubscription[]
 
   @@map("users")
@@ -1360,8 +1362,71 @@ model MeetingRoom {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookingPages BookingPage[]
 
   @@index([ownerId, createdAt])
   @@map("meeting_rooms")
+}
+
+/// Citas (architecture 4.9): a person's public booking page at citas.codeqlick.com/<slug>.
+model BookingPage {
+  id              String   @id @default(uuid()) @db.Uuid
+  ownerId         String   @map("owner_id") @db.Uuid
+  /// The page's link; 3–40 lowercase letters, digits and dashes.
+  slug            String   @unique @db.VarChar(40)
+  title           String   @db.VarChar(80)
+  description     String   @default("") @db.VarChar(500)
+  durationMinutes Int      @map("duration_minutes")
+  /// Where it happens (an address, "by phone"…); empty when only the video call.
+  location        String   @default("") @db.VarChar(200)
+  /// The Meetings room whose link goes in every appointment, when the page offers video.
+  meetingRoomId   String?  @map("meeting_room_id") @db.Uuid
+  askPhone        Boolean  @default(false) @map("ask_phone")
+  /// IANA time zone of the free hours (e.g. Europe/Madrid).
+  timeZone        String   @map("time_zone") @db.VarChar(64)
+  /// Free hours per weekday: { mon: [{ start: 'HH:MM', end: 'HH:MM' }], … }.
+  weekly          Json
+  minNoticeHours  Int      @map("min_notice_hours")
+  horizonDays     Int      @map("horizon_days")
+  /// Paused pages show their link but take no bookings.
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  meetingRoom  MeetingRoom?  @relation(fields: [meetingRoomId], references: [id], onDelete: SetNull)
+  appointments Appointment[]
+
+  @@index([ownerId, createdAt])
+  @@map("booking_pages")
+}
+
+/// Citas: a time someone booked on a booking page.
+model Appointment {
+  id              String        @id @default(uuid()) @db.Uuid
+  pageId          String        @map("page_id") @db.Uuid
+  /// The page's owner (kept here so their free times leave out all their appointments).
+  ownerId         String        @map("owner_id") @db.Uuid
+  name            String        @db.VarChar(120)
+  email           String        @db.VarChar(254)
+  phone           String?       @db.VarChar(40)
+  note            String?       @db.VarChar(500)
+  locale          Locale        @default(ES)
+  startsAt        DateTime      @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime      @map("ends_at") @db.Timestamptz(3)
+  status          BookingStatus @default(CONFIRMED)
+  /// SHA-256 of the token in the cancel link sent to whoever booked.
+  cancelTokenHash String        @unique @map("cancel_token_hash")
+  /// Calendar invitation revision (bumped when it is cancelled).
+  sequence        Int           @default(0)
+  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  page  BookingPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  owner User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, status, startsAt])
+  @@index([pageId, startsAt])
+  @@map("appointments")
 }

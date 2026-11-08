@@ -201,9 +201,13 @@ export class AppConfigService {
     return this.get('MEETINGS_ORIGINS');
   }
 
-  /** A web app's public URL (architecture 6.3): the first of its allowed origins. */
+  /**
+   * A web app's public URL (architecture 6.3): the first of its WebSocket's allowed origins, or the
+   * site's address with the app's subdomain (`https://citas.codeqlick.com`).
+   */
   webappUrl(app: Webapp): string {
-    const origins = app === 'meetings' ? this.meetingsOrigins : this.videochatOrigins;
+    const origins =
+      app === 'meetings' ? this.meetingsOrigins : app === 'videochat' ? this.videochatOrigins : [];
     return origins[0] ?? `${this.siteUrl}`.replace('://', `://${app}.`);
   }
 
