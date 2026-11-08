@@ -1,6 +1,14 @@
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { hashDistance, isBlockedImage, MAX_SIDE, processImage } from './swipe-image.js';
+import {
+  dHash,
+  hashDistance,
+  isBlockedImage,
+  MAX_SIDE,
+  processImage,
+  watermark,
+  watermarkText,
+} from './swipe-image.js';
 import { normalizeRef } from './swipe.schemas.js';
 import { isSuspended, newRef } from './swipe.service.js';
 
@@ -59,5 +67,21 @@ describe('helpers', () => {
     expect(
       isSuspended({ suspendedAt: now, suspendedUntil: new Date('2026-11-08T11:00:00Z') }, now),
     ).toBe(false);
+  });
+});
+
+describe('watermark', () => {
+  it('keeps the size and still matches the clean image', async () => {
+    const clean = await sharp({
+      create: { width: 400, height: 300, channels: 3, background: { r: 200, g: 120, b: 160 } },
+    })
+      .webp()
+      .toBuffer();
+    const marked = await watermark(clean, watermarkText('ana', 'K7QM2XPA'));
+    const info = await sharp(marked).metadata();
+    expect([info.width, info.height, info.format]).toEqual([400, 300, 'webp']);
+    expect(marked.equals(clean)).toBe(false);
+    expect(hashDistance(await dHash(marked), await dHash(clean))).toBeLessThanOrEqual(6);
+    expect(watermarkText(null, 'K7QM2XPA')).toBe('K7QM2XPA · swipe.codeqlick.com');
   });
 });

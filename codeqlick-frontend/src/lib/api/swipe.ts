@@ -29,11 +29,82 @@ export type SwipeSuspension = (typeof SWIPE_SUSPENSIONS)[number];
 export type PhotoStatus = 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN';
 export type VerificationStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
+/** Countries a profile can name (the API's COUNTRIES). */
+export const SWIPE_COUNTRIES = [
+  'ES',
+  'MX',
+  'AR',
+  'CO',
+  'CL',
+  'PE',
+  'VE',
+  'EC',
+  'GT',
+  'CU',
+  'BO',
+  'DO',
+  'HN',
+  'PY',
+  'SV',
+  'NI',
+  'CR',
+  'PA',
+  'UY',
+  'PR',
+  'US',
+  'CA',
+  'GB',
+  'IE',
+  'FR',
+  'PT',
+  'IT',
+  'DE',
+  'NL',
+  'BE',
+  'CH',
+  'AT',
+  'SE',
+  'NO',
+  'DK',
+  'FI',
+  'PL',
+  'RO',
+  'GR',
+  'AD',
+  'AU',
+] as const;
+export type SwipeCountry = (typeof SWIPE_COUNTRIES)[number];
+export const MIN_AGE_FILTER = 18;
+export const MAX_AGE_FILTER = 99;
+
 export type SwipeProfile = {
   nickname: string | null;
   gender: SwipeGender | null;
   seeking: SwipeGender[];
   interests: Interest[];
+  bio: string | null;
+  birthYear: number | null;
+  country: SwipeCountry | null;
+  ageMin: number;
+  ageMax: number;
+  sameCountry: boolean;
+  emailAlerts: boolean;
+  blurPhotos: boolean;
+};
+
+export type SwipeProfileInput = {
+  nickname: string;
+  gender: SwipeGender | null;
+  seeking: SwipeGender[];
+  interests: Interest[];
+  bio: string | null;
+  birthYear: number | null;
+  country: SwipeCountry | null;
+  ageMin: number;
+  ageMax: number;
+  sameCountry: boolean;
+  emailAlerts: boolean;
+  blurPhotos: boolean;
 };
 
 export type SwipeStatus = {
@@ -46,6 +117,7 @@ export type SwipeStatus = {
   profile: SwipeProfile | null;
   verification: { status: VerificationStatus; note: string | null; hasPhoto: boolean };
   canUpload: boolean;
+  superLikesLeft: number;
 };
 
 export type MyPhoto = {
@@ -67,6 +139,9 @@ export type SwipeCard = {
   nickname: string;
   gender: SwipeGender | null;
   interests: Interest[];
+  bio: string | null;
+  /** They gave one of my photos a «me encanta». */
+  lovesYou: boolean;
 };
 
 export type SwipeMatch = {
@@ -75,6 +150,7 @@ export type SwipeMatch = {
     nickname: string;
     gender: SwipeGender | null;
     interests: Interest[];
+    bio: string | null;
     photoId: string | null;
   };
   lastMessage: { text: string; mine: boolean; at: string } | null;
@@ -183,12 +259,7 @@ export function onboardSwipe(input: {
   return apiFetch<SwipeStatus>('/swipe/me', { method: 'PUT', body: input, auth: 'required' });
 }
 
-export function saveSwipeProfile(input: {
-  nickname: string;
-  gender: SwipeGender | null;
-  seeking: SwipeGender[];
-  interests: Interest[];
-}) {
+export function saveSwipeProfile(input: SwipeProfileInput) {
   return apiFetch<SwipeStatus>('/swipe/profile', { method: 'PUT', body: input, auth: 'required' });
 }
 
@@ -232,10 +303,35 @@ export async function getSwipeDeck(): Promise<SwipeCard[]> {
   return (await apiFetch<{ items: SwipeCard[] }>('/swipe/deck', { auth: 'required' })).items;
 }
 
-export function voteSwipe(photoId: string, like: boolean) {
+export function voteSwipe(photoId: string, like: boolean, superLike = false) {
   return apiFetch<{ match: { id: string; nickname: string } | null }>('/swipe/votes', {
     method: 'POST',
-    body: { photoId, like },
+    body: { photoId, like, superLike },
+    auth: 'required',
+  });
+}
+
+/** Undoes my last vote (recent, without a match) and returns its card. */
+export function undoSwipeVote() {
+  return apiFetch<{ card: SwipeCard }>('/swipe/votes/undo', { method: 'POST', auth: 'required' });
+}
+
+export function getSwipePushKey() {
+  return apiFetch<{ publicKey: string | null }>('/swipe/push', { auth: 'required' });
+}
+
+export function subscribeSwipePush(input: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  locale: string;
+}) {
+  return apiFetch<void>('/swipe/push', { method: 'PUT', body: input, auth: 'required' });
+}
+
+export function unsubscribeSwipePush(endpoint: string) {
+  return apiFetch<void>('/swipe/push', {
+    method: 'DELETE',
+    body: { endpoint },
     auth: 'required',
   });
 }

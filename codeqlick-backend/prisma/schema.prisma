@@ -137,6 +137,7 @@ model User {
   bookingPages               BookingPage[]
   appointments               Appointment[]
   videochatPushSubscriptions VideochatPushSubscription[]
+  swipePushSubscriptions     SwipePushSubscription[]
   swipeProfile               SwipeProfile?
   swipePhotos                SwipePhoto[]                @relation("SwipePhotoOwner")
   swipePhotosReviewed        SwipePhoto[]                @relation("SwipePhotoReviewer")
@@ -1509,6 +1510,21 @@ model SwipeProfile {
   seeking            SwipeGender[]           @default([])
   /// Up to 5 from the fixed list in swipe.schemas.ts.
   interests          String[]                @default([])
+  /// A sentence about them, shown on cards and chats.
+  bio                String?                 @db.VarChar(160)
+  /// Only the year of birth (for the age filter); the full date is never stored.
+  birthYear          Int?                    @map("birth_year")
+  /// ISO 3166-1 alpha-2, optional.
+  country            String?                 @db.VarChar(2)
+  /// Age range of the photos they want to see.
+  ageMin             Int                     @default(18) @map("age_min")
+  ageMax             Int                     @default(99) @map("age_max")
+  /// Only people from their own country.
+  sameCountry        Boolean                 @default(false) @map("same_country")
+  /// Emails about matches, messages, «me encanta» and the team's decisions.
+  emailAlerts        Boolean                 @default(true) @map("email_alerts")
+  /// Photos shown blurred until tapped.
+  blurPhotos         Boolean                 @default(false) @map("blur_photos")
   verificationStatus SwipeVerificationStatus @default(NONE) @map("verification_status")
   /// File of the verification photo (private storage), while there is one.
   verificationKey    String?                 @map("verification_key")
@@ -1542,6 +1558,8 @@ model SwipePhoto {
   status       SwipePhotoStatus @default(PENDING)
   rejectReason String?          @map("reject_reason")
   likes        Int              @default(0)
+  /// The stored file carries the burnt-in watermark (nickname · ref · swipe.codeqlick.com).
+  watermarked  Boolean          @default(false)
   reviewedById String?          @map("reviewed_by_id") @db.Uuid
   reviewedAt   DateTime?        @map("reviewed_at") @db.Timestamptz(3)
   createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -1563,6 +1581,8 @@ model SwipeVote {
   photoId   String   @map("photo_id") @db.Uuid
   ownerId   String   @map("owner_id") @db.Uuid
   like      Boolean
+  /// A «me encanta»: the owner is told and the voter's photos come first in their deck.
+  superLike Boolean  @default(false) @map("super_like")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   voter User       @relation(fields: [voterId], references: [id], onDelete: Cascade)
@@ -1581,6 +1601,9 @@ model SwipeMatch {
   lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz(3)
   readAAt       DateTime? @map("read_a_at") @db.Timestamptz(3)
   readBAt       DateTime? @map("read_b_at") @db.Timestamptz(3)
+  /// When each was last emailed about unread messages (again only after reading).
+  notifiedAAt   DateTime? @map("notified_a_at") @db.Timestamptz(3)
+  notifiedBAt   DateTime? @map("notified_b_at") @db.Timestamptz(3)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   userA    User           @relation("SwipeMatchA", fields: [userAId], references: [id], onDelete: Cascade)
@@ -1667,6 +1690,23 @@ model SwipeTakedown {
 
   @@index([status, createdAt])
   @@map("swipe_takedowns")
+}
+
+/// A browser that gets Swipe's Web Push notifications (matches, messages, «me encanta»).
+model SwipePushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  /// Language of the notification text (en or es).
+  locale    String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("swipe_push_subscriptions")
 }
 
 /// Perceptual hashes of removed images: an upload that looks the same is refused.

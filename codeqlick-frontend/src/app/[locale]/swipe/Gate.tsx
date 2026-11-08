@@ -53,6 +53,14 @@ export async function SwipeGate({ locale, status }: { locale: AppLocale; status:
           <Link href="/swipe/rules" target="_blank" className={vc.inlineLink}>
             {t('onboarding.readRules')}
           </Link>
+          {' · '}
+          <Link href="/swipe/terms-of-use" target="_blank" className={vc.inlineLink}>
+            {t('legal.terms')}
+          </Link>
+          {' · '}
+          <Link href="/swipe/privacy-policy" target="_blank" className={vc.inlineLink}>
+            {t('legal.privacy')}
+          </Link>
         </p>
         <SubmitButton block pendingLabel={t('onboarding.submitting')}>
           {t('onboarding.submit')}

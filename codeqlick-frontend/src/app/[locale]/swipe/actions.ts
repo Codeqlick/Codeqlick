@@ -14,15 +14,22 @@ import {
   reportSwipe,
   requestSwipeTakedown,
   saveSwipeProfile,
+  MAX_AGE_FILTER,
+  MIN_AGE_FILTER,
   sendSwipeMessage,
+  subscribeSwipePush,
+  SWIPE_COUNTRIES,
   SWIPE_GENDERS,
   SWIPE_REPORT_REASONS,
   TAKEDOWN_REASONS,
+  undoSwipeVote,
   unmatchSwipe,
+  unsubscribeSwipePush,
   uploadSwipePhoto,
   uploadSwipeVerification,
   voteSwipe,
   type SwipeCard,
+  type SwipeCountry,
   type SwipeGender,
   type SwipeMessage,
   type SwipeReportReason,
@@ -38,6 +45,13 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 function gender(value: FormDataEntryValue | null): SwipeGender | null {
   return SWIPE_GENDERS.find((g) => g === value) ?? null;
+}
+
+/** A whole number in [min, max] from a form field, or `fallback`. */
+function wholeNumber(value: FormDataEntryValue | null, min: number, max: number, fallback: number) {
+  const number = Number(String(value ?? '').trim());
+  if (!Number.isInteger(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
 }
 
 function refresh(locale: AppLocale, page: string): void {
@@ -88,14 +102,48 @@ export async function profileAction(_previous: FormState, formData: FormData): P
         ),
     ),
   ];
+  const bio = String(formData.get('bio') ?? '')
+    .trim()
+    .slice(0, 160);
+  const yearText = String(formData.get('birthYear') ?? '').trim();
+  const country = SWIPE_COUNTRIES.find((value) => value === formData.get('country')) ?? null;
+  const ageMin = wholeNumber(
+    formData.get('ageMin'),
+    MIN_AGE_FILTER,
+    MAX_AGE_FILTER,
+    MIN_AGE_FILTER,
+  );
+  const ageMax = wholeNumber(
+    formData.get('ageMax'),
+    MIN_AGE_FILTER,
+    MAX_AGE_FILTER,
+    MAX_AGE_FILTER,
+  );
+  const ticked = (name: string) => formData.get(name) === 'on';
   const values: Record<string, string> = {
     nickname,
     gender: String(formData.get('gender') ?? ''),
     seeking: seeking.join('\n'),
     interests: interests.join('\n'),
+    bio,
+    birthYear: yearText,
+    country: country ?? '',
+    ageMin: String(ageMin),
+    ageMax: String(ageMax),
   };
+  for (const name of ['sameCountry', 'emailAlerts', 'blurPhotos']) {
+    if (ticked(name)) values[name] = 'on';
+  }
   if (!NICKNAME.test(nickname)) {
     return { status: 'error', fieldErrors: { nickname: t('nicknameInvalid') }, values };
+  }
+  const thisYear = new Date().getUTCFullYear();
+  const birthYear = yearText ? Number(yearText) : null;
+  if (
+    birthYear !== null &&
+    (!Number.isInteger(birthYear) || birthYear < 1900 || thisYear - birthYear < 18)
+  ) {
+    return { status: 'error', fieldErrors: { birthYear: t('birthYearInvalid') }, values };
   }
   if (interests.length > MAX_INTERESTS) {
     return {
@@ -110,6 +158,14 @@ export async function profileAction(_previous: FormState, formData: FormData): P
       gender: gender(formData.get('gender')),
       seeking,
       interests,
+      bio: bio || null,
+      birthYear,
+      country: country as SwipeCountry | null,
+      ageMin: Math.min(ageMin, ageMax),
+      ageMax: Math.max(ageMin, ageMax),
+      sameCountry: ticked('sameCountry'),
+      emailAlerts: ticked('emailAlerts'),
+      blurPhotos: ticked('blurPhotos'),
     });
   } catch {
     return { status: 'error', message: t('error'), values };
@@ -190,13 +246,55 @@ export async function deckAction(): Promise<SwipeCard[]> {
 }
 
 export type VoteResult =
-  { ok: true; match: { id: string; nickname: string } | null } | { ok: false };
+  | { ok: true; match: { id: string; nickname: string } | null }
+  | { ok: false; noLovesLeft?: boolean };
 
-export async function voteAction(photoId: string, like: boolean): Promise<VoteResult> {
+export async function voteAction(
+  photoId: string,
+  like: boolean,
+  superLike = false,
+): Promise<VoteResult> {
   if (!UUID.test(photoId)) return { ok: false };
   try {
-    const { match } = await voteSwipe(photoId, like === true);
+    const { match } = await voteSwipe(photoId, like === true, like === true && superLike === true);
     return { ok: true, match };
+  } catch (error) {
+    return { ok: false, noLovesLeft: isApiError(error) && error.status === 429 };
+  }
+}
+
+/** Undoes the last swipe; its card comes back to the top of the deck. */
+export async function undoAction(): Promise<{ ok: true; card: SwipeCard } | { ok: false }> {
+  try {
+    return { ok: true, card: (await undoSwipeVote()).card };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Stores this browser's push subscription (PUT /swipe/push). */
+export async function swipePushSubscribeAction(input: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  locale: 'en' | 'es';
+}): Promise<{ ok: boolean }> {
+  try {
+    await subscribeSwipePush({
+      endpoint: String(input.endpoint),
+      keys: { p256dh: String(input.keys?.p256dh), auth: String(input.keys?.auth) },
+      locale: input.locale === 'es' ? 'es' : 'en',
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Forgets this browser's push subscription (DELETE /swipe/push). */
+export async function swipePushUnsubscribeAction(endpoint: string): Promise<{ ok: boolean }> {
+  try {
+    await unsubscribeSwipePush(String(endpoint));
+    return { ok: true };
   } catch {
     return { ok: false };
   }
@@ -244,13 +342,13 @@ export async function messagesAction(
 export async function sendMessageAction(
   matchId: string,
   text: string,
-): Promise<{ ok: true; message: SwipeMessage } | { ok: false }> {
+): Promise<{ ok: true; message: SwipeMessage } | { ok: false; contactBlocked?: boolean }> {
   const clean = String(text ?? '').trim();
   if (!UUID.test(matchId) || !clean || clean.length > 1000) return { ok: false };
   try {
     return { ok: true, message: await sendSwipeMessage(matchId, clean) };
-  } catch {
-    return { ok: false };
+  } catch (error) {
+    return { ok: false, contactBlocked: isApiError(error) && error.status === 400 };
   }
 }
 

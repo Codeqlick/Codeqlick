@@ -28,6 +28,8 @@ import {
   messagesQuerySchema,
   onboardingSchema,
   profileSchema,
+  pushSubscriptionSchema,
+  pushUnsubscribeSchema,
   reportSchema,
   takedownSchema,
   uploadFieldsSchema,
@@ -35,12 +37,15 @@ import {
   type MessageInput,
   type MessagesQuery,
   type OnboardingInput,
+  type PushSubscriptionInput,
+  type PushUnsubscribeInput,
   type ReportInput,
   type SwipeProfileInput,
   type TakedownInput,
   type UploadFields,
   type VoteInput,
 } from './swipe.schemas.js';
+import { SwipePushService } from './swipe-push.service.js';
 import {
   SwipeService,
   type CardView,
@@ -69,7 +74,36 @@ export function privateImage(file: PhotoFile): StreamableFile {
 @Roles('CLIENT', 'ADMIN')
 @Controller('swipe')
 export class SwipeController {
-  constructor(private readonly swipe: SwipeService) {}
+  constructor(
+    private readonly swipe: SwipeService,
+    private readonly push: SwipePushService,
+  ) {}
+
+  /** The VAPID key this browser subscribes with; null while notifications are off. */
+  @Get('push')
+  pushKey(): { publicKey: string | null } {
+    return { publicKey: this.push.publicKey };
+  }
+
+  /** This browser wants notifications of matches, messages and «me encanta» (Web Push). */
+  @Put('push')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  subscribePush(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: pushSubscriptionSchema }) body: PushSubscriptionInput,
+  ): Promise<void> {
+    return this.push.subscribe(user.id, body);
+  }
+
+  @Delete('push')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  unsubscribePush(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: pushUnsubscribeSchema }) body: PushUnsubscribeInput,
+  ): Promise<void> {
+    return this.push.unsubscribe(user.id, body.endpoint);
+  }
 
   @Get('me')
   status(@CurrentUser() user: AuthUser): Promise<SwipeStatus> {
@@ -168,7 +202,15 @@ export class SwipeController {
     @CurrentUser() user: AuthUser,
     @Body({ schema: voteSchema }) body: VoteInput,
   ): Promise<{ match: { id: string; nickname: string } | null }> {
-    return this.swipe.vote(user.id, body.photoId, body.like);
+    return this.swipe.vote(user.id, body.photoId, body.like, body.superLike);
+  }
+
+  /** Undoes my last vote, when it is recent and made no match; returns its card again. */
+  @Post('votes/undo')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  undo(@CurrentUser() user: AuthUser): Promise<{ card: CardView }> {
+    return this.swipe.undoVote(user.id);
   }
 
   @Get('matches')

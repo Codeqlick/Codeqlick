@@ -29,11 +29,28 @@ export interface PartnerProfile {
   nickname: string | null;
   gender: SwipeGender | null;
   interests: string[];
+  bio: string | null;
 }
 
-const partnerSelect = {
+const cardProfileSelect = { nickname: true, gender: true, interests: true, bio: true } as const;
+
+const partnerSelect = { id: true, swipeProfile: { select: cardProfileSelect } } as const;
+
+/** What the deck filters on: whom they want to see, ages and country. */
+export interface DeckFilter {
+  seeking: SwipeGender[];
+  /** Birth years allowed (inclusive); undefined: any age, also people who didn't give theirs. */
+  birthYears?: { from: number; to: number };
+  /** Only owners from this country. */
+  country?: string;
+}
+
+/** A person to tell about something: their account's language and their Swipe switches. */
+const recipientSelect = {
   id: true,
-  swipeProfile: { select: { nickname: true, gender: true, interests: true } },
+  email: true,
+  locale: true,
+  swipeProfile: { select: { emailAlerts: true, suspendedAt: true, suspendedUntil: true } },
 } as const;
 
 @Injectable()
@@ -46,12 +63,22 @@ export class SwipeRepository {
     return this.prisma.swipeProfile.findUnique({ where: { userId } });
   }
 
-  saveOnboarding(userId: string, termsVersion: string, now: Date): Promise<SwipeProfile> {
+  saveOnboarding(
+    userId: string,
+    termsVersion: string,
+    birthYear: number,
+    now: Date,
+  ): Promise<SwipeProfile> {
     return this.prisma.swipeProfile.upsert({
       where: { userId },
-      create: { userId, adultConfirmedAt: now, termsVersion, termsAcceptedAt: now },
-      update: { adultConfirmedAt: now, termsVersion, termsAcceptedAt: now },
+      create: { userId, adultConfirmedAt: now, termsVersion, termsAcceptedAt: now, birthYear },
+      update: { adultConfirmedAt: now, termsVersion, termsAcceptedAt: now, birthYear },
     });
+  }
+
+  /** Who to tell about something, with their language and Swipe switches. */
+  recipient(userId: string) {
+    return this.prisma.user.findUnique({ where: { id: userId }, select: recipientSelect });
   }
 
   updateProfile(userId: string, data: Prisma.SwipeProfileUpdateInput): Promise<SwipeProfile> {
@@ -139,7 +166,17 @@ export class SwipeRepository {
   }
 
   /** The cards for `viewerId`: live photos they haven't voted on, of people they can see. */
-  deck(viewerId: string, seeking: SwipeGender[], now: Date, take: number) {
+  /**
+   * Live photos for the deck: not mine, not voted, no block either way, owner not suspended and
+   * within the filter. With `lovedBy`, only photos of people who loved one of mine.
+   */
+  deck(viewerId: string, filter: DeckFilter, now: Date, take: number, lovedBy: boolean) {
+    const profile: Prisma.SwipeProfileWhereInput[] = [notSuspended(now)];
+    if (filter.seeking.length > 0) profile.push({ gender: { in: filter.seeking } });
+    if (filter.birthYears) {
+      profile.push({ birthYear: { gte: filter.birthYears.from, lte: filter.birthYears.to } });
+    }
+    if (filter.country) profile.push({ country: filter.country });
     return this.prisma.swipePhoto.findMany({
       where: {
         status: 'LIVE',
@@ -148,18 +185,13 @@ export class SwipeRepository {
         owner: {
           swipeBlocksMade: { none: { blockedId: viewerId } },
           swipeBlocksGot: { none: { blockerId: viewerId } },
-          swipeProfile: {
-            is: { AND: [notSuspended(now), seeking.length > 0 ? { gender: { in: seeking } } : {}] },
-          },
+          swipeProfile: { is: { AND: profile } },
+          ...(lovedBy ? { swipeVotes: { some: { ownerId: viewerId, superLike: true } } } : {}),
         },
       },
       orderBy: { createdAt: 'desc' },
       take,
-      include: {
-        owner: {
-          select: { swipeProfile: { select: { nickname: true, gender: true, interests: true } } },
-        },
-      },
+      include: { owner: { select: { swipeProfile: { select: cardProfileSelect } } } },
     });
   }
 
@@ -179,20 +211,72 @@ export class SwipeRepository {
   // ---- Votes and matches -------------------------------------------------------------------------
 
   /** Records a vote once; returns false when this person had already voted on the photo. */
-  async vote(voterId: string, photo: SwipePhoto, like: boolean): Promise<boolean> {
+  async vote(
+    voterId: string,
+    photo: SwipePhoto,
+    like: boolean,
+    superLike = false,
+    now = new Date(),
+  ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.swipeVote.findUnique({
         where: { voterId_photoId: { voterId, photoId: photo.id } },
       });
       if (existing) return false;
       await tx.swipeVote.create({
-        data: { voterId, photoId: photo.id, ownerId: photo.ownerId, like },
+        data: {
+          voterId,
+          photoId: photo.id,
+          ownerId: photo.ownerId,
+          like,
+          superLike: like && superLike,
+          createdAt: now,
+        },
       });
       if (like) {
         await tx.swipePhoto.update({ where: { id: photo.id }, data: { likes: { increment: 1 } } });
       }
       return true;
     });
+  }
+
+  countSuperLikesSince(voterId: string, since: Date): Promise<number> {
+    return this.prisma.swipeVote.count({
+      where: { voterId, superLike: true, createdAt: { gte: since } },
+    });
+  }
+
+  lastVote(voterId: string) {
+    return this.prisma.swipeVote.findFirst({
+      where: { voterId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        photo: {
+          include: { owner: { select: { id: true, swipeProfile: { select: cardProfileSelect } } } },
+        },
+      },
+    });
+  }
+
+  /** Removes a vote (and its like from the photo's count). */
+  async undoVote(voterId: string, photoId: string, like: boolean): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.swipeVote.deleteMany({ where: { voterId, photoId } });
+      if (count > 0 && like) {
+        await tx.swipePhoto.update({ where: { id: photoId }, data: { likes: { decrement: 1 } } });
+      }
+    });
+  }
+
+  hasMatch(a: string, b: string): Promise<boolean> {
+    const [userAId, userBId] = a < b ? [a, b] : [b, a];
+    return this.prisma.swipeMatch.count({ where: { userAId, userBId } }).then((count) => count > 0);
+  }
+
+  lovesSomePhotoOf(voterId: string, ownerId: string): Promise<boolean> {
+    return this.prisma.swipeVote
+      .count({ where: { voterId, ownerId, superLike: true } })
+      .then((count) => count > 0);
   }
 
   hasLikedSomePhotoOf(voterId: string, ownerId: string): Promise<boolean> {
@@ -283,6 +367,34 @@ export class SwipeRepository {
       }),
     ]);
     return message;
+  }
+
+  /** Messages each person has sent in a match. */
+  async messageCounts(matchId: string): Promise<Map<string, number>> {
+    const rows = await this.prisma.swipeMessage.groupBy({
+      by: ['senderId'],
+      where: { matchId },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((row) => [row.senderId, row._count._all]));
+  }
+
+  /** Matches whose last message is between `from` and `to` old, with that message's sender. */
+  recentlyActiveMatches(from: Date, to: Date) {
+    return this.prisma.swipeMatch.findMany({
+      where: { lastMessageAt: { gte: from, lte: to } },
+      take: 500,
+      include: {
+        messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { senderId: true } },
+      },
+    });
+  }
+
+  markNotified(match: SwipeMatch, userId: string, now: Date): Promise<SwipeMatch> {
+    return this.prisma.swipeMatch.update({
+      where: { id: match.id },
+      data: match.userAId === userId ? { notifiedAAt: now } : { notifiedBAt: now },
+    });
   }
 
   markRead(match: SwipeMatch, userId: string, now: Date): Promise<SwipeMatch> {
@@ -451,6 +563,83 @@ export class SwipeRepository {
       take: 200,
       include: { user: { select: personSelect } },
     });
+  }
+
+  // ---- Watermarks and notifications --------------------------------------------------------------
+
+  /** Photos still stored without the burnt-in watermark (rejected ones have no file). */
+  photosToWatermark(take: number) {
+    return this.prisma.swipePhoto.findMany({
+      where: { watermarked: false, status: { not: 'REJECTED' } },
+      take,
+      include: { owner: { select: { swipeProfile: { select: { nickname: true } } } } },
+    });
+  }
+
+  /** When the newest thing waiting for the team arrived (null: nothing waiting). */
+  async newestPendingAt(): Promise<Date | null> {
+    const [verification, photo, report, takedown] = await Promise.all([
+      this.prisma.swipeProfile.findFirst({
+        where: { verificationStatus: 'PENDING' },
+        orderBy: { verificationSentAt: 'desc' },
+        select: { verificationSentAt: true },
+      }),
+      this.prisma.swipePhoto.findFirst({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+      this.prisma.swipeReport.findFirst({
+        where: { status: 'OPEN' },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+      this.prisma.swipeTakedown.findFirst({
+        where: { status: 'OPEN' },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+    ]);
+    const times = [
+      verification?.verificationSentAt,
+      photo?.createdAt,
+      report?.createdAt,
+      takedown?.createdAt,
+    ].filter((time): time is Date => !!time);
+    return times.length ? new Date(Math.max(...times.map((time) => time.getTime()))) : null;
+  }
+
+  async savePushSubscription(
+    userId: string,
+    data: { endpoint: string; p256dh: string; auth: string; locale: string },
+  ): Promise<void> {
+    await this.prisma.swipePushSubscription.upsert({
+      where: { endpoint: data.endpoint },
+      create: { userId, ...data },
+      update: { userId, p256dh: data.p256dh, auth: data.auth, locale: data.locale },
+    });
+    // At most 10 browsers per account: the oldest go.
+    const extra = await this.prisma.swipePushSubscription.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip: 10,
+      select: { id: true },
+    });
+    if (extra.length > 0) {
+      await this.prisma.swipePushSubscription.deleteMany({
+        where: { id: { in: extra.map((row) => row.id) } },
+      });
+    }
+  }
+
+  async deletePushSubscription(endpoint: string, userId?: string): Promise<void> {
+    await this.prisma.swipePushSubscription.deleteMany({
+      where: userId ? { endpoint, userId } : { endpoint },
+    });
+  }
+
+  pushSubscriptionsOf(userId: string) {
+    return this.prisma.swipePushSubscription.findMany({ where: { userId } });
   }
 
   async overview(now: Date) {

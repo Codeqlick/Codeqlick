@@ -567,3 +567,94 @@
   border: 1px solid var(--color-line);
   border-radius: var(--radius-pill);
 }
+
+/* ---- Round 2: «me encanta», undo, blur, bio, age range ---- */
+
+.blurred {
+  filter: blur(28px);
+  transform: scale(1.08);
+}
+
+.photoFrame {
+  overflow: hidden;
+}
+
+.reveal {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 92%);
+  color: var(--color-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lovesYou {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  padding: 0.2rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  font-size: 0.85rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.bio {
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.undo,
+.love {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  border: 2px solid var(--color-line);
+  background: var(--color-white);
+}
+
+.undo {
+  color: var(--color-slate);
+}
+
+.love {
+  color: var(--color-fuchsia);
+  border-color: var(--color-fuchsia-light);
+}
+
+.undo:disabled,
+.love:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card > .reportLink {
+  display: block;
+  margin: 0 auto var(--space-3);
+}
+
+.ageRange {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.guard {
+  color: var(--color-ink);
+  background: var(--color-blush);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+  font-size: 0.9rem;
+}

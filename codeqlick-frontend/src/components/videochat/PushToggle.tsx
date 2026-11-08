@@ -10,7 +10,11 @@ import {
 } from '@/app/[locale]/videochat/settings/actions';
 import { isIosNotInstalled } from './pwa';
 
-const SERVICE_WORKER = '/videochat-sw.js';
+type Subscription = {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  locale: 'en' | 'es';
+};
 
 type State = 'loading' | 'unsupported' | 'ios' | 'denied' | 'off' | 'on';
 
@@ -30,11 +34,26 @@ function supported(): boolean {
 }
 
 /**
- * "Tell me when someone is there" for this device (Web Push; architecture 4.7): registers the
- * video chat's service worker, subscribes with the server's key and stores the subscription.
+ * Notifications on this device (Web Push): registers the app's service worker, subscribes with
+ * the server's key and stores the subscription. The video chat's by default ("someone is there",
+ * architecture 4.7); Swipe passes its own worker, actions and texts (4.10).
  */
-export function PushToggle({ publicKey, locale }: { publicKey: string; locale: 'en' | 'es' }) {
-  const t = useTranslations('Videochat.push');
+export function PushToggle({
+  publicKey,
+  locale,
+  serviceWorker = '/videochat-sw.js',
+  namespace = 'Videochat.push',
+  subscribe = pushSubscribeAction,
+  unsubscribe = pushUnsubscribeAction,
+}: {
+  publicKey: string;
+  locale: 'en' | 'es';
+  serviceWorker?: string;
+  namespace?: 'Videochat.push' | 'Swipe.push';
+  subscribe?: (input: Subscription) => Promise<{ ok: boolean }>;
+  unsubscribe?: (endpoint: string) => Promise<{ ok: boolean }>;
+}) {
+  const t = useTranslations(namespace);
   const [state, setState] = useState<State>('loading');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -68,7 +87,7 @@ export function PushToggle({ publicKey, locale }: { publicKey: string; locale: '
         setState(permission === 'denied' ? 'denied' : 'off');
         return;
       }
-      const registration = await navigator.serviceWorker.register(SERVICE_WORKER, { scope: '/' });
+      const registration = await navigator.serviceWorker.register(serviceWorker, { scope: '/' });
       await navigator.serviceWorker.ready;
       const subscription =
         (await registration.pushManager.getSubscription()) ??
@@ -77,7 +96,7 @@ export function PushToggle({ publicKey, locale }: { publicKey: string; locale: '
           applicationServerKey: keyBytes(publicKey),
         }));
       const json = subscription.toJSON();
-      const result = await pushSubscribeAction({
+      const result = await subscribe({
         endpoint: json.endpoint ?? subscription.endpoint,
         keys: { p256dh: json.keys?.p256dh ?? '', auth: json.keys?.auth ?? '' },
         locale,
@@ -102,7 +121,7 @@ export function PushToggle({ publicKey, locale }: { publicKey: string; locale: '
       const registration = await navigator.serviceWorker.getRegistration('/');
       const subscription = await registration?.pushManager.getSubscription();
       if (subscription) {
-        await pushUnsubscribeAction(subscription.endpoint);
+        await unsubscribe(subscription.endpoint);
         await subscription.unsubscribe();
       }
       setState('off');

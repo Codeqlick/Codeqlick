@@ -35,7 +35,7 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
                   <img
                     src={`/${locale}/swipe/img/${match.partner.photoId}`}
                     alt=""
-                    className={styles.avatar}
+                    className={`${styles.avatar} ${status.profile?.blurPhotos ? styles.blurred : ''}`}
                   />
                 ) : (
                   <span className={styles.avatar} aria-hidden="true" />

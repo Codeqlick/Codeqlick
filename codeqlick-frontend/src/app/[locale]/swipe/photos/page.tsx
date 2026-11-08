@@ -1,11 +1,27 @@
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormCheckboxGroup, FormInput, FormSelect } from '@/components/app/ActionForm';
+import {
+  ActionForm,
+  FormCheckbox,
+  FormCheckboxGroup,
+  FormInput,
+  FormSelect,
+  FormTextarea,
+} from '@/components/app/ActionForm';
 import { PhotoUpload } from '@/components/swipe/PhotoUpload';
 import styles from '@/components/swipe/Swipe.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
-import { getSwipeStatus, listMySwipePhotos, SWIPE_GENDERS } from '@/lib/api/swipe';
+import { PushToggle } from '@/components/videochat/PushToggle';
+import {
+  getSwipePushKey,
+  getSwipeStatus,
+  listMySwipePhotos,
+  MAX_AGE_FILTER,
+  MIN_AGE_FILTER,
+  SWIPE_COUNTRIES,
+  SWIPE_GENDERS,
+} from '@/lib/api/swipe';
 import { requireUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
 import { INTERESTS, MAX_INTERESTS } from '@/lib/videochat-interests';
@@ -13,6 +29,8 @@ import vc from '../../videochat/videochat.module.css';
 import {
   deletePhotoAction,
   profileAction,
+  swipePushSubscribeAction,
+  swipePushUnsubscribeAction,
   uploadPhotoAction,
   uploadVerificationAction,
 } from '../actions';
@@ -36,6 +54,14 @@ export default async function SwipePhotosPage({ params }: PageProps) {
   const genders = SWIPE_GENDERS.map((value) => ({ value, label: t(`genders.${value}`) }));
   const verification = status.verification;
   const active = photos.filter((photo) => photo.status === 'PENDING' || photo.status === 'LIVE');
+  const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
+  const countries = SWIPE_COUNTRIES.map((value) => ({
+    value,
+    label: regionNames.of(value) ?? value,
+  })).sort((a, b) => a.label.localeCompare(b.label, locale));
+  const pushKey = await getSwipePushKey()
+    .then((result) => result.publicKey)
+    .catch(() => null);
 
   return (
     <div className={vc.landing}>
@@ -76,11 +102,96 @@ export default async function SwipePhotosPage({ params }: PageProps) {
             className={`${vc.fieldset} ${vc.interests}`}
           />
           <p className={styles.hint}>{t('profile.interestsHint', { max: MAX_INTERESTS })}</p>
+          <FormTextarea
+            name="bio"
+            label={t('profile.bio')}
+            hint={t('profile.bioHint')}
+            defaultValue={profile.bio ?? ''}
+            maxLength={160}
+            rows={2}
+          />
+          {profile.birthYear === null ? (
+            <FormInput
+              name="birthYear"
+              type="number"
+              inputMode="numeric"
+              label={t('profile.birthYear')}
+              hint={t('profile.birthYearHint')}
+              min={1900}
+              max={new Date().getUTCFullYear() - 18}
+            />
+          ) : null}
+          <FormSelect
+            name="country"
+            label={t('profile.country')}
+            placeholder={t('profile.countryNone')}
+            options={countries}
+            defaultValue={profile.country ?? ''}
+          />
+          <fieldset className={vc.fieldset}>
+            <legend>{t('profile.ages')}</legend>
+            <div className={styles.ageRange}>
+              <FormInput
+                name="ageMin"
+                type="number"
+                inputMode="numeric"
+                label={t('profile.ageMin')}
+                min={MIN_AGE_FILTER}
+                max={MAX_AGE_FILTER}
+                defaultValue={String(profile.ageMin)}
+              />
+              <FormInput
+                name="ageMax"
+                type="number"
+                inputMode="numeric"
+                label={t('profile.ageMax')}
+                min={MIN_AGE_FILTER}
+                max={MAX_AGE_FILTER}
+                defaultValue={String(profile.ageMax)}
+              />
+            </div>
+          </fieldset>
+          <p className={styles.hint}>{t('profile.agesHint')}</p>
+          <FormCheckbox
+            name="sameCountry"
+            label={t('profile.sameCountry')}
+            hint={t('profile.sameCountryHint')}
+            defaultChecked={profile.sameCountry}
+          />
+          <FormCheckbox
+            name="blurPhotos"
+            label={t('profile.blurPhotos')}
+            hint={t('profile.blurPhotosHint')}
+            defaultChecked={profile.blurPhotos}
+          />
+          <FormCheckbox
+            name="emailAlerts"
+            label={t('profile.emailAlerts')}
+            hint={t('profile.emailAlertsHint')}
+            defaultChecked={profile.emailAlerts}
+          />
           <SubmitButton block pendingLabel={t('profile.saving')}>
             {t('profile.save')}
           </SubmitButton>
         </ActionForm>
       </section>
+
+      {pushKey ? (
+        <section className={vc.panel} aria-labelledby="swipe-push">
+          <h2 id="swipe-push" className={vc.sectionTitle}>
+            {t('push.title')}
+          </h2>
+          <p className={vc.muted}>{t('push.lead')}</p>
+          <PushToggle
+            publicKey={pushKey}
+            locale={locale}
+            serviceWorker="/swipe-sw.js"
+            namespace="Swipe.push"
+            subscribe={swipePushSubscribeAction}
+            unsubscribe={swipePushUnsubscribeAction}
+          />
+        </section>
+      ) : null}
 
       <section className={vc.panel} aria-labelledby="swipe-verification">
         <h2 id="swipe-verification" className={vc.sectionTitle}>

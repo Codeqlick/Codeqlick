@@ -11,6 +11,7 @@ import { configureApp } from '../src/app.setup.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { SWIPE_TERMS_VERSION } from '../src/modules/swipe/swipe.schemas.js';
+import { SwipeService } from '../src/modules/swipe/swipe.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 const tag = randomUUID().slice(0, 8);
@@ -347,6 +348,136 @@ describe('Swipe (e2e)', () => {
       .set(admin.auth)
       .expect(204);
     await request(server()).get('/v1/swipe/deck').set(carla.auth).expect(200);
+  });
+
+  it('filters, loves, undoes, keeps contacts out of new chats and tells people', async () => {
+    const eva = await person('Eva');
+    const fran = await person('Fran');
+    await onboard(eva, '1995-06-01').expect(200);
+    await onboard(fran, '1990-01-01').expect(200);
+    await uploader(eva, 'Eva', 'WOMAN', 11);
+    await uploader(fran, 'Fran', 'MAN', 12);
+    expect(sent.map((mail) => mail.subject)).toContain('You can upload your photos now — Swipe');
+
+    // The profile keeps the sentence, the country and the filters; the year comes from entry.
+    const saved = await request(server())
+      .put('/v1/swipe/profile')
+      .set(fran.auth)
+      .send({
+        nickname: 'Fran',
+        gender: 'MAN',
+        seeking: ['WOMAN'],
+        interests: [],
+        bio: '  Me gusta el mar  ',
+        country: 'ES',
+        ageMin: 18,
+        ageMax: 30,
+        blurPhotos: true,
+      })
+      .expect(200);
+    expect(saved.body.profile).toMatchObject({
+      bio: 'Me gusta el mar',
+      birthYear: 1990,
+      country: 'ES',
+      ageMax: 30,
+      sameCountry: false,
+      emailAlerts: true,
+      blurPhotos: true,
+    });
+    expect(saved.body.superLikesLeft).toBe(3);
+    await request(server())
+      .put('/v1/swipe/profile')
+      .set(fran.auth)
+      .send({ nickname: 'Fran', gender: 'MAN', seeking: [], interests: [], birthYear: 2015 })
+      .expect(403);
+
+    sent.length = 0;
+    const evaPhoto = await livePhoto(eva, 13);
+    const franPhoto = await livePhoto(fran, 14);
+    expect(sent.map((mail) => mail.subject)).toContain('Your photo is live — Swipe');
+
+    // Eva is 31: outside Fran's 18–30.
+    const narrow = await request(server()).get('/v1/swipe/deck').set(fran.auth).expect(200);
+    expect(narrow.body.items.map((card: { id: string }) => card.id)).not.toContain(evaPhoto.id);
+
+    // Eva loves Fran's photo: Fran is told, and Eva's photo comes first for him, marked.
+    sent.length = 0;
+    const loved = await request(server())
+      .post('/v1/swipe/votes')
+      .set(eva.auth)
+      .send({ photoId: franPhoto.id, like: true, superLike: true })
+      .expect(200);
+    expect(loved.body.match).toBeNull();
+    await vi.waitFor(() =>
+      expect(sent.map((mail) => mail.subject)).toContain(
+        'Someone loves one of your photos — Swipe',
+      ),
+    );
+    const me = await request(server()).get('/v1/swipe/me').set(eva.auth).expect(200);
+    expect(me.body.superLikesLeft).toBe(2);
+    await request(server())
+      .put('/v1/swipe/profile')
+      .set(fran.auth)
+      .send({ nickname: 'Fran', gender: 'MAN', seeking: ['WOMAN'], interests: [] })
+      .expect(200);
+    const deck = await request(server()).get('/v1/swipe/deck').set(fran.auth).expect(200);
+    expect(deck.body.items[0]).toMatchObject({ id: evaPhoto.id, lovesYou: true, bio: null });
+
+    // Fran skips it by mistake and undoes it.
+    await request(server())
+      .post('/v1/swipe/votes')
+      .set(fran.auth)
+      .send({ photoId: evaPhoto.id, like: false })
+      .expect(200);
+    const undone = await request(server()).post('/v1/swipe/votes/undo').set(fran.auth).expect(200);
+    expect(undone.body.card).toMatchObject({ id: evaPhoto.id, lovesYou: true });
+    await request(server()).post('/v1/swipe/votes/undo').set(fran.auth).expect(404);
+
+    // Now he likes it: a match, which Eva is told about, and which can't be undone.
+    sent.length = 0;
+    const liked = await request(server())
+      .post('/v1/swipe/votes')
+      .set(fran.auth)
+      .send({ photoId: evaPhoto.id, like: true })
+      .expect(200);
+    const matchId = liked.body.match.id as string;
+    await vi.waitFor(() =>
+      expect(sent.map((mail) => mail.subject)).toContain('You have a new match — Swipe'),
+    );
+    await request(server()).post('/v1/swipe/votes/undo').set(fran.auth).expect(409);
+
+    // No phone numbers or apps until both have written 5 messages.
+    const say = (who: Person, text: string, status: number) =>
+      request(server())
+        .post(`/v1/swipe/matches/${matchId}/messages`)
+        .set(who.auth)
+        .send({ text })
+        .expect(status);
+    await say(eva, 'Mi WhatsApp es 612 345 678', 400);
+    for (let i = 0; i < 5; i += 1) {
+      await say(eva, `Hola ${i}`, 201);
+      await say(fran, `Qué tal ${i}`, 201);
+    }
+    await say(eva, 'Mi WhatsApp es 612 345 678', 201);
+
+    // Fran hasn't read it: one email after 15 minutes, not again until he reads.
+    sent.length = 0;
+    const swipe = app.get(SwipeService);
+    const later = new Date(Date.now() + 20 * 60 * 1000);
+    expect(await swipe.emailUnread(later)).toBeGreaterThanOrEqual(1);
+    await vi.waitFor(() =>
+      expect(sent.map((mail) => mail.subject)).toContain('You have an unread message — Swipe'),
+    );
+    const again = sent.length;
+    await swipe.emailUnread(new Date(later.getTime() + 60_000));
+    expect(sent.length).toBe(again);
+    const email = sent.find((mail) => mail.subject.startsWith('You have an unread'));
+    expect(`${email?.text}`).not.toContain('WhatsApp');
+    expect(`${email?.text}`).not.toContain('Eva');
+
+    // Notifications are off without VAPID keys.
+    const push = await request(server()).get('/v1/swipe/push').set(fran.auth).expect(200);
+    expect(push.body.publicKey).toBeNull();
   });
 
   it('keeps moderation for admins', async () => {
