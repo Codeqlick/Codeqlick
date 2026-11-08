@@ -1,6 +1,6 @@
-# Créditos de las fotos
+# Photo credits
 
-Todas las fotos tienen licencia CC0 (dominio público): se pueden usar sin atribución. Se citan por cortesía.
+All photos are CC0 (public domain): they can be used without attribution. They are credited as a courtesy.
 
 - `hero.jpg`: "Modern white kitchen interior" (rawpixel, CC0) — https://www.rawpixel.com/image/6042749/photo-image-public-domain-minimal-house
 - `about.jpg`: "construction worker goes plans site" (rawpixel, CC0) — https://www.rawpixel.com/image/5928035/photo-image-public-domain-hands-person

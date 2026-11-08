@@ -1,6 +1,6 @@
-# Créditos de las fotos
+# Photo credits
 
-Todas las fotos tienen licencia CC0 (dominio público): se pueden usar sin atribución. Se citan por cortesía.
+All photos are CC0 (public domain): they can be used without attribution. They are credited as a courtesy.
 
 - `hero.jpg`: "Free hair stylist drying client's" (rawpixel, CC0) — https://www.rawpixel.com/image/5907502/image-public-domain-woman-beauty
 - `about.jpg`: "Salon red seats" (rawpixel, CC0) — https://www.rawpixel.com/image/6023213/photo-image-public-domain-plant-house
