@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { freeSlots, madridToUtc, weekdayOf, type Interval, type Weekday } from './booking-time.js';
+import {
+  freeSlots,
+  isTimeZone,
+  madridToUtc,
+  weekdayOf,
+  zonedDay,
+  zonedToUtc,
+  type Interval,
+  type Weekday,
+} from './booking-time.js';
 
 const none: Record<Weekday, Interval[]> = {
   mon: [],
@@ -66,5 +75,20 @@ describe('freeSlots', () => {
       booked: [],
     });
     expect(slots).toEqual([]);
+  });
+});
+
+describe('other time zones', () => {
+  it('turns wall-clock times of any zone into instants', () => {
+    expect(zonedToUtc('2026-11-09', '09:00', 'America/Bogota').toISOString()).toBe(
+      '2026-11-09T14:00:00.000Z',
+    );
+    expect(zonedToUtc('2026-07-01', '09:00', 'UTC').toISOString()).toBe('2026-07-01T09:00:00.000Z');
+    expect(zonedDay(new Date('2026-11-09T03:00:00Z'), 'America/Bogota')).toBe('2026-11-08');
+  });
+
+  it('knows which zones exist', () => {
+    expect(isTimeZone('Europe/Madrid')).toBe(true);
+    expect(isTimeZone('Mars/Olympus')).toBe(false);
   });
 });

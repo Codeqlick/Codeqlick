@@ -8,5 +8,6 @@ import { MeetingsService } from './meetings.service.js';
 @Module({
   controllers: [MeetingsPublicController, MeetingsController],
   providers: [MeetingsService, MeetingsRepository, MeetingsGateway],
+  exports: [MeetingsService],
 })
 export class MeetingsModule {}

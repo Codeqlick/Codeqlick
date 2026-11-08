@@ -10,11 +10,12 @@ export const TWO_FACTOR_COOKIE = 'cq_2fa';
 /** Same lifetime as the API's challenge token. */
 export const TWO_FACTOR_MAX_AGE = 5 * 60;
 
-/** Paths that need a session: /en/portal, /es/admin/leads, /es/videochat/room ... */
-export const PROTECTED_PATH = /^\/(en|es)\/(portal|admin|videochat\/room)(\/|$)/;
+/** Paths that need a session: /en/portal, /es/admin/leads, /es/videochat/room, /es/citas/editar/… */
+export const PROTECTED_PATH = /^\/(en|es)\/(portal|admin|videochat\/room|citas\/editar)(\/|$)/;
 
 /**
  * Paths open to everyone that still show the signed-in person when there is one: the proxy
- * refreshes an expiring session there, but never sends anyone to sign in (meetings take guests).
+ * refreshes an expiring session there, but never sends anyone to sign in (meetings take guests,
+ * and anyone books on a Citas page).
  */
-export const OPTIONAL_SESSION_PATH = /^\/(en|es)\/meetings(\/|$)/;
+export const OPTIONAL_SESSION_PATH = /^\/(en|es)\/(meetings|citas)(\/|$)/;
