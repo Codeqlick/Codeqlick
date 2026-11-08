@@ -70,7 +70,7 @@ export function madridToday(now = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(now);
 }
 
-function toView(row: ProposalRow, today = madridToday()): ProposalView {
+export function toView(row: ProposalRow, today = madridToday()): ProposalView {
   const items = row.items.map((item) => ({
     id: item.id,
     description: item.description,

@@ -9,6 +9,7 @@ import { ProposalTemplatesRepository } from './proposal-templates.repository.js'
 import { ProposalTemplatesService } from './proposal-templates.service.js';
 import { ProposalsRepository } from './proposals.repository.js';
 import { ProposalsService } from './proposals.service.js';
+import { ProposalRemindersService } from './proposal-reminders.service.js';
 
 @Module({
   imports: [AccountsModule, AuthModule, BriefsModule],
@@ -16,6 +17,7 @@ import { ProposalsService } from './proposals.service.js';
   providers: [
     ProposalsService,
     ProposalsRepository,
+    ProposalRemindersService,
     ProposalTemplatesService,
     ProposalTemplatesRepository,
   ],

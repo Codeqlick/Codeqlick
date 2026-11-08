@@ -90,7 +90,7 @@ export class ProjectsRepository {
   /** What waits on a client account (see `buildTodo`). */
   async todoRows(clientId: string): Promise<TodoRows> {
     const projectRef = { select: { id: true, name: true } } as const;
-    const [approvals, proposals, tickets, briefs, reviews] = await Promise.all([
+    const [approvals, proposals, tickets, briefs, reviews, invoices] = await Promise.all([
       this.prisma.projectUpdate.findMany({
         where: { approvalRequested: true, approvedAt: null, project: { clientId } },
         select: { id: true, title: true, createdAt: true, project: projectRef },
@@ -121,8 +121,13 @@ export class ProjectsRepository {
         where: { status: 'REQUESTED', project: { clientId } },
         select: { requestedAt: true, project: projectRef },
       }),
+      this.prisma.projectInvoice.findMany({
+        where: { paidAt: null, project: { clientId } },
+        select: { id: true, number: true, issuedOn: true, dueOn: true, project: projectRef },
+        take: 50,
+      }),
     ]);
-    return { approvals, proposals, tickets, briefs, reviews };
+    return { approvals, proposals, tickets, briefs, reviews, invoices };
   }
 
   /** A client's projects with their milestones (the portal's cards show the next one). */
@@ -167,6 +172,11 @@ export class ProjectsRepository {
 
   async delete(id: string): Promise<void> {
     await this.prisma.clientProject.delete({ where: { id } });
+  }
+
+  /** Invoices are kept: a project that has any can't be deleted. */
+  invoiceCount(id: string): Promise<number> {
+    return this.prisma.projectInvoice.count({ where: { projectId: id } });
   }
 
   findFile(projectId: string, fileId: string): Promise<ProjectFile | null> {

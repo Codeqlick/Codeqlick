@@ -50,6 +50,28 @@ export class ProposalsRepository {
     return { items, total };
   }
 
+  /**
+   * Sent proposals not reminded yet whose last day falls between `from` and `to` (dates), sent
+   * before `sentBefore`.
+   */
+  expiringSoon(from: Date, to: Date, sentBefore: Date): Promise<ProposalRow[]> {
+    return this.prisma.proposal.findMany({
+      where: {
+        status: 'SENT',
+        expiryRemindedAt: null,
+        validUntil: { gte: from, lte: to },
+        sentAt: { lt: sentBefore },
+      },
+      include,
+      orderBy: { validUntil: 'asc' },
+      take: 100,
+    });
+  }
+
+  async markReminded(id: string, at: Date): Promise<void> {
+    await this.prisma.proposal.update({ where: { id }, data: { expiryRemindedAt: at } });
+  }
+
   findById(id: string): Promise<ProposalRow | null> {
     return this.prisma.proposal.findUnique({ where: { id }, include });
   }

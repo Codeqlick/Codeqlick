@@ -147,6 +147,7 @@ erDiagram
   User ||--o{ Post : authors
   ClientProject ||--o{ ProjectUpdate : has
   ClientProject ||--o{ ProjectFile : has
+  ClientProject ||--o{ ProjectInvoice : bills
   ClientProject ||--o{ ProjectMilestone : has
   ProjectUpdate ||--o{ ProjectUpdateComment : has
   Post ||--|{ PostTranslation : "en / es"
@@ -170,10 +171,11 @@ erDiagram
 - **ProjectUpdateComment** — a comment on an update by the client or the team: `body` (plain text, max 5000), `authorId?`, `createdAt`. Comments by an ADMIN are shown as the team's.
 - **ProjectMilestone** — a step of the project shown to the client as a timeline: `title`, `description?` (plain text, max 2000), `dueDate?`, `completedAt?` (set when the admin marks it done; null while open), `position` (order set by the admin, 0-based). The first milestone not done is the "next" one.
 - **ProjectFile** — a file shared with the project's client: `name` (original name, cleaned), `contentType` (as sent by the uploader; informational), `size`, `uploadedById?`. The content is stored on disk at `UPLOADS_DIR/project-files/<id>`, never under a public URL.
+- **ProjectInvoice** — an invoice the team issued for a project (decision 23), as the PDF made by the team's invoicing tool: `number` (unique, the invoice's own number), `issuedOn`, `dueOn?` (dates), `amountCents` (the total, VAT included), `currency` (`eur`), `paidAt?` (set by the team), `fileName`, `size`, `uploadedById?`. The PDF is stored at `UPLOADS_DIR/invoices/<id>`, never under a public URL. Its status is derived: `PAID` with `paidAt`, `OVERDUE` once `dueOn` has passed, `DUE` otherwise.
 - **SupportTicket** — a request a client opens from the portal: `number` (sequential, shown as `#12`), `clientId`, `projectId?` (one of the client's projects), `type` (`BUG` | `CHANGE` | `QUESTION`), `priority` (`LOW` | `NORMAL` | `HIGH` | `URGENT`), `status` (`OPEN` | `IN_PROGRESS` | `WAITING_CLIENT` | `RESOLVED` | `CLOSED`), `title`, `resolvedAt?` (set when it becomes RESOLVED or CLOSED, cleared when it is reopened).
 - **TicketMessage** — the request's conversation, oldest first: `body` (plain text, max 20 000), `authorId?`. The first message is the client's description; messages by an ADMIN are shown as the team's.
 - **TicketAttachment** — a file added to a support request by the client or the team: `name`, `contentType`, `size`, `uploadedById?`. Stored on disk at `UPLOADS_DIR/ticket-files/<id>`, like project files.
-- **Proposal** — a proposal or quote for a client: `number` (sequential, `#7`), `clientId`, `projectId?` (one of the client's projects), `createdById?`, `title`, `summary` (Markdown: scope), `terms?` (Markdown: payment, deadlines), `currency` (`EUR`), `validUntil?` (date; last day it can be accepted, Madrid time), `status` (`DRAFT` | `SENT` | `ACCEPTED` | `DECLINED` | `WITHDRAWN`), `sentAt?`, `respondedAt?`, `acceptedName?` (the full name the client typed to accept it), `declineReason?`. Only drafts can be edited or deleted; a sent one gets a new version by duplicating it. Nothing is charged: accepting is a recorded agreement.
+- **Proposal** — a proposal or quote for a client: `number` (sequential, `#7`), `clientId`, `projectId?` (one of the client's projects), `createdById?`, `title`, `summary` (Markdown: scope), `terms?` (Markdown: payment, deadlines), `currency` (`EUR`), `validUntil?` (date; last day it can be accepted, Madrid time), `status` (`DRAFT` | `SENT` | `ACCEPTED` | `DECLINED` | `WITHDRAWN`), `sentAt?`, `respondedAt?`, `acceptedName?` (the full name the client typed to accept it), `declineReason?`. `expiryRemindedAt?`: when the reminder that it is about to expire went out (section 4.6). Only drafts can be edited or deleted; a sent one gets a new version by duplicating it. Nothing is charged: accepting is a recorded agreement.
 - **ProposalTemplate** — a starting point for new proposals ("Web básica"): `name` (unique), `title`, `summary`, `terms?`, `validDays?` (a proposal made from it is valid that many days from the day it is created), `items` (JSON `[{ description, quantity, unitPrice }]`, cents). Admin → Propuestas → Nueva offers them; any proposal can be saved as one.
 - **ProposalItem** — a line of a proposal: `position`, `description`, `quantity` (whole units), `unitPrice` (cents). The total is computed, never stored.
 - **UpdateDraft** — an update sent with a project's release key and waiting for the team's review: `title`, `body` (Markdown), `version?`, `environment?`, `url?`. The client never sees it; publishing creates the ProjectUpdate (a release when it has a version) from the reviewed text and deletes the draft.
@@ -272,6 +274,7 @@ Scheduled work runs inside the API process (timers that start on boot, off when 
 - **Monthly website report** (clients): `SiteReportsService` checks every hour and, from the 1st at 09:00 Madrid time, sends last month's report of each managed site whose `reportedMonth` is older (section 8.2). Off in tests.
 - **Managed sites' domains** every 10 minutes (`SiteDomainsService`): each domain not yet LIVE (and every LIVE one after 6 hours) is connected through OVH when the team manages it and its state checked (see ManagedSite).
 - **Weekly summary** (clients): `WeeklyDigestService` checks every hour, in the API process. It sends this week's summary to every active client with `weeklyDigest` whose `lastDigestAt` is before this week's Monday 08:00 Madrid time, so a restart or a missed Monday neither skips nor repeats it. For each project the email lists the updates and completed milestones of the last 7 days, updates waiting for approval and the next milestone. A week with nothing to tell sends nothing, but still counts as done. Clients turn it off in their account (`PATCH /auth/preferences`) and admins on the user page, which also has a "send now" button (`POST /admin/projects/weekly-digest/:clientId` → `{ sent }`, or `{ sent: false, reason: 'no-news' }`). Off in tests.
+- **Proposals about to expire** every 6 hours (`ProposalRemindersService`): a `SENT` proposal whose `validUntil` (Madrid day) is today or within the next 3 days, sent more than a day ago and not reminded yet (`expiryRemindedAt`), emails every person of the client account in their language ("it can be accepted until …", with the link to it, or the invitation for someone who hasn't made the account theirs, as when it was sent) and tells the team inbox (`LEADS_NOTIFY_TO`, English). Once per proposal. Off in tests.
 - **Scheduled posts and case studies** need no job: they are hidden until their `publishedAt` (see Scheduling).
 
 On the host, `deploy/monitor/monitor.sh` (cron, every 5 minutes) watches the server and the stack, and the `backup` container dumps the database daily (section 8).
@@ -386,7 +389,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | Method | Path | Response |
 |---|---|---|
 | GET | `/portal/projects` | `ClientProject[]` owned by the caller, each with its `milestones[]` |
-| GET | `/portal/todo` | What waits on the client, oldest first: `{ items: [{ kind, id, title, projectId, projectName, since }] }`, `kind` being `approval` (an update asking for approval, `id` the update's), `proposal` (sent, not expired), `ticket` (a request `WAITING_CLIENT`, `title` with its `#number`), `brief` (questionnaire requested, not sent; `id` the project's) or `review` (review requested; `id` the project's) |
+| GET | `/portal/todo` | What waits on the client, oldest first: `{ items: [{ kind, id, title, projectId, projectName, since }] }`, `kind` being `approval` (an update asking for approval, `id` the update's), `proposal` (sent, not expired), `ticket` (a request `WAITING_CLIENT`, `title` with its `#number`), `brief` (questionnaire requested, not sent; `id` the project's) `review` (review requested; `id` the project's) or `invoice` (a team invoice not paid; `id` the invoice's, `title` its number, `since` its `issuedOn`) |
 | GET | `/portal/projects/:id` | `ClientProject` with `updates[]` and `files[]` (`{ id, name, contentType, size, createdAt }`), newest first, and `milestones[]` (`{ id, title, description, dueDate, completedAt }`) in the admin's order; 404 if not the caller's |
 | POST | `/portal/projects/:id/updates/:updateId/comments` | `{ body }` → `201 UpdateComment` (`{ id, body, createdAt, author: { name, team } }`). A client's comment emails the team inbox (`LEADS_NOTIFY_TO`, reply-to the client) |
 | POST | `/portal/projects/:id/updates/:updateId/approval` | Role CLIENT only (403 for admins) → `ProjectUpdate` with `approvedAt`; 400 when the update doesn't ask for approval; approving again keeps the first approval. Emails the team inbox |
@@ -407,6 +410,9 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/portal/projects/:id/plan` | `{ active, name, monthlyMinutes, alertPercent, month, usedMinutes, remainingMinutes, percent, months: [{ month, minutes }] (4, newest first) }`; 404 unless the project is the caller's and the plan is active |
 | GET | `/portal/projects/:id/time` | `ProjectTime` (`{ totalMinutes, months: [{ month: 'yyyy-mm', minutes }], entries: TimeEntry[] }`, newest first); 404 unless the project is the caller's and has `showHours` |
 | GET | `/portal/projects/:id/files/:fileId` | The file, always as `application/octet-stream` with `Content-Disposition: attachment` (UTF-8 name); 404 if the project isn't the caller's |
+| GET | `/portal/invoices` | Every invoice of the caller's account, newest first: `{ items: Invoice[] }` (shape below), the team's (`source: 'team'`) and those Stripe issued for websites bought online (`source: 'stripe'`, decision 20) |
+| GET | `/portal/invoices/:id/file` | A team invoice's PDF, as an `application/pdf` attachment; 404 if it isn't the caller's |
+| GET | `/portal/invoices/stripe/:purchaseId` | `{ url }`: the PDF of the invoice Stripe issued for that purchase, asked to Stripe at that moment (its links don't last); 404 if the purchase isn't of one of the caller's projects or has no invoice |
 | GET | `/portal/proposals` | `?status&page&pageSize` → `Paginated<Proposal>` of the caller's proposals, drafts left out |
 | GET | `/portal/proposals/:id` | `Proposal`; 404 for a draft or someone else's |
 | POST | `/portal/proposals/:id/accept` | Role CLIENT only (403 for admins). `{ name }` → `Proposal` `ACCEPTED`; 409 unless `SENT` and not expired. Emails the team inbox |
@@ -496,7 +502,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET / POST | `/admin/portfolio` | POST `PortfolioInput` |
 | GET / PATCH / DELETE | `/admin/portfolio/:id` | |
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
-| GET / PATCH / DELETE | `/admin/projects/:id` | |
+| GET / PATCH / DELETE | `/admin/projects/:id` | DELETE answers `409` while the project has invoices (they must be kept) |
 | POST | `/admin/projects/:id/updates/:updateId/comments` | `{ body }` → `201 UpdateComment & { clientNotified }`: the client is emailed the comment in their `locale` with a link to the update |
 | POST | `/admin/projects/:id/releases` | `{ version, environment, url?, title, body, notifyClient?, requestApproval? }` → `201` update with `release: { version, environment, url }` (plain updates have `release: null`); same email and `clientNotified` as updates, worded as a new version |
 | GET | `/admin/projects/drafts` | Every project's `UpdateDraft[]`, oldest first (declared before `/:id`) |
@@ -510,6 +516,10 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | PUT | `/admin/projects/:id/milestones/order` | `{ ids }`: every milestone of the project once, in the new order → `ProjectMilestone[]`; 400 when an id is missing, repeated or foreign |
 | POST | `/admin/projects/:id/files` | `multipart/form-data` with one `file` (any type, max 25 MB) → `201 { id, name, contentType, size, createdAt }`; 413 when too large |
 | DELETE | `/admin/projects/:id/files/:fileId` | `204`; removes the row and the content. Deleting a project removes its files too |
+| GET | `/admin/projects/:id/invoices` | `Invoice[]` of the project (team ones), newest first |
+| POST | `/admin/projects/:id/invoices` | `multipart/form-data`: `file` (a PDF, max 10 MB; anything else is a 400), `number`, `issuedOn`, `dueOn?` (`yyyy-mm-dd`), `amount` (euros, VAT included, `1234.56`), `notify` (`true` emails every person of the client account, in their language, with a link to the portal's invoices) → `201 Invoice`; 409 when the number exists. `project.invoice_added` in the activity log |
+| PATCH | `/admin/invoices/:id` | `{ paid: boolean }` → `Invoice` (sets or clears `paidAt`). `project.invoice_paid` or `project.invoice_unpaid` in the activity log |
+| DELETE | `/admin/invoices/:id` | `204`; the row and its PDF (an invoice issued by mistake; a real one is corrected with a credit note, uploaded as another invoice). `project.invoice_deleted` in the activity log |
 | POST | `/admin/media` | `multipart/form-data` with one `file` (PNG, JPEG, WebP or GIF, detected from its content; max 5 MB) → `201 { filename, contentType, size }`; 400 for other content, 413 when too large |
 | GET | `/admin/media` | `?page&pageSize` → paginated `{ filename, contentType, size, createdAt, usedBy: { type: 'post' \| 'portfolio', id, slug }[] }`, newest first. `usedBy` lists content that has the image as its cover or in its Markdown |
 | DELETE | `/admin/media/:filename` | `204`; `409` while any content still uses the image; `404` for an unknown name |
@@ -534,6 +544,19 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 ### Shapes
 
 ```ts
+interface Invoice {
+  id: string; // the purchase's for Stripe ones
+  source: 'team' | 'stripe';
+  number: string | null; // Stripe numbers its own, shown in its PDF
+  issuedOn: string; // yyyy-mm-dd
+  dueOn: string | null;
+  amountCents: number; // VAT included
+  currency: string;
+  status: 'PAID' | 'DUE' | 'OVERDUE';
+  paidAt: string | null;
+  project: { id: string; name: string } | null;
+}
+
 type Locale = 'en' | 'es';
 type AuthUser = { id: string; email: string; name: string; role: 'ADMIN' | 'CLIENT' };
 type AuthTokens = { accessToken: string; refreshToken: string; expiresIn: number; user: AuthUser };
@@ -633,7 +656,8 @@ src/
                                brief, review, shared access, site status, "Tu web" (status, domain) and its editor (forms and
                                the draft's preview, section 8.2),
                                photos shown from public/presets or the uploads; site/reviews: the Google
-                               review kit, QR and printable poster), proposals, support requests, account
+                               review kit, QR and printable poster), proposals, invoices (download, and the
+                               team's invoices in a project's admin page), support requests, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, visits, recent activity), leads
                                (list and board), proposals, support, hours and plans, drafts to review, bookings, calculator,
                                monitoring, saved replies, posts, tags, portfolio, projects, managed websites (list and "Nueva web
@@ -922,3 +946,4 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 20 | Clients can buy their preview online, through Stripe Checkout, for 200 € + IVA with Stripe's invoice | The preview sells the website; paying for it there and getting it made at once, with the editor to finish it themselves, sells it to those who don't want a call. Stripe Checkout keeps card data off the platform and its webhook makes the site even if the buyer closes the page. Built off (no keys) until the owner was registered; switched on once registered and the gestor reviewed the terms and the price (200 € + 21 % IVA). Stripe issues each sale's invoice (numbering, tax breakdown, the buyer's tax ID when given), so there is no invoicing of our own |
 | 21 | The video chat's signaling runs in the API; media goes browser to browser (WebRTC) with our own coturn | Reusing the API gives accounts, bans and moderation for free; a WebSocket with a single-use ticket keeps tokens out of the browser (the BFF rule's aim) without making Next.js proxy a socket. Media never touching the server keeps cost and liability low; coturn on the VPS avoids handing visitors' IPs to a third-party STUN/TURN. One API instance holds the queue in memory |
 | 22 | Video chat: verified accounts only, adults only, explicit content allowed, declared age by default | Owner's decisions (2026-11-07). An account per person makes bans and reports stick. Declared age (date of birth, not stored) is the default because no age-verification provider is set up yet; Spanish and EU rules on explicit content expect real age assurance, so `VIDEOCHAT_AGE_VERIFICATION_REQUIRED` and `ageVerifiedAt` are ready for one. A report of a possible minor suspends at once |
+| 23 | Invoices are made outside and uploaded as PDFs; the portal lists them with Stripe's | Invoicing (numbering, VAT, the records the law asks for) stays in the team's invoicing tool or with the gestor, which already does it right; the platform only shows each client their invoices and whether they are paid, next to the ones Stripe issued for websites bought online |

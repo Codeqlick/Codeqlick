@@ -76,6 +76,7 @@ export async function ActivityList({
       notes.push(t('details.publishedAt', { value: formatDateTime(details.publishedAt, locale) }));
     }
     if ('file' in details) notes.push(t('details.file', { value: text(details.file) }));
+    if ('invoice' in details) notes.push(t('details.invoice', { value: text(details.invoice) }));
     if (typeof details.taskStatus === 'string') {
       notes.push(t('details.taskStatus', { value: tk(details.taskStatus as never) }));
     }

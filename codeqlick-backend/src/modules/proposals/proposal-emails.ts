@@ -131,3 +131,93 @@ export function proposalAnsweredEmail(
     ),
   };
 }
+
+/** To the client, in their language: the proposal can be accepted only a few days more. */
+export function proposalExpiringEmail(
+  client: { name: string; email: string },
+  proposal: Proposal & { validUntil: string },
+  link: string,
+  locale: ApiLocale,
+  siteUrl: string,
+  /** `link` is the invitation to create their account first (decision 17). */
+  invitation = false,
+): MailMessage {
+  const es = locale === 'es';
+  const total = formatMoney(proposal.total, proposal.currency, locale);
+  const until = formatDay(proposal.validUntil, locale);
+  return {
+    to: client.email,
+    subject: es
+      ? `Tu propuesta #${proposal.number} vence el ${until}`
+      : `Your proposal #${proposal.number} expires on ${until}`,
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? `Puedes aceptar «${proposal.title}» hasta el ${until}.`
+          : `You can accept “${proposal.title}” until ${until}.`,
+        title: es ? 'Tu propuesta está a punto de vencer' : 'Your proposal is about to expire',
+        greeting: es ? `Hola ${client.name}:` : `Hi ${client.name},`,
+        intro: [
+          es
+            ? `Te recordamos que la propuesta «${proposal.title}» se puede aceptar hasta el ${until}. Después tendríamos que revisarla y prepararte una nueva.`
+            : `Just a reminder that the proposal “${proposal.title}” can be accepted until ${until}. After that we would need to review it and prepare a new one.`,
+        ],
+        details: [
+          [es ? 'Importe' : 'Amount', total],
+          [es ? 'Válida hasta' : 'Valid until', until],
+        ],
+        button: {
+          label: invitation
+            ? es
+              ? 'Crear mi cuenta y verla'
+              : 'Create my account and see it'
+            : es
+              ? 'Ver la propuesta'
+              : 'See the proposal',
+          url: link,
+        },
+        outro: [
+          es
+            ? '¿Necesitas más tiempo o quieres cambiar algo? Responde a este correo y lo hablamos.'
+            : 'Need more time or want to change something? Just reply to this email and we will talk it over.',
+        ],
+      },
+      siteUrl,
+    ),
+  };
+}
+
+/** To the team (English): a proposal expires soon without an answer; a good moment to call. */
+export function proposalExpiringTeamEmail(
+  to: string,
+  client: { name: string; email: string },
+  proposal: Proposal & { validUntil: string },
+  link: string,
+  siteUrl: string,
+): MailMessage {
+  const total = formatMoney(proposal.total, proposal.currency, 'en');
+  const until = formatDay(proposal.validUntil, 'en');
+  return {
+    to,
+    replyTo: client.email,
+    subject: `Proposal #${proposal.number} expires on ${until}: ${proposal.title}`,
+    ...renderEmail(
+      {
+        locale: 'en',
+        preheader: `${client.name} hasn't answered ${proposal.title} (${total}) yet.`,
+        title: 'A proposal is about to expire',
+        greeting: 'Hi team,',
+        intro: [
+          `${client.name} (${client.email}) hasn't answered proposal #${proposal.number} “${proposal.title}” yet, and it can be accepted only until ${until}. We have just reminded them; a call may help.`,
+        ],
+        details: [
+          ['Amount', total],
+          ['Valid until', until],
+        ],
+        button: { label: 'Open the proposal', url: link },
+      },
+      siteUrl,
+    ),
+  };
+}
