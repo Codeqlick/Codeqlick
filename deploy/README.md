@@ -132,6 +132,27 @@ It creates the DNS record through OVH's API, sets `MEETINGS_URL` in `.env`, inst
 checks. Then open https://meetings.codeqlick.com, sign in, create a room and open its link on
 another device (one on mobile data checks TURN).
 
+### Web app subdomains (automatic)
+
+Codeqlick's own web apps (the API's `WEBAPPS`, in `codeqlick-backend/src/common/webapps.ts`)
+each live on `<app>.codeqlick.com`. After a one-time setup, a release publishes the subdomain of
+any new app by itself: add the app to `WEBAPPS`, merge, done. One command, as a user with sudo:
+
+```bash
+cd /srv/codeqlick
+sudo ./deploy/setup-webapps.sh
+```
+
+It installs `deploy/webapp-site.sh` as root at `/usr/local/sbin/codeqlick-webapp-site` and adds
+`/etc/sudoers.d/codeqlick-webapps`, which lets the deploy user run that file (and nothing else)
+with sudo. Then it publishes every app still missing. From then on, `deploy/deploy.sh` runs the
+helper after each release for any app whose Nginx site has no certificate yet: it creates the DNS
+`A` record through OVH's API (never changing an existing record that points elsewhere), writes the
+Nginx site from its own template (pages to the web, `/ws` to the API's `/v1/<app>/ws`), and gets
+the certificate once the DNS answers. A failure there never fails the release; the next one tries
+again. Run `setup-webapps.sh` again after changing `webapp-site.sh`, since the installed copy is
+root's. An app that needs its own settings (keys, secrets) still gets them in `.env`.
+
 ## Updating
 
 ```bash

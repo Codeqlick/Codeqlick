@@ -72,3 +72,13 @@ fi
 log "Serving"
 $COMPOSE ps --format 'table {{.Service}}\t{{.Status}}'
 docker image prune -f > /dev/null
+
+# Web apps whose subdomain isn't published yet (their Nginx site has no certificate): the helper
+# that deploy/setup-webapps.sh installs adds the DNS record, the site and the certificate. It never
+# fails the release; the next one tries again.
+for app in $(./deploy/webapps.sh); do
+  grep -qs ssl_certificate "/etc/nginx/sites-enabled/$app.codeqlick.com.conf" && continue
+  log "Publishing $app.codeqlick.com"
+  sudo -n /usr/local/sbin/codeqlick-webapp-site "$app" ||
+    echo "Warning: $app.codeqlick.com isn't published yet (if the error is about sudo, run sudo ./deploy/setup-webapps.sh once)."
+done
