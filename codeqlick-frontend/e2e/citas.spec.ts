@@ -43,7 +43,7 @@ test('an owner publishes a booking page and a visitor books a time', async ({
     await host.getByLabel('Antelación mínima (horas)').fill('0');
     await host.getByRole('button', { name: 'Crear la página' }).click();
     await expect(host).toHaveURL(`${base}/es/citas`);
-    await expect(host.getByText(`Corte ${tag}`)).toBeVisible();
+    await expect(host.getByText(`Corte ${tag}`, { exact: true })).toBeVisible();
 
     // The visitor opens the public page, picks the first free day and time, and books.
     const visitor = await visitorContext.newPage();
@@ -59,7 +59,7 @@ test('an owner publishes a booking page and a visitor books a time', async ({
 
     await host.reload();
     await expect(host.getByText('1 cita próxima')).toBeVisible();
-    await expect(host.getByText('Bea')).toBeVisible();
+    await expect(host.getByText('Bea', { exact: true })).toBeVisible();
   } finally {
     await ownerContext.close();
     await visitorContext.close();
