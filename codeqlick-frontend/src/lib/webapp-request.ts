@@ -19,12 +19,16 @@ export async function homeAfterSignIn(locale: string, role: Role): Promise<strin
 }
 
 /**
- * A `next` path (`/{locale}/videochat/room`) as the short address of this host's app (`/{locale}/room`),
- * so signing in doesn't land on the long address: the redirect of a Server Action skips the proxy.
+ * A route path (`/{locale}/videochat/room`) as the short address on this app's host (`/{locale}/room`),
+ * for redirects: a Server Action's redirect doesn't pass through the proxy's redirect of old addresses.
  */
-export async function shortNext(next: string | null, locale: string): Promise<string | null> {
+export async function appPath(path: string, locale: string): Promise<string> {
   const app = await requestWebapp();
-  if (!next || !app) return next;
-  const rest = next.slice(locale.length + 1);
-  return `/${locale}${publicPath(app, rest)}`;
+  if (!app || !path.startsWith(`/${locale}/`)) return path;
+  return `/${locale}${publicPath(app, path.slice(locale.length + 1))}`;
+}
+
+/** A `next` path to land on after signing in, as the short address on an app's host. */
+export async function shortNext(next: string | null, locale: string): Promise<string | null> {
+  return next ? appPath(next, locale) : null;
 }

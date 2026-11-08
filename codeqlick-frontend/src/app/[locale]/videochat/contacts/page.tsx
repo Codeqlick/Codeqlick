@@ -9,6 +9,7 @@ import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
 import { removeContactAction } from './actions';
+import { appPath } from '@/lib/webapp-request';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -20,7 +21,7 @@ export default async function VideochatContactsPage({ params }: PageProps) {
   const tg = await getTranslations({ locale, namespace: 'Videochat.genders' });
   const ti = await getTranslations({ locale, namespace: 'Videochat.interests' });
   const status = await getVideochatStatus();
-  if (!status.profile) redirect(`/${locale}/videochat/room`);
+  if (!status.profile) redirect(await appPath(`/${locale}/videochat/room`, locale));
   const { items } = await listVideochatContacts();
   const date = (iso: string) =>
     new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));

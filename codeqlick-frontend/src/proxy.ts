@@ -38,9 +38,12 @@ export default async function proxy(request: NextRequest) {
     request.nextUrl.host;
   const protocol =
     request.headers.get('x-forwarded-proto') === 'https' ? 'https:' : request.nextUrl.protocol;
-  // Old addresses are redirected only on navigations; images and form posts are just served.
+  // Old addresses are redirected only on navigations; images and form posts are just served. So
+  // is a request Next.js sends itself (Host is the server's own): when it can't tell its address
+  // is this one's, Next.js serves a rewrite by fetching the route from itself.
   const dest = request.headers.get('sec-fetch-dest');
-  const navigation = request.method === 'GET' && dest !== 'image';
+  const navigation =
+    request.method === 'GET' && dest !== 'image' && request.headers.get('host') === host;
   const webapp = routeWebapp(pathname, host, protocol, navigation);
   if (webapp.action === 'redirect') {
     const target = new URL(webapp.to, `${protocol}//${host}`);

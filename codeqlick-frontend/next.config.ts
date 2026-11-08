@@ -60,6 +60,10 @@ const productionHeaders =
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
+  // The proxy sees the request's own address, so its rewrites to an app's route (src/proxy.ts) stay
+  // on this server; otherwise Next.js names it localhost, takes the rewrite for another server's
+  // and fetches it over HTTP, losing the visitor's host.
+  skipProxyUrlNormalize: true,
   reactStrictMode: true,
   images: {
     // Only uploads from the admin panel (served by app/media) are resized and re-encoded.
