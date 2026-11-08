@@ -45,8 +45,9 @@ COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 # `prisma db seed` (first admin) runs prisma/seed.ts with tsx and imports the generated client.
 COPY --from=build --chown=node:node /app/src/generated ./src/generated
 
-# Uploaded images. Created here so the volume mounted on it starts out owned by `node`.
-RUN mkdir uploads && chown node:node uploads
+# Uploaded images, and Swipe's private photos. Created here so the volumes mounted on them start
+# out owned by `node`.
+RUN mkdir uploads swipe-uploads && chown node:node uploads swipe-uploads
 
 USER node
 EXPOSE 4000

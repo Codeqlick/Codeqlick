@@ -99,6 +99,11 @@ export class AccountRepository {
       appeals,
       meetingRooms,
       bookingPages,
+      swipe,
+      swipePhotos,
+      swipeLikesGiven,
+      swipeMessages,
+      swipeReportsMade,
     ] = await Promise.all([
       p.user.findUniqueOrThrow({
         where: { id: userId },
@@ -260,6 +265,40 @@ export class AccountRepository {
           },
         },
       }),
+      p.swipeProfile.findUnique({
+        where: { userId },
+        select: {
+          nickname: true,
+          gender: true,
+          seeking: true,
+          interests: true,
+          adultConfirmedAt: true,
+          termsVersion: true,
+          termsAcceptedAt: true,
+          verificationStatus: true,
+          verificationSentAt: true,
+          verifiedAt: true,
+          suspendedUntil: true,
+          suspensionReason: true,
+          createdAt: true,
+        },
+      }),
+      p.swipePhoto.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { ref: true, status: true, rejectReason: true, likes: true, createdAt: true },
+      }),
+      p.swipeVote.count({ where: { voterId: userId, like: true } }),
+      p.swipeMessage.findMany({
+        where: { senderId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { text: true, createdAt: true },
+      }),
+      p.swipeReport.findMany({
+        where: { reporterId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { reason: true, details: true, status: true, createdAt: true },
+      }),
     ]);
     return {
       user,
@@ -282,6 +321,15 @@ export class AccountRepository {
         : null,
       meetingRooms,
       bookingPages,
+      swipe: swipe
+        ? {
+            profile: swipe,
+            photos: swipePhotos,
+            likesGiven: swipeLikesGiven,
+            messagesSent: swipeMessages,
+            reportsMade: swipeReportsMade,
+          }
+        : null,
     };
   }
 }

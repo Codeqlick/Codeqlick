@@ -186,6 +186,10 @@ export class AppConfigService {
     return this.get('UPLOADS_DIR');
   }
 
+  get swipeUploadsDir(): string {
+    return this.get('SWIPE_UPLOADS_DIR');
+  }
+
   /** Origins allowed to open the video chat's WebSocket. */
   get videochatOrigins(): string[] {
     return this.get('VIDEOCHAT_ORIGINS');

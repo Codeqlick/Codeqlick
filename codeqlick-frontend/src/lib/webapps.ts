@@ -6,7 +6,7 @@
  * Adding an app: its name here and in the API's WEBAPPS, and its pages under `app/[locale]/<name>/`.
  * The release publishes <name>.codeqlick.com (DNS, Nginx, certificate) by itself.
  */
-export const WEBAPPS = ['videochat', 'meetings', 'citas'] as const;
+export const WEBAPPS = ['videochat', 'meetings', 'citas', 'swipe'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
 /** Pages of the main site a web app's host also serves: signing in and creating the account. */

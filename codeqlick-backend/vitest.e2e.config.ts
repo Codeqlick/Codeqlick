@@ -36,6 +36,7 @@ export default defineConfig({
       MAIL_FROM: env('MAIL_FROM', 'Codeqlick <hello@codeqlick.com>'),
       LEADS_NOTIFY_TO: env('LEADS_NOTIFY_TO', 'hello@codeqlick.com'),
       UPLOADS_DIR: env('UPLOADS_DIR', join(tmpdir(), 'codeqlick-e2e-uploads')),
+      SWIPE_UPLOADS_DIR: env('SWIPE_UPLOADS_DIR', join(tmpdir(), 'codeqlick-e2e-swipe')),
       LOG_LEVEL: env('LOG_LEVEL', 'silent'),
     },
   },
