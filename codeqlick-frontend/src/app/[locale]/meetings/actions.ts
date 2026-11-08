@@ -16,6 +16,7 @@ import {
 import { getCurrentUser } from '@/lib/auth/session';
 import type { FormState } from '@/lib/forms';
 import { normalizeMeetingCode } from '@/lib/meetings';
+import { appPath } from '@/lib/webapp-request';
 
 /** A new room (POST /meetings/rooms); its link shows in the list. */
 export async function createRoomAction(
@@ -67,7 +68,7 @@ export async function joinByCodeAction(
   const code = normalizeMeetingCode(raw.split('/').filter(Boolean).at(-1) ?? '');
   if (!code)
     return { status: 'error', fieldErrors: { code: t('codeInvalid') }, values: { code: raw } };
-  redirect(`/${locale}/meetings/${code}`);
+  redirect(await appPath(`/${locale}/meetings/${code}`, locale));
   return { status: 'success' };
 }
 

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { routeWebapp, webappForHost, webappHost } from './webapps';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { appHref, routeWebapp, SITE_SECTIONS, WEBAPPS, webappForHost, webappHost } from './webapps';
+
+const SHARED = ['login', 'register', 'forgot-password', 'reset-password'];
 
 describe('web apps on subdomains', () => {
   it('finds the app of a host', () => {
@@ -13,17 +18,31 @@ describe('web apps on subdomains', () => {
     expect(webappHost('videochat', 'www.codeqlick.com')).toBe('videochat.codeqlick.com');
   });
 
-  it("opens the app at its host's home and keeps its pages and the sign-in ones", () => {
+  it("serves the app's routes at its host's short addresses", () => {
     const host = 'videochat.codeqlick.com';
-    expect(routeWebapp('/es', host, 'https:')).toEqual({ action: 'redirect', to: '/es/videochat' });
-    expect(routeWebapp('/en/', host, 'https:')).toEqual({
-      action: 'redirect',
-      to: '/en/videochat',
+    expect(routeWebapp('/es', host, 'https:')).toEqual({ action: 'rewrite', to: '/es/videochat' });
+    expect(routeWebapp('/en/', host, 'https:')).toEqual({ action: 'rewrite', to: '/en/videochat' });
+    expect(routeWebapp('/es/room', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/videochat/room',
     });
-    expect(routeWebapp('/es/videochat/room', host, 'https:')).toEqual({ action: 'pass' });
+    expect(routeWebapp('/es/abc-defg-hjk', 'meetings.codeqlick.com', 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/meetings/abc-defg-hjk',
+    });
     expect(routeWebapp('/es/login', host, 'https:')).toEqual({ action: 'pass' });
     expect(routeWebapp('/es/register', host, 'https:')).toEqual({ action: 'pass' });
     expect(routeWebapp('/', host, 'https:')).toEqual({ action: 'pass' });
+  });
+
+  it('sends the old addresses with the app name to the short ones, on navigations only', () => {
+    const host = 'videochat.codeqlick.com';
+    expect(routeWebapp('/es/videochat', host, 'https:')).toEqual({ action: 'redirect', to: '/es' });
+    expect(routeWebapp('/es/videochat/room', host, 'https:')).toEqual({
+      action: 'redirect',
+      to: '/es/room',
+    });
+    expect(routeWebapp('/es/videochat/room', host, 'https:', false)).toEqual({ action: 'pass' });
   });
 
   it("sends the site's other pages back to the main host", () => {
@@ -35,18 +54,42 @@ describe('web apps on subdomains', () => {
       action: 'redirect',
       to: 'http://localhost:3000/es/portal',
     });
+    expect(routeWebapp('/es/meetings', 'citas.codeqlick.com', 'https:')).toEqual({
+      action: 'redirect',
+      to: 'https://codeqlick.com/es/meetings',
+    });
   });
 
-  it("sends the app's pages on the main host to its subdomain", () => {
+  it("sends the app's pages on the main host to its subdomain, without the app name", () => {
     expect(routeWebapp('/es/videochat/room', 'codeqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://videochat.codeqlick.com/es/videochat/room',
+      to: 'https://videochat.codeqlick.com/es/room',
     });
     expect(routeWebapp('/en/videochat', 'localhost:3000', 'http:')).toEqual({
       action: 'redirect',
-      to: 'http://videochat.localhost:3000/en/videochat',
+      to: 'http://videochat.localhost:3000/en',
     });
     expect(routeWebapp('/es/blog', 'codeqlick.com', 'https:')).toEqual({ action: 'pass' });
+  });
+
+  it('writes links inside an app as its short addresses', () => {
+    expect(appHref('videochat', '/videochat')).toBe('/');
+    expect(appHref('videochat', '/videochat/room')).toBe('/room');
+    expect(appHref('citas', '/citas?scope=past')).toBe('/?scope=past');
+    expect(appHref('citas', '/login?next=/citas')).toBe('/login?next=/citas');
+    expect(appHref('swipe', '/swiper')).toBe('/swiper');
+  });
+
+  it("lists every section of the main site, so an app's host never takes it for its own", () => {
+    const root = fileURLToPath(new URL('../app/[locale]/', import.meta.url));
+    const folders = [
+      ...readdirSync(root, { withFileTypes: true }),
+      ...readdirSync(join(root, '(site)'), { withFileTypes: true }),
+    ]
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith('('))
+      .map((entry) => entry.name)
+      .filter((name) => !WEBAPPS.some((app) => app === name) && !SHARED.includes(name));
+    expect(folders.toSorted()).toEqual([...SITE_SECTIONS].toSorted());
   });
 
   it('serves app pages asked for by IP address (Next.js calling itself)', () => {

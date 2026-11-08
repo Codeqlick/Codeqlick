@@ -3474,6 +3474,13 @@
       "badge": "For everyone",
       "body": "Your booking page with one link: publish your free hours and your clients book without calling you or creating an account. With confirmation emails, calendar invitations and an optional video call.",
       "open": "Open Citas"
+    },
+    "swipe": {
+      "title": "Swipe",
+      "adult": "18+",
+      "body": "Swipe intimate photos of adults who choose to share them: right if you like one, left if you don't. When you both like each other it's a match and you can talk. Every photo is reviewed before it goes live.",
+      "warning": "Adults only (18+): nudity and explicit sexual content. You need a verified Codeqlick account.",
+      "open": "Open Swipe"
     }
   },
   "Meetings": {

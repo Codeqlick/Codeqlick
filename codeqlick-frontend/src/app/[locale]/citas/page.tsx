@@ -111,7 +111,7 @@ export default async function CitasLandingPage({ params, searchParams }: PagePro
                     {page.video ? ` · ${t('pages.video')}` : ''}
                   </p>
                   <CopyLink
-                    url={`${origin}/${locale}/citas/${page.slug}`}
+                    url={`${origin}/${locale}/${page.slug}`}
                     labels={{ copy: t('pages.copy'), copied: t('pages.copied') }}
                   />
                   <div className={styles.actions}>

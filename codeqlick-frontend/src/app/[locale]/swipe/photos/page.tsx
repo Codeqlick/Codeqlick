@@ -17,6 +17,7 @@ import {
   uploadVerificationAction,
 } from '../actions';
 import { SwipeGate } from '../Gate';
+import { appPath } from '@/lib/webapp-request';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -27,7 +28,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
   const status = await getSwipeStatus();
   const gate = await SwipeGate({ locale, status });
   if (gate) return gate;
-  if (!status.profile) redirect(`/${locale}/swipe/deck`);
+  if (!status.profile) redirect(await appPath(`/${locale}/swipe/deck`, locale));
   const t = await getTranslations({ locale, namespace: 'Swipe' });
   const ti = await getTranslations({ locale, namespace: 'Videochat.interests' });
   const photos = await listMySwipePhotos();

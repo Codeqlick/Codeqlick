@@ -316,7 +316,7 @@ export class CitasService {
 
   private notifyBooked(row: AppointmentRow, token: string, locale: ApiLocale): void {
     const ownerLocale = toApiLocale(row.page.owner.locale);
-    const cancelUrl = `${this.citasUrl()}/${locale}/citas/cancelar?token=${token}`;
+    const cancelUrl = `${this.citasUrl()}/${locale}/cancelar?token=${token}`;
     this.send(
       appointmentConfirmedEmail(
         this.facts(row, locale),
@@ -329,7 +329,7 @@ export class CitasService {
     this.send(
       appointmentOwnerEmail(
         this.facts(row, ownerLocale),
-        `${this.citasUrl()}/${ownerLocale}/citas`,
+        `${this.citasUrl()}/${ownerLocale}`,
         ownerLocale,
         this.config.siteUrl,
         this.invitation(row, 'REQUEST', ownerLocale),
@@ -413,11 +413,11 @@ export class CitasService {
   }
 
   private pageUrl(slug: string, locale: ApiLocale): string {
-    return `${this.citasUrl()}/${locale}/citas/${slug}`;
+    return `${this.citasUrl()}/${locale}/${slug}`;
   }
 
   private videoUrl(code: string, locale: ApiLocale): string {
-    return `${this.config.webappUrl('meetings')}/${locale}/meetings/${code}`;
+    return `${this.config.webappUrl('meetings')}/${locale}/${code}`;
   }
 
   private pageView(page: PageWithRoom, upcoming: number): PageView {

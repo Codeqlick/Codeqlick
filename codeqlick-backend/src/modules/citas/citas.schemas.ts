@@ -1,11 +1,44 @@
 import { z } from 'zod';
 import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { WEBAPPS } from '../../common/webapps.js';
 import { isTimeZone, WEEKDAYS, type Interval, type Weekday } from '../bookings/booking-time.js';
 
 /** Booking pages an account can have. */
 export const CITAS_MAX_PAGES = 10;
-/** Words of the app's own routes, which a page's link can't take. */
-export const RESERVED_SLUGS = ['editar', 'cancelar', 'nueva', 'nuevo', 'new', 'edit', 'cancel'];
+/**
+ * Words a page's link (citas.codeqlick.com/es/<slug>) can't take: the app's own routes, the sign-in
+ * pages its host also serves, the web apps and the main site's sections.
+ */
+export const RESERVED_SLUGS: string[] = [
+  'editar',
+  'cancelar',
+  'nueva',
+  'nuevo',
+  'new',
+  'edit',
+  'cancel',
+  'login',
+  'register',
+  'forgot-password',
+  'reset-password',
+  // The main site's sections: the frontend's `SITE_SECTIONS`.
+  ...WEBAPPS,
+  'about',
+  'admin',
+  'apps',
+  'basic-website',
+  'blog',
+  'book',
+  'calculator',
+  'confirm-email',
+  'contact',
+  'legal',
+  'portal',
+  'privacy',
+  'services',
+  'terms',
+  'work',
+];
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'HH:MM');
 const interval = z
