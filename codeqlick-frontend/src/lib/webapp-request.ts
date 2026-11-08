@@ -10,10 +10,10 @@ export async function requestWebapp(): Promise<Webapp | null> {
 }
 
 /**
- * Where to land after signing in or up: the web app's home on its host (the portal and the admin
+ * Where to land after signing in or up: the web app's home on its host (`/{locale}`) (the portal and the admin
  * live on the main host, where this host's cookies don't reach), else the role's home.
  */
 export async function homeAfterSignIn(locale: string, role: Role): Promise<string> {
   const app = await requestWebapp();
-  return app ? `/${locale}/${app}` : homeForRole(locale, role);
+  return app ? `/${locale}` : homeForRole(locale, role);
 }

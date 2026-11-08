@@ -84,6 +84,21 @@ export default async function AppsPage({ params }: PageProps) {
               {t('citas.open')}
             </a>
           </li>
+          <li className={`${home.service} ${styles.card}`}>
+            <div className={styles.head}>
+              <h2 className={home.serviceTitle}>{t('swipe.title')}</h2>
+              <Badge tone="danger">{t('swipe.adult')}</Badge>
+            </div>
+            <p className={home.serviceBody}>{t('swipe.body')}</p>
+            <p className={styles.warning}>{t('swipe.warning')}</p>
+            <a
+              href={`/${locale}/swipe`}
+              className={buttonClassName({})}
+              data-umami-event="apps-swipe"
+            >
+              {t('swipe.open')}
+            </a>
+          </li>
         </ul>
       </section>
 

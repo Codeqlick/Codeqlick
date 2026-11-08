@@ -32,7 +32,7 @@ test('an owner publishes a booking page and a visitor books a time', async ({
   try {
     const host = await ownerContext.newPage();
     await signIn(host, owner, '/es/citas');
-    await expect(host).toHaveURL(`${base}/es/citas`);
+    await expect(host).toHaveURL(`${base}/es`);
 
     await host.getByRole('link', { name: 'Nueva página de reservas' }).click();
     await host.getByLabel('Nombre del servicio').fill(`Corte ${tag}`);
@@ -42,12 +42,12 @@ test('an owner publishes a booking page and a visitor books a time', async ({
     }
     await host.getByLabel('Antelación mínima (horas)').fill('0');
     await host.getByRole('button', { name: 'Crear la página' }).click();
-    await expect(host).toHaveURL(`${base}/es/citas`);
+    await expect(host).toHaveURL(`${base}/es`);
     await expect(host.getByText(`Corte ${tag}`, { exact: true })).toBeVisible();
 
     // The visitor opens the public page, picks the first free day and time, and books.
     const visitor = await visitorContext.newPage();
-    await visitor.goto(`/es/citas/${`corte-${tag}`.toLowerCase()}`);
+    await visitor.goto(`/es/${`corte-${tag}`.toLowerCase()}`);
     await expect(visitor.getByRole('heading', { name: `Corte ${tag}` })).toBeVisible();
     await visitor.getByRole('group', { name: 'Elige la hora' }).getByRole('button').first().click();
     await expect(visitor.getByText('Has elegido:')).toBeVisible();

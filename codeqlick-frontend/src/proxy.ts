@@ -6,7 +6,7 @@
  * documented and implemented in `src/lib/auth/refresh.ts`.
  */
 import createMiddleware from 'next-intl/middleware';
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './i18n/routing';
 import { ACCESS_COOKIE, REFRESH_COOKIE } from './lib/auth/constants';
 import {
@@ -33,16 +33,63 @@ export default async function proxy(request: NextRequest) {
   const host = request.headers.get('host') ?? request.nextUrl.host;
   const protocol =
     request.headers.get('x-forwarded-proto') === 'https' ? 'https:' : request.nextUrl.protocol;
-  const webapp = routeWebapp(pathname, host, protocol);
+  // Old addresses are redirected only on navigations; images and form posts are just served.
+  const dest = request.headers.get('sec-fetch-dest');
+  const navigation = request.method === 'GET' && dest !== 'image';
+  const webapp = routeWebapp(pathname, host, protocol, navigation);
   if (webapp.action === 'redirect') {
-    if (webapp.to.startsWith('/')) {
-      return NextResponse.redirect(new URL(webapp.to, `${protocol}//${host}`));
-    }
-    const target = new URL(webapp.to);
+    const target = new URL(webapp.to, `${protocol}//${host}`);
     target.search = search;
     return NextResponse.redirect(target);
   }
+  if (webapp.action === 'rewrite') {
+    // On an app's host, /es/room is the route /es/videochat/room: the rest runs on the route.
+    const url = request.nextUrl.clone();
+    url.pathname = webapp.to;
+    const routed = new NextRequest(url, request);
+    return rewritten(await handle(routed), url, routed.headers);
+  }
+  return handle(request);
+}
 
+/**
+ * Makes a response for a rewritten request serve its route: next-intl and the session code
+ * answer "carry on", which would serve the browser's address; a redirect (to sign in) is kept.
+ * Request headers they changed (a refreshed session's cookie) are carried over.
+ */
+function rewritten(response: NextResponse, url: URL, requestHeaders: Headers): NextResponse {
+  if (response.headers.has('location') || response.headers.has('x-middleware-rewrite')) {
+    return response;
+  }
+  const forwarded = new Headers(requestHeaders);
+  const overridden = response.headers.get('x-middleware-override-headers');
+  for (const name of overridden?.split(',') ?? []) {
+    const key = name.trim().toLowerCase();
+    const value = response.headers.get(`x-middleware-request-${key}`);
+    if (!key) continue;
+    if (value === null) forwarded.delete(key);
+    else forwarded.set(key, value);
+  }
+  const result = NextResponse.rewrite(url, { request: { headers: forwarded } });
+  response.headers.forEach((value, key) => {
+    const lower = key.toLowerCase();
+    if (
+      lower === 'set-cookie' ||
+      lower === 'x-middleware-next' ||
+      lower === 'x-middleware-override-headers' ||
+      lower.startsWith('x-middleware-request-')
+    ) {
+      return;
+    }
+    result.headers.set(key, value);
+  });
+  for (const cookie of response.cookies.getAll()) result.cookies.set(cookie);
+  return result;
+}
+
+/** Locale routing, session refresh and protected pages for a request (its route's path). */
+async function handle(request: NextRequest): Promise<NextResponse> {
+  const { pathname, search } = request.nextUrl;
   const locale = protectedPathLocale(pathname);
   // Meetings take guests: an expiring session is refreshed, but nobody is sent to sign in.
   const optional = !locale && isOptionalSessionPath(pathname);

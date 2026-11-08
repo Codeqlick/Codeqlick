@@ -39,7 +39,7 @@ async function person(browser: Browser, base: string, user: { email: string; pas
   open.push(context);
   const page = await context.newPage();
   await signIn(page, user, '/es/videochat/room');
-  await expect(page).toHaveURL(`${base}/es/videochat/room`);
+  await expect(page).toHaveURL(`${base}/es/room`);
   await page.getByLabel('Fecha de nacimiento').fill('1994-03-15');
   await page.getByLabel(/Tengo 18 años o más/).check();
   await page.getByRole('button', { name: 'Entrar' }).click();
@@ -95,7 +95,7 @@ test('two people meet in the video chat, talk and move on', async ({
     ];
 
     // Ana picks a nickname: that, not her name, is what Ben sees.
-    await ana.goto('/es/videochat/settings');
+    await ana.goto('/es/settings');
     await ana.getByLabel('Apodo').fill(`Ana ${tag}`);
     await ana.getByRole('combobox', { name: 'Género' }).selectOption('WOMAN');
     await ana.getByRole('combobox', { name: 'País' }).selectOption('ES');
@@ -116,7 +116,7 @@ test('two people meet in the video chat, talk and move on', async ({
     await ana.reload();
     await expect(ana.getByRole('combobox', { name: 'Género' })).toHaveValue('WOMAN');
     await expect(ana.getByRole('combobox', { name: 'País' })).toHaveValue('ES');
-    await ana.goto('/es/videochat/room');
+    await ana.goto('/es/room');
 
     await ana.getByRole('button', { name: 'Activar cámara y empezar' }).click();
     await expect(ana.getByText('Buscando a alguien…')).toBeVisible();
@@ -186,11 +186,11 @@ test('two people who like each other become contacts and call each other', async
       await person(browser, base, users[0]!),
       await person(browser, base, users[1]!),
     ];
-    await dan.goto('/es/videochat/settings');
+    await dan.goto('/es/settings');
     await dan.getByLabel('Apodo').fill(`Dan ${tag}`);
     await dan.getByRole('button', { name: 'Guardar' }).click();
     await expect(dan.getByText('Guardado.', { exact: false })).toBeVisible();
-    await dan.goto('/es/videochat/room');
+    await dan.goto('/es/room');
 
     await cai.getByRole('button', { name: 'Activar cámara y empezar' }).click();
     await dan.getByRole('button', { name: 'Activar cámara y empezar' }).click();
@@ -209,7 +209,7 @@ test('two people who like each other become contacts and call each other', async
     // Dan stops; Cai sees him on her contacts, free, and calls him.
     await dan.getByRole('button', { name: 'Parar' }).click();
     await cai.getByRole('button', { name: 'Parar' }).click();
-    await cai.goto('/es/videochat/contacts');
+    await cai.goto('/es/contacts');
     await expect(cai.getByText(`Dan ${tag}`)).toBeVisible();
     await expect(cai.getByText(/^En el videochat · Contactos desde/)).toBeVisible();
     await cai.getByRole('link', { name: 'Llamar' }).click();
