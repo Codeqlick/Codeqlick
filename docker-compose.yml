@@ -55,6 +55,7 @@ services:
       CORS_ORIGINS: http://localhost:${WEB_PORT:-3000}
       # The video chat opens at http://videochat.localhost:<WEB_PORT> (browsers resolve it locally).
       VIDEOCHAT_ORIGINS: http://videochat.localhost:${WEB_PORT:-3000},http://localhost:${WEB_PORT:-3000}
+      MEETINGS_ORIGINS: http://meetings.localhost:${WEB_PORT:-3000},http://localhost:${WEB_PORT:-3000}
       SITE_URL: http://localhost:${WEB_PORT:-3000}
       # Development-only placeholder, same as .env.example. Production sets its own secret.
       JWT_ACCESS_SECRET: change-me-change-me-change-me-change-me-change-me-change-me
@@ -126,6 +127,7 @@ services:
       NEXT_PUBLIC_SITE_URL: http://localhost:${WEB_PORT:-3000}
       # The video chat's browsers open the API's WebSocket directly in development.
       VIDEOCHAT_WS_URL: ws://localhost:${API_PORT:-4000}/v1/videochat/ws
+      MEETINGS_WS_URL: ws://localhost:${API_PORT:-4000}/v1/meetings/ws
     command:
       - sh
       - -c

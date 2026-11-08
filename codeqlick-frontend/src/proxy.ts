@@ -1,7 +1,8 @@
 /**
  * Next.js 16 proxy (formerly middleware): web apps on their subdomains (`src/lib/webapps.ts`),
  * next-intl locale routing + token refresh + route protection for /{locale}/portal,
- * /{locale}/admin and /{locale}/videochat/room. The refresh/forwarding mechanics are
+ * /{locale}/admin and /{locale}/videochat/room, and token refresh without protection for
+ * /{locale}/meetings (guests welcome). The refresh/forwarding mechanics are
  * documented and implemented in `src/lib/auth/refresh.ts`.
  */
 import createMiddleware from 'next-intl/middleware';
@@ -12,6 +13,7 @@ import {
   apiBaseUrl,
   clearTokenCookies,
   clientHeaders,
+  isOptionalSessionPath,
   isSecureCookieEnv,
   loginRedirectUrl,
   needsRefresh,
@@ -42,9 +44,11 @@ export default async function proxy(request: NextRequest) {
   }
 
   const locale = protectedPathLocale(pathname);
+  // Meetings take guests: an expiring session is refreshed, but nobody is sent to sign in.
+  const optional = !locale && isOptionalSessionPath(pathname);
 
   // Public pages: locale routing only.
-  if (!locale) return handleI18nRouting(request);
+  if (!locale && !optional) return handleI18nRouting(request);
 
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
   if (accessToken && !needsRefresh(accessToken)) return handleI18nRouting(request);
@@ -54,7 +58,7 @@ export default async function proxy(request: NextRequest) {
 
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   if (!refreshToken) {
-    if (stillValid) return handleI18nRouting(request);
+    if (stillValid || !locale) return handleI18nRouting(request);
     return NextResponse.redirect(loginRedirectUrl(request.url, locale, pathname, search));
   }
 
@@ -67,7 +71,9 @@ export default async function proxy(request: NextRequest) {
   );
   if (!tokens) {
     if (stillValid) return handleI18nRouting(request);
-    const response = NextResponse.redirect(loginRedirectUrl(request.url, locale, pathname, search));
+    const response = locale
+      ? NextResponse.redirect(loginRedirectUrl(request.url, locale, pathname, search))
+      : handleI18nRouting(request);
     clearTokenCookies(response);
     return response;
   }

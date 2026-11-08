@@ -96,6 +96,8 @@ services:
       # Video chat (architecture 4.7): the page allowed to open its WebSocket, coturn's shared
       # secret and the STUN/TURN URLs browsers get. Without TURN, calls behind strict NATs fail.
       VIDEOCHAT_ORIGINS: ${VIDEOCHAT_URL:-https://videochat.codeqlick.com}
+      # Meetings (architecture 4.8): the page allowed to open its WebSocket (same TURN as above).
+      MEETINGS_ORIGINS: ${MEETINGS_URL:-https://meetings.codeqlick.com}
       VIDEOCHAT_AGE_VERIFICATION_REQUIRED: ${VIDEOCHAT_AGE_VERIFICATION_REQUIRED:-false}
       TURN_SECRET: ${TURN_SECRET:-}
       TURN_URLS: ${TURN_URLS:-}

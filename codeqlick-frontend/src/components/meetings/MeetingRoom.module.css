@@ -1,0 +1,424 @@
+/* meetings.codeqlick.com: Codeqlick's light colours; video tiles on ink so faces stand out. */
+
+.muted,
+.small {
+  color: var(--color-slate);
+  margin: 0;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.eyebrow {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  color: var(--color-fuchsia-dark);
+  margin: 0;
+}
+
+.heading {
+  font-family: var(--font-family-display);
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  line-height: 1.1;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.notice {
+  display: block;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
+  color: var(--color-ink);
+}
+
+.error {
+  color: var(--color-fuchsia-dark);
+  font-size: 0.85rem;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 1px;
+}
+
+/* Before joining */
+
+.setup {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: center;
+}
+
+@media (max-width: 52rem) {
+  .setup {
+    grid-template-columns: 1fr;
+  }
+}
+
+.preview {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.join {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+
+.joinForm,
+.field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.field > span:first-child {
+  font-weight: 600;
+}
+
+.waitingBox {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.waitingBox p {
+  margin-top: var(--space-1);
+}
+
+.pulse {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: var(--color-fuchsia);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+  }
+}
+
+.panelBox {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 36rem;
+  padding: var(--space-8);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+}
+
+/* Tiles */
+
+.tile {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-ink);
+  display: grid;
+  place-items: center;
+}
+
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tile[data-screen] .video {
+  object-fit: contain;
+}
+
+.mirror {
+  transform: scaleX(-1);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  font-family: var(--font-family-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.caption {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  max-width: calc(100% - var(--space-4));
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: rgb(20 16 31 / 70%);
+  color: var(--color-white);
+  font-size: 0.85rem;
+}
+
+.chip {
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  font-size: 0.75rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.controls button {
+  min-height: 44px;
+}
+
+/* In the meeting */
+
+.meeting {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.meetingTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.knocks {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.knock {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-fuchsia);
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
+}
+
+.stage {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+.stage[data-panel] {
+  grid-template-columns: minmax(0, 1fr) 20rem;
+}
+
+@media (max-width: 52rem) {
+  .stage[data-panel] {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+  align-content: start;
+}
+
+.grid[data-count='2'],
+.grid[data-count='3'],
+.grid[data-count='4'] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid[data-count='5'],
+.grid[data-count='6'] {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 40rem) {
+  /* Two people on a phone: one above the other, big enough to see. */
+  .grid[data-count='2'] {
+    grid-template-columns: 1fr;
+  }
+
+  .grid[data-count='3'],
+  .grid[data-count='4'],
+  .grid[data-count='5'],
+  .grid[data-count='6'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* One person alone: no wider than a comfortable size. */
+.grid[data-count='1'] .tile {
+  max-width: 56rem;
+  width: 100%;
+  justify-self: center;
+}
+
+.side {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: var(--space-3);
+  max-height: 32rem;
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+}
+
+.messages {
+  overflow-y: auto;
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  min-height: 10rem;
+}
+
+.messages p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mine strong {
+  color: var(--color-fuchsia-dark);
+}
+
+.chatForm {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.peopleList {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.peopleList li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.5rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.ownerTools {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.switch {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  font-weight: 600;
+}
+
+.switch input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--color-fuchsia);
+}
+
+.dock {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+}
+
+/* Phones: the buttons stay at hand at the bottom of the screen. */
+@media (max-width: 40rem) {
+  .dock {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  .shareButton {
+    display: none;
+  }
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  margin-left: var(--space-1);
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  font-size: 0.75rem;
+}

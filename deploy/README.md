@@ -116,6 +116,21 @@ email `LEADS_NOTIFY_TO`. Explicit content between adults is allowed; before open
 public, have the rules and the privacy text reviewed (Digital Services Act, age assurance). To
 require a verified age instead of a declared one, set `VIDEOCHAT_AGE_VERIFICATION_REQUIRED=true`.
 
+### Meetings (meetings.codeqlick.com)
+
+Video meetings by link (architecture 4.8 and 6.3), served by the same web and API containers.
+Calls use the video chat's coturn, so the video chat is set up first. **One command**, safe to
+run again:
+
+```bash
+cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-meetings.sh
+```
+
+It creates the DNS record through OVH's API, sets `MEETINGS_URL` in `.env`, installs
+`deploy/nginx/meetings.codeqlick.com.conf`, gets the certificate once the DNS answers, releases and
+checks. Then open https://meetings.codeqlick.com, sign in, create a room and open its link on
+another device (one on mobile data checks TURN).
+
 ## Updating
 
 ```bash
