@@ -1109,9 +1109,6 @@
       "searchPlaceholder": "Nombre o correo",
       "noMatchTitle": "Ninguna cuenta coincide",
       "noMatchBody": "Prueba con otro tipo, otra app u otra búsqueda.",
-      "signedUpFrom": "Se registró desde {app}",
-      "signedUpOnSite": "Se registró en codeqlick.com",
-      "usesApps": "Usa {apps}",
       "kinds": {
         "admin": "Administrador",
         "client": "Cliente",

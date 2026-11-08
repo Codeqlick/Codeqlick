@@ -9,25 +9,11 @@ const TONES: Record<NonNullable<AdminUser['kind']>, BadgeTone> = {
 };
 
 /**
- * Who the account is for the team (decision 29): administrator, client, user of our web
- * apps (named after the badge) or neither yet. Server Component.
+ * Who the account is for the team (decision 29): administrator, client, user of our web apps or
+ * neither yet. Only the type: which apps someone uses isn't shown. Server Component.
  */
-export async function AccountKindBadge({
-  user,
-  withApps = true,
-}: {
-  user: Pick<AdminUser, 'role' | 'kind' | 'apps'>;
-  /** Names the apps it uses after the badge. */
-  withApps?: boolean;
-}) {
+export async function AccountKindBadge({ user }: { user: Pick<AdminUser, 'role' | 'kind'> }) {
   const t = await getTranslations('Admin.users.kinds');
-  const ta = await getTranslations('Apps');
-  const apps = user.apps.map((app) => ta(`${app}.title`)).join(', ');
   if (user.role === 'ADMIN' || !user.kind) return <Badge tone="ink">{t('admin')}</Badge>;
-  return (
-    <>
-      <Badge tone={TONES[user.kind]}>{t(user.kind)}</Badge>
-      {withApps && apps ? <> {apps}</> : null}
-    </>
-  );
+  return <Badge tone={TONES[user.kind]}>{t(user.kind)}</Badge>;
 }
