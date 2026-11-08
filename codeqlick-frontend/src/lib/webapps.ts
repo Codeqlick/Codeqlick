@@ -3,10 +3,10 @@
  * same Next.js app under /{locale}/<app> (architecture 6.3). Pure functions: the proxy uses them,
  * so no `server-only` and no env module here.
  *
- * Adding an app: its name here, its pages under `app/[locale]/<name>/`, an Nginx server block for
- * <name>.codeqlick.com and its certificate.
+ * Adding an app: its name here and in the API's WEBAPPS, and its pages under `app/[locale]/<name>/`.
+ * The release publishes <name>.codeqlick.com (DNS, Nginx, certificate) by itself.
  */
-export const WEBAPPS = ['videochat', 'meetings'] as const;
+export const WEBAPPS = ['videochat', 'meetings', 'citas'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
 /** Pages of the main site a web app's host also serves: signing in and creating the account. */

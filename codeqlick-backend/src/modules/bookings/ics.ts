@@ -39,7 +39,10 @@ export function callInvitation(call: {
   endsAt: Date;
   summary: string;
   description: string;
-  url: string;
+  /** The video-call link, if any. */
+  url?: string;
+  /** Where it happens; the link when not given. */
+  location?: string;
   organizer: { name: string; email: string };
   attendee: { name: string; email: string };
   now?: Date;
@@ -58,8 +61,8 @@ export function callInvitation(call: {
     `DTEND:${stamp(call.endsAt)}`,
     `SUMMARY:${text(call.summary)}`,
     `DESCRIPTION:${text(call.description)}`,
-    `LOCATION:${text(call.url)}`,
-    `URL:${call.url}`,
+    ...(call.location || call.url ? [`LOCATION:${text(call.location || call.url || '')}`] : []),
+    ...(call.url ? [`URL:${call.url}`] : []),
     `ORGANIZER;CN=${text(call.organizer.name)}:mailto:${call.organizer.email}`,
     `ATTENDEE;CN=${text(call.attendee.name)};ROLE=REQ-PARTICIPANT;RSVP=FALSE:mailto:${call.attendee.email}`,
     `STATUS:${call.method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED'}`,

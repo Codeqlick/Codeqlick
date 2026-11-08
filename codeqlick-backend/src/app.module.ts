@@ -35,6 +35,7 @@ import { TimeModule } from './modules/time/time.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { VideochatModule } from './modules/videochat/videochat.module.js';
 import { MeetingsModule } from './modules/meetings/meetings.module.js';
+import { CitasModule } from './modules/citas/citas.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -74,6 +75,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ReviewsModule,
     VideochatModule,
     MeetingsModule,
+    CitasModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.

@@ -97,6 +97,8 @@ export class AccountRepository {
       reportsMade,
       sanctions,
       appeals,
+      meetingRooms,
+      bookingPages,
     ] = await Promise.all([
       p.user.findUniqueOrThrow({
         where: { id: userId },
@@ -222,6 +224,42 @@ export class AccountRepository {
         orderBy: { createdAt: 'asc' },
         select: { message: true, status: true, response: true, createdAt: true },
       }),
+      p.meetingRoom.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { code: true, title: true, lobby: true, createdAt: true, lastUsedAt: true },
+      }),
+      p.bookingPage.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          slug: true,
+          title: true,
+          description: true,
+          durationMinutes: true,
+          location: true,
+          askPhone: true,
+          timeZone: true,
+          weekly: true,
+          minNoticeHours: true,
+          horizonDays: true,
+          enabled: true,
+          createdAt: true,
+          appointments: {
+            orderBy: { startsAt: 'asc' },
+            select: {
+              name: true,
+              email: true,
+              phone: true,
+              note: true,
+              startsAt: true,
+              endsAt: true,
+              status: true,
+              createdAt: true,
+            },
+          },
+        },
+      }),
     ]);
     return {
       user,
@@ -242,6 +280,8 @@ export class AccountRepository {
             appeals,
           }
         : null,
+      meetingRooms,
+      bookingPages,
     };
   }
 }
