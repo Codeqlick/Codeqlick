@@ -133,12 +133,7 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
                       ) : null}
                     </th>
                     <td>
-                      <AccountKindBadge user={user} />
-                      {user.signupApp ? (
-                        <span className={styles.sub}>
-                          {t('signedUpFrom', { app: ta(`${user.signupApp}.title`) })}
-                        </span>
-                      ) : null}
+                      <AccountKindBadge user={user} withApps={false} />
                     </td>
                     <td>
                       <Badge tone={user.isActive ? 'success' : 'neutral'}>

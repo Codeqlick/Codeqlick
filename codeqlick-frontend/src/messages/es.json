@@ -1123,9 +1123,9 @@
         "nonePlural": "Sin actividad"
       },
       "kindHint": {
-        "all": "Todas las cuentas. Los clientes son a quienes hacemos webs o apps; los usuarios de apps solo usan Videochat, Swipe, Meetings o Citas.",
+        "all": "Todas las cuentas. Los clientes son a quienes hacemos webs o apps; los usuarios de apps solo usan nuestras apps.",
         "client": "Personas y empresas para las que trabajamos: tienen proyectos, propuestas, solicitudes de soporte o una cuenta que preparó el equipo.",
-        "app": "Solo usan nuestras apps (Videochat, Swipe, Meetings, Citas). Si les envías una propuesta o un proyecto, pasan a ser clientes.",
+        "app": "Solo usan nuestras apps. Si les envías una propuesta o un proyecto, pasan a ser clientes.",
         "none": "Se registraron en codeqlick.com pero aún no tienen proyectos ni usan ninguna app.",
         "admin": "El equipo de Codeqlick."
       }

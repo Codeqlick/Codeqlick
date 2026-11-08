@@ -1123,9 +1123,9 @@
         "nonePlural": "No activity"
       },
       "kindHint": {
-        "all": "Every account. Clients are the people we build websites or apps for; app users only use Videochat, Swipe, Meetings or Citas.",
+        "all": "Every account. Clients are the people we build websites or apps for; app users only use our apps.",
         "client": "People and companies we work for: they have projects, proposals, support requests or an account the team prepared.",
-        "app": "They only use our apps (Videochat, Swipe, Meetings, Citas). Send them a proposal or a project and they become clients.",
+        "app": "They only use our apps. Send them a proposal or a project and they become clients.",
         "none": "They signed up on codeqlick.com but have no projects yet and use no app.",
         "admin": "The Codeqlick team."
       }
