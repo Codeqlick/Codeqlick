@@ -56,6 +56,7 @@ import {
   type TwoFactorSetup,
   type TwoFactorStatus,
 } from './auth.service.js';
+import { CaptchaService } from './captcha.service.js';
 
 const STRICT_LIMIT = { default: { limit: 5, ttl: 60_000 } };
 const SIGNUP_LIMIT = { default: { limit: 3, ttl: 60_000 } };
@@ -68,17 +69,22 @@ function clientInfo(request: AppRequest): ClientInfo {
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly captcha: CaptchaService,
+  ) {}
 
   @Public()
   @Throttle(STRICT_LIMIT)
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(
+  async login(
     @Body({ schema: loginSchema }) body: LoginInput,
     @Req() request: AppRequest,
   ): Promise<LoginResult> {
-    return this.auth.login(body.email, body.password, clientInfo(request));
+    const client = clientInfo(request);
+    await this.captcha.verify(body.captcha, client.ip);
+    return this.auth.login(body.email, body.password, client);
   }
 
   @Public()
@@ -97,7 +103,11 @@ export class AuthController {
   @Throttle(SIGNUP_LIMIT)
   @Post('register')
   @HttpCode(HttpStatus.ACCEPTED)
-  async register(@Body({ schema: registerSchema }) body: RegisterInput): Promise<void> {
+  async register(
+    @Body({ schema: registerSchema }) body: RegisterInput,
+    @Req() request: AppRequest,
+  ): Promise<void> {
+    await this.captcha.verify(body.captcha, clientInfo(request).ip);
     await this.auth.register(body);
   }
 

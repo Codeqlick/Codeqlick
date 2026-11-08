@@ -594,3 +594,8 @@
   border: 0;
   border-top: 1px solid var(--color-line);
 }
+
+/* Cloudflare Turnstile's widget: its height kept while it loads, so the form doesn't jump. */
+.turnstile {
+  min-height: 65px;
+}

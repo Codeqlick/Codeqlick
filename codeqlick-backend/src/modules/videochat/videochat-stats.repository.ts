@@ -28,6 +28,29 @@ export interface CallTotals {
 
 /** A call this long or longer counts as a real conversation. */
 export const LONG_CALL_SEC = 60;
+/** A call shorter than this was a skip (suspicious accounts, architecture 4.7). */
+export const SHORT_CALL_SEC = 10;
+
+/** One person's side of a call, added to their day's counters. */
+export interface CallCounters {
+  userId: string;
+  short: boolean;
+  /** The other person ended it under SHORT_CALL_SEC. */
+  skippedFast: boolean;
+}
+
+/** One account's figures for the suspicious accounts list (architecture 4.7). */
+export interface SuspicionRow {
+  userId: string;
+  nickname: string | null;
+  email: string;
+  joinedAt: Date;
+  calls: number;
+  shortCalls: number;
+  skippedFast: number;
+  maxCallsInDay: number;
+  reporters: number;
+}
 
 /** Anonymous usage data of the video chat: calls and the days each account came (architecture 4.7). */
 @Injectable()
@@ -44,6 +67,70 @@ export class VideochatStatsRepository {
 
   async logCall(input: CallLogInput): Promise<void> {
     await this.prisma.videochatCallLog.create({ data: input });
+  }
+
+  /** Adds a call to each person's counters of that day (`yyyy-mm-dd`). */
+  async countCall(day: string, people: CallCounters[]): Promise<void> {
+    await this.prisma.$transaction(
+      people.map(
+        (person) => this.prisma.$executeRaw`
+          INSERT INTO videochat_active_days (day, user_id, calls, short_calls, skipped_fast)
+          VALUES (${day}::date, ${person.userId}::uuid, 1, ${person.short ? 1 : 0},
+                  ${person.skippedFast ? 1 : 0})
+          ON CONFLICT (day, user_id) DO UPDATE SET
+            calls = videochat_active_days.calls + 1,
+            short_calls = videochat_active_days.short_calls + EXCLUDED.short_calls,
+            skipped_fast = videochat_active_days.skipped_fast + EXCLUDED.skipped_fast`,
+      ),
+    );
+  }
+
+  /**
+   * Accounts with calls since `callsFrom` (`yyyy-mm-dd`) or reports since `reportsFrom`, not
+   * suspended now and not marked "not suspicious" since `clearedAfter` (unless reported after it).
+   */
+  async suspicionCandidates(input: {
+    callsFrom: string;
+    reportsFrom: Date;
+    clearedAfter: Date;
+    now: Date;
+    limit: number;
+  }): Promise<SuspicionRow[]> {
+    const { callsFrom, reportsFrom, clearedAfter, now, limit } = input;
+    return this.prisma.$queryRaw<SuspicionRow[]>`
+      WITH activity AS (
+        SELECT user_id, sum(calls)::int AS calls, sum(short_calls)::int AS short_calls,
+               sum(skipped_fast)::int AS skipped_fast, max(calls)::int AS max_calls
+        FROM videochat_active_days WHERE day >= ${callsFrom}::date GROUP BY user_id
+      ), reported AS (
+        SELECT reported_id AS user_id, count(DISTINCT reporter_id)::int AS reporters
+        FROM videochat_reports WHERE created_at >= ${reportsFrom} GROUP BY reported_id
+      )
+      SELECT p.user_id AS "userId", p.nickname, u.email, p.created_at AS "joinedAt",
+             coalesce(a.calls, 0) AS calls, coalesce(a.short_calls, 0) AS "shortCalls",
+             coalesce(a.skipped_fast, 0) AS "skippedFast", coalesce(a.max_calls, 0) AS "maxCallsInDay",
+             coalesce(r.reporters, 0) AS reporters
+      FROM videochat_profiles p
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN activity a ON a.user_id = p.user_id
+      LEFT JOIN reported r ON r.user_id = p.user_id
+      WHERE (a.user_id IS NOT NULL OR r.user_id IS NOT NULL)
+        AND NOT (p.suspended_at IS NOT NULL AND (p.suspended_until IS NULL OR p.suspended_until > ${now}))
+        AND (p.suspicion_cleared_at IS NULL OR p.suspicion_cleared_at < ${clearedAfter}
+             OR EXISTS (SELECT 1 FROM videochat_reports x
+                        WHERE x.reported_id = p.user_id AND x.created_at > p.suspicion_cleared_at))
+      ORDER BY coalesce(r.reporters, 0) DESC, coalesce(a.skipped_fast, 0) DESC,
+               coalesce(a.max_calls, 0) DESC
+      LIMIT ${limit}`;
+  }
+
+  /** `false` when the account never joined the video chat. */
+  async clearSuspicion(userId: string, at: Date): Promise<boolean> {
+    const { count } = await this.prisma.videochatProfile.updateMany({
+      where: { userId },
+      data: { suspicionClearedAt: at },
+    });
+    return count > 0;
   }
 
   /** Deletes calls and active days older than `before` (a date, `yyyy-mm-dd`, for the days). */

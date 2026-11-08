@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { acceptInvitation, confirmSignup, register } from '@/lib/api/auth';
-import { isApiError } from '@/lib/api/errors';
+import { isApiError, isCaptchaError, isDisposableEmailError } from '@/lib/api/errors';
 import type { AuthTokens } from '@/lib/api/types';
 import { setAuthCookies } from '@/lib/auth/session';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
@@ -22,6 +22,15 @@ async function failure(
   formData: FormData,
 ): Promise<FormState> {
   const t = await getTranslations({ locale, namespace: 'Register' });
+  if (isCaptchaError(error))
+    return { status: 'error', message: t('captcha'), values: kept(formData) };
+  if (isDisposableEmailError(error)) {
+    return {
+      status: 'error',
+      fieldErrors: { email: t('disposableEmail') },
+      values: kept(formData),
+    };
+  }
   const status = isApiError(error) ? error.status : 0;
   const message =
     status === 400 ? t('invalidLink') : status === 429 ? t('rateLimited') : t('error');
@@ -78,6 +87,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       acceptPrivacy: true,
       website: formString(formData, 'website'),
       app: (await requestWebapp()) ?? undefined,
+      captcha: formString(formData, 'captcha') || undefined,
     });
   } catch (error) {
     return failure(locale, error, formData);

@@ -1207,6 +1207,8 @@ model VideochatProfile {
   peakAlerts       Boolean           @default(false) @map("peak_alerts")
   /// Last peak time alert sent to this account (at most one a day).
   peakNotifiedAt   DateTime?         @map("peak_notified_at") @db.Timestamptz(3)
+  /// The team marked the account "not suspicious": hidden from that list for 30 days.
+  suspicionClearedAt DateTime?       @map("suspicion_cleared_at") @db.Timestamptz(3)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -1298,8 +1300,12 @@ model VideochatCallLog {
 
 /// An account used the video chat on that day (Europe/Madrid), for daily counts. Kept 180 days.
 model VideochatActiveDay {
-  day    DateTime @db.Date
-  userId String   @map("user_id") @db.Uuid
+  day         DateTime @db.Date
+  userId      String   @map("user_id") @db.Uuid
+  /// Calls that day, those under 10 s, and those the other person ended under 10 s.
+  calls       Int      @default(0)
+  shortCalls  Int      @default(0) @map("short_calls")
+  skippedFast Int      @default(0) @map("skipped_fast")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

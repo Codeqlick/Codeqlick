@@ -36,6 +36,7 @@
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
     "argon2": "0.45.2",
+    "disposable-email-domains-js": "1.26.0",
     "dotenv": "18.0.9",
     "helmet": "8.3.0",
     "nestjs-pino": "5.3.1",

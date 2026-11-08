@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { createHash, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
 import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
@@ -390,6 +391,9 @@ export class AuthService {
   async register(input: RegisterInput): Promise<void> {
     if (input.website && input.website.trim() !== '') return;
     const email = input.email.trim().toLowerCase();
+    if (isDisposableEmail(email)) {
+      throw new BadRequestException({ errors: [DISPOSABLE_EMAIL_ERROR] });
+    }
     const existing = await this.repository.findUserByEmail(email);
     const site = this.config.siteUrl;
     // From a web app (architecture 6.3), the links open on its host so the person ends up there.

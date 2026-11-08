@@ -43,3 +43,13 @@ export function isApiError(error: unknown): error is ApiError {
 export function isNotFound(error: unknown): boolean {
   return isApiError(error) && error.status === 404;
 }
+
+/** The API refused (or didn't get) the Cloudflare Turnstile token (architecture 4.3). */
+export function isCaptchaError(error: unknown): boolean {
+  return isApiError(error) && error.status === 400 && error.fieldErrors.captcha !== undefined;
+}
+
+/** The API refused an address of a disposable email service (architecture 4.3). */
+export function isDisposableEmailError(error: unknown): boolean {
+  return isApiError(error) && error.status === 400 && error.fieldErrors.email === 'disposable';
+}

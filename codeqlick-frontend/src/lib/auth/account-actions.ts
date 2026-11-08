@@ -6,7 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
 import { confirmEmailChange, deleteMe, requestEmailChange, updateMe } from '@/lib/api/auth';
-import { isApiError } from '@/lib/api/errors';
+import { isApiError, isDisposableEmailError } from '@/lib/api/errors';
 import { formString, type FormState } from '@/lib/forms';
 import { clearAuthCookies } from './session';
 
@@ -58,6 +58,9 @@ export async function changeEmailAction(
         return { status: 'error', fieldErrors: { email: t('emailTaken') }, values };
       }
       if (error.status === 429) return { status: 'error', message: t('rateLimited'), values };
+      if (isDisposableEmailError(error)) {
+        return { status: 'error', fieldErrors: { email: t('emailDisposable') }, values };
+      }
       if (error.status === 400) {
         if (error.fieldErrors.password) {
           return { status: 'error', fieldErrors: { password: t('wrongPassword') }, values };

@@ -6,6 +6,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { failedState } from '@/lib/actions';
 import {
   bulkVideochatReports,
+  clearVideochatSuspicion,
   dismissVideochatReport,
   liftVideochatSuspension,
   resolveVideochatAppeal,
@@ -134,4 +135,14 @@ export async function resolveAppealAction(
   return run(locale, formData, () =>
     resolveVideochatAppeal(id, accept, text(formData, 'response')),
   );
+}
+
+/** "Not suspicious": hidden from the suspicious accounts list for 30 days. */
+export async function clearSuspicionAction(
+  locale: AppLocale,
+  userId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return run(locale, formData, () => clearVideochatSuspicion(userId));
 }

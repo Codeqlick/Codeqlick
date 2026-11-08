@@ -5,7 +5,11 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { AppConfigService } from '../../config/app-config.service.js';
-import { STATS_TIME_ZONE, VideochatStatsRepository } from './videochat-stats.repository.js';
+import {
+  SHORT_CALL_SEC,
+  STATS_TIME_ZONE,
+  VideochatStatsRepository,
+} from './videochat-stats.repository.js';
 
 const DAY_MS = 86_400_000;
 /** Usage data is kept this long, then deleted. */
@@ -105,6 +109,22 @@ export class VideochatStatsService implements OnApplicationBootstrap, OnApplicat
       })
       .catch((error: unknown) => {
         this.logger.error(`Videochat call log not saved: ${String(error)}`);
+      });
+  }
+
+  /**
+   * A call ended (fire and forget): counted on both people's day, for the suspicious accounts list
+   * (architecture 4.7). `endedBy` hung up or skipped; a short call skipped them `other` fast.
+   */
+  countCall(startedAt: number, endedAt: number, endedBy: string, other: string): void {
+    const short = endedAt - startedAt < SHORT_CALL_SEC * 1000;
+    this.repository
+      .countCall(madridDay(new Date(endedAt)), [
+        { userId: endedBy, short, skippedFast: false },
+        { userId: other, short, skippedFast: short },
+      ])
+      .catch((error: unknown) => {
+        this.logger.error(`Videochat call counters not saved: ${String(error)}`);
       });
   }
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
+import { Turnstile } from '@/components/app/Turnstile';
 import styles from '@/components/app/app.module.css';
 import { Logo } from '@/components/brand/Logo';
 import { Alert } from '@/components/ui/Alert';
@@ -12,6 +13,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { signupInvitation } from '@/lib/api/auth';
 import { getCurrentUser } from '@/lib/auth/session';
 import { homeAfterSignIn } from '@/lib/webapp-request';
+import { env } from '@/lib/env';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { registerAction } from './actions';
@@ -138,6 +140,9 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
                     autoComplete="off"
                   />
                 </div>
+                {env.TURNSTILE_SITE_KEY && !invited ? (
+                  <Turnstile siteKey={env.TURNSTILE_SITE_KEY} locale={locale} />
+                ) : null}
                 <SubmitButton block pendingLabel={t('submitting')}>
                   {t('submit')}
                 </SubmitButton>

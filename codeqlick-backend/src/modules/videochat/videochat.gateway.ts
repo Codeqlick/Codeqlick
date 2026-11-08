@@ -686,8 +686,10 @@ export class VideochatGateway implements OnApplicationBootstrap, OnModuleDestroy
     partnerParticipant.lastPartner = { userId: me.userId, until: now + REMATCH_COOLDOWN_MS };
     connection.last = { userId: partnerParticipant.userId, call, endedAt: now };
     connection.call = undefined;
-    if (call.startedAt !== undefined)
+    if (call.startedAt !== undefined) {
       this.statistics.logCall(call.startedAt, now, call.waitedMs ?? null);
+      this.statistics.countCall(call.startedAt, now, me.userId, partnerParticipant.userId);
+    }
     if (partner) {
       partner.last = { userId: me.userId, call, endedAt: now };
       partner.call = undefined;

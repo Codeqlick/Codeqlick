@@ -56,6 +56,22 @@ describe('Clients create their own account (e2e)', () => {
     await app?.close();
   });
 
+  it('refuses disposable email addresses', async () => {
+    const response = await request(app.getHttpServer())
+      .post('/v1/auth/register')
+      .set('X-Forwarded-For', '203.0.113.29')
+      .send({
+        name: 'Bot',
+        email: `bot-${tag}@mailinator.com`,
+        password,
+        locale: 'es',
+        acceptPrivacy: true,
+      })
+      .expect(400);
+    expect(response.body.errors).toEqual([{ path: 'email', message: 'disposable' }]);
+    expect(sent.some((message) => message.to.endsWith('@mailinator.com'))).toBe(false);
+  });
+
   it('signs up with a confirmed email, and never says whether an email has an account', async () => {
     const server = app.getHttpServer();
     const body = { name: 'Ada', email: fresh, password, locale: 'es', acceptPrivacy: true };

@@ -17,6 +17,7 @@ function service(history: Partial<Awaited<ReturnType<VideochatStatsRepository['h
       ...history,
     }),
     logCall: vi.fn().mockResolvedValue(undefined),
+    countCall: vi.fn().mockResolvedValue(undefined),
     deleteOlderThan: vi.fn().mockResolvedValue(0),
   };
   const config = { nodeEnv: 'test' } as AppConfigService;
@@ -87,6 +88,21 @@ describe('VideochatStatsService', () => {
     });
     stats.logCall(1_000, 2_000, null);
     expect(repository.logCall).toHaveBeenLastCalledWith(expect.objectContaining({ waitSec: null }));
+  });
+
+  it('counts a call for both people, a fast skip only for the one left', () => {
+    const { stats, repository } = service({});
+    const start = Date.parse('2026-11-08T12:00:00Z');
+    stats.countCall(start, start + 4_000, 'skipper', 'skipped');
+    expect(repository.countCall).toHaveBeenCalledWith('2026-11-08', [
+      { userId: 'skipper', short: true, skippedFast: false },
+      { userId: 'skipped', short: true, skippedFast: true },
+    ]);
+    stats.countCall(start, start + 90_000, 'a', 'b');
+    expect(repository.countCall).toHaveBeenLastCalledWith('2026-11-08', [
+      { userId: 'a', short: false, skippedFast: false },
+      { userId: 'b', short: false, skippedFast: false },
+    ]);
   });
 
   it('deletes usage data older than 180 days', async () => {

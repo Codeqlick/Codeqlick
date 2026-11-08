@@ -25,16 +25,19 @@ const appSockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL]
   })
   .filter((origin, index, all) => origin && all.indexOf(origin) === index);
 
+/** Cloudflare Turnstile on sign-in and sign-up (architecture 4.3): its script, frame and checks. */
+const TURNSTILE = 'https://challenges.cloudflare.com';
+
 /** `extra` adds third-party hosts to scripts, frames and connections (the video chat's ads). */
 const policy = (extra: string[] = []) =>
   [
     "default-src 'self'",
-    ['script-src', "'self'", "'unsafe-inline'", ...extra].join(' '),
+    ['script-src', "'self'", "'unsafe-inline'", TURNSTILE, ...extra].join(' '),
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self'",
-    ['connect-src', "'self'", ...appSockets, ...extra].join(' '),
-    ...(extra.length ? [['frame-src', "'self'", ...extra].join(' ')] : []),
+    ['connect-src', "'self'", ...appSockets, TURNSTILE, ...extra].join(' '),
+    ['frame-src', "'self'", TURNSTILE, ...extra].join(' '),
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

@@ -7,6 +7,7 @@ import { VideochatRepository } from './videochat.repository.js';
 import { VideochatService } from './videochat.service.js';
 import { VideochatStatsRepository } from './videochat-stats.repository.js';
 import { VideochatStatsService } from './videochat-stats.service.js';
+import { VideochatSuspiciousService } from './videochat-suspicious.service.js';
 
 /** The random 1:1 video chat at videochat.codeqlick.com (architecture 4.7). */
 @Module({
@@ -18,6 +19,7 @@ import { VideochatStatsService } from './videochat-stats.service.js';
     VideochatPushService,
     VideochatStatsService,
     VideochatStatsRepository,
+    VideochatSuspiciousService,
   ],
 })
 export class VideochatModule {}

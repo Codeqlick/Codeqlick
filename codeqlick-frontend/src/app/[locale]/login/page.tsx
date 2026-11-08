@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
+import { Turnstile } from '@/components/app/Turnstile';
 import styles from '@/components/app/app.module.css';
 import { Logo } from '@/components/brand/Logo';
 import { Alert } from '@/components/ui/Alert';
@@ -11,6 +12,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
 import { homeAfterSignIn, shortNext } from '@/lib/webapp-request';
+import { env } from '@/lib/env';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { loginAction } from './actions';
@@ -85,6 +87,9 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
               autoComplete="current-password"
               required
             />
+            {env.TURNSTILE_SITE_KEY ? (
+              <Turnstile siteKey={env.TURNSTILE_SITE_KEY} locale={locale} />
+            ) : null}
             <SubmitButton block pendingLabel={t('submitting')}>
               {t('submit')}
             </SubmitButton>
