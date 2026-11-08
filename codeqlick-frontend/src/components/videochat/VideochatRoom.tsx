@@ -28,8 +28,7 @@ type TicketResult =
   | { ok: false; reason: 'suspended' | 'signed-out' | 'error' };
 
 type SignalData =
-  | { sdp: { type: 'offer' | 'answer'; sdp: string } }
-  | { candidate: RTCIceCandidateInit };
+  { sdp: { type: 'offer' | 'answer'; sdp: string } } | { candidate: RTCIceCandidateInit };
 
 type ServerMessage =
   | { type: 'ready' }
@@ -69,14 +68,7 @@ type PartnerProfile = {
 const WIDEN_AFTER_MS = 30_000;
 
 type Phase =
-  | 'idle'
-  | 'starting'
-  | 'searching'
-  | 'calling'
-  | 'connecting'
-  | 'connected'
-  | 'stopped'
-  | 'closed';
+  'idle' | 'starting' | 'searching' | 'calling' | 'connecting' | 'connected' | 'stopped' | 'closed';
 
 type NoticeKey =
   | 'partnerLeft'
