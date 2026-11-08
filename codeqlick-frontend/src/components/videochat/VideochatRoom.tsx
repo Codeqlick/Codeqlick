@@ -10,6 +10,7 @@ import {
   type FormEvent,
 } from 'react';
 import { Link } from '@/i18n/navigation';
+import { AdZone } from './AdZone';
 import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
 import styles from './VideochatRoom.module.css';
@@ -27,7 +28,8 @@ type TicketResult =
   | { ok: false; reason: 'suspended' | 'signed-out' | 'error' };
 
 type SignalData =
-  { sdp: { type: 'offer' | 'answer'; sdp: string } } | { candidate: RTCIceCandidateInit };
+  | { sdp: { type: 'offer' | 'answer'; sdp: string } }
+  | { candidate: RTCIceCandidateInit };
 
 type ServerMessage =
   | { type: 'ready' }
@@ -67,7 +69,14 @@ type PartnerProfile = {
 const WIDEN_AFTER_MS = 30_000;
 
 type Phase =
-  'idle' | 'starting' | 'searching' | 'calling' | 'connecting' | 'connected' | 'stopped' | 'closed';
+  | 'idle'
+  | 'starting'
+  | 'searching'
+  | 'calling'
+  | 'connecting'
+  | 'connected'
+  | 'stopped'
+  | 'closed';
 
 type NoticeKey =
   | 'partnerLeft'
@@ -1191,6 +1200,10 @@ export function VideochatRoom({
           {t('report')}
         </button>
       </div>
+
+      {/* Ads only while no partner is on screen: never over or beside a call (4.7). */}
+      {phase === 'searching' ? <AdZone zone="waiting" className={styles.ad} /> : null}
+      {phase === 'stopped' ? <AdZone zone="between" className={styles.ad} /> : null}
 
       <section className={styles.chat} aria-label={t('chatLabel')}>
         <div className={styles.chatLog} aria-live="polite">
