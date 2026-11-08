@@ -704,7 +704,8 @@
       "monitoring": "Monitorización",
       "sites": "Webs",
       "previews": "Vistas previas",
-      "videochat": "Videochat"
+      "videochat": "Videochat",
+      "swipe": "Swipe"
     },
     "dashboard": {
       "title": "Panel",
@@ -1116,7 +1117,8 @@
         "proposal": "Propuestas",
         "settings": "Ajustes",
         "booking": "Llamadas",
-        "videochat": "Videochat"
+        "videochat": "Videochat",
+        "swipe": "Swipe"
       },
       "actions": {
         "post": {
@@ -1249,6 +1251,19 @@
           "appeal_rejected": "rechazó la apelación de <target>{label}</target>",
           "age_verified": "marcó como verificada la edad de <target>{label}</target>",
           "age_unverified": "quitó la edad verificada de <target>{label}</target>"
+        },
+        "swipe": {
+          "verification_approved": "aprobó la verificación de <target>{label}</target> en Swipe",
+          "verification_rejected": "rechazó la verificación de <target>{label}</target> en Swipe",
+          "photo_approved": "publicó la foto <target>{label}</target> de Swipe",
+          "photo_rejected": "retiró la foto <target>{label}</target> de Swipe",
+          "photo_hidden": "ocultó la foto <target>{label}</target> de Swipe",
+          "report_dismissed": "descartó una denuncia en Swipe contra <target>{label}</target>",
+          "report_actioned": "actuó sobre una denuncia en Swipe contra <target>{label}</target>",
+          "takedown_removed": "retiró una foto por la solicitud <target>{label}</target>",
+          "takedown_closed": "cerró sin retirar la solicitud <target>{label}</target>",
+          "suspended": "suspendió en Swipe a <target>{label}</target>",
+          "unsuspended": "levantó la suspensión en Swipe de <target>{label}</target>"
         }
       },
       "details": {
@@ -3738,6 +3753,327 @@
       "fri": "viernes",
       "sat": "sábado",
       "sun": "domingo"
+    }
+  },
+  "Swipe": {
+    "metaTitle": "Swipe +18",
+    "metaDescription": "Fotos íntimas de adultos que las comparten por voluntad propia. Desliza, da like y haz match. Solo para mayores de 18.",
+    "brand": "Swipe",
+    "homeLabel": "Swipe, inicio",
+    "adultBadge": "+18",
+    "signOut": "Salir",
+    "footerTakedown": "¿Hay una foto tuya sin tu permiso? Pide que la retiremos",
+    "nav": {
+      "deck": "Deslizar",
+      "matches": "Matches",
+      "photos": "Mis fotos",
+      "rules": "Normas"
+    },
+    "genders": {
+      "WOMAN": "Mujer",
+      "MAN": "Hombre",
+      "NONBINARY": "No binario"
+    },
+    "landing": {
+      "eyebrow": "Solo para mayores de 18",
+      "title": "Desliza, da like y haz match",
+      "lead": "Fotos íntimas de personas adultas que deciden compartirlas. Desliza a la derecha si te gusta y a la izquierda si no. Si os gustáis los dos, podéis hablar.",
+      "warningTitle": "Contenido para adultos",
+      "warning": "Aquí hay desnudos y contenido sexual explícito. Solo puedes entrar si tienes 18 años o más y si ver este contenido es legal donde estás.",
+      "enter": "Entrar",
+      "signIn": "Iniciar sesión",
+      "createAccount": "Crear una cuenta",
+      "leave": "Salir de aquí",
+      "howTitle": "Cómo funciona",
+      "how1Title": "Confirma tu edad",
+      "how1": "Indica tu fecha de nacimiento (no la guardamos) y acepta las normas.",
+      "how2Title": "Desliza",
+      "how2": "Derecha o ♥ para dar like, izquierda o ✕ para pasar. En el ordenador, con las flechas.",
+      "how3Title": "Comparte las tuyas, si quieres",
+      "how3": "Envía una foto de verificación con un papel con tu apodo. Cuando la aprobemos, podrás subir hasta 10 fotos. Revisamos cada una antes de publicarla.",
+      "safetyTitle": "Seguridad",
+      "safety1": "Revisamos cada foto antes de publicarla. Solo puede aparecer quien la sube, y tiene que ser claramente adulto.",
+      "safety2": "Cualquier foto se puede denunciar. Si se denuncia por menor de edad o falta de consentimiento, se oculta al momento.",
+      "safety3": "Las fotos no se pueden descargar y llevan una marca de agua. Quitamos los datos de la cámara y la ubicación al subirlas.",
+      "safety4": "Una imagen que hayamos retirado no se puede volver a subir.",
+      "takedownLink": "¿Hay una foto tuya sin tu permiso? Pide que la retiremos"
+    },
+    "onboarding": {
+      "title": "Antes de entrar",
+      "lead": "Confirma que eres mayor de edad y acepta las normas.",
+      "birthDate": "Fecha de nacimiento",
+      "birthDateHint": "Solo comprobamos que tienes 18 años o más. No la guardamos.",
+      "accept": "Tengo 18 años o más y acepto las normas de Swipe",
+      "readRules": "Leer las normas",
+      "submit": "Entrar",
+      "submitting": "Entrando…",
+      "invalidDate": "Escribe una fecha válida.",
+      "mustAccept": "Tienes que aceptar las normas para entrar.",
+      "underage": "Swipe es solo para mayores de 18 años.",
+      "rulesChanged": "Las normas han cambiado: vuelve a cargar la página y léelas.",
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+    },
+    "suspended": {
+      "title": "Tu cuenta está suspendida en Swipe",
+      "body": "No puedes ver ni subir fotos mientras dure la suspensión.",
+      "reason": "Motivo",
+      "noReason": "Incumplimiento de las normas",
+      "until": "Hasta",
+      "untilReviewed": "Hasta que el equipo lo revise"
+    },
+    "deck": {
+      "title": "Deslizar",
+      "like": "Me gusta",
+      "skip": "Pasar",
+      "report": "Denunciar",
+      "ref": "Ref.",
+      "photoAlt": "Foto de {nickname}",
+      "empty": "No hay más fotos por ahora. Vuelve más tarde.",
+      "loading": "Cargando fotos…",
+      "shareYours": "¿Quieres compartir las tuyas?",
+      "keysHint": "En el ordenador: ← pasar · → me gusta",
+      "voteError": "No hemos podido guardar tu voto.",
+      "reported": "Gracias. La revisaremos y no volverás a verla.",
+      "reportError": "No hemos podido enviar la denuncia. Inténtalo de nuevo.",
+      "matchTitle": "¡Match con {nickname}!",
+      "matchBody": "Os gustan vuestras fotos. Ya podéis hablar.",
+      "matchChat": "Escribir",
+      "matchKeep": "Seguir deslizando"
+    },
+    "report": {
+      "title": "¿Por qué la denuncias?",
+      "reason": "Motivo",
+      "details": "Detalles (opcional)",
+      "hint": "Si es por menor de edad o falta de consentimiento, se oculta al momento hasta que la revisemos.",
+      "send": "Enviar denuncia",
+      "sending": "Enviando…",
+      "cancel": "Cancelar",
+      "reasons": {
+        "MINOR": "Parece menor de 18",
+        "NON_CONSENSUAL": "Sin consentimiento de quien aparece",
+        "STOLEN": "Es una foto robada o de otra persona",
+        "ILLEGAL": "Contenido ilegal",
+        "HARASSMENT": "Acoso o insultos",
+        "SPAM": "Spam o publicidad",
+        "OTHER": "Otro motivo"
+      }
+    },
+    "profile": {
+      "title": "Mi perfil",
+      "lead": "Así te ven los demás en tus fotos. Nunca mostramos tu nombre ni tu correo.",
+      "nickname": "Apodo",
+      "nicknameHint": "De 2 a 24 caracteres. Es el que tendrás que escribir en el papel de la foto de verificación.",
+      "nicknameInvalid": "Usa de 2 a 24 letras, números, espacios, puntos o guiones.",
+      "gender": "Género",
+      "genderNone": "Prefiero no decirlo",
+      "seeking": "Quiero ver fotos de",
+      "seekingHint": "Si no marcas nada, verás a todo el mundo.",
+      "interests": "Intereses",
+      "interestsHint": "Hasta {max}.",
+      "interestsTooMany": "Elige como máximo {max} intereses.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Perfil guardado.",
+      "error": "No hemos podido guardar el perfil."
+    },
+    "verification": {
+      "title": "Foto de verificación",
+      "status": {
+        "NONE": "Para subir fotos, primero envía una foto de verificación.",
+        "PENDING": "Estamos revisando tu foto de verificación. Te avisaremos aquí.",
+        "APPROVED": "Verificada. Ya puedes subir fotos.",
+        "REJECTED": "No hemos aprobado tu foto de verificación. Envía otra siguiendo las instrucciones."
+      },
+      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Swipe» y la fecha de hoy. Tiene que verse bien tu cara o una marca que luego se vea en tus fotos (un tatuaje, por ejemplo). Solo la ve el equipo.",
+      "nicknameFirst": "Primero elige tu apodo en tu perfil y guárdalo.",
+      "pick": "Elige la foto",
+      "consent": "Soy yo, soy mayor de 18 años y la envío para verificar mi cuenta.",
+      "send": "Enviar para revisar",
+      "alt": "Tu foto de verificación"
+    },
+    "photos": {
+      "title": "Mis fotos",
+      "lead": "{count} de {max} fotos. Revisamos cada una antes de publicarla.",
+      "pick": "Elige una foto",
+      "consent": "Solo aparezco yo, soy mayor de 18 años, la he hecho yo o he dejado que me la hagan, y quiero publicarla aquí.",
+      "send": "Enviar para revisar",
+      "full": "Ya tienes 10 fotos. Borra una para subir otra.",
+      "verifyFirst": "Podrás subir fotos cuando aprobemos tu foto de verificación.",
+      "rules": "Solo puedes aparecer tú, nadie más. Nada de menores, personas dormidas o que no sepan que les hacen la foto, violencia, datos de contacto ni publicidad. Si tenemos dudas, la rechazamos.",
+      "empty": "Aún no has subido ninguna foto.",
+      "likes": "{count, plural, =0 {Sin likes} one {# like} other {# likes}}",
+      "delete": "Borrar",
+      "deleting": "Borrando…",
+      "deleted": "Foto borrada.",
+      "error": "No hemos podido borrarla.",
+      "status": {
+        "PENDING": "En revisión",
+        "LIVE": "Publicada",
+        "REJECTED": "Rechazada",
+        "HIDDEN": "Oculta"
+      }
+    },
+    "upload": {
+      "preview": "Vista previa",
+      "sending": "Enviando…",
+      "sent": "Enviada. La revisaremos pronto.",
+      "noFile": "Elige una foto.",
+      "tooBig": "La foto es demasiado grande.",
+      "mustConsent": "Marca la casilla para confirmarlo.",
+      "notImage": "Solo aceptamos fotos JPEG, PNG o WebP.",
+      "blocked": "Esta imagen fue retirada de Swipe y no se puede volver a subir.",
+      "notVerified": "Tu foto de verificación tiene que estar aprobada primero.",
+      "tooMany": "Ya tienes el máximo de fotos.",
+      "tooManyToday": "Has subido demasiadas fotos hoy. Vuelve mañana.",
+      "error": "No hemos podido enviarla. Inténtalo de nuevo."
+    },
+    "matches": {
+      "title": "Matches",
+      "lead": "Personas que han dado like a una foto tuya y a las que tú también.",
+      "leadNoPhotos": "Hay match cuando alguien da like a una foto tuya y tú a una suya. Para eso, sube tus fotos en «Mis fotos».",
+      "empty": "Todavía no tienes matches.",
+      "noMessages": "Aún no os habéis escrito",
+      "you": "Tú",
+      "unread": "{count, plural, one {# mensaje nuevo} other {# mensajes nuevos}}"
+    },
+    "chat": {
+      "label": "Mensaje",
+      "placeholder": "Escribe un mensaje…",
+      "send": "Enviar",
+      "empty": "Di hola a {nickname}.",
+      "sendError": "No se ha enviado. Inténtalo de nuevo.",
+      "error": "Algo ha fallado. Inténtalo de nuevo.",
+      "gone": "Este match ha terminado.",
+      "endMenu": "Terminar",
+      "endLead": "¿Quieres terminar el match con {nickname}? El chat se borra para los dos.",
+      "unmatch": "Terminar el match",
+      "block": "Terminar y bloquear",
+      "report": "Denunciar",
+      "safety": "Solo texto. Nunca envíes dinero ni compartas datos que no quieras que se sepan."
+    },
+    "rules": {
+      "title": "Normas de Swipe",
+      "lead": "Al entrar aceptas estas normas. Si no las cumples, retiramos tus fotos y suspendemos tu cuenta.",
+      "rule1Title": "Solo mayores de 18",
+      "rule1": "Tienes que tener 18 años o más para entrar, y todas las personas de las fotos también. Si alguien parece menor, la foto se rechaza.",
+      "rule2Title": "Solo tú",
+      "rule2": "En tus fotos solo puedes aparecer tú. Nada de fotos de otras personas, aunque te hayan dado permiso.",
+      "rule3Title": "Consentimiento",
+      "rule3": "Solo fotos que has hecho tú o que has dejado que te hagan, y que quieres publicar aquí.",
+      "rule4Title": "Nada ilegal",
+      "rule4": "Nada de violencia, animales, drogas, personas dormidas o inconscientes, cámaras ocultas ni nada que sea ilegal.",
+      "rule5Title": "Sin datos ni publicidad",
+      "rule5": "No pongas teléfonos, redes, enlaces ni publicidad en tus fotos ni en los mensajes.",
+      "rule6Title": "Respeto",
+      "rule6": "Nada de acoso, insultos, amenazas ni presiones en el chat.",
+      "rule7Title": "Revisión",
+      "rule7": "Revisamos cada foto antes de publicarla y podemos rechazarla sin dar explicaciones.",
+      "rule8Title": "No copies",
+      "rule8": "No hagas capturas ni compartas fotos de otras personas fuera de Swipe.",
+      "privacyTitle": "Tus datos",
+      "privacy": "Tu fecha de nacimiento no se guarda. Tus fotos se guardan sin los datos de la cámara ni la ubicación y solo se ven dentro de Swipe. Puedes borrar cualquier foto cuando quieras, y si borras tu cuenta se borran todas.",
+      "takedownTitle": "Retirada de fotos",
+      "takedown": "Si encuentras una foto tuya que no has subido tú, o una foto que no debería estar aquí, cualquiera puede pedir que la retiremos, sin cuenta. Se oculta al momento si indicas su referencia, y respondemos en 24 horas.",
+      "takedownLink": "Pedir la retirada de una foto"
+    },
+    "takedown": {
+      "title": "Pedir la retirada de una foto",
+      "lead": "Si una foto de Swipe es tuya y no la has subido tú, muestra a un menor o no debería estar aquí, dínoslo. Si escribes su referencia (aparece en la foto como «Ref.»), se oculta al momento. Respondemos en 24 horas.",
+      "email": "Tu correo",
+      "emailHint": "Para responderte. No se lo damos a nadie.",
+      "emailInvalid": "Escribe un correo válido.",
+      "photoRef": "Referencia de la foto",
+      "photoRefHint": "Por ejemplo K7QM2XPA. Si no la tienes, descríbela abajo.",
+      "reason": "Motivo",
+      "reasonPlaceholder": "Elige un motivo",
+      "reasonNeeded": "Elige un motivo.",
+      "details": "Explícanos qué pasa",
+      "detailsHint": "Cuanto más concreto, antes podremos actuar.",
+      "detailsShort": "Escribe al menos 10 caracteres.",
+      "submit": "Enviar la solicitud",
+      "sending": "Enviando…",
+      "sent": "Recibido. Te hemos enviado un correo de confirmación y te responderemos en 24 horas.",
+      "error": "No hemos podido enviarla. Inténtalo de nuevo o escribe a hello@codeqlick.com."
+    }
+  },
+  "AdminSwipe": {
+    "title": "Swipe",
+    "lead": "Moderación de swipe.codeqlick.com: nada se publica sin que lo apruebes.",
+    "done": "Hecho.",
+    "ruleTitle": "Ante la duda, rechaza.",
+    "rule": "La edad solo se declara: tu revisión es lo que protege. Rechaza cualquier foto en la que alguien no parezca claramente adulto, aparezca otra persona o no coincida con la foto de verificación.",
+    "stats": {
+      "pendingVerifications": "Verificaciones por revisar",
+      "pendingPhotos": "Fotos por revisar",
+      "openReports": "Denuncias abiertas",
+      "openTakedowns": "Solicitudes de retirada",
+      "livePhotos": "Fotos publicadas",
+      "members": "Miembros",
+      "uploaders": "Verificados",
+      "matches": "Matches"
+    },
+    "tabs": {
+      "queue": "Por revisar",
+      "reports": "Denuncias",
+      "takedowns": "Retiradas",
+      "live": "Publicadas",
+      "suspended": "Suspendidos",
+      "history": "Ocultas"
+    },
+    "verifications": {
+      "title": "Fotos de verificación",
+      "lead": "Comprueba que se lee el apodo, «Swipe» y una fecha reciente, y que la persona parece claramente adulta.",
+      "alt": "Foto de verificación",
+      "check": "Debe leerse «{nickname}», «Swipe» y una fecha reciente.",
+      "note": "Nota para la persona (opcional)"
+    },
+    "photos": {
+      "title": "Fotos por revisar",
+      "lead": "Compárala con la foto de verificación (a la derecha): tiene que ser la misma persona, sola y claramente adulta.",
+      "alt": "Foto {ref}",
+      "reason": "Motivo si la rechazas",
+      "block": "Bloquear la imagen (no se podrá volver a subir)"
+    },
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "publish": "Publicar",
+    "hide": "Ocultar",
+    "removeForGood": "Retirar del todo",
+    "lift": "Levantar la suspensión",
+    "defaultRejectReason": "No cumple las normas",
+    "memberSince": "Miembro desde {date}",
+    "sent": "Enviada el {date}",
+    "reportsAgainst": "{count, plural, =0 {sin denuncias} one {# denuncia} other {# denuncias}}",
+    "reported": "Denunciado",
+    "reporter": "Denunciante",
+    "suspendedNow": "suspendido",
+    "noSuspension": "Sin suspensión",
+    "photoStatus": {
+      "PENDING": "en revisión",
+      "LIVE": "publicada",
+      "REJECTED": "retirada",
+      "HIDDEN": "oculta"
+    },
+    "durations": {
+      "24h": "24 horas",
+      "7d": "7 días",
+      "30d": "30 días",
+      "permanent": "Para siempre"
+    },
+    "reports": {
+      "removePhoto": "Retirar la foto del todo",
+      "blockImage": "Y bloquear la imagen",
+      "suspend": "Suspender a la persona",
+      "act": "Aplicar",
+      "dismiss": "Descartar (la foto vuelve a publicarse)"
+    },
+    "takedowns": {
+      "lead": "Responde en 24 horas. La persona recibe tu respuesta por correo.",
+      "matched": "Foto {ref} de {nickname}: ya está oculta.",
+      "unmatched": "No coincide con ninguna foto (referencia: {ref}). Búscala por la descripción.",
+      "response": "Respuesta (se envía por correo)",
+      "remove": "Retirar la foto y bloquearla",
+      "close": "Cerrar sin retirar"
     }
   }
 }

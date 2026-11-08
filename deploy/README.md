@@ -238,6 +238,10 @@ there. To restore them all:
 docker compose -f docker-compose.prod.yml cp backups/uploads/. api:/app/uploads/
 ```
 
+Swipe's private photos (swipe.codeqlick.com) live in the `codeqlick-prod_swipe-data` volume and are
+**not** backed up on purpose: a removed or deleted intimate photo must not survive in a backup. Losing
+the volume loses those photos; their rows stay and the photos show as missing.
+
 `docker compose -f docker-compose.prod.yml down -v` deletes the volumes and with them the database and the uploaded images.
 
 ### HTTP/2

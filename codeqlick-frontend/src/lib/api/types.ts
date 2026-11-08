@@ -503,6 +503,7 @@ export const ACTIVITY_TARGETS = [
   'booking',
   'account',
   'videochat',
+  'swipe',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 

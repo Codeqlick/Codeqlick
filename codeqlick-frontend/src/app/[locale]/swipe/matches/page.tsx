@@ -1,0 +1,63 @@
+import { getTranslations } from 'next-intl/server';
+import styles from '@/components/swipe/Swipe.module.css';
+import { Link } from '@/i18n/navigation';
+import { resolveLocale } from '@/i18n/locale';
+import { getSwipeStatus, listSwipeMatches } from '@/lib/api/swipe';
+import { requireUser } from '@/lib/auth/session';
+import vc from '../../videochat/videochat.module.css';
+import { SwipeGate } from '../Gate';
+
+type PageProps = { params: Promise<{ locale: string }> };
+
+/** People who liked a photo of mine and whose photo I liked, newest conversation first. */
+export default async function SwipeMatchesPage({ params }: PageProps) {
+  const locale = resolveLocale((await params).locale);
+  await requireUser(locale, `/${locale}/swipe/matches`);
+  const status = await getSwipeStatus();
+  const gate = await SwipeGate({ locale, status });
+  if (gate) return gate;
+  const t = await getTranslations({ locale, namespace: 'Swipe.matches' });
+  const matches = await listSwipeMatches();
+
+  return (
+    <section className={styles.chat}>
+      <h1 className={vc.pageTitle}>{t('title')}</h1>
+      <p className={vc.muted}>{status.canUpload ? t('lead') : t('leadNoPhotos')}</p>
+      {matches.length === 0 ? (
+        <p className={styles.empty}>{t('empty')}</p>
+      ) : (
+        <ul className={styles.matchList}>
+          {matches.map((match) => (
+            <li key={match.id}>
+              <Link href={`/swipe/matches/${match.id}`} className={styles.matchItem}>
+                {match.partner.photoId ? (
+                  // oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route
+                  <img
+                    src={`/${locale}/swipe/img/${match.partner.photoId}`}
+                    alt=""
+                    className={styles.avatar}
+                  />
+                ) : (
+                  <span className={styles.avatar} aria-hidden="true" />
+                )}
+                <span className={styles.matchText}>
+                  <strong>{match.partner.nickname}</strong>
+                  <span>
+                    {match.lastMessage
+                      ? `${match.lastMessage.mine ? `${t('you')}: ` : ''}${match.lastMessage.text}`
+                      : t('noMessages')}
+                  </span>
+                </span>
+                {match.unread > 0 ? (
+                  <span className={styles.unread} aria-label={t('unread', { count: match.unread })}>
+                    {match.unread}
+                  </span>
+                ) : null}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}

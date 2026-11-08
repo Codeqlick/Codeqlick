@@ -45,6 +45,8 @@ export const envSchema = z.object({
   LEADS_NOTIFY_TO: z.string().min(1).default('hello@codeqlick.com'),
   /** Folder for uploaded images; relative paths resolve against the working directory. */
   UPLOADS_DIR: z.string().min(1).default('./uploads'),
+  /** Swipe's photos (architecture 4.10): private, never served by name, apart from UPLOADS_DIR. */
+  SWIPE_UPLOADS_DIR: z.string().min(1).default('./swipe-uploads'),
   SEED_ADMIN_EMAIL: optionalString,
   SEED_ADMIN_PASSWORD: optionalString,
   SEED_ADMIN_NAME: optionalString,
