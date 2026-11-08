@@ -33,7 +33,6 @@ export default async function EditUserPage({
   const tpr = await getTranslations({ locale, namespace: 'Admin.proposals' });
   const tr = await getTranslations({ locale, namespace: 'Roles' });
   const tl = await getTranslations({ locale, namespace: 'LocaleSwitcher' });
-  const ta = await getTranslations({ locale, namespace: 'Apps' });
   const back = { href: '/admin/users', label: t('back') };
 
   const [user, me] = await Promise.all([adminGetUser(id), getCurrentUser()]);
@@ -71,17 +70,7 @@ export default async function EditUserPage({
       />
 
       <p>
-        <AccountKindBadge user={user} withApps={false} />{' '}
-        <span className={styles.muted}>
-          {user.signupApp
-            ? t('signedUpFrom', { app: ta(`${user.signupApp}.title`) })
-            : user.role === 'CLIENT' && user.registered
-              ? t('signedUpOnSite')
-              : null}
-          {user.apps.length > 0
-            ? ` · ${t('usesApps', { apps: user.apps.map((app) => ta(`${app}.title`)).join(', ') })}`
-            : null}
-        </span>
+        <AccountKindBadge user={user} />
       </p>
       <p className={styles.muted}>{t(`kindHint.${user.kind ?? 'admin'}`)}</p>
 
