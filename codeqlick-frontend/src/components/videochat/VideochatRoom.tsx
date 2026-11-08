@@ -627,7 +627,7 @@ export function VideochatRoom({
       return;
     }
     socket.current = ws;
-    let ready = false;
+    const handshake = { ready: false };
     const lost = () => {
       if (socket.current !== ws) return;
       socket.current = null;
@@ -637,7 +637,7 @@ export function VideochatRoom({
     };
     // A socket the browser blocks (a policy, a proxy) may never open nor close: give it 10 s.
     const readyTimer = setTimeout(() => {
-      if (ready) return;
+      if (handshake.ready) return;
       ws.close();
       lost();
     }, 10_000);
@@ -646,7 +646,7 @@ export function VideochatRoom({
       try {
         const message = JSON.parse(String(event.data)) as ServerMessage;
         if (message.type === 'ready') {
-          ready = true;
+          handshake.ready = true;
           clearTimeout(readyTimer);
         }
         onMessage(message);

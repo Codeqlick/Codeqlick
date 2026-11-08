@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
 # One-time setup of meetings.codeqlick.com on the production server (deploy/README.md,
-# "Meetings"). Run it as cqadmin from /srv/codeqlick once Meetings is merged to main:
+# "Meetings"). Run it from /srv/codeqlick as a user with
+# sudo (easyfeliu):
 #
-#   cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-meetings.sh
+#   sudo ./deploy/setup-meetings.sh
 #
-# It asks for sudo (Nginx, certbot). Safe to run again: every step checks first.
+# It runs as root for Nginx and certbot, and does what lives in the checkout (.env, the release)
+# as the checkout's owner (cqadmin). Safe to run again: every step checks first.
 #   1. DNS: an A record meetings.codeqlick.com -> SITES_SERVER_IP, through OVH's API with the
 #      keys already in .env (the client-domains keys, with rights on /domain/zone/*).
 #   2. .env: MEETINGS_URL. Calls use the video chat's coturn (TURN_SECRET, TURN_URLS), so the
 #      video chat is set up first (deploy/setup-videochat.sh).
 #   3. The Nginx site and its Let's Encrypt certificate (once the DNS answers).
 #   4. A release (deploy.sh --no-pull), then checks that the page answers.
-set -euo pipefail
+set -Eeuo pipefail
+trap 'printf "\nError: the step on line %s failed\n" "$LINENO" >&2' ERR
 
 cd "$(dirname "$0")/.."
+[ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
+OWNER="$(stat -c %U .)"
+as_owner() { sudo -H -u "$OWNER" "$@"; }
 ZONE=codeqlick.com
 SUB=meetings
 HOST="$SUB.$ZONE"
@@ -28,9 +34,9 @@ fail() {
 setting() { sed -n "s/^$1=//p" "$ENV_FILE" 2>/dev/null | tail -n 1; }
 set_setting() {
   if grep -q "^$1=" "$ENV_FILE"; then
-    sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"
+    as_owner sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"
   else
-    printf '%s=%s\n' "$1" "$2" >>"$ENV_FILE"
+    printf '%s=%s\n' "$1" "$2" | as_owner tee -a "$ENV_FILE" >/dev/null
   fi
 }
 resolved() { getent ahostsv4 "$HOST" | awk 'NR==1 { print $1 }'; }
@@ -112,7 +118,7 @@ fi
 
 # --- 4. Release ---------------------------------------------------------------------------------
 log "Release (gives the API the new allowed origin)"
-./deploy/deploy.sh --no-pull
+as_owner ./deploy/deploy.sh --no-pull
 
 log "Checks"
 curl -fsS -o /dev/null --max-time 10 "https://$HOST/es/meetings" && echo "https://$HOST answers."
