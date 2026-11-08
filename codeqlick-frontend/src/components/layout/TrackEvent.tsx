@@ -10,13 +10,13 @@ import { useEffect } from 'react';
 export function TrackEvent({ event, data }: { event: string; data?: Record<string, string> }) {
   const payload = JSON.stringify(data ?? {});
   useEffect(() => {
-    let tries = 0;
+    const attempts = { count: 0 };
     const timer = setInterval(() => {
-      tries += 1;
+      attempts.count += 1;
       if (window.umami) {
         window.umami.track(event, JSON.parse(payload) as Record<string, string>);
         clearInterval(timer);
-      } else if (tries >= 20) clearInterval(timer);
+      } else if (attempts.count >= 20) clearInterval(timer);
     }, 250);
     return () => clearInterval(timer);
   }, [event, payload]);

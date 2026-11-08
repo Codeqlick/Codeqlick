@@ -123,7 +123,8 @@ Calls use the video chat's coturn, so the video chat is set up first. **One comm
 run again:
 
 ```bash
-cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-meetings.sh
+cd /srv/codeqlick
+sudo ./deploy/setup-meetings.sh
 ```
 
 It creates the DNS record through OVH's API, sets `MEETINGS_URL` in `.env`, installs
