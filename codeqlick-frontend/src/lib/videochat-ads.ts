@@ -4,18 +4,18 @@
  */
 export const VIDEOCHAT_AD_ZONES = {
   /** Room, while looking for someone (no partner video yet). */
-  waiting: '',
+  waiting: '6083476',
   /** Room, after "Stop": between conversations. */
-  between: '',
+  between: '6083482',
   /** Bottom of the landing and of the profile settings. */
-  pages: '',
+  pages: '6083484',
 } as const;
 
 export type VideochatAdZone = keyof typeof VIDEOCHAT_AD_ZONES;
 
 /** ExoClick's loader and the class its asynchronous tags use. */
 export const EXOCLICK_SCRIPT = 'https://a.magsrv.com/ad-provider.js';
-export const EXOCLICK_TAG_CLASS = 'eas6a97888e';
+export const EXOCLICK_TAG_CLASS = 'eas6a97888e2';
 
 /** Hosts ExoClick serves scripts, frames and beacons from (the video chat host's CSP only). */
 export const EXOCLICK_HOSTS = [
