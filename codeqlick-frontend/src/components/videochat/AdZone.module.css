@@ -1,0 +1,17 @@
+.ad {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  margin-inline: auto;
+  width: 100%;
+  max-width: 300px;
+  min-height: calc(250px + 1.25rem);
+}
+
+.label {
+  color: var(--color-slate);
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

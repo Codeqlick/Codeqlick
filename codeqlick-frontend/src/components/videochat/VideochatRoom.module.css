@@ -10,8 +10,13 @@
     grid-template-areas:
       'stage chat'
       'notice chat'
-      'controls chat';
+      'controls chat'
+      'ad chat';
     align-items: start;
+  }
+
+  .ad {
+    grid-area: ad;
   }
 
   .stage {
@@ -36,6 +41,11 @@
 
 .stage {
   position: relative;
+}
+
+/* Hidden in full screen: the room fills the screen with the call alone. */
+.immersive .ad {
+  display: none;
 }
 
 .remote {
