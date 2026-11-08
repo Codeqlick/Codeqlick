@@ -150,7 +150,7 @@ export interface SwipeStatus {
   };
   /** May upload photos: verified, with a nickname, not suspended. */
   canUpload: boolean;
-  /** «Me encanta» left today. */
+  /** "Love" left today. */
   superLikesLeft: number;
 }
 
@@ -174,7 +174,7 @@ export interface CardView {
   gender: Gender | null;
   interests: Interest[];
   bio: string | null;
-  /** They gave one of my photos a «me encanta». */
+  /** They gave one of my photos a "love". */
   lovesYou: boolean;
 }
 
@@ -246,8 +246,8 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
   }
 
   /**
-   * Tells a person about something: an email (decisions always; matches, messages and «me
-   * encanta» unless they turned them off) and, for those, a push to their browsers.
+   * Tells a person about something: an email (decisions always; matches, messages and "love"
+   * unless they turned them off) and, for those, a push to their browsers.
    */
   private async notifyUser(
     userId: string,

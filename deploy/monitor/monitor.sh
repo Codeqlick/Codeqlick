@@ -7,7 +7,7 @@
 # `backup` service is unhealthy when there is no dump from the last two days), free disk space and
 # memory (client projects share this server: a warning here means it is time for a bigger plan)
 # and how long the TLS certificates have left. Client sites themselves are watched by the API
-# (admin → Monitorización). When the result changes it emails ALERT_TO
+# (Admin → Monitoring). When the result changes it emails ALERT_TO
 # (default: LEADS_NOTIFY_TO) through the same SMTP account as the site, with curl. The message is
 # the branded HTML email built by the API image (dist/scripts/monitor-email.js); when Docker can't
 # build it, a plain-text one goes instead, so an alert is never lost: one email when something has
