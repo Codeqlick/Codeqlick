@@ -1203,6 +1203,10 @@ model VideochatProfile {
   interests        String[]          @default([])
   /// Last "someone is waiting" notification sent to this account (at most one every 6 hours).
   pushNotifiedAt   DateTime?         @map("push_notified_at") @db.Timestamptz(3)
+  /// Wants a notification when the video chat is at its busiest (peak time alerts).
+  peakAlerts       Boolean           @default(false) @map("peak_alerts")
+  /// Last peak time alert sent to this account (at most one a day).
+  peakNotifiedAt   DateTime?         @map("peak_notified_at") @db.Timestamptz(3)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 

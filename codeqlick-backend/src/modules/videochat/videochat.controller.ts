@@ -21,11 +21,13 @@ import { VideochatPushService } from './videochat-push.service.js';
 import {
   appealSchema,
   onboardingSchema,
+  peakAlertsSchema,
   pushSubscriptionSchema,
   pushUnsubscribeSchema,
   settingsSchema,
   type AppealInput,
   type OnboardingInput,
+  type PeakAlertsInput,
   type PushSubscriptionInput,
   type PushUnsubscribeInput,
   type VideochatSettings,
@@ -109,6 +111,16 @@ export class VideochatController {
     @Body({ schema: pushSubscriptionSchema }) body: PushSubscriptionInput,
   ): Promise<void> {
     return this.push.subscribe(user.id, body);
+  }
+
+  /** "Also tell me at peak time" for the account (on its subscribed browsers). */
+  @Put('push/peak')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  peakAlerts(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: peakAlertsSchema }) body: PeakAlertsInput,
+  ): Promise<{ on: boolean }> {
+    return this.push.setPeakAlerts(user.id, body.on);
   }
 
   /** This browser no longer wants them. */

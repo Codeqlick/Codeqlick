@@ -41,6 +41,8 @@ export type VideochatStatus = {
   profile: VideochatSettings | null;
   /** VAPID key for "someone is waiting" notifications; null while they are off. */
   pushPublicKey: string | null;
+  /** Asked for peak time alerts. */
+  peakAlerts: boolean;
 };
 
 /** A browser's Web Push subscription (PushSubscription.toJSON()). */
@@ -215,6 +217,16 @@ export function removeVideochatContact(contactId: string) {
   return apiFetch<void>(`/videochat/contacts/${encodeURIComponent(contactId)}`, {
     method: 'DELETE',
     auth: 'required',
+  });
+}
+
+/** Peak time alerts for the account (PUT /videochat/push/peak). */
+export function setVideochatPeakAlerts(on: boolean) {
+  return apiFetch<{ on: boolean }>('/videochat/push/peak', {
+    method: 'PUT',
+    body: { on },
+    auth: 'required',
+    forwardClientIp: true,
   });
 }
 

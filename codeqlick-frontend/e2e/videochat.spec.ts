@@ -232,6 +232,115 @@ test('two people who like each other become contacts and call each other', async
   }
 });
 
+test('three contacts meet in a group call', async ({ browser, request, baseURL }) => {
+  test.setTimeout(180_000);
+  const tag = runTag();
+  const base = videochatUrl(baseURL);
+  const users = ['eva', 'fay', 'gus'].map((name) => ({
+    name,
+    email: `e2e-vc-${name}-${tag}@codeqlick.test`,
+    password: `videochat-pass-${tag}-0`,
+  }));
+  const ids: string[] = [];
+  for (const user of users) {
+    const response = await request.post(`${API_URL}/admin/users`, {
+      headers: adminHeaders(),
+      data: {
+        email: user.email,
+        name: user.name,
+        role: 'CLIENT',
+        password: user.password,
+        locale: 'es',
+      },
+    });
+    expect(response.ok()).toBeTruthy();
+    ids.push(((await response.json()) as { id: string }).id);
+  }
+
+  /** Remote videos playing in a group call (own camera not counted). */
+  const remoteVideos = (page: Page) =>
+    page
+      .locator('video:not([muted])')
+      .evaluateAll(
+        (videos: HTMLVideoElement[]) =>
+          videos.filter((video) => !video.muted && video.videoWidth > 0).length,
+      );
+
+  try {
+    const [eva, fay, gus] = [
+      await person(browser, base, users[0]!),
+      await person(browser, base, users[1]!),
+      await person(browser, base, users[2]!),
+    ];
+    for (const [page, name] of [
+      [fay, 'Fay'],
+      [gus, 'Gus'],
+    ] as const) {
+      await page.goto('/es/settings');
+      await page.getByLabel('Apodo').fill(`${name} ${tag}`);
+      await page.getByRole('button', { name: 'Guardar' }).click();
+      await expect(page.getByText('Guardado.', { exact: false })).toBeVisible();
+      await page.goto('/es/room');
+    }
+
+    // Eva becomes a contact of Fay, then of Gus.
+    await eva.getByRole('button', { name: 'Activar cámara y empezar' }).click();
+    for (const other of [fay, gus]) {
+      await other.getByRole('button', { name: 'Activar cámara y empezar' }).click();
+      await inCall(eva);
+      await inCall(other);
+      await eva.getByRole('button', { name: /Me gusta/ }).click();
+      await other.getByRole('button', { name: /Me gusta/ }).click();
+      await expect(other.getByText('¡Os gustáis! Ya sois contactos.')).toBeVisible();
+      await other.getByRole('button', { name: 'Parar' }).click();
+    }
+    await eva.getByRole('button', { name: 'Parar' }).click();
+    // The room says how many people are online.
+    await expect(eva.getByText('3 personas conectadas')).toBeVisible();
+
+    // From her contacts, Eva starts a group with Fay, who joins.
+    await eva.goto('/es/contacts');
+    await eva
+      .getByRole('listitem')
+      .filter({ hasText: `Fay ${tag}` })
+      .getByRole('link', { name: 'Grupo' })
+      .click();
+    await eva.getByRole('button', { name: 'Activar cámara y empezar' }).click();
+    await expect(eva.getByText('Llamada de grupo · 1 de 4')).toBeVisible();
+    await expect(fay.getByText('te invita a una llamada de grupo')).toBeVisible();
+    await fay.getByRole('button', { name: 'Unirme' }).click();
+    await expect(eva.getByText('Llamada de grupo · 2 de 4')).toBeVisible();
+
+    // Eva invites Gus from inside the group.
+    await eva.getByRole('button', { name: 'Invitar', exact: true }).first().click();
+    const row = eva.getByRole('listitem').filter({ hasText: `Gus ${tag}` });
+    await row.getByRole('button', { name: 'Invitar' }).click();
+    await gus.getByRole('button', { name: 'Unirme' }).click();
+    for (const page of [eva, fay, gus]) {
+      await expect(page.getByText('Llamada de grupo · 3 de 4')).toBeVisible();
+      // Everyone sees the other two (a mesh: each browser to each).
+      await expect.poll(() => remoteVideos(page), { timeout: 20_000 }).toBe(2);
+    }
+
+    // The group chat reaches everyone, with who wrote it.
+    await gus.getByPlaceholder('Escribe un mensaje…').fill('¡Hola, grupo!');
+    await gus.getByRole('button', { name: 'Enviar' }).click();
+    await expect(eva.getByText(`Gus ${tag}¡Hola, grupo!`)).toBeVisible();
+    await expect(fay.getByText(`Gus ${tag}¡Hola, grupo!`)).toBeVisible();
+
+    // Gus leaves: the others stay, two of them.
+    await gus.getByRole('button', { name: 'Salir del grupo' }).click();
+    await expect(gus.getByText('Has salido del grupo.')).toBeVisible();
+    await expect(eva.getByText('Llamada de grupo · 2 de 4')).toBeVisible();
+    await expect.poll(() => remoteVideos(eva)).toBe(1);
+  } finally {
+    await leave();
+    for (const id of ids) {
+      await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
+    }
+  }
+});
+
 test('the video chat installs as its own app', async ({ page, baseURL }) => {
   // Through the browser: it, unlike Node, sends *.localhost to this machine.
   const base = videochatUrl(baseURL);

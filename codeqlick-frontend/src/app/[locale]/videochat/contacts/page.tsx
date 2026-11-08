@@ -68,12 +68,20 @@ export default async function VideochatContactsPage({ params }: PageProps) {
                 </div>
                 <div className={styles.contactActions}>
                   {free ? (
-                    <Link
-                      href={`/videochat/room?call=${contact.contactId}`}
-                      className={styles.callButton}
-                    >
-                      {t('call')}
-                    </Link>
+                    <>
+                      <Link
+                        href={`/videochat/room?call=${contact.contactId}`}
+                        className={styles.callButton}
+                      >
+                        {t('call')}
+                      </Link>
+                      <Link
+                        href={`/videochat/room?group=${contact.contactId}`}
+                        className={styles.callButton}
+                      >
+                        {t('group')}
+                      </Link>
+                    </>
                   ) : (
                     <span className={`${styles.callButton} ${styles.callDisabled}`} aria-disabled>
                       {t('call')}
