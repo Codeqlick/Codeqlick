@@ -60,7 +60,8 @@
     "copyright": "© {year} Codeqlick",
     "login": "Client login",
     "legal": "Legal notice",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "security": "Security"
   },
   "Home": {
     "hero": {

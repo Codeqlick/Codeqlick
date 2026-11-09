@@ -23,6 +23,7 @@ const STATIC_PATHS = [
   '/about',
   '/apps',
   '/contact',
+  '/security',
   ...(legalOwner ? ['/legal', '/privacy'] : []),
 ];
 
