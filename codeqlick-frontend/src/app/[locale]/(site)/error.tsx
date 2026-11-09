@@ -1,16 +1,20 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
+import { reportBrowserError } from '@/components/layout/ErrorReporter';
 import { Button } from '@/components/ui/Button';
 import styles from './site.module.css';
 
 export default function SiteError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
   const t = useTranslations('Error');
+  useEffect(() => reportBrowserError(error), [error]);
 
   return (
     <section className={`wrap ${styles.page} ${styles.narrow}`}>

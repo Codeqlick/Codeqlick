@@ -706,6 +706,7 @@
       "calculator": "Calculadora",
       "bookings": "Llamadas",
       "monitoring": "Monitorización",
+      "errors": "Errores",
       "sites": "Webs",
       "previews": "Vistas previas",
       "videochat": "Videochat",
@@ -3665,6 +3666,41 @@
         "name": "Swipe",
         "body": "Desliza fotos y haz match"
       }
+    }
+  },
+  "AdminErrors": {
+    "title": "Errores",
+    "lead": "Los fallos inesperados del servidor y de la web, agrupados. Te llega un email la primera vez que pasa cada uno.",
+    "tabsLabel": "Estado",
+    "tabs": {
+      "open": "Abiertos",
+      "resolved": "Resueltos"
+    },
+    "emptyTitle": "Ningún error abierto",
+    "emptyBody": "Cuando algo falle en la API o en la web, aparecerá aquí.",
+    "emptyResolvedTitle": "Nada resuelto todavía",
+    "emptyResolvedBody": "Los errores que marques como resueltos se guardan aquí 30 días.",
+    "error": "Error",
+    "source": "Dónde",
+    "count": "Veces",
+    "lastSeen": "Última vez",
+    "firstSeen": "Primera vez",
+    "request": "Petición",
+    "reference": "Referencia",
+    "status": "Estado",
+    "open": "Abierto",
+    "resolvedOn": "Resuelto el {date}",
+    "resolveAll": "Marcar todos como resueltos",
+    "resolve": "Marcar como resuelto",
+    "reopen": "Volver a abrir",
+    "done": "Hecho.",
+    "detailTitle": "Error",
+    "back": "Errores",
+    "stack": "Traza",
+    "sources": {
+      "API": "API",
+      "WEB_SERVER": "Web (servidor)",
+      "WEB_BROWSER": "Web (navegador)"
     }
   },
   "Meetings": {

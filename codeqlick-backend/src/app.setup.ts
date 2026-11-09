@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js';
 import { AppConfigService } from './config/app-config.service.js';
+import { ErrorsService } from './modules/errors/errors.service.js';
 
 /**
  * Cross-cutting HTTP setup shared by main.ts and the e2e tests, so tests exercise exactly
@@ -19,6 +20,6 @@ export function configureApp(app: NestExpressApplication): void {
   app.enableCors({ origin: config.corsOrigins, credentials: false });
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new StandardSchemaValidationPipe());
-  app.useGlobalFilters(new ProblemDetailsFilter());
+  app.useGlobalFilters(new ProblemDetailsFilter(app.get(ErrorsService, { strict: false })));
   app.enableShutdownHooks();
 }

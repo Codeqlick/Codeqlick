@@ -1,0 +1,23 @@
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--space-8) var(--gutter);
+}
+
+.title {
+  margin: var(--space-2) 0 var(--space-3);
+  font-family: var(--font-family-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  line-height: 1.15;
+}
+
+.lead {
+  color: var(--color-slate);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}

@@ -1732,3 +1732,35 @@ model SwipeBlockedHash {
 
   @@map("swipe_blocked_hashes")
 }
+
+/// Where a recorded error happened: the API, or the website (its server or a visitor's browser).
+enum ErrorSource {
+  API
+  WEB_SERVER
+  WEB_BROWSER
+}
+
+/// The same unexpected error, grouped by its fingerprint (Admin → Errors, architecture 4.11).
+model ErrorGroup {
+  id          String      @id @default(uuid()) @db.Uuid
+  /// SHA-256 of the source, the message without numbers or ids, and the first stack frame.
+  fingerprint String      @unique @db.VarChar(64)
+  source      ErrorSource
+  message     String      @db.VarChar(1000)
+  /// The last occurrence's stack trace.
+  stack       String?     @db.VarChar(8000)
+  /// The last occurrence's method and path (no query string).
+  method      String?     @db.VarChar(10)
+  path        String?     @db.VarChar(500)
+  /// The last occurrence's API request id or Next.js digest, to find it in the logs.
+  reference   String?     @db.VarChar(100)
+  userAgent   String?     @map("user_agent") @db.VarChar(300)
+  count       Int         @default(1)
+  firstSeenAt DateTime    @default(now()) @map("first_seen_at") @db.Timestamptz(3)
+  lastSeenAt  DateTime    @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+  /// Set when the team marks it fixed; it opens again (and alerts) if it happens again.
+  resolvedAt  DateTime?   @map("resolved_at") @db.Timestamptz(3)
+
+  @@index([resolvedAt, lastSeenAt])
+  @@map("error_groups")
+}
