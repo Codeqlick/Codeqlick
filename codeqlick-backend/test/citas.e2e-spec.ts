@@ -8,6 +8,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { CitasService } from '../src/modules/citas/citas.service.js';
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
@@ -233,5 +234,48 @@ describe('Citas (e2e)', () => {
     expect(sent.map((message) => message.to)).toEqual(['ana@example.com']);
     expect(sent[0]!.icalEvent?.method).toBe('CANCEL');
     await request(server()).get(`/v1/citas/p/${slug}`).expect(404);
+  });
+  it('reminds whoever booked about 24 h before, once, and skips fresh or cancelled bookings', async () => {
+    const slug = `recuerdo-${tag}`;
+    await createPage(slug, { video: true });
+    const [a, b, c] = await slotsOf(slug);
+    const ids: string[] = [];
+    for (const [slot, email] of [
+      [a, 'early@example.com'],
+      [b, 'fresh@example.com'],
+      [c, 'gone@example.com'],
+    ] as const) {
+      const booked = (await book(slug, slot!, { email }).expect(201)).body as { id: string };
+      ids.push(booked.id);
+    }
+    const now = new Date();
+    const at = (hours: number) => new Date(now.getTime() + hours * 3_600_000);
+    const longAgo = new Date(now.getTime() - 7 * 86_400_000);
+    // Booked a week ago for 20 h from now, booked just now for 20 h from now, and cancelled.
+    await prisma.appointment.update({
+      where: { id: ids[0] },
+      data: { startsAt: at(20), endsAt: at(20.5), createdAt: longAgo },
+    });
+    await prisma.appointment.update({
+      where: { id: ids[1] },
+      data: { startsAt: at(21), endsAt: at(21.5) },
+    });
+    await prisma.appointment.update({
+      where: { id: ids[2] },
+      data: { startsAt: at(22), endsAt: at(22.5), createdAt: longAgo, status: 'CANCELLED' },
+    });
+    sent.length = 0;
+
+    const citas = app.get(CitasService);
+    await citas.sendReminders(now);
+    const reminders = sent.filter((message) => message.subject.startsWith('Recordatorio'));
+    expect(reminders.map((message) => message.to)).toEqual(['early@example.com']);
+    expect(reminders[0]!.text).toContain('Paula Peluquera');
+    expect(reminders[0]!.text).toMatch(/meetings/);
+    expect(reminders[0]!.replyTo).toBe(`e2e-citas-owner-${tag}@codeqlick.test`);
+
+    sent.length = 0;
+    await citas.sendReminders(now);
+    expect(sent.filter((message) => message.subject.startsWith('Recordatorio'))).toHaveLength(0);
   });
 });
