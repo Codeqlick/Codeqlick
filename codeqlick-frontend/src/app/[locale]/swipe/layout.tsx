@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { Logo } from '@/components/brand/Logo';
 import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -9,6 +10,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { logoutAction } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
+import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
 import vc from '../videochat/videochat.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
@@ -16,11 +18,30 @@ type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Swipe' });
+  const title = t('metaTitle');
+  const description = t('metaDescription');
+  const image = { url: webappPath('swipe', locale, '/og'), width: 1200, height: 630, alt: title };
   return {
-    title: { absolute: t('metaTitle') },
-    description: t('metaDescription'),
-    // Adult content: kept out of search results.
-    robots: { index: false, follow: false },
+    // Relative URLs (canonical, images) resolve on Swipe's own host.
+    metadataBase: new URL(webappOrigin('swipe')),
+    title: { absolute: title, template: `%s · ${t('metaSuffix')}` },
+    description,
+    alternates: webappAlternates('swipe', locale),
+    openGraph: {
+      type: 'website',
+      siteName: t('metaSuffix'),
+      title,
+      description,
+      url: webappPath('swipe', locale),
+      locale: locale === 'es' ? 'es_ES' : 'en_US',
+      images: [image],
+    },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+    // Indexed like every Codeqlick app (owner's choice, 2026-11-09); the account-only pages
+    // (deck, photos, matches) opt out.
+    robots: { index: true, follow: true, 'max-image-preview': 'large' },
+    // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
+    other: { rating: 'adult' },
     icons: { icon: '/swipe-192.png', apple: '/swipe-192.png' },
     appleWebApp: { capable: true, title: 'Swipe', statusBarStyle: 'default' },
   };
@@ -28,7 +49,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 
 export const viewport: Viewport = { themeColor: '#ffffff' };
 
-/** Swipe's own frame (swipe.codeqlick.com): light colours, no studio header, logo or footer. */
+/** Swipe's own frame (swipe.codeqlick.com): light colours and the Codeqlick logo, no site header. */
 export default async function SwipeLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
@@ -42,9 +63,8 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
       <div className={vc.frame}>
         <header className={vc.header}>
           <div className={vc.brand}>
-            <Link href="/swipe" className={vc.headerLink} aria-label={t('homeLabel')}>
-              <strong className={vc.brandApp}>{t('brand')}</strong>
-            </Link>
+            <Logo href="/swipe" size="sm" label={t('homeLabel')} />
+            <span className={vc.brandApp}>{t('brand')}</span>
             <span className={vc.adultBadge}>{t('adultBadge')}</span>
           </div>
           <nav className={vc.headerNav}>

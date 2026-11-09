@@ -3985,7 +3985,10 @@
   "Swipe": {
     "metaTitle": "Swipe +18",
     "metaDescription": "Intimate photos of adults who choose to share them. Swipe, like and match. Adults only.",
-    "brand": "Swipe",
+    "metaSuffix": "Codeqlick Swipe",
+    "ogEyebrow": "Swipe · 18+ only",
+    "ogTitle": "Swipe adults' photos, like and match",
+    "brand": "swipe",
     "homeLabel": "Swipe, home",
     "adultBadge": "18+",
     "signOut": "Sign out",

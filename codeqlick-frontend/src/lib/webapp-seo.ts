@@ -38,4 +38,5 @@ export function webappAlternates(
 /** The web app's public pages, the only ones its host lists in sitemap.xml (locale-less paths). */
 export const WEBAPP_PUBLIC_PATHS: Partial<Record<Webapp, string[]>> = {
   videochat: ['', '/rules'],
+  swipe: ['', '/rules', '/takedown', '/terms-of-use', '/privacy-policy'],
 };
