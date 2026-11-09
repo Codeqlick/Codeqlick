@@ -82,6 +82,9 @@
 }
 
 .userName {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--color-ink);
   font-weight: 600;
   overflow-wrap: anywhere;

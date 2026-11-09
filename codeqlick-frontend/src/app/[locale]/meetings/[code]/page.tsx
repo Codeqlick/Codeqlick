@@ -56,6 +56,7 @@ export default async function MeetingRoomPage({ params }: PageProps) {
       title={room.title}
       ownerName={room.ownerName}
       userName={user?.name ?? null}
+      userAvatar={user?.avatar ?? null}
       wsUrl={await websocketUrl()}
       getTicket={meetingTicketAction}
     />

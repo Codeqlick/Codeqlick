@@ -96,13 +96,8 @@ export const genderSchema = z.enum(GENDERS);
 
 /** Public profile and matching filters (architecture 4.7). All free. */
 export const settingsSchema = z.object({
-  nickname: z
-    .string()
-    .trim()
-    .min(2)
-    .max(24)
-    .regex(/^[\p{L}\p{N} ._-]+$/u, 'Letters, numbers, spaces, dots, dashes and underscores')
-    .nullable(),
+  /** The account's username, shown to partners (null: show no name). Checked like `PUT /auth/me/username`. */
+  nickname: z.string().trim().min(1).max(40).nullable(),
   gender: genderSchema.nullable(),
   seeking: z
     .array(genderSchema)

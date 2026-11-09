@@ -5,7 +5,17 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
-import { confirmEmailChange, deleteMe, requestEmailChange, updateMe } from '@/lib/api/auth';
+import {
+  checkUsername,
+  confirmEmailChange,
+  deleteMe,
+  removeAvatar,
+  uploadAvatar,
+  requestEmailChange,
+  setUsername,
+  updateMe,
+  type UsernameCheck,
+} from '@/lib/api/auth';
 import { isApiError, isDisposableEmailError } from '@/lib/api/errors';
 import { formString, type FormState } from '@/lib/forms';
 import { clearAuthCookies } from './session';
@@ -32,6 +42,89 @@ export async function updateNameAction(
   }
   revalidatePath(`/${locale}`, 'layout');
   return { status: 'success', message: tc('saved') };
+}
+
+/** Sends a new profile photo (already shrunk in the browser). */
+export async function uploadAvatarAction(
+  locale: AppLocale,
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const t = await getTranslations({ locale, namespace: 'Account.avatar' });
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: t('noFile') };
+  if (file.size > 2_000_000) return { ok: false, message: t('tooBig') };
+  try {
+    await uploadAvatar(file);
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    if (isApiError(error) && error.status === 400) return { ok: false, message: t('notImage') };
+    if (isApiError(error) && error.status === 429) return { ok: false, message: t('rateLimited') };
+    return { ok: false, message: t('error') };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  return { ok: true };
+}
+
+export async function removeAvatarAction(
+  locale: AppLocale,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Account.avatar' });
+  try {
+    await removeAvatar();
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    return { status: 'error', message: t('error') };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  return { status: 'success', message: t('removed') };
+}
+
+/** Same rules as the API: 3–20 of a-z, 0-9, `.` and `_`, letter or digit at both ends, no `..`. */
+const USERNAME_PATTERN = /^(?!.*\.\.)[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/;
+
+/** Live check while typing: free, taken, reserved or not valid. */
+export async function checkUsernameAction(raw: string): Promise<UsernameCheck | null> {
+  const username = raw.trim().toLowerCase().replace(/^@/, '');
+  if (!USERNAME_PATTERN.test(username)) return { username, available: false, reason: 'invalid' };
+  try {
+    return await checkUsername(username);
+  } catch {
+    return null;
+  }
+}
+
+/** Chooses, changes or (empty) removes the username. */
+export async function updateUsernameAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Account.username' });
+  const tc = await getTranslations({ locale, namespace: 'Common' });
+  const username = formString(formData, 'username').toLowerCase().replace(/^@/, '');
+  const values = { username };
+  if (username && !USERNAME_PATTERN.test(username)) {
+    return { status: 'error', fieldErrors: { username: t('invalid') }, values };
+  }
+  try {
+    await setUsername(username || null);
+  } catch (error) {
+    if (isApiError(error)) {
+      if (error.status === 401) redirect(`/${locale}/login`);
+      if (error.status === 409) {
+        return { status: 'error', fieldErrors: { username: t('taken') }, values };
+      }
+      if (error.status === 429) return { status: 'error', message: t('rateLimited'), values };
+      if (error.status === 400) {
+        return { status: 'error', fieldErrors: { username: t('reserved') }, values };
+      }
+    }
+    return { status: 'error', message: tc('genericError'), values };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  return { status: 'success', message: username ? t('saved', { username }) : t('removed') };
 }
 
 /** Sends the confirmation link to the new address. The password is never echoed back. */

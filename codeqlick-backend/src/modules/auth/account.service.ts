@@ -20,6 +20,8 @@ import {
   emailChangedNoticeEmail,
 } from './account-emails.js';
 import { AccountRepository } from './account.repository.js';
+import { AvatarStorage, processAvatar } from './avatar.storage.js';
+import { normalizeUsername, UsernameService } from './username.service.js';
 import { hashRefreshToken, toAuthUser } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 
@@ -37,7 +39,37 @@ export class AccountService {
     private readonly config: AppConfigService,
     private readonly mail: MailService,
     private readonly activity: ActivityService,
+    private readonly avatars: AvatarStorage,
+    private readonly usernames: UsernameService,
   ) {}
+
+  /** Sets the profile photo (re-encoded to a 256×256 WebP); the old file is deleted. */
+  async setAvatar(userId: string, data: Buffer | undefined): Promise<AuthUser> {
+    const user = await this.activeUser(userId);
+    if (!data || data.length === 0) {
+      throw new BadRequestException('Send the image in a multipart field called "file"');
+    }
+    const image = await processAvatar(data);
+    if (!image) throw new BadRequestException('Only PNG, JPEG and WebP photos are accepted');
+    const key = await this.avatars.write(image);
+    let updated: User;
+    try {
+      updated = await this.repository.updateProfile(userId, { avatarKey: key });
+    } catch (error) {
+      await this.avatars.remove(key);
+      throw error;
+    }
+    await this.avatars.remove(user.avatarKey);
+    return toAuthUser(updated);
+  }
+
+  async removeAvatar(userId: string): Promise<AuthUser> {
+    const user = await this.activeUser(userId);
+    if (!user.avatarKey) return toAuthUser(user);
+    const updated = await this.repository.updateProfile(userId, { avatarKey: null });
+    await this.avatars.remove(user.avatarKey);
+    return toAuthUser(updated);
+  }
 
   async updateMe(userId: string, input: { name?: string; locale?: ApiLocale }): Promise<AuthUser> {
     await this.activeUser(userId);
@@ -46,6 +78,17 @@ export class AccountService {
       locale: input.locale ? toDbLocale(input.locale) : undefined,
     });
     return toAuthUser(user);
+  }
+
+  async usernameAvailable(userId: string, raw: string) {
+    const username = normalizeUsername(raw);
+    const reason = await this.usernames.problem(userId, username);
+    return reason ? { username, available: false, reason } : { username, available: true };
+  }
+
+  /** Chooses, changes or (null) removes the caller's username. */
+  setUsername(userId: string, username: string | null): Promise<AuthUser> {
+    return this.usernames.claim(userId, username);
   }
 
   /** Emails a confirmation link to the new address; the account keeps its email until then. */
@@ -146,6 +189,7 @@ export class AccountService {
       { action: 'account.deleted', targetId: user.id, details: { role: user.role } },
     );
     await this.repository.delete(user.id);
+    await this.avatars.remove(user.avatarKey);
     if (user.registeredAt) {
       this.send(accountDeletedEmail(user, toApiLocale(user.locale), this.config.siteUrl));
     }

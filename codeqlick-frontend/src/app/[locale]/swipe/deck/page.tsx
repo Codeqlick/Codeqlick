@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/swipe/Swipe.module.css';
 import { SwipeDeck } from '@/components/swipe/SwipeDeck';
+import { AdZone } from '@/components/videochat/AdZone';
 import { resolveLocale } from '@/i18n/locale';
 import { getSwipeDeck, getSwipeStatus } from '@/lib/api/swipe';
 import { requireUser } from '@/lib/auth/session';
@@ -37,6 +38,7 @@ export default async function SwipeDeckPage({ params }: PageProps) {
         superLikesLeft={status.superLikesLeft}
         blur={status.profile?.blurPhotos ?? false}
       />
+      <AdZone app="swipe" zone="deck" />
     </>
   );
 }

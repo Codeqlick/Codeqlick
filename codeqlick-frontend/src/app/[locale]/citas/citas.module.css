@@ -478,3 +478,10 @@
   color: var(--color-slate);
   font-size: 0.9rem;
 }
+
+/* "With …" and the owner's photo on their public booking page. */
+.owner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

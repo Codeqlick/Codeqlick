@@ -162,6 +162,7 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
                     <strong>{photo.owner.nickname}</strong> · {photo.owner.email} ·{' '}
                     <code>{photo.ref}</code>
                   </p>
+                  {photo.inAlbum ? <p className={styles.muted}>🔒 {t('albumTag')}</p> : null}
                   <p className={styles.muted}>
                     {t('sent', { date: formatDateTime(photo.createdAt, locale) })} ·{' '}
                     {t('reportsAgainst', { count: photo.owner.reports })}
@@ -336,6 +337,7 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
                 <span>
                   <strong>{photo.owner.nickname}</strong> · <code>{photo.ref}</code> · ♥{' '}
                   {photo.likes}
+                  {photo.inAlbum ? ` · 🔒 ${t('albumTag')}` : null}
                 </span>
                 <ActionForm
                   action={photoAction.bind(null, locale, photo.id)}

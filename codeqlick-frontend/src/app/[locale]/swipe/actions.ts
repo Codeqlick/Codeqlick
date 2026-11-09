@@ -8,6 +8,7 @@ import { isApiError } from '@/lib/api/errors';
 import {
   blockSwipeMatch,
   deleteSwipePhoto,
+  moveSwipePhoto,
   getSwipeDeck,
   listSwipeMessages,
   onboardSwipe,
@@ -37,7 +38,8 @@ import {
 import type { FormState } from '@/lib/forms';
 import { INTERESTS, MAX_INTERESTS, type Interest } from '@/lib/videochat-interests';
 
-const NICKNAME = /^[\p{L}\p{N} ._-]{2,24}$/u;
+/** The nickname is the account's username: 3–20 of a-z, 0-9, `.` and `_`, letter or digit at both ends. */
+const NICKNAME = /^(?!.*\.\.)[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** The browser shrinks photos before sending them; anything bigger didn't come from our page. */
@@ -88,7 +90,10 @@ export async function onboardAction(_previous: FormState, formData: FormData): P
 export async function profileAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const locale = localeOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Swipe.profile' });
-  const nickname = String(formData.get('nickname') ?? '').trim();
+  const nickname = String(formData.get('nickname') ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
   const seeking = formData
     .getAll('seeking')
     .map(gender)
@@ -167,7 +172,14 @@ export async function profileAction(_previous: FormState, formData: FormData): P
       emailAlerts: ticked('emailAlerts'),
       blurPhotos: ticked('blurPhotos'),
     });
-  } catch {
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameTaken') }, values };
+    }
+    if (status === 400 && isApiError(error) && error.fieldErrors.nickname) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameReserved') }, values };
+    }
     return { status: 'error', message: t('error'), values };
   }
   refresh(locale, 'photos');
@@ -180,6 +192,7 @@ async function upload(
   locale: AppLocale,
   formData: FormData,
   send: (file: File) => Promise<unknown>,
+  fullMessage: 'tooMany' | 'albumFull' = 'tooMany',
 ): Promise<UploadResult> {
   const t = await getTranslations({ locale, namespace: 'Swipe.upload' });
   const file = formData.get('file');
@@ -195,7 +208,7 @@ async function upload(
       return { ok: false, message: blocked ? t('blocked') : t('notImage') };
     }
     if (status === 403) return { ok: false, message: t('notVerified') };
-    if (status === 409) return { ok: false, message: t('tooMany') };
+    if (status === 409) return { ok: false, message: t(fullMessage) };
     if (status === 429) return { ok: false, message: t('tooManyToday') };
     return { ok: false, message: t('error') };
   }
@@ -217,6 +230,34 @@ export async function uploadPhotoAction(
   formData: FormData,
 ): Promise<UploadResult> {
   return upload(locale, formData, uploadSwipePhoto);
+}
+
+/** Sends a photo for review that goes to the private album (only matches see it). */
+export async function uploadAlbumPhotoAction(
+  locale: AppLocale,
+  formData: FormData,
+): Promise<UploadResult> {
+  return upload(locale, formData, (file) => uploadSwipePhoto(file, true), 'albumFull');
+}
+
+/** Moves one of my photos into (`album`) or out of the private album. */
+export async function movePhotoAction(
+  locale: AppLocale,
+  id: string,
+  album: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Swipe.album' });
+  if (!UUID.test(id)) return { status: 'error', message: t('moveError') };
+  try {
+    await moveSwipePhoto(id, album);
+  } catch (error) {
+    const full = isApiError(error) && error.status === 409;
+    return { status: 'error', message: full ? t(album ? 'full' : 'publicFull') : t('moveError') };
+  }
+  refresh(locale, 'photos');
+  return { status: 'success', message: t(album ? 'moved' : 'madePublic') };
 }
 
 export async function deletePhotoAction(

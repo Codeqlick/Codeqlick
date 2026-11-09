@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module.js';
 import { VideochatPhotoStorage } from '../swipe/swipe.storage.js';
 import { VideochatAdminController } from './videochat-admin.controller.js';
 import { VideochatController, VideochatPublicController } from './videochat.controller.js';
@@ -13,6 +14,7 @@ import { VideochatVerificationService } from './videochat-verification.service.j
 
 /** The random 1:1 video chat at videochat.codeqlick.com (architecture 4.7). */
 @Module({
+  imports: [AuthModule],
   controllers: [VideochatController, VideochatPublicController, VideochatAdminController],
   providers: [
     VideochatService,

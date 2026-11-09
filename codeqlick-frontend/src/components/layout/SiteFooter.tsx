@@ -43,6 +43,9 @@ export async function SiteFooter({ locale }: { locale: AppLocale }) {
               </Link>
             </>
           ) : null}
+          <Link href="/security" className={styles.login}>
+            {t('security')}
+          </Link>
           <Link href="/login" className={styles.login}>
             {t('login')}
           </Link>

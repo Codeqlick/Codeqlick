@@ -57,6 +57,7 @@ export function toAdminUser(user: UserWithUsage): AdminUser {
     id: user.id,
     email: user.email,
     name: user.name,
+    username: user.username,
     role: user.role,
     isActive: user.isActive,
     locale: toApiLocale(user.locale),

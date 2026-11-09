@@ -3,7 +3,9 @@ import type { Appointment, BookingPage, Prisma } from '../../generated/prisma/cl
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type PageWithRoom = BookingPage & { meetingRoom: { code: string } | null };
-export type PublicPageRow = PageWithRoom & { owner: { name: string; email: string } };
+export type PublicPageRow = PageWithRoom & {
+  owner: { name: string; email: string; avatarKey: string | null };
+};
 export type AppointmentRow = Appointment & {
   page: PageWithRoom & { owner: { name: string; email: string; locale: 'EN' | 'ES' } };
 };
@@ -41,7 +43,7 @@ export class CitasRepository {
   findPageBySlug(slug: string): Promise<PublicPageRow | null> {
     return this.prisma.bookingPage.findUnique({
       where: { slug },
-      include: { ...withRoom, owner: { select: { name: true, email: true } } },
+      include: { ...withRoom, owner: { select: { name: true, email: true, avatarKey: true } } },
     });
   }
 

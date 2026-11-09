@@ -7,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -27,6 +28,7 @@ import {
   messageSchema,
   messagesQuerySchema,
   onboardingSchema,
+  photoUpdateSchema,
   profileSchema,
   pushSubscriptionSchema,
   pushUnsubscribeSchema,
@@ -37,6 +39,7 @@ import {
   type MessageInput,
   type MessagesQuery,
   type OnboardingInput,
+  type PhotoUpdateInput,
   type PushSubscriptionInput,
   type PushUnsubscribeInput,
   type ReportInput,
@@ -48,6 +51,7 @@ import {
 import { SwipePushService } from './swipe-push.service.js';
 import {
   SwipeService,
+  type AlbumPhotoView,
   type CardView,
   type MatchView,
   type SwipeStats,
@@ -165,9 +169,19 @@ export class SwipeController {
   uploadPhoto(
     @CurrentUser() user: AuthUser,
     @UploadedFile() file: { buffer: Buffer } | undefined,
-    @Body({ schema: uploadFieldsSchema }) _fields: UploadFields,
+    @Body({ schema: uploadFieldsSchema }) fields: UploadFields,
   ): Promise<MyPhotoView> {
-    return this.swipe.uploadPhoto(user.id, file?.buffer);
+    return this.swipe.uploadPhoto(user.id, file?.buffer, new Date(), fields.album === 'true');
+  }
+
+  /** Moves a photo into (`album: true`) or out of the private album. */
+  @Patch('photos/:id')
+  movePhoto(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: photoUpdateSchema }) body: PhotoUpdateInput,
+  ): Promise<MyPhotoView> {
+    return this.swipe.movePhoto(user.id, params.id, body.album);
   }
 
   @Delete('photos/:id')
@@ -223,6 +237,15 @@ export class SwipeController {
   @Get('matches')
   async matches(@CurrentUser() user: AuthUser): Promise<{ items: MatchView[] }> {
     return { items: await this.swipe.matches(user.id) };
+  }
+
+  /** The private album of the person I matched with. */
+  @Get('matches/:id/album')
+  async album(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<{ items: AlbumPhotoView[] }> {
+    return { items: await this.swipe.album(user.id, params.id) };
   }
 
   @Get('matches/:id/messages')

@@ -17,6 +17,8 @@ import { VIDEOCHAT_TERMS_VERSION } from '../src/modules/videochat/videochat.sche
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 const tag = randomUUID().slice(0, 8);
+/** Nicknames are account usernames now: unique, lower-case, so each run gets its own. */
+const nick = (name: string) => `${name.toLowerCase()}_${tag}`;
 const ORIGIN = 'http://localhost:3000';
 type Msg = { type: string; [key: string]: unknown };
 
@@ -178,7 +180,7 @@ describe('Video chat (e2e)', () => {
 
   it('saves the public profile and filters, and shows how many people are online', async () => {
     const profile = {
-      nickname: 'Ana',
+      nickname: nick('Ana'),
       gender: 'WOMAN',
       seeking: [],
       country: 'ES',
@@ -266,7 +268,7 @@ describe('Video chat (e2e)', () => {
       type: 'matched',
       initiator: true,
       partner: {
-        nickname: 'Ana',
+        nickname: nick('Ana'),
         gender: 'WOMAN',
         country: 'ES',
         language: 'es',
@@ -567,9 +569,9 @@ describe('Video chat (e2e)', () => {
     ]);
     expect(detail.reportsReceived).toHaveLength(1);
     expect(detail.reportsMade).toHaveLength(1);
-    expect(detail.profile).toMatchObject({ nickname: 'Ana' });
+    expect(detail.profile).toMatchObject({ nickname: nick('Ana') });
     const actions = await prisma.activityLog.findMany({
-      where: { targetId: users.ana!.id },
+      where: { targetId: users.ana!.id, action: { startsWith: 'videochat.' } },
       orderBy: { createdAt: 'asc' },
       select: { action: true },
     });
@@ -703,7 +705,7 @@ describe('Video chat (e2e)', () => {
       .put('/v1/videochat/profile')
       .set(users.fay!.auth)
       .send({
-        nickname: 'Fay',
+        nickname: nick('Fay'),
         gender: null,
         seeking: [],
         country: null,
@@ -727,7 +729,7 @@ describe('Video chat (e2e)', () => {
     expect(none.body.items).toEqual([]);
     fay.send({ type: 'like' });
     await fay.next('liked');
-    expect(await eva.next('mutual')).toEqual({ type: 'mutual', nickname: 'Fay' });
+    expect(await eva.next('mutual')).toEqual({ type: 'mutual', nickname: nick('Fay') });
     expect(await fay.next('mutual')).toEqual({ type: 'mutual', nickname: null });
     const contacts = await request(server())
       .get('/v1/videochat/contacts')
@@ -736,7 +738,7 @@ describe('Video chat (e2e)', () => {
     expect(contacts.body.items).toEqual([
       expect.objectContaining({
         contactId: users.fay!.id,
-        nickname: 'Fay',
+        nickname: nick('Fay'),
         online: true,
         busy: true,
       }),
@@ -748,7 +750,7 @@ describe('Video chat (e2e)', () => {
     fay.send({ type: 'leave' });
     eva.send({ type: 'call', contactId: users.fay!.id });
     const calling = await eva.next('calling');
-    expect(calling).toMatchObject({ partner: { nickname: 'Fay' } });
+    expect(calling).toMatchObject({ partner: { nickname: nick('Fay') } });
     const incoming = await fay.next('incoming');
     expect(incoming.callId).toBe(calling.callId);
     fay.send({ type: 'answer', callId: incoming.callId, accept: false });
@@ -801,7 +803,7 @@ describe('Video chat (e2e)', () => {
       .put('/v1/videochat/profile')
       .set(users.gia!.auth)
       .send({
-        nickname: 'Gia',
+        nickname: nick('Gia'),
         gender: null,
         seeking: [],
         country: null,
@@ -835,12 +837,16 @@ describe('Video chat (e2e)', () => {
     const group = await gia.next('group');
     expect(group).toMatchObject({ members: [] });
     const invited = await hal.next('group-invited');
-    expect(invited).toMatchObject({ groupId: group.groupId, from: { nickname: 'Gia' }, size: 1 });
+    expect(invited).toMatchObject({
+      groupId: group.groupId,
+      from: { nickname: nick('Gia') },
+      size: 1,
+    });
     hal.send({ type: 'group-answer', groupId: group.groupId, accept: true });
     const halGroup = await hal.next('group');
     expect(halGroup).toMatchObject({
       groupId: group.groupId,
-      members: [{ memberId: group.self, profile: { nickname: 'Gia' } }],
+      members: [{ memberId: group.self, profile: { nickname: nick('Gia') } }],
     });
     expect(await gia.next('group-joined')).toMatchObject({ member: { memberId: halGroup.self } });
 
@@ -1057,12 +1063,12 @@ describe('Video chat (e2e)', () => {
     await request(server())
       .put('/v1/videochat/profile')
       .set(users.kim!.auth)
-      .send(profile('Kim'))
+      .send(profile(nick('Kim')))
       .expect(200);
     await request(server())
       .put('/v1/videochat/profile')
       .set(users.lia!.auth)
-      .send(profile('Lia'))
+      .send(profile(nick('Lia')))
       .expect(200);
 
     const sentPhoto = await upload('kim').expect(201);
@@ -1077,7 +1083,7 @@ describe('Video chat (e2e)', () => {
       .set(users.admin!.auth)
       .expect(200);
     expect(queue.body.items).toContainEqual(
-      expect.objectContaining({ userId: users.kim!.id, nickname: 'Kim' }),
+      expect.objectContaining({ userId: users.kim!.id, nickname: nick('Kim') }),
     );
     await request(server())
       .get(`/v1/admin/videochat/verifications/${users.kim!.id}/file`)
@@ -1120,8 +1126,11 @@ describe('Video chat (e2e)', () => {
     await kim.next('waiting');
     lia.send({ type: 'join' });
     const seenByLia = await lia.next('matched');
-    expect(seenByLia.partner).toMatchObject({ nickname: 'Kim', verified: true });
-    expect((await kim.next('matched')).partner).toMatchObject({ nickname: 'Lia', verified: false });
+    expect(seenByLia.partner).toMatchObject({ nickname: nick('Kim'), verified: true });
+    expect((await kim.next('matched')).partner).toMatchObject({
+      nickname: nick('Lia'),
+      verified: false,
+    });
     kim.send({ type: 'like' });
     await kim.next('liked');
     lia.send({ type: 'like' });
@@ -1131,7 +1140,7 @@ describe('Video chat (e2e)', () => {
       .get('/v1/videochat/contacts')
       .set(users.lia!.auth)
       .expect(200);
-    expect(contacts.body.items[0]).toMatchObject({ nickname: 'Kim', verified: true });
+    expect(contacts.body.items[0]).toMatchObject({ nickname: nick('Kim'), verified: true });
 
     // Kim's week: one like received and one new contact.
     const stats = await request(server())

@@ -79,7 +79,9 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
           label={t('nickname')}
           hint={t('nicknameHint')}
           defaultValue={profile.nickname ?? ''}
-          maxLength={24}
+          maxLength={21}
+          autoCapitalize="none"
+          spellCheck={false}
           autoComplete="off"
         />
         <FormSelect

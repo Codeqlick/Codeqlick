@@ -1,3 +1,4 @@
+import { Avatar } from '@/components/ui/Avatar';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
@@ -47,7 +48,10 @@ export default async function CitasPublicPage({ params }: PageProps) {
   return (
     <div className={styles.public}>
       <section className={styles.intro}>
-        <p className={styles.eyebrow}>{t('public.with', { name: page.ownerName })}</p>
+        <p className={`${styles.eyebrow} ${styles.owner}`}>
+          <Avatar file={page.ownerAvatar} name={page.ownerName} size="sm" />
+          {t('public.with', { name: page.ownerName })}
+        </p>
         <h1 className={styles.heroTitle}>{page.title}</h1>
         <ul className={styles.facts}>
           <li>{t('public.minutes', { count: page.durationMinutes })}</li>

@@ -8,6 +8,15 @@ export type RoomWithOwner = MeetingRoom & { owner: { name: string } };
 export class MeetingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** The account's profile photo, if it has one. */
+  async avatarOf(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    return user?.avatarKey ?? null;
+  }
+
   listByOwner(ownerId: string): Promise<MeetingRoom[]> {
     return this.prisma.meetingRoom.findMany({
       where: { ownerId },

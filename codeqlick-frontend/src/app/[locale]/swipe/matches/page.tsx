@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/swipe/Swipe.module.css';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { AdZone } from '@/components/videochat/AdZone';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getSwipeStatus, listSwipeMatches } from '@/lib/api/swipe';
@@ -56,6 +57,11 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
                       ? `${match.lastMessage.mine ? `${t('you')}: ` : ''}${match.lastMessage.text}`
                       : t('noMessages')}
                   </span>
+                  {match.partner.albumPhotos > 0 ? (
+                    <span className={styles.hint}>
+                      🔒 {tv('album.matchHint', { count: match.partner.albumPhotos })}
+                    </span>
+                  ) : null}
                 </span>
                 {match.unread > 0 ? (
                   <span className={styles.unread} aria-label={t('unread', { count: match.unread })}>
@@ -67,6 +73,7 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
           ))}
         </ul>
       )}
+      <AdZone app="swipe" zone="pages" />
     </section>
   );
 }

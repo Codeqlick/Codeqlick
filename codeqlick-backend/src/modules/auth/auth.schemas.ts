@@ -115,6 +115,57 @@ export const updateMeSchema = z
   .strict();
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
 
+/** Usernames: 3–20 of a-z, 0-9, `.` and `_`, starting and ending with a letter or digit, no `..`. */
+export const USERNAME_PATTERN = /^(?!.*\.\.)[a-z0-9](?:[a-z0-9._]{1,18})[a-z0-9]$/;
+
+/** Names nobody can take: the team's, the platform's and the apps'. */
+export const RESERVED_USERNAMES = new Set([
+  'admin',
+  'administrator',
+  'codeqlick',
+  'support',
+  'soporte',
+  'help',
+  'ayuda',
+  'root',
+  'api',
+  'www',
+  'mail',
+  'email',
+  'security',
+  'seguridad',
+  'staff',
+  'team',
+  'equipo',
+  'system',
+  'sistema',
+  'moderator',
+  'moderador',
+  'official',
+  'oficial',
+  'hello',
+  'info',
+  'contact',
+  'contacto',
+  'videochat',
+  'swipe',
+  'meetings',
+  'citas',
+  'portal',
+  'blog',
+  'null',
+  'undefined',
+  'anonymous',
+]);
+
+export const usernameField = z.string().trim().toLowerCase().max(40);
+
+export const setUsernameSchema = z.object({ username: usernameField.nullable() }).strict();
+export type SetUsernameInput = z.infer<typeof setUsernameSchema>;
+
+export const usernameQuerySchema = z.object({ username: usernameField }).strict();
+export type UsernameQuery = z.infer<typeof usernameQuerySchema>;
+
 export const changeEmailSchema = z
   .object({
     email: z.email().max(254),

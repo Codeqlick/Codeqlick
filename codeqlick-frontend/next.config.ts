@@ -45,8 +45,8 @@ const policy = (extra: string[] = []) =>
   ].join('; ');
 
 const contentSecurityPolicy = policy();
-/** The video chat's host also loads ExoClick's ad zones (architecture 4.7); no other host does. */
-const videochatSecurityPolicy = policy(EXOCLICK_HOSTS);
+/** The video chat's and Swipe's hosts also load ExoClick's ad zones (4.7, 4.10); no other host does. */
+const adsSecurityPolicy = policy(EXOCLICK_HOSTS);
 
 /** Hosts of the web apps that make calls: videochat.codeqlick.com, meetings.localhost… (6.3). */
 const CALL_HOSTS = '(videochat|meetings)\\..+';
@@ -121,10 +121,10 @@ const nextConfig: NextConfig = {
       ...(process.env.NODE_ENV === 'production'
         ? [
             {
-              // Last match wins: the video chat's host swaps in the policy that allows its ads.
+              // Last match wins: the hosts with ads swap in the policy that allows them.
               source: '/:path((?!site-draft/).*)',
-              has: [{ type: 'host' as const, value: 'videochat\\..+' }],
-              headers: [{ key: 'Content-Security-Policy', value: videochatSecurityPolicy }],
+              has: [{ type: 'host' as const, value: '(videochat|swipe)\\..+' }],
+              headers: [{ key: 'Content-Security-Policy', value: adsSecurityPolicy }],
             },
           ]
         : []),

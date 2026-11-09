@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
+import { AdZone } from '@/components/videochat/AdZone';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser } from '@/lib/auth/session';
@@ -66,6 +67,7 @@ export default async function SwipeLandingPage({ params }: PageProps) {
           </p>
         </div>
       </section>
+      <AdZone app="swipe" zone="pages" />
     </div>
   );
 }

@@ -45,6 +45,7 @@ export const SITE_SECTIONS = [
   'legal',
   'portal',
   'privacy',
+  'security',
   'services',
   'terms',
   'work',

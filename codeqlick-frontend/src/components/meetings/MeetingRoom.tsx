@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
 import styles from './MeetingRoom.module.css';
+import { avatarPath, initials } from '@/lib/avatar';
 
 type IceServer = { urls: string[]; username?: string; credential?: string };
 
@@ -16,7 +17,13 @@ type SignalData =
   { sdp: { type: 'offer' | 'answer'; sdp: string } } | { candidate: RTCIceCandidateInit };
 
 type Media = { audio: boolean; video: boolean; screen: boolean };
-type PeerInfo = Media & { id: string; name: string; owner: boolean; guest: boolean };
+type PeerInfo = Media & {
+  id: string;
+  name: string;
+  avatar: string | null;
+  owner: boolean;
+  guest: boolean;
+};
 
 type ServerMessage =
   | { type: 'waiting'; title: string }
@@ -67,17 +74,6 @@ const CLOSE_REASONS: Record<number, OverReason> = {
   4410: 'ended',
 };
 
-function initials(name: string): string {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join('') || '?'
-  );
-}
-
 /** A soft tone for a knock or a message (no sound is fine). */
 function tick(): void {
   try {
@@ -100,6 +96,7 @@ function tick(): void {
 function Tile({
   stream,
   name,
+  avatar,
   audio,
   video,
   screen,
@@ -108,6 +105,8 @@ function Tile({
 }: Media & {
   stream: MediaStream | null;
   name: string;
+  /** Profile photo's file name, shown while the camera is off. */
+  avatar?: string | null;
   mine?: boolean;
   labels: { muted: string; screen: string; you: string };
 }) {
@@ -127,7 +126,10 @@ function Tile({
         className={`${styles.video} ${mine && !screen ? styles.mirror : ''}`}
         hidden={!showVideo}
       />
-      {showVideo ? null : (
+      {showVideo ? null : avatarPath(avatar) ? (
+        // oxlint-disable-next-line nextjs/no-img-element -- a 256 px WebP already
+        <img src={avatarPath(avatar) ?? ''} alt="" className={styles.avatar} />
+      ) : (
         <span className={styles.avatar} aria-hidden="true">
           {initials(name)}
         </span>
@@ -150,6 +152,7 @@ export function MeetingRoom({
   title,
   ownerName,
   userName,
+  userAvatar = null,
   wsUrl,
   getTicket,
 }: {
@@ -158,6 +161,8 @@ export function MeetingRoom({
   ownerName: string;
   /** The signed-in person's name; null for a guest, who types one. */
   userName: string | null;
+  /** The signed-in person's profile photo (file name), if any. */
+  userAvatar?: string | null;
   wsUrl: string;
   getTicket: (code: string, name: string) => Promise<MeetingTicketResult>;
 }) {
@@ -693,6 +698,7 @@ export function MeetingRoom({
           <Tile
             stream={localStream}
             name={name.trim()}
+            avatar={userAvatar}
             audio={micOn}
             video={camOn && hasCam}
             screen={false}
@@ -807,6 +813,7 @@ export function MeetingRoom({
           <Tile
             stream={localStream}
             name={self?.name ?? name}
+            avatar={self?.avatar ?? userAvatar}
             audio={micOn}
             video={camOn && hasCam}
             screen={sharing}
@@ -818,6 +825,7 @@ export function MeetingRoom({
               key={peer.id}
               stream={streams[peer.id] ?? null}
               name={peer.name}
+              avatar={peer.avatar}
               audio={peer.audio}
               video={peer.video}
               screen={peer.screen}

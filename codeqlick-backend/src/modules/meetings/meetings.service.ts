@@ -29,6 +29,8 @@ export interface TicketHolder {
   /** Null for a guest. */
   userId: string | null;
   name: string;
+  /** The account's profile photo (file name); null for guests and people without one. */
+  avatar: string | null;
 }
 
 export interface RoomView {
@@ -130,12 +132,14 @@ export class MeetingsService {
   ): Promise<MeetingTicket> {
     const room = await this.repository.findByCode(code);
     if (!room) throw new NotFoundException('Room not found');
+    const avatar = who.userId ? await this.repository.avatarOf(who.userId) : null;
     this.pruneTickets(now);
     const ticket = randomBytes(32).toString('base64url');
     this.tickets.set(hash(ticket), {
       roomId: room.id,
       userId: who.userId,
       name: who.name,
+      avatar,
       expiresAt: now + TICKET_TTL_MS,
     });
     return {
@@ -153,7 +157,7 @@ export class MeetingsService {
     if (!entry) return undefined;
     this.tickets.delete(key);
     if (entry.expiresAt <= now) return undefined;
-    return { roomId: entry.roomId, userId: entry.userId, name: entry.name };
+    return { roomId: entry.roomId, userId: entry.userId, name: entry.name, avatar: entry.avatar };
   }
 
   /** The room as it is now (the gateway opens a live meeting with it). */

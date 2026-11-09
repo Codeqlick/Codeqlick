@@ -109,6 +109,8 @@ export type ClientMessage = z.infer<typeof clientMessageSchema>;
 export interface PeerInfo extends MediaState {
   id: string;
   name: string;
+  /** Profile photo's file name (signed-in people who have one). */
+  avatar: string | null;
   owner: boolean;
   guest: boolean;
 }
