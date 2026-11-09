@@ -557,6 +557,22 @@
       "removed": "You removed your username.",
       "rateLimited": "Too many changes in a row. Wait a minute.",
       "none": "You don't have a username yet."
+    },
+    "avatar": {
+      "title": "Profile photo",
+      "lead": "It shows in your account, in Meetings while your camera is off and on your Citas page. Never in Videochat or Swipe.",
+      "pick": "Choose a photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "removing": "Removing…",
+      "sending": "Uploading…",
+      "saved": "Profile photo saved.",
+      "removed": "You removed your profile photo.",
+      "noFile": "Choose a photo first.",
+      "tooBig": "The photo is too large.",
+      "notImage": "Only PNG, JPEG or WebP photos.",
+      "rateLimited": "Too many changes in a row. Wait a minute.",
+      "error": "We couldn't save it. Try again."
     }
   },
   "TwoFactor": {

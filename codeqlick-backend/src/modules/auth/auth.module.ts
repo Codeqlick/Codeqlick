@@ -5,6 +5,9 @@ import { AccountController } from './account.controller.js';
 import { AccountRepository } from './account.repository.js';
 import { AccountService } from './account.service.js';
 import { AuthController } from './auth.controller.js';
+import { AvatarCleanupService } from './avatar-cleanup.service.js';
+import { AvatarStorage } from './avatar.storage.js';
+import { AvatarsController } from './avatars.controller.js';
 import { AuthRepository } from './auth.repository.js';
 import { AuthService } from './auth.service.js';
 import { CaptchaService } from './captcha.service.js';
@@ -22,7 +25,7 @@ import { TokenCleanupService } from './token-cleanup.service.js';
       }),
     }),
   ],
-  controllers: [AuthController, AccountController],
+  controllers: [AuthController, AccountController, AvatarsController],
   providers: [
     AuthService,
     AuthRepository,
@@ -31,9 +34,11 @@ import { TokenCleanupService } from './token-cleanup.service.js';
     AccountRepository,
     PasswordService,
     TokenCleanupService,
+    AvatarStorage,
+    AvatarCleanupService,
   ],
   // JwtModule is re-exported for the global JwtAuthGuard registered in AppModule; AuthService
   // for the welcome emails sent from the users module.
-  exports: [JwtModule, PasswordService, AuthService],
+  exports: [JwtModule, PasswordService, AuthService, AvatarStorage],
 })
 export class AuthModule {}

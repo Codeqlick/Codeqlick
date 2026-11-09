@@ -9,6 +9,8 @@ import {
   checkUsername,
   confirmEmailChange,
   deleteMe,
+  removeAvatar,
+  uploadAvatar,
   requestEmailChange,
   setUsername,
   updateMe,
@@ -40,6 +42,43 @@ export async function updateNameAction(
   }
   revalidatePath(`/${locale}`, 'layout');
   return { status: 'success', message: tc('saved') };
+}
+
+/** Sends a new profile photo (already shrunk in the browser). */
+export async function uploadAvatarAction(
+  locale: AppLocale,
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const t = await getTranslations({ locale, namespace: 'Account.avatar' });
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: t('noFile') };
+  if (file.size > 2_000_000) return { ok: false, message: t('tooBig') };
+  try {
+    await uploadAvatar(file);
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    if (isApiError(error) && error.status === 400) return { ok: false, message: t('notImage') };
+    if (isApiError(error) && error.status === 429) return { ok: false, message: t('rateLimited') };
+    return { ok: false, message: t('error') };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  return { ok: true };
+}
+
+export async function removeAvatarAction(
+  locale: AppLocale,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Account.avatar' });
+  try {
+    await removeAvatar();
+  } catch (error) {
+    if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
+    return { status: 'error', message: t('error') };
+  }
+  revalidatePath(`/${locale}`, 'layout');
+  return { status: 'success', message: t('removed') };
 }
 
 /** Same rules as the API: 3–20 of a-z, 0-9, `.` and `_`, letter or digit at both ends, no `..`. */

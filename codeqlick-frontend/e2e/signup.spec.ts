@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { linkIn, mailTo, runTag } from './helpers';
+import { testPng } from './images';
 
 test('a visitor signs up, confirms their email and lands in the portal', async ({ page }) => {
   const tag = runTag();
@@ -31,4 +32,15 @@ test('a visitor signs up, confirms their email and lands in the portal', async (
   await page.getByRole('button', { name: 'Guardar nombre de usuario' }).click();
   await expect(page.getByText(`Listo: ahora eres @ada_${tag}.`)).toBeVisible();
   await expect(page.getByText(`@ada_${tag} · Sesión iniciada como ${email}`)).toBeVisible();
+
+  // A profile photo: it replaces the initials in the account and in the header.
+  await page.getByLabel('Elegir foto').setInputFiles({
+    name: 'me.png',
+    mimeType: 'image/png',
+    buffer: testPng(900),
+  });
+  await expect(page.getByText('Foto de perfil guardada.')).toBeVisible();
+  await expect(page.locator('img[src^="/avatar/"]').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Quitar foto' }).click();
+  await expect(page.locator('img[src^="/avatar/"]')).toHaveCount(0);
 });

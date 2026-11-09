@@ -67,6 +67,8 @@ export interface PublicPage {
   askPhone: boolean;
   timeZone: string;
   ownerName: string;
+  /** The owner's profile photo (file name), if they have one. */
+  ownerAvatar: string | null;
   enabled: boolean;
   slots: string[];
 }
@@ -237,6 +239,7 @@ export class CitasService {
       askPhone: page.askPhone,
       timeZone: page.timeZone,
       ownerName: page.owner.name,
+      ownerAvatar: page.owner.avatarKey,
       enabled: page.enabled,
       slots: slots.map((slot) => slot.toISOString()),
     };

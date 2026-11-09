@@ -557,6 +557,22 @@
       "removed": "Has quitado tu nombre de usuario.",
       "rateLimited": "Demasiados cambios seguidos. Espera un minuto.",
       "none": "Aún no tienes nombre de usuario."
+    },
+    "avatar": {
+      "title": "Foto de perfil",
+      "lead": "Sale en tu cuenta, en Meetings cuando tienes la cámara apagada y en tu página de Citas. Nunca en Videochat ni en Swipe.",
+      "pick": "Elegir foto",
+      "change": "Cambiar foto",
+      "remove": "Quitar foto",
+      "removing": "Quitando…",
+      "sending": "Subiendo…",
+      "saved": "Foto de perfil guardada.",
+      "removed": "Has quitado tu foto de perfil.",
+      "noFile": "Elige una foto primero.",
+      "tooBig": "La foto es demasiado grande.",
+      "notImage": "Solo valen fotos PNG, JPEG o WebP.",
+      "rateLimited": "Demasiados cambios seguidos. Espera un minuto.",
+      "error": "No hemos podido guardarla. Inténtalo de nuevo."
     }
   },
   "TwoFactor": {

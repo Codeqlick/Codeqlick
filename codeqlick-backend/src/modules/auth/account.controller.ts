@@ -10,8 +10,11 @@ import {
   Put,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -60,6 +63,33 @@ export class AccountController {
     @Query({ schema: usernameQuerySchema }) query: UsernameQuery,
   ) {
     return this.account.usernameAvailable(user.id, query.username);
+  }
+
+  /** The profile photo: PNG, JPEG or WebP, re-encoded to a 256×256 WebP square. */
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post('me/avatar')
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { file: { type: 'string', format: 'binary' } },
+      required: ['file'],
+    },
+  })
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
+  setAvatar(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+  ): Promise<AuthUser> {
+    return this.account.setAvatar(user.id, file?.buffer);
+  }
+
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Delete('me/avatar')
+  removeAvatar(@CurrentUser() user: AuthUser): Promise<AuthUser> {
+    return this.account.removeAvatar(user.id);
   }
 
   /** Chooses, changes or (null) removes the caller's username. */

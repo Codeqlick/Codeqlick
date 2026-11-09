@@ -4,7 +4,9 @@ import { ActiveSessions } from '@/components/app/ActiveSessions';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TwoFactorSetup } from '@/components/app/TwoFactorSetup';
+import { AvatarUpload } from '@/components/app/AvatarUpload';
 import { UsernameField } from '@/components/app/UsernameField';
+import { Avatar } from '@/components/ui/Avatar';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import type { AppLocale } from '@/i18n/routing';
@@ -20,6 +22,8 @@ import {
   changeEmailAction,
   checkUsernameAction,
   deleteAccountAction,
+  removeAvatarAction,
+  uploadAvatarAction,
   updateNameAction,
   updateUsernameAction,
 } from '@/lib/auth/account-actions';
@@ -46,6 +50,21 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('profile')}</h2>
+        <div className={styles.form}>
+          <h3>{t('avatar.title')}</h3>
+          <p className={styles.muted}>{t('avatar.lead')}</p>
+          <div className={styles.actions}>
+            <Avatar file={user.avatar} name={user.name} size="lg" />
+            <AvatarUpload action={uploadAvatarAction.bind(null, locale)} hasPhoto={!!user.avatar} />
+            {user.avatar ? (
+              <ActionForm action={removeAvatarAction.bind(null, locale)}>
+                <SubmitButton variant="ghost" size="sm" pendingLabel={t('avatar.removing')}>
+                  {t('avatar.remove')}
+                </SubmitButton>
+              </ActionForm>
+            ) : null}
+          </div>
+        </div>
         <ActionForm action={updateNameAction.bind(null, locale)} className={styles.form}>
           <FormInput
             name="name"

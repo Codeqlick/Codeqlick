@@ -199,6 +199,22 @@ export function checkUsername(username: string) {
   );
 }
 
+/** Sets the profile photo (the API makes a 256×256 WebP of it). */
+export function uploadAvatar(file: File) {
+  const form = new FormData();
+  form.set('file', file, 'photo.jpg');
+  return apiFetch<AuthUser>('/auth/me/avatar', {
+    method: 'POST',
+    body: form,
+    auth: 'required',
+    signal: AbortSignal.timeout(30_000),
+  });
+}
+
+export function removeAvatar() {
+  return apiFetch<AuthUser>('/auth/me/avatar', { method: 'DELETE', auth: 'required' });
+}
+
 /** Chooses, changes or (null) removes the caller's username. */
 export function setUsername(username: string | null) {
   return apiFetch<AuthUser>('/auth/me/username', {

@@ -71,6 +71,8 @@ model User {
   name               String
   /// Optional unique username (lower-cased, shown as @name); freed when changed or deleted.
   username           String?   @unique
+  /// Profile photo (file name under UPLOADS_DIR/avatars); never shown in the 18+ apps.
+  avatarKey          String?   @map("avatar_key")
   role               Role      @default(CLIENT)
   isActive           Boolean   @default(true) @map("is_active")
   /// Language of the emails the platform sends this user (welcome, project updates).

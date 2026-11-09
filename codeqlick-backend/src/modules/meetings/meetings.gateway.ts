@@ -67,6 +67,7 @@ interface Member {
   state?: 'waiting' | 'inside';
   userId: string | null;
   name: string;
+  avatar: string | null;
   owner: boolean;
   media: MediaState;
   limits: { all: WindowLimiter; chat: WindowLimiter; signal: WindowLimiter };
@@ -160,6 +161,7 @@ export class MeetingsGateway implements OnApplicationBootstrap, OnModuleDestroy 
       alive: true,
       userId: null,
       name: '',
+      avatar: null,
       owner: false,
       media: { audio: false, video: false, screen: false },
       limits: {
@@ -349,6 +351,7 @@ export class MeetingsGateway implements OnApplicationBootstrap, OnModuleDestroy 
     member.room = room;
     member.userId = holder.userId;
     member.name = holder.name;
+    member.avatar = holder.avatar;
     member.owner = holder.userId !== null && holder.userId === room.ownerId;
     member.media = {
       audio: message.audio ?? false,
@@ -436,6 +439,7 @@ export class MeetingsGateway implements OnApplicationBootstrap, OnModuleDestroy 
     return {
       id: member.id,
       name: member.name,
+      avatar: member.avatar,
       owner: member.owner,
       guest: member.userId === null,
       ...member.media,
