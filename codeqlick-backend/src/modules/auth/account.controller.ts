@@ -7,6 +7,8 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Put,
+  Query,
   Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -20,10 +22,14 @@ import {
   changeEmailSchema,
   confirmEmailChangeSchema,
   deleteAccountSchema,
+  setUsernameSchema,
+  usernameQuerySchema,
   updateMeSchema,
   type ChangeEmailInput,
   type ConfirmEmailChangeInput,
   type DeleteAccountInput,
+  type SetUsernameInput,
+  type UsernameQuery,
   type UpdateMeInput,
 } from './auth.schemas.js';
 
@@ -43,6 +49,28 @@ export class AccountController {
     @Body({ schema: updateMeSchema }) body: UpdateMeInput,
   ): Promise<AuthUser> {
     return this.account.updateMe(user.id, body);
+  }
+
+  /** Whether the caller could take a username (their own counts as available). */
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Get('username/available')
+  usernameAvailable(
+    @CurrentUser() user: AuthUser,
+    @Query({ schema: usernameQuerySchema }) query: UsernameQuery,
+  ) {
+    return this.account.usernameAvailable(user.id, query.username);
+  }
+
+  /** Chooses, changes or (null) removes the caller's username. */
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Put('me/username')
+  setUsername(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: setUsernameSchema }) body: SetUsernameInput,
+  ): Promise<AuthUser> {
+    return this.account.setUsername(user.id, body.username);
   }
 
   @ApiBearerAuth()

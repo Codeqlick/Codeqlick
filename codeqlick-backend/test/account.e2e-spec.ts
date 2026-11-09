@@ -114,6 +114,69 @@ describe('Own account: name, email, export, deletion (e2e)', () => {
     people.ana = newEmail;
   });
 
+  it('lets each person hold a unique username, free again once they change it', async () => {
+    const server = app.getHttpServer();
+    const name = `ana_${tag}`;
+    const mine = await request(server)
+      .put('/v1/auth/me/username')
+      .set(auth('ana'))
+      .send({ username: `  Ana_${tag.toUpperCase()} ` })
+      .expect(200);
+    expect(mine.body).toMatchObject({ username: name });
+    const me = await request(server).get('/v1/auth/me').set(auth('ana')).expect(200);
+    expect(me.body.username).toBe(name);
+
+    // Taken for anyone else, available for its owner.
+    const check = await request(server)
+      .get('/v1/auth/username/available')
+      .query({ username: name.toUpperCase() })
+      .set(auth('owner'))
+      .expect(200);
+    expect(check.body).toEqual({ username: name, available: false, reason: 'taken' });
+    const own = await request(server)
+      .get('/v1/auth/username/available')
+      .query({ username: name })
+      .set(auth('ana'))
+      .expect(200);
+    expect(own.body.available).toBe(true);
+    await request(server)
+      .put('/v1/auth/me/username')
+      .set(auth('owner'))
+      .send({ username: name })
+      .expect(409);
+
+    // Rules: reserved, too short, odd characters, two dots.
+    for (const bad of ['admin', 'ab', 'ana-maria', 'ana..m']) {
+      await request(server)
+        .put('/v1/auth/me/username')
+        .set(auth('owner'))
+        .send({ username: bad })
+        .expect(400);
+    }
+
+    // Ana changes hers: the old one is free at once.
+    await request(server)
+      .put('/v1/auth/me/username')
+      .set(auth('ana'))
+      .send({ username: `ana.m_${tag}` })
+      .expect(200);
+    const taken = await request(server)
+      .put('/v1/auth/me/username')
+      .set(auth('owner'))
+      .send({ username: name })
+      .expect(200);
+    expect(taken.body.username).toBe(name);
+    await request(server)
+      .put('/v1/auth/me/username')
+      .set(auth('owner'))
+      .send({ username: null })
+      .expect(200);
+    const log = await prisma.activityLog.findFirst({
+      where: { action: 'account.username_changed', targetLabel: `@ana.m_${tag}` },
+    });
+    expect(log).not.toBeNull();
+  });
+
   it("exports the person's data", async () => {
     const res = await request(app.getHttpServer())
       .get('/v1/auth/me/export')

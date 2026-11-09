@@ -69,6 +69,8 @@ model User {
   email              String    @unique
   passwordHash       String    @map("password_hash")
   name               String
+  /// Optional unique username (lower-cased, shown as @name); freed when changed or deleted.
+  username           String?   @unique
   role               Role      @default(CLIENT)
   isActive           Boolean   @default(true) @map("is_active")
   /// Language of the emails the platform sends this user (welcome, project updates).

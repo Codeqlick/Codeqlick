@@ -18,8 +18,16 @@ export class AccountRepository {
     return this.prisma.user.count({ where: { email } }).then((count) => count > 0);
   }
 
-  updateProfile(id: string, data: { name?: string; locale?: Locale }): Promise<User> {
+  updateProfile(
+    id: string,
+    data: { name?: string; locale?: Locale; username?: string | null },
+  ): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
+  }
+
+  /** Who holds a username now, if anyone. */
+  usernameOwner(username: string): Promise<{ id: string } | null> {
+    return this.prisma.user.findUnique({ where: { username }, select: { id: true } });
   }
 
   /** Replaces the user's pending email change with this one. */
@@ -111,6 +119,7 @@ export class AccountRepository {
           id: true,
           email: true,
           name: true,
+          username: true,
           role: true,
           locale: true,
           weeklyDigest: true,

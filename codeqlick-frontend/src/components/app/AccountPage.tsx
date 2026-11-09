@@ -4,6 +4,7 @@ import { ActiveSessions } from '@/components/app/ActiveSessions';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
 import { TwoFactorSetup } from '@/components/app/TwoFactorSetup';
+import { UsernameField } from '@/components/app/UsernameField';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import type { AppLocale } from '@/i18n/routing';
@@ -17,8 +18,10 @@ import {
 } from '@/lib/auth/actions';
 import {
   changeEmailAction,
+  checkUsernameAction,
   deleteAccountAction,
   updateNameAction,
+  updateUsernameAction,
 } from '@/lib/auth/account-actions';
 import { requireUser } from '@/lib/auth/session';
 
@@ -32,7 +35,14 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
 
   return (
     <div className={styles.stack}>
-      <PageHeader title={t('title')} lead={t('signedInAs', { email: user.email })} />
+      <PageHeader
+        title={t('title')}
+        lead={
+          user.username
+            ? `@${user.username} · ${t('signedInAs', { email: user.email })}`
+            : t('signedInAs', { email: user.email })
+        }
+      />
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('profile')}</h2>
@@ -46,6 +56,14 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
           />
           <div className={styles.actions}>
             <SubmitButton pendingLabel={tc('saving')}>{tc('save')}</SubmitButton>
+          </div>
+        </ActionForm>
+        <ActionForm action={updateUsernameAction.bind(null, locale)} className={styles.form}>
+          <UsernameField current={user.username ?? null} check={checkUsernameAction} />
+          <div className={styles.actions}>
+            <SubmitButton variant="outline" pendingLabel={tc('saving')}>
+              {t('username.save')}
+            </SubmitButton>
           </div>
         </ActionForm>
         <ActionForm action={changeEmailAction.bind(null, locale)} className={styles.form}>

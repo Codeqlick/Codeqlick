@@ -58,7 +58,7 @@ export default async function EditUserPage({
     <div className={styles.stack}>
       <PageHeader
         title={user.name}
-        lead={user.email}
+        lead={user.username ? `@${user.username} · ${user.email}` : user.email}
         back={back}
         actions={
           isAccount ? (

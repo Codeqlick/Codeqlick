@@ -20,6 +20,7 @@ import {
   emailChangedNoticeEmail,
 } from './account-emails.js';
 import { AccountRepository } from './account.repository.js';
+import { RESERVED_USERNAMES, USERNAME_PATTERN } from './auth.schemas.js';
 import { hashRefreshToken, toAuthUser } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 
@@ -46,6 +47,48 @@ export class AccountService {
       locale: input.locale ? toDbLocale(input.locale) : undefined,
     });
     return toAuthUser(user);
+  }
+
+  /** Why a username can't be used by `userId` (`invalid`, `reserved`, `taken`), or null. */
+  async usernameProblem(
+    userId: string,
+    username: string,
+  ): Promise<'invalid' | 'reserved' | 'taken' | null> {
+    if (!USERNAME_PATTERN.test(username)) return 'invalid';
+    if (RESERVED_USERNAMES.has(username.replace(/[._]/g, ''))) return 'reserved';
+    const owner = await this.repository.usernameOwner(username);
+    return owner && owner.id !== userId ? 'taken' : null;
+  }
+
+  async usernameAvailable(userId: string, username: string) {
+    const reason = await this.usernameProblem(userId, username);
+    return reason ? { username, available: false, reason } : { username, available: true };
+  }
+
+  /**
+   * Chooses, changes or (null) removes the caller's username. The old one is free for anyone at
+   * once; the unique index settles two people saving the same name together (409).
+   */
+  async setUsername(userId: string, username: string | null): Promise<AuthUser> {
+    const user = await this.activeUser(userId);
+    if (username === user.username) return toAuthUser(user);
+    if (username !== null) {
+      const problem = await this.usernameProblem(userId, username);
+      if (problem === 'taken') throw new ConflictException('This username is taken');
+      if (problem) {
+        throw new BadRequestException({
+          errors: [{ field: 'username', message: `Username ${problem}` }],
+        });
+      }
+    }
+    const updated = await this.repository.updateProfile(userId, { username });
+    await this.activity.record(toAuthUser(updated), {
+      action: 'account.username_changed',
+      targetId: user.id,
+      targetLabel: username ? `@${username}` : user.email,
+      details: { from: user.username, to: username },
+    });
+    return toAuthUser(updated);
   }
 
   /** Emails a confirmation link to the new address; the account keeps its email until then. */

@@ -6,6 +6,8 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  /** Unique username (`GET /auth/me` and account changes only; not in the token). */
+  username?: string | null;
   /** Session (refresh-token family) the access token was issued for; absent in older tokens. */
   sessionId?: string;
   /**

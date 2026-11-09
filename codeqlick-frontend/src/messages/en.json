@@ -542,7 +542,22 @@
     "deleting": "Deleting…",
     "deleteHasProjects": "Your account has projects with us, with their contracts and invoices, so we close it for you: open a support request or write to hello@codeqlick.com and we will.",
     "deleteAdmin": "Team accounts are deleted by another admin from Users.",
-    "emailDisposable": "We don't accept temporary email addresses. Please use your usual email."
+    "emailDisposable": "We don't accept temporary email addresses. Please use your usual email.",
+    "username": {
+      "label": "Username",
+      "hint": "3 to 20 characters: letters without accents, numbers, dots and underscores. You can change it whenever you like; the old one becomes free for others.",
+      "checking": "Checking…",
+      "available": "@{username} is free.",
+      "yours": "@{username} is your username.",
+      "taken": "That username is taken. Try another one.",
+      "reserved": "That name is reserved. Try another one.",
+      "invalid": "Use 3 to 20 characters: letters without accents, numbers, dots and underscores, starting and ending with a letter or number.",
+      "save": "Save username",
+      "saved": "Done: you are now @{username}.",
+      "removed": "You removed your username.",
+      "rateLimited": "Too many changes in a row. Wait a minute.",
+      "none": "You don't have a username yet."
+    }
   },
   "TwoFactor": {
     "title": "Two-step verification",
@@ -1108,7 +1123,7 @@
       "allAccounts": "All",
       "app": "App",
       "search": "Search",
-      "searchPlaceholder": "Name or email",
+      "searchPlaceholder": "Name, @username or email",
       "noMatchTitle": "No account matches",
       "noMatchBody": "Try another type, app or search.",
       "kinds": {
