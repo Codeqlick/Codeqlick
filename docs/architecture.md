@@ -106,6 +106,7 @@ src/
     reviews/                 Client reviews: asked for on launch, published on the site with consent
     credentials/             Access clients share for their projects (encrypted; the team reveals, logged)
     monitoring/              Uptime monitoring of hosted client sites (checks every 5 minutes, alerts, status in the portal)
+    errors/                  Unexpected errors of the API and the website, grouped, with an email per new one (section 4.11)
     site-forms/              Contact forms of hosted static client sites, relayed to the client's inbox
     domains/                 Client domains: availability, OVH (DNS and expiry) and renewal reminders
     managed-sites/           Managed basic websites: content, revisions, builds through site-builder
@@ -194,6 +195,7 @@ erDiagram
 - **Booking** — a video call booked from the website: `name`, `email`, `company?`, `message?`, `locale`, `startsAt`/`endsAt`, `status` (`CONFIRMED` | `CANCELLED`), `slotKey` (the start while confirmed, unique, null once cancelled: no double booking), `cancelTokenHash` (SHA-256 of the token in the visitor's cancel link), `sequence` (calendar revision), `leadId?`. Its settings are the `Setting` `booking`: `enabled`, `meetingUrl` (a fixed Google Meet link), `calendarEmail` (optional: also gets the team's invitations and cancellations, so calls land in that calendar, e.g. the owner's Gmail), `durationMinutes` (15–120, default 30), `minNoticeHours` (default 24), `horizonDays` (default 21) and `weekly` free hours per weekday in Madrid time (`[{ start: 'HH:MM', end: 'HH:MM' }]`). Free slots are those hours cut into calls, after the notice, minus confirmed calls. Booking moves the open lead with that email to `CALL` (or starts one there) with the call's day as follow-up; both sides are emailed an iCalendar invitation (`METHOD:REQUEST`; cancellations send `METHOD:CANCEL` with a higher `SEQUENCE`).
 - **BookingPage** / **Appointment** — Citas (section 4.9): a person's booking page (`ownerId`, `slug` unique, `title`, `description`, `durationMinutes`, `location`, `video`, `meetingRoomId?`, `askPhone`, `timeZone`, `weekly`, `minNoticeHours`, `horizonDays`, `enabled`) and the appointments booked on it (`pageId`, `ownerId`, `name`, `email`, `phone?`, `note?`, `locale`, `startsAt`/`endsAt`, `status` reusing `BookingStatus`, `cancelTokenHash`, `sequence`). Both cascade with their owner.
 - **SwipeProfile** / **SwipePhoto** / **SwipeVote** / **SwipeMatch** / **SwipeMessage** / **SwipeReport** / **SwipeBlock** / **SwipeTakedown** / **SwipeBlockedHash** — Swipe (section 4.10). Profile per account (`userId` PK: 18+ confirmation and terms version, `nickname`, `gender`, `seeking[]`, `interests[]`, verification `status`/`key`/`note`/`sentAt`/`verifiedAt`, suspension `suspendedAt`/`Until`/`Reason`). Photo (`ref` 8 characters unique, shown on the card; `storageKey` of the private file; `width`, `height`; `hash` dHash; `status` PENDING · LIVE · REJECTED · HIDDEN; `rejectReason`; `likes`; reviewer). Vote (PK voter + photo, `ownerId`, `like`). Match (`userAId` < `userBId` unique, `lastMessageAt`, read marks per side) with its messages (≤ 1000 characters). Report (reporter, reported, `photoId?`, `reason`, `details`, chat `transcript` JSON, status, reviewer). Block (both ways hide everything). Takedown (anyone's removal request: `email`, `photoRef`, matched `photoId?`, `reason`, `details`, `locale`, status OPEN · REMOVED · CLOSED, `response`). Blocked hash (removed images, refused on upload). Everything but takedowns and blocked hashes cascades with the account.
+- **ErrorGroup** — an unexpected error and its repeats (section 4.11): `fingerprint` (SHA-256, unique), `source` API · WEB_SERVER · WEB_BROWSER, `message`, the last occurrence's `stack`, `method`, `path` (no query string), `reference` (request id or Next.js digest) and `userAgent`, `count`, `firstSeenAt`, `lastSeenAt`, `resolvedAt`.
 - **SavedReply** — a reusable text for lead replies and project comments: `title` (only the admin sees it) and `body`. The admin panel puts `{name}` (lead or client) and `{project}` in when it inserts the text.
 - **ActivityLog** — who changed what: `actorId?` (null once the user is deleted) and `actorName` copied at the time, `action` (`<target>.<verb>`, e.g. `post.published`), `targetType`, `targetId?`, `targetLabel?` (title, name or email at the time), `details?` (JSON: what changed, e.g. `{ phase, progress }`). Written by the services after each admin change and each change to one's own account (password, two-step verification, signing out devices); a failed write is logged and never fails the change.
 
@@ -236,7 +238,7 @@ All errors use RFC 9457 *problem details* with `Content-Type: application/proble
 { "type": "about:blank", "title": "Bad Request", "status": 400, "detail": "Validation failed", "instance": "/v1/leads", "errors": [{ "path": "email", "message": "Invalid email" }], "requestId": "…" }
 ```
 
-Unknown errors return 500 without leaking internals; the stack goes to the logs with the request id.
+Unknown errors return 500 without leaking internals; the stack goes to the logs with the request id. They are also recorded for Admin → Errors (section 4.11); an `HttpException` with a 5xx (a service not set up, the API saying it is unavailable) is a known state and is not.
 
 ### 4.5 Configuration (environment)
 
@@ -286,6 +288,7 @@ Scheduled work runs inside the API process (timers that start on boot, off when 
 - **Weekly summary** (clients): `WeeklyDigestService` checks every hour, in the API process. It sends this week's summary to every active client with `weeklyDigest` whose `lastDigestAt` is before this week's Monday 08:00 Madrid time, so a restart or a missed Monday neither skips nor repeats it. For each project the email lists the updates and completed milestones of the last 7 days, updates waiting for approval and the next milestone. A week with nothing to tell sends nothing, but still counts as done. Clients turn it off in their account (`PATCH /auth/preferences`) and admins on the user page, which also has a "send now" button (`POST /admin/projects/weekly-digest/:clientId` → `{ sent }`, or `{ sent: false, reason: 'no-news' }`). Off in tests.
 - **Proposals about to expire** every 6 hours (`ProposalRemindersService`): a `SENT` proposal whose `validUntil` (Madrid day) is today or within the next 3 days, sent more than a day ago and not reminded yet (`expiryRemindedAt`), emails every person of the client account in their language ("it can be accepted until …", with the link to it, or the invitation for someone who hasn't made the account theirs, as when it was sent) and tells the team inbox (`LEADS_NOTIFY_TO`, English). Once per proposal. Off in tests.
 - **Scheduled posts and case studies** need no job: they are hidden until their `publishedAt` (see Scheduling).
+- **Old resolved errors** daily (`ErrorsService`): resolved groups not seen for 30 days are deleted. Off in tests.
 
 On the host, `deploy/monitor/monitor.sh` (cron, every 5 minutes) watches the server and the stack, and the `backup` container dumps the database daily (section 8).
 
@@ -361,6 +364,20 @@ Codeqlick's fourth own web app, at **swipe.codeqlick.com**: adults share intimat
   - **Safer chat:** until each person has sent 5 messages in a match, a message with a phone number, an email, a link or an outside app or handle (WhatsApp, Telegram, Instagram, Snapchat, OnlyFans, @name…) is refused with an explanation (scams and spam). Ending a match stays in the chat's menu.
   - **Blurred photos:** a profile switch (`blurPhotos`) shows the deck's and the chats' photos blurred until tapped.
 
+### 4.11 Errors log (`modules/errors`)
+
+Owner's choice (2026-11-09): know about a bug before a person writes in, without an outside service. Unexpected errors from three places are grouped in `ErrorGroup` and shown in Admin → Errors:
+
+- **API:** `ProblemDetailsFilter` records every error that is not an `HttpException` (the ones that become a generic 500), with the request's method, path, request id and user agent.
+- **Website server:** `src/instrumentation.ts` (`onRequestError`) posts every error Next.js reports while rendering, in a Server Action or a route handler to `POST /errors` (`source: server`, with the digest the visitor's error page shows). Production only; an `ApiError` with a 4xx (the visitor's doing) or 503 (the API down, which the server monitor alerts on) is left out.
+- **Visitors' browsers:** `components/layout/ErrorReporter` (in the root layout) listens for uncaught errors and promise rejections, and the error pages (`[locale]/error.tsx`, `(site)/error.tsx`) report what they catch. Errors with a digest came from the server and are skipped; so is noise nobody can fix (`lib/error-report.ts`: extensions, cross-origin scripts such as the ads, network failures, chunks of an older release). At most 5 reports per page load, through a Server Action (the BFF) that forwards the visitor's IP. Production only.
+
+**Grouping:** the fingerprint is the SHA-256 of the source, the message without ids, numbers, URLs and quoted values, and the first stack frame of the app's own code without line numbers or bundle hashes, so the same bug stays one group across occurrences and releases. A repeat adds to `count` and updates the last occurrence's details.
+
+**Alerts:** a new group, or a resolved one that happens again (it opens again), emails the team inbox (`LEADS_NOTIFY_TO`, English) with the message, where, and a link to it; at most 10 alert emails an hour. Later repeats only count.
+
+**Limits:** `POST /errors` is public (the website calls it server-side), validated and limited to 30/min/IP; past 300 open groups no new ones are created. Resolved groups not seen for 30 days are deleted.
+
 ## 5. API contract (v1)
 
 Base URL: `https://api.codeqlick.com/v1`. JSON in and out. Dates are ISO 8601 strings. Lists are paginated:
@@ -401,6 +418,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/citas/cancel/preview` | `{ token }` → that appointment; `404` for an unknown token |
 | POST | `/citas/cancel` | `{ token }` → the cancelled appointment (again if already cancelled); `409` once it has started |
 | POST | `/swipe/takedown` | `{ email, photoRef?, reason, details, locale, website? }` → `{ id }`: a removal request (section 4.10); a matching `photoRef` hides that photo at once. Limited to 5/min/IP |
+| POST | `/errors` | `{ source: server \| browser, message, stack?, method?, path?, digest?, userAgent? }` → 204: the website reports an error (section 4.11). Limited to 30/min/IP |
 | GET | `/videochat/online` | Public: `{ online }`, people connected to the video chat right now (cached 10 s). Limited to 60/min/IP |
 | GET | `/site-requests/previews/:slug` | Public: whether a request's preview is online → `{ status, url, business, purchase }`; `purchase` is `{ priceCents (before VAT), vatPercent, totalCents, currency, available }` while buying online is on (`available`: READY, not bought, not a client yet), else null. 404 when there is none. Limited to 30/min/IP |
 | POST | `/site-requests/previews/:slug/checkout` | Public: `{ locale, accept: true }` (the terms and starting at once) → `{ url }`, a Stripe Checkout Session to pay the website (section 8.2). 404 while buying online is off or without a preview; 409 when it isn't READY, was bought or its lead is a client. Limited to 5/min/IP |
@@ -540,6 +558,10 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/admin/projects/:id/credentials/:credentialId/reveal` | `{ secret, notes }`; logged, and `viewedAt` is set |
 | DELETE | `/admin/projects/:id/credentials` | Deletes all of the project's access → `{ deleted }` |
 | GET | `/admin/monitoring` | Every monitor's view |
+| GET | `/admin/errors?status=open\|resolved` | Error groups (section 4.11), last seen first, up to 200: `{ id, source, message, stack, method, path, reference, userAgent, count, firstSeenAt, lastSeenAt, resolvedAt }[]` |
+| GET | `/admin/errors/:id` | One error group |
+| POST | `/admin/errors/:id/resolve` · `/admin/errors/:id/reopen` | Marks it fixed or open again → the group |
+| POST | `/admin/errors/resolve-all` | Marks every open group fixed → `{ resolved }` |
 | GET / PUT | `/admin/projects/:id/monitor` | The view (or `{ enabled: false }`) / `{ enabled }` (400 without a production URL; enabling checks at once) |
 | POST | `/admin/projects/:id/monitor/check` | Checks now (certificate included) → the view |
 | POST | `/admin/sites/onboard` | `{ name, email, locale? (es), businessName, slug, preset, domain?, leadId? }` → `201 { projectId, client: { id, created, invitationSent? }, site, monitoring }`: a basic-website client in one step. With `leadId` the lead is converted (as `/admin/leads/:id/convert`: account, project, brief, WON); otherwise the account is found or created (welcome email) and a project opened in DESIGN. Then the managed site from the preset (form and first build included) and, without a domain of its own, the uptime monitor (a client domain may lack DNS yet). A taken name or domain is refused (409) before anything is created |
@@ -776,7 +798,7 @@ src/
                                team's invoices in a project's admin page), support requests, account
       admin/                   Admin panel (role ADMIN): dashboard (monthly charts as server-drawn SVG, visits, recent activity), leads
                                (list and board), proposals, support, hours and plans, drafts to review, bookings, calculator,
-                               monitoring, saved replies, posts, tags, portfolio, projects, managed websites (list and "Nueva web
+                               monitoring, errors (section 4.11), saved replies, posts, tags, portfolio, projects, managed websites (list and "Nueva web
                                básica", also from a lead), previews (list, "Nueva vista previa"), media, users, activity,
                                account; leads, users and managed sites can be deleted (typing to confirm), leads' contact
                                details and requests edited;
