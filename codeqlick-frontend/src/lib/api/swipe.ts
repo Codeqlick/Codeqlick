@@ -140,9 +140,14 @@ export type SwipeCard = {
   gender: SwipeGender | null;
   interests: Interest[];
   bio: string | null;
+  /** Their verification photo was approved by the team. */
+  verified: boolean;
   /** They gave one of my photos a "love". */
   lovesYou: boolean;
 };
+
+export type SwipeWeek = { views: number; likes: number; loves: number; matches: number };
+export type SwipeStats = { week: SwipeWeek; previousWeek: SwipeWeek };
 
 export type SwipeMatch = {
   id: string;
@@ -151,6 +156,7 @@ export type SwipeMatch = {
     gender: SwipeGender | null;
     interests: Interest[];
     bio: string | null;
+    verified: boolean;
     photoId: string | null;
   };
   lastMessage: { text: string; mine: boolean; at: string } | null;
@@ -334,6 +340,11 @@ export function unsubscribeSwipePush(endpoint: string) {
     body: { endpoint },
     auth: 'required',
   });
+}
+
+/** My figures: the last 7 days and the 7 before. */
+export function getSwipeStats() {
+  return apiFetch<SwipeStats>('/swipe/stats', { auth: 'required' });
 }
 
 export async function listSwipeMatches(): Promise<SwipeMatch[]> {

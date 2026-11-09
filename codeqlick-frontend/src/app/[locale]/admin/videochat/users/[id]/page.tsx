@@ -10,7 +10,12 @@ import { resolveLocale } from '@/i18n/locale';
 import { getVideochatUser, SUSPENSION_DURATIONS } from '@/lib/api/videochat';
 import { formatDateTime } from '@/lib/format';
 import { countryName, languageName } from '@/lib/videochat-options';
-import { ageVerifiedAction, liftSuspensionAction, suspendUserAction } from '../../actions';
+import {
+  ageVerifiedAction,
+  liftSuspensionAction,
+  revokeVerificationAction,
+  suspendUserAction,
+} from '../../actions';
 
 type PageProps = { params: Promise<{ locale: string; id: string }> };
 
@@ -86,7 +91,12 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
             <Badge tone="success">{tu('ageVerified')}</Badge>
           ) : (
             <Badge>{tu('ageDeclared')}</Badge>
-          )}
+          )}{' '}
+          {person.photoVerification === 'APPROVED' ? (
+            <Badge tone="success">{tu('photoVerified')}</Badge>
+          ) : person.photoVerification === 'PENDING' ? (
+            <Badge>{tu('photoPending')}</Badge>
+          ) : null}
         </p>
         <div className={styles.actions}>
           {suspension ? (
@@ -101,6 +111,13 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
               {person.ageVerified ? tu('unverifyAge') : tu('verifyAge')}
             </SubmitButton>
           </ActionForm>
+          {person.photoVerification === 'APPROVED' ? (
+            <ActionForm action={revokeVerificationAction.bind(null, locale, id)}>
+              <SubmitButton size="sm" variant="outline">
+                {tu('revokeBadge')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
         </div>
         <hr className={styles.divider} />
         <ActionForm action={suspendUserAction.bind(null, locale, id)} className={styles.form}>

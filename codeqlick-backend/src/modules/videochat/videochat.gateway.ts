@@ -69,6 +69,7 @@ const ANONYMOUS: PublicProfile = {
   country: null,
   language: null,
   interests: [],
+  verified: false,
 };
 
 /** A contact being called: rings until they answer, `RING_MS` pass, or either side moves. */

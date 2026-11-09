@@ -7,9 +7,11 @@ import { failedState } from '@/lib/actions';
 import {
   bulkVideochatReports,
   clearVideochatSuspicion,
+  decideVideochatVerification,
   dismissVideochatReport,
   liftVideochatSuspension,
   resolveVideochatAppeal,
+  revokeVideochatVerification,
   setVideochatAgeVerified,
   SUSPENSION_DURATIONS,
   suspendFromVideochatReport,
@@ -145,4 +147,27 @@ export async function clearSuspicionAction(
   formData: FormData,
 ): Promise<FormState> {
   return run(locale, formData, () => clearVideochatSuspicion(userId));
+}
+
+/** Approves or rejects a verification photo (the button pressed is `decision`). */
+export async function verificationAction(
+  locale: AppLocale,
+  userId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const approve = formData.get('decision') === 'approve';
+  return run(locale, formData, () =>
+    decideVideochatVerification(userId, approve, text(formData, 'note')),
+  );
+}
+
+/** Takes the verified badge away. */
+export async function revokeVerificationAction(
+  locale: AppLocale,
+  userId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return run(locale, formData, () => revokeVideochatVerification(userId));
 }

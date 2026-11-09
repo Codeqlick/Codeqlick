@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation';
 import type { SwipeMessage } from '@/lib/api/swipe';
 import { mergeMessages, POLL_MS, SAFE_CHAT_MESSAGES } from './logic';
 import { ReportForm } from './ReportForm';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import styles from './Swipe.module.css';
 
 type SwipeChatProps = {
@@ -14,6 +15,8 @@ type SwipeChatProps = {
   nickname: string;
   /** The partner's sentence, under their name. */
   bio: string | null;
+  /** The partner's verification photo was approved. */
+  verified: boolean;
   initial: SwipeMessage[];
   load: (
     matchId: string,
@@ -37,6 +40,7 @@ export function SwipeChat({
   matchId,
   nickname,
   bio,
+  verified,
   initial,
   load,
   send,
@@ -44,6 +48,7 @@ export function SwipeChat({
   report,
 }: SwipeChatProps) {
   const t = useTranslations('Swipe.chat');
+  const tv = useTranslations('Swipe');
   const router = useRouter();
   const [messages, setMessages] = useState(initial);
   const [text, setText] = useState('');
@@ -115,7 +120,10 @@ export function SwipeChat({
     <div className={styles.chat}>
       <div className={styles.chatHeader}>
         <div>
-          <h1 className={styles.chatTitle}>{nickname}</h1>
+          <h1 className={styles.chatTitle}>
+            {nickname}
+            {verified ? <VerifiedBadge label={tv('verified')} /> : null}
+          </h1>
           {bio ? <p className={styles.hint}>{bio}</p> : null}
         </div>
         <div className={styles.matchActions}>

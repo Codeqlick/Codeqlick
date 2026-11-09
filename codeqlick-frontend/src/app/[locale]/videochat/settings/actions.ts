@@ -12,10 +12,12 @@ import {
   setVideochatPeakAlerts,
   subscribeVideochatPush,
   unsubscribeVideochatPush,
+  uploadVideochatVerification,
   type Gender,
   type Interest,
   type PushSubscriptionInput,
 } from '@/lib/api/videochat';
+import type { AppLocale } from '@/i18n/routing';
 import type { FormState } from '@/lib/forms';
 import { isCountry, isLanguage } from '@/lib/videochat-options';
 
@@ -126,4 +128,33 @@ export async function peakAlertsAction(on: boolean): Promise<{ ok: boolean }> {
   } catch {
     return { ok: false };
   }
+}
+
+/** The photo is shrunk in the browser first: anything bigger is not a phone photo. */
+const MAX_VERIFICATION_BYTES = 5 * 1024 * 1024;
+
+/** Sends the verification photo (the person with a paper showing their nickname and the date). */
+export async function uploadVerificationAction(
+  locale: AppLocale,
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const t = await getTranslations({ locale, namespace: 'Swipe.upload' });
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, message: t('noFile') };
+  if (file.size > MAX_VERIFICATION_BYTES) return { ok: false, message: t('tooBig') };
+  if (formData.get('consent') !== 'on') return { ok: false, message: t('mustConsent') };
+  try {
+    await uploadVideochatVerification(file);
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 400) return { ok: false, message: t('notImage') };
+    if (status === 409) {
+      const tv = await getTranslations({ locale, namespace: 'Videochat.verification' });
+      return { ok: false, message: tv('nicknameFirst') };
+    }
+    if (status === 429) return { ok: false, message: t('tooManyToday') };
+    return { ok: false, message: t('error') };
+  }
+  revalidatePath(`/${locale}/videochat/settings`);
+  return { ok: true };
 }

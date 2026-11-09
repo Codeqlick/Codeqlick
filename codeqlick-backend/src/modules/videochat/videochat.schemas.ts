@@ -133,6 +133,8 @@ export interface PublicProfile {
   country: string | null;
   language: string | null;
   interests: Interest[];
+  /** Their verification photo was approved by the team: the "verified" badge. */
+  verified: boolean;
 }
 
 export const SUSPENSION_DURATIONS = ['24h', '7d', '30d', 'permanent'] as const;
@@ -352,3 +354,9 @@ export type VideochatErrorCode =
   | 'replaced'
   | 'not-contact'
   | 'not-in-group';
+
+export const verificationDecisionSchema = z.object({
+  approve: z.boolean(),
+  note: z.string().trim().max(300).optional(),
+});
+export type VerificationDecision = z.infer<typeof verificationDecisionSchema>;

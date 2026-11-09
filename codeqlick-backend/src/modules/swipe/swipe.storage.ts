@@ -18,17 +18,22 @@ export function isStorageKey(key: string): boolean {
  */
 @Injectable()
 export class SwipeStorage {
-  constructor(private readonly config: AppConfigService) {}
+  constructor(protected readonly config: AppConfigService) {}
+
+  /** The folder of this store's files. */
+  protected dir(): string {
+    return this.config.swipeUploadsDir;
+  }
 
   private path(key: string): string {
     if (!isStorageKey(key)) throw new Error(`Not a storage key: ${key}`);
-    return join(this.config.swipeUploadsDir, key);
+    return join(this.dir(), key);
   }
 
   /** Stores a WebP image under a new key. */
   async write(data: Buffer): Promise<string> {
     const key = `${randomUUID()}.webp`;
-    await mkdir(this.config.swipeUploadsDir, { recursive: true, mode: 0o700 });
+    await mkdir(this.dir(), { recursive: true, mode: 0o700 });
     await writeFile(this.path(key), data, { flag: 'wx', mode: 0o600 });
     return key;
   }
@@ -66,7 +71,7 @@ export class SwipeStorage {
   async list(): Promise<{ key: string; modifiedAt: Date }[]> {
     let names: string[];
     try {
-      names = await readdir(this.config.swipeUploadsDir);
+      names = await readdir(this.dir());
     } catch {
       return [];
     }
@@ -80,5 +85,16 @@ export class SwipeStorage {
       }),
     );
     return files.filter((file) => file !== undefined);
+  }
+}
+
+/**
+ * The video chat's verification photos (section 4.7), in a sub-folder of the same private volume:
+ * Swipe's listing only looks at files, so its orphan cleanup never touches them.
+ */
+@Injectable()
+export class VideochatPhotoStorage extends SwipeStorage {
+  protected override dir(): string {
+    return join(this.config.swipeUploadsDir, 'videochat');
   }
 }

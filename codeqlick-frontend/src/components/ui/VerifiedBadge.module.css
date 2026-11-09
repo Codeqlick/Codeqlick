@@ -1,0 +1,17 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: 0.3em;
+  color: var(--color-fuchsia);
+  vertical-align: -0.1em;
+}
+
+/* Read by screen readers, hidden on screen (the tick and its tooltip say it). */
+.label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

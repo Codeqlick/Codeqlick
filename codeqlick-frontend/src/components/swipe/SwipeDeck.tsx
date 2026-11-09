@@ -7,6 +7,7 @@ import type { VoteResult } from '@/app/[locale]/swipe/actions';
 import type { SwipeCard } from '@/lib/api/swipe';
 import { dragVote, mergeCards } from './logic';
 import { ReportForm } from './ReportForm';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import styles from './Swipe.module.css';
 
 type SwipeDeckProps = {
@@ -44,6 +45,7 @@ export function SwipeDeck({
 }: SwipeDeckProps) {
   const t = useTranslations('Swipe.deck');
   const tg = useTranslations('Swipe.genders');
+  const ts = useTranslations('Swipe');
   const ti = useTranslations('Videochat.interests');
   const [cards, setCards] = useState(initial);
   const [dx, setDx] = useState(0);
@@ -233,6 +235,7 @@ export function SwipeDeck({
           <div className={styles.cardInfo}>
             <p className={styles.nickname}>
               {card.nickname}
+              {card.verified ? <VerifiedBadge label={ts('verified')} /> : null}
               {card.gender ? <span className={styles.gender}> · {tg(card.gender)}</span> : null}
             </p>
             {card.bio ? <p className={styles.bio}>{card.bio}</p> : null}

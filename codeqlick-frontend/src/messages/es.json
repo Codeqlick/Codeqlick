@@ -1280,7 +1280,10 @@
           "appeal_accepted": "aceptó la apelación de <target>{label}</target>",
           "appeal_rejected": "rechazó la apelación de <target>{label}</target>",
           "age_verified": "marcó como verificada la edad de <target>{label}</target>",
-          "age_unverified": "quitó la edad verificada de <target>{label}</target>"
+          "age_unverified": "quitó la edad verificada de <target>{label}</target>",
+          "verification_approved": "aprobó la verificación con foto de <target>{label}</target> en el videochat",
+          "verification_rejected": "rechazó la verificación con foto de <target>{label}</target> en el videochat",
+          "verification_revoked": "quitó la insignia de verificado a <target>{label}</target> en el videochat"
         },
         "swipe": {
           "verification_approved": "aprobó la verificación de <target>{label}</target> en Swipe",
@@ -3373,6 +3376,30 @@
         "in-group": "Ya está en el grupo",
         "invited": "Invitado"
       }
+    },
+    "verified": "Perfil verificado por el equipo",
+    "verification": {
+      "title": "Insignia de verificado",
+      "status": {
+        "NONE": "Opcional: verifica tu perfil y quien hable contigo verá una insignia junto a tu apodo.",
+        "PENDING": "Estamos revisando tu foto. Te avisaremos por email.",
+        "APPROVED": "Tu perfil está verificado: los demás ven la insignia junto a tu apodo.",
+        "REJECTED": "No hemos podido aprobar tu foto. Envía otra siguiendo las instrucciones."
+      },
+      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Videochat» y la fecha de hoy, con tu cara a la vista. Solo la ve el equipo y la borramos en cuanto la revisamos.",
+      "nicknameFirst": "Primero elige tu apodo arriba y guárdalo.",
+      "pick": "Elige la foto",
+      "consent": "Soy yo y la envío para verificar mi perfil.",
+      "send": "Enviar para revisar",
+      "alt": "Tu foto de verificación"
+    },
+    "stats": {
+      "title": "Tu semana",
+      "lead": "Tu videochat en los últimos 7 días.",
+      "chats": "Charlas",
+      "likes": "Likes recibidos",
+      "contacts": "Contactos nuevos",
+      "previous": "{count} la semana anterior"
     }
   },
   "AdminVideochat": {
@@ -3470,7 +3497,10 @@
       },
       "reportsReceived": "Reportes recibidos",
       "reportsMade": "Reportes que ha hecho",
-      "noReports": "Ninguno."
+      "noReports": "Ninguno.",
+      "photoVerified": "Insignia de verificado",
+      "photoPending": "Foto de verificación pendiente",
+      "revokeBadge": "Quitar la insignia"
     },
     "statsLink": "Ver estadísticas",
     "history": {
@@ -3554,6 +3584,16 @@
       "figures": "{reporters, plural, =0 {Sin denuncias} one {# persona la denunció} other {# personas la denunciaron}} · {calls} llamadas en 7 días, {skippedFast} saltadas al instante por la otra persona, {shortCalls} de menos de 10 s · máximo {maxCallsInDay} en un día",
       "open": "Ver ficha y suspender",
       "clear": "No es sospechosa"
+    },
+    "verifications": {
+      "title": "Fotos de verificación",
+      "lead": "Personas que piden la insignia de verificado. Se borra la foto al decidir.",
+      "empty": "No hay fotos por revisar.",
+      "alt": "Foto de verificación",
+      "check": "Comprueba que se ve la cara y un papel con «{nickname}», «Videochat» y una fecha reciente.",
+      "note": "Nota para la persona (opcional; se envía si la rechazas)",
+      "approve": "Aprobar insignia",
+      "reject": "Rechazar"
     }
   },
   "ConfirmEmail": {
@@ -4265,6 +4305,16 @@
       "unsupported": "Este navegador no admite notificaciones.",
       "iosInstall": "En iPhone, primero instala Swipe (Compartir → «Añadir a pantalla de inicio») y actívalas desde la app.",
       "error": "No se han podido activar. Inténtalo de nuevo."
+    },
+    "verified": "Perfil verificado por el equipo",
+    "stats": {
+      "title": "Tu semana",
+      "lead": "Lo que ha pasado con tus fotos en los últimos 7 días.",
+      "views": "Vistas",
+      "likes": "Likes",
+      "loves": "«Me encanta»",
+      "matches": "Matches",
+      "previous": "{count} la semana anterior"
     }
   },
   "AdminSwipe": {

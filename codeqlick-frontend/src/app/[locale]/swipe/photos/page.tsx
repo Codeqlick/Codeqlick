@@ -9,6 +9,7 @@ import {
   FormSelect,
   FormTextarea,
 } from '@/components/app/ActionForm';
+import { WeekStats } from '@/components/app/WeekStats';
 import { PhotoUpload } from '@/components/swipe/PhotoUpload';
 import styles from '@/components/swipe/Swipe.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -16,6 +17,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { PushToggle } from '@/components/videochat/PushToggle';
 import {
   getSwipePushKey,
+  getSwipeStats,
   getSwipeStatus,
   listMySwipePhotos,
   MAX_AGE_FILTER,
@@ -63,12 +65,29 @@ export default async function SwipePhotosPage({ params }: PageProps) {
     value,
     label: regionNames.of(value) ?? value,
   })).sort((a, b) => a.label.localeCompare(b.label, locale));
+  // Figures only matter once there are photos for others to see.
+  const stats = status.canUpload ? await getSwipeStats().catch(() => null) : null;
   const pushKey = await getSwipePushKey()
     .then((result) => result.publicKey)
     .catch(() => null);
 
   return (
     <div className={vc.landing}>
+      {stats ? (
+        <div className={vc.panel}>
+          <WeekStats
+            title={t('stats.title')}
+            lead={t('stats.lead')}
+            locale={locale}
+            previousLabel={(count) => t('stats.previous', { count })}
+            items={(['views', 'likes', 'loves', 'matches'] as const).map((key) => ({
+              label: t(`stats.${key}`),
+              value: stats.week[key],
+              previous: stats.previousWeek[key],
+            }))}
+          />
+        </div>
+      ) : null}
       <section className={vc.panel}>
         <h1 className={vc.pageTitle}>{t('profile.title')}</h1>
         <p className={vc.muted}>{t('profile.lead')}</p>
