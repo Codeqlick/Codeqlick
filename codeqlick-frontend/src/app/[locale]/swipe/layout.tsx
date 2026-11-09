@@ -41,7 +41,11 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     // (deck, photos, matches) opt out.
     robots: { index: true, follow: true, 'max-image-preview': 'large' },
     // Sexual content between adults: Google's label, so SafeSearch filters it as it must.
-    other: { rating: 'adult' },
+    other: {
+      rating: 'adult',
+      // Google Search Console's ownership check for swipe.codeqlick.com.
+      'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
+    },
     icons: { icon: '/swipe-192.png', apple: '/swipe-192.png' },
     appleWebApp: { capable: true, title: 'Swipe', statusBarStyle: 'default' },
   };
