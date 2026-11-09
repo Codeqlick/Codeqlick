@@ -18,6 +18,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { WindowLimiter, type MatchPrefs } from './matchmaker.js';
+import { addDays, madridDay } from './videochat-stats.service.js';
 import { appealResolvedEmail, minorReportEmail } from './videochat-emails.js';
 import { VideochatRepository, type ReportHistory } from './videochat.repository.js';
 import {
@@ -99,6 +100,25 @@ export interface VideochatStatus {
   pushPublicKey: string | null;
   /** Asked for peak time alerts. */
   peakAlerts: boolean;
+  /** The optional photo verification behind the "verified" badge. */
+  verification: {
+    status: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+    /** The team's note on the last decision. */
+    note: string | null;
+  };
+}
+
+/** One week of the person's own video chat. */
+export interface VideochatWeek {
+  chats: number;
+  likes: number;
+  contacts: number;
+}
+
+/** The last 7 days and the 7 before, to compare. */
+export interface VideochatStats {
+  week: VideochatWeek;
+  previousWeek: VideochatWeek;
 }
 
 /** A mutual contact, as their contacts see them. */
@@ -186,6 +206,8 @@ export interface UserDetailView {
   profile: VideochatSettings;
   suspension: { since: string; until: string | null; reason: string | null } | null;
   ageVerified: boolean;
+  /** The photo verification behind the "verified" badge. */
+  photoVerification: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
   onboardedAt: string;
   reportsReceived: Array<{
     id: string;
@@ -271,7 +293,29 @@ export class VideochatService {
       profile: profile ? settingsOf(profile) : null,
       pushPublicKey: this.config.vapid?.publicKey ?? null,
       peakAlerts: profile?.peakAlerts ?? false,
+      verification: {
+        status: profile?.verificationStatus ?? 'NONE',
+        note: profile?.verificationNote ?? null,
+      },
     };
+  }
+
+  /** The person's own figures: calls, likes received and new contacts, this week and the last. */
+  async stats(userId: string, now: Date = new Date()): Promise<VideochatStats> {
+    const today = madridDay(now);
+    const weekAgo = new Date(now.getTime() - 7 * DAY_MS);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * DAY_MS);
+    const [week, previousWeek] = await Promise.all([
+      this.repository.activityBetween(userId, weekAgo, now, {
+        from: addDays(today, -6),
+        to: addDays(today, 1),
+      }),
+      this.repository.activityBetween(userId, twoWeeksAgo, weekAgo, {
+        from: addDays(today, -13),
+        to: addDays(today, -6),
+      }),
+    ]);
+    return { week, previousWeek };
   }
 
   /** Saves the public profile and filters (from the next socket on). */
@@ -368,6 +412,7 @@ export class VideochatService {
         country: profile?.country ?? null,
         language: profile?.language ?? null,
         interests: profile ? knownInterests(profile.interests) : [],
+        verified: status.verification.status === 'APPROVED',
       },
     };
   }
@@ -411,6 +456,7 @@ export class VideochatService {
           country: profile?.country ?? null,
           language: profile?.language ?? null,
           interests: knownInterests(profile?.interests),
+          verified: profile?.verificationStatus === 'APPROVED',
           ...presence(row.toId),
           since: row.createdAt.toISOString(),
         };
@@ -708,6 +754,7 @@ export class VideochatService {
           }
         : null,
       ageVerified: Boolean(profile.ageVerifiedAt),
+      photoVerification: profile.verificationStatus,
       onboardedAt: profile.adultConfirmedAt.toISOString(),
       reportsReceived: user.videochatReportsGot.map((report) => ({
         id: report.id,

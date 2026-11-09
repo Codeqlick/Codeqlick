@@ -174,8 +174,25 @@ export interface CardView {
   gender: Gender | null;
   interests: Interest[];
   bio: string | null;
+  /** Their verification photo was approved by the team. */
+  verified: boolean;
   /** They gave one of my photos a "love". */
   lovesYou: boolean;
+}
+
+/** One week of what happened to a person's photos. */
+export interface SwipeWeek {
+  /** Times someone swiped one of their photos (either way). */
+  views: number;
+  likes: number;
+  loves: number;
+  matches: number;
+}
+
+/** The person's own figures: the last 7 days and the 7 before, to compare. */
+export interface SwipeStats {
+  week: SwipeWeek;
+  previousWeek: SwipeWeek;
 }
 
 export interface MatchView {
@@ -185,6 +202,7 @@ export interface MatchView {
     gender: Gender | null;
     interests: Interest[];
     bio: string | null;
+    verified: boolean;
     photoId: string | null;
   };
   lastMessage: { text: string; mine: boolean; at: string } | null;
@@ -654,6 +672,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
           gender: Gender | null;
           interests: string[];
           bio: string | null;
+          verificationStatus: string;
         } | null;
       };
     },
@@ -668,6 +687,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       gender: photo.owner.swipeProfile?.gender ?? null,
       interests: knownInterests(photo.owner.swipeProfile?.interests),
       bio: photo.owner.swipeProfile?.bio ?? null,
+      verified: photo.owner.swipeProfile?.verificationStatus === 'APPROVED',
       lovesYou,
     };
   }
@@ -729,6 +749,18 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return { card: this.cardView(vote.photo, lovesYou) };
   }
 
+  /** The person's own figures for the last 7 days and the 7 before. */
+  async stats(userId: string, now = new Date()): Promise<SwipeStats> {
+    await this.allowedProfile(userId, now);
+    const weekAgo = new Date(now.getTime() - 7 * DAY_MS);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * DAY_MS);
+    const [week, previousWeek] = await Promise.all([
+      this.repository.activityBetween(userId, weekAgo, now),
+      this.repository.activityBetween(userId, twoWeeksAgo, weekAgo),
+    ]);
+    return { week, previousWeek };
+  }
+
   async matches(userId: string): Promise<MatchView[]> {
     const matches = await this.repository.matchesOf(userId);
     const partners = matches.map((match) => (match.userAId === userId ? match.userB : match.userA));
@@ -745,6 +777,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
             gender: partner.swipeProfile?.gender ?? null,
             interests: knownInterests(partner.swipeProfile?.interests),
             bio: partner.swipeProfile?.bio ?? null,
+            verified: partner.swipeProfile?.verificationStatus === 'APPROVED',
             photoId: photos.get(partner.id) ?? null,
           },
           lastMessage: last

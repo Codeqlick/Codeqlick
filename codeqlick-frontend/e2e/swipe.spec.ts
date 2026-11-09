@@ -137,6 +137,8 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
     // Ben likes Ana's photo; then Ana likes his: a match.
     await ben.goto('/es/deck');
     await expect(ben.getByAltText(`Foto de ${anaUser.nickname}`)).toBeVisible();
+    // Everyone who posts photos was verified: the card shows the badge.
+    await expect(ben.getByTitle('Perfil verificado por el equipo')).toBeVisible();
     await ben.getByRole('button', { name: 'Me gusta', exact: true }).click();
     await ana.goto('/es/deck');
     await expect(ana.getByAltText(`Foto de ${benUser.nickname}`)).toBeVisible();
@@ -150,6 +152,12 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
     await ben.goto('/es/matches');
     await ben.getByRole('link', { name: new RegExp(anaUser.nickname) }).click();
     await expect(ben.getByText('¡Hola, Ben!')).toBeVisible({ timeout: 15_000 });
+
+    // Ana's week: Ben saw and liked her photo, and they matched.
+    await ana.goto('/es/photos');
+    const week = ana.getByRole('region', { name: 'Tu semana' });
+    await expect(week.getByText('Matches')).toBeVisible();
+    await expect(week.locator('dd').nth(0)).toHaveText('1');
   } finally {
     await Promise.all(open.splice(0).map((context) => context.close()));
     for (const id of ids) {

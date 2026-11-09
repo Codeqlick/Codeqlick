@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import sharp from 'sharp';
 import request from 'supertest';
 import webpush from 'web-push';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -100,6 +101,8 @@ describe('Video chat (e2e)', () => {
       ['hal', Role.CLIENT],
       ['ivo', Role.CLIENT],
       ['jon', Role.CLIENT],
+      ['kim', Role.CLIENT],
+      ['lia', Role.CLIENT],
     ] as const) {
       const email = `e2e-videochat-${key}-${tag}@codeqlick.test`;
       const user = await prisma.user.create({
@@ -125,6 +128,8 @@ describe('Video chat (e2e)', () => {
     request(server())
       .put('/v1/videochat/me')
       .set(users[key]!.auth)
+      // Each person from their own address: onboarding is limited per IP.
+      .set('X-Forwarded-For', `10.7.0.${Object.keys(users).indexOf(key) + 1}`)
       .send({ birthDate: '1995-05-20', acceptTerms: true, termsVersion: VIDEOCHAT_TERMS_VERSION })
       .expect(200);
   const connect = async (key: string): Promise<Tab> => {
@@ -266,12 +271,20 @@ describe('Video chat (e2e)', () => {
         country: 'ES',
         language: 'es',
         interests: ['music', 'travel'],
+        verified: false,
       },
     });
     expect(await ana.next('matched')).toEqual({
       type: 'matched',
       initiator: false,
-      partner: { nickname: null, gender: null, country: null, language: null, interests: [] },
+      partner: {
+        nickname: null,
+        gender: null,
+        country: null,
+        language: null,
+        interests: [],
+        verified: false,
+      },
     });
 
     const offer = { sdp: { type: 'offer', sdp: 'v=0 fake offer' } };
@@ -1017,5 +1030,128 @@ describe('Video chat (e2e)', () => {
       .set(users.admin!.auth)
       .expect(404);
     await request(server()).get('/v1/admin/videochat/suspicious').set(users.ana!.auth).expect(403);
+  });
+  it('verifies a person from a reviewed photo, shows the badge, and counts their week', async () => {
+    const photo = await sharp({
+      create: { width: 64, height: 64, channels: 3, background: { r: 200, g: 40, b: 120 } },
+    })
+      .jpeg()
+      .toBuffer();
+    const profile = (nickname: string) => ({
+      nickname,
+      gender: null,
+      seeking: [],
+      country: null,
+      language: null,
+      sameCountryOnly: false,
+      sameLanguageOnly: false,
+    });
+    const upload = (key: string) =>
+      request(server())
+        .post('/v1/videochat/verification')
+        .set(users[key]!.auth)
+        .attach('file', photo, 'me.jpg');
+    await onboard('kim');
+    await onboard('lia');
+    await upload('kim').expect(409);
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.kim!.auth)
+      .send(profile('Kim'))
+      .expect(200);
+    await request(server())
+      .put('/v1/videochat/profile')
+      .set(users.lia!.auth)
+      .send(profile('Lia'))
+      .expect(200);
+
+    const sentPhoto = await upload('kim').expect(201);
+    expect(sentPhoto.body.verification).toEqual({ status: 'PENDING', note: null });
+    await request(server()).get('/v1/videochat/verification/file').set(users.kim!.auth).expect(200);
+    await request(server())
+      .get('/v1/admin/videochat/verifications')
+      .set(users.kim!.auth)
+      .expect(403);
+    const queue = await request(server())
+      .get('/v1/admin/videochat/verifications')
+      .set(users.admin!.auth)
+      .expect(200);
+    expect(queue.body.items).toContainEqual(
+      expect.objectContaining({ userId: users.kim!.id, nickname: 'Kim' }),
+    );
+    await request(server())
+      .get(`/v1/admin/videochat/verifications/${users.kim!.id}/file`)
+      .set(users.admin!.auth)
+      .expect(200);
+
+    // Rejected with a note: the photo is gone, the person is told and may try again.
+    sent.length = 0;
+    await request(server())
+      .post(`/v1/admin/videochat/verifications/${users.kim!.id}`)
+      .set(users.admin!.auth)
+      .send({ approve: false, note: 'No se ve el papel' })
+      .expect(204);
+    const rejected = await request(server())
+      .get('/v1/videochat/me')
+      .set(users.kim!.auth)
+      .expect(200);
+    expect(rejected.body.verification).toEqual({ status: 'REJECTED', note: 'No se ve el papel' });
+    await request(server()).get('/v1/videochat/verification/file').set(users.kim!.auth).expect(404);
+    expect(sent.map((message) => message.to)).toEqual([`e2e-videochat-kim-${tag}@codeqlick.test`]);
+    expect(sent[0]!.text).toContain('No se ve el papel');
+
+    await upload('kim').expect(201);
+    await request(server())
+      .post(`/v1/admin/videochat/verifications/${users.kim!.id}`)
+      .set(users.admin!.auth)
+      .send({ approve: true })
+      .expect(204);
+    const approved = await request(server())
+      .get('/v1/videochat/me')
+      .set(users.kim!.auth)
+      .expect(200);
+    expect(approved.body.verification.status).toBe('APPROVED');
+    await upload('kim').expect(409);
+
+    // Partners and contacts see the badge.
+    const kim = await connect('kim');
+    const lia = await connect('lia');
+    kim.send({ type: 'join' });
+    await kim.next('waiting');
+    lia.send({ type: 'join' });
+    const seenByLia = await lia.next('matched');
+    expect(seenByLia.partner).toMatchObject({ nickname: 'Kim', verified: true });
+    expect((await kim.next('matched')).partner).toMatchObject({ nickname: 'Lia', verified: false });
+    kim.send({ type: 'like' });
+    await kim.next('liked');
+    lia.send({ type: 'like' });
+    await lia.next('liked');
+    await lia.next('mutual');
+    const contacts = await request(server())
+      .get('/v1/videochat/contacts')
+      .set(users.lia!.auth)
+      .expect(200);
+    expect(contacts.body.items[0]).toMatchObject({ nickname: 'Kim', verified: true });
+
+    // Kim's week: one like received and one new contact.
+    const stats = await request(server())
+      .get('/v1/videochat/stats')
+      .set(users.kim!.auth)
+      .expect(200);
+    expect(stats.body.week).toMatchObject({ likes: 1, contacts: 1 });
+    expect(stats.body.previousWeek).toEqual({ chats: 0, likes: 0, contacts: 0 });
+
+    // The team can take the badge away.
+    await request(server())
+      .delete(`/v1/admin/videochat/users/${users.kim!.id}/verification`)
+      .set(users.admin!.auth)
+      .expect(204);
+    const revoked = await request(server())
+      .get('/v1/videochat/me')
+      .set(users.kim!.auth)
+      .expect(200);
+    expect(revoked.body.verification.status).toBe('NONE');
+    kim.send({ type: 'leave' });
+    lia.send({ type: 'leave' });
   });
 });

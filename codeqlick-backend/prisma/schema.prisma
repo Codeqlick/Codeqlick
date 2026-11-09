@@ -1180,46 +1180,62 @@ enum VideochatReportStatus {
 
 /// Whether a user may use the video chat: 18+ confirmed, rules accepted, not suspended. The date
 /// of birth is checked when given and not stored.
+enum VideochatVerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model VideochatProfile {
-  userId           String            @id @map("user_id") @db.Uuid
-  adultConfirmedAt DateTime          @map("adult_confirmed_at") @db.Timestamptz(3)
-  termsVersion     String            @map("terms_version")
-  termsAcceptedAt  DateTime          @map("terms_accepted_at") @db.Timestamptz(3)
+  userId             String                      @id @map("user_id") @db.Uuid
+  adultConfirmedAt   DateTime                    @map("adult_confirmed_at") @db.Timestamptz(3)
+  termsVersion       String                      @map("terms_version")
+  termsAcceptedAt    DateTime                    @map("terms_accepted_at") @db.Timestamptz(3)
   /// Age checked for real (an age verification provider, or the team by hand); required when
   /// VIDEOCHAT_AGE_VERIFICATION_REQUIRED is on. Null: only declared.
-  ageVerifiedAt    DateTime?         @map("age_verified_at") @db.Timestamptz(3)
+  ageVerifiedAt      DateTime?                   @map("age_verified_at") @db.Timestamptz(3)
   /// Set by the team, or automatically after several reports; null: allowed.
-  suspendedAt      DateTime?         @map("suspended_at") @db.Timestamptz(3)
+  suspendedAt        DateTime?                   @map("suspended_at") @db.Timestamptz(3)
   /// End of a timed suspension; null with suspendedAt: until the team lifts it.
-  suspendedUntil   DateTime?         @map("suspended_until") @db.Timestamptz(3)
-  suspensionReason String?           @map("suspension_reason")
+  suspendedUntil     DateTime?                   @map("suspended_until") @db.Timestamptz(3)
+  suspensionReason   String?                     @map("suspension_reason")
   /// Public profile shown to partners (never the account name) and the matching filters.
-  nickname         String?
-  gender           VideochatGender?
+  nickname           String?
+  gender             VideochatGender?
   /// Who they want to meet; empty: anyone.
-  seeking          VideochatGender[] @default([])
+  seeking            VideochatGender[]           @default([])
   /// ISO 3166-1 alpha-2.
-  country          String?
+  country            String?
   /// ISO 639-1.
-  language         String?
-  sameCountryOnly  Boolean           @default(false) @map("same_country_only")
-  sameLanguageOnly Boolean           @default(false) @map("same_language_only")
+  language           String?
+  sameCountryOnly    Boolean                     @default(false) @map("same_country_only")
+  sameLanguageOnly   Boolean                     @default(false) @map("same_language_only")
   /// Up to 5 interests from the fixed list in videochat.schemas.ts (INTERESTS).
-  interests        String[]          @default([])
+  interests          String[]                    @default([])
   /// Last "someone is waiting" notification sent to this account (at most one every 6 hours).
-  pushNotifiedAt   DateTime?         @map("push_notified_at") @db.Timestamptz(3)
+  pushNotifiedAt     DateTime?                   @map("push_notified_at") @db.Timestamptz(3)
   /// Wants a notification when the video chat is at its busiest (peak time alerts).
-  peakAlerts       Boolean           @default(false) @map("peak_alerts")
+  peakAlerts         Boolean                     @default(false) @map("peak_alerts")
   /// Last peak time alert sent to this account (at most one a day).
-  peakNotifiedAt   DateTime?         @map("peak_notified_at") @db.Timestamptz(3)
+  peakNotifiedAt     DateTime?                   @map("peak_notified_at") @db.Timestamptz(3)
   /// The team marked the account "not suspicious": hidden from that list for 30 days.
-  suspicionClearedAt DateTime?       @map("suspicion_cleared_at") @db.Timestamptz(3)
-  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  suspicionClearedAt DateTime?                   @map("suspicion_cleared_at") @db.Timestamptz(3)
+  /// Optional photo verification (the person holding a paper with their nickname and the date),
+  /// reviewed by the team: approved shows the "verified" badge to partners and contacts.
+  verificationStatus VideochatVerificationStatus @default(NONE) @map("verification_status")
+  /// File of the photo (private storage) while it waits for review; deleted once decided.
+  verificationKey    String?                     @map("verification_key")
+  verificationNote   String?                     @map("verification_note")
+  verificationSentAt DateTime?                   @map("verification_sent_at") @db.Timestamptz(3)
+  verifiedAt         DateTime?                   @map("verified_at") @db.Timestamptz(3)
+  createdAt          DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([suspendedAt])
+  @@index([verificationStatus, verificationSentAt])
   @@map("videochat_profiles")
 }
 
@@ -1608,6 +1624,7 @@ model SwipeVote {
 
   @@id([voterId, photoId])
   @@index([voterId, ownerId, like])
+  @@index([ownerId, createdAt])
   @@map("swipe_votes")
 }
 

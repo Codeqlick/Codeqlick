@@ -22,6 +22,7 @@ import { TranslatedText } from './TranslatedText';
 import { useChatTranslation } from './translate';
 import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName, languageName } from '@/lib/videochat-options';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import styles from './VideochatRoom.module.css';
 
 /**
@@ -91,6 +92,8 @@ type PartnerProfile = {
   country: string | null;
   language: string | null;
   interests?: string[];
+  /** Their verification photo was approved by the team. */
+  verified?: boolean;
 };
 
 /** After this long waiting with filters on, the room offers to search without them once. */
@@ -278,6 +281,7 @@ export function VideochatRoom({
   const t = useTranslations('Videochat.room');
   const ti = useTranslations('Videochat.interests');
   const tg = useTranslations('Videochat.genders');
+  const tv = useTranslations('Videochat');
   const [partner, setPartner] = useState<PartnerProfile | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [notice, setNotice] = useState<{
@@ -1300,6 +1304,7 @@ export function VideochatRoom({
           ) : null}
           <span className={styles.tag}>
             {partner?.nickname ?? t('stranger')}
+            {partner?.verified ? <VerifiedBadge label={tv('verified')} /> : null}
             {partner?.gender ? ` · ${tg(partner.gender)}` : ''}
             {partner?.country
               ? ` · ${countryFlag(partner.country)} ${countryName(partner.country, locale)}`

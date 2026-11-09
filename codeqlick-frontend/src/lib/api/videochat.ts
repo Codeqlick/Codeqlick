@@ -43,7 +43,15 @@ export type VideochatStatus = {
   pushPublicKey: string | null;
   /** Asked for peak time alerts. */
   peakAlerts: boolean;
+  /** The optional photo verification behind the "verified" badge. */
+  verification: { status: VerificationStatus; note: string | null };
 };
+
+export type VerificationStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+
+/** One week of the person's own video chat. */
+export type VideochatWeek = { chats: number; likes: number; contacts: number };
+export type VideochatWeekStats = { week: VideochatWeek; previousWeek: VideochatWeek };
 
 /** A browser's Web Push subscription (PushSubscription.toJSON()). */
 export type PushSubscriptionInput = {
@@ -123,6 +131,8 @@ export type VideochatUserDetail = {
   profile: VideochatSettings;
   suspension: { since: string; until: string | null; reason: string | null } | null;
   ageVerified: boolean;
+  /** The photo verification behind the "verified" badge. */
+  photoVerification: VerificationStatus;
   onboardedAt: string;
   reportsReceived: Array<{
     id: string;
@@ -201,12 +211,31 @@ export type VideochatContact = {
   country: string | null;
   language: string | null;
   interests: string[];
+  /** Their verification photo was approved: the "verified" badge. */
+  verified: boolean;
   /** In the video chat now… */
   online: boolean;
   /** …and in a call. */
   busy: boolean;
   since: string;
 };
+
+/** My figures: the last 7 days and the 7 before. */
+export function getVideochatWeekStats() {
+  return apiFetch<VideochatWeekStats>('/videochat/stats', { auth: 'required' });
+}
+
+/** Sends the verification photo (holding a paper with the nickname and the date) for review. */
+export function uploadVideochatVerification(file: File) {
+  const form = new FormData();
+  form.set('file', file, 'photo.jpg');
+  return apiFetch<VideochatStatus>('/videochat/verification', {
+    method: 'POST',
+    body: form,
+    auth: 'required',
+    signal: AbortSignal.timeout(30_000),
+  });
+}
 
 export function listVideochatContacts() {
   return apiFetch<{ items: VideochatContact[] }>('/videochat/contacts', { auth: 'required' });
@@ -357,6 +386,35 @@ export function liftVideochatSuspension(userId: string) {
 export function setVideochatAgeVerified(userId: string, verified: boolean) {
   return apiFetch<void>(`/admin/videochat/users/${encodeURIComponent(userId)}/age-verification`, {
     method: verified ? 'PUT' : 'DELETE',
+    auth: 'required',
+  });
+}
+
+export type VideochatPendingVerification = {
+  userId: string;
+  nickname: string | null;
+  name: string;
+  email: string;
+  sentAt: string | null;
+};
+
+export function listVideochatVerifications() {
+  return apiFetch<{ items: VideochatPendingVerification[] }>('/admin/videochat/verifications', {
+    auth: 'required',
+  });
+}
+
+export function decideVideochatVerification(userId: string, approve: boolean, note?: string) {
+  return apiFetch<void>(`/admin/videochat/verifications/${encodeURIComponent(userId)}`, {
+    method: 'POST',
+    body: { approve, ...(note ? { note } : {}) },
+    auth: 'required',
+  });
+}
+
+export function revokeVideochatVerification(userId: string) {
+  return apiFetch<void>(`/admin/videochat/users/${encodeURIComponent(userId)}/verification`, {
+    method: 'DELETE',
     auth: 'required',
   });
 }

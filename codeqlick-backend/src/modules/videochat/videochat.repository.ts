@@ -129,6 +129,7 @@ export class VideochatRepository {
                 country: true,
                 language: true,
                 interests: true,
+                verificationStatus: true,
               },
             },
           },
@@ -560,5 +561,88 @@ export class VideochatRepository {
       where: { userId: { in: userIds } },
       data: { peakNotifiedAt: at },
     });
+  }
+
+  // ---- Photo verification and the person's own figures ----------------------------------------
+
+  updateVerification(
+    userId: string,
+    data: Pick<
+      Prisma.VideochatProfileUpdateInput,
+      | 'verificationStatus'
+      | 'verificationKey'
+      | 'verificationNote'
+      | 'verificationSentAt'
+      | 'verifiedAt'
+    >,
+  ): Promise<VideochatProfile> {
+    return this.prisma.videochatProfile.update({ where: { userId }, data });
+  }
+
+  /** Photos waiting for the team, oldest first. */
+  pendingVerifications() {
+    return this.prisma.videochatProfile.findMany({
+      where: { verificationStatus: 'PENDING' },
+      orderBy: { verificationSentAt: 'asc' },
+      take: 100,
+      select: {
+        userId: true,
+        nickname: true,
+        verificationSentAt: true,
+        user: { select: personSelect },
+      },
+    });
+  }
+
+  /** Every stored verification photo's key (for the orphan cleanup). */
+  async verificationKeys(): Promise<string[]> {
+    const rows = await this.prisma.videochatProfile.findMany({
+      where: { verificationKey: { not: null } },
+      select: { verificationKey: true },
+    });
+    return rows.map((row) => row.verificationKey!);
+  }
+
+  person(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true, locale: true },
+    });
+  }
+
+  /**
+   * What happened to a person in [from, to): calls (from their active days, `yyyy-mm-dd` bounds),
+   * likes received and new mutual contacts (both likes exist, the later one in the window).
+   */
+  async activityBetween(
+    userId: string,
+    from: Date,
+    to: Date,
+    days: { from: string; to: string },
+  ): Promise<{ chats: number; likes: number; contacts: number }> {
+    const [calls, likes, contacts] = await Promise.all([
+      this.prisma.videochatActiveDay.aggregate({
+        where: {
+          userId,
+          day: { gte: new Date(`${days.from}T00:00:00Z`), lt: new Date(`${days.to}T00:00:00Z`) },
+        },
+        _sum: { calls: true },
+      }),
+      this.prisma.videochatLike.count({
+        where: { toId: userId, createdAt: { gte: from, lt: to } },
+      }),
+      this.prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT count(*) AS count
+        FROM videochat_likes mine
+        JOIN videochat_likes theirs ON theirs.from_id = mine.to_id AND theirs.to_id = mine.from_id
+        WHERE mine.from_id = ${userId}::uuid
+          AND GREATEST(mine.created_at, theirs.created_at) >= ${from}
+          AND GREATEST(mine.created_at, theirs.created_at) < ${to}`,
+    ]);
+    return {
+      chats: calls._sum.calls ?? 0,
+      likes,
+      contacts: Number(contacts[0]?.count ?? 0),
+    };
   }
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/swipe/Swipe.module.css';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getSwipeStatus, listSwipeMatches } from '@/lib/api/swipe';
@@ -21,6 +22,7 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
   const gate = await SwipeGate({ locale, status });
   if (gate) return gate;
   const t = await getTranslations({ locale, namespace: 'Swipe.matches' });
+  const tv = await getTranslations({ locale, namespace: 'Swipe' });
   const matches = await listSwipeMatches();
 
   return (
@@ -45,7 +47,10 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
                   <span className={styles.avatar} aria-hidden="true" />
                 )}
                 <span className={styles.matchText}>
-                  <strong>{match.partner.nickname}</strong>
+                  <strong>
+                    {match.partner.nickname}
+                    {match.partner.verified ? <VerifiedBadge label={tv('verified')} /> : null}
+                  </strong>
                   <span>
                     {match.lastMessage
                       ? `${match.lastMessage.mine ? `${t('you')}: ` : ''}${match.lastMessage.text}`

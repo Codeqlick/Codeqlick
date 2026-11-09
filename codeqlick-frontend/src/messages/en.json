@@ -1280,7 +1280,10 @@
           "appeal_accepted": "accepted <target>{label}</target>'s appeal",
           "appeal_rejected": "rejected <target>{label}</target>'s appeal",
           "age_verified": "marked <target>{label}</target>'s age as verified",
-          "age_unverified": "cleared <target>{label}</target>'s verified age"
+          "age_unverified": "cleared <target>{label}</target>'s verified age",
+          "verification_approved": "approved <target>{label}</target>'s photo verification on the video chat",
+          "verification_rejected": "rejected <target>{label}</target>'s photo verification on the video chat",
+          "verification_revoked": "took the verified badge from <target>{label}</target> on the video chat"
         },
         "swipe": {
           "verification_approved": "approved the Swipe verification of <target>{label}</target>",
@@ -3373,6 +3376,30 @@
         "in-group": "Already in the group",
         "invited": "Invited"
       }
+    },
+    "verified": "Profile verified by the team",
+    "verification": {
+      "title": "Verified badge",
+      "status": {
+        "NONE": "Optional: verify your profile and whoever talks to you sees a badge next to your nickname.",
+        "PENDING": "We are reviewing your photo. We'll tell you by email.",
+        "APPROVED": "Your profile is verified: others see the badge next to your nickname.",
+        "REJECTED": "We couldn't approve your photo. Send another one following the instructions."
+      },
+      "lead": "Take a photo holding a paper that reads “{nickname}”, “Videochat” and today's date, with your face visible. Only the team sees it, and we delete it as soon as we have reviewed it.",
+      "nicknameFirst": "Choose your nickname above and save it first.",
+      "pick": "Choose the photo",
+      "consent": "It's me, and I send it to verify my profile.",
+      "send": "Send for review",
+      "alt": "Your verification photo"
+    },
+    "stats": {
+      "title": "Your week",
+      "lead": "Your video chat in the last 7 days.",
+      "chats": "Chats",
+      "likes": "Likes received",
+      "contacts": "New contacts",
+      "previous": "{count} the week before"
     }
   },
   "AdminVideochat": {
@@ -3470,7 +3497,10 @@
       },
       "reportsReceived": "Reports received",
       "reportsMade": "Reports made",
-      "noReports": "None."
+      "noReports": "None.",
+      "photoVerified": "Verified badge",
+      "photoPending": "Verification photo pending",
+      "revokeBadge": "Take the badge away"
     },
     "statsLink": "View statistics",
     "history": {
@@ -3554,6 +3584,16 @@
       "figures": "{reporters, plural, =0 {No reports} one {Reported by # person} other {Reported by # people}} · {calls} calls in 7 days, {skippedFast} skipped at once by the other person, {shortCalls} under 10 s · at most {maxCallsInDay} in a day",
       "open": "Open and suspend",
       "clear": "Not suspicious"
+    },
+    "verifications": {
+      "title": "Verification photos",
+      "lead": "People asking for the verified badge. The photo is deleted once decided.",
+      "empty": "No photos to review.",
+      "alt": "Verification photo",
+      "check": "Check that the face shows and a paper reading “{nickname}”, “Videochat” and a recent date.",
+      "note": "Note for the person (optional; sent if you reject it)",
+      "approve": "Approve badge",
+      "reject": "Reject"
     }
   },
   "ConfirmEmail": {
@@ -4265,6 +4305,16 @@
       "unsupported": "This browser doesn't support notifications.",
       "iosInstall": "On iPhone, first install Swipe (Share → \"Add to Home Screen\") and turn them on from the app.",
       "error": "They couldn't be turned on. Try again."
+    },
+    "verified": "Profile verified by the team",
+    "stats": {
+      "title": "Your week",
+      "lead": "What happened to your photos in the last 7 days.",
+      "views": "Views",
+      "likes": "Likes",
+      "loves": "Loves",
+      "matches": "Matches",
+      "previous": "{count} the week before"
     }
   },
   "AdminSwipe": {

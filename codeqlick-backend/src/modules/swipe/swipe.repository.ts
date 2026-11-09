@@ -9,6 +9,7 @@ import type {
   SwipeReportReason,
   SwipeReportStatus,
   SwipeTakedownStatus,
+  SwipeVerificationStatus,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -30,9 +31,16 @@ export interface PartnerProfile {
   gender: SwipeGender | null;
   interests: string[];
   bio: string | null;
+  verificationStatus: SwipeVerificationStatus;
 }
 
-const cardProfileSelect = { nickname: true, gender: true, interests: true, bio: true } as const;
+const cardProfileSelect = {
+  nickname: true,
+  gender: true,
+  interests: true,
+  bio: true,
+  verificationStatus: true,
+} as const;
 
 const partnerSelect = { id: true, swipeProfile: { select: cardProfileSelect } } as const;
 
@@ -238,6 +246,24 @@ export class SwipeRepository {
       }
       return true;
     });
+  }
+
+  /** What happened to a person's photos in [from, to): views (any vote), likes, loves, matches. */
+  async activityBetween(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<{ views: number; likes: number; loves: number; matches: number }> {
+    const createdAt = { gte: from, lt: to };
+    const [views, likes, loves, matches] = await this.prisma.$transaction([
+      this.prisma.swipeVote.count({ where: { ownerId: userId, createdAt } }),
+      this.prisma.swipeVote.count({ where: { ownerId: userId, like: true, createdAt } }),
+      this.prisma.swipeVote.count({ where: { ownerId: userId, superLike: true, createdAt } }),
+      this.prisma.swipeMatch.count({
+        where: { OR: [{ userAId: userId }, { userBId: userId }], createdAt },
+      }),
+    ]);
+    return { views, likes, loves, matches };
   }
 
   countSuperLikesSince(voterId: string, since: Date): Promise<number> {

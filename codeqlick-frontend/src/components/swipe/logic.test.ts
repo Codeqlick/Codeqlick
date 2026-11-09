@@ -13,6 +13,7 @@ function card(id: string): SwipeCard {
     gender: null,
     interests: [],
     bio: null,
+    verified: true,
     lovesYou: false,
   };
 }

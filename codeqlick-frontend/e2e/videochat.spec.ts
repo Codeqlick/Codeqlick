@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { adminHeaders, API_URL, asAdmin, runTag, signIn } from './helpers';
+import { testPng } from './images';
 
 /*
  * The video chat on its own host (videochat.localhost: browsers send *.localhost to this machine)
@@ -378,4 +379,61 @@ test('the team sees the video chat statistics', async ({ page, context, baseURL 
   await expect(
     page.getByRole('table', { name: 'Personas por día' }).locator('tbody tr'),
   ).toHaveCount(7);
+});
+
+test('a person gets the verified badge from a photo the team approves', async ({
+  browser,
+  request,
+  baseURL,
+}) => {
+  const tag = runTag();
+  const base = videochatUrl(baseURL);
+  const user = {
+    email: `e2e-vc-kim-${tag}@codeqlick.test`,
+    password: `videochat-pass-${tag}-9`,
+  };
+  const created = await request.post(`${API_URL}/admin/users`, {
+    headers: adminHeaders(),
+    data: { email: user.email, name: 'Kim', role: 'CLIENT', password: user.password, locale: 'es' },
+  });
+  expect(created.ok()).toBeTruthy();
+  const id = ((await created.json()) as { id: string }).id;
+
+  try {
+    const kim = await person(browser, base, user);
+    await kim.goto('/es/settings');
+    // Her week is there from the start (nothing yet).
+    await expect(kim.getByRole('heading', { name: 'Tu semana' })).toBeVisible();
+    await expect(kim.getByText('Primero elige tu apodo arriba y guárdalo.')).toBeVisible();
+    await kim.getByLabel('Apodo').fill(`Kim ${tag}`);
+    await kim.getByRole('button', { name: 'Guardar' }).click();
+    await expect(kim.getByText('Guardado.', { exact: false })).toBeVisible();
+    await kim.reload();
+    await kim.getByLabel('Elige la foto').setInputFiles({
+      name: 'me.png',
+      mimeType: 'image/png',
+      buffer: testPng(21),
+    });
+    await kim.getByLabel(/Soy yo y la envío/).check();
+    await kim.getByRole('button', { name: 'Enviar para revisar' }).click();
+    await expect(kim.getByText('Estamos revisando tu foto.')).toBeVisible({ timeout: 20_000 });
+
+    // The team approves it from the moderation page (main host).
+    const adminContext = await browser.newContext({ baseURL });
+    open.push(adminContext);
+    await asAdmin(adminContext, baseURL!);
+    const admin = await adminContext.newPage();
+    await admin.goto('/es/admin/videochat');
+    const item = admin.locator('article').filter({ hasText: `Kim ${tag}` });
+    await expect(item.getByRole('img', { name: 'Foto de verificación' })).toBeVisible();
+    await item.getByRole('button', { name: 'Aprobar insignia' }).click();
+    await expect(item).toBeHidden();
+
+    await kim.reload();
+    await expect(kim.getByText('Tu perfil está verificado')).toBeVisible();
+    await expect(kim.getByTitle('Perfil verificado por el equipo')).toBeVisible();
+  } finally {
+    await leave();
+    await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
+  }
 });
