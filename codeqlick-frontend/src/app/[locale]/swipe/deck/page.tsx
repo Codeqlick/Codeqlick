@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/swipe/Swipe.module.css';
 import { SwipeDeck } from '@/components/swipe/SwipeDeck';
@@ -6,6 +7,9 @@ import { getSwipeDeck, getSwipeStatus } from '@/lib/api/swipe';
 import { requireUser } from '@/lib/auth/session';
 import { deckAction, reportAction, undoAction, voteAction } from '../actions';
 import { SwipeGate } from '../Gate';
+
+/** Behind the account: kept out of search results. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type PageProps = { params: Promise<{ locale: string }> };
 

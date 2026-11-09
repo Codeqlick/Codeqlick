@@ -1,9 +1,24 @@
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import vc from '../../videochat/videochat.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'Swipe.rules' });
+  const title = t('title');
+  const description = t('lead');
+  return {
+    title,
+    description,
+    alternates: webappAlternates('swipe', locale, '/rules'),
+    openGraph: { title, description, url: webappPath('swipe', locale, '/rules') },
+  };
+}
 
 const RULES = ['1', '2', '3', '4', '5', '6', '7', '8'] as const;
 
