@@ -99,7 +99,10 @@
 
 .upload {
   display: grid;
+  /* One column no wider than the card: a phone's file picker must not stretch it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .uploadLabel {
@@ -108,6 +111,8 @@
 
 .fileInput {
   font: inherit;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .preview {

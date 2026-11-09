@@ -342,7 +342,9 @@
   padding-top: 1.5rem;
   border-top: 1px solid var(--color-line);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .subsection h2 {
