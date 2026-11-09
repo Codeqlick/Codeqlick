@@ -706,6 +706,7 @@
       "calculator": "Calculator",
       "bookings": "Calls",
       "monitoring": "Monitoring",
+      "errors": "Errors",
       "sites": "Websites",
       "previews": "Previews",
       "videochat": "Video chat",
@@ -3665,6 +3666,41 @@
         "name": "Swipe",
         "body": "Swipe photos and match"
       }
+    }
+  },
+  "AdminErrors": {
+    "title": "Errors",
+    "lead": "Unexpected errors of the server and the website, grouped. You get an email the first time each one happens.",
+    "tabsLabel": "Status",
+    "tabs": {
+      "open": "Open",
+      "resolved": "Resolved"
+    },
+    "emptyTitle": "No open errors",
+    "emptyBody": "When something fails in the API or the website, it shows up here.",
+    "emptyResolvedTitle": "Nothing resolved yet",
+    "emptyResolvedBody": "Errors you mark as resolved stay here for 30 days.",
+    "error": "Error",
+    "source": "Where",
+    "count": "Times",
+    "lastSeen": "Last seen",
+    "firstSeen": "First seen",
+    "request": "Request",
+    "reference": "Reference",
+    "status": "Status",
+    "open": "Open",
+    "resolvedOn": "Resolved on {date}",
+    "resolveAll": "Mark all as resolved",
+    "resolve": "Mark as resolved",
+    "reopen": "Open again",
+    "done": "Done.",
+    "detailTitle": "Error",
+    "back": "Errors",
+    "stack": "Stack trace",
+    "sources": {
+      "API": "API",
+      "WEB_SERVER": "Website (server)",
+      "WEB_BROWSER": "Website (browser)"
     }
   },
   "Meetings": {

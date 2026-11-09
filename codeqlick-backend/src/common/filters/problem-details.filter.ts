@@ -10,6 +10,19 @@ import { STATUS_CODES } from 'node:http';
 import type { Response } from 'express';
 import type { AppRequest } from '../types/request.js';
 
+/** Keeps the API's unexpected errors for Admin → Errors (ErrorsService; architecture 4.11). */
+export interface ErrorRecorder {
+  record(input: {
+    source: 'API';
+    message: string;
+    stack?: string;
+    method?: string;
+    path?: string;
+    reference?: string;
+    userAgent?: string;
+  }): Promise<void>;
+}
+
 export interface ProblemFieldError {
   path: string;
   message: string;
@@ -35,6 +48,8 @@ export interface ProblemDetails {
 export class ProblemDetailsFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemDetailsFilter.name);
 
+  constructor(private readonly recorder?: ErrorRecorder) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const request = http.getRequest<AppRequest>();
@@ -51,6 +66,20 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         `Unhandled error on ${request.method} ${problem.instance} (requestId=${requestId ?? 'n/a'}): ${err.message}`,
         err.stack,
       );
+      // Only errors nobody meant: an HttpException with a 5xx (e.g. a service not set up) is a
+      // known state, not a bug.
+      if (this.recorder && !(exception instanceof HttpException)) {
+        const userAgent = request.headers['user-agent'];
+        void this.recorder.record({
+          source: 'API',
+          message: `${err.name}: ${err.message}`,
+          stack: err.stack,
+          method: request.method,
+          path: (request.originalUrl ?? request.url).replace(/[?#].*$/, ''),
+          reference: requestId,
+          userAgent: typeof userAgent === 'string' ? userAgent : undefined,
+        });
+      }
     }
 
     if (response.headersSent) return;
