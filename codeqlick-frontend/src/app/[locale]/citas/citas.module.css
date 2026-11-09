@@ -9,6 +9,8 @@
 }
 
 .header {
+  /* The apps menu opens under the whole header on phones. */
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appHref, routeWebapp, SITE_SECTIONS, WEBAPPS, webappForHost, webappHost } from './webapps';
+import {
+  appHref,
+  routeWebapp,
+  SITE_SECTIONS,
+  switcherApps,
+  WEBAPPS,
+  webappForHost,
+  webappHost,
+} from './webapps';
 
 const SHARED = ['login', 'register', 'forgot-password', 'reset-password'];
 
@@ -97,5 +105,20 @@ describe('web apps on subdomains', () => {
       action: 'pass',
     });
     expect(routeWebapp('/es/videochat/room', '[::1]:3000', 'http:')).toEqual({ action: 'pass' });
+  });
+});
+
+describe('the apps menu', () => {
+  it('lists only the apps for everyone inside them', () => {
+    expect(switcherApps('meetings')).toEqual([{ app: 'citas', adult: false }]);
+    expect(switcherApps('citas')).toEqual([{ app: 'meetings', adult: false }]);
+  });
+
+  it('lists every other app inside an 18+ app, the 18+ ones last', () => {
+    expect(switcherApps('videochat')).toEqual([
+      { app: 'meetings', adult: false },
+      { app: 'citas', adult: false },
+      { app: 'swipe', adult: true },
+    ]);
   });
 });

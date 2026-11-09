@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link, WebappProvider } from '@/i18n/navigation';
@@ -63,6 +64,7 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
             <Link href="/swipe/rules" className={vc.headerLink}>
               {t('nav.rules')}
             </Link>
+            <AppSwitcher current="swipe" locale={locale} />
             <LocaleSwitcher className={vc.locale} />
             {user ? (
               <form action={logoutAction}>

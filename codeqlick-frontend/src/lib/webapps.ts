@@ -10,6 +10,20 @@
 export const WEBAPPS = ['videochat', 'meetings', 'citas', 'swipe'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
+/** The 18+ apps: the other apps' "Apps" menu leaves them out (architecture 6.3). */
+export const ADULT_WEBAPPS: readonly Webapp[] = ['videochat', 'swipe'];
+
+/**
+ * The apps the "Apps" menu lists inside `current`: every other app from an 18+ app, only the apps
+ * for everyone from the others, so a booking page never points at explicit content.
+ */
+export function switcherApps(current: Webapp): { app: Webapp; adult: boolean }[] {
+  const adultContext = ADULT_WEBAPPS.includes(current);
+  return WEBAPPS.filter((app) => app !== current && (adultContext || !ADULT_WEBAPPS.includes(app)))
+    .map((app) => ({ app, adult: ADULT_WEBAPPS.includes(app) }))
+    .sort((a, b) => Number(a.adult) - Number(b.adult));
+}
+
 /** Pages of the main site a web app's host also serves: signing in and creating the account. */
 const SHARED_PAGES = ['login', 'register', 'forgot-password', 'reset-password'];
 
