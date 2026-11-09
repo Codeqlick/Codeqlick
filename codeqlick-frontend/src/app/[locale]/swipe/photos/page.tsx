@@ -52,7 +52,7 @@ type PageProps = { params: Promise<{ locale: string }> };
 /** My profile, my verification photo and my photos (with their review status and likes). */
 export default async function SwipePhotosPage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
-  await requireUser(locale, `/${locale}/swipe/photos`);
+  const user = await requireUser(locale, `/${locale}/swipe/photos`);
   const status = await getSwipeStatus();
   const gate = await SwipeGate({ locale, status });
   if (gate) return gate;
@@ -139,8 +139,10 @@ export default async function SwipePhotosPage({ params }: PageProps) {
             name="nickname"
             label={t('profile.nickname')}
             hint={t('profile.nicknameHint')}
-            defaultValue={profile.nickname ?? ''}
-            maxLength={24}
+            defaultValue={profile.nickname ?? user.username ?? ''}
+            maxLength={21}
+            autoCapitalize="none"
+            spellCheck={false}
             autoComplete="off"
             required
           />

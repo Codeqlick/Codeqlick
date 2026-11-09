@@ -121,12 +121,8 @@ export const onboardingSchema = z.object({
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
 export const profileSchema = z.object({
-  nickname: z
-    .string()
-    .trim()
-    .min(2)
-    .max(24)
-    .regex(/^[\p{L}\p{N} ._-]+$/u, 'Letters, numbers, spaces, dots, dashes and underscores'),
+  /** The account's username (owner's decision 2026-11-09). Checked like `PUT /auth/me/username`. */
+  nickname: z.string().trim().min(1).max(40),
   gender: genderSchema.nullable(),
   seeking: z
     .array(genderSchema)

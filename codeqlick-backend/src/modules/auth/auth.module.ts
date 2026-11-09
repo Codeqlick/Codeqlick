@@ -13,6 +13,7 @@ import { AuthService } from './auth.service.js';
 import { CaptchaService } from './captcha.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenCleanupService } from './token-cleanup.service.js';
+import { UsernameService } from './username.service.js';
 
 @Module({
   imports: [
@@ -36,9 +37,10 @@ import { TokenCleanupService } from './token-cleanup.service.js';
     TokenCleanupService,
     AvatarStorage,
     AvatarCleanupService,
+    UsernameService,
   ],
   // JwtModule is re-exported for the global JwtAuthGuard registered in AppModule; AuthService
   // for the welcome emails sent from the users module.
-  exports: [JwtModule, PasswordService, AuthService, AvatarStorage],
+  exports: [JwtModule, PasswordService, AuthService, AvatarStorage, UsernameService],
 })
 export class AuthModule {}

@@ -11,6 +11,7 @@ import {
   VIDEOCHAT_TERMS_VERSION,
 } from './videochat.schemas.js';
 import { isSuspended, TICKET_TTL_MS, VideochatService } from './videochat.service.js';
+import type { UsernameService } from '../auth/username.service.js';
 
 function service(
   profile: object | null = { termsVersion: VIDEOCHAT_TERMS_VERSION, suspendedAt: null },
@@ -23,7 +24,13 @@ function service(
   } as unknown as VideochatRepository;
   const config = { turn, videochatAgeVerificationRequired: false } as unknown as AppConfigService;
   return {
-    svc: new VideochatService(repository, config, {} as MailService, {} as ActivityService),
+    svc: new VideochatService(
+      repository,
+      config,
+      {} as MailService,
+      {} as ActivityService,
+      {} as UsernameService,
+    ),
     repository,
   };
 }
@@ -88,6 +95,7 @@ describe('VideochatService', () => {
       { turn: { urls: [] }, videochatAgeVerificationRequired: true } as unknown as AppConfigService,
       {} as MailService,
       {} as ActivityService,
+      {} as UsernameService,
     );
     expect(await strict.status('u1')).toMatchObject({ onboarded: true, allowed: false });
     await expect(strict.issueTicket('u1')).rejects.toMatchObject({ status: 403 });
@@ -150,8 +158,9 @@ describe('settingsSchema', () => {
     expect(settingsSchema.parse({ ...base, nickname: null, gender: null }).nickname).toBeNull();
   });
 
-  it('refuses odd nicknames, countries and languages', () => {
-    expect(settingsSchema.safeParse({ ...base, nickname: '<b>x</b>' }).success).toBe(false);
+  it('refuses overlong nicknames, odd countries and languages', () => {
+    // The nickname is the account's username: its rules are checked by UsernameService.
+    expect(settingsSchema.safeParse({ ...base, nickname: 'x'.repeat(41) }).success).toBe(false);
     expect(settingsSchema.safeParse({ ...base, country: 'es' }).success).toBe(false);
     expect(settingsSchema.safeParse({ ...base, language: 'spa' }).success).toBe(false);
   });

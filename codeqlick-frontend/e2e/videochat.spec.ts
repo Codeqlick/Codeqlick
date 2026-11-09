@@ -97,7 +97,7 @@ test('two people meet in the video chat, talk and move on', async ({
 
     // Ana picks a nickname: that, not her name, is what Ben sees.
     await ana.goto('/es/settings');
-    await ana.getByLabel('Apodo').fill(`Ana ${tag}`);
+    await ana.getByLabel('Nombre de usuario').fill(`ana_${tag}`);
     await ana.getByRole('combobox', { name: 'Género' }).selectOption('WOMAN');
     await ana.getByRole('combobox', { name: 'País' }).selectOption('ES');
     await ana.getByRole('combobox', { name: 'Idioma' }).selectOption('es');
@@ -124,7 +124,7 @@ test('two people meet in the video chat, talk and move on', async ({
     await ben.getByRole('button', { name: 'Activar cámara y empezar' }).click();
     await inCall(ana);
     await inCall(ben);
-    await expect(ben.getByText(`Ana ${tag}`)).toBeVisible();
+    await expect(ben.getByText(`ana_${tag}`)).toBeVisible();
     // Ben sees the interests Ana picked.
     await expect(ben.getByRole('list', { name: 'Sus intereses' })).toContainText('Música');
     await expect(ben.getByRole('list', { name: 'Sus intereses' })).toContainText('Viajar');
@@ -188,7 +188,7 @@ test('two people who like each other become contacts and call each other', async
       await person(browser, base, users[1]!),
     ];
     await dan.goto('/es/settings');
-    await dan.getByLabel('Apodo').fill(`Dan ${tag}`);
+    await dan.getByLabel('Nombre de usuario').fill(`dan_${tag}`);
     await dan.getByRole('button', { name: 'Guardar' }).click();
     await expect(dan.getByText('Guardado.', { exact: false })).toBeVisible();
     await dan.goto('/es/room');
@@ -204,18 +204,18 @@ test('two people who like each other become contacts and call each other', async
       cai.getByText('Si también te lo da, seréis contactos', { exact: false }),
     ).toBeVisible();
     await dan.getByRole('button', { name: /Me gusta/ }).click();
-    await expect(cai.getByText(`¡Os gustáis! Dan ${tag} y tú ya sois contactos.`)).toBeVisible();
+    await expect(cai.getByText(`¡Os gustáis! dan_${tag} y tú ya sois contactos.`)).toBeVisible();
     await expect(dan.getByText('¡Os gustáis! Ya sois contactos.')).toBeVisible();
 
     // Dan stops; Cai sees him on her contacts, free, and calls him.
     await dan.getByRole('button', { name: 'Parar' }).click();
     await cai.getByRole('button', { name: 'Parar' }).click();
     await cai.goto('/es/contacts');
-    await expect(cai.getByText(`Dan ${tag}`)).toBeVisible();
+    await expect(cai.getByText(`dan_${tag}`)).toBeVisible();
     await expect(cai.getByText(/^En el videochat · Contactos desde/)).toBeVisible();
     await cai.getByRole('link', { name: 'Llamar' }).click();
     await cai.getByRole('button', { name: 'Activar cámara y empezar' }).click();
-    await expect(cai.getByText(`Llamando a Dan ${tag}…`)).toBeVisible();
+    await expect(cai.getByText(`Llamando a dan_${tag}…`)).toBeVisible();
     await expect(dan.getByText('Un contacto te está llamando')).toBeVisible();
     await dan.getByRole('button', { name: 'Aceptar' }).click();
     await inCall(cai);
@@ -278,7 +278,7 @@ test('three contacts meet in a group call', async ({ browser, request, baseURL }
       [gus, 'Gus'],
     ] as const) {
       await page.goto('/es/settings');
-      await page.getByLabel('Apodo').fill(`${name} ${tag}`);
+      await page.getByLabel('Nombre de usuario').fill(`${name.toLowerCase()}_${tag}`);
       await page.getByRole('button', { name: 'Guardar' }).click();
       await expect(page.getByText('Guardado.', { exact: false })).toBeVisible();
       await page.goto('/es/room');
@@ -303,7 +303,7 @@ test('three contacts meet in a group call', async ({ browser, request, baseURL }
     await eva.goto('/es/contacts');
     await eva
       .getByRole('listitem')
-      .filter({ hasText: `Fay ${tag}` })
+      .filter({ hasText: `fay_${tag}` })
       .getByRole('link', { name: 'Grupo' })
       .click();
     await eva.getByRole('button', { name: 'Activar cámara y empezar' }).click();
@@ -314,7 +314,7 @@ test('three contacts meet in a group call', async ({ browser, request, baseURL }
 
     // Eva invites Gus from inside the group.
     await eva.getByRole('button', { name: 'Invitar', exact: true }).first().click();
-    const row = eva.getByRole('listitem').filter({ hasText: `Gus ${tag}` });
+    const row = eva.getByRole('listitem').filter({ hasText: `gus_${tag}` });
     await row.getByRole('button', { name: 'Invitar' }).click();
     await gus.getByRole('button', { name: 'Unirme' }).click();
     for (const page of [eva, fay, gus]) {
@@ -326,8 +326,8 @@ test('three contacts meet in a group call', async ({ browser, request, baseURL }
     // The group chat reaches everyone, with who wrote it.
     await gus.getByPlaceholder('Escribe un mensaje…').fill('¡Hola, grupo!');
     await gus.getByRole('button', { name: 'Enviar' }).click();
-    await expect(eva.getByText(`Gus ${tag}¡Hola, grupo!`)).toBeVisible();
-    await expect(fay.getByText(`Gus ${tag}¡Hola, grupo!`)).toBeVisible();
+    await expect(eva.getByText(`gus_${tag}¡Hola, grupo!`)).toBeVisible();
+    await expect(fay.getByText(`gus_${tag}¡Hola, grupo!`)).toBeVisible();
 
     // Gus leaves: the others stay, two of them.
     await gus.getByRole('button', { name: 'Salir del grupo' }).click();
@@ -405,7 +405,7 @@ test('a person gets the verified badge from a photo the team approves', async ({
     // Her week is there from the start (nothing yet).
     await expect(kim.getByRole('heading', { name: 'Tu semana' })).toBeVisible();
     await expect(kim.getByText('Primero elige tu apodo arriba y guárdalo.')).toBeVisible();
-    await kim.getByLabel('Apodo').fill(`Kim ${tag}`);
+    await kim.getByLabel('Nombre de usuario').fill(`kim_${tag}`);
     await kim.getByRole('button', { name: 'Guardar' }).click();
     await expect(kim.getByText('Guardado.', { exact: false })).toBeVisible();
     await kim.reload();
@@ -424,7 +424,7 @@ test('a person gets the verified badge from a photo the team approves', async ({
     await asAdmin(adminContext, baseURL!);
     const admin = await adminContext.newPage();
     await admin.goto('/es/admin/videochat');
-    const item = admin.locator('article').filter({ hasText: `Kim ${tag}` });
+    const item = admin.locator('article').filter({ hasText: `kim_${tag}` });
     await expect(item.getByRole('img', { name: 'Foto de verificación' })).toBeVisible();
     await item.getByRole('button', { name: 'Aprobar insignia' }).click();
     await expect(item).toBeHidden();

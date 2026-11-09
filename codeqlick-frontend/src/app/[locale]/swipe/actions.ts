@@ -38,7 +38,8 @@ import {
 import type { FormState } from '@/lib/forms';
 import { INTERESTS, MAX_INTERESTS, type Interest } from '@/lib/videochat-interests';
 
-const NICKNAME = /^[\p{L}\p{N} ._-]{2,24}$/u;
+/** The nickname is the account's username: 3–20 of a-z, 0-9, `.` and `_`, letter or digit at both ends. */
+const NICKNAME = /^(?!.*\.\.)[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** The browser shrinks photos before sending them; anything bigger didn't come from our page. */
@@ -89,7 +90,10 @@ export async function onboardAction(_previous: FormState, formData: FormData): P
 export async function profileAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const locale = localeOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Swipe.profile' });
-  const nickname = String(formData.get('nickname') ?? '').trim();
+  const nickname = String(formData.get('nickname') ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
   const seeking = formData
     .getAll('seeking')
     .map(gender)
@@ -168,7 +172,14 @@ export async function profileAction(_previous: FormState, formData: FormData): P
       emailAlerts: ticked('emailAlerts'),
       blurPhotos: ticked('blurPhotos'),
     });
-  } catch {
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameTaken') }, values };
+    }
+    if (status === 400 && isApiError(error) && error.fieldErrors.nickname) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameReserved') }, values };
+    }
     return { status: 'error', message: t('error'), values };
   }
   refresh(locale, 'photos');

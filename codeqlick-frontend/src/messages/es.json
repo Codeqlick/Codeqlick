@@ -3286,9 +3286,9 @@
     "settings": {
       "title": "Tu perfil y filtros",
       "lead": "Lo que ve la otra persona durante la llamada y con quién quieres coincidir. Todo es gratis.",
-      "nickname": "Apodo",
-      "nicknameHint": "De 2 a 24 caracteres. Nunca mostramos tu nombre ni tu email.",
-      "nicknameInvalid": "Usa de 2 a 24 letras, números, espacios, puntos, guiones o guiones bajos.",
+      "nickname": "Nombre de usuario",
+      "nicknameHint": "Tu @usuario de Codeqlick: es el mismo en todas las apps y nadie más puede tenerlo. Déjalo vacío para no mostrar ningún nombre. Nunca mostramos tu nombre real ni tu email.",
+      "nicknameInvalid": "Usa de 3 a 20 letras sin acentos, números, puntos o guiones bajos, empezando y terminando por letra o número.",
       "gender": "Género",
       "genderNone": "Prefiero no decirlo",
       "seeking": "Quiero conocer a",
@@ -3310,7 +3310,9 @@
       "interestsHint": "Elige hasta {max}. No dejan fuera a nadie: sirven para que conozcas antes a gente con gustos en común, y la otra persona los verá.",
       "interestsTooMany": "Elige como mucho {max} intereses.",
       "adultInterests": "Intereses +18",
-      "adultInterestsHint": "Solo entre personas adultas que consienten. Cuentan para el máximo de {max}."
+      "adultInterestsHint": "Solo entre personas adultas que consienten. Cuentan para el máximo de {max}.",
+      "nicknameTaken": "Ese nombre de usuario está ocupado. Prueba con otro.",
+      "nicknameReserved": "Ese nombre no se puede usar. Prueba con otro."
     },
     "install": {
       "title": "Llévalo en el móvil",
@@ -4169,9 +4171,9 @@
     "profile": {
       "title": "Mi perfil",
       "lead": "Así te ven los demás en tus fotos. Nunca mostramos tu nombre ni tu correo.",
-      "nickname": "Apodo",
-      "nicknameHint": "De 2 a 24 caracteres. Es el que tendrás que escribir en el papel de la foto de verificación.",
-      "nicknameInvalid": "Usa de 2 a 24 letras, números, espacios, puntos o guiones.",
+      "nickname": "Nombre de usuario",
+      "nicknameHint": "Tu @usuario de Codeqlick: es el mismo en todas las apps y nadie más puede tenerlo. Escríbelo en el papel de la foto de verificación.",
+      "nicknameInvalid": "Usa de 3 a 20 letras sin acentos, números, puntos o guiones bajos, empezando y terminando por letra o número.",
       "gender": "Género",
       "genderNone": "Prefiero no decirlo",
       "seeking": "Quiero ver fotos de",
@@ -4199,7 +4201,9 @@
       "blurPhotos": "Fotos borrosas hasta que las toque",
       "blurPhotosHint": "Útil si usas Swipe en sitios con gente alrededor.",
       "emailAlerts": "Avisarme por correo de matches, «me encanta» y mensajes",
-      "emailAlertsHint": "Los correos nunca muestran fotos, apodos ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre."
+      "emailAlertsHint": "Los correos nunca muestran fotos, apodos ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre.",
+      "nicknameTaken": "Ese nombre de usuario está ocupado. Prueba con otro.",
+      "nicknameReserved": "Ese nombre no se puede usar. Prueba con otro."
     },
     "verification": {
       "title": "Foto de verificación",

@@ -16,6 +16,7 @@ import type { SwipePhoto, SwipeProfile } from '../../generated/prisma/client.js'
 import { AppConfigService } from '../../config/app-config.service.js';
 import { toApiLocale, toDbLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { UsernameService } from '../auth/username.service.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { sharesContact } from './swipe-chat-guard.js';
@@ -249,6 +250,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly mail: MailService,
     private readonly push: SwipePushService,
     private readonly config: AppConfigService,
+    private readonly usernames: UsernameService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -499,8 +501,10 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     }
     const [ageMin, ageMax] =
       input.ageMin <= input.ageMax ? [input.ageMin, input.ageMax] : [input.ageMax, input.ageMin];
+    // The nickname is the account's username (owner's decision 2026-11-09).
+    const { username } = await this.usernames.claim(userId, input.nickname, 'nickname');
     const profile = await this.repository.updateProfile(userId, {
-      nickname: input.nickname,
+      nickname: username ?? null,
       gender: input.gender,
       seeking: input.seeking,
       interests: input.interests,

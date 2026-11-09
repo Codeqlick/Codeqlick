@@ -54,7 +54,7 @@ async function member(
   await expect(page.getByLabel('Fecha de nacimiento')).toBeHidden();
 
   await page.goto('/es/photos');
-  await page.getByLabel('Apodo').fill(nickname);
+  await page.getByLabel('Nombre de usuario').fill(nickname);
   await page.getByRole('button', { name: 'Guardar' }).click();
   await expect(page.getByText('Perfil guardado.')).toBeVisible();
   await page.reload();
@@ -74,7 +74,7 @@ test('two people get approved, match on Swipe and talk', async ({ browser, reque
   const base = swipeUrl(baseURL);
   const users = ['ana', 'ben'].map((name) => ({
     name,
-    nickname: `${name === 'ana' ? 'Ana' : 'Ben'} ${tag}`,
+    nickname: `${name}_${tag}`,
     email: `e2e-swipe-${name}-${tag}@codeqlick.test`,
     password: `swipe-pass-${tag}-0`,
   }));
