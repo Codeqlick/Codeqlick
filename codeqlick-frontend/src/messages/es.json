@@ -3643,6 +3643,30 @@
       "open": "Abrir Swipe"
     }
   },
+  "AppSwitcher": {
+    "label": "Otras apps de Codeqlick",
+    "toggle": "Apps",
+    "heading": "Con tu misma cuenta",
+    "all": "Ver todas las apps",
+    "apps": {
+      "meetings": {
+        "name": "Meetings",
+        "body": "Videollamadas con un enlace"
+      },
+      "citas": {
+        "name": "Citas",
+        "body": "Tu página de reservas"
+      },
+      "videochat": {
+        "name": "Videochat",
+        "body": "Habla por vídeo con gente nueva"
+      },
+      "swipe": {
+        "name": "Swipe",
+        "body": "Desliza fotos y haz match"
+      }
+    }
+  },
   "Meetings": {
     "metaTitle": "Meetings: videollamadas con un enlace",
     "metaDescription": "Crea una sala, comparte el enlace y habla por vídeo con hasta 6 personas. Sin instalar nada y sin cuenta para tus invitados.",

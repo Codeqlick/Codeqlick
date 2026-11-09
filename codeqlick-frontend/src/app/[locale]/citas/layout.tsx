@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
+import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link, WebappProvider } from '@/i18n/navigation';
@@ -43,6 +44,7 @@ export default async function CitasLayout({ children, params }: LayoutProps) {
             <span className={styles.brandApp}>{t('brand')}</span>
           </div>
           <nav className={styles.headerNav}>
+            <AppSwitcher current="citas" locale={locale} />
             <LocaleSwitcher className={styles.locale} />
             {user ? (
               <form action={logoutAction}>

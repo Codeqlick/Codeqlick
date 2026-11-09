@@ -3643,6 +3643,30 @@
       "open": "Open Swipe"
     }
   },
+  "AppSwitcher": {
+    "label": "Other Codeqlick apps",
+    "toggle": "Apps",
+    "heading": "With the same account",
+    "all": "See all apps",
+    "apps": {
+      "meetings": {
+        "name": "Meetings",
+        "body": "Video calls with a link"
+      },
+      "citas": {
+        "name": "Citas",
+        "body": "Your booking page"
+      },
+      "videochat": {
+        "name": "Videochat",
+        "body": "Video chat with new people"
+      },
+      "swipe": {
+        "name": "Swipe",
+        "body": "Swipe photos and match"
+      }
+    }
+  },
   "Meetings": {
     "metaTitle": "Meetings: video calls with a link",
     "metaDescription": "Create a room, share the link and talk by video with up to 6 people. Nothing to install and no account needed for your guests.",
