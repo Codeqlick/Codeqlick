@@ -21,7 +21,8 @@ import type { AppLocale } from '@/i18n/routing';
 import type { FormState } from '@/lib/forms';
 import { isCountry, isLanguage } from '@/lib/videochat-options';
 
-const NICKNAME = /^[\p{L}\p{N} ._-]{2,24}$/u;
+/** The nickname is the account's username: 3–20 of a-z, 0-9, `.` and `_`, letter or digit at both ends. */
+const NICKNAME = /^(?!.*\.\.)[a-z0-9][a-z0-9._]{1,18}[a-z0-9]$/;
 
 function gender(value: FormDataEntryValue | null): Gender | null {
   return GENDERS.find((g) => g === value) ?? null;
@@ -31,7 +32,10 @@ function gender(value: FormDataEntryValue | null): Gender | null {
 export async function settingsAction(_previous: FormState, formData: FormData): Promise<FormState> {
   const locale = localeOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Videochat.settings' });
-  const nickname = String(formData.get('nickname') ?? '').trim();
+  const nickname = String(formData.get('nickname') ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, '');
   const country = String(formData.get('country') ?? '');
   const language = String(formData.get('language') ?? '');
   const seeking = formData
@@ -87,8 +91,11 @@ export async function settingsAction(_previous: FormState, formData: FormData): 
     });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
+    if (status === 409) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameTaken') }, values };
+    }
     if (status === 400) {
-      return { status: 'error', fieldErrors: { nickname: t('nicknameInvalid') }, values };
+      return { status: 'error', fieldErrors: { nickname: t('nicknameReserved') }, values };
     }
     return { status: 'error', message: t('error'), values };
   }

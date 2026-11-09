@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { Logo } from '@/components/brand/Logo';
+import { Avatar } from '@/components/ui/Avatar';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AuthUser } from '@/lib/api/types';
 import { logoutAction } from '@/lib/auth/actions';
@@ -38,7 +39,10 @@ export async function AppShell({
         </div>
         <AppNav items={items} label={t('navLabel')} />
         <div className={styles.userBox}>
-          <span className={styles.userName}>{t('signedInAs', { name: user.name })}</span>
+          <span className={styles.userName}>
+            <Avatar file={user.avatar} name={user.name} size="sm" />
+            {t('signedInAs', { name: user.name })}
+          </span>
           <div className={styles.userActions}>
             <LocaleSwitcher />
             <form action={logoutAction}>

@@ -60,7 +60,8 @@
     "copyright": "© {year} Codeqlick",
     "login": "Acceso clientes",
     "legal": "Aviso legal",
-    "privacy": "Privacidad"
+    "privacy": "Privacidad",
+    "security": "Seguridad"
   },
   "Home": {
     "hero": {
@@ -541,7 +542,38 @@
     "deleting": "Eliminando…",
     "deleteHasProjects": "Tu cuenta tiene proyectos con nosotros, con sus contratos y facturas, así que la cerramos nosotros: abre una petición de soporte o escríbenos a hello@codeqlick.com y la damos de baja.",
     "deleteAdmin": "Las cuentas del equipo las elimina otro administrador desde Usuarios.",
-    "emailDisposable": "No aceptamos correos temporales. Usa tu correo de siempre."
+    "emailDisposable": "No aceptamos correos temporales. Usa tu correo de siempre.",
+    "username": {
+      "label": "Nombre de usuario",
+      "hint": "Entre 3 y 20 caracteres: letras sin acentos, números, punto y guion bajo. Puedes cambiarlo cuando quieras; el anterior queda libre para otras personas.",
+      "checking": "Comprobando…",
+      "available": "@{username} está libre.",
+      "yours": "@{username} es tu nombre de usuario.",
+      "taken": "Ese nombre de usuario está ocupado. Prueba con otro.",
+      "reserved": "Ese nombre está reservado. Prueba con otro.",
+      "invalid": "Usa entre 3 y 20 caracteres: letras sin acentos, números, punto y guion bajo, empezando y terminando por letra o número.",
+      "save": "Guardar nombre de usuario",
+      "saved": "Listo: ahora eres @{username}.",
+      "removed": "Has quitado tu nombre de usuario.",
+      "rateLimited": "Demasiados cambios seguidos. Espera un minuto.",
+      "none": "Aún no tienes nombre de usuario."
+    },
+    "avatar": {
+      "title": "Foto de perfil",
+      "lead": "Sale en tu cuenta, en Meetings cuando tienes la cámara apagada y en tu página de Citas. Nunca en Videochat ni en Swipe.",
+      "pick": "Elegir foto",
+      "change": "Cambiar foto",
+      "remove": "Quitar foto",
+      "removing": "Quitando…",
+      "sending": "Subiendo…",
+      "saved": "Foto de perfil guardada.",
+      "removed": "Has quitado tu foto de perfil.",
+      "noFile": "Elige una foto primero.",
+      "tooBig": "La foto es demasiado grande.",
+      "notImage": "Solo valen fotos PNG, JPEG o WebP.",
+      "rateLimited": "Demasiados cambios seguidos. Espera un minuto.",
+      "error": "No hemos podido guardarla. Inténtalo de nuevo."
+    }
   },
   "TwoFactor": {
     "title": "Verificación en dos pasos",
@@ -1107,7 +1139,7 @@
       "allAccounts": "Todas",
       "app": "App",
       "search": "Buscar",
-      "searchPlaceholder": "Nombre o correo",
+      "searchPlaceholder": "Nombre, @usuario o correo",
       "noMatchTitle": "Ninguna cuenta coincide",
       "noMatchBody": "Prueba con otro tipo, otra app u otra búsqueda.",
       "kinds": {
@@ -3254,9 +3286,9 @@
     "settings": {
       "title": "Tu perfil y filtros",
       "lead": "Lo que ve la otra persona durante la llamada y con quién quieres coincidir. Todo es gratis.",
-      "nickname": "Apodo",
-      "nicknameHint": "De 2 a 24 caracteres. Nunca mostramos tu nombre ni tu email.",
-      "nicknameInvalid": "Usa de 2 a 24 letras, números, espacios, puntos, guiones o guiones bajos.",
+      "nickname": "Nombre de usuario",
+      "nicknameHint": "Tu @usuario de Codeqlick: es el mismo en todas las apps y nadie más puede tenerlo. Déjalo vacío para no mostrar ningún nombre. Nunca mostramos tu nombre real ni tu email.",
+      "nicknameInvalid": "Usa de 3 a 20 letras sin acentos, números, puntos o guiones bajos, empezando y terminando por letra o número.",
       "gender": "Género",
       "genderNone": "Prefiero no decirlo",
       "seeking": "Quiero conocer a",
@@ -3278,7 +3310,9 @@
       "interestsHint": "Elige hasta {max}. No dejan fuera a nadie: sirven para que conozcas antes a gente con gustos en común, y la otra persona los verá.",
       "interestsTooMany": "Elige como mucho {max} intereses.",
       "adultInterests": "Intereses +18",
-      "adultInterestsHint": "Solo entre personas adultas que consienten. Cuentan para el máximo de {max}."
+      "adultInterestsHint": "Solo entre personas adultas que consienten. Cuentan para el máximo de {max}.",
+      "nicknameTaken": "Ese nombre de usuario está ocupado. Prueba con otro.",
+      "nicknameReserved": "Ese nombre no se puede usar. Prueba con otro."
     },
     "install": {
       "title": "Llévalo en el móvil",
@@ -4137,9 +4171,9 @@
     "profile": {
       "title": "Mi perfil",
       "lead": "Así te ven los demás en tus fotos. Nunca mostramos tu nombre ni tu correo.",
-      "nickname": "Apodo",
-      "nicknameHint": "De 2 a 24 caracteres. Es el que tendrás que escribir en el papel de la foto de verificación.",
-      "nicknameInvalid": "Usa de 2 a 24 letras, números, espacios, puntos o guiones.",
+      "nickname": "Nombre de usuario",
+      "nicknameHint": "Tu @usuario de Codeqlick: es el mismo en todas las apps y nadie más puede tenerlo. Escríbelo en el papel de la foto de verificación.",
+      "nicknameInvalid": "Usa de 3 a 20 letras sin acentos, números, puntos o guiones bajos, empezando y terminando por letra o número.",
       "gender": "Género",
       "genderNone": "Prefiero no decirlo",
       "seeking": "Quiero ver fotos de",
@@ -4167,7 +4201,9 @@
       "blurPhotos": "Fotos borrosas hasta que las toque",
       "blurPhotosHint": "Útil si usas Swipe en sitios con gente alrededor.",
       "emailAlerts": "Avisarme por correo de matches, «me encanta» y mensajes",
-      "emailAlertsHint": "Los correos nunca muestran fotos, apodos ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre."
+      "emailAlertsHint": "Los correos nunca muestran fotos, apodos ni mensajes. Los avisos del equipo (verificación, fotos) te llegan siempre.",
+      "nicknameTaken": "Ese nombre de usuario está ocupado. Prueba con otro.",
+      "nicknameReserved": "Ese nombre no se puede usar. Prueba con otro."
     },
     "verification": {
       "title": "Foto de verificación",
@@ -4186,7 +4222,7 @@
     },
     "photos": {
       "title": "Mis fotos",
-      "lead": "{count} de {max} fotos. Revisamos cada una antes de publicarla.",
+      "lead": "{count} de {max} fotos públicas. Revisamos cada una antes de publicarla.",
       "pick": "Elige una foto",
       "consent": "Solo aparezco yo, soy mayor de 18 años, la he hecho yo o he dejado que me la hagan, y quiero publicarla aquí.",
       "send": "Enviar para revisar",
@@ -4218,7 +4254,8 @@
       "notVerified": "Tu foto de verificación tiene que estar aprobada primero.",
       "tooMany": "Ya tienes el máximo de fotos.",
       "tooManyToday": "Has subido demasiadas fotos hoy. Vuelve mañana.",
-      "error": "No hemos podido enviarla. Inténtalo de nuevo."
+      "error": "No hemos podido enviarla. Inténtalo de nuevo.",
+      "albumFull": "Tu álbum privado ya tiene 5 fotos. Borra o saca una para subir otra."
     },
     "matches": {
       "title": "Matches",
@@ -4315,6 +4352,27 @@
       "loves": "«Me encanta»",
       "matches": "Matches",
       "previous": "{count} la semana anterior"
+    },
+    "album": {
+      "title": "Álbum privado",
+      "lead": "{count} de {max} fotos. Solo las ven las personas con las que haces match, nunca salen en las cartas. También las revisamos antes.",
+      "pick": "Elige una foto para el álbum",
+      "send": "Enviar al álbum",
+      "full": "Tu álbum privado ya tiene 5 fotos.",
+      "publicFull": "Ya tienes 10 fotos públicas.",
+      "empty": "Tu álbum está vacío.",
+      "toAlbum": "Pasar al álbum",
+      "toPublic": "Hacer pública",
+      "moving": "Moviendo…",
+      "moved": "Foto movida al álbum privado.",
+      "madePublic": "La foto ya sale en las cartas.",
+      "moveError": "No hemos podido moverla.",
+      "badge": "Álbum",
+      "of": "Álbum privado de {nickname}",
+      "count": "{count, plural, one {# foto} other {# fotos}}",
+      "matchHint": "Álbum privado: {count, plural, one {# foto} other {# fotos}}",
+      "alt": "Foto del álbum privado de {nickname}",
+      "open": "Ver el álbum"
     }
   },
   "AdminSwipe": {
@@ -4395,6 +4453,7 @@
       "response": "Respuesta (se envía por correo)",
       "remove": "Retirar la foto y bloquearla",
       "close": "Cerrar sin retirar"
-    }
+    },
+    "albumTag": "Álbum privado: solo lo ven sus matches"
   }
 }

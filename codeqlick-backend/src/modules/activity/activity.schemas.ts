@@ -121,6 +121,7 @@ export const ACTIVITY_ACTIONS = [
   'account.sessions_revoked',
   'account.registered',
   'account.email_changed',
+  'account.username_changed',
   'account.deleted',
   'videochat.suspended',
   'videochat.unsuspended',

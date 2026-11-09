@@ -60,7 +60,8 @@
     "copyright": "© {year} Codeqlick",
     "login": "Client login",
     "legal": "Legal notice",
-    "privacy": "Privacy"
+    "privacy": "Privacy",
+    "security": "Security"
   },
   "Home": {
     "hero": {
@@ -541,7 +542,38 @@
     "deleting": "Deleting…",
     "deleteHasProjects": "Your account has projects with us, with their contracts and invoices, so we close it for you: open a support request or write to hello@codeqlick.com and we will.",
     "deleteAdmin": "Team accounts are deleted by another admin from Users.",
-    "emailDisposable": "We don't accept temporary email addresses. Please use your usual email."
+    "emailDisposable": "We don't accept temporary email addresses. Please use your usual email.",
+    "username": {
+      "label": "Username",
+      "hint": "3 to 20 characters: letters without accents, numbers, dots and underscores. You can change it whenever you like; the old one becomes free for others.",
+      "checking": "Checking…",
+      "available": "@{username} is free.",
+      "yours": "@{username} is your username.",
+      "taken": "That username is taken. Try another one.",
+      "reserved": "That name is reserved. Try another one.",
+      "invalid": "Use 3 to 20 characters: letters without accents, numbers, dots and underscores, starting and ending with a letter or number.",
+      "save": "Save username",
+      "saved": "Done: you are now @{username}.",
+      "removed": "You removed your username.",
+      "rateLimited": "Too many changes in a row. Wait a minute.",
+      "none": "You don't have a username yet."
+    },
+    "avatar": {
+      "title": "Profile photo",
+      "lead": "It shows in your account, in Meetings while your camera is off and on your Citas page. Never in Videochat or Swipe.",
+      "pick": "Choose a photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "removing": "Removing…",
+      "sending": "Uploading…",
+      "saved": "Profile photo saved.",
+      "removed": "You removed your profile photo.",
+      "noFile": "Choose a photo first.",
+      "tooBig": "The photo is too large.",
+      "notImage": "Only PNG, JPEG or WebP photos.",
+      "rateLimited": "Too many changes in a row. Wait a minute.",
+      "error": "We couldn't save it. Try again."
+    }
   },
   "TwoFactor": {
     "title": "Two-step verification",
@@ -1107,7 +1139,7 @@
       "allAccounts": "All",
       "app": "App",
       "search": "Search",
-      "searchPlaceholder": "Name or email",
+      "searchPlaceholder": "Name, @username or email",
       "noMatchTitle": "No account matches",
       "noMatchBody": "Try another type, app or search.",
       "kinds": {
@@ -3254,9 +3286,9 @@
     "settings": {
       "title": "Your profile and filters",
       "lead": "What the other person sees during the call, and who you want to meet. All free.",
-      "nickname": "Nickname",
-      "nicknameHint": "2 to 24 characters. We never show your name or email.",
-      "nicknameInvalid": "Use 2 to 24 letters, numbers, spaces, dots, dashes or underscores.",
+      "nickname": "Username",
+      "nicknameHint": "Your Codeqlick @username: the same in every app, and nobody else can have it. Leave it empty to show no name. We never show your real name or email.",
+      "nicknameInvalid": "Use 3 to 20 letters without accents, numbers, dots or underscores, starting and ending with a letter or number.",
       "gender": "Gender",
       "genderNone": "Prefer not to say",
       "seeking": "I want to meet",
@@ -3278,7 +3310,9 @@
       "interestsHint": "Pick up to {max}. They don't leave anyone out: you meet people who share them first, and your partner sees them.",
       "interestsTooMany": "Pick at most {max} interests.",
       "adultInterests": "+18 interests",
-      "adultInterestsHint": "Only between consenting adults. They count toward the limit of {max}."
+      "adultInterestsHint": "Only between consenting adults. They count toward the limit of {max}.",
+      "nicknameTaken": "That username is taken. Try another one.",
+      "nicknameReserved": "That name can't be used. Try another one."
     },
     "install": {
       "title": "Take it on your phone",
@@ -4137,9 +4171,9 @@
     "profile": {
       "title": "My profile",
       "lead": "How others see you on your photos. We never show your name or email.",
-      "nickname": "Nickname",
-      "nicknameHint": "2 to 24 characters. You'll write it on the paper in your verification photo.",
-      "nicknameInvalid": "Use 2 to 24 letters, numbers, spaces, dots or dashes.",
+      "nickname": "Username",
+      "nicknameHint": "Your Codeqlick @username: the same in every app, and nobody else can have it. Write it on the paper in your verification photo.",
+      "nicknameInvalid": "Use 3 to 20 letters without accents, numbers, dots or underscores, starting and ending with a letter or number.",
       "gender": "Gender",
       "genderNone": "Prefer not to say",
       "seeking": "Show me photos of",
@@ -4167,7 +4201,9 @@
       "blurPhotos": "Blur photos until I tap them",
       "blurPhotosHint": "Handy if you use Swipe with people around.",
       "emailAlerts": "Email me about matches, «me encanta» and messages",
-      "emailAlertsHint": "Emails never show photos, nicknames or messages. The team's notices (verification, photos) always reach you."
+      "emailAlertsHint": "Emails never show photos, nicknames or messages. The team's notices (verification, photos) always reach you.",
+      "nicknameTaken": "That username is taken. Try another one.",
+      "nicknameReserved": "That name can't be used. Try another one."
     },
     "verification": {
       "title": "Verification photo",
@@ -4186,7 +4222,7 @@
     },
     "photos": {
       "title": "My photos",
-      "lead": "{count} of {max} photos. We review each one before it goes live.",
+      "lead": "{count} of {max} public photos. We review each one before it goes live.",
       "pick": "Choose a photo",
       "consent": "Only I appear in it, I am 18 or over, I took it or let it be taken, and I want to publish it here.",
       "send": "Send for review",
@@ -4218,7 +4254,8 @@
       "notVerified": "Your verification photo must be approved first.",
       "tooMany": "You have the most photos allowed already.",
       "tooManyToday": "You uploaded too many photos today. Come back tomorrow.",
-      "error": "We couldn't send it. Try again."
+      "error": "We couldn't send it. Try again.",
+      "albumFull": "Your private album already has 5 photos. Delete or move one out to upload another."
     },
     "matches": {
       "title": "Matches",
@@ -4315,6 +4352,27 @@
       "loves": "Loves",
       "matches": "Matches",
       "previous": "{count} the week before"
+    },
+    "album": {
+      "title": "Private album",
+      "lead": "{count} of {max} photos. Only the people you match with see them; they never show up as cards. We review them first too.",
+      "pick": "Choose a photo for the album",
+      "send": "Send to the album",
+      "full": "Your private album already has 5 photos.",
+      "publicFull": "You already have 10 public photos.",
+      "empty": "Your album is empty.",
+      "toAlbum": "Move to the album",
+      "toPublic": "Make public",
+      "moving": "Moving…",
+      "moved": "Photo moved to the private album.",
+      "madePublic": "The photo now shows up as a card.",
+      "moveError": "We couldn't move it.",
+      "badge": "Album",
+      "of": "{nickname}'s private album",
+      "count": "{count, plural, one {# photo} other {# photos}}",
+      "matchHint": "Private album: {count, plural, one {# photo} other {# photos}}",
+      "alt": "Photo from {nickname}'s private album",
+      "open": "See the album"
     }
   },
   "AdminSwipe": {
@@ -4395,6 +4453,7 @@
       "response": "Answer (sent by email)",
       "remove": "Remove the photo and block it",
       "close": "Close without removing"
-    }
+    },
+    "albumTag": "Private album: only their matches see it"
   }
 }

@@ -118,11 +118,30 @@ export class SwipeRepository {
     return this.prisma.swipePhoto.findMany({ where: { ownerId }, orderBy: { createdAt: 'desc' } });
   }
 
-  /** Photos that count towards the limit: pending or live. */
-  countActivePhotos(ownerId: string): Promise<number> {
+  /** Photos that count towards a limit (public or album): pending or live. */
+  countActivePhotos(ownerId: string, inAlbum = false): Promise<number> {
     return this.prisma.swipePhoto.count({
-      where: { ownerId, status: { in: ['PENDING', 'LIVE'] } },
+      where: { ownerId, inAlbum, status: { in: ['PENDING', 'LIVE'] } },
     });
+  }
+
+  /** A person's live album photos, oldest first. */
+  albumOf(ownerId: string): Promise<SwipePhoto[]> {
+    return this.prisma.swipePhoto.findMany({
+      where: { ownerId, inAlbum: true, status: 'LIVE' },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /** Live album photos per person. */
+  async albumCounts(ownerIds: string[]): Promise<Map<string, number>> {
+    if (ownerIds.length === 0) return new Map();
+    const rows = await this.prisma.swipePhoto.groupBy({
+      by: ['ownerId'],
+      where: { ownerId: { in: ownerIds }, inAlbum: true, status: 'LIVE' },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((row) => [row.ownerId, row._count._all]));
   }
 
   countPhotosSince(ownerId: string, since: Date): Promise<number> {
@@ -188,6 +207,7 @@ export class SwipeRepository {
     return this.prisma.swipePhoto.findMany({
       where: {
         status: 'LIVE',
+        inAlbum: false,
         ownerId: { not: viewerId },
         votes: { none: { voterId: viewerId } },
         owner: {
@@ -448,7 +468,7 @@ export class SwipeRepository {
   async firstLivePhotos(ownerIds: string[]): Promise<Map<string, string>> {
     if (ownerIds.length === 0) return new Map();
     const photos = await this.prisma.swipePhoto.findMany({
-      where: { ownerId: { in: ownerIds }, status: 'LIVE' },
+      where: { ownerId: { in: ownerIds }, status: 'LIVE', inAlbum: false },
       orderBy: { createdAt: 'asc' },
       select: { id: true, ownerId: true },
     });

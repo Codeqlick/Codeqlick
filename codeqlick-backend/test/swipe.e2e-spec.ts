@@ -15,6 +15,8 @@ import { SwipeService } from '../src/modules/swipe/swipe.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 const tag = randomUUID().slice(0, 8);
+/** Nicknames are account usernames now: unique, lower-case, so each run gets its own. */
+const nick = (name: string) => `${name.toLowerCase()}_${tag}`;
 
 type Person = { id: string; auth: { Authorization: string } };
 
@@ -109,8 +111,8 @@ describe('Swipe (e2e)', () => {
     ana = await person('Ana');
     bea = await person('Bea');
     carla = await person('Carla');
-    await uploader(ana, 'Ana', 'WOMAN', 1);
-    await uploader(bea, 'Bea', 'WOMAN', 2);
+    await uploader(ana, nick('Ana'), 'WOMAN', 1);
+    await uploader(bea, nick('Bea'), 'WOMAN', 2);
   });
 
   beforeEach(() => {
@@ -150,7 +152,7 @@ describe('Swipe (e2e)', () => {
     await request(server())
       .put('/v1/swipe/profile')
       .set(carla.auth)
-      .send({ nickname: 'Carla', gender: 'WOMAN', seeking: ['MAN'], interests: [] })
+      .send({ nickname: nick('Carla'), gender: 'WOMAN', seeking: ['MAN'], interests: [] })
       .expect(200);
     await request(server())
       .post('/v1/swipe/verification')
@@ -214,8 +216,58 @@ describe('Swipe (e2e)', () => {
       .set(ana.auth)
       .send({ photoId: beaPhoto.id, like: true })
       .expect(200);
-    expect(second.body.match).toMatchObject({ nickname: 'Bea' });
+    expect(second.body.match).toMatchObject({ nickname: nick('Bea') });
     const matchId = second.body.match.id as string;
+
+    // Ana's private album: reviewed like any photo, never a card, only her matches see it.
+    const albumUpload = await request(server())
+      .post('/v1/swipe/photos')
+      .set(ana.auth)
+      .field('consent', 'true')
+      .field('album', 'true')
+      .attach('file', await jpeg(40), 'photo.jpg')
+      .expect(201);
+    expect(albumUpload.body).toMatchObject({ status: 'PENDING', inAlbum: true });
+    const albumPhoto = albumUpload.body.id as string;
+    let album = await request(server())
+      .get(`/v1/swipe/matches/${matchId}/album`)
+      .set(bea.auth)
+      .expect(200);
+    expect(album.body.items).toEqual([]);
+    await request(server())
+      .post(`/v1/admin/swipe/photos/${albumPhoto}/approve`)
+      .set(admin.auth)
+      .expect(204);
+    album = await request(server())
+      .get(`/v1/swipe/matches/${matchId}/album`)
+      .set(bea.auth)
+      .expect(200);
+    expect(album.body.items).toEqual([expect.objectContaining({ id: albumPhoto })]);
+    await request(server()).get(`/v1/swipe/photos/${albumPhoto}/file`).set(bea.auth).expect(200);
+    await request(server()).get(`/v1/swipe/photos/${albumPhoto}/file`).set(carla.auth).expect(404);
+    await request(server())
+      .post('/v1/swipe/votes')
+      .set(bea.auth)
+      .send({ photoId: albumPhoto, like: true })
+      .expect(404);
+    await request(server())
+      .get(`/v1/swipe/matches/${matchId}/album`)
+      .set(carla.auth)
+      .expect((res) => expect([403, 404]).toContain(res.status));
+    // Out of the album and back, without a new review.
+    const moved = await request(server())
+      .patch(`/v1/swipe/photos/${albumPhoto}`)
+      .set(ana.auth)
+      .send({ album: false })
+      .expect(200);
+    expect(moved.body).toMatchObject({ status: 'LIVE', inAlbum: false });
+    await request(server())
+      .patch(`/v1/swipe/photos/${albumPhoto}`)
+      .set(ana.auth)
+      .send({ album: true })
+      .expect(200);
+    const withAlbum = await request(server()).get('/v1/swipe/matches').set(bea.auth).expect(200);
+    expect(withAlbum.body.items[0].partner).toMatchObject({ albumPhotos: 1, photoId: anaPhoto.id });
 
     // Voted: no longer in the deck.
     const after = await request(server()).get('/v1/swipe/deck').set(bea.auth).expect(200);
@@ -229,7 +281,7 @@ describe('Swipe (e2e)', () => {
     const list = await request(server()).get('/v1/swipe/matches').set(bea.auth).expect(200);
     expect(list.body.items[0]).toMatchObject({
       id: matchId,
-      partner: { nickname: 'Ana', photoId: anaPhoto.id, verified: true },
+      partner: { nickname: nick('Ana'), photoId: anaPhoto.id, verified: true },
       lastMessage: { text: 'Hola 👋', mine: false },
       unread: 1,
     });
@@ -366,8 +418,8 @@ describe('Swipe (e2e)', () => {
     const fran = await person('Fran');
     await onboard(eva, '1995-06-01').expect(200);
     await onboard(fran, '1990-01-01').expect(200);
-    await uploader(eva, 'Eva', 'WOMAN', 11);
-    await uploader(fran, 'Fran', 'MAN', 12);
+    await uploader(eva, nick('Eva'), 'WOMAN', 11);
+    await uploader(fran, nick('Fran'), 'MAN', 12);
     expect(sent.map((mail) => mail.subject)).toContain('You can upload your photos now — Swipe');
 
     // The profile keeps the sentence, the country and the filters; the year comes from entry.
@@ -375,7 +427,7 @@ describe('Swipe (e2e)', () => {
       .put('/v1/swipe/profile')
       .set(fran.auth)
       .send({
-        nickname: 'Fran',
+        nickname: nick('Fran'),
         gender: 'MAN',
         seeking: ['WOMAN'],
         interests: [],
@@ -399,7 +451,7 @@ describe('Swipe (e2e)', () => {
     await request(server())
       .put('/v1/swipe/profile')
       .set(fran.auth)
-      .send({ nickname: 'Fran', gender: 'MAN', seeking: [], interests: [], birthYear: 2015 })
+      .send({ nickname: nick('Fran'), gender: 'MAN', seeking: [], interests: [], birthYear: 2015 })
       .expect(403);
 
     sent.length = 0;
@@ -429,7 +481,7 @@ describe('Swipe (e2e)', () => {
     await request(server())
       .put('/v1/swipe/profile')
       .set(fran.auth)
-      .send({ nickname: 'Fran', gender: 'MAN', seeking: ['WOMAN'], interests: [] })
+      .send({ nickname: nick('Fran'), gender: 'MAN', seeking: ['WOMAN'], interests: [] })
       .expect(200);
     const deck = await request(server()).get('/v1/swipe/deck').set(fran.auth).expect(200);
     expect(deck.body.items[0]).toMatchObject({ id: evaPhoto.id, lovesYou: true, bio: null });

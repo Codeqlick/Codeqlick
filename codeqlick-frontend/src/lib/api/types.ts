@@ -8,7 +8,16 @@ export type Locale = 'en' | 'es';
 
 export type Role = 'ADMIN' | 'CLIENT';
 
-export type AuthUser = { id: string; email: string; name: string; role: Role };
+export type AuthUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  /** Unique username (shown as @name); only from `GET /auth/me` and account changes. */
+  username?: string | null;
+  /** Profile photo's file name (`/avatar/<file>`); same sources as `username`. */
+  avatar?: string | null;
+};
 
 export type AuthTokens = {
   accessToken: string;

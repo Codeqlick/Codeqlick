@@ -38,6 +38,8 @@ export type PublicCitasPage = {
   askPhone: boolean;
   timeZone: string;
   ownerName: string;
+  /** The owner's profile photo (file name), if any. */
+  ownerAvatar: string | null;
   enabled: boolean;
   slots: string[];
 };

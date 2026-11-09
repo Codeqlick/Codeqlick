@@ -15,6 +15,7 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import { iceServersFor, type IceServer } from '../../common/websocket/turn.js';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { UsernameService } from '../auth/username.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { WindowLimiter, type MatchPrefs } from './matchmaker.js';
@@ -258,6 +259,7 @@ export class VideochatService {
     private readonly config: AppConfigService,
     private readonly mail: MailService,
     private readonly activity: ActivityService,
+    private readonly usernames: UsernameService,
   ) {}
 
   async status(userId: string, now: Date = new Date()): Promise<VideochatStatus> {
@@ -322,7 +324,12 @@ export class VideochatService {
   async saveSettings(userId: string, input: VideochatSettings): Promise<VideochatSettings> {
     const profile = await this.repository.findProfile(userId);
     if (!profile) throw new ConflictException('Confirm your age and accept the rules first');
-    return settingsOf(await this.repository.saveSettings(userId, input));
+    // The name partners see is the account's username (owner's decision 2026-11-09).
+    const nickname =
+      input.nickname === null
+        ? null
+        : ((await this.usernames.claim(userId, input.nickname, 'nickname')).username ?? null);
+    return settingsOf(await this.repository.saveSettings(userId, { ...input, nickname }));
   }
 
   /** A suspended person asks the team to lift it; one appeal per suspension. */

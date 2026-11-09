@@ -18,8 +18,25 @@ export class AccountRepository {
     return this.prisma.user.count({ where: { email } }).then((count) => count > 0);
   }
 
-  updateProfile(id: string, data: { name?: string; locale?: Locale }): Promise<User> {
+  updateProfile(
+    id: string,
+    data: { name?: string; locale?: Locale; username?: string | null; avatarKey?: string | null },
+  ): Promise<User> {
     return this.prisma.user.update({ where: { id }, data });
+  }
+
+  /** Every profile photo still in use. */
+  async avatarKeys(): Promise<Set<string>> {
+    const rows = await this.prisma.user.findMany({
+      where: { avatarKey: { not: null } },
+      select: { avatarKey: true },
+    });
+    return new Set(rows.map((row) => row.avatarKey as string));
+  }
+
+  /** Who holds a username now, if anyone. */
+  usernameOwner(username: string): Promise<{ id: string } | null> {
+    return this.prisma.user.findUnique({ where: { username }, select: { id: true } });
   }
 
   /** Replaces the user's pending email change with this one. */
@@ -111,6 +128,8 @@ export class AccountRepository {
           id: true,
           email: true,
           name: true,
+          username: true,
+          avatarKey: true,
           role: true,
           locale: true,
           weeklyDigest: true,
