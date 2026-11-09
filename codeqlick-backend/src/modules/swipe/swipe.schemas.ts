@@ -24,6 +24,8 @@ export const SWIPE_MIN_AGE = 18;
 
 /** Photos a person can have that aren't rejected or removed (pending or live). */
 export const MAX_PHOTOS = 10;
+/** Photos in the private album (only matches see them), on top of `MAX_PHOTOS`. */
+export const MAX_ALBUM_PHOTOS = 5;
 /** Uploads (photos and verification photos) per account and day. */
 export const UPLOADS_PER_DAY = 10;
 /** Reports per account and day. */
@@ -153,8 +155,15 @@ export const profileSchema = z.object({
 export type SwipeProfileInput = z.infer<typeof profileSchema>;
 
 /** The multipart fields sent with a photo: the uploader confirms it is them and they agree. */
-export const uploadFieldsSchema = z.object({ consent: z.literal('true') });
+export const uploadFieldsSchema = z.object({
+  consent: z.literal('true'),
+  /** "true" puts the photo in the private album. */
+  album: z.enum(['true', 'false']).default('false'),
+});
 export type UploadFields = z.infer<typeof uploadFieldsSchema>;
+
+export const photoUpdateSchema = z.object({ album: z.boolean() });
+export type PhotoUpdateInput = z.infer<typeof photoUpdateSchema>;
 
 export const voteSchema = z.object({
   photoId: z.uuid(),

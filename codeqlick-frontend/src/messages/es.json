@@ -4186,7 +4186,7 @@
     },
     "photos": {
       "title": "Mis fotos",
-      "lead": "{count} de {max} fotos. Revisamos cada una antes de publicarla.",
+      "lead": "{count} de {max} fotos públicas. Revisamos cada una antes de publicarla.",
       "pick": "Elige una foto",
       "consent": "Solo aparezco yo, soy mayor de 18 años, la he hecho yo o he dejado que me la hagan, y quiero publicarla aquí.",
       "send": "Enviar para revisar",
@@ -4218,7 +4218,8 @@
       "notVerified": "Tu foto de verificación tiene que estar aprobada primero.",
       "tooMany": "Ya tienes el máximo de fotos.",
       "tooManyToday": "Has subido demasiadas fotos hoy. Vuelve mañana.",
-      "error": "No hemos podido enviarla. Inténtalo de nuevo."
+      "error": "No hemos podido enviarla. Inténtalo de nuevo.",
+      "albumFull": "Tu álbum privado ya tiene 5 fotos. Borra o saca una para subir otra."
     },
     "matches": {
       "title": "Matches",
@@ -4315,6 +4316,27 @@
       "loves": "«Me encanta»",
       "matches": "Matches",
       "previous": "{count} la semana anterior"
+    },
+    "album": {
+      "title": "Álbum privado",
+      "lead": "{count} de {max} fotos. Solo las ven las personas con las que haces match, nunca salen en las cartas. También las revisamos antes.",
+      "pick": "Elige una foto para el álbum",
+      "send": "Enviar al álbum",
+      "full": "Tu álbum privado ya tiene 5 fotos.",
+      "publicFull": "Ya tienes 10 fotos públicas.",
+      "empty": "Tu álbum está vacío.",
+      "toAlbum": "Pasar al álbum",
+      "toPublic": "Hacer pública",
+      "moving": "Moviendo…",
+      "moved": "Foto movida al álbum privado.",
+      "madePublic": "La foto ya sale en las cartas.",
+      "moveError": "No hemos podido moverla.",
+      "badge": "Álbum",
+      "of": "Álbum privado de {nickname}",
+      "count": "{count, plural, one {# foto} other {# fotos}}",
+      "matchHint": "Álbum privado: {count, plural, one {# foto} other {# fotos}}",
+      "alt": "Foto del álbum privado de {nickname}",
+      "open": "Ver el álbum"
     }
   },
   "AdminSwipe": {
@@ -4395,6 +4417,7 @@
       "response": "Respuesta (se envía por correo)",
       "remove": "Retirar la foto y bloquearla",
       "close": "Cerrar sin retirar"
-    }
+    },
+    "albumTag": "Álbum privado: solo lo ven sus matches"
   }
 }

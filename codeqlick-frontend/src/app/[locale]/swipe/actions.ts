@@ -8,6 +8,7 @@ import { isApiError } from '@/lib/api/errors';
 import {
   blockSwipeMatch,
   deleteSwipePhoto,
+  moveSwipePhoto,
   getSwipeDeck,
   listSwipeMessages,
   onboardSwipe,
@@ -180,6 +181,7 @@ async function upload(
   locale: AppLocale,
   formData: FormData,
   send: (file: File) => Promise<unknown>,
+  fullMessage: 'tooMany' | 'albumFull' = 'tooMany',
 ): Promise<UploadResult> {
   const t = await getTranslations({ locale, namespace: 'Swipe.upload' });
   const file = formData.get('file');
@@ -195,7 +197,7 @@ async function upload(
       return { ok: false, message: blocked ? t('blocked') : t('notImage') };
     }
     if (status === 403) return { ok: false, message: t('notVerified') };
-    if (status === 409) return { ok: false, message: t('tooMany') };
+    if (status === 409) return { ok: false, message: t(fullMessage) };
     if (status === 429) return { ok: false, message: t('tooManyToday') };
     return { ok: false, message: t('error') };
   }
@@ -217,6 +219,34 @@ export async function uploadPhotoAction(
   formData: FormData,
 ): Promise<UploadResult> {
   return upload(locale, formData, uploadSwipePhoto);
+}
+
+/** Sends a photo for review that goes to the private album (only matches see it). */
+export async function uploadAlbumPhotoAction(
+  locale: AppLocale,
+  formData: FormData,
+): Promise<UploadResult> {
+  return upload(locale, formData, (file) => uploadSwipePhoto(file, true), 'albumFull');
+}
+
+/** Moves one of my photos into (`album`) or out of the private album. */
+export async function movePhotoAction(
+  locale: AppLocale,
+  id: string,
+  album: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Swipe.album' });
+  if (!UUID.test(id)) return { status: 'error', message: t('moveError') };
+  try {
+    await moveSwipePhoto(id, album);
+  } catch (error) {
+    const full = isApiError(error) && error.status === 409;
+    return { status: 'error', message: full ? t(album ? 'full' : 'publicFull') : t('moveError') };
+  }
+  refresh(locale, 'photos');
+  return { status: 'success', message: t(album ? 'moved' : 'madePublic') };
 }
 
 export async function deletePhotoAction(

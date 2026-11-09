@@ -57,6 +57,11 @@ export default async function SwipeMatchesPage({ params }: PageProps) {
                       ? `${match.lastMessage.mine ? `${t('you')}: ` : ''}${match.lastMessage.text}`
                       : t('noMessages')}
                   </span>
+                  {match.partner.albumPhotos > 0 ? (
+                    <span className={styles.hint}>
+                      🔒 {tv('album.matchHint', { count: match.partner.albumPhotos })}
+                    </span>
+                  ) : null}
                 </span>
                 {match.unread > 0 ? (
                   <span className={styles.unread} aria-label={t('unread', { count: match.unread })}>

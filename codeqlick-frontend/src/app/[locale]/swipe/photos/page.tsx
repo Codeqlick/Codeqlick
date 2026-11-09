@@ -20,6 +20,8 @@ import {
   getSwipeStats,
   getSwipeStatus,
   listMySwipePhotos,
+  MAX_ALBUM_PHOTOS,
+  type MyPhoto,
   MAX_AGE_FILTER,
   MIN_AGE_FILTER,
   SWIPE_COUNTRIES,
@@ -31,6 +33,8 @@ import { INTERESTS, MAX_INTERESTS } from '@/lib/videochat-interests';
 import vc from '../../videochat/videochat.module.css';
 import {
   deletePhotoAction,
+  movePhotoAction,
+  uploadAlbumPhotoAction,
   profileAction,
   swipePushSubscribeAction,
   swipePushUnsubscribeAction,
@@ -59,7 +63,45 @@ export default async function SwipePhotosPage({ params }: PageProps) {
   const profile = status.profile;
   const genders = SWIPE_GENDERS.map((value) => ({ value, label: t(`genders.${value}`) }));
   const verification = status.verification;
-  const active = photos.filter((photo) => photo.status === 'PENDING' || photo.status === 'LIVE');
+  const isActive = (photo: MyPhoto) => photo.status === 'PENDING' || photo.status === 'LIVE';
+  const publicPhotos = photos.filter((photo) => !photo.inAlbum);
+  const albumPhotos = photos.filter((photo) => photo.inAlbum);
+  const active = publicPhotos.filter(isActive);
+  const activeAlbum = albumPhotos.filter(isActive);
+  const photoList = (list: MyPhoto[]) => (
+    <ul className={styles.photoGrid}>
+      {list.map((photo) => (
+        <li key={photo.id} className={styles.photoItem}>
+          {photo.status === 'REJECTED' ? (
+            <span className={styles.thumb} aria-hidden="true" />
+          ) : (
+            // oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route
+            <img src={`/${locale}/swipe/img/${photo.id}`} alt="" className={styles.thumb} />
+          )}
+          <span className={`${styles.status} ${styles[`status${photo.status}`] ?? ''}`}>
+            {t(`photos.status.${photo.status}`)}
+          </span>
+          {photo.rejectReason ? <span className={styles.hint}>{photo.rejectReason}</span> : null}
+          <span className={styles.hint}>
+            {photo.inAlbum ? null : <>{t('photos.likes', { count: photo.likes })} · </>}
+            <code>{photo.ref}</code> · {formatDate(photo.createdAt, locale)}
+          </span>
+          {photo.status === 'REJECTED' ? null : (
+            <ActionForm action={movePhotoAction.bind(null, locale, photo.id, !photo.inAlbum)}>
+              <SubmitButton variant="ghost" size="sm" pendingLabel={t('album.moving')}>
+                {photo.inAlbum ? t('album.toPublic') : t('album.toAlbum')}
+              </SubmitButton>
+            </ActionForm>
+          )}
+          <ActionForm action={deletePhotoAction.bind(null, locale, photo.id)}>
+            <SubmitButton variant="ghost" size="sm" pendingLabel={t('photos.deleting')}>
+              {t('photos.delete')}
+            </SubmitButton>
+          </ActionForm>
+        </li>
+      ))}
+    </ul>
+  );
   const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
   const countries = SWIPE_COUNTRIES.map((value) => ({
     value,
@@ -269,36 +311,38 @@ export default async function SwipePhotosPage({ params }: PageProps) {
         <div className={vc.warning} role="note">
           {t('photos.rules')}
         </div>
-        {photos.length === 0 ? (
+        {publicPhotos.length === 0 ? (
           <p className={vc.muted}>{t('photos.empty')}</p>
         ) : (
-          <ul className={styles.photoGrid}>
-            {photos.map((photo) => (
-              <li key={photo.id} className={styles.photoItem}>
-                {photo.status === 'REJECTED' ? (
-                  <span className={styles.thumb} aria-hidden="true" />
-                ) : (
-                  // oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route
-                  <img src={`/${locale}/swipe/img/${photo.id}`} alt="" className={styles.thumb} />
-                )}
-                <span className={`${styles.status} ${styles[`status${photo.status}`] ?? ''}`}>
-                  {t(`photos.status.${photo.status}`)}
-                </span>
-                {photo.rejectReason ? (
-                  <span className={styles.hint}>{photo.rejectReason}</span>
-                ) : null}
-                <span className={styles.hint}>
-                  {t('photos.likes', { count: photo.likes })} · <code>{photo.ref}</code> ·{' '}
-                  {formatDate(photo.createdAt, locale)}
-                </span>
-                <ActionForm action={deletePhotoAction.bind(null, locale, photo.id)}>
-                  <SubmitButton variant="ghost" size="sm" pendingLabel={t('photos.deleting')}>
-                    {t('photos.delete')}
-                  </SubmitButton>
-                </ActionForm>
-              </li>
-            ))}
-          </ul>
+          photoList(publicPhotos)
+        )}
+      </section>
+
+      <section className={vc.panel} aria-labelledby="swipe-album">
+        <h2 id="swipe-album" className={vc.sectionTitle}>
+          🔒 {t('album.title')}
+        </h2>
+        <p className={vc.muted}>
+          {t('album.lead', { count: activeAlbum.length, max: MAX_ALBUM_PHOTOS })}
+        </p>
+        {status.canUpload ? (
+          activeAlbum.length < MAX_ALBUM_PHOTOS ? (
+            <PhotoUpload
+              action={uploadAlbumPhotoAction.bind(null, locale)}
+              label={t('album.pick')}
+              consentLabel={t('photos.consent')}
+              submitLabel={t('album.send')}
+            />
+          ) : (
+            <p className={styles.hint}>{t('album.full')}</p>
+          )
+        ) : (
+          <p className={styles.hint}>{t('photos.verifyFirst')}</p>
+        )}
+        {albumPhotos.length === 0 ? (
+          <p className={vc.muted}>{t('album.empty')}</p>
+        ) : (
+          photoList(albumPhotos)
         )}
       </section>
     </div>

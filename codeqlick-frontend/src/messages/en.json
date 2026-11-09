@@ -4186,7 +4186,7 @@
     },
     "photos": {
       "title": "My photos",
-      "lead": "{count} of {max} photos. We review each one before it goes live.",
+      "lead": "{count} of {max} public photos. We review each one before it goes live.",
       "pick": "Choose a photo",
       "consent": "Only I appear in it, I am 18 or over, I took it or let it be taken, and I want to publish it here.",
       "send": "Send for review",
@@ -4218,7 +4218,8 @@
       "notVerified": "Your verification photo must be approved first.",
       "tooMany": "You have the most photos allowed already.",
       "tooManyToday": "You uploaded too many photos today. Come back tomorrow.",
-      "error": "We couldn't send it. Try again."
+      "error": "We couldn't send it. Try again.",
+      "albumFull": "Your private album already has 5 photos. Delete or move one out to upload another."
     },
     "matches": {
       "title": "Matches",
@@ -4315,6 +4316,27 @@
       "loves": "Loves",
       "matches": "Matches",
       "previous": "{count} the week before"
+    },
+    "album": {
+      "title": "Private album",
+      "lead": "{count} of {max} photos. Only the people you match with see them; they never show up as cards. We review them first too.",
+      "pick": "Choose a photo for the album",
+      "send": "Send to the album",
+      "full": "Your private album already has 5 photos.",
+      "publicFull": "You already have 10 public photos.",
+      "empty": "Your album is empty.",
+      "toAlbum": "Move to the album",
+      "toPublic": "Make public",
+      "moving": "Moving…",
+      "moved": "Photo moved to the private album.",
+      "madePublic": "The photo now shows up as a card.",
+      "moveError": "We couldn't move it.",
+      "badge": "Album",
+      "of": "{nickname}'s private album",
+      "count": "{count, plural, one {# photo} other {# photos}}",
+      "matchHint": "Private album: {count, plural, one {# photo} other {# photos}}",
+      "alt": "Photo from {nickname}'s private album",
+      "open": "See the album"
     }
   },
   "AdminSwipe": {
@@ -4395,6 +4417,7 @@
       "response": "Answer (sent by email)",
       "remove": "Remove the photo and block it",
       "close": "Close without removing"
-    }
+    },
+    "albumTag": "Private album: only their matches see it"
   }
 }

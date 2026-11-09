@@ -128,8 +128,16 @@ export type MyPhoto = {
   likes: number;
   width: number;
   height: number;
+  /** In the private album: only matches see it. */
+  inAlbum: boolean;
   createdAt: string;
 };
+
+/** Photos a person can keep in their private album, on top of the 10 public ones. */
+export const MAX_ALBUM_PHOTOS = 5;
+
+/** A photo of a match's private album. */
+export type SwipeAlbumPhoto = { id: string; ref: string; width: number; height: number };
 
 export type SwipeCard = {
   id: string;
@@ -158,6 +166,8 @@ export type SwipeMatch = {
     bio: string | null;
     verified: boolean;
     photoId: string | null;
+    /** Live photos in their private album. */
+    albumPhotos: number;
   };
   lastMessage: { text: string; mine: boolean; at: string } | null;
   unread: number;
@@ -197,6 +207,7 @@ export type AdminPhoto = {
   likes: number;
   width: number;
   height: number;
+  inAlbum: boolean;
   createdAt: string;
   reviewedAt: string | null;
   reviewedBy: { id: string; name: string } | null;
@@ -269,10 +280,11 @@ export function saveSwipeProfile(input: SwipeProfileInput) {
   return apiFetch<SwipeStatus>('/swipe/profile', { method: 'PUT', body: input, auth: 'required' });
 }
 
-function imageForm(file: File): FormData {
+function imageForm(file: File, album = false): FormData {
   const form = new FormData();
   form.set('file', file, 'photo.jpg');
   form.set('consent', 'true');
+  if (album) form.set('album', 'true');
   return form;
 }
 
@@ -285,10 +297,10 @@ export function uploadSwipeVerification(file: File) {
   });
 }
 
-export function uploadSwipePhoto(file: File) {
+export function uploadSwipePhoto(file: File, album = false) {
   return apiFetch<MyPhoto>('/swipe/photos', {
     method: 'POST',
-    body: imageForm(file),
+    body: imageForm(file, album),
     auth: 'required',
     signal: AbortSignal.timeout(30_000),
   });
@@ -296,6 +308,25 @@ export function uploadSwipePhoto(file: File) {
 
 export async function listMySwipePhotos(): Promise<MyPhoto[]> {
   return (await apiFetch<{ items: MyPhoto[] }>('/swipe/photos', { auth: 'required' })).items;
+}
+
+/** Moves one of my photos into or out of the private album. */
+export function moveSwipePhoto(id: string, album: boolean) {
+  return apiFetch<MyPhoto>(`/swipe/photos/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: { album },
+    auth: 'required',
+  });
+}
+
+/** The private album of the person I matched with. */
+export async function listSwipeAlbum(matchId: string): Promise<SwipeAlbumPhoto[]> {
+  return (
+    await apiFetch<{ items: SwipeAlbumPhoto[] }>(
+      `/swipe/matches/${encodeURIComponent(matchId)}/album`,
+      { auth: 'required' },
+    )
+  ).items;
 }
 
 export function deleteSwipePhoto(id: string) {

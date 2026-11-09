@@ -1594,6 +1594,8 @@ model SwipePhoto {
   likes        Int              @default(0)
   /// The stored file carries the burnt-in watermark (nickname · ref · swipe.codeqlick.com).
   watermarked  Boolean          @default(false)
+  /// In the owner's private album: never in the deck, only their matches see it.
+  inAlbum      Boolean          @default(false) @map("in_album")
   reviewedById String?          @map("reviewed_by_id") @db.Uuid
   reviewedAt   DateTime?        @map("reviewed_at") @db.Timestamptz(3)
   createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)

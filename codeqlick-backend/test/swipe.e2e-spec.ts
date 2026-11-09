@@ -217,6 +217,56 @@ describe('Swipe (e2e)', () => {
     expect(second.body.match).toMatchObject({ nickname: 'Bea' });
     const matchId = second.body.match.id as string;
 
+    // Ana's private album: reviewed like any photo, never a card, only her matches see it.
+    const albumUpload = await request(server())
+      .post('/v1/swipe/photos')
+      .set(ana.auth)
+      .field('consent', 'true')
+      .field('album', 'true')
+      .attach('file', await jpeg(40), 'photo.jpg')
+      .expect(201);
+    expect(albumUpload.body).toMatchObject({ status: 'PENDING', inAlbum: true });
+    const albumPhoto = albumUpload.body.id as string;
+    let album = await request(server())
+      .get(`/v1/swipe/matches/${matchId}/album`)
+      .set(bea.auth)
+      .expect(200);
+    expect(album.body.items).toEqual([]);
+    await request(server())
+      .post(`/v1/admin/swipe/photos/${albumPhoto}/approve`)
+      .set(admin.auth)
+      .expect(204);
+    album = await request(server())
+      .get(`/v1/swipe/matches/${matchId}/album`)
+      .set(bea.auth)
+      .expect(200);
+    expect(album.body.items).toEqual([expect.objectContaining({ id: albumPhoto })]);
+    await request(server()).get(`/v1/swipe/photos/${albumPhoto}/file`).set(bea.auth).expect(200);
+    await request(server()).get(`/v1/swipe/photos/${albumPhoto}/file`).set(carla.auth).expect(404);
+    await request(server())
+      .post('/v1/swipe/votes')
+      .set(bea.auth)
+      .send({ photoId: albumPhoto, like: true })
+      .expect(404);
+    await request(server())
+      .get(`/v1/swipe/matches/${matchId}/album`)
+      .set(carla.auth)
+      .expect((res) => expect([403, 404]).toContain(res.status));
+    // Out of the album and back, without a new review.
+    const moved = await request(server())
+      .patch(`/v1/swipe/photos/${albumPhoto}`)
+      .set(ana.auth)
+      .send({ album: false })
+      .expect(200);
+    expect(moved.body).toMatchObject({ status: 'LIVE', inAlbum: false });
+    await request(server())
+      .patch(`/v1/swipe/photos/${albumPhoto}`)
+      .set(ana.auth)
+      .send({ album: true })
+      .expect(200);
+    const withAlbum = await request(server()).get('/v1/swipe/matches').set(bea.auth).expect(200);
+    expect(withAlbum.body.items[0].partner).toMatchObject({ albumPhotos: 1, photoId: anaPhoto.id });
+
     // Voted: no longer in the deck.
     const after = await request(server()).get('/v1/swipe/deck').set(bea.auth).expect(200);
     expect(after.body.items.map((card: { id: string }) => card.id)).not.toContain(anaPhoto.id);

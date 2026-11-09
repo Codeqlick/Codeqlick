@@ -39,6 +39,7 @@ import {
   DECK_SIZE,
   HIDE_AT_ONCE,
   INTERESTS,
+  MAX_ALBUM_PHOTOS,
   MAX_PHOTOS,
   normalizeRef,
   REPORTS_PER_DAY,
@@ -162,7 +163,17 @@ export interface MyPhotoView {
   likes: number;
   width: number;
   height: number;
+  /** In the private album: only matches see it. */
+  inAlbum: boolean;
   createdAt: string;
+}
+
+/** A photo of a match's private album. */
+export interface AlbumPhotoView {
+  id: string;
+  ref: string;
+  width: number;
+  height: number;
 }
 
 export interface CardView {
@@ -204,6 +215,8 @@ export interface MatchView {
     bio: string | null;
     verified: boolean;
     photoId: string | null;
+    /** Live photos in their private album. */
+    albumPhotos: number;
   };
   lastMessage: { text: string; mine: boolean; at: string } | null;
   unread: number;
@@ -550,18 +563,29 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return this.statusOf(updated, now);
   }
 
+  /** Refuses when the public photos or the album are full. */
+  private async checkRoom(userId: string, inAlbum: boolean): Promise<void> {
+    const limit = inAlbum ? MAX_ALBUM_PHOTOS : MAX_PHOTOS;
+    if ((await this.repository.countActivePhotos(userId, inAlbum)) >= limit) {
+      throw new ConflictException(
+        inAlbum
+          ? `Your private album holds up to ${limit} photos: delete or move one first`
+          : `You can have up to ${limit} photos: delete one first`,
+      );
+    }
+  }
+
   async uploadPhoto(
     userId: string,
     data: Buffer | undefined,
     now = new Date(),
+    inAlbum = false,
   ): Promise<MyPhotoView> {
     const profile = await this.allowedProfile(userId, now);
     if (profile.verificationStatus !== 'APPROVED' || !profile.nickname) {
       throw new ForbiddenException('Your verification photo must be approved first');
     }
-    if ((await this.repository.countActivePhotos(userId)) >= MAX_PHOTOS) {
-      throw new ConflictException(`You can have up to ${MAX_PHOTOS} photos: delete one first`);
-    }
+    await this.checkRoom(userId, inAlbum);
     const image = await this.prepareUpload(userId, data, now);
     const ref = newRef();
     // The hash is the clean image's; the stored file carries the watermark.
@@ -577,6 +601,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
         height: image.height,
         hash: image.hash,
         watermarked: true,
+        inAlbum,
         createdAt: now,
       });
       return this.myPhotoView(photo);
@@ -595,8 +620,45 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       likes: photo.likes,
       width: photo.width,
       height: photo.height,
+      inAlbum: photo.inAlbum,
       createdAt: photo.createdAt.toISOString(),
     };
+  }
+
+  /** Moves one of my photos into or out of the private album (no new review needed). */
+  async movePhoto(
+    userId: string,
+    photoId: string,
+    inAlbum: boolean,
+    now = new Date(),
+  ): Promise<MyPhotoView> {
+    await this.allowedProfile(userId, now);
+    const photo = await this.repository.findPhoto(photoId);
+    if (!photo || photo.ownerId !== userId) throw new NotFoundException('Photo not found');
+    if (photo.inAlbum === inAlbum) return this.myPhotoView(photo);
+    if (photo.status === 'PENDING' || photo.status === 'LIVE') {
+      await this.checkRoom(userId, inAlbum);
+    }
+    return this.myPhotoView(await this.repository.updatePhoto(photo.id, { inAlbum }));
+  }
+
+  /** The private album of the person I matched with: their live album photos. */
+  async album(userId: string, matchId: string, now = new Date()): Promise<AlbumPhotoView[]> {
+    await this.allowedProfile(userId, now);
+    const { partnerId } = await this.myMatch(userId, matchId);
+    const partner = await this.repository.findProfile(partnerId);
+    if (
+      isSuspended(partner, now) ||
+      (await this.repository.isBlockedEitherWay(userId, partnerId))
+    ) {
+      return [];
+    }
+    return (await this.repository.albumOf(partnerId)).map((photo) => ({
+      id: photo.id,
+      ref: photo.ref,
+      width: photo.width,
+      height: photo.height,
+    }));
   }
 
   async myPhotos(userId: string): Promise<MyPhotoView[]> {
@@ -625,7 +687,9 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
         profile.termsVersion === SWIPE_TERMS_VERSION &&
         !isSuspended(profile, now) &&
         !isSuspended(photo.owner.swipeProfile, now) &&
-        !(await this.repository.isBlockedEitherWay(viewer.id, photo.ownerId));
+        !(await this.repository.isBlockedEitherWay(viewer.id, photo.ownerId)) &&
+        // Album photos: only for the people the owner matched with.
+        (!photo.inAlbum || (await this.repository.hasMatch(viewer.id, photo.ownerId)));
       if (!visible) throw new NotFoundException('Photo not found');
     }
     return this.openFile(photo.storageKey);
@@ -705,7 +769,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
   ): Promise<{ match: { id: string; nickname: string } | null }> {
     await this.allowedProfile(userId, now);
     const photo = await this.repository.findPhoto(photoId);
-    if (!photo || photo.status !== 'LIVE' || photo.ownerId === userId) {
+    if (!photo || photo.status !== 'LIVE' || photo.inAlbum || photo.ownerId === userId) {
       throw new NotFoundException('Photo not found');
     }
     if (await this.repository.isBlockedEitherWay(userId, photo.ownerId)) {
@@ -764,7 +828,11 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
   async matches(userId: string): Promise<MatchView[]> {
     const matches = await this.repository.matchesOf(userId);
     const partners = matches.map((match) => (match.userAId === userId ? match.userB : match.userA));
-    const photos = await this.repository.firstLivePhotos(partners.map((partner) => partner.id));
+    const partnerIds = partners.map((partner) => partner.id);
+    const [photos, albums] = await Promise.all([
+      this.repository.firstLivePhotos(partnerIds),
+      this.repository.albumCounts(partnerIds),
+    ]);
     return Promise.all(
       matches.map(async (match, index): Promise<MatchView> => {
         const partner = partners[index]!;
@@ -779,6 +847,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
             bio: partner.swipeProfile?.bio ?? null,
             verified: partner.swipeProfile?.verificationStatus === 'APPROVED',
             photoId: photos.get(partner.id) ?? null,
+            albumPhotos: albums.get(partner.id) ?? 0,
           },
           lastMessage: last
             ? { text: last.text, mine: last.senderId === userId, at: last.createdAt.toISOString() }
@@ -1014,6 +1083,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       likes: photo.likes,
       width: photo.width,
       height: photo.height,
+      inAlbum: photo.inAlbum,
       createdAt: photo.createdAt.toISOString(),
       reviewedAt: photo.reviewedAt?.toISOString() ?? null,
       reviewedBy: photo.reviewedBy,
