@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SwipeChat } from '@/components/swipe/SwipeChat';
 import { resolveLocale } from '@/i18n/locale';
@@ -6,6 +7,9 @@ import { getSwipeStatus, listSwipeMatches, listSwipeMessages } from '@/lib/api/s
 import { requireUser } from '@/lib/auth/session';
 import { messagesAction, reportAction, sendMessageAction, unmatchAction } from '../../actions';
 import { SwipeGate } from '../../Gate';
+
+/** Behind the account: kept out of search results. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 type PageProps = { params: Promise<{ locale: string; id: string }> };
 

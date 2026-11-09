@@ -3985,7 +3985,10 @@
   "Swipe": {
     "metaTitle": "Swipe +18",
     "metaDescription": "Fotos íntimas de adultos que las comparten por voluntad propia. Desliza, da like y haz match. Solo para mayores de 18.",
-    "brand": "Swipe",
+    "metaSuffix": "Codeqlick Swipe",
+    "ogEyebrow": "Swipe · solo +18",
+    "ogTitle": "Desliza fotos de adultos, da like y haz match",
+    "brand": "swipe",
     "homeLabel": "Swipe, inicio",
     "adultBadge": "+18",
     "signOut": "Salir",
