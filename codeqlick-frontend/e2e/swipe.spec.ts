@@ -21,13 +21,16 @@ const open: BrowserContext[] = [];
 
 /** Picks a generated image in a Swipe upload, confirms consent, sends it and waits for `sent`. */
 async function upload(page: Page, pick: string, consent: RegExp, seed: number, sent: string) {
-  await page.getByLabel(pick).setInputFiles({
+  const input = page.getByLabel(pick, { exact: true });
+  // The upload's own box: the photos page has two (public photos and the private album).
+  const box = input.locator('..');
+  await input.setInputFiles({
     name: `photo-${seed}.png`,
     mimeType: 'image/png',
     buffer: testPng(seed),
   });
-  await page.getByLabel(consent).check();
-  await page.getByRole('button', { name: 'Enviar para revisar' }).click();
+  await box.getByLabel(consent).check();
+  await box.getByRole('button', { name: 'Enviar para revisar' }).click();
   // The page reloads with the new state once the upload is through.
   await expect(page.getByText(sent).first()).toBeVisible({ timeout: 20_000 });
 }
