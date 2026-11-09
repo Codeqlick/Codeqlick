@@ -3,12 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
   Post,
   Put,
   Query,
+  StreamableFile,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -20,6 +22,11 @@ import {
   VideochatSuspiciousService,
   type SuspiciousAccount,
 } from './videochat-suspicious.service.js';
+import { privateImage } from '../swipe/swipe.controller.js';
+import {
+  VideochatVerificationService,
+  type PendingVerification,
+} from './videochat-verification.service.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import {
   appealDecisionSchema,
@@ -30,6 +37,7 @@ import {
   suspendSchema,
   suspendUserSchema,
   userIdParamSchema,
+  verificationDecisionSchema,
   type AppealDecisionInput,
   type AppealsQuery,
   type BulkReportsInput,
@@ -38,6 +46,7 @@ import {
   type SuspendInput,
   type SuspendUserInput,
   type UserIdParam,
+  type VerificationDecision,
 } from './videochat.schemas.js';
 import {
   VideochatService,
@@ -58,9 +67,44 @@ export class VideochatAdminController {
     private readonly gateway: VideochatGateway,
     private readonly statistics: VideochatStatsService,
     private readonly suspicious: VideochatSuspiciousService,
+    private readonly verification: VideochatVerificationService,
   ) {}
 
   /** Accounts that look like bots or fake profiles, highest score first (architecture 4.7). */
+  /** Verification photos waiting for review, oldest first. */
+  @Get('verifications')
+  async verifications(): Promise<{ items: PendingVerification[] }> {
+    return { items: await this.verification.pending() };
+  }
+
+  @Get('verifications/:userId/file')
+  @Header('Cache-Control', 'private, no-store')
+  async verificationFile(
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+  ): Promise<StreamableFile> {
+    return privateImage(await this.verification.file(params.userId));
+  }
+
+  @Post('verifications/:userId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  decideVerification(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+    @Body({ schema: verificationDecisionSchema }) body: VerificationDecision,
+  ): Promise<void> {
+    return this.verification.decide(user, params.userId, body);
+  }
+
+  /** Takes the verified badge away; the person may send a new photo. */
+  @Delete('users/:userId/verification')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  revokeVerification(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: userIdParamSchema }) params: UserIdParam,
+  ): Promise<void> {
+    return this.verification.revoke(user, params.userId);
+  }
+
   @Get('suspicious')
   suspiciousAccounts(): Promise<SuspiciousAccount[]> {
     return this.suspicious.list();

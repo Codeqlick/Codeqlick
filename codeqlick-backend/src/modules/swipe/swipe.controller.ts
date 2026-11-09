@@ -50,6 +50,7 @@ import {
   SwipeService,
   type CardView,
   type MatchView,
+  type SwipeStats,
   type MessageView,
   type MyPhotoView,
   type PhotoFile,
@@ -211,6 +212,12 @@ export class SwipeController {
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   undo(@CurrentUser() user: AuthUser): Promise<{ card: CardView }> {
     return this.swipe.undoVote(user.id);
+  }
+
+  /** My figures: views, likes, loves and matches this week and the week before. */
+  @Get('stats')
+  stats(@CurrentUser() user: AuthUser): Promise<SwipeStats> {
+    return this.swipe.stats(user.id);
   }
 
   @Get('matches')

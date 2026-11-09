@@ -46,7 +46,8 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       // Google Search Console's ownership check for swipe.codeqlick.com.
       'google-site-verification': '_A3wQZIogBMzJQNEVq_--g1xi9eYTwtYVMRBFwH5kZU',
     },
-    icons: { icon: '/swipe-192.png', apple: '/swipe-192.png' },
+    // No `icons`: the site's Codeqlick favicons, like the video chat (Google shows them in
+    // results). The installed app keeps its own icon through the manifest.
     appleWebApp: { capable: true, title: 'Swipe', statusBarStyle: 'default' },
   };
 }

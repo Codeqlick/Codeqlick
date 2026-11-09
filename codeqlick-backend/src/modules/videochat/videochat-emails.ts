@@ -83,3 +83,67 @@ export function appealResolvedEmail(
     ),
   };
 }
+
+const VERIFICATION_COPY = {
+  es: {
+    greeting: (name: string) => `Hola ${name}:`,
+    approved: {
+      subject: 'Ya estás verificado en el videochat',
+      title: 'Perfil verificado',
+      intro:
+        'Hemos revisado tu foto y todo está bien: desde ahora, quien hable contigo verá la insignia de verificado junto a tu apodo. Hemos borrado la foto.',
+    },
+    rejected: {
+      subject: 'No hemos podido verificar tu perfil',
+      title: 'Foto no válida',
+      intro:
+        'Hemos revisado tu foto y no podemos aceptarla. Hemos borrado la foto. Puedes enviar otra cuando quieras: tú sosteniendo un papel con tu apodo y la fecha de hoy, con la cara a la vista.',
+    },
+    note: 'Nota del equipo',
+    button: 'Ir al videochat',
+  },
+  en: {
+    greeting: (name: string) => `Hi ${name},`,
+    approved: {
+      subject: 'You are verified on the video chat',
+      title: 'Profile verified',
+      intro:
+        'We reviewed your photo and all is well: from now on, whoever talks to you sees the verified badge next to your nickname. We deleted the photo.',
+    },
+    rejected: {
+      subject: "We couldn't verify your profile",
+      title: 'Photo not valid',
+      intro:
+        "We reviewed your photo and can't accept it. We deleted the photo. You can send another one whenever you like: you holding a paper with your nickname and today's date, with your face visible.",
+    },
+    note: "The team's note",
+    button: 'Go to the video chat',
+  },
+} as const;
+
+/** Tells the person the outcome of their photo verification. */
+export function verificationDecidedEmail(
+  person: { to: string; name: string; locale: 'es' | 'en' },
+  decision: { approved: boolean; note: string | null },
+  videochatUrl: string,
+  siteUrl: string,
+): MailMessage {
+  const copy = VERIFICATION_COPY[person.locale];
+  const outcome = decision.approved ? copy.approved : copy.rejected;
+  return {
+    to: person.to,
+    subject: `${outcome.subject} — Codeqlick`,
+    ...renderEmail(
+      {
+        locale: person.locale,
+        preheader: outcome.intro,
+        title: outcome.title,
+        greeting: copy.greeting(person.name),
+        intro: [outcome.intro],
+        quote: decision.note ? { title: copy.note, body: decision.note } : undefined,
+        button: { label: copy.button, url: `${videochatUrl}/${person.locale}/settings` },
+      },
+      siteUrl,
+    ),
+  };
+}

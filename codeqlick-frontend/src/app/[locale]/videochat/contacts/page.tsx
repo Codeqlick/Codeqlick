@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getVideochatStatus, listVideochatContacts } from '@/lib/api/videochat';
@@ -24,6 +25,7 @@ export default async function VideochatContactsPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Videochat.contacts' });
   const tg = await getTranslations({ locale, namespace: 'Videochat.genders' });
   const ti = await getTranslations({ locale, namespace: 'Videochat.interests' });
+  const tv = await getTranslations({ locale, namespace: 'Videochat' });
   const status = await getVideochatStatus();
   if (!status.profile) redirect(await appPath(`/${locale}/videochat/room`, locale));
   const { items } = await listVideochatContacts();
@@ -50,6 +52,7 @@ export default async function VideochatContactsPage({ params }: PageProps) {
                       aria-hidden="true"
                     />
                     {contact.nickname ?? t('anonymous')}
+                    {contact.verified ? <VerifiedBadge label={tv('verified')} /> : null}
                     {contact.gender ? ` · ${tg(contact.gender)}` : ''}
                     {contact.country
                       ? ` · ${countryFlag(contact.country)} ${countryName(contact.country, locale)}`

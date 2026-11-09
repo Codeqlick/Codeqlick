@@ -8,18 +8,28 @@ import {
   FormInput,
   FormSelect,
 } from '@/components/app/ActionForm';
+import { WeekStats } from '@/components/app/WeekStats';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { PhotoUpload } from '@/components/swipe/PhotoUpload';
+import swipeStyles from '@/components/swipe/Swipe.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { AdZone } from '@/components/videochat/AdZone';
 import { InstallApp } from '@/components/videochat/InstallApp';
 import { PushToggle } from '@/components/videochat/PushToggle';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { GENDERS, getVideochatStatus, INTERESTS, MAX_INTERESTS } from '@/lib/api/videochat';
+import {
+  GENDERS,
+  getVideochatStatus,
+  getVideochatWeekStats,
+  INTERESTS,
+  MAX_INTERESTS,
+} from '@/lib/api/videochat';
 import { ADULT_INTERESTS } from '@/lib/videochat-interests';
 import { requireUser } from '@/lib/auth/session';
 import { countryOptions, languageOptions } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
-import { settingsAction } from './actions';
+import { settingsAction, uploadVerificationAction } from './actions';
 import { appPath } from '@/lib/webapp-request';
 
 /** Behind the account: nothing here for search engines. */
@@ -39,10 +49,28 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
   if (!status.profile) redirect(await appPath(`/${locale}/videochat/room`, locale));
   const profile = status.profile;
   const genders = GENDERS.map((value) => ({ value, label: tg(value) }));
+  const tv = await getTranslations({ locale, namespace: 'Videochat' });
+  const verification = status.verification;
+  const stats = await getVideochatWeekStats().catch(() => null);
 
   return (
     <section className={styles.panel}>
       <h1 className={styles.pageTitle}>{t('title')}</h1>
+      {stats ? (
+        <div className={styles.subsection}>
+          <WeekStats
+            title={tv('stats.title')}
+            lead={tv('stats.lead')}
+            locale={locale}
+            previousLabel={(count) => tv('stats.previous', { count })}
+            items={(['chats', 'likes', 'contacts'] as const).map((key) => ({
+              label: tv(`stats.${key}`),
+              value: stats.week[key],
+              previous: stats.previousWeek[key],
+            }))}
+          />
+        </div>
+      ) : null}
       <p className={styles.muted}>{t('lead')}</p>
       <ActionForm action={settingsAction} className={styles.form}>
         <input type="hidden" name="locale" value={locale} />
@@ -117,6 +145,41 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
           {t('save')}
         </SubmitButton>
       </ActionForm>
+      <section className={styles.subsection} aria-labelledby="videochat-verification">
+        <h2 id="videochat-verification" className={styles.sectionTitle}>
+          {tv('verification.title')}
+          {verification.status === 'APPROVED' ? <VerifiedBadge label={tv('verified')} /> : null}
+        </h2>
+        <p>{tv(`verification.status.${verification.status}`)}</p>
+        {verification.note && verification.status === 'REJECTED' ? (
+          <p className={styles.muted}>{verification.note}</p>
+        ) : null}
+        {verification.status === 'PENDING' ? (
+          // oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route
+          <img
+            src={`/${locale}/videochat/verification-photo`}
+            alt={tv('verification.alt')}
+            className={swipeStyles.preview}
+          />
+        ) : null}
+        {verification.status === 'NONE' || verification.status === 'REJECTED' ? (
+          profile.nickname ? (
+            <>
+              <p className={styles.muted}>
+                {tv('verification.lead', { nickname: profile.nickname })}
+              </p>
+              <PhotoUpload
+                action={uploadVerificationAction.bind(null, locale)}
+                label={tv('verification.pick')}
+                consentLabel={tv('verification.consent')}
+                submitLabel={tv('verification.send')}
+              />
+            </>
+          ) : (
+            <p className={styles.muted}>{tv('verification.nicknameFirst')}</p>
+          )
+        ) : null}
+      </section>
       {status.pushPublicKey ? (
         <section className={styles.subsection} aria-labelledby="videochat-push">
           <h2 id="videochat-push" className={styles.sectionTitle}>

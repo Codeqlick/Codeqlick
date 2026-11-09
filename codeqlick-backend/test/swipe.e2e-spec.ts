@@ -192,6 +192,10 @@ describe('Swipe (e2e)', () => {
     expect(deck.body.items.map((card: { id: string }) => card.id)).toContain(anaPhoto.id);
     expect(deck.body.items.map((card: { id: string }) => card.id)).not.toContain(beaPhoto.id);
     expect(deck.body.items[0]).not.toHaveProperty('ownerId');
+    // Only verified people can upload, so every card carries the badge.
+    expect(deck.body.items.find((card: { id: string }) => card.id === anaPhoto.id)).toMatchObject({
+      verified: true,
+    });
 
     // Carla only wants men: no cards from Ana or Bea.
     const carlaDeck = await request(server()).get('/v1/swipe/deck').set(carla.auth).expect(200);
@@ -225,7 +229,7 @@ describe('Swipe (e2e)', () => {
     const list = await request(server()).get('/v1/swipe/matches').set(bea.auth).expect(200);
     expect(list.body.items[0]).toMatchObject({
       id: matchId,
-      partner: { nickname: 'Ana', photoId: anaPhoto.id },
+      partner: { nickname: 'Ana', photoId: anaPhoto.id, verified: true },
       lastMessage: { text: 'Hola 👋', mine: false },
       unread: 1,
     });
@@ -238,6 +242,13 @@ describe('Swipe (e2e)', () => {
     ]);
     const read = await request(server()).get('/v1/swipe/matches').set(bea.auth).expect(200);
     expect(read.body.items[0].unread).toBe(0);
+
+    // Ana's week: Bea saw and liked her photo, and they matched.
+    const stats = await request(server()).get('/v1/swipe/stats').set(ana.auth).expect(200);
+    expect(stats.body).toEqual({
+      week: { views: 1, likes: 1, loves: 0, matches: 1 },
+      previousWeek: { views: 0, likes: 0, loves: 0, matches: 0 },
+    });
 
     // Someone outside the match can't read it.
     await request(server())

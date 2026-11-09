@@ -3,19 +3,27 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
   Post,
   Put,
+  StreamableFile,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
+import { privateImage } from '../swipe/swipe.controller.js';
+import { MAX_UPLOAD_BYTES } from '../swipe/swipe.schemas.js';
+import { VideochatVerificationService } from './videochat-verification.service.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import { VideochatPushService } from './videochat-push.service.js';
 import {
@@ -35,6 +43,7 @@ import {
 import {
   VideochatService,
   type VideochatContact,
+  type VideochatStats,
   type VideochatStatus,
   type VideochatTicket,
 } from './videochat.service.js';
@@ -49,7 +58,37 @@ export class VideochatController {
     private readonly videochat: VideochatService,
     private readonly push: VideochatPushService,
     private readonly gateway: VideochatGateway,
+    private readonly verification: VideochatVerificationService,
   ) {}
+
+  /** My figures: calls, likes received and new contacts this week and the week before. */
+  @Get('stats')
+  stats(@CurrentUser() user: AuthUser): Promise<VideochatStats> {
+    return this.videochat.stats(user.id);
+  }
+
+  /** The verification photo (holding a paper with the nickname and the date), for review. */
+  @Post('verification')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } },
+  })
+  // No storage option: the file stays in memory until it has been checked and re-encoded.
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } }))
+  uploadVerification(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+  ): Promise<VideochatStatus> {
+    return this.verification.upload(user.id, file?.buffer);
+  }
+
+  /** My photo while it waits for review. */
+  @Get('verification/file')
+  @Header('Cache-Control', 'private, no-store')
+  async verificationFile(@CurrentUser() user: AuthUser): Promise<StreamableFile> {
+    return privateImage(await this.verification.file(user.id));
+  }
 
   /** Mutual contacts and whether each is in the video chat now. */
   @Get('contacts')
