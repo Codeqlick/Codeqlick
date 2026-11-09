@@ -17,6 +17,7 @@ import {
   appointmentCancelledEmail,
   appointmentConfirmedEmail,
   appointmentOwnerEmail,
+  appointmentReminderEmail,
   type AppointmentFacts,
 } from './citas-emails.js';
 import {
@@ -100,6 +101,14 @@ export interface BookedView {
   meetingCode: string | null;
   status: 'CONFIRMED' | 'CANCELLED';
 }
+
+/** The reminder goes out about this long before the start. */
+export const REMINDER_LEAD_HOURS = 24;
+/** No reminder when it would arrive less than this before the start (nothing left to plan). */
+const REMINDER_MIN_HOURS = 2;
+/** No reminder for appointments booked this close to their start: the confirmation is fresh. */
+const REMINDER_FRESH_BOOKING_HOURS = 26;
+const HOUR_MS = 3_600_000;
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
@@ -287,6 +296,36 @@ export class CitasService {
     if (row.status === 'CANCELLED') return this.bookedView(row.page, row);
     const cancelled = await this.cancel(row.id, 'booker', now);
     return this.bookedView(cancelled.page, cancelled);
+  }
+
+  // ---- Reminders -------------------------------------------------------------------------------
+
+  /**
+   * Emails whoever booked about 24 h before each confirmed appointment, once (claimed in the
+   * database, so overlapping runs can't send it twice). Returns how many went out.
+   */
+  async sendReminders(now = new Date()): Promise<number> {
+    const due = await this.repository.dueReminders(
+      new Date(now.getTime() + REMINDER_MIN_HOURS * HOUR_MS),
+      new Date(now.getTime() + REMINDER_LEAD_HOURS * HOUR_MS),
+    );
+    let sent = 0;
+    for (const row of due) {
+      const bookedAhead = row.startsAt.getTime() - row.createdAt.getTime();
+      if (bookedAhead < REMINDER_FRESH_BOOKING_HOURS * HOUR_MS) continue;
+      if (!(await this.repository.claimReminder(row.id, now))) continue;
+      const locale = toApiLocale(row.locale);
+      this.send(
+        appointmentReminderEmail(
+          this.facts(row, locale),
+          locale,
+          this.config.siteUrl,
+          this.pageUrl(row.page.slug, locale),
+        ),
+      );
+      sent += 1;
+    }
+    return sent;
   }
 
   // ---- Helpers ---------------------------------------------------------------------------------

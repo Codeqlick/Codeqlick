@@ -185,3 +185,57 @@ export function appointmentCancelledEmail(
     ),
   };
 }
+
+/**
+ * To whoever booked, about 24 h before, in their language: when and where, the video link, and
+ * how to cancel (the link in the confirmation email: only its hash is stored, so it can't be
+ * sent again) or tell the owner something (reply).
+ */
+export function appointmentReminderEmail(
+  facts: AppointmentFacts,
+  locale: ApiLocale,
+  siteUrl: string,
+  pageUrl: string,
+): MailMessage {
+  const es = locale === 'es';
+  const when = appointmentTime(facts.startsAt, facts.timeZone, locale);
+  return {
+    to: facts.email,
+    replyTo: facts.ownerEmail,
+    subject: es
+      ? `Recordatorio: ${facts.pageTitle}, ${when}`
+      : `Reminder: ${facts.pageTitle}, ${when}`,
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? `Mañana tienes cita con ${facts.ownerName}.`
+          : `You have an appointment with ${facts.ownerName} tomorrow.`,
+        title: es ? 'Tu cita es mañana' : 'Your appointment is tomorrow',
+        greeting: es ? `Hola ${facts.name}:` : `Hi ${facts.name},`,
+        intro: [
+          es
+            ? `Te recordamos tu cita «${facts.pageTitle}» con ${facts.ownerName}.`
+            : `A reminder of your appointment "${facts.pageTitle}" with ${facts.ownerName}.`,
+        ],
+        details: [
+          [es ? 'Cuándo' : 'When', `${when} (${zoneLabel(facts.timeZone, locale)})`],
+          ...where(facts, locale),
+        ],
+        button: facts.videoUrl
+          ? { label: es ? 'Entrar a la videollamada' : 'Join the video call', url: facts.videoUrl }
+          : undefined,
+        outro: [
+          es
+            ? `Si quieres decirle algo a ${facts.ownerName}, responde a este correo.`
+            : `To tell ${facts.ownerName} something, reply to this email.`,
+        ],
+        note: es
+          ? `¿No puedes ir? Cancela con el enlace de tu correo de confirmación, así el hueco queda libre para otra persona. Página de reservas: ${pageUrl}`
+          : `Can't make it? Cancel with the link in your confirmation email, so someone else can take the time. Booking page: ${pageUrl}`,
+        signoff: SIGNOFF,
+      },
+      siteUrl,
+    ),
+  };
+}

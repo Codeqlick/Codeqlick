@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MeetingsModule } from '../meetings/meetings.module.js';
 import { CitasController, CitasPublicController } from './citas.controller.js';
+import { CitasRemindersService } from './citas-reminders.service.js';
 import { CitasRepository } from './citas.repository.js';
 import { CitasService } from './citas.service.js';
 
@@ -8,6 +9,6 @@ import { CitasService } from './citas.service.js';
 @Module({
   imports: [MeetingsModule],
   controllers: [CitasPublicController, CitasController],
-  providers: [CitasService, CitasRepository],
+  providers: [CitasService, CitasRepository, CitasRemindersService],
 })
 export class CitasModule {}

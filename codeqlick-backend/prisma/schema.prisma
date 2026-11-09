@@ -1450,6 +1450,8 @@ model Appointment {
   /// Calendar invitation revision (bumped when it is cancelled).
   sequence        Int           @default(0)
   cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  /// When the reminder email went out (about 24 h before); null until then.
+  reminderSentAt  DateTime?     @map("reminder_sent_at") @db.Timestamptz(3)
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
 
   page  BookingPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
@@ -1457,6 +1459,7 @@ model Appointment {
 
   @@index([ownerId, status, startsAt])
   @@index([pageId, startsAt])
+  @@index([status, startsAt])
   @@map("appointments")
 }
 

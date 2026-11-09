@@ -138,4 +138,23 @@ export class CitasRepository {
     for (const row of rows) counts.set(row.pageId, (counts.get(row.pageId) ?? 0) + 1);
     return counts;
   }
+
+  /** Confirmed appointments starting in (from, to] whose reminder hasn't gone out. */
+  dueReminders(from: Date, to: Date): Promise<AppointmentRow[]> {
+    return this.prisma.appointment.findMany({
+      where: { status: 'CONFIRMED', reminderSentAt: null, startsAt: { gt: from, lte: to } },
+      include: withPage,
+      orderBy: { startsAt: 'asc' },
+      take: 500,
+    });
+  }
+
+  /** Marks the reminder as sent; false when another run (or a cancel) got there first. */
+  async claimReminder(id: string, now: Date): Promise<boolean> {
+    const { count } = await this.prisma.appointment.updateMany({
+      where: { id, status: 'CONFIRMED', reminderSentAt: null },
+      data: { reminderSentAt: now },
+    });
+    return count === 1;
+  }
 }
