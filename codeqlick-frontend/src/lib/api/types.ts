@@ -944,4 +944,6 @@ export type SiteEditorView = {
     previewStatus: 'READY' | 'FAILED' | 'MISSING';
     previewError?: string;
   } | null;
+  /** The Citas pages of the people of the client account, for the "Pedir cita" button. */
+  bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
 };

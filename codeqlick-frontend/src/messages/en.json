@@ -2828,7 +2828,8 @@
       "contact": "Contact and hours",
       "social": "Social media",
       "legal": "Legal data",
-      "notices": "Notices (closures and special hours)"
+      "notices": "Notices (closures and special hours)",
+      "booking": "Online appointments (\"Book\" button)"
     },
     "style": "Starting style",
     "styleHint": "Changes the colours, fonts, order and sample photos. Your texts and photos stay.",
@@ -2896,7 +2897,8 @@
     "secondaryLabel": "Second button",
     "defaults": {
       "secondary": "See services",
-      "bannerLink": "Book now"
+      "bannerLink": "Book now",
+      "bookingLabel": "Pedir cita"
     },
     "facts": "Highlights (up to 3)",
     "addFact": "Add highlight",
@@ -2994,7 +2996,16 @@
     "discardConfirm": "Discard every unpublished change? Your website goes back to what is published.",
     "invalidGo": "Go to the first one",
     "partInvalid": "Check",
-    "partMissing": "Incomplete"
+    "partMissing": "Incomplete",
+    "showBooking": "Show the \"Pedir cita\" button",
+    "bookingHint": "The button shows at the top of your website and in the contact section, and opens your Citas page: your customers pick a day and time, and you both get the confirmation by email.",
+    "bookingPage": "Booking page",
+    "bookingPaused": "{title} (paused: taking no bookings now)",
+    "bookingOther": "Another page: {url}",
+    "bookingLabel": "Button text",
+    "bookingNone": "You don't have a booking page yet. Create one for free on Citas with your hours and how long each appointment takes, then come back to put it on your website.",
+    "bookingCreate": "Create my booking page (opens in a new tab)",
+    "bookingReload": "I've created it: refresh"
   },
   "Videochat": {
     "metaTitle": "Free random video chat for adults (18+) | Codeqlick",

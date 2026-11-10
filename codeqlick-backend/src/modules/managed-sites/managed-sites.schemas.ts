@@ -51,6 +51,25 @@ const reviewUrl = z
   .max(500);
 
 /**
+ * A Citas booking page's link (architecture 8.2, online appointments):
+ * `https://citas.<domain>/{es|en}/<slug>`; plain http only for the local `citas.localhost`.
+ */
+const bookingUrl = z
+  .url({ error: 'The link of your booking page on Citas' })
+  .max(200)
+  .refine((value) => {
+    const url = new URL(value);
+    const secure = url.protocol === 'https:' || url.hostname === 'citas.localhost';
+    return (
+      secure &&
+      url.hostname.startsWith('citas.') &&
+      !url.search &&
+      !url.hash &&
+      /^\/(es|en)\/[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/.test(url.pathname)
+    );
+  }, 'The link of your booking page on Citas');
+
+/**
  * A managed site's content: the template's `Site` type (codeqlick-sites/web-basica/src/types.ts)
  * without `url`, `form` and `demo`, which are set when it is built. Keep both in step.
  */
@@ -187,6 +206,11 @@ export const siteContentSchema = z
       .optional(),
     banner: z
       .object({ title: text(120), text: optionalText(300), link })
+      .strict()
+      .optional(),
+    /** The "Pedir cita" button: a Citas booking page and the button's text (architecture 8.2). */
+    booking: z
+      .object({ url: bookingUrl, label: text(40) })
       .strict()
       .optional(),
     /** Closures and special hours: a bar on top of the site between their dates (architecture 8.2). */

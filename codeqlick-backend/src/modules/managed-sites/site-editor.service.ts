@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { AppConfigService } from '../../config/app-config.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
 import { siteContentSchema, sitePresetSchema, type SiteContent } from './managed-sites.schemas.js';
@@ -27,6 +28,8 @@ export interface SiteEditorView {
     /** The end of the build log when the preview failed. */
     previewError?: string;
   } | null;
+  /** The Citas pages of the people of the client account, for the "Pedir cita" button. */
+  bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
 }
 
 /** The style's demo content with the fields a site's content doesn't keep. */
@@ -48,6 +51,7 @@ export class SiteEditorService {
     private readonly sites: ManagedSitesService,
     private readonly portal: PortalSitesService,
     private readonly builder: SiteBuilderClient,
+    private readonly config: AppConfigService,
   ) {}
 
   async view(caller: AuthUser, projectId: string): Promise<SiteEditorView> {
@@ -175,7 +179,12 @@ export class SiteEditorService {
     status: DraftPreviewStatus,
     error?: string,
   ): Promise<SiteEditorView> {
-    const presets = await this.builder.presets().catch(() => []);
+    const [presets, pages] = await Promise.all([
+      this.builder.presets().catch(() => []),
+      this.repository.bookingPagesOf(site.project.client.id),
+    ]);
+    // The site is in Spanish, so its button opens the page in Spanish.
+    const citas = `${this.config.webappUrl('citas')}/es`;
     const published = { content: site.content as SiteContent, preset: site.preset };
     return {
       content: (site.draftContent as SiteContent | null) ?? published.content,
@@ -194,6 +203,7 @@ export class SiteEditorService {
               ...(error ? { previewError: error } : {}),
             }
           : null,
+      bookingPages: pages.map((page) => ({ ...page, url: `${citas}/${page.slug}` })),
     };
   }
 }
