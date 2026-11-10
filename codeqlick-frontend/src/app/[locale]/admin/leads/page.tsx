@@ -81,7 +81,7 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('name')}</th>
@@ -97,11 +97,11 @@ export default async function AdminLeadsPage({ params, searchParams }: PageProps
                       <Link href={`/admin/leads/${lead.id}`}>{lead.name}</Link>
                       <span className={styles.sub}>{lead.email}</span>
                     </th>
-                    <td>{lead.company ?? tc('none')}</td>
-                    <td>
+                    <td data-label={t('company')}>{lead.company ?? tc('none')}</td>
+                    <td data-label={t('status')} data-wide>
                       <LeadStatusBadge status={lead.status} label={ts(lead.status)} />
                     </td>
-                    <td>{formatDateTime(lead.createdAt, locale)}</td>
+                    <td data-label={t('received')}>{formatDateTime(lead.createdAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -35,7 +35,7 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
       ) : (
         <div className={styles.tableWrap}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.listTable}`}>
             <thead>
               <tr>
                 <th scope="col">{t('site')}</th>
@@ -56,11 +56,11 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
                       </a>
                     </span>
                   </th>
-                  <td>{site.client.name}</td>
-                  <td>
+                  <td data-label={t('client')}>{site.client.name}</td>
+                  <td data-label={t('status')} data-wide>
                     <Badge tone={TONES[site.status]}>{tk(`statuses.${site.status}`)}</Badge>
                   </td>
-                  <td>
+                  <td data-label={t('domain')}>
                     {site.domain ? (
                       <>
                         {site.domain}
@@ -81,7 +81,9 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
                       '—'
                     )}
                   </td>
-                  <td>{site.lastBuildAt ? formatDateTime(site.lastBuildAt, locale) : '—'}</td>
+                  <td data-label={t('lastBuild')}>
+                    {site.lastBuildAt ? formatDateTime(site.lastBuildAt, locale) : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>

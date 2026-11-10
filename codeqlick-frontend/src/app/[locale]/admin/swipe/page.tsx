@@ -1,3 +1,4 @@
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
 import {
   ActionForm,
@@ -86,9 +87,13 @@ export default async function AdminSwipePage({ params, searchParams }: PageProps
           <Link
             key={value}
             href={`/admin/swipe?tab=${value}`}
+            className={buttonClassName({
+              variant: value === tab ? 'primary' : 'outline',
+              size: 'sm',
+            })}
             aria-current={value === tab ? 'page' : undefined}
           >
-            {value === tab ? <strong>{t(`tabs.${value}`)}</strong> : t(`tabs.${value}`)}
+            {t(`tabs.${value}`)}
           </Link>
         ))}
       </nav>

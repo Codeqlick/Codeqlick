@@ -67,7 +67,7 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('proposal')}</th>
@@ -87,16 +87,18 @@ export default async function AdminProposalsPage({ params, searchParams }: PageP
                         {proposal.project ? ` · ${proposal.project.name}` : ''}
                       </span>
                     </th>
-                    <td>{proposal.client.name}</td>
-                    <td>
+                    <td data-label={t('client')}>{proposal.client.name}</td>
+                    <td data-label={t('status')} data-wide>
                       <ProposalStatusBadge
                         status={proposal.status}
                         expired={proposal.expired}
                         label={proposal.expired ? tp('expired') : ts(proposal.status)}
                       />
                     </td>
-                    <td>{formatMoney(proposal.total, proposal.currency, locale)}</td>
-                    <td>{formatDateTime(proposal.updatedAt, locale)}</td>
+                    <td data-label={tp('total')}>
+                      {formatMoney(proposal.total, proposal.currency, locale)}
+                    </td>
+                    <td data-label={t('updated')}>{formatDateTime(proposal.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>
