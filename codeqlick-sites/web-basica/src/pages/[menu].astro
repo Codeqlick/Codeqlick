@@ -1,0 +1,235 @@
+---
+import Base from '../layouts/Base.astro';
+import { ALLERGENS } from '../lib/menu';
+import { edit, site } from '../lib/site';
+
+/** `/carta`, built only when the site has a menu (the QR poster on the table leads here). */
+export function getStaticPaths() {
+  return site.menu ? [{ params: { menu: 'carta' } }] : [];
+}
+
+const menu = site.menu!;
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Menu',
+  name: menu.title,
+  ...(menu.intro ? { description: menu.intro } : {}),
+  hasMenuSection: menu.categories.map((category) => ({
+    '@type': 'MenuSection',
+    name: category.name,
+    hasMenuItem: category.items.map((item) => ({
+      '@type': 'MenuItem',
+      name: item.name,
+      ...(item.description ? { description: item.description } : {}),
+    })),
+  })),
+};
+---
+
+<Base title={menu.title} description={menu.intro} schema={schema}>
+  <section class="section menu">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">{site.business.name}</p>
+        <h1 data-edit={edit('menu.title')}>{menu.title}</h1>
+        {menu.intro ? (
+          <p class="lead" data-edit={edit('menu.intro')}>
+            {menu.intro}
+          </p>
+        ) : null}
+      </div>
+
+      {menu.categories.length > 1 ? (
+        <nav class="jump" aria-label="Categorías">
+          <ul>
+            {menu.categories.map((category, i) => (
+              <li>
+                <a href={`#categoria-${i + 1}`} data-edit={edit(`menu.categories.${i}.name`)}>
+                  {category.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null}
+
+      {menu.categories.map((category, i) => (
+        <section
+          class="category"
+          id={`categoria-${i + 1}`}
+          aria-labelledby={`categoria-${i + 1}-t`}
+        >
+          <h2 id={`categoria-${i + 1}-t`} data-edit={edit(`menu.categories.${i}.name`)}>
+            {category.name}
+          </h2>
+          <ul class="items">
+            {category.items.map((item, j) => (
+              <li>
+                <div class="line">
+                  <h3 data-edit={edit(`menu.categories.${i}.items.${j}.name`)}>{item.name}</h3>
+                  {item.price ? (
+                    <span class="price" data-edit={edit(`menu.categories.${i}.items.${j}.price`)}>
+                      {item.price}
+                    </span>
+                  ) : null}
+                </div>
+                {item.description ? (
+                  <p
+                    class="description"
+                    data-edit={edit(`menu.categories.${i}.items.${j}.description`)}
+                  >
+                    {item.description}
+                  </p>
+                ) : null}
+                {item.allergens?.length ? (
+                  <p class="allergens">
+                    <span>Alérgenos:</span>{' '}
+                    {item.allergens.map((allergen) => ALLERGENS[allergen]).join(', ')}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+
+      <div class="notes">
+        {menu.note ? <p data-edit={edit('menu.note')}>{menu.note}</p> : null}
+        <p>
+          Si tienes alguna alergia o intolerancia, pregúntanos: te informamos de los alérgenos de
+          cada plato.
+        </p>
+      </div>
+
+      <p class="actions">
+        {site.booking ? (
+          <a class="button" href={site.booking.url}>
+            {site.booking.label}
+          </a>
+        ) : null}
+        <a class="button button--ghost" href="/#contacto">
+          Contacto
+        </a>
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .menu .container {
+    max-width: 48rem;
+  }
+
+  .jump {
+    position: sticky;
+    top: 4.5rem;
+    z-index: 10;
+    margin: 0 -1.25rem 2rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--background);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .jump ul {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .jump a {
+    display: inline-block;
+    padding: 0.45rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--text) 18%, transparent);
+    border-radius: 999px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .jump a:hover {
+    border-color: var(--primary);
+    color: var(--primary-strong);
+  }
+
+  .category {
+    scroll-margin-top: 9rem;
+    margin-bottom: 3rem;
+  }
+
+  .category h2 {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--primary);
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+
+  .items {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .items li {
+    display: grid;
+    gap: 0.3rem;
+    padding: 1.1rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  }
+
+  .line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  h3 {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .price {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-strong);
+  }
+
+  .description,
+  .allergens {
+    margin: 0;
+    color: var(--muted);
+  }
+
+  .allergens {
+    font-size: 0.9rem;
+  }
+
+  .allergens span {
+    font-weight: 600;
+  }
+
+  .notes {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .notes p {
+    margin: 0;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+</style>

@@ -1057,6 +1057,8 @@ model ManagedSite {
   draftUpdatedAt  DateTime?        @map("draft_updated_at") @db.Timestamptz(3)
   /// Random: the draft's preview is served at /site-draft/<key>/.
   draftKey        String?          @unique @map("draft_key")
+  /// The menu extra (architecture 8.2): turned on by the team, billed apart.
+  menuEnabled     Boolean          @default(false) @map("menu_enabled")
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -12,6 +12,7 @@ import {
   deleteSiteAction,
   restoreSiteRevisionAction,
   saveSiteContentAction,
+  setSiteMenuAction,
   updateSiteDomainAction,
 } from '@/app/[locale]/admin/projects/site-actions';
 import styles from './app.module.css';
@@ -133,6 +134,21 @@ export async function ManagedSitePanel({
           {t('build')}
         </SubmitButton>
       </ActionForm>
+
+      <div className={styles.form}>
+        <h3>{t('menu.title')}</h3>
+        <p className={styles.muted}>
+          {site.menuEnabled ? t('menu.on') : t('menu.off')}{' '}
+          <Badge tone={site.menuEnabled ? 'success' : 'neutral'}>
+            {site.menuEnabled ? t('menu.enabled') : t('menu.disabled')}
+          </Badge>
+        </p>
+        <ActionForm action={setSiteMenuAction.bind(null, locale, projectId, !site.menuEnabled)}>
+          <SubmitButton variant="outline" size="sm" pendingLabel={t('building')}>
+            {site.menuEnabled ? t('menu.turnOff') : t('menu.turnOn')}
+          </SubmitButton>
+        </ActionForm>
+      </div>
 
       <ActionForm
         key={`domain-${site.domain ?? ''}`}

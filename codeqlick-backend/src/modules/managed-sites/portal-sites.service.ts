@@ -38,6 +38,11 @@ export interface PortalSiteView {
   unpublishedSince: string | null;
   /** Legal data the online site still lacks (its legal notice needs them). */
   legalMissing: ('taxId' | 'address')[];
+  /**
+   * The menu extra (architecture 8.2): `enabled` by the team; `published` once the online site
+   * has it, so its QR poster can be printed.
+   */
+  menu: { enabled: boolean; published: boolean };
 }
 
 /** Photos a site can use: the template optimises these. */
@@ -171,6 +176,7 @@ export class PortalSitesService {
           ? site.draftUpdatedAt.toISOString()
           : null,
       legalMissing: (['taxId', 'address'] as const).filter((key) => !content.legal[key]?.trim()),
+      menu: { enabled: site.menuEnabled, published: site.menuEnabled && !!content.menu },
     };
   }
 }

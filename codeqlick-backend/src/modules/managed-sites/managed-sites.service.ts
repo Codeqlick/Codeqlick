@@ -43,6 +43,8 @@ export interface SiteView {
   lastBuildError: string | null;
   release: string | null;
   content: SiteContent;
+  /** The menu extra is on (architecture 8.2). */
+  menuEnabled: boolean;
   updatedAt: string;
 }
 
@@ -196,6 +198,25 @@ export class ManagedSitesService {
     return this.build(projectId);
   }
 
+  /** Turns the menu extra on or off (architecture 8.2) and rebuilds the site. */
+  async setMenu(actor: AuthUser, projectId: string, enabled: boolean): Promise<SiteView> {
+    const site = await this.findSite(projectId);
+    await this.repository.update(site.id, { menuEnabled: enabled });
+    await this.activity.record(actor, {
+      action: 'project.site_menu',
+      targetId: projectId,
+      targetLabel: site.project.name,
+      details: { enabled },
+    });
+    return this.build(projectId);
+  }
+
+  /** The content a build gets: extras the site doesn't have turned on are left out. */
+  contentToBuild(site: SiteRow, content: unknown): Record<string, unknown> {
+    const { menu, ...rest } = content as Record<string, unknown>;
+    return site.menuEnabled && menu !== undefined ? { ...rest, menu } : rest;
+  }
+
   /** The domain now serves the site (or stopped): the project's URLs follow and it is rebuilt. */
   async addressChanged(projectId: string): Promise<SiteView> {
     await this.syncProject(await this.findSite(projectId));
@@ -213,7 +234,7 @@ export class ManagedSitesService {
       preset: site.preset,
       domains: this.domainsOf(site),
       content: {
-        ...(site.content as Record<string, unknown>),
+        ...this.contentToBuild(site, site.content),
         url: this.urlOf(site),
         demo: false,
         ...(form?.enabled ? { form: { key: form.key, api: this.config.publicApiUrl } } : {}),
@@ -372,6 +393,7 @@ export class ManagedSitesService {
       lastBuildError: row.lastBuildError,
       release: row.release,
       content: row.content as SiteContent,
+      menuEnabled: row.menuEnabled,
       updatedAt: row.updatedAt.toISOString(),
     };
   }

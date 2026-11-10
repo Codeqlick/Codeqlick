@@ -18,6 +18,7 @@ import {
   uploadEditorPhotoAction,
   type EditorResult,
 } from '@/app/[locale]/portal/projects/[id]/site/editor/actions';
+import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { SiteEditorView } from '@/lib/api/types';
 import {
@@ -32,6 +33,7 @@ import {
   type Json,
 } from './content';
 import {
+  AllergensField,
   ColorField,
   DateField,
   EditorContext,
@@ -114,6 +116,8 @@ export function SiteEditor({
   const [tab, setTab] = useState<'edit' | 'preview'>('edit');
   const [width, setWidth] = useState<'desktop' | 'phone'>('desktop');
   const [published, setPublished] = useState(false);
+  /** The page the preview shows: the home page, or the menu's own page while editing it. */
+  const [page, setPage] = useState<'' | 'carta'>('');
 
   const latest = useRef(content);
   const preset = useRef(initial.preset);
@@ -253,6 +257,11 @@ export function SiteEditor({
   );
 
   const scrollPreview = (part: string) => {
+    // Back from the menu's page: the home page loads again (at its top).
+    if (page !== '') {
+      setPage('');
+      return;
+    }
     const anchor = ANCHORS[part];
     if (anchor)
       iframe.current?.contentWindow?.postMessage({ type: 'cq-edit', scrollTo: anchor }, '*');
@@ -837,6 +846,114 @@ export function SiteEditor({
           </Part>
 
           <Part
+            paths={['menu']}
+            summary={t('parts.menu')}
+            onOpen={() => {
+              if (view.menuEnabled && content.menu !== undefined) setPage('carta');
+            }}
+          >
+            {view.menuEnabled ? (
+              <>
+                <p className={styles.hint}>{t('menuHint')}</p>
+                <Toggle
+                  path="menu"
+                  label={t('showMenu')}
+                  blank={() => ({
+                    title: t('defaults.menuTitle'),
+                    categories: [{ name: '', items: [{ name: '' }] }],
+                  })}
+                >
+                  <TextField
+                    path="menu.title"
+                    label={t('menuTitle')}
+                    hint={t('menuTitleHint')}
+                    max={80}
+                    required
+                  />
+                  <TextField path="menu.intro" label={t('intro')} max={300} rows={2} />
+                  <ListField
+                    path="menu.categories"
+                    label={t('menuCategories')}
+                    addLabel={t('addCategory')}
+                    blank={{ name: '', items: [{ name: '' }] }}
+                    min={1}
+                    max={20}
+                    render={(category) => (
+                      <>
+                        <TextField
+                          path={`${category}.name`}
+                          label={t('categoryName')}
+                          placeholder={t('categoryPlaceholder')}
+                          max={80}
+                          required
+                        />
+                        <ListField
+                          path={`${category}.items`}
+                          label={t('menuItems')}
+                          addLabel={t('addMenuItem')}
+                          blank={{ name: '' }}
+                          min={1}
+                          max={60}
+                          render={(item) => (
+                            <>
+                              <div className={styles.row}>
+                                <TextField
+                                  path={`${item}.name`}
+                                  label={t('menuItemName')}
+                                  max={120}
+                                  required
+                                />
+                                <TextField
+                                  path={`${item}.price`}
+                                  label={t('price')}
+                                  placeholder="9,50 €"
+                                  max={30}
+                                />
+                              </div>
+                              <TextField
+                                path={`${item}.description`}
+                                label={t('menuItemDescription')}
+                                max={300}
+                                rows={2}
+                              />
+                              <AllergensField path={`${item}.allergens`} label={t('allergens')} />
+                            </>
+                          )}
+                        />
+                      </>
+                    )}
+                  />
+                  <TextField
+                    path="menu.note"
+                    label={t('menuNote')}
+                    hint={t('menuNoteHint')}
+                    max={300}
+                  />
+                </Toggle>
+              </>
+            ) : (
+              <div className={styles.stack}>
+                <p className={styles.hint}>{t('menuLocked')}</p>
+                <p className={styles.links}>
+                  <Link
+                    className={styles.small}
+                    href={{
+                      pathname: '/portal/support/new',
+                      query: {
+                        project: projectId,
+                        title: t('menuRequestTitle'),
+                        body: t('menuRequestBody'),
+                      },
+                    }}
+                  >
+                    {t('menuRequest')}
+                  </Link>
+                </p>
+              </div>
+            )}
+          </Part>
+
+          <Part
             paths={['booking']}
             summary={t('parts.booking')}
             onOpen={() => scrollPreview('contact')}
@@ -1014,7 +1131,7 @@ export function SiteEditor({
               <iframe
                 key={frame}
                 ref={iframe}
-                src={`${view.draft.previewUrl}?v=${frame}`}
+                src={`${view.draft.previewUrl}${page}?v=${frame}`}
                 title={t('previewTitle')}
                 sandbox="allow-scripts"
                 className={styles.frame}

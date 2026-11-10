@@ -20,7 +20,11 @@ export default async function NewTicketPage({ params, searchParams }: PageProps)
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const projects = await listMyProjects();
   // Opened from a project page: that project comes preselected.
-  const requested = firstParam((await searchParams).project);
+  const query = await searchParams;
+  const requested = firstParam(query.project);
+  // A link that asks for something (the website editor's "Pídela a Codeqlick") fills it in.
+  const title = firstParam(query.title)?.slice(0, 200);
+  const body = firstParam(query.body)?.slice(0, 5000);
   const projectId =
     projects.find((project) => project.id === requested)?.id ??
     (projects.length === 1 ? projects[0]?.id : undefined);
@@ -36,7 +40,7 @@ export default async function NewTicketPage({ params, searchParams }: PageProps)
               name="type"
               label={t('type')}
               options={TICKET_TYPES.map((value) => ({ value, label: t(`types.${value}`) }))}
-              defaultValue="QUESTION"
+              defaultValue={title ? 'CHANGE' : 'QUESTION'}
             />
             <FormSelect
               name="priority"
@@ -59,12 +63,19 @@ export default async function NewTicketPage({ params, searchParams }: PageProps)
               defaultValue={projectId ?? ''}
             />
           ) : null}
-          <FormInput name="title" label={t('titleLabel')} maxLength={200} required />
+          <FormInput
+            name="title"
+            label={t('titleLabel')}
+            maxLength={200}
+            defaultValue={title}
+            required
+          />
           <FormTextarea
             name="body"
             label={t('description')}
             hint={t('descriptionHint')}
             rows={8}
+            defaultValue={body}
             required
           />
           <div className={styles.actions}>
