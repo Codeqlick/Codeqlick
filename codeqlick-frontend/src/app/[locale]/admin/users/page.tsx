@@ -107,7 +107,7 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('name')}</th>
@@ -135,16 +135,16 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
                         </span>
                       ) : null}
                     </th>
-                    <td>
+                    <td data-label={t('kind')} data-wide>
                       <AccountKindBadge user={user} />
                     </td>
-                    <td>
+                    <td data-label={t('status')} data-wide>
                       <Badge tone={user.isActive ? 'success' : 'neutral'}>
                         {user.isActive ? t('active') : t('inactive')}
                       </Badge>{' '}
                       {user.registered ? null : <Badge tone="warning">{t('unregistered')}</Badge>}
                     </td>
-                    <td>{formatDate(user.createdAt, locale)}</td>
+                    <td data-label={t('created')}>{formatDate(user.createdAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>

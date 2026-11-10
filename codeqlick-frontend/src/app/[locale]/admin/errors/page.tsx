@@ -52,7 +52,7 @@ export default async function AdminErrorsPage({ params, searchParams }: PageProp
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('error')}</th>
@@ -72,11 +72,11 @@ export default async function AdminErrorsPage({ params, searchParams }: PageProp
                         </span>
                       ) : null}
                     </th>
-                    <td>
+                    <td data-label={t('source')}>
                       <ErrorSourceBadge source={error.source} locale={locale} />
                     </td>
-                    <td>{error.count}</td>
-                    <td>{formatDateTime(error.lastSeenAt, locale)}</td>
+                    <td data-label={t('count')}>{error.count}</td>
+                    <td data-label={t('lastSeen')}>{formatDateTime(error.lastSeenAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>

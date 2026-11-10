@@ -1,3 +1,4 @@
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
 import { BarChart } from '@/components/app/BarChart';
 import styles from '@/components/app/app.module.css';
@@ -83,9 +84,13 @@ export default async function AdminVideochatStatsPage({ params, searchParams }: 
           <Link
             key={value}
             href={`/admin/videochat/stats?days=${value}`}
+            className={buttonClassName({
+              variant: value === days ? 'primary' : 'outline',
+              size: 'sm',
+            })}
             aria-current={value === days ? 'page' : undefined}
           >
-            {value === days ? <strong>{t(`periods.${value}`)}</strong> : t(`periods.${value}`)}
+            {t(`periods.${value}`)}
           </Link>
         ))}
       </nav>
