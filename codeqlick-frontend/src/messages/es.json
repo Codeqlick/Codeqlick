@@ -2828,7 +2828,8 @@
       "contact": "Contacto y horario",
       "social": "Redes sociales",
       "legal": "Datos legales",
-      "notices": "Avisos (cierres y horarios especiales)"
+      "notices": "Avisos (cierres y horarios especiales)",
+      "booking": "Citas online (botón «Pedir cita»)"
     },
     "style": "Estilo de partida",
     "styleHint": "Cambia los colores, las tipografías, el orden y las fotos de ejemplo. Tus textos y tus fotos se quedan.",
@@ -2896,7 +2897,8 @@
     "secondaryLabel": "Segundo botón",
     "defaults": {
       "secondary": "Ver servicios",
-      "bannerLink": "Pide tu cita"
+      "bannerLink": "Pide tu cita",
+      "bookingLabel": "Pedir cita"
     },
     "facts": "Datos destacados (hasta 3)",
     "addFact": "Añadir dato",
@@ -2994,7 +2996,16 @@
     "discardConfirm": "¿Descartar todos los cambios sin publicar? Tu web vuelve a lo que está publicado.",
     "invalidGo": "Ir al primero",
     "partInvalid": "Revisar",
-    "partMissing": "Falta completar"
+    "partMissing": "Falta completar",
+    "showBooking": "Mostrar el botón «Pedir cita»",
+    "bookingHint": "El botón sale arriba en tu web y en la sección de contacto, y abre tu página de Citas: tus clientes eligen día y hora, y a los dos os llega la confirmación por email.",
+    "bookingPage": "Página de citas",
+    "bookingPaused": "{title} (pausada: ahora no acepta citas)",
+    "bookingOther": "Otra página: {url}",
+    "bookingLabel": "Texto del botón",
+    "bookingNone": "Aún no tienes ninguna página de citas. Créala gratis en Citas con tus horarios y la duración de cada cita, y vuelve aquí para ponerla en tu web.",
+    "bookingCreate": "Crear mi página de citas (se abre en otra pestaña)",
+    "bookingReload": "Ya la he creado: actualizar"
   },
   "Videochat": {
     "metaTitle": "Videochat aleatorio gratis para adultos (+18) | Codeqlick",

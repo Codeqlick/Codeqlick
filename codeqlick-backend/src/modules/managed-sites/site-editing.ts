@@ -75,6 +75,7 @@ export function changedSections(before: SiteContent, after: SiteContent): string
     navLabels: 'Menu',
     banner: 'Banner',
     notices: 'Notices',
+    booking: 'Online appointments',
     contactSection: 'Contact section',
     legal: 'Legal data',
     footerNote: 'Footer note',
