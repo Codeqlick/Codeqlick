@@ -44,7 +44,7 @@ export default async function AdminPreviewsPage({
         <EmptyState title={t('emptyTitle')} body={t('emptyBody')} />
       ) : (
         <div className={styles.tableWrap}>
-          <table className={styles.table}>
+          <table className={`${styles.table} ${styles.listTable}`}>
             <thead>
               <tr>
                 <th scope="col">{t('business')}</th>
@@ -69,8 +69,10 @@ export default async function AdminPreviewsPage({
                       </span>
                     ) : null}
                   </th>
-                  <td>{preview.preset ? tk(`demos.${preview.preset}.kind`) : '—'}</td>
-                  <td>
+                  <td data-label={t('style')}>
+                    {preview.preset ? tk(`demos.${preview.preset}.kind`) : '—'}
+                  </td>
+                  <td data-label={t('status')} data-wide>
                     {preview.purchased ? (
                       <Badge tone="success">{t('purchased')}</Badge>
                     ) : preview.status ? (
@@ -81,11 +83,11 @@ export default async function AdminPreviewsPage({
                       '—'
                     )}
                   </td>
-                  <td>
+                  <td data-label={t('origin')}>
                     {preview.prospect ? t('prospect') : t('fromRequest')}
                     <span className={styles.sub}>{preview.email ?? t('noEmail')}</span>
                   </td>
-                  <td>{formatDateTime(preview.createdAt, locale)}</td>
+                  <td data-label={t('created')}>{formatDateTime(preview.createdAt, locale)}</td>
                 </tr>
               ))}
             </tbody>

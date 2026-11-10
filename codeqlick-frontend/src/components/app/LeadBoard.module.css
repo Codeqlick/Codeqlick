@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  /* Without it the columns' width widens the whole page on phones instead of scrolling. */
+  min-width: 0;
 }
 
 .error {
@@ -18,8 +20,17 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(15rem, 1fr);
   gap: var(--space-4);
+  min-width: 0;
+  /* Contains the cards' visually hidden labels (absolutely positioned): without it they sit
+     outside the scrolling area and stretch the page sideways. */
+  position: relative;
   overflow-x: auto;
   padding-bottom: var(--space-2);
+  scroll-snap-type: x proximity;
+}
+
+.board > * {
+  scroll-snap-align: start;
 }
 
 .column {

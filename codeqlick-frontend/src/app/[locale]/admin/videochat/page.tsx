@@ -1,3 +1,4 @@
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
@@ -95,9 +96,13 @@ export default async function AdminVideochatPage({ params, searchParams }: PageP
           <Link
             key={value}
             href={`/admin/videochat?status=${value}`}
+            className={buttonClassName({
+              variant: value === status ? 'primary' : 'outline',
+              size: 'sm',
+            })}
             aria-current={value === status ? 'page' : undefined}
           >
-            {value === status ? <strong>{t(`tabs.${value}`)}</strong> : t(`tabs.${value}`)}
+            {t(`tabs.${value}`)}
           </Link>
         ))}
       </nav>

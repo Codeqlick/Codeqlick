@@ -56,7 +56,7 @@ export default async function AdminSupportPage({ params, searchParams }: PagePro
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('request')}</th>
@@ -76,20 +76,20 @@ export default async function AdminSupportPage({ params, searchParams }: PagePro
                         {ticket.project ? ` · ${ticket.project.name}` : ''}
                       </span>
                     </th>
-                    <td>{ticket.client.name}</td>
-                    <td>
+                    <td data-label={t('client')}>{ticket.client.name}</td>
+                    <td data-label={t('status')} data-wide>
                       <TicketStatusBadge
                         status={ticket.status}
                         label={t(`statuses.${ticket.status}`)}
                       />
                     </td>
-                    <td>
+                    <td data-label={t('priority')}>
                       <TicketPriorityBadge
                         priority={ticket.priority}
                         label={t(`priorities.${ticket.priority}`)}
                       />
                     </td>
-                    <td>{formatDateTime(ticket.updatedAt, locale)}</td>
+                    <td data-label={t('updated')}>{formatDateTime(ticket.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>
