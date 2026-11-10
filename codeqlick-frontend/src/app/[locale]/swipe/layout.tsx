@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { Logo } from '@/components/brand/Logo';
 import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
@@ -64,64 +65,66 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
   const webapp = (await requestWebapp()) === 'swipe' ? 'swipe' : null;
 
   return (
-    <WebappProvider app={webapp}>
-      <div className={vc.frame}>
-        <header className={vc.header}>
-          <div className={vc.brand}>
-            <Logo href="/swipe" size="sm" label={t('homeLabel')} />
-            <span className={vc.brandApp}>{t('brand')}</span>
-            <span className={vc.adultBadge}>{t('adultBadge')}</span>
-          </div>
-          <nav className={vc.headerNav}>
-            {user ? (
-              <>
-                <Link href="/swipe/deck" className={vc.headerLink}>
-                  {t('nav.deck')}
-                </Link>
-                <Link href="/swipe/matches" className={vc.headerLink}>
-                  {t('nav.matches')}
-                </Link>
-                <Link href="/swipe/photos" className={vc.headerLink}>
-                  {t('nav.photos')}
-                </Link>
-              </>
-            ) : null}
-            <Link href="/swipe/rules" className={vc.headerLink}>
-              {t('nav.rules')}
-            </Link>
-            <AppSwitcher current="swipe" locale={locale} />
-            <LocaleSwitcher className={vc.locale} />
-            {user ? (
-              <form action={logoutAction}>
-                <input type="hidden" name="locale" value={locale} />
-                <SubmitButton variant="ghost" size="sm" className={vc.signOut}>
-                  {t('signOut')}
-                </SubmitButton>
-              </form>
-            ) : null}
-          </nav>
-        </header>
-        <main className={vc.main}>{children}</main>
-        <footer className={vc.main}>
-          <p className={vc.muted}>
-            <Link href="/swipe/takedown" className={vc.inlineLink}>
-              {t('footerTakedown')}
-            </Link>
-            {' · '}
-            <Link href="/swipe/rules" className={vc.inlineLink}>
-              {t('nav.rules')}
-            </Link>
-            {' · '}
-            <Link href="/swipe/terms-of-use" className={vc.inlineLink}>
-              {t('legal.terms')}
-            </Link>
-            {' · '}
-            <Link href="/swipe/privacy-policy" className={vc.inlineLink}>
-              {t('legal.privacy')}
-            </Link>
-          </p>
-        </footer>
-      </div>
-    </WebappProvider>
+    <ClientMessages extra={APP_NAMESPACES.swipe}>
+      <WebappProvider app={webapp}>
+        <div className={vc.frame}>
+          <header className={vc.header}>
+            <div className={vc.brand}>
+              <Logo href="/swipe" size="sm" label={t('homeLabel')} />
+              <span className={vc.brandApp}>{t('brand')}</span>
+              <span className={vc.adultBadge}>{t('adultBadge')}</span>
+            </div>
+            <nav className={vc.headerNav}>
+              {user ? (
+                <>
+                  <Link href="/swipe/deck" className={vc.headerLink}>
+                    {t('nav.deck')}
+                  </Link>
+                  <Link href="/swipe/matches" className={vc.headerLink}>
+                    {t('nav.matches')}
+                  </Link>
+                  <Link href="/swipe/photos" className={vc.headerLink}>
+                    {t('nav.photos')}
+                  </Link>
+                </>
+              ) : null}
+              <Link href="/swipe/rules" className={vc.headerLink}>
+                {t('nav.rules')}
+              </Link>
+              <AppSwitcher current="swipe" locale={locale} />
+              <LocaleSwitcher className={vc.locale} />
+              {user ? (
+                <form action={logoutAction}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <SubmitButton variant="ghost" size="sm" className={vc.signOut}>
+                    {t('signOut')}
+                  </SubmitButton>
+                </form>
+              ) : null}
+            </nav>
+          </header>
+          <main className={vc.main}>{children}</main>
+          <footer className={vc.main}>
+            <p className={vc.muted}>
+              <Link href="/swipe/takedown" className={vc.inlineLink}>
+                {t('footerTakedown')}
+              </Link>
+              {' · '}
+              <Link href="/swipe/rules" className={vc.inlineLink}>
+                {t('nav.rules')}
+              </Link>
+              {' · '}
+              <Link href="/swipe/terms-of-use" className={vc.inlineLink}>
+                {t('legal.terms')}
+              </Link>
+              {' · '}
+              <Link href="/swipe/privacy-policy" className={vc.inlineLink}>
+                {t('legal.privacy')}
+              </Link>
+            </p>
+          </footer>
+        </div>
+      </WebappProvider>
+    </ClientMessages>
   );
 }

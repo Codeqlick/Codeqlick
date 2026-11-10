@@ -1,8 +1,8 @@
 import '@/styles/globals.css';
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
+import { ClientMessages } from '@/i18n/ClientMessages';
 import { localeOrDefault } from '@/i18n/locale';
 import { NotFoundContent } from './[locale]/(site)/NotFoundContent';
 import { fontVariables } from './fonts';
@@ -21,7 +21,7 @@ export default async function RootNotFound() {
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body>
-        <NextIntlClientProvider locale={locale}>
+        <ClientMessages locale={locale}>
           <a className="skip-link" href="#main">
             {t('skipToContent')}
           </a>
@@ -30,7 +30,7 @@ export default async function RootNotFound() {
             <NotFoundContent locale={locale} />
           </main>
           <SiteFooter locale={locale} />
-        </NextIntlClientProvider>
+        </ClientMessages>
       </body>
     </html>
   );
