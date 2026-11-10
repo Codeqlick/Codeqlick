@@ -56,8 +56,8 @@ container sets `NODE_ENV=development`, which breaks production builds.
 
 ## Next steps (in order)
 
-1. **Content.** Three blog posts and the three demo case studies are drafts in `/es/admin`: review and publish them.
-2. **First basic-website clients.** Admin → Webs → "Nueva web básica" (or from a lead of `/basic-website/request`); the client then edits it from the portal and chooses their domain there.
+1. **First basic-website clients.** Admin → Webs → "Nueva web básica" (or from a lead of `/basic-website/request`); the client then edits it from the portal and chooses their domain there. The menu or catalogue with QR is a paid extra, switched on in Admin → the project; the "Pedir cita" button is the client's own choice in their site editor (it links their Citas page).
+2. **Case studies.** The three demo case studies are still drafts in `/es/admin`: replace them with real projects (or delete them) so `/work` shows more than one.
 
 Client domains use OVH's API with the team's keys (in `/srv/codeqlick/.env`, restricted to the server's IP; setup in `deploy/README.md`).
 
