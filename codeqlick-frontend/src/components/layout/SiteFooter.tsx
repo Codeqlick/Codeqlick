@@ -25,6 +25,7 @@ export async function SiteFooter({ locale }: { locale: AppLocale }) {
   ];
   const clients = [
     { href: '/basic-website', label: tw('footerLink') },
+    { href: '/website-check', label: t('websiteCheck') },
     { href: '/login', label: t('login') },
   ];
 

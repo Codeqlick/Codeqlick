@@ -272,6 +272,7 @@ model Lead {
   proposal  Proposal?      @relation(fields: [proposalId], references: [id], onDelete: SetNull)
   bookings  Booking[]
   purchases SitePurchase[]
+  audits    SiteAudit[]
 
   @@index([status, createdAt])
   @@map("leads")
@@ -1791,4 +1792,38 @@ model ErrorGroup {
 
   @@index([resolvedAt, lastSeenAt])
   @@map("error_groups")
+}
+
+/// A free website check (architecture 4.12): a visitor's site analysed in the background.
+model SiteAudit {
+  id         String          @id @default(uuid()) @db.Uuid
+  /// The start URL, normalised (scheme, host and path).
+  url        String
+  host       String
+  name       String?
+  email      String
+  locale     Locale
+  status     SiteAuditStatus @default(PENDING)
+  /// 0–100, once DONE.
+  score      Int?
+  /// The final URL, each category's score and each check's id, status and values.
+  result     Json?
+  /// Why it failed (English), when FAILED.
+  error      String?
+  leadId     String?         @map("lead_id") @db.Uuid
+  finishedAt DateTime?       @map("finished_at") @db.Timestamptz(3)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@index([status, createdAt])
+  @@map("site_audits")
+}
+
+enum SiteAuditStatus {
+  PENDING
+  DONE
+  FAILED
 }

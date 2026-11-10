@@ -65,7 +65,8 @@
     "security": "Security",
     "explore": "Studio",
     "clients": "Clients",
-    "contactTitle": "Let's talk"
+    "contactTitle": "Let's talk",
+    "websiteCheck": "Free website check"
   },
   "Home": {
     "hero": {
@@ -404,7 +405,8 @@
     "price": "Enter a valid amount, for example 1250 or 1250.50.",
     "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours).",
     "domain": "Type a domain like peluqueria-ana.com.",
-    "confirmMismatch": "That doesn’t match: type it exactly."
+    "confirmMismatch": "That doesn’t match: type it exactly.",
+    "website": "Type your website's address, like yourwebsite.com."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -2414,7 +2416,10 @@
     "ctaTitle": "Shall we build yours?",
     "ctaBody": "Tell us about your business and we'll get back to you within two business days with a fixed-price proposal.",
     "servicesBanner": "Run a local business? See the basic website: ready in a few days, from €200.",
-    "footerLink": "Basic website"
+    "footerLink": "Basic website",
+    "checkTitle": "Already have a website?",
+    "checkBody": "We'll check it for free: speed, mobile, Google and security, with a report in your inbox.",
+    "checkLink": "Check my website"
   },
   "ManagedSite": {
     "reportHint": "On the 1st of each month, once the site is on its domain, the client gets last month's report: visits, form messages and time online.",
@@ -4537,5 +4542,88 @@
     "posterKicker": "Nuestra carta",
     "posterHeadline": "Escanea para ver la carta",
     "posterHint": "Apunta con la cámara de tu móvil al código"
+  },
+  "WebsiteCheck": {
+    "metaTitle": "Free website check",
+    "metaDescription": "We check your website for free: speed, mobile, Google and security. Get a clear report in your inbox in under a minute.",
+    "eyebrow": "Free check",
+    "title": "How is your website doing? We'll check it for free",
+    "lead": "Type your website's address and in under a minute we'll tell you how fast it is, how it looks on phones, whether it's ready for Google and whether it's secure. No jargon, and the report in your inbox.",
+    "areasTitle": "What we check",
+    "areas": {
+      "speed": {
+        "title": "Speed",
+        "body": "How long it takes to answer and load, and whether it's heavier than it should be."
+      },
+      "mobile": {
+        "title": "Mobile",
+        "body": "Whether it fits phone screens and lets people zoom."
+      },
+      "seo": {
+        "title": "Google",
+        "body": "Title, description, headings, sitemap and what Google needs to show you."
+      },
+      "security": {
+        "title": "Security",
+        "body": "Secure connection, certificate and the basic browser protections."
+      }
+    },
+    "stepsTitle": "How it works",
+    "steps": {
+      "address": {
+        "title": "Tell us your website",
+        "body": "Just the address and your email. We need no passwords."
+      },
+      "check": {
+        "title": "We check it",
+        "body": "We open your website as a visitor and Google would, and test more than 20 points."
+      },
+      "report": {
+        "title": "You get the report",
+        "body": "You see it straight away and we email it to you, with what we'd improve first."
+      }
+    },
+    "form": {
+      "url": "Your website's address",
+      "urlPlaceholder": "yourwebsite.com",
+      "email": "Your email",
+      "emailHint": "We'll send the report there.",
+      "name": "Your name",
+      "acceptPrivacy": "I agree to you using my details to send me the report and answer me, as the <link>privacy policy</link> explains.",
+      "honeypot": "Leave this field empty",
+      "submit": "Check my website",
+      "sending": "Sending…",
+      "sent": "Got it. You'll have the report in your inbox in a few minutes.",
+      "error": "Please check the form.",
+      "rateLimited": "You've asked for many checks in a row. Wait a little and try again.",
+      "failed": "We couldn't ask for the check. Please try again in a moment."
+    },
+    "reportMetaTitle": "Your website report",
+    "report": {
+      "back": "Check another website",
+      "pendingTitle": "Checking {host}…",
+      "pendingBody": "It takes under a minute; this page updates itself. We'll also email you the report.",
+      "failedTitle": "We couldn't check {host}",
+      "tryAgain": "Try again",
+      "contact": "Write to us",
+      "scoreLabel": "Score: {score} out of 100",
+      "grade": {
+        "good": "{host} is in good shape",
+        "fair": "{host} could be a lot better",
+        "poor": "{host} needs work"
+      },
+      "summary": "{count, plural, =0 {No important problems} one {# thing to improve} other {# things to improve}} · Checked on {date}",
+      "categoriesLabel": "Score by area",
+      "status": {
+        "pass": "fine",
+        "warn": "could be better",
+        "fail": "to fix"
+      },
+      "ctaTitle": "Want us to fix it?",
+      "ctaBody": "We'll tell you how and what it would cost, no strings attached. And if your website is out of date, we can build you a new one with domain, email and hosting included.",
+      "ctaContact": "Ask for a quote",
+      "ctaBasic": "See the basic website",
+      "contactMessage": "Hi, I checked my website {url} with your tool ({score}/100) and I'd like to improve it."
+    }
   }
 }

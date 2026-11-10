@@ -146,3 +146,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* "Already have a website?": the free website check. */
+.check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-12);
+}
+
+.check p {
+  margin: 0;
+}

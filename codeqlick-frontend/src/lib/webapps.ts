@@ -48,6 +48,7 @@ export const SITE_SECTIONS = [
   'security',
   'services',
   'terms',
+  'website-check',
   'work',
 ];
 
