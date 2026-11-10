@@ -61,6 +61,9 @@ const LIVE = [
   /^hours\.\d+\.(days|hours)$/,
   /^notices\.\d+\.text$/,
   /^booking\.label$/,
+  /^menu\.(title|intro|note)$/,
+  /^menu\.categories\.\d+\.name$/,
+  /^menu\.categories\.\d+\.items\.\d+\.(name|description|price)$/,
 ];
 const isLive = (path: string) => LIVE.some((pattern) => pattern.test(path));
 

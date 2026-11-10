@@ -829,6 +829,8 @@ export type ManagedSite = {
   release: string | null;
   /** The template's `Site` object without url, form and demo. */
   content: Record<string, unknown>;
+  /** The menu extra is on (architecture 8.2). */
+  menuEnabled: boolean;
   updatedAt: string;
 };
 
@@ -905,6 +907,8 @@ export type PortalSite = {
   unpublishedSince: string | null;
   /** Legal data the online site lacks (its legal notice needs them). */
   legalMissing: ('taxId' | 'address')[];
+  /** The menu extra: turned on by the team; published once the online site has it. */
+  menu: { enabled: boolean; published: boolean };
 };
 
 /** Visits of a managed client site, with its form's messages (architecture 8.2). */
@@ -946,4 +950,6 @@ export type SiteEditorView = {
   } | null;
   /** The Citas pages of the people of the client account, for the "Pedir cita" button. */
   bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
+  /** The menu extra is on: the client can edit and publish it (architecture 8.2). */
+  menuEnabled: boolean;
 };

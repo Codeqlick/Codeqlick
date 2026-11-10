@@ -22,6 +22,35 @@ export type BodyFont = 'inter' | 'outfit';
 /** The sections between the hero and the contact, which a site may reorder. */
 export type SectionKey = 'services' | 'about' | 'gallery' | 'testimonials';
 
+/** The 14 allergens restaurants must declare in the EU (Regulation 1169/2011, annex II). */
+export type Allergen =
+  | 'gluten'
+  | 'crustaceans'
+  | 'eggs'
+  | 'fish'
+  | 'peanuts'
+  | 'soybeans'
+  | 'milk'
+  | 'nuts'
+  | 'celery'
+  | 'mustard'
+  | 'sesame'
+  | 'sulphites'
+  | 'lupin'
+  | 'molluscs';
+
+/** A menu or catalogue, published on its own page `/carta` (a QR on the table leads there). */
+export interface Menu {
+  title: string;
+  intro?: string;
+  categories: Array<{
+    name: string;
+    items: Array<{ name: string; description?: string; price?: string; allergens?: Allergen[] }>;
+  }>;
+  /** Closing line, e.g. "IVA incluido. Pan y aperitivo, 2 €". */
+  note?: string;
+}
+
 export interface Site {
   /** A demo of a made-up business: phone and WhatsApp links don't dial anyone. */
   demo?: boolean;
@@ -126,6 +155,8 @@ export interface Site {
   navLabels?: Partial<Record<SectionKey, string>>;
   /** Closing call to action before the contact section. */
   banner?: { title: string; text?: string; link: Link };
+  /** The menu or catalogue (`/carta`), linked from the header and the home page. */
+  menu?: Menu;
   /**
    * Online appointments: a "Pedir cita" button (in the header, the contact section and for search
    * engines) that opens the business's booking page on Citas (`https://citas.codeqlick.com/es/…`).

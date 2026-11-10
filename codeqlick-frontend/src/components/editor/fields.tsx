@@ -390,6 +390,52 @@ export function ListField({
   );
 }
 
+/** The 14 allergens of the EU, in the regulation's order (the template's `Allergen`). */
+export const ALLERGENS = [
+  'gluten',
+  'crustaceans',
+  'eggs',
+  'fish',
+  'peanuts',
+  'soybeans',
+  'milk',
+  'nuts',
+  'celery',
+  'mustard',
+  'sesame',
+  'sulphites',
+  'lupin',
+  'molluscs',
+] as const;
+
+/** A dish's allergens: one checkbox each; none checked removes the list. */
+export function AllergensField({ path, label }: { path: string; label: string }) {
+  const { content, set } = useEditor();
+  const t = useTranslations('SiteEditor.allergenNames');
+  const value = getAt(content, path);
+  const chosen = Array.isArray(value) ? (value as string[]) : [];
+  return (
+    <fieldset className={styles.allergens}>
+      <legend className={styles.label}>{label}</legend>
+      {ALLERGENS.map((allergen) => (
+        <label key={allergen} className={styles.check}>
+          <input
+            type="checkbox"
+            checked={chosen.includes(allergen)}
+            onChange={(event) => {
+              const next = event.target.checked
+                ? ALLERGENS.filter((a) => a === allergen || chosen.includes(a))
+                : chosen.filter((a) => a !== allergen);
+              set(path, next.length > 0 ? next : undefined);
+            }}
+          />
+          {t(allergen)}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 /** Shows or hides an optional part of the site: `blank` is what it starts with. */
 export function Toggle({
   path,

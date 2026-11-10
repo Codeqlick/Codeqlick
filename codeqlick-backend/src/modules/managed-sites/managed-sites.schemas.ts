@@ -69,6 +69,60 @@ const bookingUrl = z
     );
   }, 'The link of your booking page on Citas');
 
+/** The 14 allergens restaurants must declare in the EU (Regulation 1169/2011, annex II). */
+export const ALLERGENS = [
+  'gluten',
+  'crustaceans',
+  'eggs',
+  'fish',
+  'peanuts',
+  'soybeans',
+  'milk',
+  'nuts',
+  'celery',
+  'mustard',
+  'sesame',
+  'sulphites',
+  'lupin',
+  'molluscs',
+] as const;
+
+/** The menu or catalogue on its own page, `/carta` (architecture 8.2; a paid extra). */
+const menu = z
+  .object({
+    title: text(80),
+    intro: optionalText(300),
+    categories: z
+      .array(
+        z
+          .object({
+            name: text(80),
+            items: z
+              .array(
+                z
+                  .object({
+                    name: text(120),
+                    description: optionalText(300),
+                    price: optionalText(30),
+                    allergens: z
+                      .array(z.enum(ALLERGENS))
+                      .max(ALLERGENS.length)
+                      .refine((list) => new Set(list).size === list.length, 'Repeated allergen')
+                      .optional(),
+                  })
+                  .strict(),
+              )
+              .min(1)
+              .max(60),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(20),
+    note: optionalText(300),
+  })
+  .strict();
+
 /**
  * A managed site's content: the template's `Site` type (codeqlick-sites/web-basica/src/types.ts)
  * without `url`, `form` and `demo`, which are set when it is built. Keep both in step.
@@ -208,6 +262,7 @@ export const siteContentSchema = z
       .object({ title: text(120), text: optionalText(300), link })
       .strict()
       .optional(),
+    menu: menu.optional(),
     /** The "Pedir cita" button: a Citas booking page and the button's text (architecture 8.2). */
     booking: z
       .object({ url: bookingUrl, label: text(40) })
@@ -261,6 +316,10 @@ export type CreateSiteInput = z.infer<typeof createSiteSchema>;
 
 export const updateSiteSchema = z.object({ domain: domain.nullable() }).strict();
 export type UpdateSiteInput = z.infer<typeof updateSiteSchema>;
+
+/** The menu extra, turned on or off by the team. */
+export const siteMenuBodySchema = z.object({ enabled: z.boolean() }).strict();
+export type SiteMenuBody = z.infer<typeof siteMenuBodySchema>;
 
 /** The client's own domain, chosen from the portal. */
 export const siteDomainBodySchema = z.object({ name: domain.nullable() }).strict();

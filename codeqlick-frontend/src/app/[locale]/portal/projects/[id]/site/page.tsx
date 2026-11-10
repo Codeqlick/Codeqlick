@@ -95,6 +95,11 @@ export default async function PortalSitePage({
           <Button href={`/portal/projects/${id}/site/reviews`} variant="outline">
             {t('reviewKit')}
           </Button>
+          {site.menu.published ? (
+            <Button href={`/portal/projects/${id}/site/menu`} variant="outline">
+              {t('menuKit')}
+            </Button>
+          ) : null}
         </div>
       </section>
 
