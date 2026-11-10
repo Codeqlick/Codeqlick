@@ -30,7 +30,7 @@ export default async function AdminProjectsPage({ params, searchParams }: PagePr
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('name')}</th>
@@ -46,15 +46,15 @@ export default async function AdminProjectsPage({ params, searchParams }: PagePr
                     <th scope="row">
                       <Link href={`/admin/projects/${project.id}`}>{project.name}</Link>
                     </th>
-                    <td>
+                    <td data-label={t('client')}>
                       {project.client.name}
                       <span className={styles.sub}>{project.client.email}</span>
                     </td>
-                    <td>
+                    <td data-label={t('phase')} data-wide>
                       <Badge tone="brand">{tp(project.phase)}</Badge>
                     </td>
-                    <td>{project.progress}%</td>
-                    <td>{formatDate(project.dueDate, locale)}</td>
+                    <td data-label={t('progress')}>{project.progress}%</td>
+                    <td data-label={t('dueDate')}>{formatDate(project.dueDate, locale)}</td>
                   </tr>
                 ))}
               </tbody>

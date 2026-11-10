@@ -127,13 +127,23 @@
   background: var(--color-surface-app);
 }
 
-.listTable tbody th a::after {
+/* The row's own link is the title's first link; other links in the row stay clickable above it. */
+.listTable tbody a {
+  position: relative;
+  z-index: 1;
+}
+
+.listTable tbody th > a:first-child {
+  position: static;
+}
+
+.listTable tbody th > a:first-child::after {
   content: '';
   position: absolute;
   inset: 0;
 }
 
-.listTable tbody th a:focus-visible {
+.listTable tbody th > a:first-child:focus-visible {
   outline: none;
 }
 
@@ -215,7 +225,8 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  /* Six to a row on a laptop (twelve counters, two even rows), two to a row on phones. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
   gap: var(--space-4);
 }
 
@@ -291,6 +302,12 @@
 
 .filters > div {
   min-width: 12rem;
+}
+
+/* The search box gets room for its placeholder ("Name, email or company…"). */
+.filters > div:has(input[type='search']) {
+  flex: 1 1 18rem;
+  max-width: 26rem;
 }
 
 /* Details */

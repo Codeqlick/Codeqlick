@@ -31,7 +31,7 @@ export default async function AdminPortfolioPage({ params, searchParams }: PageP
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('itemTitle')}</th>
@@ -51,16 +51,16 @@ export default async function AdminPortfolioPage({ params, searchParams }: PageP
                       </Link>
                       <span className={styles.sub}>/{item.slug}</span>
                     </th>
-                    <td>{item.clientName ?? tc('none')}</td>
-                    <td>
+                    <td data-label={t('clientName')}>{item.clientName ?? tc('none')}</td>
+                    <td data-label={t('status')} data-wide>
                       <PublishStatusBadge
                         status={item.status}
                         scheduled={isScheduled(item)}
                         label={isScheduled(item) ? ts('SCHEDULED') : ts(item.status)}
                       />
                     </td>
-                    <td>{item.sortOrder}</td>
-                    <td>{formatDateTime(item.updatedAt, locale)}</td>
+                    <td data-label={t('sortOrder')}>{item.sortOrder}</td>
+                    <td data-label={t('updated')}>{formatDateTime(item.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>
