@@ -127,6 +127,11 @@ export interface Site {
   /** Closing call to action before the contact section. */
   banner?: { title: string; text?: string; link: Link };
   /**
+   * Online appointments: a "Pedir cita" button (in the header, the contact section and for search
+   * engines) that opens the business's booking page on Citas (`https://citas.codeqlick.com/es/…`).
+   */
+  booking?: { url: string; label: string };
+  /**
    * Closures and special hours: a bar on top of every page from `from` (or at once) to the end of
    * `until` (`YYYY-MM-DD`, the visitor's date), e.g. "Cerrado por vacaciones del 10 al 20 de agosto".
    */

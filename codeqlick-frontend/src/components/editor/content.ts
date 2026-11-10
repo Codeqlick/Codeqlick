@@ -60,6 +60,7 @@ const LIVE = [
   /^contactSection\.(title|intro)$/,
   /^hours\.\d+\.(days|hours)$/,
   /^notices\.\d+\.text$/,
+  /^booking\.label$/,
 ];
 const isLive = (path: string) => LIVE.some((pattern) => pattern.test(path));
 

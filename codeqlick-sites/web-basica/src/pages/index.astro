@@ -36,6 +36,15 @@ const schema = {
       }
     : {}),
   sameAs: Object.values(site.social ?? {}).filter(Boolean),
+  ...(site.booking
+    ? {
+        potentialAction: {
+          '@type': 'ReserveAction',
+          name: site.booking.label,
+          target: { '@type': 'EntryPoint', urlTemplate: site.booking.url },
+        },
+      }
+    : {}),
 };
 ---
 

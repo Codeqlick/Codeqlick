@@ -18,6 +18,15 @@ const include = {
 export class ManagedSitesRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** The Citas booking pages of the people of a client account: the owner and their members. */
+  bookingPagesOf(clientId: string) {
+    return this.prisma.bookingPage.findMany({
+      where: { owner: { OR: [{ id: clientId }, { memberOfId: clientId }] } },
+      select: { slug: true, title: true, enabled: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   findProject(id: string) {
     return this.prisma.clientProject.findUnique({
       where: { id },

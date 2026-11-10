@@ -531,7 +531,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/portal/projects/:id/status` | `SiteMonitor` view (`{ status, statusSince, uptime30, days: [{ day, checks, ratio }] (30 Madrid days), certExpiresAt, lastCheckedAt, ... }`); 404 unless the project is the caller's and monitored |
 | GET / PUT | `/portal/projects/:id/site` | The client's managed website: `{ status, preset, url, previewUrl, domain: { name, state, checkedAt, mail, nicHandle, serverIp }, lastBuildAt, businessName, colors: { primary, primaryText }, editable, unpublishedSince, legalMissing }` (`unpublishedSince`: when the editor's draft was saved, if it differs from the published site, else null; `legalMissing`: `taxId`/`address` the published legal data lacks; `nicHandle` and `serverIp` are what the client sets at their registrar), `editable` being what they may change (`tagline`, `contact` — with `reviewUrl`, the Google review link of section 8.2 —, `hours`, `hero: { title, text }`, `services`, `about: { title, paragraphs }`, `gallery`, `testimonials`; brand, theme and legal data stay with the team) / `{ site: editable }` → merged into the content, validated as a whole (400 with the field in the message), saved as a change by the client (a revision) and published; the team inbox is emailed what changed (or that publishing failed). Changing the hours drops the machine-readable `openingHoursSpec`. 404 unless the project is the caller's and has a managed site. Limited to 30/hour |
 | PUT | `/portal/projects/:id/site/domain` | `{ name: string \| null }` → the site: the client chooses, changes or drops their own domain; it is rebuilt and the domain checked right away. 400 for a Codeqlick domain, 409 when another site uses it. Limited to 10/hour |
-| GET / PUT / DELETE | `/portal/projects/:id/site/draft` | The website editor (section 8.2): `{ content, preset, presets: [{ key, theme, images }], published: { content, preset }, draft: { updatedAt, previewUrl, previewStatus } \| null }` (`content`/`preset`: the draft's, or the published ones without a draft) / `{ content, preset?, rebuild? }` → the same: saved as the draft (400 with every issue as `{ path, message }`, nothing saved), its preview built when `rebuild` (or when there was none) / `204`: the draft is discarded and its preview deleted. Limited to 600/hour |
+| GET / PUT / DELETE | `/portal/projects/:id/site/draft` | The website editor (section 8.2): `{ content, preset, presets: [{ key, theme, images }], published: { content, preset }, draft: { updatedAt, previewUrl, previewStatus } \| null, bookingPages: [{ slug, title, url, enabled }] }` (`content`/`preset`: the draft's, or the published ones without a draft; `bookingPages`: the Citas pages of the people of the client account, for the site's booking button) / `{ content, preset?, rebuild? }` → the same: saved as the draft (400 with every issue as `{ path, message }`, nothing saved), its preview built when `rebuild` (or when there was none) / `204`: the draft is discarded and its preview deleted. Limited to 600/hour |
 | POST | `/portal/projects/:id/site/draft/publish` | The draft becomes the site's content (a revision of the previous one) and is published; the team inbox is emailed what changed. 409 without a draft. Limited to 30/hour |
 | POST | `/portal/projects/:id/site/draft/style` | `{ preset }` → the editor view: the draft takes that style's colours, fonts, corners, section order and photos (uploaded photos stay), keeping every text |
 | GET | `/site-drafts/:key/*` | Public (the key is the secret): a file of the draft's preview, streamed from the builder; 404 when it doesn't exist or was discarded |
@@ -1033,6 +1033,19 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   server), the link to copy and send by WhatsApp or email, and a printable A5 poster ("¿Te ha
   gustado? Déjanos tu opinión en Google", business name, QR, short steps) printed or saved as PDF
   from the browser. Without the link the page explains how to get it. The project page links to it.
+- **Online appointments** (Citas on the basic website): the site content's `booking` is
+  `{ url, label }`, the link of a Citas booking page (section 4.9;
+  `<citas host>/{es|en}/<slug>`, checked against the host's `citas.` subdomain) and its button's
+  text (up to 40 characters, "Pedir cita" by default). With it the template shows that button in
+  the header (beside "Llamar", which becomes the secondary one; on phones it stays in the bar next
+  to the menu and also heads the menu), at the top of the contact section ("Reserva online") and
+  tells search engines with a schema.org `ReserveAction`. The website editor's "Citas online"
+  part turns it on, picks one of the booking pages of the people of the client account (the
+  editor view's `bookingPages`: title, link, whether it is paused), writes the button's text
+  (changed live in the preview) and, without any page, links to Citas to create one
+  (`/editar/nueva`, a new tab). A paused page keeps its link, so the button stays and Citas says
+  it takes no bookings for now. The appointments themselves are Citas's: emails, reminders and
+  cancelling as in section 4.9.
 - **Notices** (closures and special hours): the site content's `notices` (up to 5) are short texts
   with dates, `{ text, from?, until }` (`YYYY-MM-DD`, `until` not before `from`): "Cerrado por
   vacaciones del 10 al 20 de agosto", "El 12 de octubre abrimos de 10:00 a 14:00". Each shows as a

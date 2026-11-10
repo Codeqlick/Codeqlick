@@ -6,6 +6,7 @@ import { SiteEditor } from '@/components/editor/SiteEditor';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMySite, getSiteEditor } from '@/lib/api/portal-site';
+import { webappUrl } from '@/lib/webapp-seo';
 
 /** The website editor (architecture 8.2, decision 18): everything of the site, on a draft. */
 export default async function SiteEditorPage({
@@ -44,6 +45,7 @@ export default async function SiteEditorPage({
         initial={view}
         presetNames={presetNames}
         liveUrl={site.url}
+        newBookingPageUrl={webappUrl('citas', locale, '/editar/nueva')}
       />
     </div>
   );
