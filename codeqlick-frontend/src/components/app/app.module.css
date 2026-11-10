@@ -47,6 +47,20 @@
   padding: var(--space-6);
 }
 
+/* Text in a panel, then what follows it (buttons, a form, a list): give the group some air. */
+.panel > p + p {
+  margin-top: var(--space-2);
+}
+
+.panel > p + :not(p) {
+  margin-top: var(--space-4);
+}
+
+/* Short forms (passwords, codes) read better at a comfortable width than across the panel. */
+.formNarrow {
+  max-width: 34rem;
+}
+
 .panelTitle {
   font-size: 1.15rem;
   letter-spacing: -0.02em;
@@ -100,6 +114,87 @@
 
 .table tbody th {
   font-weight: 600;
+}
+
+/* Lists the client opens items from: the whole row is the link (its title's ::after covers the
+   row) and lights up under the pointer. On phones each row stacks, every value under its label. */
+.listTable tbody tr {
+  position: relative;
+  transition: background-color var(--transition-fast);
+}
+
+.listTable tbody tr:hover {
+  background: var(--color-surface-app);
+}
+
+.listTable tbody th a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.listTable tbody th a:focus-visible {
+  outline: none;
+}
+
+.listTable tbody tr:has(a:focus-visible) {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: -3px;
+}
+
+@media (max-width: 600px) {
+  .listTable thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .listTable,
+  .listTable tbody,
+  .listTable tr {
+    display: block;
+  }
+
+  .listTable tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-4);
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .listTable tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .listTable tbody th,
+  .listTable tbody td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .listTable tbody th,
+  .listTable tbody td[data-wide] {
+    grid-column: 1 / -1;
+  }
+
+  .listTable tbody th {
+    font-size: 1.05rem;
+  }
+
+  .listTable tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.15rem;
+    font-family: var(--font-family-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-slate);
+  }
 }
 
 .table a {
@@ -380,12 +475,42 @@
   overflow-wrap: anywhere;
 }
 
+/* "Write a comment", "Share an access", "Decline": a link-like toggle with a turning chevron. */
 .commentForm > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 36px;
   cursor: pointer;
   width: fit-content;
+  list-style: none;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-fuchsia-dark);
+}
+
+.commentForm > summary::-webkit-details-marker {
+  display: none;
+}
+
+.commentForm > summary::before {
+  content: '';
+  flex: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--transition-base);
+}
+
+.commentForm[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.commentForm > summary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .commentForm[open] > summary {

@@ -4,6 +4,56 @@
   padding-bottom: var(--space-12);
 }
 
+/* The basic-website offer, as a pill under the intro. */
+.banner {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.banner:hover {
+  border-color: var(--color-fuchsia);
+  background: var(--color-blush);
+  color: var(--color-ink);
+}
+
+.bannerTag {
+  flex: none;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+}
+
+.bannerArrow {
+  color: var(--color-fuchsia-dark);
+  transition: transform var(--transition-base);
+}
+
+.banner:hover .bannerArrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 480px) {
+  .banner {
+    border-radius: var(--radius-lg);
+  }
+}
+
 .detail {
   display: flex;
   flex-direction: column;
@@ -13,6 +63,11 @@
 }
 
 .icon {
+  width: 3.25rem;
+  height: 3.25rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
   color: var(--color-fuchsia);
 }
 
@@ -76,6 +131,13 @@
   color: var(--color-fuchsia-dark);
   font-weight: 600;
   text-decoration: none;
+  /* Fuchsia on blush is 4.2:1; the darker fuchsia passes AA. */
+  color: var(--color-fuchsia-dark);
+}
+
+.processLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .processLink:hover {

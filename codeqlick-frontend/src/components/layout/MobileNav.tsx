@@ -3,7 +3,9 @@
 import NextLink from 'next/link';
 import { useEffect, useState } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import { LocaleSwitcher } from './LocaleSwitcher';
+import { isActivePath } from './NavLinks';
 import styles from './MobileNav.module.css';
 
 type Item = {
@@ -12,13 +14,19 @@ type Item = {
   /** Already locale-prefixed (hash links). */ raw?: boolean;
 };
 
-/** Menu button + panel shown below 720px. The text nav links are hidden at that width. */
+/**
+ * Menu button + panel shown below 720px. The text nav links are hidden at that width; below
+ * 480px the header's call to action is too, and lives at the end of this panel.
+ */
 export function MobileNav({
   items,
   labels,
+  cta,
 }: {
   items: Item[];
   labels: { open: string; close: string; menu: string };
+  /** Main call to action, shown as a full-width button at the end of the panel. */
+  cta?: { href: string; label: string };
 }) {
   const pathname = usePathname();
   // The panel is "open for a given path": navigating elsewhere closes it without an effect.
@@ -67,7 +75,11 @@ export function MobileNav({
                   {item.label}
                 </NextLink>
               ) : (
-                <Link href={item.href} className={styles.item}>
+                <Link
+                  href={item.href}
+                  className={styles.item}
+                  aria-current={isActivePath(pathname, item.href) ? 'page' : undefined}
+                >
                   {item.label}
                 </Link>
               )}
@@ -76,6 +88,11 @@ export function MobileNav({
         </ul>
         <div className={styles.footer}>
           <LocaleSwitcher />
+          {cta ? (
+            <Link href={cta.href} className={buttonClassName({ size: 'sm' })}>
+              {cta.label}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>

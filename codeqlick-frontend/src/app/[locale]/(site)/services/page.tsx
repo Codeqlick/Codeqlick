@@ -36,11 +36,13 @@ export default async function ServicesPage({ params }: PageProps) {
           <p className="eyebrow">{t('eyebrow')}</p>
           <h1 className={home.title}>{t('title')}</h1>
           <p className={home.lead}>{t('lead')}</p>
-          <p>
-            <Link href="/basic-website" className={home.more}>
-              {tw('servicesBanner')}
-            </Link>
-          </p>
+          <Link href="/basic-website" className={styles.banner}>
+            <span className={styles.bannerTag}>{tw('eyebrow')}</span>
+            <span>{tw('servicesBanner')}</span>
+            <span className={styles.bannerArrow} aria-hidden="true">
+              →
+            </span>
+          </Link>
         </div>
       </header>
 

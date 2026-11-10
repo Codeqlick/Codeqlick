@@ -38,7 +38,7 @@ export async function signIn(page: Page, user: { email: string; password: string
   for (let attempt = 0; ; attempt++) {
     await page.goto(`/es/login${next ? `?next=${encodeURIComponent(next)}` : ''}`);
     await page.getByLabel('Correo electrónico').fill(user.email);
-    await page.getByLabel('Contraseña').fill(user.password);
+    await page.getByLabel('Contraseña', { exact: true }).fill(user.password);
     await page.getByRole('button', { name: 'Entrar' }).click();
     const signedIn = page.waitForURL((url) => !url.pathname.endsWith('/login'));
     const toldToWait = rateLimited.waitFor();
