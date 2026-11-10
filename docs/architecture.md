@@ -832,7 +832,9 @@ src/
     robots.ts, sitemap.ts
   components/
     brand/                     Logo, Symbol
-    layout/                    SiteHeader, SiteFooter, LocaleSwitcher, AppShell (portal/admin)
+    layout/                    SiteHeader (NavLinks marks the current section), MobileNav, SiteFooter (studio, clients
+                               and contact columns; tagline in the bottom bar, away from the logo), LocaleSwitcher,
+                               AppShell (portal/admin)
     ui/                        Button, Field, Select, Textarea, Badge, Card, Pagination, EmptyState
     markdown/                  Markdown renderer (react-markdown, no raw HTML)
     content/                   PostArticle, CaseStudyArticle: shared by the public pages and the admin previews
@@ -873,6 +875,7 @@ src/
 - **Emails, readability:** web addresses in an email's text are links that may break anywhere, and on phones the card's padding shrinks, so no email is wider than a 375 px screen. A website request's summary (the lead's message and the requester's acknowledgement) is written in the requester's language. A support request's status email says what the new status means for the client ("We need your reply" when it waits on them).
 - **Browser tests, wider:** the E2E job also starts the site builder and gives the API `MAIL_OUTBOX_DIR` (honoured only with `NODE_ENV=test`), where it writes every email it sends as JSON; the tests read links from there. They cover signing up with the email confirmation, an admin turning on two-step verification and signing in with a code, a basic-website request and its acknowledgement, and the client's website editor (draft, preview, errors, publishing). Paying with Stripe stays covered by the API's e2e tests, which fake Checkout and sign the webhooks.
 - **Accessibility:** semantic HTML, labels on every input, visible focus, 4.5:1 contrast (small fuchsia text on white uses `--color-fuchsia-dark`: the brand fuchsia is 4.3:1), works without JavaScript for reading content.
+- **Public UI patterns:** the header marks the visitor's section with `aria-current="page"` (a fuchsia underline; a left bar in the mobile menu); below 480px the header's call to action moves to the end of the mobile menu. Cards that lead somewhere (services, recent work) are clickable as a whole: the link's `::before` covers the card, which lifts on hover and draws the focus ring. Post and case-study cards lift and zoom their cover. Field errors carry a "!" badge so they don't rely on colour alone. Pages of the public site sit in `.site-shell`, so the footer stays at the bottom of short pages. Password fields (`FormInput type="password"`) have a show-password toggle (`aria-pressed`). Blog posts show a reading-progress bar (CSS scroll-driven animation, none without support or with reduced motion). The website request's style cards mark the chosen one with a badge on the thumbnail's corner. On phones the portal and admin bar keep logo and account controls on one row, the tabs below. In the portal, the proposals and support lists (`listTable`) make the whole row the link and, on phones, stack each row with every value under its label; panels space their text from the buttons or form that follow; short forms (account, accepting a proposal) are capped at a readable width (`formNarrow`); "write a comment"-style toggles (`commentForm`) carry a turning chevron, as do the editor's sections. Fieldsets that hold a scrolling row (the booking days) set `min-width: 0` so they don't widen the page. Motion uses `--transition-fast` / `--transition-base` and is switched off under `prefers-reduced-motion`.
 
 ### 6.3 Web apps on subdomains (`lib/webapps.ts`)
 

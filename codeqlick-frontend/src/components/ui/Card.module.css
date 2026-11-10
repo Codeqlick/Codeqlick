@@ -8,6 +8,11 @@
   min-width: 0;
 }
 
+/* A heading after other content in the card starts a new group: give it room. */
+.card > :not(:first-child):is(h2, h3) {
+  margin-top: var(--space-4);
+}
+
 .bordered {
   border: 1px solid var(--color-line);
 }

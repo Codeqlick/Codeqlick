@@ -13,8 +13,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  min-height: var(--header-height);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
 }
 
 .nav {
@@ -24,14 +25,43 @@
 }
 
 .link {
+  position: relative;
   color: var(--color-ink);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
+  transition: color var(--transition-fast);
 }
 
 .link:hover {
   color: var(--color-fuchsia);
+}
+
+/* The section the visitor is in: a short fuchsia bar under the link. */
+.link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.45rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-fuchsia);
+  transform: scaleX(0);
+  transition: transform var(--transition-fast);
+}
+
+.link:hover::after,
+.link[aria-current='page']::after {
+  transform: scaleX(1);
+}
+
+.link[aria-current='page'] {
+  color: var(--color-fuchsia-dark);
+}
+
+.nav .cta {
+  white-space: nowrap;
 }
 
 .actions {
@@ -48,5 +78,12 @@
 
   .nav {
     gap: 0.5rem;
+  }
+}
+
+/* On small phones the call to action moves into the menu, so the logo keeps its room. */
+@media (max-width: 480px) {
+  .nav .cta {
+    display: none;
   }
 }

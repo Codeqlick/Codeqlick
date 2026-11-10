@@ -9,6 +9,8 @@
 
 html {
   scroll-behavior: smooth;
+  /* Anchors land below the sticky header. */
+  scroll-padding-top: calc(var(--header-height) + var(--space-4));
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -64,10 +66,17 @@ h4 {
   margin: 0;
   letter-spacing: -0.03em;
   line-height: 1.15;
+  text-wrap: balance;
 }
 
 p {
   margin: 0;
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--color-fuchsia);
+  color: var(--color-white);
 }
 
 code,
@@ -81,6 +90,18 @@ kbd {
   outline: 3px solid var(--color-fuchsia);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
+}
+
+/* Public site: the footer stays at the bottom of short pages. */
+.site-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.site-shell > main {
+  flex: 1 0 auto;
 }
 
 /* Utilities */

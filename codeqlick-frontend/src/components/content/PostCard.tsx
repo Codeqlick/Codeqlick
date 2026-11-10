@@ -27,12 +27,14 @@ export async function PostCard({
   return (
     <Card as="li" bordered>
       {post.coverImageUrl ? (
-        <CoverImage
-          src={post.coverImageUrl}
-          className={styles.cover}
-          variant="card"
-          priority={priority}
-        />
+        <div className={styles.coverFrame}>
+          <CoverImage
+            src={post.coverImageUrl}
+            className={styles.cover}
+            variant="card"
+            priority={priority}
+          />
+        </div>
       ) : null}
       <p className={styles.meta}>
         <time dateTime={post.publishedAt}>{formatDate(post.publishedAt, locale)}</time>

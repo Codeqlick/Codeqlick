@@ -1,9 +1,11 @@
 'use client';
 
-import { createContext, useActionState, useContext, type ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
+import { createContext, useActionState, useContext, useState, type ReactNode } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import {
   Checkbox,
+  controlId,
   Input,
   Select,
   Textarea,
@@ -73,7 +75,47 @@ function useField(name: string | undefined) {
 
 export function FormInput(props: Omit<InputProps, 'error'>) {
   const { error, submitted } = useField(props.name);
-  return <Input {...props} error={error} defaultValue={submitted ?? props.defaultValue} />;
+  const defaultValue = submitted ?? props.defaultValue;
+  if (props.type === 'password') {
+    return <PasswordInput {...props} error={error} defaultValue={defaultValue} />;
+  }
+  return <Input {...props} error={error} defaultValue={defaultValue} />;
+}
+
+/** A password field with a toggle button (aria-pressed) that shows what was typed. */
+function PasswordInput(props: Omit<InputProps, 'type' | 'addon'> & { type?: string }) {
+  const t = useTranslations('Common');
+  const [shown, setShown] = useState(false);
+  return (
+    <Input
+      {...props}
+      type={shown ? 'text' : 'password'}
+      addon={
+        <button
+          type="button"
+          className={fieldStyles.addon}
+          aria-label={t('showPassword')}
+          aria-pressed={shown}
+          aria-controls={props.id ?? controlId(undefined, props.name)}
+          onClick={() => setShown(!shown)}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
+            <circle cx="12" cy="12" r="3" />
+            {shown ? <path d="M4 4l16 16" /> : null}
+          </svg>
+        </button>
+      }
+    />
+  );
 }
 
 export function FormTextarea(props: Omit<TextareaProps, 'error'>) {

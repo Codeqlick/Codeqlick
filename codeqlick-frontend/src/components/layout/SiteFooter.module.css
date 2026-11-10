@@ -1,26 +1,84 @@
 .footer {
   border-top: 1px solid var(--color-line);
-}
-
-.inner {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
+  background: var(--color-surface-app);
   font-size: 0.95rem;
   color: var(--color-slate);
 }
 
+/* Brand, two link columns and contact; they stack on narrow screens. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 1fr));
+  gap: var(--space-10) var(--space-8);
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-12);
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.heading {
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-transform: uppercase;
+  color: var(--color-fuchsia-dark);
+}
+
+.links,
+.legal,
 .social {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.link {
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.link:hover {
+  color: var(--color-fuchsia-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.email {
+  font-family: var(--font-family-mono);
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.email:hover {
+  color: var(--color-fuchsia-dark);
+}
+
+.social {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .pill {
@@ -30,30 +88,73 @@
   padding: 0 0.9rem;
   border: 1.5px solid var(--color-line-strong);
   border-radius: var(--radius-pill);
+  background: var(--color-white);
   color: var(--color-ink);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
+  transition:
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .pill:hover {
   border-color: var(--color-fuchsia);
-  color: var(--color-fuchsia);
+  color: var(--color-fuchsia-dark);
 }
 
-.meta {
+/* Copyright, tagline (away from the logo, as the brand asks) and legal links. */
+.bottom {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-6);
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-6);
+  position: relative;
+  font-size: 0.875rem;
 }
 
-.login {
+/* A rule as wide as the content, not the gutters. */
+.bottom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--gutter);
+  right: var(--gutter);
+  height: 1px;
+  background: var(--color-line-strong);
+}
+
+.legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+.legal .link {
   color: var(--color-slate);
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
-.login:hover {
-  color: var(--color-fuchsia);
+@media (max-width: 860px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 420px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: var(--space-12);
+  }
+
+  .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

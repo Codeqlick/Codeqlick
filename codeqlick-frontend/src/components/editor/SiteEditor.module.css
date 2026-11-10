@@ -2,6 +2,7 @@
 .toolbar {
   position: sticky;
   top: 0;
+  box-shadow: var(--shadow-sm);
   z-index: 2;
   display: flex;
   flex-wrap: wrap;
@@ -46,6 +47,30 @@
   color: var(--color-ink);
   border-color: var(--color-line-strong);
   font-size: 0.9rem;
+}
+
+.primary,
+.small,
+.icon,
+.styleButton {
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.primary:hover:not(:disabled) {
+  border-color: var(--color-fuchsia-dark);
+  background: var(--color-fuchsia-dark);
+}
+
+.small:hover:not(:disabled),
+.icon:hover:not(:disabled) {
+  border-color: var(--color-ink);
+}
+
+.styleButton:hover {
+  border-color: var(--color-fuchsia);
 }
 
 .primary:disabled,
@@ -119,10 +144,59 @@
   background: var(--color-white);
 }
 
+.part {
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.part:hover {
+  border-color: var(--color-line-strong);
+}
+
+.part[open] {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Section headers: the title and a chevron that turns when the section opens. */
 .part > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-4) var(--space-5);
+  font-family: var(--font-family-display);
   font-weight: 700;
+  list-style: none;
   cursor: pointer;
+  border-radius: var(--radius-lg);
+}
+
+.part > summary::-webkit-details-marker {
+  display: none;
+}
+
+.part > summary::after {
+  content: '';
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  /* Title and its "Check" flag on the left, the chevron on the right. */
+  margin-left: auto;
+  margin-right: 0.2rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  color: var(--color-slate);
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform var(--transition-base);
+}
+
+.part[open] > summary::after {
+  color: var(--color-fuchsia);
+  transform: translateY(25%) rotate(-135deg);
+}
+
+.part > summary:hover {
+  color: var(--color-fuchsia-dark);
 }
 
 .flag {

@@ -29,7 +29,8 @@
     "confirmDelete": "Entiendo que no se puede deshacer.",
     "changeFile": "Cambiar archivo",
     "dropFile": "o arrástralo aquí",
-    "confirmType": "Escribe «{text}» para confirmar"
+    "confirmType": "Escribe «{text}» para confirmar",
+    "showPassword": "Mostrar contraseña"
   },
   "Pagination": {
     "label": "Paginación",
@@ -61,7 +62,10 @@
     "login": "Acceso clientes",
     "legal": "Aviso legal",
     "privacy": "Privacidad",
-    "security": "Seguridad"
+    "security": "Seguridad",
+    "explore": "Estudio",
+    "clients": "Clientes",
+    "contactTitle": "Hablemos"
   },
   "Home": {
     "hero": {

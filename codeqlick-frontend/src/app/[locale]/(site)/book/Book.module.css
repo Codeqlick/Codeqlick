@@ -6,6 +6,8 @@
 }
 
 .group {
+  /* A fieldset is min-content wide by default: the scrolling day strip would widen the page. */
+  min-width: 0;
   margin: 0;
   padding: 0;
   border: 0;
@@ -29,8 +31,17 @@
 .days {
   display: flex;
   gap: var(--space-3);
-  padding-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-3);
   overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+  /* Fades the last visible day, a hint that the strip scrolls. */
+  mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+}
+
+.day {
+  scroll-snap-align: start;
 }
 
 .day,
@@ -71,9 +82,15 @@
   border-color: var(--color-fuchsia);
 }
 
-.selected {
+.selected,
+.selected:hover {
   border-color: var(--color-fuchsia);
-  background: var(--color-blush);
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+}
+
+.selected small {
+  color: var(--color-white);
 }
 
 .times {
