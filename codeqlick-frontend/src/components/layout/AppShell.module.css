@@ -208,6 +208,8 @@
 
   .nav {
     grid-area: nav;
+    /* A grid item is as wide as its content by default: the tabs would widen the bar. */
+    min-width: 0;
     margin: 0 -1rem;
     padding: 0 1rem 0.5rem;
   }
