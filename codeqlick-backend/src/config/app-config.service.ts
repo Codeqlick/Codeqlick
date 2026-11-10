@@ -237,6 +237,11 @@ export class AppConfigService {
     return this.get('TURNSTILE_SECRET_KEY');
   }
 
+  /** Google PageSpeed Insights' key for the website check (architecture 4.12); undefined: off. */
+  get pageSpeedApiKey(): string | undefined {
+    return this.get('PAGESPEED_API_KEY');
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }

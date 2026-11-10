@@ -233,6 +233,28 @@ export class LeadsService {
   }
 
   /**
+   * A lead from a free website check (architecture 4.12): the check's own emails are the
+   * acknowledgement and the team's notification, so none of the contact form's are sent.
+   */
+  async createQuietly(input: {
+    name: string;
+    email: string;
+    company: string;
+    message: string;
+    locale: ApiLocale;
+  }): Promise<{ id: string }> {
+    const row = await this.repository.create({
+      name: input.name,
+      email: input.email.trim().toLowerCase(),
+      company: input.company,
+      projectType: 'web',
+      message: input.message,
+      locale: toDbLocale(input.locale),
+    });
+    return { id: row.id };
+  }
+
+  /**
    * A business the team adds itself, with the website request its preview is built from
    * (architecture 8.2): nobody is emailed.
    */
