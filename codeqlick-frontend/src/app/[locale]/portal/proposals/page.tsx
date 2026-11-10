@@ -28,7 +28,7 @@ export default async function PortalProposalsPage({ params, searchParams }: Page
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('proposal')}</th>
@@ -47,7 +47,7 @@ export default async function PortalProposalsPage({ params, searchParams }: Page
                         {proposal.project ? ` · ${proposal.project.name}` : ''}
                       </span>
                     </th>
-                    <td>
+                    <td data-label={t('status')} data-wide>
                       <ProposalStatusBadge
                         status={proposal.status}
                         expired={proposal.expired}
@@ -60,8 +60,10 @@ export default async function PortalProposalsPage({ params, searchParams }: Page
                         }
                       />
                     </td>
-                    <td>{formatMoney(proposal.total, proposal.currency, locale)}</td>
-                    <td>
+                    <td data-label={t('total')}>
+                      {formatMoney(proposal.total, proposal.currency, locale)}
+                    </td>
+                    <td data-label={t('validUntil')}>
                       {proposal.validUntil ? formatDate(proposal.validUntil, locale) : tc('none')}
                     </td>
                   </tr>

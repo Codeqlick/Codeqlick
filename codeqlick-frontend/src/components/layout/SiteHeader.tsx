@@ -2,9 +2,9 @@ import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { Logo } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/Button';
-import { Link } from '@/i18n/navigation';
 import { LocaleSwitcher } from './LocaleSwitcher';
 import { MobileNav } from './MobileNav';
+import { NavLinks } from './NavLinks';
 import styles from './SiteHeader.module.css';
 
 export async function SiteHeader({ locale }: { locale: AppLocale }) {
@@ -25,18 +25,15 @@ export async function SiteHeader({ locale }: { locale: AppLocale }) {
       <div className={`wrap ${styles.inner}`}>
         <Logo href="/" label={tc('homeLabel')} />
         <nav className={styles.nav} aria-label={t('label')}>
-          {links.map((link) => (
-            <Link key={link.href} href={link.href} className={styles.link}>
-              {link.label}
-            </Link>
-          ))}
+          <NavLinks items={links} className={styles.link} />
           <LocaleSwitcher className={styles.desktopOnly} />
-          <Button href="/contact" size="sm" data-umami-event="cta-header">
+          <Button href="/contact" size="sm" className={styles.cta} data-umami-event="cta-header">
             {t('startProject')}
           </Button>
           <MobileNav
             labels={{ open: t('openMenu'), close: t('closeMenu'), menu: t('menu') }}
             items={links}
+            cta={{ href: '/contact', label: t('startProject') }}
           />
         </nav>
       </div>

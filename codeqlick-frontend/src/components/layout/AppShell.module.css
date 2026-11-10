@@ -108,8 +108,10 @@
 }
 
 @media (max-width: 900px) {
+  /* Bar, then the page; on short pages the extra height goes to the page, not the bar. */
   .shell {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
 
   .sidebar {
@@ -168,6 +170,46 @@
 
   .main {
     padding-top: 1.5rem;
+  }
+}
+
+/* Phones: logo (area label under it) and account controls on one row, the tabs below. */
+@media (max-width: 520px) {
+  .sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brand user'
+      'nav nav';
+    gap: 0.5rem;
+    padding-bottom: 0;
+  }
+
+  .brandRow {
+    grid-area: brand;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+  }
+
+  .area {
+    font-size: 0.65rem;
+  }
+
+  .userBox {
+    grid-area: user;
+    margin-left: 0;
+  }
+
+  .userActions {
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  .nav {
+    grid-area: nav;
+    margin: 0 -1rem;
+    padding: 0 1rem 0.5rem;
   }
 }
 

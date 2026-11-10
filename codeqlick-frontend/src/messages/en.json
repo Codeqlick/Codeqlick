@@ -29,7 +29,8 @@
     "confirmDelete": "I understand this can't be undone.",
     "changeFile": "Change file",
     "dropFile": "or drop it here",
-    "confirmType": "Type “{text}” to confirm"
+    "confirmType": "Type “{text}” to confirm",
+    "showPassword": "Show password"
   },
   "Pagination": {
     "label": "Pagination",
@@ -61,7 +62,10 @@
     "login": "Client login",
     "legal": "Legal notice",
     "privacy": "Privacy",
-    "security": "Security"
+    "security": "Security",
+    "explore": "Studio",
+    "clients": "Clients",
+    "contactTitle": "Let's talk"
   },
   "Home": {
     "hero": {

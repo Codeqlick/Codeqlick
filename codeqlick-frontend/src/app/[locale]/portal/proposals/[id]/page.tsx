@@ -76,7 +76,7 @@ export default async function PortalProposalPage({
             </h2>
             <ActionForm
               action={acceptProposalAction.bind(null, locale, proposal.id)}
-              className={styles.form}
+              className={`${styles.form} ${styles.formNarrow}`}
             >
               <p className={styles.muted}>{t('acceptBody', { total })}</p>
               <FormInput

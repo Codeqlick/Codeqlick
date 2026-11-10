@@ -37,7 +37,7 @@ export default async function PortalSupportPage({ params, searchParams }: PagePr
       ) : (
         <>
           <div className={styles.tableWrap}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${styles.listTable}`}>
               <thead>
                 <tr>
                   <th scope="col">{t('request')}</th>
@@ -56,8 +56,8 @@ export default async function PortalSupportPage({ params, searchParams }: PagePr
                         #{ticket.number} · {t(`types.${ticket.type}`)}
                       </span>
                     </th>
-                    <td>{ticket.project?.name ?? tc('none')}</td>
-                    <td>
+                    <td data-label={t('project')}>{ticket.project?.name ?? tc('none')}</td>
+                    <td data-label={t('status')} data-wide>
                       <TicketStatusBadge
                         status={ticket.status}
                         label={
@@ -67,13 +67,13 @@ export default async function PortalSupportPage({ params, searchParams }: PagePr
                         }
                       />
                     </td>
-                    <td>
+                    <td data-label={t('priority')}>
                       <TicketPriorityBadge
                         priority={ticket.priority}
                         label={t(`priorities.${ticket.priority}`)}
                       />
                     </td>
-                    <td>{formatDateTime(ticket.updatedAt, locale)}</td>
+                    <td data-label={t('updated')}>{formatDateTime(ticket.updatedAt, locale)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -17,7 +17,7 @@ export default async function SiteLayout({
   const t = await getTranslations({ locale, namespace: 'Common' });
 
   return (
-    <>
+    <div className="site-shell">
       <a className="skip-link" href="#main">
         {t('skipToContent')}
       </a>
@@ -25,6 +25,6 @@ export default async function SiteLayout({
       <main id="main">{children}</main>
       <SiteFooter locale={locale} />
       <Analytics />
-    </>
+    </div>
   );
 }
