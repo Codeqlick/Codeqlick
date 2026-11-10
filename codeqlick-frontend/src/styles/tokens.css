@@ -64,4 +64,5 @@
 
   /* Motion */
   --transition-fast: 0.15s;
+  --transition-base: 0.22s ease;
 }

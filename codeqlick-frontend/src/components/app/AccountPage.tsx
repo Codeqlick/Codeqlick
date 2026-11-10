@@ -112,7 +112,10 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{t('changePassword')}</h2>
-        <ActionForm action={changePasswordAction.bind(null, locale)} className={styles.form}>
+        <ActionForm
+          action={changePasswordAction.bind(null, locale)}
+          className={`${styles.form} ${styles.formNarrow}`}
+        >
           <p className={styles.muted}>{t('changePasswordBody')}</p>
           <FormInput
             name="currentPassword"
@@ -155,7 +158,7 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
             ) : (
               <ActionForm
                 action={disableTwoFactorAction.bind(null, locale)}
-                className={styles.form}
+                className={`${styles.form} ${styles.formNarrow}`}
               >
                 <h3>{tf('disableTitle')}</h3>
                 <p className={styles.muted}>{tf('disableBody')}</p>
@@ -208,7 +211,10 @@ export async function AccountPage({ locale }: { locale: AppLocale }) {
       {user.role === 'CLIENT' ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('emails')}</h2>
-          <ActionForm action={updatePreferencesAction.bind(null, locale)} className={styles.form}>
+          <ActionForm
+            action={updatePreferencesAction.bind(null, locale)}
+            className={`${styles.form} ${styles.formNarrow}`}
+          >
             <FormCheckbox
               name="weeklyDigest"
               label={t('weeklyDigest')}

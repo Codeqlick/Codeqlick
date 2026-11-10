@@ -35,6 +35,34 @@
   gap: var(--space-6);
 }
 
+/* Post and case-study cards lift a little under the pointer; the cover zooms inside its frame. */
+.list > li {
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.list > li:hover,
+.list > li:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-line-strong);
+}
+
+.coverFrame {
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.coverFrame .cover {
+  transition: transform 0.4s ease;
+}
+
+.list > li:hover .coverFrame .cover {
+  transform: scale(1.03);
+}
+
 .listBlock {
   margin-top: var(--space-12);
 }
@@ -77,6 +105,18 @@
   padding-top: var(--space-2);
   font-weight: 600;
   text-decoration: none;
+  color: var(--color-fuchsia-dark);
+}
+
+.more::after {
+  content: '→' / '';
+  display: inline-block;
+  margin-left: 0.35em;
+  transition: transform var(--transition-base);
+}
+
+li:hover > .more::after {
+  transform: translateX(4px);
 }
 
 .tags {
@@ -89,10 +129,19 @@
 }
 
 .back {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
   font-weight: 600;
   text-decoration: none;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
+  color: var(--color-fuchsia-dark);
+}
+
+.back:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .hero {
@@ -192,4 +241,38 @@
   flex-direction: column;
   gap: var(--space-3);
   margin-top: var(--space-6);
+}
+
+/* Reading progress on a post: a fuchsia bar along the top that fills as the page scrolls.
+   CSS only (scroll-driven animation); browsers without it, or with reduced motion, show nothing. */
+.progress {
+  display: none;
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .progress {
+      display: block;
+      position: fixed;
+      z-index: 30;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--color-fuchsia);
+      transform-origin: 0 50%;
+      animation: reading-progress linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+}
+
+@keyframes reading-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }

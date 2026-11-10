@@ -34,6 +34,7 @@ export async function PostArticle({
 
   return (
     <article className={`wrap ${styles.page} ${styles.narrow}`}>
+      <div className={styles.progress} aria-hidden="true" />
       {children}
       {post.publishedAt ? (
         <p className={styles.meta}>

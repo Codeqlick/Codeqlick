@@ -70,6 +70,29 @@
   color: var(--color-fuchsia);
 }
 
+.item[aria-current='page'] {
+  color: var(--color-fuchsia-dark);
+  box-shadow: inset 3px 0 0 var(--color-fuchsia);
+  padding-left: 0.85rem;
+}
+
 .footer {
   margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* The panel opens over the page: give it a gentle entrance. */
+.panel:not([hidden]) {
+  animation: slide-in 0.18s ease-out;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }

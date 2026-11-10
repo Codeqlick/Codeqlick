@@ -177,22 +177,58 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  /* Six services: three columns on desktop, two on tablets, one on phones (no orphans). */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
   gap: 1.25rem;
 }
 
+@media (min-width: 1024px) {
+  .services {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* The whole card is the link's click target (its ::after covers the card). */
 .service {
+  position: relative;
   background: var(--color-white);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   padding: 1.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   min-width: 0;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.service:hover,
+.service:focus-within {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-line-strong);
 }
 
 .icon {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  padding: 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
   color: var(--color-fuchsia);
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base);
+}
+
+.service:hover .icon {
+  background: var(--color-fuchsia);
+  color: var(--color-white);
 }
 
 .serviceTitle {
@@ -263,7 +299,8 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  /* Four values: a 2 × 2 grid, one column on phones. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
   gap: 2rem 2.5rem;
 }
 
@@ -347,6 +384,35 @@
   padding-top: var(--space-2);
   font-weight: 600;
   text-decoration: none;
+  color: var(--color-fuchsia-dark);
+}
+
+.more::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.service .more::after {
+  content: '→' / '';
+  display: inline-block;
+  margin-left: 0.35em;
+  transition: transform var(--transition-base);
+}
+
+.service:hover .more::after {
+  transform: translateX(4px);
+}
+
+/* The focus ring goes round the whole card, which is what the link covers. */
+.service .more:focus-visible {
+  outline: none;
+}
+
+.service:has(.more:focus-visible) {
+  outline: 3px solid var(--color-fuchsia);
+  outline-offset: 3px;
 }
 
 /* Testimonials: shown only once a case study has one in this language. */
@@ -369,6 +435,10 @@
 
 .testimonialCard {
   flex: 1;
+}
+
+.testimonialCard .more::before {
+  content: none;
 }
 
 /* Closing call to action */
@@ -435,6 +505,10 @@
 }
 
 @media (max-width: 480px) {
+  .actions > * {
+    flex: 1 1 100%;
+  }
+
   .hero {
     gap: 2.5rem;
     padding-top: 3.5rem;

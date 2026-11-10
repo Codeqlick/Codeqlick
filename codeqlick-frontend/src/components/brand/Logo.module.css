@@ -4,6 +4,12 @@
   gap: 10px;
   color: var(--color-ink);
   text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* The symbol keeps its size when the header gets tight. */
+.logo svg {
+  flex-shrink: 0;
 }
 
 .logo:hover {

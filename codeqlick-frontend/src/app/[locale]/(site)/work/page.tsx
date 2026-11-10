@@ -141,13 +141,15 @@ export default async function WorkPage({ params, searchParams }: PageProps) {
             {portfolio.items.map((item, index) => (
               <Card as="li" bordered key={item.slug}>
                 {item.coverImageUrl ? (
-                  <CoverImage
-                    src={item.coverImageUrl}
-                    className={styles.cover}
-                    variant="card"
-                    // The first covers are on screen at once: the page's largest paint.
-                    priority={index < 3}
-                  />
+                  <div className={styles.coverFrame}>
+                    <CoverImage
+                      src={item.coverImageUrl}
+                      className={styles.cover}
+                      variant="card"
+                      // The first covers are on screen at once: the page's largest paint.
+                      priority={index < 3}
+                    />
+                  </div>
                 ) : null}
                 {item.clientName ? <p className={styles.meta}>{item.clientName}</p> : null}
                 <h2 className={styles.itemTitle}>

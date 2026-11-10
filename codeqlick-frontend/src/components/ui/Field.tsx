@@ -58,7 +58,11 @@ function FieldShell({
 }
 
 export type InputProps = FieldBaseProps &
-  Omit<ComponentPropsWithoutRef<'input'>, 'className'> & { mono?: boolean };
+  Omit<ComponentPropsWithoutRef<'input'>, 'className'> & {
+    mono?: boolean;
+    /** A control shown inside the input's right edge (e.g. a show-password button). */
+    addon?: ReactNode;
+  };
 
 export function Input({
   label,
@@ -68,9 +72,21 @@ export function Input({
   className,
   id,
   mono,
+  addon,
   ...rest
 }: InputProps) {
   const fieldId = controlId(id, rest.name);
+  const input = (
+    <input
+      {...rest}
+      id={fieldId}
+      aria-describedby={describedBy(fieldId, hint, error)}
+      aria-invalid={error ? true : undefined}
+      className={[styles.control, mono ? styles.mono : '', addon ? styles.hasAddon : '']
+        .filter(Boolean)
+        .join(' ')}
+    />
+  );
   return (
     <FieldShell
       id={fieldId}
@@ -80,13 +96,14 @@ export function Input({
       optionalLabel={optionalLabel}
       className={className}
     >
-      <input
-        {...rest}
-        id={fieldId}
-        aria-describedby={describedBy(fieldId, hint, error)}
-        aria-invalid={error ? true : undefined}
-        className={[styles.control, mono ? styles.mono : ''].filter(Boolean).join(' ')}
-      />
+      {addon ? (
+        <div className={styles.addonWrap}>
+          {input}
+          {addon}
+        </div>
+      ) : (
+        input
+      )}
     </FieldShell>
   );
 }

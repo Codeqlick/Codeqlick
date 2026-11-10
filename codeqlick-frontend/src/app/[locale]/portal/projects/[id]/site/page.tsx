@@ -192,7 +192,7 @@ export default async function PortalSitePage({
                 <p className={styles.muted}>{t('domainWaiting', { preview: site.previewUrl })}</p>
               </>
             )}
-            <details>
+            <details className={styles.commentForm}>
               <summary>{t('domainChange')}</summary>
               <ActionForm
                 key={`domain-${domain.name}`}
