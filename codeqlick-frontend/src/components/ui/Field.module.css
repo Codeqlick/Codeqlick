@@ -96,7 +96,8 @@
 
 .mono {
   font-family: var(--font-family-mono);
-  font-size: 0.9rem;
+  /* Never under 16px: iOS zooms the page in on focus (the 2FA code left the panel zoomed). */
+  font-size: 1rem;
 }
 
 .select {
