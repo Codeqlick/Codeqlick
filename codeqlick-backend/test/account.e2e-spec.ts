@@ -155,6 +155,20 @@ describe('Own account: name, email, export, deletion (e2e)', () => {
         .expect(400);
     }
 
+    // Reserved names are for the team's own accounts only.
+    const forTeam = await request(server)
+      .get('/v1/auth/username/available')
+      .query({ username: 'codeqlick' })
+      .set(auth('admin'))
+      .expect(200);
+    expect(forTeam.body).toEqual({ username: 'codeqlick', available: true });
+    const forClient = await request(server)
+      .get('/v1/auth/username/available')
+      .query({ username: 'codeqlick' })
+      .set(auth('owner'))
+      .expect(200);
+    expect(forClient.body.reason).toBe('reserved');
+
     // Ana changes hers: the old one is free at once.
     await request(server)
       .put('/v1/auth/me/username')
