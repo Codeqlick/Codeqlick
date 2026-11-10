@@ -75,9 +75,11 @@ export async function gather(url: string, pageSpeedKey?: string): Promise<AuditI
     const code = codeOf(error);
     if (!CERTIFICATE_ERRORS.test(code)) throw new Error(code, { cause: error });
     certificate = { validTo: null, error: code };
-    page = await safeFetch(url, { insecure: true }).catch((retry: unknown) => {
+    try {
+      page = await safeFetch(url, { insecure: true });
+    } catch (retry) {
       throw new Error(codeOf(retry), { cause: retry });
-    });
+    }
   }
   if (page.status >= 400) throw new Error(`HTTP ${page.status}`);
   const type = String(page.headers['content-type'] ?? 'text/html');

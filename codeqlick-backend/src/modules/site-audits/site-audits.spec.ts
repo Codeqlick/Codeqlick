@@ -3,7 +3,7 @@ import type { AppConfigService } from '../../config/app-config.service.js';
 import type { SiteAudit } from '../../generated/prisma/client.js';
 import type { LeadsService } from '../leads/leads.service.js';
 import type { MailService } from '../mail/mail.service.js';
-import { assertCheckableUrl, isPublicAddress } from './safe-fetch.js';
+import { assertCheckableUrl, isPublicAddress, UnsafeUrlError } from './safe-fetch.js';
 import { runChecks, scoreOf, type AuditInputs, type CheckResult } from './site-audit-checks.js';
 import { checkText, failureText } from './site-audit-texts.js';
 import type { SiteAuditsRepository } from './site-audits.repository.js';
@@ -61,7 +61,7 @@ const statusOf = (checks: CheckResult[], id: string) =>
 
 describe('isPublicAddress / assertCheckableUrl', () => {
   it('refuses private, loopback, link-local, shared and mapped addresses', () => {
-    for (const address of [
+    const blocked = [
       '10.0.0.1',
       '127.0.0.1',
       '169.254.169.254',
@@ -74,24 +74,32 @@ describe('isPublicAddress / assertCheckableUrl', () => {
       'fd00::1',
       '::ffff:127.0.0.1',
       '64:ff9b::7f00:1',
-    ]) {
-      expect(isPublicAddress(address), address).toBe(false);
-    }
+    ];
+    expect(blocked.filter((address) => isPublicAddress(address))).toEqual([]);
     expect(isPublicAddress('93.184.215.14')).toBe(true);
     expect(isPublicAddress('2606:2800:21f:cb07:6820:80da:af6b:8b2c')).toBe(true);
   });
 
   it('refuses other schemes, ports, credentials and private IP hosts', () => {
-    for (const url of [
+    const refused = [
       'ftp://lucia.example/',
       'https://lucia.example:8443/',
       'https://user:pass@lucia.example/',
       'http://127.0.0.1/',
       'http://[::1]/',
-    ]) {
-      expect(() => assertCheckableUrl(new URL(url)), url).toThrow();
-    }
-    expect(() => assertCheckableUrl(new URL('https://lucia.example/carta'))).not.toThrow();
+    ];
+    const allowed = refused.filter((url) => {
+      try {
+        assertCheckableUrl(new URL(url));
+        return true;
+      } catch {
+        return false;
+      }
+    });
+    expect(allowed).toEqual([]);
+    expect(() => assertCheckableUrl(new URL('https://lucia.example/carta'))).not.toThrow(
+      UnsafeUrlError,
+    );
   });
 });
 
@@ -102,7 +110,7 @@ describe('websiteUrlSchema', () => {
   });
 
   it('refuses addresses that are not public websites', () => {
-    for (const value of [
+    const invalid = [
       'localhost',
       'http://localhost:3000',
       '127.0.0.1',
@@ -111,9 +119,8 @@ describe('websiteUrlSchema', () => {
       'file:///etc/passwd',
       'https://lucia.example:8080/',
       'https://a:b@lucia.example/',
-    ]) {
-      expect(websiteUrlSchema.safeParse(value).success, value).toBe(false);
-    }
+    ];
+    expect(invalid.filter((value) => websiteUrlSchema.safeParse(value).success)).toEqual([]);
   });
 
   it('needs the privacy consent', () => {
