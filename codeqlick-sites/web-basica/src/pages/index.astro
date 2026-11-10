@@ -5,6 +5,7 @@ import Banner from '../components/Banner.astro';
 import Contact from '../components/Contact.astro';
 import Gallery from '../components/Gallery.astro';
 import Hero from '../components/Hero.astro';
+import MenuTeaser from '../components/MenuTeaser.astro';
 import Services from '../components/Services.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Base from '../layouts/Base.astro';
@@ -50,6 +51,7 @@ const schema = {
 
 <Base schema={schema}>
   <Hero />
+  {site.menu ? <MenuTeaser /> : null}
   {sectionOrder.map((key) =>
     key === 'services' ? (
       <Services />

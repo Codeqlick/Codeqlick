@@ -1243,6 +1243,7 @@
           "form_key_replaced": "replaced the form key of <target>{label}</target>",
           "site_created": "created the managed website of <target>{label}</target>",
           "site_updated": "changed the managed website of <target>{label}</target>",
+          "site_menu": "turned the menu of <target>{label}</target>'s website on or off",
           "site_restored": "restored a version of the website of <target>{label}</target>",
           "domain_updated": "changed the domain of <target>{label}</target>",
           "site_deleted": "took down the website of <target>{label}</target>",
@@ -2483,7 +2484,16 @@
     "deleteTitle": "Take the website down",
     "deleteBody": "The website stops being published at its address and domain, its monitor is turned off and its content and versions are deleted. Its photos stay in the media library and the domain’s DNS records are left as they are.",
     "deleteButton": "Take the website down",
-    "deleted": "Website taken down. It will be gone within a minute."
+    "deleted": "Website taken down. It will be gone within a minute.",
+    "menu": {
+      "title": "Menu with QR (paid extra)",
+      "on": "The client edits their menu in the editor and has it online at /carta, with its QR poster.",
+      "off": "Off: the client sees it locked in the editor with \"Pídela a Codeqlick\". Turn it on once they have bought it; it is invoiced apart.",
+      "enabled": "On",
+      "disabled": "Off",
+      "turnOn": "Turn the menu on",
+      "turnOff": "Turn the menu off"
+    }
   },
   "PortalSite": {
     "title": "Your website",
@@ -2602,7 +2612,8 @@
       "taxId": "the tax ID",
       "address": "the owner's address"
     },
-    "legalOpen": "Complete legal details"
+    "legalOpen": "Complete legal details",
+    "menuKit": "Your menu QR"
   },
   "SiteRequest": {
     "metaTitle": "Request your basic website",
@@ -2829,7 +2840,8 @@
       "social": "Social media",
       "legal": "Legal data",
       "notices": "Notices (closures and special hours)",
-      "booking": "Online appointments (\"Book\" button)"
+      "booking": "Online appointments (\"Book\" button)",
+      "menu": "Menu or catalogue (with QR)"
     },
     "style": "Starting style",
     "styleHint": "Changes the colours, fonts, order and sample photos. Your texts and photos stay.",
@@ -2898,7 +2910,8 @@
     "defaults": {
       "secondary": "See services",
       "bannerLink": "Book now",
-      "bookingLabel": "Pedir cita"
+      "bookingLabel": "Pedir cita",
+      "menuTitle": "Carta"
     },
     "facts": "Highlights (up to 3)",
     "addFact": "Add highlight",
@@ -3005,7 +3018,42 @@
     "bookingLabel": "Button text",
     "bookingNone": "You don't have a booking page yet. Create one for free on Citas with your hours and how long each appointment takes, then come back to put it on your website.",
     "bookingCreate": "Create my booking page (opens in a new tab)",
-    "bookingReload": "I've created it: refresh"
+    "bookingReload": "I've created it: refresh",
+    "menuHint": "Your menu gets its own page, /carta, linked from the menu bar and the home page of your website. Change dishes and prices whenever you like: once published, whoever scans the QR sees the new ones.",
+    "showMenu": "Show the menu on my website",
+    "menuTitle": "Title",
+    "menuTitleHint": "For example \"Carta\", \"Menú\" or \"Productos\". When short, it is also the link in the menu bar.",
+    "menuCategories": "Categories",
+    "addCategory": "Add category",
+    "categoryName": "Category name",
+    "categoryPlaceholder": "Starters, Mains, Desserts…",
+    "menuItems": "Dishes or products",
+    "addMenuItem": "Add dish or product",
+    "menuItemName": "Name",
+    "menuItemDescription": "Description (optional)",
+    "allergens": "Allergens",
+    "menuNote": "Closing note (optional)",
+    "menuNoteHint": "For example \"VAT included\" or \"Bread and appetiser, €1.50\". The allergen notice is added for you.",
+    "menuLocked": "Put your menu or catalogue online with prices and allergens on its own page, and place a poster with a QR code leading to it on your tables or shop window. It is an extra: ask Codeqlick and we will turn it on.",
+    "menuRequest": "Ask Codeqlick for it",
+    "menuRequestTitle": "I want the menu with QR on my website",
+    "menuRequestBody": "Hello, I would like to add the menu (or catalogue) with a QR code to my website. Could you tell me the price and how we turn it on?",
+    "allergenNames": {
+      "gluten": "Gluten",
+      "crustaceans": "Crustaceans",
+      "eggs": "Eggs",
+      "fish": "Fish",
+      "peanuts": "Peanuts",
+      "soybeans": "Soya",
+      "milk": "Milk",
+      "nuts": "Tree nuts",
+      "celery": "Celery",
+      "mustard": "Mustard",
+      "sesame": "Sesame",
+      "sulphites": "Sulphites",
+      "lupin": "Lupin",
+      "molluscs": "Molluscs"
+    }
   },
   "Videochat": {
     "metaTitle": "Free random video chat for adults (18+) | Codeqlick",
@@ -4470,5 +4518,24 @@
       "close": "Close without removing"
     },
     "albumTag": "Private album: only their matches see it"
+  },
+  "MenuKit": {
+    "title": "Your menu QR",
+    "lead": "The QR code that leads to your menu, the link to share it and a poster for your tables or shop window.",
+    "back": "Back to your website",
+    "notYet": "Your menu is not online yet. Write it in your website editor and press «Publicar»: then its QR will be here.",
+    "notEnabled": "The menu with QR is an extra of your website. Ask for it from the editor (\"Ask Codeqlick for it\") and we will turn it on.",
+    "openEditor": "Open the editor",
+    "print": "Print the poster",
+    "linkTitle": "Your menu link",
+    "linkBody": "Share it on social media, on Google or by WhatsApp. It always shows the published menu, so you never reprint the QR when dishes or prices change.",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "view": "See the menu",
+    "posterTitle": "Poster to print",
+    "posterBody": "A5 size. Press \"Print the poster\" and choose your printer, or \"Save as PDF\" to take it to a print shop.",
+    "posterKicker": "Nuestra carta",
+    "posterHeadline": "Escanea para ver la carta",
+    "posterHint": "Apunta con la cámara de tu móvil al código"
   }
 }

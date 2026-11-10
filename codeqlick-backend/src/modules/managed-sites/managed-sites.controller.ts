@@ -20,11 +20,13 @@ import {
   onboardSiteSchema,
   revisionParamSchema,
   siteContentBodySchema,
+  siteMenuBodySchema,
   updateSiteSchema,
   type CreateSiteInput,
   type OnboardSiteInput,
   type RevisionParam,
   type SiteContentBody,
+  type SiteMenuBody,
   type UpdateSiteInput,
 } from './managed-sites.schemas.js';
 import {
@@ -177,6 +179,16 @@ export class ManagedSitesController {
     const site = await this.sites.updateSettings(user, params.id, body);
     if (site.domain) this.siteDomains.checkSoon(params.id);
     return site;
+  }
+
+  /** Turns the menu extra on or off (architecture 8.2). */
+  @Put('projects/:id/site/menu')
+  menu(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: siteMenuBodySchema }) body: SiteMenuBody,
+  ): Promise<SiteView> {
+    return this.sites.setMenu(user, params.id, body.enabled);
   }
 
   /** Checks where the site's domain stands now (and connects it through OVH when it can). */

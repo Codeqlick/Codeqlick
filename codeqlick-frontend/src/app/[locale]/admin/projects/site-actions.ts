@@ -14,6 +14,7 @@ import {
   adminRestoreSiteRevision,
   adminSaveSiteContent,
   adminSendSiteReport,
+  adminSetSiteMenu,
   adminUpdateSite,
 } from '@/lib/api/managed-sites';
 import { SITE_PRESETS } from '@/lib/api/types';
@@ -111,6 +112,23 @@ export async function buildSiteAction(
 ): Promise<FormState> {
   try {
     await adminBuildSite(projectId);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidateSite(locale);
+  return { status: 'idle' };
+}
+
+/** Turns the menu extra on or off (`enabled` is the switch's new state). */
+export async function setSiteMenuAction(
+  locale: AppLocale,
+  projectId: string,
+  enabled: boolean,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await adminSetSiteMenu(projectId, enabled);
   } catch (error) {
     return failedState(error, locale, formData);
   }

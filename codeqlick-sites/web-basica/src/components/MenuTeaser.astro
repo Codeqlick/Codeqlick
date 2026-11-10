@@ -1,0 +1,50 @@
+---
+import { MENU_PATH } from '../lib/menu';
+import { edit, site } from '../lib/site';
+
+const menu = site.menu!;
+---
+
+<section class="teaser" id="carta" aria-labelledby="carta-title">
+  <div class="container inner">
+    <div class="copy">
+      <h2 id="carta-title" data-edit={edit('menu.title')}>
+        {menu.title}
+      </h2>
+      <p>{menu.categories.map((category) => category.name).join(' · ')}</p>
+    </div>
+    <a class="button" href={MENU_PATH}>
+      Ver la carta
+    </a>
+  </div>
+</section>
+
+<style>
+  .teaser {
+    padding-block: 2rem;
+    border-block: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+  }
+
+  .inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+  }
+
+  .copy {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  h2 {
+    margin: 0;
+    font-size: clamp(1.4rem, 3vw, 1.8rem);
+  }
+
+  p {
+    margin: 0;
+    color: var(--muted);
+  }
+</style>
