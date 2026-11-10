@@ -56,6 +56,12 @@
   margin-top: var(--space-4);
 }
 
+/* Forms one after another (name, username, email): each one's message ("Listo: …") opens the
+   form, so without a gap it would sit on the previous form's button. */
+.form + .form {
+  margin-top: var(--space-8);
+}
+
 /* Short forms (passwords, codes) read better at a comfortable width than across the panel. */
 .formNarrow {
   max-width: 34rem;
