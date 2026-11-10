@@ -94,6 +94,7 @@ export function SiteEditor({
   initial,
   presetNames,
   liveUrl,
+  newBookingPageUrl,
 }: {
   locale: AppLocale;
   projectId: string;
@@ -101,6 +102,8 @@ export function SiteEditor({
   /** Each style's name and kind ("Alba Estudio — Peluquería"). */
   presetNames: Record<string, string>;
   liveUrl: string;
+  /** Citas's page editor for a new page, for clients without a booking page. */
+  newBookingPageUrl: string;
 }) {
   const t = useTranslations('SiteEditor');
   const [view, setView] = useState(initial);
@@ -316,6 +319,18 @@ export function SiteEditor({
     field?.scrollIntoView({ block: 'center' });
     field?.focus({ preventScroll: true });
   };
+  // The account's booking pages, plus the one the site links to when it isn't among them.
+  const bookingUrl = getAt(content, 'booking.url');
+  const bookingOptions = view.bookingPages.map((page) => ({
+    value: page.url,
+    label: page.enabled ? page.title : t('bookingPaused', { title: page.title }),
+  }));
+  if (
+    typeof bookingUrl === 'string' &&
+    bookingUrl &&
+    !bookingOptions.some((o) => o.value === bookingUrl)
+  )
+    bookingOptions.push({ value: bookingUrl, label: t('bookingOther', { url: bookingUrl }) });
   const fonts = (['fraunces', 'playfair', 'outfit', 'inter'] as const).map((value) => ({
     value,
     label: t(`fonts.${value}`),
@@ -819,6 +834,49 @@ export function SiteEditor({
               <TextField path="banner.text" label={t('bannerText')} max={300} rows={2} />
               <LinkField path="banner.link" label={t('bannerLink')} />
             </Toggle>
+          </Part>
+
+          <Part
+            paths={['booking']}
+            summary={t('parts.booking')}
+            onOpen={() => scrollPreview('contact')}
+          >
+            <p className={styles.hint}>{t('bookingHint')}</p>
+            {view.bookingPages.length > 0 || content.booking !== undefined ? (
+              <Toggle
+                path="booking"
+                label={t('showBooking')}
+                blank={() => ({
+                  url: view.bookingPages[0]?.url ?? '',
+                  label: t('defaults.bookingLabel'),
+                })}
+              >
+                <SelectField path="booking.url" label={t('bookingPage')} options={bookingOptions} />
+                <TextField path="booking.label" label={t('bookingLabel')} max={40} required />
+              </Toggle>
+            ) : null}
+            {view.bookingPages.length === 0 ? (
+              <div className={styles.stack}>
+                <p className={styles.hint}>{t('bookingNone')}</p>
+                <p className={styles.links}>
+                  <a
+                    className={styles.small}
+                    href={newBookingPageUrl}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {t('bookingCreate')}
+                  </a>
+                  <button
+                    type="button"
+                    className={styles.small}
+                    onClick={() => window.location.reload()}
+                  >
+                    {t('bookingReload')}
+                  </button>
+                </p>
+              </div>
+            ) : null}
           </Part>
 
           <Part
