@@ -1,9 +1,9 @@
 import '@/styles/globals.css';
 import type { Metadata } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { ErrorReporter } from '@/components/layout/ErrorReporter';
+import { ClientMessages } from '@/i18n/ClientMessages';
 import { resolveLocale } from '@/i18n/locale';
 import { routing } from '@/i18n/routing';
 import { env } from '@/lib/env';
@@ -54,7 +54,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   return (
     <html lang={locale} className={fontVariables}>
       <body>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <ClientMessages>{children}</ClientMessages>
         <ErrorReporter />
       </body>
     </html>

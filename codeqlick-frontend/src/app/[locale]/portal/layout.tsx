@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import type { AppNavItem } from '@/components/layout/AppNav';
 import { AppShell } from '@/components/layout/AppShell';
 import { resolveLocale } from '@/i18n/locale';
@@ -32,8 +33,10 @@ export default async function PortalLayout({ children, params }: LayoutProps) {
   if (user.role === 'ADMIN') items.push({ href: '/admin', label: ta('title') });
 
   return (
-    <AppShell locale={locale} user={user} areaLabel={t('title')} items={items}>
-      {children}
-    </AppShell>
+    <ClientMessages extra={APP_NAMESPACES.portal}>
+      <AppShell locale={locale} user={user} areaLabel={t('title')} items={items}>
+        {children}
+      </AppShell>
+    </ClientMessages>
   );
 }

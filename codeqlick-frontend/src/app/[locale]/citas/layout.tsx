@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { Logo } from '@/components/brand/Logo';
 import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
@@ -36,32 +37,34 @@ export default async function CitasLayout({ children, params }: LayoutProps) {
   const webapp = (await requestWebapp()) === 'citas' ? 'citas' : null;
 
   return (
-    <WebappProvider app={webapp}>
-      <div className={styles.frame}>
-        <header className={styles.header}>
-          <div className={styles.brand}>
-            <Logo href="/citas" size="sm" label={t('homeLabel')} />
-            <span className={styles.brandApp}>{t('brand')}</span>
-          </div>
-          <nav className={styles.headerNav}>
-            <AppSwitcher current="citas" locale={locale} />
-            <LocaleSwitcher className={styles.locale} />
-            {user ? (
-              <form action={logoutAction}>
-                <input type="hidden" name="locale" value={locale} />
-                <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
-                  {t('signOut')}
-                </SubmitButton>
-              </form>
-            ) : (
-              <Link href="/login?next=/citas" className={styles.headerLink}>
-                {t('signIn')}
-              </Link>
-            )}
-          </nav>
-        </header>
-        <main className={styles.main}>{children}</main>
-      </div>
-    </WebappProvider>
+    <ClientMessages extra={APP_NAMESPACES.citas}>
+      <WebappProvider app={webapp}>
+        <div className={styles.frame}>
+          <header className={styles.header}>
+            <div className={styles.brand}>
+              <Logo href="/citas" size="sm" label={t('homeLabel')} />
+              <span className={styles.brandApp}>{t('brand')}</span>
+            </div>
+            <nav className={styles.headerNav}>
+              <AppSwitcher current="citas" locale={locale} />
+              <LocaleSwitcher className={styles.locale} />
+              {user ? (
+                <form action={logoutAction}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
+                    {t('signOut')}
+                  </SubmitButton>
+                </form>
+              ) : (
+                <Link href="/login?next=/citas" className={styles.headerLink}>
+                  {t('signIn')}
+                </Link>
+              )}
+            </nav>
+          </header>
+          <main className={styles.main}>{children}</main>
+        </div>
+      </WebappProvider>
+    </ClientMessages>
   );
 }
