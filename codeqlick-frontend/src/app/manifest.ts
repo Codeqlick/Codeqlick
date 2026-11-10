@@ -4,9 +4,16 @@ import { routing } from '@/i18n/routing';
 import { SITE_NAME, TAGLINE } from '@/lib/site';
 import { webappForHost } from '@/lib/webapps';
 
+/**
+ * `any`: the rounded logo, for places that show the icon as is. `maskable`: full-bleed fuchsia with
+ * the logo inside the safe zone, so Android crops it to its own shape (circle, squircle…) without
+ * a light or dark plate around it.
+ */
 const ICONS: MetadataRoute.Manifest['icons'] = [
-  { src: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
-  { src: '/favicon-512.png', sizes: '512x512', type: 'image/png' },
+  { src: '/favicon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+  { src: '/favicon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+  { src: '/maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+  { src: '/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
 ];
 
 /**
