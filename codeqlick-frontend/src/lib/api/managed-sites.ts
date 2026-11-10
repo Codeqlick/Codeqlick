@@ -41,6 +41,15 @@ export function adminBuildSite(projectId: string) {
   return apiFetch<ManagedSite>(`${path(projectId)}/build`, { method: 'POST', auth: 'required' });
 }
 
+/** Turns the menu extra on or off (architecture 8.2); the site is rebuilt. */
+export function adminSetSiteMenu(projectId: string, enabled: boolean) {
+  return apiFetch<ManagedSite>(`${path(projectId)}/menu`, {
+    method: 'PUT',
+    auth: 'required',
+    body: { enabled },
+  });
+}
+
 /** Emails last month's website report now; how many people got it. */
 export function adminSendSiteReport(projectId: string) {
   return apiFetch<{ sent: number }>(`${path(projectId)}/report`, {

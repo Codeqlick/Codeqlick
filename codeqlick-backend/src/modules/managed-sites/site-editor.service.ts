@@ -30,6 +30,8 @@ export interface SiteEditorView {
   } | null;
   /** The Citas pages of the people of the client account, for the "Pedir cita" button. */
   bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
+  /** The menu extra is on: the client can edit and publish it (architecture 8.2). */
+  menuEnabled: boolean;
 }
 
 /** The style's demo content with the fields a site's content doesn't keep. */
@@ -162,7 +164,7 @@ export class SiteEditorService {
       preset: site.draftPreset ?? site.preset,
       base: `/site-draft/${site.draftKey!}`,
       content: {
-        ...(site.draftContent as Record<string, unknown>),
+        ...this.sites.contentToBuild(site, site.draftContent),
         url: this.sites.addressOf(site),
         demo: false,
       },
@@ -204,6 +206,7 @@ export class SiteEditorService {
             }
           : null,
       bookingPages: pages.map((page) => ({ ...page, url: `${citas}/${page.slug}` })),
+      menuEnabled: site.menuEnabled,
     };
   }
 }

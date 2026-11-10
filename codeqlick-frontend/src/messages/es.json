@@ -1243,6 +1243,7 @@
           "form_key_replaced": "cambió la clave del formulario de <target>{label}</target>",
           "site_created": "creó la web gestionada de <target>{label}</target>",
           "site_updated": "cambió la web gestionada de <target>{label}</target>",
+          "site_menu": "activó o desactivó la carta de la web de <target>{label}</target>",
           "site_restored": "restauró una versión de la web de <target>{label}</target>",
           "domain_updated": "cambió el dominio de <target>{label}</target>",
           "site_deleted": "dio de baja la web de <target>{label}</target>",
@@ -2483,7 +2484,16 @@
     "deleteTitle": "Dar de baja la web",
     "deleteBody": "La web deja de estar publicada en su dirección y su dominio, se apaga su monitor y se borran su contenido y sus versiones. Las fotos siguen en la biblioteca de medios y los registros DNS del dominio no se tocan.",
     "deleteButton": "Dar de baja la web",
-    "deleted": "Web dada de baja. Dejará de verse en un minuto."
+    "deleted": "Web dada de baja. Dejará de verse en un minuto.",
+    "menu": {
+      "title": "Carta con QR (extra de pago)",
+      "on": "El cliente edita su carta en el editor y la tiene publicada en /carta, con su cartel QR.",
+      "off": "Desactivada: el cliente la ve bloqueada en el editor con «Pídela a Codeqlick». Actívala cuando la haya contratado; la factura va aparte.",
+      "enabled": "Activada",
+      "disabled": "Desactivada",
+      "turnOn": "Activar la carta",
+      "turnOff": "Desactivar la carta"
+    }
   },
   "PortalSite": {
     "title": "Tu web",
@@ -2602,7 +2612,8 @@
       "taxId": "el NIF o CIF",
       "address": "la dirección del titular"
     },
-    "legalOpen": "Completar datos legales"
+    "legalOpen": "Completar datos legales",
+    "menuKit": "QR de tu carta"
   },
   "SiteRequest": {
     "metaTitle": "Pide tu web básica",
@@ -2829,7 +2840,8 @@
       "social": "Redes sociales",
       "legal": "Datos legales",
       "notices": "Avisos (cierres y horarios especiales)",
-      "booking": "Citas online (botón «Pedir cita»)"
+      "booking": "Citas online (botón «Pedir cita»)",
+      "menu": "Carta o catálogo (con QR)"
     },
     "style": "Estilo de partida",
     "styleHint": "Cambia los colores, las tipografías, el orden y las fotos de ejemplo. Tus textos y tus fotos se quedan.",
@@ -2898,7 +2910,8 @@
     "defaults": {
       "secondary": "Ver servicios",
       "bannerLink": "Pide tu cita",
-      "bookingLabel": "Pedir cita"
+      "bookingLabel": "Pedir cita",
+      "menuTitle": "Carta"
     },
     "facts": "Datos destacados (hasta 3)",
     "addFact": "Añadir dato",
@@ -3005,7 +3018,42 @@
     "bookingLabel": "Texto del botón",
     "bookingNone": "Aún no tienes ninguna página de citas. Créala gratis en Citas con tus horarios y la duración de cada cita, y vuelve aquí para ponerla en tu web.",
     "bookingCreate": "Crear mi página de citas (se abre en otra pestaña)",
-    "bookingReload": "Ya la he creado: actualizar"
+    "bookingReload": "Ya la he creado: actualizar",
+    "menuHint": "Tu carta sale en su propia página, /carta, enlazada desde el menú y la portada de tu web. Cambia platos y precios cuando quieras: al publicar se actualiza también para quien escanee el QR.",
+    "showMenu": "Mostrar la carta en mi web",
+    "menuTitle": "Título",
+    "menuTitleHint": "Por ejemplo «Carta», «Menú» o «Productos». Si es corto, es también el enlace del menú.",
+    "menuCategories": "Categorías",
+    "addCategory": "Añadir categoría",
+    "categoryName": "Nombre de la categoría",
+    "categoryPlaceholder": "Entrantes, Principales, Postres…",
+    "menuItems": "Platos o productos",
+    "addMenuItem": "Añadir plato o producto",
+    "menuItemName": "Nombre",
+    "menuItemDescription": "Descripción (opcional)",
+    "allergens": "Alérgenos",
+    "menuNote": "Nota al final (opcional)",
+    "menuNoteHint": "Por ejemplo «IVA incluido» o «Pan y aperitivo, 1,50 €». El aviso de alérgenos se añade solo.",
+    "menuLocked": "Publica tu carta o tu catálogo con precios y alérgenos en su propia página, y pon en tus mesas o en el escaparate un cartel con un código QR que lleva a ella. Es un extra: pídeselo a Codeqlick y te lo activamos.",
+    "menuRequest": "Pídela a Codeqlick",
+    "menuRequestTitle": "Quiero la carta con QR en mi web",
+    "menuRequestBody": "Hola, me gustaría añadir la carta (o catálogo) con código QR a mi web. ¿Me contáis el precio y cómo lo activamos?",
+    "allergenNames": {
+      "gluten": "Gluten",
+      "crustaceans": "Crustáceos",
+      "eggs": "Huevo",
+      "fish": "Pescado",
+      "peanuts": "Cacahuetes",
+      "soybeans": "Soja",
+      "milk": "Lácteos",
+      "nuts": "Frutos de cáscara",
+      "celery": "Apio",
+      "mustard": "Mostaza",
+      "sesame": "Sésamo",
+      "sulphites": "Sulfitos",
+      "lupin": "Altramuces",
+      "molluscs": "Moluscos"
+    }
   },
   "Videochat": {
     "metaTitle": "Videochat aleatorio gratis para adultos (+18) | Codeqlick",
@@ -4470,5 +4518,24 @@
       "close": "Cerrar sin retirar"
     },
     "albumTag": "Álbum privado: solo lo ven sus matches"
+  },
+  "MenuKit": {
+    "title": "QR de tu carta",
+    "lead": "El código QR que lleva a tu carta, el enlace para compartirla y un cartel para tus mesas o el escaparate.",
+    "back": "Volver a tu web",
+    "notYet": "Tu carta aún no está publicada. Escríbela en el editor de tu web y pulsa «Publicar»: entonces tendrás aquí su QR.",
+    "notEnabled": "La carta con QR es un extra de tu web. Pídela desde el editor («Pídela a Codeqlick») y te la activamos.",
+    "openEditor": "Abrir el editor",
+    "print": "Imprimir el cartel",
+    "linkTitle": "Enlace de tu carta",
+    "linkBody": "Compártelo en redes, en Google o por WhatsApp. Siempre muestra la carta publicada, así que no tienes que reimprimir el QR cuando cambies platos o precios.",
+    "copy": "Copiar enlace",
+    "copied": "Copiado",
+    "view": "Ver la carta",
+    "posterTitle": "Cartel para imprimir",
+    "posterBody": "Tamaño A5. Pulsa «Imprimir el cartel» y elige tu impresora o «Guardar como PDF» para llevarlo a una imprenta.",
+    "posterKicker": "Nuestra carta",
+    "posterHeadline": "Escanea para ver la carta",
+    "posterHint": "Apunta con la cámara de tu móvil al código"
   }
 }

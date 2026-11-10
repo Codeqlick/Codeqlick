@@ -86,6 +86,14 @@
   font-weight: 600;
 }
 
+/* The menu poster's address under the QR (the menu kit reuses this poster). */
+.address {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
 @media print {
   @page {
     size: A5 portrait;
