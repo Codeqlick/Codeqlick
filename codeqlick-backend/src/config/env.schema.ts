@@ -124,6 +124,7 @@ export const envSchema = z.object({
   VAPID_SUBJECT: z.string().default('mailto:hello@codeqlick.com'),
   /** Cloudflare Turnstile's secret key: sign-up and sign-in need a valid token; unset: off. */
   TURNSTILE_SECRET_KEY: optionalString,
+  PAGESPEED_API_KEY: optionalString,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 

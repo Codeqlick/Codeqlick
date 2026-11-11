@@ -40,6 +40,10 @@ const VALIDATION_KEYS: ReadonlySet<string> = new Set<ValidationKey>([
   'choice',
   'price',
   'duration',
+  'privacy',
+  'domain',
+  'confirmMismatch',
+  'website',
 ]);
 
 export function isValidationKey(value: string): value is ValidationKey {
