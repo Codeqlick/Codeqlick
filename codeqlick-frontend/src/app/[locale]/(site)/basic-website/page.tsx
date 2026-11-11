@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { BASIC_FAQ_KEYS, Faq } from '@/components/content/Faq';
 import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { resolveLocale } from '@/i18n/locale';
 import { SITE_PRESETS } from '@/lib/api/types';
 import { pageMetadata } from '@/lib/seo';
@@ -144,6 +145,15 @@ export default async function BasicWebsitePage({ params }: PageProps) {
           headingId="basic-faq-title"
           title={t('faqTitle')}
         />
+        <Card tone="blush" className={styles.check}>
+          <div>
+            <h2 className={styles.listTitle}>{t('checkTitle')}</h2>
+            <p>{t('checkBody')}</p>
+          </div>
+          <Button href="/website-check" variant="outline" data-umami-event="cta-website-check">
+            {t('checkLink')}
+          </Button>
+        </Card>
       </div>
 
       <section className={home.ctaSection} aria-labelledby="cta-title">

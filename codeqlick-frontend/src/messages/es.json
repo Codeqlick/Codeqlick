@@ -65,7 +65,8 @@
     "security": "Seguridad",
     "explore": "Estudio",
     "clients": "Clientes",
-    "contactTitle": "Hablemos"
+    "contactTitle": "Hablemos",
+    "websiteCheck": "Revisión gratuita de tu web"
   },
   "Home": {
     "hero": {
@@ -404,7 +405,8 @@
     "price": "Introduce un importe válido, por ejemplo 1250 o 1250,50.",
     "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas).",
     "domain": "Escribe un dominio como peluqueria-ana.com.",
-    "confirmMismatch": "No coincide: escríbelo tal cual."
+    "confirmMismatch": "No coincide: escríbelo tal cual.",
+    "website": "Escribe la dirección de tu web, como tuweb.com."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -2414,7 +2416,10 @@
     "ctaTitle": "¿Hacemos la tuya?",
     "ctaBody": "Cuéntanos qué negocio tienes y te respondemos en dos días laborables con una propuesta cerrada.",
     "servicesBanner": "¿Tienes un negocio local? Mira la web básica: lista en pocos días, desde 200 €.",
-    "footerLink": "Web básica"
+    "footerLink": "Web básica",
+    "checkTitle": "¿Ya tienes web?",
+    "checkBody": "Te la revisamos gratis: rapidez, móvil, Google y seguridad, con un informe en tu correo.",
+    "checkLink": "Revisar mi web"
   },
   "ManagedSite": {
     "reportHint": "El día 1 de cada mes, cuando la web ya se ve en su dominio, el cliente recibe el informe del mes anterior: visitas, mensajes del formulario y tiempo en línea.",
@@ -4537,5 +4542,88 @@
     "posterKicker": "Nuestra carta",
     "posterHeadline": "Escanea para ver la carta",
     "posterHint": "Apunta con la cámara de tu móvil al código"
+  },
+  "WebsiteCheck": {
+    "metaTitle": "Revisión gratuita de tu web",
+    "metaDescription": "Revisamos gratis tu web: rapidez, móvil, Google y seguridad. Recibe un informe claro en tu correo en menos de un minuto.",
+    "eyebrow": "Revisión gratuita",
+    "title": "¿Cómo está tu web? Te la revisamos gratis",
+    "lead": "Escribe la dirección de tu web y en menos de un minuto te decimos qué tal va de rapidez, cómo se ve en el móvil, si está lista para Google y si es segura. Sin tecnicismos, y con el informe en tu correo.",
+    "areasTitle": "Qué revisamos",
+    "areas": {
+      "speed": {
+        "title": "Rapidez",
+        "body": "Cuánto tarda en responder y cargar, y si pesa más de la cuenta."
+      },
+      "mobile": {
+        "title": "Móvil",
+        "body": "Si se adapta a la pantalla del teléfono y deja ampliar."
+      },
+      "seo": {
+        "title": "Google",
+        "body": "Título, descripción, encabezados, mapa del sitio y lo que Google necesita para mostrarte."
+      },
+      "security": {
+        "title": "Seguridad",
+        "body": "Conexión segura, certificado y las protecciones básicas del navegador."
+      }
+    },
+    "stepsTitle": "Cómo funciona",
+    "steps": {
+      "address": {
+        "title": "Nos dices tu web",
+        "body": "Solo la dirección y tu correo. No necesitamos ninguna clave."
+      },
+      "check": {
+        "title": "La revisamos",
+        "body": "Abrimos tu web como lo haría un visitante y Google, y comprobamos más de 20 puntos."
+      },
+      "report": {
+        "title": "Recibes el informe",
+        "body": "Lo ves al momento y te lo enviamos por correo, con lo que mejoraríamos primero."
+      }
+    },
+    "form": {
+      "url": "Dirección de tu web",
+      "urlPlaceholder": "tuweb.com",
+      "email": "Tu correo electrónico",
+      "emailHint": "Te enviamos ahí el informe.",
+      "name": "Tu nombre",
+      "acceptPrivacy": "Acepto que uséis mis datos para enviarme el informe y responderme, según la <link>política de privacidad</link>.",
+      "honeypot": "Deja este campo vacío",
+      "submit": "Revisar mi web",
+      "sending": "Enviando…",
+      "sent": "Recibido. En unos minutos tendrás el informe en tu correo.",
+      "error": "Revisa los datos del formulario.",
+      "rateLimited": "Has pedido muchas revisiones seguidas. Espera un poco y vuelve a intentarlo.",
+      "failed": "No hemos podido pedir la revisión. Vuelve a intentarlo en un momento."
+    },
+    "reportMetaTitle": "Informe de tu web",
+    "report": {
+      "back": "Revisar otra web",
+      "pendingTitle": "Estamos revisando {host}…",
+      "pendingBody": "Tarda menos de un minuto; esta página se actualiza sola. También te enviamos el informe por correo.",
+      "failedTitle": "No hemos podido revisar {host}",
+      "tryAgain": "Probar otra vez",
+      "contact": "Escríbenos",
+      "scoreLabel": "Puntuación: {score} de 100",
+      "grade": {
+        "good": "{host} está en buena forma",
+        "fair": "{host} puede mejorar bastante",
+        "poor": "{host} necesita trabajo"
+      },
+      "summary": "{count, plural, =0 {Sin problemas importantes} one {# cosa que mejorar} other {# cosas que mejorar}} · Revisada el {date}",
+      "categoriesLabel": "Puntuación por apartado",
+      "status": {
+        "pass": "correcto",
+        "warn": "mejorable",
+        "fail": "a corregir"
+      },
+      "ctaTitle": "¿Quieres que lo arreglemos?",
+      "ctaBody": "Te decimos cómo y cuánto costaría, sin compromiso. Y si tu web se ha quedado anticuada, te hacemos una nueva con dominio, correo y alojamiento incluidos.",
+      "ctaContact": "Pedir presupuesto",
+      "ctaBasic": "Ver la web básica",
+      "contactMessage": "Hola, he revisado mi web {url} con vuestra herramienta ({score}/100) y me gustaría mejorarla."
+    }
   }
 }

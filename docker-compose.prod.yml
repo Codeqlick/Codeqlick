@@ -106,6 +106,7 @@ services:
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
     volumes:
       - uploads-data:/app/uploads
       # Swipe's photos: private, served only through the API (architecture 4.10).
