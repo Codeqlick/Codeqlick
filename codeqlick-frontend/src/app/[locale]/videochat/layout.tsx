@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
+import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { Logo } from '@/components/brand/Logo';
 import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
@@ -69,42 +70,44 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
   const webapp = (await requestWebapp()) === 'videochat' ? 'videochat' : null;
 
   return (
-    <WebappProvider app={webapp}>
-      <div className={styles.frame}>
-        <header className={styles.header}>
-          <div className={styles.brand}>
-            <Logo href="/videochat" size="sm" label={t('homeLabel')} />
-            <span className={styles.brandApp}>{t('brand')}</span>
-            <span className={styles.adultBadge}>{t('adultBadge')}</span>
-          </div>
-          <nav className={styles.headerNav}>
-            <Link href="/videochat/rules" className={styles.headerLink}>
-              {t('rulesLink')}
-            </Link>
-            {user ? (
-              <Link href="/videochat/contacts" className={styles.headerLink}>
-                {t('contactsLink')}
+    <ClientMessages extra={APP_NAMESPACES.videochat}>
+      <WebappProvider app={webapp}>
+        <div className={styles.frame}>
+          <header className={styles.header}>
+            <div className={styles.brand}>
+              <Logo href="/videochat" size="sm" label={t('homeLabel')} />
+              <span className={styles.brandApp}>{t('brand')}</span>
+              <span className={styles.adultBadge}>{t('adultBadge')}</span>
+            </div>
+            <nav className={styles.headerNav}>
+              <Link href="/videochat/rules" className={styles.headerLink}>
+                {t('rulesLink')}
               </Link>
-            ) : null}
-            {user ? (
-              <Link href="/videochat/settings" className={styles.headerLink}>
-                {t('settingsLink')}
-              </Link>
-            ) : null}
-            <AppSwitcher current="videochat" locale={locale} />
-            <LocaleSwitcher className={styles.locale} />
-            {user ? (
-              <form action={logoutAction}>
-                <input type="hidden" name="locale" value={locale} />
-                <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
-                  {t('signOut')}
-                </SubmitButton>
-              </form>
-            ) : null}
-          </nav>
-        </header>
-        <main className={styles.main}>{children}</main>
-      </div>
-    </WebappProvider>
+              {user ? (
+                <Link href="/videochat/contacts" className={styles.headerLink}>
+                  {t('contactsLink')}
+                </Link>
+              ) : null}
+              {user ? (
+                <Link href="/videochat/settings" className={styles.headerLink}>
+                  {t('settingsLink')}
+                </Link>
+              ) : null}
+              <AppSwitcher current="videochat" locale={locale} />
+              <LocaleSwitcher className={styles.locale} />
+              {user ? (
+                <form action={logoutAction}>
+                  <input type="hidden" name="locale" value={locale} />
+                  <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
+                    {t('signOut')}
+                  </SubmitButton>
+                </form>
+              ) : null}
+            </nav>
+          </header>
+          <main className={styles.main}>{children}</main>
+        </div>
+      </WebappProvider>
+    </ClientMessages>
   );
 }

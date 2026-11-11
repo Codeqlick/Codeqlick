@@ -276,6 +276,17 @@ sudo nginx -t && sudo systemctl reload nginx
 curl -sI --http2 https://codeqlick.com/en | head -1   # HTTP/2 200
 ```
 
+### Nginx hardening
+
+`deploy/nginx/conf.d/codeqlick-hardening.conf` hides Nginx's version (`server_tokens off`) on every
+site of the server, client sites included. Install it once (and again whenever it changes):
+
+```bash
+sudo cp /srv/codeqlick/deploy/nginx/conf.d/codeqlick-hardening.conf /etc/nginx/conf.d/
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI https://codeqlick.com/en | grep -i '^server'   # server: nginx
+```
+
 ### Monitoring
 
 `deploy/monitor/monitor.sh` runs from the deploy user's crontab every 5 minutes. It checks:
