@@ -8,8 +8,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { Role } from '../src/generated/prisma/client.js';
-import { MailService } from '../src/modules/mail/mail.service.js';
+import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { SiteBuilderClient } from '../src/modules/managed-sites/site-builder.client.js';
+import { SiteFormsService } from '../src/modules/site-forms/site-forms.service.js';
 import { UmamiClient } from '../src/modules/stats/umami.client.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -19,6 +20,7 @@ const tag = randomUUID().slice(0, 8);
 const password = 'visits-password-1';
 const admin = { email: `e2e-vis-admin-${tag}@codeqlick.test`, password };
 const client = { email: `e2e-vis-client-${tag}@codeqlick.test`, password };
+const stranger = { email: `e2e-vis-other-${tag}@codeqlick.test`, password };
 
 /** A preset as site-builder returns it (a demo's content, with the fields the API replaces). */
 const preset = {
@@ -59,6 +61,7 @@ describe('Website visits in the portal (e2e)', () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
   const builds: Array<{ content: Record<string, unknown> }> = [];
+  const sent: MailMessage[] = [];
   const ids: Record<string, string> = {};
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 
@@ -74,7 +77,10 @@ describe('Website visits in the portal (e2e)', () => {
       builds.push(input);
       return Promise.resolve({ ok: true, release: 'r1', ms: 10 });
     });
-    vi.spyOn(app.get(MailService), 'send').mockResolvedValue();
+    vi.spyOn(app.get(MailService), 'send').mockImplementation((message) => {
+      sent.push(message);
+      return Promise.resolve();
+    });
     // Umami set up: the site gets a website on its first build, and reports visits.
     vi.spyOn(app.get(AppConfigService), 'umamiApi', 'get').mockReturnValue({
       url: 'http://umami.test',
@@ -107,6 +113,9 @@ describe('Website visits in the portal (e2e)', () => {
         data: { email: client.email, name: 'Marta', role: Role.CLIENT, passwordHash },
       })
     ).id;
+    await prisma.user.create({
+      data: { email: stranger.email, name: 'Otro', role: Role.CLIENT, passwordHash },
+    });
     ids.project = (
       await prisma.clientProject.create({
         data: { clientId: ids.client, name: 'Peluquería Marta' },
@@ -166,5 +175,61 @@ describe('Website visits in the portal (e2e)', () => {
       .get(`/v1/admin/projects/${ids.project}/visits`)
       .set(adminAuth)
       .expect(200);
+  });
+
+  it('keeps the form messages for the portal, where the client reads and deletes them', async () => {
+    const server = app.getHttpServer();
+    const bearer = async (user: { email: string; password: string }) => ({
+      Authorization: `Bearer ${(await request(server).post('/v1/auth/login').send(user).expect(200)).body.accessToken as string}`,
+    });
+    const clientAuth = await bearer(client);
+    const messages = `/v1/portal/projects/${ids.project}/site/messages`;
+    const form = await prisma.siteForm.findUniqueOrThrow({ where: { projectId: ids.project } });
+
+    sent.length = 0;
+    await request(server)
+      .post(`/v1/forms/${form.key}`)
+      .send({
+        name: 'Luis',
+        email: 'luis@example.com',
+        phone: '600 111 222',
+        message: '¿Abrís el sábado?',
+      })
+      .expect(200);
+    // The email still goes out, with a link to the messages in the portal.
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.text).toContain(`/es/portal/projects/${ids.project}/site/messages`);
+
+    const list = await request(server).get(messages).set(clientAuth).expect(200);
+    expect(list.body).toMatchObject({ page: 1, total: 2, totalPages: 1 });
+    expect(list.body.items[0]).toMatchObject({
+      name: 'Luis',
+      email: 'luis@example.com',
+      phone: '600 111 222',
+      message: '¿Abrís el sábado?',
+    });
+    expect(list.body.items[1]).toMatchObject({ name: 'Ana', phone: null, message: 'Hola' });
+    const second = await request(server).get(`${messages}?pageSize=1&page=2`).set(clientAuth);
+    expect(second.body.items.map((item: { name: string }) => item.name)).toEqual(['Ana']);
+
+    // Someone else's account sees nothing of it.
+    const strangerAuth = await bearer(stranger);
+    await request(server).get(messages).set(strangerAuth).expect(404);
+    const first = list.body.items[0].id as string;
+    await request(server).delete(`${messages}/${first}`).set(strangerAuth).expect(404);
+
+    await request(server).delete(`${messages}/${first}`).set(clientAuth).expect(204);
+    await request(server).delete(`${messages}/${first}`).set(clientAuth).expect(404);
+    const after = await request(server).get(messages).set(clientAuth).expect(200);
+    expect(after.body.items.map((item: { name: string }) => item.name)).toEqual(['Ana']);
+
+    // After 12 months they are deleted.
+    const old = new Date(Date.now() - 366 * 86_400_000);
+    await prisma.siteFormMessage.updateMany({
+      where: { formId: form.id },
+      data: { createdAt: old },
+    });
+    expect(await app.get(SiteFormsService).deleteOldMessages()).toBeGreaterThanOrEqual(1);
+    expect((await request(server).get(messages).set(clientAuth).expect(200)).body.total).toBe(0);
   });
 });

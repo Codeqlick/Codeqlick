@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
-import { getMySite } from '@/lib/api/portal-site';
+import { getMySite, listSiteMessages } from '@/lib/api/portal-site';
 import { formatDateTime } from '@/lib/format';
 import { setSiteDomainAction, applyDomainEmailAction } from './actions';
 import siteStyles from './site.module.css';
@@ -30,10 +30,15 @@ export default async function PortalSitePage({
   const t = await getTranslations({ locale, namespace: 'PortalSite' });
   const tm = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tk = (key: string) => tm(key as never);
-  const site = await getMySite(id).catch((error: unknown) => {
-    if (isNotFound(error)) notFound();
-    throw error;
-  });
+  const [site, messages] = await Promise.all([
+    getMySite(id).catch((error: unknown) => {
+      if (isNotFound(error)) notFound();
+      throw error;
+    }),
+    // Only the count: the page shows them.
+    listSiteMessages(id, { pageSize: 1 }).catch(() => null),
+  ]);
+  const tmsg = await getTranslations({ locale, namespace: 'SiteMessages' });
   const { editable, domain } = site;
   const td = await getTranslations({ locale, namespace: 'SiteRequest' });
   const domainLabels = {
@@ -102,6 +107,20 @@ export default async function PortalSitePage({
           ) : null}
         </div>
       </section>
+
+      {messages ? (
+        <section className={styles.panel} id="messages">
+          <h2 className={styles.panelTitle}>{tmsg('title')}</h2>
+          <p className={styles.muted}>
+            {messages.total > 0 ? tmsg('count', { count: messages.total }) : tmsg('countNone')}
+          </p>
+          <div className={styles.actions}>
+            <Button href={`/portal/projects/${id}/site/messages`} variant="outline">
+              {tmsg('open')}
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       <section className={styles.panel} id="domain">
         <h2 className={styles.panelTitle}>{t('domainTitle')}</h2>

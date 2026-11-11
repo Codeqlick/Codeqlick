@@ -912,6 +912,16 @@ export type PortalSite = {
 };
 
 /** Visits of a managed client site, with its form's messages (architecture 8.2). */
+/** A message a managed site's form kept for the portal (decision 31). */
+export type SiteFormMessage = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  createdAt: string;
+};
+
 export type ProjectVisits = {
   enabled: boolean;
   available: boolean;

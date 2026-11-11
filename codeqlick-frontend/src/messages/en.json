@@ -4625,5 +4625,22 @@
       "ctaBasic": "See the basic website",
       "contactMessage": "Hi, I checked my website {url} with your tool ({score}/100) and I'd like to improve it."
     }
+  },
+  "SiteMessages": {
+    "title": "Your website's messages",
+    "lead": "What people send you through your website's contact form. Each one also reaches you by email.",
+    "back": "Back to your website",
+    "emptyTitle": "No messages yet",
+    "emptyBody": "When someone writes to you through your website's form, you'll see it here and get it by email.",
+    "reply": "Reply by email",
+    "replySubject": "Reply to your message",
+    "delete": "Delete",
+    "deleteBody": "This message will be deleted from your client area. It can't be undone; the email you received is not deleted.",
+    "deleteConfirm": "Delete the message",
+    "deleting": "Deleting…",
+    "kept": "We keep the messages for 12 months, then they are deleted on their own. If someone who wrote to you asks you to delete their data, delete it here and in your email.",
+    "count": "{count, plural, one {You have # message} other {You have # messages}} from the last 12 months.",
+    "countNone": "You'll see here the messages people send through your website's form.",
+    "open": "See the messages"
   }
 }
