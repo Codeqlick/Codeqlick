@@ -3,11 +3,35 @@ import type { SiteForm } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type FormRow = SiteForm & {
-  project: { id: string; name: string; productionUrl: string | null; stagingUrl: string | null };
+  project: {
+    id: string;
+    name: string;
+    productionUrl: string | null;
+    stagingUrl: string | null;
+    site: { id: string } | null;
+  };
 };
 
 const include = {
-  project: { select: { id: true, name: true, productionUrl: true, stagingUrl: true } },
+  project: {
+    select: {
+      id: true,
+      name: true,
+      productionUrl: true,
+      stagingUrl: true,
+      site: { select: { id: true } },
+    },
+  },
+} as const;
+
+/** What the portal shows of a kept message. */
+export const messageSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  message: true,
+  createdAt: true,
 } as const;
 
 @Injectable()
@@ -71,5 +95,54 @@ export class SiteFormsRepository {
       select: { day: true, count: true },
     });
     return new Map(rows.map((row) => [row.day.toISOString().slice(0, 10), row.count]));
+  }
+
+  /** Keeps a message of a managed site's form (decision 31). */
+  async keepMessage(
+    formId: string,
+    message: { name: string; email: string; phone?: string; message: string },
+    at: Date,
+  ): Promise<void> {
+    await this.prisma.siteFormMessage.create({
+      data: {
+        formId,
+        name: message.name,
+        email: message.email,
+        phone: message.phone ?? null,
+        message: message.message,
+        createdAt: at,
+      },
+    });
+  }
+
+  /** A project's kept messages, newest first, and how many there are. */
+  async messages(projectId: string, skip: number, take: number) {
+    const where = { form: { projectId } };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.siteFormMessage.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip,
+        take,
+        select: messageSelect,
+      }),
+      this.prisma.siteFormMessage.count({ where }),
+    ]);
+    return { items, total };
+  }
+
+  /** Deletes one of a project's messages; false when it isn't one of them. */
+  async deleteMessage(projectId: string, id: string): Promise<boolean> {
+    const { count } = await this.prisma.siteFormMessage.deleteMany({
+      where: { id, form: { projectId } },
+    });
+    return count > 0;
+  }
+
+  async deleteMessagesBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.siteFormMessage.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
   }
 }
