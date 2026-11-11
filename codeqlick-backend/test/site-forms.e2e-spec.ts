@@ -104,6 +104,11 @@ describe('Site forms (e2e)', () => {
     expect(sent[0]).toMatchObject({ to: 'marta@peluqueria.test', replyTo: 'ana@example.com' });
     expect(sent[0]?.subject).toBe('Nuevo mensaje desde peluqueria-e2e.test: Ana');
     expect(sent[0]?.text).toContain('600 000 000');
+    // Not a managed site: the message is only emailed, never kept.
+    expect(sent[0]?.text).toContain('no guarda el mensaje');
+    expect(
+      await prisma.siteFormMessage.count({ where: { form: { projectId: ids.project } } }),
+    ).toBe(0);
 
     // Missing fields: back with an error, nothing sent.
     const bad = await post(site).send({ name: 'Ana', email: 'ana' }).expect(303);

@@ -6,6 +6,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { failedState } from '@/lib/actions';
 import { isApiError } from '@/lib/api/errors';
 import {
+  deleteSiteMessage,
   getMySite,
   getSiteEditor,
   saveMySite,
@@ -80,4 +81,21 @@ export async function applyDomainEmailAction(
   } catch (error) {
     return failedState(error, locale, formData);
   }
+}
+
+/** The client deletes one of the messages their site's form kept. */
+export async function deleteSiteMessageAction(
+  locale: AppLocale,
+  projectId: string,
+  messageId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await deleteSiteMessage(projectId, messageId);
+  } catch (error) {
+    return failedState(error, locale, formData);
+  }
+  revalidatePath(`/${locale}/portal/projects/${projectId}/site`, 'layout');
+  return { status: 'idle' };
 }

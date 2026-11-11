@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
-import { SiteFormsService } from '../site-forms/site-forms.service.js';
+import type { Paginated } from '../../common/types/paginated.js';
+import { SiteFormsService, type KeptMessage } from '../site-forms/site-forms.service.js';
 import { UmamiClient } from '../stats/umami.client.js';
 import { ManagedSitesRepository } from './managed-sites.repository.js';
 
@@ -20,7 +21,10 @@ export interface ProjectVisits {
 
 const DAY_MS = 86_400_000;
 
-/** Visits of a managed client site (Umami) with its form's messages per day (architecture 8.2). */
+/**
+ * Visits of a managed client site (Umami) with its form's messages per day, and the messages its
+ * form kept (architecture 8.2, decision 31).
+ */
 @Injectable()
 export class SiteVisitsService {
   constructor(
@@ -35,9 +39,7 @@ export class SiteVisitsService {
     days: number,
     now = new Date(),
   ): Promise<ProjectVisits> {
-    const site = await this.repository.findByProject(projectId);
-    const own = site && (caller.role === 'ADMIN' || site.project.client.id === accountOf(caller));
-    if (!site || !own) throw new NotFoundException('Website not found');
+    const site = await this.ownSite(caller, projectId);
 
     const [visits, messages] = await Promise.all([
       site.umamiWebsiteId ? this.umami.visits(days, now.getTime(), site.umamiWebsiteId) : undefined,
@@ -60,5 +62,28 @@ export class SiteVisitsService {
       daily,
       referrers: (visits?.referrers ?? []).slice(0, 5),
     };
+  }
+
+  /** The messages the site's form kept, newest first. */
+  async messages(
+    caller: AuthUser,
+    projectId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<Paginated<KeptMessage>> {
+    await this.ownSite(caller, projectId);
+    return this.forms.messages(projectId, page, pageSize);
+  }
+
+  async deleteMessage(caller: AuthUser, projectId: string, messageId: string): Promise<void> {
+    await this.ownSite(caller, projectId);
+    await this.forms.deleteMessage(projectId, messageId);
+  }
+
+  private async ownSite(caller: AuthUser, projectId: string) {
+    const site = await this.repository.findByProject(projectId);
+    const own = site && (caller.role === 'ADMIN' || site.project.client.id === accountOf(caller));
+    if (!site || !own) throw new NotFoundException('Website not found');
+    return site;
   }
 }

@@ -4625,5 +4625,22 @@
       "ctaBasic": "Ver la web básica",
       "contactMessage": "Hola, he revisado mi web {url} con vuestra herramienta ({score}/100) y me gustaría mejorarla."
     }
+  },
+  "SiteMessages": {
+    "title": "Mensajes de tu web",
+    "lead": "Lo que te escriben desde el formulario de contacto de tu web. También te llega cada uno por email.",
+    "back": "Volver a tu web",
+    "emptyTitle": "Todavía no hay mensajes",
+    "emptyBody": "Cuando alguien te escriba desde el formulario de tu web, lo verás aquí y te llegará por email.",
+    "reply": "Responder por email",
+    "replySubject": "Respuesta a tu mensaje",
+    "delete": "Borrar",
+    "deleteBody": "Se borrará este mensaje de tu área de cliente. No se puede deshacer; el email que recibiste no se borra.",
+    "deleteConfirm": "Borrar el mensaje",
+    "deleting": "Borrando…",
+    "kept": "Guardamos los mensajes durante 12 meses y después se borran solos. Si quien te escribió te pide que borres sus datos, bórralo aquí y en tu correo.",
+    "count": "{count, plural, one {Tienes # mensaje guardado} other {Tienes # mensajes guardados}} de los últimos 12 meses.",
+    "countNone": "Aquí verás los mensajes que te envíen desde el formulario de tu web.",
+    "open": "Ver los mensajes"
   }
 }

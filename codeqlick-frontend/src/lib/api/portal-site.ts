@@ -1,6 +1,13 @@
 import 'server-only';
 import { apiFetch } from './client';
-import type { EditableSite, PortalSite, ProjectVisits, SiteEditorView } from './types';
+import type {
+  EditableSite,
+  Paginated,
+  PortalSite,
+  ProjectVisits,
+  SiteEditorView,
+  SiteFormMessage,
+} from './types';
 
 const path = (projectId: string) => `/portal/projects/${encodeURIComponent(projectId)}/site`;
 
@@ -42,6 +49,24 @@ export function getProjectVisits(
   return apiFetch<ProjectVisits>(`/${scope}/projects/${encodeURIComponent(projectId)}/visits`, {
     auth: 'required',
     query: { days },
+  });
+}
+
+/** The messages the site's form kept (12 months), newest first; 404 without a managed site. */
+export function listSiteMessages(
+  projectId: string,
+  query: { page?: number; pageSize?: number } = {},
+) {
+  return apiFetch<Paginated<SiteFormMessage>>(`${path(projectId)}/messages`, {
+    auth: 'required',
+    query,
+  });
+}
+
+export function deleteSiteMessage(projectId: string, messageId: string) {
+  return apiFetch<void>(`${path(projectId)}/messages/${encodeURIComponent(messageId)}`, {
+    method: 'DELETE',
+    auth: 'required',
   });
 }
 
