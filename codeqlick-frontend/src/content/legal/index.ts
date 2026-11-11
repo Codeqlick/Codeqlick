@@ -189,7 +189,7 @@ ${ownerLines(owner, locale)}
 ## Qué compras
 
 - La web de tu negocio tal como la ves en la vista previa, creada y publicada en cuanto se confirma el pago, primero en una dirección de Codeqlick (\`<nombre>.demo.codeqlick.com\`) y en tu dominio cuando lo conectes.
-- Su formulario de contacto, que te envía por email los mensajes de tus visitas.
+- Su formulario de contacto, que te envía por email los mensajes de tus visitas y los guarda 12 meses en tu área de cliente, donde puedes leerlos y borrarlos.
 - El acceso a tu área de cliente, desde donde puedes cambiar todo el contenido de la web (textos, fotos, colores, tipografías, secciones y datos legales) y elegir tu dominio.
 - El alojamiento de la web con HTTPS y unas estadísticas de visitas sin cookies.
 
@@ -228,7 +228,7 @@ ${ownerLines(owner, locale)}
 ## What you buy
 
 - Your business's website as you see it in the preview, made and published as soon as the payment is confirmed, first at a Codeqlick address (\`<name>.demo.codeqlick.com\`) and on your domain once you connect it.
-- Its contact form, which emails you your visitors' messages.
+- Its contact form, which emails you your visitors' messages and keeps them for 12 months in your client area, where you can read and delete them.
 - Access to your client area, where you can change all of the website's content (texts, photos, colours, fonts, sections and legal data) and choose your domain.
 - Hosting of the website with HTTPS and cookieless visit statistics.
 

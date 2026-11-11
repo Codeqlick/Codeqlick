@@ -5,7 +5,7 @@ import type { SubmissionInput } from './site-forms.schemas.js';
 /** To the client (Spanish): someone wrote through their site's contact form. */
 export function siteFormEmail(
   recipients: string[],
-  site: { project: string; url: string | null },
+  site: { project: string; url: string | null; messagesUrl?: string },
   message: SubmissionInput,
   siteUrl: string,
 ): MailMessage {
@@ -28,7 +28,12 @@ export function siteFormEmail(
           ...(message.phone ? ([['Teléfono', message.phone]] as Array<[string, string]>) : []),
         ],
         quote: { body: message.message },
-        note: 'Codeqlick gestiona el formulario de tu web y no guarda el mensaje: solo te lo envía a ti.',
+        ...(site.messagesUrl
+          ? { button: { label: 'Ver los mensajes de tu web', url: site.messagesUrl } }
+          : {}),
+        note: site.messagesUrl
+          ? 'También lo tienes en tu área de cliente, donde guardamos los mensajes de tu web durante 12 meses.'
+          : 'Codeqlick gestiona el formulario de tu web y no guarda el mensaje: solo te lo envía a ti.',
         signoff: [],
       },
       siteUrl,
