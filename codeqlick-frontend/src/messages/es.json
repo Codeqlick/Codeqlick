@@ -4770,7 +4770,8 @@
       "suspended": "Suspendido",
       "role": "Tu papel: {role}",
       "plan": "Plan: {plan}",
-      "monitorsLink": "Monitores"
+      "monitorsLink": "Monitores",
+      "auditsLink": "Revisión web"
     },
     "project": {
       "tabs": {
@@ -5014,6 +5015,22 @@
         "partial": "Fallo parcial",
         "major": "Fallo general",
         "unknown": "Esperando las primeras comprobaciones"
+      }
+    },
+    "audits": {
+      "title": "Revisión web",
+      "lead": "Rapidez, móvil, Google y seguridad de cualquier página, con consejos claros. 20 por hora y equipo; los informes se guardan 30 días.",
+      "url": "Dirección",
+      "urlInvalid": "Escribe la dirección completa, con http:// o https://.",
+      "run": "Revisar",
+      "running": "Revisando… (hasta un minuto)",
+      "ci": "En tu CI hace fallar el paso por debajo de la nota que elijas:",
+      "recent": "Revisiones recientes",
+      "empty": "Aún no hay revisiones.",
+      "status": {
+        "pass": "Bien",
+        "warn": "Mejorable",
+        "fail": "Problema"
       }
     }
   },

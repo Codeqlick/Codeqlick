@@ -43,10 +43,15 @@ Commands:
   deploy [folder]           Upload a built folder as a new deployment
       --prod                  publish it (otherwise it's a preview)
       -m, --message <text>    shown in the console
+      --url-only              print only the deployment's URL (for scripts)
   deployments               The project's deployments, newest first
   promote <id>              Publish an earlier deployment (its short id)
   rollback                  Publish the deployment before the current one
   domains [add|check|rm <domain>]   The project's own domains
+  audit <url>               Run the website check (speed, mobile, Google, security)
+      --min-score <n>         exit 1 below this score (0-100)
+      --fail-on <fail|warn>   exit 1 when a check has that result or worse
+      --json                  print the report as JSON
   open                      Open the published site
 
 Options:
@@ -61,6 +66,10 @@ interface Options {
   prod?: boolean;
   message?: string;
   token?: string;
+  'url-only'?: boolean;
+  'min-score'?: string;
+  'fail-on'?: string;
+  json?: boolean;
 }
 
 async function context() {
@@ -263,9 +272,12 @@ async function deploy(folder: string | undefined, options: Options): Promise<voi
     const bundle = join(work, 'site.tar.gz');
     const size = await pack(files, bundle);
     const total = files.reduce((sum, f) => sum + f.size, 0);
-    console.log(
-      `Uploading ${files.length} files (${bytes(total)}, ${bytes(size)} compressed) to ${bold(project.slug)}…`,
-    );
+    const quiet = options['url-only'] === true;
+    if (!quiet) {
+      console.log(
+        `Uploading ${files.length} files (${bytes(total)}, ${bytes(size)} compressed) to ${bold(project.slug)}…`,
+      );
+    }
     const { commit, branch } = await gitInfo();
     const deployment = await api.deploy(project.id, bundle, {
       target: options.prod ? 'production' : 'preview',
@@ -273,6 +285,10 @@ async function deploy(folder: string | undefined, options: Options): Promise<voi
       commit: commit && /^[0-9a-f]{4,40}$/i.test(commit) ? commit : undefined,
       branch,
     });
+    if (quiet) {
+      console.log(deployment.url);
+      return;
+    }
     console.log(`${green('✓')} Deployment ${bold(deployment.shortId)}: ${deployment.url}`);
     if (deployment.isProduction) console.log(`${green('✓')} Published: ${bold(project.url)}`);
     else console.log(dim(`  A preview. Publish it with: codeqlick promote ${deployment.shortId}`));
@@ -365,6 +381,56 @@ async function domains(
   } else throw new UsageError(`Unknown action "${action}": add, check or rm.`);
 }
 
+/** The team a command acts for: the flag, the environment, codeqlick.json, or the only one. */
+async function teamOf(api: Api, options: Options): Promise<string> {
+  const file = await readProjectFile();
+  const team = options.team ?? process.env.CODEQLICK_TEAM ?? file.team;
+  if (team) return team;
+  const teams = (await api.me()).teams;
+  if (teams.length === 1) return teams[0]!.slug;
+  throw new UsageError('Which team? Pass --team <slug> (or set CODEQLICK_TEAM).');
+}
+
+async function audit(url: string | undefined, options: Options): Promise<number> {
+  if (!url || !/^https?:\/\//i.test(url))
+    throw new UsageError('Which address? codeqlick audit https://…');
+  const minScore = options['min-score'] === undefined ? null : Number(options['min-score']);
+  if (minScore !== null && !(Number.isInteger(minScore) && minScore >= 0 && minScore <= 100)) {
+    throw new UsageError('--min-score must be a whole number from 0 to 100.');
+  }
+  const failOn = options['fail-on'];
+  if (failOn !== undefined && failOn !== 'fail' && failOn !== 'warn') {
+    throw new UsageError('--fail-on must be fail or warn.');
+  }
+  const { api } = await signedIn();
+  const locale = (process.env.LANG ?? '').startsWith('es') ? 'es' : 'en';
+  const report = await api.audit(await teamOf(api, options), url, locale);
+  const checks = report.categories.flatMap((c) => c.checks);
+  const failed =
+    (minScore !== null && report.score < minScore) ||
+    (failOn === 'fail' && checks.some((c) => c.status === 'fail')) ||
+    (failOn === 'warn' && checks.some((c) => c.status !== 'pass'));
+  if (options.json) {
+    console.log(JSON.stringify(report, null, 2));
+    return failed ? 1 : 0;
+  }
+  const paintScore = report.score >= 90 ? green : report.score >= 50 ? (s: string) => s : pink;
+  console.log(`${bold(paintScore(`${report.score}/100`))}  ${report.finalUrl}`);
+  console.log(dim(report.categories.map((c) => `${c.name} ${c.score}`).join(' · ')));
+  for (const check of checks.filter((c) => c.status !== 'pass')) {
+    console.log(`${check.status === 'fail' ? pink('✗') : '!'} ${check.title}`);
+    console.log(dim(`  ${check.advice}`));
+  }
+  if (failed) {
+    console.error(
+      minScore !== null && report.score < minScore
+        ? `The score ${report.score} is under ${minScore}.`
+        : `There are checks that ${failOn === 'warn' ? "didn't pass" : 'failed'}.`,
+    );
+  }
+  return failed ? 1 : 0;
+}
+
 async function openSite(options: Options): Promise<void> {
   const { api } = await signedIn();
   const project = await target(api, options);
@@ -384,6 +450,10 @@ export async function main(argv: string[]): Promise<number> {
       prod: { type: 'boolean' },
       message: { type: 'string', short: 'm' },
       token: { type: 'string' },
+      'url-only': { type: 'boolean' },
+      'min-score': { type: 'string' },
+      'fail-on': { type: 'string' },
+      json: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -431,6 +501,8 @@ export async function main(argv: string[]): Promise<number> {
       case 'open':
         await openSite(options);
         break;
+      case 'audit':
+        return await audit(rest[0], options);
       default:
         throw new UsageError(`Unknown command "${command}". Run codeqlick --help.`);
     }

@@ -123,6 +123,20 @@ Crea un token en la consola (**Tokens**, mejor limitado al equipo) y guárdalo c
 
 Con \`codeqlick.json\` en el repositorio no hace falta más. Sin él, añade \`CODEQLICK_TEAM\` y \`CODEQLICK_PROJECT\`. En GitHub Actions se guardan el commit y la rama de cada despliegue.
 
+## Revisión web en tu CI
+
+\`codeqlick audit <url>\` revisa la rapidez, el móvil, Google y la seguridad de una página (la misma revisión que la web gratuita de Codeqlick) y termina con error por debajo de la nota que pidas, así que un paso de GitHub Actions puede frenar una pull request:
+
+\`\`\`yaml
+- run: |
+    url=$(npx @codeqlick/cli deploy dist --url-only)
+    npx @codeqlick/cli audit "$url" --min-score 80
+  env:
+    CODEQLICK_TOKEN: \${{ secrets.CODEQLICK_TOKEN }}
+\`\`\`
+
+\`--fail-on fail\` (o \`warn\`) falla también cuando alguna comprobación da ese resultado, y \`--json\` imprime el informe completo. También en la consola, en **Revisión web**, y por la API (\`POST /v1/cloud/audits\`). 20 por hora y equipo.
+
 ## Equipos y permisos
 
 - **Propietario**: todo, incluido borrar el equipo y nombrar a otros propietarios.
@@ -281,6 +295,20 @@ Create a token in the console (**Tokens**, ideally restricted to the team) and s
 \`\`\`
 
 With \`codeqlick.json\` in the repository nothing else is needed. Without it, add \`CODEQLICK_TEAM\` and \`CODEQLICK_PROJECT\`. On GitHub Actions each deployment records its commit and branch.
+
+## Website check in your CI
+
+\`codeqlick audit <url>\` checks a page's speed, mobile, Google and security (the same check as Codeqlick's free website check) and exits with an error under the score you ask for, so a GitHub Actions step can stop a pull request:
+
+\`\`\`yaml
+- run: |
+    url=$(npx @codeqlick/cli deploy dist --url-only)
+    npx @codeqlick/cli audit "$url" --min-score 80
+  env:
+    CODEQLICK_TOKEN: \${{ secrets.CODEQLICK_TOKEN }}
+\`\`\`
+
+\`--fail-on fail\` (or \`warn\`) also fails when any check has that result, and \`--json\` prints the whole report. Also in the console, under **Website check**, and through the API (\`POST /v1/cloud/audits\`). 20 an hour per team.
 
 ## Teams and permissions
 
