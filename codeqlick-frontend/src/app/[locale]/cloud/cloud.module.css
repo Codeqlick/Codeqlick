@@ -438,3 +438,35 @@
   font: inherit;
   font-size: 16px;
 }
+
+.fields {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.fields div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 12rem) minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.fields dt {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  color: var(--color-slate);
+  overflow-wrap: anywhere;
+}
+
+.fields dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 30rem) {
+  .fields div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
