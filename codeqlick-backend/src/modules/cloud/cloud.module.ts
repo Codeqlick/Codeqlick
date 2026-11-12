@@ -4,6 +4,10 @@ import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
 import { CloudAuditsService } from './cloud-audits.service.js';
+import { CloudBuildsController, CloudBuildsPublicController } from './cloud-builds.controller.js';
+import { CloudBuildsRepository } from './cloud-builds.repository.js';
+import { CloudBuildsService } from './cloud-builds.service.js';
+import { GithubClient } from './github.client.js';
 import { CloudFormsController, CloudFormsPublicController } from './cloud-forms.controller.js';
 import { CloudFormsRepository } from './cloud-forms.repository.js';
 import { CloudFormsService } from './cloud-forms.service.js';
@@ -30,10 +34,12 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudPublicController,
     CloudFormsPublicController,
     CloudMonitorsPublicController,
+    CloudBuildsPublicController,
     CloudController,
     CloudFormsController,
     CloudMonitorsController,
     CloudAuditsController,
+    CloudBuildsController,
     CloudAdminController,
   ],
   providers: [
@@ -52,6 +58,9 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudMonitorsService,
     CloudAuditsRepository,
     CloudAuditsService,
+    CloudBuildsRepository,
+    CloudBuildsService,
+    GithubClient,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
   exports: [API_TOKEN_RESOLVER, CloudTeamsService],

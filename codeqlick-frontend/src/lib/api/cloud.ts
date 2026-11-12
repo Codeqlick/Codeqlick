@@ -598,3 +598,127 @@ export const listCloudAudits = (team: string, page = 1) =>
 
 export const getCloudAudit = (id: string, locale: 'en' | 'es') =>
   apiFetch<CloudAuditReport>(`/cloud/audits/${id}`, { ...auth, query: { locale } });
+
+// ── Builds from Git (phase 2) ───────────────────────────────────────────────────────────────
+
+export type CloudGit = {
+  installationId: number | null;
+  repoId: number | null;
+  repo: string | null;
+  branch: string;
+  rootDir: string;
+  installCommand: string;
+  buildCommand: string;
+  outputDir: string;
+  nodeVersion: string;
+  buildBranches: boolean;
+  buildPullRequests: boolean;
+};
+
+export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
+
+export type CloudBuild = {
+  id: string;
+  number: number;
+  trigger: 'push' | 'pull_request' | 'manual';
+  target: 'preview' | 'production';
+  branch: string;
+  commit: string;
+  commitMessage: string | null;
+  author: string | null;
+  pullRequest: number | null;
+  status: CloudBuildStatus;
+  error: string | null;
+  deploymentId: string | null;
+  queuedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+};
+
+export const getCloudGithubInstallUrl = (teamSlug: string, projectSlug?: string) =>
+  apiFetch<{ url: string }>('/cloud/github/install-url', {
+    ...auth,
+    query: { teamSlug, projectSlug },
+  });
+
+export const linkCloudGithub = (input: { installationId: number; code: string; state: string }) =>
+  apiFetch<{
+    installation: { id: number; accountLogin: string };
+    team: string | null;
+    project: string | null;
+  }>('/cloud/github/installations', { ...write, method: 'POST', body: input });
+
+export const getCloudTeamGithub = (team: string) =>
+  apiFetch<{
+    configured: boolean;
+    installations: Array<{
+      id: number;
+      accountLogin: string;
+      accountType: string;
+      suspended: boolean;
+    }>;
+  }>(`/cloud/teams/${encodeURIComponent(team)}/github`, auth);
+
+export const listCloudGithubRepos = (team: string, installationId: number) =>
+  apiFetch<{
+    items: Array<{ id: number; fullName: string; defaultBranch: string; private: boolean }>;
+  }>(`/cloud/teams/${encodeURIComponent(team)}/github/repos`, {
+    ...auth,
+    query: { installationId },
+  });
+
+export const getCloudGit = (projectId: string) =>
+  apiFetch<CloudGit>(`/cloud/projects/${projectId}/git`, auth);
+
+export const setCloudGit = (
+  projectId: string,
+  input: Partial<CloudGit> & { installationId: number; repoId: number; branch: string },
+) =>
+  apiFetch<CloudGit>(`/cloud/projects/${projectId}/git`, { ...write, method: 'PUT', body: input });
+
+export const disconnectCloudGit = (projectId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/git`, { ...write, method: 'DELETE' });
+
+export const listCloudEnv = (projectId: string) =>
+  apiFetch<{
+    items: Array<{ key: string; production: boolean; preview: boolean; updatedAt: string }>;
+  }>(`/cloud/projects/${projectId}/env`, auth);
+
+export const setCloudEnv = (
+  projectId: string,
+  input: { key: string; value: string; production: boolean; preview: boolean },
+) =>
+  apiFetch<unknown>(`/cloud/projects/${projectId}/env`, { ...write, method: 'PUT', body: input });
+
+export const deleteCloudEnv = (projectId: string, key: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/env`, {
+    ...write,
+    method: 'DELETE',
+    query: { key },
+  });
+
+export const listCloudBuilds = (projectId: string, page = 1) =>
+  apiFetch<Paginated<CloudBuild>>(`/cloud/projects/${projectId}/builds`, {
+    ...auth,
+    query: { page, pageSize: 20 },
+  });
+
+export const getCloudBuild = (projectId: string, number: number) =>
+  apiFetch<CloudBuild & { log: string; logOffset: number }>(
+    `/cloud/projects/${projectId}/builds/${number}`,
+    auth,
+  );
+
+export const startCloudBuild = (projectId: string, branch?: string) =>
+  apiFetch<CloudBuild>(`/cloud/projects/${projectId}/builds`, {
+    ...write,
+    method: 'POST',
+    body: branch ? { branch } : {},
+  });
+
+export const cancelCloudBuild = (projectId: string, number: number) =>
+  apiFetch<CloudBuild>(`/cloud/projects/${projectId}/builds/${number}/cancel`, {
+    ...write,
+    method: 'POST',
+  });
