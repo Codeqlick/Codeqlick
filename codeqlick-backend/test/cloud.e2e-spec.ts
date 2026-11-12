@@ -409,8 +409,8 @@ describe('Codeqlick Cloud (e2e)', () => {
     await app.get(CloudProjectsService).housekeeping();
 
     await request(server).delete(`/v1/cloud/projects/${projectId}`).set(tokenAuth).expect(204);
-    await expect(readlink(join(root, 'hosts', slug))).rejects.toThrow();
-    await expect(readFile(join(root, 'domains', `docs-${tag}.example.org`))).rejects.toThrow();
+    await expect(readlink(join(root, 'hosts', slug))).rejects.toThrow(/ENOENT/);
+    await expect(readFile(join(root, 'domains', `docs-${tag}.example.org`))).rejects.toThrow(/ENOENT/);
     // Its address stays taken for 30 days.
     await request(server)
       .post(`/v1/cloud/teams/${teamSlug}/projects`)
