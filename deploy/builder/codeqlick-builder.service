@@ -1,0 +1,25 @@
+# Codeqlick Cloud's build agent (architecture 8.4). Installed by deploy/builder/setup-builder.sh.
+[Unit]
+Description=Codeqlick Cloud build agent
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=builder
+Group=builder
+EnvironmentFile=/etc/codeqlick-builder.env
+WorkingDirectory=/opt/codeqlick-builder
+ExecStart=/usr/bin/node /opt/codeqlick-builder/codeqlick-builder/src/agent.ts
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+Environment=HOME=/var/lib/codeqlick-builder
+ReadWritePaths=/var/lib/codeqlick-builder /run/docker.sock
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

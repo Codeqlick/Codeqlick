@@ -59,6 +59,16 @@ Guardamos los 20 últimos despliegues de cada proyecto, además del publicado. *
 
 Qué se sube: todo lo de la carpeta salvo los archivos y carpetas que empiezan por punto (excepto \`.well-known\`). Para excluir más, añade un \`.codeqlickignore\` con un patrón por línea (\`*.map\`, \`drafts/\`). Debe haber un \`index.html\` en la raíz.
 
+## Compilar desde GitHub
+
+En la pestaña **Git** del proyecto conecta GitHub (instala la app *Codeqlick Cloud* en los repositorios que quieras) y elige el repositorio y la rama de producción. Desde entonces:
+
+- cada **push a la rama de producción** se compila y se publica;
+- los push a **otras ramas** y las **pull requests** se compilan como vistas previas, y la pull request recibe un comentario con su dirección (las de forks no se compilan nunca);
+- GitHub muestra el estado de cada commit (*Codeqlick Cloud*).
+
+Ajusta la orden de instalación (\`npm ci\`), la de compilación (\`npm run build\`), la carpeta de salida (\`dist\`), la carpeta raíz y la versión de Node (20, 22 o 24). Las **variables de entorno** se guardan cifradas y no se pueden volver a leer; elige si son para producción, vistas previas o ambas. Cada compilación corre en un contenedor desechable de un servidor aparte, durante 15 minutos como máximo; el plan gratuito incluye 200 compilaciones al mes por equipo. Añade \`[skip cloud]\` al mensaje de un commit para no compilarlo.
+
 ## Rutas, 404 y aplicaciones de una página
 
 - \`/sobre\` sirve \`sobre.html\` o \`sobre/index.html\`.
@@ -231,6 +241,16 @@ To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in 
 We keep the last 20 deployments of each project, plus the published one. **We don't back up your files**: keep your sources.
 
 What is uploaded: everything in the folder except files and folders starting with a dot (but \`.well-known\`). To leave out more, add a \`.codeqlickignore\` with one pattern per line (\`*.map\`, \`drafts/\`). There must be an \`index.html\` at the root.
+
+## Building from GitHub
+
+In the project's **Git** tab, connect GitHub (install the *Codeqlick Cloud* app on the repositories you want) and choose the repository and the production branch. From then on:
+
+- every **push to the production branch** is built and published;
+- pushes to **other branches** and **pull requests** are built as previews, and the pull request gets a comment with its address (forks are never built);
+- GitHub shows each commit's state (*Codeqlick Cloud*).
+
+Adjust the install command (\`npm ci\`), the build command (\`npm run build\`), the output folder (\`dist\`), the root folder and the Node version (20, 22 or 24). **Environment variables** are stored encrypted and can't be read back; choose whether they are for production, previews or both. Each build runs in a throwaway container on a separate server, for at most 15 minutes; the free plan includes 200 builds a month per team. Add \`[skip cloud]\` to a commit's message to skip it.
 
 ## Routes, 404 and single-page apps
 

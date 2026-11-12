@@ -19,6 +19,9 @@ export interface CloudLimits {
   formSubmissionsPerMonth: number;
   monitorsPerTeam: number;
   auditsPerHour: number;
+  buildsPerMonth: number;
+  buildMinutes: number;
+  envVarsPerProject: number;
 }
 
 const MB = 1024 * 1024;
@@ -41,6 +44,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     formSubmissionsPerMonth: 1000,
     monitorsPerTeam: 10,
     auditsPerHour: 20,
+    buildsPerMonth: 200,
+    buildMinutes: 15,
+    envVarsPerProject: 50,
   },
   PRO: {
     teamsOwned: 3,
@@ -58,6 +64,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     formSubmissionsPerMonth: 20000,
     monitorsPerTeam: 50,
     auditsPerHour: 200,
+    buildsPerMonth: 3000,
+    buildMinutes: 30,
+    envVarsPerProject: 200,
   },
 };
 

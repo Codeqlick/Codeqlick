@@ -1,0 +1,38 @@
+name: Builder
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'codeqlick-builder/**'
+      - '.github/workflows/builder.yml'
+  pull_request:
+    paths:
+      - 'codeqlick-builder/**'
+      - '.github/workflows/builder.yml'
+
+concurrency:
+  group: builder-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  builder:
+    name: Format, typecheck, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codeqlick-builder
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: codeqlick-builder/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test

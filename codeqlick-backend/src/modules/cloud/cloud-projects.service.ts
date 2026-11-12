@@ -105,6 +105,11 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     return { project, membership };
   }
 
+  /** A live project's row, without access checks (for builds, which run as Cloud itself). */
+  projectRow(id: string): Promise<ProjectRow | null> {
+    return this.repository.findProject(id);
+  }
+
   async list(ctx: CloudCtx, teamSlug: string): Promise<ProjectView[]> {
     const membership = await this.teams.access(ctx, teamSlug);
     return (await this.repository.projects(membership.teamId)).map((p) => this.view(p));
@@ -198,79 +203,98 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       if (!bundle) throw new BundleError('Send the folder as a tar.gz in the field "bundle"');
       this.storage.hosting();
       const { project, membership } = await this.project(ctx, id);
-      if (project.suspendedAt) throw new ForbiddenException('This project is suspended');
-      const limits = this.teams.limits(membership.team.plan);
-      const lastHour = await this.repository.countDeploymentsSince(
-        project.teamId,
-        new Date(Date.now() - HOUR_MS),
-      );
-      if (lastHour >= limits.deploymentsPerHour) {
-        throw new HttpException(
-          `At most ${limits.deploymentsPerHour} deployments an hour per team`,
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-      const used = await this.repository.storageBytes(project.teamId);
-      const room = limits.storageBytesPerTeam - used;
-      if (room <= 0)
-        throw new BundleError('The team has used all its storage', HttpStatus.PAYLOAD_TOO_LARGE);
-
-      const deploymentId = randomUUID();
-      let shortId = deploymentId.replace(/-/g, '').slice(0, 8);
-      // A clash of the first 8 hex digits within one project is rare; take another id then.
-      if (await this.repository.shortIdTaken(project.id, shortId)) {
-        shortId = randomUUID().replace(/-/g, '').slice(0, 8);
-      }
-      const unpacked = await this.storage.unpack(bundle, deploymentId, {
-        bytes: Math.min(limits.deploymentBytes, room),
-        files: limits.deploymentFiles,
-      });
-      let row: DeploymentRow;
-      try {
-        row = await this.repository.createDeployment({
-          id: deploymentId,
-          projectId: project.id,
-          shortId,
-          target: fields.target === 'production' ? 'PRODUCTION' : 'PREVIEW',
-          message: fields.message ?? null,
-          commit: fields.commit ?? null,
-          branch: fields.branch ?? null,
-          sizeBytes: BigInt(unpacked.sizeBytes),
-          fileCount: unpacked.fileCount,
-          createdById: ctx.user.id,
-          tokenId: ctx.user.token?.id ?? null,
-        });
-        await this.storage.link(deploymentLabel(project.slug, shortId), deploymentId);
-      } catch (error) {
-        await this.storage.removeDeployment(deploymentId);
-        throw error;
-      }
-      await this.teams.record(
+      return await this.deployBundle(project, membership.team.plan, bundle, fields, {
         ctx,
-        project.teamId,
-        'deployment.created',
-        `${project.slug}--${shortId}`,
-        {
-          target: fields.target,
-          sizeBytes: unpacked.sizeBytes,
-          fileCount: unpacked.fileCount,
-          ...(fields.commit ? { commit: fields.commit } : {}),
-        },
-      );
-      if (fields.target === 'production') {
-        await this.makeProduction(project, deploymentId);
-        await this.teams.record(
-          ctx,
-          project.teamId,
-          'deployment.promoted',
-          `${project.slug}--${shortId}`,
-        );
-        return this.deploymentView({ ...project, productionDeploymentId: deploymentId }, row);
-      }
-      return this.deploymentView(project, row);
+        createdById: ctx.user.id,
+        tokenId: ctx.user.token?.id ?? null,
+      });
     } finally {
       if (bundle) await rm(bundle, { force: true });
     }
+  }
+
+  /**
+   * Checks the team's limits, unpacks a bundle as a new deployment and, for production, publishes
+   * it. Shared by uploads (`codeqlick deploy`) and builds from Git; the caller deletes the bundle.
+   */
+  async deployBundle(
+    project: ProjectRow,
+    plan: 'FREE' | 'PRO',
+    bundle: string,
+    fields: DeploymentFields,
+    who: { ctx?: CloudCtx; actorName?: string; createdById: string | null; tokenId: string | null },
+  ): Promise<DeploymentView> {
+    this.storage.hosting();
+    if (project.suspendedAt) throw new ForbiddenException('This project is suspended');
+    const limits = this.teams.limits(plan);
+    const lastHour = await this.repository.countDeploymentsSince(
+      project.teamId,
+      new Date(Date.now() - HOUR_MS),
+    );
+    if (lastHour >= limits.deploymentsPerHour) {
+      throw new HttpException(
+        `At most ${limits.deploymentsPerHour} deployments an hour per team`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    const used = await this.repository.storageBytes(project.teamId);
+    const room = limits.storageBytesPerTeam - used;
+    if (room <= 0) {
+      throw new BundleError('The team has used all its storage', HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
+    const deploymentId = randomUUID();
+    let shortId = deploymentId.replace(/-/g, '').slice(0, 8);
+    // A clash of the first 8 hex digits within one project is rare; take another id then.
+    if (await this.repository.shortIdTaken(project.id, shortId)) {
+      shortId = randomUUID().replace(/-/g, '').slice(0, 8);
+    }
+    const unpacked = await this.storage.unpack(bundle, deploymentId, {
+      bytes: Math.min(limits.deploymentBytes, room),
+      files: limits.deploymentFiles,
+    });
+    let row: DeploymentRow;
+    try {
+      row = await this.repository.createDeployment({
+        id: deploymentId,
+        projectId: project.id,
+        shortId,
+        target: fields.target === 'production' ? 'PRODUCTION' : 'PREVIEW',
+        message: fields.message ?? null,
+        commit: fields.commit ?? null,
+        branch: fields.branch ?? null,
+        sizeBytes: BigInt(unpacked.sizeBytes),
+        fileCount: unpacked.fileCount,
+        createdById: who.createdById,
+        tokenId: who.tokenId,
+      });
+      await this.storage.link(deploymentLabel(project.slug, shortId), deploymentId);
+    } catch (error) {
+      await this.storage.removeDeployment(deploymentId);
+      throw error;
+    }
+    const record = (action: string, details?: Record<string, string | number>) =>
+      who.ctx
+        ? this.teams.record(who.ctx, project.teamId, action, `${project.slug}--${shortId}`, details)
+        : this.teams.recordSystem(
+            project.teamId,
+            who.actorName ?? 'Codeqlick Cloud',
+            action,
+            `${project.slug}--${shortId}`,
+            details,
+          );
+    await record('deployment.created', {
+      target: fields.target,
+      sizeBytes: unpacked.sizeBytes,
+      fileCount: unpacked.fileCount,
+      ...(fields.commit ? { commit: fields.commit } : {}),
+    });
+    if (fields.target === 'production') {
+      await this.makeProduction(project, deploymentId);
+      await record('deployment.promoted');
+      return this.deploymentView({ ...project, productionDeploymentId: deploymentId }, row);
+    }
+    return this.deploymentView(project, row);
   }
 
   async promote(ctx: CloudCtx, id: string, deploymentId: string): Promise<ProjectView> {

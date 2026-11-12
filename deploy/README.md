@@ -501,6 +501,61 @@ availability comes from RDAP (unknown for `.es`) and clients point their DNS the
 The portal shows clients the NIC handle and the IP. Each change OVH's API makes to a zone is in
 the admin activity log; MX and other records are never touched.
 
+## Codeqlick Cloud: builds from Git
+
+Builds from Git (architecture 4.13, 8.4) need a GitHub App and **a build server of its own**
+(never this VPS: a build runs other people's code, decision 41). Until both exist, the Git tab
+says it isn't set up and nothing else changes.
+
+### 1. The GitHub App
+
+In GitHub → the **Codeqlick** organisation → Settings → Developer settings → GitHub Apps → **New
+GitHub App**:
+
+| Setting | Value |
+|---|---|
+| Name | `Codeqlick Cloud` (its slug, e.g. `codeqlick-cloud`, goes in `GITHUB_APP_SLUG`) |
+| Homepage URL | `https://cloud.codeqlick.com` |
+| Callback URL | `https://cloud.codeqlick.com/github/setup` |
+| Request user authorization (OAuth) during installation | **on** |
+| Setup URL | (greyed out with the above: GitHub uses the callback) |
+| Webhook | active, URL `https://api.codeqlick.com/v1/cloud/github/webhook`, a secret (`openssl rand -hex 32`) |
+| Repository permissions | Contents: Read-only · Metadata: Read-only · Pull requests: Read and write · Commit statuses: Read and write |
+| Subscribe to events | Push · Pull request (installation events are always sent) |
+| Where can it be installed | Any account |
+
+Then: note the **App ID** and the **Client ID**, generate a **client secret** and a **private key**
+(a `.pem` file), and add to `/srv/codeqlick/.env`:
+
+```bash
+GITHUB_APP_ID=123456
+GITHUB_APP_SLUG=codeqlick-cloud
+GITHUB_APP_CLIENT_ID=Iv23li…
+GITHUB_APP_CLIENT_SECRET=…
+GITHUB_APP_WEBHOOK_SECRET=…            # the webhook's secret
+GITHUB_APP_PRIVATE_KEY="$(awk 'NF {printf "%s\\n", $0}' codeqlick-cloud.private-key.pem)"
+CLOUD_BUILDER_TOKEN=$(openssl rand -hex 32)
+```
+
+(the private key goes on one line with `\n`; the command above writes it so) and recreate the API:
+`docker compose -f docker-compose.prod.yml up -d api`.
+
+### 2. The build server
+
+A separate small VPS (2 vCPU, 4 GB, 40 GB, Ubuntu 24.04), anywhere, with only SSH open. The
+repository is private, so first add a **read-only deploy key** of the server to the repository
+(GitHub → repository → Settings → Deploy keys), then as root on the build server:
+
+```bash
+git clone git@github.com:Codeqlick/Codeqlick.git /opt/codeqlick-builder
+sudo bash /opt/codeqlick-builder/deploy/builder/setup-builder.sh
+sudo nano /etc/codeqlick-builder.env      # CLOUD_BUILDER_TOKEN = the same as in production
+sudo systemctl restart codeqlick-builder
+journalctl -u codeqlick-builder -f        # "claiming builds from https://api.codeqlick.com/v1"
+```
+
+To update the agent later: `sudo /opt/codeqlick-builder/update.sh`.
+
 ## Other domains of the brand
 
 Domains registered only to protect the brand (e.g. `codeqlick.es`) send every visit to

@@ -74,6 +74,16 @@ export const envSchema = z.object({
   CLOUD_HOSTING_DOMAIN: optionalString,
   /** Where deployments, host links and domain files are written (/srv/codeqlick/cloud on the host). */
   CLOUD_ROOT: optionalString,
+  /** Cloud's GitHub App (architecture 4.13, Builds from Git); builds from Git are off without them. */
+  GITHUB_APP_ID: optionalString,
+  GITHUB_APP_SLUG: optionalString,
+  GITHUB_APP_CLIENT_ID: optionalString,
+  GITHUB_APP_CLIENT_SECRET: optionalString,
+  /** The PEM's contents, line breaks as \\n. */
+  GITHUB_APP_PRIVATE_KEY: optionalString,
+  GITHUB_APP_WEBHOOK_SECRET: optionalString,
+  /** What Cloud's build server agent sends to claim and report builds (architecture 8.4). */
+  CLOUD_BUILDER_TOKEN: optionalString,
   /** The Cloud console, for links in emails and the CLI's sign-in page. */
   CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */
