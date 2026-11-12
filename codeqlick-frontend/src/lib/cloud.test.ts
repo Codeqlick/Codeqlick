@@ -1,0 +1,20 @@
+import { describe, expect, it } from 'vitest';
+import { cloudSlug, formatBytes } from './cloud';
+
+describe('formatBytes', () => {
+  it('picks the unit and the decimals', () => {
+    expect(formatBytes(512, 'en')).toBe('512 B');
+    expect(formatBytes(1536, 'en')).toBe('1.5 KB');
+    expect(formatBytes(1536, 'es')).toBe('1,5 KB');
+    expect(formatBytes(1024 * 1024 * 1024, 'en')).toBe('1 GB');
+    expect(formatBytes(150 * 1024 * 1024, 'en')).toBe('150 MB');
+  });
+});
+
+describe('cloudSlug', () => {
+  it('makes an address from a name', () => {
+    expect(cloudSlug('Mi Web Ñandú!', 40)).toBe('mi-web-nandu');
+    expect(cloudSlug('  --Docs--  ', 40)).toBe('docs');
+    expect(cloudSlug('a'.repeat(50), 40)).toHaveLength(40);
+  });
+});

@@ -20,6 +20,8 @@ const envSchema = z.object({
   LEGAL_OWNER_ADDRESS: z.string().trim().min(1).optional(),
   /** Where managed sites and request previews are previewed: <slug>.<this>. */
   SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
+  /** Codeqlick Cloud's hosting domain (architecture 4.13), shown in its docs and terms. */
+  CLOUD_HOSTING_DOMAIN: z.string().min(3).default('codeqlick.app'),
   /**
    * The video chat's signaling WebSocket as browsers open it. Unset: wss://<the page's host>/ws in
    * production (Nginx sends it to the API), the local API otherwise.
@@ -41,6 +43,7 @@ const parsed = envSchema.safeParse({
   LEGAL_OWNER_TAX_ID: process.env.LEGAL_OWNER_TAX_ID || undefined,
   LEGAL_OWNER_ADDRESS: process.env.LEGAL_OWNER_ADDRESS || undefined,
   SITES_PREVIEW_DOMAIN: process.env.SITES_PREVIEW_DOMAIN || undefined,
+  CLOUD_HOSTING_DOMAIN: process.env.CLOUD_HOSTING_DOMAIN || undefined,
   VIDEOCHAT_WS_URL: process.env.VIDEOCHAT_WS_URL || undefined,
   MEETINGS_WS_URL: process.env.MEETINGS_WS_URL || undefined,
   TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || undefined,
