@@ -26,8 +26,11 @@ Two independent deployables in one repository:
 | `codeqlick-frontend/` | Public website (EN/ES), blog, portfolio, contact form, client portal and admin panel | Node 24, port 3000 |
 | `codeqlick-sites/` | The basic-website template (`web-basica`) and the service that builds managed client sites from it | Node 24, internal port 4100 |
 | `codeqlick-backend/` | REST API: auth, leads, blog, portfolio, client projects (updates, files, tasks, hours, briefs, reviews, access, monitoring), proposals, support, bookings, settings, users | Node 24, port 4000 |
+| `codeqlick-cli/` | The `codeqlick` command of Codeqlick Cloud (section 4.13): sign-in, projects, deployments, domains; published to npm as `@codeqlick/cli` | Node 24 on developers' machines and CI |
 
 Client websites hosted by Codeqlick are static sites next to them (section 8.2).
+
+Developers' static sites on Codeqlick Cloud are served the same way, from `/srv/codeqlick/cloud`, under their own domain (section 8.3).
 
 They share **no code**. The contract between them is the HTTP API (section 5), documented live with OpenAPI at `/docs` in non-production environments.
 
@@ -108,6 +111,7 @@ src/
     monitoring/              Uptime monitoring of hosted client sites (checks every 5 minutes, alerts, status in the portal)
     errors/                  Unexpected errors of the API and the website, grouped, with an email per new one (section 4.11)
     site-audits/             Free website check: a visitor's site analysed (speed, mobile, Google, security) and the report emailed (section 4.12)
+    cloud/                   Codeqlick Cloud (section 4.13): teams, members, API tokens and CLI sign-in, projects, static deployments, custom domains, events, abuse reports
     site-forms/              Contact forms of hosted static client sites, relayed to the client's inbox
     domains/                 Client domains: availability, OVH (DNS and expiry) and renewal reminders
     managed-sites/           Managed basic websites: content, revisions, builds through site-builder
@@ -200,6 +204,7 @@ erDiagram
 - **ErrorGroup** — an unexpected error and its repeats (section 4.11): `fingerprint` (SHA-256, unique), `source` API · WEB_SERVER · WEB_BROWSER, `message`, the last occurrence's `stack`, `method`, `path` (no query string), `reference` (request id or Next.js digest) and `userAgent`, `count`, `firstSeenAt`, `lastSeenAt`, `resolvedAt`.
 - **SiteAudit** — a free website check (section 4.12): `url` (as checked: the start URL, normalised), `host`, `name?`, `email`, `locale`, `status` (`PENDING` | `DONE` | `FAILED`), `score?` (0–100), `result?` (JSON: the final URL, the four categories' scores and each check's id, status and values), `error?` (why it failed, in English), `leadId?` (the lead it made), `finishedAt?`. Kept 180 days.
 - **SavedReply** — a reusable text for lead replies and project comments: `title` (only the admin sees it) and `body`. The admin panel puts `{name}` (lead or client) and `{project}` in when it inserts the text.
+- **Codeqlick Cloud** (section 4.13): **CloudTeam** (`slug` unique, `name`, `plan` `FREE` \| `PRO`); **CloudMember** (`teamId` + `userId` unique, `role` `OWNER` \| `ADMIN` \| `MEMBER`, `termsVersion`, `termsAcceptedAt`); **CloudInvite** (`teamId`, `email`, `role`, `tokenHash` unique, `invitedById?`, `expiresAt`, `acceptedAt?`); **CloudToken** (`userId`, `teamId?` (restricted to it), `name`, `prefix`, `tokenHash` unique, `expiresAt?`, `lastUsedAt?`, `lastUsedIp?`); **CloudDeviceCode** (`deviceCodeHash` unique, `userCode` unique, `clientName`, `userId?`, `approvedAt?`, `deniedAt?`, `consumedAt?`, `lastPolledAt?`, `expiresAt`); **CloudProject** (`teamId`, `slug` unique, `name`, `productionDeploymentId?`, `suspendedAt?`, `suspendedReason?`, `deletedAt?`); **CloudDeployment** (`projectId`, `shortId` (unique per project), `target` `PREVIEW` \| `PRODUCTION` (as uploaded), `message?`, `commit?`, `branch?`, `sizeBytes`, `fileCount`, `createdById?`, `tokenId?`); **CloudDomain** (`projectId`, `name` unique, `verificationToken`, `state` `PENDING` \| `VERIFIED` \| `LIVE` \| `ERROR`, `verifiedAt?`, `checkedAt?`, `lastError?`); **CloudEvent** (`teamId`, `actorId?`, `actorName`, `tokenId?`, `action`, `targetLabel?`, `details?` JSON, `ip?`); **CloudReport** (`url`, `projectId?` (matched from the address), `reason`, `details`, `email`, `status` `OPEN` \| `CLOSED`, `note?`, `closedAt?`).
 - **ActivityLog** — who changed what: `actorId?` (null once the user is deleted) and `actorName` copied at the time, `action` (`<target>.<verb>`, e.g. `post.published`), `targetType`, `targetId?`, `targetLabel?` (title, name or email at the time), `details?` (JSON: what changed, e.g. `{ phase, progress }`). Written by the services after each admin change and each change to one's own account (password, two-step verification, signing out devices); a failed write is logged and never fails the change.
 
 All ids are UUIDs. All tables have `createdAt`/`updatedAt`. `Locale` is an enum `EN` | `ES`; the HTTP API uses lowercase `en` | `es`.
@@ -277,6 +282,9 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `TURNSTILE_SECRET_KEY` | `0x4AAAA…` | Cloudflare Turnstile's secret key: with it, sign-up and sign-in require a valid Turnstile token (section 4.3); off when empty. The website gets the matching `TURNSTILE_SITE_KEY` |
 | `MEETINGS_ORIGINS` | `https://meetings.codeqlick.com` | Pages allowed to open the meetings' WebSocket (section 4.8); production sets it from `MEETINGS_URL` |
 | `PAGESPEED_API_KEY` | `AIza…` | Google PageSpeed Insights (free key) for the website check's mobile speed (section 4.12); without it the check measures speed itself |
+| `CLOUD_HOSTING_DOMAIN` | `codeqlick.app` | Codeqlick Cloud's hosting domain (section 4.13, decision 33): projects at `<slug>.<this>`. Without it (or without `CLOUD_ROOT`) Cloud's console works but deploying answers 503 |
+| `CLOUD_ROOT` | `/cloud` | Where the API writes deployments, host links and domain files (`/srv/codeqlick/cloud` on the host, section 8.3) |
+| `CLOUD_URL` | `https://cloud.codeqlick.com` | The console, for links in emails and the CLI's sign-in page |
 | `LOG_LEVEL` | `info` | |
 
 ### 4.6 Background work
@@ -295,6 +303,7 @@ Scheduled work runs inside the API process (timers that start on boot, off when 
 - **Form messages** daily (`SiteFormsService`): messages kept from managed sites' forms older than 12 months are deleted. Off in tests.
 - **Website checks** (`SiteAuditsService`, section 4.12): run one by one as they are asked for; on boot the ones left `PENDING` from the last hour run again and older ones are marked `FAILED`. Checks older than 180 days are deleted daily. Off in tests.
 - **Old resolved errors** daily (`ErrorsService`): resolved groups not seen for 30 days are deleted. Off in tests.
+- **Codeqlick Cloud** (section 4.13), off in tests: `CloudHostingService` every hour deletes deployments past the last 20 of each project (never production) with their files, projects deleted 30 days ago, and expired device codes, invitations and tokens; events older than 365 days daily. `CloudDomainsService` every 10 minutes checks the domains due (see Custom domains).
 
 On the host, `deploy/monitor/monitor.sh` (cron, every 5 minutes) watches the server and the stack, and the `backup` container dumps the database daily (section 8).
 
@@ -406,6 +415,74 @@ The texts of every check (title and advice, Spanish and English) live in the API
 **Safety:** only `http`/`https` on ports 80 and 443, no credentials in the URL; every connection's address is resolved by the API and refused when it is private, loopback, link-local, shared, multicast or reserved (IPv4 and IPv6), so the check can't reach the server's own network; the resolved address is the one connected to (no second lookup). At most 5 redirects, each one checked again; 15 s per request, the page read up to 3 MB. Requests say `Codeqlick-WebsiteCheck/1.0 (+https://codeqlick.com/website-check)`.
 
 **Limits:** `POST /site-audits` is limited to 3/min/IP and 5 checks a day per email; the same email and host within 24 hours returns the earlier check instead of a new one. Checks run one at a time; a check that can't reach the site ends `FAILED` and the visitor is emailed that we couldn't open it (with the reason in plain words). The report page shows no email or name.
+
+### 4.13 Codeqlick Cloud (`modules/cloud`)
+
+Owner's choice (2026-11-12): developer tools in the spirit of AWS, Vercel or GitHub, built in phases from what the platform already runs. **Codeqlick Cloud** is a console at **cloud.codeqlick.com** (a web app of section 6.3, same accounts), a public HTTP API under `/v1/cloud`, and a command-line tool (`codeqlick-cli/`, the `codeqlick` command). Roadmap rows "Cloud: …" in Notion; decisions 32–36.
+
+**Phases.** Each phase ships on its own and only starts when the one before works in production.
+
+| Phase | Services | Runs code from users? | Needs |
+|---|---|---|---|
+| 1 | Console, teams, API tokens and CLI login; **static hosting** (deployments, previews, rollbacks); custom domains | No | The hosting domain (`CLOUD_HOSTING_DOMAIN`, decision 33) and its wildcard certificate (8.3) |
+| 1b | The platform's existing tools opened to developers: forms for static sites (`site-forms`), uptime and cron heartbeats with public status pages (`monitoring`), the website check as an API and a GitHub Action (`site-audits`) | No | Phase 1 |
+| 2 | Plans and billing (Stripe); builds from Git (a GitHub App, each push built and deployed); managed PostgreSQL; S3-compatible object storage | Yes (builds) | Stripe live (decision 20); a separate build server, never the production VPS; storage servers or OVH Object Storage |
+| 3 | Containers and apps (long-running processes, like Heroku or Render) | Yes | Several servers with microVM isolation and someone on call |
+
+Git hosting itself is left to GitHub (or a self-hosted Forgejo): developers already keep their code there, and phase 2 connects to it. Phases 2 and 3 are only outlined here; each gets its full spec before its code.
+
+#### Teams and projects
+
+- **Team:** what owns projects. `name`, `slug` (3–30, unique; the console's URLs), a `plan` (only `FREE` until phase 2). Anyone signed in creates a team, accepting the Cloud terms (`/terms` on the console, versioned like Swipe's: the member row stores the version and when). A person belongs to at most 10 teams and owns at most 3.
+- **Members and roles:** `OWNER` (everything, including deleting the team and transferring ownership; at least one), `ADMIN` (members, invitations and projects), `MEMBER` (deploys, domains and reading everything). Up to 10 members per team. Invitations go by email (link valid 7 days, `cloud.codeqlick.com/{locale}/invite?token=…`, the token stored as SHA-256) and are accepted by a signed-in account **with that email** (forwarded links don't work for someone else), accepting the terms. Owners and admins remove members; anyone leaves a team (not its last owner).
+- **Project:** one deployable thing. `name`, `slug` (3–40 lowercase letters, digits and single dashes, unique across Cloud: it is the project's address `<slug>.<CLOUD_HOSTING_DOMAIN>`; reserved: `www`, `api`, `app`, `admin`, `cloud`, `console`, `docs`, `status`, `mail`, `cdn`, `static`, `assets`, `codeqlick` and the web apps' names), `productionDeploymentId?`, `suspendedAt?` / `suspendedReason?`. Up to 10 per team. Deleting a project takes its sites down and deletes its deployments and domains at once; the row stays 30 days (`deletedAt`) so nobody else can take its address while old links still point at it, then the slug is free.
+- **Events:** every change in a team is recorded (`CloudEvent`: who, through which token if any, `action` such as `project.created`, `deployment.created`, `deployment.promoted`, `domain.added`, `member.invited`, `token.created`, a label, details and the IP) and listed newest first in the console. Kept 365 days. Admin actions on Cloud also go to the platform's activity log.
+
+#### Authentication for machines
+
+- **API tokens:** `cqk_` + 32 random bytes (base64url). Shown once; only the SHA-256 and the first 12 characters (to recognise it) are stored. A token belongs to the person who made it and acts as them, with their role in each team, optionally **restricted to one team**. Expiry 30, 90 or 365 days or never; the console shows when and from where (IP) it was last used. Tokens deploy and manage projects, deployments and domains; members, invitations, tokens and teams themselves need a signed-in session. Up to 20 tokens per person. Revoking deletes it. Tokens only open `/v1/cloud/*`: anywhere else they get `401`. Deactivating an account makes its tokens useless at once (checked on every request).
+- **Sending a token:** `Authorization: Bearer cqk_…`. `JwtAuthGuard` sends anything starting with `cqk_` to `CloudTokensService` (routes marked `@CloudApi()` only); the request's user then carries `via: 'token'`, `tokenId` and `tokenTeamId`.
+- **CLI sign-in (device flow, like RFC 8628):** `codeqlick login` asks `POST /cloud/cli/device` for a `deviceCode` (secret, kept by the CLI) and a `userCode` (`ABCD-EFGH`, no ambiguous letters), opens `cloud.codeqlick.com/{locale}/cli?code=ABCD-EFGH` and polls `POST /cloud/cli/device/token` every 5 s. On that page the signed-in person sees the code, the machine's name (sent by the CLI) and when it was asked for, and approves or denies. Approving creates a 90-day token named "CLI · <machine>", handed to the CLI once on its next poll. Codes expire after 10 minutes and are deleted after a day. For CI, a token made in the console goes in `CODEQLICK_TOKEN` instead.
+
+#### Static hosting
+
+- **Deployment:** an immutable upload of a built folder (the output of `astro build`, `vite build`, `next export`, plain HTML…). `codeqlick deploy [dir]` packs the folder as `tar.gz` (dotfiles left out except `.well-known/`; `.codeqlickignore` lines with `*` wildcards left out too) and sends it to `POST /cloud/projects/:id/deployments` as multipart (`bundle` plus `target` `preview` or `production`, and optionally `message`, `commit`, `branch`, all shown in the console). The API checks and unpacks it into its own folder before answering:
+  - only regular files and folders (links, devices and anything else refused); relative paths without `..`, each part 1–255 bytes of printable characters; at most 10,000 files, 100 MB unpacked and 50 MB uploaded;
+  - an `index.html` at the root;
+  - the team's storage (the sum of its kept deployments) stays under its plan's limit, and 30 deployments an hour per team.
+  Anything refused answers `400` (or `413` for size, `429` for the rate) with the reason, and nothing is kept. Each deployment records its size, file count, who made it and with which token.
+- **Addresses:** every deployment answers at `https://<slug>--<short id>.<CLOUD_HOSTING_DOMAIN>` (`short id`: its first 8 hexadecimal characters) for as long as it is kept; the production deployment also at `https://<slug>.<CLOUD_HOSTING_DOMAIN>` and the project's verified domains. A `production` deployment becomes production as soon as it is unpacked. **Promote** makes any kept deployment production (that is how a rollback works: `codeqlick rollback` promotes the one before). Switching is atomic (a link replaced by a rename), so visitors never see half a site.
+- **Serving:** Nginx serves the files straight from disk (8.3): `index.html` for folders, `<path>.html` without the extension, `404.html` when it exists for anything missing, and `200.html` (when it exists) for every missing path instead, which is how single-page apps route. Assets under `/_astro/`, `/assets/` and `/_next/static/` and any file with a content hash in its name are cached for a year; HTML is revalidated. Every response carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` and `Strict-Transport-Security`; HTTP goes to HTTPS. Deployment addresses (the `--` ones) answer with `X-Robots-Tag: noindex`. A project without production, suspended or deleted answers a Codeqlick page "nothing here" (404) or "suspended" (451).
+- **Kept deployments:** the last 20 of each project plus its production one; older ones are deleted with their files every hour (`CloudHostingService`). Deleting a deployment by hand is allowed unless it is production.
+- **Limits of the free plan** (the API's `CLOUD_PLANS`, shown on the usage page): 3 teams owned, 10 projects per team, 1 GB of storage per team, 100 MB and 10,000 files per deployment, 30 deployments an hour, 5 domains per project, 10 members, 20 tokens per person. Traffic is fair use: Nginx limits each address to 50 requests a second (bursts of 100) and the team is told before anything is suspended for traffic.
+
+#### Custom domains
+
+A project serves its production deployment on up to 5 domains of its own (`docs.example.com`, `example.com`, `www.example.com`: each is added separately).
+
+1. **Add:** refused when it is `CLOUD_HOSTING_DOMAIN` or under it, `codeqlick.com` or under it, `SITES_PREVIEW_DOMAIN` or under it, a managed site's domain, or another project's (unique).
+2. **Verify ownership:** a TXT record `_codeqlick.<domain>` with `cq-verify=<token>` (random per domain). Nothing is published for a domain until it is verified, so nobody can point a domain they don't own at us and claim it.
+3. **Point it:** an `A` record to `SITES_SERVER_IP`, or for a subdomain a `CNAME` to `<slug>.<CLOUD_HOSTING_DOMAIN>`. Once it resolves here, the API writes `domains/<domain>` (the project's slug inside) in `CLOUD_ROOT`; the host's `sync-sites.sh` (every minute) runs `cq-site add <domain> cloud <slug>`, which serves the project's production folder with a Let's Encrypt certificate. When it answers over HTTPS the domain is `LIVE`.
+
+States: `PENDING` (not verified), `VERIFIED` (verified, not pointing here or not over HTTPS yet), `LIVE`, `ERROR` (it stopped resolving here, with the reason; it comes back on its own). `CloudDomainsService` checks the ones not `LIVE` every 10 minutes for 7 days (then daily) and the `LIVE` ones every 6 hours; "Check now" in the console checks one at once (10/min). Removing a domain deletes its file and `sync-sites.sh` unpublishes it.
+
+#### Abuse and moderation
+
+Hosting other people's files makes us responsible for answering complaints (DSA). The Cloud terms forbid phishing, malware, illegal content, content that infringes others' rights, sexual content, spam landing pages and cryptocurrency mining in visitors' browsers. Every hosted page can be reported at `cloud.codeqlick.com/{locale}/report` (the address, a reason, details and the reporter's email; public, 3/min/IP, honeypot): the team inbox gets an email and Admin → Cloud lists the report. An admin **suspends** a project with a reason: its addresses answer "suspended" at once, deploying is refused (`403`), and the team's owners are emailed the reason with the way to reply; lifting it restores production. Admin → Cloud also lists teams and projects with their usage.
+
+#### Privacy
+
+Static hosting stores the files developers upload (theirs, under their responsibility) and Nginx's access log of each visit (IP, address, user agent), kept 14 days on the server for security and abuse, as for every site we host; the console says so and the Cloud terms name Codeqlick as the processor of those logs for the team. The account export (`/auth/me/export`) adds the person's teams, tokens (names, never the secret) and events they caused. Deleting an account is refused while it is the last owner of a team with other members (transfer it first); otherwise its own teams and their projects are deleted with it.
+
+#### Later phases (outline)
+
+- **1b Forms:** a project's form endpoint (`POST /v1/cloud/forms/:key`, the `site-forms` code with the project as owner), messages in the console and by email, spam honeypot, CSV export.
+- **1b Monitoring and status pages:** URL checks and cron heartbeats (`POST /v1/cloud/heartbeats/:key`; late or missing ⇒ alert by email), a public status page per team (`status-<team>.<CLOUD_HOSTING_DOMAIN>` or its own domain), reusing `MonitoringService`.
+- **1b Website check API:** `POST /v1/cloud/audits` with a token, and a GitHub Action that fails a pull request when the score drops under a threshold.
+- **2 Plans:** `PRO` with higher limits, paid monthly through Stripe Billing; the free plan stays.
+- **2 Builds from Git:** a GitHub App; each push runs the project's build command in a throwaway container on a separate build server (no access to the production network), then deploys the output as above; pull requests get preview addresses posted as a comment.
+- **2 Databases and storage:** PostgreSQL databases per project on a dedicated server (daily off-server backups), and S3-compatible buckets.
+- **3 Apps:** containers from a Dockerfile, isolated in microVMs, on their own servers.
 
 ## 5. API contract (v1)
 
@@ -581,6 +658,44 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/portal/tickets/:id/files` | Multipart, one `file` field, up to 25 MB; the request's client or an admin → `201 TicketDetail`; 409 when `CLOSED`. A client's file emails the team inbox |
 | GET | `/portal/tickets/:id/files/:fileId` | The file, always as `application/octet-stream` attachment; 404 if the request isn't the caller's (admins may read any) |
 
+### Cloud (section 4.13; a session or, where marked 🔑, an API token)
+
+Team routes take the team's `slug`; project routes the project's `id`. Not a member: `404`. A role too low: `403`. A token restricted to another team: `404`. Every change is a `CloudEvent`.
+
+| Method | Path | Body / query | Response |
+|---|---|---|---|
+| POST | `/cloud/cli/device` | Public. `{ clientName }` (1–60, the machine's name) | `{ deviceCode, userCode, verificationUri, verificationUriComplete, expiresIn: 600, interval: 5 }`. 10/min/IP |
+| POST | `/cloud/cli/device/token` | Public. `{ deviceCode }` | `{ status: 'pending' \| 'denied' \| 'expired' }` or, once, `{ status: 'approved', token, user: { id, name, email } }`; polling faster than every 5 s answers `429` |
+| GET | `/cloud/cli/device/:userCode` | | `{ userCode, clientName, createdAt, expiresAt, status }`; `404` unknown or expired |
+| POST | `/cloud/cli/device/:userCode` | `{ approve: boolean }` | `204` |
+| GET | `/cloud/me` 🔑 | | `{ user: { id, name, email }, via: 'session' \| 'token', token: { id, name, teamId } \| null, teams: [{ id, slug, name, role, plan }] }` |
+| GET | `/cloud/tokens` | | `{ items: [{ id, name, prefix, team: { slug, name } \| null, expiresAt, lastUsedAt, lastUsedIp, createdAt }] }` (mine) |
+| POST | `/cloud/tokens` | `{ name, teamSlug?, expiresInDays: 30 \| 90 \| 365 \| null }` | `201 { token, item }` (`token` shown once); `409` past 20 |
+| DELETE | `/cloud/tokens/:id` | | `204` |
+| POST | `/cloud/teams` | `{ name, slug, acceptTerms: true, termsVersion }` | `201` the team; `409` slug taken or past 3 owned / 10 joined |
+| GET / PATCH / DELETE | `/cloud/teams/:team` | PATCH `{ name }` (ADMIN) | `{ id, slug, name, plan, role, createdAt }` / the team / `204` (OWNER; its projects deleted) |
+| GET | `/cloud/teams/:team/members` | | `{ items: [{ userId, name, email, role, joinedAt }], invites: [{ id, email, role, expiresAt }] }` |
+| POST | `/cloud/teams/:team/invites` | ADMIN. `{ email, role: 'ADMIN' \| 'MEMBER', locale }` | `201` the invite (emailed); `409` already a member, invited, or 10 members |
+| DELETE | `/cloud/teams/:team/invites/:id` | ADMIN | `204` |
+| GET | `/cloud/invites/:token` | | `{ team: { name, slug }, role, invitedBy, email, expiresAt, emailMatches }`; `404` unknown, expired or used |
+| POST | `/cloud/invites/:token/accept` | `{ acceptTerms: true, termsVersion }` | `{ team }`; `403` when my email isn't the invited one |
+| PATCH | `/cloud/teams/:team/members/:userId` | `{ role }` (OWNER for owners; ADMIN otherwise) | `204`; `409` would leave no owner |
+| DELETE | `/cloud/teams/:team/members/:userId` | ADMIN, or myself to leave | `204`; `409` the last owner |
+| GET | `/cloud/teams/:team/usage` 🔑 | | `{ plan, limits, projects, storageBytes, deploymentsLastHour, members }` |
+| GET | `/cloud/teams/:team/events` 🔑 | `?page&pageSize` | `Paginated<CloudEvent>` newest first |
+| GET | `/cloud/teams/:team/projects` 🔑 | | `{ items: CloudProject[] }` |
+| POST | `/cloud/teams/:team/projects` 🔑 | ADMIN. `{ name, slug }` | `201 CloudProject`; `409` slug taken or reserved, or past 10 |
+| GET / PATCH / DELETE | `/cloud/projects/:id` 🔑 | PATCH `{ name }` (ADMIN) | `CloudProject` / `CloudProject` / `204` (ADMIN, see 4.13) |
+| GET | `/cloud/projects/:id/deployments` 🔑 | `?page&pageSize` | `Paginated<CloudDeployment>` newest first |
+| POST | `/cloud/projects/:id/deployments` 🔑 | Multipart: `bundle` (tar.gz), `target` (`preview` \| `production`), `message?` (≤ 200), `commit?` (hex, ≤ 40), `branch?` (≤ 100) | `201 CloudDeployment`; `400` with the reason, `403` suspended, `413` too big, `429` past 30/h |
+| GET / DELETE | `/cloud/projects/:id/deployments/:deploymentId` 🔑 | | `CloudDeployment` / `204` (`409` when production) |
+| POST | `/cloud/projects/:id/deployments/:deploymentId/promote` 🔑 | | `CloudProject` with it as production; `403` suspended |
+| GET | `/cloud/projects/:id/domains` 🔑 | | `{ items: CloudDomain[] }` |
+| POST | `/cloud/projects/:id/domains` 🔑 | `{ name }` | `201 CloudDomain` (with what to add to the DNS); `400` not allowed, `409` taken or past 5 |
+| POST | `/cloud/projects/:id/domains/:domainId/check` 🔑 | | `CloudDomain` checked now. 10/min |
+| DELETE | `/cloud/projects/:id/domains/:domainId` 🔑 | | `204` |
+| POST | `/cloud/reports` | Public. `{ url, reason: 'PHISHING' \| 'MALWARE' \| 'ILLEGAL' \| 'COPYRIGHT' \| 'SEXUAL' \| 'SPAM' \| 'OTHER', details (10–2000), email, website? (honeypot) }` | `204`; the team inbox is emailed. 3/min/IP |
+
 ### Admin (role `ADMIN`)
 
 | Method | Path | Body / query |
@@ -723,6 +838,12 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/admin/swipe/suspensions` | Suspended Swipe accounts, newest first |
 | POST | `/admin/swipe/users/:userId/suspend` | `{ duration, reason? }` → `204` |
 | DELETE | `/admin/swipe/users/:userId/suspension` | `204` |
+| GET | `/admin/cloud/teams` | `?q&page&pageSize` → `Paginated<{ id, slug, name, plan, owners: { id, name, email }[], members, projects, storageBytes, createdAt }>` |
+| GET | `/admin/cloud/projects` | `?q&suspended&page&pageSize` → `Paginated<{ id, slug, name, team: { slug, name }, url, storageBytes, deployments, domains, suspendedAt, suspendedReason, createdAt }>` |
+| POST | `/admin/cloud/projects/:id/suspend` | `{ reason }` (5–500) → `204`; its addresses answer "suspended" and the team's owners are emailed |
+| DELETE | `/admin/cloud/projects/:id/suspension` | `204`; production served again |
+| GET | `/admin/cloud/reports` | `?status=OPEN\|CLOSED&page&pageSize` → `Paginated<CloudReport>` with the matched project |
+| POST | `/admin/cloud/reports/:id/close` | `{ note? }` → `204` |
 
 ### Shapes
 
@@ -739,6 +860,29 @@ interface Invoice {
   paidAt: string | null;
   project: { id: string; name: string } | null;
 }
+
+type CloudProject = {
+  id: string; slug: string; name: string; team: { slug: string; name: string };
+  url: string; // https://<slug>.<CLOUD_HOSTING_DOMAIN>
+  production: CloudDeployment | null;
+  domains: { name: string; state: CloudDomain['state'] }[];
+  suspended: { at: string; reason: string } | null;
+  createdAt: string;
+};
+type CloudDeployment = {
+  id: string; shortId: string; url: string; // https://<slug>--<shortId>.<CLOUD_HOSTING_DOMAIN>
+  target: 'preview' | 'production'; isProduction: boolean;
+  message: string | null; commit: string | null; branch: string | null;
+  sizeBytes: number; fileCount: number;
+  createdBy: { id: string; name: string } | null; viaToken: string | null; // the token's name
+  createdAt: string;
+};
+type CloudDomain = {
+  id: string; name: string; state: 'PENDING' | 'VERIFIED' | 'LIVE' | 'ERROR';
+  dns: { type: 'TXT' | 'A' | 'CNAME'; name: string; value: string; ok: boolean }[]; // what to add
+  verifiedAt: string | null; checkedAt: string | null; lastError: string | null;
+};
+type CloudEvent = { id: string; action: string; actor: { id: string | null; name: string }; token: string | null; targetLabel: string | null; details: unknown; ip: string | null; createdAt: string };
 
 type Locale = 'en' | 'es';
 type AuthUser = { id: string; email: string; name: string; role: 'ADMIN' | 'CLIENT' };
@@ -908,7 +1052,7 @@ src/
 
 ### 6.3 Web apps on subdomains (`lib/webapps.ts`)
 
-Besides client work, Codeqlick runs its own web apps, each on `<app>.codeqlick.com` and served by this same app under `/[locale]/<app>` with the same accounts. `WEBAPPS` lists them (now `videochat`, `meetings`, `citas` and `swipe`). On its host an app's addresses don't repeat its name: `videochat.codeqlick.com/es/room` is the route `/es/videochat/room` (owner's request, 2026-11-08). The proxy, before anything else: on an app's host, `/{locale}/…` is rewritten to the route `/{locale}/<app>/…` (the browser keeps the short address), the sign-in pages (`login`, `register`, `forgot-password`, `reset-password`) are served as they are, the main site's sections (`SITE_SECTIONS` in `lib/webapps.ts`, kept in sync with the folders by a test) and the other apps go to the main host, and the old addresses with the app's name (`/{locale}/<app>/…`) are redirected to the short ones on navigations (images and form posts to them are just served); on the main host, `/{locale}/<app>/…` goes to the app's host without the app's name. In the code links keep the route (`/videochat/room`): each app's layout sets `WebappProvider` on its own host, and the `Link` and `useRouter` of `i18n/navigation` then write the short address. Server-side redirects and sign-in `next` values with the route still work through the redirect. Emails and notifications link to the short addresses. Cookies are per host, so a person signs in on the app's host too. Locally the app opens at `http://videochat.localhost:3000` (browsers resolve `*.localhost`). Requests by IP address (Next.js calling itself) are never redirected. A new app needs its name in `WEBAPPS` (here and in the API's `common/webapps.ts`), its pages and its card on the main site's `/apps` page (links go to `/{locale}/<app>`, which the proxy sends to the app's host). Its subdomain is published by the release itself: after `deploy/deploy.sh` restarts the stack, it runs the root helper `codeqlick-webapp-site` (installed once by `deploy/setup-webapps.sh`, the deploy user may run it with sudo and nothing else) for every app in the API's `WEBAPPS` whose Nginx site has no certificate: DNS `A` record through OVH's API, an Nginx site from the helper's template (pages to the web, `/ws` to the API's `/v1/<app>/ws`) and the certificate (decision 25).
+Besides client work, Codeqlick runs its own web apps, each on `<app>.codeqlick.com` and served by this same app under `/[locale]/<app>` with the same accounts. `WEBAPPS` lists them (now `videochat`, `meetings`, `citas`, `swipe` and `cloud`). On its host an app's addresses don't repeat its name: `videochat.codeqlick.com/es/room` is the route `/es/videochat/room` (owner's request, 2026-11-08). The proxy, before anything else: on an app's host, `/{locale}/…` is rewritten to the route `/{locale}/<app>/…` (the browser keeps the short address), the sign-in pages (`login`, `register`, `forgot-password`, `reset-password`) are served as they are, the main site's sections (`SITE_SECTIONS` in `lib/webapps.ts`, kept in sync with the folders by a test) and the other apps go to the main host, and the old addresses with the app's name (`/{locale}/<app>/…`) are redirected to the short ones on navigations (images and form posts to them are just served); on the main host, `/{locale}/<app>/…` goes to the app's host without the app's name. In the code links keep the route (`/videochat/room`): each app's layout sets `WebappProvider` on its own host, and the `Link` and `useRouter` of `i18n/navigation` then write the short address. Server-side redirects and sign-in `next` values with the route still work through the redirect. Emails and notifications link to the short addresses. Cookies are per host, so a person signs in on the app's host too. Locally the app opens at `http://videochat.localhost:3000` (browsers resolve `*.localhost`). Requests by IP address (Next.js calling itself) are never redirected. A new app needs its name in `WEBAPPS` (here and in the API's `common/webapps.ts`), its pages and its card on the main site's `/apps` page (links go to `/{locale}/<app>`, which the proxy sends to the app's host). Its subdomain is published by the release itself: after `deploy/deploy.sh` restarts the stack, it runs the root helper `codeqlick-webapp-site` (installed once by `deploy/setup-webapps.sh`, the deploy user may run it with sudo and nothing else) for every app in the API's `WEBAPPS` whose Nginx site has no certificate: DNS `A` record through OVH's API, an Nginx site from the helper's template (pages to the web, `/ws` to the API's `/v1/<app>/ws`) and the certificate (decision 25).
 
 **Apps menu** (`components/layout/AppSwitcher`, owner's choice 2026-11-09): every app's header has an "Apps" button (a `<details>` menu, no JavaScript) listing the other Codeqlick apps with a one-line description, plus "See all apps" (`/{locale}/apps` on the main host); links are absolute (`webappUrl`), each tagged for Umami (`app-switcher`, `from`, `to`). `switcherApps` in `lib/webapps.ts` decides the list: inside an app for everyone (Meetings, Citas) only the apps for everyone; inside an 18+ app (`ADULT_WEBAPPS`: videochat, swipe) every other app, the 18+ ones last with a "+18" tag. So a booking page or a meeting never points at explicit content. On phones only the icon shows and the menu hangs from the whole header.
 
@@ -919,6 +1063,8 @@ Besides client work, Codeqlick runs its own web apps, each on `<app>.codeqlick.c
 **Citas** (`/[locale]/citas`, section 4.9): the Meetings layout and colours. `/` explains it and, for a signed-in person, lists their pages (copy link, view, edit, pause, delete) and their upcoming or past (`?scope=past`) appointments with cancel. `/editar/<id|nueva>` (signed in, `PROTECTED_PATH`) is the page editor; hours are typed per weekday as `09:00-13:00, 16:00-19:00`. `/<slug>` (`noindex`) is the public page: days with free times, then the times in the page's zone (and the visitor's own when it differs), then name, email, phone and note. `/cancelar?token=` shows the appointment and cancels it. The proxy refreshes sessions on `/citas` without requiring one (`OPTIONAL_SESSION_PATH`).
 
 **Swipe** (`/[locale]/swipe`, section 4.10): its own light layout with the Codeqlick logo and the `swipe` wordmark, public pages indexed (section 4.10), listed on `/apps` with an 18+ warning. `/` is the 18+ landing (warning, how it works, safety), `/rules` the rules, `/takedown` the public removal form. `/deck`, `/photos`, `/matches` and `/matches/<id>` need a session (`PROTECTED_PATH`) and show the onboarding (date of birth + rules) or the suspension first. The deck drags cards with the pointer (100 px votes) or the arrow keys, with like/skip buttons, report and the match banner; `/photos` holds the profile, the verification photo and the photo grid (uploads are shrunk in the browser); the chat polls every 4 s. Images go through `/{locale}/swipe/img/<id|verification>`, a route handler that streams them from the API with the session's token. Moderation is `/admin/swipe` (tabs: to review, reports, removals, live, suspended, hidden); its images go through `/{locale}/admin/swipe/img/<kind>/<id>` on the main host.
+
+**Cloud** (`/[locale]/cloud`, section 4.13): the console at cloud.codeqlick.com, in the website's light colours with the `cloud` wordmark; listed on `/apps` under "For developers". `/` (indexed) explains Codeqlick Cloud and the free plan; `/docs` (indexed) is the documentation: getting started, the CLI, deployments and previews, single-page apps (`200.html`), custom domains, limits, CI (GitHub Actions with `CODEQLICK_TOKEN`) and the HTTP API; `/terms` the Cloud terms; `/report` the public abuse form. Signed in (`PROTECTED_PATH`): `/console` (my teams, or creating the first one with the terms), `/console/<team>` (projects and usage), `/console/<team>/<project>` (deployments with their addresses, promote and delete; domains with the DNS records to add and "Check now"; settings: rename, delete), `/console/<team>/members` (members, roles, invitations), `/console/<team>/events`, `/console/tokens` (my tokens; a new one is shown once, with a copy button), `/cli?code=` (approve a CLI sign-in) and `/invite?token=` (join a team). Admin → Cloud on the main host: teams, projects (suspend, lift) and abuse reports.
 
 ## 7. Brand tokens
 
@@ -1142,6 +1288,25 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
 
 Details in `deploy/README.md`.
 
+### 8.3 Codeqlick Cloud hosting
+
+Developers' deployments (section 4.13) live on the host in `/srv/codeqlick/cloud` (mounted in the API container as `CLOUD_ROOT`, read-write; the API runs as the deploy user so files belong to it and Nginx reads them):
+
+```
+cloud/
+  deployments/<id>/        the unpacked files of each deployment (folders 755, files 644)
+  hosts/<slug>             link → ../deployments/<id>: the project's production
+  hosts/<slug>--<short>    link → ../deployments/<id>: each kept deployment's own address
+  domains/<domain>         a verified custom domain that resolves here; the project's slug inside
+  pages/                   the "nothing here" and "suspended" pages (from deploy/cloud/pages)
+```
+
+- **Hosting domain:** a domain of its own (decision 33), `CLOUD_HOSTING_DOMAIN`, with a wildcard `A` record (`*` and `@`) to the server and **one wildcard certificate** (`<domain>` and `*.<domain>`) from Let's Encrypt through the DNS challenge with OVH's API (`certbot-dns-ovh`, the keys need `GET/POST/PUT/DELETE /domain/zone/*`; renewed by certbot's timer). One Nginx site (`deploy/nginx/cloud-hosting.conf.template`) answers every `*.<domain>`: it takes the label from the host name and serves `hosts/<label>` (Nginx follows the link), so deploying, promoting and deleting never reload Nginx and never ask for a certificate. Labels that aren't `[a-z0-9-]+` and missing links answer the "nothing here" page; a suspended project's links point at `pages/suspended`.
+- **Custom domains:** `deploy/sites/sync-sites.sh` (the deploy user's cron, every minute) also reads `cloud/domains/`: each domain not yet served gets `cq-site add <domain> cloud <slug>` (an Nginx site whose root is `hosts/<slug>`, with an HTTP-01 certificate), and a served one whose file is gone gets `cq-site remove`.
+- **One-time setup** (root, `deploy/setup-cloud.sh <domain>`): installs `python3-certbot-dns-ovh`, writes its credentials from `/srv/codeqlick/.env` (`/etc/letsencrypt/ovh-cloud.ini`, 600), creates the DNS records through OVH, gets the wildcard certificate, installs the Nginx site and reloads; then `CLOUD_HOSTING_DOMAIN` goes in `.env` and the next deploy creates the folders. `cq-site` must be installed again after it learns the `cloud` kind. Steps in `deploy/README.md`.
+- **Limits at the edge:** `limit_req` per host (50 r/s, burst 100), uploads never reach Nginx's hosting site (they go to the API, whose `client_max_body_size` for `/v1/cloud/projects/` is 55 MB).
+- **Backups:** the database dump includes Cloud's tables; deployments' files are not backed up (developers keep their sources and redeploy). The docs say so.
+
 ## 9. Quality gates (CI)
 
 Each app has its own workflow, triggered by changes in its folder:
@@ -1193,3 +1358,8 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 29 | Accounts are told apart as clients, web-app users or neither, worked out from their data | Owner's request (2026-11-08): one account serves codeqlick.com and every web app, so the admin list mixed clients with Videochat or Swipe users. A **client** is a `CLIENT` account the team prepared (unregistered), part of a company (member or with members), or with a project, proposal, support request or converted lead. An **app user** is any other `CLIENT` account that signed up from a web app (`User.signupApp`, stored from `/auth/register`'s `app`) or uses one (a Videochat or Swipe profile, a Meetings room, a Citas page). **Neither** (`none`): signed up on codeqlick.com with nothing yet. Derived rather than stored, so it follows the data: an app user who gets a proposal becomes a client and keeps their apps. Existing accounts got `signupApp` from the app they already used. The admin user list filters by kind, app and name or email; the dashboard's client count leaves app users out. Access is unchanged: everyone keeps one account for the site and the apps |
 | 30 | Free website check with our own checks and, optionally, PageSpeed Insights | Owner's choice (2026-11-10). A lead tool for small businesses: it must be free to run and answer in seconds, so the API checks the page itself (headers, HTML, robots, certificate) and adds Google's mobile speed only when a free key is set. The visitor's site is fetched by our server, so every connection is checked against private addresses (no SSRF into the server's network). Each check becomes a lead, without the contact form's acknowledgement: the report is the answer |
 | 31 | Managed sites keep their form messages for 12 months, for the portal | Owner's choice (2026-11-11). Messages only reached the client by email, where spam filters could lose them. Keeping them makes the platform store visitors' data on the client's behalf (as their processor), so it is limited: only managed sites, whose privacy page (the template's) says so; 12 months, enough to find an old enquiry; the client can delete any message. The email still goes out, so nothing changes for clients who answer from their inbox |
+| 32 | Codeqlick Cloud: a developer platform built in phases, starting with static hosting | Owner's choice (2026-11-12): developer tools like AWS or GitHub. A studio on one VPS can't match them, so Cloud starts with what needs no user code running on our servers (static files served by Nginx, which the platform already does for client sites) and opens the tools it already has (forms, monitoring, the website check). Builds, databases and containers run other people's code or data at scale and need separate servers, billing and someone on call: each is a later phase with its own spec. Git hosting is left to GitHub |
+| 33 | Developers' sites are served from a separate domain (`CLOUD_HOSTING_DOMAIN`), never under codeqlick.com | Anyone can upload JavaScript. Under `*.codeqlick.com` it could set cookies for `codeqlick.com` (cookie tossing against the session cookies) and a phishing page would put the whole domain on blocklists. A separate domain, like `github.io` or `vercel.app`, keeps both away; it can later be submitted to the Public Suffix List |
+| 34 | One wildcard certificate and host links instead of an Nginx site per deployment | A certificate per preview would hit Let's Encrypt's weekly limit per domain in days and every deploy would reload Nginx. With a DNS-challenge wildcard and `hosts/<label>` links, a deploy is a folder and an atomic rename. Custom domains still get their own site and certificate through `cq-site`, as client sites do |
+| 35 | Machines use personal API tokens and a device-code sign-in, only on `/v1/cloud` | Tokens act as their person (with their roles), can be restricted to a team, expire and show their last use, and only their hash is stored. The device flow signs the CLI in through the browser, where the account's password, Turnstile and two-step verification already are, so the CLI never handles a password. Keeping tokens out of the rest of the API means a leaked CI secret can't read a client's portal |
+| 36 | The CLI is a Node package with no dependencies, published as `@codeqlick/cli` | Developers already have Node; `npx @codeqlick/cli deploy` works in any CI without installing anything else. No dependencies (its own tar writer, Node's `fetch`, `zlib` and `parseArgs`) means nothing to audit or update and a tiny download. The API unpacks bundles with the `tar` package and its own checks |
