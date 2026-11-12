@@ -565,3 +565,36 @@ export const saveCloudStatusPage = (team: string, input: CloudStatusPageSettings
 /** A team's public status (no session; the API caches it 60 s). */
 export const getCloudPublicStatus = (team: string) =>
   apiFetch<CloudPublicStatus>(`/cloud/status/${encodeURIComponent(team)}`, { revalidate: 60 });
+
+// ── Website check API (phase 1b) ────────────────────────────────────────────────────────────
+
+export type CloudAuditReport = {
+  id: string;
+  url: string;
+  finalUrl: string;
+  score: number;
+  categories: Array<{
+    key: string;
+    name: string;
+    score: number;
+    checks: Array<{ id: string; status: 'pass' | 'warn' | 'fail'; title: string; advice: string }>;
+  }>;
+  createdAt: string;
+};
+
+export const runCloudAudit = (input: { url: string; teamSlug: string; locale: 'en' | 'es' }) =>
+  apiFetch<CloudAuditReport>('/cloud/audits', {
+    ...write,
+    method: 'POST',
+    body: input,
+    signal: AbortSignal.timeout(75_000),
+  });
+
+export const listCloudAudits = (team: string, page = 1) =>
+  apiFetch<Paginated<{ id: string; url: string; score: number; createdAt: string }>>(
+    `/cloud/teams/${encodeURIComponent(team)}/audits`,
+    { ...auth, query: { page, pageSize: 20 } },
+  );
+
+export const getCloudAudit = (id: string, locale: 'en' | 'es') =>
+  apiFetch<CloudAuditReport>(`/cloud/audits/${id}`, { ...auth, query: { locale } });

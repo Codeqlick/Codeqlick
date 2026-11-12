@@ -62,6 +62,9 @@ export default async function CloudTeamPage({ params }: PageProps) {
           <Link href={`/cloud/console/${team.slug}/monitors`} className={styles.tab}>
             {t('team.monitorsLink')}
           </Link>
+          <Link href={`/cloud/console/${team.slug}/audits`} className={styles.tab}>
+            {t('team.auditsLink')}
+          </Link>
           <Link href={`/cloud/console/${team.slug}/events`} className={styles.tab}>
             {t('team.eventsLink')}
           </Link>

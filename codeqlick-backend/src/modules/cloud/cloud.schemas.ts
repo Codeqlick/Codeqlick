@@ -273,3 +273,12 @@ export const statusPageSchema = z.object({
 export type StatusPageInput = z.infer<typeof statusPageSchema>;
 
 export const statusTeamParamSchema = z.object({ team: teamSlugSchema });
+
+// ── Website check API (phase 1b) ─────────────────────────────────────────────────────────────
+
+export const runAuditSchema = z.object({
+  url: z.url().max(2048),
+  teamSlug: teamSlugSchema,
+  locale: localeSchema.default('en'),
+});
+export type RunAuditInput = z.infer<typeof runAuditSchema>;
