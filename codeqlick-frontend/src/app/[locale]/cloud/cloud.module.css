@@ -539,3 +539,12 @@
   margin: 0;
   padding-left: var(--space-5);
 }
+
+.log {
+  max-height: 32rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}

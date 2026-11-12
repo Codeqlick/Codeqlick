@@ -112,6 +112,14 @@ services:
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-}
       CLOUD_ROOT: /cloud
       CLOUD_URL: ${CLOUD_URL:-https://cloud.codeqlick.com}
+      # Builds from Git (architecture 4.13, 8.4): off until the GitHub App's settings are set.
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}
+      GITHUB_APP_CLIENT_ID: ${GITHUB_APP_CLIENT_ID:-}
+      GITHUB_APP_CLIENT_SECRET: ${GITHUB_APP_CLIENT_SECRET:-}
+      GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
+      GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET:-}
+      CLOUD_BUILDER_TOKEN: ${CLOUD_BUILDER_TOKEN:-}
     volumes:
       - uploads-data:/app/uploads
       - /srv/codeqlick/cloud:/cloud

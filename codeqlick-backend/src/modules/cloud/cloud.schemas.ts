@@ -282,3 +282,114 @@ export const runAuditSchema = z.object({
   locale: localeSchema.default('en'),
 });
 export type RunAuditInput = z.infer<typeof runAuditSchema>;
+
+// ── Builds from Git (phase 2) ────────────────────────────────────────────────────────────────
+
+/** A folder inside the repository: relative, no `..`, no leading slash. */
+const relativeDir = z
+  .string()
+  .trim()
+  .max(200)
+  .transform((value) => value.replace(/^\.?\/+|\/+$/g, ''))
+  .pipe(
+    z
+      .string()
+      .refine(
+        (value) => !value.split('/').some((part) => part === '..' || part === '.'),
+        'A folder inside the repository',
+      )
+      .refine((value) => /^[\w@.+\-/ ]*$/.test(value), 'Letters, digits and . _ - / only'),
+  );
+const command = z
+  .string()
+  .trim()
+  .min(1)
+  .max(300)
+  .refine((value) => !/[\r\n]/.test(value), 'One line');
+
+export const installUrlQuerySchema = z.object({
+  teamSlug: teamSlugSchema,
+  /** The project to come back to after installing. */
+  projectSlug: projectSlugSchema.optional(),
+});
+export type InstallUrlQuery = z.infer<typeof installUrlQuerySchema>;
+
+export const linkInstallationSchema = z.object({
+  installationId: z.coerce.number().int().positive(),
+  code: z.string().min(1).max(200),
+  state: z.string().min(10).max(1000),
+});
+export type LinkInstallationInput = z.infer<typeof linkInstallationSchema>;
+
+export const reposQuerySchema = z.object({ installationId: z.coerce.number().int().positive() });
+export type ReposQuery = z.infer<typeof reposQuerySchema>;
+
+export const gitSettingsSchema = z.object({
+  installationId: z.coerce.number().int().positive(),
+  repoId: z.coerce.number().int().positive(),
+  branch: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .regex(/^[\w./-]+$/, 'A branch name'),
+  rootDir: relativeDir.optional(),
+  installCommand: command.optional(),
+  buildCommand: command.optional(),
+  outputDir: relativeDir.optional(),
+  nodeVersion: z.enum(['20', '22', '24']).optional(),
+  buildBranches: z.boolean().optional(),
+  buildPullRequests: z.boolean().optional(),
+});
+export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
+
+export const envVarSchema = z
+  .object({
+    key: z
+      .string()
+      .trim()
+      .regex(/^[A-Z_][A-Z0-9_]{0,63}$/, 'Upper-case letters, digits and _'),
+    value: z.string().max(4096),
+    production: z.boolean(),
+    preview: z.boolean(),
+  })
+  .refine((v) => v.production || v.preview, {
+    message: 'For production, previews or both',
+    path: ['production'],
+  });
+export type EnvVarInput = z.infer<typeof envVarSchema>;
+
+export const envKeyQuerySchema = z.object({ key: z.string().regex(/^[A-Z_][A-Z0-9_]{0,63}$/) });
+export type EnvKeyQuery = z.infer<typeof envKeyQuerySchema>;
+
+export const manualBuildSchema = z.object({
+  branch: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .regex(/^[\w./-]+$/)
+    .optional(),
+});
+export type ManualBuildInput = z.infer<typeof manualBuildSchema>;
+
+export const buildParamSchema = z.object({
+  id: z.uuid(),
+  number: z.coerce.number().int().positive(),
+});
+export type BuildParam = z.infer<typeof buildParamSchema>;
+
+export const logQuerySchema = z.object({ after: z.coerce.number().int().min(0).default(0) });
+export type LogQuery = z.infer<typeof logQuerySchema>;
+
+export const claimSchema = z.object({ builder: z.string().trim().min(1).max(60) });
+export type ClaimInput = z.infer<typeof claimSchema>;
+
+export const builderBuildParamSchema = z.object({ id: z.uuid() });
+export type BuilderBuildParam = z.infer<typeof builderBuildParamSchema>;
+
+export const finishSchema = z.object({
+  status: z.enum(['succeeded', 'failed']),
+  error: z.string().max(500).optional(),
+});
+export type FinishInput = z.infer<typeof finishSchema>;

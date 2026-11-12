@@ -38,6 +38,13 @@ import {
   updateCloudMonitor,
   type CloudReportReason,
   type CloudRole,
+  cancelCloudBuild,
+  deleteCloudEnv,
+  disconnectCloudGit,
+  getCloudGithubInstallUrl,
+  setCloudEnv,
+  setCloudGit,
+  startCloudBuild,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
@@ -658,4 +665,138 @@ export async function runAuditAction(
   }
   refresh(lang, `/${team}/audits`);
   return go(lang, `/console/${team}/audits/${id}`);
+}
+
+// ── Builds from Git (phase 2) ─────────────────────────────────────────────────────────────────
+
+/** Sends the admin to GitHub to install the app (and come back to this project). */
+export async function connectGithubAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  let url: string;
+  try {
+    url = (
+      await getCloudGithubInstallUrl(
+        formString(formData, 'team'),
+        formString(formData, 'project') || undefined,
+      )
+    ).url;
+  } catch {
+    await go(
+      locale,
+      `/console/${formString(formData, 'team')}/${formString(formData, 'project')}?tab=git&github=error`,
+    );
+    return;
+  }
+  redirect(url);
+}
+
+export async function saveGitAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.git' });
+  const values = formValues(formData);
+  const [installation, repo] = formString(formData, 'repo').split(':').map(Number);
+  const branch = formString(formData, 'branch');
+  if (!installation || !repo)
+    return { status: 'error', fieldErrors: { repo: t('repoRequired') }, values };
+  if (!/^[\w./-]{1,200}$/.test(branch))
+    return { status: 'error', fieldErrors: { branch: t('branchInvalid') }, values };
+  const node = formString(formData, 'nodeVersion');
+  try {
+    await setCloudGit(projectId, {
+      installationId: installation,
+      repoId: repo,
+      branch,
+      rootDir: formString(formData, 'rootDir'),
+      installCommand: formString(formData, 'installCommand') || 'npm ci',
+      buildCommand: formString(formData, 'buildCommand') || 'npm run build',
+      outputDir: formString(formData, 'outputDir'),
+      nodeVersion: ['20', '22', '24'].includes(node) ? node : '24',
+      buildBranches: formBoolean(formData, 'buildBranches'),
+      buildPullRequests: formBoolean(formData, 'buildPullRequests'),
+    });
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      return {
+        status: 'error',
+        message: error.fieldErrors._form ?? error.detail ?? t('invalid'),
+        fieldErrors: error.fieldErrors,
+        values,
+      };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved') };
+}
+
+export async function disconnectGitAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await disconnectCloudGit(formString(formData, 'project')).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function saveEnvAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.git' });
+  const key = formString(formData, 'key').toUpperCase();
+  const value = String(formData.get('value') ?? '');
+  const production = formBoolean(formData, 'production');
+  const preview = formBoolean(formData, 'preview');
+  if (!/^[A-Z_][A-Z0-9_]{0,63}$/.test(key))
+    return { status: 'error', fieldErrors: { key: t('keyInvalid') }, values: { key } };
+  if (!production && !preview)
+    return { status: 'error', fieldErrors: { production: t('targetRequired') }, values: { key } };
+  try {
+    await setCloudEnv(projectId, { key, value: value.slice(0, 4096), production, preview });
+  } catch (error) {
+    return failure(lang, error, { key });
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('envSaved') };
+}
+
+export async function deleteEnvAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudEnv(formString(formData, 'project'), formString(formData, 'key')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function startBuildAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  const team = formString(formData, 'team');
+  const slug = formString(formData, 'slug');
+  let number: number | null = null;
+  try {
+    number = (await startCloudBuild(formString(formData, 'project'))).number;
+  } catch {
+    // The page shows the builds as they are.
+  }
+  refresh(locale, `/${team}/${slug}`);
+  await go(
+    locale,
+    number ? `/console/${team}/${slug}/builds/${number}` : `/console/${team}/${slug}?tab=builds`,
+  );
+}
+
+export async function cancelBuildAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  const team = formString(formData, 'team');
+  const slug = formString(formData, 'slug');
+  const number = Number(formString(formData, 'number'));
+  await cancelCloudBuild(formString(formData, 'project'), number).catch(() => undefined);
+  refresh(locale, `/${team}/${slug}/builds/${number}`);
 }

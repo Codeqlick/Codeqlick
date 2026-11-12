@@ -165,6 +165,29 @@ export class CloudTeamsService {
     }
   }
 
+  /** Records a change made by Cloud itself (a build from Git), not by a person. */
+  async recordSystem(
+    teamId: string,
+    actorName: string,
+    action: string,
+    targetLabel: string | null,
+    details?: Prisma.InputJsonValue,
+  ): Promise<void> {
+    try {
+      await this.repository.event({
+        teamId,
+        actorId: null,
+        actorName,
+        tokenName: null,
+        action,
+        targetLabel,
+        details,
+      });
+    } catch (error) {
+      this.logger.error(`Could not record ${action}: ${String(error)}`);
+    }
+  }
+
   async me(ctx: CloudCtx): Promise<MeView> {
     const memberships = await this.repository.memberships(ctx.user.id);
     const restricted = ctx.user.token?.teamId;

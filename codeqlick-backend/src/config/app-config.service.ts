@@ -128,6 +128,32 @@ export class AppConfigService {
     return domain && root ? { domain, root } : undefined;
   }
 
+  /** Cloud's GitHub App, when all its settings are there (architecture 4.13, Builds from Git). */
+  get githubApp():
+    | {
+        appId: string;
+        slug: string;
+        clientId: string;
+        clientSecret: string;
+        privateKey: string;
+        webhookSecret: string;
+      }
+    | undefined {
+    const appId = this.get('GITHUB_APP_ID');
+    const slug = this.get('GITHUB_APP_SLUG');
+    const clientId = this.get('GITHUB_APP_CLIENT_ID');
+    const clientSecret = this.get('GITHUB_APP_CLIENT_SECRET');
+    const privateKey = this.get('GITHUB_APP_PRIVATE_KEY')?.replace(/\\n/g, '\n');
+    const webhookSecret = this.get('GITHUB_APP_WEBHOOK_SECRET');
+    return appId && slug && clientId && clientSecret && privateKey && webhookSecret
+      ? { appId, slug, clientId, clientSecret, privateKey, webhookSecret }
+      : undefined;
+  }
+
+  get cloudBuilderToken(): string | undefined {
+    return this.get('CLOUD_BUILDER_TOKEN');
+  }
+
   get cloudUrl(): string {
     return this.get('CLOUD_URL').replace(/\/+$/, '');
   }
