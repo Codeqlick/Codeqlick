@@ -278,11 +278,14 @@ curl -sI --http2 https://codeqlick.com/en | head -1   # HTTP/2 200
 
 ### Nginx hardening
 
-`deploy/nginx/conf.d/codeqlick-hardening.conf` hides Nginx's version (`server_tokens off`) on every
-site of the server, client sites included. Install it once (and again whenever it changes):
+Nginx must not show its version (`Server: nginx`, not `nginx/1.28.3 (Ubuntu)`) on any site of the
+server, client sites included. Ubuntu's `/etc/nginx/nginx.conf` already sets `server_tokens` in
+its `http` block (to `build`, the full version), so it is changed there, not added in `conf.d`
+(a second `server_tokens` makes `nginx -t` fail):
 
 ```bash
-sudo cp /srv/codeqlick/deploy/nginx/conf.d/codeqlick-hardening.conf /etc/nginx/conf.d/
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+sudo sed -i 's/^\(\s*\)server_tokens [a-z]*;/\1server_tokens off;/' /etc/nginx/nginx.conf
 sudo nginx -t && sudo systemctl reload nginx
 curl -sI https://codeqlick.com/en | grep -i '^server'   # server: nginx
 ```
