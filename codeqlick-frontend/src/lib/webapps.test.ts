@@ -110,14 +110,21 @@ describe('web apps on subdomains', () => {
 
 describe('the apps menu', () => {
   it('lists only the apps for everyone inside them', () => {
-    expect(switcherApps('meetings')).toEqual([{ app: 'citas', adult: false }]);
-    expect(switcherApps('citas')).toEqual([{ app: 'meetings', adult: false }]);
+    expect(switcherApps('meetings')).toEqual([
+      { app: 'citas', adult: false },
+      { app: 'cloud', adult: false },
+    ]);
+    expect(switcherApps('cloud')).toEqual([
+      { app: 'meetings', adult: false },
+      { app: 'citas', adult: false },
+    ]);
   });
 
   it('lists every other app inside an 18+ app, the 18+ ones last', () => {
     expect(switcherApps('videochat')).toEqual([
       { app: 'meetings', adult: false },
       { app: 'citas', adult: false },
+      { app: 'cloud', adult: false },
       { app: 'swipe', adult: true },
     ]);
   });

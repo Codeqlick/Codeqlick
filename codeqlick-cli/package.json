@@ -1,0 +1,38 @@
+{
+  "name": "@codeqlick/cli",
+  "version": "0.1.0",
+  "description": "Deploy static sites to Codeqlick Cloud from your terminal or CI",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://cloud.codeqlick.com/en/docs",
+  "keywords": [
+    "codeqlick",
+    "deploy",
+    "static",
+    "hosting",
+    "cli"
+  ],
+  "bin": {
+    "codeqlick": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/*.test.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2"
+  }
+}
