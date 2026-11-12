@@ -1,0 +1,111 @@
+# Codeqlick Cloud's hosting (architecture 8.3): every <label>.__DOMAIN__ serves
+# /srv/codeqlick/cloud/hosts/<label>, a link the API points at a deployment (or at the
+# "suspended" page). One wildcard certificate; deploying never reloads Nginx.
+# Rendered and installed by deploy/setup-cloud.sh as /etc/nginx/sites-available/cloud-hosting.conf.
+
+limit_req_zone $host zone=cq_cloud_host:10m rate=50r/s;
+
+map $cq_label $cq_noindex {
+    "~--" "noindex";
+    default "";
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __DOMAIN__ *.__DOMAIN__;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name "~^(?<cq_label>[a-z0-9]+(?:-[a-z0-9]+)*(?:--[0-9a-f]{8})?)\.__DOMAIN_RE__$";
+
+    ssl_certificate /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    root /srv/codeqlick/cloud/hosts/$cq_label;
+    index index.html;
+    disable_symlinks off;
+    limit_req zone=cq_cloud_host burst=100 nodelay;
+    limit_req_status 429;
+
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Robots-Tag $cq_noindex always;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;
+
+    error_page 404 /404.html;
+    error_page 451 @cq_suspended;
+
+    location / {
+        if (-f $document_root/.cq-suspended) { return 451; }
+        # No site at this address: 410 here, answered as 404 with "nothing here" (below).
+        if (!-d $document_root) { return 410; }
+        try_files $uri $uri.html $uri/ /200.html =404;
+    }
+
+    # Hashed file names: cached for a year. HTML and the rest are revalidated.
+    location ~ ^/(?:_astro|assets|_next/static)/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Robots-Tag $cq_noindex always;
+        if (-f $document_root/.cq-suspended) { return 451; }
+        if (!-d $document_root) { return 410; }
+        try_files $uri =404;
+    }
+
+    # The site's own 404.html; without one, "nothing here" when the address has no site and
+    # "page not found" when it has.
+    location = /404.html {
+        internal;
+        try_files /404.html @cq_notfound;
+    }
+
+    error_page 410 =404 @cq_missing;
+
+    location @cq_missing {
+        root /srv/codeqlick/cloud/pages/missing;
+        try_files /index.html =404;
+    }
+
+    location @cq_notfound {
+        root /srv/codeqlick/cloud/pages/notfound;
+        try_files /index.html =404;
+    }
+
+    location @cq_suspended {
+        root /srv/codeqlick/cloud/pages/suspended;
+        try_files /index.html =404;
+    }
+}
+
+# Anything else under the domain (the bare domain, bad labels): the "nothing here" page. A regex,
+# not *.__DOMAIN__: Nginx prefers wildcard names over regexes, and this must come after the one above.
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name __DOMAIN__ "~^.+\.__DOMAIN_RE__$";
+
+    ssl_certificate /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    root /srv/codeqlick/cloud/pages/missing;
+    error_page 404 /index.html;
+    location = /index.html {
+        internal;
+        add_header X-Robots-Tag noindex always;
+    }
+    location / {
+        return 404;
+    }
+}

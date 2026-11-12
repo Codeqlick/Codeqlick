@@ -39,6 +39,7 @@ import { MeetingsModule } from './modules/meetings/meetings.module.js';
 import { CitasModule } from './modules/citas/citas.module.js';
 import { SwipeModule } from './modules/swipe/swipe.module.js';
 import { SiteAuditsModule } from './modules/site-audits/site-audits.module.js';
+import { CloudModule } from './modules/cloud/cloud.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -82,6 +83,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     CitasModule,
     SwipeModule,
     SiteAuditsModule,
+    CloudModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.

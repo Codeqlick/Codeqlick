@@ -17,6 +17,10 @@ export interface AuthUser {
    * member of. Absent in older tokens (then it is `id`); use `accountOf`.
    */
   accountId?: string;
+  /** How the caller signed this request: a session (default) or a Cloud API token. */
+  via?: 'session' | 'token';
+  /** The Cloud API token used, when `via` is `token`. */
+  token?: { id: string; name: string; teamId: string | null };
 }
 
 /** The client account whose projects, requests and proposals the caller sees. */

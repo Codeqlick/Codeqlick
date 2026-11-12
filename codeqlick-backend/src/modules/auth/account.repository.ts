@@ -121,6 +121,9 @@ export class AccountRepository {
       swipeLikesGiven,
       swipeMessages,
       swipeReportsMade,
+      cloudTeams,
+      cloudTokens,
+      cloudEvents,
     ] = await Promise.all([
       p.user.findUniqueOrThrow({
         where: { id: userId },
@@ -326,6 +329,35 @@ export class AccountRepository {
         orderBy: { createdAt: 'asc' },
         select: { reason: true, details: true, status: true, createdAt: true },
       }),
+      p.cloudMember.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          role: true,
+          termsVersion: true,
+          termsAcceptedAt: true,
+          createdAt: true,
+          team: { select: { slug: true, name: true, plan: true, createdAt: true } },
+        },
+      }),
+      // Names and use, never the secret (only its hash is kept).
+      p.cloudToken.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          name: true,
+          prefix: true,
+          expiresAt: true,
+          lastUsedAt: true,
+          lastUsedIp: true,
+          createdAt: true,
+        },
+      }),
+      p.cloudEvent.findMany({
+        where: { actorId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { action: true, targetLabel: true, tokenName: true, ip: true, createdAt: true },
+      }),
     ]);
     return {
       user,
@@ -357,6 +389,10 @@ export class AccountRepository {
             reportsMade: swipeReportsMade,
           }
         : null,
+      cloud:
+        cloudTeams.length + cloudTokens.length + cloudEvents.length > 0
+          ? { teams: cloudTeams, tokens: cloudTokens, events: cloudEvents }
+          : null,
     };
   }
 }

@@ -107,8 +107,14 @@ services:
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
+      # Codeqlick Cloud (architecture 4.13, 8.3): deploying is off until deploy/setup-cloud.sh
+      # sets the hosting domain. Its files live on the host, where Nginx serves them.
+      CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-}
+      CLOUD_ROOT: /cloud
+      CLOUD_URL: ${CLOUD_URL:-https://cloud.codeqlick.com}
     volumes:
       - uploads-data:/app/uploads
+      - /srv/codeqlick/cloud:/cloud
       # Swipe's photos: private, served only through the API (architecture 4.10).
       - swipe-data:/app/swipe-uploads
     ports:
