@@ -22,25 +22,28 @@ export function UptimeBars({
     maximumFractionDigits: 2,
   });
   return (
-    <div className={styles.bars} role="img" aria-label={label}>
-      {days.map((day) => {
-        const tone =
-          day.ratio === null
-            ? styles.none
-            : day.ratio >= 0.99
-              ? styles.good
-              : day.ratio >= 0.95
-                ? styles.warn
-                : styles.bad;
-        return (
-          <span
-            key={day.day}
-            className={`${styles.bar} ${tone}`}
-            title={`${format.format(new Date(`${day.day}T12:00:00Z`))}: ${day.ratio === null ? '—' : percent.format(day.ratio)}`}
-          />
-        );
-      })}
-    </div>
+    <>
+      <span className="visually-hidden">{label}</span>
+      <div className={styles.bars} aria-hidden="true">
+        {days.map((day) => {
+          const tone =
+            day.ratio === null
+              ? styles.none
+              : day.ratio >= 0.99
+                ? styles.good
+                : day.ratio >= 0.95
+                  ? styles.warn
+                  : styles.bad;
+          return (
+            <span
+              key={day.day}
+              className={`${styles.bar} ${tone}`}
+              title={`${format.format(new Date(`${day.day}T12:00:00Z`))}: ${day.ratio === null ? '—' : percent.format(day.ratio)}`}
+            />
+          );
+        })}
+      </div>
+    </>
   );
 }
 
