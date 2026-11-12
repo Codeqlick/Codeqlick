@@ -5,7 +5,8 @@
 #
 #   sudo ./deploy/setup-cloud.sh codeqlick.app
 #
-#   1. DNS: `@` and `*` A records to SITES_SERVER_IP, through OVH's API (existing records kept).
+#   1. DNS: `@` and `*` A records to SITES_SERVER_IP through OVH's API (OVH's parking records for
+#      @ and www are pointed here too); MX, TXT and the rest are never touched.
 #   2. The folders in /srv/codeqlick/cloud and its pages, owned by the API container's user
 #      (node, 1000:1000), which writes the deployments; Nginx only reads them.
 #   3. A wildcard certificate (<domain> and *.<domain>) through the DNS challenge with OVH's API
@@ -67,16 +68,27 @@ ovh() {
 log "DNS: $DOMAIN and *.$DOMAIN -> $IP"
 ovh GET "/domain/zone/$DOMAIN" >/dev/null || fail "OVH has no DNS zone $DOMAIN for these keys"
 changed=0
-for sub in "" "*"; do
+# `www` too: a newly bought domain's parking records (@ and www) are replaced by the server's IP.
+for sub in "" "*" "www"; do
   query="fieldType=A&subDomain=$(printf '%s' "$sub" | sed 's/\*/%2A/')"
-  ids="$(ovh GET "/domain/zone/$DOMAIN/record?$query")"
-  if [ "$ids" = "[]" ]; then
+  ids="$(ovh GET "/domain/zone/$DOMAIN/record?$query" | tr -d '[] ')"
+  if [ -z "$ids" ]; then
+    [ "$sub" = "www" ] && continue # the wildcard covers it
     ovh POST "/domain/zone/$DOMAIN/record" \
       "{\"fieldType\":\"A\",\"subDomain\":\"$sub\",\"target\":\"$IP\",\"ttl\":300}" >/dev/null
     changed=1
     echo "A ${sub:-@} -> $IP created."
   else
-    echo "A ${sub:-@} already exists (kept; check it points to $IP)."
+    for id in ${ids//,/ }; do
+      target="$(ovh GET "/domain/zone/$DOMAIN/record/$id" | sed -n 's/.*"target":"\([^"]*\)".*/\1/p')"
+      if [ "$target" = "$IP" ]; then
+        echo "A ${sub:-@} already points to $IP."
+      else
+        ovh PUT "/domain/zone/$DOMAIN/record/$id" "{\"target\":\"$IP\",\"ttl\":300}" >/dev/null
+        changed=1
+        echo "A ${sub:-@}: $target -> $IP."
+      fi
+    done
   fi
 done
 [ "$changed" -eq 0 ] || ovh POST "/domain/zone/$DOMAIN/refresh" >/dev/null
