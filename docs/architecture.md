@@ -1290,7 +1290,7 @@ Details in `deploy/README.md`.
 
 ### 8.3 Codeqlick Cloud hosting
 
-Developers' deployments (section 4.13) live on the host in `/srv/codeqlick/cloud` (mounted in the API container as `CLOUD_ROOT`, read-write; the API runs as the deploy user so files belong to it and Nginx reads them):
+Developers' deployments (section 4.13) live on the host in `/srv/codeqlick/cloud` (mounted in the API container as `CLOUD_ROOT`, read-write and owned by its user, 1000:1000; folders 755 and files 644, so Nginx reads them):
 
 ```
 cloud/
@@ -1298,7 +1298,7 @@ cloud/
   hosts/<slug>             link → ../deployments/<id>: the project's production
   hosts/<slug>--<short>    link → ../deployments/<id>: each kept deployment's own address
   domains/<domain>         a verified custom domain that resolves here; the project's slug inside
-  pages/                   the "nothing here" and "suspended" pages (from deploy/cloud/pages)
+  pages/                   the "nothing here", "page not found" and "suspended" pages (from deploy/cloud/pages)
 ```
 
 - **Hosting domain:** a domain of its own (decision 33), `CLOUD_HOSTING_DOMAIN`, with a wildcard `A` record (`*` and `@`) to the server and **one wildcard certificate** (`<domain>` and `*.<domain>`) from Let's Encrypt through the DNS challenge with OVH's API (`certbot-dns-ovh`, the keys need `GET/POST/PUT/DELETE /domain/zone/*`; renewed by certbot's timer). One Nginx site (`deploy/nginx/cloud-hosting.conf.template`) answers every `*.<domain>`: it takes the label from the host name and serves `hosts/<label>` (Nginx follows the link), so deploying, promoting and deleting never reload Nginx and never ask for a certificate. Labels that aren't `[a-z0-9-]+` and missing links answer the "nothing here" page; a suspended project's links point at `pages/suspended`.

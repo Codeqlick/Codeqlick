@@ -17,6 +17,7 @@ export const ACTIVITY_TARGETS = [
   'booking',
   'videochat',
   'swipe',
+  'cloud',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -145,6 +146,9 @@ export const ACTIVITY_ACTIONS = [
   'swipe.takedown_closed',
   'swipe.suspended',
   'swipe.unsuspended',
+  'cloud.suspended',
+  'cloud.unsuspended',
+  'cloud.report_closed',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

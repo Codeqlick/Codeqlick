@@ -70,6 +70,12 @@ export const envSchema = z.object({
   SITE_BUILDER_TOKEN: optionalString,
   /** Managed sites get a preview at <slug>.<this>. */
   SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
+  /** Codeqlick Cloud's hosting domain (architecture 4.13): projects at <slug>.<this>; unset: no deploys. */
+  CLOUD_HOSTING_DOMAIN: optionalString,
+  /** Where deployments, host links and domain files are written (/srv/codeqlick/cloud on the host). */
+  CLOUD_ROOT: optionalString,
+  /** The Cloud console, for links in emails and the CLI's sign-in page. */
+  CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */
   PUBLIC_API_URL: z.url().default('https://api.codeqlick.com/v1'),
   /** OVH's API (the team's account), for domain availability, DNS and expiry; unset: off. */
