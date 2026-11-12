@@ -37,6 +37,8 @@ SITE="/etc/nginx/sites-available/redirect-$DOMAIN.conf"
 ENABLED="/etc/nginx/sites-enabled/redirect-$DOMAIN.conf"
 
 setting() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -n 1; }
+# The IPv4 a name resolves to, or nothing while it doesn't resolve yet (never fails the script).
+resolve() { getent ahostsv4 "$1" 2>/dev/null | awk 'NR==1{print $1}' || true; }
 [ -r "$ENV_FILE" ] || fail "$ENV_FILE not found"
 IP="$(setting SITES_SERVER_IP)"
 OVH_AK="$(setting OVH_APPLICATION_KEY)"
@@ -95,8 +97,8 @@ if [ "$changed" -eq 1 ]; then
   ovh POST "/domain/zone/$DOMAIN/refresh" >/dev/null
   echo "Zone refreshed; waiting for the names to resolve here…"
   for _ in $(seq 1 30); do
-    a="$(getent ahostsv4 "$DOMAIN" | awk 'NR==1{print $1}')"
-    w="$(getent ahostsv4 "www.$DOMAIN" | awk 'NR==1{print $1}')"
+    a="$(resolve "$DOMAIN")"
+    w="$(resolve "www.$DOMAIN")"
     [ "$a" = "$IP" ] && [ "$w" = "$IP" ] && break
     sleep 10
   done
@@ -127,8 +129,8 @@ fi
 
 # --- 3. Certificate -----------------------------------------------------------------------------
 log "Certificate for $DOMAIN and www.$DOMAIN"
-a="$(getent ahostsv4 "$DOMAIN" | awk 'NR==1{print $1}')"
-w="$(getent ahostsv4 "www.$DOMAIN" | awk 'NR==1{print $1}')"
+a="$(resolve "$DOMAIN")"
+w="$(resolve "www.$DOMAIN")"
 if [ "$a" != "$IP" ] || [ "$w" != "$IP" ]; then
   fail "$DOMAIN or www.$DOMAIN doesn't resolve to $IP yet: run this again in a few minutes"
 fi
