@@ -19,8 +19,8 @@ import {
   PROJECT_FILE,
 } from './config.ts';
 import { collect, pack } from './pack.ts';
+import { VERSION } from './version.ts';
 
-const VERSION = '0.1.0';
 const run = promisify(execFile);
 const tty = process.stdout.isTTY;
 const paint = (code: number) => (text: string) => (tty ? `\x1b[${code}m${text}\x1b[0m` : text);
