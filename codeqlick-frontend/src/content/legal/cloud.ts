@@ -6,7 +6,7 @@ import { type LegalDocument, type LegalOwner, ownerLines } from './index';
  * Codeqlick Cloud's terms (architecture 4.13). Their version is the API's CLOUD_TERMS_VERSION:
  * changing what they say means a new version there, so people accept them again.
  */
-const UPDATED = { es: '12 de noviembre de 2026', en: '12 November 2026' } as const;
+const UPDATED = { es: '13 de noviembre de 2026', en: '13 November 2026' } as const;
 const MAIL = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
 
 function terms(owner: LegalOwner, locale: AppLocale, hostingDomain: string): string {
@@ -49,6 +49,8 @@ Hacemos lo posible por mantener el servicio en marcha, pero el plan gratuito no 
 ## Datos personales
 
 Tratamos los datos de tu cuenta como explica la [política de privacidad](/es/privacy) de Codeqlick. Para los sitios que alojas, Nginx guarda un registro de cada visita (IP, dirección y navegador) durante 14 días por seguridad y para atender abusos; respecto a esos datos actuamos como **encargado del tratamiento** por cuenta de tu equipo. Lo que tus páginas hagan con los datos de sus visitantes es responsabilidad tuya.
+
+Si usas los **formularios** de Cloud, guardamos lo que envían tus visitantes durante 180 días y lo mandamos por email a los miembros que elijas; también ahí actuamos como encargado del tratamiento por cuenta de tu equipo, que decide qué datos pide y debe informar a sus visitantes. No guardamos su IP.
 
 ## Baja
 
@@ -96,6 +98,8 @@ We do our best to keep the service running, but the free plan has no availabilit
 ## Personal data
 
 We handle your account's data as Codeqlick's [privacy policy](/en/privacy) explains. For the sites you host, Nginx keeps a log of each visit (IP, address and browser) for 14 days for security and to handle abuse; for those data we act as **processor** on behalf of your team. What your pages do with their visitors' data is your responsibility.
+
+If you use Cloud's **forms**, we keep what your visitors send for 180 days and email it to the members you choose; there too we act as processor on behalf of your team, which decides what data it asks for and must inform its visitors. We don't keep their IP.
 
 ## Leaving
 

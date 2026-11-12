@@ -66,6 +66,26 @@ Qué se sube: todo lo de la carpeta salvo los archivos y carpetas que empiezan p
 - Si existe \`200.html\`, se sirve para **cualquier** ruta que no exista: así funcionan las aplicaciones de una página (React Router, Vue Router…). Copia tu \`index.html\` como \`200.html\` al compilar.
 - Los archivos de \`/assets/\`, \`/_astro/\` y \`/_next/static/\` se guardan en caché un año; el HTML se revalida siempre.
 
+## Formularios
+
+Crea un formulario en la pestaña **Formularios** del proyecto y pega su HTML en tu página:
+
+\`\`\`html
+<form action="https://api.codeqlick.com/v1/cloud/forms/cqf_…" method="POST">
+  <input name="name" required>
+  <input name="email" type="email" required>
+  <textarea name="message" required></textarea>
+  <input name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+  <button type="submit">Enviar</button>
+</form>
+\`\`\`
+
+- Vale cualquier campo (hasta 30). Un campo \`email\` válido se usa como *responder a* del aviso.
+- \`_redirect\` lleva al visitante a tu página de gracias (de tu proyecto); sin él vuelve a la misma página con \`?form=ok\`.
+- \`_subject\` pone el asunto del email y \`_gotcha\` (oculto) frena los bots.
+- Con \`fetch\` y JSON recibes \`{ ok: true }\`. Solo se aceptan envíos desde las direcciones de tu proyecto y tus dominios.
+- Los envíos se guardan 180 días: búscalos, bórralos o descárgalos en CSV en la consola. El plan gratuito admite 1.000 envíos al mes por equipo.
+
 ## Dominios propios
 
 En la consola (pestaña «Dominios») o con \`codeqlick domains add docs.tudominio.com\`:
@@ -190,6 +210,26 @@ What is uploaded: everything in the folder except files and folders starting wit
 - If \`404.html\` exists, it is shown for pages that don't.
 - If \`200.html\` exists, it is served for **any** route that doesn't exist: that's how single-page apps work (React Router, Vue Router…). Copy your \`index.html\` as \`200.html\` when building.
 - Files under \`/assets/\`, \`/_astro/\` and \`/_next/static/\` are cached for a year; HTML is always revalidated.
+
+## Forms
+
+Create a form in the project's **Forms** tab and paste its HTML into your page:
+
+\`\`\`html
+<form action="https://api.codeqlick.com/v1/cloud/forms/cqf_…" method="POST">
+  <input name="name" required>
+  <input name="email" type="email" required>
+  <textarea name="message" required></textarea>
+  <input name="_gotcha" style="display:none" tabindex="-1" autocomplete="off">
+  <button type="submit">Send</button>
+</form>
+\`\`\`
+
+- Any fields work (up to 30). A valid \`email\` field becomes the notification's reply-to.
+- \`_redirect\` sends the visitor to your thank-you page (on your project); without it they go back to the same page with \`?form=ok\`.
+- \`_subject\` sets the email's subject and \`_gotcha\` (hidden) stops bots.
+- With \`fetch\` and JSON you get \`{ ok: true }\`. Only posts from your project's addresses and domains are accepted.
+- Submissions are kept 180 days: search, delete or download them as CSV in the console. The free plan takes 1,000 submissions a month per team.
 
 ## Custom domains
 

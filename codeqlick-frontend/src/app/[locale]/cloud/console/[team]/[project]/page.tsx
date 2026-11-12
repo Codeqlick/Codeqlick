@@ -29,11 +29,12 @@ import {
   renameProjectAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { FormsTab } from './FormsTab';
 
-type Tab = 'deployments' | 'domains' | 'settings';
+type Tab = 'deployments' | 'domains' | 'forms' | 'settings';
 type PageProps = {
   params: Promise<{ locale: AppLocale; team: string; project: string }>;
-  searchParams: Promise<{ tab?: string; page?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string; form?: string; q?: string }>;
 };
 
 const STATE_TONE: Record<CloudDomainState, BadgeTone> = {
@@ -72,7 +73,10 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const { team, project } = await load(teamSlug, projectSlug);
-  const tab: Tab = query.tab === 'domains' || query.tab === 'settings' ? query.tab : 'deployments';
+  const tab: Tab =
+    query.tab === 'domains' || query.tab === 'forms' || query.tab === 'settings'
+      ? query.tab
+      : 'deployments';
   const page = Math.max(1, Number(query.page) || 1);
   const base = `/cloud/console/${team.slug}/${project.slug}`;
   const path = `/${team.slug}/${project.slug}`;
@@ -90,7 +94,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           labels={{ copy: t('common.copy'), copied: t('common.copied') }}
         />
         <nav className={`${styles.tabs} ${styles.spacedTabs}`} aria-label={project.name}>
-          {(['deployments', 'domains', 'settings'] as const).map((key) => (
+          {(['deployments', 'domains', 'forms', 'settings'] as const).map((key) => (
             <Link
               key={key}
               href={key === 'deployments' ? base : `${base}?tab=${key}`}
@@ -122,6 +126,20 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
         />
       ) : null}
       {tab === 'domains' ? <Domains locale={locale} projectId={project.id} path={path} /> : null}
+      {tab === 'forms' ? (
+        <FormsTab
+          locale={locale}
+          teamSlug={team.slug}
+          projectId={project.id}
+          projectSlug={project.slug}
+          path={path}
+          base={base}
+          admin={admin}
+          formId={query.form}
+          q={query.q?.trim().slice(0, 100) || undefined}
+          page={page}
+        />
+      ) : null}
       {tab === 'settings' ? (
         <>
           {admin ? (

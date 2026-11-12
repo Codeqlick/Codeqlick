@@ -9,23 +9,28 @@ import {
   acceptCloudInvite,
   addCloudDomain,
   checkCloudDomain,
+  createCloudForm,
   createCloudProject,
   createCloudTeam,
   createCloudToken,
   decideCloudDevice,
   deleteCloudDeployment,
+  deleteCloudForm,
   deleteCloudProject,
+  deleteCloudSubmission,
   deleteCloudTeam,
   inviteCloudMember,
   promoteCloudDeployment,
   removeCloudDomain,
   removeCloudMember,
+  replaceCloudFormKey,
   renameCloudProject,
   renameCloudTeam,
   reportCloudPage,
   revokeCloudInvite,
   revokeCloudToken,
   setCloudMemberRole,
+  updateCloudForm,
   type CloudReportReason,
   type CloudRole,
 } from '@/lib/api/cloud';
@@ -454,4 +459,70 @@ export async function reportAction(
     return failure(lang, error, values);
   }
   return { status: 'success', message: t('sent') };
+}
+
+// ── Forms (phase 1b) ──────────────────────────────────────────────────────────────────────────
+
+export async function createFormAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.forms' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name');
+  const recipientIds = formData.getAll('recipients').map(String).filter(Boolean);
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
+  if (recipientIds.length < 1 || recipientIds.length > 5)
+    fieldErrors.recipients = t('recipientsInvalid');
+  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
+  try {
+    await createCloudForm(projectId, {
+      name,
+      notify: formBoolean(formData, 'notify'),
+      recipientIds,
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('created') };
+}
+
+export async function toggleFormAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
+    enabled: formString(formData, 'enabled') === 'on',
+  }).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function replaceFormKeyAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await replaceCloudFormKey(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function deleteFormAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudForm(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function deleteSubmissionAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudSubmission(
+    formString(formData, 'project'),
+    formString(formData, 'form'),
+    formString(formData, 'id'),
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
 }

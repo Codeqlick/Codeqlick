@@ -1,7 +1,7 @@
 import { WEBAPPS } from '../../common/webapps.js';
 
 /** The Cloud terms' current version: people accept it to create or join a team. */
-export const CLOUD_TERMS_VERSION = '2026-11-12';
+export const CLOUD_TERMS_VERSION = '2026-11-13';
 
 export interface CloudLimits {
   teamsOwned: number;
@@ -15,6 +15,8 @@ export interface CloudLimits {
   domainsPerProject: number;
   membersPerTeam: number;
   tokensPerPerson: number;
+  formsPerProject: number;
+  formSubmissionsPerMonth: number;
 }
 
 const MB = 1024 * 1024;
@@ -33,6 +35,8 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     domainsPerProject: 5,
     membersPerTeam: 10,
     tokensPerPerson: 20,
+    formsPerProject: 3,
+    formSubmissionsPerMonth: 1000,
   },
   PRO: {
     teamsOwned: 3,
@@ -46,6 +50,8 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     domainsPerProject: 20,
     membersPerTeam: 50,
     tokensPerPerson: 20,
+    formsPerProject: 20,
+    formSubmissionsPerMonth: 20000,
   },
 };
 
@@ -63,6 +69,8 @@ export const INVITE_DAYS = 7;
 export const DEVICE_CODE_MINUTES = 10;
 export const DEVICE_POLL_SECONDS = 5;
 export const CLI_TOKEN_DAYS = 90;
+/** Form submissions are kept this long (decision 37). */
+export const FORM_SUBMISSION_DAYS = 180;
 
 /** Project addresses nobody may take. */
 export const RESERVED_SLUGS = new Set<string>([
