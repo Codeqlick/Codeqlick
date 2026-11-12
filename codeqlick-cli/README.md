@@ -22,6 +22,16 @@ back in a second.
 | `domains [add\|check\|rm <domain>]`         | The project's own domains                    |
 | `open`                                      | Open the published site                      |
 
+`deploy --url-only` prints only the new deployment's URL, to chain it with `audit`:
+
+```yaml
+- run: |
+    url=$(npx @codeqlick/cli deploy dist --url-only)
+    npx @codeqlick/cli audit "$url" --min-score 80
+  env:
+    CODEQLICK_TOKEN: ${{ secrets.CODEQLICK_TOKEN }}
+```
+
 In CI, set `CODEQLICK_TOKEN` (a token from the console) and keep `codeqlick.json` in the
 repository, or pass `--team` and `--project` (`CODEQLICK_TEAM`, `CODEQLICK_PROJECT`).
 

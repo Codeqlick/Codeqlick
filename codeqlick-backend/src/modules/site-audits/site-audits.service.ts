@@ -69,6 +69,26 @@ export interface SiteAuditReport {
 
 const ORDER: Record<CheckStatus, number> = { fail: 0, warn: 1, pass: 2 };
 
+/** A result's categories with their checks' texts in `locale`, problems first (also Cloud's API). */
+export function reportCategories(
+  result: StoredResult,
+  locale: ApiLocale,
+): SiteAuditReport['categories'] {
+  return CATEGORIES.map((key) => ({
+    key,
+    name: CATEGORY_NAMES[key][locale],
+    score: result.categories[key],
+    checks: result.checks
+      .filter((check) => CHECK_CATEGORY[check.id] === key)
+      .toSorted((a, b) => ORDER[a.status] - ORDER[b.status])
+      .map((check) => ({
+        id: check.id,
+        status: check.status,
+        ...checkText(check.id, check.status, locale, check.values),
+      })),
+  }));
+}
+
 /** The public report of a check, its texts in `locale`; never the email or the name. */
 export function toReport(row: SiteAudit, locale: ApiLocale): SiteAuditReport {
   const result = row.status === 'DONE' ? (row.result as unknown as StoredResult | null) : null;
@@ -79,21 +99,7 @@ export function toReport(row: SiteAudit, locale: ApiLocale): SiteAuditReport {
     status: row.status,
     score: row.score,
     failure: row.status === 'FAILED' ? failureText(row.error ?? '', locale) : null,
-    categories: result
-      ? CATEGORIES.map((key) => ({
-          key,
-          name: CATEGORY_NAMES[key][locale],
-          score: result.categories[key],
-          checks: result.checks
-            .filter((check) => CHECK_CATEGORY[check.id] === key)
-            .toSorted((a, b) => ORDER[a.status] - ORDER[b.status])
-            .map((check) => ({
-              id: check.id,
-              status: check.status,
-              ...checkText(check.id, check.status, locale, check.values),
-            })),
-        }))
-      : [],
+    categories: result ? reportCategories(result, locale) : [],
     createdAt: row.createdAt.toISOString(),
     finishedAt: row.finishedAt?.toISOString() ?? null,
   };

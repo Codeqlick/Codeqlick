@@ -1902,13 +1902,14 @@ model CloudTeam {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  members    CloudMember[]
-  invites    CloudInvite[]
-  tokens     CloudToken[]
-  projects   CloudProject[]
-  events     CloudEvent[]
-  monitors   CloudMonitor[]
-  statusPage CloudStatusPage?
+  members     CloudMember[]
+  invites     CloudInvite[]
+  tokens      CloudToken[]
+  projects    CloudProject[]
+  events      CloudEvent[]
+  monitors    CloudMonitor[]
+  statusPage  CloudStatusPage?
+  cloudAudits CloudAudit[]
 
   @@map("cloud_teams")
 }
@@ -2246,4 +2247,22 @@ model CloudStatusPage {
   team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("cloud_status_pages")
+}
+
+/// A website check run through Cloud's API (architecture 4.13, Website check API); kept 30 days.
+model CloudAudit {
+  id        String   @id @default(uuid()) @db.Uuid
+  teamId    String   @map("team_id") @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  url       String   @db.VarChar(2048)
+  score     Int
+  /// The checks' result as the free website check stores it (final URL, categories, checks).
+  result    Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, createdAt])
+  @@index([createdAt])
+  @@map("cloud_audits")
 }

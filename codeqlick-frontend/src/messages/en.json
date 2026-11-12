@@ -4770,7 +4770,8 @@
       "suspended": "Suspended",
       "role": "Your role: {role}",
       "plan": "Plan: {plan}",
-      "monitorsLink": "Monitors"
+      "monitorsLink": "Monitors",
+      "auditsLink": "Website check"
     },
     "project": {
       "tabs": {
@@ -5014,6 +5015,22 @@
         "partial": "Partial outage",
         "major": "Major outage",
         "unknown": "Waiting for the first checks"
+      }
+    },
+    "audits": {
+      "title": "Website check",
+      "lead": "Speed, mobile, Google and security of any page, with advice in plain words. 20 an hour per team; the reports are kept 30 days.",
+      "url": "Address",
+      "urlInvalid": "Write a full address starting with http:// or https://.",
+      "run": "Check",
+      "running": "Checking… (up to a minute)",
+      "ci": "In your CI it fails the step under the score you set:",
+      "recent": "Recent checks",
+      "empty": "No checks yet.",
+      "status": {
+        "pass": "OK",
+        "warn": "Improve",
+        "fail": "Problem"
       }
     }
   },

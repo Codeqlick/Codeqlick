@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { API_TOKEN_RESOLVER } from '../../common/api-tokens.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
+import { CloudAuditsController } from './cloud-audits.controller.js';
+import { CloudAuditsRepository } from './cloud-audits.repository.js';
+import { CloudAuditsService } from './cloud-audits.service.js';
 import { CloudFormsController, CloudFormsPublicController } from './cloud-forms.controller.js';
 import { CloudFormsRepository } from './cloud-forms.repository.js';
 import { CloudFormsService } from './cloud-forms.service.js';
@@ -30,6 +33,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudController,
     CloudFormsController,
     CloudMonitorsController,
+    CloudAuditsController,
     CloudAdminController,
   ],
   providers: [
@@ -46,6 +50,8 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudFormsService,
     CloudMonitorsRepository,
     CloudMonitorsService,
+    CloudAuditsRepository,
+    CloudAuditsService,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
   exports: [API_TOKEN_RESOLVER, CloudTeamsService],
