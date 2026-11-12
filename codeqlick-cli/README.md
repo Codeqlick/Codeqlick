@@ -36,7 +36,6 @@ npm run build       # dist/, what is published
 CODEQLICK_API_URL=http://localhost:4000/v1 node dist/cli.js whoami
 ```
 
-Releasing: bump `version` in `package.json` (and `VERSION` in `src/cli.ts` and the user agent in
-`src/api.ts`), merge, then push a tag `cli-v<version>` (`git tag cli-v0.1.1 && git push origin
+Releasing: bump `version` in `package.json` and `src/version.ts` (a test checks they match), merge, then push a tag `cli-v<version>` (`git tag cli-v0.1.1 && git push origin
 cli-v0.1.1`). The workflow `CLI publish` publishes it with npm's Trusted Publishing (no token or
 2FA code; configured on npmjs.com for `.github/workflows/cli-publish.yml`).

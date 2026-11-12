@@ -1,4 +1,5 @@
 import { openAsBlob } from 'node:fs';
+import { VERSION } from './version.ts';
 
 /** A failed API call: the problem details' text and status. */
 export class ApiError extends Error {
@@ -73,7 +74,7 @@ export interface DeviceStart {
   interval: number;
 }
 
-const USER_AGENT = 'codeqlick-cli/0.1.0';
+const USER_AGENT = `codeqlick-cli/${VERSION}`;
 
 /** The Cloud API (`/v1/cloud`), with the token when there is one. */
 export class Api {
