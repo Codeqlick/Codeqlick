@@ -748,7 +748,8 @@
       "sites": "Websites",
       "previews": "Previews",
       "videochat": "Video chat",
-      "swipe": "Swipe"
+      "swipe": "Swipe",
+      "cloud": "Cloud"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -3784,6 +3785,12 @@
       "body": "Swipe intimate photos of adults who choose to share them: right if you like one, left if you don't. When you both like each other it's a match and you can talk. Every photo is reviewed before it goes live.",
       "warning": "Adults only (18+): nudity and explicit sexual content. You need a verified Codeqlick account.",
       "open": "Open Swipe"
+    },
+    "cloud": {
+      "title": "Codeqlick Cloud",
+      "badge": "For developers",
+      "body": "Deploy static sites from your terminal with one command: a preview address for every deployment, instant rollbacks, your own domains with HTTPS, teams and API tokens for your CI. Free plan.",
+      "open": "Open Cloud"
     }
   },
   "AppSwitcher": {
@@ -3807,6 +3814,10 @@
       "swipe": {
         "name": "Swipe",
         "body": "Swipe photos and match"
+      },
+      "cloud": {
+        "name": "Cloud",
+        "body": "Deploy static sites"
       }
     }
   },
@@ -4642,5 +4653,290 @@
     "count": "{count, plural, one {You have # message} other {You have # messages}} from the last 12 months.",
     "countNone": "You'll see here the messages people send through your website's form.",
     "open": "See the messages"
+  },
+  "Cloud": {
+    "metaTitle": "Codeqlick Cloud: deploy static sites from your terminal",
+    "metaDescription": "Deploy any static site with one command: previews for every deployment, instant rollbacks, your own domains with HTTPS and teams. Free plan.",
+    "brand": "cloud",
+    "homeLabel": "Codeqlick Cloud home",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "nav": {
+      "console": "Console",
+      "docs": "Docs",
+      "tokens": "Tokens"
+    },
+    "landing": {
+      "eyebrow": "Codeqlick Cloud · for developers",
+      "title": "Deploy your site with one command",
+      "lead": "Build it as usual and run codeqlick deploy. Every deployment gets its own address, publishing and rolling back are instant, and your domains get HTTPS on their own.",
+      "start": "Open the console",
+      "createAccount": "Create your free account",
+      "docs": "Read the docs",
+      "planTitle": "Free plan",
+      "plan": [
+        "10 projects per team, 1 GB",
+        "Unlimited previews (the last 20 kept)",
+        "5 custom domains per project, with HTTPS",
+        "Teams of up to 10 people",
+        "API tokens for your CI"
+      ],
+      "features": [
+        {
+          "title": "Previews for everything",
+          "body": "Each deployment answers at its own address, so you can share a change before publishing it."
+        },
+        {
+          "title": "Instant rollbacks",
+          "body": "Publishing switches atomically. Going back to any earlier deployment takes a second."
+        },
+        {
+          "title": "Your domains, with HTTPS",
+          "body": "Add a domain, prove it's yours with a TXT record and point it here. The certificate is automatic."
+        },
+        {
+          "title": "Single-page apps",
+          "body": "React, Vue, Astro, Vite… A 200.html serves every route; your 404.html every missing page."
+        }
+      ],
+      "howTitle": "Three commands",
+      "phase": "Coming next: forms, uptime checks and status pages for your projects."
+    },
+    "common": {
+      "copy": "Copy",
+      "copied": "Copied",
+      "loadError": "This couldn't be loaded. Try again in a moment.",
+      "failed": "That didn't work. Try again in a moment.",
+      "notFound": "Not found, or you have no access to it.",
+      "noPermission": "Your role in this team can't do that.",
+      "tooMany": "You've reached the limit of your plan.",
+      "never": "Never",
+      "back": "Back",
+      "roles": {
+        "OWNER": "Owner",
+        "ADMIN": "Admin",
+        "MEMBER": "Member"
+      },
+      "states": {
+        "PENDING": "Pending verification",
+        "VERIFIED": "Verified, not pointing here yet",
+        "LIVE": "Live",
+        "ERROR": "Not pointing here"
+      }
+    },
+    "console": {
+      "title": "Console",
+      "lead": "Your teams on Codeqlick Cloud.",
+      "teams": "Your teams",
+      "empty": "You're not in any team yet. Create one to start deploying.",
+      "createTitle": "Create a team",
+      "name": "Name",
+      "slug": "Address",
+      "slugHint": "3–30 lowercase letters, digits and dashes. Used in the console's links.",
+      "terms": "I accept the Codeqlick Cloud terms",
+      "termsLink": "Read the terms",
+      "create": "Create team",
+      "creating": "Creating…",
+      "slugTaken": "That address is taken.",
+      "termsChanged": "The terms changed: reload the page and read them again.",
+      "invalid": "Check the fields marked.",
+      "tokensLink": "Your API tokens"
+    },
+    "team": {
+      "projects": "Projects",
+      "empty": "No projects yet.",
+      "newTitle": "New project",
+      "projectName": "Name",
+      "projectSlug": "Address",
+      "projectSlugHint": "3–40 lowercase letters, digits and dashes: https://{slug}.{domain}",
+      "create": "Create project",
+      "creating": "Creating…",
+      "slugTaken": "That address is taken or reserved.",
+      "usage": "Usage",
+      "storage": "Storage",
+      "deployments": "Deployments in the last hour",
+      "members": "Members",
+      "projectsCount": "Projects",
+      "of": "{used} of {limit}",
+      "membersLink": "Members",
+      "eventsLink": "History",
+      "settings": "Team settings",
+      "rename": "Rename",
+      "renamed": "Saved.",
+      "deleteTitle": "Delete the team",
+      "deleteBody": "Deletes the team with all its projects, deployments and domains. Its sites go offline at once.",
+      "noProduction": "Nothing published yet",
+      "published": "Published {when}",
+      "suspended": "Suspended",
+      "role": "Your role: {role}",
+      "plan": "Plan: {plan}"
+    },
+    "project": {
+      "tabs": {
+        "deployments": "Deployments",
+        "domains": "Domains",
+        "settings": "Settings"
+      },
+      "production": "Published",
+      "deployHelp": "Deploy from this project's folder:",
+      "deploymentsEmpty": "No deployments yet.",
+      "preview": "Preview",
+      "productionTag": "Published",
+      "promote": "Publish",
+      "delete": "Delete",
+      "via": "via {token}",
+      "files": "{count, plural, one {# file} other {# files}}",
+      "suspendedTitle": "This project is suspended",
+      "suspendedBody": "Its addresses show a notice and it takes no deployments. Reason: {reason}. Reply to our email if you think it's a mistake.",
+      "domainsLead": "Serve the published version on your own domains (up to 5).",
+      "domainName": "Domain",
+      "domainHint": "e.g. docs.example.com",
+      "add": "Add domain",
+      "adding": "Adding…",
+      "check": "Check now",
+      "remove": "Remove",
+      "dnsTitle": "Add these records at your DNS provider",
+      "record": "Type",
+      "host": "Name",
+      "value": "Value",
+      "domainsEmpty": "No domains yet.",
+      "domainNotAllowed": "That domain can't be used here.",
+      "domainTaken": "That domain is already in use, or the project has 5.",
+      "checkedAt": "Checked {when}",
+      "rename": "Rename",
+      "saved": "Saved.",
+      "deleteTitle": "Delete the project",
+      "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days."
+    },
+    "members": {
+      "title": "Members",
+      "invite": "Invite someone",
+      "email": "Email",
+      "role": "Role",
+      "send": "Send invitation",
+      "sending": "Sending…",
+      "sent": "Invitation sent.",
+      "already": "That person is already in the team or invited, or the team is full.",
+      "pending": "Pending invitations",
+      "expires": "Expires {when}",
+      "revoke": "Cancel",
+      "remove": "Remove",
+      "leave": "Leave the team",
+      "changeRole": "Change role",
+      "you": "you",
+      "lastOwner": "A team needs at least one owner."
+    },
+    "events": {
+      "title": "History",
+      "lead": "Every change in the team, newest first (kept 365 days).",
+      "empty": "Nothing yet.",
+      "via": "token: {token}"
+    },
+    "tokens": {
+      "title": "API tokens",
+      "lead": "Tokens let the CLI and your CI act as you on the Cloud API. Treat them like passwords.",
+      "create": "Create token",
+      "creating": "Creating…",
+      "name": "Name",
+      "nameHint": "e.g. GitHub Actions",
+      "team": "Team",
+      "allTeams": "All my teams",
+      "expiry": "Expires",
+      "days": "{count} days",
+      "never": "Never",
+      "newToken": "Copy it now: you won't see it again.",
+      "empty": "No tokens yet.",
+      "lastUsed": "Last used {when} from {ip}",
+      "neverUsed": "Never used",
+      "expiresOn": "Expires {when}",
+      "noExpiry": "Doesn't expire",
+      "revoke": "Revoke",
+      "tooMany": "You have 20 tokens: revoke one first."
+    },
+    "cli": {
+      "title": "Sign in the CLI",
+      "lead": "A terminal asked to sign in to your account. Check the code matches the one it shows.",
+      "code": "Code",
+      "machine": "Machine",
+      "asked": "Asked {when}",
+      "approve": "Approve",
+      "deny": "Deny",
+      "approved": "Done: you can go back to your terminal.",
+      "denied": "Denied. The terminal won't get access.",
+      "expired": "This code is unknown or has expired. Run codeqlick login again.",
+      "enter": "Type the code your terminal shows",
+      "go": "Continue"
+    },
+    "invite": {
+      "title": "Join a team",
+      "body": "{invitedBy} invited you to {team} as {role}.",
+      "accept": "Accept the invitation",
+      "wrongEmail": "This invitation is for {email}. Sign in with that account to accept it.",
+      "invalid": "This invitation is unknown, used or expired."
+    },
+    "report": {
+      "metaTitle": "Report a page hosted on Codeqlick Cloud",
+      "title": "Report a page",
+      "lead": "Tell us about a page hosted on Codeqlick Cloud that deceives, spreads malware, infringes rights or breaks the law. We review every report.",
+      "url": "The page's address",
+      "reason": "Reason",
+      "reasons": {
+        "PHISHING": "Phishing or impersonation",
+        "MALWARE": "Malware",
+        "ILLEGAL": "Illegal content",
+        "COPYRIGHT": "Infringes my rights (copyright, trademark)",
+        "SEXUAL": "Sexual content",
+        "SPAM": "Spam",
+        "OTHER": "Something else"
+      },
+      "details": "What's wrong",
+      "detailsHint": "At least 10 characters: what you saw and where.",
+      "email": "Your email",
+      "emailHint": "Only to contact you about this report.",
+      "send": "Send report",
+      "sending": "Sending…",
+      "sent": "Thank you. We'll review it as soon as possible.",
+      "invalid": "Check the fields marked."
+    },
+    "terms": {
+      "metaTitle": "Codeqlick Cloud terms"
+    }
+  },
+  "AdminCloud": {
+    "title": "Cloud",
+    "lead": "Codeqlick Cloud's teams and projects, and the reports of hosted pages.",
+    "tabs": {
+      "projects": "Projects",
+      "teams": "Teams",
+      "reports": "Reports",
+      "closed": "Closed reports"
+    },
+    "search": "Search",
+    "searchPlaceholder": "Name, address or email",
+    "suspendedOnly": "Suspended only",
+    "empty": "Nothing here.",
+    "columns": {
+      "project": "Project",
+      "team": "Team",
+      "storage": "Storage",
+      "deployments": "Deployments",
+      "domains": "Domains",
+      "status": "Status",
+      "owners": "Owners",
+      "members": "Members",
+      "projects": "Projects",
+      "created": "Created"
+    },
+    "active": "Active",
+    "suspended": "Suspended",
+    "suspend": "Suspend",
+    "reason": "Reason (the owners get it by email)",
+    "unsuspend": "Lift the suspension",
+    "reportFrom": "From {email} · {when}",
+    "matched": "Project: {project}",
+    "unmatched": "No project matched",
+    "close": "Close",
+    "note": "Note (optional)",
+    "closedNote": "Closed {when}: {note}"
   }
 }

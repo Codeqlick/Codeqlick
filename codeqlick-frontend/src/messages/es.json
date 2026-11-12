@@ -748,7 +748,8 @@
       "sites": "Webs",
       "previews": "Vistas previas",
       "videochat": "Videochat",
-      "swipe": "Swipe"
+      "swipe": "Swipe",
+      "cloud": "Cloud"
     },
     "dashboard": {
       "title": "Panel",
@@ -3784,6 +3785,12 @@
       "body": "Desliza fotos íntimas de adultos que las comparten porque quieren: a la derecha si te gusta, a la izquierda si no. Si os gustáis los dos, hay match y podéis hablar. Revisamos cada foto antes de publicarla.",
       "warning": "Solo para mayores de 18 años: hay desnudos y contenido sexual explícito. Necesitas una cuenta verificada de Codeqlick.",
       "open": "Abrir Swipe"
+    },
+    "cloud": {
+      "title": "Codeqlick Cloud",
+      "badge": "Para developers",
+      "body": "Despliega webs estáticas desde tu terminal con una orden: una dirección de vista previa por despliegue, vuelta atrás al instante, tus dominios con HTTPS, equipos y tokens de API para tu CI. Plan gratuito.",
+      "open": "Abrir Cloud"
     }
   },
   "AppSwitcher": {
@@ -3807,6 +3814,10 @@
       "swipe": {
         "name": "Swipe",
         "body": "Desliza fotos y haz match"
+      },
+      "cloud": {
+        "name": "Cloud",
+        "body": "Despliega webs estáticas"
       }
     }
   },
@@ -4642,5 +4653,290 @@
     "count": "{count, plural, one {Tienes # mensaje guardado} other {Tienes # mensajes guardados}} de los últimos 12 meses.",
     "countNone": "Aquí verás los mensajes que te envíen desde el formulario de tu web.",
     "open": "Ver los mensajes"
+  },
+  "Cloud": {
+    "metaTitle": "Codeqlick Cloud: despliega webs estáticas desde tu terminal",
+    "metaDescription": "Despliega cualquier web estática con una orden: vista previa de cada despliegue, vuelta atrás al instante, tus dominios con HTTPS y equipos. Plan gratuito.",
+    "brand": "cloud",
+    "homeLabel": "Inicio de Codeqlick Cloud",
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "nav": {
+      "console": "Consola",
+      "docs": "Documentación",
+      "tokens": "Tokens"
+    },
+    "landing": {
+      "eyebrow": "Codeqlick Cloud · para developers",
+      "title": "Despliega tu web con una orden",
+      "lead": "Compílala como siempre y ejecuta codeqlick deploy. Cada despliegue tiene su propia dirección, publicar y volver atrás es instantáneo y tus dominios tienen HTTPS solos.",
+      "start": "Abrir la consola",
+      "createAccount": "Crea tu cuenta gratis",
+      "docs": "Leer la documentación",
+      "planTitle": "Plan gratuito",
+      "plan": [
+        "10 proyectos por equipo, 1 GB",
+        "Vistas previas sin límite (se guardan las 20 últimas)",
+        "5 dominios propios por proyecto, con HTTPS",
+        "Equipos de hasta 10 personas",
+        "Tokens de API para tu CI"
+      ],
+      "features": [
+        {
+          "title": "Vista previa de todo",
+          "body": "Cada despliegue responde en su propia dirección: comparte un cambio antes de publicarlo."
+        },
+        {
+          "title": "Vuelta atrás al instante",
+          "body": "Publicar es un cambio atómico. Volver a cualquier despliegue anterior tarda un segundo."
+        },
+        {
+          "title": "Tus dominios, con HTTPS",
+          "body": "Añade un dominio, demuestra que es tuyo con un registro TXT y apúntalo aquí. El certificado es automático."
+        },
+        {
+          "title": "Aplicaciones de una página",
+          "body": "React, Vue, Astro, Vite… Un 200.html sirve todas las rutas; tu 404.html, las que no existen."
+        }
+      ],
+      "howTitle": "Tres órdenes",
+      "phase": "Próximamente: formularios, vigilancia y páginas de estado para tus proyectos."
+    },
+    "common": {
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "loadError": "No se ha podido cargar. Inténtalo de nuevo en un momento.",
+      "failed": "No ha funcionado. Inténtalo de nuevo en un momento.",
+      "notFound": "No existe o no tienes acceso.",
+      "noPermission": "Tu papel en este equipo no permite hacerlo.",
+      "tooMany": "Has llegado al límite de tu plan.",
+      "never": "Nunca",
+      "back": "Volver",
+      "roles": {
+        "OWNER": "Propietario",
+        "ADMIN": "Administrador",
+        "MEMBER": "Miembro"
+      },
+      "states": {
+        "PENDING": "Pendiente de verificar",
+        "VERIFIED": "Verificado, aún no apunta aquí",
+        "LIVE": "Activo",
+        "ERROR": "No apunta aquí"
+      }
+    },
+    "console": {
+      "title": "Consola",
+      "lead": "Tus equipos en Codeqlick Cloud.",
+      "teams": "Tus equipos",
+      "empty": "Aún no estás en ningún equipo. Crea uno para empezar a desplegar.",
+      "createTitle": "Crear un equipo",
+      "name": "Nombre",
+      "slug": "Dirección",
+      "slugHint": "De 3 a 30 letras minúsculas, números y guiones. Se usa en los enlaces de la consola.",
+      "terms": "Acepto las condiciones de Codeqlick Cloud",
+      "termsLink": "Leer las condiciones",
+      "create": "Crear equipo",
+      "creating": "Creando…",
+      "slugTaken": "Esa dirección ya está cogida.",
+      "termsChanged": "Las condiciones han cambiado: recarga la página y vuelve a leerlas.",
+      "invalid": "Revisa los campos marcados.",
+      "tokensLink": "Tus tokens de API"
+    },
+    "team": {
+      "projects": "Proyectos",
+      "empty": "Aún no hay proyectos.",
+      "newTitle": "Nuevo proyecto",
+      "projectName": "Nombre",
+      "projectSlug": "Dirección",
+      "projectSlugHint": "De 3 a 40 letras minúsculas, números y guiones: https://{slug}.{domain}",
+      "create": "Crear proyecto",
+      "creating": "Creando…",
+      "slugTaken": "Esa dirección está cogida o reservada.",
+      "usage": "Uso",
+      "storage": "Almacenamiento",
+      "deployments": "Despliegues en la última hora",
+      "members": "Miembros",
+      "projectsCount": "Proyectos",
+      "of": "{used} de {limit}",
+      "membersLink": "Miembros",
+      "eventsLink": "Historial",
+      "settings": "Ajustes del equipo",
+      "rename": "Cambiar el nombre",
+      "renamed": "Guardado.",
+      "deleteTitle": "Borrar el equipo",
+      "deleteBody": "Borra el equipo con todos sus proyectos, despliegues y dominios. Sus webs dejan de estar en línea al momento.",
+      "noProduction": "Aún no hay nada publicado",
+      "published": "Publicado {when}",
+      "suspended": "Suspendido",
+      "role": "Tu papel: {role}",
+      "plan": "Plan: {plan}"
+    },
+    "project": {
+      "tabs": {
+        "deployments": "Despliegues",
+        "domains": "Dominios",
+        "settings": "Ajustes"
+      },
+      "production": "Publicado",
+      "deployHelp": "Despliega desde la carpeta de este proyecto:",
+      "deploymentsEmpty": "Aún no hay despliegues.",
+      "preview": "Vista previa",
+      "productionTag": "Publicado",
+      "promote": "Publicar",
+      "delete": "Borrar",
+      "via": "con {token}",
+      "files": "{count, plural, one {# archivo} other {# archivos}}",
+      "suspendedTitle": "Este proyecto está suspendido",
+      "suspendedBody": "Sus direcciones muestran un aviso y no admite despliegues. Motivo: {reason}. Responde a nuestro correo si crees que es un error.",
+      "domainsLead": "Sirve la versión publicada en tus propios dominios (hasta 5).",
+      "domainName": "Dominio",
+      "domainHint": "p. ej. docs.ejemplo.com",
+      "add": "Añadir dominio",
+      "adding": "Añadiendo…",
+      "check": "Comprobar ahora",
+      "remove": "Quitar",
+      "dnsTitle": "Añade estos registros en tu proveedor de DNS",
+      "record": "Tipo",
+      "host": "Nombre",
+      "value": "Valor",
+      "domainsEmpty": "Aún no hay dominios.",
+      "domainNotAllowed": "Ese dominio no se puede usar aquí.",
+      "domainTaken": "Ese dominio ya está en uso, o el proyecto ya tiene 5.",
+      "checkedAt": "Comprobado {when}",
+      "rename": "Cambiar el nombre",
+      "saved": "Guardado.",
+      "deleteTitle": "Borrar el proyecto",
+      "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días."
+    },
+    "members": {
+      "title": "Miembros",
+      "invite": "Invitar a alguien",
+      "email": "Email",
+      "role": "Papel",
+      "send": "Enviar invitación",
+      "sending": "Enviando…",
+      "sent": "Invitación enviada.",
+      "already": "Esa persona ya está en el equipo o invitada, o el equipo está completo.",
+      "pending": "Invitaciones pendientes",
+      "expires": "Caduca {when}",
+      "revoke": "Cancelar",
+      "remove": "Quitar",
+      "leave": "Salir del equipo",
+      "changeRole": "Cambiar papel",
+      "you": "tú",
+      "lastOwner": "Un equipo necesita al menos un propietario."
+    },
+    "events": {
+      "title": "Historial",
+      "lead": "Cada cambio del equipo, el más reciente primero (se guarda 365 días).",
+      "empty": "Aún no hay nada.",
+      "via": "token: {token}"
+    },
+    "tokens": {
+      "title": "Tokens de API",
+      "lead": "Los tokens permiten que la CLI y tu CI actúen como tú en la API de Cloud. Trátalos como contraseñas.",
+      "create": "Crear token",
+      "creating": "Creando…",
+      "name": "Nombre",
+      "nameHint": "p. ej. GitHub Actions",
+      "team": "Equipo",
+      "allTeams": "Todos mis equipos",
+      "expiry": "Caduca",
+      "days": "{count} días",
+      "never": "Nunca",
+      "newToken": "Cópialo ahora: no volverás a verlo.",
+      "empty": "Aún no hay tokens.",
+      "lastUsed": "Usado {when} desde {ip}",
+      "neverUsed": "Sin usar",
+      "expiresOn": "Caduca {when}",
+      "noExpiry": "No caduca",
+      "revoke": "Revocar",
+      "tooMany": "Tienes 20 tokens: revoca uno antes."
+    },
+    "cli": {
+      "title": "Iniciar sesión en la CLI",
+      "lead": "Un terminal ha pedido acceso a tu cuenta. Comprueba que el código coincide con el que muestra.",
+      "code": "Código",
+      "machine": "Equipo",
+      "asked": "Pedido {when}",
+      "approve": "Aprobar",
+      "deny": "Rechazar",
+      "approved": "Listo: ya puedes volver a tu terminal.",
+      "denied": "Rechazado. El terminal no tendrá acceso.",
+      "expired": "Este código no existe o ha caducado. Ejecuta codeqlick login de nuevo.",
+      "enter": "Escribe el código que muestra tu terminal",
+      "go": "Continuar"
+    },
+    "invite": {
+      "title": "Unirte a un equipo",
+      "body": "{invitedBy} te ha invitado a {team} como {role}.",
+      "accept": "Aceptar la invitación",
+      "wrongEmail": "Esta invitación es para {email}. Inicia sesión con esa cuenta para aceptarla.",
+      "invalid": "Esta invitación no existe, ya se usó o ha caducado."
+    },
+    "report": {
+      "metaTitle": "Denunciar una página alojada en Codeqlick Cloud",
+      "title": "Denunciar una página",
+      "lead": "Cuéntanos qué página alojada en Codeqlick Cloud engaña, distribuye malware, infringe derechos o incumple la ley. Revisamos cada denuncia.",
+      "url": "La dirección de la página",
+      "reason": "Motivo",
+      "reasons": {
+        "PHISHING": "Phishing o suplantación",
+        "MALWARE": "Malware",
+        "ILLEGAL": "Contenido ilegal",
+        "COPYRIGHT": "Infringe mis derechos (autor, marca)",
+        "SEXUAL": "Contenido sexual",
+        "SPAM": "Spam",
+        "OTHER": "Otra cosa"
+      },
+      "details": "Qué ocurre",
+      "detailsHint": "Al menos 10 caracteres: qué viste y dónde.",
+      "email": "Tu email",
+      "emailHint": "Solo para contactarte sobre esta denuncia.",
+      "send": "Enviar denuncia",
+      "sending": "Enviando…",
+      "sent": "Gracias. La revisaremos lo antes posible.",
+      "invalid": "Revisa los campos marcados."
+    },
+    "terms": {
+      "metaTitle": "Condiciones de Codeqlick Cloud"
+    }
+  },
+  "AdminCloud": {
+    "title": "Cloud",
+    "lead": "Los equipos y proyectos de Codeqlick Cloud y las denuncias de páginas alojadas.",
+    "tabs": {
+      "projects": "Proyectos",
+      "teams": "Equipos",
+      "reports": "Denuncias",
+      "closed": "Denuncias cerradas"
+    },
+    "search": "Buscar",
+    "searchPlaceholder": "Nombre, dirección o email",
+    "suspendedOnly": "Solo suspendidos",
+    "empty": "No hay nada.",
+    "columns": {
+      "project": "Proyecto",
+      "team": "Equipo",
+      "storage": "Almacenamiento",
+      "deployments": "Despliegues",
+      "domains": "Dominios",
+      "status": "Estado",
+      "owners": "Propietarios",
+      "members": "Miembros",
+      "projects": "Proyectos",
+      "created": "Creado"
+    },
+    "active": "Activo",
+    "suspended": "Suspendido",
+    "suspend": "Suspender",
+    "reason": "Motivo (se lo enviamos a los propietarios)",
+    "unsuspend": "Levantar la suspensión",
+    "reportFrom": "De {email} · {when}",
+    "matched": "Proyecto: {project}",
+    "unmatched": "Sin proyecto asociado",
+    "close": "Cerrar",
+    "note": "Nota (opcional)",
+    "closedNote": "Cerrada {when}: {note}"
   }
 }

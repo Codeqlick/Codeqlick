@@ -142,6 +142,8 @@ services:
       # Analytics: the site proxies the tracker to Umami (see "Analytics" in deploy/README.md).
       UMAMI_URL: http://umami:3000
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
+      # Codeqlick Cloud's hosting domain, shown in its docs (architecture 4.13).
+      CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-codeqlick.app}
       # Legal notice and privacy policy: hidden until LEGAL_OWNER_NAME is set.
       LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
       LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}

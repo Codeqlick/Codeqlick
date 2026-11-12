@@ -1,0 +1,59 @@
+name: CLI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'codeqlick-cli/**'
+      - '.github/workflows/cli.yml'
+  pull_request:
+    paths:
+      - 'codeqlick-cli/**'
+      - '.github/workflows/cli.yml'
+
+concurrency:
+  group: cli-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cli:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codeqlick-cli
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: codeqlick-cli/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: node dist/cli.js --version
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cli-dist
+          path: codeqlick-cli/dist
+
+  # The published package promises Node 20: the built files must run there.
+  node20:
+    name: Runs on Node 20
+    needs: cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v8
+        with:
+          name: cli-dist
+          path: dist
+      - run: echo '{"type":"module"}' > package.json && node dist/cli.js --version && node dist/cli.js --help

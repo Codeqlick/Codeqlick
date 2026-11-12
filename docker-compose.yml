@@ -69,6 +69,11 @@ services:
       SITE_BUILDER_URL: http://site-builder:4100
       SITE_BUILDER_TOKEN: dev-site-builder-token
       PUBLIC_API_URL: http://localhost:${API_PORT:-4000}/v1
+      # Codeqlick Cloud (architecture 4.13): deployments are unpacked inside the container (nothing
+      # serves them locally); the console is at cloud.localhost.
+      CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-cloud.localhost}
+      CLOUD_ROOT: /tmp/codeqlick-cloud
+      CLOUD_URL: http://cloud.localhost:${WEB_PORT:-3000}
       # Client domains (architecture 11): OVH stays off without keys in the root .env.
       SITES_SERVER_IP: ${SITES_SERVER_IP:-}
       # Buying a preview online (architecture 8.2, decision 20): off without both keys.

@@ -30,6 +30,7 @@ export function appWhere(app: Webapp): Prisma.UserWhereInput {
     swipe: { swipeProfile: { isNot: null } },
     meetings: { meetingRooms: { some: {} } },
     citas: { bookingPages: { some: {} } },
+    cloud: { cloudMemberships: { some: {} } },
   };
   return { role: 'CLIENT', OR: [{ signupApp: app }, uses[app]] };
 }
@@ -43,6 +44,7 @@ const NO_APP_WHERE: Prisma.UserWhereInput = {
   swipeProfile: { is: null },
   meetingRooms: { none: {} },
   bookingPages: { none: {} },
+  cloudMemberships: { none: {} },
 };
 
 /** The accounts of a kind: an app user is one who isn't a client. */
@@ -65,6 +67,7 @@ export const USAGE_INCLUDE = {
       leadsConverted: true,
       meetingRooms: true,
       bookingPages: true,
+      cloudMemberships: true,
     },
   },
 } satisfies Prisma.UserInclude;
@@ -78,6 +81,7 @@ export function appsOf(user: UserWithUsage): Webapp[] {
     swipe: user.swipeProfile !== null,
     meetings: user._count.meetingRooms > 0,
     citas: user._count.bookingPages > 0,
+    cloud: user._count.cloudMemberships > 0,
   };
   return WEBAPPS.filter((app) => uses[app] || user.signupApp === app);
 }

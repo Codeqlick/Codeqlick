@@ -11,6 +11,7 @@ updates:
       - /codeqlick-backend
       - /codeqlick-frontend
       - /codeqlick-sites/web-basica
+      - /codeqlick-cli
     schedule:
       interval: weekly
       day: monday
