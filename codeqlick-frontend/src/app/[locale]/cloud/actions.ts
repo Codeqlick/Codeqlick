@@ -31,6 +31,7 @@ import {
   reportCloudPage,
   revokeCloudInvite,
   revokeCloudToken,
+  runCloudAudit,
   saveCloudStatusPage,
   setCloudMemberRole,
   updateCloudForm,
@@ -630,4 +631,31 @@ export async function saveStatusPageAction(
   refresh(lang, `/${team}/status-page`);
   revalidatePath(`/${lang}/cloud/status/${team}`);
   return { status: 'success', message: t('saved') };
+}
+
+// ── Website check (phase 1b) ──────────────────────────────────────────────────────────────────
+
+export async function runAuditAction(
+  locale: string,
+  team: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.audits' });
+  const values = formValues(formData);
+  const url = formString(formData, 'url');
+  if (!/^https?:\/\/\S+$/i.test(url))
+    return { status: 'error', fieldErrors: { url: t('urlInvalid') }, values };
+  let id: string;
+  try {
+    id = (await runCloudAudit({ url, teamSlug: team, locale: lang })).id;
+  } catch (error) {
+    if (isApiError(error) && (error.status === 400 || error.status === 422)) {
+      return { status: 'error', fieldErrors: { url: error.detail ?? t('urlInvalid') }, values };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}/audits`);
+  return go(lang, `/console/${team}/audits/${id}`);
 }

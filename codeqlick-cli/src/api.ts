@@ -61,6 +61,20 @@ export interface Domain {
   lastError: string | null;
 }
 
+export interface AuditReport {
+  id: string;
+  url: string;
+  finalUrl: string;
+  score: number;
+  categories: Array<{
+    key: string;
+    name: string;
+    score: number;
+    checks: Array<{ id: string; status: 'pass' | 'warn' | 'fail'; title: string; advice: string }>;
+  }>;
+  createdAt: string;
+}
+
 export type DevicePoll =
   | { status: 'pending' | 'denied' | 'expired' }
   | { status: 'approved'; token: string; user: { id: string; name: string; email: string } };
@@ -155,6 +169,8 @@ export class Api {
     this.request<Domain>('POST', `/cloud/projects/${project}/domains/${id}/check`);
   removeDomain = (project: string, id: string) =>
     this.request<void>('DELETE', `/cloud/projects/${project}/domains/${id}`);
+  audit = (teamSlug: string, url: string, locale: string) =>
+    this.request<AuditReport>('POST', '/cloud/audits', { teamSlug, url, locale });
   startDevice = (clientName: string, locale: string) =>
     this.request<DeviceStart>('POST', `/cloud/cli/device?locale=${locale}`, { clientName });
   pollDevice = (deviceCode: string) =>
