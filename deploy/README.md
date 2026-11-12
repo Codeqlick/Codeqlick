@@ -498,6 +498,20 @@ availability comes from RDAP (unknown for `.es`) and clients point their DNS the
 The portal shows clients the NIC handle and the IP. Each change OVH's API makes to a zone is in
 the admin activity log; MX and other records are never touched.
 
+## Other domains of the brand
+
+Domains registered only to protect the brand (e.g. `codeqlick.es`) send every visit to
+https://codeqlick.com with a permanent redirect that keeps the path. Once the domain is
+registered at OVH with the team's account:
+
+```bash
+cd /srv/codeqlick && sudo ./deploy/setup-redirect.sh codeqlick.es
+```
+
+It points `@` and `www` at the server through OVH's API (replacing OVH's parking records; MX and
+the rest stay), adds the Nginx site `redirect-<domain>.conf` and gets the certificate for both
+names. Safe to run again; if the names don't resolve here yet, run it again a few minutes later.
+
 ## Codeqlick Cloud
 
 Developers' static sites (architecture 4.13 and 8.3) are served from `/srv/codeqlick/cloud`
