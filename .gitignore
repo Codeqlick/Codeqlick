@@ -25,6 +25,9 @@ codeqlick-backend/swipe-uploads/
 # Database dumps written by the production `backup` service
 /backups/
 
+# Codeqlick Cloud's deployments on the server (architecture 8.3)
+/cloud/
+
 # Logs & OS
 *.log
 npm-debug.log*

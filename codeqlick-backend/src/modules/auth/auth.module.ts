@@ -1,3 +1,4 @@
+import { CloudModule } from '../cloud/cloud.module.js';
 import { Module } from '@nestjs/common';
 import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { AppConfigService } from '../../config/app-config.service.js';
@@ -17,6 +18,7 @@ import { UsernameService } from './username.service.js';
 
 @Module({
   imports: [
+    CloudModule,
     JwtModule.registerAsync({
       inject: [AppConfigService],
       useFactory: (config: AppConfigService): JwtModuleOptions => ({
