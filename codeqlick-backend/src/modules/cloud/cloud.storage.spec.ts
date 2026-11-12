@@ -12,7 +12,7 @@ describe('bundlePath', () => {
 
   it('refuses paths that could leave the folder', () => {
     for (const path of ['../etc/passwd', 'a/../../b', '/etc/passwd', 'a/./b', 'a\\b']) {
-      expect(() => bundlePath(path), path).toThrow(BundleError);
+      expect(() => bundlePath(path)).toThrow(BundleError);
     }
   });
 
