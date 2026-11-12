@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { API_TOKEN_RESOLVER } from '../../common/api-tokens.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
+import { CloudFormsController, CloudFormsPublicController } from './cloud-forms.controller.js';
+import { CloudFormsRepository } from './cloud-forms.repository.js';
+import { CloudFormsService } from './cloud-forms.service.js';
 import { CloudAdminService } from './cloud-admin.service.js';
 import { CloudController, CloudPublicController } from './cloud.controller.js';
 import { CloudDns, CloudDomainsService } from './cloud-domains.service.js';
@@ -14,7 +17,13 @@ import { CloudTokensService } from './cloud-tokens.service.js';
 /** Codeqlick Cloud (architecture 4.13). Its API tokens are resolved for JwtAuthGuard. */
 @Module({
   // The public controller first: its POST cli/device/token must win over cli/device/:userCode.
-  controllers: [CloudPublicController, CloudController, CloudAdminController],
+  controllers: [
+    CloudPublicController,
+    CloudFormsPublicController,
+    CloudController,
+    CloudFormsController,
+    CloudAdminController,
+  ],
   providers: [
     CloudRepository,
     CloudTokensRepository,
@@ -25,6 +34,8 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudProjectsService,
     CloudDomainsService,
     CloudAdminService,
+    CloudFormsRepository,
+    CloudFormsService,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
   exports: [API_TOKEN_RESOLVER, CloudTeamsService],

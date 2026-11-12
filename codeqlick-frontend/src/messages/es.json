@@ -4775,7 +4775,8 @@
       "tabs": {
         "deployments": "Despliegues",
         "domains": "Dominios",
-        "settings": "Ajustes"
+        "settings": "Ajustes",
+        "forms": "Formularios"
       },
       "production": "Publicado",
       "deployHelp": "Despliega desde la carpeta de este proyecto:",
@@ -4900,6 +4901,34 @@
     },
     "terms": {
       "metaTitle": "Condiciones de Codeqlick Cloud"
+    },
+    "forms": {
+      "lead": "Tus páginas envían aquí sus formularios: guardamos cada envío 180 días, lo mandamos por email a quien elijas y lo ves aquí abajo. Sin backend propio.",
+      "empty": "Aún no hay formularios.",
+      "on": "Activo",
+      "off": "En pausa",
+      "emails": "Emails",
+      "submissions": "{count, plural, =0 {Aún no hay envíos} one {# envío} other {# envíos}}",
+      "snippet": "HTML para pegar",
+      "snippetHelp": "Vale cualquier campo. _redirect lleva al visitante a tu propia página de gracias, _subject pone el asunto del email y _gotcha (oculto) frena los bots. Envía JSON con fetch para recibir { ok }.",
+      "pause": "Pausar",
+      "resume": "Activar",
+      "newKey": "Nueva dirección",
+      "delete": "Borrar",
+      "newTitle": "Nuevo formulario",
+      "name": "Nombre",
+      "nameHint": "p. ej. Contacto",
+      "nameInvalid": "Entre 1 y 60 caracteres.",
+      "recipients": "Quién recibe los envíos por email",
+      "recipientsInvalid": "Elige de 1 a 5 miembros del equipo.",
+      "notify": "Enviar cada envío por email",
+      "create": "Crear formulario",
+      "creating": "Creando…",
+      "created": "Formulario creado.",
+      "search": "Buscar",
+      "csv": "Descargar CSV",
+      "noSubmissions": "No hay envíos.",
+      "deleteSubmission": "Borrar"
     }
   },
   "AdminCloud": {

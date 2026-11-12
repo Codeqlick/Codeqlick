@@ -118,3 +118,82 @@ export function cloudReportEmail(input: {
     ),
   };
 }
+
+/** To a form's recipients: a page of their project sent a form (architecture 4.13, Forms). */
+export function cloudFormEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  project: string;
+  form: string;
+  subject: string | null;
+  fields: Record<string, string>;
+  replyTo: string | null;
+  page: string | null;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const rows = Object.entries(input.fields).map(
+    ([label, value]) => [label, value] as [string, string],
+  );
+  return {
+    to: input.to,
+    replyTo: input.replyTo ?? undefined,
+    subject:
+      input.subject ??
+      (es
+        ? `${input.form}: nuevo envío en ${input.project}`
+        : `${input.form}: new submission on ${input.project}`),
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: Object.values(input.fields).join(' · ').slice(0, 120),
+        title: es ? 'Nuevo envío de un formulario' : 'New form submission',
+        intro: [
+          es
+            ? `Alguien ha enviado el formulario «${input.form}» de ${input.project}${input.page ? ` desde ${input.page}` : ''}.${input.replyTo ? ' Responde a este correo para contestarle.' : ''}`
+            : `Someone sent the form "${input.form}" of ${input.project}${input.page ? ` from ${input.page}` : ''}.${input.replyTo ? ' Reply to this email to answer them.' : ''}`,
+        ],
+        details: rows,
+        button: { label: es ? 'Ver los envíos' : 'See the submissions', url: input.url },
+        note: es
+          ? 'Codeqlick Cloud guarda los envíos 180 días. Lo recibes porque eres destinatario de este formulario.'
+          : "Codeqlick Cloud keeps submissions 180 days. You get this because you're a recipient of this form.",
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
+/** To a team's owners: its forms reached the plan's submissions this month. */
+export function cloudFormsLimitEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  team: string;
+  limit: number;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  return {
+    to: input.to,
+    subject: es
+      ? `Los formularios de ${input.team} han llegado al límite del mes`
+      : `${input.team}'s forms reached this month's limit`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: es ? `${input.limit} envíos este mes` : `${input.limit} submissions this month`,
+        title: es ? 'Límite de envíos alcanzado' : 'Submission limit reached',
+        intro: [
+          es
+            ? `Los formularios de ${input.team} han recibido ${input.limit} envíos este mes, el máximo del plan gratuito. Hasta el día 1 los nuevos envíos se rechazan.`
+            : `${input.team}'s forms received ${input.limit} submissions this month, the free plan's maximum. Until the 1st, new submissions are refused.`,
+        ],
+        button: { label: es ? 'Abrir la consola' : 'Open the console', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}
