@@ -16,7 +16,7 @@ export const TWO_FACTOR_MAX_AGE = 5 * 60;
  * sign-in and invitations.
  */
 export const PROTECTED_PATH =
-  /^\/(en|es)\/(portal|admin|videochat\/room|citas\/editar|swipe\/(?:deck|photos|matches|img)|cloud\/(?:console|cli|invite))(\/|$)/;
+  /^\/(en|es)\/(portal|admin|videochat\/room|citas\/editar|swipe\/(?:deck|photos|matches|img)|cloud\/(?:console|cli|invite|github))(\/|$)/;
 
 /**
  * Paths open to everyone that still show the signed-in person when there is one: the proxy

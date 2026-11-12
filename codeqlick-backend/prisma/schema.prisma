@@ -1902,14 +1902,15 @@ model CloudTeam {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  members     CloudMember[]
-  invites     CloudInvite[]
-  tokens      CloudToken[]
-  projects    CloudProject[]
-  events      CloudEvent[]
-  monitors    CloudMonitor[]
-  statusPage  CloudStatusPage?
-  cloudAudits CloudAudit[]
+  members          CloudMember[]
+  invites          CloudInvite[]
+  tokens           CloudToken[]
+  projects         CloudProject[]
+  events           CloudEvent[]
+  monitors         CloudMonitor[]
+  statusPage       CloudStatusPage?
+  cloudAudits      CloudAudit[]
+  gitInstallations CloudGitInstallation[]
 
   @@map("cloud_teams")
 }
@@ -2006,15 +2007,30 @@ model CloudProject {
   suspendedAt            DateTime? @map("suspended_at") @db.Timestamptz(3)
   suspendedReason        String?   @map("suspended_reason") @db.VarChar(500)
   deletedAt              DateTime? @map("deleted_at") @db.Timestamptz(3)
+  /// Builds from Git (architecture 4.13): the linked installation and repository, and settings.
+  gitInstallationId      BigInt?   @map("git_installation_id")
+  gitRepoId              BigInt?   @map("git_repo_id")
+  gitRepo                String?   @map("git_repo") @db.VarChar(200)
+  gitBranch              String    @default("main") @map("git_branch") @db.VarChar(200)
+  rootDir                String    @default("") @map("root_dir") @db.VarChar(200)
+  installCommand         String    @default("npm ci") @map("install_command") @db.VarChar(300)
+  buildCommand           String    @default("npm run build") @map("build_command") @db.VarChar(300)
+  outputDir              String    @default("dist") @map("output_dir") @db.VarChar(200)
+  nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
+  buildBranches          Boolean   @default(true) @map("build_branches")
+  buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team        CloudTeam         @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production  CloudDeployment?  @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  deployments CloudDeployment[] @relation("CloudDeployments")
+  team        CloudTeam          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production  CloudDeployment?   @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  deployments CloudDeployment[]  @relation("CloudDeployments")
   domains     CloudDomain[]
   reports     CloudReport[]
   forms       CloudForm[]
+  envVars     CloudEnvVar[]
+  builds      CloudBuild[]
+  prComments  CloudPullComment[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2265,4 +2281,106 @@ model CloudAudit {
   @@index([teamId, createdAt])
   @@index([createdAt])
   @@map("cloud_audits")
+}
+
+/// A GitHub App installation linked to a team (architecture 4.13, Builds from Git; decision 40).
+model CloudGitInstallation {
+  id             String    @id @default(uuid()) @db.Uuid
+  installationId BigInt    @unique @map("installation_id")
+  teamId         String    @map("team_id") @db.Uuid
+  accountLogin   String    @map("account_login") @db.VarChar(100)
+  accountType    String    @map("account_type") @db.VarChar(20)
+  createdById    String?   @map("created_by_id") @db.Uuid
+  suspendedAt    DateTime? @map("suspended_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("cloud_git_installations")
+}
+
+/// A build variable of a project: sealed, never returned (decision 42).
+model CloudEnvVar {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  key         String   @db.VarChar(64)
+  valueSealed String   @map("value_sealed")
+  production  Boolean  @default(true)
+  preview     Boolean  @default(true)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, key])
+  @@map("cloud_env_vars")
+}
+
+enum CloudBuildTrigger {
+  PUSH
+  PULL_REQUEST
+  MANUAL
+}
+
+enum CloudBuildStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELED
+}
+
+/// A build of a project's commit on the build server (architecture 4.13, 8.4).
+model CloudBuild {
+  id            String            @id @default(uuid()) @db.Uuid
+  projectId     String            @map("project_id") @db.Uuid
+  /// 1, 2, 3… per project: the console's address of the build.
+  number        Int
+  trigger       CloudBuildTrigger
+  target        CloudTarget
+  branch        String            @db.VarChar(200)
+  commit        String            @db.VarChar(40)
+  commitMessage String?           @map("commit_message") @db.VarChar(500)
+  author        String?           @db.VarChar(100)
+  pullRequest   Int?              @map("pull_request")
+  status        CloudBuildStatus  @default(QUEUED)
+  error         String?           @db.VarChar(500)
+  /// stdout and stderr, at most 1 MB (the end is kept); emptied after 30 days.
+  log           String            @default("")
+  deploymentId  String?           @map("deployment_id") @db.Uuid
+  builder       String?           @db.VarChar(60)
+  createdById   String?           @map("created_by_id") @db.Uuid
+  queuedAt      DateTime          @default(now()) @map("queued_at") @db.Timestamptz(3)
+  startedAt     DateTime?         @map("started_at") @db.Timestamptz(3)
+  heartbeatAt   DateTime?         @map("heartbeat_at") @db.Timestamptz(3)
+  finishedAt    DateTime?         @map("finished_at") @db.Timestamptz(3)
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, number])
+  @@index([status, queuedAt])
+  @@index([projectId, queuedAt])
+  @@map("cloud_builds")
+}
+
+/// A GitHub webhook delivery already handled (kept a day).
+model CloudGitDelivery {
+  id         String   @id @db.VarChar(64)
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  @@index([receivedAt])
+  @@map("cloud_git_deliveries")
+}
+
+/// The app's comment on a pull request, updated by each build.
+model CloudPullComment {
+  id          String @id @default(uuid()) @db.Uuid
+  projectId   String @map("project_id") @db.Uuid
+  pullRequest Int    @map("pull_request")
+  commentId   BigInt @map("comment_id")
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, pullRequest])
+  @@map("cloud_pull_comments")
 }

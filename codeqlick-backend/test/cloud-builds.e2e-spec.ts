@@ -1,0 +1,405 @@
+import 'reflect-metadata';
+import { Test } from '@nestjs/testing';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import * as argon2 from 'argon2';
+import { createHmac, randomUUID } from 'node:crypto';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import request from 'supertest';
+import { create } from 'tar';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { AppModule } from '../src/app.module.js';
+import { configureApp } from '../src/app.setup.js';
+import { AppConfigService } from '../src/config/app-config.service.js';
+import { Role } from '../src/generated/prisma/client.js';
+import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
+import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
+import { GithubClient } from '../src/modules/cloud/github.client.js';
+import { PrismaService } from '../src/prisma/prisma.service.js';
+
+const tag = randomUUID().slice(0, 8);
+const password = 'cloud-builds-password-1';
+const owner = { email: `e2e-cb-owner-${tag}@codeqlick.test`, password };
+const WEBHOOK_SECRET = 'webhook-secret-for-tests';
+const BUILDER = 'builder-token-for-tests-0123456789';
+const INSTALLATION = 4242000 + Math.floor(Math.random() * 1000);
+const REPO = 777000 + Math.floor(Math.random() * 1000);
+const sha = (n: number) => n.toString(16).padStart(40, 'a');
+
+/** GitHub, as the tests want it. */
+const github = {
+  configured: true,
+  statuses: [] as Array<{ sha: string; state: string; url: string }>,
+  comments: [] as Array<{ pr: number; id: bigint | null; body: string }>,
+  installationToken: vi.fn(() => Promise.resolve('ghs_installation_token')),
+  userToken: vi.fn((code: string) =>
+    code === 'good' ? Promise.resolve('ghu_user') : Promise.reject(new Error('bad code')),
+  ),
+  userInstallationIds: vi.fn(() => Promise.resolve([INSTALLATION])),
+  installation: vi.fn(() =>
+    Promise.resolve({ login: 'ada-labs', type: 'Organization', suspended: false }),
+  ),
+  repositories: vi.fn(() =>
+    Promise.resolve([
+      { id: REPO, fullName: 'ada-labs/site', defaultBranch: 'main', private: true },
+    ]),
+  ),
+  branchHead: vi.fn(() => Promise.resolve({ sha: sha(9), message: 'Manual', author: 'Ada' })),
+  setStatus: vi.fn(
+    (
+      _i: unknown,
+      _r: unknown,
+      _f: string,
+      commit: string,
+      state: string,
+      _d: string,
+      url: string,
+    ) => {
+      github.statuses.push({ sha: commit, state, url });
+      return Promise.resolve();
+    },
+  ),
+  upsertComment: vi.fn(
+    (_i: unknown, _r: unknown, _f: string, pr: number, id: bigint | null, body: string) => {
+      github.comments.push({ pr, id, body });
+      return Promise.resolve(id ?? 99n);
+    },
+  ),
+};
+
+function signed(body: object) {
+  const raw = JSON.stringify(body);
+  return {
+    raw,
+    signature: `sha256=${createHmac('sha256', WEBHOOK_SECRET).update(raw).digest('hex')}`,
+  };
+}
+
+describe('Codeqlick Cloud builds from Git (e2e)', () => {
+  let app: NestExpressApplication;
+  let prisma: PrismaService;
+  let root: string;
+
+  beforeAll(async () => {
+    root = await mkdtemp(join(tmpdir(), 'cq-cloud-builds-'));
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(GithubClient)
+      .useValue(github)
+      .compile();
+    app = moduleRef.createNestApplication<NestExpressApplication>({
+      bufferLogs: true,
+      rawBody: true,
+    });
+    configureApp(app);
+    await app.init();
+    prisma = app.get(PrismaService);
+    const config = app.get(AppConfigService);
+    vi.spyOn(config, 'cloudHosting', 'get').mockReturnValue({ domain: 'cloud.test', root });
+    vi.spyOn(config, 'cloudBuilderToken', 'get').mockReturnValue(BUILDER);
+    vi.spyOn(config, 'githubApp', 'get').mockReturnValue({
+      appId: '1',
+      slug: 'codeqlick-cloud',
+      clientId: 'Iv1.x',
+      clientSecret: 'secret',
+      privateKey: 'unused',
+      webhookSecret: WEBHOOK_SECRET,
+    });
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    await prisma.user.create({
+      data: {
+        email: owner.email,
+        name: 'Ada',
+        role: Role.CLIENT,
+        passwordHash,
+        registeredAt: new Date(),
+      },
+    });
+  });
+
+  afterAll(async () => {
+    if (prisma) {
+      await prisma.cloudTeam.deleteMany({ where: { slug: `b-${tag}` } });
+      await prisma.cloudProject.deleteMany({ where: { slug: `bp-${tag}` } });
+      await prisma.user.deleteMany({ where: { email: { contains: `-${tag}@` } } });
+    }
+    await app?.close();
+    if (root) await rm(root, { recursive: true, force: true });
+  });
+
+  it('links GitHub, builds pushes and pull requests on the build server, and reports back', async () => {
+    const server = app.getHttpServer();
+    const builds = app.get(CloudBuildsService);
+    const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
+    const auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    const builder = { Authorization: `Bearer ${BUILDER}` };
+    const team = `b-${tag}`;
+    await request(server)
+      .post('/v1/cloud/teams')
+      .set(auth)
+      .send({ name: 'Builds', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
+      .expect(201);
+    const project = await request(server)
+      .post(`/v1/cloud/teams/${team}/projects`)
+      .set(auth)
+      .send({ name: 'Site', slug: `bp-${tag}` })
+      .expect(201);
+    const projectId = project.body.id as string;
+
+    // ── Linking: the state is signed, and the person's own GitHub must see the installation.
+    const install = await request(server)
+      .get(`/v1/cloud/github/install-url?teamSlug=${team}`)
+      .set(auth)
+      .expect(200);
+    const state = new URL(install.body.url as string).searchParams.get('state')!;
+    await request(server)
+      .post('/v1/cloud/github/installations')
+      .set(auth)
+      .send({ installationId: INSTALLATION, code: 'good', state: `${state}x` })
+      .expect(403);
+    await request(server)
+      .post('/v1/cloud/github/installations')
+      .set(auth)
+      .send({ installationId: INSTALLATION, code: 'bad', state })
+      .expect(403);
+    await request(server)
+      .post('/v1/cloud/github/installations')
+      .set(auth)
+      .send({ installationId: INSTALLATION, code: 'good', state })
+      .expect(201);
+    const repos = await request(server)
+      .get(`/v1/cloud/teams/${team}/github/repos?installationId=${INSTALLATION}`)
+      .set(auth)
+      .expect(200);
+    expect(repos.body.items[0]).toMatchObject({ id: REPO, fullName: 'ada-labs/site' });
+    await request(server)
+      .put(`/v1/cloud/projects/${projectId}/git`)
+      .set(auth)
+      .send({ installationId: INSTALLATION, repoId: REPO, branch: 'main', rootDir: '../etc' })
+      .expect(400);
+    const git = await request(server)
+      .put(`/v1/cloud/projects/${projectId}/git`)
+      .set(auth)
+      .send({
+        installationId: INSTALLATION,
+        repoId: REPO,
+        branch: 'main',
+        outputDir: 'build',
+        nodeVersion: '22',
+      })
+      .expect(200);
+    expect(git.body).toMatchObject({
+      repo: 'ada-labs/site',
+      branch: 'main',
+      outputDir: 'build',
+      nodeVersion: '22',
+    });
+
+    // ── Variables are write-only.
+    const env = await request(server)
+      .put(`/v1/cloud/projects/${projectId}/env`)
+      .set(auth)
+      .send({ key: 'API_KEY', value: 's3cret-value', production: true, preview: false })
+      .expect(200);
+    expect(JSON.stringify(env.body)).not.toContain('s3cret-value');
+    const stored = await prisma.cloudEnvVar.findFirstOrThrow({ where: { projectId } });
+    expect(stored.valueSealed).not.toContain('s3cret');
+
+    // ── Webhooks: a bad signature, a push to main (production), a fork's PR (ignored), a PR.
+    const repository = { id: REPO, full_name: 'ada-labs/site' };
+    const installation = { id: INSTALLATION };
+    await request(server)
+      .post('/v1/cloud/github/webhook')
+      .set({
+        'X-GitHub-Event': 'push',
+        'X-Hub-Signature-256': 'sha256=00',
+        'Content-Type': 'application/json',
+      })
+      .send({ installation })
+      .expect(401);
+    const send = async (event: string, body: object, delivery = randomUUID()) => {
+      const { raw, signature } = signed(body);
+      await request(server)
+        .post('/v1/cloud/github/webhook')
+        .set({
+          'X-GitHub-Event': event,
+          'X-GitHub-Delivery': delivery,
+          'X-Hub-Signature-256': signature,
+          'Content-Type': 'application/json',
+        })
+        .send(raw)
+        .expect(202);
+    };
+    const pushDelivery = randomUUID();
+    const push = {
+      ref: 'refs/heads/main',
+      after: sha(1),
+      deleted: false,
+      head_commit: { message: 'Ship it', author: { name: 'Ada' } },
+      repository,
+      installation,
+    };
+    await send('push', push, pushDelivery);
+    await send('push', push, pushDelivery); // the same delivery again: ignored
+    await send('pull_request', {
+      action: 'opened',
+      pull_request: {
+        number: 7,
+        title: 'From a fork',
+        head: { sha: sha(2), ref: 'evil', repo: { id: 1 } },
+        base: { repo: repository },
+      },
+      repository,
+      installation,
+    });
+    await send('pull_request', {
+      action: 'opened',
+      pull_request: {
+        number: 8,
+        title: 'New header',
+        user: { login: 'grace' },
+        head: { sha: sha(3), ref: 'header', repo: repository },
+        base: { repo: repository },
+      },
+      repository,
+      installation,
+    });
+    const list = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/builds`)
+      .set(auth)
+      .expect(200);
+    expect(
+      list.body.items.map((b: { pullRequest: number | null; target: string; status: string }) => [
+        b.pullRequest,
+        b.target,
+        b.status,
+      ]),
+    ).toEqual([
+      [8, 'preview', 'QUEUED'],
+      [null, 'production', 'QUEUED'],
+    ]);
+    await vi.waitFor(() =>
+      expect(github.statuses.filter((s) => s.state === 'pending')).toHaveLength(2),
+    );
+
+    // ── The build server: one build per team at a time, oldest first.
+    await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set({ Authorization: 'Bearer nope' })
+      .send({ builder: 'b1' })
+      .expect(401);
+    const claimed = await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b1' })
+      .expect(200);
+    const job = claimed.body.build;
+    expect(job).toMatchObject({
+      commit: sha(1),
+      outputDir: 'build',
+      nodeVersion: '22',
+      env: { API_KEY: 's3cret-value' },
+    });
+    expect(job.cloneUrl).toBe(
+      'https://x-access-token:ghs_installation_token@github.com/ada-labs/site.git',
+    );
+    expect(job.secrets).toEqual(expect.arrayContaining(['ghs_installation_token', 's3cret-value']));
+    await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b2' })
+      .expect(204);
+    await request(server)
+      .post(`/v1/cloud/builder/builds/${job.id as string}/log`)
+      .set(builder)
+      .send({ text: 'npm ci\nbuilt\n' })
+      .expect(204);
+    await request(server)
+      .post(`/v1/cloud/builder/builds/${job.id as string}/heartbeat`)
+      .set(builder)
+      .expect(204);
+    const dist = await mkdtemp(join(tmpdir(), 'cq-build-out-'));
+    await writeFile(join(dist, 'index.html'), '<h1>built</h1>');
+    const bundle = join(tmpdir(), `cq-build-${randomUUID()}.tar.gz`);
+    await create({ gzip: true, file: bundle, cwd: dist, portable: true }, ['.']);
+    await request(server)
+      .post(`/v1/cloud/builder/builds/${job.id as string}/finish`)
+      .set(builder)
+      .field('status', 'succeeded')
+      .attach('bundle', bundle)
+      .expect(204);
+    expect(await readFile(join(root, 'hosts', `bp-${tag}`, 'index.html'), 'utf8')).toBe(
+      '<h1>built</h1>',
+    );
+    const first = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/builds/1`)
+      .set(auth)
+      .expect(200);
+    expect(first.body).toMatchObject({
+      status: 'SUCCEEDED',
+      target: 'production',
+      log: 'npm ci\nbuilt\n',
+    });
+    expect(first.body.deploymentId).toBeTruthy();
+    await vi.waitFor(() =>
+      expect(github.statuses.some((s) => s.sha === sha(1) && s.state === 'success')).toBe(true),
+    );
+
+    // The pull request's build fails: a failure status and the app's comment.
+    const second = await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b1' })
+      .expect(200);
+    expect(second.body.build.env).toEqual({}); // API_KEY is production only
+    await request(server)
+      .post(`/v1/cloud/builder/builds/${second.body.build.id as string}/finish`)
+      .set(builder)
+      .field('status', 'failed')
+      .field('error', 'npm run build exited with 1')
+      .expect(204);
+    await vi.waitFor(() =>
+      expect(github.comments.some((c) => c.pr === 8 && c.body.includes('Failed'))).toBe(true),
+    );
+
+    // "Deploy again", cancel, and a running build whose agent goes quiet.
+    const manual = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds`)
+      .set(auth)
+      .send({})
+      .expect(201);
+    expect(manual.body).toMatchObject({ trigger: 'manual', commit: sha(9), status: 'QUEUED' });
+    await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds/${manual.body.number as number}/cancel`)
+      .set(auth)
+      .expect(200);
+    await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b1' })
+      .expect(204);
+    await send('push', { ...push, after: sha(4), head_commit: { message: 'More' } });
+    const third = await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b1' })
+      .expect(200);
+    await builds.failStale(new Date(Date.now() + 3 * 60_000));
+    const stale = await prisma.cloudBuild.findUniqueOrThrow({
+      where: { id: third.body.build.id as string },
+    });
+    expect(stale).toMatchObject({ status: 'FAILED', error: 'The build server stopped answering' });
+    await request(server)
+      .post(`/v1/cloud/builder/builds/${third.body.build.id as string}/heartbeat`)
+      .set(builder)
+      .expect(409);
+
+    // Uninstalling the app disconnects the project.
+    await send('installation', { action: 'deleted', installation });
+    const after = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/git`)
+      .set(auth)
+      .expect(200);
+    expect(after.body).toMatchObject({ repo: null, installationId: null });
+  });
+});

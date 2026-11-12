@@ -1,0 +1,21 @@
+{
+  "name": "codeqlick-builder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Codeqlick Cloud's build agent: claims builds from the API and runs them in throwaway containers (architecture 8.4)",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node src/agent.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/*.test.ts",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2"
+  }
+}
