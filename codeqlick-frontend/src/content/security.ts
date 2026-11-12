@@ -29,7 +29,7 @@ Escribe a **[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}?subject=Seguridad)** con 
 ## Qué entra
 
 - codeqlick.com y api.codeqlick.com.
-- Todas las apps en subdominios de codeqlick.com (videochat, meetings, citas, swipe…).
+- Todas las apps en subdominios de codeqlick.com (videochat, meetings, citas, swipe, cloud…).
 - Las webs de clientes que publicamos nosotros.
 
 ## Qué no entra
@@ -75,7 +75,7 @@ Email **[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}?subject=Security)** with "Sec
 ## In scope
 
 - codeqlick.com and api.codeqlick.com.
-- Every app on a codeqlick.com subdomain (videochat, meetings, citas, swipe…).
+- Every app on a codeqlick.com subdomain (videochat, meetings, citas, swipe, cloud…).
 - The client websites we publish.
 
 ## Out of scope

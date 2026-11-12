@@ -39,4 +39,5 @@ export function webappAlternates(
 export const WEBAPP_PUBLIC_PATHS: Partial<Record<Webapp, string[]>> = {
   videochat: ['', '/rules'],
   swipe: ['', '/rules', '/takedown'],
+  cloud: ['', '/docs', '/terms-of-use'],
 };

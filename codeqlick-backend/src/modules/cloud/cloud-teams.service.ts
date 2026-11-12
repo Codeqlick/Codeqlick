@@ -201,7 +201,8 @@ export class CloudTeamsService {
       throw new ConflictException(`You can own at most ${FREE.teamsOwned} teams`);
     if (joined >= FREE.teamsJoined)
       throw new ConflictException(`You can be in at most ${FREE.teamsJoined} teams`);
-    if (await this.repository.teamSlugTaken(input.slug)) {
+    // `tokens` is the console's own page (/console/tokens), not a team.
+    if (input.slug === 'tokens' || (await this.repository.teamSlugTaken(input.slug))) {
       throw new ConflictException('That team address is taken');
     }
     const team = await this.repository.createTeam({

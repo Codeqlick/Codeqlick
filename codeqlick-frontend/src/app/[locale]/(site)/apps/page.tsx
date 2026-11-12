@@ -86,6 +86,20 @@ export default async function AppsPage({ params }: PageProps) {
           </li>
           <li className={`${home.service} ${styles.card}`}>
             <div className={styles.head}>
+              <h2 className={home.serviceTitle}>{t('cloud.title')}</h2>
+              <Badge>{t('cloud.badge')}</Badge>
+            </div>
+            <p className={home.serviceBody}>{t('cloud.body')}</p>
+            <a
+              href={`/${locale}/cloud`}
+              className={buttonClassName({})}
+              data-umami-event="apps-cloud"
+            >
+              {t('cloud.open')}
+            </a>
+          </li>
+          <li className={`${home.service} ${styles.card}`}>
+            <div className={styles.head}>
               <h2 className={home.serviceTitle}>{t('swipe.title')}</h2>
               <Badge tone="danger">{t('swipe.adult')}</Badge>
             </div>
