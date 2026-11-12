@@ -19,6 +19,7 @@ import {
   emailChangeConfirmEmail,
   emailChangedNoticeEmail,
 } from './account-emails.js';
+import { CloudTeamsService } from '../cloud/cloud-teams.service.js';
 import { AccountRepository } from './account.repository.js';
 import { AvatarStorage, processAvatar } from './avatar.storage.js';
 import { normalizeUsername, UsernameService } from './username.service.js';
@@ -41,6 +42,7 @@ export class AccountService {
     private readonly activity: ActivityService,
     private readonly avatars: AvatarStorage,
     private readonly usernames: UsernameService,
+    private readonly cloud: CloudTeamsService,
   ) {}
 
   /** Sets the profile photo (re-encoded to a 256×256 WebP); the old file is deleted. */
@@ -183,6 +185,8 @@ export class AccountService {
     if (!user.memberOfId && (await this.repository.ownedProjects(user.id)) > 0) {
       throw new ConflictException('This account owns projects: ask the team to close it');
     }
+    // Codeqlick Cloud: refused while the last owner of a shared team; own teams go with it.
+    await this.cloud.beforeAccountDeletion(user.id);
     // Recorded first (the log's link to the account is cleared with it), without who it was.
     await this.activity.record(
       { ...toAuthUser(user), name: 'Deleted account', email: '' },

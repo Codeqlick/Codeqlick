@@ -498,6 +498,38 @@ availability comes from RDAP (unknown for `.es`) and clients point their DNS the
 The portal shows clients the NIC handle and the IP. Each change OVH's API makes to a zone is in
 the admin activity log; MX and other records are never touched.
 
+## Codeqlick Cloud
+
+Developers' static sites (architecture 4.13 and 8.3) are served from `/srv/codeqlick/cloud`
+under a hosting domain of their own (`CLOUD_HOSTING_DOMAIN`, decision 33: never codeqlick.com).
+The console (cloud.codeqlick.com) is a web app and publishes itself; **deploying stays off**
+(the API answers 503) until this one-time setup is done.
+
+1. Register the hosting domain (e.g. `codeqlick.app`) at OVH with the team's account, so its DNS
+   zone is there and the API keys in `.env` can change it (`GET/POST/PUT/DELETE /domain/zone/*`).
+2. Install the newer `cq-site` (it learnt the `cloud` kind for custom domains):
+
+   ```bash
+   sudo install -o root -g root -m 755 /srv/codeqlick/deploy/sites/cq-site /usr/local/sbin/cq-site
+   ```
+
+3. Run the setup with the domain:
+
+   ```bash
+   cd /srv/codeqlick && sudo ./deploy/setup-cloud.sh codeqlick.app
+   docker compose -f docker-compose.prod.yml up -d api
+   ```
+
+   It adds the `@` and `*` A records, creates the folders (owned by the API container's user,
+   1000:1000) and their pages, gets the wildcard certificate through OVH's DNS
+   (`python3-certbot-dns-ovh`; renewed by certbot's timer), installs the Nginx site, lets the API's
+   site take 50 MB deployments, and saves `CLOUD_HOSTING_DOMAIN` in `.env`. Safe to run again.
+
+Custom domains of Cloud projects are published by the same cron as client sites
+(`sync-sites.sh`, through `cq-site add <domain> cloud <slug>`) once the API has verified them.
+Deployments are not backed up: developers keep their sources and deploy again. To take a project
+down, suspend it in Admin → Cloud.
+
 ### Buying a preview online (Stripe)
 
 Requesters can buy their website from its preview (architecture 8.2, decision 20) for

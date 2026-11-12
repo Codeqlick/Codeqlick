@@ -11,11 +11,14 @@
 #
 #   cq-site add <domain> static <dir>    serve a built static site (<dir>: /srv/codeqlick/sites/<name>/current)
 #   cq-site add <domain> proxy <port>    proxy to a container on 127.0.0.1:<port> (5000-5999)
+#   cq-site add <domain> cloud <slug>    a Codeqlick Cloud project's production (/srv/codeqlick/cloud/hosts/<slug>)
 #   cq-site remove <domain>              unpublish it and delete its certificate
 #   cq-site list                         the sites it manages
 set -euo pipefail
 
 SITES_ROOT=/srv/codeqlick/sites
+CLOUD_HOSTS=/srv/codeqlick/cloud/hosts
+CLOUD_PAGES=/srv/codeqlick/cloud/pages
 AVAILABLE=/etc/nginx/sites-available
 ENABLED=/etc/nginx/sites-enabled
 PREFIX=cq-site-
@@ -78,6 +81,24 @@ write_conf() {
       echo "        add_header Cache-Control \"public, max-age=31536000, immutable\";"
       echo "        add_header X-Content-Type-Options nosniff always;"
       echo "    }"
+    elif [[ $kind == cloud ]]; then
+      # Developers' files: their own pages for 404 (404.html) and single-page apps (200.html).
+      echo "    root $target;"
+      echo "    index index.html;"
+      echo "    error_page 404 /404.html;"
+      echo "    add_header Strict-Transport-Security \"max-age=31536000\" always;"
+      echo
+      echo "    gzip on;"
+      echo "    gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;"
+      echo
+      echo "    error_page 451 @cq_suspended;"
+      echo "    location / {"
+      echo "        if (-f \$document_root/.cq-suspended) { return 451; }"
+      echo "        try_files \$uri \$uri.html \$uri/ /200.html =404;"
+      echo "    }"
+      echo "    location @cq_suspended { root $CLOUD_PAGES/suspended; try_files /index.html =404; }"
+      echo "    location = /404.html { internal; try_files /404.html @cq_notfound; }"
+      echo "    location @cq_notfound { root $CLOUD_PAGES/notfound; try_files /index.html =404; }"
     else
       echo "    location / {"
       echo "        proxy_pass http://127.0.0.1:$target;"
@@ -114,7 +135,11 @@ cmd_add() {
     proxy)
       [[ $target =~ ^5[0-9]{3}$ ]] || die "port must be between 5000 and 5999"
       ;;
-    *) die "usage: cq-site add <domain> static <dir> | proxy <port>" ;;
+    cloud)
+      [[ $target =~ ^[a-z0-9]+(-[a-z0-9]+)*$ && ${#target} -le 40 ]] || die "invalid project: '$target'"
+      target="$CLOUD_HOSTS/$target"
+      ;;
+    *) die "usage: cq-site add <domain> static <dir> | proxy <port> | cloud <slug>" ;;
   esac
 
   conf=$(conf_of "$domain")
@@ -164,5 +189,5 @@ case ${1:-} in
   add) shift && cmd_add "$@" ;;
   remove) shift && cmd_remove "$@" ;;
   list) cmd_list ;;
-  *) die "usage: cq-site add <domain> static <dir> | add <domain> proxy <port> | remove <domain> | list" ;;
+  *) die "usage: cq-site add <domain> static <dir> | add <domain> proxy <port> | add <domain> cloud <slug> | remove <domain> | list" ;;
 esac

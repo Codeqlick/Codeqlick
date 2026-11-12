@@ -121,6 +121,17 @@ export class AppConfigService {
     return this.get('SITES_PREVIEW_DOMAIN');
   }
 
+  /** Cloud's static hosting (architecture 4.13, 8.3); undefined while it isn't set up. */
+  get cloudHosting(): { domain: string; root: string } | undefined {
+    const domain = this.get('CLOUD_HOSTING_DOMAIN')?.toLowerCase().replace(/\.+$/, '');
+    const root = this.get('CLOUD_ROOT');
+    return domain && root ? { domain, root } : undefined;
+  }
+
+  get cloudUrl(): string {
+    return this.get('CLOUD_URL').replace(/\/+$/, '');
+  }
+
   get publicApiUrl(): string {
     return this.get('PUBLIC_API_URL').replace(/\/+$/, '');
   }
