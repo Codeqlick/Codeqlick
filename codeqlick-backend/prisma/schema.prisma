@@ -2011,6 +2011,7 @@ model CloudProject {
   deployments CloudDeployment[] @relation("CloudDeployments")
   domains     CloudDomain[]
   reports     CloudReport[]
+  forms       CloudForm[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2101,4 +2102,46 @@ model CloudReport {
 
   @@index([status, createdAt])
   @@map("cloud_reports")
+}
+
+/// A form of a Cloud project: its pages post to /v1/cloud/forms/<key> (architecture 4.13, Forms).
+model CloudForm {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  name           String   @db.VarChar(60)
+  /// Public (in the page's HTML): `cqf_` + 16 random bytes; replacing it stops copies of the old one.
+  key            String   @unique @db.VarChar(40)
+  enabled        Boolean  @default(true)
+  /// Email each submission to the recipients.
+  notify         Boolean  @default(true)
+  /// Team members who get the submissions by email (never typed addresses, decision 37).
+  recipientIds   String[] @map("recipient_ids") @db.Uuid
+  /// `yyyy-mm` of the month its team was told it ran out of submissions (once a month).
+  overLimitMonth String?  @map("over_limit_month") @db.VarChar(7)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project     CloudProject          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submissions CloudFormSubmission[]
+
+  @@index([projectId])
+  @@map("cloud_forms")
+}
+
+/// What a page sent through a Cloud form; kept 180 days, no IP.
+model CloudFormSubmission {
+  id        String   @id @default(uuid()) @db.Uuid
+  formId    String   @map("form_id") @db.Uuid
+  /// The fields as sent (names to values), without the `_` instructions.
+  data      Json
+  email     String?  @db.VarChar(254)
+  /// The page it came from: origin and path only.
+  page      String?  @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  form CloudForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId, createdAt])
+  @@index([createdAt])
+  @@map("cloud_form_submissions")
 }

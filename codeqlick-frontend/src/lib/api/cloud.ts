@@ -374,3 +374,81 @@ export const closeCloudReport = (id: string, note?: string) =>
     method: 'POST',
     body: note ? { note } : {},
   });
+
+// ── Forms (phase 1b) ────────────────────────────────────────────────────────────────────────
+
+export type CloudForm = {
+  id: string;
+  name: string;
+  key: string;
+  endpoint: string;
+  enabled: boolean;
+  notify: boolean;
+  recipientIds: string[];
+  submissions: number;
+  createdAt: string;
+};
+
+export type CloudSubmission = {
+  id: string;
+  data: Record<string, string>;
+  email: string | null;
+  page: string | null;
+  createdAt: string;
+};
+
+export const listCloudForms = (projectId: string) =>
+  apiFetch<{ items: CloudForm[] }>(`/cloud/projects/${projectId}/forms`, auth);
+
+export const createCloudForm = (
+  projectId: string,
+  input: { name: string; notify: boolean; recipientIds: string[] },
+) =>
+  apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const updateCloudForm = (
+  projectId: string,
+  formId: string,
+  input: Partial<{ name: string; enabled: boolean; notify: boolean; recipientIds: string[] }>,
+) =>
+  apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms/${formId}`, {
+    ...write,
+    method: 'PATCH',
+    body: input,
+  });
+
+export const replaceCloudFormKey = (projectId: string, formId: string) =>
+  apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms/${formId}/key`, {
+    ...write,
+    method: 'POST',
+  });
+
+export const deleteCloudForm = (projectId: string, formId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/forms/${formId}`, { ...write, method: 'DELETE' });
+
+export const listCloudSubmissions = (
+  projectId: string,
+  formId: string,
+  q: string | undefined,
+  page = 1,
+) =>
+  apiFetch<Paginated<CloudSubmission>>(`/cloud/projects/${projectId}/forms/${formId}/submissions`, {
+    ...auth,
+    query: { q, page, pageSize: 20 },
+  });
+
+export const exportCloudSubmissions = (projectId: string, formId: string) =>
+  apiFetch<string>(`/cloud/projects/${projectId}/forms/${formId}/submissions.csv`, {
+    ...auth,
+    responseType: 'text',
+  });
+
+export const deleteCloudSubmission = (projectId: string, formId: string, submissionId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/forms/${formId}/submissions/${submissionId}`, {
+    ...write,
+    method: 'DELETE',
+  });

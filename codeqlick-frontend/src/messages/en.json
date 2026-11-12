@@ -4775,7 +4775,8 @@
       "tabs": {
         "deployments": "Deployments",
         "domains": "Domains",
-        "settings": "Settings"
+        "settings": "Settings",
+        "forms": "Forms"
       },
       "production": "Published",
       "deployHelp": "Deploy from this project's folder:",
@@ -4900,6 +4901,34 @@
     },
     "terms": {
       "metaTitle": "Codeqlick Cloud terms"
+    },
+    "forms": {
+      "lead": "Your pages post their forms here: we keep each submission for 180 days, email it to the people you choose and show it below. No backend needed.",
+      "empty": "No forms yet.",
+      "on": "On",
+      "off": "Paused",
+      "emails": "Emails",
+      "submissions": "{count, plural, =0 {No submissions yet} one {# submission} other {# submissions}}",
+      "snippet": "HTML to paste",
+      "snippetHelp": "Any fields work. _redirect sends visitors to your own thank-you page, _subject sets the email's subject, and _gotcha (hidden) stops bots. Send JSON with fetch to get { ok } back.",
+      "pause": "Pause",
+      "resume": "Turn on",
+      "newKey": "New address",
+      "delete": "Delete",
+      "newTitle": "New form",
+      "name": "Name",
+      "nameHint": "e.g. Contact",
+      "nameInvalid": "Between 1 and 60 characters.",
+      "recipients": "Who gets the submissions by email",
+      "recipientsInvalid": "Choose 1 to 5 members of the team.",
+      "notify": "Email each submission",
+      "create": "Create form",
+      "creating": "Creating…",
+      "created": "Form created.",
+      "search": "Search",
+      "csv": "Download CSV",
+      "noSubmissions": "No submissions.",
+      "deleteSubmission": "Delete"
     }
   },
   "AdminCloud": {

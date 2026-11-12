@@ -165,3 +165,42 @@ export type SuspendInput = z.infer<typeof suspendSchema>;
 
 export const closeReportSchema = z.object({ note: z.string().trim().max(1000).optional() });
 export type CloseReportInput = z.infer<typeof closeReportSchema>;
+
+// ── Forms (phase 1b) ─────────────────────────────────────────────────────────────────────────
+
+const recipientIds = z.array(z.uuid()).min(1).max(5);
+
+export const createFormSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  notify: z.boolean().default(true),
+  recipientIds,
+});
+export type CreateFormInput = z.infer<typeof createFormSchema>;
+
+export const updateFormSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  enabled: z.boolean().optional(),
+  notify: z.boolean().optional(),
+  recipientIds: recipientIds.optional(),
+});
+export type UpdateFormInput = z.infer<typeof updateFormSchema>;
+
+export const formParamSchema = z.object({ id: z.uuid(), formId: z.uuid() });
+export type FormParam = z.infer<typeof formParamSchema>;
+
+export const submissionParamSchema = z.object({
+  id: z.uuid(),
+  formId: z.uuid(),
+  submissionId: z.uuid(),
+});
+export type SubmissionParam = z.infer<typeof submissionParamSchema>;
+
+export const submissionsQuerySchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type SubmissionsQuery = z.infer<typeof submissionsQuerySchema>;
+
+export const formKeyParamSchema = z.object({ key: z.string().regex(/^cqf_[\w-]{20,30}$/) });
+export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
