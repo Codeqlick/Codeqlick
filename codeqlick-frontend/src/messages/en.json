@@ -4769,7 +4769,8 @@
       "published": "Published {when}",
       "suspended": "Suspended",
       "role": "Your role: {role}",
-      "plan": "Plan: {plan}"
+      "plan": "Plan: {plan}",
+      "monitorsLink": "Monitors"
     },
     "project": {
       "tabs": {
@@ -4929,6 +4930,91 @@
       "csv": "Download CSV",
       "noSubmissions": "No submissions.",
       "deleteSubmission": "Delete"
+    },
+    "monitors": {
+      "title": "Monitors",
+      "lead": "We check your URLs every 5 minutes and wait for your scheduled jobs' heartbeats. If something goes down, the people you choose get an email.",
+      "empty": "No monitors yet.",
+      "since": "Since {when}",
+      "every": "Every {period} min (grace {grace} min)",
+      "states": {
+        "UP": "Up",
+        "DOWN": "Down",
+        "PAUSED": "Paused",
+        "UNKNOWN": "Waiting"
+      },
+      "newTitle": "New monitor",
+      "name": "Name",
+      "nameHint": "e.g. Website, Nightly backup",
+      "nameInvalid": "Between 1 and 60 characters.",
+      "kind": "Kind",
+      "kinds": {
+        "HTTP": "A URL (checked every 5 minutes)",
+        "HEARTBEAT": "A heartbeat (a job calls us)"
+      },
+      "forHttp": "For a URL",
+      "url": "Address",
+      "urlHint": "http or https, standard ports. Up when it answers below 400 within 15 seconds.",
+      "urlInvalid": "Write a full address starting with http:// or https://.",
+      "urlUnsafe": "That address can't be checked (private, other port or with a password).",
+      "forHeartbeat": "For a heartbeat",
+      "period": "Expected every (minutes)",
+      "periodHint": "How often your job runs: 60 = hourly, 1440 = daily.",
+      "periodInvalid": "Between 1 and 10,080 minutes.",
+      "grace": "Grace (minutes)",
+      "graceHint": "How late it may be before it counts as down.",
+      "graceInvalid": "Between 1 and 1,440 minutes.",
+      "alerts": "Who gets the alerts",
+      "alertsInvalid": "Choose 1 to 10 members of the team.",
+      "create": "Create monitor",
+      "creating": "Creating…",
+      "lastCheck": "Last check {when}",
+      "noCheck": "Not checked yet",
+      "cert": "certificate valid until {when}",
+      "heartbeatHelp": "Call this URL when your job ends (expected every {period} min, {grace} min of grace). If no call arrives in time, or one says it failed, it goes down.",
+      "curlOk": "when the job ends well",
+      "curlFail": "when it fails",
+      "lastPing": "Last call {when}",
+      "noPing": "No call yet",
+      "deadline": "next one before {when}",
+      "uptime": "Uptime in the last 30 days: {value}",
+      "uptime90": "Last 90 days, a bar per day",
+      "checks": "Response time in the last 24 hours",
+      "incidents": "Incidents (30 days)",
+      "noIncidents": "No incidents.",
+      "lasted": "{minutes} min down",
+      "ongoing": "still down",
+      "pause": "Pause",
+      "resume": "Turn on",
+      "delete": "Delete"
+    },
+    "statusPage": {
+      "title": "Status page",
+      "lead": "A public page with the state and uptime of the monitors you choose, for your users. URLs are never shown, only the names you give.",
+      "live": "Public at:",
+      "off": "Off. When you turn it on it will be at:",
+      "open": "Open the status page",
+      "badge": "Badge for your README:",
+      "enabled": "Public",
+      "pageTitle": "Title",
+      "titleInvalid": "Between 1 and 80 characters.",
+      "intro": "Introduction (optional)",
+      "items": "What it shows",
+      "label": "Public name",
+      "save": "Save",
+      "saved": "Saved."
+    },
+    "status": {
+      "suffix": "Status",
+      "uptime": "{value} uptime",
+      "updated": "Updated {when}",
+      "poweredBy": "Codeqlick Cloud",
+      "overall": {
+        "operational": "All systems operational",
+        "partial": "Partial outage",
+        "major": "Major outage",
+        "unknown": "Waiting for the first checks"
+      }
     }
   },
   "AdminCloud": {
