@@ -4769,7 +4769,8 @@
       "published": "Publicado {when}",
       "suspended": "Suspendido",
       "role": "Tu papel: {role}",
-      "plan": "Plan: {plan}"
+      "plan": "Plan: {plan}",
+      "monitorsLink": "Monitores"
     },
     "project": {
       "tabs": {
@@ -4929,6 +4930,91 @@
       "csv": "Descargar CSV",
       "noSubmissions": "No hay envíos.",
       "deleteSubmission": "Borrar"
+    },
+    "monitors": {
+      "title": "Monitores",
+      "lead": "Comprobamos tus URL cada 5 minutos y esperamos los latidos de tus tareas programadas. Si algo se cae, las personas que elijas reciben un email.",
+      "empty": "Aún no hay monitores.",
+      "since": "Desde {when}",
+      "every": "Cada {period} min (margen {grace} min)",
+      "states": {
+        "UP": "Funciona",
+        "DOWN": "Caído",
+        "PAUSED": "En pausa",
+        "UNKNOWN": "Esperando"
+      },
+      "newTitle": "Nuevo monitor",
+      "name": "Nombre",
+      "nameHint": "p. ej. Web, Copia nocturna",
+      "nameInvalid": "Entre 1 y 60 caracteres.",
+      "kind": "Tipo",
+      "kinds": {
+        "HTTP": "Una URL (se comprueba cada 5 minutos)",
+        "HEARTBEAT": "Un latido (una tarea nos llama)"
+      },
+      "forHttp": "Para una URL",
+      "url": "Dirección",
+      "urlHint": "http o https, puertos estándar. Funciona si responde por debajo de 400 en 15 segundos.",
+      "urlInvalid": "Escribe la dirección completa, con http:// o https://.",
+      "urlUnsafe": "Esa dirección no se puede comprobar (privada, otro puerto o con contraseña).",
+      "forHeartbeat": "Para un latido",
+      "period": "Cada cuánto (minutos)",
+      "periodHint": "Cada cuánto se ejecuta tu tarea: 60 = cada hora, 1440 = cada día.",
+      "periodInvalid": "Entre 1 y 10.080 minutos.",
+      "grace": "Margen (minutos)",
+      "graceHint": "Cuánto puede retrasarse antes de darla por caída.",
+      "graceInvalid": "Entre 1 y 1.440 minutos.",
+      "alerts": "Quién recibe los avisos",
+      "alertsInvalid": "Elige de 1 a 10 miembros del equipo.",
+      "create": "Crear monitor",
+      "creating": "Creando…",
+      "lastCheck": "Última comprobación {when}",
+      "noCheck": "Aún sin comprobar",
+      "cert": "certificado válido hasta {when}",
+      "heartbeatHelp": "Llama a esta URL cuando termine tu tarea (cada {period} min, con {grace} min de margen). Si no llega a tiempo, o avisa de un fallo, se da por caída.",
+      "curlOk": "cuando la tarea acaba bien",
+      "curlFail": "cuando falla",
+      "lastPing": "Última llamada {when}",
+      "noPing": "Aún sin llamadas",
+      "deadline": "la siguiente antes de {when}",
+      "uptime": "Disponibilidad en los últimos 30 días: {value}",
+      "uptime90": "Últimos 90 días, una barra por día",
+      "checks": "Tiempo de respuesta en las últimas 24 horas",
+      "incidents": "Incidencias (30 días)",
+      "noIncidents": "Sin incidencias.",
+      "lasted": "{minutes} min caído",
+      "ongoing": "sigue caído",
+      "pause": "Pausar",
+      "resume": "Activar",
+      "delete": "Borrar"
+    },
+    "statusPage": {
+      "title": "Página de estado",
+      "lead": "Una página pública con el estado y la disponibilidad de los monitores que elijas, para tus usuarios. Nunca muestra las URL, solo los nombres que pongas.",
+      "live": "Pública en:",
+      "off": "Desactivada. Cuando la actives estará en:",
+      "open": "Abrir la página de estado",
+      "badge": "Insignia para tu README:",
+      "enabled": "Pública",
+      "pageTitle": "Título",
+      "titleInvalid": "Entre 1 y 80 caracteres.",
+      "intro": "Introducción (opcional)",
+      "items": "Qué muestra",
+      "label": "Nombre público",
+      "save": "Guardar",
+      "saved": "Guardado."
+    },
+    "status": {
+      "suffix": "Estado",
+      "uptime": "{value} de disponibilidad",
+      "updated": "Actualizado {when}",
+      "poweredBy": "Codeqlick Cloud",
+      "overall": {
+        "operational": "Todo funciona",
+        "partial": "Fallo parcial",
+        "major": "Fallo general",
+        "unknown": "Esperando las primeras comprobaciones"
+      }
     }
   },
   "AdminCloud": {
