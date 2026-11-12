@@ -452,3 +452,116 @@ export const deleteCloudSubmission = (projectId: string, formId: string, submiss
     ...write,
     method: 'DELETE',
   });
+
+// ── Monitors and status pages (phase 1b) ────────────────────────────────────────────────────
+
+export type CloudMonitorState = 'UNKNOWN' | 'UP' | 'DOWN' | 'PAUSED';
+
+export type CloudMonitor = {
+  id: string;
+  name: string;
+  kind: 'HTTP' | 'HEARTBEAT';
+  url: string | null;
+  heartbeatUrl: string | null;
+  periodMinutes: number | null;
+  graceMinutes: number | null;
+  projectId: string | null;
+  enabled: boolean;
+  status: CloudMonitorState;
+  statusSince: string;
+  lastCheckedAt: string | null;
+  lastPingAt: string | null;
+  deadlineAt: string | null;
+  lastError: string | null;
+  certExpiresAt: string | null;
+  alertIds: string[];
+  createdAt: string;
+};
+
+export type CloudDayUptime = { day: string; ratio: number | null };
+export type CloudIncident = {
+  start: string;
+  end: string | null;
+  minutes: number;
+  error: string | null;
+};
+
+export type CloudMonitorDetail = CloudMonitor & {
+  checks: Array<{
+    at: string;
+    ok: boolean;
+    statusCode: number | null;
+    responseMs: number | null;
+    error: string | null;
+  }>;
+  uptime30: number | null;
+  days: CloudDayUptime[];
+  incidents: CloudIncident[];
+};
+
+export type CloudStatusPageSettings = {
+  enabled: boolean;
+  title: string;
+  intro: string | null;
+  items: Array<{ monitorId: string; label: string }>;
+};
+
+export type CloudPublicStatus = {
+  title: string;
+  intro: string | null;
+  overall: 'operational' | 'partial' | 'major' | 'unknown';
+  updatedAt: string;
+  monitors: Array<{
+    label: string;
+    status: CloudMonitorState;
+    uptime90: number | null;
+    days: CloudDayUptime[];
+    incidents: CloudIncident[];
+  }>;
+};
+
+export const listCloudMonitors = (team: string) =>
+  apiFetch<{ items: CloudMonitor[] }>(`/cloud/teams/${encodeURIComponent(team)}/monitors`, auth);
+
+export const createCloudMonitor = (
+  team: string,
+  input:
+    | { kind: 'HTTP'; name: string; url: string; alertIds: string[] }
+    | {
+        kind: 'HEARTBEAT';
+        name: string;
+        periodMinutes: number;
+        graceMinutes: number;
+        alertIds: string[];
+      },
+) =>
+  apiFetch<CloudMonitor>(`/cloud/teams/${encodeURIComponent(team)}/monitors`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const getCloudMonitor = (id: string) =>
+  apiFetch<CloudMonitorDetail>(`/cloud/monitors/${id}`, auth);
+
+export const updateCloudMonitor = (
+  id: string,
+  input: Partial<{ name: string; enabled: boolean; alertIds: string[] }>,
+) => apiFetch<CloudMonitor>(`/cloud/monitors/${id}`, { ...write, method: 'PATCH', body: input });
+
+export const deleteCloudMonitor = (id: string) =>
+  apiFetch<void>(`/cloud/monitors/${id}`, { ...write, method: 'DELETE' });
+
+export const getCloudStatusPage = (team: string) =>
+  apiFetch<CloudStatusPageSettings>(`/cloud/teams/${encodeURIComponent(team)}/status-page`, auth);
+
+export const saveCloudStatusPage = (team: string, input: CloudStatusPageSettings) =>
+  apiFetch<CloudStatusPageSettings>(`/cloud/teams/${encodeURIComponent(team)}/status-page`, {
+    ...write,
+    method: 'PUT',
+    body: { ...input, intro: input.intro ?? undefined },
+  });
+
+/** A team's public status (no session; the API caches it 60 s). */
+export const getCloudPublicStatus = (team: string) =>
+  apiFetch<CloudPublicStatus>(`/cloud/status/${encodeURIComponent(team)}`, { revalidate: 60 });

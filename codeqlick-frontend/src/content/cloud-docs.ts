@@ -96,6 +96,20 @@ En la consola (pestaña «Dominios») o con \`codeqlick domains add docs.tudomin
 
 Hasta 5 dominios por proyecto. \`www.tudominio.com\` y \`tudominio.com\` son dos dominios.
 
+## Monitores y página de estado
+
+En **Monitores** del equipo:
+
+- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días.
+- **Un latido:** para tareas programadas (copias, colas, cron). Dale cada cuánto se ejecuta y un margen, y llama a su URL al terminar:
+
+\`\`\`sh
+curl -fsS https://api.codeqlick.com/v1/cloud/heartbeats/cqh_…            # acabó bien
+curl -fsS "https://api.codeqlick.com/v1/cloud/heartbeats/cqh_…?status=fail"  # falló
+\`\`\`
+
+La **página de estado** del equipo (\`cloud.codeqlick.com/es/status/<equipo>\`) muestra los monitores que elijas con el nombre que quieras (nunca su URL), su disponibilidad en 90 días y las incidencias recientes. También hay JSON en \`/v1/cloud/status/<equipo>\` y una insignia en \`/v1/cloud/status/<equipo>/badge.svg\`. El plan gratuito admite 10 monitores por equipo.
+
 ## Desde GitHub Actions u otro CI
 
 Crea un token en la consola (**Tokens**, mejor limitado al equipo) y guárdalo como secreto \`CODEQLICK_TOKEN\`:
@@ -240,6 +254,20 @@ In the console ("Domains" tab) or with \`codeqlick domains add docs.yourdomain.c
 3. In a few minutes it gets its HTTPS certificate and becomes **live**. We check by ourselves every 10 minutes, or when you press "Check".
 
 Up to 5 domains per project. \`www.yourdomain.com\` and \`yourdomain.com\` are two domains.
+
+## Monitors and status page
+
+In the team's **Monitors**:
+
+- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days.
+- **A heartbeat:** for scheduled jobs (backups, queues, cron). Give it how often it runs and a grace, and call its URL when it ends:
+
+\`\`\`sh
+curl -fsS https://api.codeqlick.com/v1/cloud/heartbeats/cqh_…            # it went well
+curl -fsS "https://api.codeqlick.com/v1/cloud/heartbeats/cqh_…?status=fail"  # it failed
+\`\`\`
+
+The team's **status page** (\`cloud.codeqlick.com/en/status/<team>\`) shows the monitors you choose under the names you want (never their URL), their 90-day uptime and recent incidents. There's also JSON at \`/v1/cloud/status/<team>\` and a badge at \`/v1/cloud/status/<team>/badge.svg\`. The free plan takes 10 monitors per team.
 
 ## From GitHub Actions or another CI
 

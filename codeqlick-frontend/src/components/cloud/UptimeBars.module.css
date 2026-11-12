@@ -1,0 +1,33 @@
+.bars {
+  display: grid;
+  grid-template-columns: repeat(90, minmax(0, 1fr));
+  gap: 2px;
+  height: 2rem;
+}
+
+.bar {
+  border-radius: 2px;
+}
+
+.good {
+  background: #1e9e5a;
+}
+
+.warn {
+  background: #e0a100;
+}
+
+.bad {
+  background: #c4352b;
+}
+
+.none {
+  background: var(--color-line);
+}
+
+@media (max-width: 40rem) {
+  .bars {
+    gap: 1px;
+    height: 1.75rem;
+  }
+}
