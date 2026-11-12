@@ -120,7 +120,7 @@ export default async function CloudMonitorPage({ params }: PageProps) {
           <h2 id="checks-title" className={styles.cardTitle}>
             {t('monitors.checks')}
           </h2>
-          <div className={styles.spark} role="img" aria-label={t('monitors.checks')}>
+          <div className={styles.spark} aria-hidden="true">
             {monitor.checks.map((check) => (
               <span
                 key={check.at}
