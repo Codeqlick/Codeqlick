@@ -17,6 +17,7 @@ export interface CloudLimits {
   tokensPerPerson: number;
   formsPerProject: number;
   formSubmissionsPerMonth: number;
+  monitorsPerTeam: number;
 }
 
 const MB = 1024 * 1024;
@@ -37,6 +38,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     tokensPerPerson: 20,
     formsPerProject: 3,
     formSubmissionsPerMonth: 1000,
+    monitorsPerTeam: 10,
   },
   PRO: {
     teamsOwned: 3,
@@ -52,6 +54,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     tokensPerPerson: 20,
     formsPerProject: 20,
     formSubmissionsPerMonth: 20000,
+    monitorsPerTeam: 50,
   },
 };
 

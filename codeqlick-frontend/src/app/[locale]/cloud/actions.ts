@@ -10,12 +10,14 @@ import {
   addCloudDomain,
   checkCloudDomain,
   createCloudForm,
+  createCloudMonitor,
   createCloudProject,
   createCloudTeam,
   createCloudToken,
   decideCloudDevice,
   deleteCloudDeployment,
   deleteCloudForm,
+  deleteCloudMonitor,
   deleteCloudProject,
   deleteCloudSubmission,
   deleteCloudTeam,
@@ -29,8 +31,10 @@ import {
   reportCloudPage,
   revokeCloudInvite,
   revokeCloudToken,
+  saveCloudStatusPage,
   setCloudMemberRole,
   updateCloudForm,
+  updateCloudMonitor,
   type CloudReportReason,
   type CloudRole,
 } from '@/lib/api/cloud';
@@ -525,4 +529,105 @@ export async function deleteSubmissionAction(formData: FormData): Promise<void> 
     formString(formData, 'id'),
   ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
+}
+
+// ── Monitors and status page (phase 1b) ───────────────────────────────────────────────────────
+
+export async function createMonitorAction(
+  locale: string,
+  team: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.monitors' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name');
+  const kind = formString(formData, 'kind') === 'HEARTBEAT' ? 'HEARTBEAT' : 'HTTP';
+  const alertIds = formData.getAll('alerts').map(String).filter(Boolean);
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
+  if (alertIds.length < 1 || alertIds.length > 10) fieldErrors.alerts = t('alertsInvalid');
+  const url = formString(formData, 'url');
+  const period = Math.round(Number(formString(formData, 'period')));
+  const grace = Math.round(Number(formString(formData, 'grace')));
+  if (kind === 'HTTP' && !/^https?:\/\/\S+$/i.test(url)) fieldErrors.url = t('urlInvalid');
+  if (kind === 'HEARTBEAT' && !(period >= 1 && period <= 10080))
+    fieldErrors.period = t('periodInvalid');
+  if (kind === 'HEARTBEAT' && !(grace >= 1 && grace <= 1440)) fieldErrors.grace = t('graceInvalid');
+  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
+  let id: string;
+  try {
+    id = (
+      await createCloudMonitor(
+        team,
+        kind === 'HTTP'
+          ? { kind, name, url, alertIds }
+          : { kind, name, periodMinutes: period, graceMinutes: grace, alertIds },
+      )
+    ).id;
+  } catch (error) {
+    if (isApiError(error) && error.status === 400 && kind === 'HTTP') {
+      return { status: 'error', fieldErrors: { url: t('urlUnsafe') }, values };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}/monitors`);
+  return go(lang, `/console/${team}/monitors/${id}`);
+}
+
+export async function toggleMonitorAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  const team = formString(formData, 'team');
+  const id = formString(formData, 'id');
+  await updateCloudMonitor(id, { enabled: formString(formData, 'enabled') === 'on' }).catch(
+    () => undefined,
+  );
+  refresh(locale, `/${team}/monitors/${id}`);
+}
+
+export async function deleteMonitorAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  const team = formString(formData, 'team');
+  await deleteCloudMonitor(formString(formData, 'id')).catch(() => undefined);
+  refresh(locale, `/${team}/monitors`);
+  await go(locale, `/console/${team}/monitors`);
+}
+
+export async function saveStatusPageAction(
+  locale: string,
+  team: string,
+  monitorIds: string[],
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.statusPage' });
+  const title = formString(formData, 'title');
+  if (title.length < 1 || title.length > 80) {
+    return {
+      status: 'error',
+      fieldErrors: { title: t('titleInvalid') },
+      values: formValues(formData),
+    };
+  }
+  const items = monitorIds
+    .filter((id) => formBoolean(formData, `show.${id}`))
+    .map((id) => ({
+      monitorId: id,
+      label: (formString(formData, `label.${id}`) || id).slice(0, 60),
+    }));
+  try {
+    await saveCloudStatusPage(team, {
+      enabled: formBoolean(formData, 'enabled'),
+      title,
+      intro: formString(formData, 'intro').slice(0, 500) || null,
+      items,
+    });
+  } catch (error) {
+    return failure(lang, error, formValues(formData));
+  }
+  refresh(lang, `/${team}/status-page`);
+  revalidatePath(`/${lang}/cloud/status/${team}`);
+  return { status: 'success', message: t('saved') };
 }

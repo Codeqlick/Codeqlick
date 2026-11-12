@@ -197,3 +197,63 @@ export function cloudFormsLimitEmail(input: {
     ),
   };
 }
+
+/** To a monitor's chosen members: it went down, came back, or its certificate is about to expire. */
+export function cloudMonitorEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  kind: 'down' | 'up' | 'cert';
+  monitor: string;
+  target: string;
+  team: string;
+  error: string | null;
+  minutes?: number;
+  certExpires?: string;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const texts = {
+    down: {
+      subject: es ? `Caído: ${input.monitor}` : `Down: ${input.monitor}`,
+      title: es ? 'Un monitor está caído' : 'A monitor is down',
+      intro: es
+        ? `${input.monitor} (${input.target}), del equipo ${input.team}, no responde bien.`
+        : `${input.monitor} (${input.target}), of the team ${input.team}, isn't answering properly.`,
+    },
+    up: {
+      subject: es ? `Recuperado: ${input.monitor}` : `Back up: ${input.monitor}`,
+      title: es ? 'Un monitor se ha recuperado' : 'A monitor is back up',
+      intro: es
+        ? `${input.monitor} (${input.target}) vuelve a funcionar${input.minutes ? ` después de ${input.minutes} min` : ''}.`
+        : `${input.monitor} (${input.target}) is working again${input.minutes ? ` after ${input.minutes} min` : ''}.`,
+    },
+    cert: {
+      subject: es
+        ? `El certificado de ${input.monitor} caduca pronto`
+        : `${input.monitor}'s certificate expires soon`,
+      title: es ? 'Certificado a punto de caducar' : 'Certificate about to expire',
+      intro: es
+        ? `El certificado HTTPS de ${input.target} caduca el ${input.certExpires}. Renuévalo antes para que la web no deje de funcionar.`
+        : `The HTTPS certificate of ${input.target} expires on ${input.certExpires}. Renew it before then so the site keeps working.`,
+    },
+  }[input.kind];
+  return {
+    to: input.to,
+    subject: texts.subject,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: input.error ?? texts.intro.slice(0, 120),
+        title: texts.title,
+        intro: [texts.intro],
+        ...(input.error && input.kind === 'down'
+          ? { quote: { title: es ? 'Error' : 'Error', body: input.error } }
+          : {}),
+        button: { label: es ? 'Ver el monitor' : 'See the monitor', url: input.url },
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}

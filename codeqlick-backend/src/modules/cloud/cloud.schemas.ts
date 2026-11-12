@@ -204,3 +204,72 @@ export type SubmissionsQuery = z.infer<typeof submissionsQuerySchema>;
 
 export const formKeyParamSchema = z.object({ key: z.string().regex(/^cqf_[\w-]{20,30}$/) });
 export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
+
+// ── Monitors and status pages (phase 1b) ─────────────────────────────────────────────────────
+
+const alertIds = z.array(z.uuid()).min(1).max(10);
+
+export const createMonitorSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('HTTP'),
+    name: z.string().trim().min(1).max(60),
+    url: z.url().max(2048),
+    projectId: z.uuid().optional(),
+    alertIds,
+  }),
+  z.object({
+    kind: z.literal('HEARTBEAT'),
+    name: z.string().trim().min(1).max(60),
+    periodMinutes: z
+      .number()
+      .int()
+      .min(1)
+      .max(7 * 24 * 60),
+    graceMinutes: z
+      .number()
+      .int()
+      .min(1)
+      .max(24 * 60),
+    projectId: z.uuid().optional(),
+    alertIds,
+  }),
+]);
+export type CreateMonitorInput = z.infer<typeof createMonitorSchema>;
+
+export const updateMonitorSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  enabled: z.boolean().optional(),
+  url: z.url().max(2048).optional(),
+  periodMinutes: z
+    .number()
+    .int()
+    .min(1)
+    .max(7 * 24 * 60)
+    .optional(),
+  graceMinutes: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 60)
+    .optional(),
+  alertIds: alertIds.optional(),
+});
+export type UpdateMonitorInput = z.infer<typeof updateMonitorSchema>;
+
+export const heartbeatParamSchema = z.object({ key: z.string().regex(/^cqh_[\w-]{20,30}$/) });
+export type HeartbeatParam = z.infer<typeof heartbeatParamSchema>;
+
+export const heartbeatQuerySchema = z.object({ status: z.enum(['ok', 'fail']).optional() });
+export type HeartbeatQuery = z.infer<typeof heartbeatQuerySchema>;
+
+export const statusPageSchema = z.object({
+  enabled: z.boolean(),
+  title: z.string().trim().min(1).max(80),
+  intro: z.string().trim().max(500).optional(),
+  items: z
+    .array(z.object({ monitorId: z.uuid(), label: z.string().trim().min(1).max(60) }))
+    .max(20),
+});
+export type StatusPageInput = z.infer<typeof statusPageSchema>;
+
+export const statusTeamParamSchema = z.object({ team: teamSlugSchema });
