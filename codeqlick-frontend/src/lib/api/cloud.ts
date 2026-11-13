@@ -430,6 +430,75 @@ export const replaceCloudFormKey = (projectId: string, formId: string) =>
 export const deleteCloudForm = (projectId: string, formId: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/forms/${formId}`, { ...write, method: 'DELETE' });
 
+export type CloudNotifyKind = 'EMAIL' | 'SLACK' | 'DISCORD' | 'WEBHOOK';
+
+/** A build notification channel (architecture 4.13, decision 43); its URL is never returned. */
+export type CloudNotifyChannel = {
+  id: string;
+  name: string;
+  kind: CloudNotifyKind;
+  enabled: boolean;
+  hint: string | null;
+  recipientIds: string[];
+  buildFailed: boolean;
+  buildSucceeded: boolean;
+  previews: boolean;
+  locale: 'en' | 'es';
+  failures: number;
+  lastSentAt: string | null;
+  lastOk: boolean | null;
+  lastError: string | null;
+  createdAt: string;
+};
+
+type NotifyEvents = {
+  buildFailed: boolean;
+  buildSucceeded: boolean;
+  previews: boolean;
+  locale: 'en' | 'es';
+};
+
+export const listCloudNotifications = (projectId: string) =>
+  apiFetch<{ items: CloudNotifyChannel[] }>(`/cloud/projects/${projectId}/notifications`, auth);
+
+export const createCloudNotification = (
+  projectId: string,
+  input: NotifyEvents & { name: string } & (
+      | { kind: 'EMAIL'; recipientIds: string[] }
+      | { kind: 'SLACK' | 'DISCORD' | 'WEBHOOK'; url: string }
+    ),
+) =>
+  apiFetch<CloudNotifyChannel & { secret?: string }>(`/cloud/projects/${projectId}/notifications`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const updateCloudNotification = (
+  projectId: string,
+  channelId: string,
+  input: Partial<
+    NotifyEvents & { name: string; enabled: boolean; url: string; recipientIds: string[] }
+  >,
+) =>
+  apiFetch<CloudNotifyChannel>(`/cloud/projects/${projectId}/notifications/${channelId}`, {
+    ...write,
+    method: 'PATCH',
+    body: input,
+  });
+
+export const deleteCloudNotification = (projectId: string, channelId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/notifications/${channelId}`, {
+    ...write,
+    method: 'DELETE',
+  });
+
+export const testCloudNotification = (projectId: string, channelId: string) =>
+  apiFetch<{ ok: boolean; error: string | null }>(
+    `/cloud/projects/${projectId}/notifications/${channelId}/test`,
+    { ...write, method: 'POST' },
+  );
+
 export const listCloudSubmissions = (
   projectId: string,
   formId: string,

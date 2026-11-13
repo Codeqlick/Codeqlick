@@ -32,8 +32,9 @@ import styles from '../../../cloud.module.css';
 import { BuildsTab } from './BuildsTab';
 import { FormsTab } from './FormsTab';
 import { GitTab } from './GitTab';
+import { NotificationsTab } from './NotificationsTab';
 
-type Tab = 'deployments' | 'git' | 'builds' | 'domains' | 'forms' | 'settings';
+type Tab = 'deployments' | 'git' | 'builds' | 'notifications' | 'domains' | 'forms' | 'settings';
 type PageProps = {
   params: Promise<{ locale: AppLocale; team: string; project: string }>;
   searchParams: Promise<{
@@ -84,6 +85,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const tab: Tab =
     query.tab === 'git' ||
     query.tab === 'builds' ||
+    query.tab === 'notifications' ||
     query.tab === 'domains' ||
     query.tab === 'forms' ||
     query.tab === 'settings'
@@ -106,18 +108,26 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           labels={{ copy: t('common.copy'), copied: t('common.copied') }}
         />
         <nav className={`${styles.tabs} ${styles.spacedTabs}`} aria-label={project.name}>
-          {(['deployments', 'builds', 'git', 'domains', 'forms', 'settings'] as const).map(
-            (key) => (
-              <Link
-                key={key}
-                href={key === 'deployments' ? base : `${base}?tab=${key}`}
-                className={styles.tab}
-                aria-current={tab === key ? 'page' : undefined}
-              >
-                {t(`project.tabs.${key}`)}
-              </Link>
-            ),
-          )}
+          {(
+            [
+              'deployments',
+              'builds',
+              'git',
+              'notifications',
+              'domains',
+              'forms',
+              'settings',
+            ] as const
+          ).map((key) => (
+            <Link
+              key={key}
+              href={key === 'deployments' ? base : `${base}?tab=${key}`}
+              className={styles.tab}
+              aria-current={tab === key ? 'page' : undefined}
+            >
+              {t(`project.tabs.${key}`)}
+            </Link>
+          ))}
         </nav>
       </div>
 
@@ -159,6 +169,15 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           projectSlug={project.slug}
           base={base}
           page={page}
+        />
+      ) : null}
+      {tab === 'notifications' ? (
+        <NotificationsTab
+          locale={locale}
+          teamSlug={team.slug}
+          projectId={project.id}
+          path={path}
+          admin={admin}
         />
       ) : null}
       {tab === 'forms' ? (

@@ -22,6 +22,8 @@ export interface CloudLimits {
   buildsPerMonth: number;
   buildMinutes: number;
   envVarsPerProject: number;
+  /** Build notification channels per project (decision 43). */
+  notifyChannelsPerProject: number;
 }
 
 const MB = 1024 * 1024;
@@ -47,6 +49,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildsPerMonth: 200,
     buildMinutes: 15,
     envVarsPerProject: 50,
+    notifyChannelsPerProject: 5,
   },
   PRO: {
     teamsOwned: 3,
@@ -67,6 +70,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildsPerMonth: 3000,
     buildMinutes: 30,
     envVarsPerProject: 200,
+    notifyChannelsPerProject: 20,
   },
 };
 
