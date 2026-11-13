@@ -295,8 +295,8 @@ curl -sI https://codeqlick.com/en | grep -i '^server'   # server: nginx
 `deploy/monitor/monitor.sh` runs from the deploy user's crontab every 5 minutes. It checks:
 
 - the public site and API (through Nginx and TLS);
-- the Docker health of `db`, `api`, `web`, `backup` and `umami` (`backup` is unhealthy without a dump from the last two days);
-- disk use (alerts at 90%);
+- the Docker health of `db`, `api`, `web`, `backup`, `umami` and `site-builder`, plus `cloud-pg` and `cloud-storage` when `COMPOSE_PROFILES` includes `cloud-data` (`backup` is unhealthy without a dump from the last two days);
+- disk use (alerts at 85 %, `MONITOR_DISK_LIMIT`). Below `CLOUD_DISK_MIN_GB` free (15 GB) Codeqlick Cloud also stops growing on its own: architecture 4.13 "Disk guard";
 - the TLS certificates (alerts at 14 days left).
 
 It emails `ALERT_TO` (in production `admin@codeqlick.com`; default: `LEADS_NOTIFY_TO`) through the site's SMTP account with `curl`. The email uses the same branded design as the client emails: the API image builds it (`dist/scripts/monitor-email.js`, with `docker compose run`, so even with the API stopped). If Docker can't build it, a plain-text email goes instead. It writes only when the result changes, with no reminders in between. A problem must show up in two checks in a row (10 minutes) before the alert email goes out, so a deploy's restart doesn't trigger one. A "Resolved" email follows when everything is back. State and a log of alerts live in `~/.codeqlick-monitor/`.

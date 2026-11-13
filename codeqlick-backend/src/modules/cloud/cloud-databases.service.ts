@@ -14,6 +14,7 @@ import { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { CloudDatabasesRepository, type DatabaseWithTeam } from './cloud-databases.repository.js';
 import { cloudDatabaseFullEmail } from './cloud-emails.js';
+import { CloudDiskService } from './cloud-disk.service.js';
 import { CloudPgClient, newPgName, newPgPassword } from './cloud-pg.client.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
@@ -51,6 +52,7 @@ export class CloudDatabasesService implements OnApplicationBootstrap, OnApplicat
     private readonly teams: CloudTeamsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly disk: CloudDiskService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -110,6 +112,7 @@ export class CloudDatabasesService implements OnApplicationBootstrap, OnApplicat
   ): Promise<DatabaseView & { password: string }> {
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
     this.settings();
+    this.disk.assertRoom();
     const limits = CLOUD_PLANS[project.team.plan];
     if ((await this.databases.count(project.id)) >= limits.databasesPerProject) {
       throw new ConflictException(
@@ -189,7 +192,9 @@ export class CloudDatabasesService implements OnApplicationBootstrap, OnApplicat
     now: Date,
   ): Promise<void> {
     const limits = CLOUD_PLANS[db.project.team.plan];
-    const over = live.bytes > limits.databaseBytes;
+    // A full disk freezes every database (decision 49); its own size, only its own.
+    const overSize = live.bytes > limits.databaseBytes;
+    const over = overSize || this.disk.full;
     const blocked = live.bytes > limits.databaseBytes * BLOCK_RATIO;
     const connections = blocked ? 0 : limits.databaseConnections;
     if (live.connections !== connections) {
@@ -203,7 +208,7 @@ export class CloudDatabasesService implements OnApplicationBootstrap, OnApplicat
       blocked,
       sizeCheckedAt: now,
     });
-    if (over && !db.readOnly) await this.tellAdmins(db, limits.databaseBytes);
+    if (overSize && !db.readOnly) await this.tellAdmins(db, limits.databaseBytes);
   }
 
   private async tellAdmins(db: DatabaseWithTeam, maxBytes: number): Promise<void> {

@@ -97,6 +97,10 @@ export const envSchema = z.object({
   CLOUD_STORAGE_REGION: z.string().default('garage'),
   /** The capacity Garage's single node announces, in GB (its layout). */
   CLOUD_STORAGE_CAPACITY_GB: z.coerce.number().int().min(1).default(100),
+  /** Disk guard (architecture 4.13 "Disk guard", decision 49): free space, in GB, under which
+   * Cloud warns (low) and stops growing (full). */
+  CLOUD_DISK_LOW_GB: z.coerce.number().min(0).default(30),
+  CLOUD_DISK_MIN_GB: z.coerce.number().min(0).default(15),
   /** The Cloud console, for links in emails and the CLI's sign-in page. */
   CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */

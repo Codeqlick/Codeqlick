@@ -30,6 +30,7 @@ import {
   type AdminProjectView,
   type AdminTeamView,
   type ReportView,
+  type DiskReport,
 } from './cloud-admin.service.js';
 
 /** Admin → Cloud: teams, projects (suspend, lift) and abuse reports (architecture 4.13). */
@@ -39,6 +40,12 @@ import {
 @Controller('admin/cloud')
 export class CloudAdminController {
   constructor(private readonly admin: CloudAdminService) {}
+
+  /** The disk Cloud shares with the platform (decision 49). */
+  @Get('disk')
+  disk(): Promise<DiskReport> {
+    return this.admin.diskReport();
+  }
 
   @Get('teams')
   teams(

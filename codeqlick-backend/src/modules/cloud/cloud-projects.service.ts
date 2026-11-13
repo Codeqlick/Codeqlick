@@ -23,6 +23,7 @@ import {
 import { CloudRepository, type DeploymentRow, type ProjectRow } from './cloud.repository.js';
 import type { CreateProjectInput, DeploymentFields, UpdateProjectInput } from './cloud.schemas.js';
 import { BundleError, CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
+import { CloudDiskService } from './cloud-disk.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { CloudTokensService } from './cloud-tokens.service.js';
 
@@ -69,6 +70,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     private readonly tokens: CloudTokensService,
     private readonly storage: CloudStorage,
     private readonly config: AppConfigService,
+    private readonly disk: CloudDiskService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -226,6 +228,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
   ): Promise<DeploymentView> {
     this.storage.hosting();
     if (project.suspendedAt) throw new ForbiddenException('This project is suspended');
+    this.disk.assertRoom();
     const limits = this.teams.limits(plan);
     const lastHour = await this.repository.countDeploymentsSince(
       project.teamId,
