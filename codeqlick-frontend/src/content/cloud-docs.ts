@@ -69,6 +69,8 @@ En la pestaña **Git** del proyecto conecta GitHub (instala la app *Codeqlick Cl
 
 Ajusta la orden de instalación (\`npm ci\`), la de compilación (\`npm run build\`), la carpeta de salida (\`dist\`), la carpeta raíz y la versión de Node (20, 22 o 24). Las **variables de entorno** se guardan cifradas y no se pueden volver a leer; elige si son para producción, vistas previas o ambas. Cada compilación corre en un contenedor desechable de un servidor aparte, durante 15 minutos como máximo; el plan gratuito incluye 200 compilaciones al mes por equipo. Añade \`[skip cloud]\` al mensaje de un commit para no compilarlo.
 
+Desde la terminal (CLI 0.3): \`codeqlick git connect <owner/repo>\` conecta el repositorio (tras instalar la app en la consola), \`codeqlick env add API_KEY\` guarda una variable (pide el valor sin mostrarlo, o lo lee de la entrada estándar), \`codeqlick builds start\` compila la rama y muestra el registro en directo, y \`codeqlick logs\` sigue la última compilación. Ambos terminan con código 1 si la compilación falla.
+
 ## Rutas, 404 y aplicaciones de una página
 
 - \`/sobre\` sirve \`sobre.html\` o \`sobre/index.html\`.
@@ -251,6 +253,8 @@ In the project's **Git** tab, connect GitHub (install the *Codeqlick Cloud* app 
 - GitHub shows each commit's state (*Codeqlick Cloud*).
 
 Adjust the install command (\`npm ci\`), the build command (\`npm run build\`), the output folder (\`dist\`), the root folder and the Node version (20, 22 or 24). **Environment variables** are stored encrypted and can't be read back; choose whether they are for production, previews or both. Each build runs in a throwaway container on a separate server, for at most 15 minutes; the free plan includes 200 builds a month per team. Add \`[skip cloud]\` to a commit's message to skip it.
+
+From the terminal (CLI 0.3): \`codeqlick git connect <owner/repo>\` connects the repository (after installing the app in the console), \`codeqlick env add API_KEY\` saves a variable (it asks for the value without showing it, or reads standard input), \`codeqlick builds start\` builds the branch and shows the live log, and \`codeqlick logs\` follows the latest build. Both exit with code 1 when the build fails.
 
 ## Routes, 404 and single-page apps
 

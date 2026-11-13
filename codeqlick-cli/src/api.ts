@@ -75,6 +75,81 @@ export interface AuditReport {
   createdAt: string;
 }
 
+export interface GitSettings {
+  installationId: number | null;
+  repoId: number | null;
+  repo: string | null;
+  branch: string;
+  rootDir: string;
+  installCommand: string;
+  buildCommand: string;
+  outputDir: string;
+  nodeVersion: string;
+  buildBranches: boolean;
+  buildPullRequests: boolean;
+}
+
+export interface GitSettingsInput {
+  installationId: number;
+  repoId: number;
+  branch: string;
+  rootDir?: string;
+  installCommand?: string;
+  buildCommand?: string;
+  outputDir?: string;
+  nodeVersion?: string;
+}
+
+export interface TeamGithub {
+  configured: boolean;
+  installations: Array<{
+    id: number;
+    accountLogin: string;
+    accountType: string;
+    suspended: boolean;
+  }>;
+}
+
+export interface GithubRepo {
+  id: number;
+  fullName: string;
+  defaultBranch: string;
+  private: boolean;
+}
+
+export interface EnvVar {
+  key: string;
+  production: boolean;
+  preview: boolean;
+  updatedAt: string;
+}
+
+export type BuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
+
+export interface Build {
+  id: string;
+  number: number;
+  trigger: 'push' | 'pull_request' | 'manual';
+  target: 'preview' | 'production';
+  branch: string;
+  commit: string;
+  commitMessage: string | null;
+  author: string | null;
+  pullRequest: number | null;
+  status: BuildStatus;
+  error: string | null;
+  deploymentId: string | null;
+  queuedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+}
+
+export interface BuildDetail extends Build {
+  log: string;
+  logOffset: number;
+}
+
 export type DevicePoll =
   | { status: 'pending' | 'denied' | 'expired' }
   | { status: 'approved'; token: string; user: { id: string; name: string; email: string } };
@@ -171,6 +246,40 @@ export class Api {
     this.request<void>('DELETE', `/cloud/projects/${project}/domains/${id}`);
   audit = (teamSlug: string, url: string, locale: string) =>
     this.request<AuditReport>('POST', '/cloud/audits', { teamSlug, url, locale });
+  teamGithub = (team: string) =>
+    this.request<TeamGithub>('GET', `/cloud/teams/${encodeURIComponent(team)}/github`);
+  repos = (team: string, installationId: number) =>
+    this.request<{ items: GithubRepo[] }>(
+      'GET',
+      `/cloud/teams/${encodeURIComponent(team)}/github/repos?installationId=${installationId}`,
+    ).then((r) => r.items);
+  git = (project: string) => this.request<GitSettings>('GET', `/cloud/projects/${project}/git`);
+  setGit = (project: string, settings: GitSettingsInput) =>
+    this.request<GitSettings>('PUT', `/cloud/projects/${project}/git`, settings);
+  disconnectGit = (project: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/git`);
+  env = (project: string) =>
+    this.request<{ items: EnvVar[] }>('GET', `/cloud/projects/${project}/env`).then((r) => r.items);
+  setEnv = (
+    project: string,
+    variable: { key: string; value: string; production: boolean; preview: boolean },
+  ) =>
+    this.request<{ items: EnvVar[] }>('PUT', `/cloud/projects/${project}/env`, variable).then(
+      (r) => r.items,
+    );
+  deleteEnv = (project: string, key: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}`);
+  builds = (project: string, pageSize = 20) =>
+    this.request<{ items: Build[] }>(
+      'GET',
+      `/cloud/projects/${project}/builds?page=1&pageSize=${pageSize}`,
+    ).then((r) => r.items);
+  build = (project: string, number: number, after = 0) =>
+    this.request<BuildDetail>('GET', `/cloud/projects/${project}/builds/${number}?after=${after}`);
+  startBuild = (project: string, branch?: string) =>
+    this.request<Build>('POST', `/cloud/projects/${project}/builds`, branch ? { branch } : {});
+  cancelBuild = (project: string, number: number) =>
+    this.request<Build>('POST', `/cloud/projects/${project}/builds/${number}/cancel`);
   startDevice = (clientName: string, locale: string) =>
     this.request<DeviceStart>('POST', `/cloud/cli/device?locale=${locale}`, { clientName });
   pollDevice = (deviceCode: string) =>
