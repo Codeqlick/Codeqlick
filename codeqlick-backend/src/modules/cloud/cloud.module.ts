@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { StripeModule } from '../managed-sites/stripe.module.js';
 import { API_TOKEN_RESOLVER } from '../../common/api-tokens.js';
 import {
   CloudAnalyticsController,
@@ -9,6 +10,9 @@ import { CloudAnalyticsService } from './cloud-analytics.service.js';
 import { CloudKvController, CloudKvPublicController } from './cloud-kv.controller.js';
 import { CloudKvRepository } from './cloud-kv.repository.js';
 import { CloudKvService } from './cloud-kv.service.js';
+import { CloudBillingController } from './cloud-billing.controller.js';
+import { CloudBillingRepository } from './cloud-billing.repository.js';
+import { CloudBillingService } from './cloud-billing.service.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
@@ -41,6 +45,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
 
 /** Codeqlick Cloud (architecture 4.13). Its API tokens are resolved for JwtAuthGuard. */
 @Module({
+  imports: [StripeModule],
   // The public controller first: its POST cli/device/token must win over cli/device/:userCode.
   controllers: [
     CloudPublicController,
@@ -57,6 +62,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudNotificationsController,
     CloudAnalyticsController,
     CloudKvController,
+    CloudBillingController,
     CloudAdminController,
   ],
   providers: [
@@ -83,9 +89,11 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudAnalyticsService,
     CloudKvRepository,
     CloudKvService,
+    CloudBillingRepository,
+    CloudBillingService,
     GithubClient,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
-  exports: [API_TOKEN_RESOLVER, CloudTeamsService],
+  exports: [API_TOKEN_RESOLVER, CloudTeamsService, CloudBillingService],
 })
 export class CloudModule {}

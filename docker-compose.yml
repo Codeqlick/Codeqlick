@@ -79,6 +79,7 @@ services:
       # Buying a preview online (architecture 8.2, decision 20): off without both keys.
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_CLOUD_PRO_PRICE_ID: ${STRIPE_CLOUD_PRO_PRICE_ID:-}
       SITE_PRICE_CENTS: ${SITE_PRICE_CENTS:-20000}
       SITE_VAT_PERCENT: ${SITE_VAT_PERCENT:-21}
       OVH_APPLICATION_KEY: ${OVH_APPLICATION_KEY:-}
