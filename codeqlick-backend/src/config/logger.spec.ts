@@ -3,14 +3,14 @@ import { serializeRequest } from './logger.js';
 
 const token = 'cqd_AbCdEfGh1234567890abcdefghijklmnopqrstuvw';
 
-function request(url: string) {
+function request(url: string, params: Record<string, string> = { token }) {
   return {
     id: 'req-1',
     method: 'POST',
     url,
     originalUrl: url,
     query: { page: '2' },
-    params: { token },
+    params,
     headers: { host: 'api.codeqlick.com' },
     socket: { remoteAddress: '203.0.113.9', remotePort: 5555 },
   };
@@ -25,12 +25,12 @@ describe('serializeRequest', () => {
   });
 
   it('logs the rest of a request in pino standard shape', () => {
-    expect(serializeRequest(request('/v1/posts?page=2'))).toEqual({
+    expect(serializeRequest(request('/v1/posts?page=2', { slug: 'hello' }))).toEqual({
       id: 'req-1',
       method: 'POST',
       url: '/v1/posts?page=2',
       query: { page: '2' },
-      params: { token },
+      params: { slug: 'hello' },
       headers: { host: 'api.codeqlick.com' },
       remoteAddress: '203.0.113.9',
       remotePort: 5555,
