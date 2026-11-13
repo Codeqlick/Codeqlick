@@ -43,3 +43,8 @@ export function hookName(text: string): string | null {
   const name = text.trim();
   return name.length >= 1 && name.length <= 60 ? name : null;
 }
+
+/** A deploy hook's branch as the API accepts it: up to 200 of letters, digits, `_ . / -`. */
+export function hookBranchValid(branch: string): boolean {
+  return branch.length <= 200 && /^[\w./-]+$/.test(branch);
+}

@@ -211,7 +211,7 @@ describe('Codeqlick Cloud deploy hooks (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      await prisma.cloudTeam.deleteMany({ where: { slug: team } });
+      await prisma.cloudTeam.deleteMany({ where: { slug: { in: [team, `ho-${tag}`] } } });
       await prisma.user.deleteMany({ where: { email: { contains: `-${tag}@` } } });
     }
     await app?.close();
@@ -233,6 +233,37 @@ describe('Codeqlick Cloud deploy hooks (e2e)', () => {
     await make('cms', undefined, memberAuth).expect(403);
     await as('get', hooks(), memberAuth).expect(200).expect({ items: [] });
 
+    // A token restricted to another team sees nothing of this project's hooks.
+    await as('post', '/v1/cloud/teams', auth)
+      .send({
+        name: 'Other',
+        slug: `ho-${tag}`,
+        acceptTerms: true,
+        termsVersion: CLOUD_TERMS_VERSION,
+      })
+      .expect(201);
+    const restricted = await as('post', '/v1/cloud/tokens', auth)
+      .send({ name: 'Other team', teamSlug: `ho-${tag}`, expiresInDays: 30 })
+      .expect(201);
+    const tokenAuth = { Authorization: `Bearer ${restricted.body.token as string}` };
+    await as('get', hooks(), tokenAuth).expect(404);
+    await make('cms', undefined, tokenAuth).expect(404);
+    await as('delete', `${hooks()}/${randomUUID()}`, tokenAuth).expect(404);
+
+    // A hook id of another project is not found under this one.
+    const foreign = await prisma.cloudDeployHook.create({
+      data: {
+        projectId: bareProjectId,
+        name: 'foreign',
+        branch: 'main',
+        prefix: 'cqd_foreign0',
+        tokenHash: createHash('sha256').update(hookToken()).digest('hex'),
+      },
+    });
+    await as('delete', `${hooks()}/${foreign.id}`, adminAuth).expect(404);
+    expect(await prisma.cloudDeployHook.count({ where: { id: foreign.id } })).toBe(1);
+    await prisma.cloudDeployHook.delete({ where: { id: foreign.id } });
+
     // Invalid input.
     await make('').expect(400);
     await make('x'.repeat(61)).expect(400);
@@ -247,9 +278,9 @@ describe('Codeqlick Cloud deploy hooks (e2e)', () => {
       lastCalledAt: null,
       createdBy: { name: 'Grace' },
     });
-    expect(created.body.url).toMatch(
-      /^https:\/\/api\.codeqlick\.com\/v1\/cloud\/hooks\/cqd_[A-Za-z0-9_-]{43}$/,
-    );
+    const base = `${app.get(AppConfigService).publicApiUrl}/cloud/hooks/`;
+    expect(created.body.url).toMatch(/^.+\/cloud\/hooks\/cqd_[A-Za-z0-9_-]{43}$/);
+    expect((created.body.url as string).startsWith(base)).toBe(true);
     const token = tokenOf(created.body.url as string);
     expect(created.body.prefix).toBe(token.slice(0, 12));
 

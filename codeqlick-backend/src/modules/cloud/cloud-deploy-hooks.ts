@@ -25,12 +25,16 @@ export function hookPrefix(token: string): string {
 export const HOOK_CALLS_PER_MINUTE = 10;
 export const HOOK_IP_CALLS_PER_MINUTE = 60;
 
+const PRUNE_EVERY_MS = 10_000;
+const MAX_KEYS = 10_000;
+
 /**
  * A sliding window counted in memory (like Cloud's other public endpoints): `take` answers whether
  * the key may go on now, and counts it when it may. Refused attempts are not counted.
  */
 export class RateWindow {
   private readonly hits = new Map<string, number[]>();
+  private prunedAt = 0;
 
   constructor(
     private readonly limit: number,
@@ -43,13 +47,19 @@ export class RateWindow {
     const allowed = recent.length < this.limit;
     if (allowed) recent.push(now);
     this.hits.set(key, recent);
-    if (this.hits.size > 2000) this.prune(since);
+    if (this.hits.size > 2000 && now - this.prunedAt >= PRUNE_EVERY_MS) this.prune(now, since);
     return allowed;
   }
 
-  private prune(since: number): void {
+  /** Drops idle keys (at most every 10 s); past a hard cap, the oldest keys go too. */
+  private prune(now: number, since: number): void {
+    this.prunedAt = now;
     for (const [key, list] of this.hits) {
       if (list.every((at) => at <= since)) this.hits.delete(key);
+    }
+    for (const key of this.hits.keys()) {
+      if (this.hits.size <= MAX_KEYS) break;
+      this.hits.delete(key);
     }
   }
 }
