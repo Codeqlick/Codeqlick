@@ -22,6 +22,17 @@ back in a second.
 | `domains [add\|check\|rm <domain>]`         | The project's own domains                    |
 | `open`                                      | Open the published site                      |
 
+Builds from Git (connect GitHub once in the console's Git tab):
+
+| Command                                                    | What it does                                        |
+| ---------------------------------------------------------- | --------------------------------------------------- |
+| `git` / `git connect <owner/repo>` / `git disconnect`      | The repository and build settings                   |
+| `env` / `env add <KEY> [value]` / `env rm <KEY>`           | Variables (without a value: stdin or hidden prompt) |
+| `builds` / `builds start [--branch]` / `builds cancel <n>` | List, build now and follow, cancel                  |
+| `logs [number]`                                            | A build's log, followed while it runs               |
+
+`builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
+
 `deploy --url-only` prints only the new deployment's URL, to chain it with `audit`:
 
 ```yaml

@@ -7,7 +7,15 @@ import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
-import { Api, ApiError, type Deployment, type Project } from './api.ts';
+import {
+  Api,
+  ApiError,
+  type Build,
+  type BuildStatus,
+  type Deployment,
+  type GitSettings,
+  type Project,
+} from './api.ts';
 import {
   DEFAULT_API,
   configPath,
@@ -54,6 +62,22 @@ Commands:
       --json                  print the report as JSON
   open                      Open the published site
 
+Builds from Git:
+  git                       The connected repository and build settings
+  git connect <owner/repo>  Connect a repository (install the GitHub app in the console first)
+      --branch <name>         production branch (the repository's default)
+      --root <dir> --install <cmd> --build <cmd> --output <dir> --node <20|22|24>
+  git disconnect            Stop building from Git
+  env                       Environment variables (names only: values can't be read back)
+  env add <KEY> [value]     Save one (no value: read from stdin, or asked without echo)
+      --production --preview  where it applies (both when neither is given)
+  env rm <KEY>              Delete one
+  builds                    The latest builds
+  builds start [--branch <name>]   Build the branch's latest commit and follow the log
+  builds cancel <number>    Cancel a queued or running build
+  logs [number]             A build's log (the latest by default), followed while it runs
+      --json                  (git, env, builds) print the API's answer
+
 Options:
   --team <slug>  --project <slug>   Override ${PROJECT_FILE} (or CODEQLICK_TEAM, CODEQLICK_PROJECT)
   -h, --help     -v, --version
@@ -70,6 +94,14 @@ interface Options {
   'min-score'?: string;
   'fail-on'?: string;
   json?: boolean;
+  branch?: string;
+  root?: string;
+  install?: string;
+  build?: string;
+  output?: string;
+  node?: string;
+  production?: boolean;
+  preview?: boolean;
 }
 
 async function context() {
@@ -438,6 +470,272 @@ async function openSite(options: Options): Promise<void> {
   openBrowser(project.url);
 }
 
+// ── Builds from Git ───────────────────────────────────────────────────────────────────────────
+
+const CONSOLE = 'https://cloud.codeqlick.com';
+const ENV_KEY = /^[A-Z_][A-Z0-9_]{0,63}$/;
+
+function showGit(settings: GitSettings): void {
+  if (!settings.repo) {
+    console.log(dim('Not connected to a repository: codeqlick git connect <owner/repo>'));
+    return;
+  }
+  console.log(`${bold(settings.repo)}  ${dim(`production: ${settings.branch}`)}`);
+  const rows: Array<[string, string]> = [
+    ['root', settings.rootDir || '.'],
+    ['install', settings.installCommand],
+    ['build', settings.buildCommand],
+    ['output', settings.outputDir],
+    ['node', settings.nodeVersion],
+    [
+      'previews',
+      `${settings.buildBranches ? 'branches' : ''}${settings.buildBranches && settings.buildPullRequests ? ', ' : ''}${settings.buildPullRequests ? 'pull requests' : ''}` ||
+        'off',
+    ],
+  ];
+  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
+}
+
+async function git(action: string | undefined, name: string | undefined, options: Options) {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (!action || action === 'status') {
+    const settings = await api.git(project.id);
+    if (options.json) console.log(JSON.stringify(settings, null, 2));
+    else showGit(settings);
+    return;
+  }
+  if (action === 'disconnect') {
+    await api.disconnectGit(project.id);
+    console.log(`${green('✓')} ${bold(project.slug)} no longer builds from Git.`);
+    return;
+  }
+  if (action !== 'connect')
+    throw new UsageError(`Unknown action "${action}": connect or disconnect.`);
+  if (!name || !/^[\w.-]+\/[\w.-]+$/.test(name)) {
+    throw new UsageError('Which repository? codeqlick git connect <owner/repo>');
+  }
+  const team = project.team.slug;
+  const github = await api.teamGithub(team);
+  if (!github.configured) throw new UsageError("Builds from Git aren't available yet.");
+  const consoleUrl = `${CONSOLE}/en/console/${team}/${project.slug}?tab=git`;
+  const installations = github.installations.filter((i) => !i.suspended);
+  if (installations.length === 0) {
+    throw new UsageError(
+      `Install the Codeqlick Cloud app on GitHub first (it needs the browser): ${consoleUrl}`,
+    );
+  }
+  const wanted = name.toLowerCase();
+  for (const installation of installations) {
+    const repo = (await api.repos(team, installation.id)).find(
+      (r) => r.fullName.toLowerCase() === wanted,
+    );
+    if (!repo) continue;
+    const settings = await api.setGit(project.id, {
+      installationId: installation.id,
+      repoId: repo.id,
+      branch: options.branch ?? repo.defaultBranch,
+      rootDir: options.root,
+      installCommand: options.install,
+      buildCommand: options.build,
+      outputDir: options.output,
+      nodeVersion: options.node,
+    });
+    console.log(`${green('✓')} ${bold(project.slug)} builds from ${bold(repo.fullName)}.`);
+    showGit(settings);
+    console.log(
+      dim(`  Pushes to ${settings.branch} are published; push now, or: codeqlick builds start`),
+    );
+    return;
+  }
+  throw new UsageError(
+    `The app can't see ${name}: add it to the app's repositories on GitHub (${consoleUrl}).`,
+  );
+}
+
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks)
+    .toString('utf8')
+    .replace(/\r?\n$/, '');
+}
+
+/** Asks for a value without showing what is typed. */
+async function askSecret(question: string): Promise<string> {
+  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+  process.stdout.write(question);
+  (rl as unknown as { _writeToOutput: (text: string) => void })._writeToOutput = () => undefined;
+  try {
+    return await rl.question('');
+  } finally {
+    rl.close();
+    process.stdout.write('\n');
+  }
+}
+
+async function env(
+  action: string | undefined,
+  key: string | undefined,
+  value: string | undefined,
+  options: Options,
+) {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const show = (items: Awaited<ReturnType<Api['env']>>) => {
+    if (options.json) return console.log(JSON.stringify(items, null, 2));
+    if (items.length === 0) console.log(dim('No variables yet: codeqlick env add <KEY>'));
+    for (const v of items) {
+      const where = [v.production && 'production', v.preview && 'preview'].filter(Boolean);
+      console.log(
+        `${bold(v.key)}  ${where.join(', ')}  ${dim(new Date(v.updatedAt).toLocaleString())}`,
+      );
+    }
+  };
+  if (!action || action === 'ls' || action === 'list') return show(await api.env(project.id));
+  if (!key || !ENV_KEY.test(key)) {
+    throw new UsageError(
+      `Which variable? codeqlick env ${action} <KEY> (upper-case letters, digits, _)`,
+    );
+  }
+  if (action === 'rm' || action === 'remove') {
+    await api.deleteEnv(project.id, key);
+    console.log(`${green('✓')} Deleted ${key}`);
+    return;
+  }
+  if (action !== 'add' && action !== 'set')
+    throw new UsageError(`Unknown action "${action}": add or rm.`);
+  const secret =
+    value ??
+    (process.stdin.isTTY ? await askSecret(`Value of ${key} (hidden): `) : await readStdin());
+  if (secret.length > 4096) throw new UsageError('Values are at most 4 KB.');
+  const both = !options.production && !options.preview;
+  const items = await api.setEnv(project.id, {
+    key,
+    value: secret,
+    production: both || options.production === true,
+    preview: both || options.preview === true,
+  });
+  if (options.json) return show(items);
+  console.log(`${green('✓')} Saved ${bold(key)}: it applies from the next build.`);
+}
+
+const FINISHED: BuildStatus[] = ['SUCCEEDED', 'FAILED', 'CANCELED'];
+
+function statusText(status: BuildStatus): string {
+  const text = {
+    QUEUED: 'queued',
+    RUNNING: 'building',
+    SUCCEEDED: 'ready',
+    FAILED: 'failed',
+    CANCELED: 'canceled',
+  }[status];
+  return status === 'SUCCEEDED' ? green(text) : status === 'FAILED' ? pink(text) : dim(text);
+}
+
+function duration(ms: number | null): string {
+  if (ms === null) return '';
+  const seconds = Math.round(ms / 1000);
+  return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
+function buildLine(b: Build): string {
+  const subject = b.pullRequest ? `#${b.pullRequest}` : b.branch;
+  const message = (b.commitMessage ?? '').split('\n')[0]!.slice(0, 60);
+  return [
+    bold(`${b.number}`.padStart(4)),
+    statusText(b.status).padEnd(tty ? 17 : 8),
+    b.target.padEnd(10),
+    subject,
+    dim(b.commit.slice(0, 7)),
+    duration(b.durationMs),
+    message,
+  ]
+    .filter(Boolean)
+    .join('  ');
+}
+
+/** Prints a build's log until it finishes; the exit code is 1 unless it succeeded. */
+async function follow(api: Api, project: Project, number: number): Promise<number> {
+  let after = 0;
+  let waiting = false;
+  for (;;) {
+    const build = await api.build(project.id, number, after);
+    if (build.log) process.stdout.write(build.log);
+    after = build.logOffset;
+    if (build.status === 'QUEUED' && !waiting) {
+      console.log(dim(`Build ${number} is queued: waiting for a build server…`));
+      waiting = true;
+    }
+    if (FINISHED.includes(build.status)) {
+      if (build.log && !build.log.endsWith('\n')) process.stdout.write('\n');
+      if (build.status === 'SUCCEEDED') {
+        const deployment = (await allDeployments(api, project.id)).find(
+          (d) => d.id === build.deploymentId,
+        );
+        console.log(
+          `${green('✓')} Build ${number} is ready (${duration(build.durationMs)})${deployment ? `: ${deployment.url}` : ''}`,
+        );
+        if (build.target === 'production')
+          console.log(`${green('✓')} Published: ${bold(project.url)}`);
+        return 0;
+      }
+      console.error(
+        `Build ${number} ${build.status === 'FAILED' ? `failed${build.error ? `: ${build.error}` : ''}` : 'was canceled'}.`,
+      );
+      return 1;
+    }
+    await sleep(2_000);
+  }
+}
+
+async function builds(action: string | undefined, arg: string | undefined, options: Options) {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (!action || action === 'ls' || action === 'list') {
+    const list = await api.builds(project.id);
+    if (options.json) console.log(JSON.stringify(list, null, 2));
+    else if (list.length === 0)
+      console.log(dim('No builds yet: push to the repository, or codeqlick builds start'));
+    else list.forEach((b) => console.log(buildLine(b)));
+    return 0;
+  }
+  if (action === 'start') {
+    const build = await api.startBuild(project.id, options.branch);
+    if (options.json) {
+      console.log(JSON.stringify(build, null, 2));
+      return 0;
+    }
+    console.log(
+      `Build ${bold(String(build.number))}: ${build.branch} ${dim(build.commit.slice(0, 7))} (${build.target})`,
+    );
+    return follow(api, project, build.number);
+  }
+  if (action === 'cancel') {
+    const number = Number(arg);
+    if (!Number.isInteger(number) || number < 1)
+      throw new UsageError('Which build? codeqlick builds cancel <number>');
+    const build = await api.cancelBuild(project.id, number);
+    console.log(`${green('✓')} Build ${build.number} is ${statusText(build.status)}.`);
+    return 0;
+  }
+  throw new UsageError(`Unknown action "${action}": start or cancel.`);
+}
+
+async function logs(arg: string | undefined, options: Options): Promise<number> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  let number = arg === undefined ? NaN : Number(arg);
+  if (arg === undefined) {
+    const latest = (await api.builds(project.id, 1))[0];
+    if (!latest) throw new UsageError('No builds yet.');
+    number = latest.number;
+  }
+  if (!Number.isInteger(number) || number < 1)
+    throw new UsageError('Which build? codeqlick logs <number>');
+  return follow(api, project, number);
+}
+
 // ── Entry ─────────────────────────────────────────────────────────────────────────────────────
 
 export async function main(argv: string[]): Promise<number> {
@@ -454,6 +752,14 @@ export async function main(argv: string[]): Promise<number> {
       'min-score': { type: 'string' },
       'fail-on': { type: 'string' },
       json: { type: 'boolean' },
+      branch: { type: 'string' },
+      root: { type: 'string' },
+      install: { type: 'string' },
+      build: { type: 'string' },
+      output: { type: 'string' },
+      node: { type: 'string' },
+      production: { type: 'boolean' },
+      preview: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -503,6 +809,16 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'audit':
         return await audit(rest[0], options);
+      case 'git':
+        await git(rest[0], rest[1], options);
+        break;
+      case 'env':
+        await env(rest[0], rest[1], rest[2], options);
+        break;
+      case 'builds':
+        return await builds(rest[0], rest[1], options);
+      case 'logs':
+        return await logs(rest[0], options);
       default:
         throw new UsageError(`Unknown command "${command}". Run codeqlick --help.`);
     }
