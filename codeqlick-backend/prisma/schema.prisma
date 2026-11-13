@@ -2022,15 +2022,16 @@ model CloudProject {
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team        CloudTeam          @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production  CloudDeployment?   @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  deployments CloudDeployment[]  @relation("CloudDeployments")
-  domains     CloudDomain[]
-  reports     CloudReport[]
-  forms       CloudForm[]
-  envVars     CloudEnvVar[]
-  builds      CloudBuild[]
-  prComments  CloudPullComment[]
+  team           CloudTeam            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production     CloudDeployment?     @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  deployments    CloudDeployment[]    @relation("CloudDeployments")
+  domains        CloudDomain[]
+  reports        CloudReport[]
+  forms          CloudForm[]
+  envVars        CloudEnvVar[]
+  builds         CloudBuild[]
+  prComments     CloudPullComment[]
+  notifyChannels CloudNotifyChannel[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2314,6 +2315,46 @@ model CloudEnvVar {
 
   @@unique([projectId, key])
   @@map("cloud_env_vars")
+}
+
+enum CloudNotifyKind {
+  EMAIL
+  SLACK
+  DISCORD
+  WEBHOOK
+}
+
+/// Where a project's build results go (architecture 4.13 "Build notifications", decision 43).
+model CloudNotifyChannel {
+  id             String          @id @default(uuid()) @db.Uuid
+  projectId      String          @map("project_id") @db.Uuid
+  name           String          @db.VarChar(60)
+  kind           CloudNotifyKind
+  enabled        Boolean         @default(true)
+  /// Slack, Discord and webhook URLs, sealed (purpose cloud-notify-v1).
+  urlSealed      String?         @map("url_sealed")
+  /// What the console shows of the URL: its host and last 4 characters.
+  urlHint        String?         @map("url_hint") @db.VarChar(120)
+  /// A webhook's signing secret, sealed.
+  secretSealed   String?         @map("secret_sealed")
+  recipientIds   String[]        @map("recipient_ids") @db.Uuid
+  buildFailed    Boolean         @default(true) @map("build_failed")
+  buildSucceeded Boolean         @default(false) @map("build_succeeded")
+  previews       Boolean         @default(false)
+  /// The language of Slack, Discord and webhook messages (`en` or `es`).
+  locale         String          @default("en") @db.VarChar(2)
+  /// Failed deliveries in a row; ten switch the channel off.
+  failures       Int             @default(0)
+  lastSentAt     DateTime?       @map("last_sent_at") @db.Timestamptz(3)
+  lastOk         Boolean?        @map("last_ok")
+  lastError      String?         @map("last_error") @db.VarChar(300)
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("cloud_notify_channels")
 }
 
 enum CloudBuildTrigger {

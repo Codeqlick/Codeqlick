@@ -54,7 +54,9 @@ export async function BuildsTab(props: Props) {
             <input type="hidden" name="slug" value={props.projectSlug} />
             <input type="hidden" name="project" value={props.projectId} />
             <SubmitButton size="sm" variant="outline">
-              {t('builds.again', { branch: git.branch })}
+              {list.items.length === 0 && list.page === 1
+                ? t('builds.first', { branch: git.branch })
+                : t('builds.again', { branch: git.branch })}
             </SubmitButton>
           </form>
         ) : null}

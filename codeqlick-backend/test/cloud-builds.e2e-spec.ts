@@ -16,6 +16,7 @@ import { Role } from '../src/generated/prisma/client.js';
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { GithubClient } from '../src/modules/cloud/github.client.js';
+import { MailService } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 const tag = randomUUID().slice(0, 8);
@@ -362,6 +363,60 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       expect(github.comments.some((c) => c.pr === 8 && c.body.includes('Failed'))).toBe(true),
     );
 
+    // Build notifications (decision 43): channels are checked, their URLs never come back, and a
+    // failed production build emails the chosen members.
+    const me = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
+    const notifications = `/v1/cloud/projects/${projectId}/notifications`;
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'SLACK', name: 'Slack', url: 'https://example.com/services/x' })
+      .expect(400);
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'WEBHOOK', name: 'Mine', url: 'https://127.0.0.1/hook' })
+      .expect(400);
+    const hook = await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'WEBHOOK', name: 'Mine', url: 'https://hooks.example.com/cloud/abcd' })
+      .expect(201);
+    expect(hook.body).toMatchObject({ kind: 'WEBHOOK', hint: 'hooks.example.com/…abcd' });
+    expect(hook.body.secret).toMatch(/^cqn_[0-9a-f]{32}$/);
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'EMAIL', name: 'Team', recipientIds: [randomUUID()] })
+      .expect(400);
+    const email = await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'EMAIL', name: 'Team', recipientIds: [me.id], locale: 'es' })
+      .expect(201);
+    expect(email.body).toMatchObject({ buildFailed: true, buildSucceeded: false, previews: false });
+    const listed = await request(server).get(notifications).set(auth).expect(200);
+    expect(JSON.stringify(listed.body)).not.toContain('https://hooks.example.com');
+    expect(JSON.stringify(listed.body)).not.toContain('cqn_');
+    await request(server)
+      .patch(`${notifications}/${hook.body.id as string}`)
+      .set(auth)
+      .send({ enabled: false })
+      .expect(200);
+    const sent = vi.spyOn(app.get(MailService), 'send');
+    const tested = await request(server)
+      .post(`${notifications}/${email.body.id as string}/test`)
+      .set(auth)
+      .expect(200);
+    expect(tested.body).toEqual({ ok: true, error: null });
+    expect(sent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        to: owner.email,
+        subject: expect.stringContaining('test message'),
+      }),
+    );
+    sent.mockClear();
+
     // "Deploy again", cancel, and a running build whose agent goes quiet.
     const manual = await request(server)
       .post(`/v1/cloud/projects/${projectId}/builds`)
@@ -389,6 +444,18 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       where: { id: third.body.build.id as string },
     });
     expect(stale).toMatchObject({ status: 'FAILED', error: 'The build server stopped answering' });
+    await vi.waitFor(() =>
+      expect(sent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: owner.email,
+          subject: expect.stringContaining(`#${stale.number}`),
+        }),
+      ),
+    );
+    const channel = await prisma.cloudNotifyChannel.findUniqueOrThrow({
+      where: { id: email.body.id as string },
+    });
+    expect(channel).toMatchObject({ lastOk: true, failures: 0 });
     await request(server)
       .post(`/v1/cloud/builder/builds/${third.body.build.id as string}/heartbeat`)
       .set(builder)

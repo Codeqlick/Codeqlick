@@ -71,6 +71,12 @@ Ajusta la orden de instalación (\`npm ci\`), la de compilación (\`npm run buil
 
 Desde la terminal (CLI 0.3): \`codeqlick git connect <owner/repo>\` conecta el repositorio (tras instalar la app en la consola), \`codeqlick env add API_KEY\` guarda una variable (pide el valor sin mostrarlo, o lo lee de la entrada estándar), \`codeqlick builds start\` compila la rama y muestra el registro en directo, y \`codeqlick logs\` sigue la última compilación. Ambos terminan con código 1 si la compilación falla.
 
+### Avisos de compilación
+
+En la pestaña **Avisos** del proyecto elige a quién avisar cuando una compilación falla (o también cuando se publica): por **email** a personas del equipo, a un canal de **Slack** (un *incoming webhook*), a un canal de **Discord** (su webhook) o a un **webhook** propio. Por defecto solo avisa de las compilaciones de producción que fallan; puedes añadir las publicadas y las vistas previas. «Enviar una prueba» comprueba que llega.
+
+Un webhook propio recibe un \`POST\` con JSON (\`event\`, \`project\`, \`build\`, \`deployment\`) y la cabecera \`X-Codeqlick-Signature: sha256=…\`, el HMAC-SHA256 del cuerpo con el secreto que se muestra al crearlo. Las direcciones se guardan cifradas. Si un aviso falla 10 veces seguidas, se desactiva y avisamos a los administradores del equipo.
+
 ## Rutas, 404 y aplicaciones de una página
 
 - \`/sobre\` sirve \`sobre.html\` o \`sobre/index.html\`.
@@ -255,6 +261,12 @@ In the project's **Git** tab, connect GitHub (install the *Codeqlick Cloud* app 
 Adjust the install command (\`npm ci\`), the build command (\`npm run build\`), the output folder (\`dist\`), the root folder and the Node version (20, 22 or 24). **Environment variables** are stored encrypted and can't be read back; choose whether they are for production, previews or both. Each build runs in a throwaway container on a separate server, for at most 15 minutes; the free plan includes 200 builds a month per team. Add \`[skip cloud]\` to a commit's message to skip it.
 
 From the terminal (CLI 0.3): \`codeqlick git connect <owner/repo>\` connects the repository (after installing the app in the console), \`codeqlick env add API_KEY\` saves a variable (it asks for the value without showing it, or reads standard input), \`codeqlick builds start\` builds the branch and shows the live log, and \`codeqlick logs\` follows the latest build. Both exit with code 1 when the build fails.
+
+### Build notifications
+
+In the project's **Notifications** tab choose who hears about a failed build (or a published one too): **email** to people of the team, a **Slack** channel (an incoming webhook), a **Discord** channel (its webhook) or a **webhook** of yours. By default only failed production builds are sent; you can add published builds and previews. "Send a test" checks it arrives.
+
+A webhook of yours gets a JSON \`POST\` (\`event\`, \`project\`, \`build\`, \`deployment\`) with the header \`X-Codeqlick-Signature: sha256=…\`, the HMAC-SHA256 of the body with the secret shown when you create it. Addresses are stored encrypted. A notification that fails 10 times in a row is switched off and the team's admins are told.
 
 ## Routes, 404 and single-page apps
 

@@ -17,6 +17,9 @@ import {
 } from './cloud-monitors.controller.js';
 import { CloudMonitorsRepository } from './cloud-monitors.repository.js';
 import { CloudMonitorsService } from './cloud-monitors.service.js';
+import { CloudNotificationsController } from './cloud-notifications.controller.js';
+import { CloudNotificationsRepository } from './cloud-notifications.repository.js';
+import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudAdminService } from './cloud-admin.service.js';
 import { CloudController, CloudPublicController } from './cloud.controller.js';
 import { CloudDns, CloudDomainsService } from './cloud-domains.service.js';
@@ -40,6 +43,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudMonitorsController,
     CloudAuditsController,
     CloudBuildsController,
+    CloudNotificationsController,
     CloudAdminController,
   ],
   providers: [
@@ -60,6 +64,8 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudAuditsService,
     CloudBuildsRepository,
     CloudBuildsService,
+    CloudNotificationsRepository,
+    CloudNotificationsService,
     GithubClient,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],

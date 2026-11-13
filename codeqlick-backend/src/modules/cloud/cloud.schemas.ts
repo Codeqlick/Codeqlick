@@ -393,3 +393,43 @@ export const finishSchema = z.object({
   error: z.string().max(500).optional(),
 });
 export type FinishInput = z.infer<typeof finishSchema>;
+
+// ── Build notifications (decision 43) ────────────────────────────────────────────────────────
+
+const channelName = z.string().trim().min(1).max(60);
+const channelUrl = z.url().max(2048);
+const channelRecipients = z.array(z.uuid()).min(1).max(10);
+const channelEvents = {
+  buildFailed: z.boolean().optional(),
+  buildSucceeded: z.boolean().optional(),
+  previews: z.boolean().optional(),
+  locale: localeSchema.optional(),
+};
+
+export const createChannelSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('EMAIL'),
+    name: channelName,
+    recipientIds: channelRecipients,
+    ...channelEvents,
+  }),
+  z.object({
+    kind: z.enum(['SLACK', 'DISCORD', 'WEBHOOK']),
+    name: channelName,
+    url: channelUrl,
+    ...channelEvents,
+  }),
+]);
+export type CreateChannelInput = z.infer<typeof createChannelSchema>;
+
+export const updateChannelSchema = z.object({
+  name: channelName.optional(),
+  enabled: z.boolean().optional(),
+  url: channelUrl.optional(),
+  recipientIds: channelRecipients.optional(),
+  ...channelEvents,
+});
+export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
+
+export const channelParamSchema = z.object({ id: z.uuid(), channelId: z.uuid() });
+export type ChannelParam = z.infer<typeof channelParamSchema>;
