@@ -485,3 +485,11 @@ export type KvIncrInput = z.infer<typeof kvIncrSchema>;
 
 export const billingLinkSchema = z.object({ locale: localeSchema.default('en') });
 export type BillingLinkInput = z.infer<typeof billingLinkSchema>;
+
+// ── Managed databases (architecture 4.13 "Databases", decision 47) ──────────────────────────
+
+export const createDatabaseSchema = z.object({ name: z.string().trim().min(1).max(40) });
+export type CreateDatabaseInput = z.infer<typeof createDatabaseSchema>;
+
+export const databaseParamSchema = z.object({ id: z.uuid(), databaseId: z.uuid() });
+export type DatabaseParam = z.infer<typeof databaseParamSchema>;

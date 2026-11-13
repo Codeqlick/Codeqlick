@@ -72,6 +72,10 @@ services:
       # Codeqlick Cloud (architecture 4.13): deployments are unpacked inside the container (nothing
       # serves them locally); the console is at cloud.localhost.
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-cloud.localhost}
+      # Managed databases locally: the dev database's server plays cloud-pg (connect on DB_PORT).
+      CLOUD_PG_ADMIN_URL: ${CLOUD_PG_ADMIN_URL:-postgresql://codeqlick:codeqlick@db:5432/postgres}
+      CLOUD_PG_HOST: ${CLOUD_PG_HOST:-localhost}
+      CLOUD_PG_PORT: ${DB_PORT:-5432}
       CLOUD_ROOT: /tmp/codeqlick-cloud
       CLOUD_URL: http://cloud.localhost:${WEB_PORT:-3000}
       # Client domains (architecture 11): OVH stays off without keys in the root .env.
