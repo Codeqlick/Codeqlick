@@ -17,6 +17,9 @@ import {
   type Deployment,
   type GitSettings,
   type Project,
+  type Protection,
+  type ProtectionDays,
+  type ProtectionMode,
 } from './api.ts';
 import {
   DEFAULT_API,
@@ -91,6 +94,15 @@ Analytics and key-value store:
   kv incr <key> [--by <n>]  Add to a counter atomically (starts at 0)
       --json                  (analytics, kv) print the API's answer
 
+Password protection:
+  protect                   Which addresses ask visitors for a password
+  protect previews|all      Ask for it on the deployments' addresses, or on every one
+      --days <1|7|30>         how long access lasts once it's entered
+                              (the password is asked without echo, or read from stdin;
+                              empty keeps the current one)
+  protect off               Every address is public again
+      --json                  (protect) print the API's answer
+
 Options:
   --team <slug>  --project <slug>   Override ${PROJECT_FILE} (or CODEQLICK_TEAM, CODEQLICK_PROJECT)
   -h, --help     -v, --version
@@ -118,6 +130,7 @@ interface Options {
   period?: string;
   ttl?: string;
   by?: string;
+  days?: string;
 }
 
 async function context() {
@@ -335,11 +348,13 @@ async function deploy(folder: string | undefined, options: Options): Promise<voi
     });
     if (quiet) {
       console.log(deployment.url);
+      warnProtected(project.protection, { preview: true, production: false });
       return;
     }
     console.log(`${green('✓')} Deployment ${bold(deployment.shortId)}: ${deployment.url}`);
     if (deployment.isProduction) console.log(`${green('✓')} Published: ${bold(project.url)}`);
     else console.log(dim(`  A preview. Publish it with: codeqlick promote ${deployment.shortId}`));
+    warnProtected(project.protection, { preview: true, production: deployment.isProduction });
   } finally {
     await rm(work, { recursive: true, force: true });
   }
@@ -694,6 +709,10 @@ async function follow(api: Api, project: Project, number: number): Promise<numbe
         );
         if (build.target === 'production')
           console.log(`${green('✓')} Published: ${bold(project.url)}`);
+        warnProtected(project.protection, {
+          preview: deployment !== undefined,
+          production: build.target === 'production',
+        });
         return 0;
       }
       console.error(
@@ -875,6 +894,120 @@ async function kv(
   }
 }
 
+// ── Password protection ───────────────────────────────────────────────────────────────────────
+
+const PROTECT_MODES: Record<string, ProtectionMode> = {
+  off: 'OFF',
+  previews: 'PREVIEWS',
+  all: 'ALL',
+};
+
+/** `protect <action>`'s mode: off, previews or all (any case); null when it's none of them. */
+export function parseProtectMode(action: string): ProtectionMode | null {
+  return PROTECT_MODES[action.toLowerCase()] ?? null;
+}
+
+/** `--days`: 1, 7 or 30; undefined keeps the current days; null when it's anything else. */
+export function parseProtectDays(text: string | undefined): ProtectionDays | undefined | null {
+  if (text === undefined) return undefined;
+  const days = Number(text.trim());
+  return days === 1 || days === 7 || days === 30 ? days : null;
+}
+
+/**
+ * The note for printed addresses that ask visitors for the password, or null when none does:
+ * a deployment's address is protected with PREVIEWS and ALL, production only with ALL.
+ */
+export function protectionNote(
+  mode: ProtectionMode,
+  printed: { preview: boolean; production: boolean },
+): string | null {
+  const preview = printed.preview && mode !== 'OFF';
+  const production = printed.production && mode === 'ALL';
+  if (!preview && !production) return null;
+  const what =
+    printed.preview && printed.production
+      ? production
+        ? 'Both addresses ask'
+        : "The deployment's address asks (the published one doesn't)"
+      : 'The address asks';
+  return `${what} visitors for the password (codeqlick protect).`;
+}
+
+/** Prints the note on standard error, so `--url-only` stays one line on standard output. */
+function warnProtected(
+  mode: ProtectionMode | undefined,
+  printed: { preview: boolean; production: boolean },
+): void {
+  const note = protectionNote(mode ?? 'OFF', printed);
+  if (note) console.error(note);
+}
+
+function showProtection(project: Project, protection: Protection): void {
+  if (protection.mode === 'OFF') {
+    console.log(`${bold(project.slug)}  ${dim('no password: every address is public')}`);
+    console.log(dim('  Turn it on with: codeqlick protect previews|all'));
+    return;
+  }
+  const where =
+    protection.mode === 'ALL'
+      ? "every address (the deployments', production and your domains)"
+      : "the deployments' addresses (production stays public)";
+  console.log(`${bold(project.slug)}  ${pink('password')} on ${where}`);
+  const rows: Array<[string, string]> = [
+    ['access', `${protection.days} ${protection.days === 1 ? 'day' : 'days'} once entered`],
+    ['password', protection.hasPassword ? 'set' : 'none'],
+  ];
+  if (protection.updatedAt) rows.push(['changed', new Date(protection.updatedAt).toLocaleString()]);
+  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
+}
+
+/** The new password: asked twice without echo in a terminal, else standard input; '' keeps it. */
+async function newPassword(hasPassword: boolean): Promise<string | undefined> {
+  const keep = hasPassword ? ', empty keeps the current one' : '';
+  let password: string;
+  if (process.stdin.isTTY) {
+    password = await askSecret(`Password (8-128 characters${keep}, hidden): `);
+    if (password && (await askSecret('Again: ')) !== password) {
+      throw new UsageError("The passwords don't match.");
+    }
+  } else password = await readStdin();
+  if (!password) {
+    if (!hasPassword) throw new UsageError('Turning protection on needs a password.');
+    return undefined;
+  }
+  if (password.length < 8 || password.length > 128) {
+    throw new UsageError('The password has 8 to 128 characters.');
+  }
+  return password;
+}
+
+async function protect(action: string | undefined, options: Options): Promise<void> {
+  const mode = action === undefined ? undefined : parseProtectMode(action);
+  if (mode === null) throw new UsageError(`Unknown action "${action}": previews, all or off.`);
+  const days = parseProtectDays(options.days);
+  if (days === null) throw new UsageError('--days is 1, 7 or 30.');
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const current = await api.protection(project.id);
+  if (mode === undefined) {
+    if (options.json) console.log(JSON.stringify(current, null, 2));
+    else showProtection(project, current);
+    return;
+  }
+  const password = mode === 'OFF' ? undefined : await newPassword(current.hasPassword);
+  const saved = await api.setProtection(project.id, {
+    mode,
+    ...(password === undefined ? {} : { password }),
+    ...(days === undefined ? {} : { days }),
+  });
+  if (options.json) return console.log(JSON.stringify(saved, null, 2));
+  console.log(
+    `${green('✓')} ${mode === 'OFF' ? 'Password protection is off' : 'Saved'}${password ? ' (a new password: visitors enter it again)' : ''}.`,
+  );
+  showProtection(project, saved);
+}
+
 export async function main(argv: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -900,6 +1033,7 @@ export async function main(argv: string[]): Promise<number> {
       period: { type: 'string' },
       ttl: { type: 'string' },
       by: { type: 'string' },
+      days: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -964,6 +1098,9 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'kv':
         return await kv(rest[0], rest[1], rest[2], options);
+      case 'protect':
+        await protect(rest[0], options);
+        break;
       default:
         throw new UsageError(`Unknown command "${command}". Run codeqlick --help.`);
     }

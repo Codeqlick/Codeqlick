@@ -72,7 +72,20 @@ export type CloudProject = {
   production: CloudDeployment | null;
   domains: Array<{ name: string; state: CloudDomainState }>;
   suspended: { at: string; reason: string } | null;
+  protection: CloudProtectionMode;
   createdAt: string;
+};
+
+export type CloudProtectionMode = 'OFF' | 'PREVIEWS' | 'ALL';
+export type CloudProtectionDays = 1 | 7 | 30;
+
+/** A project's password protection (architecture 4.13, Password protection). */
+export type CloudProtection = {
+  mode: CloudProtectionMode;
+  days: CloudProtectionDays;
+  /** Never the password or its hash. */
+  hasPassword: boolean;
+  updatedAt: string | null;
 };
 
 export type CloudDomain = {
@@ -259,6 +272,26 @@ export const checkCloudDomain = (id: string, domainId: string) =>
 
 export const removeCloudDomain = (id: string, domainId: string) =>
   apiFetch<void>(`/cloud/projects/${id}/domains/${domainId}`, { ...write, method: 'DELETE' });
+
+export const getCloudProtection = (id: string) =>
+  apiFetch<CloudProtection>(`/cloud/projects/${id}/protection`, auth);
+
+export const setCloudProtection = (
+  id: string,
+  input: { mode: CloudProtectionMode; password?: string; days?: CloudProtectionDays },
+) =>
+  apiFetch<CloudProtection>(`/cloud/projects/${id}/protection`, {
+    ...write,
+    method: 'PUT',
+    body: input,
+  });
+
+/** A one-use link (60 s) that lets a team member into a protected address; plain when it isn't. */
+export const getCloudProtectionTicket = (id: string, host: string) =>
+  apiFetch<{ url: string; expiresIn: number }>(`/cloud/projects/${id}/protection/ticket`, {
+    ...auth,
+    query: { host },
+  });
 
 export const listCloudTokens = () => apiFetch<{ items: CloudToken[] }>('/cloud/tokens', auth);
 

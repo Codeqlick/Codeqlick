@@ -183,6 +183,74 @@ export function FormCheckboxGroup({
   );
 }
 
+/**
+ * Radio buttons sharing one `name`. After a failed submit the chosen one comes back from the
+ * action's echoed values; keyed by the submit count, like FormSelect, so the form reset can't put
+ * back a stale choice.
+ */
+export function FormRadioGroup({
+  name,
+  legend,
+  options,
+  defaultValue,
+  className,
+  idPrefix,
+}: {
+  name: string;
+  legend: string;
+  /** Keeps ids unique when several forms on a page share `name`. */
+  idPrefix?: string;
+  options: { value: string; label: string; hint?: string }[];
+  defaultValue?: string;
+  className?: string;
+}) {
+  const { error, submitted } = useField(name);
+  const submission = useContext(SubmissionContext);
+  const chosen = submitted ?? defaultValue;
+  const prefix = idPrefix ?? name;
+  return (
+    <fieldset
+      key={submission}
+      className={className}
+      aria-describedby={error ? `${prefix}-error` : undefined}
+    >
+      <legend>{legend}</legend>
+      {options.map((option) => {
+        const id = `${prefix}-${option.value}`;
+        return (
+          <div key={option.value} className={fieldStyles.field}>
+            <div className={fieldStyles.checkboxRow}>
+              <input
+                type="radio"
+                id={id}
+                name={name}
+                value={option.value}
+                defaultChecked={chosen === option.value}
+                className={fieldStyles.checkbox}
+                aria-describedby={option.hint ? `${id}-hint` : undefined}
+                aria-invalid={error ? true : undefined}
+              />
+              <label htmlFor={id} className={fieldStyles.label}>
+                {option.label}
+              </label>
+            </div>
+            {option.hint ? (
+              <p id={`${id}-hint`} className={fieldStyles.hint}>
+                {option.hint}
+              </p>
+            ) : null}
+          </div>
+        );
+      })}
+      {error ? (
+        <p id={`${prefix}-error`} role="alert" className={fieldStyles.error}>
+          {error}
+        </p>
+      ) : null}
+    </fieldset>
+  );
+}
+
 export function FormCheckbox(props: Omit<CheckboxProps, 'error'>) {
   const { error, submitted, values } = useField(props.name);
   // Unchecked boxes are absent from FormData, so "values exist" decides which default applies.

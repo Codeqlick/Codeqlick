@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { HttpException, HttpStatus, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { list, x } from 'tar';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { protects, type ProtectionMode } from './cloud-protection.js';
 
 /** What unpacking a bundle may take (from the team's plan). */
 export interface BundleLimits {
@@ -238,5 +239,52 @@ export class CloudStorage {
   async removeDomain(domain: string): Promise<void> {
     if (!this.available) return;
     await rm(this.dir('domains', domain), { force: true });
+  }
+
+  // ── Password protection's markers (architecture 4.13, decision 50) ────────────────────────
+
+  /** The marker files a mode needs: `<slug>.previews` and, for `ALL`, `<slug>.production`. */
+  private markers(slug: string, mode: ProtectionMode): Array<{ name: string; wanted: boolean }> {
+    return [
+      { name: `${slug}.previews`, wanted: protects(mode, 'previews') },
+      { name: `${slug}.production`, wanted: protects(mode, 'production') },
+    ];
+  }
+
+  /** Writes or removes the project's markers for its mode; nothing while hosting isn't set up. */
+  async writeProtection(slug: string, mode: ProtectionMode): Promise<void> {
+    if (!this.available) return;
+    await mkdir(this.dir('protect'), { recursive: true, mode: 0o755 });
+    for (const marker of this.markers(slug, mode)) {
+      const path = this.dir('protect', marker.name);
+      if (marker.wanted) await writeFile(path, '', { mode: 0o644 });
+      else await rm(path, { force: true });
+    }
+  }
+
+  async removeProtection(slug: string): Promise<void> {
+    await this.writeProtection(slug, 'OFF');
+  }
+
+  /**
+   * Puts the markers right against the database: the protected projects' are written, any other
+   * marker is removed (hourly and at start).
+   */
+  async reconcileProtection(
+    projects: Array<{ slug: string; protection: ProtectionMode }>,
+  ): Promise<void> {
+    if (!this.available) return;
+    await mkdir(this.dir('protect'), { recursive: true, mode: 0o755 });
+    const wanted = new Set<string>();
+    for (const project of projects) {
+      for (const marker of this.markers(project.slug, project.protection)) {
+        if (marker.wanted) wanted.add(marker.name);
+      }
+    }
+    for (const name of await readdir(this.dir('protect'))) {
+      if (!name.endsWith('.previews') && !name.endsWith('.production')) continue;
+      if (!wanted.has(name)) await rm(this.dir('protect', name), { force: true });
+    }
+    for (const name of wanted) await writeFile(this.dir('protect', name), '', { mode: 0o644 });
   }
 }
