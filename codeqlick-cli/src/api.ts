@@ -166,6 +166,41 @@ export interface DeviceStart {
 const USER_AGENT = `codeqlick-cli/${VERSION}`;
 
 /** The Cloud API (`/v1/cloud`), with the token when there is one. */
+export type AnalyticsPeriod = '24h' | '7d' | '30d' | '90d' | '365d';
+export interface AnalyticsRow {
+  key: string;
+  visitors: number;
+  count: number;
+}
+export interface Analytics {
+  enabled: boolean;
+  snippet: string;
+  period: AnalyticsPeriod;
+  totals: { visitors: number; pageviews: number };
+  series: Array<{ t: string; visitors: number; pageviews: number }>;
+  pages: AnalyticsRow[];
+  referrers: AnalyticsRow[];
+  browsers: AnalyticsRow[];
+  os: AnalyticsRow[];
+  devices: AnalyticsRow[];
+  events: AnalyticsRow[];
+}
+
+export interface KvItem {
+  key: string;
+  size: number;
+  expiresAt: string | null;
+  updatedAt: string;
+}
+export interface KvEntry extends KvItem {
+  value: unknown;
+}
+export interface KvList {
+  items: KvItem[];
+  cursor: string | null;
+  usage: { keys: number; bytes: number; maxKeys: number; maxBytes: number };
+}
+
 export class Api {
   private readonly base: string;
   private readonly token: string | undefined;
@@ -280,6 +315,29 @@ export class Api {
     this.request<Build>('POST', `/cloud/projects/${project}/builds`, branch ? { branch } : {});
   cancelBuild = (project: string, number: number) =>
     this.request<Build>('POST', `/cloud/projects/${project}/builds/${number}/cancel`);
+  analytics = (project: string, period: AnalyticsPeriod) =>
+    this.request<Analytics>('GET', `/cloud/projects/${project}/analytics?period=${period}`);
+  kvList = (project: string, prefix?: string, cursor?: string) => {
+    const query = new URLSearchParams({ limit: '100' });
+    if (prefix) query.set('prefix', prefix);
+    if (cursor) query.set('cursor', cursor);
+    return this.request<KvList>('GET', `/cloud/projects/${project}/kv?${query.toString()}`);
+  };
+  kvGet = (project: string, key: string) =>
+    this.request<KvEntry>('GET', `/cloud/projects/${project}/kv/${encodeURIComponent(key)}`);
+  kvSet = (project: string, key: string, value: unknown, ttl?: number) =>
+    this.request<KvEntry>('PUT', `/cloud/projects/${project}/kv/${encodeURIComponent(key)}`, {
+      value,
+      ttl,
+    });
+  kvDelete = (project: string, key: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/kv/${encodeURIComponent(key)}`);
+  kvIncr = (project: string, key: string, by: number) =>
+    this.request<{ key: string; value: number }>(
+      'POST',
+      `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
+      { by },
+    );
   startDevice = (clientName: string, locale: string) =>
     this.request<DeviceStart>('POST', `/cloud/cli/device?locale=${locale}`, { clientName });
   pollDevice = (deviceCode: string) =>

@@ -101,6 +101,8 @@ curl -X POST ${api}/cloud/projects/<id>/kv/visits/incr -H "Authorization: Bearer
 
 Las claves son letras, dígitos, \`.\`, \`_\`, \`-\` y \`:\`; \`ttl\` (segundos, opcional) hace que caduquen; \`incr\` suma de forma atómica. Las claves que empiezan por \`public:\` las puede leer cualquiera, sin token, en \`${api}/cloud/kv/<proyecto>/public:flags\`: así tu web lee interruptores desde el navegador. Nunca pongas un token en tus páginas.
 
+Desde la terminal (CLI 0.4): \`codeqlick kv set config:theme '{"dark":true}'\`, \`codeqlick kv get config:theme\`, \`codeqlick kv incr visits\`, \`codeqlick kv ls\` y \`codeqlick analytics --period 30d\`.
+
 ## Rutas, 404 y aplicaciones de una página
 
 - \`/sobre\` sirve \`sobre.html\` o \`sobre/index.html\`.
@@ -315,6 +317,8 @@ curl -X POST ${api}/cloud/projects/<id>/kv/visits/incr -H "Authorization: Bearer
 \`\`\`
 
 Keys are letters, digits, \`.\`, \`_\`, \`-\` and \`:\`; \`ttl\` (seconds, optional) makes them expire; \`incr\` adds atomically. Keys starting with \`public:\` can be read by anyone, without a token, at \`${api}/cloud/kv/<project>/public:flags\`: that's how your site reads flags from the browser. Never put a token in your pages.
+
+From the terminal (CLI 0.4): \`codeqlick kv set config:theme '{"dark":true}'\`, \`codeqlick kv get config:theme\`, \`codeqlick kv incr visits\`, \`codeqlick kv ls\` and \`codeqlick analytics --period 30d\`.
 
 ## Routes, 404 and single-page apps
 
