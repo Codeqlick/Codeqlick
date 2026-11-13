@@ -43,6 +43,12 @@ export class CloudDatabasesRepository {
     return this.prisma.cloudDatabase.delete({ where: { id } });
   }
 
+  /** Every database's last measured size, across Cloud. */
+  async totalBytes(): Promise<number> {
+    const sum = await this.prisma.cloudDatabase.aggregate({ _sum: { sizeBytes: true } });
+    return Number(sum._sum.sizeBytes ?? 0n);
+  }
+
   /** Every database, with its team's plan (for the size check). */
   all(): Promise<DatabaseWithTeam[]> {
     return this.prisma.cloudDatabase.findMany({

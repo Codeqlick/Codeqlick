@@ -5357,6 +5357,19 @@
     "unmatched": "Sin proyecto asociado",
     "close": "Cerrar",
     "note": "Nota (opcional)",
-    "closedNote": "Cerrada {when}: {note}"
+    "closedNote": "Cerrada {when}: {note}",
+    "disk": {
+      "title": "Disco del servidor",
+      "states": {
+        "ok": "Bien",
+        "low": "Poco espacio",
+        "full": "Lleno: Cloud ha dejado de crecer"
+      },
+      "free": "libres de {total} ({used} % usado)",
+      "deployments": "Despliegues de Cloud",
+      "databases": "Bases de datos de Cloud",
+      "buckets": "Buckets de Cloud",
+      "help": "La plataforma, sus copias de seguridad y Codeqlick Cloud comparten este disco. Con menos de {low} libres hay poco espacio; con menos de {min}, Cloud rechaza despliegues, bases de datos y buckets nuevos y congela las bases de datos y los buckets hasta que vuelva a haber sitio. El monitor del servidor avisa por email al 85 % de uso."
+    }
   }
 }

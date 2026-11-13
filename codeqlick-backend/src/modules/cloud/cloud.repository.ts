@@ -303,6 +303,12 @@ export class CloudRepository {
 
   // ── Usage ──────────────────────────────────────────────────────────────────────────────────
 
+  /** Every kept deployment's size, across Cloud (the disk guard's report). */
+  async allDeploymentsBytes(): Promise<number> {
+    const sum = await this.prisma.cloudDeployment.aggregate({ _sum: { sizeBytes: true } });
+    return Number(sum._sum.sizeBytes ?? 0n);
+  }
+
   async storageBytes(teamId: string): Promise<number> {
     const sum = await this.prisma.cloudDeployment.aggregate({
       where: { project: { teamId } },

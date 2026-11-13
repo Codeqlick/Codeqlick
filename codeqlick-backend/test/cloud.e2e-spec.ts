@@ -13,6 +13,7 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { CloudDiskService } from '../src/modules/cloud/cloud-disk.service.js';
 import { CloudDns } from '../src/modules/cloud/cloud-domains.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { CloudProjectsService } from '../src/modules/cloud/cloud-projects.service.js';
@@ -184,6 +185,23 @@ describe('Codeqlick Cloud (e2e)', () => {
       .attach('bundle', withLink)
       .expect(400);
     expect(linkRefused.body.detail).toMatch(/files and folders/);
+
+    // The disk guard (decision 49): a full disk refuses new deployments, and nothing is kept.
+    const full = vi.spyOn(app.get(CloudDiskService), 'full', 'get').mockReturnValue(true);
+    const tooLate = await bundle({ 'index.html': 'too late' });
+    const noRoom = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments`)
+      .set(tokenAuth)
+      .field('target', 'preview')
+      .attach('bundle', tooLate)
+      .expect(507);
+    expect(noRoom.body.detail).toMatch(/short of space/);
+    full.mockRestore();
+    const disk = await request(server).get('/v1/admin/cloud/disk').set(adminAuth).expect(200);
+    expect(disk.body).toMatchObject({ state: expect.stringMatching(/^(ok|low|full)$/) });
+    expect(disk.body.totalBytes).toBeGreaterThan(0);
+    expect(disk.body.deploymentsBytes).toBeGreaterThanOrEqual(0);
+    await request(server).get('/v1/admin/cloud/disk').set(tokenAuth).expect(401);
 
     const v1 = await bundle({ 'index.html': '<h1>v1</h1>', 'assets/app.js': 'console.log(1)' });
     const preview = await request(server)

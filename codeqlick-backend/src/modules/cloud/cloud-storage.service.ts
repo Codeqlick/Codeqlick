@@ -15,6 +15,7 @@ import { CLOUD_PLANS, KEYS_PER_BUCKET } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { CloudStorageRepository, type BucketWithKeys } from './cloud-storage.repository.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
+import { CloudDiskService } from './cloud-disk.service.js';
 import { GarageClient, GarageError } from './garage.client.js';
 
 export interface BucketKeyView {
@@ -61,11 +62,13 @@ export class CloudStorageService implements OnApplicationBootstrap, OnApplicatio
     private readonly projects: CloudProjectsService,
     private readonly teams: CloudTeamsService,
     private readonly config: AppConfigService,
+    private readonly disk: CloudDiskService,
   ) {}
 
   onApplicationBootstrap(): void {
     if (this.config.isTest || !this.garage.configured) return;
-    this.timer = setInterval(() => void this.sync(), HOUR_MS).unref();
+    // Every 10 minutes, so a full disk freezes the buckets soon (decision 49).
+    this.timer = setInterval(() => void this.sync(), HOUR_MS / 6).unref();
   }
 
   onApplicationShutdown(): void {
@@ -99,6 +102,16 @@ export class CloudStorageService implements OnApplicationBootstrap, OnApplicatio
     };
   }
 
+  /** What every bucket holds, from Garage (the disk guard's report); 0 when it can't be read. */
+  async totalBytes(): Promise<number> {
+    if (!this.garage.configured) return 0;
+    let total = 0;
+    for (const bucket of await this.storage.all()) {
+      total += (await this.garage.bucket(bucket.garageId).catch(() => null))?.bytes ?? 0;
+    }
+    return total;
+  }
+
   async list(ctx: CloudCtx, projectId: string) {
     const { project } = await this.projects.project(ctx, projectId);
     const settings = this.config.cloudStorage;
@@ -116,6 +129,7 @@ export class CloudStorageService implements OnApplicationBootstrap, OnApplicatio
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
     if (!this.garage.configured)
       throw new ServiceUnavailableException('Object storage is not set up');
+    this.disk.assertRoom();
     const limits = CLOUD_PLANS[project.team.plan];
     if ((await this.storage.count(project.id)) >= limits.bucketsPerProject) {
       throw new ConflictException(
@@ -217,7 +231,7 @@ export class CloudStorageService implements OnApplicationBootstrap, OnApplicatio
   }
 
   /**
-   * Hourly: quotas follow the team's plan; a deleted project's keys are deleted (so its buckets
+   * Every 10 minutes: quotas follow the team's plan (frozen while the disk is full); a deleted project's keys are deleted (so its buckets
    * can't be reached) and its empty buckets go.
    */
   async sync(): Promise<void> {
@@ -236,8 +250,12 @@ export class CloudStorageService implements OnApplicationBootstrap, OnApplicatio
         }
         const limits = CLOUD_PLANS[bucket.project.team.plan];
         const usage = await this.garage.bucket(bucket.garageId);
-        if (usage.maxSize !== limits.bucketBytes) {
-          await this.garage.setQuotas(bucket.garageId, limits.bucketBytes, limits.bucketObjects);
+        // A full disk: no bucket may grow past what it holds now (decision 49).
+        const maxSize = this.disk.full
+          ? Math.min(usage.bytes, limits.bucketBytes)
+          : limits.bucketBytes;
+        if (usage.maxSize !== maxSize) {
+          await this.garage.setQuotas(bucket.garageId, maxSize, limits.bucketObjects);
         }
       }
     } catch (error) {

@@ -13,6 +13,7 @@ import { CloudKvService } from './cloud-kv.service.js';
 import { CloudBillingController } from './cloud-billing.controller.js';
 import { CloudBillingRepository } from './cloud-billing.repository.js';
 import { CloudBillingService } from './cloud-billing.service.js';
+import { CloudDiskService } from './cloud-disk.service.js';
 import { CloudDatabasesController } from './cloud-databases.controller.js';
 import { CloudDatabasesRepository } from './cloud-databases.repository.js';
 import { CloudDatabasesService } from './cloud-databases.service.js';
@@ -101,6 +102,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudKvService,
     CloudBillingRepository,
     CloudBillingService,
+    CloudDiskService,
     CloudPgClient,
     CloudDatabasesRepository,
     CloudDatabasesService,

@@ -983,3 +983,18 @@ export const deleteCloudBucketKey = (projectId: string, bucketId: string, keyId:
     ...write,
     method: 'DELETE',
   });
+
+// ── Disk guard (architecture 4.13 "Disk guard (one server)", decision 49) ─────────────────
+
+export type AdminCloudDisk = {
+  state: 'ok' | 'low' | 'full' | null;
+  totalBytes: number | null;
+  freeBytes: number | null;
+  lowBytes: number;
+  minBytes: number;
+  deploymentsBytes: number;
+  databasesBytes: number;
+  bucketsBytes: number;
+};
+
+export const adminCloudDisk = () => apiFetch<AdminCloudDisk>('/admin/cloud/disk', auth);

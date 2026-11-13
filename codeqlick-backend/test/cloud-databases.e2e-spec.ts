@@ -11,6 +11,7 @@ import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { CloudDatabasesService } from '../src/modules/cloud/cloud-databases.service.js';
+import { CloudDiskService } from '../src/modules/cloud/cloud-disk.service.js';
 import { CLOUD_PLANS, CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -155,6 +156,22 @@ describe('Codeqlick Cloud databases (e2e)', () => {
     const again = await connect(db.database, db.user, db.password);
     await again.query("INSERT INTO notes (body) VALUES ('writable again')");
     await again.end();
+
+    // A full server disk freezes every database (decision 49), without blaming the team.
+    const emails = sent.length;
+    const full = vi.spyOn(app.get(CloudDiskService), 'full', 'get').mockReturnValue(true);
+    await service.check();
+    expect(await prisma.cloudDatabase.findUniqueOrThrow({ where: { id: db.id } })).toMatchObject({
+      readOnly: true,
+      blocked: false,
+    });
+    expect(sent.length).toBe(emails);
+    await request(server).post(base).set(auth).send({ name: 'more' }).expect(507);
+    full.mockRestore();
+    await service.check();
+    expect((await prisma.cloudDatabase.findUniqueOrThrow({ where: { id: db.id } })).readOnly).toBe(
+      false,
+    );
 
     // A new password replaces the old one.
     const reset = await request(server).post(`${base}/${db.id}/password`).set(auth).expect(200);

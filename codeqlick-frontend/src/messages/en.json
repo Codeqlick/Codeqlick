@@ -5357,6 +5357,19 @@
     "unmatched": "No project matched",
     "close": "Close",
     "note": "Note (optional)",
-    "closedNote": "Closed {when}: {note}"
+    "closedNote": "Closed {when}: {note}",
+    "disk": {
+      "title": "Server disk",
+      "states": {
+        "ok": "OK",
+        "low": "Low",
+        "full": "Full: Cloud stopped growing"
+      },
+      "free": "free of {total} ({used} % used)",
+      "deployments": "Cloud deployments",
+      "databases": "Cloud databases",
+      "buckets": "Cloud buckets",
+      "help": "The platform, its backups and Codeqlick Cloud share this disk. Under {low} free it is low; under {min} Cloud refuses new deployments, databases and buckets and freezes databases and buckets until there is room again. The server monitor emails at 85 % used."
+    }
   }
 }
