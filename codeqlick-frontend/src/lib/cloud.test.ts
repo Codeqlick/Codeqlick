@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloudSlug, formatBytes } from './cloud';
+import { cloudSlug, formatBytes, hookName } from './cloud';
 
 describe('formatBytes', () => {
   it('picks the unit and the decimals', () => {
@@ -16,5 +16,14 @@ describe('cloudSlug', () => {
     expect(cloudSlug('Mi Web Ñandú!', 40)).toBe('mi-web-nandu');
     expect(cloudSlug('  --Docs--  ', 40)).toBe('docs');
     expect(cloudSlug('a'.repeat(50), 40)).toHaveLength(40);
+  });
+});
+
+describe('hookName', () => {
+  it('trims and keeps 1 to 60 characters', () => {
+    expect(hookName('  Contentful  ')).toBe('Contentful');
+    expect(hookName('   ')).toBeNull();
+    expect(hookName('a'.repeat(60))).toHaveLength(60);
+    expect(hookName('a'.repeat(61))).toBeNull();
   });
 });

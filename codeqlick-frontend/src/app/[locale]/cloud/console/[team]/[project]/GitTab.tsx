@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
+import { TokenReveal } from '@/components/cloud/TokenReveal';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
 import {
@@ -9,10 +10,14 @@ import {
   getCloudTeamGithub,
   listCloudEnv,
   listCloudGithubRepos,
+  listCloudHooks,
 } from '@/lib/api/cloud';
+import { formatWhen } from '@/lib/cloud';
 import {
   connectGithubAction,
+  createHookAction,
   deleteEnvAction,
+  deleteHookAction,
   disconnectGitAction,
   saveEnvAction,
   saveGitAction,
@@ -40,6 +45,11 @@ export async function GitTab(props: Props) {
   if (!team.configured) {
     return <p className={styles.muted}>{t('git.notConfigured')}</p>;
   }
+  const hooks = git.repo
+    ? await listCloudHooks(props.projectId)
+        .then((r) => r.items)
+        .catch(() => null)
+    : [];
   const repos = (
     await Promise.all(
       team.installations
@@ -178,6 +188,103 @@ export async function GitTab(props: Props) {
           {connectForm(t('git.connectAnother'), 'outline')}
         </section>
       ) : null}
+
+      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="hooks-title">
+        <h3 id="hooks-title" className={styles.cardTitle}>
+          {t('hooks.title')}
+        </h3>
+        <p className={styles.small}>{t('hooks.lead')}</p>
+        {!git.repo ? <p className={styles.muted}>{t('hooks.noRepo')}</p> : null}
+        {git.repo && hooks === null ? (
+          <p className={styles.muted}>{t('common.loadError')}</p>
+        ) : null}
+        {hooks && hooks.length === 0 ? <p className={styles.muted}>{t('hooks.empty')}</p> : null}
+        {hooks && hooks.length > 0 ? (
+          <ul className={styles.list}>
+            {hooks.map((hook) => (
+              <li key={hook.id} className={styles.row}>
+                <div className={styles.rowMain}>
+                  <p className={styles.rowTitle}>
+                    {hook.name}
+                    <Badge>{hook.branch}</Badge>
+                  </p>
+                  <p className={styles.small}>
+                    <span className={styles.mono}>{hook.prefix}…</span> ·{' '}
+                    {t('hooks.madeBy', { name: hook.createdBy?.name ?? '—' })} ·{' '}
+                    {hook.lastCalledAt
+                      ? t('hooks.lastCalled', { when: formatWhen(hook.lastCalledAt, props.locale) })
+                      : t('hooks.neverCalled')}
+                  </p>
+                  {props.admin ? (
+                    <details>
+                      <summary className={styles.small}>
+                        {t('hooks.delete')}
+                        <span className="visually-hidden"> — {hook.name}</span>
+                      </summary>
+                      <ActionForm
+                        action={deleteHookAction.bind(
+                          null,
+                          props.locale,
+                          props.path,
+                          props.projectId,
+                          hook.id,
+                        )}
+                        className={styles.form}
+                      >
+                        <p className={styles.small}>{t('hooks.deleteWarning')}</p>
+                        <FormCheckbox
+                          id={`${hook.id}-confirm`}
+                          name="confirm"
+                          label={t('hooks.confirmDelete', { name: hook.name })}
+                          required
+                        />
+                        <div className={styles.actions}>
+                          <SubmitButton
+                            size="sm"
+                            variant="danger"
+                            pendingLabel={t('hooks.deleting')}
+                          >
+                            {t('hooks.delete')}
+                          </SubmitButton>
+                        </div>
+                      </ActionForm>
+                    </details>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {props.admin && git.repo ? (
+          <ActionForm
+            action={createHookAction.bind(null, props.locale, props.path, props.projectId)}
+            className={styles.form}
+          >
+            <TokenReveal />
+            <p className={styles.small}>{t('hooks.shownOnce')}</p>
+            <FormInput
+              name="name"
+              label={t('hooks.name')}
+              hint={t('hooks.nameHint')}
+              required
+              maxLength={60}
+            />
+            <FormInput
+              name="branch"
+              label={t('hooks.branch')}
+              hint={t('hooks.branchHint')}
+              defaultValue={git.branch}
+              maxLength={255}
+              mono
+            />
+            <div className={styles.actions}>
+              <SubmitButton variant="outline" pendingLabel={t('hooks.creating')}>
+                {t('hooks.create')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        ) : null}
+      </section>
 
       <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="env-title">
         <h3 id="env-title" className={styles.cardTitle}>

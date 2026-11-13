@@ -37,3 +37,9 @@ export function cloudSlug(text: string, max: number): string {
     .slice(0, max)
     .replace(/-+$/, '');
 }
+
+/** A deploy hook's name is 1 to 60 characters once trimmed; returns the trimmed name or null. */
+export function hookName(text: string): string | null {
+  const name = text.trim();
+  return name.length >= 1 && name.length <= 60 ? name : null;
+}

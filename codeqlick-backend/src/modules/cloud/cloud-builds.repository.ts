@@ -68,6 +68,9 @@ export class CloudBuildsRepository {
 
   async removeInstallation(installationId: bigint): Promise<void> {
     await this.prisma.$transaction([
+      this.prisma.cloudDeployHook.deleteMany({
+        where: { project: { gitInstallationId: installationId } },
+      }),
       this.prisma.cloudProject.updateMany({
         where: { gitInstallationId: installationId },
         data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
@@ -84,10 +87,14 @@ export class CloudBuildsRepository {
   }
 
   async unlinkRepos(installationId: bigint, repoIds: bigint[]): Promise<void> {
-    await this.prisma.cloudProject.updateMany({
-      where: { gitInstallationId: installationId, gitRepoId: { in: repoIds } },
-      data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
-    });
+    const where = { gitInstallationId: installationId, gitRepoId: { in: repoIds } };
+    await this.prisma.$transaction([
+      this.prisma.cloudDeployHook.deleteMany({ where: { project: where } }),
+      this.prisma.cloudProject.updateMany({
+        where,
+        data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+      }),
+    ]);
   }
 
   /** The live projects a repository is connected to. */
@@ -103,7 +110,19 @@ export class CloudBuildsRepository {
     });
   }
 
-  async setGit(projectId: string, data: Prisma.CloudProjectUncheckedUpdateInput): Promise<void> {
+  /** Saves the connection and settings; `dropHooks` also deletes the project's deploy hooks. */
+  async setGit(
+    projectId: string,
+    data: Prisma.CloudProjectUncheckedUpdateInput,
+    dropHooks = false,
+  ): Promise<void> {
+    if (dropHooks) {
+      await this.prisma.$transaction([
+        this.prisma.cloudDeployHook.deleteMany({ where: { projectId } }),
+        this.prisma.cloudProject.update({ where: { id: projectId }, data }),
+      ]);
+      return;
+    }
     await this.prisma.cloudProject.update({ where: { id: projectId }, data });
   }
 

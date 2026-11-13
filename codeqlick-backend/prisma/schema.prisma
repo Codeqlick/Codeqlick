@@ -164,6 +164,7 @@ model User {
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
   cloudEvents                CloudEvent[]
+  cloudDeployHooks           CloudDeployHook[]
 
   @@map("users")
 }
@@ -2042,6 +2043,7 @@ model CloudProject {
   builds          CloudBuild[]
   prComments      CloudPullComment[]
   notifyChannels  CloudNotifyChannel[]
+  deployHooks     CloudDeployHook[]
   analyticsEvents CloudAnalyticsEvent[]
   kvEntries       CloudKvEntry[]
   cloudDatabases  CloudDatabase[]
@@ -2375,6 +2377,7 @@ enum CloudBuildTrigger {
   PUSH
   PULL_REQUEST
   MANUAL
+  HOOK
 }
 
 enum CloudBuildStatus {
@@ -2405,6 +2408,8 @@ model CloudBuild {
   deploymentId  String?           @map("deployment_id") @db.Uuid
   builder       String?           @db.VarChar(60)
   createdById   String?           @map("created_by_id") @db.Uuid
+  /// The deploy hook's name when the build came from one (trigger HOOK); kept after the hook is deleted.
+  hookName      String?           @map("hook_name") @db.VarChar(60)
   queuedAt      DateTime          @default(now()) @map("queued_at") @db.Timestamptz(3)
   startedAt     DateTime?         @map("started_at") @db.Timestamptz(3)
   heartbeatAt   DateTime?         @map("heartbeat_at") @db.Timestamptz(3)
@@ -2416,6 +2421,27 @@ model CloudBuild {
   @@index([status, queuedAt])
   @@index([projectId, queuedAt])
   @@map("cloud_builds")
+}
+
+/// A secret URL that builds one branch of a project when called (architecture 4.13 "Deploy hooks", decision 51).
+model CloudDeployHook {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  name         String    @db.VarChar(60)
+  branch       String    @db.VarChar(200)
+  /// The token's first 12 characters (`cqd_` + 8), to recognise it.
+  prefix       String    @db.VarChar(12)
+  /// SHA-256 of the token, which is shown once.
+  tokenHash    String    @unique @map("token_hash") @db.VarChar(64)
+  createdById  String?   @map("created_by_id") @db.Uuid
+  lastCalledAt DateTime? @map("last_called_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project   CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, name])
+  @@map("cloud_deploy_hooks")
 }
 
 /// A GitHub webhook delivery already handled (kept a day).
