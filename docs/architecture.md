@@ -428,7 +428,7 @@ Owner's choice (2026-11-12): developer tools in the spirit of AWS, Vercel or Git
 |---|---|---|---|
 | 1 | Console, teams, API tokens and CLI login; **static hosting** (deployments, previews, rollbacks); custom domains | No | The hosting domain (`CLOUD_HOSTING_DOMAIN`, decision 33) and its wildcard certificate (8.3) |
 | 1b | The platform's existing tools opened to developers: forms for static sites (`site-forms`), uptime and cron heartbeats with public status pages (`monitoring`), the website check as an API and a GitHub Action (`site-audits`) | No | Phase 1 |
-| 2 | Builds from Git (specified below, decisions 40–42); build notifications, web analytics and a key-value store (decisions 43–45); plans and billing (Stripe); managed PostgreSQL; S3-compatible object storage | Yes (builds) | Stripe live (decision 20); a build host (for now the production VPS, every build sandboxed by gVisor; a separate server once builds are frequent, decision 41); storage servers or OVH Object Storage |
+| 2 | Builds from Git (specified below, decisions 40–42); build notifications, web analytics and a key-value store (decisions 43–45); plans and billing through Stripe, managed PostgreSQL and S3-compatible object storage (decisions 46–48, for now on the production VPS) | Yes (builds) | Stripe live (decision 20); a build host (for now the production VPS, every build sandboxed by gVisor; a separate server once builds are frequent, decision 41); storage servers or OVH Object Storage |
 | 3 | Containers and apps (long-running processes, like Heroku or Render) | Yes | Several servers with microVM isolation and someone on call |
 
 Git hosting itself is left to GitHub (or a self-hosted Forgejo): developers already keep their code there, and phase 2 connects to it. Phases 2 and 3 are only outlined here; each gets its full spec before its code.
@@ -559,10 +559,49 @@ Owner's choice (2026-11-13). Each project has a small key-value store reached ov
 - **Public reads:** `GET /v1/cloud/kv/<project slug>/<key>` answers the value of a key starting with `public:` as JSON to anyone (CORS for any origin, `Cache-Control: public, max-age=10`, 120 a minute per IP); any other key, a suspended or a deleted project answers `404`. Nothing is writable without a token.
 - **Console:** the project's **KV** tab: usage against the limits, keys by prefix with their size and expiry, a key's value, writing one (JSON) and deleting it, and the `curl` lines to use it.
 
+#### Plans and billing (phase 2)
+
+Owner's choice (2026-11-13). A team moves to **PRO** (the limits of `CLOUD_PLANS.PRO`) by paying a monthly subscription through Stripe; the free plan stays. Decision 46.
+
+- **Price:** a recurring monthly price made in Stripe's dashboard, named by `STRIPE_CLOUD_PRO_PRICE_ID`; its amount and currency are read from Stripe (cached an hour) and shown in the console, plus IVA (the same tax rate as decision 20, `SITE_VAT_PERCENT`). Without Stripe's keys or that price the team's **Plan** page says paid plans aren't available yet and nothing else changes.
+- **Upgrade:** a team's owners press "Upgrade to PRO": `POST /v1/cloud/teams/:team/billing/checkout` makes a Checkout Session in subscription mode (the team's Stripe customer, made once with the owner's email and the team's id in its metadata; `client_reference_id` and metadata name the team) and the console sends them there. Stripe's webhook (`POST /v1/payments/stripe`, the same endpoint as decision 20, which tells them apart by the session's mode and metadata) makes the team `PRO` when the session completes.
+- **Subscription state** (`CloudTeam`: `stripeCustomerId`, `stripeSubscriptionId`, `subscriptionStatus`, `currentPeriodEnd`, `cancelAtPeriodEnd`), kept by the webhook's `customer.subscription.created|updated|deleted`: `active` and `trialing` are PRO; `past_due` stays PRO while Stripe retries (the owners are emailed on `invoice.payment_failed`); `canceled`, `unpaid` and `incomplete_expired` go back to FREE. The event's subscription is read again from Stripe before acting, so events arriving out of order don't matter.
+- **Managing it:** `POST /v1/cloud/teams/:team/billing/portal` opens Stripe's customer portal (card, invoices, cancel at the end of the period). Owners only; admins and members see the plan.
+- **Going back to FREE** deletes nothing: what is over the free limits keeps working but nothing more can be added (a 409 names the limit), and the monthly limits (builds, analytics, form submissions) apply at once.
+- **Console:** the team's **Plan** page: the plan, its limits side by side, the price, the subscription's state and next renewal, and the buttons. Admin → Cloud shows each team's plan.
+
+#### Databases (phase 2)
+
+Owner's choice (2026-11-13): managed PostgreSQL databases for projects, **for now on the production VPS** in a PostgreSQL of their own, apart from the platform's. Decision 47.
+
+- **Server:** the `cloud-pg` service (`postgres:18-alpine`, its own volume) listening publicly on `pg.<CLOUD_HOSTING_DOMAIN>:5432` with **TLS only** (the hosting domain's wildcard certificate, copied in when the container starts and every 12 hours, then reloaded) and SCRAM passwords. `pg_hba.conf`: remote clients only over `hostssl`, each role only to its own database (`sameuser`); the administrator role only from the Docker network. `pg` is a reserved project slug. Settings in `CLOUD_PG_ADMIN_URL` (the administrator's connection inside Docker) and `CLOUD_PG_HOST`; without them the **Databases** tab says it isn't set up.
+- **Database** (`CloudDatabase` of a project; free: 1 per project, PRO: 5): a `name` (shown), and in PostgreSQL a database and a role both called `cq_<16 hex>`, the role `LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE`, owner of its database, with a connection limit (free 5, PRO 20) and `statement_timeout` 60 s; `CONNECT` is revoked from `PUBLIC`. The password (32 random characters) is shown once, at creation and when it is reset; it is never stored (decision 42's reasoning: the console doesn't need to read it back).
+- **Size:** free 256 MB, PRO 10 GB per database (`pg_database_size`, checked every 10 minutes and shown). Over it, the database becomes read-only (`default_transaction_read_only`, its sessions ended) and the team's admins are emailed; under it again it is writable again.
+- **Backups:** each database is dumped daily (`pg_dump -Fc`) next to the platform's backups and kept 7 days. For now they stay on the same server, which the console says; restoring is asked by email.
+- **API** (`/v1/cloud/projects/:id/databases`, ADMIN to create, reset and delete; members read): list (`{ id, name, host, port, database, user, sizeBytes, maxBytes, readOnly, connectionUrl (without the password), createdAt }`), create (`{ name }`, the answer adds `password` and the full `connectionUrl` once), reset the password, delete (drops it at once; the latest daily dump stays for 7 days). Recorded as team events.
+- **Console:** the project's **Databases** tab: the list with size and state, the connection string to copy (`postgresql://<user>:<password>@pg.<domain>:5432/<database>?sslmode=require`), create, reset the password, delete.
+
+#### Object storage (phase 2)
+
+Owner's choice (2026-11-13): S3-compatible buckets for projects, **for now on the production VPS**. Decision 48.
+
+- **Server:** [Garage](https://garagehq.deuxfleurs.fr/) (`dxflrs/garage:v2.5.0`, one node, replication 1, its own volumes) in the `cloud-storage` service. Its S3 API answers at `https://s3.<CLOUD_HOSTING_DOMAIN>` (host Nginx with the wildcard certificate, path-style addresses, region `garage`, no upload size limit, buffering off); its admin API stays inside Docker (`CLOUD_STORAGE_ADMIN_URL`, `CLOUD_STORAGE_ADMIN_TOKEN`). `s3` is a reserved project slug. Without the settings the **Storage** tab says it isn't set up.
+- **Bucket** (`CloudBucket` of a project; free: 2 per project, PRO: 10): a name of 3–63 lowercase letters, digits and dashes, unique across Cloud, which is also its name in Garage, and a quota (free 1 GB and 100,000 objects per bucket; PRO 50 GB and 1,000,000) set as Garage's bucket quota, so uploads past it are refused by Garage itself. Size and objects are read from Garage and shown.
+- **Access keys** (`CloudBucketKey`, up to 10 per bucket): a name and read-only or read-write; made in Garage for that bucket only. The secret is shown once; only the key's id is kept. Deleting a key deletes it in Garage.
+- **Use:** any S3 client or SDK (`endpoint https://s3.<domain>`, `forcePathStyle`, region `garage`); browsers get files through presigned URLs that the team's own server signs. Public buckets and CORS rules are left for later.
+- **Deleting a bucket** is refused while it holds objects (empty it first); then it and its keys are deleted.
+- **API** (`/v1/cloud/projects/:id/buckets`, ADMIN to change; members read): list (`{ id, name, endpoint, region, sizeBytes, objects, maxBytes, maxObjects, keys: [{ id, name, accessKeyId, write, createdAt }], createdAt }`), create `{ name }`, delete; `POST …/:bucketId/keys` `{ name, write }` → the key with `secretAccessKey` once; `DELETE …/:bucketId/keys/:keyId`.
+- **Console:** the project's **Storage** tab: buckets with usage, keys, and the settings to paste into an S3 client.
+
+**Privacy and responsibility of databases and storage:** what teams keep there is theirs (Codeqlick is its processor, Cloud terms); the abuse rules of static hosting apply. Both run on the platform's server until they move to their own (owner's choice, November 2026).
+
+#### Command line for analytics and the key-value store
+
+`codeqlick` 0.4 (owner's choice 2026-11-13; the project is the one linked in the folder, or `--project`): `codeqlick analytics [--period 24h|7d|30d|90d|365d] [--json]` prints the totals and the top pages and sources; `codeqlick kv ls [prefix]`, `codeqlick kv get <key>`, `codeqlick kv set <key> <value> [--ttl seconds]` (the value is JSON, or text when it isn't; `-` reads standard input), `codeqlick kv rm <key>`, `codeqlick kv incr <key> [--by n]`. `--json` prints the API's answer.
+
 #### Later phases (outline)
 
-- **2 Plans:** `PRO` with higher limits, paid monthly through Stripe Billing; the free plan stays.
-- **2 Databases and storage:** PostgreSQL databases per project on a dedicated server (daily off-server backups), and S3-compatible buckets.
+- **Later for databases and storage:** their own servers with off-server backups, public buckets and CORS rules.
 - **3 Apps:** containers from a Dockerfile, isolated in microVMs, on their own servers.
 
 ## 5. API contract (v1)
@@ -810,6 +849,14 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | GET / PUT / DELETE | `/cloud/projects/:id/kv/:key` 🔑 | PUT `{ value, ttl? }` | `{ key, value, size, expiresAt, updatedAt }` / the same / `204`; `404` missing, `409` past the limits, `413` a value over 64 KB |
 | POST | `/cloud/projects/:id/kv/:key/incr` 🔑 | `{ by?, ttl? }` | `{ key, value }`; `409` when the value isn't an integer |
 | GET | `/cloud/kv/:slug/:key` | Public; keys starting with `public:` only | The value as JSON; `404` otherwise. 120/min/IP |
+| POST | `/cloud/teams/:team/billing/checkout` 🔑 | (OWNER) | `{ url }`: Stripe Checkout for PRO; `409` already PRO, `503` paid plans not set up |
+| POST | `/cloud/teams/:team/billing/portal` 🔑 | (OWNER) | `{ url }`: Stripe's customer portal; `409` without a subscription |
+| GET | `/cloud/teams/:team/billing` 🔑 | | `{ available, plan, price: { amount, currency, interval, vatPercent } \| null, subscription: { status, currentPeriodEnd, cancelAtPeriodEnd } \| null, limits: { FREE, PRO } }` |
+| GET / POST | `/cloud/projects/:id/databases` 🔑 | POST `{ name }` (ADMIN) | `{ configured, items: CloudDatabase[] }` / `201 CloudDatabase` with `password` and `connectionUrl` once; `409` past the plan, `503` not set up |
+| POST / DELETE | `/cloud/projects/:id/databases/:databaseId` (`/password` for POST) 🔑 | (ADMIN) | The database with a new `password` once / `204` |
+| GET / POST | `/cloud/projects/:id/buckets` 🔑 | POST `{ name }` (ADMIN) | `{ configured, endpoint, region, items: CloudBucket[] }` / `201 CloudBucket`; `409` name taken or past the plan |
+| DELETE | `/cloud/projects/:id/buckets/:bucketId` 🔑 | (ADMIN) | `204`; `409` while it holds objects |
+| POST / DELETE | `/cloud/projects/:id/buckets/:bucketId/keys` (`/:keyId` for DELETE) 🔑 | POST `{ name, write }` (ADMIN) | `201` the key with `secretAccessKey` once / `204` |
 | POST | `/cloud/github/webhook` | GitHub's, signed | `202`; `401` bad signature |
 | POST | `/cloud/builder/claim` | Builder token. `{ builder }` | `204` nothing to do, or `{ build: { id, cloneUrl, commit, rootDir, installCommand, buildCommand, outputDir, nodeVersion, env, timeoutSeconds, secrets } }` |
 | POST | `/cloud/builder/builds/:id/log` | Builder token. Text | `204`; `409` when the build was canceled (the agent stops) |
@@ -1503,3 +1550,6 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 43 | Build notifications are per project channels (email, Slack, Discord, a signed webhook), delivered once in the background through the safe fetching | A failed build nobody sees is a site that silently stopped updating. Per project, because each has its own people and channels. Slack and Discord cover most teams with no app to install (their incoming webhooks); a signed webhook covers the rest. Their URLs are credentials, so they are sealed and write-only, and they go through the website check's safe fetching so nobody can point Codeqlick at a private address. One attempt and auto switch-off after ten failures keep a dead endpoint from costing anything |
 | 44 | Cloud's web analytics are cookieless, first-party to Codeqlick and keep no personal data | Developers want to know what is visited without adding a third-party tracker and a cookie banner to their sites. Counting on our own API (not the access logs) leaves out bots and cached pages and works for single-page apps. A daily salt that is thrown away the day after counts people once a day without being able to follow them, and no IP or cookie is kept. It is opt-in per project because the team, not Codeqlick, decides to measure its visitors |
 | 45 | Each project gets a key-value store in PostgreSQL, over HTTP, with a public prefix for browsers | Static sites and their scripts need somewhere to keep a few settings and counters without running a database. The platform's PostgreSQL already holds the rest of Cloud, with backups; small JSON values with limits per project don't need another server. Only keys the team names `public:` can be read without a token, so a site can read flags from the browser while everything else stays private |
+| 46 | Cloud's PRO plan is a Stripe subscription per team, made through Checkout and managed in Stripe's customer portal | Stripe already takes the website payments (decision 20); Checkout and the portal keep cards, invoices, VAT and cancellations off the platform. The webhook only sets the team's plan from the subscription Stripe says it has, read again on each event, so it can't be fooled or confused by order. Going back to free deletes nothing: losing data for a failed card would be worse than a few resources over the limit |
+| 47 | Managed PostgreSQL runs, for now, in its own PostgreSQL container on the production VPS, open on 5432 with TLS only and a role per database | The owner chose to start on the current server (November 2026). A PostgreSQL apart from the platform's keeps teams away from its data and lets it be restarted or moved alone; TLS, SCRAM and `sameuser` rules keep each role in its own database, connection and size limits keep one team from starving the others, and nothing changes for teams when it moves to a server of its own |
+| 48 | Object storage is Garage on the production VPS, behind Nginx at s3.<hosting domain>, with quotas set in Garage | Garage is a small, maintained S3-compatible server meant for self-hosting, with an admin API to make buckets, keys and quotas, so the platform drives it instead of reimplementing S3. Quotas enforced by Garage itself hold even when the API is down. One node until the storage has its own servers (owner's choice, November 2026) |
