@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   TicketBook,
   TryLimiter,
+  ipBucket,
   accessCookieOptions,
   nextFromUrl,
   pageLocale,
@@ -139,13 +140,54 @@ describe('tickets', () => {
 });
 
 describe('tries', () => {
-  it('allows 5 tries a minute per key', () => {
-    const limiter = new TryLimiter(5, 60_000);
-    for (let i = 0; i < 5; i += 1) expect(limiter.take('1.2.3.4|p', now)).toBe(true);
-    expect(limiter.take('1.2.3.4|p', now)).toBe(false);
-    expect(limiter.take('1.2.3.4|q', now)).toBe(true);
-    expect(limiter.take('5.6.7.8|p', now)).toBe(true);
-    expect(limiter.take('1.2.3.4|p', now + 60_000)).toBe(true);
+  it('allows 5 tries a minute per IP and project', () => {
+    const limiter = new TryLimiter(5, 60, 60_000);
+    for (let i = 0; i < 5; i += 1) expect(limiter.take('1.2.3.4', 'p', now)).toBe(true);
+    expect(limiter.take('1.2.3.4', 'p', now)).toBe(false);
+    expect(limiter.take('::ffff:1.2.3.4', 'p', now)).toBe(false);
+    expect(limiter.take('1.2.3.4', 'q', now)).toBe(true);
+    expect(limiter.take('5.6.7.8', 'p', now)).toBe(true);
+    expect(limiter.take('1.2.3.4', 'p', now + 60_000)).toBe(true);
+  });
+
+  it('counts an IPv6 address by its /64', () => {
+    const limiter = new TryLimiter(5, 60, 60_000);
+    for (let i = 0; i < 5; i += 1) {
+      expect(limiter.take(`2001:db8:1:2::${i + 1}`, 'p', now)).toBe(true);
+    }
+    expect(limiter.take('2001:db8:1:2:ffff:ffff:ffff:ffff', 'p', now)).toBe(false);
+    expect(limiter.take('2001:db8:1:3::1', 'p', now)).toBe(true);
+  });
+
+  it('allows 60 tries a minute per project from everyone', () => {
+    const limiter = new TryLimiter(5, 60, 60_000);
+    for (let i = 0; i < 60; i += 1) expect(limiter.take(`198.51.100.${i}`, 'p', now)).toBe(true);
+    expect(limiter.take('203.0.113.1', 'p', now)).toBe(false);
+    expect(limiter.take('203.0.113.1', 'q', now)).toBe(true);
+    expect(limiter.take('203.0.113.1', 'p', now + 60_000)).toBe(true);
+  });
+
+  it('remembers a bounded number of keys, forgetting the oldest', () => {
+    const limiter = new TryLimiter(1, 1_000_000, 60_000, 100);
+    expect(limiter.take('10.0.0.1', 'p', now)).toBe(true);
+    for (let i = 0; i < 500; i += 1)
+      limiter.take(`10.1.${Math.floor(i / 250)}.${i % 250}`, 'p', now);
+    expect(limiter.size).toBeLessThanOrEqual(100);
+    // The oldest key was forgotten, so it may try again.
+    expect(limiter.take('10.0.0.1', 'p', now)).toBe(true);
+  });
+});
+
+describe('ip buckets', () => {
+  it('keeps IPv4, unmaps IPv4 in IPv6 and cuts IPv6 to its /64', () => {
+    expect(ipBucket('203.0.113.7')).toBe('203.0.113.7');
+    expect(ipBucket('::ffff:203.0.113.7')).toBe('203.0.113.7');
+    expect(ipBucket('2001:0db8:0001:0002:0003:0004:0005:0006')).toBe('2001:db8:1:2::/64');
+    expect(ipBucket('2001:db8::1')).toBe('2001:db8:0:0::/64');
+    expect(ipBucket('2001:DB8:1:2::abcd')).toBe('2001:db8:1:2::/64');
+    expect(ipBucket('::1')).toBe('0:0:0:0::/64');
+    expect(ipBucket(null)).toBe('unknown');
+    expect(ipBucket('not-an-ip')).toBe('unknown');
   });
 });
 

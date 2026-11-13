@@ -389,7 +389,8 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
   /** Puts password protection's marker files right against the database (decision 50). */
   async reconcileProtection(): Promise<void> {
     try {
-      await this.storage.reconcileProtection(await this.repository.protectedProjects());
+      const readAt = new Date();
+      await this.storage.reconcileProtection(await this.repository.protectedProjects(), readAt);
     } catch (error) {
       this.logger.error(`Protection markers' check failed: ${String(error)}`);
     }

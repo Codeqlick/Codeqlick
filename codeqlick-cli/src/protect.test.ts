@@ -7,6 +7,8 @@ test('protect takes off, previews or all', () => {
   assert.equal(parseProtectMode('previews'), 'PREVIEWS');
   assert.equal(parseProtectMode('ALL'), 'ALL');
   assert.equal(parseProtectMode('production'), null);
+  assert.equal(parseProtectMode('constructor'), null);
+  assert.equal(parseProtectMode('__proto__'), null);
   assert.equal(parseProtectMode(''), null);
 });
 

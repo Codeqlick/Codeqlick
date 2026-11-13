@@ -268,10 +268,12 @@ export class CloudStorage {
 
   /**
    * Puts the markers right against the database: the protected projects' are written, any other
-   * marker is removed (hourly and at start).
+   * marker is removed (hourly and at start), unless it was written after `readAt`, when the
+   * projects were read.
    */
   async reconcileProtection(
     projects: Array<{ slug: string; protection: ProtectionMode }>,
+    readAt: Date,
   ): Promise<void> {
     if (!this.available) return;
     await mkdir(this.dir('protect'), { recursive: true, mode: 0o755 });
@@ -283,7 +285,16 @@ export class CloudStorage {
     }
     for (const name of await readdir(this.dir('protect'))) {
       if (!name.endsWith('.previews') && !name.endsWith('.production')) continue;
-      if (!wanted.has(name)) await rm(this.dir('protect', name), { force: true });
+      if (wanted.has(name)) continue;
+      // A marker written since the database was read belongs to a change this read didn't see:
+      // it stays until the next check (2 s of slack for coarse file times).
+      const path = this.dir('protect', name);
+      const written = await lstat(path).then(
+        (stat) => stat.mtimeMs,
+        () => null,
+      );
+      if (written === null || written > readAt.getTime() - 2000) continue;
+      await rm(path, { force: true });
     }
     for (const name of wanted) await writeFile(this.dir('protect', name), '', { mode: 0o644 });
   }

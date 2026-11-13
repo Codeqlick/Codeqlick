@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as argon2 from 'argon2';
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
@@ -384,9 +384,14 @@ describe('Codeqlick Cloud password protection (e2e)', () => {
     await rm(marker('production'));
     await mkdir(join(root, 'protect'), { recursive: true });
     await writeFile(join(root, 'protect', `stale-${tag}.previews`), '');
+    // A marker written after the database was read is left for the next check; an old one goes.
+    await writeFile(join(root, 'protect', `fresh-${tag}.previews`), '');
+    const hourAgo = new Date(Date.now() - 3_600_000);
+    await utimes(join(root, 'protect', `stale-${tag}.previews`), hourAgo, hourAgo);
     await app.get(CloudProjectsService).reconcileProtection();
     expect(await exists(marker('production'))).toBe(true);
     expect(await exists(join(root, 'protect', `stale-${tag}.previews`))).toBe(false);
+    expect(await exists(join(root, 'protect', `fresh-${tag}.previews`))).toBe(true);
 
     // ── OFF lets everything through and forgets the password ──────────────────────────────
     const off = await request(server).put(base).set(adminAuth).send({ mode: 'OFF' }).expect(200);
