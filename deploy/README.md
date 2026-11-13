@@ -647,6 +647,19 @@ To try it locally with Codeqlick's test mode: put its test secret key (`sk_test_
 localhost:4000/v1/payments/stripe`, whose `whsec_…` goes in the `.env` as `STRIPE_WEBHOOK_SECRET`.
 Card `4242 4242 4242 4242`, any future date and CVC.
 
+### Codeqlick Cloud's PRO plan (Stripe)
+
+Teams pay PRO through a Stripe subscription (architecture 4.13 "Plans and billing", decision 46),
+with the same account and keys as above. It is off until `STRIPE_CLOUD_PRO_PRICE_ID` is set too:
+
+1. Product catalogue → Add product "Codeqlick Cloud PRO" with a **recurring monthly** price
+   (before VAT: the API adds the "IVA" tax rate). Copy the price's id (`price_…`).
+2. Settings → Billing → Customer portal: activate it, allow updating payment methods, viewing
+   invoices and canceling **at the end of the period**.
+3. The webhook endpoint of step 3 above also gets `customer.subscription.created`,
+   `customer.subscription.updated`, `customer.subscription.deleted` and `invoice.payment_failed`.
+4. `STRIPE_CLOUD_PRO_PRICE_ID=price_…` in `/srv/codeqlick/.env`, then recreate the API.
+
 ### Publishing
 
 ```bash

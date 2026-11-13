@@ -103,6 +103,8 @@ export const envSchema = z.object({
   /** Buying a preview online (architecture 8.2, decision 20); unset: off. */
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
+  /** Codeqlick Cloud's PRO plan: a recurring monthly price in Stripe (decision 46). */
+  STRIPE_CLOUD_PRO_PRICE_ID: optionalString,
   /** Price of a basic website bought online, in euro cents before VAT. */
   SITE_PRICE_CENTS: z.coerce.number().int().min(100).max(1_000_000).default(20000),
   /** VAT added to it, in percent (Spain's general rate). */

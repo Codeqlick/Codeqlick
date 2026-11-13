@@ -5,6 +5,8 @@ import { AppConfigService } from '../../config/app-config.service.js';
 export type StripeEvent = Stripe.Event;
 export type CheckoutSession = Stripe.Checkout.Session;
 export type CheckoutParams = Stripe.Checkout.SessionCreateParams;
+export type StripeSubscription = Stripe.Subscription;
+export type StripeInvoice = Stripe.Invoice;
 
 /**
  * Stripe, for buying a preview online (architecture 8.2, decision 20): Checkout Sessions, the
@@ -67,6 +69,42 @@ export class StripeClient {
   async invoicePdf(id: string): Promise<string | null> {
     const invoice = await this.stripe().invoices.retrieve(id);
     return invoice.invoice_pdf ?? null;
+  }
+
+  /** A price's amount, currency and interval (Cloud's PRO plan, decision 46). */
+  async price(
+    id: string,
+  ): Promise<{ amount: number; currency: string; interval: string | null; active: boolean }> {
+    const price = await this.stripe().prices.retrieve(id);
+    return {
+      amount: price.unit_amount ?? 0,
+      currency: price.currency,
+      interval: price.recurring?.interval ?? null,
+      active: price.active,
+    };
+  }
+
+  /** A new customer; its metadata names what it pays for. */
+  async createCustomer(input: {
+    email: string;
+    name: string;
+    metadata: Record<string, string>;
+  }): Promise<string> {
+    const customer = await this.stripe().customers.create(input);
+    return customer.id;
+  }
+
+  /** Stripe's customer portal for one customer: its address. */
+  async portal(customer: string, returnUrl: string): Promise<string> {
+    const session = await this.stripe().billingPortal.sessions.create({
+      customer,
+      return_url: returnUrl,
+    });
+    return session.url;
+  }
+
+  subscription(id: string): Promise<StripeSubscription> {
+    return this.stripe().subscriptions.retrieve(id);
   }
 
   /** The webhook's event, once its signature is checked; throws when it doesn't match. */

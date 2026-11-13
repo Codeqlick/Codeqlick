@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CloudModule } from '../cloud/cloud.module.js';
 import { AccountsModule } from '../accounts/accounts.module.js';
 import { DomainsModule } from '../domains/domains.module.js';
 import { LeadsModule } from '../leads/leads.module.js';
@@ -33,6 +34,7 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
 
 @Module({
   imports: [
+    CloudModule,
     SiteFormsModule,
     UsersModule,
     ProjectsModule,

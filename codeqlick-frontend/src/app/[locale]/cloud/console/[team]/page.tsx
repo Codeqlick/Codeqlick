@@ -68,6 +68,9 @@ export default async function CloudTeamPage({ params }: PageProps) {
           <Link href={`/cloud/console/${team.slug}/events`} className={styles.tab}>
             {t('team.eventsLink')}
           </Link>
+          <Link href={`/cloud/console/${team.slug}/plan`} className={styles.tab}>
+            {t('team.planLink')}
+          </Link>
         </div>
       </div>
 

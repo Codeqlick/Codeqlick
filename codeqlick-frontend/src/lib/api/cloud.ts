@@ -860,3 +860,27 @@ export const putCloudKv = (projectId: string, key: string, value: unknown, ttl?:
 
 export const deleteCloudKv = (projectId: string, key: string) =>
   apiFetch<void>(kvPath(projectId, key), { ...write, method: 'DELETE' });
+
+// ── Plans and billing (architecture 4.13 "Plans and billing", decision 46) ─────────────────
+
+export type CloudBilling = {
+  available: boolean;
+  plan: 'FREE' | 'PRO';
+  price: { amount: number; currency: string; interval: string | null; vatPercent: number } | null;
+  subscription: {
+    status: string;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+  limits: { FREE: Record<string, number>; PRO: Record<string, number> };
+};
+
+export const getCloudBilling = (team: string) =>
+  apiFetch<CloudBilling>(`/cloud/teams/${encodeURIComponent(team)}/billing`, auth);
+
+export const cloudBillingLink = (team: string, kind: 'checkout' | 'portal', locale: string) =>
+  apiFetch<{ url: string }>(`/cloud/teams/${encodeURIComponent(team)}/billing/${kind}`, {
+    ...write,
+    method: 'POST',
+    body: { locale },
+  });
