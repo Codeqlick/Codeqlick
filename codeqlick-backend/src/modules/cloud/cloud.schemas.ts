@@ -433,3 +433,50 @@ export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
 
 export const channelParamSchema = z.object({ id: z.uuid(), channelId: z.uuid() });
 export type ChannelParam = z.infer<typeof channelParamSchema>;
+
+// ── Web analytics (architecture 4.13 "Web analytics", decision 44) ──────────────────────────
+
+export const analyticsQuerySchema = z.object({
+  period: z.enum(['24h', '7d', '30d', '90d', '365d']).default('7d'),
+});
+export type AnalyticsQuery = z.infer<typeof analyticsQuerySchema>;
+
+export const analyticsSwitchSchema = z.object({ enabled: z.boolean() });
+export type AnalyticsSwitchInput = z.infer<typeof analyticsSwitchSchema>;
+
+// ── Key-value store (architecture 4.13 "Key-value store", decision 45) ──────────────────────
+
+export const kvKeySchema = z
+  .string()
+  .min(1)
+  .max(256)
+  .regex(/^[A-Za-z0-9._:-]+$/, 'Letters, digits, ".", "_", "-" and ":"');
+
+export const kvParamSchema = z.object({ id: z.uuid(), key: kvKeySchema });
+export type KvParam = z.infer<typeof kvParamSchema>;
+
+export const kvPublicParamSchema = z.object({ slug: projectSlugSchema, key: kvKeySchema });
+export type KvPublicParam = z.infer<typeof kvPublicParamSchema>;
+
+export const kvListQuerySchema = z.object({
+  prefix: z.string().max(256).optional(),
+  cursor: kvKeySchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type KvListQuery = z.infer<typeof kvListQuerySchema>;
+
+const kvTtl = z
+  .number()
+  .int()
+  .min(1)
+  .max(365 * 86_400)
+  .optional();
+
+export const kvPutSchema = z.object({ value: z.json(), ttl: kvTtl });
+export type KvPutInput = z.infer<typeof kvPutSchema>;
+
+export const kvIncrSchema = z.object({
+  by: z.number().int().min(-1e12).max(1e12).default(1),
+  ttl: kvTtl,
+});
+export type KvIncrInput = z.infer<typeof kvIncrSchema>;
