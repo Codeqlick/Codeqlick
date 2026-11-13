@@ -10,6 +10,8 @@ import { parseArgs, promisify } from 'node:util';
 import {
   Api,
   ApiError,
+  type AnalyticsPeriod,
+  type AnalyticsRow,
   type Build,
   type BuildStatus,
   type Deployment,
@@ -78,6 +80,17 @@ Builds from Git:
   logs [number]             A build's log (the latest by default), followed while it runs
       --json                  (git, env, builds) print the API's answer
 
+Analytics and key-value store:
+  analytics                 Visitors, page views, top pages and sources
+      --period <24h|7d|30d|90d|365d>   (7d by default)
+  kv [ls] [prefix]          The project's keys
+  kv get <key>              A key's value (JSON)
+  kv set <key> <value>      Save a value: JSON, or text when it isn't ("-" reads stdin)
+      --ttl <seconds>         expire it
+  kv rm <key>               Delete a key
+  kv incr <key> [--by <n>]  Add to a counter atomically (starts at 0)
+      --json                  (analytics, kv) print the API's answer
+
 Options:
   --team <slug>  --project <slug>   Override ${PROJECT_FILE} (or CODEQLICK_TEAM, CODEQLICK_PROJECT)
   -h, --help     -v, --version
@@ -102,6 +115,9 @@ interface Options {
   node?: string;
   production?: boolean;
   preview?: boolean;
+  period?: string;
+  ttl?: string;
+  by?: string;
 }
 
 async function context() {
@@ -738,6 +754,127 @@ async function logs(arg: string | undefined, options: Options): Promise<number> 
 
 // ── Entry ─────────────────────────────────────────────────────────────────────────────────────
 
+const PERIODS: AnalyticsPeriod[] = ['24h', '7d', '30d', '90d', '365d'];
+
+function table(title: string, rows: AnalyticsRow[], unit: string): void {
+  console.log(`\n${bold(title)}`);
+  if (rows.length === 0) return console.log(dim('  nothing yet'));
+  const width = Math.min(48, Math.max(...rows.map((r) => r.key.length)));
+  for (const row of rows) {
+    console.log(
+      `  ${row.key.slice(0, 48).padEnd(width)}  ${String(row.visitors).padStart(6)} visitors  ${String(row.count).padStart(6)} ${unit}`,
+    );
+  }
+}
+
+async function analytics(options: Options): Promise<void> {
+  const period = (options.period ?? '7d') as AnalyticsPeriod;
+  if (!PERIODS.includes(period)) throw new UsageError(`--period is one of ${PERIODS.join(', ')}.`);
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const report = await api.analytics(project.id, period);
+  if (options.json) return console.log(JSON.stringify(report, null, 2));
+  if (!report.enabled) {
+    console.log(
+      dim(`Analytics are off for ${project.slug}: switch them on in the console and add`),
+    );
+    console.log(dim(`  ${report.snippet}`));
+  }
+  console.log(
+    `${bold(project.slug)} · ${period}: ${bold(String(report.totals.visitors))} visitors, ${bold(String(report.totals.pageviews))} page views`,
+  );
+  table('Pages', report.pages, 'views');
+  table('Sources', report.referrers, 'views');
+  if (report.events.length > 0) table('Events', report.events, 'times');
+}
+
+/** A value typed on the command line: JSON when it parses, otherwise the text itself. */
+export function parseValue(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+const KV_KEY = /^[A-Za-z0-9._:-]{1,256}$/;
+
+async function kv(
+  action: string | undefined,
+  key: string | undefined,
+  value: string | undefined,
+  options: Options,
+): Promise<number> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (!action || action === 'ls' || action === 'list') {
+    const prefix = action ? key : undefined;
+    let cursor: string | undefined;
+    const items = [];
+    let usage: Awaited<ReturnType<Api['kvList']>>['usage'] | undefined;
+    do {
+      const page = await api.kvList(project.id, prefix, cursor);
+      items.push(...page.items);
+      usage = page.usage;
+      cursor = page.cursor ?? undefined;
+    } while (cursor && items.length < 1000);
+    if (options.json) return (console.log(JSON.stringify({ items, usage }, null, 2)), 0);
+    if (items.length === 0) console.log(dim('No keys yet: codeqlick kv set <key> <value>'));
+    for (const item of items) {
+      const expires = item.expiresAt
+        ? dim(` expires ${new Date(item.expiresAt).toLocaleString()}`)
+        : '';
+      console.log(`${bold(item.key)}  ${dim(`${item.size} B`)}${expires}`);
+    }
+    if (usage) console.log(dim(`${usage.keys} of ${usage.maxKeys} keys`));
+    return 0;
+  }
+  if (!key || !KV_KEY.test(key)) {
+    throw new UsageError(
+      `Which key? codeqlick kv ${action} <key> (letters, digits, ".", "_", "-", ":")`,
+    );
+  }
+  switch (action) {
+    case 'get': {
+      const entry = await api.kvGet(project.id, key);
+      console.log(
+        options.json
+          ? JSON.stringify(entry, null, 2)
+          : typeof entry.value === 'string'
+            ? entry.value
+            : JSON.stringify(entry.value, null, 2),
+      );
+      return 0;
+    }
+    case 'set': {
+      if (value === undefined) throw new UsageError('What value? codeqlick kv set <key> <value>');
+      const raw = value === '-' ? await readStdin() : value;
+      const ttl = options.ttl === undefined ? undefined : Number(options.ttl);
+      if (ttl !== undefined && (!Number.isInteger(ttl) || ttl < 1)) {
+        throw new UsageError('--ttl is a whole number of seconds.');
+      }
+      const entry = await api.kvSet(project.id, key, parseValue(raw), ttl);
+      if (options.json) console.log(JSON.stringify(entry, null, 2));
+      else console.log(`${green('✓')} Saved ${bold(key)} (${entry.size} B)`);
+      return 0;
+    }
+    case 'rm':
+    case 'remove':
+      await api.kvDelete(project.id, key);
+      console.log(`${green('✓')} Deleted ${key}`);
+      return 0;
+    case 'incr': {
+      const by = options.by === undefined ? 1 : Number(options.by);
+      if (!Number.isInteger(by)) throw new UsageError('--by is a whole number.');
+      const result = await api.kvIncr(project.id, key, by);
+      console.log(options.json ? JSON.stringify(result, null, 2) : String(result.value));
+      return 0;
+    }
+    default:
+      throw new UsageError(`Unknown action "${action}": ls, get, set, rm or incr.`);
+  }
+}
+
 export async function main(argv: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -760,6 +897,9 @@ export async function main(argv: string[]): Promise<number> {
       node: { type: 'string' },
       production: { type: 'boolean' },
       preview: { type: 'boolean' },
+      period: { type: 'string' },
+      ttl: { type: 'string' },
+      by: { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -819,6 +959,11 @@ export async function main(argv: string[]): Promise<number> {
         return await builds(rest[0], rest[1], options);
       case 'logs':
         return await logs(rest[0], options);
+      case 'analytics':
+        await analytics(options);
+        break;
+      case 'kv':
+        return await kv(rest[0], rest[1], rest[2], options);
       default:
         throw new UsageError(`Unknown command "${command}". Run codeqlick --help.`);
     }
