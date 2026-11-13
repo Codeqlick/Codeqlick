@@ -4785,6 +4785,7 @@
         "analytics": "Analítica",
         "kv": "KV",
         "databases": "Bases de datos",
+        "storage": "Almacenamiento",
         "builds": "Compilaciones"
       },
       "production": "Publicado",
@@ -5292,6 +5293,33 @@
       "created": "Base de datos creada: copia ahora la cadena de conexión, su contraseña no se vuelve a mostrar.",
       "nameInvalid": "Entre 1 y 40 caracteres.",
       "privacy": "De momento en el servidor de Codeqlick, con una copia diaria guardada 7 días en el mismo servidor. Para restaurar una, escribe a hello@codeqlick.com."
+    },
+    "storage": {
+      "lead": "Buckets compatibles con S3 para los archivos del proyecto: sirve cualquier cliente o SDK de S3.",
+      "notSetUp": "El almacenamiento de archivos aún no está activado en este servidor.",
+      "empty": "Aún no hay buckets.",
+      "usage": "{used} de {max} · {objects} de {maxObjects} objetos",
+      "usageUnknown": "Uso no disponible ahora mismo",
+      "readWrite": "Lectura y escritura",
+      "readOnly": "Solo lectura",
+      "revoke": "Revocar",
+      "newKey": "Nueva clave de acceso",
+      "keyName": "Nombre de la clave",
+      "canWrite": "Puede subir y borrar archivos",
+      "createKey": "Crear clave",
+      "creating": "Creando…",
+      "keyCreated": "Clave {id} creada. Copia ahora su secreto: no se vuelve a mostrar.",
+      "keyNameInvalid": "Entre 1 y 60 caracteres.",
+      "delete": "Borrar bucket",
+      "newTitle": "Nuevo bucket",
+      "name": "Nombre",
+      "nameHint": "3–63 letras minúsculas, dígitos y guiones, único en Codeqlick Cloud (empiézalo por el nombre del proyecto).",
+      "create": "Crear bucket",
+      "created": "Bucket {name} creado. Crea una clave para usarlo.",
+      "nameInvalid": "3–63 letras minúsculas, dígitos y guiones; sin guion al principio ni al final.",
+      "howTo": "Úsalo desde tu código",
+      "settings": "Endpoint {endpoint}, región {region}, direcciones path-style. Guarda las claves en las variables de entorno de tu servidor; los navegadores reciben los archivos con URLs prefirmadas que firma tu servidor.",
+      "privacy": "De momento en el servidor de Codeqlick y aún sin copias de seguridad de los archivos: guarda una copia de lo que no puedas perder."
     }
   },
   "AdminCloud": {

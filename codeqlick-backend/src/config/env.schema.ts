@@ -89,6 +89,14 @@ export const envSchema = z.object({
   CLOUD_PG_ADMIN_URL: optionalString,
   CLOUD_PG_HOST: optionalString,
   CLOUD_PG_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
+  /** Object storage (architecture 4.13 "Object storage", decision 48): Garage's admin API inside
+   * Docker, its token, and the public S3 endpoint. */
+  CLOUD_STORAGE_ADMIN_URL: optionalString,
+  CLOUD_STORAGE_ADMIN_TOKEN: optionalString,
+  CLOUD_STORAGE_ENDPOINT: optionalString,
+  CLOUD_STORAGE_REGION: z.string().default('garage'),
+  /** The capacity Garage's single node announces, in GB (its layout). */
+  CLOUD_STORAGE_CAPACITY_GB: z.coerce.number().int().min(1).default(100),
   /** The Cloud console, for links in emails and the CLI's sign-in page. */
   CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */

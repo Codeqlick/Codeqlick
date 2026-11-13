@@ -140,6 +140,24 @@ export class AppConfigService {
     return adminUrl && host ? { adminUrl, host, port: this.get('CLOUD_PG_PORT') } : undefined;
   }
 
+  /** Object storage (architecture 4.13 "Object storage"); undefined while it isn't set up. */
+  get cloudStorage():
+    | { adminUrl: string; token: string; endpoint: string; region: string; capacityGb: number }
+    | undefined {
+    const adminUrl = this.get('CLOUD_STORAGE_ADMIN_URL')?.replace(/\/+$/, '');
+    const token = this.get('CLOUD_STORAGE_ADMIN_TOKEN');
+    const endpoint = this.get('CLOUD_STORAGE_ENDPOINT')?.replace(/\/+$/, '');
+    return adminUrl && token && endpoint
+      ? {
+          adminUrl,
+          token,
+          endpoint,
+          region: this.get('CLOUD_STORAGE_REGION'),
+          capacityGb: this.get('CLOUD_STORAGE_CAPACITY_GB'),
+        }
+      : undefined;
+  }
+
   /** Cloud's GitHub App, when all its settings are there (architecture 4.13, Builds from Git). */
   get githubApp():
     | {

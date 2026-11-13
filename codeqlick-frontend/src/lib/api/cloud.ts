@@ -923,3 +923,63 @@ export const resetCloudDatabase = (projectId: string, id: string) =>
 
 export const deleteCloudDatabase = (projectId: string, id: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/databases/${id}`, { ...write, method: 'DELETE' });
+
+// ── Object storage (architecture 4.13 "Object storage", decision 48) ────────────────────────
+
+export type CloudBucketKey = {
+  id: string;
+  name: string;
+  accessKeyId: string;
+  write: boolean;
+  createdAt: string;
+};
+
+export type CloudBucket = {
+  id: string;
+  name: string;
+  endpoint: string;
+  region: string;
+  sizeBytes: number | null;
+  objects: number | null;
+  maxBytes: number;
+  maxObjects: number;
+  keys: CloudBucketKey[];
+  createdAt: string;
+};
+
+export const listCloudBuckets = (projectId: string) =>
+  apiFetch<{
+    configured: boolean;
+    endpoint: string | null;
+    region: string | null;
+    items: CloudBucket[];
+  }>(`/cloud/projects/${projectId}/buckets`, auth);
+
+export const createCloudBucket = (projectId: string, name: string) =>
+  apiFetch<CloudBucket>(`/cloud/projects/${projectId}/buckets`, {
+    ...write,
+    method: 'POST',
+    body: { name },
+  });
+
+export const deleteCloudBucket = (projectId: string, bucketId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/buckets/${bucketId}`, {
+    ...write,
+    method: 'DELETE',
+  });
+
+export const createCloudBucketKey = (
+  projectId: string,
+  bucketId: string,
+  input: { name: string; write: boolean },
+) =>
+  apiFetch<CloudBucketKey & { secretAccessKey: string }>(
+    `/cloud/projects/${projectId}/buckets/${bucketId}/keys`,
+    { ...write, method: 'POST', body: input },
+  );
+
+export const deleteCloudBucketKey = (projectId: string, bucketId: string, keyId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/buckets/${bucketId}/keys/${keyId}`, {
+    ...write,
+    method: 'DELETE',
+  });

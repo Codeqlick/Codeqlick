@@ -76,6 +76,10 @@ services:
       CLOUD_PG_ADMIN_URL: ${CLOUD_PG_ADMIN_URL:-postgresql://codeqlick:codeqlick@db:5432/postgres}
       CLOUD_PG_HOST: ${CLOUD_PG_HOST:-localhost}
       CLOUD_PG_PORT: ${DB_PORT:-5432}
+      # Object storage locally: off unless a Garage is running (see deploy/README.md).
+      CLOUD_STORAGE_ADMIN_URL: ${CLOUD_STORAGE_ADMIN_URL:-}
+      CLOUD_STORAGE_ADMIN_TOKEN: ${CLOUD_STORAGE_ADMIN_TOKEN:-}
+      CLOUD_STORAGE_ENDPOINT: ${CLOUD_STORAGE_ENDPOINT:-}
       CLOUD_ROOT: /tmp/codeqlick-cloud
       CLOUD_URL: http://cloud.localhost:${WEB_PORT:-3000}
       # Client domains (architecture 11): OVH stays off without keys in the root .env.
