@@ -33,6 +33,16 @@ Builds from Git (connect GitHub once in the console's Git tab):
 
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 
+Analytics and the key-value store:
+
+| Command                                        | What it does                                        |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `analytics [--period 24h\|7d\|30d\|90d\|365d]` | Visitors, page views, top pages, sources and events |
+| `kv [ls] [prefix]`                             | The project's keys                                  |
+| `kv get <key>` / `kv rm <key>`                 | Read or delete a key                                |
+| `kv set <key> <value> [--ttl <s>]`             | Save JSON (or text); `-` reads standard input       |
+| `kv incr <key> [--by <n>]`                     | Add to a counter atomically                         |
+
 `deploy --url-only` prints only the new deployment's URL, to chain it with `audit`:
 
 ```yaml
