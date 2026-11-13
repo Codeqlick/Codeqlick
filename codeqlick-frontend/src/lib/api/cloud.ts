@@ -791,3 +791,72 @@ export const cancelCloudBuild = (projectId: string, number: number) =>
     ...write,
     method: 'POST',
   });
+
+// ── Web analytics (architecture 4.13 "Web analytics", decision 44) ──────────────────────────
+
+export type CloudAnalyticsPeriod = '24h' | '7d' | '30d' | '90d' | '365d';
+export type CloudAnalyticsRow = { key: string; visitors: number; count: number };
+
+export type CloudAnalytics = {
+  enabled: boolean;
+  snippet: string;
+  period: CloudAnalyticsPeriod;
+  totals: { visitors: number; pageviews: number };
+  series: Array<{ t: string; visitors: number; pageviews: number }>;
+  pages: CloudAnalyticsRow[];
+  referrers: CloudAnalyticsRow[];
+  browsers: CloudAnalyticsRow[];
+  os: CloudAnalyticsRow[];
+  devices: CloudAnalyticsRow[];
+  events: CloudAnalyticsRow[];
+};
+
+export const getCloudAnalytics = (projectId: string, period: CloudAnalyticsPeriod) =>
+  apiFetch<CloudAnalytics>(`/cloud/projects/${projectId}/analytics`, {
+    ...auth,
+    query: { period },
+  });
+
+export const setCloudAnalytics = (projectId: string, enabled: boolean) =>
+  apiFetch<{ enabled: boolean; snippet: string }>(`/cloud/projects/${projectId}/analytics`, {
+    ...write,
+    method: 'PATCH',
+    body: { enabled },
+  });
+
+// ── Key-value store (architecture 4.13 "Key-value store", decision 45) ──────────────────────
+
+export type CloudKvItem = {
+  key: string;
+  size: number;
+  expiresAt: string | null;
+  updatedAt: string;
+};
+export type CloudKvEntry = CloudKvItem & { value: unknown };
+export type CloudKvList = {
+  items: CloudKvItem[];
+  cursor: string | null;
+  usage: { keys: number; bytes: number; maxKeys: number; maxBytes: number };
+};
+
+const kvPath = (projectId: string, key: string) =>
+  `/cloud/projects/${projectId}/kv/${encodeURIComponent(key)}`;
+
+export const listCloudKv = (projectId: string, prefix?: string, cursor?: string) =>
+  apiFetch<CloudKvList>(`/cloud/projects/${projectId}/kv`, {
+    ...auth,
+    query: { prefix: prefix || undefined, cursor: cursor || undefined, limit: 50 },
+  });
+
+export const getCloudKv = (projectId: string, key: string) =>
+  apiFetch<CloudKvEntry>(kvPath(projectId, key), auth);
+
+export const putCloudKv = (projectId: string, key: string, value: unknown, ttl?: number) =>
+  apiFetch<CloudKvEntry>(kvPath(projectId, key), {
+    ...write,
+    method: 'PUT',
+    body: { value, ttl },
+  });
+
+export const deleteCloudKv = (projectId: string, key: string) =>
+  apiFetch<void>(kvPath(projectId, key), { ...write, method: 'DELETE' });

@@ -24,6 +24,11 @@ export interface CloudLimits {
   envVarsPerProject: number;
   /** Build notification channels per project (decision 43). */
   notifyChannelsPerProject: number;
+  /** Web analytics events a Madrid calendar month (decision 44). */
+  analyticsEventsPerMonth: number;
+  /** Key-value store (decision 45). */
+  kvKeysPerProject: number;
+  kvBytesPerProject: number;
 }
 
 const MB = 1024 * 1024;
@@ -50,6 +55,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildMinutes: 15,
     envVarsPerProject: 50,
     notifyChannelsPerProject: 5,
+    analyticsEventsPerMonth: 50_000,
+    kvKeysPerProject: 1000,
+    kvBytesPerProject: 10 * MB,
   },
   PRO: {
     teamsOwned: 3,
@@ -71,6 +79,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildMinutes: 30,
     envVarsPerProject: 200,
     notifyChannelsPerProject: 20,
+    analyticsEventsPerMonth: 1_000_000,
+    kvKeysPerProject: 100_000,
+    kvBytesPerProject: 1024 * MB,
   },
 };
 
@@ -90,6 +101,10 @@ export const DEVICE_POLL_SECONDS = 5;
 export const CLI_TOKEN_DAYS = 90;
 /** Form submissions are kept this long (decision 37). */
 export const FORM_SUBMISSION_DAYS = 180;
+/** Analytics events are kept this long (decision 44). */
+export const ANALYTICS_DAYS = 365;
+/** The largest value of the key-value store, serialised (decision 45). */
+export const KV_VALUE_BYTES = 64 * 1024;
 
 /** Project addresses nobody may take. */
 export const RESERVED_SLUGS = new Set<string>([
