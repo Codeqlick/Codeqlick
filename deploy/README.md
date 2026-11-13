@@ -635,7 +635,9 @@ done, the API answers 503 when someone tries to turn it on. Once, as a user with
 
 2. Install the newer `cq-site` (it includes the snippet in `cloud` sites and refuses to write one
    without it), then add each existing custom domain again so its site includes it too (the
-   certificate is reused; `sync-sites.sh` only does this for new domains):
+   certificate is reused; `sync-sites.sh` only does this for new domains). Do it right after step 1:
+   until it is done, the custom domains of a project set to "everything" are **not** protected
+   (its `<slug>.codeqlick.app` addresses are):
 
    ```bash
    sudo install -o root -g root -m 755 /srv/codeqlick/deploy/sites/cq-site /usr/local/sbin/cq-site

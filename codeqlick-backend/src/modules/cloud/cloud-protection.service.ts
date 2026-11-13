@@ -65,6 +65,12 @@ export type VisitorAnswer = PageAnswer | RedirectAnswer;
 
 const digest = (value: string) => createHash('sha256').update(value).digest();
 
+/** The mode that protects every address either of two modes protects. */
+function widest(a: ProtectionMode, b: ProtectionMode): ProtectionMode {
+  if (a === 'ALL' || b === 'ALL') return 'ALL';
+  return a === 'PREVIEWS' || b === 'PREVIEWS' ? 'PREVIEWS' : 'OFF';
+}
+
 /**
  * Password-protected addresses (architecture 4.13 "Password protection", decision 50): the
  * project's setting, the checks Nginx asks for, the visitor's password page and the members'
@@ -75,7 +81,7 @@ export class CloudProtectionService {
   private readonly cookieKey: Buffer;
   private readonly ticketKey: Buffer;
   private readonly tickets = new TicketBook();
-  private readonly tries = new TryLimiter(5, 60_000);
+  private readonly tries = new TryLimiter(5, 60, 60_000);
 
   constructor(
     private readonly repository: CloudProtectionRepository,
@@ -130,6 +136,9 @@ export class CloudProtectionService {
       await this.storage.writeProtection(project.slug, project.protection);
       return this.view(project);
     }
+    // Never a window open to everyone: markers a new mode adds are written before the change is
+    // saved, and the ones it drops are removed only once it is saved.
+    await this.storage.writeProtection(project.slug, widest(project.protection, input.mode));
     const updated = await this.repository.update(project.id, {
       protection: input.mode,
       protectionHash,
@@ -288,7 +297,7 @@ export class CloudProtectionService {
     const next = safeNext(form.next);
     const project = await this.protectedProject(headers);
     if (!project) return { type: 'redirect', location: next };
-    if (!this.tries.take(`${ip ?? 'unknown'}|${project.id}`, now)) {
+    if (!this.tries.take(ip, project.id, now)) {
       return { type: 'page', status: 429, projectName: project.name, next, error: 'wait' };
     }
     const password = typeof form.password === 'string' ? form.password : '';

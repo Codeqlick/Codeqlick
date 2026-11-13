@@ -1,4 +1,5 @@
 import { createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
+import { isIPv4, isIPv6 } from 'node:net';
 
 /**
  * The pure parts of password-protected addresses (architecture 4.13 "Password protection",
@@ -170,27 +171,96 @@ export class TicketBook {
 
 // ── Tries ─────────────────────────────────────────────────────────────────────────────────────
 
-/** At most `limit` tries a minute per key (IP and project), in memory. */
-export class TryLimiter {
-  private readonly tries = new Map<string, { count: number; resetAt: number }>();
+/**
+ * Who a try counts against: an IPv4 address as is (also when mapped into IPv6), an IPv6 address
+ * by its /64 (one connection usually holds a whole /64).
+ */
+export function ipBucket(ip: string | null | undefined): string {
+  if (!ip) return 'unknown';
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) return mapped[1]!;
+  if (isIPv4(ip)) return ip;
+  if (!isIPv6(ip)) return 'unknown';
+  const [head = '', tail = ''] = ip.toLowerCase().split('::');
+  const left = head ? head.split(':') : [];
+  const right = ip.includes('::') && tail ? tail.split(':') : [];
+  const groups = ip.includes('::')
+    ? [...left, ...Array<string>(Math.max(0, 8 - left.length - right.length)).fill('0'), ...right]
+    : left;
+  return `${groups
+    .slice(0, 4)
+    .map((group) => group.replace(/^0+(?=.)/, ''))
+    .join(':')}::/64`;
+}
+
+/** Fixed one-minute windows per key, at most `maxKeys` remembered (the oldest go first). */
+class WindowCounter {
+  private readonly entries = new Map<string, { count: number; resetAt: number }>();
 
   constructor(
-    private readonly limit = 5,
-    private readonly windowMs = 60_000,
+    private readonly windowMs: number,
+    private readonly maxKeys: number,
   ) {}
 
-  /** Counts a try; false when the key is over its limit for this minute. */
-  take(key: string, now: number = Date.now()): boolean {
-    if (this.tries.size > 10_000) {
-      for (const [k, entry] of this.tries) if (entry.resetAt <= now) this.tries.delete(k);
+  /** The key's count in its window, without counting. */
+  count(key: string, now: number): number {
+    const entry = this.entries.get(key);
+    return entry && entry.resetAt > now ? entry.count : 0;
+  }
+
+  add(key: string, now: number): void {
+    const entry = this.entries.get(key);
+    if (entry && entry.resetAt > now) {
+      entry.count += 1;
+      return;
     }
-    const entry = this.tries.get(key);
-    if (!entry || entry.resetAt <= now) {
-      this.tries.set(key, { count: 1, resetAt: now + this.windowMs });
-      return true;
+    this.entries.delete(key);
+    if (this.entries.size >= this.maxKeys) {
+      for (const [k, e] of this.entries) if (e.resetAt <= now) this.entries.delete(k);
+      for (const k of this.entries.keys()) {
+        if (this.entries.size < this.maxKeys) break;
+        this.entries.delete(k);
+      }
     }
-    entry.count += 1;
-    return entry.count <= this.limit;
+    this.entries.set(key, { count: 1, resetAt: now + this.windowMs });
+  }
+
+  get size(): number {
+    return this.entries.size;
+  }
+}
+
+/**
+ * Password tries, in memory: at most `perIp` a minute per IP (IPv6 by /64) and project, and
+ * `perProject` a minute per project from everyone, so many addresses can't guess together.
+ */
+export class TryLimiter {
+  private readonly byIp: WindowCounter;
+  private readonly byProject: WindowCounter;
+
+  constructor(
+    private readonly perIp = 5,
+    private readonly perProject = 60,
+    windowMs = 60_000,
+    maxKeys = 10_000,
+  ) {
+    this.byIp = new WindowCounter(windowMs, maxKeys);
+    this.byProject = new WindowCounter(windowMs, maxKeys);
+  }
+
+  /** Counts a try; false when the IP or the project is over its limit for this minute. */
+  take(ip: string | null | undefined, projectId: string, now: number = Date.now()): boolean {
+    const key = `${ipBucket(ip)}|${projectId}`;
+    if (this.byIp.count(key, now) >= this.perIp) return false;
+    if (this.byProject.count(projectId, now) >= this.perProject) return false;
+    this.byIp.add(key, now);
+    this.byProject.add(projectId, now);
+    return true;
+  }
+
+  /** How many IP and project keys are remembered (bounded by `maxKeys`). */
+  get size(): number {
+    return this.byIp.size;
   }
 }
 
