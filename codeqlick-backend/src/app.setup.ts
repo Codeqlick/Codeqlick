@@ -6,8 +6,8 @@ import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js
 import { AppConfigService } from './config/app-config.service.js';
 import { ErrorsService } from './modules/errors/errors.service.js';
 
-/** Routes any page may call from a browser (Cloud's forms, heartbeats and status, section 4.13). */
-export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status)\//;
+/** Routes any page may call from a browser (Cloud's forms, heartbeats, status, analytics and public keys, 4.13). */
+export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status|analytics|kv)\//;
 
 /**
  * Cross-cutting HTTP setup shared by main.ts and the e2e tests, so tests exercise exactly
@@ -29,6 +29,8 @@ export function configureApp(app: NestExpressApplication): void {
       credentials: false,
     });
   });
+  // Cloud's analytics tracker posts its events as text/plain JSON (no CORS preflight).
+  app.useBodyParser('text', { limit: '4kb' });
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new ProblemDetailsFilter(app.get(ErrorsService, { strict: false })));

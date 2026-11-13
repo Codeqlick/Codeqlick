@@ -548,3 +548,84 @@
   font-size: 0.8rem;
   line-height: 1.5;
 }
+
+/* Web analytics and key-value store (architecture 4.13, decisions 44 and 45) */
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 9rem;
+  padding-top: var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.chart span {
+  flex: 1 1 0;
+  min-width: 2px;
+  min-height: 1px;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-fuchsia);
+}
+
+.chart span[data-empty] {
+  background: var(--color-line);
+}
+
+.chartAxis {
+  display: flex;
+  justify-content: space-between;
+}
+
+.tops {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.top {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.top caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: var(--space-2);
+}
+
+.top th,
+.top td {
+  text-align: left;
+  padding: var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.top td:first-child {
+  overflow-wrap: anywhere;
+}
+
+.top th:not(:first-child),
+.top td:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.value {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3);
+  max-height: 16rem;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.chartFigure {
+  margin: 0;
+}

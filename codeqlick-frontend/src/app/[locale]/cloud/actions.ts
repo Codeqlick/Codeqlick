@@ -12,6 +12,9 @@ import {
   createCloudForm,
   createCloudMonitor,
   createCloudNotification,
+  deleteCloudKv,
+  putCloudKv,
+  setCloudAnalytics,
   deleteCloudNotification,
   testCloudNotification,
   updateCloudNotification,
@@ -966,6 +969,68 @@ export async function toggleNotifyAction(formData: FormData): Promise<void> {
 export async function deleteNotifyAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await deleteCloudNotification(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
+}
+
+// ── Web analytics and key-value store (architecture 4.13, decisions 44 and 45) ──────────────
+
+export async function toggleAnalyticsAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await setCloudAnalytics(
+    formString(formData, 'project'),
+    formString(formData, 'enabled') === 'on',
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+const KV_KEY = /^[A-Za-z0-9._:-]{1,256}$/;
+
+/** Writes one key of a project's store; the value is JSON (or plain text, kept as a string). */
+export async function putKvAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.kv' });
+  const values = formValues(formData);
+  const key = formString(formData, 'key');
+  const raw = String(formData.get('value') ?? '');
+  const ttlText = formString(formData, 'ttl');
+  const fieldErrors: Record<string, string> = {};
+  if (!KV_KEY.test(key)) fieldErrors.key = t('keyInvalid');
+  let value: unknown = raw;
+  if (formString(formData, 'asText') !== 'on') {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      fieldErrors.value = t('valueInvalid');
+    }
+  }
+  const ttl = ttlText ? Number(ttlText) : undefined;
+  if (ttl !== undefined && (!Number.isInteger(ttl) || ttl < 1 || ttl > 365 * 86_400)) {
+    fieldErrors.ttl = t('ttlInvalid');
+  }
+  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
+  try {
+    await putCloudKv(projectId, key, value, ttl);
+  } catch (error) {
+    if (isApiError(error) && error.status === 413) {
+      return { status: 'error', fieldErrors: { value: t('tooBig') }, values };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved', { key }) };
+}
+
+export async function deleteKvAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudKv(formString(formData, 'project'), formString(formData, 'key')).catch(
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));

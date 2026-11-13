@@ -1902,15 +1902,17 @@ model CloudTeam {
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  members          CloudMember[]
-  invites          CloudInvite[]
-  tokens           CloudToken[]
-  projects         CloudProject[]
-  events           CloudEvent[]
-  monitors         CloudMonitor[]
-  statusPage       CloudStatusPage?
-  cloudAudits      CloudAudit[]
-  gitInstallations CloudGitInstallation[]
+  members                 CloudMember[]
+  invites                 CloudInvite[]
+  tokens                  CloudToken[]
+  projects                CloudProject[]
+  events                  CloudEvent[]
+  monitors                CloudMonitor[]
+  statusPage              CloudStatusPage?
+  cloudAudits             CloudAudit[]
+  gitInstallations        CloudGitInstallation[]
+  /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
+  analyticsOverLimitMonth String?                @map("analytics_over_limit_month") @db.VarChar(7)
 
   @@map("cloud_teams")
 }
@@ -2019,19 +2021,23 @@ model CloudProject {
   nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
   buildBranches          Boolean   @default(true) @map("build_branches")
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
+  /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
+  analytics              Boolean   @default(false)
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team           CloudTeam            @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production     CloudDeployment?     @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  deployments    CloudDeployment[]    @relation("CloudDeployments")
-  domains        CloudDomain[]
-  reports        CloudReport[]
-  forms          CloudForm[]
-  envVars        CloudEnvVar[]
-  builds         CloudBuild[]
-  prComments     CloudPullComment[]
-  notifyChannels CloudNotifyChannel[]
+  team            CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production      CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  deployments     CloudDeployment[]     @relation("CloudDeployments")
+  domains         CloudDomain[]
+  reports         CloudReport[]
+  forms           CloudForm[]
+  envVars         CloudEnvVar[]
+  builds          CloudBuild[]
+  prComments      CloudPullComment[]
+  notifyChannels  CloudNotifyChannel[]
+  analyticsEvents CloudAnalyticsEvent[]
+  kvEntries       CloudKvEntry[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2424,4 +2430,58 @@ model CloudPullComment {
 
   @@unique([projectId, pullRequest])
   @@map("cloud_pull_comments")
+}
+
+/// A page view or custom event of a project's site (architecture 4.13 "Web analytics", decision 44).
+/// No IP, cookie or anything that follows a person from one day to the next.
+model CloudAnalyticsEvent {
+  id        BigInt   @id @default(autoincrement())
+  projectId String   @map("project_id") @db.Uuid
+  teamId    String   @map("team_id") @db.Uuid
+  /// `pageview` or the site's custom event.
+  name      String   @db.VarChar(40)
+  path      String   @db.VarChar(300)
+  /// The referring site's host, when it is another site.
+  referrer  String?  @db.VarChar(100)
+  /// `utm_source` or `ref` of the page's address.
+  campaign  String?  @db.VarChar(60)
+  browser   String   @db.VarChar(20)
+  os        String   @db.VarChar(20)
+  device    String   @db.VarChar(10)
+  /// SHA-256 of the day's salt, the project, the IP and the User-Agent (first 16 bytes, hex).
+  visitor   String   @db.Char(32)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([teamId, createdAt])
+  @@map("cloud_analytics_events")
+}
+
+/// The salt of one UTC day's visitor ids; deleted the day after (decision 44).
+model CloudAnalyticsSalt {
+  day       String   @id @db.VarChar(10)
+  salt      String   @db.Char(64)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("cloud_analytics_salts")
+}
+
+/// An entry of a project's key-value store (architecture 4.13 "Key-value store", decision 45).
+model CloudKvEntry {
+  projectId String    @map("project_id") @db.Uuid
+  key       String    @db.VarChar(256)
+  value     Json
+  /// Bytes of the value serialised as JSON.
+  size      Int
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, key])
+  @@index([expiresAt])
+  @@map("cloud_kv_entries")
 }
