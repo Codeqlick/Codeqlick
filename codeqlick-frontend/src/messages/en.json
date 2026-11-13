@@ -4819,6 +4819,37 @@
       "deleteTitle": "Delete the project",
       "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days."
     },
+    "protection": {
+      "title": "Password protection",
+      "lead": "Ask visitors for a password before they see this project, so you can show work in progress without making it public. Team members open protected addresses from here without typing it.",
+      "mode": "Ask for the password on",
+      "modes": {
+        "OFF": "Off",
+        "PREVIEWS": "Previews",
+        "ALL": "Previews and production"
+      },
+      "modeHints": {
+        "OFF": "Every address is public.",
+        "PREVIEWS": "Each deployment's own address. The published site and your domains stay public.",
+        "ALL": "Every address, including the published site and your own domains."
+      },
+      "password": "Password",
+      "passwordKeep": "Leave it empty to keep the current one. 8 to 128 characters.",
+      "passwordNew": "Needed to turn it on. 8 to 128 characters.",
+      "passwordRequired": "Choose a password to turn protection on.",
+      "passwordInvalid": "Use between 8 and 128 characters.",
+      "days": "Access lasts",
+      "daysHint": "How long a visitor stays in after entering the password. Changing the password or the setting ends every access given before.",
+      "daysValue": "{count, plural, one {# day} other {# days}}",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "invalid": "Check the highlighted fields.",
+      "unavailable": "Password protection isn't available right now. Try again later.",
+      "updatedAt": "Changed {when}",
+      "adminsOnly": "Only the team's owners and admins can change this.",
+      "locked": "Asks for a password"
+    },
     "members": {
       "title": "Members",
       "invite": "Invite someone",
