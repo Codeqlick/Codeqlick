@@ -129,7 +129,8 @@ export type BuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCE
 export interface Build {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook';
+  hookName: string | null;
   target: 'preview' | 'production';
   branch: string;
   commit: string;
@@ -143,6 +144,18 @@ export interface Build {
   startedAt: string | null;
   finishedAt: string | null;
   durationMs: number | null;
+}
+
+export interface DeployHook {
+  id: string;
+  name: string;
+  branch: string;
+  prefix: string;
+  lastCalledAt: string | null;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  /** Only in the answer to creating one: the full URL, shown once. */
+  url?: string;
 }
 
 export interface BuildDetail extends Build {
@@ -315,6 +328,17 @@ export class Api {
     this.request<Build>('POST', `/cloud/projects/${project}/builds`, branch ? { branch } : {});
   cancelBuild = (project: string, number: number) =>
     this.request<Build>('POST', `/cloud/projects/${project}/builds/${number}/cancel`);
+  hooks = (project: string) =>
+    this.request<{ items: DeployHook[] }>('GET', `/cloud/projects/${project}/hooks`).then(
+      (r) => r.items,
+    );
+  createHook = (project: string, name: string, branch?: string) =>
+    this.request<DeployHook>('POST', `/cloud/projects/${project}/hooks`, {
+      name,
+      ...(branch ? { branch } : {}),
+    });
+  deleteHook = (project: string, id: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/hooks/${encodeURIComponent(id)}`);
   analytics = (project: string, period: AnalyticsPeriod) =>
     this.request<Analytics>('GET', `/cloud/projects/${project}/analytics?period=${period}`);
   kvList = (project: string, prefix?: string, cursor?: string) => {

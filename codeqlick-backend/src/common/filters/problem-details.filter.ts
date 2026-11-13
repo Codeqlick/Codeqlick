@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { STATUS_CODES } from 'node:http';
 import type { Response } from 'express';
+import { redactHookPath } from '../redact-path.js';
 import type { AppRequest } from '../types/request.js';
 
 /** Keeps the API's unexpected errors for Admin → Errors (ErrorsService; architecture 4.11). */
@@ -63,7 +64,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     if (problem.status >= 500) {
       const err = exception instanceof Error ? exception : new Error(String(exception));
       this.logger.error(
-        `Unhandled error on ${request.method} ${problem.instance} (requestId=${requestId ?? 'n/a'}): ${err.message}`,
+        `Unhandled error on ${request.method} ${redactHookPath(problem.instance)} (requestId=${requestId ?? 'n/a'}): ${err.message}`,
         err.stack,
       );
       // Only errors nobody meant: an HttpException with a 5xx (e.g. a service not set up) is a
@@ -75,7 +76,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
           message: `${err.name}: ${err.message}`,
           stack: err.stack,
           method: request.method,
-          path: (request.originalUrl ?? request.url).replace(/[?#].*$/, ''),
+          path: redactHookPath((request.originalUrl ?? request.url).replace(/[?#].*$/, '')),
           reference: requestId,
           userAgent: typeof userAgent === 'string' ? userAgent : undefined,
         });

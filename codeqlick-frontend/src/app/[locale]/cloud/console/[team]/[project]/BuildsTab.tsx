@@ -91,6 +91,9 @@ export async function BuildsTab(props: Props) {
                     <span className={styles.mono}>{build.branch}</span> ·{' '}
                     <span className={styles.mono}>{build.commit.slice(0, 7)}</span>
                     {build.pullRequest ? ` · PR #${build.pullRequest}` : ''}
+                    {build.trigger === 'hook'
+                      ? ` · ${t('builds.byHook', { name: build.hookName ?? '—' })}`
+                      : ''}
                     {build.author ? ` · ${build.author}` : ''} ·{' '}
                     {formatWhen(build.queuedAt, props.locale)} · {duration(build.durationMs)}
                   </p>

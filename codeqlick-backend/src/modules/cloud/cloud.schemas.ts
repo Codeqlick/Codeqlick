@@ -434,6 +434,17 @@ export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
 export const channelParamSchema = z.object({ id: z.uuid(), channelId: z.uuid() });
 export type ChannelParam = z.infer<typeof channelParamSchema>;
 
+// ── Deploy hooks (decision 51) ───────────────────────────────────────────────────────────────
+
+export const createHookSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  branch: manualBuildSchema.shape.branch,
+});
+export type CreateHookInput = z.infer<typeof createHookSchema>;
+
+export const hookParamSchema = z.object({ id: z.uuid(), hookId: z.uuid() });
+export type HookParam = z.infer<typeof hookParamSchema>;
+
 // ── Web analytics (architecture 4.13 "Web analytics", decision 44) ──────────────────────────
 
 export const analyticsQuerySchema = z.object({
