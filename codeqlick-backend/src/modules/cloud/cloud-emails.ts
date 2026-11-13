@@ -428,3 +428,37 @@ export function cloudPlanEmail(input: {
     ),
   };
 }
+
+/** To a team's admins: a database went over its size and became read-only (decision 47). */
+export function cloudDatabaseFullEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  project: string;
+  database: string;
+  maxBytes: number;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const size = `${Math.round(input.maxBytes / 1024 / 1024)} MB`;
+  return {
+    to: input.to,
+    subject: es
+      ? `La base de datos ${input.database} de ${input.project} está llena`
+      : `${input.project}'s database ${input.database} is full`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: es ? 'Ahora es de solo lectura' : "It's read-only now",
+        title: es ? 'Base de datos llena' : 'Database full',
+        intro: [
+          es
+            ? `La base de datos ${input.database} del proyecto ${input.project} ocupa más de ${size}, el máximo de su plan, y ahora es de solo lectura. Borra datos (con DELETE y VACUUM) o pasa a PRO; vuelve a admitir escrituras en cuanto baja del límite. Si sigue creciendo hasta el 150 %, deja de aceptar conexiones.`
+            : `Database ${input.database} of project ${input.project} is over ${size}, its plan's maximum, and is read-only now. Delete data (DELETE and VACUUM) or move to PRO; it takes writes again as soon as it is under the limit. If it keeps growing to 150 %, it stops taking connections.`,
+        ],
+        button: { label: es ? 'Abrir la consola' : 'Open the console', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}

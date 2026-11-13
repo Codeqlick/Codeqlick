@@ -659,6 +659,31 @@ with the same account and keys as above. It is off until `STRIPE_CLOUD_PRO_PRICE
 3. The webhook endpoint of step 3 above also gets `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted` and `invoice.payment_failed`.
 4. `STRIPE_CLOUD_PRO_PRICE_ID=price_…` in `/srv/codeqlick/.env`, then recreate the API.
+### Codeqlick Cloud's databases (cloud-pg)
+
+Managed PostgreSQL for projects (architecture 4.13 "Databases", decision 47) runs, for now, on
+this server in its own container, `cloud-pg` (not the platform's `db`), published on port 5432
+with TLS only. It uses the hosting domain's wildcard certificate (`*.codeqlick.app`, from
+`setup-cloud.sh`), so developers connect to `pg.codeqlick.app`, which the wildcard DNS record
+already points here. To switch it on, as `cqadmin` in `/srv/codeqlick`:
+
+1. Add to `.env` (the password: `openssl rand -hex 32`):
+
+   ```bash
+   COMPOSE_PROFILES=cloud-data
+   CLOUD_PG_PASSWORD=…
+   CLOUD_PG_HOST=pg.codeqlick.app
+   ```
+
+2. `docker compose -f docker-compose.prod.yml up -d` (or deploy): it starts `cloud-pg` and
+   `cloud-pg-backup` and gives the API the settings.
+3. Check from outside: `psql "postgresql://x@pg.codeqlick.app:5432/x?sslmode=require"` must
+   answer about the password (not time out); a connection without TLS must be refused.
+
+Each project database is a database and a role `cq_<16 hex>`. Teams get them with the password
+shown once. They are dumped daily to `backups/cloud-pg/` (7 days). To restore one:
+`docker compose -f docker-compose.prod.yml exec -T cloud-pg pg_restore -U cqadmin --clean
+--if-exists -d cq_… < backups/cloud-pg/cq_…-<date>.dump`.
 
 ### Publishing
 

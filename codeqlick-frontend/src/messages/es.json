@@ -4784,6 +4784,7 @@
         "notifications": "Avisos",
         "analytics": "Analítica",
         "kv": "KV",
+        "databases": "Bases de datos",
         "builds": "Compilaciones"
       },
       "production": "Publicado",
@@ -5268,6 +5269,29 @@
         "kvKeysPerProject": "Claves KV por proyecto",
         "kvBytesPerProject": "Tamaño KV por proyecto"
       }
+    },
+    "databases": {
+      "lead": "Bases de datos PostgreSQL 18 del proyecto, accesibles desde tus aplicaciones, servidores y CI con TLS.",
+      "notSetUp": "Las bases de datos gestionadas aún no están activadas en este servidor.",
+      "empty": "Aún no hay bases de datos.",
+      "ok": "Lista",
+      "readOnly": "Llena: solo lectura",
+      "blocked": "Muy por encima de su tamaño: conexiones rechazadas",
+      "size": "{used} de {max}",
+      "since": "creada {when}",
+      "passwordHelp": "La contraseña solo se muestra al crear la base de datos o al cambiarla. Guárdala en las variables de entorno de tu aplicación, nunca en una página.",
+      "resetPassword": "Nueva contraseña",
+      "resetting": "Cambiando…",
+      "reset": "Contraseña nueva: copia ahora la cadena de conexión. La anterior ya no funciona.",
+      "delete": "Borrar",
+      "newTitle": "Nueva base de datos",
+      "name": "Nombre",
+      "nameHint": "Solo para reconocerla (hasta 40 caracteres).",
+      "create": "Crear base de datos",
+      "creating": "Creando…",
+      "created": "Base de datos creada: copia ahora la cadena de conexión, su contraseña no se vuelve a mostrar.",
+      "nameInvalid": "Entre 1 y 40 caracteres.",
+      "privacy": "De momento en el servidor de Codeqlick, con una copia diaria guardada 7 días en el mismo servidor. Para restaurar una, escribe a hello@codeqlick.com."
     }
   },
   "AdminCloud": {

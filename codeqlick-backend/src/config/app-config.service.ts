@@ -133,6 +133,13 @@ export class AppConfigService {
     return domain && root ? { domain, root } : undefined;
   }
 
+  /** Managed PostgreSQL (architecture 4.13 "Databases"); undefined while it isn't set up. */
+  get cloudPg(): { adminUrl: string; host: string; port: number } | undefined {
+    const adminUrl = this.get('CLOUD_PG_ADMIN_URL');
+    const host = this.get('CLOUD_PG_HOST');
+    return adminUrl && host ? { adminUrl, host, port: this.get('CLOUD_PG_PORT') } : undefined;
+  }
+
   /** Cloud's GitHub App, when all its settings are there (architecture 4.13, Builds from Git). */
   get githubApp():
     | {
