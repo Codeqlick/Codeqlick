@@ -149,9 +149,12 @@ export function FormCheckboxGroup({
   options,
   defaultValues = [],
   className,
+  idPrefix,
 }: {
   name: string;
   legend: string;
+  /** Keeps ids unique when several forms on a page share `name`. */
+  idPrefix?: string;
   options: { value: string; label: string }[];
   defaultValues?: string[];
   className?: string;
@@ -164,7 +167,7 @@ export function FormCheckboxGroup({
       {options.map((option) => (
         <Checkbox
           key={option.value}
-          id={`${name}-${option.value}`}
+          id={`${idPrefix ?? name}-${option.value}`}
           name={name}
           value={option.value}
           label={option.label}

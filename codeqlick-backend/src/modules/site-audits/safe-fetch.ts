@@ -133,7 +133,17 @@ function decoded(response: IncomingMessage): NodeJS.ReadableStream {
   return response;
 }
 
-function once(url: URL, options: Required<FetchOptions>): Promise<RawResponse> {
+/** A request body to send instead of a plain GET (webhook deliveries). */
+interface Outgoing {
+  body: string;
+  headers: Record<string, string>;
+}
+
+function once(
+  url: URL,
+  options: Required<FetchOptions>,
+  outgoing?: Outgoing,
+): Promise<RawResponse> {
   assertCheckableUrl(url);
   const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
   return new Promise((resolve, reject) => {
@@ -148,16 +158,21 @@ function once(url: URL, options: Required<FetchOptions>): Promise<RawResponse> {
     const request = send(
       url,
       {
-        method: 'GET',
+        method: outgoing ? 'POST' : 'GET',
         agent: false,
         lookup: safeLookup as never,
         rejectUnauthorized: !options.insecure,
-        headers: {
-          'User-Agent': USER_AGENT,
-          Accept: 'text/html,application/xhtml+xml,*/*;q=0.8',
-          'Accept-Encoding': 'gzip, br, deflate',
-          'Accept-Language': 'es,en;q=0.8',
-        },
+        headers: outgoing
+          ? {
+              ...outgoing.headers,
+              'Content-Length': String(Buffer.byteLength(outgoing.body)),
+            }
+          : {
+              'User-Agent': USER_AGENT,
+              Accept: 'text/html,application/xhtml+xml,*/*;q=0.8',
+              'Accept-Encoding': 'gzip, br, deflate',
+              'Accept-Language': 'es,en;q=0.8',
+            },
       },
       (response) => {
         const ttfbMs = Date.now() - started;
@@ -200,7 +215,7 @@ function once(url: URL, options: Required<FetchOptions>): Promise<RawResponse> {
       },
     );
     request.on('error', fail);
-    request.end();
+    request.end(outgoing?.body);
   });
 }
 
@@ -246,4 +261,22 @@ function toPage(url: URL, response: RawResponse, redirects: string[]): FetchedPa
     redirects,
     certificateValidTo: response.certificateValidTo,
   };
+}
+
+/**
+ * POSTs `body` to `url` the safe way (Cloud's build notifications, decision 43): the same public
+ * address checks as `safeFetch`, no redirects followed, a short time limit and a small answer read.
+ */
+export async function safePost(
+  input: string,
+  body: string,
+  headers: Record<string, string>,
+  timeoutMs = 10_000,
+): Promise<{ status: number; body: string }> {
+  const response = await once(
+    new URL(input),
+    { timeoutMs, maxBytes: 16 * 1024, maxRedirects: 0, insecure: false },
+    { body, headers },
+  );
+  return { status: response.status, body: response.body.toString('utf8') };
 }

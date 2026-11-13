@@ -257,3 +257,80 @@ export function cloudMonitorEmail(input: {
     ),
   };
 }
+
+/** A build ended (architecture 4.13 "Build notifications"): to a channel's members. */
+export function cloudBuildEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  /** The one-line summary (cloud-notify `summary`). */
+  summary: string;
+  failed: boolean;
+  test: boolean;
+  project: string;
+  error: string | null;
+  buildUrl: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const title = input.test
+    ? es
+      ? 'Mensaje de prueba'
+      : 'Test message'
+    : input.failed
+      ? es
+        ? 'Una compilación ha fallado'
+        : 'A build failed'
+      : es
+        ? 'Compilación publicada'
+        : 'Build published';
+  return {
+    to: input.to,
+    subject: `${input.test ? '🔔' : input.failed ? '❌' : '✅'} ${input.summary}`.slice(0, 180),
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: input.summary.slice(0, 120),
+        title,
+        intro: [input.summary],
+        ...(input.error ? { quote: { title: 'Error', body: input.error } } : {}),
+        button: { label: es ? 'Ver la compilación' : 'See the build', url: input.buildUrl },
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
+/** A channel was switched off after ten failed deliveries: to the team's admins. */
+export function cloudChannelOffEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  channel: string;
+  project: string;
+  error: string | null;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const intro = es
+    ? `El aviso «${input.channel}» del proyecto ${input.project} ha fallado 10 veces seguidas y se ha desactivado. Revisa su dirección y vuelve a activarlo.`
+    : `The notification "${input.channel}" of the project ${input.project} failed 10 times in a row and was switched off. Check its address and switch it back on.`;
+  return {
+    to: input.to,
+    subject: es
+      ? `Aviso desactivado: ${input.channel} (${input.project})`
+      : `Notification switched off: ${input.channel} (${input.project})`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: intro.slice(0, 120),
+        title: es ? 'Un aviso se ha desactivado' : 'A notification was switched off',
+        intro: [intro],
+        ...(input.error ? { quote: { title: 'Error', body: input.error } } : {}),
+        button: { label: es ? 'Ver los avisos' : 'See the notifications', url: input.url },
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}

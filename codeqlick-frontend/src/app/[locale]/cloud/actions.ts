@@ -11,6 +11,11 @@ import {
   checkCloudDomain,
   createCloudForm,
   createCloudMonitor,
+  createCloudNotification,
+  deleteCloudNotification,
+  testCloudNotification,
+  updateCloudNotification,
+  type CloudNotifyKind,
   createCloudProject,
   createCloudTeam,
   createCloudToken,
@@ -799,4 +804,169 @@ export async function cancelBuildAction(formData: FormData): Promise<void> {
   const number = Number(formString(formData, 'number'));
   await cancelCloudBuild(formString(formData, 'project'), number).catch(() => undefined);
   refresh(locale, `/${team}/${slug}/builds/${number}`);
+}
+
+// ── Build notifications (decision 43) ─────────────────────────────────────────────────────────
+
+const NOTIFY_KINDS: CloudNotifyKind[] = ['EMAIL', 'SLACK', 'DISCORD', 'WEBHOOK'];
+
+/** Why `url` can't be a channel of `kind`, as a key of Cloud.notify, or null. */
+function notifyUrlProblem(
+  kind: CloudNotifyKind,
+  raw: string,
+): 'urlInvalid' | 'urlHttps' | 'urlSlack' | 'urlDiscord' | null {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return 'urlInvalid';
+  }
+  if (url.protocol !== 'https:') return 'urlHttps';
+  if (
+    kind === 'SLACK' &&
+    !(url.hostname === 'hooks.slack.com' && url.pathname.startsWith('/services/'))
+  )
+    return 'urlSlack';
+  if (
+    kind === 'DISCORD' &&
+    !(
+      /^(?:(?:ptb|canary)\.)?discord(?:app)?\.com$/.test(url.hostname) &&
+      url.pathname.startsWith('/api/webhooks/')
+    )
+  )
+    return 'urlDiscord';
+  return null;
+}
+
+function notifyEvents(formData: FormData, locale: AppLocale) {
+  return {
+    buildFailed: formBoolean(formData, 'buildFailed'),
+    buildSucceeded: formBoolean(formData, 'buildSucceeded'),
+    previews: formBoolean(formData, 'previews'),
+    locale,
+  };
+}
+
+/** Adds a channel; a webhook's signing secret goes back once in the values (`token`). */
+export async function createNotifyAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notify' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name');
+  const kind = formString(formData, 'kind') as CloudNotifyKind;
+  const url = formString(formData, 'url');
+  const recipientIds = formData.getAll('recipients').map(String).filter(Boolean);
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
+  if (!NOTIFY_KINDS.includes(kind)) fieldErrors.kind = t('kindInvalid');
+  else if (kind === 'EMAIL') {
+    if (recipientIds.length < 1 || recipientIds.length > 10)
+      fieldErrors.recipients = t('recipientsInvalid');
+  } else {
+    const problem = notifyUrlProblem(kind, url);
+    if (problem) fieldErrors.url = t(problem);
+  }
+  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
+  const events = notifyEvents(formData, lang);
+  let secret: string | undefined;
+  try {
+    const created = await createCloudNotification(
+      projectId,
+      kind === 'EMAIL' ? { kind, name, recipientIds, ...events } : { kind, name, url, ...events },
+    );
+    secret = created.secret;
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return secret
+    ? {
+        status: 'success',
+        message: t('createdSecret'),
+        // The secret to copy, and the form's defaults back (any echoed value replaces them all).
+        values: { token: secret, buildFailed: 'on', recipients: recipientIds.join('\n') },
+      }
+    : { status: 'success', message: t('created') };
+}
+
+/** Saves a channel's name, events and (when given) a new URL or new recipients. */
+export async function updateNotifyAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  channelId: string,
+  kind: CloudNotifyKind,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notify' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name');
+  const url = formString(formData, 'url');
+  const recipientIds = formData.getAll('recipients').map(String).filter(Boolean);
+  const fieldErrors: Record<string, string> = {};
+  if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
+  if (kind === 'EMAIL' && (recipientIds.length < 1 || recipientIds.length > 10))
+    fieldErrors.recipients = t('recipientsInvalid');
+  if (kind !== 'EMAIL' && url) {
+    const problem = notifyUrlProblem(kind, url);
+    if (problem) fieldErrors.url = t(problem);
+  }
+  if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
+  try {
+    await updateCloudNotification(projectId, channelId, {
+      name,
+      ...notifyEvents(formData, lang),
+      ...(kind === 'EMAIL' ? { recipientIds } : url ? { url } : {}),
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved') };
+}
+
+/** "Send a test": the result as the form's message. */
+export async function testNotifyAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  channelId: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notify' });
+  try {
+    const result = await testCloudNotification(projectId, channelId);
+    refresh(lang, path);
+    return result.ok
+      ? { status: 'success', message: t('testSent') }
+      : { status: 'error', message: t('testFailed', { error: result.error ?? '' }) };
+  } catch (error) {
+    return failure(lang, error);
+  }
+}
+
+export async function toggleNotifyAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await updateCloudNotification(formString(formData, 'project'), formString(formData, 'id'), {
+    enabled: formString(formData, 'enabled') === 'on',
+  }).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function deleteNotifyAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudNotification(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
 }
