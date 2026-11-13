@@ -41,8 +41,10 @@ export function envFile(env: Record<string, string>): string {
 }
 
 /**
- * `docker run` for a build (decision 41): throwaway, the agent's own unprivileged user, no
- * capabilities, CPU, memory and process limits, only the work folder mounted.
+ * `docker run` for a build (decision 41): throwaway, under `runtime` (gVisor's `runsc` on a shared
+ * host), on the default bridge (which the host's firewall limits to the internet), the agent's own
+ * unprivileged user, no capabilities, low-priority CPU, memory and process limits, only the work
+ * folder mounted.
  */
 export function dockerArgs(input: {
   name: string;
@@ -53,6 +55,7 @@ export function dockerArgs(input: {
   uid: number;
   gid: number;
   command: string;
+  runtime?: string;
 }): string[] {
   const workdir = `/work${input.rootDir ? `/${input.rootDir}` : ''}`;
   return [
@@ -60,10 +63,15 @@ export function dockerArgs(input: {
     '--rm',
     '--name',
     input.name,
+    ...(input.runtime ? ['--runtime', input.runtime] : []),
+    '--network',
+    'bridge',
     '--user',
     `${input.uid}:${input.gid}`,
     '--cpus',
     '2',
+    '--cpu-shares',
+    '256',
     '--memory',
     '2g',
     '--memory-swap',
