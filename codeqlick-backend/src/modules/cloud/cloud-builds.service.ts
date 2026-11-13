@@ -28,6 +28,7 @@ import type {
   LinkInstallationInput,
 } from './cloud.schemas.js';
 import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.repository.js';
+import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { GithubClient, GithubError } from './github.client.js';
 
@@ -104,6 +105,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     private readonly teams: CloudTeamsService,
     private readonly github: GithubClient,
     private readonly config: AppConfigService,
+    private readonly notifications: CloudNotificationsService,
   ) {
     this.box = new SecretBox(config.credentialsSecret, 'cloud-env-v1');
     this.stateKey = createHmac('sha256', config.jwtAccessSecret)
@@ -504,6 +506,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         : {}),
     });
     void this.report(project, build, over ? 'failure' : 'pending');
+    if (over) void this.notifications.buildEnded(build.id);
     return build;
   }
 
@@ -715,6 +718,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           error: null,
         });
         void this.report(build.project, done, 'success', deployment.url);
+        void this.notifications.buildEnded(done.id, deployment.url);
       } catch (error) {
         await this.finishFailed(
           build,
@@ -734,6 +738,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     });
     const full = 'project' in build ? build : await this.repository.findById(build.id);
     if (full) void this.report(full.project, done, 'failure');
+    void this.notifications.buildEnded(done.id);
   }
 
   /** Every 30 s: running builds whose agent went quiet for 2 minutes fail. */
