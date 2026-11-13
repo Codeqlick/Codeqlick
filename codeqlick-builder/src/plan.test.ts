@@ -33,4 +33,24 @@ test('writes an env file and a locked-down docker run', () => {
   assert.equal(args[args.indexOf('-w') + 1], '/work/web');
   assert.ok(args.includes('node:22-bookworm-slim'));
   assert.ok(!args.join(' ').includes('docker.sock'));
+  assert.equal(args[args.indexOf('--network') + 1], 'bridge');
+  assert.equal(args[args.indexOf('--cpu-shares') + 1], '256');
+  assert.ok(!args.includes('--runtime'));
+});
+
+test('runs the build under gVisor when a runtime is set', () => {
+  const args = dockerArgs({
+    name: 'cqb-2',
+    work: '/w/2/src',
+    rootDir: '',
+    envFile: '/w/2/env',
+    nodeVersion: '24',
+    uid: 998,
+    gid: 998,
+    command: 'npm ci',
+    runtime: 'runsc',
+  });
+  assert.equal(args[args.indexOf('--runtime') + 1], 'runsc');
+  assert.ok(args.indexOf('--runtime') < args.indexOf('node:24-bookworm-slim'));
+  assert.equal(args[args.indexOf('-w') + 1], '/work');
 });

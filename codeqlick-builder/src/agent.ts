@@ -16,6 +16,8 @@ const API = (process.env.CLOUD_API_URL ?? 'https://api.codeqlick.com/v1').replac
 const TOKEN = process.env.CLOUD_BUILDER_TOKEN ?? '';
 const WORK = process.env.BUILDER_WORK_DIR ?? '/var/lib/codeqlick-builder';
 const NAME = (process.env.BUILDER_NAME ?? hostname()).slice(0, 60);
+/** `runsc` (gVisor) wherever the host runs anything else (decision 41). */
+const RUNTIME = process.env.BUILDER_RUNTIME ?? '';
 const POLL_MS = 5_000;
 
 if (!TOKEN) {
@@ -141,6 +143,7 @@ async function build(job: Job): Promise<void> {
         uid: process.getuid?.() ?? 1000,
         gid: process.getgid?.() ?? 1000,
         command,
+        runtime: RUNTIME,
       }),
       { onOutput: output, signal: stop.signal },
     );
@@ -180,7 +183,9 @@ process.on('SIGTERM', () => {
   stopping = true;
 });
 
-console.log(`codeqlick-builder ${NAME}: claiming builds from ${API}`);
+console.log(
+  `codeqlick-builder ${NAME}: claiming builds from ${API} (runtime: ${RUNTIME || 'default'})`,
+);
 while (!stopping) {
   try {
     const response = await api('/cloud/builder/claim', { json: { builder: NAME } });
