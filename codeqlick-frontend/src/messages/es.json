@@ -4771,7 +4771,8 @@
       "role": "Tu papel: {role}",
       "plan": "Plan: {plan}",
       "monitorsLink": "Monitores",
-      "auditsLink": "Revisión web"
+      "auditsLink": "Revisión web",
+      "planLink": "Plan"
     },
     "project": {
       "tabs": {
@@ -5225,6 +5226,48 @@
       "exampleIncr": "Contar, de forma atómica",
       "examplePublic": "Desde el navegador: solo claves public:, sin token",
       "publicHelp": "Crea un token en Tokens y guárdalo en CODEQLICK_TOKEN. No pongas nunca un token en las páginas de tu web: desde el navegador, lee solo claves public:."
+    },
+    "plan": {
+      "title": "Plan",
+      "lead": "Lo que puede usar el equipo y su suscripción PRO.",
+      "freeTitle": "Plan gratuito",
+      "proTitle": "Plan PRO",
+      "price": "PRO: {price} al mes + {vat} % de IVA. Cancela cuando quieras; dura hasta el final del periodo.",
+      "status": {
+        "active": "Activa",
+        "trialing": "En prueba",
+        "past_due": "Pago pendiente: Stripe está reintentando el cobro",
+        "canceled": "Cancelada",
+        "other": "Pendiente"
+      },
+      "renewsOn": "se renueva el {date}",
+      "endsOn": "termina el {date}",
+      "upgrade": "Pasar a PRO",
+      "manage": "Gestionar la suscripción",
+      "opening": "Abriendo Stripe…",
+      "ownersOnly": "Solo los propietarios del equipo gestionan el plan.",
+      "unavailable": "Los planes de pago aún no están disponibles.",
+      "downgrade": "Volver al plan gratuito no borra nada: lo que pase de los límites gratuitos sigue funcionando, pero no se puede añadir más.",
+      "done": "¡Gracias! El plan cambia en cuanto Stripe confirma el pago (normalmente unos segundos).",
+      "canceled": "El pago no se ha completado. No ha cambiado nada.",
+      "error": "No se ha podido abrir Stripe. Inténtalo de nuevo en un momento.",
+      "compare": "Límites",
+      "limit": "Límite",
+      "free": "Gratis",
+      "limits": {
+        "projectsPerTeam": "Proyectos",
+        "storageBytesPerTeam": "Almacenamiento de hosting",
+        "deploymentBytes": "Tamaño de un despliegue",
+        "membersPerTeam": "Miembros",
+        "domainsPerProject": "Dominios por proyecto",
+        "buildsPerMonth": "Compilaciones al mes",
+        "buildMinutes": "Minutos por compilación",
+        "formSubmissionsPerMonth": "Envíos de formularios al mes",
+        "monitorsPerTeam": "Monitores",
+        "analyticsEventsPerMonth": "Eventos de analítica al mes",
+        "kvKeysPerProject": "Claves KV por proyecto",
+        "kvBytesPerProject": "Tamaño KV por proyecto"
+      }
     }
   },
   "AdminCloud": {

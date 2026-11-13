@@ -103,6 +103,11 @@ export class AppConfigService {
     return secretKey && webhookSecret ? { secretKey, webhookSecret } : undefined;
   }
 
+  /** The Stripe price of Cloud's PRO plan; undefined while paid plans are off (decision 46). */
+  get cloudProPriceId(): string | undefined {
+    return this.stripe ? this.get('STRIPE_CLOUD_PRO_PRICE_ID') || undefined : undefined;
+  }
+
   /** Price of a website bought online, before VAT. */
   get sitePriceCents(): number {
     return this.get('SITE_PRICE_CENTS');

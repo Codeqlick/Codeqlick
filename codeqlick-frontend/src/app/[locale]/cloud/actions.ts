@@ -12,6 +12,7 @@ import {
   createCloudForm,
   createCloudMonitor,
   createCloudNotification,
+  cloudBillingLink,
   deleteCloudKv,
   putCloudKv,
   setCloudAnalytics,
@@ -1034,4 +1035,19 @@ export async function deleteKvAction(formData: FormData): Promise<void> {
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));
+}
+
+/** Sends an owner to Stripe: Checkout to upgrade, or the customer portal (decision 46). */
+export async function billingAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  const team = formString(formData, 'team');
+  const kind = formString(formData, 'kind') === 'portal' ? 'portal' : 'checkout';
+  let url: string;
+  try {
+    url = (await cloudBillingLink(team, kind, locale)).url;
+  } catch {
+    await go(locale, `/console/${team}/plan?billing=error`);
+    return;
+  }
+  redirect(url);
 }

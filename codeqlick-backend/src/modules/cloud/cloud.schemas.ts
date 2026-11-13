@@ -480,3 +480,8 @@ export const kvIncrSchema = z.object({
   ttl: kvTtl,
 });
 export type KvIncrInput = z.infer<typeof kvIncrSchema>;
+
+// ── Plans and billing (architecture 4.13 "Plans and billing", decision 46) ─────────────────
+
+export const billingLinkSchema = z.object({ locale: localeSchema.default('en') });
+export type BillingLinkInput = z.infer<typeof billingLinkSchema>;

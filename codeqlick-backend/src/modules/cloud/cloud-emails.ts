@@ -367,3 +367,64 @@ export function cloudChannelOffEmail(input: {
     ),
   };
 }
+
+/** To a team's owners: their plan changed, or Stripe couldn't charge it (decision 46). */
+export function cloudPlanEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  kind: 'pro' | 'free' | 'failed';
+  team: string;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const text = {
+    pro: es
+      ? {
+          subject: `${input.team} ya tiene el plan PRO`,
+          title: 'Plan PRO activo',
+          body: `Gracias. ${input.team} tiene desde ahora los límites del plan PRO. Puedes ver las facturas, cambiar la tarjeta o cancelar desde la página Plan de la consola.`,
+        }
+      : {
+          subject: `${input.team} is now on PRO`,
+          title: 'PRO plan active',
+          body: `Thank you. ${input.team} has the PRO plan's limits from now on. See invoices, change the card or cancel from the console's Plan page.`,
+        },
+    free: es
+      ? {
+          subject: `${input.team} ha vuelto al plan gratuito`,
+          title: 'Plan gratuito',
+          body: `La suscripción PRO de ${input.team} ha terminado. No se ha borrado nada: lo que pase de los límites gratuitos sigue funcionando, pero no se puede añadir más.`,
+        }
+      : {
+          subject: `${input.team} is back on the free plan`,
+          title: 'Free plan',
+          body: `${input.team}'s PRO subscription ended. Nothing was deleted: what is over the free limits keeps working, but nothing more can be added.`,
+        },
+    failed: es
+      ? {
+          subject: `No hemos podido cobrar el plan PRO de ${input.team}`,
+          title: 'Pago no completado',
+          body: `Stripe no ha podido cobrar la suscripción PRO de ${input.team} y lo volverá a intentar. Revisa la tarjeta desde la página Plan de la consola para no volver al plan gratuito.`,
+        }
+      : {
+          subject: `We couldn't charge ${input.team}'s PRO plan`,
+          title: 'Payment failed',
+          body: `Stripe couldn't charge ${input.team}'s PRO subscription and will try again. Check the card from the console's Plan page so the team doesn't go back to the free plan.`,
+        },
+  }[input.kind];
+  return {
+    to: input.to,
+    subject: text.subject,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: text.title,
+        title: text.title,
+        intro: [text.body],
+        button: { label: es ? 'Abrir el plan' : 'Open the plan', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}
