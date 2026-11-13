@@ -905,7 +905,7 @@ const PROTECT_MODES: Record<string, ProtectionMode> = {
 /** `protect <action>`'s mode: off, previews or all (any case); null when it's none of them. */
 export function parseProtectMode(action: string): ProtectionMode | null {
   const key = action.toLowerCase();
-  return Object.hasOwn(PROTECT_MODES, key) ? PROTECT_MODES[key] : null;
+  return Object.hasOwn(PROTECT_MODES, key) ? (PROTECT_MODES[key] ?? null) : null;
 }
 
 /** `--days`: 1, 7 or 30; undefined keeps the current days; null when it's anything else. */
