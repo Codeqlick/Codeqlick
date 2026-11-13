@@ -112,6 +112,10 @@ psql "postgresql://cq_…:<contraseña>@pg.${domain}:5432/cq_…?sslmode=require
 
 Solo admite conexiones con TLS; cada usuario solo entra en su base de datos, con 5 conexiones a la vez (20 en PRO) y consultas de hasta 60 s. Si pasa de su tamaño pasa a solo lectura y avisamos a los administradores. Hay una copia diaria guardada 7 días.
 
+## Almacenamiento de archivos
+
+En la pestaña **Almacenamiento** crea buckets compatibles con S3 (2 por proyecto, 1 GB y 100.000 objetos cada uno en el plan gratuito; 10, 50 GB y 1.000.000 en PRO) y claves de acceso para cada uno (de solo lectura o de lectura y escritura; el secreto se muestra una vez). Usa cualquier SDK de S3 con el endpoint \`https://s3.${domain}\`, la región \`garage\` y direcciones path-style (\`forcePathStyle: true\`). Para dar archivos a los navegadores, firma URLs desde tu servidor. De momento los archivos no tienen copia de seguridad.
+
 ## Rutas, 404 y aplicaciones de una página
 
 - \`/sobre\` sirve \`sobre.html\` o \`sobre/index.html\`.
@@ -337,6 +341,10 @@ psql "postgresql://cq_…:<password>@pg.${domain}:5432/cq_…?sslmode=require"
 \`\`\`
 
 Only TLS connections are taken; each user only reaches its own database, with 5 connections at a time (20 on PRO) and queries of up to 60 s. Over its size it becomes read-only and the admins are told. It is dumped daily and kept 7 days.
+
+## File storage
+
+In the **Storage** tab create S3-compatible buckets (2 per project, 1 GB and 100,000 objects each on the free plan; 10, 50 GB and 1,000,000 on PRO) and access keys for each (read-only or read and write; the secret is shown once). Use any S3 SDK with the endpoint \`https://s3.${domain}\`, region \`garage\` and path-style addresses (\`forcePathStyle: true\`). To hand files to browsers, sign URLs from your server. Files aren't backed up yet.
 
 ## Routes, 404 and single-page apps
 

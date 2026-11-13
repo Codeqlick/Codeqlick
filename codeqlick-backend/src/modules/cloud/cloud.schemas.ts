@@ -493,3 +493,28 @@ export type CreateDatabaseInput = z.infer<typeof createDatabaseSchema>;
 
 export const databaseParamSchema = z.object({ id: z.uuid(), databaseId: z.uuid() });
 export type DatabaseParam = z.infer<typeof databaseParamSchema>;
+
+// ── Object storage (architecture 4.13 "Object storage", decision 48) ────────────────────────
+
+export const createBucketSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3)
+    .max(63)
+    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, 'Lowercase letters, digits and dashes'),
+});
+export type CreateBucketInput = z.infer<typeof createBucketSchema>;
+
+export const bucketParamSchema = z.object({ id: z.uuid(), bucketId: z.uuid() });
+export type BucketParam = z.infer<typeof bucketParamSchema>;
+
+export const bucketKeyParamSchema = bucketParamSchema.extend({ keyId: z.uuid() });
+export type BucketKeyParam = z.infer<typeof bucketKeyParamSchema>;
+
+export const createBucketKeySchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  write: z.boolean().default(false),
+});
+export type CreateBucketKeyInput = z.infer<typeof createBucketKeySchema>;
