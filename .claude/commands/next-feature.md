@@ -12,7 +12,8 @@ If an argument is given above, work only on that roadmap item (name or ID). Othe
 
 - Database: Platform Roadmap (data source `collection://3d208c6b-10b3-4fe0-a99d-5889deb4c471`), inside the Codeqlick wiki.
 - Pick order: `Status = Next up`, then `Horizon = Now`, then `Priority` P1 → P3, then smaller `Size` first. Skip `Blocked` items and items whose `Depends on` is not Shipped.
-- Keep going item after item while something qualifies; one pull request per item. Never invent features: when nothing qualifies, report and stop.
+- Keep going item after item while something qualifies; one pull request per item.
+- **When the queue is empty, propose new work and keep going.** Study the product (docs/architecture.md, the code, the roadmap's Shipped and Backlog items, what comparable platforms offer) and add 3–5 well-reasoned items to the Platform Roadmap: Feature, Why, Area, Priority, Size, Depends on, a short spec on the page starting with "Proposed by the agent team on <date>", and `Status = Next up`. Then work on them like any other item. The owner removes a proposal by moving it to Backlog. Never propose items that need money, accounts or legal decisions from the owner; never re-propose something already in the roadmap.
 - Items that don't depend on each other each branch from `main`. When an item needs another one's unmerged code, branch from that item's branch and say so in its PR ("merge #N first").
 - On start: set `Status = In progress`. When the PR is open: fill `PR` with its URL. Only the owner sets `Shipped`, after merging.
 - If something stops you (missing secret, product decision, ambiguous spec): set `Status = Blocked`, write the question at the top of the Notion page, report, and stop.
