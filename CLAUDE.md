@@ -34,6 +34,21 @@ This repo holds the whole platform:
 - **Document before implementing:** a feature's spec goes into `docs/architecture.md` and its row into the Notion roadmap before its code.
 - Commits: Conventional Commits. Work on branches, open PRs to `main`.
 
+## Agent team
+
+Development runs with an agent team defined in `.claude/`. Start a run with **`/next-feature`** (or `/next-feature <roadmap item>`): the main session acts as tech lead, takes the next item of the Notion **Platform Roadmap** and delegates to the specialists in `.claude/agents/`:
+
+| Agent | Scope |
+|---|---|
+| `docs-writer` | Spec in `docs/architecture.md` before code; READMEs, CLAUDE.md and Notion after |
+| `backend-dev` | `codeqlick-backend/` |
+| `frontend-dev` | `codeqlick-frontend/` |
+| `devops` | Compose, Nginx, `deploy/`, workflows |
+| `qa` | Tests and quality gates |
+| `reviewer` | Read-only review: security, correctness, repo rules |
+
+A run ends at an open pull request. Agents never merge, push to `main` or deploy: the owner reviews and merges, and merging deploys.
+
 ## Brand
 
 Fuchsia `#D9177E` (primary), fuchsia dark `#A80F5E`, fuchsia light `#FF7DBE`, ink `#14101F`, blush `#FCEAF3`, slate `#5C5768`. Fonts: Space Grotesk (display), IBM Plex Sans (body), JetBrains Mono (code/labels). Logo "Click Q": a ring (`circle cx=28 cy=28 r=18 stroke-width=8` in a 64×64 viewBox) whose tail is a cursor (`M36 36 L60 45 L49 48 L46 59 Z`) + the lowercase wordmark `codeqlick`.
