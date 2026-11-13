@@ -263,6 +263,7 @@ export async function GitTab(props: Props) {
             <TokenReveal />
             <p className={styles.small}>{t('hooks.shownOnce')}</p>
             <FormInput
+              id="hook-name"
               name="name"
               label={t('hooks.name')}
               hint={t('hooks.nameHint')}
@@ -270,11 +271,12 @@ export async function GitTab(props: Props) {
               maxLength={60}
             />
             <FormInput
+              id="hook-branch"
               name="branch"
               label={t('hooks.branch')}
               hint={t('hooks.branchHint')}
               defaultValue={git.branch}
-              maxLength={255}
+              maxLength={200}
               mono
             />
             <div className={styles.actions}>

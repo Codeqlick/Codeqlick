@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -48,6 +49,13 @@ export interface HookCalled {
 }
 
 const MINUTE = 60_000;
+
+/** GitHub failing is a bad gateway with a reason, not an unexpected error. */
+function upstream(error: unknown): unknown {
+  return error instanceof GithubError
+    ? new BadGatewayException(`GitHub answered ${error.status}: try again in a moment`)
+    : error;
+}
 
 function hookView(row: HookRow): HookView {
   return {
@@ -107,7 +115,7 @@ export class CloudDeployHooksService {
     } catch (error) {
       if (error instanceof GithubError && error.status === 404)
         throw new BadRequestException("That branch isn't in the repository");
-      throw error;
+      throw upstream(error);
     }
     const token = newHookToken();
     const row = await this.repository.create({
@@ -157,7 +165,7 @@ export class CloudDeployHooksService {
       const refusal =
         error instanceof NotFoundException
           ? new ConflictException('The branch of this hook no longer exists in the repository')
-          : error;
+          : upstream(error);
       await this.record(
         hook,
         ip,

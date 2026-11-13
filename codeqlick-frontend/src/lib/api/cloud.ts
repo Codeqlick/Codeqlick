@@ -130,13 +130,7 @@ export type CloudDevice = {
 };
 
 export type CloudReportReason =
-  | 'PHISHING'
-  | 'MALWARE'
-  | 'ILLEGAL'
-  | 'COPYRIGHT'
-  | 'SEXUAL'
-  | 'SPAM'
-  | 'OTHER';
+  'PHISHING' | 'MALWARE' | 'ILLEGAL' | 'COPYRIGHT' | 'SEXUAL' | 'SPAM' | 'OTHER';
 
 const auth = { auth: 'required' } as const;
 const write = { auth: 'required', forwardClientIp: true } as const;

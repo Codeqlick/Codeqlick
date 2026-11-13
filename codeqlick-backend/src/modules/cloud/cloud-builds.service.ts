@@ -67,8 +67,7 @@ export interface BuildProject {
 
 /** Who asked for a build of a branch's latest commit: a person ("Deploy again") or a deploy hook. */
 export type BuildOrigin =
-  | { trigger: 'MANUAL'; createdById: string }
-  | { trigger: 'HOOK'; hookName: string };
+  { trigger: 'MANUAL'; createdById: string } | { trigger: 'HOOK'; hookName: string };
 
 export interface BuildDetail extends BuildView {
   log: string;

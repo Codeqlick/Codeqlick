@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloudSlug, formatBytes, hookName } from './cloud';
+import { cloudSlug, formatBytes, hookBranchValid, hookName } from './cloud';
 
 describe('formatBytes', () => {
   it('picks the unit and the decimals', () => {
@@ -25,5 +25,13 @@ describe('hookName', () => {
     expect(hookName('   ')).toBeNull();
     expect(hookName('a'.repeat(60))).toHaveLength(60);
     expect(hookName('a'.repeat(61))).toBeNull();
+  });
+});
+
+describe('hookBranchValid', () => {
+  it("follows the API's branch rule", () => {
+    expect(hookBranchValid('feature/new-docs_1.0')).toBe(true);
+    expect(hookBranchValid('a b')).toBe(false);
+    expect(hookBranchValid('a'.repeat(201))).toBe(false);
   });
 });

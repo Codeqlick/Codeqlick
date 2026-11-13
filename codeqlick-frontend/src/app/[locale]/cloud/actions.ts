@@ -64,7 +64,7 @@ import {
   setCloudGit,
   startCloudBuild,
 } from '@/lib/api/cloud';
-import { hookName } from '@/lib/cloud';
+import { hookBranchValid, hookName } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
@@ -1226,7 +1226,7 @@ export async function createHookAction(
   const branch = formString(formData, 'branch').trim();
   const fieldErrors: Record<string, string> = {};
   if (!name) fieldErrors.name = t('nameInvalid');
-  if (branch.length > 255) fieldErrors.branch = t('branchInvalid');
+  if (branch && !hookBranchValid(branch)) fieldErrors.branch = t('branchInvalid');
   if (!name || Object.keys(fieldErrors).length > 0) {
     return { status: 'error', fieldErrors, values };
   }
