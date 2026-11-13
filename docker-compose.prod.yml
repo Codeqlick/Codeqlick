@@ -124,6 +124,11 @@ services:
       # Managed databases (architecture 4.13 "Databases"): off while CLOUD_PG_HOST is empty.
       CLOUD_PG_ADMIN_URL: postgresql://cqadmin:${CLOUD_PG_PASSWORD:-}@cloud-pg:5432/postgres
       CLOUD_PG_HOST: ${CLOUD_PG_HOST:-}
+      # Object storage (architecture 4.13 "Object storage"): off while CLOUD_STORAGE_ENDPOINT is empty.
+      CLOUD_STORAGE_ADMIN_URL: http://cloud-storage:3903
+      CLOUD_STORAGE_ADMIN_TOKEN: ${CLOUD_STORAGE_ADMIN_TOKEN:-}
+      CLOUD_STORAGE_ENDPOINT: ${CLOUD_STORAGE_ENDPOINT:-}
+      CLOUD_STORAGE_CAPACITY_GB: ${CLOUD_STORAGE_CAPACITY_GB:-100}
     volumes:
       - uploads-data:/app/uploads
       - /srv/codeqlick/cloud:/cloud
@@ -298,6 +303,23 @@ services:
       - ${BACKUP_DIR:-./backups}:/backups
     entrypoint: ["/usr/local/bin/cloud-pg-backup.sh"]
 
+  # Codeqlick Cloud's object storage (architecture 4.13 "Object storage", decision 48): Garage,
+  # its S3 API on 127.0.0.1:3900 behind Nginx at s3.<hosting domain> (deploy/setup-storage.sh);
+  # its admin API only inside Docker. Started with the `cloud-data` profile.
+  cloud-storage:
+    image: dxflrs/garage:v2.5.0
+    profiles: [cloud-data]
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${CLOUD_STORAGE_RPC_SECRET:-}
+      GARAGE_ADMIN_TOKEN: ${CLOUD_STORAGE_ADMIN_TOKEN:-}
+    ports:
+      - "127.0.0.1:3900:3900"
+    volumes:
+      - ./deploy/cloud-storage/garage.toml:/etc/garage.toml:ro
+      - cloud-storage-meta:/var/lib/garage/meta
+      - cloud-storage-data:/var/lib/garage/data
+
 volumes:
   db-data:
   # Images uploaded from the admin panel.
@@ -306,3 +328,5 @@ volumes:
   swipe-data:
   umami-db-data:
   cloud-pg-data:
+  cloud-storage-meta:
+  cloud-storage-data:

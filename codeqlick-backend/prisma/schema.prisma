@@ -2045,6 +2045,7 @@ model CloudProject {
   analyticsEvents CloudAnalyticsEvent[]
   kvEntries       CloudKvEntry[]
   cloudDatabases  CloudDatabase[]
+  buckets         CloudBucket[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2513,4 +2514,36 @@ model CloudDatabase {
 
   @@index([projectId])
   @@map("cloud_databases")
+}
+
+/// An S3-compatible bucket of a project, in Garage (architecture 4.13 "Object storage", decision 48).
+model CloudBucket {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  /// Unique across Cloud; also its name in Garage.
+  name      String   @unique @db.VarChar(63)
+  /// Garage's id of the bucket.
+  garageId  String   @unique @map("garage_id") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project CloudProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  keys    CloudBucketKey[]
+
+  @@index([projectId])
+  @@map("cloud_buckets")
+}
+
+/// An access key of one bucket; its secret is shown once and never stored.
+model CloudBucketKey {
+  id          String   @id @default(uuid()) @db.Uuid
+  bucketId    String   @map("bucket_id") @db.Uuid
+  name        String   @db.VarChar(60)
+  accessKeyId String   @unique @map("access_key_id") @db.VarChar(64)
+  write       Boolean
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  bucket CloudBucket @relation(fields: [bucketId], references: [id], onDelete: Cascade)
+
+  @@index([bucketId])
+  @@map("cloud_bucket_keys")
 }

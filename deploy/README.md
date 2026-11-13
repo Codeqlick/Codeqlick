@@ -685,6 +685,31 @@ shown once. They are dumped daily to `backups/cloud-pg/` (7 days). To restore on
 `docker compose -f docker-compose.prod.yml exec -T cloud-pg pg_restore -U cqadmin --clean
 --if-exists -d cq_… < backups/cloud-pg/cq_…-<date>.dump`.
 
+### Codeqlick Cloud's object storage (Garage)
+
+S3-compatible buckets for projects (architecture 4.13 "Object storage", decision 48) are served,
+for now on this server, by [Garage](https://garagehq.deuxfleurs.fr/) in the `cloud-storage`
+service (one node; data in the `cloud-storage-data` volume). Its S3 API is published at
+`https://s3.codeqlick.app` by Nginx with the hosting wildcard certificate. To switch it on:
+
+1. Add to `/srv/codeqlick/.env` (each secret: `openssl rand -hex 32`; `cloud-data` is the same
+   profile as the databases):
+
+   ```bash
+   COMPOSE_PROFILES=cloud-data
+   CLOUD_STORAGE_RPC_SECRET=…
+   CLOUD_STORAGE_ADMIN_TOKEN=…
+   CLOUD_STORAGE_ENDPOINT=https://s3.codeqlick.app
+   ```
+
+2. `docker compose -f docker-compose.prod.yml up -d` (or deploy) as `cqadmin`.
+3. `sudo ./deploy/setup-storage.sh` installs the Nginx site and reloads Nginx.
+4. The API gives the node its layout the first time a bucket is made (`CLOUD_STORAGE_CAPACITY_GB`,
+   100 by default). Check: `curl -sI https://s3.codeqlick.app` answers `403` from Garage.
+
+Buckets have Garage quotas from the team's plan; keys reach one bucket each. Objects aren't
+backed up yet: the console says so.
+
 ### Publishing
 
 ```bash

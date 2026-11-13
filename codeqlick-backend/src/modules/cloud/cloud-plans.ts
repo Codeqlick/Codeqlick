@@ -33,6 +33,10 @@ export interface CloudLimits {
   databasesPerProject: number;
   databaseBytes: number;
   databaseConnections: number;
+  /** Object storage (decision 48). */
+  bucketsPerProject: number;
+  bucketBytes: number;
+  bucketObjects: number;
 }
 
 const MB = 1024 * 1024;
@@ -65,6 +69,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     databasesPerProject: 1,
     databaseBytes: 256 * MB,
     databaseConnections: 5,
+    bucketsPerProject: 2,
+    bucketBytes: 1024 * MB,
+    bucketObjects: 100_000,
   },
   PRO: {
     teamsOwned: 3,
@@ -92,6 +99,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     databasesPerProject: 5,
     databaseBytes: 10 * 1024 * MB,
     databaseConnections: 20,
+    bucketsPerProject: 10,
+    bucketBytes: 50 * 1024 * MB,
+    bucketObjects: 1_000_000,
   },
 };
 
@@ -115,6 +125,8 @@ export const FORM_SUBMISSION_DAYS = 180;
 export const ANALYTICS_DAYS = 365;
 /** The largest value of the key-value store, serialised (decision 45). */
 export const KV_VALUE_BYTES = 64 * 1024;
+/** Access keys per bucket (decision 48). */
+export const KEYS_PER_BUCKET = 10;
 
 /** Project addresses nobody may take. */
 export const RESERVED_SLUGS = new Set<string>([

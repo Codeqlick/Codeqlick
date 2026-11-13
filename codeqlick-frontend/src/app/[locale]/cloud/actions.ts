@@ -12,6 +12,10 @@ import {
   createCloudForm,
   createCloudMonitor,
   createCloudNotification,
+  createCloudBucket,
+  createCloudBucketKey,
+  deleteCloudBucket,
+  deleteCloudBucketKey,
   createCloudDatabase,
   deleteCloudDatabase,
   resetCloudDatabase,
@@ -1108,5 +1112,96 @@ export async function deleteDatabaseAction(formData: FormData): Promise<void> {
   await deleteCloudDatabase(formString(formData, 'project'), formString(formData, 'id')).catch(
     () => undefined,
   );
+  refresh(locale, formString(formData, 'path'));
+}
+
+// ── Object storage (architecture 4.13 "Object storage", decision 48) ────────────────────────
+
+const BUCKET = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$/;
+
+export async function createBucketAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.storage' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name').toLowerCase();
+  if (!BUCKET.test(name))
+    return { status: 'error', fieldErrors: { name: t('nameInvalid') }, values };
+  try {
+    await createCloudBucket(projectId, name);
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('created', { name }) };
+}
+
+/** A key of one bucket; its secret is shown once (as "id secret" to copy together). */
+export async function createBucketKeyAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  bucketId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.storage' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name');
+  if (name.length < 1 || name.length > 60) {
+    return { status: 'error', fieldErrors: { name: t('keyNameInvalid') }, values };
+  }
+  let secret: string;
+  let id: string;
+  try {
+    const key = await createCloudBucketKey(projectId, bucketId, {
+      name,
+      write: formBoolean(formData, 'write'),
+    });
+    secret = key.secretAccessKey;
+    id = key.accessKeyId;
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return {
+    status: 'success',
+    message: t('keyCreated', { id }),
+    values: { token: secret },
+  };
+}
+
+/** Deletes an empty bucket; one with objects answers why it can't. */
+export async function deleteBucketAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  bucketId: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  try {
+    await deleteCloudBucket(projectId, bucketId);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success' };
+}
+
+export async function deleteBucketKeyAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudBucketKey(
+    formString(formData, 'project'),
+    formString(formData, 'bucket'),
+    formString(formData, 'id'),
+  ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }

@@ -1,0 +1,19 @@
+# Garage, Codeqlick Cloud's object storage (architecture 4.13 "Object storage", decision 48):
+# one node for now. The RPC secret and the admin token come from the environment
+# (GARAGE_RPC_SECRET, GARAGE_ADMIN_TOKEN); the API applies the node's layout on first use.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+metadata_auto_snapshot_interval = "6h"
+replication_factor = 1
+compression_level = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+
+[admin]
+api_bind_addr = "[::]:3903"
