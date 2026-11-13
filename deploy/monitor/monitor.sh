@@ -31,6 +31,10 @@ ALERT_TO="${ALERT_TO:-$(setting LEADS_NOTIFY_TO)}"
 ALERT_TO="${ALERT_TO:-hello@codeqlick.com}"
 COMPOSE="docker compose -f docker-compose.prod.yml"
 SERVICES="db api web backup umami site-builder"
+# Codeqlick Cloud's databases and object storage, when their profile is on (architecture 4.13).
+case ",$(setting COMPOSE_PROFILES)," in
+  *,cloud-data,*) SERVICES="$SERVICES cloud-pg cloud-storage" ;;
+esac
 DISK_LIMIT="${MONITOR_DISK_LIMIT:-85}"
 MEMORY_LIMIT="${MONITOR_MEMORY_LIMIT:-90}"
 CERT_DAYS=14

@@ -158,6 +158,15 @@ export class AppConfigService {
       : undefined;
   }
 
+  /** Free space floors of the disk guard, in bytes (decision 49). */
+  get cloudDisk(): { lowBytes: number; minBytes: number } {
+    const gb = 1024 ** 3;
+    return {
+      lowBytes: this.get('CLOUD_DISK_LOW_GB') * gb,
+      minBytes: this.get('CLOUD_DISK_MIN_GB') * gb,
+    };
+  }
+
   /** Cloud's GitHub App, when all its settings are there (architecture 4.13, Builds from Git). */
   get githubApp():
     | {
