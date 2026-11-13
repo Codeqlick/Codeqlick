@@ -36,6 +36,7 @@ import { DatabasesTab } from './DatabasesTab';
 import { FormsTab } from './FormsTab';
 import { GitTab } from './GitTab';
 import { KvTab } from './KvTab';
+import { StorageTab } from './StorageTab';
 import { NotificationsTab } from './NotificationsTab';
 
 const TABS = [
@@ -46,6 +47,7 @@ const TABS = [
   'analytics',
   'kv',
   'databases',
+  'storage',
   'domains',
   'forms',
   'settings',
@@ -208,6 +210,9 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
       ) : null}
       {tab === 'databases' ? (
         <DatabasesTab locale={locale} projectId={project.id} path={path} admin={admin} />
+      ) : null}
+      {tab === 'storage' ? (
+        <StorageTab locale={locale} projectId={project.id} path={path} admin={admin} />
       ) : null}
       {tab === 'forms' ? (
         <FormsTab

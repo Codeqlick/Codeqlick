@@ -4785,6 +4785,7 @@
         "analytics": "Analytics",
         "kv": "KV",
         "databases": "Databases",
+        "storage": "Storage",
         "builds": "Builds"
       },
       "production": "Published",
@@ -5292,6 +5293,33 @@
       "created": "Database created: copy the connection string now, its password is not shown again.",
       "nameInvalid": "Between 1 and 40 characters.",
       "privacy": "For now on Codeqlick's server, dumped daily and kept 7 days on the same server. To restore one, write to hello@codeqlick.com."
+    },
+    "storage": {
+      "lead": "S3-compatible buckets for this project's files: any S3 client or SDK works.",
+      "notSetUp": "Object storage isn't set up on this server yet.",
+      "empty": "No buckets yet.",
+      "usage": "{used} of {max} · {objects} of {maxObjects} objects",
+      "usageUnknown": "Usage unavailable right now",
+      "readWrite": "Read and write",
+      "readOnly": "Read only",
+      "revoke": "Revoke",
+      "newKey": "New access key",
+      "keyName": "Key name",
+      "canWrite": "It can upload and delete files",
+      "createKey": "Create key",
+      "creating": "Creating…",
+      "keyCreated": "Key {id} created. Copy its secret now: it isn't shown again.",
+      "keyNameInvalid": "Between 1 and 60 characters.",
+      "delete": "Delete bucket",
+      "newTitle": "New bucket",
+      "name": "Name",
+      "nameHint": "3–63 lowercase letters, digits and dashes, unique across Codeqlick Cloud (start it with your project's name).",
+      "create": "Create bucket",
+      "created": "Bucket {name} created. Make a key to use it.",
+      "nameInvalid": "3–63 lowercase letters, digits and dashes; not starting or ending with a dash.",
+      "howTo": "Use it from your code",
+      "settings": "Endpoint {endpoint}, region {region}, path-style addresses. Keep keys in your server's environment variables; browsers get files through presigned URLs your server signs.",
+      "privacy": "For now on Codeqlick's server, with no backups of the files yet: keep a copy of anything you can't lose."
     }
   },
   "AdminCloud": {

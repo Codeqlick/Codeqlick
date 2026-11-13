@@ -17,6 +17,10 @@ import { CloudDatabasesController } from './cloud-databases.controller.js';
 import { CloudDatabasesRepository } from './cloud-databases.repository.js';
 import { CloudDatabasesService } from './cloud-databases.service.js';
 import { CloudPgClient } from './cloud-pg.client.js';
+import { CloudStorageController } from './cloud-storage.controller.js';
+import { CloudStorageRepository } from './cloud-storage.repository.js';
+import { CloudStorageService } from './cloud-storage.service.js';
+import { GarageClient } from './garage.client.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
@@ -68,6 +72,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudKvController,
     CloudBillingController,
     CloudDatabasesController,
+    CloudStorageController,
     CloudAdminController,
   ],
   providers: [
@@ -99,6 +104,9 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudPgClient,
     CloudDatabasesRepository,
     CloudDatabasesService,
+    GarageClient,
+    CloudStorageRepository,
+    CloudStorageService,
     GithubClient,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
