@@ -11,6 +11,8 @@ User=builder
 Group=builder
 EnvironmentFile=/etc/codeqlick-builder.env
 WorkingDirectory=/opt/codeqlick-builder
+# The firewall that keeps builds off the host and private networks (runs as root: the '+').
+ExecStartPre=+/opt/codeqlick-builder/deploy/builder/firewall.sh
 ExecStart=/usr/bin/node /opt/codeqlick-builder/codeqlick-builder/src/agent.ts
 Restart=always
 RestartSec=5
