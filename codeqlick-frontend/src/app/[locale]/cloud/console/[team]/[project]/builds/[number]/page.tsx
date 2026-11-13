@@ -61,8 +61,11 @@ export default async function CloudBuildPage({ params }: PageProps) {
           <span className={styles.small}>
             <span className={styles.mono}>{build.branch}</span> ·{' '}
             <span className={styles.mono}>{build.commit.slice(0, 7)}</span>
-            {build.pullRequest ? ` · PR #${build.pullRequest}` : ''} ·{' '}
-            {formatWhen(build.queuedAt, locale)} · {duration(build.durationMs)}
+            {build.pullRequest ? ` · PR #${build.pullRequest}` : ''}
+            {build.trigger === 'hook'
+              ? ` · ${t('builds.byHook', { name: build.hookName ?? '—' })}`
+              : ''}{' '}
+            · {formatWhen(build.queuedAt, locale)} · {duration(build.durationMs)}
           </span>
         </p>
         {build.commitMessage ? (

@@ -22,6 +22,12 @@ import { CloudStorageController } from './cloud-storage.controller.js';
 import { CloudStorageRepository } from './cloud-storage.repository.js';
 import { CloudStorageService } from './cloud-storage.service.js';
 import { GarageClient } from './garage.client.js';
+import {
+  CloudDeployHooksController,
+  CloudDeployHooksPublicController,
+} from './cloud-deploy-hooks.controller.js';
+import { CloudDeployHooksRepository } from './cloud-deploy-hooks.repository.js';
+import { CloudDeployHooksService } from './cloud-deploy-hooks.service.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
@@ -61,6 +67,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudFormsPublicController,
     CloudMonitorsPublicController,
     CloudBuildsPublicController,
+    CloudDeployHooksPublicController,
     CloudAnalyticsPublicController,
     CloudKvPublicController,
     CloudController,
@@ -68,6 +75,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudMonitorsController,
     CloudAuditsController,
     CloudBuildsController,
+    CloudDeployHooksController,
     CloudNotificationsController,
     CloudAnalyticsController,
     CloudKvController,
@@ -94,6 +102,8 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudAuditsService,
     CloudBuildsRepository,
     CloudBuildsService,
+    CloudDeployHooksRepository,
+    CloudDeployHooksService,
     CloudNotificationsRepository,
     CloudNotificationsService,
     CloudAnalyticsRepository,

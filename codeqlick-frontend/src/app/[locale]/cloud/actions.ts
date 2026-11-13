@@ -10,6 +10,8 @@ import {
   addCloudDomain,
   checkCloudDomain,
   createCloudForm,
+  createCloudHook,
+  deleteCloudHook,
   createCloudMonitor,
   createCloudNotification,
   createCloudBucket,
@@ -62,6 +64,7 @@ import {
   setCloudGit,
   startCloudBuild,
 } from '@/lib/api/cloud';
+import { hookName } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
@@ -1204,4 +1207,67 @@ export async function deleteBucketKeyAction(formData: FormData): Promise<void> {
     formString(formData, 'id'),
   ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
+}
+
+// ── Deploy hooks (architecture 4.13, decision 51) ───────────────────────────────────────────────
+
+/** Makes a hook; its URL goes back once in the values (`token`), to copy. */
+export async function createHookAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.hooks' });
+  const values = formValues(formData);
+  const name = hookName(formString(formData, 'name'));
+  const branch = formString(formData, 'branch').trim();
+  const fieldErrors: Record<string, string> = {};
+  if (!name) fieldErrors.name = t('nameInvalid');
+  if (branch.length > 255) fieldErrors.branch = t('branchInvalid');
+  if (!name || Object.keys(fieldErrors).length > 0) {
+    return { status: 'error', fieldErrors, values };
+  }
+  let url: string | undefined;
+  try {
+    const created = await createCloudHook(projectId, { name, ...(branch ? { branch } : {}) });
+    url = created.url;
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return url
+    ? {
+        status: 'success',
+        message: t('created'),
+        // The URL to copy, and the branch kept for the next one.
+        values: { token: url, branch },
+      }
+    : { status: 'success', message: t('createdNoUrl') };
+}
+
+/** Deletes a hook after the confirmation box; its URL stops working at once. */
+export async function deleteHookAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  hookId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.hooks' });
+  const values = formValues(formData);
+  if (formString(formData, 'confirm') !== 'on') {
+    return { status: 'error', fieldErrors: { confirm: t('confirmNeeded') }, values };
+  }
+  try {
+    await deleteCloudHook(projectId, hookId);
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('deleted') };
 }
