@@ -503,9 +503,9 @@ the admin activity log; MX and other records are never touched.
 
 ## Codeqlick Cloud: builds from Git
 
-Builds from Git (architecture 4.13, 8.4) need a GitHub App and **a build server of its own**
-(never this VPS: a build runs other people's code, decision 41). Until both exist, the Git tab
-says it isn't set up and nothing else changes.
+Builds from Git (architecture 4.13, 8.4) need a GitHub App and the build agent, which for now
+runs on this VPS with every build sandboxed (decision 41). Until both exist, the Git tab says it
+isn't set up and nothing else changes.
 
 ### 1. The GitHub App
 
@@ -540,21 +540,30 @@ CLOUD_BUILDER_TOKEN=$(openssl rand -hex 32)
 (the private key goes on one line with `\n`; the command above writes it so) and recreate the API:
 `docker compose -f docker-compose.prod.yml up -d api`.
 
-### 2. The build server
+### 2. The build agent
 
-A separate small VPS (2 vCPU, 4 GB, 40 GB, Ubuntu 24.04), anywhere, with only SSH open. The
-repository is private, so first add a **read-only deploy key** of the server to the repository
-(GitHub → repository → Settings → Deploy keys), then as root on the build server:
+For now it runs **on this VPS** (decision 41): every build runs under gVisor (`runsc`, a
+user-space kernel), on Docker's default bridge, and a firewall (`deploy/builder/firewall.sh`)
+drops everything from that bridge to the host and to private networks, so a build only reaches
+the internet. Docker is **reloaded**, not restarted, to add the runtime: the running containers
+(this project's and the others') keep running. As root:
 
 ```bash
-git clone git@github.com:Codeqlick/Codeqlick.git /opt/codeqlick-builder
-sudo bash /opt/codeqlick-builder/deploy/builder/setup-builder.sh
-sudo nano /etc/codeqlick-builder.env      # CLOUD_BUILDER_TOKEN = the same as in production
-sudo systemctl restart codeqlick-builder
-journalctl -u codeqlick-builder -f        # "claiming builds from https://api.codeqlick.com/v1"
+sudo bash /srv/codeqlick/deploy/builder/setup-builder.sh
+journalctl -u codeqlick-builder -f        # "claiming builds from … (runtime: runsc)"
 ```
 
-To update the agent later: `sudo /opt/codeqlick-builder/update.sh`.
+It clones the agent from `/srv/codeqlick` into `/opt/codeqlick-builder`, copies
+`CLOUD_BUILDER_TOKEN` from `.env` into `/etc/codeqlick-builder.env`, and starts the agent only
+after a sandboxed container has reached npm and failed to reach the host. To update the agent
+after a deploy that changes it: `sudo /opt/codeqlick-builder/update.sh`.
+
+**Moving to a dedicated server** later (2 vCPU, 4 GB, 40 GB, Ubuntu, only SSH open) is the same
+script: add a read-only deploy key of that server to the repository, then
+`git clone git@github.com:Codeqlick/Codeqlick.git /opt/codeqlick-builder` and
+`sudo bash /opt/codeqlick-builder/deploy/builder/setup-builder.sh`, put the token in
+`/etc/codeqlick-builder.env`, `sudo systemctl restart codeqlick-builder`, and on this VPS
+`sudo systemctl disable --now codeqlick-builder`.
 
 ## Other domains of the brand
 
