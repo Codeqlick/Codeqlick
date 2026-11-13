@@ -8,10 +8,11 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudTeam, getCloudUsage, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatBytes, formatWhen } from '@/lib/cloud';
+import { formatBytes, formatWhen, isProtected } from '@/lib/cloud';
 import { env } from '@/lib/env';
 import { createProjectAction, deleteTeamAction, renameTeamAction } from '../../actions';
 import styles from '../../cloud.module.css';
+import { ProtectionLock } from './[project]/ProtectionCard';
 
 type PageProps = { params: Promise<{ locale: string; team: string }> };
 
@@ -90,8 +91,11 @@ export default async function CloudTeamPage({ params }: PageProps) {
                 >
                   {project.name}
                 </Link>
-                <p className={`${styles.small} ${styles.mono}`}>
+                <p className={`${styles.small} ${styles.mono} ${styles.address}`}>
                   {project.url.replace('https://', '')}
+                  {isProtected(project.protection, 'production') ? (
+                    <ProtectionLock label={t('protection.locked')} />
+                  ) : null}
                 </p>
                 <p className={styles.small}>
                   {project.suspended ? (

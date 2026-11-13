@@ -101,6 +101,12 @@ export const envSchema = z.object({
    * Cloud warns (low) and stops growing (full). */
   CLOUD_DISK_LOW_GB: z.coerce.number().min(0).default(30),
   CLOUD_DISK_MIN_GB: z.coerce.number().min(0).default(15),
+  /** What the hosting sites' Nginx sends (`X-Cq-Protection-Key`) to /cloud/protection/*
+   * (architecture 4.13 "Password protection"); unset: those routes answer 503. */
+  CLOUD_PROTECTION_KEY: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(32).optional(),
+  ),
   /** The Cloud console, for links in emails and the CLI's sign-in page. */
   CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */

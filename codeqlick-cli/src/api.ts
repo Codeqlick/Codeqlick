@@ -51,6 +51,24 @@ export interface Project {
   production: Deployment | null;
   domains: Array<{ name: string; state: string }>;
   suspended: { at: string; reason: string } | null;
+  protection: ProtectionMode;
+}
+
+/** Which addresses ask visitors for a password: none, the deployments', or every one. */
+export type ProtectionMode = 'OFF' | 'PREVIEWS' | 'ALL';
+export type ProtectionDays = 1 | 7 | 30;
+
+export interface Protection {
+  mode: ProtectionMode;
+  days: ProtectionDays;
+  hasPassword: boolean;
+  updatedAt: string | null;
+}
+
+export interface ProtectionInput {
+  mode: ProtectionMode;
+  password?: string;
+  days?: ProtectionDays;
 }
 
 export interface Domain {
@@ -279,6 +297,10 @@ export class Api {
     this.request<Domain>('POST', `/cloud/projects/${project}/domains/${id}/check`);
   removeDomain = (project: string, id: string) =>
     this.request<void>('DELETE', `/cloud/projects/${project}/domains/${id}`);
+  protection = (project: string) =>
+    this.request<Protection>('GET', `/cloud/projects/${project}/protection`);
+  setProtection = (project: string, settings: ProtectionInput) =>
+    this.request<Protection>('PUT', `/cloud/projects/${project}/protection`, settings);
   audit = (teamSlug: string, url: string, locale: string) =>
     this.request<AuditReport>('POST', '/cloud/audits', { teamSlug, url, locale });
   teamGithub = (team: string) =>

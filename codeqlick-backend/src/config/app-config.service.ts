@@ -133,6 +133,11 @@ export class AppConfigService {
     return domain && root ? { domain, root } : undefined;
   }
 
+  /** The key Nginx sends to the password-protection routes (architecture 4.13); undefined: off. */
+  get cloudProtectionKey(): string | undefined {
+    return this.get('CLOUD_PROTECTION_KEY');
+  }
+
   /** Managed PostgreSQL (architecture 4.13 "Databases"); undefined while it isn't set up. */
   get cloudPg(): { adminUrl: string; host: string; port: number } | undefined {
     const adminUrl = this.get('CLOUD_PG_ADMIN_URL');

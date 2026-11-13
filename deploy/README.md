@@ -611,6 +611,53 @@ Custom domains of Cloud projects are published by the same cron as client sites
 Deployments are not backed up: developers keep their sources and deploy again. To take a project
 down, suspend it in Admin → Cloud.
 
+### Password protection
+
+A project can ask visitors for a password on its deployment addresses, or on everything (production
+and custom domains too); architecture 4.13 "Password protection", 8.3 and decision 50. Nginx
+enforces it with `auth_request` (`deploy/nginx/cloud-protection.conf`, included by the hosting site
+and by every `cq-site … cloud` site): unprotected projects are answered from a marker-file check in
+`cloud/protect/` and never reach the API; protected ones ask the API (`/v1/cloud/protection/check`
+on 127.0.0.1, with `CLOUD_PROTECTION_KEY`) and keep each answer 60 s. Until the steps below are
+done, the API answers 503 when someone tries to turn it on. Once, as a user with sudo:
+
+1. Run the setup again (the same domain). It creates `CLOUD_PROTECTION_KEY` in `.env` when it is
+   missing, writes it for Nginx in `/etc/nginx/cq-cloud-protection-key.conf` (root, 600), installs
+   the snippet as `/etc/nginx/snippets/cq-cloud-protection.conf`, creates `cloud/protect/` and the
+   cache `/var/cache/nginx/cq-protect`, renders the hosting site again, makes the API's site answer
+   404 for `/v1/cloud/protection/` and reloads Nginx. It stops if this Nginx lacks
+   `ngx_http_auth_request_module` (Ubuntu's package has it: `nginx -V 2>&1 | grep -o auth_request`).
+
+   ```bash
+   cd /srv/codeqlick && sudo ./deploy/setup-cloud.sh codeqlick.app
+   docker compose -f docker-compose.prod.yml up -d api
+   ```
+
+2. Install the newer `cq-site` (it includes the snippet in `cloud` sites and refuses to write one
+   without it), then add each existing custom domain again so its site includes it too (the
+   certificate is reused; `sync-sites.sh` only does this for new domains):
+
+   ```bash
+   sudo install -o root -g root -m 755 /srv/codeqlick/deploy/sites/cq-site /usr/local/sbin/cq-site
+   for f in /srv/codeqlick/cloud/domains/*; do
+     [ -f "$f" ] && sudo cq-site add "$(basename "$f")" cloud "$(head -n 1 "$f")"
+   done
+   grep -L cq-cloud-protection /etc/nginx/sites-available/cq-site-*.conf  # Cloud domains must not be listed
+   sudo nginx -t
+   ```
+
+   (The `grep -L` also lists client sites of the `static` and `proxy` kinds; they don't use it.)
+
+3. Check it: `curl -sI https://<slug>.codeqlick.app/` answers as before for an unprotected project;
+   turn protection on for a test project (console → Settings → Password protection) and the same
+   request answers `302` to `/__codeqlick/password?next=/`; that page loads, and the right password
+   lets you in. `curl -s -o /dev/null -w '%{http_code}\n' https://api.codeqlick.com/v1/cloud/protection/check`
+   prints `404`.
+
+If you ever change `CLOUD_PROTECTION_KEY` in `.env`, run step 1 again so Nginx sends the new one,
+and recreate the API. If the API is down, protected addresses answer 500 (never their files);
+unprotected ones are unaffected.
+
 ### Buying a preview online (Stripe)
 
 Requesters can buy their website from its preview (architecture 8.2, decision 20) for

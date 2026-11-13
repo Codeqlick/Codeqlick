@@ -518,3 +518,27 @@ export const createBucketKeySchema = z.object({
   write: z.boolean().default(false),
 });
 export type CreateBucketKeyInput = z.infer<typeof createBucketKeySchema>;
+
+// ── Password protection (architecture 4.13 "Password protection", decision 50) ─────────────
+
+export const protectionSchema = z.object({
+  mode: z.enum(['OFF', 'PREVIEWS', 'ALL']),
+  /** Write-only; empty or left out keeps the current one. */
+  password: z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.string().min(8).max(128).optional(),
+  ),
+  days: z.union([z.literal(1), z.literal(7), z.literal(30)]).optional(),
+});
+export type ProtectionInput = z.infer<typeof protectionSchema>;
+
+export const protectionTicketQuerySchema = z.object({
+  host: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1)
+    .max(253)
+    .transform((host) => host.replace(/\.+$/, '')),
+});
+export type ProtectionTicketQuery = z.infer<typeof protectionTicketQuerySchema>;
