@@ -228,7 +228,6 @@ export function FormRadioGroup({
                 defaultChecked={chosen === option.value}
                 className={fieldStyles.checkbox}
                 aria-describedby={option.hint ? `${id}-hint` : undefined}
-                aria-invalid={error ? true : undefined}
               />
               <label htmlFor={id} className={fieldStyles.label}>
                 {option.label}
