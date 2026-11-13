@@ -10,7 +10,12 @@ import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
-import { adminCloudProjects, adminCloudReports, adminCloudTeams } from '@/lib/api/cloud';
+import {
+  adminCloudDisk,
+  adminCloudProjects,
+  adminCloudReports,
+  adminCloudTeams,
+} from '@/lib/api/cloud';
 import { formatBytes } from '@/lib/cloud';
 import { firstParam, formatDateTime } from '@/lib/format';
 import { closeReportAction, suspendAction, unsuspendAction } from './actions';
@@ -22,6 +27,45 @@ type PageProps = {
 };
 
 const TABS: readonly Tab[] = ['projects', 'teams', 'reports', 'closed'];
+
+/** The disk Cloud shares with the platform, and what Cloud keeps on it (decision 49). */
+async function Disk({ locale }: { locale: AppLocale }) {
+  const t = await getTranslations({ locale, namespace: 'AdminCloud.disk' });
+  const disk = await adminCloudDisk().catch(() => null);
+  if (!disk || disk.totalBytes === null || disk.freeBytes === null || !disk.state) return null;
+  const used = Math.round(((disk.totalBytes - disk.freeBytes) / disk.totalBytes) * 100);
+  const tone = disk.state === 'full' ? 'danger' : disk.state === 'low' ? 'warning' : 'success';
+  const cards = [
+    {
+      label: t('free', { total: formatBytes(disk.totalBytes, locale), used }),
+      value: formatBytes(disk.freeBytes, locale),
+    },
+    { label: t('deployments'), value: formatBytes(disk.deploymentsBytes, locale) },
+    { label: t('databases'), value: formatBytes(disk.databasesBytes, locale) },
+    { label: t('buckets'), value: formatBytes(disk.bucketsBytes, locale) },
+  ];
+  return (
+    <section className={styles.stack} aria-labelledby="disk-title">
+      <h2 id="disk-title" className={styles.panelTitle}>
+        {t('title')} <Badge tone={tone}>{t(`states.${disk.state}`)}</Badge>
+      </h2>
+      <ul className={styles.stats}>
+        {cards.map((card) => (
+          <li key={card.label} className={`${styles.panel} ${styles.stat}`}>
+            <span className={styles.statValue}>{card.value}</span>
+            <span className={styles.statLabel}>{card.label}</span>
+          </li>
+        ))}
+      </ul>
+      <p className={styles.muted}>
+        {t('help', {
+          low: formatBytes(disk.lowBytes, locale),
+          min: formatBytes(disk.minBytes, locale),
+        })}
+      </p>
+    </section>
+  );
+}
 
 /** Admin → Cloud (architecture 4.13): teams, projects (suspend, lift) and abuse reports. */
 export default async function AdminCloudPage({ params, searchParams }: PageProps) {
@@ -38,6 +82,7 @@ export default async function AdminCloudPage({ params, searchParams }: PageProps
   return (
     <div className={styles.stack}>
       <PageHeader title={t('title')} lead={t('lead')} />
+      <Disk locale={locale} />
       <nav className={styles.filters} aria-label={t('title')}>
         {TABS.map((key) => (
           <Link

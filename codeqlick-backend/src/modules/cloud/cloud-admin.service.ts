@@ -9,6 +9,9 @@ import { cloudReportEmail, cloudSuspendedEmail } from './cloud-emails.js';
 import { CloudRepository } from './cloud.repository.js';
 import type { AdminListQuery, ReportInput, ReportsQuery } from './cloud.schemas.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
+import { CloudDatabasesRepository } from './cloud-databases.repository.js';
+import { CloudDiskService, type DiskState } from './cloud-disk.service.js';
+import { CloudStorageService } from './cloud-storage.service.js';
 
 export interface AdminTeamView {
   id: string;
@@ -50,6 +53,17 @@ export interface ReportView {
 }
 
 /** Admin → Cloud and the public abuse reports (architecture 4.13). */
+export interface DiskReport {
+  state: DiskState | null;
+  totalBytes: number | null;
+  freeBytes: number | null;
+  lowBytes: number;
+  minBytes: number;
+  deploymentsBytes: number;
+  databasesBytes: number;
+  bucketsBytes: number;
+}
+
 @Injectable()
 export class CloudAdminService {
   private readonly logger = new Logger(CloudAdminService.name);
@@ -60,7 +74,30 @@ export class CloudAdminService {
     private readonly activity: ActivityService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly disk: CloudDiskService,
+    private readonly databases: CloudDatabasesRepository,
+    private readonly buckets: CloudStorageService,
   ) {}
+
+  /** The disk Cloud shares with the platform, and what Cloud keeps on it (decision 49). */
+  async diskReport(): Promise<DiskReport> {
+    const [reading, deploymentsBytes, databasesBytes, bucketsBytes] = await Promise.all([
+      this.disk.read(),
+      this.repository.allDeploymentsBytes(),
+      this.databases.totalBytes(),
+      this.buckets.totalBytes(),
+    ]);
+    return {
+      state: reading?.state ?? null,
+      totalBytes: reading?.totalBytes ?? null,
+      freeBytes: reading?.freeBytes ?? null,
+      lowBytes: this.config.cloudDisk.lowBytes,
+      minBytes: this.config.cloudDisk.minBytes,
+      deploymentsBytes,
+      databasesBytes,
+      bucketsBytes,
+    };
+  }
 
   /** The project an address belongs to: `<slug>[--<id>].<hosting domain>` or a custom domain. */
   private async projectOf(url: string): Promise<{ id: string } | null> {
