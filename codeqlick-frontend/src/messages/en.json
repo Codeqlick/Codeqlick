@@ -4771,7 +4771,8 @@
       "role": "Your role: {role}",
       "plan": "Plan: {plan}",
       "monitorsLink": "Monitors",
-      "auditsLink": "Website check"
+      "auditsLink": "Website check",
+      "planLink": "Plan"
     },
     "project": {
       "tabs": {
@@ -5225,6 +5226,48 @@
       "exampleIncr": "Count, atomically",
       "examplePublic": "From the browser: public: keys only, no token",
       "publicHelp": "Create a token in Tokens and keep it in CODEQLICK_TOKEN. Never put a token in your site's pages: from the browser, read only public: keys."
+    },
+    "plan": {
+      "title": "Plan",
+      "lead": "What the team can use, and its PRO subscription.",
+      "freeTitle": "Free plan",
+      "proTitle": "PRO plan",
+      "price": "PRO: {price} a month + {vat} % VAT. Cancel any time; it lasts until the end of the period.",
+      "status": {
+        "active": "Active",
+        "trialing": "Trial",
+        "past_due": "Payment pending: Stripe is retrying the charge",
+        "canceled": "Canceled",
+        "other": "Pending"
+      },
+      "renewsOn": "renews on {date}",
+      "endsOn": "ends on {date}",
+      "upgrade": "Upgrade to PRO",
+      "manage": "Manage the subscription",
+      "opening": "Opening Stripe…",
+      "ownersOnly": "Only the team's owners manage the plan.",
+      "unavailable": "Paid plans aren't available yet.",
+      "downgrade": "Going back to free deletes nothing: what is over the free limits keeps working, but nothing more can be added.",
+      "done": "Thank you! The plan changes as soon as Stripe confirms the payment (usually a few seconds).",
+      "canceled": "The payment was not completed. Nothing changed.",
+      "error": "Stripe couldn't be opened. Try again in a moment.",
+      "compare": "Limits",
+      "limit": "Limit",
+      "free": "Free",
+      "limits": {
+        "projectsPerTeam": "Projects",
+        "storageBytesPerTeam": "Hosting storage",
+        "deploymentBytes": "Size of a deployment",
+        "membersPerTeam": "Members",
+        "domainsPerProject": "Domains per project",
+        "buildsPerMonth": "Builds a month",
+        "buildMinutes": "Minutes per build",
+        "formSubmissionsPerMonth": "Form submissions a month",
+        "monitorsPerTeam": "Monitors",
+        "analyticsEventsPerMonth": "Analytics events a month",
+        "kvKeysPerProject": "KV keys per project",
+        "kvBytesPerProject": "KV size per project"
+      }
     }
   },
   "AdminCloud": {

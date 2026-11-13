@@ -1911,6 +1911,12 @@ model CloudTeam {
   statusPage              CloudStatusPage?
   cloudAudits             CloudAudit[]
   gitInstallations        CloudGitInstallation[]
+  /// The PRO subscription (architecture 4.13 "Plans and billing", decision 46).
+  stripeCustomerId        String?                @unique @map("stripe_customer_id") @db.VarChar(100)
+  stripeSubscriptionId    String?                @unique @map("stripe_subscription_id") @db.VarChar(100)
+  subscriptionStatus      String?                @map("subscription_status") @db.VarChar(30)
+  currentPeriodEnd        DateTime?              @map("current_period_end") @db.Timestamptz(3)
+  cancelAtPeriodEnd       Boolean                @default(false) @map("cancel_at_period_end")
   /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
   analyticsOverLimitMonth String?                @map("analytics_over_limit_month") @db.VarChar(7)
 
