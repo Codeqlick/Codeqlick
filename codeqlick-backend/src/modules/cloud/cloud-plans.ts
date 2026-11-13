@@ -29,6 +29,10 @@ export interface CloudLimits {
   /** Key-value store (decision 45). */
   kvKeysPerProject: number;
   kvBytesPerProject: number;
+  /** Managed databases (decision 47). */
+  databasesPerProject: number;
+  databaseBytes: number;
+  databaseConnections: number;
 }
 
 const MB = 1024 * 1024;
@@ -58,6 +62,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     analyticsEventsPerMonth: 50_000,
     kvKeysPerProject: 1000,
     kvBytesPerProject: 10 * MB,
+    databasesPerProject: 1,
+    databaseBytes: 256 * MB,
+    databaseConnections: 5,
   },
   PRO: {
     teamsOwned: 3,
@@ -82,6 +89,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     analyticsEventsPerMonth: 1_000_000,
     kvKeysPerProject: 100_000,
     kvBytesPerProject: 1024 * MB,
+    databasesPerProject: 5,
+    databaseBytes: 10 * 1024 * MB,
+    databaseConnections: 20,
   },
 };
 
@@ -121,5 +131,8 @@ export const RESERVED_SLUGS = new Set<string>([
   'static',
   'assets',
   'codeqlick',
+  // Managed databases and object storage answer at pg.<domain> and s3.<domain> (decisions 47, 48).
+  'pg',
+  's3',
   ...WEBAPPS,
 ]);

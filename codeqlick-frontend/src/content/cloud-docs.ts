@@ -102,6 +102,15 @@ curl -X POST ${api}/cloud/projects/<id>/kv/visits/incr -H "Authorization: Bearer
 Las claves son letras, dígitos, \`.\`, \`_\`, \`-\` y \`:\`; \`ttl\` (segundos, opcional) hace que caduquen; \`incr\` suma de forma atómica. Las claves que empiezan por \`public:\` las puede leer cualquiera, sin token, en \`${api}/cloud/kv/<proyecto>/public:flags\`: así tu web lee interruptores desde el navegador. Nunca pongas un token en tus páginas.
 
 Desde la terminal (CLI 0.4): \`codeqlick kv set config:theme '{"dark":true}'\`, \`codeqlick kv get config:theme\`, \`codeqlick kv incr visits\`, \`codeqlick kv ls\` y \`codeqlick analytics --period 30d\`.
+## Bases de datos
+
+En la pestaña **Bases de datos** crea una base de datos PostgreSQL 18 (1 por proyecto y 256 MB en el plan gratuito; 5 y 10 GB en PRO). Copia la cadena de conexión en ese momento: la contraseña no se vuelve a mostrar (puedes generar otra).
+
+\`\`\`bash
+psql "postgresql://cq_…:<contraseña>@pg.${domain}:5432/cq_…?sslmode=require"
+\`\`\`
+
+Solo admite conexiones con TLS; cada usuario solo entra en su base de datos, con 5 conexiones a la vez (20 en PRO) y consultas de hasta 60 s. Si pasa de su tamaño pasa a solo lectura y avisamos a los administradores. Hay una copia diaria guardada 7 días.
 
 ## Rutas, 404 y aplicaciones de una página
 
@@ -319,6 +328,15 @@ curl -X POST ${api}/cloud/projects/<id>/kv/visits/incr -H "Authorization: Bearer
 Keys are letters, digits, \`.\`, \`_\`, \`-\` and \`:\`; \`ttl\` (seconds, optional) makes them expire; \`incr\` adds atomically. Keys starting with \`public:\` can be read by anyone, without a token, at \`${api}/cloud/kv/<project>/public:flags\`: that's how your site reads flags from the browser. Never put a token in your pages.
 
 From the terminal (CLI 0.4): \`codeqlick kv set config:theme '{"dark":true}'\`, \`codeqlick kv get config:theme\`, \`codeqlick kv incr visits\`, \`codeqlick kv ls\` and \`codeqlick analytics --period 30d\`.
+## Databases
+
+In the **Databases** tab create a PostgreSQL 18 database (1 per project and 256 MB on the free plan; 5 and 10 GB on PRO). Copy the connection string then: the password isn't shown again (you can make a new one).
+
+\`\`\`bash
+psql "postgresql://cq_…:<password>@pg.${domain}:5432/cq_…?sslmode=require"
+\`\`\`
+
+Only TLS connections are taken; each user only reaches its own database, with 5 connections at a time (20 on PRO) and queries of up to 60 s. Over its size it becomes read-only and the admins are told. It is dumped daily and kept 7 days.
 
 ## Routes, 404 and single-page apps
 

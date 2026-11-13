@@ -2044,6 +2044,7 @@ model CloudProject {
   notifyChannels  CloudNotifyChannel[]
   analyticsEvents CloudAnalyticsEvent[]
   kvEntries       CloudKvEntry[]
+  cloudDatabases  CloudDatabase[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2490,4 +2491,26 @@ model CloudKvEntry {
   @@id([projectId, key])
   @@index([expiresAt])
   @@map("cloud_kv_entries")
+}
+
+/// A managed PostgreSQL database of a project (architecture 4.13 "Databases", decision 47).
+/// Its password is never stored.
+model CloudDatabase {
+  id            String    @id @default(uuid()) @db.Uuid
+  projectId     String    @map("project_id") @db.Uuid
+  /// Shown in the console.
+  name          String    @db.VarChar(40)
+  /// The database's and its role's name in cloud-pg: `cq_` + 16 hex.
+  pgName        String    @unique @map("pg_name") @db.VarChar(20)
+  sizeBytes     BigInt    @default(0) @map("size_bytes")
+  readOnly      Boolean   @default(false) @map("read_only")
+  /// Connections refused: far over its size.
+  blocked       Boolean   @default(false)
+  sizeCheckedAt DateTime? @map("size_checked_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("cloud_databases")
 }

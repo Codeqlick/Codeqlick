@@ -12,6 +12,9 @@ import {
   createCloudForm,
   createCloudMonitor,
   createCloudNotification,
+  createCloudDatabase,
+  deleteCloudDatabase,
+  resetCloudDatabase,
   cloudBillingLink,
   deleteCloudKv,
   putCloudKv,
@@ -1050,4 +1053,60 @@ export async function billingAction(formData: FormData): Promise<void> {
     return;
   }
   redirect(url);
+}
+
+// ── Managed databases (architecture 4.13 "Databases", decision 47) ──────────────────────────
+
+/** Creates a database; its connection string with the password is shown once. */
+export async function createDatabaseAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.databases' });
+  const values = formValues(formData);
+  const name = formString(formData, 'name');
+  if (name.length < 1 || name.length > 40) {
+    return { status: 'error', fieldErrors: { name: t('nameInvalid') }, values };
+  }
+  let url: string;
+  try {
+    url = (await createCloudDatabase(projectId, name)).connectionUrl;
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('created'), values: { token: url } };
+}
+
+/** A new password: the old one stops working and its connections are closed. */
+export async function resetDatabaseAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  databaseId: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.databases' });
+  let url: string;
+  try {
+    url = (await resetCloudDatabase(projectId, databaseId)).connectionUrl;
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('reset'), values: { token: url } };
+}
+
+export async function deleteDatabaseAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudDatabase(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
 }

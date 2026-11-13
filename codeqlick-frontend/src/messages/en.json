@@ -4784,6 +4784,7 @@
         "notifications": "Notifications",
         "analytics": "Analytics",
         "kv": "KV",
+        "databases": "Databases",
         "builds": "Builds"
       },
       "production": "Published",
@@ -5268,6 +5269,29 @@
         "kvKeysPerProject": "KV keys per project",
         "kvBytesPerProject": "KV size per project"
       }
+    },
+    "databases": {
+      "lead": "PostgreSQL 18 databases for this project, reachable from your apps, servers and CI over TLS.",
+      "notSetUp": "Managed databases aren't set up on this server yet.",
+      "empty": "No databases yet.",
+      "ok": "Ready",
+      "readOnly": "Full: read-only",
+      "blocked": "Far over its size: connections refused",
+      "size": "{used} of {max}",
+      "since": "created {when}",
+      "passwordHelp": "The password is only shown when the database is created or its password is reset. Keep it in your app's environment variables, never in a page.",
+      "resetPassword": "New password",
+      "resetting": "Changing…",
+      "reset": "New password set: copy the connection string now. The old one no longer works.",
+      "delete": "Delete",
+      "newTitle": "New database",
+      "name": "Name",
+      "nameHint": "Only for you to recognise it (up to 40 characters).",
+      "create": "Create database",
+      "creating": "Creating…",
+      "created": "Database created: copy the connection string now, its password is not shown again.",
+      "nameInvalid": "Between 1 and 40 characters.",
+      "privacy": "For now on Codeqlick's server, dumped daily and kept 7 days on the same server. To restore one, write to hello@codeqlick.com."
     }
   },
   "AdminCloud": {

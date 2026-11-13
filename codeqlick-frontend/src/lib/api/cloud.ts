@@ -884,3 +884,42 @@ export const cloudBillingLink = (team: string, kind: 'checkout' | 'portal', loca
     method: 'POST',
     body: { locale },
   });
+
+// ── Managed databases (architecture 4.13 "Databases", decision 47) ──────────────────────────
+
+export type CloudDatabase = {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  sizeBytes: number;
+  maxBytes: number;
+  readOnly: boolean;
+  blocked: boolean;
+  connectionUrl: string;
+  createdAt: string;
+};
+
+export const listCloudDatabases = (projectId: string) =>
+  apiFetch<{ configured: boolean; items: CloudDatabase[] }>(
+    `/cloud/projects/${projectId}/databases`,
+    auth,
+  );
+
+export const createCloudDatabase = (projectId: string, name: string) =>
+  apiFetch<CloudDatabase & { password: string }>(`/cloud/projects/${projectId}/databases`, {
+    ...write,
+    method: 'POST',
+    body: { name },
+  });
+
+export const resetCloudDatabase = (projectId: string, id: string) =>
+  apiFetch<CloudDatabase & { password: string }>(
+    `/cloud/projects/${projectId}/databases/${id}/password`,
+    { ...write, method: 'POST' },
+  );
+
+export const deleteCloudDatabase = (projectId: string, id: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/databases/${id}`, { ...write, method: 'DELETE' });
