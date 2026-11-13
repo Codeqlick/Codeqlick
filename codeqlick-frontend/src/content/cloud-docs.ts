@@ -77,6 +77,30 @@ En la pestaña **Avisos** del proyecto elige a quién avisar cuando una compilac
 
 Un webhook propio recibe un \`POST\` con JSON (\`event\`, \`project\`, \`build\`, \`deployment\`) y la cabecera \`X-Codeqlick-Signature: sha256=…\`, el HMAC-SHA256 del cuerpo con el secreto que se muestra al crearlo. Las direcciones se guardan cifradas. Si un aviso falla 10 veces seguidas, se desactiva y avisamos a los administradores del equipo.
 
+## Analítica web
+
+En la pestaña **Analítica** del proyecto enciéndela y añade esta línea al \`<head>\` de tus páginas:
+
+\`\`\`html
+<script defer src="${api}/cloud/analytics/script.js"></script>
+\`\`\`
+
+Cuenta las páginas vistas (también en aplicaciones de una página) y verás visitantes, páginas, fuentes (con \`utm_source\` o \`ref\`), navegadores, sistemas y dispositivos por periodo. Para contar una acción: \`codeqlick.track('signup')\`. No usa cookies ni almacenamiento local y no guarda direcciones IP: cada visitante cuenta una vez al día y no se le puede seguir de un día a otro. Los bots no cuentan y respeta «Do Not Track». Si tu web tiene Content-Security-Policy, permite \`https://api.codeqlick.com\` en \`script-src\` y \`connect-src\`. El plan gratuito cuenta 50.000 eventos al mes por equipo.
+
+## Almacén clave-valor
+
+Cada proyecto tiene un almacén de valores JSON (hasta 64 KB cada uno; 1.000 claves y 10 MB en el plan gratuito) para ajustes, interruptores y contadores. Se usa con un token de API (pestaña **KV** de la consola para verlo y editarlo):
+
+\`\`\`bash
+curl -X PUT ${api}/cloud/projects/<id>/kv/config:theme \\
+  -H "Authorization: Bearer $CODEQLICK_TOKEN" -H "Content-Type: application/json" \\
+  -d '{"value":{"dark":true},"ttl":86400}'
+curl ${api}/cloud/projects/<id>/kv/config:theme -H "Authorization: Bearer $CODEQLICK_TOKEN"
+curl -X POST ${api}/cloud/projects/<id>/kv/visits/incr -H "Authorization: Bearer $CODEQLICK_TOKEN" -d '{"by":1}'
+\`\`\`
+
+Las claves son letras, dígitos, \`.\`, \`_\`, \`-\` y \`:\`; \`ttl\` (segundos, opcional) hace que caduquen; \`incr\` suma de forma atómica. Las claves que empiezan por \`public:\` las puede leer cualquiera, sin token, en \`${api}/cloud/kv/<proyecto>/public:flags\`: así tu web lee interruptores desde el navegador. Nunca pongas un token en tus páginas.
+
 ## Rutas, 404 y aplicaciones de una página
 
 - \`/sobre\` sirve \`sobre.html\` o \`sobre/index.html\`.
@@ -267,6 +291,30 @@ From the terminal (CLI 0.3): \`codeqlick git connect <owner/repo>\` connects the
 In the project's **Notifications** tab choose who hears about a failed build (or a published one too): **email** to people of the team, a **Slack** channel (an incoming webhook), a **Discord** channel (its webhook) or a **webhook** of yours. By default only failed production builds are sent; you can add published builds and previews. "Send a test" checks it arrives.
 
 A webhook of yours gets a JSON \`POST\` (\`event\`, \`project\`, \`build\`, \`deployment\`) with the header \`X-Codeqlick-Signature: sha256=…\`, the HMAC-SHA256 of the body with the secret shown when you create it. Addresses are stored encrypted. A notification that fails 10 times in a row is switched off and the team's admins are told.
+
+## Web analytics
+
+In the project's **Analytics** tab switch it on and add this line to your pages' \`<head>\`:
+
+\`\`\`html
+<script defer src="${api}/cloud/analytics/script.js"></script>
+\`\`\`
+
+It counts page views (single-page apps too) and shows visitors, pages, sources (with \`utm_source\` or \`ref\`), browsers, systems and devices per period. To count an action: \`codeqlick.track('signup')\`. It uses no cookies or local storage and keeps no IP addresses: a visitor is counted once a day and can't be followed from one day to the next. Bots are left out and "Do Not Track" is respected. If your site has a Content-Security-Policy, allow \`https://api.codeqlick.com\` in \`script-src\` and \`connect-src\`. The free plan counts 50,000 events a month per team.
+
+## Key-value store
+
+Each project has a store of JSON values (up to 64 KB each; 1,000 keys and 10 MB on the free plan) for settings, flags and counters. Use it with an API token (the console's **KV** tab shows and edits it):
+
+\`\`\`bash
+curl -X PUT ${api}/cloud/projects/<id>/kv/config:theme \\
+  -H "Authorization: Bearer $CODEQLICK_TOKEN" -H "Content-Type: application/json" \\
+  -d '{"value":{"dark":true},"ttl":86400}'
+curl ${api}/cloud/projects/<id>/kv/config:theme -H "Authorization: Bearer $CODEQLICK_TOKEN"
+curl -X POST ${api}/cloud/projects/<id>/kv/visits/incr -H "Authorization: Bearer $CODEQLICK_TOKEN" -d '{"by":1}'
+\`\`\`
+
+Keys are letters, digits, \`.\`, \`_\`, \`-\` and \`:\`; \`ttl\` (seconds, optional) makes them expire; \`incr\` adds atomically. Keys starting with \`public:\` can be read by anyone, without a token, at \`${api}/cloud/kv/<project>/public:flags\`: that's how your site reads flags from the browser. Never put a token in your pages.
 
 ## Routes, 404 and single-page apps
 

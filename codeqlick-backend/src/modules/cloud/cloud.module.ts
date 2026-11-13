@@ -1,5 +1,14 @@
 import { Module } from '@nestjs/common';
 import { API_TOKEN_RESOLVER } from '../../common/api-tokens.js';
+import {
+  CloudAnalyticsController,
+  CloudAnalyticsPublicController,
+} from './cloud-analytics.controller.js';
+import { CloudAnalyticsRepository } from './cloud-analytics.repository.js';
+import { CloudAnalyticsService } from './cloud-analytics.service.js';
+import { CloudKvController, CloudKvPublicController } from './cloud-kv.controller.js';
+import { CloudKvRepository } from './cloud-kv.repository.js';
+import { CloudKvService } from './cloud-kv.service.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
@@ -38,12 +47,16 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudFormsPublicController,
     CloudMonitorsPublicController,
     CloudBuildsPublicController,
+    CloudAnalyticsPublicController,
+    CloudKvPublicController,
     CloudController,
     CloudFormsController,
     CloudMonitorsController,
     CloudAuditsController,
     CloudBuildsController,
     CloudNotificationsController,
+    CloudAnalyticsController,
+    CloudKvController,
     CloudAdminController,
   ],
   providers: [
@@ -66,6 +79,10 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudBuildsService,
     CloudNotificationsRepository,
     CloudNotificationsService,
+    CloudAnalyticsRepository,
+    CloudAnalyticsService,
+    CloudKvRepository,
+    CloudKvService,
     GithubClient,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],

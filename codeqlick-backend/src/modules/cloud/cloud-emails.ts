@@ -198,6 +198,39 @@ export function cloudFormsLimitEmail(input: {
   };
 }
 
+/** To a team's owners, once a month: their sites' analytics reached the plan's events. */
+export function cloudAnalyticsLimitEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  team: string;
+  limit: number;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const limit = input.limit.toLocaleString(es ? 'es-ES' : 'en-GB');
+  return {
+    to: input.to,
+    subject: es
+      ? `La analítica de ${input.team} ha llegado al límite del mes`
+      : `${input.team}'s analytics reached this month's limit`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: es ? `${limit} eventos este mes` : `${limit} events this month`,
+        title: es ? 'Límite de analítica alcanzado' : 'Analytics limit reached',
+        intro: [
+          es
+            ? `Las webs de ${input.team} han enviado ${limit} eventos de analítica este mes, el máximo de su plan. Hasta el día 1 las visitas nuevas no se cuentan; las webs siguen funcionando con normalidad.`
+            : `${input.team}'s sites sent ${limit} analytics events this month, their plan's maximum. Until the 1st new visits aren't counted; the sites keep working as usual.`,
+        ],
+        button: { label: es ? 'Abrir la consola' : 'Open the console', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
 /** To a monitor's chosen members: it went down, came back, or its certificate is about to expire. */
 export function cloudMonitorEmail(input: {
   to: string;
