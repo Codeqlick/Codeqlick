@@ -32,6 +32,7 @@ import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
 import { ANALYTICS_PERIODS, AnalyticsTab } from './AnalyticsTab';
 import { BuildsTab } from './BuildsTab';
+import { DatabasesTab } from './DatabasesTab';
 import { FormsTab } from './FormsTab';
 import { GitTab } from './GitTab';
 import { KvTab } from './KvTab';
@@ -44,6 +45,7 @@ const TABS = [
   'notifications',
   'analytics',
   'kv',
+  'databases',
   'domains',
   'forms',
   'settings',
@@ -203,6 +205,9 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           cursor={query.cursor?.slice(0, 256) || undefined}
           selected={query.key?.slice(0, 256) || undefined}
         />
+      ) : null}
+      {tab === 'databases' ? (
+        <DatabasesTab locale={locale} projectId={project.id} path={path} admin={admin} />
       ) : null}
       {tab === 'forms' ? (
         <FormsTab

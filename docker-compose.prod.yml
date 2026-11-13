@@ -121,6 +121,9 @@ services:
       GITHUB_APP_PRIVATE_KEY: ${GITHUB_APP_PRIVATE_KEY:-}
       GITHUB_APP_WEBHOOK_SECRET: ${GITHUB_APP_WEBHOOK_SECRET:-}
       CLOUD_BUILDER_TOKEN: ${CLOUD_BUILDER_TOKEN:-}
+      # Managed databases (architecture 4.13 "Databases"): off while CLOUD_PG_HOST is empty.
+      CLOUD_PG_ADMIN_URL: postgresql://cqadmin:${CLOUD_PG_PASSWORD:-}@cloud-pg:5432/postgres
+      CLOUD_PG_HOST: ${CLOUD_PG_HOST:-}
     volumes:
       - uploads-data:/app/uploads
       - /srv/codeqlick/cloud:/cloud
@@ -249,6 +252,52 @@ services:
       timeout: 5s
       start_period: 1m
 
+  # Codeqlick Cloud's managed databases (architecture 4.13 "Databases", decision 47): a
+  # PostgreSQL apart from the platform's, open on 5432 with TLS only (deploy/cloud-pg). Started
+  # with the `cloud-data` profile (COMPOSE_PROFILES=cloud-data in .env); steps in deploy/README.md.
+  cloud-pg:
+    image: postgres:18-alpine
+    profiles: [cloud-data]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cqadmin
+      POSTGRES_PASSWORD: ${CLOUD_PG_PASSWORD:-}
+      POSTGRES_DB: postgres
+      CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-codeqlick.app}
+    ports:
+      - "5432:5432"
+    volumes:
+      - cloud-pg-data:/var/lib/postgresql
+      - ./deploy/cloud-pg/entrypoint.sh:/usr/local/bin/cloud-pg-entrypoint.sh:ro
+      - ./deploy/cloud-pg/pg_hba.conf:/etc/cloud-pg/pg_hba.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    entrypoint: ["/usr/local/bin/cloud-pg-entrypoint.sh"]
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cqadmin -d postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  # Dumps every Cloud database daily to ./backups/cloud-pg, 7 days kept.
+  cloud-pg-backup:
+    image: postgres:18-alpine
+    profiles: [cloud-data]
+    restart: unless-stopped
+    depends_on:
+      cloud-pg:
+        condition: service_healthy
+    user: ${BACKUP_USER:-1000:1000}
+    environment:
+      PGHOST: cloud-pg
+      PGUSER: cqadmin
+      PGPASSWORD: ${CLOUD_PG_PASSWORD:-}
+      CLOUD_PG_KEEP_DAYS: ${CLOUD_PG_KEEP_DAYS:-7}
+    volumes:
+      - ./deploy/cloud-pg/backup.sh:/usr/local/bin/cloud-pg-backup.sh:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    entrypoint: ["/usr/local/bin/cloud-pg-backup.sh"]
+
 volumes:
   db-data:
   # Images uploaded from the admin panel.
@@ -256,3 +305,4 @@ volumes:
   # Swipe's photos (not in the public uploads, not in the backups).
   swipe-data:
   umami-db-data:
+  cloud-pg-data:

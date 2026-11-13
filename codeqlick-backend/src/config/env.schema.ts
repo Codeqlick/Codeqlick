@@ -84,6 +84,11 @@ export const envSchema = z.object({
   GITHUB_APP_WEBHOOK_SECRET: optionalString,
   /** What Cloud's build server agent sends to claim and report builds (architecture 8.4). */
   CLOUD_BUILDER_TOKEN: optionalString,
+  /** Managed databases (architecture 4.13 "Databases", decision 47): the cloud-pg administrator's
+   * connection inside Docker, and the public host developers connect to. */
+  CLOUD_PG_ADMIN_URL: optionalString,
+  CLOUD_PG_HOST: optionalString,
+  CLOUD_PG_PORT: z.coerce.number().int().min(1).max(65535).default(5432),
   /** The Cloud console, for links in emails and the CLI's sign-in page. */
   CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */
