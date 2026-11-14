@@ -411,8 +411,7 @@ export function sizeError(bytes: number, limits: ConfigLimits, plan: string): Co
 }
 
 export type ParseResult =
-  | { ok: true; config: CloudConfig | null }
-  | { ok: false; errors: ConfigError[] };
+  { ok: true; config: CloudConfig | null } | { ok: false; errors: ConfigError[] };
 
 /** Everything the structure can't say: patterns, destinations, headers and the plan's limits. */
 function semantic(config: CloudConfig, limits: ConfigLimits, plan: string): ConfigError[] {
