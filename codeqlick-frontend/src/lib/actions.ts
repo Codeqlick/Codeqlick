@@ -40,11 +40,16 @@ export async function failedState(
   if (!isApiError(error) || error.status >= 500) {
     return { status: 'error', message: tc('genericError'), values };
   }
+  // A new password found in a data breach (architecture 4.3) is said in the user's language.
+  const tv = await getTranslations({ locale, namespace: 'Validation' });
   return {
     status: 'error',
     message: error.detail ?? error.title,
     fieldErrors: Object.fromEntries(
-      Object.entries(error.fieldErrors).map(([path, message]) => [mapPath(path), message]),
+      Object.entries(error.fieldErrors).map(([path, message]) => [
+        mapPath(path),
+        message === 'breached' ? tv('breachedPassword') : message,
+      ]),
     ),
     values,
   };
