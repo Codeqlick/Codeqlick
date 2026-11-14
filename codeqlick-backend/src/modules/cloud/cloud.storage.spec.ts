@@ -44,7 +44,7 @@ describe('host labels', () => {
 });
 
 describe('CloudStorage.archive', () => {
-  it('packs a deployment folder with its uploaded paths, dotfiles included', async () => {
+  it('packs a deployment folder with its uploaded paths, dotfiles and @ names included', async () => {
     const root = await mkdtemp(join(tmpdir(), 'cq-archive-'));
     try {
       const folder = join(root, 'deployments', 'd1');
@@ -52,6 +52,10 @@ describe('CloudStorage.archive', () => {
       await writeFile(join(folder, 'index.html'), '<h1>hi</h1>');
       await writeFile(join(folder, '.nojekyll'), '');
       await writeFile(join(folder, 'assets', 'app.js'), 'console.log(1)');
+      // Without a `./`, tar would read these as archives to append.
+      await mkdir(join(folder, '@scope'));
+      await writeFile(join(folder, '@scope', 'a.js'), 'a');
+      await writeFile(join(folder, '@vite.js'), 'v');
       const storage = new CloudStorage({
         cloudHosting: { domain: 'cloud.test', root },
       } as unknown as AppConfigService);
@@ -62,7 +66,15 @@ describe('CloudStorage.archive', () => {
       const paths: string[] = [];
       await list({ file, onReadEntry: (entry) => paths.push(entry.path) });
 
-      expect(paths.sort()).toEqual(['.nojekyll', 'assets/', 'assets/app.js', 'index.html']);
+      expect(paths.sort()).toEqual([
+        './@scope/',
+        './@scope/a.js',
+        './@vite.js',
+        '.nojekyll',
+        'assets/',
+        'assets/app.js',
+        'index.html',
+      ]);
       expect(await storage.archive('gone')).toBeNull();
     } finally {
       await rm(root, { recursive: true, force: true });

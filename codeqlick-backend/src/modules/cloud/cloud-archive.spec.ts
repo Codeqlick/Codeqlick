@@ -57,7 +57,7 @@ describe('CloudProjectsService.archive', () => {
     );
   });
 
-  it('streams the folder as <slug>-<short id>.tar.gz and records the download first', async () => {
+  it('streams the folder as <slug>-<short id>.tar.gz and records the download', async () => {
     const result = await service.archive(ctx, 'p1', 'd1');
 
     expect(result.filename).toBe('docs-a1b2c3d4.tar.gz');
@@ -65,6 +65,10 @@ describe('CloudProjectsService.archive', () => {
     expect(teams.accessById).toHaveBeenCalledWith(ctx, 't1', 'MEMBER');
     expect(storage.archive).toHaveBeenCalledWith('d1');
     expect(teams.record).toHaveBeenCalledWith(ctx, 't1', 'deployment.downloaded', 'docs--a1b2c3d4');
+    // Recorded only once the archive's first bytes were ready.
+    expect(storage.archive.mock.invocationCallOrder[0]!).toBeLessThan(
+      teams.record.mock.invocationCallOrder[0]!,
+    );
     expect(repository.countEventsSince).toHaveBeenCalledWith(
       't1',
       'deployment.downloaded',
@@ -97,6 +101,13 @@ describe('CloudProjectsService.archive', () => {
 
     storage.archive.mockResolvedValueOnce(null);
     await expect(service.archive(ctx, 'p1', 'd1')).rejects.toBeInstanceOf(NotFoundException);
+    expect(teams.record).not.toHaveBeenCalled();
+  });
+
+  it("doesn't count an attempt whose packing fails before the first bytes", async () => {
+    storage.archive.mockRejectedValueOnce(new Error('EACCES: permission denied'));
+
+    await expect(service.archive(ctx, 'p1', 'd1')).rejects.toThrow(/EACCES/);
     expect(teams.record).not.toHaveBeenCalled();
   });
 

@@ -59,6 +59,12 @@ export function bundlePath(raw: string): string {
   return path;
 }
 
+/** A file or folder that isn't there (any more). */
+function isMissing(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return code === 'ENOENT' || code === 'ENOTDIR';
+}
+
 /** Host labels: `<slug>` for production and `<slug>--<shortId>` for each deployment. */
 export const productionLabel = (slug: string) => slug;
 export const deploymentLabel = (slug: string, shortId: string) => `${slug}--${shortId}`;
@@ -200,35 +206,54 @@ export class CloudStorage {
 
   /**
    * A deployment's folder packed as a `tar.gz` stream, built while it is read (decision 60): its
-   * entries by name, so paths are the uploaded ones without `./`, dotfiles included, links never
-   * followed. Null when the folder is gone. If a file disappears while packing (the hourly
-   * cleanup), the stream fails with that error instead of ending as an incomplete archive.
+   * entries by name, so paths are the uploaded ones without `./` (except names starting with `@`,
+   * which tar would read as archives to append), dotfiles included, links never followed.
+   * Resolves once the first bytes are ready, so an early failure is an ordinary error; null when
+   * the folder is gone. If a file disappears later (the hourly cleanup), the stream fails with
+   * that error instead of ending as an incomplete archive.
    */
   async archive(id: string): Promise<Readable | null> {
     const folder = this.dir('deployments', id);
-    let entries: string[];
+    let names: string[];
     try {
-      entries = (await readdir(folder)).sort();
+      names = (await readdir(folder)).sort();
     } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code === 'ENOENT' || code === 'ENOTDIR') return null;
+      if (isMissing(error)) return null;
       throw error;
     }
-    if (entries.length === 0) return null;
+    if (names.length === 0) return null;
+    const entries = names.map((name) => (name.startsWith('@') ? `./${name}` : name));
     const pack = create(
       { gzip: true, portable: true, strict: true, follow: false, cwd: folder },
       entries,
     );
     const out = new PassThrough();
-    pack.on('error', (error) => out.destroy(error as Error));
     out.once('close', () => {
-      // The reader went away: let the packer run dry so it closes the files it has open.
+      // The reader went away (or packing failed): let the packer run dry so it closes its files.
       if (!out.writableFinished) {
         pack.unpipe(out);
         pack.resume();
       }
     });
     pack.pipe(out);
+    let started = false;
+    const ready = new Promise<void>((resolve, reject) => {
+      pack.on('error', (error) => {
+        // Before the first bytes the caller gets the error; after, the reader's stream fails.
+        out.destroy(started ? (error as Error) : undefined);
+        reject(error as Error);
+      });
+      pack.once('data', () => {
+        started = true;
+        resolve();
+      });
+    });
+    try {
+      await ready;
+    } catch (error) {
+      if (isMissing(error)) return null;
+      throw error;
+    }
     return out;
   }
 

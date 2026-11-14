@@ -450,8 +450,16 @@ export class CloudController {
       disposition: attachmentDisposition(archive.filename),
     })
       .setErrorHandler((error, response) => {
-        // Headers are gone by now: cut the connection so the archive can't look complete.
-        this.logger.warn(`Archive of ${params.deploymentId} cut: ${error.message}`);
+        // Headers are gone by now: cut the connection so the archive can't look complete. A
+        // reader who went away is ordinary; anything else (files gone mid-way) is worth a line.
+        const code = (error as NodeJS.ErrnoException).code;
+        if (
+          code !== 'ERR_STREAM_PREMATURE_CLOSE' &&
+          code !== 'ECONNRESET' &&
+          !/aborted/i.test(error.message)
+        ) {
+          this.logger.warn(`Archive of ${params.deploymentId} cut: ${error.message}`);
+        }
         (response as unknown as { destroy(): void }).destroy();
       })
       .setErrorLogger(() => undefined);

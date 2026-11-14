@@ -360,7 +360,7 @@ async function Deployments({
                   </p>
                 </div>
                 <div className={styles.actions}>
-                  <a href={`${archive}/${deployment.id}/archive`} className={styles.small} download>
+                  <a href={`${archive}/${deployment.id}/archive`} className={styles.small}>
                     {t('project.download')}
                     <span className="visually-hidden"> — {deployment.shortId}</span>
                   </a>

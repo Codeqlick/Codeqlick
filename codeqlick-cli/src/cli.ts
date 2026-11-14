@@ -28,7 +28,7 @@ import {
   writeProjectFile,
   PROJECT_FILE,
 } from './config.ts';
-import { archivePath, exists, saveArchive } from './download.ts';
+import { archivePath, downloadFailure, exists, saveArchive } from './download.ts';
 import { collect, pack } from './pack.ts';
 import { VERSION } from './version.ts';
 
@@ -419,7 +419,7 @@ async function download(id: string | undefined, options: Options): Promise<void>
   try {
     size = await saveArchive(body, file);
   } catch (error) {
-    throw new Error(`The download was cut (${(error as Error).message}); nothing was saved.`);
+    throw downloadFailure(error, file);
   }
   const shown = relative(process.cwd(), file) || file;
   console.log(`${green('✓')} ${bold(found.shortId)} saved to ${shown} (${bytes(size)})`);
