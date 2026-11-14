@@ -5062,6 +5062,7 @@
       "rootDirHint": "Leave it empty unless the site is in a subfolder (a monorepo).",
       "install": "Install command",
       "build": "Build command",
+      "commandsHint": "Left as npm ci and npm run build, builds use pnpm or Yarn when the repository has their lockfile or packageManager field.",
       "output": "Output folder",
       "outputHint": "What the build writes: dist, build, out, public…",
       "node": "Node version",

@@ -5062,6 +5062,7 @@
       "rootDirHint": "Déjala vacía salvo que la web esté en una subcarpeta (un monorepo).",
       "install": "Orden de instalación",
       "build": "Orden de compilación",
+      "commandsHint": "Con npm ci y npm run build, las compilaciones usan pnpm o Yarn si el repositorio tiene su lockfile o el campo packageManager.",
       "output": "Carpeta de salida",
       "outputHint": "Lo que escribe la compilación: dist, build, out, public…",
       "node": "Versión de Node",

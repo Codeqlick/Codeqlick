@@ -31,6 +31,8 @@ Builds from Git (connect GitHub once in the console's Git tab):
 | `builds` / `builds start [--branch]` / `builds cancel <n>` | List, build now and follow, cancel                  |
 | `logs [number]`                                            | A build's log, followed while it runs               |
 
+With `git connect`'s default install and build commands (`npm ci`, `npm run build`), each build picks npm, pnpm or Yarn from the repository's lockfile; a `--install` or `--build` you set is used as it is.
+
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 
 Analytics and the key-value store:

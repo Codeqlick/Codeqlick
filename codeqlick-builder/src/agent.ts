@@ -4,7 +4,16 @@ import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { dockerArgs, envFile, inside, mask, type Job } from './plan.ts';
+import {
+  choosePackageManager,
+  containerCommand,
+  dockerArgs,
+  envFile,
+  inside,
+  mask,
+  type Job,
+} from './plan.ts';
+import { checkoutFiles } from './checkout.ts';
 
 /**
  * Codeqlick Cloud's build agent (architecture 8.4, decision 41). It asks the API for a build every
@@ -123,8 +132,16 @@ async function build(job: Job): Promise<void> {
     const root = inside(src, job.rootDir);
     const variables = join(work, 'env');
     await writeFile(variables, envFile(job.env), { mode: 0o600 });
-    const command = `${job.installCommand} && ${job.buildCommand}`;
-    output(`$ ${command}\n`);
+    const chosen = choosePackageManager({
+      rootDir: job.rootDir,
+      installCommand: job.installCommand,
+      buildCommand: job.buildCommand,
+      files: checkoutFiles(src),
+    });
+    output(`${chosen.log}\n`);
+    // The log shows the commands; the Corepack set-up in front of them is the same in every build.
+    output(`$ ${chosen.install} && ${chosen.build}\n`);
+    const command = containerCommand(chosen.install, chosen.build);
     const timer = setTimeout(() => {
       output(
         `\nThe build took longer than ${Math.round(job.timeoutSeconds / 60)} minutes: stopped.\n`,
