@@ -48,11 +48,11 @@ export function DeploymentFiles({
         maxLength={200}
         mono
       />
-      <p className={styles.status} role="status">
+      <output className={styles.status}>
         {filtering ? t('matches', { count: matched.length }) : null}
         {filtering && left > 0 ? ' ' : null}
         {left > 0 ? t('showing', { shown: shown.length, count: matched.length }) : null}
-      </p>
+      </output>
       {shown.length > 0 ? (
         <FileTable
           items={shown}
