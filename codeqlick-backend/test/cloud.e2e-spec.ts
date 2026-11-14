@@ -748,10 +748,18 @@ describe('Codeqlick Cloud (e2e)', () => {
     const yyLink = join(root, 'hosts', `${slug}--b-yy`);
     expect(await readlink(zzLink)).toBe(join('..', 'deployments', zzNew.id));
     expect(await readlink(yyLink)).toBe(join('..', 'deployments', yyOnly.id));
+    // The first production upload sits out this cleanup: the keeping section below needs it.
+    const olderId = (production.body as { id: string }).id;
+    await prisma.cloudDeployment.update({ where: { id: olderId }, data: { keptAt: new Date() } });
     await projects.housekeeping();
     expect(await readlink(zzLink)).toBe(join('..', 'deployments', first.id));
     await expect(readlink(yyLink)).rejects.toThrow(/ENOENT/);
     await expect(readlink(branchLink)).rejects.toThrow(/ENOENT/);
+    // Back to the two deployments the sections below count on.
+    await prisma.cloudDeployment.update({ where: { id: olderId }, data: { keptAt: null } });
+    await prisma.cloudDeployment.deleteMany({
+      where: { projectId, id: { notIn: [olderId, first.id] } },
+    });
 
     // ── Events, housekeeping and deletion ──────────────────────────────────────────────────
     const events = await request(server)

@@ -366,6 +366,8 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
     const login = await request(server).post('/v1/auth/login').send(member).expect(200);
     const memberAuth = { Authorization: `Bearer ${login.body.accessToken as string}` };
 
+    // The CSV test above switched the tracker off; the link needs it on.
+    await request(server).patch(base).set(auth).send({ enabled: true }).expect(200);
     // Off until an admin creates it; members can't.
     const off = await request(server).get(`${base}/share`).set(auth).expect(200);
     expect(off.body).toEqual({ enabled: false });
@@ -390,10 +392,13 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
     // Anyone with the link reads the numbers, not the console's switch or snippet.
     const shared = await request(server).get(`/v1/cloud/analytics/shared/${token}`).expect(200);
     expect(shared.headers['cache-control']).toBe('private, max-age=60');
+    // The same numbers as the console's report (the other tests add events of their own).
+    const own = await request(server).get(`${base}?period=7d`).set(auth).expect(200);
     expect(shared.body).toMatchObject({
       project: { name: 'Site' },
       period: '7d',
-      totals: { visitors: 1, pageviews: 3 },
+      totals: own.body.totals,
+      previous: own.body.previous,
     });
     expect(shared.body).not.toHaveProperty('snippet');
     expect(shared.body).not.toHaveProperty('enabled');
