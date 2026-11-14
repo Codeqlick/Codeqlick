@@ -308,6 +308,10 @@ model Post {
   status        PublishStatus @default(DRAFT)
   publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
   coverImageUrl String?       @map("cover_image_url")
+  /// Email it to the newsletter's subscribers when it goes live (architecture 4.14).
+  newsletter    Boolean       @default(true)
+  /// When its email went out or was skipped; null until it is live and the job has seen it.
+  newsletterSentAt DateTime? @map("newsletter_sent_at") @db.Timestamptz(3)
   authorId      String?       @map("author_id") @db.Uuid
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -2546,4 +2550,34 @@ model CloudBucketKey {
 
   @@index([bucketId])
   @@map("cloud_bucket_keys")
+}
+
+/// A blog reader who signed up for new posts by email (architecture 4.14). Not a `User`.
+model NewsletterSubscriber {
+  id               String                 @id @default(uuid()) @db.Uuid
+  /// Lower-cased.
+  email            String                 @unique
+  /// The language of the emails.
+  locale           Locale
+  status           NewsletterStatus       @default(PENDING)
+  /// SHA-256 of the confirmation token, cleared once confirmed.
+  confirmTokenHash String?                @unique @map("confirm_token_hash")
+  confirmExpiresAt DateTime?              @map("confirm_expires_at") @db.Timestamptz(3)
+  /// The last confirmation email (at most one every 10 minutes).
+  confirmSentAt    DateTime?              @map("confirm_sent_at") @db.Timestamptz(3)
+  /// With the stored language, the proof of consent.
+  confirmedAt      DateTime?              @map("confirmed_at") @db.Timestamptz(3)
+  /// In every email's unsubscribe link; it can only unsubscribe.
+  unsubscribeToken String                 @unique @map("unsubscribe_token")
+  unsubscribedAt   DateTime?              @map("unsubscribed_at") @db.Timestamptz(3)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@map("newsletter_subscribers")
+}
+
+enum NewsletterStatus {
+  PENDING
+  ACTIVE
+  UNSUBSCRIBED
 }

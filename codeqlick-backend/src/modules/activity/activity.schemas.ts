@@ -18,6 +18,7 @@ export const ACTIVITY_TARGETS = [
   'videochat',
   'swipe',
   'cloud',
+  'newsletter',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -149,6 +150,7 @@ export const ACTIVITY_ACTIONS = [
   'cloud.suspended',
   'cloud.unsuspended',
   'cloud.report_closed',
+  'newsletter.subscriber_deleted',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

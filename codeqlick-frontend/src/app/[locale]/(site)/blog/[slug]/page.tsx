@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { cache } from 'react';
 import { PostArticle } from '@/components/content/PostArticle';
 import { PostCard } from '@/components/content/PostCard';
+import { NewsletterSignup } from '@/components/newsletter/NewsletterSignup';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -77,6 +78,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           ← {t('back')}
         </Link>
       </PostArticle>
+      <div className={`wrap ${styles.narrow} ${styles.newsletter}`}>
+        <NewsletterSignup />
+      </div>
       {related.length > 0 ? (
         <section className={`wrap ${styles.related}`} aria-labelledby="related-heading">
           <h2 id="related-heading" className={styles.listHeading}>

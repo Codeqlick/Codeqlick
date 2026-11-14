@@ -320,6 +320,35 @@
     "noResultsBody": "Try other words or browse all posts.",
     "allPosts": "See all posts"
   },
+  "Newsletter": {
+    "title": "Get new posts by email",
+    "lead": "One email for each new post on the blog. Nothing else, and you can unsubscribe at any time.",
+    "email": "Your email",
+    "emailPlaceholder": "you@example.com",
+    "acceptPrivacy": "I agree to you using my email to send me new posts, as the <link>privacy policy</link> explains.",
+    "honeypot": "Leave this field empty",
+    "submit": "Subscribe",
+    "submitting": "Subscribing…",
+    "successTitle": "Check your inbox to confirm.",
+    "successBody": "If the address is valid, we've sent you a link to confirm your subscription. It expires in 48 hours. Can't see it? Check your spam folder.",
+    "error": "Please check the form.",
+    "rateLimited": "Too many attempts in a row. Wait a minute and try again.",
+    "failed": "We couldn't complete that. Please try again in a moment.",
+    "disposable": "We don't accept temporary email addresses. Please use your usual email.",
+    "confirmTitle": "Confirm your subscription",
+    "confirmedLead": "You're subscribed. We'll email you each new post on the blog.",
+    "goToBlog": "Read the blog",
+    "confirmExpired": "This link is not valid or has expired. Sign up again below to get a new one.",
+    "unsubscribeTitle": "Unsubscribe from the newsletter",
+    "unsubscribeLead": "Press the button and we'll stop emailing you new posts.",
+    "unsubscribe": "Unsubscribe",
+    "unsubscribing": "Unsubscribing…",
+    "unsubscribed": "Done. You won't get any more emails from us. You can subscribe again whenever you like.",
+    "unsubscribeNotFound": "This link is not valid. If you still get our emails, use the link at the bottom of the latest one or write to us.",
+    "confirmLead": "Press the button to confirm your subscription to new blog posts by email.",
+    "confirm": "Confirm my subscription",
+    "confirming": "Confirming…"
+  },
   "Work": {
     "metaTitle": "Work",
     "metaDescription": "Case studies of software and web applications built by Codeqlick.",
@@ -749,7 +778,8 @@
       "previews": "Previews",
       "videochat": "Video chat",
       "swipe": "Swipe",
-      "cloud": "Cloud"
+      "cloud": "Cloud",
+      "newsletter": "Newsletter"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -910,7 +940,11 @@
       "publishedAt": "Publication date",
       "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it.",
       "tags": "Tags",
-      "noTags": "No tags yet. <link>Create some</link> to sort your posts."
+      "noTags": "No tags yet. <link>Create some</link> to sort your posts.",
+      "newsletter": "Email it to subscribers",
+      "newsletterHint": "When the post is live (a scheduled one, when it goes live), the newsletter's subscribers get it by email. It is emailed only once.",
+      "newsletterSentOn": "Already emailed to subscribers on {date}.",
+      "newsletterSkippedOn": "Not emailed to subscribers."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -1187,7 +1221,8 @@
         "settings": "Settings",
         "booking": "Calls",
         "videochat": "Video chat",
-        "swipe": "Swipe"
+        "swipe": "Swipe",
+        "newsletter": "Newsletter"
       },
       "actions": {
         "post": {
@@ -1337,6 +1372,9 @@
           "takedown_closed": "closed without removing the request <target>{label}</target>",
           "suspended": "suspended <target>{label}</target> from Swipe",
           "unsuspended": "lifted the Swipe suspension of <target>{label}</target>"
+        },
+        "newsletter": {
+          "subscriber_deleted": "deleted a subscriber from the newsletter"
         }
       },
       "details": {
@@ -1614,6 +1652,36 @@
       "capReached": "Today’s 10 previews, the daily maximum, are made. Try tomorrow.",
       "noBuilder": "The website builder isn’t available right now.",
       "purchased": "Bought"
+    },
+    "newsletter": {
+      "title": "Newsletter",
+      "lead": "Readers who signed up to get each new blog post by email. A sign-up counts once they confirm it from the email we send.",
+      "counts": {
+        "active": "Active",
+        "pending": "Pending confirmation",
+        "unsubscribed": "Unsubscribed"
+      },
+      "status": "Status",
+      "statuses": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending",
+        "UNSUBSCRIBED": "Unsubscribed"
+      },
+      "search": "Search",
+      "searchPlaceholder": "Part of the email…",
+      "email": "Email",
+      "language": "Language",
+      "languages": {
+        "en": "English",
+        "es": "Spanish"
+      },
+      "signedUp": "Signed up",
+      "confirmedOn": "Confirmed on {date}",
+      "unsubscribedOn": "Left on {date}",
+      "emptyTitle": "No subscribers yet",
+      "emptyBody": "Readers can sign up at the end of the blog and of each post.",
+      "noMatchTitle": "No subscribers match",
+      "noMatchBody": "Try another status or other words."
     }
   },
   "Sessions": {
