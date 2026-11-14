@@ -28,11 +28,9 @@ export type UnsubscribeState = {
   problem?: PreferencesProblem;
 };
 
-export type UnsubscribeView =
-  | 'subscribed'
-  | 'unsubscribed'
-  | 'alreadyUnsubscribed'
-  | 'resubscribed';
+type SubscribedView = 'subscribed' | 'resubscribed';
+type UnsubscribedView = 'unsubscribed' | 'alreadyUnsubscribed';
+export type UnsubscribeView = SubscribedView | UnsubscribedView;
 
 /** What the page says: the state as found when opening the link, or the change just made. */
 export function unsubscribeView({ subscribed, changed }: UnsubscribeState): UnsubscribeView {
