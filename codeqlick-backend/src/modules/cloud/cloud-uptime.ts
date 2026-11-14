@@ -106,11 +106,20 @@ export function incidents(changes: StateChange[], from: Date, now: Date): Incide
   return result.toReversed();
 }
 
-/** The overall state of a set of monitors, as a status page says it. */
-export function overall(states: MonitorState[]): 'operational' | 'partial' | 'major' | 'unknown' {
+/** What a status page shows for a monitor: its state, or MAINTENANCE during one in progress. */
+export type PublicMonitorState = MonitorState | 'MAINTENANCE';
+
+/**
+ * The overall state of a set of monitors, as a status page says it: `maintenance` when none is
+ * down and at least one is under a maintenance in progress.
+ */
+export function overall(
+  states: PublicMonitorState[],
+): 'operational' | 'partial' | 'major' | 'maintenance' | 'unknown' {
   const live = states.filter((s) => s === 'UP' || s === 'DOWN');
-  if (live.length === 0) return 'unknown';
   const down = live.filter((s) => s === 'DOWN').length;
+  if (down === 0 && states.includes('MAINTENANCE')) return 'maintenance';
+  if (live.length === 0) return 'unknown';
   if (down === 0) return 'operational';
   return down === live.length ? 'major' : 'partial';
 }
