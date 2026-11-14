@@ -89,3 +89,25 @@ export const listAdminPortfolioQuerySchema = paginationSchema.extend({
   status: publishStatusSchema.optional(),
 });
 export type ListAdminPortfolioQuery = z.infer<typeof listAdminPortfolioQuerySchema>;
+
+/** A stored `PortfolioSnapshot`, checked before it is restored (decision 52). */
+export const portfolioSnapshotSchema = z.object({
+  coverImageUrl: z.string().nullable(),
+  clientName: z.string().nullable(),
+  projectUrl: z.string().nullable(),
+  technologies: z.array(z.string()),
+  services: z.array(z.string()),
+  testimonialAuthor: z.string().nullable(),
+  translations: z
+    .array(
+      z.object({
+        locale: localeSchema,
+        title: z.string(),
+        summary: z.string(),
+        content: z.string(),
+        testimonialQuote: z.string().nullable(),
+        testimonialRole: z.string().nullable(),
+      }),
+    )
+    .min(1),
+});

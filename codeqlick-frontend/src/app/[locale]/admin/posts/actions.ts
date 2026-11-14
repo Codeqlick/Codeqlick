@@ -9,7 +9,12 @@ import {
   savedState,
   unconfirmedDelete,
 } from '@/lib/actions';
-import { adminCreatePost, adminDeletePost, adminUpdatePost } from '@/lib/api/posts';
+import {
+  adminCreatePost,
+  adminDeletePost,
+  adminRestorePostRevision,
+  adminUpdatePost,
+} from '@/lib/api/posts';
 import type { PostInput } from '@/lib/api/types';
 import { formBoolean, formString, formText, type FormState } from '@/lib/forms';
 import { newsletterChoice } from '@/lib/newsletter';
@@ -109,4 +114,25 @@ export async function deletePostAction(
 
   revalidateSite();
   redirect(`/${locale}/admin/posts`);
+}
+
+/** Puts an earlier version back (after the confirmation box is ticked). */
+export async function restorePostRevisionAction(
+  locale: AppLocale,
+  id: string,
+  revisionId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const unconfirmed = await unconfirmedDelete(locale, formData);
+  if (unconfirmed) return unconfirmed;
+
+  try {
+    await adminRestorePostRevision(id, revisionId);
+  } catch (apiError) {
+    return failedState(apiError, locale, formData);
+  }
+
+  revalidateSite();
+  redirect(`/${locale}/admin/posts/${encodeURIComponent(id)}?restored=1`);
 }

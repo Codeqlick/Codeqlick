@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { toContentRevision, type ContentRevision } from '../../common/content-revisions.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -18,13 +19,15 @@ import {
   type PortfolioUpdateData,
   type PortfolioWithTranslations,
 } from './portfolio.repository.js';
-import { SERVICE_KEYS } from './portfolio.schemas.js';
-import type {
-  CreatePortfolioInput,
-  ListAdminPortfolioQuery,
-  ListPublicPortfolioQuery,
-  PortfolioTranslationInput,
-  UpdatePortfolioInput,
+import type { PortfolioSnapshot } from './portfolio-snapshot.js';
+import {
+  SERVICE_KEYS,
+  portfolioSnapshotSchema,
+  type CreatePortfolioInput,
+  type ListAdminPortfolioQuery,
+  type ListPublicPortfolioQuery,
+  type PortfolioTranslationInput,
+  type UpdatePortfolioInput,
 } from './portfolio.schemas.js';
 
 type ServiceKey = (typeof SERVICE_KEYS)[number];
@@ -75,6 +78,8 @@ export interface AdminPortfolioItem {
   /** Old slugs that redirect to this case study (decision 51), newest first. */
   oldSlugs: string[];
 }
+
+export type PortfolioRevisionDetail = ContentRevision & { snapshot: PortfolioSnapshot };
 
 function toTranslationData(t: PortfolioTranslationInput): PortfolioTranslationData {
   return {
@@ -255,11 +260,58 @@ export class PortfolioService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
-    const updated = toAdminItem(await this.repository.update(id, data));
+    const updated = toAdminItem(await this.repository.update(id, data, actor.id));
     await this.activity.record(actor, {
       action: `portfolio.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
+    });
+    return updated;
+  }
+
+  // ---- Revisions (decision 52) --------------------------------------------------------
+
+  async revisions(id: string): Promise<ContentRevision[]> {
+    await this.findOrThrow(id);
+    return (await this.repository.revisions(id)).map(toContentRevision);
+  }
+
+  async revision(id: string, revisionId: string): Promise<PortfolioRevisionDetail> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    return {
+      ...toContentRevision(revision),
+      snapshot: revision.snapshot as unknown as PortfolioSnapshot,
+    };
+  }
+
+  /**
+   * Puts a revision's content back as a normal update, so the current content becomes a
+   * revision itself. Status, publication date, slug and order stay.
+   */
+  async restore(actor: AuthUser, id: string, revisionId: string): Promise<AdminPortfolioItem> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    const parsed = portfolioSnapshotSchema.safeParse(revision.snapshot);
+    if (!parsed.success) throw new ConflictException('That revision no longer fits the schema');
+    const snapshot = parsed.data;
+    const data: PortfolioUpdateData = {
+      coverImageUrl: snapshot.coverImageUrl,
+      clientName: snapshot.clientName,
+      projectUrl: snapshot.projectUrl,
+      technologies: snapshot.technologies,
+      services: snapshot.services,
+      testimonialAuthor: snapshot.testimonialAuthor,
+      translations: snapshot.translations.map(toTranslationData),
+    };
+    const updated = toAdminItem(await this.repository.update(id, data, actor.id));
+    await this.activity.record(actor, {
+      action: 'portfolio.restored',
+      targetId: id,
+      targetLabel: contentLabel(updated),
+      details: { revisionCreatedAt: revision.createdAt.toISOString() },
     });
     return updated;
   }

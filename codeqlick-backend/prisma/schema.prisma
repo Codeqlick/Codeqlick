@@ -119,6 +119,8 @@ model User {
   credentials                ProjectCredential[]
   siteRevisions              ManagedSiteRevision[]
   siteNewsPosts              SiteNewsPost[]
+  postRevisions              PostRevision[]
+  portfolioRevisions         PortfolioRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
   memberOfId                 String?                     @map("member_of_id") @db.Uuid
@@ -325,6 +327,7 @@ model Post {
   translations  PostTranslation[]
   tags          PostTag[]
   slugRedirects PostSlugRedirect[]
+  revisions    PostRevision[]
 
   @@index([status, publishedAt])
   @@map("posts")
@@ -341,6 +344,22 @@ model PostSlugRedirect {
 
   @@index([postId])
   @@map("post_slug_redirects")
+}
+
+/// A post's content before an admin change (the last 20 are kept, decision 52). `createdAt` is
+/// when it was replaced and `author` who replaced it; `snapshot` is a PostSnapshot (API 5).
+model PostRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  snapshot  Json
+  authorId  String?  @map("author_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  post   Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@map("post_revisions")
 }
 
 /// A blog topic, shared by both languages: one slug for URLs, a name per language.
@@ -404,6 +423,7 @@ model PortfolioItem {
 
   translations  PortfolioTranslation[]
   slugRedirects PortfolioSlugRedirect[]
+  revisions    PortfolioRevision[]
 
   @@index([status, sortOrder])
   @@map("portfolio_items")
@@ -420,6 +440,22 @@ model PortfolioSlugRedirect {
 
   @@index([portfolioItemId])
   @@map("portfolio_slug_redirects")
+}
+
+/// A case study's content before an admin change (the last 20 are kept, decision 52). `createdAt`
+/// is when it was replaced and `author` who replaced it; `snapshot` is a PortfolioSnapshot (API 5).
+model PortfolioRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
+  snapshot        Json
+  authorId        String?  @map("author_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([portfolioItemId, createdAt])
+  @@map("portfolio_revisions")
 }
 
 model PortfolioTranslation {

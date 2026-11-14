@@ -3,10 +3,12 @@ import { apiFetch } from './client';
 import type {
   AdminPost,
   AdminTag,
+  ContentRevision,
   Locale,
   Paginated,
   PostDetail,
   PostInput,
+  PostRevision,
   PostSummary,
   PublicTag,
   SlugRedirect,
@@ -93,6 +95,27 @@ export function adminUpdatePost(id: string, input: Partial<PostInput>) {
 export function adminDeletePost(id: string) {
   return apiFetch<void>(`/admin/posts/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+const revisionsPath = (id: string) => `/admin/posts/${encodeURIComponent(id)}/revisions`;
+
+/** The post's earlier versions, newest first (at most 20). */
+export function adminListPostRevisions(id: string) {
+  return apiFetch<ContentRevision[]>(revisionsPath(id), { auth: 'required' });
+}
+
+export function adminGetPostRevision(id: string, revisionId: string) {
+  return apiFetch<PostRevision>(`${revisionsPath(id)}/${encodeURIComponent(revisionId)}`, {
+    auth: 'required',
+  });
+}
+
+/** Puts that version back (the current content becomes a revision). */
+export function adminRestorePostRevision(id: string, revisionId: string) {
+  return apiFetch<AdminPost>(`${revisionsPath(id)}/${encodeURIComponent(revisionId)}/restore`, {
+    method: 'POST',
     auth: 'required',
   });
 }
