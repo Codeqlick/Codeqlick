@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { CloudNotifyChannel, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-/** Build notification channels (architecture 4.13 "Build notifications", decision 43). */
+/** Build notification channels (architecture 4.13 "Build notifications", decisions 43 and 63). */
 @Injectable()
 export class CloudNotificationsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -92,6 +92,15 @@ export class CloudNotificationsRepository {
         },
       },
     });
+  }
+
+  /** Which of `formIds` are forms of the project (decision 63). */
+  async formsAmong(projectId: string, formIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.cloudForm.findMany({
+      where: { projectId, id: { in: formIds } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
   }
 
   /** Which of `userIds` are members of the team. */
