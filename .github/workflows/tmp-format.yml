@@ -1,0 +1,38 @@
+name: tmp-format
+on:
+  push:
+    branches: [tmp-fmt]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://codeqlick:codeqlick@localhost:5432/codeqlick
+      JWT_ACCESS_SECRET: ci-dummy-secret-0123456789abcdef0123456789abcdef0123456789abcdef
+      CORS_ORIGINS: http://localhost:3000
+      SMTP_HOST: localhost
+      SMTP_PORT: '1025'
+      MAIL_FROM: Codeqlick <hello@codeqlick.com>
+      LEADS_NOTIFY_TO: hello@codeqlick.com
+      LOG_LEVEL: silent
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: checks
+        run: |
+          run() { local d=$1; shift; local name=$1; shift; if ! (cd "$d" && "$@") > /tmp/out.txt 2>&1; then echo "::group::FAIL $d $name"; grep -E "error|Error|ERR|FAIL|✗|×|warn\]" /tmp/out.txt | grep -v "^.*warning" | head -80; echo "--- tail"; tail -40 /tmp/out.txt; echo "::endgroup::"; echo "FAIL $d $name" >> /tmp/summary.txt; else echo "ok $d $name" >> /tmp/summary.txt; fi; }
+          for d in codeqlick-backend codeqlick-frontend codeqlick-cli codeqlick-builder codeqlick-sites/web-basica codeqlick-docs; do
+            [ -f "$d/package.json" ] || continue
+            (cd "$d" && npm ci --no-audit --no-fund >/dev/null 2>&1) || echo "FAIL $d npm-ci" >> /tmp/summary.txt
+          done
+          (cd codeqlick-backend && npx prisma generate >/dev/null 2>&1)
+          for d in codeqlick-backend codeqlick-frontend; do run $d lint npm run lint; done
+          for d in codeqlick-backend codeqlick-frontend codeqlick-cli codeqlick-builder; do run $d typecheck npm run typecheck; done
+          for d in codeqlick-backend codeqlick-frontend codeqlick-cli codeqlick-builder; do run $d test npm test; done
+          for d in codeqlick-sites/web-basica codeqlick-docs; do run $d check npm run check; done
+          for d in codeqlick-backend codeqlick-frontend codeqlick-cli codeqlick-builder codeqlick-sites/web-basica codeqlick-docs; do (cd $d && npx prettier --write . >/dev/null 2>&1); done
+          echo "::group::prettier diff"; git diff; echo "::endgroup::"
+          echo "===== SUMMARY"; cat /tmp/summary.txt
