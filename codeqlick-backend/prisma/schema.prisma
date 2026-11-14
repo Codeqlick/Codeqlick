@@ -2185,6 +2185,12 @@ enum CloudMonitorKind {
   HEARTBEAT
 }
 
+/// HTTP monitors' text check: the page must contain the keyword, or must not.
+enum CloudMonitorKeywordMode {
+  CONTAINS
+  NOT_CONTAINS
+}
+
 enum CloudMonitorStatus {
   UNKNOWN
   UP
@@ -2194,35 +2200,38 @@ enum CloudMonitorStatus {
 
 /// A URL checked every 5 minutes, or a heartbeat a scheduled job calls (architecture 4.13, Monitors).
 model CloudMonitor {
-  id              String             @id @default(uuid()) @db.Uuid
-  teamId          String             @map("team_id") @db.Uuid
-  projectId       String?            @map("project_id") @db.Uuid
-  name            String             @db.VarChar(60)
+  id              String                  @id @default(uuid()) @db.Uuid
+  teamId          String                  @map("team_id") @db.Uuid
+  projectId       String?                 @map("project_id") @db.Uuid
+  name            String                  @db.VarChar(60)
   kind            CloudMonitorKind
-  url             String?            @db.VarChar(2048)
+  url             String?                 @db.VarChar(2048)
+  /// HTTP: text the page must (or must not) contain; null when not checked.
+  keyword         String?                 @db.VarChar(100)
+  keywordMode     CloudMonitorKeywordMode @default(CONTAINS) @map("keyword_mode")
   /// Heartbeats: `cqh_` + 16 random bytes, the URL's last part.
-  key             String?            @unique @db.VarChar(40)
-  periodMinutes   Int?               @map("period_minutes")
-  graceMinutes    Int?               @map("grace_minutes")
-  enabled         Boolean            @default(true)
-  status          CloudMonitorStatus @default(UNKNOWN)
-  statusSince     DateTime           @default(now()) @map("status_since") @db.Timestamptz(3)
+  key             String?                 @unique @db.VarChar(40)
+  periodMinutes   Int?                    @map("period_minutes")
+  graceMinutes    Int?                    @map("grace_minutes")
+  enabled         Boolean                 @default(true)
+  status          CloudMonitorStatus      @default(UNKNOWN)
+  statusSince     DateTime                @default(now()) @map("status_since") @db.Timestamptz(3)
   /// HTTP: failed checks in a row (DOWN after two).
-  failures        Int                @default(0)
-  lastCheckedAt   DateTime?          @map("last_checked_at") @db.Timestamptz(3)
-  lastPingAt      DateTime?          @map("last_ping_at") @db.Timestamptz(3)
+  failures        Int                     @default(0)
+  lastCheckedAt   DateTime?               @map("last_checked_at") @db.Timestamptz(3)
+  lastPingAt      DateTime?               @map("last_ping_at") @db.Timestamptz(3)
   /// Heartbeats: when it is late without a call.
-  deadlineAt      DateTime?          @map("deadline_at") @db.Timestamptz(3)
-  lastError       String?            @map("last_error") @db.VarChar(300)
-  certExpiresAt   DateTime?          @map("cert_expires_at") @db.Timestamptz(3)
-  certCheckedAt   DateTime?          @map("cert_checked_at") @db.Timestamptz(3)
-  certWarnedFor   DateTime?          @map("cert_warned_for") @db.Timestamptz(3)
+  deadlineAt      DateTime?               @map("deadline_at") @db.Timestamptz(3)
+  lastError       String?                 @map("last_error") @db.VarChar(300)
+  certExpiresAt   DateTime?               @map("cert_expires_at") @db.Timestamptz(3)
+  certCheckedAt   DateTime?               @map("cert_checked_at") @db.Timestamptz(3)
+  certWarnedFor   DateTime?               @map("cert_warned_for") @db.Timestamptz(3)
   /// Team members told by email when it goes down or comes back.
-  alertIds        String[]           @map("alert_ids") @db.Uuid
-  lastDownAlertAt DateTime?          @map("last_down_alert_at") @db.Timestamptz(3)
-  lastUpAlertAt   DateTime?          @map("last_up_alert_at") @db.Timestamptz(3)
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  alertIds        String[]                @map("alert_ids") @db.Uuid
+  lastDownAlertAt DateTime?               @map("last_down_alert_at") @db.Timestamptz(3)
+  lastUpAlertAt   DateTime?               @map("last_up_alert_at") @db.Timestamptz(3)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   team   CloudTeam           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   checks CloudMonitorCheck[]

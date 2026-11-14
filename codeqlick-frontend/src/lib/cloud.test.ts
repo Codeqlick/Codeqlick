@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloudSlug, formatBytes } from './cloud';
+import { cloudSlug, formatBytes, monitorKeyword, monitorKeywordMode } from './cloud';
 
 describe('formatBytes', () => {
   it('picks the unit and the decimals', () => {
@@ -16,5 +16,29 @@ describe('cloudSlug', () => {
     expect(cloudSlug('Mi Web Ñandú!', 40)).toBe('mi-web-nandu');
     expect(cloudSlug('  --Docs--  ', 40)).toBe('docs');
     expect(cloudSlug('a'.repeat(50), 40)).toHaveLength(40);
+  });
+});
+
+describe('monitorKeyword', () => {
+  it('is null when empty and the trimmed text otherwise', () => {
+    expect(monitorKeyword('')).toBeNull();
+    expect(monitorKeyword('   ')).toBeNull();
+    expect(monitorKeyword('  Add to cart ')).toBe('Add to cart');
+    expect(monitorKeyword('a'.repeat(100))).toHaveLength(100);
+  });
+
+  it('refuses more than 100 characters and line breaks', () => {
+    expect(monitorKeyword('a'.repeat(101))).toBeUndefined();
+    expect(monitorKeyword('two\nlines')).toBeUndefined();
+    expect(monitorKeyword('two\r\nlines')).toBeUndefined();
+  });
+});
+
+describe('monitorKeywordMode', () => {
+  it('defaults to CONTAINS', () => {
+    expect(monitorKeywordMode('NOT_CONTAINS')).toBe('NOT_CONTAINS');
+    expect(monitorKeywordMode('CONTAINS')).toBe('CONTAINS');
+    expect(monitorKeywordMode('')).toBe('CONTAINS');
+    expect(monitorKeywordMode('other')).toBe('CONTAINS');
   });
 });
