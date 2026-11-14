@@ -3874,7 +3874,6 @@
     "status": "Status",
     "since": "Broken since",
     "where": "Where",
-    "actions": "Actions",
     "internal": "Internal",
     "external": "External",
     "newTab": "(opens in a new tab)",
