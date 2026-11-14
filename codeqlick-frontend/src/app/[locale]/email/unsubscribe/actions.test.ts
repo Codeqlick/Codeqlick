@@ -14,6 +14,13 @@ function form(fields: Record<string, string>): FormData {
 
 const shown = { subscribed: true, changed: false };
 
+/** The API call fails with `error` (thrown when called, so no rejection exists before). */
+function failWith(error: Error) {
+  updateEmailPreferences.mockImplementation(async () => {
+    throw error;
+  });
+}
+
 describe('setEmailSubscriptionAction', () => {
   beforeEach(() => updateEmailPreferences.mockReset());
 
@@ -46,7 +53,7 @@ describe('setEmailSubscriptionAction', () => {
   });
 
   it('turns a 404 into the invalid-link message', async () => {
-    updateEmailPreferences.mockRejectedValue(new ApiError(404));
+    failWith(new ApiError(404));
     const state = await setEmailSubscriptionAction(
       shown,
       form({ token: 't.s', subscribed: 'false' }),
@@ -55,11 +62,11 @@ describe('setEmailSubscriptionAction', () => {
   });
 
   it('keeps the page as it was and asks to retry when rate-limited or down', async () => {
-    updateEmailPreferences.mockRejectedValue(new ApiError(429));
+    failWith(new ApiError(429));
     expect(
       await setEmailSubscriptionAction(shown, form({ token: 't.s', subscribed: 'false' })),
     ).toEqual({ ...shown, problem: 'retry' });
-    updateEmailPreferences.mockRejectedValue(new Error('boom'));
+    failWith(new Error('boom'));
     expect(
       await setEmailSubscriptionAction(shown, form({ token: 't.s', subscribed: 'false' })),
     ).toEqual({ ...shown, problem: 'retry' });
