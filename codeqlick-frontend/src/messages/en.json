@@ -1731,6 +1731,10 @@
   "Legal": {
     "updated": "Última actualización: {date}"
   },
+  "Markdown": {
+    "anchorLink": "Link to this section",
+    "contents": "Contents"
+  },
   "About": {
     "metaTitle": "About us",
     "metaDescription": "Who is behind Codeqlick, why it exists and how we work: custom software and web apps built with quality, clarity and a direct line to the person doing the work.",
