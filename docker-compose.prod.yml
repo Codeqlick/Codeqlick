@@ -111,6 +111,9 @@ services:
       # Codeqlick Cloud (architecture 4.13, 8.3): deploying is off until deploy/setup-cloud.sh
       # sets the hosting domain. Its files live on the host, where Nginx serves them.
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-}
+      # The one exception to refusing codeqlick.com domains (architecture 4.13): off while empty.
+      CLOUD_PLATFORM_DOMAINS: ${CLOUD_PLATFORM_DOMAINS:-}
+      CLOUD_PLATFORM_TEAM_ID: ${CLOUD_PLATFORM_TEAM_ID:-}
       CLOUD_ROOT: /cloud
       CLOUD_URL: ${CLOUD_URL:-https://cloud.codeqlick.com}
       # Builds from Git (architecture 4.13, 8.4): off until the GitHub App's settings are set.
@@ -161,6 +164,8 @@ services:
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
       # Codeqlick Cloud's hosting domain, shown in its docs (architecture 4.13).
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-codeqlick.app}
+      # The public documentation site (architecture 6.3); empty: the console's own /docs.
+      CLOUD_DOCS_URL: ${CLOUD_DOCS_URL:-}
       # Legal notice and privacy policy: hidden until LEGAL_OWNER_NAME is set.
       LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
       LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}

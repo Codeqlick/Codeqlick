@@ -1,0 +1,33 @@
+---
+import type { DocPage } from '../lib/docs';
+import { ui, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  prev?: DocPage;
+  next?: DocPage;
+}
+const { lang, prev, next } = Astro.props;
+const t = ui[lang];
+---
+
+{
+  prev || next ? (
+    <nav class="prevnext" aria-label={`${t.prev} / ${t.next}`}>
+      {prev ? (
+        <a class="prev" href={prev.url} rel="prev">
+          <span class="dir">{t.prev}</span>
+          <span class="name">{prev.title}</span>
+        </a>
+      ) : (
+        <span />
+      )}
+      {next ? (
+        <a class="next" href={next.url} rel="next">
+          <span class="dir">{t.next}</span>
+          <span class="name">{next.title}</span>
+        </a>
+      ) : null}
+    </nav>
+  ) : null
+}

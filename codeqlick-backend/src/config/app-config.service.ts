@@ -133,6 +133,19 @@ export class AppConfigService {
     return domain && root ? { domain, root } : undefined;
   }
 
+  /** Exact domains the platform team may use under codeqlick.com (lowercase, trimmed; none if unset). */
+  get cloudPlatformDomains(): string[] {
+    return (this.get('CLOUD_PLATFORM_DOMAINS') ?? '')
+      .split(',')
+      .map((domain) => domain.trim().toLowerCase().replace(/\.+$/, ''))
+      .filter(Boolean);
+  }
+
+  /** Id of the team allowed those domains; undefined while it isn't set. */
+  get cloudPlatformTeamId(): string | undefined {
+    return this.get('CLOUD_PLATFORM_TEAM_ID')?.trim() || undefined;
+  }
+
   /** Managed PostgreSQL (architecture 4.13 "Databases"); undefined while it isn't set up. */
   get cloudPg(): { adminUrl: string; host: string; port: number } | undefined {
     const adminUrl = this.get('CLOUD_PG_ADMIN_URL');

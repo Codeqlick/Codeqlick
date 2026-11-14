@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [codeqlick-backend, codeqlick-frontend, codeqlick-sites/web-basica]
+        app: [codeqlick-backend, codeqlick-frontend, codeqlick-sites/web-basica, codeqlick-docs]
     defaults:
       run:
         working-directory: ${{ matrix.app }}
