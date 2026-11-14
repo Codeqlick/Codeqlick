@@ -17,10 +17,13 @@ describe('Codeqlick Cloud README badges (e2e)', () => {
   let prisma: PrismaService;
   let teamId: string;
 
-  /** A project with an optional production deployment and production builds, oldest first. */
+  /**
+   * A project with an optional production deployment (made `productionAt` minutes from now) and
+   * production builds, oldest first, queued one minute apart up to 10 minutes ago.
+   */
   async function project(
     name: string,
-    options: { production?: boolean; builds?: CloudBuildStatus[]; suspended?: boolean } = {},
+    options: { productionAt?: number; builds?: CloudBuildStatus[]; suspended?: boolean } = {},
   ): Promise<void> {
     const row = await prisma.cloudProject.create({
       data: {
@@ -30,7 +33,7 @@ describe('Codeqlick Cloud README badges (e2e)', () => {
         suspendedAt: options.suspended ? new Date() : null,
       },
     });
-    if (options.production) {
+    if (options.productionAt !== undefined) {
       const deployment = await prisma.cloudDeployment.create({
         data: {
           projectId: row.id,
@@ -38,6 +41,7 @@ describe('Codeqlick Cloud README badges (e2e)', () => {
           target: 'PRODUCTION',
           sizeBytes: 10n,
           fileCount: 1,
+          createdAt: new Date(Date.now() + options.productionAt * 60_000),
         },
       });
       await prisma.cloudProject.update({
@@ -69,12 +73,14 @@ describe('Codeqlick Cloud README badges (e2e)', () => {
     prisma = app.get(PrismaService);
     teamId = (await prisma.cloudTeam.create({ data: { slug: `badges-${tag}`, name: 'Badges' } }))
       .id;
-    await project('live', { production: true, builds: ['SUCCEEDED'] });
-    await project('broken', { production: true, builds: ['SUCCEEDED', 'FAILED'] });
-    await project('busy', { production: true, builds: ['FAILED', 'RUNNING'] });
-    await project('canceled', { production: true, builds: ['SUCCEEDED', 'CANCELED'] });
+    await project('live', { productionAt: -20, builds: ['SUCCEEDED'] });
+    await project('broken', { productionAt: -20, builds: ['SUCCEEDED', 'FAILED'] });
+    // Deployed with the CLI after the failed build: the site is fine.
+    await project('fixed', { productionAt: -1, builds: ['FAILED'] });
+    await project('busy', { productionAt: -20, builds: ['FAILED', 'RUNNING'] });
+    await project('canceled', { productionAt: -20, builds: ['SUCCEEDED', 'CANCELED'] });
     await project('empty');
-    await project('banned', { production: true, suspended: true });
+    await project('banned', { productionAt: -20, suspended: true });
   });
 
   afterAll(async () => {
@@ -94,6 +100,7 @@ describe('Codeqlick Cloud README badges (e2e)', () => {
 
     expect(await badge(`${slugOf('live')}.svg`)).toContain('codeqlick: deployed');
     expect(await badge(`${slugOf('broken')}.svg`)).toContain('codeqlick: failed');
+    expect(await badge(`${slugOf('fixed')}.svg`)).toContain('codeqlick: deployed');
     expect(await badge(`${slugOf('busy')}.svg`)).toContain('codeqlick: building');
     expect(await badge(`${slugOf('canceled')}.svg`)).toContain('codeqlick: deployed');
     expect(await badge(`${slugOf('empty')}.svg`)).toContain('codeqlick: not deployed');

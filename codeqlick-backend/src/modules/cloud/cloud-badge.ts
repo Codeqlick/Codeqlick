@@ -5,17 +5,21 @@ export type DeployBadgeState = 'building' | 'failed' | 'deployed' | 'not-deploye
 
 /** What the badge is drawn from: null when the project doesn't exist or is not public. */
 export interface DeployBadgeFacts {
-  /** Statuses of its latest production builds, newest first (canceled ones are skipped). */
-  productionBuilds: CloudBuildStatus[];
-  hasProduction: boolean;
+  /** Its latest production build that wasn't canceled, if any. */
+  latestBuild: { status: CloudBuildStatus; queuedAt: Date } | null;
+  /** When its current production deployment was made, if it has one. */
+  productionAt: Date | null;
 }
 
 export function deployBadgeState(facts: DeployBadgeFacts | null): DeployBadgeState {
   if (!facts) return 'unknown';
-  const latest = facts.productionBuilds.find((status) => status !== 'CANCELED');
-  if (latest === 'QUEUED' || latest === 'RUNNING') return 'building';
-  if (latest === 'FAILED') return 'failed';
-  return facts.hasProduction ? 'deployed' : 'not-deployed';
+  const build = facts.latestBuild;
+  if (build?.status === 'QUEUED' || build?.status === 'RUNNING') return 'building';
+  // A failed build counts until something newer (a CLI deploy) is production.
+  if (build?.status === 'FAILED' && !(facts.productionAt && facts.productionAt > build.queuedAt)) {
+    return 'failed';
+  }
+  return facts.productionAt ? 'deployed' : 'not-deployed';
 }
 
 const DEPLOY_BADGE: Record<DeployBadgeState, [text: string, color: string]> = {

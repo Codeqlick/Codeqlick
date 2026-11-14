@@ -14,7 +14,8 @@ export class CloudBadgesController {
   constructor(private readonly badges: CloudBadgesService) {}
 
   @Get('badges/:file')
-  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  // GitHub fetches README images from a few shared addresses; the API caches each badge 60 s.
+  @Throttle({ default: { limit: 600, ttl: 60_000 } })
   async deploy(
     @Param({ schema: badgeFileParamSchema }) params: BadgeFileParam,
     @Res() res: Response,
