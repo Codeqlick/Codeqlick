@@ -5084,6 +5084,39 @@
       "envSaved": "Variable guardada.",
       "keyInvalid": "Mayúsculas, números y _ (p. ej. API_KEY).",
       "targetRequired": "Elige producción, vistas previas o ambas.",
+      "rebuild": {
+        "title": "Recompilaciones programadas",
+        "lead": "Recompila {branch} según un horario, para webs que leen contenido al compilar (un CMS, una API). Cada ejecución cuenta en las compilaciones del mes.",
+        "frequency": "Frecuencia",
+        "frequencies": {
+          "off": "Desactivadas",
+          "hourly": "Cada hora",
+          "daily": "Cada día",
+          "weekly": "Cada semana"
+        },
+        "minute": "Minuto",
+        "minuteHint": "0–59, para todas las frecuencias.",
+        "hour": "Hora",
+        "hourHint": "0–23, hora de Madrid. Para diaria y semanal.",
+        "weekday": "Día de la semana",
+        "weekdayHint": "Solo para semanal.",
+        "every": {
+          "hourly": "Cada hora en el minuto {minute}",
+          "daily": "Cada día a las {time} (hora de Madrid)",
+          "weekly": "Cada {weekday} a las {time} (hora de Madrid)"
+        },
+        "off": "Desactivadas: {branch} se compila con cada push y cuando lo despliegas de nuevo.",
+        "next": "Próxima ejecución: {when}.",
+        "failing": "{count, plural, one {La última compilación programada ha fallado} other {Las últimas # compilaciones programadas han fallado}}. Tras {max} seguidas, el horario se desactiva.",
+        "switchedOff": "Desactivadas tras fallar {max} compilaciones programadas seguidas. Arregla la compilación y vuelve a activarlas.",
+        "required": "Obligatorio para esta frecuencia.",
+        "frequencyInvalid": "Elige una frecuencia.",
+        "minuteInvalid": "Un minuto de 0 a 59.",
+        "hourInvalid": "Una hora de 0 a 23.",
+        "weekdayInvalid": "Elige un día.",
+        "save": "Guardar horario",
+        "saved": "Horario guardado."
+      },
       "setupMissing": "GitHub no ha enviado lo esperado. Empieza de nuevo desde la pestaña Git del proyecto.",
       "backToConsole": "Volver a la consola"
     },
@@ -5102,7 +5135,8 @@
       "cancel": "Cancelar",
       "log": "Registro",
       "waiting": "Esperando un servidor de compilación…",
-      "noLog": "Sin salida."
+      "noLog": "Sin salida.",
+      "scheduled": "Programada"
     },
     "notify": {
       "lead": "Avisa a personas o a un canal cuando una compilación falla o una web se publica, para no tener que vigilar la consola.",

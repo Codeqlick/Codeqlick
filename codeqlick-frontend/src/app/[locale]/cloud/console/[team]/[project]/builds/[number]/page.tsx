@@ -58,6 +58,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
         <p className={styles.rowTitle}>
           <Badge tone={BUILD_TONE[build.status]}>{t(`builds.status.${build.status}`)}</Badge>
           <Badge>{build.target === 'production' ? t('git.production') : t('git.preview')}</Badge>
+          {build.trigger === 'schedule' ? <Badge>{t('builds.scheduled')}</Badge> : null}
           <span className={styles.small}>
             <span className={styles.mono}>{build.branch}</span> ·{' '}
             <span className={styles.mono}>{build.commit.slice(0, 7)}</span>

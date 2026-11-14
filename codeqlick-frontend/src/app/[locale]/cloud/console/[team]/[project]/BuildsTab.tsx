@@ -85,6 +85,7 @@ export async function BuildsTab(props: Props) {
                     <Badge>
                       {build.target === 'production' ? t('git.production') : t('git.preview')}
                     </Badge>
+                    {build.trigger === 'schedule' ? <Badge>{t('builds.scheduled')}</Badge> : null}
                     <span>{(build.commitMessage ?? '').split('\n')[0]}</span>
                   </p>
                   <p className={styles.small}>

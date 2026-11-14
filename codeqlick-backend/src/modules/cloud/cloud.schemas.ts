@@ -373,6 +373,22 @@ export const manualBuildSchema = z.object({
 });
 export type ManualBuildInput = z.infer<typeof manualBuildSchema>;
 
+/** Scheduled rebuilds, Madrid time (architecture 4.13, decision 65). */
+const rebuildMinute = z.number().int().min(0).max(59);
+const rebuildHour = z.number().int().min(0).max(23);
+export const rebuildScheduleSchema = z.discriminatedUnion('frequency', [
+  z.object({ frequency: z.literal('off') }),
+  z.object({ frequency: z.literal('hourly'), minute: rebuildMinute }),
+  z.object({ frequency: z.literal('daily'), minute: rebuildMinute, hour: rebuildHour }),
+  z.object({
+    frequency: z.literal('weekly'),
+    minute: rebuildMinute,
+    hour: rebuildHour,
+    weekday: z.number().int().min(1).max(7),
+  }),
+]);
+export type RebuildScheduleInput = z.infer<typeof rebuildScheduleSchema>;
+
 export const buildParamSchema = z.object({
   id: z.uuid(),
   number: z.coerce.number().int().positive(),

@@ -368,6 +368,41 @@ export function cloudChannelOffEmail(input: {
   };
 }
 
+/** A schedule was switched off after five failed scheduled builds: to the team's admins. */
+export function cloudRebuildOffEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  project: string;
+  error: string | null;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const intro = es
+    ? `Las compilaciones programadas del proyecto ${input.project} han fallado 5 veces seguidas y la programación se ha desactivado. Revisa la última compilación y vuelve a activarla en la pestaña Git.`
+    : `The scheduled builds of the project ${input.project} failed 5 times in a row and the schedule was switched off. Check the last build and switch it back on in the Git tab.`;
+  return {
+    to: input.to,
+    subject: es
+      ? `Compilaciones programadas desactivadas: ${input.project}`
+      : `Scheduled builds switched off: ${input.project}`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: intro.slice(0, 120),
+        title: es
+          ? 'Las compilaciones programadas se han desactivado'
+          : 'Scheduled builds were switched off',
+        intro: [intro],
+        ...(input.error ? { quote: { title: 'Error', body: input.error } } : {}),
+        button: { label: es ? 'Ver la pestaña Git' : 'See the Git tab', url: input.url },
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
 /** To a team's owners: their plan changed, or Stripe couldn't charge it (decision 46). */
 export function cloudPlanEmail(input: {
   to: string;

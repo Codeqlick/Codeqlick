@@ -129,7 +129,7 @@ export type BuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCE
 export interface Build {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'schedule';
   target: 'preview' | 'production';
   branch: string;
   commit: string;
