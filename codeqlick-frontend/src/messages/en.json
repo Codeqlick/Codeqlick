@@ -5011,7 +5011,24 @@
       "deleteTitle": "Delete the project",
       "badgeTitle": "README badge",
       "badgeHelp": "Shows whether the production site is deployed, building or failed. Copy the Markdown into your README:",
-      "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days."
+      "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days.",
+      "transfer": {
+        "title": "Move to another team",
+        "lead": "Hand this project to another team you run. Its address, deployments, domains, forms, variables, data, builds and the monitors tied to it go with it, without deploying again.",
+        "git": "The Git connection is kept only if the other team's GitHub installation can see the repository; otherwise its admins connect it again in the Git tab.",
+        "tokens": "Tokens restricted to this team stop reaching the project.",
+        "config": "Folders with a codeqlick.json still name this team: run codeqlick init again in them.",
+        "team": "Team to move it to",
+        "chooseTeam": "Choose a team",
+        "noTeams": "You aren't an owner or admin of any other team, so there is nowhere to move it.",
+        "submit": "Move the project",
+        "moving": "Moving…",
+        "suspended": "This project is suspended, so it can't be moved.",
+        "builds": "Wait for the project's builds to finish (or cancel them) before moving it.",
+        "changed": "The project changed meanwhile. Try again.",
+        "moved": "Project moved to this team.",
+        "gitDropped": "The Git connection was removed: connect it again in the Git tab."
+      }
     },
     "protection": {
       "title": "Password protection",

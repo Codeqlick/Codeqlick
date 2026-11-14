@@ -11,6 +11,7 @@ import {
   isProtected,
   protectionInput,
   ruleSettings,
+  transferTargets,
   usageWarnings,
 } from './cloud';
 
@@ -143,5 +144,18 @@ describe('usageWarnings', () => {
   it('is an error from 100 %, also past it', () => {
     expect(usageWarnings([meter('builds', 100)])?.level).toBe('error');
     expect(usageWarnings([meter('builds', 85), meter('storage', 130)])?.level).toBe('error');
+  });
+});
+
+describe('transferTargets', () => {
+  it('keeps the other teams the caller owns or runs', () => {
+    const teams = [
+      { slug: 'studio', role: 'OWNER' },
+      { slug: 'client', role: 'ADMIN' },
+      { slug: 'friends', role: 'MEMBER' },
+      { slug: 'mine', role: 'OWNER' },
+    ];
+    expect(transferTargets(teams, 'studio').map((team) => team.slug)).toEqual(['client', 'mine']);
+    expect(transferTargets([{ slug: 'studio', role: 'OWNER' }], 'studio')).toEqual([]);
   });
 });
