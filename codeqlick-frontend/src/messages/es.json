@@ -533,6 +533,24 @@
     "welcomeSubmit": "Crear contraseña",
     "welcomeInvalidLink": "Este enlace no es válido o ha caducado. Los enlaces de bienvenida sirven una sola vez y durante 7 días. Pide uno nuevo aquí abajo con tu correo."
   },
+  "Unsubscribe": {
+    "metaTitle": "Preferencias de correo",
+    "title": "Preferencias de correo",
+    "subscribed": "{email} recibe {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}. Si te das de baja, dejaremos de enviarlo; las novedades de tus proyectos y los demás correos sobre tu cuenta te seguirán llegando.",
+    "unsubscribed": "Hecho: {email} ya no recibirá {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}.",
+    "alreadyUnsubscribed": "{email} ya estaba dado de baja de {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}.",
+    "resubscribed": "Te has vuelto a suscribir: {email} seguirá recibiendo {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}.",
+    "unsubscribe": "Darme de baja",
+    "unsubscribing": "Dando de baja…",
+    "undo": "Deshacer (volver a suscribirme)",
+    "subscribeAgain": "Volver a suscribirme",
+    "subscribing": "Suscribiendo…",
+    "account": "Gestiona todos tus correos en Mi cuenta",
+    "invalidLink": "Este enlace ya no funciona. Entra en tu cuenta y elige qué correos recibes en Mi cuenta.",
+    "signIn": "Entrar",
+    "retry": "No hemos podido guardar el cambio ahora mismo. Vuelve a intentarlo en un minuto.",
+    "loadFailed": "No hemos podido abrir este enlace ahora mismo. Recarga la página en un minuto."
+  },
   "Account": {
     "nav": "Cuenta",
     "title": "Tu cuenta",
