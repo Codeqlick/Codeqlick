@@ -48,6 +48,14 @@ export class CloudNotificationsRepository {
     return row.failures;
   }
 
+  /** Records a `429` to a form event: shown, but neither counted nor clearing the count. */
+  async rateLimited(id: string, error: string, at: Date): Promise<void> {
+    await this.prisma.cloudNotifyChannel.update({
+      where: { id },
+      data: { lastSentAt: at, lastOk: false, lastError: error },
+    });
+  }
+
   async succeeded(id: string, at: Date): Promise<void> {
     await this.prisma.cloudNotifyChannel.update({
       where: { id },

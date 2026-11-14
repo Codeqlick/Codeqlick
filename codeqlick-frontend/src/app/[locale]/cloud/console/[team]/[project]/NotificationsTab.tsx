@@ -44,9 +44,11 @@ export async function NotificationsTab(props: Props) {
     .then((result) => result.items)
     .catch(() => null);
   if (channels === null) return <p className={styles.muted}>{t('common.loadError')}</p>;
-  const forms = await listCloudForms(props.projectId)
+  // null: the forms couldn't be loaded, so the forms a channel lists are left as they are.
+  const loadedForms = await listCloudForms(props.projectId)
     .then((result) => result.items)
-    .catch(() => []);
+    .catch(() => null);
+  const forms = loadedForms ?? [];
   const formOptions = forms.map((form) => ({ value: form.id, label: form.name }));
   const members = props.admin
     ? await listCloudMembers(props.teamSlug)
@@ -90,7 +92,12 @@ export async function NotificationsTab(props: Props) {
         hint={t('notify.formsPrivacy')}
         defaultChecked={channel?.formSubmitted ?? false}
       />
-      {formOptions.length > 0 ? (
+      {loadedForms === null ? (
+        <>
+          <input type="hidden" name="formsUnknown" value="on" />
+          <p className={styles.small}>{t('notify.formsLoadError')}</p>
+        </>
+      ) : formOptions.length > 0 ? (
         <FormCheckboxGroup
           idPrefix={idPrefix ? `${idPrefix}-forms` : undefined}
           name="forms"

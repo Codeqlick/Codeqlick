@@ -864,7 +864,8 @@ function notifyEvents(formData: FormData, locale: AppLocale, kind: CloudNotifyKi
       ? {}
       : {
           formSubmitted: formBoolean(formData, 'formSubmitted'),
-          formIds: notifyFormIds(formData),
+          // The console couldn't load the forms: keep the channel's list (none sent).
+          ...(formBoolean(formData, 'formsUnknown') ? {} : { formIds: notifyFormIds(formData) }),
         }),
     locale,
   };

@@ -171,19 +171,32 @@ function oneLine(text: string, max: number): string {
   return chars.length > max ? `${chars.slice(0, max - 1).join('')}…` : chars.join('');
 }
 
-/** A submission's fields as `name: value` lines (10 at most, in order) and how many more. */
+/** Room for the field lines in a Discord embed's description (4,096 at most in all). */
+export const DISCORD_LINES_BUDGET = 3800;
+
+/** Cut to `max` code points, so an emoji is never cut in half. */
+const cutChars = (text: string, max: number) => Array.from(text).slice(0, max).join('');
+
+/**
+ * A submission's fields as `name: value` lines (10 at most, in order) and how many more. With a
+ * `budget` (UTF-16 units, so it holds however a service counts), the first line that would pass
+ * it and the ones after are left out whole and counted as more.
+ */
 export function formLines(
   fields: Array<[string, string]>,
   locale: ApiLocale,
   escape: (text: string) => string,
+  budget = Number.POSITIVE_INFINITY,
 ): string[] {
-  const lines = fields
-    .slice(0, FORM_FIELDS_SHOWN)
-    .map(
-      ([name, value]) =>
-        `${escape(oneLine(name, FORM_NAME_CHARS))}: ${escape(oneLine(value, FORM_VALUE_CHARS))}`,
-    );
-  const more = fields.length - FORM_FIELDS_SHOWN;
+  const lines: string[] = [];
+  let used = 0;
+  for (const [name, value] of fields.slice(0, FORM_FIELDS_SHOWN)) {
+    const line = `${escape(oneLine(name, FORM_NAME_CHARS))}: ${escape(oneLine(value, FORM_VALUE_CHARS))}`;
+    if (used + line.length + 1 > budget) break;
+    lines.push(line);
+    used += line.length + 1;
+  }
+  const more = fields.length - lines.length;
   if (more > 0) {
     const one = more === 1;
     const noun =
@@ -213,7 +226,7 @@ function formPayload(
     ].join('\n');
     return JSON.stringify({ text, unfurl_links: false, unfurl_media: false });
   }
-  const lines = formLines(e.submission.fields, locale, discordEscape).join('\n');
+  const lines = formLines(e.submission.fields, locale, discordEscape, DISCORD_LINES_BUDGET);
   return JSON.stringify({
     username: 'Codeqlick Cloud',
     // Visitors write these values: never let them ping anyone.
@@ -221,9 +234,9 @@ function formPayload(
     embeds: [
       {
         // Titles show no markdown and mention nobody: they go as they are.
-        title: `${icon} ${e.project.name} · ${test}${what} ${e.form.name}`.slice(0, 256),
+        title: cutChars(`${icon} ${e.project.name} · ${test}${what} ${e.form.name}`, 256),
         url: e.submission.url,
-        description: `${lines.slice(0, 3800)}\n[${label}](${e.submission.url})`,
+        description: [...lines, `[${label}](${e.submission.url})`].join('\n'),
         color: 0xd9177e,
         timestamp: e.sentAt,
       },

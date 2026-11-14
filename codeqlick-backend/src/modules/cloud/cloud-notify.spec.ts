@@ -186,6 +186,34 @@ describe('Cloud build notifications', () => {
     expect(embed.description.endsWith(`[Ver los envíos](${submitted.submission.url})`)).toBe(true);
   });
 
+  it('keeps a Discord description within its length, by whole lines', () => {
+    const heavy: FormEvent = {
+      ...submitted,
+      submission: {
+        ...submitted.submission,
+        fields: Array.from({ length: 10 }, (_, i): [string, string] => [
+          `field_${i}`,
+          `${'*_<>[]()'.repeat(35)}😀😀😀`,
+        ]),
+      },
+    };
+    const body = JSON.parse(payload('DISCORD', heavy, 'en')) as {
+      embeds: Array<{ title: string; description: string }>;
+    };
+    const { description } = body.embeds[0]!;
+    expect(description.length).toBeLessThanOrEqual(4096);
+    const unpaired = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    expect(unpaired.test(description)).toBe(false);
+    expect(description).toMatch(/\n\+\d+ more fields\n\[See the submissions\]/);
+    const shown = description.split('\n').filter((l) => l.startsWith('field\\_')).length;
+    expect(shown).toBeGreaterThan(0);
+    expect(description).toContain(`+${10 - shown} more fields`);
+    const long = { ...heavy, form: { ...heavy.form, name: '😀'.repeat(300) } };
+    const title = (JSON.parse(payload('DISCORD', long, 'en')) as typeof body).embeds[0]!.title;
+    expect(Array.from(title)).toHaveLength(256);
+    expect(unpaired.test(title)).toBe(false);
+  });
+
   it('posts the whole submission to a webhook', () => {
     expect(JSON.parse(payload('WEBHOOK', submitted, 'en'))).toEqual(submitted);
   });
