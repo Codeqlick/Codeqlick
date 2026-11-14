@@ -11,6 +11,7 @@ import {
   isProtected,
   protectionInput,
   ruleSettings,
+  usageWarnings,
 } from './cloud';
 
 describe('formatBytes', () => {
@@ -122,5 +123,25 @@ describe('ruleSettings', () => {
 describe('configJson', () => {
   it('pretty-prints the config with two spaces', () => {
     expect(configJson({ trailingSlash: true })).toBe('{\n  "trailingSlash": true\n}');
+  });
+});
+
+describe('usageWarnings', () => {
+  const meter = (key: string, percent: number) => ({ key, used: percent, limit: 100, percent });
+
+  it('is null while every limit is under 80 %', () => {
+    expect(usageWarnings([])).toBeNull();
+    expect(usageWarnings([meter('builds', 0), meter('storage', 79)])).toBeNull();
+  });
+
+  it('warns from 80 % and lists only the limits at or over it', () => {
+    const result = usageWarnings([meter('builds', 80), meter('storage', 10), meter('x', 99)]);
+    expect(result?.level).toBe('warning');
+    expect(result?.meters.map((m) => m.key)).toEqual(['builds', 'x']);
+  });
+
+  it('is an error from 100 %, also past it', () => {
+    expect(usageWarnings([meter('builds', 100)])?.level).toBe('error');
+    expect(usageWarnings([meter('builds', 85), meter('storage', 130)])?.level).toBe('error');
   });
 });
