@@ -1,8 +1,17 @@
-import { NotFoundException, ServiceUnavailableException, type ArgumentsHost } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+  type ArgumentsHost,
+} from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { ProblemDetailsFilter, type ErrorRecorder } from './problem-details.filter.js';
 
-function hostFor(): { host: ArgumentsHost; status: ReturnType<typeof vi.fn> } {
+function hostFor(): {
+  host: ArgumentsHost;
+  status: ReturnType<typeof vi.fn>;
+  json: ReturnType<typeof vi.fn>;
+} {
   const response = {
     headersSent: false,
     status: vi.fn(),
@@ -20,7 +29,7 @@ function hostFor(): { host: ArgumentsHost; status: ReturnType<typeof vi.fn> } {
   const host = {
     switchToHttp: () => ({ getRequest: () => request, getResponse: () => response }),
   } as unknown as ArgumentsHost;
-  return { host, status: response.status };
+  return { host, status: response.status, json: response.json };
 }
 
 describe('ProblemDetailsFilter', () => {
@@ -52,5 +61,31 @@ describe('ProblemDetailsFilter', () => {
     filter.catch(new ServiceUnavailableException('OVH is not set up'), hostFor().host);
 
     expect(record).not.toHaveBeenCalled();
+  });
+
+  it("keeps a file error's line and name", () => {
+    const filter = new ProblemDetailsFilter();
+    const { host, json } = hostFor();
+
+    filter.catch(
+      new BadRequestException({
+        message: "The file can't be imported",
+        errors: [
+          { path: 'content', line: 3, key: 'API_KEY', message: 'Already on line 1' },
+          { path: 'content', line: 7, message: 'Expected KEY=value' },
+        ],
+      }),
+      host,
+    );
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 400,
+        errors: [
+          { path: 'content', line: 3, key: 'API_KEY', message: 'Already on line 1' },
+          { path: 'content', line: 7, message: 'Expected KEY=value' },
+        ],
+      }),
+    );
   });
 });

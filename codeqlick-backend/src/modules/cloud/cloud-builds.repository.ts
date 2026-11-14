@@ -34,6 +34,13 @@ const projectForBuild = {
 } as const;
 export type BuildWithProject = Prisma.CloudBuildGetPayload<{ include: typeof projectForBuild }>;
 
+/** What an import did, by name (never values). */
+export interface EnvImportOutcome {
+  created: string[];
+  updated: string[];
+  skipped: string[];
+}
+
 /** Builds from Git: installations, env vars, builds and GitHub bookkeeping (architecture 4.13). */
 @Injectable()
 export class CloudBuildsRepository {
@@ -128,6 +135,54 @@ export class CloudBuildsRepository {
       where: { projectId_key: { projectId, key } },
       create: { projectId, key, valueSealed, production, preview },
       update: { valueSealed, production, preview },
+    });
+  }
+
+  /**
+   * Imports many variables at once, all or nothing: new names are created, existing ones replaced
+   * only with `overwrite` (otherwise skipped). Nothing is written when the new names would take
+   * the project past `limit`: the answer is then the first name over it.
+   */
+  async importEnvVars(
+    projectId: string,
+    vars: Array<{ key: string; valueSealed: string }>,
+    options: { production: boolean; preview: boolean; overwrite: boolean; limit: number },
+  ): Promise<EnvImportOutcome | { overLimit: string }> {
+    const { production, preview } = options;
+    return this.prisma.$transaction(async (tx) => {
+      // Two imports to the same project wait for each other, so both can't pass the limit.
+      await tx.$queryRaw`SELECT id FROM cloud_projects WHERE id = ${projectId}::uuid FOR UPDATE`;
+      const rows = await tx.cloudEnvVar.findMany({ where: { projectId }, select: { key: true } });
+      const existing = new Set(rows.map((row) => row.key));
+      const fresh = vars.filter((v) => !existing.has(v.key));
+      const room = Math.max(options.limit - existing.size, 0);
+      if (fresh.length > room) return { overLimit: fresh[room]!.key };
+      if (fresh.length > 0) {
+        await tx.cloudEnvVar.createMany({
+          data: fresh.map((v) => ({
+            projectId,
+            key: v.key,
+            valueSealed: v.valueSealed,
+            production,
+            preview,
+          })),
+        });
+      }
+      const updated: string[] = [];
+      const skipped: string[] = [];
+      for (const v of vars) {
+        if (!existing.has(v.key)) continue;
+        if (!options.overwrite) {
+          skipped.push(v.key);
+          continue;
+        }
+        await tx.cloudEnvVar.update({
+          where: { projectId_key: { projectId, key: v.key } },
+          data: { valueSealed: v.valueSealed, production, preview },
+        });
+        updated.push(v.key);
+      }
+      return { created: fresh.map((v) => v.key), updated, skipped };
     });
   }
 

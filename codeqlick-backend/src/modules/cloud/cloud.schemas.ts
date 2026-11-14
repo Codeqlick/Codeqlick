@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { ENV_KEY_PATTERN, ENV_VALUE_MAX } from './cloud-dotenv.js';
 
 const slug = (min: number, max: number) =>
   z
@@ -345,11 +346,8 @@ export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
 
 export const envVarSchema = z
   .object({
-    key: z
-      .string()
-      .trim()
-      .regex(/^[A-Z_][A-Z0-9_]{0,63}$/, 'Upper-case letters, digits and _'),
-    value: z.string().max(4096),
+    key: z.string().trim().regex(ENV_KEY_PATTERN, 'Upper-case letters, digits and _'),
+    value: z.string().max(ENV_VALUE_MAX),
     production: z.boolean(),
     preview: z.boolean(),
   })
@@ -359,8 +357,27 @@ export const envVarSchema = z
   });
 export type EnvVarInput = z.infer<typeof envVarSchema>;
 
-export const envKeyQuerySchema = z.object({ key: z.string().regex(/^[A-Z_][A-Z0-9_]{0,63}$/) });
+export const envKeyQuerySchema = z.object({ key: z.string().regex(ENV_KEY_PATTERN) });
 export type EnvKeyQuery = z.infer<typeof envKeyQuerySchema>;
+
+/** The largest `.env` file imported at once (architecture 4.13). */
+export const ENV_IMPORT_MAX_BYTES = 256 * 1024;
+
+export const envImportSchema = z
+  .object({
+    content: z
+      .string()
+      .max(ENV_IMPORT_MAX_BYTES)
+      .refine((text) => Buffer.byteLength(text, 'utf8') <= ENV_IMPORT_MAX_BYTES, 'At most 256 KB'),
+    production: z.boolean(),
+    preview: z.boolean(),
+    overwrite: z.boolean(),
+  })
+  .refine((v) => v.production || v.preview, {
+    message: 'For production, previews or both',
+    path: ['production'],
+  });
+export type EnvImportInput = z.infer<typeof envImportSchema>;
 
 export const manualBuildSchema = z.object({
   branch: z

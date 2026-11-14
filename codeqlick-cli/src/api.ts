@@ -1,13 +1,23 @@
 import { openAsBlob } from 'node:fs';
 import { VERSION } from './version.ts';
 
-/** A failed API call: the problem details' text and status. */
+/** A field's (or a file line's) problem in a refused request. */
+export interface ApiFieldError {
+  path: string;
+  message: string;
+  line?: number;
+  key?: string;
+}
+
+/** A failed API call: the problem details' text and status, and its field errors. */
 export class ApiError extends Error {
   readonly status: number;
+  readonly errors: ApiFieldError[];
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, errors: ApiFieldError[] = []) {
     super(message);
     this.status = status;
+    this.errors = errors;
   }
 }
 
@@ -122,6 +132,22 @@ export interface EnvVar {
   production: boolean;
   preview: boolean;
   updatedAt: string;
+}
+
+export interface EnvImportInput {
+  /** The `.env` file's text (at most 256 KB). */
+  content: string;
+  production: boolean;
+  preview: boolean;
+  /** Replace the variables that already exist (otherwise they're skipped). */
+  overwrite: boolean;
+}
+
+/** What an import did, by name (values never come back). */
+export interface EnvImportResult {
+  created: string[];
+  updated: string[];
+  skipped: string[];
 }
 
 export type BuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
@@ -240,12 +266,13 @@ export class Api {
       const problem = (data ?? {}) as {
         detail?: string;
         title?: string;
-        errors?: Array<{ path: string; message: string }>;
+        errors?: ApiFieldError[];
       };
       const fields = problem.errors?.map((e) => `${e.path}: ${e.message}`).join('; ');
       throw new ApiError(
         response.status,
         problem.detail ?? fields ?? problem.title ?? `HTTP ${response.status}`,
+        problem.errors ?? [],
       );
     }
     return data as T;
@@ -302,6 +329,8 @@ export class Api {
     this.request<{ items: EnvVar[] }>('PUT', `/cloud/projects/${project}/env`, variable).then(
       (r) => r.items,
     );
+  importEnv = (project: string, input: EnvImportInput) =>
+    this.request<EnvImportResult>('POST', `/cloud/projects/${project}/env/import`, input);
   deleteEnv = (project: string, key: string) =>
     this.request<void>('DELETE', `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}`);
   builds = (project: string, pageSize = 20) =>
