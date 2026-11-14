@@ -29,6 +29,8 @@ export const createPostSchema = z
     coverImageUrl: nullableUrlSchema,
     translations: translationsArray(postTranslationSchema),
     publishedAt: publishedAtSchema,
+    /** Email it to the newsletter's subscribers when it goes live (architecture 4.14). */
+    newsletter: z.boolean().default(true),
     tagIds: tagIdsSchema.default([]),
   })
   .strict();
@@ -41,6 +43,7 @@ export const updatePostSchema = z
     coverImageUrl: nullableUrlSchema,
     translations: translationsArray(postTranslationSchema).optional(),
     publishedAt: publishedAtSchema,
+    newsletter: z.boolean().optional(),
     tagIds: tagIdsSchema.optional(),
   })
   .strict();

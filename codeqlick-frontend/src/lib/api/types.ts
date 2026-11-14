@@ -73,15 +73,39 @@ export type PostInput = {
   tagIds?: string[];
   coverImageUrl?: string | null;
   translations: Translation<PostTranslationFields>[]; // at least 'en'
+  /** Email it to the newsletter's subscribers when it goes live (default true, section 4.14). */
+  newsletter?: boolean;
 };
 
-export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds'> & {
+export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds' | 'newsletter'> & {
   id: string;
   tagIds: string[];
   coverImageUrl: string | null;
   publishedAt: string | null;
+  newsletter: boolean;
+  /** When its email went out (or was skipped); null until the post is live and the job saw it. */
+  newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export const NEWSLETTER_STATUSES = ['PENDING', 'ACTIVE', 'UNSUBSCRIBED'] as const;
+export type NewsletterStatus = (typeof NEWSLETTER_STATUSES)[number];
+
+/** `GET /admin/newsletter` items (architecture 4.14). */
+export type NewsletterSubscriberView = {
+  id: string;
+  email: string;
+  locale: Locale;
+  status: NewsletterStatus;
+  createdAt: string;
+  confirmedAt: string | null;
+  unsubscribedAt: string | null;
+};
+
+/** `GET /admin/newsletter`: the page plus the counts of all subscribers per status. */
+export type NewsletterList = Paginated<NewsletterSubscriberView> & {
+  counts: { active: number; pending: number; unsubscribed: number };
 };
 
 export type Testimonial = { quote: string; author: string; role: string | null };
@@ -525,6 +549,7 @@ export const ACTIVITY_TARGETS = [
   'videochat',
   'swipe',
   'site_news',
+  'newsletter',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 

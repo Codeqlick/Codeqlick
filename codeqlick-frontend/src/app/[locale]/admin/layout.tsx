@@ -47,6 +47,7 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
     { href: '/admin/proposals', label: t('nav.proposals') },
     { href: '/admin/support', label: t('nav.support') },
     { href: '/admin/posts', label: t('nav.posts') },
+    { href: '/admin/newsletter', label: t('nav.newsletter') },
     { href: '/admin/tags', label: t('nav.tags') },
     { href: '/admin/portfolio', label: t('nav.portfolio') },
     { href: '/admin/media', label: t('nav.media') },

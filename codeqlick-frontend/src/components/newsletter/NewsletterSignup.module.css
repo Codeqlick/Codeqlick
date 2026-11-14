@@ -1,0 +1,39 @@
+.box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-16);
+  padding: var(--space-8);
+  max-width: 40rem;
+  background: var(--color-blush);
+  border-radius: var(--radius-lg);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+}
+
+.lead {
+  margin: 0;
+  color: var(--color-slate);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+/* Fuchsia on blush is 4.2:1, under the 4.5:1 that text needs: links use the darker fuchsia. */
+.box a:not([class]) {
+  color: var(--color-fuchsia-dark);
+}
+
+@media (max-width: 560px) {
+  .box {
+    padding: var(--space-5);
+  }
+}
