@@ -95,7 +95,7 @@ test("a post's old address redirects to its new slug", async ({
     });
     const { items } = (await list.json()) as { items: Array<{ id: string; slug: string }> };
     const post = items.find((item) => item.slug === oldSlug);
-    expect(post, 'the new post').toBeDefined();
+    expect(post).toBeDefined();
 
     await page.goto(`/es/admin/posts/${post!.id}`);
     const oldAddresses = page.getByRole('heading', {
