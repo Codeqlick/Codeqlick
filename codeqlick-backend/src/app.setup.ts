@@ -6,8 +6,8 @@ import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js
 import { AppConfigService } from './config/app-config.service.js';
 import { ErrorsService } from './modules/errors/errors.service.js';
 
-/** Routes any page may call from a browser (Cloud's forms, heartbeats, status, analytics and public keys, 4.13). */
-export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status|analytics|kv)\//;
+/** Routes any page may call from a browser (Cloud's forms, heartbeats, status, analytics, public keys and the `codeqlick.json` schema, 4.13). */
+export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status|analytics|kv|schema)\//;
 
 /**
  * Cross-cutting HTTP setup shared by main.ts and the e2e tests, so tests exercise exactly

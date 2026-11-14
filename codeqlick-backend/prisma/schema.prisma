@@ -2079,6 +2079,8 @@ model CloudDeployment {
   branch      String?     @db.VarChar(100)
   sizeBytes   BigInt      @map("size_bytes")
   fileCount   Int         @map("file_count")
+  /// The parsed rules of `codeqlick.json` (redirects, rewrites, headers); null when it has none.
+  config      Json?
   createdById String?     @map("created_by_id") @db.Uuid
   tokenId     String?     @map("token_id") @db.Uuid
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)

@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -14,7 +15,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, NoFilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CloudApi } from '../../common/decorators/cloud-api.decorator.js';
@@ -30,8 +31,10 @@ import {
 } from '../../common/schemas/common.schemas.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
+import { configJsonSchema } from './cloud-config.js';
 import { MAX_UPLOAD_BYTES } from './cloud-plans.js';
 import {
+  configCheckSchema,
   createDomainSchema,
   createProjectSchema,
   createTeamSchema,
@@ -57,6 +60,7 @@ import {
   type CreateProjectInput,
   type CreateTeamInput,
   type CreateTokenInput,
+  type ConfigCheckInput,
   type DeploymentFields,
   type DeploymentParam,
   type DeviceDecisionInput,
@@ -79,6 +83,7 @@ import { CloudAdminService } from './cloud-admin.service.js';
 import { CloudDomainsService, type DomainView } from './cloud-domains.service.js';
 import {
   CloudProjectsService,
+  type ConfigCheck,
   type DeploymentView,
   type ProjectView,
 } from './cloud-projects.service.js';
@@ -99,7 +104,9 @@ import {
   type TokenView,
 } from './cloud-tokens.service.js';
 
-/** The CLI's sign-in and the public abuse form: no session. */
+let schemaBody: Record<string, unknown> | undefined;
+
+/** The CLI's sign-in, the public abuse form and the `codeqlick.json` schema: no session. */
 @ApiTags('cloud')
 @Public()
 @Controller('cloud')
@@ -123,6 +130,14 @@ export class CloudPublicController {
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   poll(@Body({ schema: devicePollSchema }) body: DevicePollInput): Promise<DevicePoll> {
     return this.tokens.poll(body.deviceCode);
+  }
+
+  /** The JSON Schema of `codeqlick.json` (hard maximums), for editors (`$schema`). */
+  @Get('schema/codeqlick.json')
+  @Header('Content-Type', 'application/schema+json')
+  @Header('Cache-Control', 'public, max-age=86400')
+  schema(): Record<string, unknown> {
+    return (schemaBody ??= configJsonSchema());
   }
 
   @Post('reports')
@@ -399,6 +414,21 @@ export class CloudController {
     @UploadedFile() file: { path: string } | undefined,
   ): Promise<DeploymentView> {
     return this.projects.deploy(ctx, params.id, file?.path, body);
+  }
+
+  /** Checks a `codeqlick.json` against the team's plan; keeps nothing. */
+  @Post('config/check')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  // Multipart (fields `teamSlug` and `config`; a small JSON body works too): the text can be
+  // bigger than the JSON parser's default limit. Over 1 MB the schema answers 400.
+  @UseInterceptors(NoFilesInterceptor({ limits: { fieldSize: 2 * 1024 * 1024, fields: 5 } }))
+  checkConfig(
+    @Caller() ctx: CloudCtx,
+    @Body({ schema: configCheckSchema }) body: ConfigCheckInput,
+  ): Promise<ConfigCheck> {
+    return this.projects.checkConfig(ctx, body.teamSlug, body.config);
   }
 
   @Get('projects/:id/deployments/:deploymentId')

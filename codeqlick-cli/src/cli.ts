@@ -13,6 +13,7 @@ import {
   type AnalyticsPeriod,
   type AnalyticsRow,
   type Build,
+  type ConfigCheck,
   type BuildStatus,
   type DeployHook,
   type Deployment,
@@ -21,13 +22,19 @@ import {
   type Protection,
   type ProtectionDays,
   type ProtectionMode,
+  formatApiError,
+  formatConfigErrors,
 } from './api.ts';
 import {
   DEFAULT_API,
+  ProjectFileError,
   configPath,
   forgetConfig,
+  hasRules,
+  parseProjectText,
   readConfig,
   readProjectFile,
+  readProjectText,
   saveConfig,
   writeProjectFile,
   PROJECT_FILE,
@@ -66,6 +73,8 @@ Commands:
       --min-score <n>         exit 1 below this score (0-100)
       --fail-on <fail|warn>   exit 1 when a check has that result or worse
       --json                  print the report as JSON
+  config check              Check this folder's ${PROJECT_FILE} (redirects, rewrites, headers)
+      --json                  print the API's answer
   open                      Open the published site
 
 Builds from Git:
@@ -106,6 +115,9 @@ Password protection:
                               empty keeps the current one)
   protect off               Every address is public again
       --json                  (protect) print the API's answer
+
+Redirects, rewrites and headers: add them to ${PROJECT_FILE} (cleanUrls, trailingSlash,
+redirects, rewrites, headers); \`deploy\` sends them, \`config check\` validates them.
 
 Options:
   --team <slug>  --project <slug>   Override ${PROJECT_FILE} (or CODEQLICK_TEAM, CODEQLICK_PROJECT)
@@ -274,6 +286,9 @@ async function whoami(): Promise<void> {
 
 async function init(): Promise<void> {
   const { api } = await signedIn();
+  // Fail before asking anything when the file can't be kept (it is never overwritten).
+  const existing = await readProjectText();
+  if (existing !== null && existing.trim() !== '') parseProjectText(existing);
   const me = await api.me();
   if (me.teams.length === 0)
     throw new UsageError('Create a team first at https://cloud.codeqlick.com');
@@ -323,6 +338,10 @@ async function gitInfo(): Promise<{ commit?: string; branch?: string }> {
 async function deploy(folder: string | undefined, options: Options): Promise<void> {
   const { api } = await signedIn();
   const file = await readProjectFile();
+  // The rules of the folder the command runs in (not of the deployed one); a file with only the
+  // link keys isn't sent, so it can't hide a ${PROJECT_FILE} inside the bundle.
+  const text = await readProjectText();
+  const config = text !== null && hasRules(text) ? text : undefined;
   const root = resolve(folder ?? file.dir ?? 'dist');
   if (!(await stat(root).catch(() => null))?.isDirectory()) {
     throw new UsageError(`${root} isn't a folder: build your site first, or pass the folder.`);
@@ -349,6 +368,7 @@ async function deploy(folder: string | undefined, options: Options): Promise<voi
       message: options.message,
       commit: commit && /^[0-9a-f]{4,40}$/i.test(commit) ? commit : undefined,
       branch,
+      config,
     });
     if (quiet) {
       console.log(deployment.url);
@@ -496,6 +516,42 @@ async function audit(url: string | undefined, options: Options): Promise<number>
     );
   }
   return failed ? 1 : 0;
+}
+
+/** `config check`: validates the folder's codeqlick.json with the API; exit 1 on any problem. */
+async function configCommand(action: string | undefined, options: Options): Promise<number> {
+  if (action !== 'check') throw new UsageError('Usage: codeqlick config check [--json]');
+  const { api } = await signedIn();
+  const text = await readProjectText();
+  if (text === null) throw new UsageError(`There's no ${PROJECT_FILE} in this folder.`);
+  const result = await api.checkConfig(await teamOf(api, options), text);
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return result.ok ? 0 : 1;
+  }
+  console.log(configCheckText(result));
+  return result.ok ? 0 : 1;
+}
+
+/** The lines `config check` prints: the summary, or each problem with its path. */
+export function configCheckText(result: ConfigCheck): string {
+  if (!result.ok) {
+    const count = result.errors.length;
+    return [
+      `${PROJECT_FILE} has ${count} ${count === 1 ? 'problem' : 'problems'}:`,
+      ...formatConfigErrors(result.errors),
+    ].join('\n');
+  }
+  const { redirects, rewrites, headers, cleanUrls, trailingSlash } = result.summary;
+  const parts = [
+    `${redirects} ${redirects === 1 ? 'redirect' : 'redirects'}`,
+    `${rewrites} ${rewrites === 1 ? 'rewrite' : 'rewrites'}`,
+    `${headers} header ${headers === 1 ? 'rule' : 'rules'}`,
+  ];
+  if (cleanUrls === false) parts.push('cleanUrls off');
+  if (trailingSlash !== null && trailingSlash !== undefined)
+    parts.push(`trailingSlash ${trailingSlash}`);
+  return `${green('✓')} ok: ${parts.join(', ')}`;
 }
 
 async function openSite(options: Options): Promise<void> {
@@ -1137,6 +1193,8 @@ export async function main(argv: string[]): Promise<number> {
       case 'domains':
         await domains(rest[0], rest[1], options);
         break;
+      case 'config':
+        return await configCommand(rest[0], options);
       case 'open':
         await openSite(options);
         break;
@@ -1168,12 +1226,13 @@ export async function main(argv: string[]): Promise<number> {
     }
     return 0;
   } catch (error) {
-    if (error instanceof UsageError) console.error(error.message);
+    if (error instanceof UsageError || error instanceof ProjectFileError)
+      console.error(error.message);
     else if (error instanceof ApiError) {
       console.error(
         error.status === 401
           ? 'Not signed in, or the token is invalid: run `codeqlick login`.'
-          : error.message,
+          : formatApiError(error),
       );
     } else console.error((error as Error).message);
     return 1;

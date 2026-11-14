@@ -56,9 +56,31 @@ export type CloudDeployment = {
   branch: string | null;
   sizeBytes: number;
   fileCount: number;
+  /** Null when the deployment has no `codeqlick.json` rules (architecture 4.13). */
+  rules: CloudRulesSummary | null;
   createdBy: { id: string; name: string } | null;
   viaToken: string | null;
   createdAt: string;
+};
+
+/** `codeqlick.json` without the CLI's link keys (team, project, dir) and `$schema`. */
+export type CloudConfig = {
+  cleanUrls?: boolean;
+  trailingSlash?: boolean;
+  redirects?: Array<{ source: string; destination: string; status?: 301 | 302 | 307 | 308 }>;
+  rewrites?: Array<{ source: string; destination: string }>;
+  headers?: Array<{ source: string; headers: Record<string, string> }>;
+};
+
+export type CloudRulesSummary = {
+  redirects: number;
+  rewrites: number;
+  /** Header rules, not headers. */
+  headers: number;
+  cleanUrls: boolean;
+  trailingSlash: boolean | null;
+  /** Only in the single-deployment read. */
+  config?: CloudConfig;
 };
 
 export type CloudDomainState = 'PENDING' | 'VERIFIED' | 'LIVE' | 'ERROR';
@@ -241,6 +263,12 @@ export const listCloudDeployments = (id: string, page = 1) =>
     ...auth,
     query: { page, pageSize: 20 },
   });
+
+export const getCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}`,
+    auth,
+  );
 
 export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {
