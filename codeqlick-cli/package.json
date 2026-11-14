@@ -1,6 +1,6 @@
 {
   "name": "@codeqlick/cli",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Deploy static sites to Codeqlick Cloud from your terminal or CI",
   "license": "MIT",
   "type": "module",

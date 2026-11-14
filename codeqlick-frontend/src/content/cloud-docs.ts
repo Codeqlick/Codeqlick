@@ -44,6 +44,8 @@ Tu web queda en \`https://<proyecto>.${domain}\`. Si lo usas a menudo, instálal
 | \`codeqlick deployments\` | Los despliegues del proyecto, el más reciente primero |
 | \`codeqlick promote <id>\` | Publica un despliegue anterior |
 | \`codeqlick rollback\` | Vuelve al despliegue publicado antes del actual |
+| \`codeqlick files <id>\` | Los archivos de un despliegue, con su tamaño |
+| \`codeqlick diff <id> [otro]\` | Qué archivos añade, quita o cambia un despliegue respecto a producción (u otro) |
 | \`codeqlick domains\` | Tus dominios (\`add\`, \`check\` y \`rm <dominio>\`) |
 | \`codeqlick open\` | Abre la web publicada |
 
@@ -228,7 +230,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
+Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
 
 ## Denunciar un abuso
 
@@ -274,6 +276,8 @@ Your site is live at \`https://<project>.${domain}\`. If you use it often, insta
 | \`codeqlick deployments\` | The project's deployments, newest first |
 | \`codeqlick promote <id>\` | Publishes an earlier deployment |
 | \`codeqlick rollback\` | Goes back to the deployment published before the current one |
+| \`codeqlick files <id>\` | A deployment's files, with their sizes |
+| \`codeqlick diff <id> [other]\` | Which files a deployment adds, removes or changes against production (or another one) |
 | \`codeqlick domains\` | Your domains (\`add\`, \`check\` and \`rm <domain>\`) |
 | \`codeqlick open\` | Opens the published site |
 
@@ -458,7 +462,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
+Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
 
 ## Reporting abuse
 

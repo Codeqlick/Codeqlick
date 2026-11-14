@@ -15,6 +15,8 @@ import {
   type Build,
   type BuildStatus,
   type Deployment,
+  type DeploymentComparison,
+  type DeploymentFiles,
   type GitSettings,
   type Project,
 } from './api.ts';
@@ -55,8 +57,11 @@ Commands:
       -m, --message <text>    shown in the console
       --url-only              print only the deployment's URL (for scripts)
   deployments               The project's deployments, newest first
-  promote <id>              Publish an earlier deployment (its short id)
+  promote <id>              Publish an earlier deployment (its id or short id)
   rollback                  Publish the deployment before the current one
+  files <id>                What a deployment contains: each file's size and path
+  diff <id> [other]         Compare a deployment with production (or another deployment)
+      --json                  (files, diff) print the API's answer
   domains [add|check|rm <domain>]   The project's own domains
   audit <url>               Run the website check (speed, mobile, Google, security)
       --min-score <n>         exit 1 below this score (0-100)
@@ -361,6 +366,13 @@ async function deployments(options: Options): Promise<void> {
   }
 }
 
+/** A deployment given by its id or short id, among the project's last 50. */
+function findDeployment(list: Deployment[], id: string): Deployment {
+  const found = list.find((d) => d.shortId === id || d.id === id);
+  if (!found) throw new UsageError(`No deployment "${id}" among the last 50.`);
+  return found;
+}
+
 async function promote(id: string | undefined, options: Options): Promise<void> {
   if (!id)
     throw new UsageError(
@@ -368,10 +380,7 @@ async function promote(id: string | undefined, options: Options): Promise<void> 
     );
   const { api } = await signedIn();
   const project = await target(api, options);
-  const found = (await allDeployments(api, project.id)).find(
-    (d) => d.shortId === id || d.id === id,
-  );
-  if (!found) throw new UsageError(`No deployment "${id}" among the last 50.`);
+  const found = findDeployment(await allDeployments(api, project.id), id);
   await api.promote(project.id, found.id);
   console.log(`${green('✓')} ${bold(found.shortId)} is published: ${project.url}`);
 }
@@ -386,6 +395,96 @@ async function rollback(options: Options): Promise<void> {
   if (!previous) throw new UsageError('There is no earlier deployment to go back to.');
   await api.promote(project.id, previous.id);
   console.log(`${green('✓')} Back to ${bold(previous.shortId)}: ${project.url}`);
+}
+
+/** `size  path` lines, sizes right-aligned, what the API left out (it lists 10,000), the total. */
+export function filesLines(listing: DeploymentFiles): string[] {
+  if (listing.items.length === 0) return ['No files.'];
+  const sizes = listing.items.map((f) => bytes(f.size));
+  const width = Math.max(...sizes.map((s) => s.length));
+  const more = listing.count - listing.items.length;
+  return [
+    ...listing.items.map((f, i) => `${sizes[i]!.padStart(width)}  ${f.path}`),
+    ...(more > 0
+      ? [
+          `… ${more.toLocaleString('en-US')} more ${more === 1 ? 'file' : 'files'} not listed (first ${listing.items.length.toLocaleString('en-US')} shown)`,
+        ]
+      : []),
+    `${listing.count.toLocaleString('en-US')} ${listing.count === 1 ? 'file' : 'files'}, ${bytes(listing.totalBytes)}`,
+  ];
+}
+
+/** `+ path`, `- path` and `~ path (old → new)` lines, grouped, then the counts. */
+export function diffLines(comparison: DeploymentComparison): string[] {
+  const { added, removed, changed, unchanged } = comparison;
+  return [
+    ...added.map((f) => `+ ${f.path}`),
+    ...removed.map((f) => `- ${f.path}`),
+    ...changed.map((f) => `~ ${f.path} (${bytes(f.previousSize)} → ${bytes(f.size)})`),
+    `${added.length} added, ${removed.length} removed, ${changed.length} changed, ${unchanged} unchanged`,
+  ];
+}
+
+/** Turns the API's 404 and 409 into messages that say what to do. */
+function filesError(error: unknown, project: Project, gone: string): never {
+  if (error instanceof ApiError && error.status === 404) throw new UsageError(gone);
+  if (error instanceof ApiError && error.status === 409) {
+    throw new UsageError(
+      `${project.slug} has nothing published to compare with: pass another deployment.`,
+    );
+  }
+  throw error;
+}
+
+async function files(id: string | undefined, options: Options): Promise<void> {
+  if (!id)
+    throw new UsageError('Which deployment? `codeqlick files <id>` (see `codeqlick deployments`).');
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const found = findDeployment(await allDeployments(api, project.id), id);
+  const listing = await api
+    .files(project.id, found.id)
+    .catch((error: unknown) =>
+      filesError(
+        error,
+        project,
+        `The files of ${found.shortId} aren't available: it was deleted, or they're gone.`,
+      ),
+    );
+  if (options.json) return console.log(JSON.stringify(listing, null, 2));
+  for (const line of filesLines(listing)) console.log(line);
+}
+
+async function diff(id: string | undefined, other: string | undefined, options: Options) {
+  if (!id)
+    throw new UsageError(
+      'Which deployment? `codeqlick diff <id> [other]` (see `codeqlick deployments`).',
+    );
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const list = await allDeployments(api, project.id);
+  const found = findDeployment(list, id);
+  const against = !other || other === 'production' ? null : findDeployment(list, other);
+  const comparison = await api
+    .compare(project.id, found.id, against?.id ?? 'production')
+    .catch((error: unknown) =>
+      filesError(
+        error,
+        project,
+        `The files of ${found.shortId} or of ${against ? against.shortId : 'the production deployment'} aren't available: one of them was deleted, or its files are gone.`,
+      ),
+    );
+  if (options.json) return console.log(JSON.stringify(comparison, null, 2));
+  const withShort =
+    against?.shortId ?? list.find((d) => d.id === comparison.withId)?.shortId ?? comparison.withId;
+  console.log(
+    dim(
+      `${found.shortId} (${bytes(comparison.totalBytes)}) against ${against ? '' : 'production, '}${withShort} (${bytes(comparison.withTotalBytes)})`,
+    ),
+  );
+  const paintLine = (line: string) =>
+    line.startsWith('+ ') ? green(line) : line.startsWith('- ') ? pink(line) : line;
+  for (const line of diffLines(comparison)) console.log(paintLine(line));
 }
 
 async function domains(
@@ -940,6 +1039,12 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'rollback':
         await rollback(options);
+        break;
+      case 'files':
+        await files(rest[0], options);
+        break;
+      case 'diff':
+        await diff(rest[0], rest[1], options);
         break;
       case 'domains':
         await domains(rest[0], rest[1], options);
