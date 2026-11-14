@@ -392,7 +392,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       expect(github.comments.some((c) => c.pr === 8 && c.body.includes('Failed'))).toBe(true),
     );
 
-    // Preview checks (decision 52): a pull request's preview is checked, in the background, and
+    // Preview checks (decision 69): a pull request's preview is checked, in the background, and
     // the result goes into the comment; the audit has no member and leaves `indexable` out.
     const audits = app.get(CloudAuditsService);
     const noindex: AuditInputs = {

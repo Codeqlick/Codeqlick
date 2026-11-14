@@ -7,7 +7,7 @@ import styles from './app.module.css';
 import compare from './RevisionCompare.module.css';
 
 /**
- * A revision of a post or case study next to its current content (decision 52): the fields both
+ * A revision of a post or case study next to its current content (decision 72): the fields both
  * languages share, then each language, field by field, with the ones that differ marked.
  */
 export async function RevisionCompare({

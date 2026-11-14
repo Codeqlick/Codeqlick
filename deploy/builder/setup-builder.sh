@@ -61,7 +61,7 @@ log "User and folders"
 id builder >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin builder
 usermod -aG docker builder
 install -d -o builder -g builder -m 0700 /var/lib/codeqlick-builder
-# The dependency caches (architecture 4.13, decision 51): the agent's user must own them, since it
+# The dependency caches (architecture 4.13, decision 68): the agent's user must own them, since it
 # is also the user inside the build containers.
 install -d -o builder -g builder -m 0700 /var/lib/codeqlick-builder/cache
 

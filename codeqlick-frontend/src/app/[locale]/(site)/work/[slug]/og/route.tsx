@@ -18,7 +18,7 @@ export async function GET(
     (current) => getPortfolioItem(current, locale),
     getPortfolioRedirect,
   );
-  // An old slug: the image of the item's current address (decision 51).
+  // An old slug: the image of the item's current address (decision 71).
   if (found.status === 'moved') permanentRedirect(`${contentPath(locale, 'work', found.slug)}/og`);
   if (found.status === 'missing') return new Response(null, { status: 404 });
   const item = found.item;

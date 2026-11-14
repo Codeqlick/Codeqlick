@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 /**
  * Landing page of the unsubscribe link in the footer of an optional email (architecture 4.3 and
- * decision 50). No session: the token is the proof. Opening it changes nothing (mail scanners open
+ * decision 70). No session: the token is the proof. Opening it changes nothing (mail scanners open
  * links); the button does.
  */
 export default async function UnsubscribePage({ params, searchParams }: PageProps) {

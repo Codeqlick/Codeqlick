@@ -77,7 +77,7 @@ export function envFile(env: Record<string, string>): string {
  * `docker run` for a build (decision 41): throwaway, under `runtime` (gVisor's `runsc` on a shared
  * host), on the default bridge (which the host's firewall limits to the internet), the agent's own
  * unprivileged user, no capabilities, low-priority CPU, memory and process limits, only the work
- * folder mounted, plus the project's dependency cache (decision 51) when there is one.
+ * folder mounted, plus the project's dependency cache (decision 68) when there is one.
  */
 export function dockerArgs(input: {
   name: string;

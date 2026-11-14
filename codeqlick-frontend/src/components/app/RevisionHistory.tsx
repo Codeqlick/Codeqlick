@@ -6,7 +6,7 @@ import { formatDateTime } from '@/lib/format';
 import styles from './app.module.css';
 
 /**
- * "History" panel of a post's or case study's edit page (decision 52): each earlier version's
+ * "History" panel of a post's or case study's edit page (decision 72): each earlier version's
  * date and author, with a link to compare it with the current content and restore it.
  */
 export async function RevisionHistory({

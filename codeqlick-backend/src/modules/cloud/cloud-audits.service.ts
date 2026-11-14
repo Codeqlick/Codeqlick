@@ -162,7 +162,7 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
   }
 
   /**
-   * The check of a pull request's preview (decision 52): no member, no team event, in English,
+   * The check of a pull request's preview (decision 69): no member, no team event, in English,
    * counted in the hourly limit, and without the `indexable` check. Never throws.
    */
   async runPreview(input: {

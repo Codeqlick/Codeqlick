@@ -10,7 +10,7 @@ import { configureApp } from '../src/app.setup.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
-// Revision history of posts and case studies (architecture 4.2, decision 52).
+// Revision history of posts and case studies (architecture 4.2, decision 72).
 const tag = randomUUID().slice(0, 8);
 const admin = { email: `e2e-rev-admin-${tag}@codeqlick.test`, password: 'revisions-pass-1' };
 const client = { email: `e2e-rev-client-${tag}@codeqlick.test`, password: 'revisions-pass-1' };

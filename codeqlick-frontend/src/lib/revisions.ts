@@ -8,7 +8,7 @@ import type {
 
 /**
  * Field-by-field comparison of a post's or case study's revision with its current content
- * (decision 52), for the admin's revision page. Pure: labels are resolved by the page.
+ * (decision 72), for the admin's revision page. Pure: labels are resolved by the page.
  */
 
 /** How a value is shown: one line, long Markdown, an image URL or a list of names. */

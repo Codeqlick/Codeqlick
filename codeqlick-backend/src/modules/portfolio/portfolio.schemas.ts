@@ -90,7 +90,7 @@ export const listAdminPortfolioQuerySchema = paginationSchema.extend({
 });
 export type ListAdminPortfolioQuery = z.infer<typeof listAdminPortfolioQuerySchema>;
 
-/** A stored `PortfolioSnapshot`, checked before it is restored (decision 52). */
+/** A stored `PortfolioSnapshot`, checked before it is restored (decision 72). */
 export const portfolioSnapshotSchema = z.object({
   coverImageUrl: z.string().nullable(),
   clientName: z.string().nullable(),

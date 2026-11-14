@@ -20,7 +20,7 @@ import {
  * Codeqlick Cloud's build agent (architecture 8.4, decision 41). It asks the API for a build every
  * 5 seconds, clones the commit, runs install and build in a throwaway container, streams the log,
  * and uploads the output folder. It needs no open port. Between builds it keeps only the projects'
- * dependency caches (the package managers' download stores, decision 51), under a size limit.
+ * dependency caches (the package managers' download stores, decision 68), under a size limit.
  */
 
 const API = (process.env.CLOUD_API_URL ?? 'https://api.codeqlick.com/v1').replace(/\/+$/, '');

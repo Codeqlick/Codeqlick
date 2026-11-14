@@ -17,7 +17,7 @@ export interface MailMessage {
   /** Extra headers, e.g. `List-Unsubscribe` (architecture 4.14). */
   headers?: Record<string, string>;
   /**
-   * One-click unsubscribe URL of an optional email (architecture 4.3, decision 50): sent as the
+   * One-click unsubscribe URL of an optional email (architecture 4.3, decision 70): sent as the
    * RFC 8058 `List-Unsubscribe` and `List-Unsubscribe-Post` headers. Transactional emails have none.
    */
   listUnsubscribe?: string;

@@ -85,7 +85,7 @@ export interface BuildView {
   error: string | null;
   deploymentId: string | null;
   noCache: boolean;
-  /** The preview's website check (decision 52). */
+  /** The preview's website check (decision 69). */
   audit: { id: string; score: number } | null;
   /** A production build deployed while production was locked after a rollback (architecture 4.13). */
   keptAsPreview: boolean;
@@ -665,8 +665,8 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
             : build.trigger === 'HOOK'
               ? 'hook'
               : build.trigger === 'SCHEDULE'
-              ? 'schedule'
-              : 'push',
+                ? 'schedule'
+                : 'push',
       hookName: build.trigger === 'HOOK' ? build.hookName : null,
       target: build.target === 'PRODUCTION' ? 'production' : 'preview',
       branch: build.branch,
@@ -1135,7 +1135,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   /**
    * A successful build: the status and comment, then, for a pull request with "Check each preview"
-   * on, the website check of its preview in the background (decision 52). Never throws.
+   * on, the website check of its preview in the background (decision 69). Never throws.
    */
   private async reportSuccess(
     project: ReportProject & { teamId: string; previewChecks: boolean; team: TeamRef },

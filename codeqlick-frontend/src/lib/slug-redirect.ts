@@ -1,6 +1,6 @@
 import { isNotFound } from '@/lib/api/errors';
 
-/** The public sections whose items have a slug that can change (decision 51). */
+/** The public sections whose items have a slug that can change (decision 71). */
 export type ContentSection = 'blog' | 'work';
 
 /** What a slug of a post or case study leads to. */
@@ -12,7 +12,7 @@ export type SlugLookup<T> =
 
 /**
  * Loads a post or case study by its slug; when the API has nothing there, asks whether it is an
- * old slug of a live item (architecture 6.2, decision 51). Errors other than 404 are rethrown.
+ * old slug of a live item (architecture 6.2, decision 71). Errors other than 404 are rethrown.
  */
 export async function lookUpSlug<T>(
   slug: string,

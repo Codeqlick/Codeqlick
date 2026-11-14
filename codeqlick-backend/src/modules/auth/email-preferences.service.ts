@@ -9,7 +9,7 @@ import {
   type UnsubscribeKind,
 } from './unsubscribe-token.js';
 
-/** What the website's unsubscribe page shows and changes (architecture 4.3, decision 50). */
+/** What the website's unsubscribe page shows and changes (architecture 4.3, decision 70). */
 export interface EmailPreference {
   kind: UnsubscribeKind;
   subscribed: boolean;

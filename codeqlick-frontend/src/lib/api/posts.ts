@@ -62,7 +62,7 @@ export function getPost(slug: string, locale: Locale) {
   });
 }
 
-/** The current slug of the live post that `slug` used to name (decision 51); 404 otherwise. */
+/** The current slug of the live post that `slug` used to name (decision 71); 404 otherwise. */
 export function getPostRedirect(slug: string) {
   return apiFetch<SlugRedirect>(`/posts/redirects/${encodeURIComponent(slug)}`, {
     revalidate: PUBLIC_REVALIDATE,

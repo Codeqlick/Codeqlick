@@ -3,7 +3,7 @@ import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 
 /**
  * Signed, stateless tokens of the optional emails' unsubscribe links (architecture 4.3,
- * decision 50): `<payload>.<signature>`, where the payload is the base64url of `<userId>:<kind>`
+ * decision 70): `<payload>.<signature>`, where the payload is the base64url of `<userId>:<kind>`
  * and the signature the base64url HMAC-SHA256 of the payload, keyed with the HMAC-SHA256 of the
  * label `email-unsubscribe` under JWT_ACCESS_SECRET. No table and no expiry: rotating that secret
  * is the only thing that invalidates a link.
