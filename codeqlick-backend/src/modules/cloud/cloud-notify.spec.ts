@@ -24,6 +24,7 @@ const failed: NotifyEvent = {
     pullRequest: null,
     status: 'FAILED',
     error: 'The build exited with code 1',
+    keptAsPreview: false,
     durationMs: 42_000,
     url: 'https://cloud.codeqlick.com/en/console/team/web/builds/12',
   },
@@ -78,6 +79,25 @@ describe('Cloud build notifications', () => {
     );
     const preview = { ...published, build: { ...published.build, target: 'preview' as const } };
     expect(summary(preview, 'es')).toContain('vista previa');
+  });
+
+  it('says a production build kept as a preview is not published (production locked)', () => {
+    const kept: NotifyEvent = {
+      ...published,
+      build: { ...published.build, keptAsPreview: true },
+      deployment: { url: 'https://web--a1b2c3d4.codeqlick.app' },
+    };
+    expect(summary(kept, 'en')).toBe(
+      'Web · preview of main (a1b2c3d Fix <header> & footer) ready at https://web--a1b2c3d4.codeqlick.app (production is locked after a rollback)',
+    );
+    expect(summary(kept, 'es')).toBe(
+      'Web · vista previa de main (a1b2c3d Fix <header> & footer) lista en https://web--a1b2c3d4.codeqlick.app (producción bloqueada tras volver atrás)',
+    );
+    expect(summary(kept, 'en')).not.toContain('published');
+    // The webhook gets the flag with the rest of the event.
+    expect(JSON.parse(payload('WEBHOOK', kept, 'en'))).toMatchObject({
+      build: { target: 'production', keptAsPreview: true },
+    });
   });
 
   it('escapes Slack markup and links the build', () => {

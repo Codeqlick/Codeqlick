@@ -68,3 +68,23 @@ export function formatSizeChange(size: number, previousSize: number, locale: str
   const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±';
   return `${sign}${formatBytes(Math.abs(delta), locale)}`;
 }
+
+/** A project's production lock after a rollback, as the API gives it (`CloudProject`). */
+export type ProductionLockInfo = { at: string; by: { id: string; name: string } | null };
+
+/**
+ * The values of the "Production is locked" banner: the production deployment's short id (null
+ * when there's none), since when, and who locked it (`who` is `former` when they left the team).
+ */
+export function productionLockValues(
+  lock: ProductionLockInfo,
+  productionShortId: string | null,
+  locale: string,
+): { id: string | null; since: string; who: 'person' | 'former'; name: string } {
+  return {
+    id: productionShortId,
+    since: formatWhen(lock.at, locale),
+    who: lock.by ? 'person' : 'former',
+    name: lock.by?.name ?? '',
+  };
+}

@@ -23,6 +23,8 @@ export interface NotifyEvent {
     pullRequest: number | null;
     status: 'SUCCEEDED' | 'FAILED';
     error: string | null;
+    /** A production build deployed as a preview: production is locked after a rollback. */
+    keptAsPreview: boolean;
     durationMs: number | null;
     url: string;
   };
@@ -105,6 +107,11 @@ export function summary(e: NotifyEvent, locale: ApiLocale): string {
       ? `${e.project.name} · la compilación #${e.build.number} de ${where} ha fallado${reason}`
       : `${e.project.name} · build #${e.build.number} of ${where} failed${reason}`;
   }
+  if (e.build.keptAsPreview) {
+    return es
+      ? `${e.project.name} · vista previa de ${where} lista en ${e.deployment?.url ?? ''} (producción bloqueada tras volver atrás)`
+      : `${e.project.name} · preview of ${where} ready at ${e.deployment?.url ?? ''} (production is locked after a rollback)`;
+  }
   if (e.build.target === 'production') {
     return es
       ? `${e.project.name} · ${where} publicado en ${e.deployment?.url ?? ''}`
@@ -178,6 +185,7 @@ export function testEvent(
       pullRequest: null,
       status: 'SUCCEEDED',
       error: null,
+      keptAsPreview: false,
       durationMs: null,
       url: consoleUrl,
     },

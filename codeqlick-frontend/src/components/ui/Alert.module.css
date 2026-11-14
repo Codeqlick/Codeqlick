@@ -17,6 +17,12 @@
   border-color: #b7e3d2;
 }
 
+.warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
 .info {
   background: var(--color-blush);
   color: var(--color-fuchsia-dark);

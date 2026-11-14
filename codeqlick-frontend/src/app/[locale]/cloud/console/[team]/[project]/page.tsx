@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
+import { ProductionLockBanner } from '@/components/cloud/ProductionLockBanner';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -19,7 +20,7 @@ import {
   type CloudDomainState,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatBytes, formatWhen } from '@/lib/cloud';
+import { formatBytes, formatWhen, productionLockValues } from '@/lib/cloud';
 import {
   addDomainAction,
   checkDomainAction,
@@ -28,6 +29,7 @@ import {
   promoteAction,
   removeDomainAction,
   renameProjectAction,
+  unlockProductionAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
@@ -111,6 +113,9 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const base = `/cloud/console/${team.slug}/${project.slug}`;
   const path = `/${team.slug}/${project.slug}`;
   const admin = team.role !== 'MEMBER';
+  const lock = project.productionLock
+    ? productionLockValues(project.productionLock, project.production?.shortId ?? null, locale)
+    : null;
 
   return (
     <div className={styles.landing}>
@@ -142,6 +147,21 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           <strong>{t('project.suspendedTitle')}.</strong>{' '}
           {t('project.suspendedBody', { reason: project.suspended.reason })}
         </Alert>
+      ) : null}
+
+      {lock ? (
+        <ProductionLockBanner
+          title={t('project.lock.title', { ...lock, id: lock.id ?? t('project.lock.noId') })}
+          body={t('project.lock.body')}
+        >
+          {admin ? (
+            <ActionForm action={unlockProductionAction.bind(null, locale, path, project.id)}>
+              <SubmitButton size="sm" variant="outline" pendingLabel={t('project.lock.unlocking')}>
+                {t('project.lock.unlock')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
+        </ProductionLockBanner>
       ) : null}
 
       {tab === 'deployments' ? (
