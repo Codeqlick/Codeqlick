@@ -47,11 +47,14 @@ export default async function PortfolioRevisionPage({
       />
       {hasChanges(diff) ? null : <Alert tone="info">{tr('noChanges')}</Alert>}
       <RevisionCompare locale={locale} diff={diff} fieldLabel={(field) => t(field as never)} />
-      <RestoreRevisionForm
-        locale={locale}
-        action={restorePortfolioRevisionAction.bind(null, locale, item.id, revision.id)}
-        body={tr('restoreBodyPortfolio')}
-      />
+      {/* Restoring a version equal to the current one would change nothing. */}
+      {hasChanges(diff) ? (
+        <RestoreRevisionForm
+          locale={locale}
+          action={restorePortfolioRevisionAction.bind(null, locale, item.id, revision.id)}
+          body={tr('restoreBodyPortfolio')}
+        />
+      ) : null}
     </div>
   );
 }
