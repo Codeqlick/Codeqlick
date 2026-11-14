@@ -13,21 +13,30 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
+import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import type { CloudBuild, CloudBuildTrigger } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { SecretBox } from '../auth/secret-box.js';
+import { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
+import { cloudRebuildOffEmail } from './cloud-emails.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
-import { CloudProjectsService } from './cloud-projects.service.js';
+import { CloudProjectsService, type ProjectView } from './cloud-projects.service.js';
+import { nextRebuild, REBUILD_MAX_FAILURES } from './cloud-rebuild-schedule.js';
 import type {
   EnvVarInput,
   FinishInput,
   GitSettingsInput,
   LinkInstallationInput,
+  RebuildScheduleInput,
 } from './cloud.schemas.js';
-import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.repository.js';
+import {
+  CloudBuildsRepository,
+  REBUILD_OFF,
+  type BuildWithProject,
+} from './cloud-builds.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { GithubClient, GithubError } from './github.client.js';
@@ -35,7 +44,7 @@ import { GithubClient, GithubError } from './github.client.js';
 export interface BuildView {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'schedule';
   target: 'preview' | 'production';
   branch: string;
   commit: string;
@@ -89,6 +98,8 @@ export interface ClaimedBuild {
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const STATE_MINUTES = 30;
+/** Scheduled rebuilds queued per minute, at most. */
+const REBUILDS_PER_RUN = 20;
 
 /** Builds from Git (architecture 4.13, 8.4; decisions 40–42). */
 @Injectable()
@@ -98,6 +109,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
   private readonly stateKey: Buffer;
   private timer?: NodeJS.Timeout;
   private daily?: NodeJS.Timeout;
+  private scheduler?: NodeJS.Timeout;
 
   constructor(
     private readonly repository: CloudBuildsRepository,
@@ -106,6 +118,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     private readonly github: GithubClient,
     private readonly config: AppConfigService,
     private readonly notifications: CloudNotificationsService,
+    private readonly mail: MailService,
   ) {
     this.box = new SecretBox(config.credentialsSecret, 'cloud-env-v1');
     this.stateKey = createHmac('sha256', config.jwtAccessSecret)
@@ -120,11 +133,13 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       () => void this.repository.cleanup(new Date()).catch(() => undefined),
       24 * 60 * MINUTE,
     ).unref();
+    this.scheduler = setInterval(() => void this.runScheduled(), MINUTE).unref();
   }
 
   onApplicationShutdown(): void {
     if (this.timer) clearInterval(this.timer);
     if (this.daily) clearInterval(this.daily);
+    if (this.scheduler) clearInterval(this.scheduler);
   }
 
   // ── Linking GitHub (decision 40) ───────────────────────────────────────────────────────────
@@ -307,8 +322,164 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       gitInstallationId: null,
       gitRepoId: null,
       gitRepo: null,
+      ...REBUILD_OFF,
     });
     await this.teams.record(ctx, project.teamId, 'git.disconnected', project.slug);
+  }
+
+  // ── Scheduled rebuilds (decision 65) ───────────────────────────────────────────────────────
+
+  async setRebuildSchedule(
+    ctx: CloudCtx,
+    projectId: string,
+    input: RebuildScheduleInput,
+  ): Promise<ProjectView> {
+    const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
+    if (!project.gitInstallationId || !project.gitRepoId || !project.gitRepo) {
+      throw new ConflictException('Connect a GitHub repository first');
+    }
+    const schedule = {
+      frequency: input.frequency.toUpperCase() as 'OFF' | 'HOURLY' | 'DAILY' | 'WEEKLY',
+      minute: 'minute' in input ? input.minute : null,
+      hour: 'hour' in input ? input.hour : null,
+      weekday: 'weekday' in input ? input.weekday : null,
+    };
+    await this.repository.setGit(project.id, {
+      rebuildFrequency: schedule.frequency,
+      rebuildMinute: schedule.minute,
+      rebuildHour: schedule.hour,
+      rebuildWeekday: schedule.weekday,
+      rebuildNextAt: nextRebuild(schedule, new Date()),
+      rebuildFailures: 0,
+    });
+    await this.teams.record(ctx, project.teamId, 'rebuild.scheduled', project.slug, {
+      frequency: input.frequency,
+      minute: schedule.minute,
+      hour: schedule.hour,
+      weekday: schedule.weekday,
+    });
+    return this.projects.get(ctx, projectId);
+  }
+
+  /**
+   * Every minute: queues the scheduled rebuilds that are due, each claimed first by moving its
+   * next run on. Public so the tests can run it.
+   */
+  async runScheduled(now = new Date()): Promise<void> {
+    const due = await this.repository.dueRebuilds(now, REBUILDS_PER_RUN).catch((error: unknown) => {
+      this.logger.error(`Scheduled rebuilds check failed: ${String(error)}`);
+      return [];
+    });
+    for (const project of due) {
+      try {
+        const next = nextRebuild(
+          {
+            frequency: project.rebuildFrequency,
+            minute: project.rebuildMinute,
+            hour: project.rebuildHour,
+            weekday: project.rebuildWeekday,
+          },
+          now,
+        );
+        if (!project.rebuildNextAt) continue;
+        if (!(await this.repository.claimRebuild(project.id, project.rebuildNextAt, next)))
+          continue;
+        if (
+          project.deletedAt ||
+          project.suspendedAt ||
+          !project.gitInstallationId ||
+          !project.gitRepoId ||
+          !project.gitRepo
+        )
+          continue;
+        // A build of the branch already waiting or running: this run is skipped.
+        if (await this.repository.hasActiveBuild(project.id, project.gitBranch)) continue;
+        let head;
+        try {
+          head = await this.github.branchHead(
+            project.gitInstallationId,
+            project.gitRepoId,
+            project.gitRepo,
+            project.gitBranch,
+          );
+        } catch (error) {
+          // A deleted branch or repository, or a suspended installation: a failed run.
+          if (!(error instanceof GithubError)) throw error;
+          this.logger.warn(
+            `Project ${project.id}: ${project.gitBranch} unreadable (${error.message})`,
+          );
+          await this.scheduledFailed(
+            project.id,
+            `The branch ${project.gitBranch} couldn't be read from GitHub`,
+          );
+          continue;
+        }
+        await this.queue(project, {
+          trigger: 'SCHEDULE',
+          branch: project.gitBranch,
+          commit: head.sha,
+          commitMessage: head.message,
+          author: head.author,
+          pullRequest: null,
+          createdById: null,
+        });
+      } catch (error) {
+        this.logger.error(`Project ${project.id}: scheduled rebuild failed: ${String(error)}`);
+      }
+    }
+  }
+
+  /**
+   * A scheduled build ended: a success resets the failures, a failure counts, and the fifth in a
+   * row switches the schedule off and emails the team's admins once. Logged, never thrown.
+   */
+  private async scheduledEnded(build: CloudBuild): Promise<void> {
+    if (build.trigger !== 'SCHEDULE') return;
+    if (build.status === 'SUCCEEDED') {
+      await this.repository
+        .rebuildSucceeded(build.projectId)
+        .catch((error: unknown) => this.logger.error(`Build ${build.id}: ${String(error)}`));
+      return;
+    }
+    if (build.status === 'FAILED') await this.scheduledFailed(build.projectId, build.error);
+  }
+
+  /**
+   * A scheduled run failed (its build, or reading its branch from GitHub): it counts, and the
+   * fifth in a row switches the schedule off and emails the team's admins once. Never throws.
+   */
+  private async scheduledFailed(projectId: string, error: string | null): Promise<void> {
+    try {
+      const failures = await this.repository.rebuildFailed(projectId);
+      if (failures < REBUILD_MAX_FAILURES) return;
+      if (!(await this.repository.switchOffRebuild(projectId))) return;
+      const project = await this.projects.projectRow(projectId);
+      if (!project) return;
+      await this.teams.recordSystem(
+        project.teamId,
+        'Codeqlick Cloud',
+        'rebuild.switched_off',
+        project.slug,
+        { failures },
+      );
+      for (const admin of await this.notifications.admins(project.teamId)) {
+        const locale = toApiLocale(admin.locale);
+        await this.mail
+          .send(
+            cloudRebuildOffEmail({
+              to: admin.email,
+              locale,
+              project: project.name,
+              error,
+              url: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/${project.slug}?tab=git`,
+              siteUrl: this.config.siteUrl,
+            }),
+          )
+          .catch((e: unknown) => this.logger.warn(`Project ${project.id}: ${String(e)}`));
+      }
+    } catch (e) {
+      this.logger.error(`Project ${projectId}: scheduled rebuild bookkeeping failed: ${String(e)}`);
+    }
   }
 
   // ── Environment variables (decision 42) ────────────────────────────────────────────────────
@@ -365,7 +536,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           ? 'pull_request'
           : build.trigger === 'MANUAL'
             ? 'manual'
-            : 'push',
+            : build.trigger === 'SCHEDULE'
+              ? 'schedule'
+              : 'push',
       target: build.target === 'PRODUCTION' ? 'production' : 'preview',
       branch: build.branch,
       commit: build.commit,
@@ -506,7 +679,10 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         : {}),
     });
     void this.report(project, build, over ? 'failure' : 'pending');
-    if (over) void this.notifications.buildEnded(build.id);
+    if (over) {
+      void this.notifications.buildEnded(build.id);
+      await this.scheduledEnded(build);
+    }
     return build;
   }
 
@@ -719,6 +895,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         });
         void this.report(build.project, done, 'success', deployment.url);
         void this.notifications.buildEnded(done.id, deployment.url);
+        await this.scheduledEnded(done);
       } catch (error) {
         await this.finishFailed(
           build,
@@ -739,6 +916,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     const full = 'project' in build ? build : await this.repository.findById(build.id);
     if (full) void this.report(full.project, done, 'failure');
     void this.notifications.buildEnded(done.id);
+    await this.scheduledEnded(done);
   }
 
   /** Every 30 s: running builds whose agent went quiet for 2 minutes fail. */
