@@ -244,15 +244,15 @@ export function AdminSearch({ locale, labels }: { locale: string; labels: AdminS
 
   // Every option across the groups, numbered in order for the keyboard.
   const visible = (result?.groups ?? []).filter((group) => group.items.length > 0);
-  const starts = visible.map((_, at) =>
-    visible.slice(0, at).reduce((total, group) => total + group.items.length, 0),
-  );
-  const groups = visible.map((group, at) => ({
-    kind: group.kind,
-    options: group.items.map(
-      (item, i): Option => ({ ...item, kind: group.kind, index: (starts[at] ?? 0) + i }),
-    ),
-  }));
+  const sizes = visible.map((group) => group.items.length);
+  const startOf = (at: number) => sizes.slice(0, at).reduce((total, size) => total + size, 0);
+  const groups = visible.map((group, at) => {
+    const start = startOf(at);
+    const groupOptions = group.items.map((item, i): Option => {
+      return { ...item, kind: group.kind, index: start + i };
+    });
+    return { kind: group.kind, options: groupOptions };
+  });
   const options = groups.flatMap((group) => group.options);
   const expanded = options.length > 0;
 
