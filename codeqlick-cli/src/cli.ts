@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFile, spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { hostname, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
@@ -12,9 +12,11 @@ import {
   ApiError,
   type AnalyticsPeriod,
   type AnalyticsRow,
+  type ApiFieldError,
   type Build,
   type BuildStatus,
   type Deployment,
+  type EnvImportResult,
   type GitSettings,
   type Project,
 } from './api.ts';
@@ -73,6 +75,9 @@ Builds from Git:
   env                       Environment variables (names only: values can't be read back)
   env add <KEY> [value]     Save one (no value: read from stdin, or asked without echo)
       --production --preview  where it applies (both when neither is given)
+  env import <file>         Add the variables of a .env file ("-" reads stdin), all or nothing
+      --production --preview  where they apply (both when neither is given)
+      --overwrite             replace the ones that exist (otherwise they're skipped)
   env rm <KEY>              Delete one
   builds                    The latest builds
   builds start [--branch <name>]   Build the branch's latest commit and follow the log
@@ -115,6 +120,7 @@ interface Options {
   node?: string;
   production?: boolean;
   preview?: boolean;
+  overwrite?: boolean;
   period?: string;
   ttl?: string;
   by?: string;
@@ -609,6 +615,7 @@ async function env(
     }
   };
   if (!action || action === 'ls' || action === 'list') return show(await api.env(project.id));
+  if (action === 'import') return importEnvFile(api, project.id, key, options);
   if (!key || !ENV_KEY.test(key)) {
     throw new UsageError(
       `Which variable? codeqlick env ${action} <KEY> (upper-case letters, digits, _)`,
@@ -625,15 +632,70 @@ async function env(
     value ??
     (process.stdin.isTTY ? await askSecret(`Value of ${key} (hidden): `) : await readStdin());
   if (secret.length > 4096) throw new UsageError('Values are at most 4 KB.');
-  const both = !options.production && !options.preview;
-  const items = await api.setEnv(project.id, {
-    key,
-    value: secret,
-    production: both || options.production === true,
-    preview: both || options.preview === true,
-  });
+  const items = await api.setEnv(project.id, { key, value: secret, ...envTargets(options) });
   if (options.json) return show(items);
   console.log(`${green('✓')} Saved ${bold(key)}: it applies from the next build.`);
+}
+
+/** Where variables apply: the flags given, or both when neither is. */
+export function envTargets(options: { production?: boolean; preview?: boolean }) {
+  const both = !options.production && !options.preview;
+  return {
+    production: both || options.production === true,
+    preview: both || options.preview === true,
+  };
+}
+
+/** A refused import's problems, one line each (the API never sends values back). */
+export function importErrorLines(errors: ApiFieldError[]): string[] {
+  return errors.map((e) => {
+    const where = e.line === undefined ? '' : `line ${e.line}: `;
+    const name = e.key ? `${e.key}: ` : '';
+    return `  ${where}${name}${e.message}`;
+  });
+}
+
+/** The most a `.env` file imported at once may weigh. */
+const ENV_IMPORT_MAX_BYTES = 256 * 1024;
+
+async function importEnvFile(
+  api: Api,
+  projectId: string,
+  file: string | undefined,
+  options: Options,
+) {
+  if (!file) {
+    throw new UsageError(
+      'Which file? codeqlick env import <file> [--production] [--preview] [--overwrite]',
+    );
+  }
+  let content: string;
+  try {
+    content = file === '-' ? await readStdin() : await readFile(file, 'utf8');
+  } catch (error) {
+    throw new UsageError(`Can't read ${file}: ${(error as Error).message}`);
+  }
+  if (Buffer.byteLength(content, 'utf8') > ENV_IMPORT_MAX_BYTES) {
+    throw new UsageError('The file is over 256 KB.');
+  }
+  const input = { content, ...envTargets(options), overwrite: options.overwrite === true };
+  let result: EnvImportResult;
+  try {
+    result = await api.importEnv(projectId, input);
+  } catch (error) {
+    if (error instanceof ApiError && error.errors.some((e) => e.line !== undefined)) {
+      const lines = importErrorLines(error.errors);
+      throw new UsageError([`Nothing was imported from ${file}:`, ...lines].join('\n'));
+    }
+    throw error;
+  }
+  if (options.json) return console.log(JSON.stringify(result, null, 2));
+  const list = (keys: string[]) => (keys.length > 0 ? keys.join(', ') : dim('none'));
+  console.log(`${green('✓')} Imported ${file}: it applies from the next build.`);
+  console.log(`  created  ${list(result.created)}`);
+  console.log(`  updated  ${list(result.updated)}`);
+  const hint = result.skipped.length > 0 ? dim(' (already there: --overwrite replaces them)') : '';
+  console.log(`  skipped  ${list(result.skipped)}${hint}`);
 }
 
 const FINISHED: BuildStatus[] = ['SUCCEEDED', 'FAILED', 'CANCELED'];
@@ -897,6 +959,7 @@ export async function main(argv: string[]): Promise<number> {
       node: { type: 'string' },
       production: { type: 'boolean' },
       preview: { type: 'boolean' },
+      overwrite: { type: 'boolean' },
       period: { type: 'string' },
       ttl: { type: 'string' },
       by: { type: 'string' },

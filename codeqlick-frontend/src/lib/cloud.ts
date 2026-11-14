@@ -1,5 +1,7 @@
 /** Formatting for Codeqlick Cloud's console (architecture 4.13). Pure: server and client. */
 
+import type { FormState } from '@/lib/forms';
+
 const UNITS = ['B', 'KB', 'MB', 'GB'] as const;
 
 /** 1536 → "1.5 KB" ("1,5 KB" in Spanish). */
@@ -36,4 +38,41 @@ export function cloudSlug(text: string, max: number): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, max)
     .replace(/-+$/, '');
+}
+
+/** The most a `.env` import may send (`POST /cloud/projects/:id/env/import`, architecture 4.13). */
+export const ENV_IMPORT_MAX_BYTES = 256 * 1024;
+
+/** A line the API refused in a `.env` import. `line` is null when the API named none. */
+export type EnvImportError = { line: number | null; key?: string; message: string };
+
+/** The result of the console's "Import .env" form: the keys, or the lines refused. */
+export type EnvImportState = FormState & {
+  created?: string[];
+  updated?: string[];
+  skipped?: string[];
+  lineErrors?: EnvImportError[];
+};
+
+/**
+ * The line errors of a refused `.env` import, from the problem's `errors`: `{ line, key?, message }`,
+ * or `{ path, message }` with the line number in the path (`3`, `lines.3`). Never holds a value.
+ */
+export function envImportErrors(errors: readonly unknown[]): EnvImportError[] {
+  const result: EnvImportError[] = [];
+  for (const item of errors) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+    if (typeof record.message !== 'string') continue;
+    let line: number | null = null;
+    if (typeof record.line === 'number' && Number.isInteger(record.line)) line = record.line;
+    else if (typeof record.path === 'string') {
+      const match = /\d+/.exec(record.path);
+      if (match) line = Number(match[0]);
+    }
+    const error: EnvImportError = { line, message: record.message };
+    if (typeof record.key === 'string' && record.key) error.key = record.key;
+    result.push(error);
+  }
+  return result.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));
 }

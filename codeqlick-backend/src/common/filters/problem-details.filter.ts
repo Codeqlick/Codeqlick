@@ -26,6 +26,9 @@ export interface ErrorRecorder {
 export interface ProblemFieldError {
   path: string;
   message: string;
+  /** For errors inside a submitted file (a `.env` import): its line, and the name on it. */
+  line?: number;
+  key?: string;
 }
 
 /** RFC 9457 problem details body (architecture section 4.4). */
@@ -156,7 +159,7 @@ function fromHttpException(exception: HttpException): ProblemDetails {
   return problem;
 }
 
-/** Accepts Standard Schema issues, `{ path, message }` objects, or plain strings. */
+/** Accepts Standard Schema issues, `{ path, message, line?, key? }` objects, or plain strings. */
 function normalizeIssues(value: unknown): ProblemFieldError[] {
   if (!Array.isArray(value)) return [];
   const out: ProblemFieldError[] = [];
@@ -166,7 +169,10 @@ function normalizeIssues(value: unknown): ProblemFieldError[] {
       continue;
     }
     if (!isRecord(item) || typeof item.message !== 'string') continue;
-    out.push({ path: formatPath(item.path), message: item.message });
+    const issue: ProblemFieldError = { path: formatPath(item.path), message: item.message };
+    if (typeof item.line === 'number') issue.line = item.line;
+    if (typeof item.key === 'string') issue.key = item.key;
+    out.push(issue);
   }
   return out;
 }
