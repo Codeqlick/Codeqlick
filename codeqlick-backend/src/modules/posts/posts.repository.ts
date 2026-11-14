@@ -8,12 +8,16 @@ import {
   type Tag,
 } from '../../generated/prisma/client.js';
 import { liveWhere } from '../../common/publishing.js';
+import { slugToRedirect } from '../../common/slug-redirects.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type PostWithTranslations = Post & {
   translations: PostTranslation[];
   tags: { tag: Tag }[];
 };
+
+/** A post as the admin panel sees it: with its old slugs (redirects), newest first. */
+export type AdminPostRecord = PostWithTranslations & { slugRedirects: { slug: string }[] };
 
 export interface PostTranslationData {
   locale: Locale;
@@ -44,6 +48,11 @@ export interface PostUpdateData {
 const withTranslations = {
   translations: { orderBy: { locale: 'asc' } },
   tags: { include: { tag: true }, orderBy: { tag: { slug: 'asc' } } },
+} as const;
+
+const withRedirects = {
+  ...withTranslations,
+  slugRedirects: { select: { slug: true }, orderBy: { createdAt: 'desc' } },
 } as const;
 
 @Injectable()
@@ -96,6 +105,15 @@ export class PostsRepository {
     });
   }
 
+  /** The current slug of the live post an old slug redirects to (decision 51), if any. */
+  async findLiveSlugByRedirect(slug: string): Promise<string | null> {
+    const post = await this.prisma.post.findFirst({
+      where: { ...liveWhere(), slugRedirects: { some: { slug } } },
+      select: { slug: true },
+    });
+    return post?.slug ?? null;
+  }
+
   /** Live posts other than `excludeId` sharing at least one of `tagIds`, or the latest ones. */
   findLiveCandidates(
     excludeId: string,
@@ -118,12 +136,12 @@ export class PostsRepository {
     status: PublishStatus | undefined,
     skip: number,
     take: number,
-  ): Promise<{ items: PostWithTranslations[]; total: number }> {
+  ): Promise<{ items: AdminPostRecord[]; total: number }> {
     const where: Prisma.PostWhereInput = status ? { status } : {};
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where,
-        include: withTranslations,
+        include: withRedirects,
         orderBy: { updatedAt: 'desc' },
         skip,
         take,
@@ -133,27 +151,51 @@ export class PostsRepository {
     return { items, total };
   }
 
-  findById(id: string): Promise<PostWithTranslations | null> {
-    return this.prisma.post.findUnique({ where: { id }, include: withTranslations });
+  findById(id: string): Promise<AdminPostRecord | null> {
+    return this.prisma.post.findUnique({ where: { id }, include: withRedirects });
   }
 
-  create(data: PostCreateData): Promise<PostWithTranslations> {
+  /** Creates the post; a redirect with its slug is deleted, since a slug in use wins. */
+  create(data: PostCreateData): Promise<AdminPostRecord> {
     const { translations, authorId, tagIds, ...post } = data;
-    return this.prisma.post.create({
-      data: {
-        ...post,
-        ...(authorId ? { author: { connect: { id: authorId } } } : {}),
-        translations: { create: translations },
-        tags: { create: tagIds.map((tagId) => ({ tagId })) },
-      },
-      include: withTranslations,
+    return this.prisma.$transaction(async (tx) => {
+      await tx.postSlugRedirect.deleteMany({ where: { slug: post.slug } });
+      return tx.post.create({
+        data: {
+          ...post,
+          ...(authorId ? { author: { connect: { id: authorId } } } : {}),
+          translations: { create: translations },
+          tags: { create: tagIds.map((tagId) => ({ tagId })) },
+        },
+        include: withRedirects,
+      });
     });
   }
 
-  /** Updates the post; when `translations` is given they replace the existing ones wholesale. */
-  update(id: string, data: PostUpdateData): Promise<PostWithTranslations> {
+  /**
+   * Updates the post; when `translations` is given they replace the existing ones wholesale.
+   * With a slug, in the same transaction (decision 51): a redirect with the new slug is deleted
+   * (a slug in use wins, and renaming back drops it), and the old slug of a post with a
+   * publication date is kept as a redirect to the post.
+   */
+  update(id: string, data: PostUpdateData): Promise<AdminPostRecord> {
     const { translations, tagIds, ...post } = data;
     return this.prisma.$transaction(async (tx) => {
+      if (post.slug !== undefined) {
+        const before = await tx.post.findUniqueOrThrow({
+          where: { id },
+          select: { slug: true, publishedAt: true },
+        });
+        await tx.postSlugRedirect.deleteMany({ where: { slug: post.slug } });
+        const oldSlug = slugToRedirect(before, post.slug);
+        if (oldSlug) {
+          await tx.postSlugRedirect.upsert({
+            where: { slug: oldSlug },
+            create: { slug: oldSlug, postId: id },
+            update: { postId: id, createdAt: new Date() },
+          });
+        }
+      }
       if (tagIds) {
         await tx.postTag.deleteMany({ where: { postId: id } });
         await tx.postTag.createMany({ data: tagIds.map((tagId) => ({ postId: id, tagId })) });
@@ -164,7 +206,7 @@ export class PostsRepository {
           data: translations.map((t) => ({ ...t, postId: id })),
         });
       }
-      return tx.post.update({ where: { id }, data: post, include: withTranslations });
+      return tx.post.update({ where: { id }, data: post, include: withRedirects });
     });
   }
 

@@ -38,6 +38,12 @@ export class PortfolioController {
     return this.portfolio.filters();
   }
 
+  /** An old slug's current one (decision 51). Before ':slug' on purpose. */
+  @Get('redirects/:slug')
+  redirect(@Param({ schema: slugParamSchema }) params: SlugParam): Promise<{ slug: string }> {
+    return this.portfolio.redirect(params.slug);
+  }
+
   @Get(':slug')
   get(
     @Param({ schema: slugParamSchema }) params: SlugParam,

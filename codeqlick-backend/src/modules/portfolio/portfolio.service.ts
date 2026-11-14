@@ -13,6 +13,7 @@ import {
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PortfolioRepository,
+  type AdminPortfolioRecord,
   type PortfolioTranslationData,
   type PortfolioUpdateData,
   type PortfolioWithTranslations,
@@ -71,6 +72,8 @@ export interface AdminPortfolioItem {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this case study (decision 51), newest first. */
+  oldSlugs: string[];
 }
 
 function toTranslationData(t: PortfolioTranslationInput): PortfolioTranslationData {
@@ -97,7 +100,7 @@ function toTestimonial(
   };
 }
 
-function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
+function toAdminItem(item: AdminPortfolioRecord): AdminPortfolioItem {
   return {
     id: item.id,
     slug: item.slug,
@@ -120,6 +123,7 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
     publishedAt: item.publishedAt?.toISOString() ?? null,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
+    oldSlugs: item.slugRedirects.map((redirect) => redirect.slug),
   };
 }
 
@@ -185,6 +189,13 @@ export class PortfolioService {
       projectUrl: item.projectUrl,
       locales: availableLocales(item.translations),
     };
+  }
+
+  /** The current slug of the live case study an old slug redirects to (decision 51). */
+  async redirect(slug: string): Promise<{ slug: string }> {
+    const current = await this.repository.findLiveSlugByRedirect(slug);
+    if (!current) throw new NotFoundException('Redirect not found');
+    return { slug: current };
   }
 
   // ---- Admin --------------------------------------------------------------------------
@@ -263,7 +274,7 @@ export class PortfolioService {
     });
   }
 
-  private async findOrThrow(id: string): Promise<PortfolioWithTranslations> {
+  private async findOrThrow(id: string): Promise<AdminPortfolioRecord> {
     const item = await this.repository.findById(id);
     if (!item) throw new NotFoundException('Portfolio item not found');
     return item;

@@ -41,6 +41,12 @@ export class PostsController {
     return this.tags.listPublic(query.locale);
   }
 
+  /** An old slug's current one (decision 51). Before `:slug/related` and `:slug` on purpose. */
+  @Get('redirects/:slug')
+  redirect(@Param({ schema: slugParamSchema }) params: SlugParam): Promise<{ slug: string }> {
+    return this.posts.redirect(params.slug);
+  }
+
   @Get(':slug/related')
   related(
     @Param({ schema: slugParamSchema }) params: SlugParam,
