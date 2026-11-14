@@ -311,6 +311,8 @@ export function cloudBuildEmail(input: {
   test: boolean;
   project: string;
   error: string | null;
+  /** A production build kept as a preview (production locked after a rollback). */
+  keptAsPreview?: boolean;
   buildUrl: string;
   siteUrl: string;
 }): MailMessage {
@@ -323,9 +325,13 @@ export function cloudBuildEmail(input: {
       ? es
         ? 'Una compilación ha fallado'
         : 'A build failed'
-      : es
-        ? 'Compilación publicada'
-        : 'Build published';
+      : input.keptAsPreview
+        ? es
+          ? 'Vista previa lista'
+          : 'Preview ready'
+        : es
+          ? 'Compilación publicada'
+          : 'Build published';
   return {
     to: input.to,
     subject: `${input.test ? '🔔' : input.failed ? '❌' : '✅'} ${input.summary}`.slice(0, 180),

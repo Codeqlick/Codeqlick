@@ -5014,6 +5014,13 @@
       "files": "{count, plural, one {# archivo} other {# archivos}}",
       "suspendedTitle": "Este proyecto está suspendido",
       "suspendedBody": "Sus direcciones muestran un aviso y no admite despliegues. Motivo: {reason}. Responde a nuestro correo si crees que es un error.",
+      "lock": {
+        "title": "La producción está bloqueada en {id} desde el {since}, {who, select, former {por un antiguo miembro} other {por {name}}}.",
+        "noId": "un despliegue anterior",
+        "body": "Se bloqueó al volver atrás, para que el fallo que se acaba de deshacer no vuelva solo: las compilaciones de producción desde Git siguen compilando y desplegándose, pero como vistas previas, hasta que alguien publique un despliegue o desbloquee producción.",
+        "unlock": "Desbloquear",
+        "unlocking": "Desbloqueando…"
+      },
       "domainsLead": "Sirve la versión publicada en tus propios dominios (hasta 5).",
       "domainName": "Dominio",
       "domainHint": "p. ej. docs.ejemplo.com",
@@ -5500,7 +5507,9 @@
       "create": "Añadir hook",
       "creating": "Añadiendo…",
       "created": "Hook añadido. Copia ahora su URL: no se volverá a mostrar. Quien la tenga puede lanzar una compilación, así que pégala solo en los ajustes de webhook del servicio.",
-      "createdNoUrl": "Hook añadido."
+      "createdNoUrl": "Hook añadido.",
+      "keptByLock": "Guardada como vista previa",
+      "keptByLockHelp": "La producción estaba bloqueada tras volver atrás, así que esta compilación se desplegó como vista previa. Publica su despliegue para ponerlo en producción."
     },
     "notify": {
       "lead": "Avisa a personas o a un canal cuando una compilación falla o una web se publica, para no tener que vigilar la consola.",

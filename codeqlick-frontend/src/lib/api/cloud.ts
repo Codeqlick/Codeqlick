@@ -121,6 +121,11 @@ export type CloudProject = {
   domains: Array<{ name: string; state: CloudDomainState }>;
   suspended: { at: string; reason: string } | null;
   protection: CloudProtectionMode;
+  /**
+   * Set when a rollback locked production (architecture 4.13): production builds from Git deploy
+   * as previews until someone publishes or unlocks. `by` is null when that person left the team.
+   */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
   createdAt: string;
 };
 
@@ -400,6 +405,10 @@ export const promoteCloudDeployment = (id: string, deploymentId: string) =>
     ...write,
     method: 'POST',
   });
+
+/** Unlocks production after a rollback without publishing anything (ADMIN). `403` member. */
+export const unlockCloudProduction = (id: string) =>
+  apiFetch<CloudProject>(`/cloud/projects/${id}/production/unlock`, { ...write, method: 'POST' });
 
 export const deleteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<void>(`/cloud/projects/${id}/deployments/${deploymentId}`, {
@@ -943,6 +952,8 @@ export type CloudBuild = {
   status: CloudBuildStatus;
   error: string | null;
   deploymentId: string | null;
+  /** A production build that deployed as a preview because production was locked (4.13). */
+  keptAsPreview: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;

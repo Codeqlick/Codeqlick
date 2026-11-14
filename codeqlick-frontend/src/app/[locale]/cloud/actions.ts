@@ -68,6 +68,7 @@ import {
   setCloudEnv,
   setCloudGit,
   startCloudBuild,
+  unlockCloudProduction,
 } from '@/lib/api/cloud';
 import { hookBranchValid, hookName } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
@@ -405,6 +406,25 @@ export async function promoteAction(formData: FormData): Promise<void> {
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));
+}
+
+/** Unlocks production after a rollback (ADMIN): the next production build goes live again. */
+export async function unlockProductionAction(
+  locale: string,
+  path: string,
+  id: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  try {
+    await unlockCloudProduction(id);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  // The banner (and this form) goes away with the lock: no message to show.
+  return { status: 'idle' };
 }
 
 export async function deleteDeploymentAction(formData: FormData): Promise<void> {

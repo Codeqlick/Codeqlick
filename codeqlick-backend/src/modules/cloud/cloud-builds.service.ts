@@ -24,6 +24,7 @@ import { commentBody, shouldCheckPreview, type PreviewCheck } from './cloud-prev
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { BundleError } from './cloud.storage.js';
 import { parseDotenv, type DotenvError } from './cloud-dotenv.js';
+import { keptAsPreview, LOCKED_BUILD_LOG_LINE } from './cloud-production-lock.js';
 import type {
   EnvImportInput,
   EnvVarInput,
@@ -80,6 +81,8 @@ export interface BuildView {
   noCache: boolean;
   /** The preview's website check (decision 52). */
   audit: { id: string; score: number } | null;
+  /** A production build deployed while production was locked after a rollback (architecture 4.13). */
+  keptAsPreview: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -506,6 +509,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       deploymentId: build.deploymentId,
       noCache: build.noCache,
       audit: build.audit ? { id: build.audit.id, score: build.audit.score } : null,
+      keptAsPreview: build.keptAsPreview,
       queuedAt: build.queuedAt.toISOString(),
       startedAt: build.startedAt?.toISOString() ?? null,
       finishedAt: build.finishedAt?.toISOString() ?? null,
@@ -884,17 +888,26 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
             config: input.config,
           },
           {
+            source: 'build',
             actorName: `GitHub · ${build.author ?? build.branch}`,
             createdById: build.createdById,
             tokenId: null,
           },
         );
+        // Production is locked after a rollback: the build is kept as a preview (architecture 4.13).
+        const kept = keptAsPreview(build.target, deployment.isProduction);
+        if (kept) {
+          const separator = build.log === '' || build.log.endsWith('\n') ? '' : '\n';
+          await this.repository.appendLog(build.id, `${separator}${LOCKED_BUILD_LOG_LINE}\n`);
+        }
         const done = await this.repository.update(build.id, {
           status: 'SUCCEEDED',
           deploymentId: deployment.id,
+          keptAsPreview: kept,
           finishedAt: new Date(),
           error: null,
         });
+        // `deployment.url` is the deployment's own address: the preview while production is locked.
         void this.reportSuccess(build.project, done, deployment.url);
         void this.notifications.buildEnded(done.id, deployment.url);
       } catch (error) {
@@ -1009,7 +1022,11 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     const buildUrl = this.buildUrl(project, build);
     const description = {
       pending: 'Building…',
-      success: build.target === 'PRODUCTION' ? 'Published' : 'Preview ready',
+      success: build.keptAsPreview
+        ? 'Preview ready (production is locked after a rollback)'
+        : build.target === 'PRODUCTION'
+          ? 'Published'
+          : 'Preview ready',
       failure: build.error ?? 'The build failed',
     }[state];
     try {

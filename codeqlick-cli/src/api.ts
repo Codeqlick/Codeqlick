@@ -136,6 +136,8 @@ export interface ProtectionInput {
   mode: ProtectionMode;
   password?: string;
   days?: ProtectionDays;
+  /** Set after a rollback: builds from Git deploy as previews until it's lifted. */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
 }
 
 export interface Domain {
@@ -413,6 +415,8 @@ export class Api {
     );
   promote = (project: string, deployment: string) =>
     this.request<Project>('POST', `/cloud/projects/${project}/deployments/${deployment}/promote`);
+  unlockProduction = (project: string) =>
+    this.request<Project>('POST', `/cloud/projects/${project}/production/unlock`);
   files = (project: string, deployment: string) =>
     this.request<DeploymentFiles>(
       'GET',

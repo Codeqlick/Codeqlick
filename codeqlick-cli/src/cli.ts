@@ -77,9 +77,11 @@ Commands:
                             by default); unpack it with tar -xzf
       -o, --out <file>        where to save it
       --force                 overwrite an existing file
+                            (this locks production: builds from Git deploy as previews)
+  unlock                    Let production builds go live again after a rollback (admins)
   files <id>                What a deployment contains: each file's size and path
   diff <id> [other]         Compare a deployment with production (or another deployment)
-      --json                  (files, diff) print the API's answer
+      --json                  (files, diff, unlock) print the API's answer
   domains [add|check|rm <domain>]   The project's own domains
   audit <url>               Run the website check (speed, mobile, Google, security)
       --min-score <n>         exit 1 below this score (0-100)
@@ -436,8 +438,10 @@ async function promote(id: string | undefined, options: Options): Promise<void> 
   const { api } = await signedIn();
   const project = await target(api, options);
   const found = findDeployment(await allDeployments(api, project.id), id);
-  await api.promote(project.id, found.id);
+  const updated = await api.promote(project.id, found.id);
   console.log(`${green('✓')} ${bold(found.shortId)} is published: ${project.url}`);
+  const note = lockNote(project, updated);
+  if (note) console.log(dim(note));
 }
 
 async function rollback(options: Options): Promise<void> {
@@ -448,8 +452,43 @@ async function rollback(options: Options): Promise<void> {
   const older = current === -1 ? [] : list.slice(current + 1);
   const previous = older.find((d) => d.target === 'production') ?? older[0];
   if (!previous) throw new UsageError('There is no earlier deployment to go back to.');
-  await api.promote(project.id, previous.id);
+  const updated = await api.promote(project.id, previous.id);
   console.log(`${green('✓')} Back to ${bold(previous.shortId)}: ${project.url}`);
+  const note = lockNote(project, updated);
+  if (note) console.log(dim(note));
+}
+
+/** What `rollback` and `promote` add, from the project's lock before and after the call. */
+export function lockNote(
+  before: Pick<Project, 'productionLock'>,
+  after: Pick<Project, 'productionLock'>,
+): string | null {
+  if (!after.productionLock) return null;
+  return `Production is ${before.productionLock ? 'still' : 'now'} locked: builds from Git deploy as previews until you publish with \`codeqlick deploy --prod\`, promote a newer deployment, or run \`codeqlick unlock\`.`;
+}
+
+/** What `unlock` says, from whether the project was locked before the call. */
+export function unlockMessage(wasLocked: boolean): string {
+  return wasLocked
+    ? 'Production unlocked: the next production build goes live.'
+    : "Production wasn't locked.";
+}
+
+async function unlock(options: Options): Promise<void> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  let updated: Project;
+  try {
+    updated = await api.unlockProduction(project.id);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      throw new UsageError(`Only the team's admins can unlock production of ${project.slug}.`);
+    }
+    throw error;
+  }
+  if (options.json) return console.log(JSON.stringify(updated, null, 2));
+  const wasLocked = Boolean(project.productionLock);
+  console.log(`${wasLocked ? green('✓') + ' ' : ''}${unlockMessage(wasLocked)}`);
 }
 
 async function download(id: string | undefined, options: Options): Promise<void> {
@@ -1404,6 +1443,9 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'download':
         await download(rest[0], options);
+        break;
+      case 'unlock':
+        await unlock(options);
         break;
       case 'files':
         await files(rest[0], options);
