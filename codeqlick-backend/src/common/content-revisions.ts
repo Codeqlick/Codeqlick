@@ -1,5 +1,5 @@
 /**
- * Revision history of posts and case studies (architecture 4.2, decision 52): helpers shared by
+ * Revision history of posts and case studies (architecture 4.2, decision 72): helpers shared by
  * both, free of Prisma and Nest so they are easy to test.
  */
 

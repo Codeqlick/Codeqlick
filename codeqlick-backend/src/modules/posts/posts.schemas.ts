@@ -73,7 +73,7 @@ export const listAdminPostsQuerySchema = paginationSchema.extend({
 });
 export type ListAdminPostsQuery = z.infer<typeof listAdminPostsQuerySchema>;
 
-/** A stored `PostSnapshot`, checked before it is restored (decision 52). */
+/** A stored `PostSnapshot`, checked before it is restored (decision 72). */
 export const postSnapshotSchema = z.object({
   coverImageUrl: z.string().nullable(),
   tagIds: z.array(z.string()),

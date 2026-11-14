@@ -1,6 +1,6 @@
 import type { Category } from '../site-audits/site-audit-checks.js';
 
-/** The website check of a pull request's preview, as the comment shows it (decision 52). */
+/** The website check of a pull request's preview, as the comment shows it (decision 69). */
 export type PreviewCheck =
   | { state: 'running' }
   | {

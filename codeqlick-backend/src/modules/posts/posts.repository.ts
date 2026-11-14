@@ -109,7 +109,7 @@ export class PostsRepository {
     });
   }
 
-  /** The current slug of the live post an old slug redirects to (decision 51), if any. */
+  /** The current slug of the live post an old slug redirects to (decision 71), if any. */
   async findLiveSlugByRedirect(slug: string): Promise<string | null> {
     const post = await this.prisma.post.findFirst({
       where: { ...liveWhere(), slugRedirects: { some: { slug } } },
@@ -178,11 +178,11 @@ export class PostsRepository {
 
   /**
    * Updates the post; when `translations` is given they replace the existing ones wholesale.
-   * With a slug, in the same transaction (decision 51): a redirect with the new slug is deleted
+   * With a slug, in the same transaction (decision 71): a redirect with the new slug is deleted
    * (a slug in use wins, and renaming back drops it), and the old slug of a post with a
    * publication date is kept as a redirect to the post. When its content changes, the previous
    * content is kept as a revision by `authorId` in the same transaction, and only the latest
-   * revisions are kept (decision 52).
+   * revisions are kept (decision 72).
    */
   update(id: string, data: PostUpdateData, authorId: string | null): Promise<AdminPostRecord> {
     const { translations, tagIds, ...post } = data;

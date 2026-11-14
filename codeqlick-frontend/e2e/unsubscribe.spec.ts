@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { adminHeaders, API_URL, linkIn, mailTo, runTag } from './helpers';
 
 /**
- * The unsubscribe link of an optional email (architecture 4.3, decision 50): the weekly summary's
+ * The unsubscribe link of an optional email (architecture 4.3, decision 70): the weekly summary's
  * footer leads to a page that turns it off without signing in, and back on with "Undo".
  */
 test('a client unsubscribes from the weekly summary from its email, and undoes it', async ({

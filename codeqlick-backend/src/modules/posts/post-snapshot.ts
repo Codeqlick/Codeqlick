@@ -1,6 +1,6 @@
 import { snapshotLocale } from '../../common/content-revisions.js';
 
-/** A post's content as a revision keeps it (`PostSnapshot`, architecture 5, decision 52). */
+/** A post's content as a revision keeps it (`PostSnapshot`, architecture 5, decision 72). */
 export type PostSnapshot = {
   coverImageUrl: string | null;
   tagIds: string[];

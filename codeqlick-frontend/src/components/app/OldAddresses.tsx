@@ -4,7 +4,7 @@ import own from './OldAddresses.module.css';
 
 /**
  * Read-only list of a post's or case study's old addresses, which redirect to its current one
- * (decision 51). Renders nothing when there are none.
+ * (decision 71). Renders nothing when there are none.
  */
 export function OldAddresses({
   locale,

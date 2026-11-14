@@ -27,7 +27,7 @@ export interface EmailContent {
   /** Closing lines; defaults to the team's signature. */
   signoff?: string[];
   /**
-   * The website's unsubscribe page of an optional email (architecture 4.3, decision 50), linked in
+   * The website's unsubscribe page of an optional email (architecture 4.3, decision 70), linked in
    * the footer. Transactional emails never have one.
    */
   unsubscribeUrl?: string;

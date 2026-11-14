@@ -15,7 +15,7 @@ export async function GET(
   const { locale: rawLocale, slug } = await params;
   const locale = resolveLocale(rawLocale);
   const found = await lookUpSlug(slug, (current) => getPost(current, locale), getPostRedirect);
-  // An old slug: the image of the item's current address (decision 51).
+  // An old slug: the image of the item's current address (decision 71).
   if (found.status === 'moved') permanentRedirect(`${contentPath(locale, 'blog', found.slug)}/og`);
   if (found.status === 'missing') return new Response(null, { status: 404 });
   const post = found.item;

@@ -26,7 +26,7 @@ const LINK_LIMIT = { default: { limit: 30, ttl: 60_000 } };
 const ONE_CLICK_LIMIT = { default: { limit: 120, ttl: 60_000 } };
 
 /**
- * Unsubscribe links of the optional emails (architecture 4.3, decision 50): no session, the
+ * Unsubscribe links of the optional emails (architecture 4.3, decision 70): no session, the
  * signed token is the proof. Only `POST` and `PUT` change anything; `GET`s are opened by link
  * scanners and previews.
  */

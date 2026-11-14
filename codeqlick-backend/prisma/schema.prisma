@@ -333,7 +333,7 @@ model Post {
   @@map("posts")
 }
 
-/// An old slug of a post, kept after a slug change so old links still work (decision 51).
+/// An old slug of a post, kept after a slug change so old links still work (decision 71).
 model PostSlugRedirect {
   id        String   @id @default(uuid()) @db.Uuid
   slug      String   @unique
@@ -346,7 +346,7 @@ model PostSlugRedirect {
   @@map("post_slug_redirects")
 }
 
-/// A post's content before an admin change (the last 20 are kept, decision 52). `createdAt` is
+/// A post's content before an admin change (the last 20 are kept, decision 72). `createdAt` is
 /// when it was replaced and `author` who replaced it; `snapshot` is a PostSnapshot (API 5).
 model PostRevision {
   id        String   @id @default(uuid()) @db.Uuid
@@ -429,7 +429,7 @@ model PortfolioItem {
   @@map("portfolio_items")
 }
 
-/// An old slug of a case study, kept after a slug change so old links still work (decision 51).
+/// An old slug of a case study, kept after a slug change so old links still work (decision 71).
 model PortfolioSlugRedirect {
   id              String   @id @default(uuid()) @db.Uuid
   slug            String   @unique
@@ -442,7 +442,7 @@ model PortfolioSlugRedirect {
   @@map("portfolio_slug_redirects")
 }
 
-/// A case study's content before an admin change (the last 20 are kept, decision 52). `createdAt`
+/// A case study's content before an admin change (the last 20 are kept, decision 72). `createdAt`
 /// is when it was replaced and `author` who replaced it; `snapshot` is a PortfolioSnapshot (API 5).
 model PortfolioRevision {
   id              String   @id @default(uuid()) @db.Uuid
@@ -2213,7 +2213,7 @@ model CloudProject {
   nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
   buildBranches          Boolean   @default(true) @map("build_branches")
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
-  /// Runs the website check on each pull request's preview (architecture 4.13; decision 52).
+  /// Runs the website check on each pull request's preview (architecture 4.13; decision 69).
   previewChecks          Boolean   @default(false) @map("preview_checks")
   /// Skip pushes and pull requests that change nothing under `rootDir` (architecture 4.13).
   onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
@@ -2713,7 +2713,7 @@ model CloudBuild {
   deploymentId  String?           @map("deployment_id") @db.Uuid
   /// Run without the dependency cache (asked from the console or the CLI).
   noCache       Boolean           @default(false) @map("no_cache")
-  /// The preview's website check (decision 52); empty once the audit is cleaned up.
+  /// The preview's website check (decision 69); empty once the audit is cleaned up.
   auditId       String?           @map("audit_id") @db.Uuid
   /// A production build deployed while production was locked after a rollback (architecture 4.13).
   keptAsPreview Boolean           @default(false) @map("kept_as_preview")

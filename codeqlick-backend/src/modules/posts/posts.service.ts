@@ -58,7 +58,7 @@ export interface AdminPost {
   newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
-  /** Old slugs that redirect to this post (decision 51), newest first. */
+  /** Old slugs that redirect to this post (decision 71), newest first. */
   oldSlugs: string[];
 }
 
@@ -140,7 +140,7 @@ export class PostsService {
     };
   }
 
-  /** The current slug of the live post an old slug redirects to (decision 51). */
+  /** The current slug of the live post an old slug redirects to (decision 71). */
   async redirect(slug: string): Promise<{ slug: string }> {
     const current = await this.repository.findLiveSlugByRedirect(slug);
     if (!current) throw new NotFoundException('Redirect not found');
@@ -235,7 +235,7 @@ export class PostsService {
     return updated;
   }
 
-  // ---- Revisions (decision 52) --------------------------------------------------------
+  // ---- Revisions (decision 72) --------------------------------------------------------
 
   async revisions(id: string): Promise<ContentRevision[]> {
     await this.findOrThrow(id);

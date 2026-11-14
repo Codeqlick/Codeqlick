@@ -89,7 +89,7 @@ export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds' | 'newsletter
   newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
-  /** Old slugs that redirect to this post, newest first (decision 51). */
+  /** Old slugs that redirect to this post, newest first (decision 71). */
   oldSlugs: string[];
 };
 
@@ -183,12 +183,12 @@ export type AdminPortfolioItem = Omit<
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  /** Old slugs that redirect to this case study, newest first (decision 51). */
+  /** Old slugs that redirect to this case study, newest first (decision 71). */
   oldSlugs: string[];
 };
 
 /**
- * A replaced version of a post or case study (decision 52). `createdAt`: when it was replaced;
+ * A replaced version of a post or case study (decision 72). `createdAt`: when it was replaced;
  * `author`: who replaced it (null once that user is deleted).
  */
 export type ContentRevision = {
