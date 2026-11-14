@@ -35,6 +35,9 @@ export interface MonitorView {
   name: string;
   kind: 'HTTP' | 'HEARTBEAT';
   url: string | null;
+  /** HTTP: text the page must (or must not) contain; null when not checked. */
+  keyword: string | null;
+  keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
   /** Heartbeats: the URL the job calls. */
   heartbeatUrl: string | null;
   periodMinutes: number | null;
@@ -91,7 +94,26 @@ const DAY = 86_400_000;
 const CHECK_EVERY = 5 * MINUTE;
 const ALERT_GAP = 15 * MINUTE;
 const CERT_WARN_DAYS = 14;
+/** Body read by a plain check, and by one that looks for text on the page (cut there, not refused). */
+const PLAIN_BYTES = 64 * 1024;
+const KEYWORD_BYTES = 1024 * 1024;
 const newKey = () => `cqh_${randomBytes(16).toString('base64url')}`;
+
+/**
+ * The text check of an HTTP monitor on the body read (UTF-8, at most the first 1 MB): `null` when
+ * it holds or there is none, otherwise the error to record. Case-sensitive.
+ */
+export function keywordError(
+  monitor: Pick<CloudMonitor, 'keyword' | 'keywordMode'>,
+  body: string,
+): string | null {
+  if (!monitor.keyword) return null;
+  const found = body.includes(monitor.keyword);
+  if (monitor.keywordMode === 'NOT_CONTAINS') {
+    return found ? `The page contains «${monitor.keyword}»`.slice(0, 300) : null;
+  }
+  return found ? null : `The page doesn't contain «${monitor.keyword}»`.slice(0, 300);
+}
 
 /** Monitors, heartbeats and status pages of Cloud teams (architecture 4.13; decisions 38, 39). */
 @Injectable()
@@ -131,6 +153,8 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       name: monitor.name,
       kind: monitor.kind,
       url: monitor.url,
+      keyword: monitor.keyword,
+      keywordMode: monitor.keywordMode,
       heartbeatUrl: monitor.key ? this.heartbeatUrl(monitor.key) : null,
       periodMinutes: monitor.periodMinutes,
       graceMinutes: monitor.graceMinutes,
@@ -206,6 +230,8 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
             name: input.name,
             kind: 'HTTP',
             url: this.checkUrl(input.url),
+            keyword: input.keyword ?? null,
+            keywordMode: input.keywordMode,
             alertIds,
           }
         : {
@@ -236,9 +262,23 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     const data: Parameters<CloudMonitorsRepository['update']>[1] = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.alertIds) data.alertIds = await this.checkAlertees(monitor.teamId, input.alertIds);
+    if (monitor.kind === 'HEARTBEAT' && input.keyword) {
+      throw new BadRequestException('Heartbeats cannot check text on a page');
+    }
     if (input.url !== undefined && monitor.kind === 'HTTP') {
       data.url = this.checkUrl(input.url);
       data.failures = 0;
+    }
+    // A new text check starts counting failures again.
+    if (monitor.kind === 'HTTP') {
+      if (input.keyword !== undefined && input.keyword !== monitor.keyword) {
+        data.keyword = input.keyword;
+        data.failures = 0;
+      }
+      if (input.keywordMode !== undefined && input.keywordMode !== monitor.keywordMode) {
+        data.keywordMode = input.keywordMode;
+        data.failures = 0;
+      }
     }
     const period = input.periodMinutes ?? monitor.periodMinutes;
     const grace = input.graceMinutes ?? monitor.graceMinutes;
@@ -403,16 +443,17 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     try {
       const page = await safeFetch(monitor.url, {
         timeoutMs: 15_000,
-        maxBytes: 64 * 1024,
+        maxBytes: monitor.keyword ? KEYWORD_BYTES : PLAIN_BYTES,
         maxRedirects: 5,
       });
       certificate = page.certificateValidTo;
       const ok = page.status < 400;
+      const textError = ok ? keywordError(monitor, page.body) : null;
       result = {
-        ok,
+        ok: ok && !textError,
         statusCode: page.status,
         responseMs: Date.now() - started,
-        error: ok ? null : `HTTP ${page.status}`,
+        error: ok ? textError : `HTTP ${page.status}`,
       };
     } catch (error) {
       const reason =

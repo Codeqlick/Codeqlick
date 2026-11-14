@@ -4966,6 +4966,23 @@
       "urlHint": "http or https, standard ports. Up when it answers below 400 within 15 seconds.",
       "urlInvalid": "Write a full address starting with http:// or https://.",
       "urlUnsafe": "That address can't be checked (private, other port or with a password).",
+      "text": "Text on the page (optional)",
+      "textHint": "Case-sensitive, up to 100 characters. Leave it empty to check only the answer.",
+      "textMode": "The page",
+      "textModes": {
+        "CONTAINS": "must contain this text",
+        "NOT_CONTAINS": "must not contain this text"
+      },
+      "textInvalid": "Up to 100 characters, on one line.",
+      "textChecks": {
+        "CONTAINS": "Checks that the page contains «{text}»",
+        "NOT_CONTAINS": "Checks that the page doesn't contain «{text}»"
+      },
+      "textTitle": "Text on the page",
+      "textEditHint": "Case-sensitive, up to 100 characters, in the first MB of the page. Leave it empty to stop checking text.",
+      "textSave": "Save",
+      "textSaving": "Saving…",
+      "textSaved": "Saved.",
       "forHeartbeat": "For a heartbeat",
       "period": "Expected every (minutes)",
       "periodHint": "How often your job runs: 60 = hourly, 1440 = daily.",

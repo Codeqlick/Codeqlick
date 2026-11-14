@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { MonitorStatus } from '@/components/cloud/MonitorStatus';
 import { formatUptime, UptimeBars } from '@/components/cloud/UptimeBars';
@@ -10,7 +11,11 @@ import { resolveLocale } from '@/i18n/locale';
 import { getCloudMonitor, getCloudTeam } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
-import { deleteMonitorAction, toggleMonitorAction } from '../../../../actions';
+import {
+  deleteMonitorAction,
+  saveMonitorTextAction,
+  toggleMonitorAction,
+} from '../../../../actions';
 import styles from '../../../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string; id: string }> };
@@ -65,6 +70,11 @@ export default async function CloudMonitorPage({ params }: PageProps) {
       {monitor.kind === 'HTTP' ? (
         <div className={styles.card}>
           <p className={`${styles.mono}`}>{monitor.url}</p>
+          {monitor.keyword ? (
+            <p className={styles.small}>
+              {t(`monitors.textChecks.${monitor.keywordMode}`, { text: monitor.keyword })}
+            </p>
+          ) : null}
           <p className={styles.small}>
             {monitor.lastCheckedAt
               ? t('monitors.lastCheck', { when: formatWhen(monitor.lastCheckedAt, locale) })
@@ -106,6 +116,40 @@ export default async function CloudMonitorPage({ params }: PageProps) {
           </p>
         </div>
       )}
+
+      {admin && monitor.kind === 'HTTP' ? (
+        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="text-title">
+          <h2 id="text-title" className={styles.cardTitle}>
+            {t('monitors.textTitle')}
+          </h2>
+          <ActionForm
+            action={saveMonitorTextAction.bind(null, locale, team.slug, monitor.id)}
+            className={styles.form}
+          >
+            <FormInput
+              name="keyword"
+              label={t('monitors.text')}
+              hint={t('monitors.textEditHint')}
+              maxLength={100}
+              defaultValue={monitor.keyword ?? ''}
+            />
+            <FormSelect
+              name="keywordMode"
+              label={t('monitors.textMode')}
+              defaultValue={monitor.keywordMode}
+              options={[
+                { value: 'CONTAINS', label: t('monitors.textModes.CONTAINS') },
+                { value: 'NOT_CONTAINS', label: t('monitors.textModes.NOT_CONTAINS') },
+              ]}
+            />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={t('monitors.textSaving')}>
+                {t('monitors.textSave')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </section>
+      ) : null}
 
       <section className={styles.card} aria-labelledby="uptime-title">
         <h2 id="uptime-title" className={styles.cardTitle}>
