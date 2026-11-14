@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LeadStatus, ProjectPhase, PublishStatus } from '../../generated/prisma/client.js';
 import { liveWhere } from '../../common/publishing.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { liveSourceWhere } from '../link-checks/link-checks.repository.js';
 import { CLIENT_WHERE } from '../users/account-kind.js';
 
 export interface StatsCounts {
@@ -17,6 +18,7 @@ export interface StatsCounts {
   proposalsSent: number;
   draftsPending: number;
   bookingsUpcoming: number;
+  linksBroken: number;
 }
 
 export interface MonthlyCounts {
@@ -45,6 +47,7 @@ export class StatsRepository {
 
   async counts(): Promise<StatsCounts> {
     const now = new Date();
+    const liveLinks = await liveSourceWhere(this.prisma, now);
     const [
       leadsNew,
       leadsTotal,
@@ -58,6 +61,7 @@ export class StatsRepository {
       proposalsSent,
       draftsPending,
       bookingsUpcoming,
+      linksBroken,
     ] = await this.prisma.$transaction([
       this.prisma.lead.count({ where: { status: LeadStatus.NEW } }),
       this.prisma.lead.count(),
@@ -77,6 +81,8 @@ export class StatsRepository {
       this.prisma.proposal.count({ where: { status: 'SENT' } }),
       this.prisma.updateDraft.count(),
       this.prisma.booking.count({ where: { status: 'CONFIRMED', endsAt: { gt: now } } }),
+      // Of live content only (architecture 4.6, Broken links).
+      this.prisma.linkCheck.count({ where: { AND: [liveLinks, { status: 'BROKEN' }] } }),
     ]);
     return {
       leadsNew,
@@ -91,6 +97,7 @@ export class StatsRepository {
       proposalsSent,
       draftsPending,
       bookingsUpcoming,
+      linksBroken,
     };
   }
 

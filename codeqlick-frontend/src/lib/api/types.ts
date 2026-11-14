@@ -449,7 +449,41 @@ export type AdminStats = {
   drafts: { pending: number };
   /** Calls booked from the website, still to happen. */
   bookings: { upcoming: number };
+  /** Links of published posts and case studies found broken by the weekly check (4.6). */
+  links: { broken: number };
 };
+
+export type LinkCheckStatus = 'OK' | 'BROKEN';
+export type LinkSourceType = 'POST' | 'PORTFOLIO';
+
+/** Where a checked link was found: the post or case study, in one of its languages. */
+export type LinkSource = {
+  type: LinkSourceType;
+  id: string;
+  slug: string;
+  title: string;
+  locale: Locale;
+};
+
+/** `GET /admin/links` item: a link of published content and its last check (4.6, Broken links). */
+export type LinkCheck = {
+  id: string;
+  /** As written, absolute (relative links resolved against the site's URL). */
+  url: string;
+  internal: boolean;
+  status: LinkCheckStatus;
+  statusCode: number | null;
+  /** Network failure (timeout, DNS, refused, private address…), in English. */
+  error: string | null;
+  /** Checks failed in a row. */
+  failures: number;
+  brokenSince: string | null;
+  checkedAt: string;
+  source: LinkSource;
+};
+
+/** `GET /admin/links`: broken first, then by URL (up to 500); `lastRunAt` null before the first run. */
+export type LinkCheckList = { items: LinkCheck[]; lastRunAt: string | null };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
 export type AdminTimeline = {

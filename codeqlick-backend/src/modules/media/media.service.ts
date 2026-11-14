@@ -96,9 +96,14 @@ export class MediaService {
     await this.activity.record(actor, { action: 'media.deleted', targetLabel: filename });
   }
 
+  /** Whether `filename` is one of our uploaded images (the broken links check, architecture 4.6). */
+  async exists(filename: string): Promise<boolean> {
+    return (await this.storedSize(filename)) !== undefined;
+  }
+
   async open(filename: string): Promise<MediaFile> {
+    const size = await this.storedSize(filename);
     const match = FILENAME_PATTERN.exec(filename);
-    const size = match ? await this.storage.size(filename) : undefined;
     if (!match || size === undefined) throw new NotFoundException('File not found');
 
     return {
@@ -106,5 +111,10 @@ export class MediaService {
       contentType: IMAGE_TYPES[match[1] as ImageExtension],
       size,
     };
+  }
+
+  /** The size of one of our files, or undefined for a name we didn't generate or a missing file. */
+  private async storedSize(filename: string): Promise<number | undefined> {
+    return FILENAME_PATTERN.test(filename) ? this.storage.size(filename) : undefined;
   }
 }
