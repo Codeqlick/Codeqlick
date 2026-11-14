@@ -16,8 +16,18 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { CloudConfig } from './cloud-config.js';
 import type { DeployBadgeFacts } from './cloud-badge.js';
 
-export type MembershipRow = CloudMember & { team: CloudTeam };
-export type MemberRow = CloudMember & { user: { id: string; name: string; email: string } };
+/** The member's account comes with its two-step verification state (architecture 4.13). */
+const membershipInclude = {
+  team: true,
+  user: { select: { totpEnabledAt: true } },
+} as const;
+export type MembershipRow = CloudMember & {
+  team: CloudTeam;
+  user: { totpEnabledAt: Date | null };
+};
+export type MemberRow = CloudMember & {
+  user: { id: string; name: string; email: string; totpEnabledAt: Date | null };
+};
 export type InviteRow = CloudInvite & {
   team: CloudTeam;
   invitedBy: { name: string } | null;
@@ -68,7 +78,7 @@ export class CloudRepository {
   memberships(userId: string): Promise<MembershipRow[]> {
     return this.prisma.cloudMember.findMany({
       where: { userId },
-      include: { team: true },
+      include: membershipInclude,
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -76,14 +86,14 @@ export class CloudRepository {
   membership(teamSlug: string, userId: string): Promise<MembershipRow | null> {
     return this.prisma.cloudMember.findFirst({
       where: { userId, team: { slug: teamSlug } },
-      include: { team: true },
+      include: membershipInclude,
     });
   }
 
   membershipByTeamId(teamId: string, userId: string): Promise<MembershipRow | null> {
     return this.prisma.cloudMember.findUnique({
       where: { teamId_userId: { teamId, userId } },
-      include: { team: true },
+      include: membershipInclude,
     });
   }
 
@@ -121,8 +131,8 @@ export class CloudRepository {
     });
   }
 
-  updateTeam(id: string, name: string): Promise<CloudTeam> {
-    return this.prisma.cloudTeam.update({ where: { id }, data: { name } });
+  updateTeam(id: string, data: { name?: string; requireTwoFactor?: boolean }): Promise<CloudTeam> {
+    return this.prisma.cloudTeam.update({ where: { id }, data });
   }
 
   async deleteTeam(id: string): Promise<void> {
@@ -132,7 +142,7 @@ export class CloudRepository {
   members(teamId: string): Promise<MemberRow[]> {
     return this.prisma.cloudMember.findMany({
       where: { teamId },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true, totpEnabledAt: true } } },
       orderBy: { createdAt: 'asc' },
     });
   }

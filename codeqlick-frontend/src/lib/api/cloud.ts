@@ -13,13 +13,19 @@ export type CloudTeam = {
   name: string;
   plan: 'FREE' | 'PRO';
   role: CloudRole;
+  /** Every member must have two-step verification (architecture 4.13). */
+  requireTwoFactor: boolean;
+  /** It is required and this account has none: the team's routes answer 403. */
+  twoFactorBlocked: boolean;
   createdAt: string;
 };
+
+export type CloudTeamSummary = Omit<CloudTeam, 'createdAt'>;
 
 export type CloudMe = {
   user: { id: string; name: string; email: string };
   via: 'session' | 'token';
-  teams: Array<Pick<CloudTeam, 'id' | 'slug' | 'name' | 'role' | 'plan'>>;
+  teams: CloudTeamSummary[];
   termsVersion: string;
 };
 
@@ -135,7 +141,14 @@ export type CloudDomain = {
 };
 
 export type CloudMembers = {
-  items: Array<{ userId: string; name: string; email: string; role: CloudRole; joinedAt: string }>;
+  items: Array<{
+    userId: string;
+    name: string;
+    email: string;
+    role: CloudRole;
+    joinedAt: string;
+    twoFactor: boolean;
+  }>;
   invites: Array<{ id: string; email: string; role: CloudRole; expiresAt: string }>;
 };
 
@@ -162,7 +175,7 @@ export type CloudToken = {
 };
 
 export type CloudInvite = {
-  team: { name: string; slug: string };
+  team: { name: string; slug: string; requireTwoFactor: boolean };
   role: CloudRole;
   invitedBy: string | null;
   email: string;
@@ -201,6 +214,14 @@ export const renameCloudTeam = (team: string, name: string) =>
     ...write,
     method: 'PATCH',
     body: { name },
+  });
+
+/** Owners only; turning it on needs two-step verification on the owner's own account (409). */
+export const setCloudTeamTwoFactor = (team: string, requireTwoFactor: boolean) =>
+  apiFetch<CloudTeam>(`/cloud/teams/${encodeURIComponent(team)}`, {
+    ...write,
+    method: 'PATCH',
+    body: { requireTwoFactor },
   });
 
 export const deleteCloudTeam = (team: string) =>

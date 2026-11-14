@@ -1966,6 +1966,8 @@ model CloudTeam {
   cancelAtPeriodEnd       Boolean                @default(false) @map("cancel_at_period_end")
   /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
   analyticsOverLimitMonth String?                @map("analytics_over_limit_month") @db.VarChar(7)
+  /// Every member needs two-step verification to use the team (architecture 4.13, decision 57).
+  requireTwoFactor        Boolean                @default(false) @map("require_two_factor")
 
   @@map("cloud_teams")
 }
