@@ -58,7 +58,7 @@ curl "https://api.codeqlick.com/v1/cloud/projects/<project-id>/analytics?period=
   -H "Authorization: Bearer $CODEQLICK_TOKEN"
 ```
 
-The report has the totals (visitors and page views), a series by hour for `24h` and by day for the other periods, and the top 10 pages, referrers, browsers, operating systems, devices and custom events.
+The report has the totals (visitors and page views), a series by hour for `24h` and by day for the other periods, and the top 10 pages, referrers, browsers, operating systems, devices and custom events. Each total is compared with the period of the same length right before it (`previous`), so the console and the CLI show the change in percent, for example "+12 % vs previous 7 days". A visitor is counted once a day, so compare periods of the same length only. `365d` shows no change, because the year before it isn't kept.
 
 ## Free plan
 

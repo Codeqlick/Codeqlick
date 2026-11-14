@@ -370,6 +370,19 @@
   font-size: 1.3rem;
 }
 
+.change {
+  font-size: 0.9rem;
+  color: var(--color-slate);
+}
+
+.changeUp {
+  color: var(--color-success);
+}
+
+.changeDown {
+  color: var(--color-danger);
+}
+
 .dns {
   width: 100%;
   border-collapse: collapse;

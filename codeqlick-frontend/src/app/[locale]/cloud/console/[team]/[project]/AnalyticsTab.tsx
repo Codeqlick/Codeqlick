@@ -9,8 +9,10 @@ import {
   type CloudAnalyticsPeriod,
   type CloudAnalyticsRow,
 } from '@/lib/api/cloud';
+import { changeAgainst } from '@/lib/analytics-change';
 import { toggleAnalyticsAction } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { AnalyticsChange } from './AnalyticsChange';
 
 export const ANALYTICS_PERIODS: readonly CloudAnalyticsPeriod[] = [
   '24h',
@@ -49,6 +51,24 @@ export async function AnalyticsTab(props: Props) {
           month: 'short',
           timeZone: 'UTC',
         }).format(new Date(`${t}T12:00:00Z`));
+  const changeLine = (current: number, previous: number) => {
+    const change = report.previous.complete ? changeAgainst(current, previous) : null;
+    if (!change) return null;
+    const against = t(`analytics.previous.${props.period}`);
+    return (
+      <AnalyticsChange
+        change={change}
+        text={(value) => t('analytics.changeVs', { value, previous: against })}
+        newLabel={t('analytics.changeNew')}
+        classNames={{
+          up: `${styles.change} ${styles.changeUp}`,
+          down: `${styles.change} ${styles.changeDown}`,
+          same: styles.change,
+          new: `${styles.change} ${styles.changeUp}`,
+        }}
+      />
+    );
+  };
   const first = report.series[0];
   const last = report.series.at(-1);
 
@@ -135,10 +155,12 @@ export async function AnalyticsTab(props: Props) {
         <div className={styles.meter}>
           <span className={styles.small}>{t('analytics.visitors')}</span>
           <span className={styles.meterValue}>{number.format(report.totals.visitors)}</span>
+          {changeLine(report.totals.visitors, report.previous.visitors)}
         </div>
         <div className={styles.meter}>
           <span className={styles.small}>{t('analytics.pageviews')}</span>
           <span className={styles.meterValue}>{number.format(report.totals.pageviews)}</span>
+          {changeLine(report.totals.pageviews, report.previous.pageviews)}
         </div>
       </div>
 

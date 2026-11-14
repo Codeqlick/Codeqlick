@@ -151,6 +151,17 @@ export function periodRange(
   return { since: madridMidnight(dayBefore(madridDay(now), days - 1)), unit: 'day', buckets: days };
 }
 
+/**
+ * The window of the same length right before a period: `[from, until)`, with `until` the
+ * period's `since`. Day periods go back whole Madrid days (so a clock change inside the window
+ * doesn't move the edges off midnight); `24h` goes back 24 hours.
+ */
+export function previousRange(period: AnalyticsPeriod, since: Date): { from: Date; until: Date } {
+  if (period === '24h') return { from: new Date(since.getTime() - 24 * 3_600_000), until: since };
+  const days = Number(period.slice(0, -1));
+  return { from: madridMidnight(dayBefore(madridDay(since), days)), until: since };
+}
+
 /** The Madrid date (`YYYY-MM-DD`) of an instant. */
 export const madridDay = (at: Date) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(at);

@@ -5842,6 +5842,15 @@
         "90d": "90 días",
         "365d": "12 meses"
       },
+      "changeVs": "{value} frente a {previous}",
+      "changeNew": "Nuevo",
+      "previous": {
+        "24h": "las 24 horas anteriores",
+        "7d": "los 7 días anteriores",
+        "30d": "los 30 días anteriores",
+        "90d": "los 90 días anteriores",
+        "365d": "los 12 meses anteriores"
+      },
       "visitors": "Visitantes",
       "pageviews": "Páginas vistas",
       "count": "Veces",

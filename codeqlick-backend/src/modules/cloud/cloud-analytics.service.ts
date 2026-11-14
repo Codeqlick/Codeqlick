@@ -18,6 +18,7 @@ import {
   parseHit,
   pathOf,
   periodRange,
+  previousRange,
   referrerOf,
   siteOf,
   trackerScript,
@@ -43,6 +44,7 @@ export interface AnalyticsReport {
   snippet: string;
   period: AnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
+  previous: { visitors: number; pageviews: number; complete: boolean };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
   pages: TopRow[];
   referrers: TopRow[];
@@ -236,23 +238,32 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
     period: AnalyticsPeriod,
   ): Promise<AnalyticsReport> {
     const { project } = await this.projects.project(ctx, projectId);
-    const { since, unit } = periodRange(period);
-    const [totals, series, pages, referrers, browsers, os, devices, events] = await Promise.all([
-      this.analytics.totals(project.id, since),
-      this.analytics.series(project.id, since, unit),
-      this.analytics.top(project.id, since, 'pages'),
-      this.analytics.referrers(project.id, since),
-      this.analytics.top(project.id, since, 'browsers'),
-      this.analytics.top(project.id, since, 'os'),
-      this.analytics.top(project.id, since, 'devices'),
-      this.analytics.events(project.id, since),
-    ]);
+    const now = new Date();
+    const { since, unit } = periodRange(period, now);
+    const before = previousRange(period, since);
+    const [totals, previous, series, pages, referrers, browsers, os, devices, events] =
+      await Promise.all([
+        this.analytics.totals(project.id, since),
+        this.analytics.totals(project.id, before.from, before.until),
+        this.analytics.series(project.id, since, unit),
+        this.analytics.top(project.id, since, 'pages'),
+        this.analytics.referrers(project.id, since),
+        this.analytics.top(project.id, since, 'browsers'),
+        this.analytics.top(project.id, since, 'os'),
+        this.analytics.top(project.id, since, 'devices'),
+        this.analytics.events(project.id, since),
+      ]);
     return {
       enabled: project.analytics,
       snippet: this.snippet,
       period,
       totals,
-      series: fillSeries(series, period),
+      // Events older than the retention are gone: a window starting before it is partial.
+      previous: {
+        ...previous,
+        complete: before.from.getTime() >= now.getTime() - ANALYTICS_DAYS * DAY_MS,
+      },
+      series: fillSeries(series, period, now),
       pages,
       referrers,
       browsers,

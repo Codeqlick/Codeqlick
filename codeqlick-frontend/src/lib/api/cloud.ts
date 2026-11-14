@@ -1282,6 +1282,8 @@ export type CloudAnalytics = {
   snippet: string;
   period: CloudAnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
+  /** The window of the same length before this one; `complete` is false when events were pruned. */
+  previous: { visitors: number; pageviews: number; complete: boolean };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
   pages: CloudAnalyticsRow[];
   referrers: CloudAnalyticsRow[];

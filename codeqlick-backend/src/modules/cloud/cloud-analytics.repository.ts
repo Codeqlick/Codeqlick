@@ -116,12 +116,18 @@ export class CloudAnalyticsRepository {
     return count > 0;
   }
 
-  async totals(projectId: string, since: Date): Promise<{ visitors: number; pageviews: number }> {
+  /** Visitors and page views from `since` on, or in `[since, until)` when `until` is given. */
+  async totals(
+    projectId: string,
+    since: Date,
+    until?: Date,
+  ): Promise<{ visitors: number; pageviews: number }> {
+    const upTo = until ? Prisma.sql`AND created_at < ${until}` : Prisma.empty;
     const [row] = await this.prisma.$queryRaw<Array<{ visitors: number; pageviews: number }>>`
       SELECT count(DISTINCT visitor)::int AS visitors,
              (count(*) FILTER (WHERE name = 'pageview'))::int AS pageviews
       FROM cloud_analytics_events
-      WHERE project_id = ${projectId}::uuid AND created_at >= ${since}`;
+      WHERE project_id = ${projectId}::uuid AND created_at >= ${since} ${upTo}`;
     return row ?? { visitors: 0, pageviews: 0 };
   }
 
