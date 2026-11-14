@@ -31,11 +31,16 @@ export class MediaRepository {
       coverImageUrl: true,
       translations: { select: { content: true } },
     } as const;
-    const [posts, items, sites] = await this.prisma.$transaction([
+    const [posts, items, sites, news] = await this.prisma.$transaction([
       this.prisma.post.findMany({ where: { OR: mentions }, select }),
       this.prisma.portfolioItem.findMany({ where: { OR: mentions }, select }),
       // Few rows, and their content is JSON: searched here rather than in SQL.
       this.prisma.managedSite.findMany({ select: { projectId: true, slug: true, content: true } }),
+      // A site's news photos (architecture 8.2) are `media/<file>`.
+      this.prisma.siteNewsPost.findMany({
+        where: { photo: { in: filenames.map((filename) => `media/${filename}`) } },
+        select: { photo: true, site: { select: { projectId: true, slug: true } } },
+      }),
     ]);
 
     const collect = (type: MediaUsage['type'], rows: typeof posts) => {
@@ -56,6 +61,13 @@ export class MediaRepository {
       for (const filename of filenames) {
         if (text.includes(filename))
           usage.get(filename)?.push({ type: 'site', id: site.projectId, slug: site.slug });
+      }
+    }
+    for (const post of news) {
+      const filename = post.photo?.slice('media/'.length) ?? '';
+      const used = usage.get(filename);
+      if (used && !used.some((item) => item.type === 'site' && item.id === post.site.projectId)) {
+        used.push({ type: 'site', id: post.site.projectId, slug: post.site.slug });
       }
     }
     return usage;

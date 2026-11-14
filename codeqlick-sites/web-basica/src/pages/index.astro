@@ -6,9 +6,11 @@ import Contact from '../components/Contact.astro';
 import Gallery from '../components/Gallery.astro';
 import Hero from '../components/Hero.astro';
 import MenuTeaser from '../components/MenuTeaser.astro';
+import NewsHome from '../components/NewsHome.astro';
 import Services from '../components/Services.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Base from '../layouts/Base.astro';
+import { posts } from '../lib/news';
 import { imageOf, sectionOrder, site } from '../lib/site';
 
 const image = await getImage({ src: imageOf(site.hero.image), width: 1200, format: 'jpg' });
@@ -52,6 +54,7 @@ const schema = {
 <Base schema={schema}>
   <Hero />
   {site.menu ? <MenuTeaser /> : null}
+  {posts.length ? <NewsHome /> : null}
   {sectionOrder.map((key) =>
     key === 'services' ? (
       <Services />

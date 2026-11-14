@@ -51,6 +51,25 @@ export interface Menu {
   note?: string;
 }
 
+/** A published news item or offer (`/noticias/<slug>`). The body is the Markdown subset. */
+export interface NewsPost {
+  /** Address of the post: `/noticias/<slug>`. Never only digits (those are list pages). */
+  slug: string;
+  title: string;
+  /** For the lists, Google and social previews. */
+  summary: string;
+  /** Plain text in the Markdown subset of `lib/markdown.ts`. */
+  body: string;
+  /** Photo in `images/`; `alt` defaults to the title. */
+  photo?: { file: string; alt?: string };
+  /** ISO date-time. */
+  publishedAt: string;
+  /** ISO date-time of the last edit, when different. */
+  updatedAt?: string;
+  /** End of the last day it is shown; the platform stops sending expired posts. */
+  expiresAt?: string;
+}
+
 export interface Site {
   /** A demo of a made-up business: phone and WhatsApp links don't dial anyone. */
   demo?: boolean;
@@ -157,6 +176,11 @@ export interface Site {
   banner?: { title: string; text?: string; link: Link };
   /** The menu or catalogue (`/carta`), linked from the header and the home page. */
   menu?: Menu;
+  /**
+   * News and offers (`/noticias`, a "Novedades" section on the home page): the published posts,
+   * newest first. Without posts none of it is built.
+   */
+  news?: { posts: NewsPost[] };
   /**
    * Online appointments: a "Pedir cita" button (in the header, the contact section and for search
    * engines) that opens the business's booking page on Citas (`https://citas.codeqlick.com/es/…`).
