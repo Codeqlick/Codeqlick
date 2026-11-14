@@ -180,6 +180,39 @@ export class CloudMonitorsRepository {
     return count > 0;
   }
 
+  /**
+   * Monitors DOWN whose current episode wasn't alerted (it began during a maintenance, or within
+   * 15 minutes of the last down alert), no longer under a maintenance in progress, and whose last
+   * down alert is older than `spacedBefore`.
+   */
+  async pendingDownAlerts(now: Date, spacedBefore: Date): Promise<MonitorWithTeam[]> {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT m.id FROM cloud_monitors m
+      WHERE m.status = 'DOWN' AND m.enabled
+        AND (m.last_down_alert_at IS NULL
+          OR (m.last_down_alert_at < m.status_since AND m.last_down_alert_at < ${spacedBefore}))
+        AND NOT EXISTS (
+          SELECT 1 FROM cloud_status_notices n
+          WHERE n.team_id = m.team_id AND n.kind = 'MAINTENANCE' AND n.resolved_at IS NULL
+            AND n.starts_at <= ${now} AND n.ends_at > ${now} AND m.id = ANY(n.monitor_ids))
+      ORDER BY m.status_since
+      LIMIT 50`;
+    if (rows.length === 0) return [];
+    return this.prisma.cloudMonitor.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      include: { team: { select: { slug: true, name: true } } },
+    });
+  }
+
+  /** Claims a monitor's pending down alert (false when it was sent meanwhile or it came back). */
+  async claimDownAlert(id: string, previous: Date | null, at: Date): Promise<boolean> {
+    const { count } = await this.prisma.cloudMonitor.updateMany({
+      where: { id, status: 'DOWN', lastDownAlertAt: previous },
+      data: { lastDownAlertAt: at },
+    });
+    return count > 0;
+  }
+
   /** Heartbeats past their deadline that aren't down yet. */
   lateHeartbeats(now: Date): Promise<MonitorWithTeam[]> {
     return this.prisma.cloudMonitor.findMany({

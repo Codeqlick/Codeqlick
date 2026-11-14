@@ -54,6 +54,9 @@ import {
 import { CloudMonitorsRepository } from './cloud-monitors.repository.js';
 import { CloudMonitorsService } from './cloud-monitors.service.js';
 import { CloudNotificationsController } from './cloud-notifications.controller.js';
+import { CloudStatusNoticesController } from './cloud-status-notices.controller.js';
+import { CloudStatusNoticesRepository } from './cloud-status-notices.repository.js';
+import { CloudStatusNoticesService } from './cloud-status-notices.service.js';
 import { CloudNotificationsRepository } from './cloud-notifications.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudAdminService } from './cloud-admin.service.js';
@@ -91,6 +94,7 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudController,
     CloudFormsController,
     CloudMonitorsController,
+    CloudStatusNoticesController,
     CloudAuditsController,
     CloudBuildsController,
     CloudDeployHooksController,
@@ -120,6 +124,8 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudFormsService,
     CloudMonitorsRepository,
     CloudMonitorsService,
+    CloudStatusNoticesRepository,
+    CloudStatusNoticesService,
     CloudAuditsRepository,
     CloudAuditsService,
     CloudBuildsRepository,

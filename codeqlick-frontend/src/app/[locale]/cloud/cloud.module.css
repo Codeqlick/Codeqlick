@@ -565,6 +565,27 @@
   background: var(--color-slate);
 }
 
+.overall_maintenance {
+  background: var(--color-info);
+}
+
+/* Status page notices (architecture 4.13, Notices): plain text kept with its line breaks. */
+
+.noticeBody {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.timeline {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0 0 0 var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  border-left: 2px solid var(--color-line-strong);
+}
+
 .incidentList {
   margin: 0;
   padding-left: var(--space-5);
