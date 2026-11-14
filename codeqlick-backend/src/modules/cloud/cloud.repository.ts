@@ -3,6 +3,7 @@ import type {
   CloudDeployment,
   CloudDomain,
   CloudDomainState,
+  CloudEvent,
   CloudInvite,
   CloudMember,
   CloudProject,
@@ -15,6 +16,7 @@ import type {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { CloudConfig } from './cloud-config.js';
 import type { DeployBadgeFacts } from './cloud-badge.js';
+import type { EventCursor, EventsFilter } from './cloud-events.js';
 
 /** The member's account comes with its two-step verification state (architecture 4.13). */
 const membershipInclude = {
@@ -297,15 +299,16 @@ export class CloudRepository {
     });
   }
 
-  events(teamId: string, skip: number, take: number) {
+  events(teamId: string, filter: EventsFilter, skip: number, take: number) {
+    const where = eventsWhere(teamId, filter);
     return this.prisma.$transaction([
       this.prisma.cloudEvent.findMany({
-        where: { teamId },
+        where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip,
         take,
       }),
-      this.prisma.cloudEvent.count({ where: { teamId } }),
+      this.prisma.cloudEvent.count({ where }),
     ]);
   }
 
@@ -313,6 +316,33 @@ export class CloudRepository {
   countEventsSince(teamId: string, action: string, since: Date): Promise<number> {
     return this.prisma.cloudEvent.count({
       where: { teamId, action, createdAt: { gte: since } },
+    });
+  }
+
+  /** A page of the export, newest first, after `after` (keyset on `createdAt` desc, `id` desc). */
+  eventsAfter(
+    teamId: string,
+    filter: EventsFilter,
+    after: EventCursor | null,
+    take: number,
+  ): Promise<CloudEvent[]> {
+    const where = eventsWhere(teamId, filter);
+    return this.prisma.cloudEvent.findMany({
+      where: after
+        ? {
+            AND: [
+              where,
+              {
+                OR: [
+                  { createdAt: { lt: after.createdAt } },
+                  { createdAt: after.createdAt, id: { lt: after.id } },
+                ],
+              },
+            ],
+          }
+        : where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take,
     });
   }
 
@@ -695,4 +725,20 @@ export class CloudRepository {
     for (const id of teamIds) result.set(id, await this.storageBytes(id));
     return result;
   }
+}
+
+/** A team's events kept by the filters (period and action). */
+function eventsWhere(teamId: string, filter: EventsFilter): Prisma.CloudEventWhereInput {
+  return {
+    teamId,
+    ...(filter.since || filter.until
+      ? {
+          createdAt: {
+            ...(filter.since ? { gte: filter.since } : {}),
+            ...(filter.until ? { lt: filter.until } : {}),
+          },
+        }
+      : {}),
+    ...(filter.action ? { action: filter.action } : {}),
+  };
 }

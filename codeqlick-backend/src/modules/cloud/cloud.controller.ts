@@ -48,6 +48,8 @@ import {
   devicePollSchema,
   deviceStartSchema,
   domainParamSchema,
+  eventsExportQuerySchema,
+  eventsQuerySchema,
   inviteParamSchema,
   inviteSchema,
   inviteTokenParamSchema,
@@ -71,6 +73,8 @@ import {
   type DevicePollInput,
   type DeviceStartInput,
   type DomainParam,
+  type EventsExportQuery,
+  type EventsQuery,
   type InviteInput,
   type InviteParam,
   type InviteTokenParam,
@@ -333,14 +337,30 @@ export class CloudController {
     return this.teams.usage(ctx, params.team);
   }
 
+  /** Declared before `teams/:team/events` so nothing ever reads `events.csv` as another route. */
+  @Get('teams/:team/events.csv')
+  @CloudApi()
+  @Throttle({ default: { limit: 10, ttl: 60 * 60_000 } })
+  async exportEvents(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: teamParamSchema }) params: TeamParam,
+    @Query({ schema: eventsExportQuerySchema }) query: EventsExportQuery,
+  ): Promise<StreamableFile> {
+    const { fileName, stream } = await this.teams.exportEvents(ctx, params.team, query);
+    return new StreamableFile(stream, {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${fileName}"`,
+    });
+  }
+
   @Get('teams/:team/events')
   @CloudApi()
   events(
     @Caller() ctx: CloudCtx,
     @Param({ schema: teamParamSchema }) params: TeamParam,
-    @Query({ schema: paginationSchema }) query: PaginationQuery,
+    @Query({ schema: eventsQuerySchema }) query: EventsQuery,
   ): Promise<Paginated<EventView>> {
-    return this.teams.events(ctx, params.team, query.page, query.pageSize);
+    return this.teams.events(ctx, params.team, query);
   }
 
   // ── Projects ────────────────────────────────────────────────────────────────────────────────
