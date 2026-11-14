@@ -163,7 +163,7 @@ describe('Admin search (e2e)', () => {
   });
 
   it('finds a request by its number, with or without #', async () => {
-    for (const q of [`#${ticket.number}`, String(ticket.number)]) {
+    for (const q of [`#${ticket.number}`, String(ticket.number).padStart(2, '0')]) {
       const res = await request(app.getHttpServer())
         .get('/v1/admin/search')
         .query({ q })
