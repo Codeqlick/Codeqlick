@@ -29,6 +29,28 @@
   font-size: 1.3rem;
 }
 
+/* Headings with an anchor (`Markdown` with `anchors`). `scroll-padding-top` on html (globals.css)
+   already clears the sticky header, so the margin only adds air above the heading; smooth
+   scrolling is set there too, off with reduced motion. */
+.anchored {
+  scroll-margin-top: var(--space-4);
+}
+
+.anchor {
+  margin-left: 0.35em;
+  font-family: var(--font-family-mono);
+  font-weight: 500;
+  color: var(--color-fuchsia-dark);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.anchored:hover .anchor,
+.anchor:focus-visible {
+  opacity: 1;
+}
+
 .markdown ul,
 .markdown ol {
   padding-left: 1.4rem;
