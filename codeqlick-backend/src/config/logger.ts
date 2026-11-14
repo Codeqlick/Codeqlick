@@ -32,31 +32,6 @@ interface LoggedRequest {
   raw?: LoggedRequest;
 }
 
-/** A hook token in a route parameter: its first 12 characters only. */
-const hideToken = (value: unknown): unknown =>
-  typeof value === 'string' && value.startsWith('cqd_') ? `${value.slice(0, 12)}…` : value;
-
-/**
- * The request as the log shows it, in pino's standard shape, but a deploy hook's token is hidden
- * in the path and in the route parameters (architecture 4.13, decision 51).
- */
-export function serializeRequest(request: LoggedRequest) {
-  const raw: LoggedRequest = request.raw ?? request;
-  const params = request.params ?? raw.params;
-  return {
-    id: request.id ?? raw.id,
-    method: raw.method,
-    url: redactHookPath(raw.originalUrl ?? raw.url ?? ''),
-    query: raw.query,
-    params: params
-      ? Object.fromEntries(Object.entries(params).map(([key, value]) => [key, hideToken(value)]))
-      : params,
-    headers: raw.headers,
-    remoteAddress: raw.socket?.remoteAddress,
-    remotePort: raw.socket?.remotePort,
-  };
-}
-
 const TOKEN_PARAM = /([?&]token=)[^&#]*/gi;
 
 /**
@@ -65,6 +40,32 @@ const TOKEN_PARAM = /([?&]token=)[^&#]*/gi;
  */
 export function redactUrlTokens(url: string): string {
   return url.replace(TOKEN_PARAM, '$1[redacted]');
+}
+
+/** A hook token in a route parameter: its first 12 characters only. */
+const hideToken = (value: unknown): unknown =>
+  typeof value === 'string' && value.startsWith('cqd_') ? `${value.slice(0, 12)}…` : value;
+
+/**
+ * The request as the log shows it, in pino's standard shape, but a deploy hook's token is hidden
+ * in the path and in the route parameters (architecture 4.13, decision 51), and so is the value of
+ * every `token` query parameter (the unsubscribe links', decision 70).
+ */
+export function serializeRequest(request: LoggedRequest) {
+  const raw: LoggedRequest = request.raw ?? request;
+  const params = request.params ?? raw.params;
+  return {
+    id: request.id ?? raw.id,
+    method: raw.method,
+    url: redactUrlTokens(redactHookPath(raw.originalUrl ?? raw.url ?? '')),
+    query: raw.query,
+    params: params
+      ? Object.fromEntries(Object.entries(params).map(([key, value]) => [key, hideToken(value)]))
+      : params,
+    headers: raw.headers,
+    remoteAddress: raw.socket?.remoteAddress,
+    remotePort: raw.socket?.remotePort,
+  };
 }
 
 /** nestjs-pino options: JSON logs in production, pretty logs in development. */
@@ -88,13 +89,6 @@ export function buildLoggerParams(config: AppConfigService): Params {
           'req.query.token',
         ],
         censor: '[redacted]',
-      },
-      serializers: {
-        // Receives pino's serialized request; only its URL is touched.
-        req: (req: { url?: string }) => {
-          if (typeof req.url === 'string') req.url = redactUrlTokens(req.url);
-          return req;
-        },
       },
       autoLogging: {
         ignore: (req: IncomingMessage) => (req.url ?? '').startsWith('/v1/health'),
