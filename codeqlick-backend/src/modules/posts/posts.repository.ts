@@ -27,6 +27,7 @@ export interface PostCreateData {
   status: PublishStatus;
   publishedAt: Date | null;
   coverImageUrl: string | null;
+  newsletter: boolean;
   authorId: string | null;
   translations: PostTranslationData[];
   tagIds: string[];
@@ -37,6 +38,7 @@ export interface PostUpdateData {
   status?: PublishStatus;
   publishedAt?: Date | null;
   coverImageUrl?: string | null;
+  newsletter?: boolean;
   translations?: PostTranslationData[];
   tagIds?: string[];
 }

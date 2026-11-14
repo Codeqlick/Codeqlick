@@ -14,6 +14,8 @@ export interface MailMessage {
   replyTo?: string;
   /** A calendar invitation (iCalendar text), shown by mail apps as "add to calendar". */
   icalEvent?: { method: 'REQUEST' | 'CANCEL'; content: string };
+  /** Extra headers, e.g. `List-Unsubscribe` (architecture 4.14). */
+  headers?: Record<string, string>;
 }
 
 /** The subset of a Nodemailer transporter we rely on (avoids its generic types). */
@@ -26,6 +28,7 @@ interface MailTransport {
     html?: string;
     replyTo?: string;
     icalEvent?: { method: string; content: string; filename: string };
+    headers?: Record<string, string>;
   }): Promise<unknown>;
 }
 
@@ -62,6 +65,7 @@ export class MailService {
       html: message.html,
       replyTo: message.replyTo,
       icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
+      headers: message.headers,
     });
     if (this.outbox) await this.keep(message);
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);

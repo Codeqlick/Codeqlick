@@ -320,6 +320,35 @@
     "noResultsBody": "Prueba con otras palabras o mira todos los artículos.",
     "allPosts": "Ver todos los artículos"
   },
+  "Newsletter": {
+    "title": "Recibe los nuevos artículos por correo",
+    "lead": "Un correo por cada artículo nuevo del blog. Nada más, y puedes darte de baja cuando quieras.",
+    "email": "Tu correo electrónico",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "acceptPrivacy": "Acepto que uséis mi correo para enviarme los artículos nuevos, como explica la <link>política de privacidad</link>.",
+    "honeypot": "Deja este campo vacío",
+    "submit": "Suscribirme",
+    "submitting": "Suscribiendo…",
+    "successTitle": "Revisa tu bandeja de entrada para confirmar.",
+    "successBody": "Si la dirección es válida, te hemos enviado un enlace para confirmar la suscripción. Caduca en 48 horas. ¿No lo ves? Mira en la carpeta de spam.",
+    "error": "Revisa el formulario.",
+    "rateLimited": "Demasiados intentos seguidos. Espera un minuto e inténtalo de nuevo.",
+    "failed": "No hemos podido completarlo. Inténtalo de nuevo en un momento.",
+    "disposable": "No aceptamos direcciones de correo temporales. Usa tu correo habitual.",
+    "confirmTitle": "Confirma tu suscripción",
+    "confirmedLead": "Ya estás suscrito. Te enviaremos un correo con cada artículo nuevo del blog.",
+    "goToBlog": "Leer el blog",
+    "confirmExpired": "Este enlace no es válido o ha caducado. Vuelve a suscribirte aquí abajo para recibir uno nuevo.",
+    "unsubscribeTitle": "Darte de baja del boletín",
+    "unsubscribeLead": "Pulsa el botón y dejaremos de enviarte los artículos nuevos por correo.",
+    "unsubscribe": "Darme de baja",
+    "unsubscribing": "Dándote de baja…",
+    "unsubscribed": "Hecho. No recibirás más correos nuestros. Puedes volver a suscribirte cuando quieras.",
+    "unsubscribeNotFound": "Este enlace no es válido. Si sigues recibiendo nuestros correos, usa el enlace del final del último o escríbenos.",
+    "confirmLead": "Pulsa el botón para confirmar tu suscripción a los artículos nuevos del blog por correo.",
+    "confirm": "Confirmar mi suscripción",
+    "confirming": "Confirmando…"
+  },
   "Work": {
     "metaTitle": "Proyectos",
     "metaDescription": "Casos de éxito de software y aplicaciones web desarrollados por Codeqlick.",
@@ -749,7 +778,8 @@
       "previews": "Vistas previas",
       "videochat": "Videochat",
       "swipe": "Swipe",
-      "cloud": "Cloud"
+      "cloud": "Cloud",
+      "newsletter": "Boletín"
     },
     "dashboard": {
       "title": "Panel",
@@ -910,7 +940,11 @@
       "publishedAt": "Fecha de publicación",
       "publishedAtHint": "Si es futura, el artículo aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo.",
       "tags": "Etiquetas",
-      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos."
+      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos.",
+      "newsletter": "Enviarlo por correo a los suscriptores",
+      "newsletterHint": "Cuando el artículo esté publicado (uno programado, cuando salga), los suscriptores del boletín lo reciben por correo. Solo se envía una vez.",
+      "newsletterSentOn": "Ya enviado a los suscriptores el {date}.",
+      "newsletterSkippedOn": "No se envió por correo a los suscriptores."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -1187,7 +1221,8 @@
         "settings": "Ajustes",
         "booking": "Llamadas",
         "videochat": "Videochat",
-        "swipe": "Swipe"
+        "swipe": "Swipe",
+        "newsletter": "Newsletter"
       },
       "actions": {
         "post": {
@@ -1337,6 +1372,9 @@
           "takedown_closed": "cerró sin retirar la solicitud <target>{label}</target>",
           "suspended": "suspendió en Swipe a <target>{label}</target>",
           "unsuspended": "levantó la suspensión en Swipe de <target>{label}</target>"
+        },
+        "newsletter": {
+          "subscriber_deleted": "borró a un suscriptor del boletín"
         }
       },
       "details": {
@@ -1614,6 +1652,36 @@
       "capReached": "Hoy ya se han hecho 10 vistas previas, el máximo diario. Prueba mañana.",
       "noBuilder": "El generador de webs no está disponible ahora mismo.",
       "purchased": "Comprada"
+    },
+    "newsletter": {
+      "title": "Boletín",
+      "lead": "Lectores que se han suscrito para recibir por correo cada artículo nuevo del blog. Una suscripción cuenta cuando se confirma desde el correo que enviamos.",
+      "counts": {
+        "active": "Activos",
+        "pending": "Pendientes de confirmar",
+        "unsubscribed": "De baja"
+      },
+      "status": "Estado",
+      "statuses": {
+        "ACTIVE": "Activo",
+        "PENDING": "Pendiente",
+        "UNSUBSCRIBED": "De baja"
+      },
+      "search": "Buscar",
+      "searchPlaceholder": "Parte del correo…",
+      "email": "Correo electrónico",
+      "language": "Idioma",
+      "languages": {
+        "en": "Inglés",
+        "es": "Español"
+      },
+      "signedUp": "Suscrito",
+      "confirmedOn": "Confirmado el {date}",
+      "unsubscribedOn": "Baja el {date}",
+      "emptyTitle": "Aún no hay suscriptores",
+      "emptyBody": "Los lectores pueden suscribirse al final del blog y de cada artículo.",
+      "noMatchTitle": "Ningún suscriptor coincide",
+      "noMatchBody": "Prueba con otro estado u otras palabras."
     }
   },
   "Sessions": {

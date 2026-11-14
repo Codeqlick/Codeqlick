@@ -11,7 +11,8 @@ import {
 } from '@/lib/actions';
 import { adminCreatePost, adminDeletePost, adminUpdatePost } from '@/lib/api/posts';
 import type { PostInput } from '@/lib/api/types';
-import { formString, formText, type FormState } from '@/lib/forms';
+import { formBoolean, formString, formText, type FormState } from '@/lib/forms';
+import { newsletterChoice } from '@/lib/newsletter';
 import { POST_TRANSLATION_FIELDS, postFormSchema } from '@/lib/schemas/admin';
 
 function translationFields(formData: FormData, locale: 'en' | 'es') {
@@ -36,6 +37,12 @@ function parsePost(formData: FormData) {
   const tagIds = formData.getAll('tagIds').filter((value) => typeof value === 'string');
   const input: PostInput = { ...rest, tagIds, translations: [{ locale: 'en', ...en }] };
   if (es.title.trim() !== '') input.translations.push({ locale: 'es', ...es });
+  // "Email it to subscribers": left out once the email went out (the box is disabled).
+  const newsletter = newsletterChoice(
+    formBoolean(formData, 'newsletterSent'),
+    formBoolean(formData, 'newsletter'),
+  );
+  if (newsletter !== undefined) input.newsletter = newsletter;
   return { input };
 }
 
