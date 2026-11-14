@@ -1818,6 +1818,48 @@ model ErrorGroup {
   @@map("error_groups")
 }
 
+/// Where a checked link was found: a blog post or a case study.
+enum LinkSourceType {
+  POST
+  PORTFOLIO
+}
+
+/// A checked link: OK, or broken after two failed checks in a row.
+enum LinkStatus {
+  OK
+  BROKEN
+}
+
+/// A link of published content and its last check (Admin → Content → Broken links, architecture
+/// 4.6). `sourceId` is a post's or a case study's id (by `sourceType`), so it is no foreign key:
+/// deleting a post or a case study deletes its rows; the weekly run deletes links no longer there.
+model LinkCheck {
+  id          String         @id @default(uuid()) @db.Uuid
+  /// As written, absolute after resolving a relative link against the page's address on SITE_URL.
+  url         String         @db.VarChar(2048)
+  sourceType  LinkSourceType @map("source_type")
+  sourceId    String         @map("source_id") @db.Uuid
+  /// The translation the link appears in.
+  locale      Locale
+  /// On SITE_URL: checked against the database and the site's routes, never fetched.
+  internal    Boolean
+  status      LinkStatus     @default(OK)
+  /// The last check's HTTP status (404 for an internal page that doesn't exist).
+  statusCode  Int?           @map("status_code")
+  /// The last check's network failure (timeout, DNS, refused, private address...), in English.
+  error       String?        @db.VarChar(200)
+  /// Checks failed in a row; two make the link BROKEN.
+  failures    Int            @default(0)
+  brokenSince DateTime?      @map("broken_since") @db.Timestamptz(3)
+  checkedAt   DateTime       @map("checked_at") @db.Timestamptz(3)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([url, sourceType, sourceId, locale])
+  @@index([sourceType, sourceId])
+  @@index([status, url])
+  @@map("link_checks")
+}
+
 /// A free website check (architecture 4.12): a visitor's site analysed in the background.
 model SiteAudit {
   id         String          @id @default(uuid()) @db.Uuid

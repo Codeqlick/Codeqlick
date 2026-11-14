@@ -7,6 +7,7 @@ import { SiteFormsModule } from './modules/site-forms/site-forms.module.js';
 import { ManagedSitesModule } from './modules/managed-sites/managed-sites.module.js';
 import { DomainsModule } from './modules/domains/domains.module.js';
 import { ErrorsModule } from './modules/errors/errors.module.js';
+import { LinkChecksModule } from './modules/link-checks/link-checks.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AppConfigService } from './config/app-config.service.js';
@@ -60,6 +61,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     LeadsModule,
     PostsModule,
     PortfolioModule,
+    LinkChecksModule,
     ProjectsModule,
     InvoicesModule,
     MediaModule,

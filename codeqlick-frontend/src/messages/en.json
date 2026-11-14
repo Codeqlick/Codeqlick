@@ -733,6 +733,7 @@
       "posts": "Posts",
       "portfolio": "Portfolio",
       "media": "Images",
+      "links": "Broken links",
       "projects": "Projects",
       "users": "Users",
       "activity": "Activity",
@@ -776,7 +777,8 @@
       "activeTickets": "Open requests",
       "sentProposals": "Proposals awaiting answer",
       "pendingDrafts": "Drafts to review",
-      "upcomingCalls": "Upcoming calls"
+      "upcomingCalls": "Upcoming calls",
+      "brokenLinks": "Broken links"
     },
     "leads": {
       "title": "Leads",
@@ -3855,6 +3857,46 @@
       "WEB_SERVER": "Website (server)",
       "WEB_BROWSER": "Website (browser)"
     }
+  },
+  "AdminLinks": {
+    "title": "Broken links",
+    "lead": "Links in published posts and case studies, in both languages, checked once a week. A link counts as broken after failing two checks in a row.",
+    "filtersLabel": "Show",
+    "filters": {
+      "broken": "Broken",
+      "all": "All"
+    },
+    "emptyTitle": "No broken links",
+    "emptyAllTitle": "No links checked",
+    "lastRun": "Last check: {date}.",
+    "notCheckedYet": "Not checked yet.",
+    "link": "Link",
+    "status": "Status",
+    "since": "Broken since",
+    "where": "Where",
+    "actions": "Actions",
+    "internal": "Internal",
+    "external": "External",
+    "newTab": "(opens in a new tab)",
+    "statuses": {
+      "OK": "OK",
+      "BROKEN": "Broken"
+    },
+    "checkedAt": "Checked {date}",
+    "sources": {
+      "POST": "Post",
+      "PORTFOLIO": "Case study"
+    },
+    "languages": {
+      "en": "English",
+      "es": "Spanish"
+    },
+    "edit": "Edit",
+    "checkAgain": "Check again",
+    "checking": "Checking…",
+    "checkedOk": "The link works now.",
+    "checkedBroken": "Still broken.",
+    "tooManyChecks": "Too many checks in a minute. Try again shortly."
   },
   "Meetings": {
     "metaTitle": "Meetings: video calls with a link",
