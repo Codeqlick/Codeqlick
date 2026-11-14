@@ -321,7 +321,13 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
               </ActionForm>
             </section>
           ) : null}
-          <ProtectionCard locale={locale} projectId={project.id} path={path} admin={admin} />
+          <ProtectionCard
+            locale={locale}
+            projectId={project.id}
+            path={path}
+            admin={admin}
+            suspended={project.suspended !== null}
+          />
           {team.role === 'OWNER' ? (
             <TransferProject
               locale={locale}

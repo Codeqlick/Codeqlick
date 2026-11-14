@@ -48,7 +48,11 @@ export type CloudLimits = {
 };
 
 export type CloudUsageMeterKey =
-  'builds' | 'formSubmissions' | 'analyticsEvents' | 'storage' | 'deploymentsPerHour';
+  | 'builds'
+  | 'formSubmissions'
+  | 'analyticsEvents'
+  | 'storage'
+  | 'deploymentsPerHour';
 
 /** One limit of the plan; `percent` is `floor(used / limit × 100)` and can pass 100. */
 export type CloudUsageMeter = {
@@ -141,6 +145,23 @@ export type CloudProtection = {
   /** Never the password or its hash. */
   hasPassword: boolean;
   updatedAt: string | null;
+  /** The automation bypass token's state; never the token or its hash. Null when none is set. */
+  bypass: CloudProtectionBypass | null;
+};
+
+/** The state of a project's bypass token for automation (architecture 4.13). */
+export type CloudProtectionBypass = {
+  prefix: string;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  lastUsedAt: string | null;
+};
+
+/** What creating a bypass token answers: the token itself, only this once. */
+export type CloudProtectionBypassCreated = {
+  token: string;
+  prefix: string;
+  createdAt: string;
 };
 
 export type CloudRebuildFrequency = 'off' | 'hourly' | 'daily' | 'weekly';
@@ -219,7 +240,13 @@ export type CloudDevice = {
 };
 
 export type CloudReportReason =
-  'PHISHING' | 'MALWARE' | 'ILLEGAL' | 'COPYRIGHT' | 'SEXUAL' | 'SPAM' | 'OTHER';
+  | 'PHISHING'
+  | 'MALWARE'
+  | 'ILLEGAL'
+  | 'COPYRIGHT'
+  | 'SEXUAL'
+  | 'SPAM'
+  | 'OTHER';
 
 const auth = { auth: 'required' } as const;
 const write = { auth: 'required', forwardClientIp: true } as const;
@@ -483,6 +510,15 @@ export const setCloudProtection = (
     method: 'PUT',
     body: input,
   });
+
+export const createCloudProtectionBypass = (id: string) =>
+  apiFetch<CloudProtectionBypassCreated>(`/cloud/projects/${id}/protection/bypass`, {
+    ...write,
+    method: 'POST',
+  });
+
+export const revokeCloudProtectionBypass = (id: string) =>
+  apiFetch<void>(`/cloud/projects/${id}/protection/bypass`, { ...write, method: 'DELETE' });
 
 /** A one-use link (60 s) that lets a team member into a protected address; plain when it isn't. */
 export const getCloudProtectionTicket = (id: string, host: string) =>

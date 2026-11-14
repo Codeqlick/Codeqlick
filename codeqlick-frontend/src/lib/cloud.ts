@@ -64,6 +64,14 @@ export type ProtectionDays = (typeof PROTECTION_DAYS)[number];
 /** Which kind of address: a deployment's (`previews`), or production and custom domains. */
 export type AddressKind = 'previews' | 'production';
 
+/** The request header that lets automation through a protected address (architecture 4.13). */
+export const BYPASS_HEADER = 'X-Codeqlick-Bypass';
+
+/** The header line to send with the token: `X-Codeqlick-Bypass: <token>`. */
+export function bypassHeaderLine(token: string): string {
+  return `${BYPASS_HEADER}: ${token}`;
+}
+
 /** Whether the project's protection asks for the password on that kind of address. */
 export function isProtected(mode: ProtectionMode, kind: AddressKind): boolean {
   return mode === 'ALL' || (mode === 'PREVIEWS' && kind === 'previews');

@@ -3,6 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
@@ -12,9 +13,14 @@ import type { RedirectStatus } from './cloud-config.js';
 import type { ProtectionPageError } from './cloud-protection-page.js';
 import { CloudProtectionRepository, type ProtectedProject } from './cloud-protection.repository.js';
 import {
+  BYPASS_HEADER_MAX,
+  BYPASS_TOUCH_MS,
   TICKET_TTL_SECONDS,
   TicketBook,
   TryLimiter,
+  WrongTokenLimiter,
+  bypassMatches,
+  generateBypassToken,
   protectionKey,
   protects,
   safeNext,
@@ -31,11 +37,27 @@ import type { ProtectionInput } from './cloud.schemas.js';
 import { CloudStorage } from './cloud.storage.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 
+/** The automation bypass token as people see it (never the token or its hash). */
+export interface BypassView {
+  prefix: string;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  lastUsedAt: string | null;
+}
+
 export interface ProtectionView {
   mode: ProtectionMode;
   days: number;
   hasPassword: boolean;
   updatedAt: string | null;
+  bypass: BypassView | null;
+}
+
+/** A freshly made bypass token: the only time the token itself is returned. */
+export interface BypassCreated {
+  token: string;
+  prefix: string;
+  createdAt: string;
 }
 
 /** What the hosting site's Nginx sends on every call to /cloud/protection/*. */
@@ -49,6 +71,10 @@ export interface ProxyHeaders {
   deployment?: string;
   uri?: string;
   args?: string;
+  /** The visitor's `X-Codeqlick-Bypass` (decision 73), when sent. */
+  bypass?: string;
+  /** The visitor's address (Nginx's `X-Real-IP`), for the wrong-token limit. */
+  ip?: string;
 }
 
 /** What the edge check answers Nginx (`GET /cloud/edge/check`). */
@@ -96,6 +122,9 @@ export class CloudProtectionService {
   private readonly ticketKey: Buffer;
   private readonly tickets = new TicketBook();
   private readonly tries = new TryLimiter(5, 60, 60_000);
+  private readonly wrongTokens = new WrongTokenLimiter();
+  /** When each project's bypass last use was written, so a busy run is one write a minute. */
+  private readonly touched = new Map<string, number>();
 
   constructor(
     private readonly repository: CloudProtectionRepository,
@@ -109,25 +138,69 @@ export class CloudProtectionService {
     this.ticketKey = protectionKey(config.credentialsSecret, 'cloud-protection-ticket-v1');
   }
 
-  private view(project: {
-    protection: ProtectionMode;
-    protectionDays: number;
-    protectionHash: string | null;
-    protectionUpdatedAt: Date | null;
-  }): ProtectionView {
+  private view(project: ProtectedProject): ProtectionView {
     return {
       mode: project.protection,
       days: project.protectionDays,
       hasPassword: project.protectionHash !== null,
       updatedAt: project.protectionUpdatedAt?.toISOString() ?? null,
+      bypass:
+        project.protectionBypassHash && project.protectionBypassPrefix
+          ? {
+              prefix: project.protectionBypassPrefix,
+              createdAt: (project.protectionBypassCreatedAt ?? new Date(0)).toISOString(),
+              createdBy: project.protectionBypassCreatedBy,
+              lastUsedAt: project.protectionBypassLastUsedAt?.toISOString() ?? null,
+            }
+          : null,
     };
   }
 
   // ── The project's setting (console and CLI) ────────────────────────────────────────────────
 
   async get(ctx: CloudCtx, projectId: string): Promise<ProtectionView> {
-    const { project } = await this.projects.project(ctx, projectId);
+    await this.projects.project(ctx, projectId);
+    const project = await this.repository.findById(projectId);
+    if (!project) throw new NotFoundException('Project not found');
     return this.view(project);
+  }
+
+  /** Creates or replaces the bypass token (ADMIN); the token is returned only here. */
+  async createBypass(ctx: CloudCtx, projectId: string): Promise<BypassCreated> {
+    const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
+    if (project.suspendedAt) throw new ForbiddenException('This project is suspended');
+    if (!this.config.cloudProtectionKey) {
+      throw new ServiceUnavailableException('Password protection is not set up yet');
+    }
+    const { token, hash, prefix } = generateBypassToken();
+    const createdAt = new Date();
+    const replaced = project.protectionBypassHash !== null;
+    await this.repository.setBypass(project.id, {
+      hash,
+      prefix,
+      createdAt,
+      createdById: ctx.user.id,
+    });
+    this.touched.delete(project.id);
+    await this.teams.record(
+      ctx,
+      project.teamId,
+      'project.protection_bypass_created',
+      project.slug,
+      {
+        replaced,
+      },
+    );
+    return { token, prefix, createdAt: createdAt.toISOString() };
+  }
+
+  /** Revokes the bypass token (ADMIN); allowed on a suspended project, a no-op without one. */
+  async revokeBypass(ctx: CloudCtx, projectId: string): Promise<void> {
+    const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
+    if (project.protectionBypassHash === null) return;
+    await this.repository.clearBypass(project.id);
+    this.touched.delete(project.id);
+    await this.teams.record(ctx, project.teamId, 'project.protection_bypass_revoked', project.slug);
   }
 
   async update(ctx: CloudCtx, projectId: string, input: ProtectionInput): Promise<ProtectionView> {
@@ -149,7 +222,7 @@ export class CloudProtectionService {
         : project.protectionHash;
     if (!modeChanged && !passwordChanged && days === project.protectionDays) {
       await this.storage.writeProtection(project.slug, project.protection);
-      return this.view(project);
+      return this.get(ctx, projectId);
     }
     // Never a window open to everyone: markers a new mode adds are written before the change is
     // saved, and the ones it drops are removed only once it is saved.
@@ -256,7 +329,41 @@ export class CloudProtectionService {
     const project = await this.protectedProject(headers);
     // Not protected for that kind (a marker not yet removed), suspended or unknown: through.
     if (!project) return true;
-    return this.validAccess(project, headers.access, host, now);
+    if (this.validAccess(project, headers.access, host, now)) return true;
+    return this.validBypass(project, headers, now);
+  }
+
+  /**
+   * The bypass token for automation (decision 73), tried only when the cookie didn't pass. A
+   * wrong token counts as no token; after too many from one IP its header is ignored.
+   */
+  private async validBypass(
+    project: ProtectedProject,
+    headers: ProxyHeaders,
+    now: number,
+  ): Promise<boolean> {
+    const token = headers.bypass;
+    if (!token || token.length > BYPASS_HEADER_MAX) return false;
+    if (this.wrongTokens.blocked(headers.ip, project.id, now)) return false;
+    if (!bypassMatches(project.protectionBypassHash, token)) {
+      this.wrongTokens.fail(headers.ip, project.id, now);
+      return false;
+    }
+    await this.touchBypass(project, now);
+    return true;
+  }
+
+  /** Writes the last use at most once a minute per project (also across concurrent calls). */
+  private async touchBypass(project: ProtectedProject, now: number): Promise<void> {
+    const last = Math.max(
+      project.protectionBypassLastUsedAt?.getTime() ?? 0,
+      this.touched.get(project.id) ?? 0,
+    );
+    if (now - last < BYPASS_TOUCH_MS) return;
+    this.touched.set(project.id, now);
+    await this.repository
+      .touchBypass(project.id, project.protectionBypassHash!, new Date(now))
+      .catch(() => undefined);
   }
 
   /**

@@ -718,6 +718,20 @@ done, the API answers 503 when someone tries to turn it on. Once, as a user with
    lets you in. `curl -s -o /dev/null -w '%{http_code}\n' https://api.codeqlick.com/v1/cloud/protection/check`
    prints `404`, and so does `.../v1/cloud/edge/check`.
 
+#### Bypass for automation
+
+Architecture 4.13 "Bypass for automation" and 8.3, decision 73. The same check carries the
+`X-Codeqlick-Bypass` header to the API (`X-Cq-Bypass`, from the `$cq_bypass` map in the hosting site)
+and both cache keys include it, so a bypassed answer is never reused for a request without it. No new
+key or variable, no change to `cq-site`. After the release that ships it, once, as a user with sudo,
+run `cd /srv/codeqlick && sudo ./deploy/setup-cloud.sh codeqlick.app` (the same domain as above): it
+rewrites the snippet and the hosting site and reloads Nginx after `nginx -t`. Custom domains need
+nothing more: they share the hosting site's `http`-level map and the rewritten snippet. Check it: with
+a token from the console (`codeqlick protect bypass`) on a protected test project,
+`curl -s -o /dev/null -w '%{http_code}\n' -H "X-Codeqlick-Bypass: $TOKEN" https://<slug>.codeqlick.app/`
+prints `200`, without the header `302`, and with a wrong value `302`. Keep the header out of any
+custom `log_format`.
+
 ### Redirects, rewrites and headers (`codeqlick.json`)
 
 Architecture 4.13 and 8.3, decision 52. The same single `auth_request` as password protection: the

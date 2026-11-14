@@ -63,6 +63,56 @@ Al cambiar la contraseña o el modo se cierra la sesión de todos los visitantes
 
 Cuando abres una dirección protegida desde la consola, entras sin escribir la contraseña. El enlace es válido durante un minuto y funciona una sola vez.
 
+## Acceso para automatización
+
+Las pruebas de extremo a extremo en CI, los verificadores de enlaces y `curl` no pueden escribir una contraseña ni guardar una cookie. Para ellos, un proyecto puede tener un **token de acceso automático**: un secreto aparte que deja pasar una petición sin la contraseña. Cambiar la contraseña no lo afecta, y revocarlo no cierra la sesión de ningún visitante.
+
+Créalo desde la carpeta del proyecto (pueden los propietarios y administradores del equipo):
+
+```sh
+codeqlick protect bypass
+```
+
+El comando imprime el token una sola vez, y solo el token, por la salida estándar. Todo lo demás sale por la salida de errores, así que puedes guardarlo como secreto en un solo paso:
+
+```sh
+codeqlick protect bypass | gh secret set CQ_BYPASS
+```
+
+También puedes usar **Generar** en la fila **Acceso para automatización** de la tarjeta **Protección con contraseña**. El token empieza por `cqb_` y no se puede volver a leer: si lo pierdes, genera uno nuevo. Generarlo de nuevo sustituye al anterior, que deja de funcionar al instante (en menos de un minuto si la petición estaba en caché). Un proyecto tiene un token.
+
+Envía el token en la cabecera `X-Codeqlick-Bypass`, en cada petición:
+
+```sh
+curl -H "X-Codeqlick-Bypass: $CQ_BYPASS" https://web--a1b2c3d4.codeqlick.app/
+```
+
+En Playwright, configúralo una vez para toda la ejecución:
+
+```ts
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    baseURL: 'https://web--a1b2c3d4.codeqlick.app',
+    extraHTTPHeaders: { 'X-Codeqlick-Bypass': process.env.CQ_BYPASS ?? '' },
+  },
+});
+```
+
+El token funciona en todas las direcciones que piden la contraseña, para cualquier ruta y método: las direcciones de despliegue y, con `all`, producción y tus dominios propios. Es solo una cabecera: nunca lo pongas en una URL ni en una cookie. Solo se salta la contraseña, así que las redirecciones, reescrituras y cabeceras de tu `codeqlick.json` se siguen aplicando. Mientras la protección está desactivada no hace nada; al desactivar la protección el token se conserva y vuelve a funcionar cuando la activas de nuevo.
+
+Para eliminarlo:
+
+```sh
+codeqlick protect bypass --revoke
+```
+
+`codeqlick protect` muestra si hay un token, sus primeros caracteres y cuándo se usó por última vez. Todos los miembros del equipo lo ven; solo los propietarios y administradores lo crean o lo revocan. Un token de API de solo lectura no puede.
+
+Trátalo como una contraseña: guárdalo en los secretos de tu CI y no lo imprimas en los registros. Los tokens incorrectos se limitan por visitante, así que nadie puede bloquear tus pruebas adivinando. Los [monitores](/es/monitors-and-status-pages/) y la [revisión web](/es/website-check/) no lo envían, así que siguen viendo la página de la contraseña; una herramienta que pueda enviar cabeceras personalizadas puede usarlo.
+
 ## Qué no cubre
 
 La protección se aplica a los archivos de tu web. Esto sigue funcionando como antes:

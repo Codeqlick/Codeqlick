@@ -23,6 +23,8 @@ import {
   notifiedFormNames,
   parseRebuildForm,
   productionLockValues,
+  BYPASS_HEADER,
+  bypassHeaderLine,
   protectionInput,
   ruleSettings,
   spamReasonKey,
@@ -448,5 +450,12 @@ describe('submissionsView', () => {
     expect(submissionsView('spam')).toBe('spam');
     expect(submissionsView(undefined)).toBe('inbox');
     expect(submissionsView('SPAM')).toBe('inbox');
+  });
+});
+
+describe('protection bypass for automation', () => {
+  it('builds the header line to send with the token', () => {
+    expect(BYPASS_HEADER).toBe('X-Codeqlick-Bypass');
+    expect(bypassHeaderLine('cqb_abc123')).toBe('X-Codeqlick-Bypass: cqb_abc123');
   });
 });

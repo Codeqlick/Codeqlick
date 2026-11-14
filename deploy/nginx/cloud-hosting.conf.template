@@ -30,6 +30,14 @@ map $http_cookie $cq_access {
     default "";
 }
 
+# Bypass token for automation (architecture 4.13 "Bypass for automation", decision 73): the value of
+# the visitor's X-Codeqlick-Bypass header, empty when absent or longer than 200 characters (the API
+# ignores those anyway). It goes to the check as X-Cq-Bypass and into both cache keys; never log it.
+map $http_x_codeqlick_bypass $cq_bypass {
+    default "";
+    "~^(.{1,200})$" $1;
+}
+
 # Redirects, rewrites and headers (architecture 4.13, decision 52; deploy/nginx/cloud-protection.conf
 # and cloud-rule-headers.conf). $cq_deploy: the deployment's id, from the folder hosts/<label> points
 # at. $cq_path: the file to serve, from the API's answer ($cq_path_raw); empty (no rules, or the check

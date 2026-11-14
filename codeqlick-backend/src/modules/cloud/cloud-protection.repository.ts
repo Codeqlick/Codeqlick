@@ -12,6 +12,13 @@ export interface ProtectedProject {
   protectionDays: number;
   protectionVersion: number;
   suspendedAt: Date | null;
+  protectionUpdatedAt: Date | null;
+  /** The bypass token for automation (decision 73): only its SHA-256 hex is kept. */
+  protectionBypassHash: string | null;
+  protectionBypassPrefix: string | null;
+  protectionBypassCreatedAt: Date | null;
+  protectionBypassCreatedBy: { id: string; name: string } | null;
+  protectionBypassLastUsedAt: Date | null;
 }
 
 const protectedSelect = {
@@ -23,6 +30,12 @@ const protectedSelect = {
   protectionDays: true,
   protectionVersion: true,
   suspendedAt: true,
+  protectionUpdatedAt: true,
+  protectionBypassHash: true,
+  protectionBypassPrefix: true,
+  protectionBypassCreatedAt: true,
+  protectionBypassCreatedBy: { select: { id: true, name: true } },
+  protectionBypassLastUsedAt: true,
 } as const;
 
 /** Projects' password protection (architecture 4.13 "Password protection", decision 50). */
@@ -38,6 +51,14 @@ export class CloudProtectionRepository {
     });
   }
 
+  /** A live project by its id. */
+  findById(id: string): Promise<ProtectedProject | null> {
+    return this.prisma.cloudProject.findFirst({
+      where: { id, deletedAt: null },
+      select: protectedSelect,
+    });
+  }
+
   update(
     id: string,
     data: {
@@ -47,11 +68,47 @@ export class CloudProtectionRepository {
       protectionVersion: number;
       protectionUpdatedAt: Date;
     },
-  ): Promise<ProtectedProject & { protectionUpdatedAt: Date | null }> {
+  ): Promise<ProtectedProject> {
+    return this.prisma.cloudProject.update({ where: { id }, data, select: protectedSelect });
+  }
+
+  /** Stores a new bypass token's hash, replacing the previous one (and its last use). */
+  setBypass(
+    id: string,
+    data: { hash: string; prefix: string; createdAt: Date; createdById: string },
+  ): Promise<ProtectedProject> {
     return this.prisma.cloudProject.update({
       where: { id },
-      data,
-      select: { ...protectedSelect, protectionUpdatedAt: true },
+      data: {
+        protectionBypassHash: data.hash,
+        protectionBypassPrefix: data.prefix,
+        protectionBypassCreatedAt: data.createdAt,
+        protectionBypassCreatedById: data.createdById,
+        protectionBypassLastUsedAt: null,
+      },
+      select: protectedSelect,
+    });
+  }
+
+  /** Removes the bypass token. */
+  async clearBypass(id: string): Promise<void> {
+    await this.prisma.cloudProject.update({
+      where: { id },
+      data: {
+        protectionBypassHash: null,
+        protectionBypassPrefix: null,
+        protectionBypassCreatedAt: null,
+        protectionBypassCreatedById: null,
+        protectionBypassLastUsedAt: null,
+      },
+    });
+  }
+
+  /** Stamps the token's last use, only while it is still the project's current one. */
+  async touchBypass(id: string, hash: string, at: Date): Promise<void> {
+    await this.prisma.cloudProject.updateMany({
+      where: { id, protectionBypassHash: hash },
+      data: { protectionBypassLastUsedAt: at },
     });
   }
 

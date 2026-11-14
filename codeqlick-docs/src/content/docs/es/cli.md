@@ -105,6 +105,19 @@ Consulta [compilaciones desde Git](/es/builds-from-git/).
 
 Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-value-store/).
 
+## Protección con contraseña
+
+| Comando                                   | Qué hace                                                                                   |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `protect`                                 | Muestra qué direcciones piden contraseña y si hay un token de acceso automático.           |
+| `protect previews\|all [--days 1\|7\|30]` | Pide la contraseña en las direcciones de despliegue, o en todas.                           |
+| `protect off`                             | Todas las direcciones vuelven a ser públicas.                                              |
+| `protect bypass`                          | Crea o sustituye el token de acceso automático. Solo el token sale por la salida estándar. |
+| `protect bypass --revoke`                 | Elimina el token de acceso automático.                                                     |
+| `--json`                                  | Imprime la respuesta de la API (`{ token, prefix, createdAt }`, o `{}` con `--revoke`).    |
+
+Consulta [protección con contraseña](/es/password-protection/).
+
 ## Variables de entorno
 
 | Variable                              | Qué hace                                                             |

@@ -74,11 +74,20 @@ Password protection (to show work in progress to a client without making it publ
 | `protect previews [--days 1\|7\|30]` | Ask for it on every deployment's address    |
 | `protect all [--days 1\|7\|30]`      | Also on production and your domains         |
 | `protect off`                        | Every address is public again               |
+| `protect bypass`                     | Make (or replace) the bypass token          |
+| `protect bypass --revoke`            | Remove the bypass token                     |
 
 The password is asked twice without echo, or read from standard input when it isn't a terminal
 (`echo "$PASSWORD" | codeqlick protect previews`); an empty answer keeps the current one, to
 change only the mode or the days. `--days` is how long access lasts once it's entered. While a
 printed address asks for the password, `deploy` and `builds` say so on standard error.
+
+The bypass token lets automation (end-to-end tests in CI, link checkers, `curl`) reach protected
+addresses without the password: send it in the `X-Codeqlick-Bypass` header. `protect bypass`
+prints only the token on standard output, once, and everything else on standard error, so it pipes
+into a CI secret (`codeqlick protect bypass | gh secret set CQ_BYPASS`). Making a new one replaces
+the old, which stops working at once. `protect` shows whether one is set; `--json` prints the API's
+answer (`{ token, prefix, createdAt }`, or `{}` with `--revoke`).
 
 Redirects, rewrites and headers go in the same `codeqlick.json` as the project link:
 

@@ -105,6 +105,19 @@ See [builds from Git](/en/builds-from-git/).
 
 See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-store/).
 
+## Password protection
+
+| Command                                   | What it does                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------- |
+| `protect`                                 | Show which addresses ask for a password, and whether a bypass token is set.       |
+| `protect previews\|all [--days 1\|7\|30]` | Ask for the password on the deployments' addresses, or on every one.              |
+| `protect off`                             | Every address is public again.                                                    |
+| `protect bypass`                          | Create or replace the bypass token. Only the token goes to standard output.       |
+| `protect bypass --revoke`                 | Remove the bypass token.                                                          |
+| `--json`                                  | Print the API's answer (`{ token, prefix, createdAt }`, or `{}` with `--revoke`). |
+
+See [password protection](/en/password-protection/).
+
 ## Environment variables
 
 | Variable                              | What it does                                                    |

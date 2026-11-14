@@ -63,6 +63,56 @@ Changing the password or the mode signs out every visitor who was let in before.
 
 When you open a protected address from the console, you are let in without typing the password. The link is valid for one minute and works once.
 
+## Bypass for automation
+
+End-to-end tests in CI, link checkers and `curl` can't type a password or keep a cookie. For them, a project can have one **bypass token**: a separate secret that lets a request through without the password. Changing the password doesn't affect it, and revoking it doesn't sign any visitor out.
+
+Create it from the project's folder (team owners and admins can):
+
+```sh
+codeqlick protect bypass
+```
+
+The command prints the token once, and only the token, on standard output. Everything else goes to standard error, so you can store it as a secret in one step:
+
+```sh
+codeqlick protect bypass | gh secret set CQ_BYPASS
+```
+
+You can also use **Generate** in the **Bypass for automation** row of the **Password protection** card. The token starts with `cqb_` and can't be read again: if you lose it, generate a new one. Generating again replaces the old token, which stops working at once (for a request that was cached, within a minute). One project has one token.
+
+Send the token in the `X-Codeqlick-Bypass` header, on every request:
+
+```sh
+curl -H "X-Codeqlick-Bypass: $CQ_BYPASS" https://web--a1b2c3d4.codeqlick.app/
+```
+
+In Playwright, set it once for the whole run:
+
+```ts
+// playwright.config.ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    baseURL: 'https://web--a1b2c3d4.codeqlick.app',
+    extraHTTPHeaders: { 'X-Codeqlick-Bypass': process.env.CQ_BYPASS ?? '' },
+  },
+});
+```
+
+The token works on every address that asks for the password, for every path and method: the deployments' addresses, and with `all` production and your custom domains. It is a header only: never put it in a URL or a cookie. It skips the password only, so the redirects, rewrites and headers of your `codeqlick.json` still apply. While protection is off it does nothing; turning protection off keeps the token, and it works again when you turn protection on.
+
+To remove it:
+
+```sh
+codeqlick protect bypass --revoke
+```
+
+`codeqlick protect` shows whether a token is set, its first characters and when it was last used. Every team member sees that; only owners and admins create or revoke it. An API token that is read only can't.
+
+Treat it like a password: keep it in your CI's secrets and don't print it in logs. Wrong tokens are limited per visitor, so nobody can lock your tests out by guessing. [Monitors](/en/monitors-and-status-pages/) and the [website check](/en/website-check/) don't send it, so they still see the password page; a tool that can send custom headers can use it.
+
 ## What it doesn't cover
 
 Protection applies to the files of your site. These keep working as before:
