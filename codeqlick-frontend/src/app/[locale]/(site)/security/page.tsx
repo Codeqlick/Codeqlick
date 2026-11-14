@@ -20,6 +20,7 @@ export default async function SecurityPage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Legal' });
+  const tm = await getTranslations({ locale, namespace: 'Markdown' });
   const page = securityPage(locale);
 
   return (
@@ -29,7 +30,7 @@ export default async function SecurityPage({ params }: PageProps) {
         {t('updated', { date: formatDate(SECURITY_UPDATED, locale) })}
       </p>
       <div className={styles.content}>
-        <Markdown>{page.markdown}</Markdown>
+        <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{page.markdown}</Markdown>
       </div>
     </article>
   );

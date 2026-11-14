@@ -5,7 +5,9 @@ import { Markdown } from '@/components/markdown/Markdown';
 import type { AppLocale } from '@/i18n/routing';
 import type { PublicTag } from '@/lib/api/types';
 import { formatDate } from '@/lib/format';
+import { getOutline } from '@/lib/markdown-outline';
 import { CoverImage } from './CoverImage';
+import { TableOfContents } from './TableOfContents';
 import { TagLinks } from './TagLinks';
 
 export type PostArticleContent = {
@@ -31,6 +33,7 @@ export async function PostArticle({
   children?: ReactNode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Blog' });
+  const tm = await getTranslations({ locale, namespace: 'Markdown' });
 
   return (
     <article className={`wrap ${styles.page} ${styles.narrow}`}>
@@ -58,8 +61,14 @@ export async function PostArticle({
           priority
         />
       ) : null}
+      <TableOfContents outline={getOutline(post.content)} title={tm('contents')} />
       <div className={styles.content}>
-        <Markdown>{post.content}</Markdown>
+        <Markdown
+          anchors={{ linkLabel: tm('anchorLink') }}
+          copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}
+        >
+          {post.content}
+        </Markdown>
       </div>
     </article>
   );
