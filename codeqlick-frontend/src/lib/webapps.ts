@@ -43,6 +43,7 @@ export const SITE_SECTIONS = [
   'confirm-email',
   'contact',
   'legal',
+  'newsletter',
   'portal',
   'privacy',
   'security',
