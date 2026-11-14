@@ -254,6 +254,10 @@ export class AppConfigService {
     return this.get('ADMIN_TWO_FACTOR_REQUIRED');
   }
 
+  get passwordBreachCheck(): boolean {
+    return this.get('PASSWORD_BREACH_CHECK');
+  }
+
   get leadsNotifyTo(): string {
     return this.get('LEADS_NOTIFY_TO');
   }
