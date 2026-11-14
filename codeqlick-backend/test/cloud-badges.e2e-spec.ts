@@ -111,10 +111,9 @@ describe('Codeqlick Cloud README badges (e2e)', () => {
 
   it('refuses names that are not a project slug and .svg', async () => {
     const server = app.getHttpServer();
-    await request(server)
-      .get(`/v1/cloud/badges/${slugOf('live')}`)
-      .expect(400);
-    await request(server).get('/v1/cloud/badges/a_b.svg').expect(400);
-    await request(server).get('/v1/cloud/badges/ab.svg').expect(400);
+    for (const file of [slugOf('live'), 'a_b.svg', 'ab.svg']) {
+      const response = await request(server).get(`/v1/cloud/badges/${file}`);
+      expect(response.status).toBe(400);
+    }
   });
 });
