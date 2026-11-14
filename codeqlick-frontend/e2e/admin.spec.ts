@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { adminHeaders, API_URL, asAdmin, runTag } from './helpers';
+import { ADMIN, adminHeaders, API_URL, asAdmin, runTag } from './helpers';
 
 /*
  * The admin panel: every section opens without an error, the team publishes a blog post that
- * visitors then read, and an error the website reports shows up in Errores to be resolved.
+ * visitors then read, an error the website reports shows up in Errores to be resolved, and the
+ * search (Ctrl+K) finds a record.
  */
 test.use({
   launchOptions: { executablePath: process.env.E2E_CHROMIUM_PATH || undefined },
@@ -92,4 +93,30 @@ test('an error the website reports shows up in Errores and gets resolved', async
   await expect(page.getByRole('link', { name: message })).toBeHidden();
   await page.goto('/es/admin/errors?status=resolved');
   await expect(page.getByRole('link', { name: message })).toBeVisible();
+});
+
+test('the admin search opens with Ctrl+K and finds the admin', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await asAdmin(context, baseURL!);
+  await page.goto('/es/admin');
+  const dialog = page.getByRole('dialog', { name: 'Buscar en el panel' });
+  await expect(page.getByRole('button', { name: 'Buscar' })).toBeVisible();
+  // The shortcut works once the page has hydrated: press until the dialog shows.
+  await expect(async () => {
+    await page.keyboard.press('Control+K');
+    await expect(dialog).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+
+  const field = dialog.getByRole('combobox');
+  await expect(field).toBeFocused();
+  await field.fill(ADMIN.email);
+  const users = dialog.getByRole('group', { name: 'Usuarios' });
+  await expect(users).toBeVisible();
+  await expect(users.getByRole('option').first()).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
 });
