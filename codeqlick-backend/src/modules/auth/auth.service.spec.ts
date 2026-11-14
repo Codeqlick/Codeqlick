@@ -17,6 +17,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: '$argon2id$stub',
     name: 'Ada',
     role: 'ADMIN',
+    locale: 'EN',
     isActive: true,
     totpSecret: null,
     totpEnabledAt: null,
@@ -196,7 +197,7 @@ describe('AuthService', () => {
     });
 
     it('emails the account when the browser and system are new to it', async () => {
-      const user = makeUser({ role: 'CLIENT', locale: 'ES' } as Partial<User>);
+      const user = makeUser({ role: 'CLIENT', locale: 'ES' });
       repository.findUserByEmail.mockResolvedValue(user);
       repository.listSessionUserAgents.mockResolvedValue([FIREFOX_LINUX, null]);
 
