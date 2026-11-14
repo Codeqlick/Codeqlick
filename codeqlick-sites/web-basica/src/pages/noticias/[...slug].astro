@@ -1,0 +1,186 @@
+---
+import { getImage, Image } from 'astro:assets';
+import NewsCard from '../../components/NewsCard.astro';
+import Base from '../../layouts/Base.astro';
+import { renderMarkdown } from '../../lib/markdown';
+import {
+  NEWS_PATH,
+  PAGE_SIZE,
+  formatDate,
+  pageCount,
+  pagePath,
+  photoOf,
+  posts,
+} from '../../lib/news';
+import { site } from '../../lib/site';
+import type { NewsPost } from '../../types';
+
+/**
+ * `/noticias` (the list), `/noticias/2`… (its next pages) and `/noticias/<slug>` (a post): built
+ * only when the site has published posts.
+ */
+export function getStaticPaths() {
+  if (!posts.length) return [];
+  return [
+    { params: { slug: undefined }, props: { page: 1 } },
+    ...Array.from({ length: pageCount - 1 }, (_, i) => ({
+      params: { slug: String(i + 2) },
+      props: { page: i + 2 },
+    })),
+    ...posts.map((post) => ({ params: { slug: post.slug }, props: { post } })),
+  ];
+}
+
+const { page = 1, post } = Astro.props as { page?: number; post?: NewsPost };
+const visible = post ? [] : posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+const photo = post ? photoOf(post) : undefined;
+const optimised = photo ? await getImage({ src: photo, width: 1200, format: 'jpg' }) : undefined;
+const photoUrl = optimised ? new URL(optimised.src, Astro.site).toString() : undefined;
+const business = { '@type': 'Organization', name: site.business.name, url: site.url };
+const schema = post
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: post.title,
+      description: post.summary,
+      datePublished: post.publishedAt,
+      dateModified: post.updatedAt ?? post.publishedAt,
+      ...(photoUrl ? { image: photoUrl } : {}),
+      mainEntityOfPage: new URL(Astro.url.pathname, Astro.site).toString(),
+      author: business,
+      publisher: business,
+    }
+  : undefined;
+---
+
+{post ? (
+  <Base
+    title={post.title}
+    description={post.summary}
+    schema={schema}
+    ogType="article"
+    image={photo}
+    publishedTime={post.publishedAt}
+  >
+    <article class="section post">
+      <div class="container">
+        <p class="eyebrow">
+          <a href={NEWS_PATH}>Noticias</a>
+        </p>
+        <h1>{post.title}</h1>
+        <p class="date">
+          <time datetime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+        </p>
+        {photo ? (
+          <Image
+            class="photo"
+            src={photo}
+            alt={post.photo?.alt ?? ''}
+            widths={[600, 1200]}
+            sizes="48rem"
+          />
+        ) : null}
+        <div class="prose" set:html={renderMarkdown(post.body)} />
+        <p class="back">
+          <a class="button button--ghost" href={NEWS_PATH}>
+            Todas las noticias
+          </a>
+        </p>
+      </div>
+    </article>
+  </Base>
+) : null}
+
+{!post ? (
+  <Base
+    title={page > 1 ? `Noticias, página ${page}` : 'Noticias'}
+    description={`Novedades y ofertas de ${site.business.name}.`}
+  >
+    <section class="section list" aria-labelledby="noticias-title">
+      <div class="container">
+        <div class="section-head">
+          <p class="eyebrow">{site.business.name}</p>
+          <h1 id="noticias-title">Noticias</h1>
+        </div>
+        <div class="grid">
+          {visible.map((item) => <NewsCard post={item} level={2} />)}
+        </div>
+        {pageCount > 1 ? (
+          <nav class="pager" aria-label="Páginas de noticias">
+            {page > 1 ? <a href={pagePath(page - 1)}>Más recientes</a> : <span />}
+            <span>
+              Página {page} de {pageCount}
+            </span>
+            {page < pageCount ? <a href={pagePath(page + 1)}>Más antiguas</a> : <span />}
+          </nav>
+        ) : null}
+      </div>
+    </section>
+  </Base>
+) : null}
+
+<style>
+  .post .container {
+    max-width: 48rem;
+  }
+
+  .eyebrow a {
+    text-decoration: none;
+  }
+
+  h1 {
+    margin: 0.25rem 0 0.5rem;
+  }
+
+  .date {
+    margin: 0 0 1.5rem;
+    color: var(--muted);
+  }
+
+  .post :global(.photo) {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-bottom: 1.5rem;
+    border-radius: var(--radius);
+  }
+
+  .prose :global(p),
+  .prose :global(ul) {
+    margin: 0 0 1.1rem;
+  }
+
+  .prose :global(ul) {
+    padding-left: 1.4rem;
+  }
+
+  .prose :global(a) {
+    color: var(--primary-strong);
+    text-decoration: underline;
+  }
+
+  .back {
+    margin-top: 2.5rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1.25rem;
+  }
+
+  .pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 2.5rem;
+    color: var(--muted);
+  }
+
+  .pager a {
+    font-weight: 600;
+    color: var(--primary-strong);
+  }
+</style>

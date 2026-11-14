@@ -524,6 +524,7 @@ export const ACTIVITY_TARGETS = [
   'account',
   'videochat',
   'swipe',
+  'site_news',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -831,6 +832,8 @@ export type ManagedSite = {
   content: Record<string, unknown>;
   /** The menu extra is on (architecture 8.2). */
   menuEnabled: boolean;
+  /** The client switched the news section on (architecture 8.2). */
+  newsEnabled: boolean;
   updatedAt: string;
 };
 
@@ -962,4 +965,37 @@ export type SiteEditorView = {
   bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
   /** The menu extra is on: the client can edit and publish it (architecture 8.2). */
   menuEnabled: boolean;
+  /** The news section is switched on (architecture 8.2). */
+  newsEnabled: boolean;
 };
+
+export type SiteNewsStatus = 'DRAFT' | 'PUBLISHED' | 'EXPIRED';
+
+/** A news item or offer of a managed site (architecture 4.2 and 8.2). */
+export type SiteNewsPost = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  /** Plain text in a Markdown subset (architecture 8.2). */
+  body: string;
+  /** `file` is `media/<name>`, from the site's photo uploads. */
+  photo: { file: string; url: string } | null;
+  status: SiteNewsStatus;
+  publishedAt: string | null;
+  /** The end of the Madrid day the post is shown through. */
+  expiresAt: string | null;
+  /** The live address while the post is published. */
+  url: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** `GET …/site/news`: a page of posts with the section's switch beside it. */
+export type SiteNewsList = Paginated<SiteNewsPost> & { enabled: boolean };
+
+/** How the build a change triggered ended (the post is saved either way). */
+export type SiteNewsBuild = 'OK' | 'FAILED';
+
+/** The post a publish or unpublish answers with, and the build's result. */
+export type SiteNewsPostResult = SiteNewsPost & { build?: SiteNewsBuild };
