@@ -5008,6 +5008,8 @@
       "rename": "Cambiar el nombre",
       "saved": "Guardado.",
       "deleteTitle": "Borrar el proyecto",
+      "badgeTitle": "Insignia para el README",
+      "badgeHelp": "Muestra si la web de producción está desplegada, construyéndose o con un error. Copia el Markdown en tu README:",
       "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días."
     },
     "protection": {
