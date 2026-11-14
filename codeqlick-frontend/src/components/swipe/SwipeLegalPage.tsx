@@ -29,12 +29,13 @@ export function legalPage(page: SwipeLegalPage) {
     const locale = resolveLocale((await params).locale);
     setRequestLocale(locale);
     const t = await getTranslations({ locale, namespace: 'Legal' });
+    const tm = await getTranslations({ locale, namespace: 'Markdown' });
     const document = swipeLegalDocument(page, owner(), locale);
     return (
       <article className={vc.rules}>
         <h1 className={vc.pageTitle}>{document.title}</h1>
         <p className={vc.muted}>{t('updated', { date: document.updated })}</p>
-        <Markdown>{document.markdown}</Markdown>
+        <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{document.markdown}</Markdown>
       </article>
     );
   };

@@ -1731,6 +1731,10 @@
   "Legal": {
     "updated": "Última actualización: {date}"
   },
+  "Markdown": {
+    "anchorLink": "Enlace a esta sección",
+    "contents": "Contenido"
+  },
   "About": {
     "metaTitle": "Sobre nosotros",
     "metaDescription": "Quién está detrás de Codeqlick, por qué existe y cómo trabajamos: software a medida y aplicaciones web con calidad, claridad y trato directo.",

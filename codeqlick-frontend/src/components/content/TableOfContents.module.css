@@ -1,0 +1,47 @@
+.toc {
+  margin-top: var(--space-10);
+  padding: var(--space-5) var(--space-6);
+  background: var(--color-blush);
+  border-radius: var(--radius-lg);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-fuchsia-dark);
+}
+
+.list {
+  margin: var(--space-3) 0 0;
+  padding-left: 1.4rem;
+  line-height: 1.5;
+}
+
+.list li + li {
+  margin-top: var(--space-2);
+}
+
+.sublist {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2rem;
+  list-style: lower-alpha;
+  font-size: 0.95rem;
+}
+
+.list a {
+  color: var(--color-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.list a:hover {
+  color: var(--color-fuchsia-dark);
+  text-decoration: underline;
+}
+
+.list li::marker {
+  color: var(--color-fuchsia-dark);
+}
