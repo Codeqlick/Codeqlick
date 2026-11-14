@@ -5067,6 +5067,7 @@
       "node": "Node version",
       "buildBranches": "Build other branches as previews",
       "buildPullRequests": "Build pull requests (not from forks)",
+      "onlyRootChanges": "Only build when files in the root folder change (for monorepos)",
       "save": "Save",
       "saved": "Saved.",
       "invalid": "Check the fields.",

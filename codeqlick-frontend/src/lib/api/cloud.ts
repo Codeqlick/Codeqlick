@@ -682,6 +682,8 @@ export type CloudGit = {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  /** Skip pushes and pull requests that change nothing under `rootDir`. */
+  onlyRootChanges: boolean;
 };
 
 export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';

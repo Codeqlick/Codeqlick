@@ -1,6 +1,7 @@
 import { createSign } from 'node:crypto';
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { COMPARE_FILES_CAP } from './cloud-changes.js';
 
 const API = 'https://api.github.com';
 const USER_AGENT = 'Codeqlick-Cloud';
@@ -172,6 +173,32 @@ export class GithubClient {
       message: result.commit.commit.message,
       author: result.commit.commit.author?.name ?? null,
     };
+  }
+
+  /**
+   * The files changed between two commits (both names of a renamed file), or null when GitHub
+   * may have cut the list (300 files or more).
+   */
+  async compareFiles(
+    installationId: bigint | number,
+    repoId: bigint | number,
+    fullName: string,
+    base: string,
+    head: string,
+  ): Promise<string[] | null> {
+    const token = await this.installationToken(installationId, repoId);
+    const result = await this.call<{
+      files?: Array<{ filename: string; previous_filename?: string }>;
+    }>(
+      'GET',
+      `/repos/${fullName}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}?per_page=${COMPARE_FILES_CAP}`,
+      `token ${token}`,
+    );
+    const files = result.files ?? [];
+    if (files.length >= COMPARE_FILES_CAP) return null;
+    return files.flatMap((file) =>
+      file.previous_filename ? [file.filename, file.previous_filename] : [file.filename],
+    );
   }
 
   async setStatus(

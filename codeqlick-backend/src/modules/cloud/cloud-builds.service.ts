@@ -31,6 +31,7 @@ import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.rep
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { GithubClient, GithubError } from './github.client.js';
+import { changesRoot, pushChangedFiles } from './cloud-changes.js';
 
 export interface BuildView {
   id: string;
@@ -69,6 +70,7 @@ export interface GitView {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  onlyRootChanges: boolean;
 }
 
 export interface ClaimedBuild {
@@ -248,6 +250,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     nodeVersion: string;
     buildBranches: boolean;
     buildPullRequests: boolean;
+    onlyRootChanges: boolean;
   }): GitView {
     return {
       installationId: project.gitInstallationId === null ? null : Number(project.gitInstallationId),
@@ -261,6 +264,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       nodeVersion: project.nodeVersion,
       buildBranches: project.buildBranches,
       buildPullRequests: project.buildPullRequests,
+      onlyRootChanges: project.onlyRootChanges,
     };
   }
 
@@ -290,6 +294,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       ...(input.buildPullRequests !== undefined
         ? { buildPullRequests: input.buildPullRequests }
         : {}),
+      ...(input.onlyRootChanges !== undefined ? { onlyRootChanges: input.onlyRootChanges } : {}),
     });
     await this.teams.record(
       ctx,
@@ -569,8 +574,10 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     if (!/^[0-9a-f]{40}$/.test(commit) || head?.message?.includes('[skip cloud]')) return;
     const repoId = (payload.repository as { id?: number } | undefined)?.id;
     if (!repoId) return;
+    const files = pushChangedFiles(payload);
     for (const project of await this.repository.projectsForRepo(installation, BigInt(repoId))) {
       if (branch !== project.gitBranch && !project.buildBranches) continue;
+      if (!changesRoot(project, files)) continue;
       await this.queue(project, {
         trigger: 'PUSH',
         branch,
@@ -593,15 +600,21 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       title?: string;
       user?: { login?: string };
       head: { sha: string; ref: string; repo: { id: number } | null };
-      base: { repo: { id: number } };
+      base: { sha?: string; repo: { id: number } };
     };
     // A fork's pull request is a stranger's code with the project's variables: never built (decision 41).
     if (!pr?.head?.repo || pr.head.repo.id !== pr.base.repo.id) return;
+    // Asked of GitHub once, and only when a project skips changes outside its root folder.
+    let files: Promise<string[] | null> | undefined;
     for (const project of await this.repository.projectsForRepo(
       installation,
       BigInt(pr.base.repo.id),
     )) {
       if (!project.buildPullRequests) continue;
+      if (project.onlyRootChanges && project.rootDir) {
+        files ??= this.pullRequestFiles(installation, project, pr.base.sha, pr.head.sha);
+        if (!changesRoot(project, await files)) continue;
+      }
       await this.queue(project, {
         trigger: 'PULL_REQUEST',
         branch: pr.head.ref,
@@ -611,6 +624,28 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         pullRequest: pr.number,
         createdById: null,
       });
+    }
+  }
+
+  /** A pull request's changed files, or null when GitHub can't say for sure (then it builds). */
+  private async pullRequestFiles(
+    installation: bigint,
+    project: { gitRepoId: bigint | null; gitRepo: string | null },
+    base: string | undefined,
+    head: string,
+  ): Promise<string[] | null> {
+    if (!base || !project.gitRepoId || !project.gitRepo) return null;
+    try {
+      return await this.github.compareFiles(
+        installation,
+        project.gitRepoId,
+        project.gitRepo,
+        base,
+        head,
+      );
+    } catch (error) {
+      this.logger.warn(`Couldn't compare ${project.gitRepo} ${base}...${head}: ${String(error)}`);
+      return null;
     }
   }
 

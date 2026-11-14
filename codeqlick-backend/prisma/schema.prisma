@@ -2027,6 +2027,8 @@ model CloudProject {
   nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
   buildBranches          Boolean   @default(true) @map("build_branches")
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
+  /// Skip pushes and pull requests that change nothing under `rootDir` (architecture 4.13).
+  onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
