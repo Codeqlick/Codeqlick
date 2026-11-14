@@ -112,6 +112,8 @@ export const MAX_UPLOAD_BYTES = Math.max(...Object.values(CLOUD_PLANS).map((p) =
 
 /** Deployments kept per project besides production. */
 export const KEPT_DEPLOYMENTS = 20;
+/** Deployment downloads an hour per team, counted from its events (decision 60). */
+export const DOWNLOADS_PER_HOUR = 10;
 /** A deleted project's address stays taken this long. */
 export const DELETED_PROJECT_DAYS = 30;
 export const EVENTS_DAYS = 365;

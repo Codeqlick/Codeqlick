@@ -3,7 +3,7 @@ import { execFile, spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { mkdtemp, rm, stat } from 'node:fs/promises';
 import { hostname, tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
@@ -28,6 +28,7 @@ import {
   writeProjectFile,
   PROJECT_FILE,
 } from './config.ts';
+import { archivePath, exists, saveArchive } from './download.ts';
 import { collect, pack } from './pack.ts';
 import { VERSION } from './version.ts';
 
@@ -57,6 +58,10 @@ Commands:
   deployments               The project's deployments, newest first
   promote <id>              Publish an earlier deployment (its short id)
   rollback                  Publish the deployment before the current one
+  download [id]             Save a deployment's files as <project>-<id>.tar.gz (production
+                            by default); unpack it with tar -xzf
+      -o, --out <file>        where to save it
+      --force                 overwrite an existing file
   domains [add|check|rm <domain>]   The project's own domains
   audit <url>               Run the website check (speed, mobile, Google, security)
       --min-score <n>         exit 1 below this score (0-100)
@@ -118,6 +123,8 @@ interface Options {
   period?: string;
   ttl?: string;
   by?: string;
+  out?: string;
+  force?: boolean;
 }
 
 async function context() {
@@ -386,6 +393,37 @@ async function rollback(options: Options): Promise<void> {
   if (!previous) throw new UsageError('There is no earlier deployment to go back to.');
   await api.promote(project.id, previous.id);
   console.log(`${green('✓')} Back to ${bold(previous.shortId)}: ${project.url}`);
+}
+
+async function download(id: string | undefined, options: Options): Promise<void> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  let found: Deployment | null | undefined;
+  if (id) {
+    found = (await allDeployments(api, project.id)).find((d) => d.shortId === id || d.id === id);
+    if (!found) throw new UsageError(`No deployment "${id}" among the last 50.`);
+  } else {
+    found = project.production;
+    if (!found) {
+      throw new UsageError(
+        'The project has nothing published: pass a deployment (see `codeqlick deployments`).',
+      );
+    }
+  }
+  const file = archivePath(options.out, project.slug, found.shortId);
+  if (!options.force && (await exists(file))) {
+    throw new UsageError(`${file} already exists: pass --force to overwrite it.`);
+  }
+  const body = await api.archive(project.id, found.id);
+  let size: number;
+  try {
+    size = await saveArchive(body, file);
+  } catch (error) {
+    throw new Error(`The download was cut (${(error as Error).message}); nothing was saved.`);
+  }
+  const shown = relative(process.cwd(), file) || file;
+  console.log(`${green('✓')} ${bold(found.shortId)} saved to ${shown} (${bytes(size)})`);
+  console.log(dim(`  Unpack it with: tar -xzf ${shown}`));
 }
 
 async function domains(
@@ -900,6 +938,8 @@ export async function main(argv: string[]): Promise<number> {
       period: { type: 'string' },
       ttl: { type: 'string' },
       by: { type: 'string' },
+      out: { type: 'string', short: 'o' },
+      force: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -940,6 +980,9 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'rollback':
         await rollback(options);
+        break;
+      case 'download':
+        await download(rest[0], options);
         break;
       case 'domains':
         await domains(rest[0], rest[1], options);

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
+import type { Readable } from 'node:stream';
 import {
   ConflictException,
   ForbiddenException,
@@ -16,6 +17,7 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import {
   DELETED_PROJECT_DAYS,
+  DOWNLOADS_PER_HOUR,
   EVENTS_DAYS,
   KEPT_DEPLOYMENTS,
   RESERVED_SLUGS,
@@ -338,6 +340,42 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       'deployment.deleted',
       `${project.slug}--${row.shortId}`,
     );
+  }
+
+  /**
+   * A kept deployment's files as a `tar.gz` stream (decision 60): any member, also while the
+   * project is suspended, 10 an hour per team counted from its `deployment.downloaded` events.
+   * The download is recorded before the stream starts.
+   */
+  async archive(
+    ctx: CloudCtx,
+    id: string,
+    deploymentId: string,
+  ): Promise<{ stream: Readable; filename: string }> {
+    const { project } = await this.project(ctx, id);
+    this.storage.hosting();
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    const lastHour = await this.repository.countEventsSince(
+      project.teamId,
+      'deployment.downloaded',
+      new Date(Date.now() - HOUR_MS),
+    );
+    if (lastHour >= DOWNLOADS_PER_HOUR) {
+      throw new HttpException(
+        `At most ${DOWNLOADS_PER_HOUR} downloads an hour per team`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    const stream = await this.storage.archive(row.id);
+    if (!stream) throw new NotFoundException('Deployment not found');
+    await this.teams.record(
+      ctx,
+      project.teamId,
+      'deployment.downloaded',
+      `${project.slug}--${row.shortId}`,
+    );
+    return { stream, filename: `${project.slug}-${row.shortId}.tar.gz` };
   }
 
   // ── Suspension (admin) ─────────────────────────────────────────────────────────────────────

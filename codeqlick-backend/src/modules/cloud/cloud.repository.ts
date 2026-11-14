@@ -294,6 +294,13 @@ export class CloudRepository {
     ]);
   }
 
+  /** The team's events of one kind since a date (limits counted from the log, decision 60). */
+  countEventsSince(teamId: string, action: string, since: Date): Promise<number> {
+    return this.prisma.cloudEvent.count({
+      where: { teamId, action, createdAt: { gte: since } },
+    });
+  }
+
   async deleteEventsBefore(date: Date): Promise<number> {
     const { count } = await this.prisma.cloudEvent.deleteMany({
       where: { createdAt: { lt: date } },
