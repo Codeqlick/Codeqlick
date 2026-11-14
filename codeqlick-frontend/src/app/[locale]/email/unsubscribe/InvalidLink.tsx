@@ -17,7 +17,9 @@ export function InvalidLink({
 }) {
   return (
     <div className={styles.body}>
-      <p role="status">{message}</p>
+      <p>
+        <output>{message}</output>
+      </p>
       <p>
         <Link href={{ pathname: '/login', query: { next } }} className={styles.link}>
           {signIn}
