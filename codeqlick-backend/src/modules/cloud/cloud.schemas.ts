@@ -403,6 +403,9 @@ const channelEvents = {
   buildFailed: z.boolean().optional(),
   buildSucceeded: z.boolean().optional(),
   previews: z.boolean().optional(),
+  // Form submissions (decision 63): Slack, Discord and webhooks only, checked by the service.
+  formSubmitted: z.boolean().optional(),
+  formIds: z.array(z.uuid()).max(20).optional(),
   locale: localeSchema.optional(),
 };
 
@@ -433,6 +436,12 @@ export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
 
 export const channelParamSchema = z.object({ id: z.uuid(), channelId: z.uuid() });
 export type ChannelParam = z.infer<typeof channelParamSchema>;
+
+/** "Send a test": a sample build (the default) or a sample form submission. No body is a build. */
+export const testChannelSchema = z
+  .object({ event: z.enum(['build', 'form']).default('build') })
+  .default({ event: 'build' });
+export type TestChannelInput = z.infer<typeof testChannelSchema>;
 
 // ── Web analytics (architecture 4.13 "Web analytics", decision 44) ──────────────────────────
 
