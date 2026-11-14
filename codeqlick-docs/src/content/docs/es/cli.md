@@ -105,6 +105,18 @@ Consulta [compilaciones desde Git](/es/builds-from-git/).
 
 Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-value-store/).
 
+## Monitores
+
+| Comando                      | Qué hace                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `monitors`                   | Lista los monitores del equipo: estado, tiempo en él y última comprobación.   |
+| `monitors pause <id\|name>`  | Deja de comprobar un monitor, p. ej. durante un trabajo planificado.          |
+| `monitors resume <id\|name>` | Vuelve a comprobarlo. Su estado es `UNKNOWN` hasta la siguiente comprobación. |
+| `monitors --team <slug>`     | El equipo (o `CODEQLICK_TEAM`). No hace falta un proyecto enlazado.           |
+| `monitors --json`            | Imprime la respuesta de la API.                                               |
+
+Consulta [monitores, latidos y páginas de estado](/es/monitors-and-status-pages/).
+
 ## Variables de entorno
 
 | Variable                              | Qué hace                                                             |
