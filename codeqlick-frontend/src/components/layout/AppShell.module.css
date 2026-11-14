@@ -196,6 +196,20 @@
     font-size: 0.65rem;
   }
 
+  /* With the search button: logo over the area's name, the button beside both. */
+  .brandRow:has(.search) {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    align-items: center;
+    column-gap: 0.5rem;
+  }
+
+  .search {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
   .userBox {
     grid-area: user;
     margin-left: 0;

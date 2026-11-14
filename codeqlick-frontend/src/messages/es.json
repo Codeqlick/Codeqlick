@@ -1693,6 +1693,24 @@
       "emptyBody": "Los lectores pueden suscribirse al final del blog y de cada artículo.",
       "noMatchTitle": "Ningún suscriptor coincide",
       "noMatchBody": "Prueba con otro estado u otras palabras."
+    },
+    "search": {
+      "button": "Buscar",
+      "shortcut": "Ctrl K",
+      "shortcutApple": "⌘K",
+      "title": "Buscar en el panel",
+      "inputLabel": "Buscar contactos, usuarios, proyectos, solicitudes, propuestas, artículos y casos de estudio",
+      "placeholder": "Nombre, email, título o #número",
+      "close": "Cerrar",
+      "results": "Resultados",
+      "hint": "Escribe al menos 2 caracteres para buscar.",
+      "searching": "Buscando…",
+      "empty": "No hay nada para «{q}».",
+      "resultsOne": "1 resultado",
+      "resultsMany": "{count} resultados",
+      "tooMany": "Demasiadas búsquedas seguidas. Espera un momento y vuelve a intentarlo.",
+      "failed": "La búsqueda ha fallado. Inténtalo de nuevo.",
+      "expired": "Tu sesión ha caducado. Recarga la página para volver a entrar."
     }
   },
   "Sessions": {

@@ -124,6 +124,7 @@ src/
     media/                   Image uploads (admin) stored on disk and served publicly
     saved-replies/           Reusable texts for lead replies and project comments
     stats/                   Admin dashboard numbers and the public site's visits (Umami)
+    search/                  Admin search across leads, users, projects, requests, proposals, posts and case studies (section 4.14)
 prisma/
   schema.prisma
   migrations/
@@ -145,7 +146,7 @@ modules/posts/
   posts.service.spec.ts        Unit tests with a mocked repository
 ```
 
-Dependency direction: **controller → service → repository → PrismaService**. Never skip a layer, never go backwards. The `media` module has no database table: its `media.storage.ts` plays the repository's role over the file system, and `media.repository.ts` only reads which posts and case studies use an image.
+Dependency direction: **controller → service → repository → PrismaService**. Never skip a layer, never go backwards. The `media` module has no database table: its `media.storage.ts` plays the repository's role over the file system, and `media.repository.ts` only reads which posts and case studies use an image. Likewise `search.repository.ts` (section 4.14) only reads other domains' tables, never writes them.
 
 ### 4.2 Data model
 
@@ -818,6 +819,30 @@ Roadmap "Newsletter sign-up" (CQP-30): blog readers had no way to follow new pos
 - **Admin:** Admin → Newsletter lists subscribers with the counts per status, filtered by status and by part of the email, and deletes one on request (erasure; it can sign up again). The activity log records the deletion by id only, never the address. The post editor has "Email it to subscribers" (`newsletter`), disabled once `newsletterSentAt` is set, which it then shows.
 - **Privacy:** the data kept is the email, the language and the consent dates. The privacy policy (`content/legal`) says so: purpose, consent as the basis, unsubscribing from any email, unconfirmed sign-ups deleted after about 9 days, after unsubscribing only the address and date kept for 12 months, deletion on request at once.
 
+### 4.14 Admin search (`modules/search`)
+
+Roadmap proposal of 2026-11-14 ("Admin panel: search everything (Ctrl+K)"): leads, clients, projects, requests, proposals, posts and case studies live on separate admin pages, so finding one record means guessing where it is. One search box, opened with Ctrl+K or Cmd+K anywhere in the admin panel, finds any of them (section 6.2, "Admin search"). Decision 59.
+
+**What is searched.** `GET /admin/search?q` (section 5). `q` is trimmed and 2–100 characters. Each kind matches `q` anywhere, case-insensitive (Prisma `contains` with `mode: 'insensitive'`, as the leads and users lists do), on names, emails, titles and short identifiers only; never on message bodies, notes, Markdown content, secrets or passwords.
+
+| Kind | Matches on | `label` | `sublabel` | Opens (built by the website) |
+|---|---|---|---|---|
+| `lead` | `name`, `email`, `company` (spam included) | `name` | `company · email` (what exists), or null | `/admin/leads/<id>` |
+| `user` | `name`, `email`, `username` (`q` without a leading `@`, lower-cased); every role and kind, deactivated ones too | `name` | `email` | `/admin/users/<id>` |
+| `project` | `name`, `domainName`, its managed site's `domain` and `slug`, its client's `name` and `email` | `name` | client's `name` | `/admin/projects/<id>` |
+| `ticket` | `title`, its client's `name` and `email`, `number` | `title` | `#<number> · <client name>` | `/admin/support/<id>` |
+| `proposal` | `title`, its client's `name` and `email`, `number` | `title` | `#<number> · <client name>` | `/admin/proposals/<id>` |
+| `post` | `slug`, any translation's `title`; drafts and scheduled ones too | the title in `locale`, else English | `slug` | `/admin/posts/<id>` |
+| `caseStudy` | `slug`, `clientName`, any translation's `title`; drafts too | the title in `locale`, else English | `clientName`, else `slug` | `/admin/portfolio/<id>` |
+
+A `q` that is a number, with or without `#` (`^#?\d{1,9}$`), also matches the request and the proposal with that `number` exactly (`#12`; a one-digit number needs the `#`, as `q` takes at least 2 characters). Managed websites are not a kind of their own: a site's domain or name finds its project, whose page holds the site. Cloud teams and projects stay out (their admin page has its own search and no detail pages); bookings, tags, media and saved replies too.
+
+**Results.** Up to 5 per kind, most recently changed first (`updatedAt` desc, then `id`), only kinds with matches, always in the table's order. The seven queries run in parallel and select only the fields shown. `sublabel` holds data only (names, emails, numbers, slugs), never words to translate. The API returns ids, not addresses: the website owns its routes and builds each link (`lib/admin-search.ts`), so a moved admin page changes nothing in the API.
+
+**Access and limits.** `@Roles('ADMIN')`, so the two-step verification requirement (section 4.3) applies as on every admin route. 120 searches per minute per IP (`@Throttle`); the website forwards the admin's IP, so the limit is per person, not per web server. Searching changes nothing, so nothing goes to the activity log.
+
+**Files.** `admin-search.controller.ts` (`GET /admin/search`), `search.service.ts` (number detection, labels, the locale fallback), `search.repository.ts` (read-only queries over the seven tables), `search.schemas.ts`, `search.service.spec.ts`; an e2e test covers `400` for a 1-character `q`, `403` for a client and the grouping.
+
 ## 5. API contract (v1)
 
 Base URL: `https://api.codeqlick.com/v1`. JSON in and out. Dates are ISO 8601 strings. Lists are paginated:
@@ -1105,6 +1130,7 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | Method | Path | Body / query |
 |---|---|---|
 | GET | `/admin/stats` | `{ leads: { new, total, lostReasons }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients, support: { active }, proposals: { sent }, drafts: { pending }, bookings: { upcoming } }` (`clients`: active client accounts, decision 29, without people who only use our web apps; `support.active`: requests not resolved or closed; `proposals.sent`: waiting for the client's answer) |
+| GET | `/admin/search` | `?q` (trimmed, 2–100 characters; `400` otherwise) `&locale=en\|es` (default `en`: the language of post and case-study titles) → `AdminSearch`: up to 5 matches per kind, most recently changed first, only kinds with matches, in the order `lead`, `user`, `project`, `ticket`, `proposal`, `post`, `caseStudy` (section 4.14). 120/min per IP |
 | GET | `/admin/stats/timeline` | `?months=12` (1–36) → `{ months: [{ month: 'yyyy-mm', leads, leadsWon, posts, caseStudies }] }`: oldest first, every month present; leads by the month they came in, posts and case studies by the month they went live; months in Madrid time |
 | GET / POST | `/admin/proposals` | GET `?status&clientId&page&pageSize` → `Paginated<Proposal>`, latest activity first. POST `{ clientId, projectId?, title, summary, terms?, validUntil?, items: [{ description, quantity, unitPrice }] }` (1–100 items, cents) → `201 Proposal` `DRAFT` |
 | GET / PUT / DELETE | `/admin/proposals/:id` | `Proposal` / the same body without `clientId` (drafts only; items replaced) / `204` (drafts only); 409 otherwise |
@@ -1400,6 +1426,11 @@ type Proposal = {
   createdAt: string; updatedAt: string;
 };
 type AdminUser = AuthUser & { isActive: boolean; createdAt: string };
+type AdminSearchKind = 'lead' | 'user' | 'project' | 'ticket' | 'proposal' | 'post' | 'caseStudy';
+type AdminSearch = {
+  q: string; // as searched (trimmed)
+  groups: { kind: AdminSearchKind; items: { id: string; label: string; sublabel: string | null }[] }[];
+}; // section 4.14
 ```
 
 Slugs match `^[a-z0-9]+(?:-[a-z0-9]+)*$`. A post or portfolio item missing the requested locale falls back to English.
@@ -1465,7 +1496,8 @@ src/
                                details and requests edited;
                                posts and portfolio items have a preview page that renders the saved draft; Markdown
                                fields (post and case-study content, project description and updates) have a live
-                               preview next to the editor (MarkdownField, client-side, same renderer as the site)
+                               preview next to the editor (MarkdownField, client-side, same renderer as the site);
+                               search/route.ts: the admin search's BFF route (section 6.2, "Admin search")
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
     not-found.tsx              404 for every URL that matches no route: a full page (header, footer, locale from
                                the proxy), rendered on the server
@@ -1508,6 +1540,13 @@ src/
 - **Newsletter (section 4.14):** `components/newsletter/NewsletterSignup` sits at the end of the blog index and of each post (EN/ES): "Get new posts by email", an email field and a privacy checkbox linking `/[locale]/privacy`, with the honeypot and the 3 s rule of the contact form. Its Server Action calls `POST /v1/newsletter` (forwarding the visitor's IP) and shows "Check your inbox to confirm"; field errors (`email: disposable`) show on the field. `/[locale]/newsletter/confirm?token=` shows a button whose Server Action calls `POST /v1/newsletter/confirm` (so a mail scanner cannot confirm) and shows done or "this link has expired" with the form to ask again; `/[locale]/newsletter/unsubscribe?token=` shows a button whose Server Action calls `POST /v1/newsletter/unsubscribe` (a GET never changes anything). Both pages are `noindex`. Admin → Newsletter shows the three counts, the list with status and search and a delete button (typing to confirm is not needed: it only removes a sign-up); the post editor has the "Email it to subscribers" checkbox, disabled with the sending date once sent. The privacy policy (`content/legal`) says what the newsletter keeps and why, and no longer says that no newsletters are sent.
 - **FAQ:** `components/content/Faq` renders questions from messages (`Faq.items`) as `<details>` (no script) with `FAQPage` structured data: all of them on /services, five on /contact. Answers follow the wiki's Client Engagement and Services pages; there are no prices or durations, because those depend on each proposal.
 - **Lead board** (`/[locale]/admin/leads/board`): the six stages as columns, each with a line on what it means (spam stays in the list). Cards show a lost lead's reason and flag a follow-up date that has arrived, the 50 most recent leads per column. Cards move by drag and drop or with their "Move to" menu (keyboard and touch); the change shows at once (`useOptimistic`) and a Server Action PATCHes the lead. Each column's header counts the open leads whose follow-up date has arrived ("N por seguir hoy").
+- **Admin search (section 4.14, decision 59):** finds any lead, user, project, request, proposal, post or case study from one box.
+  - **Opening:** a search button at the top of the admin bar (`AppShell`'s brand row, given by the admin layout as a `search` slot; the portal has none) with the shortcut shown next to it (`Ctrl K`, or `⌘K` on Apple devices, read after mount); on phones only its icon, with an `aria-label`. Ctrl+K or Cmd+K toggles the dialog anywhere in the admin panel, even while typing in another field (the shortcut types nothing; the browser's own Ctrl+K is prevented). Not rendered while the admin still has to turn on two-step verification (the layout then shows only the account page).
+  - **Dialog** (`components/app/AdminSearch`, a Client Component; texts passed as `labels` from the `Admin.search` messages, EN/ES, like the other admin Client Components): a native `<dialog>` opened with `showModal()` (modal, the page behind inert, focus kept inside), titled by a visually hidden heading. It opens with an empty field focused; Escape (or Ctrl/Cmd+K, or a click on the backdrop) closes it and focus goes back to what had it.
+  - **Searching:** from 2 characters, 200 ms after the last keystroke, `GET /<locale>/admin/search?q=` with an `AbortController`: a newer search aborts the one in flight, and a response for a query other than the field's is dropped. Below 2 characters it shows a hint and no request is made. States: searching, results, "nothing found for …", too many searches (429: wait a moment) and failed (anything else; an expired session asks to reload).
+  - **Results:** grouped by kind in the API's order, each group under its heading (the admin menu's names: Leads/Contactos, Users, Projects, Support, Proposals, Posts, Portfolio), each item its `label` and `sublabel`. The link is built by `lib/admin-search.ts` (`adminSearchHref(kind, id)`, unit-tested, section 4.14's table) and followed with the locale-aware `useRouter`; the dialog closes on navigation.
+  - **Keyboard and screen readers (ARIA combobox with a listbox):** the field is `role="combobox"` with `aria-expanded`, `aria-controls` (the listbox), `aria-autocomplete="list"` and `aria-activedescendant` (the highlighted option); the list is `role="listbox"`, each group `role="group"` labelled by its heading, each item `role="option"` with `aria-selected`. Down and Up move through all items across groups (wrapping), the first one highlighted when results arrive; Enter opens the highlighted one; the mouse highlights on hover and opens on click. A polite live region says the number of results or that nothing was found.
+  - **BFF route** `src/app/[locale]/admin/search/route.ts` (GET): the proxy has refreshed the session for the `/admin` path; it validates `q` (2–100 after trimming, else `400`), calls `adminSearch(q, locale, signal)` in `lib/api/search.ts` (`auth: 'required'`, `forwardClientIp: true` so the API's limit is per admin, the request's `signal` so an aborted search stops there too) and answers JSON with `Cache-Control: no-store`: the API's body, or `{ error }` with `401` (session gone, 401 or 403 from the API), `429` or `502`. The browser never calls the API.
 - **Analytics:** Umami (self-hosted, cookieless) when `UMAMI_URL` and `UMAMI_WEBSITE_ID` are set. Only the public site layout loads the tracker, from `/api/stats/script.js`; its events go to `/api/stats/api/send`. A route handler forwards just those two paths to Umami inside the Docker network, with the visitor's IP and User-Agent, so the CSP stays same-origin and Umami is never public. The tracker script is cached for a day (a week more while it refreshes) and sent as is (gzipping it in the route handler lost its `Content-Encoding` header on the way to the browser, which broke the tracker from 2026-11-07 to the fix). "Do Not Track" is respected. Conversion events: a sent contact form fires `contact-sent`; a sent basic-website request `site-request-sent`; pressing "pay" `site-buy-click`; a paid basic website `site-bought`; a booked call `call-booked` (`TrackEvent` fires them once the page that confirms the action shows). The main buttons carry `data-umami-event` (`cta-header`, `cta-home-hero`, `cta-home-bottom`, `cta-basic-website-top`, `cta-basic-website-bottom`). Events hold no personal data.
 - **Social preview images:** a post or case study is shared with its cover. Without one, `og:image` points to `/[locale]/blog/[slug]/og` (or `/work/[slug]/og`), a 1200×630 PNG drawn on request with `next/og` from the title, a label (date or client) and the brand mark, in the brand fonts read from `public/og-fonts/` (WOFF). Pages with neither use `/og-image.png`.
 - **Images:** uploads go through a Server Action to `POST /v1/admin/media`; the stored URL is `SITE_URL/media/<filename>`, which a route handler serves by fetching the file from the API, so the BFF rule also holds for images. Covers that are our own uploads go through `next/image` (`images.localPatterns` allows only `/media/**` and the basic-website demo screenshots in `/demos/**`), so the browser gets a WebP resized to the width it shows; covers at any other URL are shown as they are.
@@ -1937,3 +1976,4 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 56 | New passwords are checked against Have I Been Pwned's breached passwords with k-anonymity, failing open | NIST 800-63B asks to refuse passwords known to be compromised, and credential stuffing with leaked passwords is the most common account takeover. The range API needs no account or key and only ever sees 5 characters of a hash; failing open keeps sign-ups independent of a third party, and sign-in is never checked so nobody is locked out |
 | 57 | Cloud teams can require two-step verification of every member, checked on each request | One member's leaked password lets anyone deploy to production, change domains or read variables of the whole team. Owners decide (off by default, so nobody is locked out by surprise); it is checked on every request from the database, like the admins' requirement (section 4.3), so it applies to tokens made before it was turned on and lifts the moment the member sets it up. Seeing the team and leaving it stay open, so nobody is stuck in a team they can't use |
 | 58 | Moving a Cloud project to another team takes an owner of its team who is also an owner or admin of the target; people lists keep only the target's members; the Git link is kept only when the target team's own installation sees the repository | A project carries the source team's work, data and money (its storage, builds, databases), so giving it away is an owner's call, like deleting the team; the target must accept it, and its admins already manage its projects. Requiring both roles means nobody can push a project into a team they don't run or pull one out of a team they don't own. Forms, email channels and monitor alerts chose people of the old team: after the move they would send the target's data to people outside it, so only the target's members stay, and the mover (who is in it) takes an empty list. A GitHub installation belongs to one team and its tokens reach that account's repositories, so keeping the old installation would let a team build from code it was never given; the link stays only when one of the target's installations can see the same repository, otherwise the target connects it again. One transaction with the teams' rows locked keeps two moves from both fitting under one limit |
+| 59 | Admin search is plain case-insensitive `contains` (`ILIKE`) over a few fields per kind, with no full-text or trigram index; the API returns ids and the website builds the links | The admin tables hold thousands of rows at most, so seven `LIMIT 5` scans answer in milliseconds and need no migration, extension or index to keep in sync; it matches the lists' existing `?q` search, so a record found in one is found in the other. `pg_trgm` indexes are the next step if a search ever gets slow. Routes belong to the website (BFF): returning ids keeps the API free of page addresses |
