@@ -194,7 +194,9 @@ export class CloudTeamsService {
     return {
       user: { id: ctx.user.id, name: ctx.user.name, email: ctx.user.email },
       via: ctx.user.via ?? 'session',
-      token: ctx.user.token ?? null,
+      token: ctx.user.token
+        ? { id: ctx.user.token.id, name: ctx.user.token.name, teamId: ctx.user.token.teamId }
+        : null,
       teams: memberships
         .filter((m) => !restricted || m.teamId === restricted)
         .map((m) => ({

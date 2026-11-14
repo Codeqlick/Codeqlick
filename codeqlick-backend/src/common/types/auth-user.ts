@@ -19,8 +19,11 @@ export interface AuthUser {
   accountId?: string;
   /** How the caller signed this request: a session (default) or a Cloud API token. */
   via?: 'session' | 'token';
-  /** The Cloud API token used, when `via` is `token`. */
-  token?: { id: string; name: string; teamId: string | null };
+  /**
+   * The Cloud API token used, when `via` is `token`. `readOnly`: only GET, HEAD and OPTIONS
+   * (JwtAuthGuard refuses the rest; decision 61).
+   */
+  token?: { id: string; name: string; teamId: string | null; readOnly: boolean };
 }
 
 /** The client account whose projects, requests and proposals the caller sees. */

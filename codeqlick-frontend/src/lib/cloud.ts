@@ -37,3 +37,18 @@ export function cloudSlug(text: string, max: number): string {
     .slice(0, max)
     .replace(/-+$/, '');
 }
+
+/** The "New token" form's choices, as `POST /cloud/tokens` takes them (architecture 4.13). */
+export function cloudTokenOptions(form: { team: string; expiry: string; access: string }): {
+  teamSlug: string | undefined;
+  expiresInDays: 30 | 90 | 365 | null;
+  readOnly: boolean;
+} {
+  const { expiry } = form;
+  return {
+    teamSlug: form.team || undefined,
+    expiresInDays: expiry === '30' ? 30 : expiry === '365' ? 365 : expiry === 'never' ? null : 90,
+    // Full unless read only was chosen: anything unexpected keeps the default.
+    readOnly: form.access === 'readOnly',
+  };
+}

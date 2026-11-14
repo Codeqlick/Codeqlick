@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Inject,
   Injectable,
   Optional,
@@ -14,9 +15,13 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 import type { AccessTokenPayload } from '../types/auth-user.js';
 import type { AppRequest } from '../types/request.js';
 
+/** The only methods a read-only Cloud API token may call (decision 61). */
+const READ_ONLY_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 /**
  * Global guard: every route requires a valid `Authorization: Bearer <jwt>` unless it is
- * marked with @Public(). Routes marked with @CloudApi() also take a Cloud API token (`cqk_…`).
+ * marked with @Public(). Routes marked with @CloudApi() also take a Cloud API token (`cqk_…`);
+ * a read-only one only for GET, HEAD and OPTIONS.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -47,6 +52,10 @@ export class JwtAuthGuard implements CanActivate {
       }
       const user = await this.apiTokens.resolve(token, request.ip);
       if (!user) throw new UnauthorizedException('Invalid or expired API token');
+      // Read-only tokens: by method alone, no exceptions per route (decision 61).
+      if (user.token?.readOnly && !READ_ONLY_METHODS.has(request.method.toUpperCase())) {
+        throw new ForbiddenException('This token is read only');
+      }
       request.user = user;
       return true;
     }
