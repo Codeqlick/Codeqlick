@@ -153,7 +153,7 @@ describe('Codeqlick Cloud password protection (e2e)', () => {
     });
     const check = (host: string, kind: 'previews' | 'production', access?: string) =>
       request(server)
-        .get('/v1/cloud/protection/check')
+        .get('/v1/cloud/edge/check')
         .set(nginx(host, kind, access));
 
     // ── Reading and changing the setting ───────────────────────────────────────────────────
@@ -224,7 +224,7 @@ describe('Codeqlick Cloud password protection (e2e)', () => {
 
     // ── Nginx's check ──────────────────────────────────────────────────────────────────────
     await request(server)
-      .get('/v1/cloud/protection/check')
+      .get('/v1/cloud/edge/check')
       .set({ 'X-Cq-Host': previewHost, 'X-Cq-Project': slug, 'X-Cq-Kind': 'previews' })
       .expect(403);
     await check(previewHost, 'previews').set('X-Cq-Protection-Key', 'cd'.repeat(32)).expect(403);
@@ -233,7 +233,7 @@ describe('Codeqlick Cloud password protection (e2e)', () => {
     // Production isn't protected by PREVIEWS; an unknown project goes through too.
     await check(productionHost, 'production').expect(204);
     await request(server)
-      .get('/v1/cloud/protection/check')
+      .get('/v1/cloud/edge/check')
       .set({ ...nginx(previewHost, 'previews'), 'X-Cq-Project': `nope-${tag}` })
       .expect(204);
 

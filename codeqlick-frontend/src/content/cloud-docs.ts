@@ -123,6 +123,21 @@ En la pestaña **Almacenamiento** crea buckets compatibles con S3 (2 por proyect
 - Si existe \`200.html\`, se sirve para **cualquier** ruta que no exista: así funcionan las aplicaciones de una página (React Router, Vue Router…). Copia tu \`index.html\` como \`200.html\` al compilar.
 - Los archivos de \`/assets/\`, \`/_astro/\` y \`/_next/static/\` se guardan en caché un año; el HTML se revalida siempre.
 
+## Redirecciones, reescrituras y cabeceras
+
+Declara reglas en el \`codeqlick.json\` de la carpeta donde ejecutas \`deploy\` (el mismo archivo que enlaza el proyecto; no se publica):
+
+\`\`\`json
+{
+  "$schema": "https://api.codeqlick.com/v1/cloud/schema/codeqlick.json",
+  "redirects": [{ "source": "/antiguo/:slug", "destination": "/blog/:slug", "status": 301 }],
+  "rewrites": [{ "source": "/app/*", "destination": "/app/index.html" }],
+  "headers": [{ "source": "/*", "headers": { "X-Frame-Options": "DENY" } }]
+}
+\`\`\`
+
+Una redirección se aplica antes que cualquier archivo; una reescritura solo cuando ningún archivo coincide. Un archivo no válido rechaza el despliegue y dice la ruta del error. La consola muestra las reglas de cada despliegue, solo lectura.
+
 ## Formularios
 
 Crea un formulario en la pestaña **Formularios** del proyecto y pega su HTML en tu página:
@@ -352,6 +367,21 @@ In the **Storage** tab create S3-compatible buckets (2 per project, 1 GB and 100
 - If \`404.html\` exists, it is shown for pages that don't.
 - If \`200.html\` exists, it is served for **any** route that doesn't exist: that's how single-page apps work (React Router, Vue Router…). Copy your \`index.html\` as \`200.html\` when building.
 - Files under \`/assets/\`, \`/_astro/\` and \`/_next/static/\` are cached for a year; HTML is always revalidated.
+
+## Redirects, rewrites and headers
+
+Declare rules in the \`codeqlick.json\` of the folder where you run \`deploy\` (the same file that links the project; it is not published):
+
+\`\`\`json
+{
+  "$schema": "https://api.codeqlick.com/v1/cloud/schema/codeqlick.json",
+  "redirects": [{ "source": "/old/:slug", "destination": "/blog/:slug", "status": 301 }],
+  "rewrites": [{ "source": "/app/*", "destination": "/app/index.html" }],
+  "headers": [{ "source": "/*", "headers": { "X-Frame-Options": "DENY" } }]
+}
+\`\`\`
+
+A redirect applies before any file; a rewrite only when no file matches. An invalid file rejects the deployment and names the path of the error. The console shows each deployment's rules, read-only.
 
 ## Forms
 

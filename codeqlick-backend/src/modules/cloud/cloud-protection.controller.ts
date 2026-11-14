@@ -34,7 +34,15 @@ function proxyHeaders(request: Request): ProxyHeaders {
     slug: one('x-cq-project'),
     kind: one('x-cq-kind'),
     access: one('x-cq-access'),
+    deployment: one('x-cq-deployment'),
+    uri: wire(one('x-cq-uri')),
+    args: wire(one('x-cq-args')),
   };
+}
+
+/** Node reads header bytes as latin1: Nginx's UTF-8 bytes come back as the text they were. */
+function wire(value: string | undefined): string | undefined {
+  return value === undefined ? undefined : Buffer.from(value, 'latin1').toString('utf8');
 }
 
 /** Answers a visitor: the password page (EN/ES) or a `303` with the access cookie. */
@@ -57,24 +65,14 @@ function answer(request: Request, res: Response, result: VisitorAnswer): void {
 }
 
 /**
- * What the hosting sites' Nginx asks (architecture 4.13 "Password protection"): the check of
- * every request of a protected address, and the visitor's `/__codeqlick/` pages. Every route
- * needs `X-Cq-Protection-Key`; `api.codeqlick.com` doesn't serve them.
+ * What the hosting sites' Nginx asks (architecture 4.13 "Password protection"): the visitor's
+ * `/__codeqlick/` pages (the per-request check is `cloud/edge/check`). Every route needs `X-Cq-Protection-Key`; `api.codeqlick.com` doesn't serve them.
  */
 @ApiExcludeController()
 @Public()
 @Controller('cloud/protection')
 export class CloudProtectionPublicController {
   constructor(private readonly protection: CloudProtectionService) {}
-
-  /** `204` let through, `401` ask for the password (Nginx caches it 60 s). */
-  @Get('check')
-  @SkipThrottle()
-  async check(@Req() request: Request, @Res() res: Response): Promise<void> {
-    const through = await this.protection.check(proxyHeaders(request));
-    res.setHeader('Cache-Control', 'no-store');
-    res.status(through ? 204 : 401).end();
-  }
 
   @Get('password')
   async page(@Req() request: Request, @Res() res: Response): Promise<void> {
@@ -103,6 +101,42 @@ export class CloudProtectionPublicController {
     const ticket = request.query.ticket;
     const value = typeof ticket === 'string' ? ticket : undefined;
     answer(request, res, await this.protection.enter(proxyHeaders(request), value));
+  }
+}
+
+/**
+ * The one check the hosting sites' Nginx makes for password protection and `codeqlick.json`
+ * rules (architecture 4.13). Needs `X-Cq-Protection-Key`; `api.codeqlick.com` doesn't serve it.
+ */
+@ApiExcludeController()
+@Public()
+@Controller('cloud/edge')
+export class CloudEdgeController {
+  constructor(private readonly protection: CloudProtectionService) {}
+
+  /**
+   * `401` ask for the password; `403` with `X-Cq-Status` and `X-Cq-Location` a redirect; `204`
+   * serve, with `X-Cq-Path` and one `X-Cq-H-<name>` per header to add (Nginx caches 60 s).
+   */
+  @Get('check')
+  @SkipThrottle()
+  async check(@Req() request: Request, @Res() res: Response): Promise<void> {
+    const answer = await this.protection.edge(proxyHeaders(request));
+    res.setHeader('Cache-Control', 'no-store');
+    if (answer.type === 'password') {
+      res.status(401).end();
+    } else if (answer.type === 'redirect') {
+      res.setHeader('X-Cq-Status', String(answer.status));
+      res.setHeader('X-Cq-Location', answer.location);
+      res.status(403).end();
+    } else {
+      // The path goes out as UTF-8 bytes, which Nginx reads back as the file's name.
+      res.setHeader('X-Cq-Path', Buffer.from(answer.path, 'utf8').toString('latin1'));
+      for (const [name, value] of Object.entries(answer.headers)) {
+        res.setHeader(`X-Cq-H-${name}`, value);
+      }
+      res.status(204).end();
+    }
   }
 }
 

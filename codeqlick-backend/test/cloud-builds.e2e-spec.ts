@@ -327,6 +327,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .post(`/v1/cloud/builder/builds/${job.id as string}/finish`)
       .set(builder)
       .field('status', 'succeeded')
+      .field('config', JSON.stringify({ cleanUrls: true }))
       .attach('bundle', bundle)
       .expect(204);
     expect(await readFile(join(root, 'hosts', `bp-${tag}`, 'index.html'), 'utf8')).toBe(
@@ -342,6 +343,11 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       log: 'npm ci\nbuilt\n',
     });
     expect(first.body.deploymentId).toBeTruthy();
+    // The build root's codeqlick.json travels with the output (architecture 4.13).
+    expect(
+      (await prisma.cloudDeployment.findUniqueOrThrow({ where: { id: first.body.deploymentId } }))
+        .config,
+    ).toEqual({ cleanUrls: true });
     await vi.waitFor(() =>
       expect(github.statuses.some((s) => s.sha === sha(1) && s.state === 'success')).toBe(true),
     );

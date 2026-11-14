@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dockerArgs, envFile, inside, mask } from './plan.ts';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { dockerArgs, envFile, inside, mask, readRulesFile } from './plan.ts';
 
 test('hides secrets, the longest first', () => {
   assert.equal(
@@ -53,4 +56,20 @@ test('runs the build under gVisor when a runtime is set', () => {
   assert.equal(args[args.indexOf('--runtime') + 1], 'runsc');
   assert.ok(args.indexOf('--runtime') < args.indexOf('node:24-bookworm-slim'));
   assert.equal(args[args.indexOf('-w') + 1], '/work');
+});
+
+test('reads the build root codeqlick.json as text, and fails the build when it is not JSON', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'cqb-test-'));
+  try {
+    assert.equal(await readRulesFile(root), undefined);
+    const text = '{ "team": "acme", "redirects": [] }\n';
+    await writeFile(join(root, 'codeqlick.json'), text);
+    assert.equal(await readRulesFile(root), text);
+    await writeFile(join(root, 'codeqlick.json'), '{ "redirects": [');
+    await assert.rejects(readRulesFile(root), /codeqlick\.json is not valid JSON/);
+    await writeFile(join(root, 'codeqlick.json'), '[]');
+    await assert.rejects(readRulesFile(root), /not valid JSON/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

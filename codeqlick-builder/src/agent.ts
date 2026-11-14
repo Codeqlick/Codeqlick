@@ -4,7 +4,7 @@ import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { dockerArgs, envFile, inside, mask, type Job } from './plan.ts';
+import { dockerArgs, envFile, inside, mask, readRulesFile, type Job } from './plan.ts';
 
 /**
  * Codeqlick Cloud's build agent (architecture 8.4, decision 41). It asks the API for a build every
@@ -93,13 +93,19 @@ async function build(job: Job): Promise<void> {
       void run('docker', ['kill', container], { onOutput: () => undefined }).catch(() => undefined);
     }
   }, 1_000);
-  const finish = async (status: 'succeeded' | 'failed', error?: string, bundle?: string) => {
+  const finish = async (
+    status: 'succeeded' | 'failed',
+    error?: string,
+    bundle?: string,
+    config?: string,
+  ) => {
     await flush();
     const form = new FormData();
     form.set('status', status);
     if (error) form.set('error', error.slice(0, 500));
     if (bundle)
       form.set('bundle', await openAsBlob(bundle, { type: 'application/gzip' }), 'out.tar.gz');
+    if (config) form.set('config', config);
     await api(`/cloud/builder/builds/${job.id}/finish`, { form }).catch((e: unknown) =>
       console.error(`build ${job.id}: finish failed: ${String(e)}`),
     );
@@ -156,12 +162,14 @@ async function build(job: Job): Promise<void> {
     const out = inside(root, job.outputDir);
     if (!(await stat(out).catch(() => null))?.isDirectory())
       throw new Error(`The output folder ${job.outputDir || '.'} doesn't exist`);
+    // The rules travel with the source, not the output (architecture 4.13): a broken file fails here.
+    const config = await readRulesFile(root);
     const bundle = join(work, 'out.tar.gz');
     if ((await run('tar', ['-czf', bundle, '-C', out, '.'], { onOutput: output })) !== 0) {
       throw new Error('The output folder could not be packed');
     }
     output('Uploading the output…\n');
-    await finish('succeeded', undefined, bundle);
+    await finish('succeeded', undefined, bundle, config);
   } catch (error) {
     if (error instanceof Canceled) {
       await flush();

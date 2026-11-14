@@ -13,9 +13,11 @@
 #      (certbot-dns-ovh; its credentials from .env in /etc/letsencrypt/ovh-cloud.ini, 600).
 #   4. Password protection (architecture 4.13, decision 50): CLOUD_PROTECTION_KEY in .env (created
 #      once), the key for Nginx in /etc/nginx/cq-cloud-protection-key.conf (root, 600), the snippet
-#      deploy/nginx/cloud-protection.conf as /etc/nginx/snippets/cq-cloud-protection.conf and its
+#      deploy/nginx/cloud-protection.conf as /etc/nginx/snippets/cq-cloud-protection.conf, the
+#      headers of codeqlick.json rules (deploy/nginx/cloud-rule-headers.conf as
+#      /etc/nginx/snippets/cq-cloud-rule-headers.conf; architecture 4.13, decision 52) and the
 #      cache folder. Then the Nginx site from deploy/nginx/cloud-hosting.conf.template, checked and
-#      reloaded, and the API's site: 50 MB deployments, and 404 for /v1/cloud/protection/.
+#      reloaded, and the API's site: 50 MB deployments, and 404 for /v1/cloud/protection/ and /v1/cloud/edge/.
 #   5. CLOUD_HOSTING_DOMAIN in .env; the next release (or `docker compose up -d api`) uses it and
 #      CLOUD_PROTECTION_KEY.
 # Safe to run again. Reinstall cq-site afterwards if it is older than its `cloud` kind or than
@@ -46,6 +48,7 @@ CLOUD="$ROOT/cloud"
 SITE=/etc/nginx/sites-available/cloud-hosting.conf
 CREDENTIALS=/etc/letsencrypt/ovh-cloud.ini
 SNIPPET=/etc/nginx/snippets/cq-cloud-protection.conf
+RULE_HEADERS=/etc/nginx/snippets/cq-cloud-rule-headers.conf
 KEY_FILE=/etc/nginx/cq-cloud-protection-key.conf
 PROTECT_CACHE=/var/cache/nginx/cq-protect
 
@@ -161,11 +164,15 @@ sed -e "s|/srv/codeqlick|$ROOT|g" -e "s|127\.0\.0\.1:4010|127.0.0.1:$API_PORT|g"
 chmod 644 "$SNIPPET.new"
 [ -f "$SNIPPET" ] && cp "$SNIPPET" "$SNIPPET.bak"
 mv "$SNIPPET.new" "$SNIPPET"
+cp deploy/nginx/cloud-rule-headers.conf "$RULE_HEADERS.new"
+chmod 644 "$RULE_HEADERS.new"
+[ -f "$RULE_HEADERS" ] && cp "$RULE_HEADERS" "$RULE_HEADERS.bak"
+mv "$RULE_HEADERS.new" "$RULE_HEADERS"
 # The cache of the API's answers belongs to Nginx's workers (Nginx would create it too).
 NGINX_USER="$(sed -n 's/^[[:space:]]*user[[:space:]]\{1,\}\([^[:space:];]*\).*/\1/p' /etc/nginx/nginx.conf | head -n 1)"
 NGINX_USER="${NGINX_USER:-www-data}"
 install -d -o "$NGINX_USER" -g "$(id -gn "$NGINX_USER")" -m 0700 "$PROTECT_CACHE"
-echo "Key: $KEY_FILE. Snippet: $SNIPPET. Cache: $PROTECT_CACHE."
+echo "Key: $KEY_FILE. Snippets: $SNIPPET, $RULE_HEADERS. Cache: $PROTECT_CACHE."
 
 log "Nginx site: $SITE"
 regex="$(printf '%s' "$DOMAIN" | sed 's/\./\\\\./g')"
@@ -177,9 +184,10 @@ ln -sfn "$SITE" /etc/nginx/sites-enabled/cloud-hosting.conf
 if ! nginx -t -q; then
   if [ -f "$SITE.bak" ]; then mv "$SITE.bak" "$SITE"; else rm -f "$SITE" /etc/nginx/sites-enabled/cloud-hosting.conf; fi
   if [ -f "$SNIPPET.bak" ]; then mv "$SNIPPET.bak" "$SNIPPET"; else rm -f "$SNIPPET"; fi
+  if [ -f "$RULE_HEADERS.bak" ]; then mv "$RULE_HEADERS.bak" "$RULE_HEADERS"; else rm -f "$RULE_HEADERS"; fi
   fail "Nginx rejected the site; nothing changed"
 fi
-rm -f "$SITE.bak" "$SNIPPET.bak"
+rm -f "$SITE.bak" "$SNIPPET.bak" "$RULE_HEADERS.bak"
 systemctl reload nginx
 echo "Serving *.$DOMAIN."
 
@@ -215,13 +223,24 @@ if [ -f "$API_SITE" ] && ! grep -q 'v1/cloud/projects' "$API_SITE"; then
     echo "Warning: Nginx rejected the change; add the block from deploy/nginx/api.codeqlick.com.conf by hand."
   fi
 fi
-# The password-protection routes are for the hosting sites' Nginx only (on 127.0.0.1).
-if [ -f "$API_SITE" ] && ! grep -q 'v1/cloud/protection' "$API_SITE"; then
-  log "API site: 404 for /v1/cloud/protection/"
+# The password-protection and edge-check routes are for the hosting sites' Nginx only (on
+# 127.0.0.1). A site that already blocks /v1/cloud/protection/ gets /v1/cloud/edge/ added to it.
+if [ -f "$API_SITE" ] && ! grep -qF 'cloud/(?:protection|edge)' "$API_SITE"; then
+  log "API site: 404 for /v1/cloud/protection/ and /v1/cloud/edge/"
   cp "$API_SITE" "$API_SITE.bak"
-  awk '
-    /^[[:space:]]*location \/ \{/ {
-      print "    location ~* ^/v1/cloud/protection(?:/|$) {"
+  has_old="$(grep -cF 'cloud/protection(?:/|$)' "$API_SITE.bak" || true)"
+  awk -v has_old="$has_old" '
+    BEGIN {
+      old = "^/v1/cloud/protection(?:/|$)"
+      new = "^/v1/cloud/(?:protection|edge)(?:/|$)"
+    }
+    index($0, old) {
+      i = index($0, old)
+      print substr($0, 1, i - 1) new substr($0, i + length(old))
+      next
+    }
+    /^[[:space:]]*location \/ \{/ && has_old == 0 {
+      print "    location ~* " new " {"
       print "        return 404;"
       print "    }"
       print ""

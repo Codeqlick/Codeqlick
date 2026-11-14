@@ -55,6 +55,11 @@ export class CloudProtectionRepository {
     });
   }
 
+  /** A deployment's stored `codeqlick.json` rules; null when it doesn't exist (yet). */
+  deploymentConfig(id: string): Promise<{ config: unknown } | null> {
+    return this.prisma.cloudDeployment.findUnique({ where: { id }, select: { config: true } });
+  }
+
   hasDeployment(projectId: string, shortId: string): Promise<boolean> {
     return this.prisma.cloudDeployment.count({ where: { projectId, shortId } }).then((n) => n > 0);
   }

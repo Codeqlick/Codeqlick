@@ -1,3 +1,4 @@
+import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, join, normalize, relative } from 'node:path';
 
 /** What the API hands the agent for a build (POST /v1/cloud/builder/claim). */
@@ -97,4 +98,29 @@ export function dockerArgs(input: {
     '-c',
     input.command,
   ];
+}
+
+/** The most the API takes as `config` (`POST /cloud/config/check` refuses more than 1 MB too). */
+const MAX_CONFIG_BYTES = 1024 * 1024;
+
+/**
+ * The text of the build root's `codeqlick.json` (redirects, rewrites, headers; architecture 4.13),
+ * or undefined when there is none. The API validates the rules; here only a file that isn't JSON
+ * (or is absurdly big) fails the build, with a message that says so.
+ */
+export async function readRulesFile(root: string): Promise<string | undefined> {
+  const path = join(root, 'codeqlick.json');
+  const info = await stat(path).catch(() => null);
+  if (!info?.isFile()) return undefined;
+  if (info.size > MAX_CONFIG_BYTES) throw new Error('codeqlick.json is over 1 MB');
+  const text = await readFile(path, 'utf8');
+  try {
+    const data: unknown = JSON.parse(text);
+    if (typeof data !== 'object' || data === null || Array.isArray(data))
+      throw new Error('not an object');
+  } catch (error) {
+    const reason = error instanceof SyntaxError ? error.message : 'it must be a JSON object';
+    throw new Error(`codeqlick.json is not valid JSON: ${reason}`);
+  }
+  return text;
 }

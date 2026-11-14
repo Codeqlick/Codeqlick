@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { limitsFor } from './cloud-config.js';
 
 const slug = (min: number, max: number) =>
   z
@@ -95,6 +96,9 @@ const optionalText = (max: number) =>
     z.string().trim().max(max).optional(),
   );
 
+/** The biggest `codeqlick.json` any plan takes (the field is refused above it before parsing). */
+const CONFIG_FIELD_MAX = limitsFor('PRO').bytes;
+
 /** The text fields of a deployment's multipart upload. */
 export const deploymentFieldsSchema = z.object({
   target: z.enum(['preview', 'production']).default('preview'),
@@ -109,6 +113,8 @@ export const deploymentFieldsSchema = z.object({
       .optional(),
   ),
   branch: optionalText(100),
+  /** The text of `codeqlick.json` (architecture 4.13); the plan's size is checked when parsing. */
+  config: z.string().max(CONFIG_FIELD_MAX).optional(),
 });
 export type DeploymentFields = z.infer<typeof deploymentFieldsSchema>;
 
@@ -391,6 +397,8 @@ export type BuilderBuildParam = z.infer<typeof builderBuildParamSchema>;
 export const finishSchema = z.object({
   status: z.enum(['succeeded', 'failed']),
   error: z.string().max(500).optional(),
+  /** The build root's `codeqlick.json` (architecture 4.13). */
+  config: z.string().max(CONFIG_FIELD_MAX).optional(),
 });
 export type FinishInput = z.infer<typeof finishSchema>;
 
@@ -542,3 +550,10 @@ export const protectionTicketQuerySchema = z.object({
     .transform((host) => host.replace(/\.+$/, '')),
 });
 export type ProtectionTicketQuery = z.infer<typeof protectionTicketQuerySchema>;
+
+/** `POST /cloud/config/check`: a `codeqlick.json` checked against a team's plan, nothing kept. */
+export const configCheckSchema = z.object({
+  teamSlug: teamSlugSchema,
+  config: z.string().max(1024 * 1024),
+});
+export type ConfigCheckInput = z.infer<typeof configCheckSchema>;

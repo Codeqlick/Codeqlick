@@ -57,6 +57,25 @@ The password is asked twice without echo, or read from standard input when it is
 change only the mode or the days. `--days` is how long access lasts once it's entered. While a
 printed address asks for the password, `deploy` and `builds` say so on standard error.
 
+Redirects, rewrites and headers go in the same `codeqlick.json` as the project link:
+
+```json
+{
+  "$schema": "https://api.codeqlick.com/v1/cloud/schema/codeqlick.json",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "redirects": [{ "source": "/old/:slug", "destination": "/blog/:slug", "status": 301 }],
+  "rewrites": [{ "source": "/app/*", "destination": "/app/index.html" }],
+  "headers": [{ "source": "/*", "headers": { "Cache-Control": "public, max-age=300" } }]
+}
+```
+
+`deploy` sends the `codeqlick.json` of the folder you run it in (not the deployed folder's), and
+prints the API's problems one per line with their path if the file is refused. `codeqlick config
+check` validates it against your team's plan without deploying (`--json` prints the API's
+answer; exit 1 when there are problems). `init` only sets `team`, `project` and `dir`: every
+other key stays as it was, and a file that isn't valid JSON is never overwritten.
+
 `deploy --url-only` prints only the new deployment's URL, to chain it with `audit`:
 
 ```yaml
