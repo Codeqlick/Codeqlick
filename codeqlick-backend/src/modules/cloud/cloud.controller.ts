@@ -15,7 +15,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, NoFilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CloudApi } from '../../common/decorators/cloud-api.decorator.js';
@@ -421,6 +421,9 @@ export class CloudController {
   @CloudApi()
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  // Multipart (fields `teamSlug` and `config`; a small JSON body works too): the text can be
+  // bigger than the JSON parser's default limit. Over 1 MB the schema answers 400.
+  @UseInterceptors(NoFilesInterceptor({ limits: { fieldSize: 2 * 1024 * 1024, fields: 5 } }))
   checkConfig(
     @Caller() ctx: CloudCtx,
     @Body({ schema: configCheckSchema }) body: ConfigCheckInput,

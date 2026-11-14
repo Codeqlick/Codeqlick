@@ -163,7 +163,7 @@ async function build(job: Job): Promise<void> {
     if (!(await stat(out).catch(() => null))?.isDirectory())
       throw new Error(`The output folder ${job.outputDir || '.'} doesn't exist`);
     // The rules travel with the source, not the output (architecture 4.13): a broken file fails here.
-    const config = await readRulesFile(root);
+    const config = await readRulesFile(src, root);
     const bundle = join(work, 'out.tar.gz');
     if ((await run('tar', ['-czf', bundle, '-C', out, '.'], { onOutput: output })) !== 0) {
       throw new Error('The output folder could not be packed');

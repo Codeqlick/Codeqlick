@@ -31,8 +31,6 @@ export function configureApp(app: NestExpressApplication): void {
   });
   // Cloud's analytics tracker posts its events as text/plain JSON (no CORS preflight).
   app.useBodyParser('text', { limit: '4kb' });
-  // `POST /cloud/config/check` takes a `codeqlick.json` as text (the route refuses over 1 MB, 4.13).
-  app.useBodyParser('json', { limit: '2mb' });
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new ProblemDetailsFilter(app.get(ErrorsService, { strict: false })));

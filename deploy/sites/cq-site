@@ -91,6 +91,8 @@ write_conf() {
       echo "    index index.html;"
       echo "    error_page 404 /404.html;"
       echo "    add_header Strict-Transport-Security \"max-age=31536000\" always;"
+      echo "    add_header X-Content-Type-Options nosniff always;"
+      echo "    add_header Referrer-Policy strict-origin-when-cross-origin always;"
       echo "    include $CLOUD_RULE_HEADERS;"
       echo
       echo "    gzip on;"
@@ -102,6 +104,7 @@ write_conf() {
       echo "    include $CLOUD_PROTECTION;"
       echo
       echo "    error_page 451 @cq_suspended;"
+      echo "    location = /codeqlick.json { return 404; }"
       echo "    location / {"
       echo "        if (-f \$document_root/.cq-suspended) { return 451; }"
       echo "        try_files \$cq_path \$cq_path.html \$cq_path/ /200.html =404;"
@@ -149,6 +152,8 @@ cmd_add() {
       [[ $target =~ ^[a-z0-9]+(-[a-z0-9]+)*$ && ${#target} -le 40 ]] || die "invalid project: '$target'"
       [[ -f $CLOUD_PROTECTION ]] ||
         die "$CLOUD_PROTECTION is missing: run deploy/setup-cloud.sh <hosting domain> again first"
+      [[ -e /etc/nginx/sites-enabled/cloud-hosting.conf ]] ||
+        die "the hosting site (cloud-hosting.conf) isn't enabled: its http-level maps are needed; run deploy/setup-cloud.sh <hosting domain> first"
       [[ -f $CLOUD_RULE_HEADERS ]] ||
         die "$CLOUD_RULE_HEADERS is missing: run deploy/setup-cloud.sh <hosting domain> again first"
       target="$CLOUD_HOSTS/$target"

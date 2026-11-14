@@ -398,8 +398,13 @@ export class Api {
       `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
       { by },
     );
-  checkConfig = (teamSlug: string, config: string) =>
-    this.request<ConfigCheck>('POST', '/cloud/config/check', { config, teamSlug });
+  checkConfig = (teamSlug: string, config: string) => {
+    // Multipart text fields (no file part), like the deployment upload.
+    const form = new FormData();
+    form.set('teamSlug', teamSlug);
+    form.set('config', config);
+    return this.request<ConfigCheck>('POST', '/cloud/config/check', form);
+  };
   startDevice = (clientName: string, locale: string) =>
     this.request<DeviceStart>('POST', `/cloud/cli/device?locale=${locale}`, { clientName });
   pollDevice = (deviceCode: string) =>
