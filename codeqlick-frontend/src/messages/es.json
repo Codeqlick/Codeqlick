@@ -4841,7 +4841,18 @@
       "title": "Historial",
       "lead": "Cada cambio del equipo, el más reciente primero (se guarda 365 días).",
       "empty": "Aún no hay nada.",
-      "via": "token: {token}"
+      "via": "token: {token}",
+      "filters": "Filtrar el historial",
+      "from": "Desde",
+      "to": "Hasta",
+      "action": "Acción",
+      "actionHint": "Exacta, o un prefijo como domain.",
+      "apply": "Aplicar",
+      "clear": "Quitar filtros",
+      "export": "Exportar CSV",
+      "exportHint": "Con estos filtros; sin fechas, los últimos 30 días.",
+      "invalidFilters": "Esos filtros no son válidos: la fecha de inicio debe ir antes del final, como mucho 365 días entre ambas, y la acción tiene la forma domain.added o domain.",
+      "noMatches": "Ningún evento coincide con estos filtros."
     },
     "tokens": {
       "title": "Tokens de API",
