@@ -4772,7 +4772,20 @@
       "plan": "Plan: {plan}",
       "monitorsLink": "Monitores",
       "auditsLink": "Revisión web",
-      "planLink": "Plan"
+      "planLink": "Plan",
+      "meters": {
+        "builds": "Builds este mes",
+        "formSubmissions": "Envíos de formularios este mes",
+        "analyticsEvents": "Eventos de analítica este mes",
+        "storage": "Almacenamiento",
+        "deploymentsPerHour": "Despliegues en la última hora"
+      },
+      "alert": {
+        "warningTitle": "Te acercas a los límites de tu plan",
+        "errorTitle": "Has alcanzado los límites de tu plan",
+        "item": "{label}: {used} de {limit} ({percent} %)",
+        "link": "Ver el uso"
+      }
     },
     "project": {
       "tabs": {

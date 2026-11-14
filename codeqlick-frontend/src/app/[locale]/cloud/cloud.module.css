@@ -629,3 +629,49 @@
 .chartFigure {
   margin: 0;
 }
+
+/* Usage banner of the team pages */
+.teamShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+}
+
+.usageBanner {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-lg);
+}
+
+.usageWarning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.usageError {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.usageBannerTitle {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.1rem;
+}
+
+.usageBannerList {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.usageBannerLink {
+  margin: 0;
+  font-weight: 600;
+}
+
+.usageBannerLink a {
+  color: inherit;
+  text-decoration: underline;
+}

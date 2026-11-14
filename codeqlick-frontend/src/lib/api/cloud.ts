@@ -36,6 +36,21 @@ export type CloudLimits = {
   tokensPerPerson: number;
 };
 
+export type CloudUsageMeterKey =
+  | 'builds'
+  | 'formSubmissions'
+  | 'analyticsEvents'
+  | 'storage'
+  | 'deploymentsPerHour';
+
+/** One limit of the plan; `percent` is `floor(used / limit × 100)` and can pass 100. */
+export type CloudUsageMeter = {
+  key: CloudUsageMeterKey;
+  used: number;
+  limit: number;
+  percent: number;
+};
+
 export type CloudUsage = {
   plan: 'FREE' | 'PRO';
   limits: CloudLimits;
@@ -43,6 +58,8 @@ export type CloudUsage = {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Missing from an API older than the usage alerts. */
+  meters?: CloudUsageMeter[];
 };
 
 export type CloudDeployment = {

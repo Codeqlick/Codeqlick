@@ -30,6 +30,8 @@ import type {
 } from './cloud.schemas.js';
 import { CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
 import { sha256 } from './cloud-tokens.service.js';
+import type { Meter } from './cloud-usage.js';
+import { CloudUsageService } from './cloud-usage.service.js';
 
 export interface TeamView {
   id: string;
@@ -66,6 +68,8 @@ export interface UsageView {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Each limited measure against the plan; the console's banner reads it (decision 54). */
+  meters: Meter[];
 }
 
 export interface EventView {
@@ -98,6 +102,7 @@ export class CloudTeamsService {
   constructor(
     private readonly repository: CloudRepository,
     private readonly storage: CloudStorage,
+    private readonly usageMeters: CloudUsageService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
   ) {}
@@ -451,11 +456,12 @@ export class CloudTeamsService {
   async usage(ctx: CloudCtx, slug: string): Promise<UsageView> {
     const membership = await this.access(ctx, slug);
     const teamId = membership.teamId;
-    const [projects, storageBytes, deploymentsLastHour, members] = await Promise.all([
+    const [projects, storageBytes, deploymentsLastHour, members, meters] = await Promise.all([
       this.repository.countProjects(teamId),
       this.repository.storageBytes(teamId),
       this.repository.countDeploymentsSince(teamId, new Date(Date.now() - 3_600_000)),
       this.repository.countMembers(teamId),
+      this.usageMeters.meters(teamId, membership.team.plan),
     ]);
     return {
       plan: membership.team.plan,
@@ -464,6 +470,7 @@ export class CloudTeamsService {
       storageBytes,
       deploymentsLastHour,
       members,
+      meters,
     };
   }
 
