@@ -241,6 +241,15 @@ export class AuthRepository {
     return result.count === 1;
   }
 
+  /**
+   * The distinct User-Agents of every session row the user still has (live, signed out or
+   * expired but not yet cleaned up), to tell a new device from a known one.
+   */
+  async listSessionUserAgents(userId: string): Promise<(string | null)[]> {
+    const rows = await this.prisma.session.groupBy({ by: ['userAgent'], where: { userId } });
+    return rows.map((row) => row.userAgent);
+  }
+
   /** The user's live sessions: one row per family (the latest rotation), newest first. */
   listActiveSessions(userId: string, now: Date): Promise<Session[]> {
     return this.prisma.session.findMany({

@@ -194,3 +194,88 @@ export function alreadyRegisteredEmail(
     ),
   };
 }
+
+/** What the new-device email says about the sign-in. */
+export interface NewSignIn {
+  /** When the sign-in happened. */
+  at: Date;
+  browser?: string;
+  os?: string;
+  ip: string | null;
+}
+
+/** Madrid time, written for the reader's language: "14 November 2026, 07:45". */
+export function formatMadridTime(date: Date, locale: ApiLocale): string {
+  return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+    dateStyle: 'long',
+    timeStyle: 'short',
+    timeZone: 'Europe/Madrid',
+  }).format(date);
+}
+
+/**
+ * To the account after a sign-in from a browser and system it hadn't used before, so a stolen
+ * password doesn't go unnoticed (architecture 4.3).
+ */
+export function newDeviceSignInEmail(
+  user: { name: string; email: string },
+  signIn: NewSignIn,
+  accountUrl: string,
+  resetUrl: string,
+  locale: ApiLocale,
+  siteUrl: string,
+): MailMessage {
+  const es = locale === 'es';
+  const unknown = es ? 'Desconocido' : 'Unknown';
+  const device =
+    signIn.browser && signIn.os
+      ? es
+        ? `${signIn.browser} en ${signIn.os}`
+        : `${signIn.browser} on ${signIn.os}`
+      : (signIn.browser ?? signIn.os ?? unknown);
+  return {
+    to: user.email,
+    subject: es
+      ? 'Nuevo inicio de sesión en tu cuenta — Codeqlick'
+      : 'New sign-in to your account — Codeqlick',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? `Alguien ha entrado en tu cuenta de Codeqlick desde ${device}.`
+          : `Someone signed in to your Codeqlick account from ${device}.`,
+        title: es ? 'Nuevo inicio de sesión' : 'New sign-in',
+        greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
+        intro: [
+          es
+            ? 'Se ha entrado en tu cuenta de Codeqlick desde un navegador o un dispositivo que no habías usado últimamente:'
+            : 'Your Codeqlick account was signed in to from a browser or device you haven’t used lately:',
+        ],
+        details: [
+          [
+            es ? 'Cuándo' : 'When',
+            `${formatMadridTime(signIn.at, locale)} (${es ? 'hora de Madrid' : 'Madrid time'})`,
+          ],
+          [es ? 'Dispositivo' : 'Device', device],
+          [es ? 'Dirección IP' : 'IP address', signIn.ip ?? unknown],
+        ],
+        outro: [
+          es
+            ? 'Si has sido tú, no tienes que hacer nada.'
+            : 'If this was you, there’s nothing to do.',
+          es
+            ? 'Si no has sido tú, cierra esa sesión desde tu cuenta y cambia la contraseña cuanto antes.'
+            : 'If it wasn’t you, sign that device out from your account and change your password as soon as possible.',
+        ],
+        button: {
+          label: es ? 'Revisar mis dispositivos' : 'Review my devices',
+          url: accountUrl,
+        },
+        note: es
+          ? `¿No puedes entrar? Elige una contraseña nueva aquí: ${resetUrl}`
+          : `Can’t sign in? Choose a new password here: ${resetUrl}`,
+      },
+      siteUrl,
+    ),
+  };
+}
