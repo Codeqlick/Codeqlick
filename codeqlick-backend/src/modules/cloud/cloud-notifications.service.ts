@@ -108,12 +108,12 @@ export class CloudNotificationsService {
     input: CreateChannelInput,
   ): Promise<ChannelView & { secret?: string }> {
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    if (input.kind === 'EMAIL' && input.monitorAlerts) {
+      throw new BadRequestException(NO_EMAIL_ALERTS);
+    }
     const limit = CLOUD_PLANS[membership.team.plan].notifyChannelsPerProject;
     if ((await this.repository.count(project.id)) >= limit) {
       throw new ConflictException(`A project has at most ${limit} notifications`);
-    }
-    if (input.kind === 'EMAIL' && input.monitorAlerts) {
-      throw new BadRequestException(NO_EMAIL_ALERTS);
     }
     const data: Prisma.CloudNotifyChannelUncheckedCreateInput = {
       projectId: project.id,
