@@ -13,6 +13,7 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { DeployBadgeFacts } from './cloud-badge.js';
 
 export type MembershipRow = CloudMember & { team: CloudTeam };
 export type MemberRow = CloudMember & { user: { id: string; name: string; email: string } };
@@ -371,6 +372,27 @@ export class CloudRepository {
 
   findProjectBySlug(slug: string): Promise<{ id: string } | null> {
     return this.prisma.cloudProject.findFirst({ where: { slug }, select: { id: true } });
+  }
+
+  /**
+   * What a project's README badge needs: when its production deployment was made and its latest
+   * production build that wasn't canceled. Null for a deleted or suspended project.
+   */
+  async findBadgeFacts(slug: string): Promise<DeployBadgeFacts | null> {
+    const row = await this.prisma.cloudProject.findFirst({
+      where: { slug, deletedAt: null, suspendedAt: null },
+      select: {
+        production: { select: { createdAt: true } },
+        builds: {
+          where: { target: 'PRODUCTION', status: { not: 'CANCELED' } },
+          orderBy: { queuedAt: 'desc' },
+          take: 1,
+          select: { status: true, queuedAt: true },
+        },
+      },
+    });
+    if (!row) return null;
+    return { productionAt: row.production?.createdAt ?? null, latestBuild: row.builds[0] ?? null };
   }
 
   async findProjectByDomain(name: string): Promise<{ id: string } | null> {
