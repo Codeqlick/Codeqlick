@@ -15,6 +15,8 @@ export type PostArticleContent = {
   coverImageUrl: string | null;
   /** Null for a draft that was never published: the date line is left out. */
   publishedAt: string | null;
+  /** Left out by the admin preview, which has no API summary. */
+  readingMinutes?: number;
   /** Linked to the blog filtered by each; the admin preview has none. */
   tags?: PublicTag[];
 };
@@ -36,11 +38,15 @@ export async function PostArticle({
     <article className={`wrap ${styles.page} ${styles.narrow}`}>
       <div className={styles.progress} aria-hidden="true" />
       {children}
-      {post.publishedAt ? (
+      {post.publishedAt || post.readingMinutes ? (
         <p className={styles.meta}>
-          <time dateTime={post.publishedAt}>
-            {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
-          </time>
+          {post.publishedAt ? (
+            <time dateTime={post.publishedAt}>
+              {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
+            </time>
+          ) : null}
+          {post.publishedAt && post.readingMinutes ? ' · ' : null}
+          {post.readingMinutes ? t('readingTime', { minutes: post.readingMinutes }) : null}
         </p>
       ) : null}
       <h1 className={styles.title}>{post.title}</h1>
