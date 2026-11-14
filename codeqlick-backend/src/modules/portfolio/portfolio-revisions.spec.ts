@@ -35,6 +35,7 @@ function item(extra: Partial<PortfolioWithTranslations> = {}): PortfolioWithTran
         testimonialRole: null,
       },
     ],
+    slugRedirects: [],
     ...extra,
   } as PortfolioWithTranslations;
 }

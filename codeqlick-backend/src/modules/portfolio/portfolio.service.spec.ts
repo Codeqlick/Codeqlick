@@ -87,7 +87,7 @@ describe('PortfolioService old slugs', () => {
 
     const updated = await service.update(actor, 'i1', { slug: 'shop-relaunch' });
 
-    expect(repository.update).toHaveBeenCalledWith('i1', { slug: 'shop-relaunch' });
+    expect(repository.update).toHaveBeenCalledWith('i1', { slug: 'shop-relaunch' }, actor.id);
     expect(updated.oldSlugs).toEqual(['shop-redesign']);
   });
 });

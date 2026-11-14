@@ -34,7 +34,11 @@ function setup() {
     consume: vi.fn(async () => true),
   };
   const cloud = {
-    membership: vi.fn(async () => ({ teamId: 'team-1' })),
+    membership: vi.fn(async () => ({
+      teamId: 'team-1',
+      team: { requireTwoFactor: false },
+      user: { totpEnabledAt: null },
+    })),
     activeUser: vi.fn(async () => ({ id: 'user-1', name: 'Dev', email: 'dev@example.com' })),
     event: vi.fn(async () => undefined),
   };

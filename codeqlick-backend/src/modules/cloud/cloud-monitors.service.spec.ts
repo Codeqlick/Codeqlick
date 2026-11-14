@@ -5,6 +5,8 @@ import type { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import type { CloudMonitorsRepository, MonitorWithTeam } from './cloud-monitors.repository.js';
 import { CloudMonitorsService, keywordError } from './cloud-monitors.service.js';
+import type { CloudNotificationsService } from './cloud-notifications.service.js';
+import type { CloudStatusNoticesRepository } from './cloud-status-notices.repository.js';
 import type { CloudTeamsService } from './cloud-teams.service.js';
 import { createMonitorSchema, updateMonitorSchema } from './cloud.schemas.js';
 
@@ -111,11 +113,17 @@ describe('Cloud monitors: text on the page', () => {
       cloudUrl: 'https://cloud.codeqlick.com',
       siteUrl: 'https://codeqlick.com',
     } as unknown as AppConfigService;
+    const notices = {
+      inMaintenance: vi.fn().mockResolvedValue(false),
+      forgetMonitor: vi.fn().mockResolvedValue(undefined),
+    };
     service = new CloudMonitorsService(
       repository as unknown as CloudMonitorsRepository,
+      notices as unknown as CloudStatusNoticesRepository,
       teams as unknown as CloudTeamsService,
       { send: vi.fn().mockResolvedValue(undefined) } as unknown as MailService,
       config,
+      { monitorAlert: vi.fn() } as unknown as CloudNotificationsService,
     );
   });
 

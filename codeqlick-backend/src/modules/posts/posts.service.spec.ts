@@ -205,7 +205,7 @@ describe('PostsService', () => {
 
       const updated = await service.update(actor, 'p1', { slug: 'hello-again' });
 
-      expect(repository.update).toHaveBeenCalledWith('p1', { slug: 'hello-again' });
+      expect(repository.update).toHaveBeenCalledWith('p1', { slug: 'hello-again' }, actor.id);
       expect(updated.slug).toBe('hello-again');
       expect(updated.oldSlugs).toEqual(['hello-world']);
     });

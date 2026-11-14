@@ -28,6 +28,7 @@ describe('PostsRepository revisions', () => {
   let tx: {
     post: { findUniqueOrThrow: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
     postTag: { deleteMany: ReturnType<typeof vi.fn>; createMany: ReturnType<typeof vi.fn> };
+    postSlugRedirect: { deleteMany: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
     postTranslation: {
       deleteMany: ReturnType<typeof vi.fn>;
       createMany: ReturnType<typeof vi.fn>;
@@ -44,6 +45,7 @@ describe('PostsRepository revisions', () => {
     tx = {
       post: { findUniqueOrThrow: vi.fn().mockResolvedValue(row()), update: vi.fn() },
       postTag: { deleteMany: vi.fn(), createMany: vi.fn() },
+      postSlugRedirect: { deleteMany: vi.fn(), upsert: vi.fn() },
       postTranslation: { deleteMany: vi.fn(), createMany: vi.fn() },
       postRevision: {
         create: vi.fn(),

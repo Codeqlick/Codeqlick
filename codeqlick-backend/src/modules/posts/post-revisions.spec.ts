@@ -22,6 +22,7 @@ function post(extra: Partial<PostWithTranslations> = {}): PostWithTranslations {
     updatedAt: at,
     translations: [{ locale: 'ES', title: 'Hola', excerpt: 'Hola', content: 'Cuerpo' }],
     tags: [{ tag: { id: 't1' } }],
+    slugRedirects: [],
     ...extra,
   } as PostWithTranslations;
 }
