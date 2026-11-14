@@ -4,7 +4,7 @@
   "description": "Deploy static sites to Codeqlick Cloud from your terminal or CI",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://cloud.codeqlick.com/en/docs",
+  "homepage": "https://docs.codeqlick.com",
   "keywords": [
     "codeqlick",
     "deploy",

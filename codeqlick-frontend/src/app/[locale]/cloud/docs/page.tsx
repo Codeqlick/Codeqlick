@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Markdown } from '@/components/markdown/Markdown';
 import { cloudDocs } from '@/content/cloud-docs';
 import { resolveLocale } from '@/i18n/locale';
+import { cloudDocsUrl } from '@/lib/cloud-docs-url';
 import { env } from '@/lib/env';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import styles from '../cloud.module.css';
@@ -23,6 +25,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /** Codeqlick Cloud's documentation: getting started, the CLI, deployments, domains, CI, API. */
 export default async function CloudDocsPage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
+  // With the public documentation site set up, this page is a temporary (307) redirect to it.
+  if (env.CLOUD_DOCS_URL) redirect(cloudDocsUrl(locale));
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   return (

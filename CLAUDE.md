@@ -16,6 +16,7 @@ This repo holds the whole platform:
 | `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook); `deploy/sites/` publishes static client sites | Deployed |
 | `codeqlick-cli/` | The `codeqlick` command of Codeqlick Cloud (architecture 4.13): sign-in, projects, deployments and domains, zero dependencies, published as `@codeqlick/cli` (tag `cli-v<version>` publishes it from CI) | Published (0.1.0) |
 | `codeqlick-builder/` | The build agent of Codeqlick Cloud (architecture 8.4): claims builds from the API, runs them in throwaway Docker containers sandboxed by gVisor (for now on the production VPS, behind a firewall that allows only the internet) and uploads the output; setup in `deploy/builder/` | Ready (GitHub App configured; the agent is installed with `deploy/builder/setup-builder.sh`) |
+| `codeqlick-docs/` | Cloud's public documentation, docs.codeqlick.com (architecture 4.13): Astro static site, EN/ES, built and hosted by Cloud itself | Ready (the CI workflow `docs.yml` checks it); live once the owner creates the Cloud project and the domain (`deploy/README.md`) |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
 | `tools/` | Scripts for client projects' repositories (architecture 8.1): `codeqlick-draft.sh` sends a work summary as a draft update, `codeqlick-tasks.sh` reads and closes the project's tasks, `codeqlick-brief.sh` prints the client's brief | Ready |
 
