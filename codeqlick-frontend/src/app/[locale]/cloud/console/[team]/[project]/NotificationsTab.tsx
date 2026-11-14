@@ -10,8 +10,13 @@ import { TokenReveal } from '@/components/cloud/TokenReveal';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
-import { listCloudMembers, listCloudNotifications, type CloudNotifyChannel } from '@/lib/api/cloud';
-import { formatWhen } from '@/lib/cloud';
+import {
+  listCloudForms,
+  listCloudMembers,
+  listCloudNotifications,
+  type CloudNotifyChannel,
+} from '@/lib/api/cloud';
+import { formatWhen, notifiedFormNames } from '@/lib/cloud';
 import {
   createNotifyAction,
   deleteNotifyAction,
@@ -29,13 +34,22 @@ type Props = {
   admin: boolean;
 };
 
-/** A project's build notifications (architecture 4.13 "Build notifications", decision 43). */
+/**
+ * A project's notifications and monitor alerts (architecture 4.13, decisions 43 and 63 and 64): builds,
+ * and form submissions for Slack, Discord and webhooks.
+ */
 export async function NotificationsTab(props: Props) {
   const t = await getTranslations({ locale: props.locale, namespace: 'Cloud' });
   const channels = await listCloudNotifications(props.projectId)
     .then((result) => result.items)
     .catch(() => null);
   if (channels === null) return <p className={styles.muted}>{t('common.loadError')}</p>;
+  // null: the forms couldn't be loaded, so the forms a channel lists are left as they are.
+  const loadedForms = await listCloudForms(props.projectId)
+    .then((result) => result.items)
+    .catch(() => null);
+  const forms = loadedForms ?? [];
+  const formOptions = forms.map((form) => ({ value: form.id, label: form.name }));
   const members = props.admin
     ? await listCloudMembers(props.teamSlug)
         .then((result) => result.items)
@@ -54,14 +68,49 @@ export async function NotificationsTab(props: Props) {
       <input type="hidden" name="path" value={props.path} />
     </>
   );
+  const formEvents = (channel: CloudNotifyChannel) => {
+    if (channel.kind === 'EMAIL' || !channel.formSubmitted) return null;
+    const listed = notifiedFormNames(channel.formIds, forms);
+    return listed ? t('notify.formsSome', { forms: listed.join(', ') }) : t('notify.formsAll');
+  };
   const events = (channel: CloudNotifyChannel) =>
     [
       channel.buildFailed ? t('notify.failed') : null,
       channel.buildSucceeded ? t('notify.succeeded') : null,
       channel.previews ? t('notify.withPreviews') : t('notify.productionOnly'),
+      formEvents(channel),
+      channel.monitorAlerts ? t('notify.monitors') : null,
     ]
       .filter(Boolean)
       .join(' · ');
+  /** The form submissions switch, its privacy hint and (with forms) which forms. */
+  const formFields = (idPrefix: string | undefined, channel?: CloudNotifyChannel) => (
+    <>
+      <FormCheckbox
+        id={idPrefix ? `${idPrefix}-formSubmitted` : undefined}
+        name="formSubmitted"
+        label={channel ? t('notify.onForms') : t('notify.onFormsNew')}
+        hint={t('notify.formsPrivacy')}
+        defaultChecked={channel?.formSubmitted ?? false}
+      />
+      {loadedForms === null ? (
+        <>
+          <input type="hidden" name="formsUnknown" value="on" />
+          <p className={styles.small}>
+            {channel ? t('notify.formsLoadError') : t('notify.formsLoadErrorNew')}
+          </p>
+        </>
+      ) : formOptions.length > 0 ? (
+        <FormCheckboxGroup
+          idPrefix={idPrefix ? `${idPrefix}-forms` : undefined}
+          name="forms"
+          legend={t('notify.formsWhich')}
+          options={formOptions}
+          defaultValues={channel?.formIds ?? []}
+        />
+      ) : null}
+    </>
+  );
 
   return (
     <section className={styles.landing} aria-labelledby="notify-title">
@@ -109,12 +158,29 @@ export async function NotificationsTab(props: Props) {
                     props.path,
                     props.projectId,
                     channel.id,
+                    'build',
                   )}
                 >
                   <SubmitButton size="sm" variant="outline" pendingLabel={t('notify.testing')}>
                     {t('notify.test')}
                   </SubmitButton>
                 </ActionForm>
+                {channel.kind !== 'EMAIL' && channel.formSubmitted ? (
+                  <ActionForm
+                    action={testNotifyAction.bind(
+                      null,
+                      props.locale,
+                      props.path,
+                      props.projectId,
+                      channel.id,
+                      'form',
+                    )}
+                  >
+                    <SubmitButton size="sm" variant="outline" pendingLabel={t('notify.testing')}>
+                      {t('notify.testForm')}
+                    </SubmitButton>
+                  </ActionForm>
+                ) : null}
                 <form action={toggleNotifyAction}>
                   {hidden(channel)}
                   <input type="hidden" name="enabled" value={channel.enabled ? 'off' : 'on'} />
@@ -187,6 +253,16 @@ export async function NotificationsTab(props: Props) {
                     label={t('notify.onPreviews')}
                     defaultChecked={channel.previews}
                   />
+                  {channel.kind === 'EMAIL' ? null : formFields(channel.id, channel)}
+                  {channel.kind === 'EMAIL' ? null : (
+                    <FormCheckbox
+                      id={`${channel.id}-monitors`}
+                      name="monitorAlerts"
+                      label={t('notify.onMonitors')}
+                      hint={t('notify.onMonitorsHint')}
+                      defaultChecked={channel.monitorAlerts}
+                    />
+                  )}
                   <div className={styles.actions}>
                     <SubmitButton size="sm" pendingLabel={t('notify.saving')}>
                       {t('notify.save')}
@@ -241,6 +317,12 @@ export async function NotificationsTab(props: Props) {
             <FormCheckbox name="buildFailed" label={t('notify.onFailed')} defaultChecked />
             <FormCheckbox name="buildSucceeded" label={t('notify.onSucceeded')} />
             <FormCheckbox name="previews" label={t('notify.onPreviews')} />
+            {formFields(undefined)}
+            <FormCheckbox
+              name="monitorAlerts"
+              label={t('notify.onMonitorsNew')}
+              hint={t('notify.onMonitorsHint')}
+            />
             <div className={styles.actions}>
               <SubmitButton pendingLabel={t('notify.creating')}>{t('notify.create')}</SubmitButton>
             </div>

@@ -228,6 +228,14 @@
   margin: 0;
 }
 
+.points {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-slate);
+}
+
 .mono {
   font-family: var(--font-family-mono);
   font-size: 0.9rem;
@@ -421,6 +429,28 @@
   gap: var(--space-4);
 }
 
+/* The Events page's GET filters: period and action (tops aligned, the action has a hint), then
+   the buttons on their own line. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.filters > div {
+  min-width: 11rem;
+}
+
+.filters > div:has(input[name='action']) {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.filters > .actions {
+  flex-basis: 100%;
+}
+
 .spacedTabs {
   margin: var(--space-5) 0 0;
 }
@@ -535,6 +565,27 @@
   background: var(--color-slate);
 }
 
+.overall_maintenance {
+  background: var(--color-info);
+}
+
+/* Status page notices (architecture 4.13, Notices): plain text kept with its line breaks. */
+
+.noticeBody {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.timeline {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0 0 0 var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  border-left: 2px solid var(--color-line-strong);
+}
+
 .incidentList {
   margin: 0;
   padding-left: var(--space-5);
@@ -628,4 +679,72 @@
 
 .chartFigure {
   margin: 0;
+}
+
+/* Password protection: the padlock next to an address that asks for the project's password. */
+.lock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-fuchsia-dark);
+  vertical-align: middle;
+}
+
+.lock svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.address {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* Usage banner of the team pages */
+.teamShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+}
+
+.usageBanner {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-lg);
+}
+
+.usageWarning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.usageError {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.usageBannerTitle {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.1rem;
+}
+
+.usageBannerList {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.usageBannerLink {
+  margin: 0;
+  font-weight: 600;
+}
+
+.usageBannerLink a {
+  color: inherit;
+  text-decoration: underline;
 }

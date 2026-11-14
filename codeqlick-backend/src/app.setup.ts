@@ -3,11 +3,12 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js';
+import { largeJsonBody } from './common/large-json-body.js';
 import { AppConfigService } from './config/app-config.service.js';
 import { ErrorsService } from './modules/errors/errors.service.js';
 
-/** Routes any page may call from a browser (Cloud's forms, heartbeats, status, analytics and public keys, 4.13). */
-export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status|analytics|kv)\//;
+/** Routes any page may call from a browser (Cloud's forms, heartbeats, status, analytics, public keys and the `codeqlick.json` schema, 4.13). */
+export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status|analytics|kv|schema)\//;
 
 /**
  * Cross-cutting HTTP setup shared by main.ts and the e2e tests, so tests exercise exactly
@@ -31,6 +32,9 @@ export function configureApp(app: NestExpressApplication): void {
   });
   // Cloud's analytics tracker posts its events as text/plain JSON (no CORS preflight).
   app.useBodyParser('text', { limit: '4kb' });
+  // A `.env` import may hold 256 KB (more once escaped in JSON); every other JSON body keeps the
+  // global parser's 100 KB. Registered before that parser, which Nest adds on init.
+  app.use(largeJsonBody(/^\/v1\/cloud\/projects\/[^/]+\/env\/import$/, 1024 * 1024));
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(new StandardSchemaValidationPipe());
   app.useGlobalFilters(new ProblemDetailsFilter(app.get(ErrorsService, { strict: false })));

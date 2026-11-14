@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { toContentRevision, type ContentRevision } from '../../common/content-revisions.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -13,17 +14,20 @@ import {
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PortfolioRepository,
+  type AdminPortfolioRecord,
   type PortfolioTranslationData,
   type PortfolioUpdateData,
   type PortfolioWithTranslations,
 } from './portfolio.repository.js';
-import { SERVICE_KEYS } from './portfolio.schemas.js';
-import type {
-  CreatePortfolioInput,
-  ListAdminPortfolioQuery,
-  ListPublicPortfolioQuery,
-  PortfolioTranslationInput,
-  UpdatePortfolioInput,
+import type { PortfolioSnapshot } from './portfolio-snapshot.js';
+import {
+  SERVICE_KEYS,
+  portfolioSnapshotSchema,
+  type CreatePortfolioInput,
+  type ListAdminPortfolioQuery,
+  type ListPublicPortfolioQuery,
+  type PortfolioTranslationInput,
+  type UpdatePortfolioInput,
 } from './portfolio.schemas.js';
 
 type ServiceKey = (typeof SERVICE_KEYS)[number];
@@ -71,7 +75,11 @@ export interface AdminPortfolioItem {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this case study (decision 71), newest first. */
+  oldSlugs: string[];
 }
+
+export type PortfolioRevisionDetail = ContentRevision & { snapshot: PortfolioSnapshot };
 
 function toTranslationData(t: PortfolioTranslationInput): PortfolioTranslationData {
   return {
@@ -97,7 +105,7 @@ function toTestimonial(
   };
 }
 
-function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
+function toAdminItem(item: AdminPortfolioRecord): AdminPortfolioItem {
   return {
     id: item.id,
     slug: item.slug,
@@ -120,6 +128,7 @@ function toAdminItem(item: PortfolioWithTranslations): AdminPortfolioItem {
     publishedAt: item.publishedAt?.toISOString() ?? null,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
+    oldSlugs: item.slugRedirects.map((redirect) => redirect.slug),
   };
 }
 
@@ -187,6 +196,13 @@ export class PortfolioService {
     };
   }
 
+  /** The current slug of the live case study an old slug redirects to (decision 71). */
+  async redirect(slug: string): Promise<{ slug: string }> {
+    const current = await this.repository.findLiveSlugByRedirect(slug);
+    if (!current) throw new NotFoundException('Redirect not found');
+    return { slug: current };
+  }
+
   // ---- Admin --------------------------------------------------------------------------
 
   async listAll(query: ListAdminPortfolioQuery): Promise<Paginated<AdminPortfolioItem>> {
@@ -244,11 +260,58 @@ export class PortfolioService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
-    const updated = toAdminItem(await this.repository.update(id, data));
+    const updated = toAdminItem(await this.repository.update(id, data, actor.id));
     await this.activity.record(actor, {
       action: `portfolio.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
+    });
+    return updated;
+  }
+
+  // ---- Revisions (decision 72) --------------------------------------------------------
+
+  async revisions(id: string): Promise<ContentRevision[]> {
+    await this.findOrThrow(id);
+    return (await this.repository.revisions(id)).map(toContentRevision);
+  }
+
+  async revision(id: string, revisionId: string): Promise<PortfolioRevisionDetail> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    return {
+      ...toContentRevision(revision),
+      snapshot: revision.snapshot as unknown as PortfolioSnapshot,
+    };
+  }
+
+  /**
+   * Puts a revision's content back as a normal update, so the current content becomes a
+   * revision itself. Status, publication date, slug and order stay.
+   */
+  async restore(actor: AuthUser, id: string, revisionId: string): Promise<AdminPortfolioItem> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    const parsed = portfolioSnapshotSchema.safeParse(revision.snapshot);
+    if (!parsed.success) throw new ConflictException('That revision no longer fits the schema');
+    const snapshot = parsed.data;
+    const data: PortfolioUpdateData = {
+      coverImageUrl: snapshot.coverImageUrl,
+      clientName: snapshot.clientName,
+      projectUrl: snapshot.projectUrl,
+      technologies: snapshot.technologies,
+      services: snapshot.services,
+      testimonialAuthor: snapshot.testimonialAuthor,
+      translations: snapshot.translations.map(toTranslationData),
+    };
+    const updated = toAdminItem(await this.repository.update(id, data, actor.id));
+    await this.activity.record(actor, {
+      action: 'portfolio.restored',
+      targetId: id,
+      targetLabel: contentLabel(updated),
+      details: { revisionCreatedAt: revision.createdAt.toISOString() },
     });
     return updated;
   }
@@ -263,7 +326,7 @@ export class PortfolioService {
     });
   }
 
-  private async findOrThrow(id: string): Promise<PortfolioWithTranslations> {
+  private async findOrThrow(id: string): Promise<AdminPortfolioRecord> {
     const item = await this.repository.findById(id);
     if (!item) throw new NotFoundException('Portfolio item not found');
     return item;

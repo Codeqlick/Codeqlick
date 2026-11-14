@@ -1,14 +1,59 @@
 import { openAsBlob } from 'node:fs';
 import { VERSION } from './version.ts';
 
-/** A failed API call: the problem details' text and status. */
+/** A field's (or a file line's) problem in a refused request. */
+export interface ApiFieldError {
+  path: string;
+  message: string;
+  line?: number;
+  key?: string;
+}
+
+/** A failed API call: the problem details' text and status, and its field errors. */
 export class ApiError extends Error {
   readonly status: number;
+  /** The per-field problems of a 400 (`codeqlick.json`: the exact path of each). */
+  readonly errors: ApiFieldError[];
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, errors: ApiFieldError[] = []) {
     super(message);
     this.status = status;
+    this.errors = errors;
   }
+}
+
+/** One problem of a `codeqlick.json`: where it is and what is wrong. */
+export interface ConfigError {
+  path: string;
+  message: string;
+}
+
+/** The answer of `POST /cloud/config/check` (always 200). */
+export type ConfigCheck =
+  | {
+      ok: true;
+      summary: {
+        redirects: number;
+        rewrites: number;
+        headers: number;
+        cleanUrls: boolean;
+        trailingSlash: boolean | null;
+      };
+    }
+  | { ok: false; errors: ConfigError[] };
+
+/** One line per problem, `path: message`, indented. */
+export function formatConfigErrors(errors: ConfigError[]): string[] {
+  return errors.map((e) => `  ${e.path ? `${e.path}: ` : ''}${e.message}`);
+}
+
+/** The text to print for a failed call: the reason, then the problems with their paths. */
+export function formatApiError(error: ApiError): string {
+  if (error.errors.length === 0) return error.message;
+  const lines = formatConfigErrors(error.errors);
+  // Without a `detail` the message is already the joined problems: don't say them twice.
+  const joined = error.errors.map((e) => `${e.path}: ${e.message}`).join('; ');
+  return error.message === joined ? lines.join('\n') : [error.message, ...lines].join('\n');
 }
 
 export interface Team {
@@ -42,6 +87,28 @@ export interface Deployment {
   createdAt: string;
 }
 
+export interface DeploymentFile {
+  path: string;
+  size: number;
+}
+
+export interface DeploymentFiles {
+  items: DeploymentFile[];
+  count: number;
+  totalBytes: number;
+}
+
+export interface DeploymentComparison {
+  deploymentId: string;
+  withId: string;
+  added: DeploymentFile[];
+  removed: DeploymentFile[];
+  changed: Array<DeploymentFile & { previousSize: number }>;
+  unchanged: number;
+  totalBytes: number;
+  withTotalBytes: number;
+}
+
 export interface Project {
   id: string;
   slug: string;
@@ -51,6 +118,26 @@ export interface Project {
   production: Deployment | null;
   domains: Array<{ name: string; state: string }>;
   suspended: { at: string; reason: string } | null;
+  protection: ProtectionMode;
+}
+
+/** Which addresses ask visitors for a password: none, the deployments', or every one. */
+export type ProtectionMode = 'OFF' | 'PREVIEWS' | 'ALL';
+export type ProtectionDays = 1 | 7 | 30;
+
+export interface Protection {
+  mode: ProtectionMode;
+  days: ProtectionDays;
+  hasPassword: boolean;
+  updatedAt: string | null;
+}
+
+export interface ProtectionInput {
+  mode: ProtectionMode;
+  password?: string;
+  days?: ProtectionDays;
+  /** Set after a rollback: builds from Git deploy as previews until it's lifted. */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
 }
 
 export interface Domain {
@@ -87,6 +174,7 @@ export interface GitSettings {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  previewChecks?: boolean;
 }
 
 export interface GitSettingsInput {
@@ -124,12 +212,29 @@ export interface EnvVar {
   updatedAt: string;
 }
 
+export interface EnvImportInput {
+  /** The `.env` file's text (at most 256 KB). */
+  content: string;
+  production: boolean;
+  preview: boolean;
+  /** Replace the variables that already exist (otherwise they're skipped). */
+  overwrite: boolean;
+}
+
+/** What an import did, by name (values never come back). */
+export interface EnvImportResult {
+  created: string[];
+  updated: string[];
+  skipped: string[];
+}
+
 export type BuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
 
 export interface Build {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook' | 'schedule';
+  hookName: string | null;
   target: 'preview' | 'production';
   branch: string;
   commit: string;
@@ -139,10 +244,23 @@ export interface Build {
   status: BuildStatus;
   error: string | null;
   deploymentId: string | null;
+  noCache: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
   durationMs: number | null;
+}
+
+export interface DeployHook {
+  id: string;
+  name: string;
+  branch: string;
+  prefix: string;
+  lastCalledAt: string | null;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  /** Only in the answer to creating one: the full URL, shown once. */
+  url?: string;
 }
 
 export interface BuildDetail extends Build {
@@ -164,6 +282,21 @@ export interface DeviceStart {
 }
 
 const USER_AGENT = `codeqlick-cli/${VERSION}`;
+
+/** The API's problem details (architecture 4.4) as an ApiError. */
+function problemError(status: number, data: unknown): ApiError {
+  const problem = (data ?? {}) as {
+    detail?: string;
+    title?: string;
+    errors?: ApiFieldError[];
+  };
+  const fields = problem.errors?.map((e) => `${e.path}: ${e.message}`).join('; ');
+  return new ApiError(
+    status,
+    problem.detail ?? fields ?? problem.title ?? `HTTP ${status}`,
+    Array.isArray(problem.errors) ? problem.errors : [],
+  );
+}
 
 /** The Cloud API (`/v1/cloud`), with the token when there is one. */
 export type AnalyticsPeriod = '24h' | '7d' | '30d' | '90d' | '365d';
@@ -211,11 +344,7 @@ export class Api {
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-      'User-Agent': USER_AGENT,
-    };
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    const headers = this.headers('application/json');
     let payload: FormData | string | undefined;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) {
@@ -236,19 +365,36 @@ export class Api {
     } catch {
       // Not JSON.
     }
-    if (!response.ok) {
-      const problem = (data ?? {}) as {
-        detail?: string;
-        title?: string;
-        errors?: Array<{ path: string; message: string }>;
-      };
-      const fields = problem.errors?.map((e) => `${e.path}: ${e.message}`).join('; ');
-      throw new ApiError(
-        response.status,
-        problem.detail ?? fields ?? problem.title ?? `HTTP ${response.status}`,
-      );
-    }
+    if (!response.ok) throw problemError(response.status, data);
     return data as T;
+  }
+
+  private headers(accept: string): Record<string, string> {
+    const headers: Record<string, string> = { Accept: accept, 'User-Agent': USER_AGENT };
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    return headers;
+  }
+
+  /** A deployment's files as a `tar.gz` stream (built by the API while it is read). */
+  async archive(project: string, deployment: string): Promise<ReadableStream<Uint8Array>> {
+    const url = `${this.base}/cloud/projects/${project}/deployments/${deployment}/archive`;
+    let response: Response;
+    try {
+      response = await fetch(url, { headers: this.headers('application/gzip, application/json') });
+    } catch (error) {
+      throw new ApiError(0, `Can't reach ${this.base} (${(error as Error).message})`);
+    }
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      let data: unknown = undefined;
+      try {
+        data = text ? JSON.parse(text) : undefined;
+      } catch {
+        // Not JSON.
+      }
+      throw problemError(response.status, data);
+    }
+    return response.body;
   }
 
   me = () => this.request<Me>('GET', '/cloud/me');
@@ -269,6 +415,18 @@ export class Api {
     );
   promote = (project: string, deployment: string) =>
     this.request<Project>('POST', `/cloud/projects/${project}/deployments/${deployment}/promote`);
+  unlockProduction = (project: string) =>
+    this.request<Project>('POST', `/cloud/projects/${project}/production/unlock`);
+  files = (project: string, deployment: string) =>
+    this.request<DeploymentFiles>(
+      'GET',
+      `/cloud/projects/${project}/deployments/${deployment}/files`,
+    );
+  compare = (project: string, deployment: string, other: string) =>
+    this.request<DeploymentComparison>(
+      'GET',
+      `/cloud/projects/${project}/deployments/${deployment}/compare?with=${encodeURIComponent(other)}`,
+    );
   domains = (project: string) =>
     this.request<{ items: Domain[] }>('GET', `/cloud/projects/${project}/domains`).then(
       (r) => r.items,
@@ -279,6 +437,10 @@ export class Api {
     this.request<Domain>('POST', `/cloud/projects/${project}/domains/${id}/check`);
   removeDomain = (project: string, id: string) =>
     this.request<void>('DELETE', `/cloud/projects/${project}/domains/${id}`);
+  protection = (project: string) =>
+    this.request<Protection>('GET', `/cloud/projects/${project}/protection`);
+  setProtection = (project: string, settings: ProtectionInput) =>
+    this.request<Protection>('PUT', `/cloud/projects/${project}/protection`, settings);
   audit = (teamSlug: string, url: string, locale: string) =>
     this.request<AuditReport>('POST', '/cloud/audits', { teamSlug, url, locale });
   teamGithub = (team: string) =>
@@ -302,6 +464,8 @@ export class Api {
     this.request<{ items: EnvVar[] }>('PUT', `/cloud/projects/${project}/env`, variable).then(
       (r) => r.items,
     );
+  importEnv = (project: string, input: EnvImportInput) =>
+    this.request<EnvImportResult>('POST', `/cloud/projects/${project}/env/import`, input);
   deleteEnv = (project: string, key: string) =>
     this.request<void>('DELETE', `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}`);
   builds = (project: string, pageSize = 20) =>
@@ -311,10 +475,24 @@ export class Api {
     ).then((r) => r.items);
   build = (project: string, number: number, after = 0) =>
     this.request<BuildDetail>('GET', `/cloud/projects/${project}/builds/${number}?after=${after}`);
-  startBuild = (project: string, branch?: string) =>
-    this.request<Build>('POST', `/cloud/projects/${project}/builds`, branch ? { branch } : {});
+  startBuild = (project: string, branch?: string, noCache?: boolean) =>
+    this.request<Build>('POST', `/cloud/projects/${project}/builds`, {
+      ...(branch ? { branch } : {}),
+      ...(noCache ? { noCache: true } : {}),
+    });
   cancelBuild = (project: string, number: number) =>
     this.request<Build>('POST', `/cloud/projects/${project}/builds/${number}/cancel`);
+  hooks = (project: string) =>
+    this.request<{ items: DeployHook[] }>('GET', `/cloud/projects/${project}/hooks`).then(
+      (r) => r.items,
+    );
+  createHook = (project: string, name: string, branch?: string) =>
+    this.request<DeployHook>('POST', `/cloud/projects/${project}/hooks`, {
+      name,
+      ...(branch ? { branch } : {}),
+    });
+  deleteHook = (project: string, id: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/hooks/${encodeURIComponent(id)}`);
   analytics = (project: string, period: AnalyticsPeriod) =>
     this.request<Analytics>('GET', `/cloud/projects/${project}/analytics?period=${period}`);
   kvList = (project: string, prefix?: string, cursor?: string) => {
@@ -338,6 +516,13 @@ export class Api {
       `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
       { by },
     );
+  checkConfig = (teamSlug: string, config: string) => {
+    // Multipart text fields (no file part), like the deployment upload.
+    const form = new FormData();
+    form.set('teamSlug', teamSlug);
+    form.set('config', config);
+    return this.request<ConfigCheck>('POST', '/cloud/config/check', form);
+  };
   startDevice = (clientName: string, locale: string) =>
     this.request<DeviceStart>('POST', `/cloud/cli/device?locale=${locale}`, { clientName });
   pollDevice = (deviceCode: string) =>
@@ -351,6 +536,8 @@ export class Api {
       message?: string;
       commit?: string;
       branch?: string;
+      /** The text of the folder's `codeqlick.json` (redirects, rewrites, headers). */
+      config?: string;
     },
   ): Promise<Deployment> {
     const form = new FormData();
@@ -358,6 +545,7 @@ export class Api {
     if (fields.message) form.set('message', fields.message.slice(0, 200));
     if (fields.commit) form.set('commit', fields.commit);
     if (fields.branch) form.set('branch', fields.branch.slice(0, 100));
+    if (fields.config !== undefined) form.set('config', fields.config);
     form.set('bundle', await openAsBlob(bundle, { type: 'application/gzip' }), 'site.tar.gz');
     return this.request<Deployment>('POST', `/cloud/projects/${project}/deployments`, form);
   }

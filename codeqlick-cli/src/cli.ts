@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { execFile, spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
-import { mkdtemp, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { hostname, tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
@@ -12,22 +12,38 @@ import {
   ApiError,
   type AnalyticsPeriod,
   type AnalyticsRow,
+  type ApiFieldError,
   type Build,
+  type ConfigCheck,
   type BuildStatus,
+  type DeployHook,
   type Deployment,
+  type EnvImportResult,
+  type DeploymentComparison,
+  type DeploymentFiles,
   type GitSettings,
   type Project,
+  type Protection,
+  type ProtectionDays,
+  type ProtectionMode,
+  formatApiError,
+  formatConfigErrors,
 } from './api.ts';
 import {
   DEFAULT_API,
+  ProjectFileError,
   configPath,
   forgetConfig,
+  hasRules,
+  parseProjectText,
   readConfig,
   readProjectFile,
+  readProjectText,
   saveConfig,
   writeProjectFile,
   PROJECT_FILE,
 } from './config.ts';
+import { archivePath, downloadFailure, exists, saveArchive } from './download.ts';
 import { collect, pack } from './pack.ts';
 import { VERSION } from './version.ts';
 
@@ -55,13 +71,24 @@ Commands:
       -m, --message <text>    shown in the console
       --url-only              print only the deployment's URL (for scripts)
   deployments               The project's deployments, newest first
-  promote <id>              Publish an earlier deployment (its short id)
+  promote <id>              Publish an earlier deployment (its id or short id)
   rollback                  Publish the deployment before the current one
+  download [id]             Save a deployment's files as <project>-<id>.tar.gz (production
+                            by default); unpack it with tar -xzf
+      -o, --out <file>        where to save it
+      --force                 overwrite an existing file
+                            (this locks production: builds from Git deploy as previews)
+  unlock                    Let production builds go live again after a rollback (admins)
+  files <id>                What a deployment contains: each file's size and path
+  diff <id> [other]         Compare a deployment with production (or another deployment)
+      --json                  (files, diff, unlock) print the API's answer
   domains [add|check|rm <domain>]   The project's own domains
   audit <url>               Run the website check (speed, mobile, Google, security)
       --min-score <n>         exit 1 below this score (0-100)
       --fail-on <fail|warn>   exit 1 when a check has that result or worse
       --json                  print the report as JSON
+  config check              Check this folder's ${PROJECT_FILE} (redirects, rewrites, headers)
+      --json                  print the API's answer
   open                      Open the published site
 
 Builds from Git:
@@ -73,12 +100,20 @@ Builds from Git:
   env                       Environment variables (names only: values can't be read back)
   env add <KEY> [value]     Save one (no value: read from stdin, or asked without echo)
       --production --preview  where it applies (both when neither is given)
+  env import <file>         Add the variables of a .env file ("-" reads stdin), all or nothing
+      --production --preview  where they apply (both when neither is given)
+      --overwrite             replace the ones that exist (otherwise they're skipped)
   env rm <KEY>              Delete one
+  hooks                     Deploy hooks: secret URLs a CMS calls to rebuild a branch
+  hooks add <name> [--branch <name>]   Make one (the production branch by default); its URL is shown once
+  hooks rm <id or name>     Delete one: its URL stops working at once
   builds                    The latest builds
-  builds start [--branch <name>]   Build the branch's latest commit and follow the log
+  builds start [--branch <name>] [--no-cache]
+                            Build the branch's latest commit and follow the log;
+                            --no-cache skips the dependency cache
   builds cancel <number>    Cancel a queued or running build
   logs [number]             A build's log (the latest by default), followed while it runs
-      --json                  (git, env, builds) print the API's answer
+      --json                  (git, env, hooks, builds) print the API's answer
 
 Analytics and key-value store:
   analytics                 Visitors, page views, top pages and sources
@@ -90,6 +125,18 @@ Analytics and key-value store:
   kv rm <key>               Delete a key
   kv incr <key> [--by <n>]  Add to a counter atomically (starts at 0)
       --json                  (analytics, kv) print the API's answer
+
+Password protection:
+  protect                   Which addresses ask visitors for a password
+  protect previews|all      Ask for it on the deployments' addresses, or on every one
+      --days <1|7|30>         how long access lasts once it's entered
+                              (the password is asked without echo, or read from stdin;
+                              empty keeps the current one)
+  protect off               Every address is public again
+      --json                  (protect) print the API's answer
+
+Redirects, rewrites and headers: add them to ${PROJECT_FILE} (cleanUrls, trailingSlash,
+redirects, rewrites, headers); \`deploy\` sends them, \`config check\` validates them.
 
 Options:
   --team <slug>  --project <slug>   Override ${PROJECT_FILE} (or CODEQLICK_TEAM, CODEQLICK_PROJECT)
@@ -108,6 +155,7 @@ interface Options {
   'fail-on'?: string;
   json?: boolean;
   branch?: string;
+  'no-cache'?: boolean;
   root?: string;
   install?: string;
   build?: string;
@@ -115,9 +163,13 @@ interface Options {
   node?: string;
   production?: boolean;
   preview?: boolean;
+  overwrite?: boolean;
   period?: string;
   ttl?: string;
   by?: string;
+  days?: string;
+  out?: string;
+  force?: boolean;
 }
 
 async function context() {
@@ -257,6 +309,9 @@ async function whoami(): Promise<void> {
 
 async function init(): Promise<void> {
   const { api } = await signedIn();
+  // Fail before asking anything when the file can't be kept (it is never overwritten).
+  const existing = await readProjectText();
+  if (existing !== null && existing.trim() !== '') parseProjectText(existing);
   const me = await api.me();
   if (me.teams.length === 0)
     throw new UsageError('Create a team first at https://cloud.codeqlick.com');
@@ -306,6 +361,10 @@ async function gitInfo(): Promise<{ commit?: string; branch?: string }> {
 async function deploy(folder: string | undefined, options: Options): Promise<void> {
   const { api } = await signedIn();
   const file = await readProjectFile();
+  // The rules of the folder the command runs in (not of the deployed one); a file with only the
+  // link keys isn't sent, so it can't hide a ${PROJECT_FILE} inside the bundle.
+  const text = await readProjectText();
+  const config = text !== null && hasRules(text) ? text : undefined;
   const root = resolve(folder ?? file.dir ?? 'dist');
   if (!(await stat(root).catch(() => null))?.isDirectory()) {
     throw new UsageError(`${root} isn't a folder: build your site first, or pass the folder.`);
@@ -332,14 +391,17 @@ async function deploy(folder: string | undefined, options: Options): Promise<voi
       message: options.message,
       commit: commit && /^[0-9a-f]{4,40}$/i.test(commit) ? commit : undefined,
       branch,
+      config,
     });
     if (quiet) {
       console.log(deployment.url);
+      warnProtected(project.protection, { preview: true, production: false });
       return;
     }
     console.log(`${green('✓')} Deployment ${bold(deployment.shortId)}: ${deployment.url}`);
     if (deployment.isProduction) console.log(`${green('✓')} Published: ${bold(project.url)}`);
     else console.log(dim(`  A preview. Publish it with: codeqlick promote ${deployment.shortId}`));
+    warnProtected(project.protection, { preview: true, production: deployment.isProduction });
   } finally {
     await rm(work, { recursive: true, force: true });
   }
@@ -361,6 +423,13 @@ async function deployments(options: Options): Promise<void> {
   }
 }
 
+/** A deployment given by its id or short id, among the project's last 50. */
+function findDeployment(list: Deployment[], id: string): Deployment {
+  const found = list.find((d) => d.shortId === id || d.id === id);
+  if (!found) throw new UsageError(`No deployment "${id}" among the last 50.`);
+  return found;
+}
+
 async function promote(id: string | undefined, options: Options): Promise<void> {
   if (!id)
     throw new UsageError(
@@ -368,12 +437,11 @@ async function promote(id: string | undefined, options: Options): Promise<void> 
     );
   const { api } = await signedIn();
   const project = await target(api, options);
-  const found = (await allDeployments(api, project.id)).find(
-    (d) => d.shortId === id || d.id === id,
-  );
-  if (!found) throw new UsageError(`No deployment "${id}" among the last 50.`);
-  await api.promote(project.id, found.id);
+  const found = findDeployment(await allDeployments(api, project.id), id);
+  const updated = await api.promote(project.id, found.id);
   console.log(`${green('✓')} ${bold(found.shortId)} is published: ${project.url}`);
+  const note = lockNote(project, updated);
+  if (note) console.log(dim(note));
 }
 
 async function rollback(options: Options): Promise<void> {
@@ -384,8 +452,164 @@ async function rollback(options: Options): Promise<void> {
   const older = current === -1 ? [] : list.slice(current + 1);
   const previous = older.find((d) => d.target === 'production') ?? older[0];
   if (!previous) throw new UsageError('There is no earlier deployment to go back to.');
-  await api.promote(project.id, previous.id);
+  const updated = await api.promote(project.id, previous.id);
   console.log(`${green('✓')} Back to ${bold(previous.shortId)}: ${project.url}`);
+  const note = lockNote(project, updated);
+  if (note) console.log(dim(note));
+}
+
+/** What `rollback` and `promote` add, from the project's lock before and after the call. */
+export function lockNote(
+  before: Pick<Project, 'productionLock'>,
+  after: Pick<Project, 'productionLock'>,
+): string | null {
+  if (!after.productionLock) return null;
+  return `Production is ${before.productionLock ? 'still' : 'now'} locked: builds from Git deploy as previews until you publish with \`codeqlick deploy --prod\`, promote a newer deployment, or run \`codeqlick unlock\`.`;
+}
+
+/** What `unlock` says, from whether the project was locked before the call. */
+export function unlockMessage(wasLocked: boolean): string {
+  return wasLocked
+    ? 'Production unlocked: the next production build goes live.'
+    : "Production wasn't locked.";
+}
+
+async function unlock(options: Options): Promise<void> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  let updated: Project;
+  try {
+    updated = await api.unlockProduction(project.id);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      throw new UsageError(`Only the team's admins can unlock production of ${project.slug}.`);
+    }
+    throw error;
+  }
+  if (options.json) return console.log(JSON.stringify(updated, null, 2));
+  const wasLocked = Boolean(project.productionLock);
+  console.log(`${wasLocked ? green('✓') + ' ' : ''}${unlockMessage(wasLocked)}`);
+}
+
+async function download(id: string | undefined, options: Options): Promise<void> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  let found: Deployment | null | undefined;
+  if (id) {
+    found = (await allDeployments(api, project.id)).find((d) => d.shortId === id || d.id === id);
+    if (!found) throw new UsageError(`No deployment "${id}" among the last 50.`);
+  } else {
+    found = project.production;
+    if (!found) {
+      throw new UsageError(
+        'The project has nothing published: pass a deployment (see `codeqlick deployments`).',
+      );
+    }
+  }
+  const file = archivePath(options.out, project.slug, found.shortId);
+  if (!options.force && (await exists(file))) {
+    throw new UsageError(`${file} already exists: pass --force to overwrite it.`);
+  }
+  const body = await api.archive(project.id, found.id);
+  let size: number;
+  try {
+    size = await saveArchive(body, file);
+  } catch (error) {
+    throw downloadFailure(error, file);
+  }
+  const shown = relative(process.cwd(), file) || file;
+  console.log(`${green('✓')} ${bold(found.shortId)} saved to ${shown} (${bytes(size)})`);
+  console.log(dim(`  Unpack it with: tar -xzf ${shown}`));
+}
+
+/** `size  path` lines, sizes right-aligned, what the API left out (it lists 10,000), the total. */
+export function filesLines(listing: DeploymentFiles): string[] {
+  if (listing.items.length === 0) return ['No files.'];
+  const sizes = listing.items.map((f) => bytes(f.size));
+  const width = Math.max(...sizes.map((s) => s.length));
+  const more = listing.count - listing.items.length;
+  return [
+    ...listing.items.map((f, i) => `${sizes[i]!.padStart(width)}  ${f.path}`),
+    ...(more > 0
+      ? [
+          `… ${more.toLocaleString('en-US')} more ${more === 1 ? 'file' : 'files'} not listed (first ${listing.items.length.toLocaleString('en-US')} shown)`,
+        ]
+      : []),
+    `${listing.count.toLocaleString('en-US')} ${listing.count === 1 ? 'file' : 'files'}, ${bytes(listing.totalBytes)}`,
+  ];
+}
+
+/** `+ path`, `- path` and `~ path (old → new)` lines, grouped, then the counts. */
+export function diffLines(comparison: DeploymentComparison): string[] {
+  const { added, removed, changed, unchanged } = comparison;
+  return [
+    ...added.map((f) => `+ ${f.path}`),
+    ...removed.map((f) => `- ${f.path}`),
+    ...changed.map((f) => `~ ${f.path} (${bytes(f.previousSize)} → ${bytes(f.size)})`),
+    `${added.length} added, ${removed.length} removed, ${changed.length} changed, ${unchanged} unchanged`,
+  ];
+}
+
+/** Turns the API's 404 and 409 into messages that say what to do. */
+function filesError(error: unknown, project: Project, gone: string): never {
+  if (error instanceof ApiError && error.status === 404) throw new UsageError(gone);
+  if (error instanceof ApiError && error.status === 409) {
+    throw new UsageError(
+      `${project.slug} has nothing published to compare with: pass another deployment.`,
+    );
+  }
+  throw error;
+}
+
+async function files(id: string | undefined, options: Options): Promise<void> {
+  if (!id)
+    throw new UsageError('Which deployment? `codeqlick files <id>` (see `codeqlick deployments`).');
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const found = findDeployment(await allDeployments(api, project.id), id);
+  const listing = await api
+    .files(project.id, found.id)
+    .catch((error: unknown) =>
+      filesError(
+        error,
+        project,
+        `The files of ${found.shortId} aren't available: it was deleted, or they're gone.`,
+      ),
+    );
+  if (options.json) return console.log(JSON.stringify(listing, null, 2));
+  for (const line of filesLines(listing)) console.log(line);
+}
+
+async function diff(id: string | undefined, other: string | undefined, options: Options) {
+  if (!id)
+    throw new UsageError(
+      'Which deployment? `codeqlick diff <id> [other]` (see `codeqlick deployments`).',
+    );
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const list = await allDeployments(api, project.id);
+  const found = findDeployment(list, id);
+  const against = !other || other === 'production' ? null : findDeployment(list, other);
+  const comparison = await api
+    .compare(project.id, found.id, against?.id ?? 'production')
+    .catch((error: unknown) =>
+      filesError(
+        error,
+        project,
+        `The files of ${found.shortId} or of ${against ? against.shortId : 'the production deployment'} aren't available: one of them was deleted, or its files are gone.`,
+      ),
+    );
+  if (options.json) return console.log(JSON.stringify(comparison, null, 2));
+  const withShort =
+    against?.shortId ?? list.find((d) => d.id === comparison.withId)?.shortId ?? comparison.withId;
+  console.log(
+    dim(
+      `${found.shortId} (${bytes(comparison.totalBytes)}) against ${against ? '' : 'production, '}${withShort} (${bytes(comparison.withTotalBytes)})`,
+    ),
+  );
+  const paintLine = (line: string) =>
+    line.startsWith('+ ') ? green(line) : line.startsWith('- ') ? pink(line) : line;
+  for (const line of diffLines(comparison)) console.log(paintLine(line));
 }
 
 async function domains(
@@ -479,6 +703,42 @@ async function audit(url: string | undefined, options: Options): Promise<number>
   return failed ? 1 : 0;
 }
 
+/** `config check`: validates the folder's codeqlick.json with the API; exit 1 on any problem. */
+async function configCommand(action: string | undefined, options: Options): Promise<number> {
+  if (action !== 'check') throw new UsageError('Usage: codeqlick config check [--json]');
+  const { api } = await signedIn();
+  const text = await readProjectText();
+  if (text === null) throw new UsageError(`There's no ${PROJECT_FILE} in this folder.`);
+  const result = await api.checkConfig(await teamOf(api, options), text);
+  if (options.json) {
+    console.log(JSON.stringify(result, null, 2));
+    return result.ok ? 0 : 1;
+  }
+  console.log(configCheckText(result));
+  return result.ok ? 0 : 1;
+}
+
+/** The lines `config check` prints: the summary, or each problem with its path. */
+export function configCheckText(result: ConfigCheck): string {
+  if (!result.ok) {
+    const count = result.errors.length;
+    return [
+      `${PROJECT_FILE} has ${count} ${count === 1 ? 'problem' : 'problems'}:`,
+      ...formatConfigErrors(result.errors),
+    ].join('\n');
+  }
+  const { redirects, rewrites, headers, cleanUrls, trailingSlash } = result.summary;
+  const parts = [
+    `${redirects} ${redirects === 1 ? 'redirect' : 'redirects'}`,
+    `${rewrites} ${rewrites === 1 ? 'rewrite' : 'rewrites'}`,
+    `${headers} header ${headers === 1 ? 'rule' : 'rules'}`,
+  ];
+  if (cleanUrls === false) parts.push('cleanUrls off');
+  if (trailingSlash !== null && trailingSlash !== undefined)
+    parts.push(`trailingSlash ${trailingSlash}`);
+  return `${green('✓')} ok: ${parts.join(', ')}`;
+}
+
 async function openSite(options: Options): Promise<void> {
   const { api } = await signedIn();
   const project = await target(api, options);
@@ -509,7 +769,8 @@ function showGit(settings: GitSettings): void {
         'off',
     ],
   ];
-  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
+  if (settings.previewChecks) rows.push(['check previews', 'website check on each pull request']);
+  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(16))}${value}`);
 }
 
 async function git(action: string | undefined, name: string | undefined, options: Options) {
@@ -609,6 +870,7 @@ async function env(
     }
   };
   if (!action || action === 'ls' || action === 'list') return show(await api.env(project.id));
+  if (action === 'import') return importEnvFile(api, project.id, key, options);
   if (!key || !ENV_KEY.test(key)) {
     throw new UsageError(
       `Which variable? codeqlick env ${action} <KEY> (upper-case letters, digits, _)`,
@@ -625,15 +887,75 @@ async function env(
     value ??
     (process.stdin.isTTY ? await askSecret(`Value of ${key} (hidden): `) : await readStdin());
   if (secret.length > 4096) throw new UsageError('Values are at most 4 KB.');
-  const both = !options.production && !options.preview;
-  const items = await api.setEnv(project.id, {
-    key,
-    value: secret,
-    production: both || options.production === true,
-    preview: both || options.preview === true,
-  });
+  const items = await api.setEnv(project.id, { key, value: secret, ...envTargets(options) });
   if (options.json) return show(items);
   console.log(`${green('✓')} Saved ${bold(key)}: it applies from the next build.`);
+}
+
+/** Where variables apply: the flags given, or both when neither is. */
+export function envTargets(options: { production?: boolean; preview?: boolean }) {
+  const both = !options.production && !options.preview;
+  return {
+    production: both || options.production === true,
+    preview: both || options.preview === true,
+  };
+}
+
+/** A refused import's problems, one line each (the API never sends values back). */
+export function importErrorLines(errors: ApiFieldError[]): string[] {
+  return errors.map((e) => {
+    const where = e.line === undefined ? '' : `line ${e.line}: `;
+    const name = e.key ? `${e.key}: ` : '';
+    return `  ${where}${name}${e.message}`;
+  });
+}
+
+/** The most a `.env` file imported at once may weigh. */
+const ENV_IMPORT_MAX_BYTES = 256 * 1024;
+
+async function importEnvFile(
+  api: Api,
+  projectId: string,
+  file: string | undefined,
+  options: Options,
+) {
+  if (!file) {
+    throw new UsageError(
+      'Which file? codeqlick env import <file> [--production] [--preview] [--overwrite]',
+    );
+  }
+  if (file === '-' && process.stdin.isTTY) {
+    throw new UsageError(
+      '"-" reads the file from standard input: pipe it in (codeqlick env import - < .env).',
+    );
+  }
+  let content: string;
+  try {
+    content = file === '-' ? await readStdin() : await readFile(file, 'utf8');
+  } catch (error) {
+    throw new UsageError(`Can't read ${file}: ${(error as Error).message}`);
+  }
+  if (Buffer.byteLength(content, 'utf8') > ENV_IMPORT_MAX_BYTES) {
+    throw new UsageError('The file is over 256 KB.');
+  }
+  const input = { content, ...envTargets(options), overwrite: options.overwrite === true };
+  let result: EnvImportResult;
+  try {
+    result = await api.importEnv(projectId, input);
+  } catch (error) {
+    if (error instanceof ApiError && error.errors.some((e) => e.line !== undefined)) {
+      const lines = importErrorLines(error.errors);
+      throw new UsageError([`Nothing was imported from ${file}:`, ...lines].join('\n'));
+    }
+    throw error;
+  }
+  if (options.json) return console.log(JSON.stringify(result, null, 2));
+  const list = (keys: string[]) => (keys.length > 0 ? keys.join(', ') : dim('none'));
+  console.log(`${green('✓')} Imported ${file}: it applies from the next build.`);
+  console.log(`  created  ${list(result.created)}`);
+  console.log(`  updated  ${list(result.updated)}`);
+  const hint = result.skipped.length > 0 ? dim(' (already there: --overwrite replaces them)') : '';
+  console.log(`  skipped  ${list(result.skipped)}${hint}`);
 }
 
 const FINISHED: BuildStatus[] = ['SUCCEEDED', 'FAILED', 'CANCELED'];
@@ -655,8 +977,14 @@ function duration(ms: number | null): string {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
+/** What a build was for: the pull request, or the branch (with the hook's name for hook builds). */
+export function buildSubject(b: Pick<Build, 'pullRequest' | 'branch' | 'trigger' | 'hookName'>) {
+  if (b.pullRequest) return `#${b.pullRequest}`;
+  return b.trigger === 'hook' ? `${b.branch} (hook ${b.hookName ?? '?'})` : b.branch;
+}
+
 function buildLine(b: Build): string {
-  const subject = b.pullRequest ? `#${b.pullRequest}` : b.branch;
+  const subject = buildSubject(b);
   const message = (b.commitMessage ?? '').split('\n')[0]!.slice(0, 60);
   return [
     bold(`${b.number}`.padStart(4)),
@@ -694,6 +1022,10 @@ async function follow(api: Api, project: Project, number: number): Promise<numbe
         );
         if (build.target === 'production')
           console.log(`${green('✓')} Published: ${bold(project.url)}`);
+        warnProtected(project.protection, {
+          preview: deployment !== undefined,
+          production: build.target === 'production',
+        });
         return 0;
       }
       console.error(
@@ -717,7 +1049,7 @@ async function builds(action: string | undefined, arg: string | undefined, optio
     return 0;
   }
   if (action === 'start') {
-    const build = await api.startBuild(project.id, options.branch);
+    const build = await api.startBuild(project.id, options.branch, options['no-cache']);
     if (options.json) {
       console.log(JSON.stringify(build, null, 2));
       return 0;
@@ -736,6 +1068,54 @@ async function builds(action: string | undefined, arg: string | undefined, optio
     return 0;
   }
   throw new UsageError(`Unknown action "${action}": start or cancel.`);
+}
+
+/** The hook an argument names: its id, else its name (names are unique in a project). */
+export function findHook<T extends { id: string; name: string }>(
+  hooks: T[],
+  ref: string,
+): T | undefined {
+  return hooks.find((h) => h.id === ref) ?? hooks.find((h) => h.name === ref);
+}
+
+function showHook(h: DeployHook): void {
+  const called = h.lastCalledAt ? new Date(h.lastCalledAt).toLocaleString() : 'never called';
+  console.log(
+    `${bold(h.name)}  ${h.branch}  ${dim(`${h.prefix}…`)}  ${dim(h.createdBy?.name ?? '')}  ${dim(called)}`,
+  );
+}
+
+async function hooks(action: string | undefined, arg: string | undefined, options: Options) {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (!action || action === 'ls' || action === 'list') {
+    const list = await api.hooks(project.id);
+    if (options.json) console.log(JSON.stringify(list, null, 2));
+    else if (list.length === 0) console.log(dim('No deploy hooks yet: codeqlick hooks add <name>'));
+    else list.forEach(showHook);
+    return;
+  }
+  if (action === 'add') {
+    if (!arg || arg.length > 60)
+      throw new UsageError('What name (1-60)? codeqlick hooks add <name>');
+    const hook = await api.createHook(project.id, arg, options.branch);
+    if (options.json) return console.log(JSON.stringify(hook, null, 2));
+    console.log(`${green('✓')} Deploy hook ${bold(hook.name)} builds ${bold(hook.branch)}.`);
+    console.log(`\n  ${hook.url ?? ''}\n`);
+    console.log(
+      "Paste it in your CMS's webhook (a POST, no body needed). It is shown only now: keep it secret.",
+    );
+    return;
+  }
+  if (action === 'rm' || action === 'remove') {
+    if (!arg) throw new UsageError('Which hook? codeqlick hooks rm <id or name>');
+    const found = findHook(await api.hooks(project.id), arg);
+    if (!found) throw new UsageError(`${project.slug} has no deploy hook "${arg}".`);
+    await api.deleteHook(project.id, found.id);
+    console.log(`${green('✓')} Deleted ${found.name}: its URL no longer works.`);
+    return;
+  }
+  throw new UsageError(`Unknown action "${action}": add or rm.`);
 }
 
 async function logs(arg: string | undefined, options: Options): Promise<number> {
@@ -875,6 +1255,121 @@ async function kv(
   }
 }
 
+// ── Password protection ───────────────────────────────────────────────────────────────────────
+
+const PROTECT_MODES: Record<string, ProtectionMode> = {
+  off: 'OFF',
+  previews: 'PREVIEWS',
+  all: 'ALL',
+};
+
+/** `protect <action>`'s mode: off, previews or all (any case); null when it's none of them. */
+export function parseProtectMode(action: string): ProtectionMode | null {
+  const key = action.toLowerCase();
+  return Object.hasOwn(PROTECT_MODES, key) ? (PROTECT_MODES[key] ?? null) : null;
+}
+
+/** `--days`: 1, 7 or 30; undefined keeps the current days; null when it's anything else. */
+export function parseProtectDays(text: string | undefined): ProtectionDays | undefined | null {
+  if (text === undefined) return undefined;
+  const days = Number(text.trim());
+  return days === 1 || days === 7 || days === 30 ? days : null;
+}
+
+/**
+ * The note for printed addresses that ask visitors for the password, or null when none does:
+ * a deployment's address is protected with PREVIEWS and ALL, production only with ALL.
+ */
+export function protectionNote(
+  mode: ProtectionMode,
+  printed: { preview: boolean; production: boolean },
+): string | null {
+  const preview = printed.preview && mode !== 'OFF';
+  const production = printed.production && mode === 'ALL';
+  if (!preview && !production) return null;
+  const what =
+    printed.preview && printed.production
+      ? production
+        ? 'Both addresses ask'
+        : "The deployment's address asks (the published one doesn't)"
+      : 'The address asks';
+  return `${what} visitors for the password (codeqlick protect).`;
+}
+
+/** Prints the note on standard error, so `--url-only` stays one line on standard output. */
+function warnProtected(
+  mode: ProtectionMode | undefined,
+  printed: { preview: boolean; production: boolean },
+): void {
+  const note = protectionNote(mode ?? 'OFF', printed);
+  if (note) console.error(note);
+}
+
+function showProtection(project: Project, protection: Protection): void {
+  if (protection.mode === 'OFF') {
+    console.log(`${bold(project.slug)}  ${dim('no password: every address is public')}`);
+    console.log(dim('  Turn it on with: codeqlick protect previews|all'));
+    return;
+  }
+  const where =
+    protection.mode === 'ALL'
+      ? "every address (the deployments', production and your domains)"
+      : "the deployments' addresses (production stays public)";
+  console.log(`${bold(project.slug)}  ${pink('password')} on ${where}`);
+  const rows: Array<[string, string]> = [
+    ['access', `${protection.days} ${protection.days === 1 ? 'day' : 'days'} once entered`],
+    ['password', protection.hasPassword ? 'set' : 'none'],
+  ];
+  if (protection.updatedAt) rows.push(['changed', new Date(protection.updatedAt).toLocaleString()]);
+  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
+}
+
+/** The new password: asked twice without echo in a terminal, else standard input; '' keeps it. */
+async function newPassword(hasPassword: boolean): Promise<string | undefined> {
+  const keep = hasPassword ? ', empty keeps the current one' : '';
+  let password: string;
+  if (process.stdin.isTTY) {
+    password = await askSecret(`Password (8-128 characters${keep}, hidden): `);
+    if (password && (await askSecret('Again: ')) !== password) {
+      throw new UsageError("The passwords don't match.");
+    }
+  } else password = await readStdin();
+  if (!password) {
+    if (!hasPassword) throw new UsageError('Turning protection on needs a password.');
+    return undefined;
+  }
+  if (password.length < 8 || password.length > 128) {
+    throw new UsageError('The password has 8 to 128 characters.');
+  }
+  return password;
+}
+
+async function protect(action: string | undefined, options: Options): Promise<void> {
+  const mode = action === undefined ? undefined : parseProtectMode(action);
+  if (mode === null) throw new UsageError(`Unknown action "${action}": previews, all or off.`);
+  const days = parseProtectDays(options.days);
+  if (days === null) throw new UsageError('--days is 1, 7 or 30.');
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  const current = await api.protection(project.id);
+  if (mode === undefined) {
+    if (options.json) console.log(JSON.stringify(current, null, 2));
+    else showProtection(project, current);
+    return;
+  }
+  const password = mode === 'OFF' ? undefined : await newPassword(current.hasPassword);
+  const saved = await api.setProtection(project.id, {
+    mode,
+    ...(password === undefined ? {} : { password }),
+    ...(days === undefined ? {} : { days }),
+  });
+  if (options.json) return console.log(JSON.stringify(saved, null, 2));
+  console.log(
+    `${green('✓')} ${mode === 'OFF' ? 'Password protection is off' : 'Saved'}${password ? ' (a new password: visitors enter it again)' : ''}.`,
+  );
+  showProtection(project, saved);
+}
+
 export async function main(argv: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -890,6 +1385,7 @@ export async function main(argv: string[]): Promise<number> {
       'fail-on': { type: 'string' },
       json: { type: 'boolean' },
       branch: { type: 'string' },
+      'no-cache': { type: 'boolean' },
       root: { type: 'string' },
       install: { type: 'string' },
       build: { type: 'string' },
@@ -897,9 +1393,13 @@ export async function main(argv: string[]): Promise<number> {
       node: { type: 'string' },
       production: { type: 'boolean' },
       preview: { type: 'boolean' },
+      overwrite: { type: 'boolean' },
       period: { type: 'string' },
       ttl: { type: 'string' },
       by: { type: 'string' },
+      days: { type: 'string' },
+      out: { type: 'string', short: 'o' },
+      force: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -941,9 +1441,23 @@ export async function main(argv: string[]): Promise<number> {
       case 'rollback':
         await rollback(options);
         break;
+      case 'download':
+        await download(rest[0], options);
+        break;
+      case 'unlock':
+        await unlock(options);
+        break;
+      case 'files':
+        await files(rest[0], options);
+        break;
+      case 'diff':
+        await diff(rest[0], rest[1], options);
+        break;
       case 'domains':
         await domains(rest[0], rest[1], options);
         break;
+      case 'config':
+        return await configCommand(rest[0], options);
       case 'open':
         await openSite(options);
         break;
@@ -955,6 +1469,9 @@ export async function main(argv: string[]): Promise<number> {
       case 'env':
         await env(rest[0], rest[1], rest[2], options);
         break;
+      case 'hooks':
+        await hooks(rest[0], rest[1], options);
+        break;
       case 'builds':
         return await builds(rest[0], rest[1], options);
       case 'logs':
@@ -964,17 +1481,21 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'kv':
         return await kv(rest[0], rest[1], rest[2], options);
+      case 'protect':
+        await protect(rest[0], options);
+        break;
       default:
         throw new UsageError(`Unknown command "${command}". Run codeqlick --help.`);
     }
     return 0;
   } catch (error) {
-    if (error instanceof UsageError) console.error(error.message);
+    if (error instanceof UsageError || error instanceof ProjectFileError)
+      console.error(error.message);
     else if (error instanceof ApiError) {
       console.error(
         error.status === 401
           ? 'Not signed in, or the token is invalid: run `codeqlick login`.'
-          : error.message,
+          : formatApiError(error),
       );
     } else console.error((error as Error).message);
     return 1;

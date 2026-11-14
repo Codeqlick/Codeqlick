@@ -1,0 +1,39 @@
+---
+import type { DocPage } from '../lib/docs';
+import { GROUPS, ui, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+  pages: DocPage[];
+  current: string;
+}
+const { lang, pages, current } = Astro.props;
+const t = ui[lang];
+const groups = GROUPS.map((group) => ({
+  group,
+  pages: pages.filter((page) => page.group === group),
+})).filter((entry) => entry.pages.length > 0);
+---
+
+<!-- Open without JavaScript; the page script closes it on small screens. -->
+<details class="menu" data-menu open>
+  <summary>{t.menu}</summary>
+  <nav aria-label={t.nav}>
+    {groups.map(({ group, pages: items }) => (
+      <div class="nav-group">
+        <p class="nav-title" id={`nav-${group}`}>
+          {t.groups[group]}
+        </p>
+        <ul aria-labelledby={`nav-${group}`}>
+          {items.map((page) => (
+            <li>
+              <a href={page.url} aria-current={page.slug === current ? 'page' : undefined}>
+                {page.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </nav>
+</details>

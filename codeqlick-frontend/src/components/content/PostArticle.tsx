@@ -5,7 +5,9 @@ import { Markdown } from '@/components/markdown/Markdown';
 import type { AppLocale } from '@/i18n/routing';
 import type { PublicTag } from '@/lib/api/types';
 import { formatDate } from '@/lib/format';
+import { getOutline } from '@/lib/markdown-outline';
 import { CoverImage } from './CoverImage';
+import { TableOfContents } from './TableOfContents';
 import { TagLinks } from './TagLinks';
 
 export type PostArticleContent = {
@@ -15,6 +17,8 @@ export type PostArticleContent = {
   coverImageUrl: string | null;
   /** Null for a draft that was never published: the date line is left out. */
   publishedAt: string | null;
+  /** Left out by the admin preview, which has no API summary. */
+  readingMinutes?: number;
   /** Linked to the blog filtered by each; the admin preview has none. */
   tags?: PublicTag[];
 };
@@ -31,16 +35,21 @@ export async function PostArticle({
   children?: ReactNode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Blog' });
+  const tm = await getTranslations({ locale, namespace: 'Markdown' });
 
   return (
     <article className={`wrap ${styles.page} ${styles.narrow}`}>
       <div className={styles.progress} aria-hidden="true" />
       {children}
-      {post.publishedAt ? (
+      {post.publishedAt || post.readingMinutes ? (
         <p className={styles.meta}>
-          <time dateTime={post.publishedAt}>
-            {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
-          </time>
+          {post.publishedAt ? (
+            <time dateTime={post.publishedAt}>
+              {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
+            </time>
+          ) : null}
+          {post.publishedAt && post.readingMinutes ? ' · ' : null}
+          {post.readingMinutes ? t('readingTime', { minutes: post.readingMinutes }) : null}
         </p>
       ) : null}
       <h1 className={styles.title}>{post.title}</h1>
@@ -58,8 +67,14 @@ export async function PostArticle({
           priority
         />
       ) : null}
+      <TableOfContents outline={getOutline(post.content)} title={tm('contents')} />
       <div className={styles.content}>
-        <Markdown>{post.content}</Markdown>
+        <Markdown
+          anchors={{ linkLabel: tm('anchorLink') }}
+          copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}
+        >
+          {post.content}
+        </Markdown>
       </div>
     </article>
   );

@@ -26,6 +26,7 @@ const projectForBuild = {
       buildCommand: true,
       outputDir: true,
       nodeVersion: true,
+      previewChecks: true,
       deletedAt: true,
       suspendedAt: true,
       team: { select: { slug: true, plan: true } },
@@ -33,6 +34,16 @@ const projectForBuild = {
   },
 } as const;
 export type BuildWithProject = Prisma.CloudBuildGetPayload<{ include: typeof projectForBuild }>;
+
+/** What an import did, by name (never values). */
+export interface EnvImportOutcome {
+  created: string[];
+  updated: string[];
+  skipped: string[];
+}
+
+/** A project's scheduled rebuilds switched off (decision 65). */
+export const REBUILD_OFF = { rebuildFrequency: 'OFF', rebuildNextAt: null } as const;
 
 /** Builds from Git: installations, env vars, builds and GitHub bookkeeping (architecture 4.13). */
 @Injectable()
@@ -68,9 +79,12 @@ export class CloudBuildsRepository {
 
   async removeInstallation(installationId: bigint): Promise<void> {
     await this.prisma.$transaction([
+      this.prisma.cloudDeployHook.deleteMany({
+        where: { project: { gitInstallationId: installationId } },
+      }),
       this.prisma.cloudProject.updateMany({
         where: { gitInstallationId: installationId },
-        data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+        data: { gitInstallationId: null, gitRepoId: null, gitRepo: null, ...REBUILD_OFF },
       }),
       this.prisma.cloudGitInstallation.deleteMany({ where: { installationId } }),
     ]);
@@ -84,10 +98,14 @@ export class CloudBuildsRepository {
   }
 
   async unlinkRepos(installationId: bigint, repoIds: bigint[]): Promise<void> {
-    await this.prisma.cloudProject.updateMany({
-      where: { gitInstallationId: installationId, gitRepoId: { in: repoIds } },
-      data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
-    });
+    const where = { gitInstallationId: installationId, gitRepoId: { in: repoIds } };
+    await this.prisma.$transaction([
+      this.prisma.cloudDeployHook.deleteMany({ where: { project: where } }),
+      this.prisma.cloudProject.updateMany({
+        where,
+        data: { gitInstallationId: null, gitRepoId: null, gitRepo: null, ...REBUILD_OFF },
+      }),
+    ]);
   }
 
   /** The live projects a repository is connected to. */
@@ -103,8 +121,79 @@ export class CloudBuildsRepository {
     });
   }
 
-  async setGit(projectId: string, data: Prisma.CloudProjectUncheckedUpdateInput): Promise<void> {
+  /** Saves the connection and settings; `dropHooks` also deletes the project's deploy hooks. */
+  async setGit(
+    projectId: string,
+    data: Prisma.CloudProjectUncheckedUpdateInput,
+    dropHooks = false,
+  ): Promise<void> {
+    if (dropHooks) {
+      await this.prisma.$transaction([
+        this.prisma.cloudDeployHook.deleteMany({ where: { projectId } }),
+        this.prisma.cloudProject.update({ where: { id: projectId }, data }),
+      ]);
+      return;
+    }
     await this.prisma.cloudProject.update({ where: { id: projectId }, data });
+  }
+
+  // ── Scheduled rebuilds (decision 65) ──────────────────────────────────────────────────────
+
+  /** Projects whose next scheduled rebuild is due. */
+  dueRebuilds(now: Date, take: number) {
+    return this.prisma.cloudProject.findMany({
+      where: { rebuildNextAt: { lte: now }, rebuildFrequency: { not: 'OFF' }, deletedAt: null },
+      include: { team: { select: { slug: true, plan: true } } },
+      orderBy: { rebuildNextAt: 'asc' },
+      take,
+    });
+  }
+
+  /**
+   * Claims a due run by moving the project's next run on, only if nobody moved it since it was
+   * read (so several API processes queue one build per run).
+   */
+  async claimRebuild(projectId: string, due: Date, next: Date | null): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id: projectId, rebuildNextAt: due, rebuildFrequency: { not: 'OFF' } },
+      data: { rebuildNextAt: next },
+    });
+    return count === 1;
+  }
+
+  /** Whether a build of the branch is queued or running. */
+  async hasActiveBuild(projectId: string, branch: string): Promise<boolean> {
+    const build = await this.prisma.cloudBuild.findFirst({
+      where: { projectId, branch, status: { in: ['QUEUED', 'RUNNING'] } },
+      select: { id: true },
+    });
+    return build !== null;
+  }
+
+  /** One more scheduled build failed in a row: the count. */
+  async rebuildFailed(projectId: string): Promise<number> {
+    const project = await this.prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { rebuildFailures: { increment: 1 } },
+      select: { rebuildFailures: true },
+    });
+    return project.rebuildFailures;
+  }
+
+  async rebuildSucceeded(projectId: string): Promise<void> {
+    await this.prisma.cloudProject.updateMany({
+      where: { id: projectId, rebuildFailures: { not: 0 } },
+      data: { rebuildFailures: 0 },
+    });
+  }
+
+  /** Switches the schedule off; false when it already was (so it happens once). */
+  async switchOffRebuild(projectId: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id: projectId, rebuildFrequency: { not: 'OFF' } },
+      data: REBUILD_OFF,
+    });
+    return count === 1;
   }
 
   // ── Environment variables ──────────────────────────────────────────────────────────────────
@@ -128,6 +217,54 @@ export class CloudBuildsRepository {
       where: { projectId_key: { projectId, key } },
       create: { projectId, key, valueSealed, production, preview },
       update: { valueSealed, production, preview },
+    });
+  }
+
+  /**
+   * Imports many variables at once, all or nothing: new names are created, existing ones replaced
+   * only with `overwrite` (otherwise skipped). Nothing is written when the new names would take
+   * the project past `limit`: the answer is then the first name over it.
+   */
+  async importEnvVars(
+    projectId: string,
+    vars: Array<{ key: string; valueSealed: string }>,
+    options: { production: boolean; preview: boolean; overwrite: boolean; limit: number },
+  ): Promise<EnvImportOutcome | { overLimit: string }> {
+    const { production, preview } = options;
+    return this.prisma.$transaction(async (tx) => {
+      // Two imports to the same project wait for each other, so both can't pass the limit.
+      await tx.$queryRaw`SELECT id FROM cloud_projects WHERE id = ${projectId}::uuid FOR UPDATE`;
+      const rows = await tx.cloudEnvVar.findMany({ where: { projectId }, select: { key: true } });
+      const existing = new Set(rows.map((row) => row.key));
+      const fresh = vars.filter((v) => !existing.has(v.key));
+      const room = Math.max(options.limit - existing.size, 0);
+      if (fresh.length > room) return { overLimit: fresh[room]!.key };
+      if (fresh.length > 0) {
+        await tx.cloudEnvVar.createMany({
+          data: fresh.map((v) => ({
+            projectId,
+            key: v.key,
+            valueSealed: v.valueSealed,
+            production,
+            preview,
+          })),
+        });
+      }
+      const updated: string[] = [];
+      const skipped: string[] = [];
+      for (const v of vars) {
+        if (!existing.has(v.key)) continue;
+        if (!options.overwrite) {
+          skipped.push(v.key);
+          continue;
+        }
+        await tx.cloudEnvVar.update({
+          where: { projectId_key: { projectId, key: v.key } },
+          data: { valueSealed: v.valueSealed, production, preview },
+        });
+        updated.push(v.key);
+      }
+      return { created: fresh.map((v) => v.key), updated, skipped };
     });
   }
 
@@ -182,6 +319,7 @@ export class CloudBuildsRepository {
         where: { projectId },
         orderBy: { number: 'desc' },
         omit: { log: true },
+        include: { audit: { select: { id: true, score: true } } },
         skip,
         take,
       }),
@@ -189,10 +327,21 @@ export class CloudBuildsRepository {
     ]);
   }
 
-  findBuild(projectId: string, number: number): Promise<CloudBuild | null> {
+  findBuild(projectId: string, number: number) {
     return this.prisma.cloudBuild.findUnique({
       where: { projectId_number: { projectId, number } },
+      include: { audit: { select: { id: true, score: true } } },
     });
+  }
+
+  /** The number of a pull request's latest build: only that one may update the comment. */
+  async latestPullBuild(projectId: string, pullRequest: number): Promise<number | null> {
+    const last = await this.prisma.cloudBuild.findFirst({
+      where: { projectId, pullRequest, status: { not: 'CANCELED' } },
+      orderBy: { number: 'desc' },
+      select: { number: true },
+    });
+    return last?.number ?? null;
   }
 
   findById(id: string): Promise<BuildWithProject | null> {

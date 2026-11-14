@@ -12,6 +12,7 @@ import { logoutAction } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
+import { CloudDocsLink } from './CloudDocsLink';
 import styles from './cloud.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
@@ -58,9 +59,9 @@ export default async function CloudLayout({ children, params }: LayoutProps) {
               <span className={styles.brandApp}>{t('brand')}</span>
             </div>
             <nav className={styles.headerNav}>
-              <Link href="/cloud/docs" className={`${styles.headerLink} ${styles.hideSmall}`}>
+              <CloudDocsLink locale={locale} className={`${styles.headerLink} ${styles.hideSmall}`}>
                 {t('nav.docs')}
-              </Link>
+              </CloudDocsLink>
               {user ? (
                 <Link href="/cloud/console" className={`${styles.headerLink} ${styles.hideSmall}`}>
                   {t('nav.console')}
@@ -84,7 +85,7 @@ export default async function CloudLayout({ children, params }: LayoutProps) {
           </header>
           <main className={styles.main}>{children}</main>
           <footer className={styles.footer}>
-            <Link href="/cloud/docs">{t('nav.docs')}</Link>
+            <CloudDocsLink locale={locale}>{t('nav.docs')}</CloudDocsLink>
             <Link href="/cloud/terms-of-use">{t('terms.metaTitle')}</Link>
             <Link href="/cloud/report">{t('report.title')}</Link>
           </footer>

@@ -303,6 +303,7 @@
     "readMore": "Read article",
     "back": "All articles",
     "publishedOn": "Published on {date}",
+    "readingTime": "{minutes} min read",
     "tagsLabel": "Tags",
     "topics": "Topics",
     "allTopics": "All topics",
@@ -319,6 +320,35 @@
     "noResultsTitle": "Nothing for “{q}”",
     "noResultsBody": "Try other words or browse all posts.",
     "allPosts": "See all posts"
+  },
+  "Newsletter": {
+    "title": "Get new posts by email",
+    "lead": "One email for each new post on the blog. Nothing else, and you can unsubscribe at any time.",
+    "email": "Your email",
+    "emailPlaceholder": "you@example.com",
+    "acceptPrivacy": "I agree to you using my email to send me new posts, as the <link>privacy policy</link> explains.",
+    "honeypot": "Leave this field empty",
+    "submit": "Subscribe",
+    "submitting": "Subscribing…",
+    "successTitle": "Check your inbox to confirm.",
+    "successBody": "If the address is valid, we've sent you a link to confirm your subscription. It expires in 48 hours. Can't see it? Check your spam folder.",
+    "error": "Please check the form.",
+    "rateLimited": "Too many attempts in a row. Wait a minute and try again.",
+    "failed": "We couldn't complete that. Please try again in a moment.",
+    "disposable": "We don't accept temporary email addresses. Please use your usual email.",
+    "confirmTitle": "Confirm your subscription",
+    "confirmedLead": "You're subscribed. We'll email you each new post on the blog.",
+    "goToBlog": "Read the blog",
+    "confirmExpired": "This link is not valid or has expired. Sign up again below to get a new one.",
+    "unsubscribeTitle": "Unsubscribe from the newsletter",
+    "unsubscribeLead": "Press the button and we'll stop emailing you new posts.",
+    "unsubscribe": "Unsubscribe",
+    "unsubscribing": "Unsubscribing…",
+    "unsubscribed": "Done. You won't get any more emails from us. You can subscribe again whenever you like.",
+    "unsubscribeNotFound": "This link is not valid. If you still get our emails, use the link at the bottom of the latest one or write to us.",
+    "confirmLead": "Press the button to confirm your subscription to new blog posts by email.",
+    "confirm": "Confirm my subscription",
+    "confirming": "Confirming…"
   },
   "Work": {
     "metaTitle": "Work",
@@ -406,7 +436,8 @@
     "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours).",
     "domain": "Type a domain like peluqueria-ana.com.",
     "confirmMismatch": "That doesn’t match: type it exactly.",
-    "website": "Type your website's address, like yourwebsite.com."
+    "website": "Type your website's address, like yourwebsite.com.",
+    "breachedPassword": "This password has appeared in a data breach, so attackers try it first. Choose a different one."
   },
   "Login": {
     "metaTitle": "Sign in",
@@ -501,6 +532,24 @@
     "welcomeSubtitle": "Choose the password you'll sign in with.",
     "welcomeSubmit": "Create password",
     "welcomeInvalidLink": "This link is invalid or has expired. Welcome links work once and for 7 days. Ask for a new one below with your email."
+  },
+  "Unsubscribe": {
+    "metaTitle": "Email preferences",
+    "title": "Email preferences",
+    "subscribed": "{email} gets {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}}. Unsubscribe and we'll stop sending it; project updates and other emails about your account keep arriving.",
+    "unsubscribed": "Done: {email} won't get {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}} any more.",
+    "alreadyUnsubscribed": "{email} is already unsubscribed from {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}}.",
+    "resubscribed": "You're subscribed again: {email} will keep getting {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}}.",
+    "unsubscribe": "Unsubscribe",
+    "unsubscribing": "Unsubscribing…",
+    "undo": "Undo (subscribe again)",
+    "subscribeAgain": "Subscribe again",
+    "subscribing": "Subscribing…",
+    "account": "Manage all your emails in My account",
+    "invalidLink": "This link doesn't work any more. Sign in and choose which emails you get in My account.",
+    "signIn": "Sign in",
+    "retry": "We couldn't save the change right now. Please try again in a minute.",
+    "loadFailed": "We couldn't open this link right now. Please reload the page in a minute."
   },
   "Account": {
     "nav": "Account",
@@ -733,6 +782,7 @@
       "posts": "Posts",
       "portfolio": "Portfolio",
       "media": "Images",
+      "links": "Broken links",
       "projects": "Projects",
       "users": "Users",
       "activity": "Activity",
@@ -749,7 +799,8 @@
       "previews": "Previews",
       "videochat": "Video chat",
       "swipe": "Swipe",
-      "cloud": "Cloud"
+      "cloud": "Cloud",
+      "newsletter": "Newsletter"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -776,7 +827,8 @@
       "activeTickets": "Open requests",
       "sentProposals": "Proposals awaiting answer",
       "pendingDrafts": "Drafts to review",
-      "upcomingCalls": "Upcoming calls"
+      "upcomingCalls": "Upcoming calls",
+      "brokenLinks": "Broken links"
     },
     "leads": {
       "title": "Leads",
@@ -910,7 +962,13 @@
       "publishedAt": "Publication date",
       "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it.",
       "tags": "Tags",
-      "noTags": "No tags yet. <link>Create some</link> to sort your posts."
+      "noTags": "No tags yet. <link>Create some</link> to sort your posts.",
+      "newsletter": "Email it to subscribers",
+      "newsletterHint": "When the post is live (a scheduled one, when it goes live), the newsletter's subscribers get it by email. It is emailed only once.",
+      "newsletterSentOn": "Already emailed to subscribers on {date}.",
+      "newsletterSkippedOn": "Not emailed to subscribers.",
+      "oldAddresses": "Old addresses that redirect here",
+      "oldAddressesHint": "Links to the post's earlier slugs still work: visitors and search engines land on its current address."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -945,7 +1003,9 @@
       "testimonialQuoteHint": "The client's words in this language. Shown on the case study and on the home page.",
       "testimonialRole": "Author's role",
       "testimonialRoleHint": "For example: Founder, CircleSfera.",
-      "services": "Services in this project"
+      "services": "Services in this project",
+      "oldAddresses": "Old addresses that redirect here",
+      "oldAddressesHint": "Links to the case study's earlier slugs still work: visitors and search engines land on its current address."
     },
     "projects": {
       "title": "Projects",
@@ -1079,6 +1139,31 @@
       "unsaved": "It shows what is saved: save your changes before previewing them.",
       "otherLanguages": "Also available in:"
     },
+    "revisions": {
+      "history": "History",
+      "historyEmpty": "No earlier versions yet. One is kept each time you change the content.",
+      "entry": "{date} · {author}",
+      "title": "Version replaced on {date}",
+      "replacedBy": "Replaced by {author}.",
+      "back": "Back to editing",
+      "thisVersion": "This version",
+      "current": "Current",
+      "changed": "Changed",
+      "noChanges": "This version is the same as the current content.",
+      "shared": "Both languages",
+      "languages": {
+        "en": "English",
+        "es": "Spanish"
+      },
+      "deletedTag": "Deleted tag",
+      "restoreTitle": "Restore this version",
+      "restoreBodyPost": "The current content is replaced by this version and kept in the history, so you can undo it. Status, publication date and slug don't change; tags deleted since are left out.",
+      "restoreBodyPortfolio": "The current content is replaced by this version and kept in the history, so you can undo it. Status, publication date, slug and order don't change.",
+      "restoreConfirm": "Replace the current content with this version.",
+      "restore": "Restore this version",
+      "restoring": "Restoring…",
+      "restored": "Version restored. The content it replaced is now in the history."
+    },
     "users": {
       "title": "Users",
       "new": "New user",
@@ -1187,7 +1272,9 @@
         "settings": "Settings",
         "booking": "Calls",
         "videochat": "Video chat",
-        "swipe": "Swipe"
+        "swipe": "Swipe",
+        "site_news": "News",
+        "newsletter": "Newsletter"
       },
       "actions": {
         "post": {
@@ -1196,7 +1283,8 @@
           "published": "published the post <target>{label}</target>",
           "unpublished": "moved the post <target>{label}</target> back to draft",
           "deleted": "deleted the post <target>{label}</target>",
-          "scheduled": "scheduled the post <target>{label}</target>"
+          "scheduled": "scheduled the post <target>{label}</target>",
+          "restored": "restored an earlier version of the post <target>{label}</target>"
         },
         "portfolio": {
           "created": "created the case study <target>{label}</target>",
@@ -1204,7 +1292,8 @@
           "published": "published the case study <target>{label}</target>",
           "unpublished": "moved the case study <target>{label}</target> back to draft",
           "deleted": "deleted the case study <target>{label}</target>",
-          "scheduled": "scheduled the case study <target>{label}</target>"
+          "scheduled": "scheduled the case study <target>{label}</target>",
+          "restored": "restored an earlier version of the case study <target>{label}</target>"
         },
         "project": {
           "created": "created the project <target>{label}</target>",
@@ -1337,6 +1426,17 @@
           "takedown_closed": "closed without removing the request <target>{label}</target>",
           "suspended": "suspended <target>{label}</target> from Swipe",
           "unsuspended": "lifted the Swipe suspension of <target>{label}</target>"
+        },
+        "site_news": {
+          "switched": "turned the news section of <target>{label}</target>'s website on or off",
+          "created": "created the news post <target>{label}</target>",
+          "updated": "changed the news post <target>{label}</target>",
+          "published": "published the news post <target>{label}</target>",
+          "unpublished": "unpublished the news post <target>{label}</target>",
+          "deleted": "deleted the news post <target>{label}</target>"
+        },
+        "newsletter": {
+          "subscriber_deleted": "deleted a subscriber from the newsletter"
         }
       },
       "details": {
@@ -1614,6 +1714,54 @@
       "capReached": "Today’s 10 previews, the daily maximum, are made. Try tomorrow.",
       "noBuilder": "The website builder isn’t available right now.",
       "purchased": "Bought"
+    },
+    "newsletter": {
+      "title": "Newsletter",
+      "lead": "Readers who signed up to get each new blog post by email. A sign-up counts once they confirm it from the email we send.",
+      "counts": {
+        "active": "Active",
+        "pending": "Pending confirmation",
+        "unsubscribed": "Unsubscribed"
+      },
+      "status": "Status",
+      "statuses": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending",
+        "UNSUBSCRIBED": "Unsubscribed"
+      },
+      "search": "Search",
+      "searchPlaceholder": "Part of the email…",
+      "email": "Email",
+      "language": "Language",
+      "languages": {
+        "en": "English",
+        "es": "Spanish"
+      },
+      "signedUp": "Signed up",
+      "confirmedOn": "Confirmed on {date}",
+      "unsubscribedOn": "Left on {date}",
+      "emptyTitle": "No subscribers yet",
+      "emptyBody": "Readers can sign up at the end of the blog and of each post.",
+      "noMatchTitle": "No subscribers match",
+      "noMatchBody": "Try another status or other words."
+    },
+    "search": {
+      "button": "Search",
+      "shortcut": "Ctrl K",
+      "shortcutApple": "⌘K",
+      "title": "Search the admin panel",
+      "inputLabel": "Search leads, users, projects, requests, proposals, posts and case studies",
+      "placeholder": "Name, email, title or #number",
+      "close": "Close",
+      "results": "Results",
+      "hint": "Type at least 2 characters to search.",
+      "searching": "Searching…",
+      "empty": "Nothing found for “{q}”.",
+      "resultsOne": "1 result",
+      "resultsMany": "{count} results",
+      "tooMany": "Too many searches in a short time. Wait a moment and try again.",
+      "failed": "The search failed. Please try again.",
+      "expired": "Your session has expired. Reload the page to sign in again."
     }
   },
   "Sessions": {
@@ -1633,6 +1781,13 @@
   },
   "Legal": {
     "updated": "Última actualización: {date}"
+  },
+  "Markdown": {
+    "anchorLink": "Link to this section",
+    "contents": "Contents",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Couldn't copy"
   },
   "About": {
     "metaTitle": "About us",
@@ -2789,6 +2944,97 @@
     "posterStep3": "Pick the stars and tell us how it went.",
     "posterThanks": "Thank you!"
   },
+  "SiteNews": {
+    "tabsLabel": "Sections of the editor",
+    "tabSite": "Website",
+    "tabNews": "News",
+    "title": "News and offers",
+    "lead": "Post news or offers on your website: fresh content helps people and Google find you. Posts are saved apart from the rest of your website, so publishing one never publishes the changes you have in the editor.",
+    "switch": "Show the news section on my website",
+    "switchOn": "On: published posts appear on your website in the “News” page and the home page.",
+    "switchOff": "Off: your website shows no news. Your posts are kept and come back when you turn it on.",
+    "switchedOn": "News turned on. Your website is being updated.",
+    "switchedOff": "News turned off. Your website is being updated.",
+    "newPost": "New post",
+    "editPost": "Edit post",
+    "listTitle": "Your posts ({count})",
+    "empty": "You have no posts yet. Write the first one with “New post”.",
+    "edit": "Edit",
+    "more": "Show more",
+    "statuses": {
+      "DRAFT": "Draft",
+      "PUBLISHED": "Published",
+      "EXPIRED": "Expired"
+    },
+    "publishedOn": "Published on {date}",
+    "createdOn": "Created on {date}",
+    "expiresOn": "shown until {date}",
+    "fieldTitle": "Title",
+    "fieldSummary": "Summary",
+    "summaryHint": "Shown in the list, on Google and when the post is shared. {count} / {max}",
+    "fieldBody": "Text",
+    "helpTitle": "How to format the text",
+    "helpParagraphs": "Leave a blank line between paragraphs.",
+    "helpBold": "for bold",
+    "helpBoldExample": "bold",
+    "helpItalic": "for italic",
+    "helpItalicExample": "italic",
+    "helpLink": "for a link (https, mailto or tel)",
+    "helpLinkExample": "text",
+    "helpList": "at the start of each line for a list",
+    "helpListExample": "item",
+    "fieldPhoto": "Photo (optional)",
+    "noPhoto": "No photo",
+    "addPhoto": "Add photo",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove photo",
+    "uploading": "Uploading…",
+    "photoFailed": "The photo could not be uploaded. Use a JPG, PNG or WebP of up to 5 MB.",
+    "photoAdminHint": "Photos are uploaded by the client from their portal; here you can only keep or remove it.",
+    "fieldExpires": "Last day it is shown (optional)",
+    "expiresHint": "For offers: after this day (Spanish time) the post disappears from the website.",
+    "expiredHint": "This post has expired and is no longer on the website. Choose a later day and publish it again, or leave it as it is.",
+    "saveDraft": "Save draft",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "publish": "Publish",
+    "publishAgain": "Publish again",
+    "unpublish": "Unpublish",
+    "delete": "Delete",
+    "close": "Back to the list",
+    "deleteConfirm": "Delete “{title}”? This cannot be undone.",
+    "discardConfirm": "You have unsaved changes in this post. Leave without saving them?",
+    "deleted": "Post deleted.",
+    "previewTitle": "Preview",
+    "previewHint": "An approximation of the text; the colours and fonts are those of your website.",
+    "previewEmpty": "What you write will appear here.",
+    "savedDraft": "Saved as a draft. Nothing changes on your website until you publish it.",
+    "savedBuilt": "Saved. Your website is up to date.",
+    "savedPending": "Saved. Your website is being updated.",
+    "publishedBuilt": "Published. Your website is up to date.",
+    "publishedPending": "Published. Your website is being updated.",
+    "unpublishedBuilt": "Unpublished. It is no longer on your website.",
+    "pastHint": "This day has passed. You can save it, but to publish choose today or a later day.",
+    "unpublishedPlain": "Unpublished.",
+    "unpublishedPending": "Unpublished. Your website is being updated.",
+    "buildFailed": "Saved, but your website could not be updated now. The previous version stays online and the post will go up with the next update.",
+    "errors": {
+      "required": "This field is required.",
+      "tooLong": "It is too long (at most {max} characters).",
+      "past": "Choose today or a later day.",
+      "date": "Enter a valid date.",
+      "invalid": "Check this field."
+    },
+    "failures": {
+      "invalid": "Some fields need a look.",
+      "limit": "You have reached the limit of 200 posts. Delete some to write more.",
+      "expired": "Its last day has already passed. Choose a later day first.",
+      "busy": "Too many changes in a short time. Try again in a while.",
+      "unavailable": "Your website cannot be updated right now. Nothing has changed; try again in a few minutes.",
+      "notFound": "This post or website no longer exists. Reload the page.",
+      "failed": "It could not be done. Try again."
+    }
+  },
   "SiteEditor": {
     "title": "Your website editor",
     "lead": "Change everything on your website: design, texts, photos, sections and legal data. Changes are saved as a draft on their own and don’t show on your website until you press “Publish”.",
@@ -3856,6 +4102,45 @@
       "WEB_BROWSER": "Website (browser)"
     }
   },
+  "AdminLinks": {
+    "title": "Broken links",
+    "lead": "Links in published posts and case studies, in both languages, checked once a week. A link counts as broken after failing two checks in a row.",
+    "filtersLabel": "Show",
+    "filters": {
+      "broken": "Broken",
+      "all": "All"
+    },
+    "emptyTitle": "No broken links",
+    "emptyAllTitle": "No links checked",
+    "lastRun": "Last check: {date}.",
+    "notCheckedYet": "Not checked yet.",
+    "link": "Link",
+    "status": "Status",
+    "since": "Broken since",
+    "where": "Where",
+    "internal": "Internal",
+    "external": "External",
+    "newTab": "(opens in a new tab)",
+    "statuses": {
+      "OK": "OK",
+      "BROKEN": "Broken"
+    },
+    "checkedAt": "Checked {date}",
+    "sources": {
+      "POST": "Post",
+      "PORTFOLIO": "Case study"
+    },
+    "languages": {
+      "en": "English",
+      "es": "Spanish"
+    },
+    "edit": "Edit",
+    "checkAgain": "Check again",
+    "checking": "Checking…",
+    "checkedOk": "The link works now.",
+    "checkedBroken": "Still broken.",
+    "tooManyChecks": "Too many checks in a minute. Try again shortly."
+  },
   "Meetings": {
     "metaTitle": "Meetings: video calls with a link",
     "metaDescription": "Create a room, share the link and talk by video with up to 6 people. Nothing to install and no account needed for your guests.",
@@ -4772,7 +5057,20 @@
       "plan": "Plan: {plan}",
       "monitorsLink": "Monitors",
       "auditsLink": "Website check",
-      "planLink": "Plan"
+      "planLink": "Plan",
+      "meters": {
+        "builds": "Builds this month",
+        "formSubmissions": "Form submissions this month",
+        "analyticsEvents": "Analytics events this month",
+        "storage": "Storage",
+        "deploymentsPerHour": "Deployments in the last hour"
+      },
+      "alert": {
+        "warningTitle": "You are close to your plan's limits",
+        "errorTitle": "You have reached your plan's limits",
+        "item": "{label}: {used} of {limit} ({percent} %)",
+        "link": "See usage"
+      }
     },
     "project": {
       "tabs": {
@@ -4794,11 +5092,34 @@
       "preview": "Preview",
       "productionTag": "Published",
       "promote": "Publish",
+      "kept": "Kept",
+      "keep": "Keep",
+      "unkeep": "Stop keeping",
+      "keptFull": "A project keeps at most 5 deployments. Stop keeping one first.",
+      "unkeepConfirm": "It may be deleted within the hour if it's older than the last 20. Stop keeping it?",
+      "retention": "The last 20 deployments, the published one and up to 5 you keep are stored; older ones are deleted every hour.",
       "delete": "Delete",
+      "download": "Download",
       "via": "via {token}",
+      "deployment": "Deployment",
+      "rules": {
+        "badge": "Rules",
+        "title": "Rules",
+        "none": "This deployment has no codeqlick.json rules.",
+        "summary": "Rules: {redirects, plural, one {# redirect} other {# redirects}}, {rewrites, plural, one {# rewrite} other {# rewrites}}, {headers, plural, one {# header rule} other {# header rules}}",
+        "file": "codeqlick.json (as parsed)",
+        "readOnly": "Read-only: the file travels with your code, so change it there and deploy again."
+      },
       "files": "{count, plural, one {# file} other {# files}}",
       "suspendedTitle": "This project is suspended",
       "suspendedBody": "Its addresses show a notice and it takes no deployments. Reason: {reason}. Reply to our email if you think it's a mistake.",
+      "lock": {
+        "title": "Production is locked to {id} since {since}, {who, select, former {by a former member} other {by {name}}}.",
+        "noId": "an earlier deployment",
+        "body": "A rollback locked it so the bug just rolled back can't come back on its own: production builds from Git still build and deploy, but as previews, until someone publishes a deployment or unlocks production.",
+        "unlock": "Unlock",
+        "unlocking": "Unlocking…"
+      },
       "domainsLead": "Serve the published version on your own domains (up to 5).",
       "domainName": "Domain",
       "domainHint": "e.g. docs.example.com",
@@ -4817,7 +5138,98 @@
       "rename": "Rename",
       "saved": "Saved.",
       "deleteTitle": "Delete the project",
-      "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days."
+      "badgeTitle": "README badge",
+      "badgeHelp": "Shows whether the production site is deployed, building or failed. Copy the Markdown into your README:",
+      "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days.",
+      "transfer": {
+        "title": "Move to another team",
+        "lead": "Hand this project to another team you run. Its address, deployments, domains, forms, variables, data, builds and the monitors tied to it go with it, without deploying again.",
+        "git": "The Git connection is kept only if the other team's GitHub installation can see the repository; otherwise its admins connect it again in the Git tab.",
+        "tokens": "Tokens restricted to this team stop reaching the project.",
+        "config": "Folders with a codeqlick.json still name this team: run codeqlick init again in them.",
+        "team": "Team to move it to",
+        "chooseTeam": "Choose a team",
+        "noTeams": "You aren't an owner or admin of any other team, so there is nowhere to move it.",
+        "submit": "Move the project",
+        "moving": "Moving…",
+        "suspended": "This project is suspended, so it can't be moved.",
+        "builds": "Wait for the project's builds to finish (or cancel them) before moving it.",
+        "changed": "The project changed meanwhile. Try again.",
+        "moved": "Project moved to this team.",
+        "gitDropped": "The Git connection was removed: connect it again in the Git tab."
+      }
+    },
+    "protection": {
+      "title": "Password protection",
+      "lead": "Ask visitors for a password before they see this project, so you can show work in progress without making it public. Team members open protected addresses from here without typing it.",
+      "mode": "Ask for the password on",
+      "modes": {
+        "OFF": "Off",
+        "PREVIEWS": "Previews",
+        "ALL": "Previews and production"
+      },
+      "modeHints": {
+        "OFF": "Every address is public.",
+        "PREVIEWS": "Each deployment's own address. The published site and your domains stay public.",
+        "ALL": "Every address, including the published site and your own domains."
+      },
+      "password": "Password",
+      "passwordKeep": "Leave it empty to keep the current one. 8 to 128 characters.",
+      "passwordNew": "Needed to turn it on. 8 to 128 characters.",
+      "passwordRequired": "Choose a password to turn protection on.",
+      "passwordInvalid": "Use between 8 and 128 characters.",
+      "days": "Access lasts",
+      "daysHint": "How long a visitor stays in after entering the password. Changing the password or the setting ends every access given before.",
+      "daysValue": "{count, plural, one {# day} other {# days}}",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "invalid": "Check the highlighted fields.",
+      "unavailable": "Password protection isn't available right now. Try again later.",
+      "updatedAt": "Changed {when}",
+      "adminsOnly": "Only the team's owners and admins can change this.",
+      "locked": "Asks for a password"
+    },
+    "deployment": {
+      "metaTitle": "Deployment",
+      "title": "Deployment {id}",
+      "tabs": {
+        "files": "Files",
+        "compare": "Compare with production"
+      },
+      "filesSummary": "{count, plural, one {# file} other {# files}}, {size} in total",
+      "filesEmpty": "This deployment has no files.",
+      "filesGone": "This deployment's files are no longer on the server, so they can't be listed.",
+      "filesCaption": "Files of this deployment",
+      "filter": "Filter files",
+      "filterHint": "Part of the path, e.g. assets/ or .css. Several words must all match.",
+      "matches": "{count, plural, =0 {No file matches.} one {# file matches.} other {# files match.}}",
+      "showing": "Showing the first {shown, number} of {count, plural, one {# file} other {# files}}.",
+      "showMore": "Show {count, number} more",
+      "path": "Path",
+      "size": "Size",
+      "compare": {
+        "lead": "What changes if this deployment is published, against production ({id}). Files are compared by size and content; nothing is downloaded.",
+        "leadPlain": "What changes if this deployment is published, against production. Files are compared by size and content; nothing is downloaded.",
+        "noProduction": "This project has nothing published yet, so there's nothing to compare with.",
+        "gone": "The files of this deployment or of production are no longer on the server, so they can't be compared.",
+        "identical": "Same files as production.",
+        "thisTotal": "This deployment",
+        "productionTotal": "Production",
+        "unchanged": "Unchanged",
+        "unchangedCount": "{count, plural, one {# file} other {# files}}",
+        "added": "Added",
+        "addedHelp": "In this deployment, not in production.",
+        "removed": "Removed",
+        "removedHelp": "In production, not in this deployment.",
+        "changed": "Changed",
+        "changedHelp": "In both, with a different size or content.",
+        "none": "None.",
+        "previousSize": "Production",
+        "newSize": "This deployment",
+        "change": "Difference",
+        "more": "{count, plural, one {# more file isn't shown} other {# more files aren't shown}}. See them all with {command}."
+      }
     },
     "members": {
       "title": "Members",
@@ -4837,11 +5249,40 @@
       "you": "you",
       "lastOwner": "A team needs at least one owner."
     },
+    "twoFactor": {
+      "title": "Two-step verification",
+      "required": "Every member of this team must have two-step verification on their account.",
+      "notRequired": "Members of this team don't need two-step verification.",
+      "turnOn": "Require two-step verification",
+      "turnOff": "Stop requiring it",
+      "turnedOn": "Two-step verification is now required. Members without it can only leave the team until they set it up.",
+      "turnedOff": "Two-step verification is no longer required.",
+      "ownFirst": "Turn on two-step verification on your own account first.",
+      "ownHint": "To require it, first turn it on on your own account.",
+      "memberOn": "Two-step verification: yes",
+      "memberOff": "Two-step verification: no",
+      "badge": "Two-step verification required",
+      "blockedTitle": "This team requires two-step verification",
+      "blockedBody": "Its owners require two-step verification of every member, and your account doesn't have it yet. Turn it on in your account to see the team's projects again, or leave the team.",
+      "accountLink": "Go to my account",
+      "inviteNote": "This team requires two-step verification: you'll need it on your account to use the team."
+    },
     "events": {
       "title": "History",
       "lead": "Every change in the team, newest first (kept 365 days).",
       "empty": "Nothing yet.",
-      "via": "token: {token}"
+      "via": "token: {token}",
+      "filters": "Filter the history",
+      "from": "From",
+      "to": "To",
+      "action": "Action",
+      "actionHint": "Exact, or a prefix like domain.",
+      "apply": "Apply",
+      "clear": "Clear filters",
+      "export": "Export CSV",
+      "exportHint": "With these filters; without dates, the last 30 days.",
+      "invalidFilters": "Those filters aren't valid: the start date must come before the end, at most 365 days apart, and the action looks like domain.added or domain.",
+      "noMatches": "No events match these filters."
     },
     "tokens": {
       "title": "API tokens",
@@ -4855,6 +5296,11 @@
       "expiry": "Expires",
       "days": "{count} days",
       "never": "Never",
+      "access": "Access",
+      "accessFull": "Full",
+      "accessFullHint": "Deploys and changes projects, deployments and domains.",
+      "accessReadOnly": "Read only",
+      "accessReadOnlyHint": "Can only list and read; anything else is refused.",
       "newToken": "Copy it now: you won't see it again.",
       "empty": "No tokens yet.",
       "lastUsed": "Last used {when} from {ip}",
@@ -4938,7 +5384,28 @@
       "search": "Search",
       "csv": "Download CSV",
       "noSubmissions": "No submissions.",
-      "deleteSubmission": "Delete"
+      "deleteSubmission": "Delete",
+      "views": "Submissions view",
+      "inbox": "Inbox",
+      "spamView": "Spam ({count})",
+      "spamNote": "Spam is kept for 30 days, then deleted. It isn't emailed or sent to your channels, and it doesn't count towards the month's submissions.",
+      "noSpam": "No spam.",
+      "spamBadge": "Spam",
+      "spamReasons": {
+        "markup": "Contains link markup.",
+        "links": "Contains too many links.",
+        "field": "A name or email field holds something else (a link, a very long text or an invalid email).",
+        "page": "Sent from a page that isn't one of your project's addresses.",
+        "repeat": "The same message arrived again and again within an hour.",
+        "manual": "Marked as spam by someone on the team."
+      },
+      "markSpam": "Spam",
+      "notSpam": "Not spam",
+      "spamFilter": "Spam filter",
+      "spamFilterHint": "Flags link spam, fields that hold something else, posts from other pages and repeated messages. Spam is kept 30 days apart; it isn't emailed or counted.",
+      "spamFilterOff": "No spam filter",
+      "spamFilterTurnOff": "Turn spam filter off",
+      "spamFilterTurnOn": "Turn spam filter on"
     },
     "monitors": {
       "title": "Monitors",
@@ -4950,7 +5417,8 @@
         "UP": "Up",
         "DOWN": "Down",
         "PAUSED": "Paused",
-        "UNKNOWN": "Waiting"
+        "UNKNOWN": "Waiting",
+        "MAINTENANCE": "Maintenance"
       },
       "newTitle": "New monitor",
       "name": "Name",
@@ -4966,6 +5434,23 @@
       "urlHint": "http or https, standard ports. Up when it answers below 400 within 15 seconds.",
       "urlInvalid": "Write a full address starting with http:// or https://.",
       "urlUnsafe": "That address can't be checked (private, other port or with a password).",
+      "text": "Text on the page (optional)",
+      "textHint": "Case-sensitive, up to 100 characters. Leave it empty to check only the answer.",
+      "textMode": "The page",
+      "textModes": {
+        "CONTAINS": "must contain this text",
+        "NOT_CONTAINS": "must not contain this text"
+      },
+      "textInvalid": "Up to 100 characters, on one line.",
+      "textChecks": {
+        "CONTAINS": "Checks that the page contains «{text}»",
+        "NOT_CONTAINS": "Checks that the page doesn't contain «{text}»"
+      },
+      "textTitle": "Text on the page",
+      "textEditHint": "Case-sensitive, up to 100 characters, in the first MB of the page. Leave it empty to stop checking text.",
+      "textSave": "Save",
+      "textSaving": "Saving…",
+      "textSaved": "Saved.",
       "forHeartbeat": "For a heartbeat",
       "period": "Expected every (minutes)",
       "periodHint": "How often your job runs: 60 = hourly, 1440 = daily.",
@@ -4975,6 +5460,7 @@
       "graceInvalid": "Between 1 and 1,440 minutes.",
       "alerts": "Who gets the alerts",
       "alertsInvalid": "Choose 1 to 10 members of the team.",
+      "projectChannels": "Tied to {project}: its Slack, Discord or webhook <link>notifications</link> can get this monitor's alerts too.",
       "create": "Create monitor",
       "creating": "Creating…",
       "lastCheck": "Last check {when}",
@@ -5013,6 +5499,70 @@
       "save": "Save",
       "saved": "Saved."
     },
+    "notices": {
+      "title": "Notices",
+      "lead": "Tell your visitors what is going on: an incident you are working on, or planned maintenance. While a maintenance is in progress its monitors show “Maintenance” on the public page, send no alerts and that time doesn’t count in the uptime.",
+      "open": "Open",
+      "noOpen": "No open notices.",
+      "past": "Past notices",
+      "noPast": "No past notices yet.",
+      "noMonitors": "Create a monitor first: a notice names the monitors it affects.",
+      "kinds": {
+        "INCIDENT": "Incident",
+        "MAINTENANCE": "Maintenance"
+      },
+      "states": {
+        "INVESTIGATING": "Investigating",
+        "IDENTIFIED": "Identified",
+        "MONITORING": "Monitoring",
+        "RESOLVED": "Resolved",
+        "SCHEDULED": "Scheduled",
+        "IN_PROGRESS": "In progress",
+        "COMPLETED": "Completed"
+      },
+      "affects": "Affects: {names}",
+      "window": "Window: {start} → {end} (Madrid time)",
+      "by": "{when} · {name}",
+      "note": "Note",
+      "timeline": "Full timeline ({count})",
+      "newIncident": "New incident",
+      "newMaintenance": "Schedule maintenance",
+      "noticeTitle": "Title",
+      "monitors": "Affected monitors",
+      "initialState": "State",
+      "message": "Message",
+      "messageHint": "Plain text, shown on the public page with its line breaks.",
+      "startsAt": "Starts (Madrid time)",
+      "endsAt": "Ends (Madrid time)",
+      "windowHint": "At most 7 days, starting within the next 90 days.",
+      "inProgressHint": "This maintenance has started: you can remove monitors from it, not add new ones.",
+      "createIncident": "Post incident",
+      "createMaintenance": "Schedule",
+      "creating": "Posting…",
+      "postUpdate": "Post an update",
+      "updateState": "New state",
+      "updateKind": "Type of update",
+      "maintenanceNote": "Note (the window stays as it is)",
+      "markCompleted": "Mark completed",
+      "send": "Post update",
+      "editWindow": "Edit window",
+      "save": "Save",
+      "saving": "Saving…",
+      "delete": "Delete notice",
+      "deleting": "Deleting…",
+      "deleteConfirm": "Delete this notice and its whole timeline. This can’t be undone.",
+      "titleInvalid": "Between 1 and 120 characters.",
+      "monitorsInvalid": "Choose between 1 and 20 monitors.",
+      "bodyInvalid": "Between 1 and 2,000 characters.",
+      "stateInvalid": "Choose a state.",
+      "dateInvalid": "Enter a date and time.",
+      "windowInvalid": "The end must be after the start, at most 7 days later.",
+      "endPast": "The end must be in the future.",
+      "confirmRequired": "Tick the box to confirm.",
+      "created": "Posted on the status page.",
+      "updated": "Update posted.",
+      "saved": "Saved."
+    },
     "status": {
       "suffix": "Status",
       "uptime": "{value} uptime",
@@ -5022,8 +5572,16 @@
         "operational": "All systems operational",
         "partial": "Partial outage",
         "major": "Major outage",
+        "maintenance": "Under maintenance",
         "unknown": "Waiting for the first checks"
-      }
+      },
+      "notices": "Notices",
+      "affects": "Affects: {names}",
+      "window": "{start} → {end} (Madrid time)",
+      "latest": "Latest update {when}",
+      "timeline": "Full timeline ({count})",
+      "history": "Past notices (last 14 days)",
+      "closed": "Closed {when}"
     },
     "audits": {
       "title": "Website check",
@@ -5035,6 +5593,7 @@
       "ci": "In your CI it fails the step under the score you set:",
       "recent": "Recent checks",
       "empty": "No checks yet.",
+      "previewBadge": "Preview check",
       "status": {
         "pass": "OK",
         "warn": "Improve",
@@ -5067,6 +5626,9 @@
       "node": "Node version",
       "buildBranches": "Build other branches as previews",
       "buildPullRequests": "Build pull requests (not from forks)",
+      "previewChecks": "Check each preview",
+      "previewChecksHint": "Runs the website check on each pull request's preview and adds the result to its comment on GitHub. Counts toward the team's hourly website checks.",
+      "onlyRootChanges": "Only build when files in the root folder change (for monorepos)",
       "save": "Save",
       "saved": "Saved.",
       "invalid": "Check the fields.",
@@ -5084,10 +5646,68 @@
       "envSaved": "Variable saved.",
       "keyInvalid": "Upper-case letters, digits and _ (e.g. API_KEY).",
       "targetRequired": "Choose production, previews or both.",
+      "import": {
+        "title": "Import .env",
+        "lead": "Paste a .env file or choose one from your computer: it is read here and only its text is sent. One KEY=value per line; # starts a comment. All or nothing: if a line is wrong, nothing is saved.",
+        "file": "File",
+        "fileHint": "Read in your browser; nothing is uploaded until you import.",
+        "content": "Contents",
+        "contentHint": "Up to 256 KB. Values are never shown again.",
+        "production": "Production",
+        "preview": "Previews",
+        "overwrite": "Replace existing",
+        "overwriteHint": "Otherwise, names that already exist are skipped.",
+        "submit": "Import",
+        "importing": "Importing…",
+        "empty": "Paste the file's contents or choose a file.",
+        "tooBig": "The file is over 256 KB.",
+        "unreadable": "That file couldn't be read.",
+        "targetRequired": "Choose production, previews or both.",
+        "refused": "Nothing was imported. Fix these lines and try again:",
+        "line": "Line {line}:",
+        "done": "Imported.",
+        "created": "Added",
+        "updated": "Replaced",
+        "skipped": "Skipped (already existed)"
+      },
+      "rebuild": {
+        "title": "Scheduled rebuilds",
+        "lead": "Rebuild {branch} on a schedule, for sites that read content when they build (a CMS, an API). Each run counts towards the month's builds.",
+        "frequency": "Frequency",
+        "frequencies": {
+          "off": "Off",
+          "hourly": "Every hour",
+          "daily": "Every day",
+          "weekly": "Every week"
+        },
+        "minute": "Minute",
+        "minuteHint": "0–59, for every frequency.",
+        "hour": "Hour",
+        "hourHint": "0–23, Madrid time. For daily and weekly.",
+        "weekday": "Day of the week",
+        "weekdayHint": "For weekly only.",
+        "every": {
+          "hourly": "Every hour at minute {minute}",
+          "daily": "Every day at {time} (Madrid time)",
+          "weekly": "Every {weekday} at {time} (Madrid time)"
+        },
+        "off": "Off: {branch} is built on pushes and when you deploy it again.",
+        "next": "Next run: {when}.",
+        "failing": "The last {count, plural, one {scheduled build} other {# scheduled builds}} failed. After {max} in a row, the schedule switches off.",
+        "switchedOff": "Switched off after {max} scheduled builds failed in a row. Fix the build and switch it on again.",
+        "required": "Required for this frequency.",
+        "frequencyInvalid": "Choose a frequency.",
+        "minuteInvalid": "A minute from 0 to 59.",
+        "hourInvalid": "An hour from 0 to 23.",
+        "weekdayInvalid": "Choose a day.",
+        "save": "Save schedule",
+        "saved": "Schedule saved."
+      },
       "setupMissing": "GitHub didn't send what was expected. Start again from the project's Git tab.",
       "backToConsole": "Back to the console"
     },
     "builds": {
+      "check": "Website check: {score}/100",
       "first": "Build {branch}",
       "again": "Deploy {branch} again",
       "noRepo": "Connect a GitHub repository in the Git tab to build on every push.",
@@ -5100,9 +5720,41 @@
         "CANCELED": "Canceled"
       },
       "cancel": "Cancel",
+      "noCache": "Without cache",
+      "retryNoCache": "Retry without cache",
       "log": "Log",
       "waiting": "Waiting for a build server…",
-      "noLog": "No output."
+      "noLog": "No output.",
+      "byHook": "Deploy hook · {name}"
+    },
+    "hooks": {
+      "title": "Deploy hooks",
+      "lead": "A deploy hook is a secret URL that builds one branch when something calls it: a headless CMS can rebuild your site when its content changes, with no commit.",
+      "noRepo": "Connect a GitHub repository first: hooks build a branch of it.",
+      "empty": "No deploy hooks yet.",
+      "madeBy": "made by {name}",
+      "lastCalled": "last called {when}",
+      "neverCalled": "never called",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "deleteWarning": "The hook's URL stops working at once. Whatever calls it will get an error.",
+      "confirmDelete": "Delete the hook “{name}”",
+      "confirmNeeded": "Tick the box to confirm.",
+      "deleted": "Deploy hook deleted.",
+      "shownOnce": "The hook's URL is shown once, when you make it.",
+      "name": "Name",
+      "nameHint": "For example: Contentful. Up to 60 characters.",
+      "nameInvalid": "A name of 1 to 60 characters.",
+      "branch": "Branch",
+      "branchHint": "The branch to build. It is the production branch when empty.",
+      "branchInvalid": "A branch name.",
+      "create": "Add hook",
+      "creating": "Adding…",
+      "created": "Hook added. Copy its URL now: it won't be shown again. Anyone with it can trigger a build, so paste it only in the service's webhook settings.",
+      "createdNoUrl": "Hook added.",
+      "keptByLock": "Kept as preview",
+      "keptByLockHelp": "Production was locked after a rollback, so this build deployed as a preview. Promote its deployment to publish it.",
+      "scheduled": "Scheduled"
     },
     "notify": {
       "lead": "Tell people or a channel when a build fails or a site is published, so nobody has to watch the console.",
@@ -5119,12 +5771,16 @@
       "succeeded": "Published builds",
       "withPreviews": "previews too",
       "productionOnly": "production only",
+      "formsAll": "Form submissions (all forms)",
+      "formsSome": "Form submissions ({forms})",
+      "monitors": "Monitor alerts",
       "last": "Last sent {when}",
       "never": "Nothing sent yet.",
       "test": "Send a test",
       "testing": "Sending…",
       "testSent": "Test sent. Check that it arrived.",
       "testFailed": "The test couldn't be delivered: {error}",
+      "testForm": "Send a test submission",
       "pause": "Switch off",
       "resume": "Switch on",
       "delete": "Delete",
@@ -5148,6 +5804,18 @@
       "onFailed": "When a build fails",
       "onSucceeded": "When a build is published",
       "onPreviews": "Also for previews (other branches and pull requests)",
+      "onForms": "When a form gets a submission",
+      "onFormsNew": "When a form gets a submission (Slack, Discord or webhook)",
+      "formsPrivacy": "Submissions usually hold visitors' personal data. Sending them to this service is your team's decision, as the one responsible for that data.",
+      "formsWhich": "Only these forms (none ticked: all forms)",
+      "formsLoadError": "The forms couldn't be loaded, so the forms this channel is limited to stay as they are.",
+      "formsLoadErrorNew": "The project's forms couldn't be loaded: a new channel gets all forms; edit it later to choose some.",
+      "formsEmail": "Email notifications can't carry form submissions: forms already email their own recipients. Choose Slack, Discord or webhook.",
+      "formsTooMany": "Choose up to 20 forms.",
+      "onMonitors": "Monitor alerts (down, back up, certificate)",
+      "onMonitorsNew": "Monitor alerts: down, back up, certificate (Slack, Discord or webhook)",
+      "onMonitorsHint": "Only monitors tied to this project alert here. The people chosen on each monitor still get their email.",
+      "monitorAlertsEmail": "Monitor alerts go to Slack, Discord or a webhook: monitors already email the people chosen on them.",
       "newTitle": "New notification",
       "create": "Add notification",
       "creating": "Adding…",

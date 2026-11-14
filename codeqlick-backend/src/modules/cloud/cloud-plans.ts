@@ -24,6 +24,8 @@ export interface CloudLimits {
   envVarsPerProject: number;
   /** Build notification channels per project (decision 43). */
   notifyChannelsPerProject: number;
+  /** Deploy hooks per project (decision 51). */
+  deployHooksPerProject: number;
   /** Web analytics events a Madrid calendar month (decision 44). */
   analyticsEventsPerMonth: number;
   /** Key-value store (decision 45). */
@@ -37,6 +39,10 @@ export interface CloudLimits {
   bucketsPerProject: number;
   bucketBytes: number;
   bucketObjects: number;
+  /** `codeqlick.json` (decision 52): redirects plus rewrites, header rules and the file's size. */
+  configRules: number;
+  configHeaderRules: number;
+  configBytes: number;
 }
 
 const MB = 1024 * 1024;
@@ -63,6 +69,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildMinutes: 15,
     envVarsPerProject: 50,
     notifyChannelsPerProject: 5,
+    deployHooksPerProject: 5,
     analyticsEventsPerMonth: 50_000,
     kvKeysPerProject: 1000,
     kvBytesPerProject: 10 * MB,
@@ -72,6 +79,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     bucketsPerProject: 2,
     bucketBytes: 1024 * MB,
     bucketObjects: 100_000,
+    configRules: 100,
+    configHeaderRules: 30,
+    configBytes: 64 * 1024,
   },
   PRO: {
     teamsOwned: 3,
@@ -93,6 +103,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildMinutes: 30,
     envVarsPerProject: 200,
     notifyChannelsPerProject: 20,
+    deployHooksPerProject: 5,
     analyticsEventsPerMonth: 1_000_000,
     kvKeysPerProject: 100_000,
     kvBytesPerProject: 1024 * MB,
@@ -102,6 +113,9 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     bucketsPerProject: 10,
     bucketBytes: 50 * 1024 * MB,
     bucketObjects: 1_000_000,
+    configRules: 2000,
+    configHeaderRules: 200,
+    configBytes: 256 * 1024,
   },
 };
 
@@ -112,6 +126,10 @@ export const MAX_UPLOAD_BYTES = Math.max(...Object.values(CLOUD_PLANS).map((p) =
 
 /** Deployments kept per project besides production. */
 export const KEPT_DEPLOYMENTS = 20;
+/** Deployment downloads an hour per team, counted from its events (decision 60). */
+export const DOWNLOADS_PER_HOUR = 10;
+/** Deployments a project keeps by hand (`keptAt`), out of the cleanup and the 20 above. */
+export const KEPT_BY_HAND = 5;
 /** A deleted project's address stays taken this long. */
 export const DELETED_PROJECT_DAYS = 30;
 export const EVENTS_DAYS = 365;
@@ -121,6 +139,10 @@ export const DEVICE_POLL_SECONDS = 5;
 export const CLI_TOKEN_DAYS = 90;
 /** Form submissions are kept this long (decision 37). */
 export const FORM_SUBMISSION_DAYS = 180;
+/** Spam submissions are kept this long, apart (decision 66). */
+export const FORM_SPAM_DAYS = 30;
+/** At most this much spam is kept per form; past it, new spam is dropped (decision 66). */
+export const FORM_SPAM_PER_FORM = 1000;
 /** Analytics events are kept this long (decision 44). */
 export const ANALYTICS_DAYS = 365;
 /** The largest value of the key-value store, serialised (decision 45). */

@@ -303,6 +303,7 @@
     "readMore": "Leer artículo",
     "back": "Todos los artículos",
     "publishedOn": "Publicado el {date}",
+    "readingTime": "{minutes} min de lectura",
     "tagsLabel": "Etiquetas",
     "topics": "Temas",
     "allTopics": "Todos los temas",
@@ -319,6 +320,35 @@
     "noResultsTitle": "Nada para «{q}»",
     "noResultsBody": "Prueba con otras palabras o mira todos los artículos.",
     "allPosts": "Ver todos los artículos"
+  },
+  "Newsletter": {
+    "title": "Recibe los nuevos artículos por correo",
+    "lead": "Un correo por cada artículo nuevo del blog. Nada más, y puedes darte de baja cuando quieras.",
+    "email": "Tu correo electrónico",
+    "emailPlaceholder": "tu@ejemplo.com",
+    "acceptPrivacy": "Acepto que uséis mi correo para enviarme los artículos nuevos, como explica la <link>política de privacidad</link>.",
+    "honeypot": "Deja este campo vacío",
+    "submit": "Suscribirme",
+    "submitting": "Suscribiendo…",
+    "successTitle": "Revisa tu bandeja de entrada para confirmar.",
+    "successBody": "Si la dirección es válida, te hemos enviado un enlace para confirmar la suscripción. Caduca en 48 horas. ¿No lo ves? Mira en la carpeta de spam.",
+    "error": "Revisa el formulario.",
+    "rateLimited": "Demasiados intentos seguidos. Espera un minuto e inténtalo de nuevo.",
+    "failed": "No hemos podido completarlo. Inténtalo de nuevo en un momento.",
+    "disposable": "No aceptamos direcciones de correo temporales. Usa tu correo habitual.",
+    "confirmTitle": "Confirma tu suscripción",
+    "confirmedLead": "Ya estás suscrito. Te enviaremos un correo con cada artículo nuevo del blog.",
+    "goToBlog": "Leer el blog",
+    "confirmExpired": "Este enlace no es válido o ha caducado. Vuelve a suscribirte aquí abajo para recibir uno nuevo.",
+    "unsubscribeTitle": "Darte de baja del boletín",
+    "unsubscribeLead": "Pulsa el botón y dejaremos de enviarte los artículos nuevos por correo.",
+    "unsubscribe": "Darme de baja",
+    "unsubscribing": "Dándote de baja…",
+    "unsubscribed": "Hecho. No recibirás más correos nuestros. Puedes volver a suscribirte cuando quieras.",
+    "unsubscribeNotFound": "Este enlace no es válido. Si sigues recibiendo nuestros correos, usa el enlace del final del último o escríbenos.",
+    "confirmLead": "Pulsa el botón para confirmar tu suscripción a los artículos nuevos del blog por correo.",
+    "confirm": "Confirmar mi suscripción",
+    "confirming": "Confirmando…"
   },
   "Work": {
     "metaTitle": "Proyectos",
@@ -406,7 +436,8 @@
     "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas).",
     "domain": "Escribe un dominio como peluqueria-ana.com.",
     "confirmMismatch": "No coincide: escríbelo tal cual.",
-    "website": "Escribe la dirección de tu web, como tuweb.com."
+    "website": "Escribe la dirección de tu web, como tuweb.com.",
+    "breachedPassword": "Esta contraseña aparece en una filtración de datos, así que es de las primeras que se prueban. Elige otra."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -501,6 +532,24 @@
     "welcomeSubtitle": "Elige la contraseña con la que entrarás a tu cuenta.",
     "welcomeSubmit": "Crear contraseña",
     "welcomeInvalidLink": "Este enlace no es válido o ha caducado. Los enlaces de bienvenida sirven una sola vez y durante 7 días. Pide uno nuevo aquí abajo con tu correo."
+  },
+  "Unsubscribe": {
+    "metaTitle": "Preferencias de correo",
+    "title": "Preferencias de correo",
+    "subscribed": "{email} recibe {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}. Si te das de baja, dejaremos de enviarlo; las novedades de tus proyectos y los demás correos sobre tu cuenta te seguirán llegando.",
+    "unsubscribed": "Hecho: {email} ya no recibirá {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}.",
+    "alreadyUnsubscribed": "{email} ya estaba dado de baja de {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}.",
+    "resubscribed": "Te has vuelto a suscribir: {email} seguirá recibiendo {kind, select, digest {el resumen semanal de tus proyectos} other {el informe mensual de tu web}}.",
+    "unsubscribe": "Darme de baja",
+    "unsubscribing": "Dando de baja…",
+    "undo": "Deshacer (volver a suscribirme)",
+    "subscribeAgain": "Volver a suscribirme",
+    "subscribing": "Suscribiendo…",
+    "account": "Gestiona todos tus correos en Mi cuenta",
+    "invalidLink": "Este enlace ya no funciona. Entra en tu cuenta y elige qué correos recibes en Mi cuenta.",
+    "signIn": "Entrar",
+    "retry": "No hemos podido guardar el cambio ahora mismo. Vuelve a intentarlo en un minuto.",
+    "loadFailed": "No hemos podido abrir este enlace ahora mismo. Recarga la página en un minuto."
   },
   "Account": {
     "nav": "Cuenta",
@@ -733,6 +782,7 @@
       "posts": "Artículos",
       "portfolio": "Portfolio",
       "media": "Imágenes",
+      "links": "Enlaces rotos",
       "projects": "Proyectos",
       "users": "Usuarios",
       "activity": "Actividad",
@@ -749,7 +799,8 @@
       "previews": "Vistas previas",
       "videochat": "Videochat",
       "swipe": "Swipe",
-      "cloud": "Cloud"
+      "cloud": "Cloud",
+      "newsletter": "Boletín"
     },
     "dashboard": {
       "title": "Panel",
@@ -776,7 +827,8 @@
       "activeTickets": "Peticiones abiertas",
       "sentProposals": "Propuestas por responder",
       "pendingDrafts": "Borradores por revisar",
-      "upcomingCalls": "Próximas llamadas"
+      "upcomingCalls": "Próximas llamadas",
+      "brokenLinks": "Enlaces rotos"
     },
     "leads": {
       "title": "Contactos",
@@ -910,7 +962,13 @@
       "publishedAt": "Fecha de publicación",
       "publishedAtHint": "Si es futura, el artículo aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo.",
       "tags": "Etiquetas",
-      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos."
+      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos.",
+      "newsletter": "Enviarlo por correo a los suscriptores",
+      "newsletterHint": "Cuando el artículo esté publicado (uno programado, cuando salga), los suscriptores del boletín lo reciben por correo. Solo se envía una vez.",
+      "newsletterSentOn": "Ya enviado a los suscriptores el {date}.",
+      "newsletterSkippedOn": "No se envió por correo a los suscriptores.",
+      "oldAddresses": "Direcciones antiguas que redirigen aquí",
+      "oldAddressesHint": "Los enlaces a los slugs anteriores del artículo siguen funcionando: visitantes y buscadores llegan a su dirección actual."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -945,7 +1003,9 @@
       "testimonialQuoteHint": "Las palabras del cliente en este idioma. Se muestran en el caso de éxito y en la portada.",
       "testimonialRole": "Cargo del autor",
       "testimonialRoleHint": "Por ejemplo: Fundadora, CircleSfera.",
-      "services": "Servicios del proyecto"
+      "services": "Servicios del proyecto",
+      "oldAddresses": "Direcciones antiguas que redirigen aquí",
+      "oldAddressesHint": "Los enlaces a los slugs anteriores del caso de éxito siguen funcionando: visitantes y buscadores llegan a su dirección actual."
     },
     "projects": {
       "title": "Proyectos",
@@ -1079,6 +1139,31 @@
       "unsaved": "Muestra lo que está guardado: guarda los cambios antes de previsualizarlos.",
       "otherLanguages": "También disponible en:"
     },
+    "revisions": {
+      "history": "Historial",
+      "historyEmpty": "Todavía no hay versiones anteriores. Se guarda una cada vez que cambias el contenido.",
+      "entry": "{date} · {author}",
+      "title": "Versión sustituida el {date}",
+      "replacedBy": "La sustituyó {author}.",
+      "back": "Volver a la edición",
+      "thisVersion": "Esta versión",
+      "current": "Actual",
+      "changed": "Cambiado",
+      "noChanges": "Esta versión es igual que el contenido actual.",
+      "shared": "Ambos idiomas",
+      "languages": {
+        "en": "Inglés",
+        "es": "Español"
+      },
+      "deletedTag": "Etiqueta eliminada",
+      "restoreTitle": "Restaurar esta versión",
+      "restoreBodyPost": "El contenido actual se sustituye por esta versión y queda en el historial, así que puedes deshacerlo. El estado, la fecha de publicación y el slug no cambian; las etiquetas eliminadas desde entonces no se recuperan.",
+      "restoreBodyPortfolio": "El contenido actual se sustituye por esta versión y queda en el historial, así que puedes deshacerlo. El estado, la fecha de publicación, el slug y el orden no cambian.",
+      "restoreConfirm": "Sustituir el contenido actual por esta versión.",
+      "restore": "Restaurar esta versión",
+      "restoring": "Restaurando…",
+      "restored": "Versión restaurada. El contenido que había queda en el historial."
+    },
     "users": {
       "title": "Usuarios",
       "new": "Nuevo usuario",
@@ -1187,7 +1272,9 @@
         "settings": "Ajustes",
         "booking": "Llamadas",
         "videochat": "Videochat",
-        "swipe": "Swipe"
+        "swipe": "Swipe",
+        "site_news": "Noticias",
+        "newsletter": "Newsletter"
       },
       "actions": {
         "post": {
@@ -1196,7 +1283,8 @@
           "published": "publicó el artículo <target>{label}</target>",
           "unpublished": "pasó a borrador el artículo <target>{label}</target>",
           "deleted": "borró el artículo <target>{label}</target>",
-          "scheduled": "programó el artículo <target>{label}</target>"
+          "scheduled": "programó el artículo <target>{label}</target>",
+          "restored": "restauró una versión anterior del artículo <target>{label}</target>"
         },
         "portfolio": {
           "created": "creó el caso de éxito <target>{label}</target>",
@@ -1204,7 +1292,8 @@
           "published": "publicó el caso de éxito <target>{label}</target>",
           "unpublished": "pasó a borrador el caso de éxito <target>{label}</target>",
           "deleted": "borró el caso de éxito <target>{label}</target>",
-          "scheduled": "programó el caso de éxito <target>{label}</target>"
+          "scheduled": "programó el caso de éxito <target>{label}</target>",
+          "restored": "restauró una versión anterior del caso de éxito <target>{label}</target>"
         },
         "project": {
           "created": "creó el proyecto <target>{label}</target>",
@@ -1337,6 +1426,17 @@
           "takedown_closed": "cerró sin retirar la solicitud <target>{label}</target>",
           "suspended": "suspendió en Swipe a <target>{label}</target>",
           "unsuspended": "levantó la suspensión en Swipe de <target>{label}</target>"
+        },
+        "site_news": {
+          "switched": "activó o desactivó las noticias de la web de <target>{label}</target>",
+          "created": "creó la noticia <target>{label}</target>",
+          "updated": "cambió la noticia <target>{label}</target>",
+          "published": "publicó la noticia <target>{label}</target>",
+          "unpublished": "despublicó la noticia <target>{label}</target>",
+          "deleted": "eliminó la noticia <target>{label}</target>"
+        },
+        "newsletter": {
+          "subscriber_deleted": "borró a un suscriptor del boletín"
         }
       },
       "details": {
@@ -1614,6 +1714,54 @@
       "capReached": "Hoy ya se han hecho 10 vistas previas, el máximo diario. Prueba mañana.",
       "noBuilder": "El generador de webs no está disponible ahora mismo.",
       "purchased": "Comprada"
+    },
+    "newsletter": {
+      "title": "Boletín",
+      "lead": "Lectores que se han suscrito para recibir por correo cada artículo nuevo del blog. Una suscripción cuenta cuando se confirma desde el correo que enviamos.",
+      "counts": {
+        "active": "Activos",
+        "pending": "Pendientes de confirmar",
+        "unsubscribed": "De baja"
+      },
+      "status": "Estado",
+      "statuses": {
+        "ACTIVE": "Activo",
+        "PENDING": "Pendiente",
+        "UNSUBSCRIBED": "De baja"
+      },
+      "search": "Buscar",
+      "searchPlaceholder": "Parte del correo…",
+      "email": "Correo electrónico",
+      "language": "Idioma",
+      "languages": {
+        "en": "Inglés",
+        "es": "Español"
+      },
+      "signedUp": "Suscrito",
+      "confirmedOn": "Confirmado el {date}",
+      "unsubscribedOn": "Baja el {date}",
+      "emptyTitle": "Aún no hay suscriptores",
+      "emptyBody": "Los lectores pueden suscribirse al final del blog y de cada artículo.",
+      "noMatchTitle": "Ningún suscriptor coincide",
+      "noMatchBody": "Prueba con otro estado u otras palabras."
+    },
+    "search": {
+      "button": "Buscar",
+      "shortcut": "Ctrl K",
+      "shortcutApple": "⌘K",
+      "title": "Buscar en el panel",
+      "inputLabel": "Buscar contactos, usuarios, proyectos, solicitudes, propuestas, artículos y casos de estudio",
+      "placeholder": "Nombre, email, título o #número",
+      "close": "Cerrar",
+      "results": "Resultados",
+      "hint": "Escribe al menos 2 caracteres para buscar.",
+      "searching": "Buscando…",
+      "empty": "No hay nada para «{q}».",
+      "resultsOne": "1 resultado",
+      "resultsMany": "{count} resultados",
+      "tooMany": "Demasiadas búsquedas seguidas. Espera un momento y vuelve a intentarlo.",
+      "failed": "La búsqueda ha fallado. Inténtalo de nuevo.",
+      "expired": "Tu sesión ha caducado. Recarga la página para volver a entrar."
     }
   },
   "Sessions": {
@@ -1633,6 +1781,13 @@
   },
   "Legal": {
     "updated": "Última actualización: {date}"
+  },
+  "Markdown": {
+    "anchorLink": "Enlace a esta sección",
+    "contents": "Contenido",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copyFailed": "No se pudo copiar"
   },
   "About": {
     "metaTitle": "Sobre nosotros",
@@ -2789,6 +2944,97 @@
     "posterStep3": "Elige las estrellas y cuéntanos qué tal.",
     "posterThanks": "¡Muchas gracias!"
   },
+  "SiteNews": {
+    "tabsLabel": "Secciones del editor",
+    "tabSite": "Tu web",
+    "tabNews": "Noticias",
+    "title": "Noticias y ofertas",
+    "lead": "Publica noticias u ofertas en tu web: el contenido nuevo ayuda a que te encuentren personas y Google. Las publicaciones se guardan aparte del resto de tu web, así que publicar una nunca publica los cambios que tengas en el editor.",
+    "switch": "Mostrar la sección de noticias en mi web",
+    "switchOn": "Activada: las publicaciones aparecen en la página «Noticias» y en el inicio de tu web.",
+    "switchOff": "Desactivada: tu web no muestra noticias. Tus publicaciones se conservan y vuelven al activarla.",
+    "switchedOn": "Noticias activadas. Tu web se está actualizando.",
+    "switchedOff": "Noticias desactivadas. Tu web se está actualizando.",
+    "newPost": "Nueva publicación",
+    "editPost": "Editar publicación",
+    "listTitle": "Tus publicaciones ({count})",
+    "empty": "Aún no tienes publicaciones. Escribe la primera con «Nueva publicación».",
+    "edit": "Editar",
+    "more": "Mostrar más",
+    "statuses": {
+      "DRAFT": "Borrador",
+      "PUBLISHED": "Publicada",
+      "EXPIRED": "Caducada"
+    },
+    "publishedOn": "Publicada el {date}",
+    "createdOn": "Creada el {date}",
+    "expiresOn": "visible hasta el {date}",
+    "fieldTitle": "Título",
+    "fieldSummary": "Resumen",
+    "summaryHint": "Se muestra en el listado, en Google y al compartir la publicación. {count} / {max}",
+    "fieldBody": "Texto",
+    "helpTitle": "Cómo dar formato al texto",
+    "helpParagraphs": "Deja una línea en blanco entre párrafos.",
+    "helpBold": "para negrita",
+    "helpBoldExample": "negrita",
+    "helpItalic": "para cursiva",
+    "helpItalicExample": "cursiva",
+    "helpLink": "para un enlace (https, mailto o tel)",
+    "helpLinkExample": "texto",
+    "helpList": "al principio de cada línea para una lista",
+    "helpListExample": "elemento",
+    "fieldPhoto": "Foto (opcional)",
+    "noPhoto": "Sin foto",
+    "addPhoto": "Añadir foto",
+    "changePhoto": "Cambiar foto",
+    "removePhoto": "Quitar foto",
+    "uploading": "Subiendo…",
+    "photoFailed": "No se pudo subir la foto. Usa un JPG, PNG o WebP de hasta 5 MB.",
+    "photoAdminHint": "Las fotos las sube el cliente desde su portal; aquí solo puedes conservarla o quitarla.",
+    "fieldExpires": "Último día que se muestra (opcional)",
+    "expiresHint": "Para ofertas: pasado este día (hora de España) la publicación desaparece de la web.",
+    "expiredHint": "Esta publicación ha caducado y ya no está en la web. Elige un día posterior y publícala de nuevo, o déjala como está.",
+    "saveDraft": "Guardar borrador",
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "publish": "Publicar",
+    "publishAgain": "Publicar de nuevo",
+    "unpublish": "Despublicar",
+    "delete": "Eliminar",
+    "close": "Volver al listado",
+    "deleteConfirm": "¿Eliminar «{title}»? No se puede deshacer.",
+    "discardConfirm": "Tienes cambios sin guardar en esta publicación. ¿Salir sin guardarlos?",
+    "deleted": "Publicación eliminada.",
+    "previewTitle": "Vista previa",
+    "previewHint": "Una aproximación del texto; los colores y las fuentes son los de tu web.",
+    "previewEmpty": "Lo que escribas aparecerá aquí.",
+    "savedDraft": "Guardada como borrador. Tu web no cambia hasta que la publiques.",
+    "savedBuilt": "Guardado. Tu web está al día.",
+    "savedPending": "Guardado. Tu web se está actualizando.",
+    "publishedBuilt": "Publicada. Tu web está al día.",
+    "publishedPending": "Publicada. Tu web se está actualizando.",
+    "unpublishedBuilt": "Despublicada. Ya no está en tu web.",
+    "pastHint": "Este día ya ha pasado. Puedes guardarlo, pero para publicar elige hoy o un día posterior.",
+    "unpublishedPlain": "Despublicada.",
+    "unpublishedPending": "Despublicada. Tu web se está actualizando.",
+    "buildFailed": "Guardado, pero ahora no se ha podido actualizar tu web. La versión anterior sigue en línea y la publicación saldrá con la próxima actualización.",
+    "errors": {
+      "required": "Este campo es obligatorio.",
+      "tooLong": "Es demasiado largo (máximo {max} caracteres).",
+      "past": "Elige hoy o un día posterior.",
+      "date": "Introduce una fecha válida.",
+      "invalid": "Revisa este campo."
+    },
+    "failures": {
+      "invalid": "Hay campos que revisar.",
+      "limit": "Has llegado al límite de 200 publicaciones. Elimina alguna para escribir más.",
+      "expired": "Su último día ya ha pasado. Elige antes un día posterior.",
+      "busy": "Demasiados cambios en poco tiempo. Inténtalo de nuevo dentro de un rato.",
+      "unavailable": "Ahora no se puede actualizar tu web. No ha cambiado nada; inténtalo de nuevo en unos minutos.",
+      "notFound": "Esta publicación o web ya no existe. Recarga la página.",
+      "failed": "No se pudo hacer. Inténtalo de nuevo."
+    }
+  },
   "SiteEditor": {
     "title": "Editor de tu web",
     "lead": "Cambia todo lo de tu web: diseño, textos, fotos, secciones y datos legales. Los cambios se guardan solos como borrador y no se ven en tu web hasta que pulsas «Publicar».",
@@ -3856,6 +4102,45 @@
       "WEB_BROWSER": "Web (navegador)"
     }
   },
+  "AdminLinks": {
+    "title": "Enlaces rotos",
+    "lead": "Los enlaces de los artículos y casos de éxito publicados, en los dos idiomas, revisados una vez por semana. Un enlace cuenta como roto cuando falla dos revisiones seguidas.",
+    "filtersLabel": "Mostrar",
+    "filters": {
+      "broken": "Rotos",
+      "all": "Todos"
+    },
+    "emptyTitle": "Ningún enlace roto",
+    "emptyAllTitle": "Ningún enlace revisado",
+    "lastRun": "Última revisión: {date}.",
+    "notCheckedYet": "Todavía no se ha revisado.",
+    "link": "Enlace",
+    "status": "Estado",
+    "since": "Roto desde",
+    "where": "Dónde",
+    "internal": "Interno",
+    "external": "Externo",
+    "newTab": "(se abre en una pestaña nueva)",
+    "statuses": {
+      "OK": "OK",
+      "BROKEN": "Roto"
+    },
+    "checkedAt": "Revisado el {date}",
+    "sources": {
+      "POST": "Artículo",
+      "PORTFOLIO": "Caso de éxito"
+    },
+    "languages": {
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "edit": "Editar",
+    "checkAgain": "Revisar de nuevo",
+    "checking": "Revisando…",
+    "checkedOk": "El enlace ya funciona.",
+    "checkedBroken": "Sigue roto.",
+    "tooManyChecks": "Demasiadas revisiones en un minuto. Prueba de nuevo en un momento."
+  },
   "Meetings": {
     "metaTitle": "Meetings: videollamadas con un enlace",
     "metaDescription": "Crea una sala, comparte el enlace y habla por vídeo con hasta 6 personas. Sin instalar nada y sin cuenta para tus invitados.",
@@ -4772,7 +5057,20 @@
       "plan": "Plan: {plan}",
       "monitorsLink": "Monitores",
       "auditsLink": "Revisión web",
-      "planLink": "Plan"
+      "planLink": "Plan",
+      "meters": {
+        "builds": "Builds este mes",
+        "formSubmissions": "Envíos de formularios este mes",
+        "analyticsEvents": "Eventos de analítica este mes",
+        "storage": "Almacenamiento",
+        "deploymentsPerHour": "Despliegues en la última hora"
+      },
+      "alert": {
+        "warningTitle": "Te acercas a los límites de tu plan",
+        "errorTitle": "Has alcanzado los límites de tu plan",
+        "item": "{label}: {used} de {limit} ({percent} %)",
+        "link": "Ver el uso"
+      }
     },
     "project": {
       "tabs": {
@@ -4794,11 +5092,34 @@
       "preview": "Vista previa",
       "productionTag": "Publicado",
       "promote": "Publicar",
+      "kept": "Conservado",
+      "keep": "Conservar",
+      "unkeep": "Dejar de conservar",
+      "keptFull": "Un proyecto conserva como máximo 5 despliegues. Deja de conservar uno primero.",
+      "unkeepConfirm": "Puede borrarse en el plazo de una hora si es anterior a los 20 últimos. ¿Dejar de conservarlo?",
+      "retention": "Se guardan los 20 últimos despliegues, el publicado y hasta 5 que conserves; los anteriores se borran cada hora.",
       "delete": "Borrar",
+      "download": "Descargar",
       "via": "con {token}",
+      "deployment": "Despliegue",
+      "rules": {
+        "badge": "Reglas",
+        "title": "Reglas",
+        "none": "Este despliegue no tiene reglas de codeqlick.json.",
+        "summary": "Reglas: {redirects, plural, one {# redirección} other {# redirecciones}}, {rewrites, plural, one {# reescritura} other {# reescrituras}}, {headers, plural, one {# regla de cabeceras} other {# reglas de cabeceras}}",
+        "file": "codeqlick.json (tal como se interpretó)",
+        "readOnly": "Solo lectura: el archivo viaja con tu código, así que cámbialo allí y vuelve a desplegar."
+      },
       "files": "{count, plural, one {# archivo} other {# archivos}}",
       "suspendedTitle": "Este proyecto está suspendido",
       "suspendedBody": "Sus direcciones muestran un aviso y no admite despliegues. Motivo: {reason}. Responde a nuestro correo si crees que es un error.",
+      "lock": {
+        "title": "La producción está bloqueada en {id} desde el {since}, {who, select, former {por un antiguo miembro} other {por {name}}}.",
+        "noId": "un despliegue anterior",
+        "body": "Se bloqueó al volver atrás, para que el fallo que se acaba de deshacer no vuelva solo: las compilaciones de producción desde Git siguen compilando y desplegándose, pero como vistas previas, hasta que alguien publique un despliegue o desbloquee producción.",
+        "unlock": "Desbloquear",
+        "unlocking": "Desbloqueando…"
+      },
       "domainsLead": "Sirve la versión publicada en tus propios dominios (hasta 5).",
       "domainName": "Dominio",
       "domainHint": "p. ej. docs.ejemplo.com",
@@ -4817,7 +5138,98 @@
       "rename": "Cambiar el nombre",
       "saved": "Guardado.",
       "deleteTitle": "Borrar el proyecto",
-      "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días."
+      "badgeTitle": "Insignia para el README",
+      "badgeHelp": "Muestra si la web de producción está desplegada, construyéndose o con un error. Copia el Markdown en tu README:",
+      "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días.",
+      "transfer": {
+        "title": "Mover a otro equipo",
+        "lead": "Pasa este proyecto a otro equipo que gestiones. Su dirección, despliegues, dominios, formularios, variables, datos, compilaciones y los monitores ligados a él se van con el proyecto, sin volver a desplegar.",
+        "git": "La conexión con Git solo se mantiene si la instalación de GitHub del otro equipo ve el repositorio; si no, sus administradores la vuelven a conectar en la pestaña Git.",
+        "tokens": "Los tokens limitados a este equipo dejan de tener acceso al proyecto.",
+        "config": "Las carpetas con un codeqlick.json siguen apuntando a este equipo: vuelve a ejecutar codeqlick init en ellas.",
+        "team": "Equipo de destino",
+        "chooseTeam": "Elige un equipo",
+        "noTeams": "No eres propietario ni administrador de ningún otro equipo, así que no hay adónde moverlo.",
+        "submit": "Mover el proyecto",
+        "moving": "Moviendo…",
+        "suspended": "Este proyecto está suspendido, así que no se puede mover.",
+        "builds": "Espera a que terminen las compilaciones del proyecto (o cancélalas) antes de moverlo.",
+        "changed": "El proyecto ha cambiado entretanto. Inténtalo de nuevo.",
+        "moved": "Proyecto movido a este equipo.",
+        "gitDropped": "Se ha quitado la conexión con Git: vuelve a conectarla en la pestaña Git."
+      }
+    },
+    "protection": {
+      "title": "Protección con contraseña",
+      "lead": "Pide una contraseña a los visitantes antes de que vean este proyecto, para enseñar trabajo en curso sin hacerlo público. Los miembros del equipo abren desde aquí las direcciones protegidas sin escribirla.",
+      "mode": "Pedir la contraseña en",
+      "modes": {
+        "OFF": "Desactivada",
+        "PREVIEWS": "Previsualizaciones",
+        "ALL": "Previsualizaciones y producción"
+      },
+      "modeHints": {
+        "OFF": "Todas las direcciones son públicas.",
+        "PREVIEWS": "La dirección propia de cada despliegue. La web publicada y tus dominios siguen siendo públicos.",
+        "ALL": "Todas las direcciones, también la web publicada y tus dominios."
+      },
+      "password": "Contraseña",
+      "passwordKeep": "Déjala vacía para mantener la actual. De 8 a 128 caracteres.",
+      "passwordNew": "Necesaria para activarla. De 8 a 128 caracteres.",
+      "passwordRequired": "Elige una contraseña para activar la protección.",
+      "passwordInvalid": "Usa entre 8 y 128 caracteres.",
+      "days": "El acceso dura",
+      "daysHint": "Cuánto tiempo sigue dentro un visitante tras escribir la contraseña. Cambiar la contraseña o el ajuste termina todos los accesos dados antes.",
+      "daysValue": "{count, plural, one {# día} other {# días}}",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado.",
+      "invalid": "Revisa los campos marcados.",
+      "unavailable": "La protección con contraseña no está disponible ahora. Inténtalo más tarde.",
+      "updatedAt": "Cambiada {when}",
+      "adminsOnly": "Solo los propietarios y administradores del equipo pueden cambiarla.",
+      "locked": "Pide contraseña"
+    },
+    "deployment": {
+      "metaTitle": "Despliegue",
+      "title": "Despliegue {id}",
+      "tabs": {
+        "files": "Archivos",
+        "compare": "Comparar con producción"
+      },
+      "filesSummary": "{count, plural, one {# archivo} other {# archivos}}, {size} en total",
+      "filesEmpty": "Este despliegue no tiene archivos.",
+      "filesGone": "Los archivos de este despliegue ya no están en el servidor, así que no se pueden listar.",
+      "filesCaption": "Archivos de este despliegue",
+      "filter": "Filtrar archivos",
+      "filterHint": "Parte de la ruta, p. ej. assets/ o .css. Si escribes varias palabras, deben coincidir todas.",
+      "matches": "{count, plural, =0 {Ningún archivo coincide.} one {Coincide # archivo.} other {Coinciden # archivos.}}",
+      "showing": "Se muestran los primeros {shown, number} de {count, plural, one {# archivo} other {# archivos}}.",
+      "showMore": "Mostrar {count, number} más",
+      "path": "Ruta",
+      "size": "Tamaño",
+      "compare": {
+        "lead": "Qué cambia si publicas este despliegue, frente a producción ({id}). Los archivos se comparan por tamaño y contenido; no se descarga nada.",
+        "leadPlain": "Qué cambia si publicas este despliegue, frente a producción. Los archivos se comparan por tamaño y contenido; no se descarga nada.",
+        "noProduction": "Este proyecto aún no tiene nada publicado, así que no hay con qué comparar.",
+        "gone": "Los archivos de este despliegue o de producción ya no están en el servidor, así que no se pueden comparar.",
+        "identical": "Los mismos archivos que producción.",
+        "thisTotal": "Este despliegue",
+        "productionTotal": "Producción",
+        "unchanged": "Sin cambios",
+        "unchangedCount": "{count, plural, one {# archivo} other {# archivos}}",
+        "added": "Añadidos",
+        "addedHelp": "En este despliegue, no en producción.",
+        "removed": "Eliminados",
+        "removedHelp": "En producción, no en este despliegue.",
+        "changed": "Modificados",
+        "changedHelp": "En ambos, con distinto tamaño o contenido.",
+        "none": "Ninguno.",
+        "previousSize": "Producción",
+        "newSize": "Este despliegue",
+        "change": "Diferencia",
+        "more": "{count, plural, one {No se muestra # archivo más} other {No se muestran # archivos más}}. Míralos todos con {command}."
+      }
     },
     "members": {
       "title": "Miembros",
@@ -4837,11 +5249,40 @@
       "you": "tú",
       "lastOwner": "Un equipo necesita al menos un propietario."
     },
+    "twoFactor": {
+      "title": "Verificación en dos pasos",
+      "required": "Todos los miembros de este equipo deben tener la verificación en dos pasos en su cuenta.",
+      "notRequired": "Los miembros de este equipo no necesitan la verificación en dos pasos.",
+      "turnOn": "Exigir la verificación en dos pasos",
+      "turnOff": "Dejar de exigirla",
+      "turnedOn": "Ahora se exige la verificación en dos pasos. Quien no la tenga solo podrá salir del equipo hasta que la active.",
+      "turnedOff": "Ya no se exige la verificación en dos pasos.",
+      "ownFirst": "Activa primero la verificación en dos pasos en tu propia cuenta.",
+      "ownHint": "Para exigirla, actívala antes en tu propia cuenta.",
+      "memberOn": "Verificación en dos pasos: sí",
+      "memberOff": "Verificación en dos pasos: no",
+      "badge": "Exige verificación en dos pasos",
+      "blockedTitle": "Este equipo exige la verificación en dos pasos",
+      "blockedBody": "Sus propietarios exigen la verificación en dos pasos a todos los miembros y tu cuenta aún no la tiene. Actívala en tu cuenta para volver a ver los proyectos del equipo, o sal del equipo.",
+      "accountLink": "Ir a mi cuenta",
+      "inviteNote": "Este equipo exige la verificación en dos pasos: la necesitarás en tu cuenta para usar el equipo."
+    },
     "events": {
       "title": "Historial",
       "lead": "Cada cambio del equipo, el más reciente primero (se guarda 365 días).",
       "empty": "Aún no hay nada.",
-      "via": "token: {token}"
+      "via": "token: {token}",
+      "filters": "Filtrar el historial",
+      "from": "Desde",
+      "to": "Hasta",
+      "action": "Acción",
+      "actionHint": "Exacta, o un prefijo como domain.",
+      "apply": "Aplicar",
+      "clear": "Quitar filtros",
+      "export": "Exportar CSV",
+      "exportHint": "Con estos filtros; sin fechas, los últimos 30 días.",
+      "invalidFilters": "Esos filtros no son válidos: la fecha de inicio debe ir antes del final, como mucho 365 días entre ambas, y la acción tiene la forma domain.added o domain.",
+      "noMatches": "Ningún evento coincide con estos filtros."
     },
     "tokens": {
       "title": "Tokens de API",
@@ -4855,6 +5296,11 @@
       "expiry": "Caduca",
       "days": "{count} días",
       "never": "Nunca",
+      "access": "Acceso",
+      "accessFull": "Completo",
+      "accessFullHint": "Despliega y modifica proyectos, despliegues y dominios.",
+      "accessReadOnly": "Solo lectura",
+      "accessReadOnlyHint": "Solo puede listar y consultar; cualquier otra acción se rechaza.",
       "newToken": "Cópialo ahora: no volverás a verlo.",
       "empty": "Aún no hay tokens.",
       "lastUsed": "Usado {when} desde {ip}",
@@ -4938,7 +5384,28 @@
       "search": "Buscar",
       "csv": "Descargar CSV",
       "noSubmissions": "No hay envíos.",
-      "deleteSubmission": "Borrar"
+      "deleteSubmission": "Borrar",
+      "views": "Vista de envíos",
+      "inbox": "Bandeja de entrada",
+      "spamView": "Spam ({count})",
+      "spamNote": "El spam se guarda 30 días y luego se borra. No se envía por email ni a tus canales, y no cuenta en los envíos del mes.",
+      "noSpam": "No hay spam.",
+      "spamBadge": "Spam",
+      "spamReasons": {
+        "markup": "Contiene código de enlaces.",
+        "links": "Contiene demasiados enlaces.",
+        "field": "Un campo de nombre o de email contiene otra cosa (un enlace, un texto muy largo o un email no válido).",
+        "page": "Enviado desde una página que no es una de las direcciones de tu proyecto.",
+        "repeat": "El mismo mensaje llegó una y otra vez en una hora.",
+        "manual": "Alguien del equipo lo marcó como spam."
+      },
+      "markSpam": "Spam",
+      "notSpam": "No es spam",
+      "spamFilter": "Filtro de spam",
+      "spamFilterHint": "Marca el spam de enlaces, los campos que contienen otra cosa, los envíos desde otras páginas y los mensajes repetidos. El spam se guarda aparte 30 días; no se envía por email ni cuenta.",
+      "spamFilterOff": "Sin filtro de spam",
+      "spamFilterTurnOff": "Desactivar el filtro de spam",
+      "spamFilterTurnOn": "Activar el filtro de spam"
     },
     "monitors": {
       "title": "Monitores",
@@ -4950,7 +5417,8 @@
         "UP": "Funciona",
         "DOWN": "Caído",
         "PAUSED": "En pausa",
-        "UNKNOWN": "Esperando"
+        "UNKNOWN": "Esperando",
+        "MAINTENANCE": "En mantenimiento"
       },
       "newTitle": "Nuevo monitor",
       "name": "Nombre",
@@ -4966,6 +5434,23 @@
       "urlHint": "http o https, puertos estándar. Funciona si responde por debajo de 400 en 15 segundos.",
       "urlInvalid": "Escribe la dirección completa, con http:// o https://.",
       "urlUnsafe": "Esa dirección no se puede comprobar (privada, otro puerto o con contraseña).",
+      "text": "Texto en la página (opcional)",
+      "textHint": "Distingue mayúsculas, hasta 100 caracteres. Déjalo vacío para comprobar solo la respuesta.",
+      "textMode": "La página",
+      "textModes": {
+        "CONTAINS": "debe contener este texto",
+        "NOT_CONTAINS": "no debe contener este texto"
+      },
+      "textInvalid": "Hasta 100 caracteres, en una sola línea.",
+      "textChecks": {
+        "CONTAINS": "Comprueba que la página contiene «{text}»",
+        "NOT_CONTAINS": "Comprueba que la página no contiene «{text}»"
+      },
+      "textTitle": "Texto en la página",
+      "textEditHint": "Distingue mayúsculas, hasta 100 caracteres, en el primer MB de la página. Déjalo vacío para dejar de comprobar texto.",
+      "textSave": "Guardar",
+      "textSaving": "Guardando…",
+      "textSaved": "Guardado.",
       "forHeartbeat": "Para un latido",
       "period": "Cada cuánto (minutos)",
       "periodHint": "Cada cuánto se ejecuta tu tarea: 60 = cada hora, 1440 = cada día.",
@@ -4975,6 +5460,7 @@
       "graceInvalid": "Entre 1 y 1.440 minutos.",
       "alerts": "Quién recibe los avisos",
       "alertsInvalid": "Elige de 1 a 10 miembros del equipo.",
+      "projectChannels": "Vinculado a {project}: sus <link>avisos</link> de Slack, Discord o webhook también pueden recibir las alertas de este monitor.",
       "create": "Crear monitor",
       "creating": "Creando…",
       "lastCheck": "Última comprobación {when}",
@@ -5013,6 +5499,70 @@
       "save": "Guardar",
       "saved": "Guardado."
     },
+    "notices": {
+      "title": "Avisos",
+      "lead": "Cuenta a tus visitantes qué pasa: una incidencia en la que estás trabajando o un mantenimiento previsto. Mientras un mantenimiento está en curso, sus monitores aparecen «En mantenimiento» en la página pública, no envían alertas y ese tiempo no cuenta en la disponibilidad.",
+      "open": "Abiertos",
+      "noOpen": "No hay avisos abiertos.",
+      "past": "Avisos anteriores",
+      "noPast": "Aún no hay avisos anteriores.",
+      "noMonitors": "Crea antes un monitor: un aviso indica a qué monitores afecta.",
+      "kinds": {
+        "INCIDENT": "Incidencia",
+        "MAINTENANCE": "Mantenimiento"
+      },
+      "states": {
+        "INVESTIGATING": "Investigando",
+        "IDENTIFIED": "Identificada",
+        "MONITORING": "En observación",
+        "RESOLVED": "Resuelta",
+        "SCHEDULED": "Programado",
+        "IN_PROGRESS": "En curso",
+        "COMPLETED": "Completado"
+      },
+      "affects": "Afecta a: {names}",
+      "window": "Ventana: {start} → {end} (hora de Madrid)",
+      "by": "{when} · {name}",
+      "note": "Nota",
+      "timeline": "Historial completo ({count})",
+      "newIncident": "Nueva incidencia",
+      "newMaintenance": "Programar mantenimiento",
+      "noticeTitle": "Título",
+      "monitors": "Monitores afectados",
+      "initialState": "Estado",
+      "message": "Mensaje",
+      "messageHint": "Texto sin formato; la página pública respeta los saltos de línea.",
+      "startsAt": "Empieza (hora de Madrid)",
+      "endsAt": "Termina (hora de Madrid)",
+      "windowHint": "Como mucho 7 días, empezando en los próximos 90 días.",
+      "inProgressHint": "Este mantenimiento ya ha empezado: puedes quitar monitores, pero no añadir otros.",
+      "createIncident": "Publicar incidencia",
+      "createMaintenance": "Programar",
+      "creating": "Publicando…",
+      "postUpdate": "Publicar una actualización",
+      "updateState": "Nuevo estado",
+      "updateKind": "Tipo de actualización",
+      "maintenanceNote": "Nota (la ventana no cambia)",
+      "markCompleted": "Marcar como completado",
+      "send": "Publicar actualización",
+      "editWindow": "Editar ventana",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "delete": "Eliminar aviso",
+      "deleting": "Eliminando…",
+      "deleteConfirm": "Elimina este aviso y todo su historial. No se puede deshacer.",
+      "titleInvalid": "Entre 1 y 120 caracteres.",
+      "monitorsInvalid": "Elige entre 1 y 20 monitores.",
+      "bodyInvalid": "Entre 1 y 2000 caracteres.",
+      "stateInvalid": "Elige un estado.",
+      "dateInvalid": "Indica una fecha y una hora.",
+      "windowInvalid": "El final debe ser posterior al inicio, como mucho 7 días después.",
+      "endPast": "El final debe ser posterior a este momento.",
+      "confirmRequired": "Marca la casilla para confirmar.",
+      "created": "Publicado en la página de estado.",
+      "updated": "Actualización publicada.",
+      "saved": "Guardado."
+    },
     "status": {
       "suffix": "Estado",
       "uptime": "{value} de disponibilidad",
@@ -5022,8 +5572,16 @@
         "operational": "Todo funciona",
         "partial": "Fallo parcial",
         "major": "Fallo general",
+        "maintenance": "En mantenimiento",
         "unknown": "Esperando las primeras comprobaciones"
-      }
+      },
+      "notices": "Avisos",
+      "affects": "Afecta a: {names}",
+      "window": "{start} → {end} (hora de Madrid)",
+      "latest": "Última actualización {when}",
+      "timeline": "Historial completo ({count})",
+      "history": "Avisos anteriores (últimos 14 días)",
+      "closed": "Finalizó el {when}"
     },
     "audits": {
       "title": "Revisión web",
@@ -5035,6 +5593,7 @@
       "ci": "En tu CI hace fallar el paso por debajo de la nota que elijas:",
       "recent": "Revisiones recientes",
       "empty": "Aún no hay revisiones.",
+      "previewBadge": "Revisión de vista previa",
       "status": {
         "pass": "Bien",
         "warn": "Mejorable",
@@ -5067,6 +5626,9 @@
       "node": "Versión de Node",
       "buildBranches": "Compilar otras ramas como vista previa",
       "buildPullRequests": "Compilar pull requests (no de forks)",
+      "previewChecks": "Revisar cada vista previa",
+      "previewChecksHint": "Hace la revisión web de la vista previa de cada pull request y añade el resultado a su comentario en GitHub. Cuenta para las revisiones web por hora del equipo.",
+      "onlyRootChanges": "Compilar solo cuando cambien archivos de la carpeta raíz (para monorepos)",
       "save": "Guardar",
       "saved": "Guardado.",
       "invalid": "Revisa los campos.",
@@ -5084,10 +5646,68 @@
       "envSaved": "Variable guardada.",
       "keyInvalid": "Mayúsculas, números y _ (p. ej. API_KEY).",
       "targetRequired": "Elige producción, vistas previas o ambas.",
+      "import": {
+        "title": "Importar .env",
+        "lead": "Pega un archivo .env o elige uno de tu ordenador: se lee aquí y solo se envía su texto. Una CLAVE=valor por línea; # empieza un comentario. Todo o nada: si una línea está mal, no se guarda nada.",
+        "file": "Archivo",
+        "fileHint": "Se lee en tu navegador; no se sube nada hasta que importes.",
+        "content": "Contenido",
+        "contentHint": "Hasta 256 KB. Los valores no se vuelven a mostrar.",
+        "production": "Producción",
+        "preview": "Vistas previas",
+        "overwrite": "Reemplazar las existentes",
+        "overwriteHint": "Si no, los nombres que ya existen se omiten.",
+        "submit": "Importar",
+        "importing": "Importando…",
+        "empty": "Pega el contenido del archivo o elige un archivo.",
+        "tooBig": "El archivo pasa de 256 KB.",
+        "unreadable": "No se ha podido leer ese archivo.",
+        "targetRequired": "Elige producción, vistas previas o ambas.",
+        "refused": "No se ha importado nada. Corrige estas líneas y vuelve a intentarlo:",
+        "line": "Línea {line}:",
+        "done": "Importado.",
+        "created": "Añadidas",
+        "updated": "Reemplazadas",
+        "skipped": "Omitidas (ya existían)"
+      },
+      "rebuild": {
+        "title": "Recompilaciones programadas",
+        "lead": "Recompila {branch} según un horario, para webs que leen contenido al compilar (un CMS, una API). Cada ejecución cuenta en las compilaciones del mes.",
+        "frequency": "Frecuencia",
+        "frequencies": {
+          "off": "Desactivadas",
+          "hourly": "Cada hora",
+          "daily": "Cada día",
+          "weekly": "Cada semana"
+        },
+        "minute": "Minuto",
+        "minuteHint": "0–59, para todas las frecuencias.",
+        "hour": "Hora",
+        "hourHint": "0–23, hora de Madrid. Para diaria y semanal.",
+        "weekday": "Día de la semana",
+        "weekdayHint": "Solo para semanal.",
+        "every": {
+          "hourly": "Cada hora en el minuto {minute}",
+          "daily": "Cada día a las {time} (hora de Madrid)",
+          "weekly": "Cada {weekday} a las {time} (hora de Madrid)"
+        },
+        "off": "Desactivadas: {branch} se compila con cada push y cuando lo despliegas de nuevo.",
+        "next": "Próxima ejecución: {when}.",
+        "failing": "{count, plural, one {La última compilación programada ha fallado} other {Las últimas # compilaciones programadas han fallado}}. Tras {max} seguidas, el horario se desactiva.",
+        "switchedOff": "Desactivadas tras fallar {max} compilaciones programadas seguidas. Arregla la compilación y vuelve a activarlas.",
+        "required": "Obligatorio para esta frecuencia.",
+        "frequencyInvalid": "Elige una frecuencia.",
+        "minuteInvalid": "Un minuto de 0 a 59.",
+        "hourInvalid": "Una hora de 0 a 23.",
+        "weekdayInvalid": "Elige un día.",
+        "save": "Guardar horario",
+        "saved": "Horario guardado."
+      },
       "setupMissing": "GitHub no ha enviado lo esperado. Empieza de nuevo desde la pestaña Git del proyecto.",
       "backToConsole": "Volver a la consola"
     },
     "builds": {
+      "check": "Revisión web: {score}/100",
       "first": "Compilar {branch}",
       "again": "Desplegar {branch} de nuevo",
       "noRepo": "Conecta un repositorio de GitHub en la pestaña Git para compilar en cada push.",
@@ -5100,9 +5720,41 @@
         "CANCELED": "Cancelada"
       },
       "cancel": "Cancelar",
+      "noCache": "Sin caché",
+      "retryNoCache": "Reintentar sin caché",
       "log": "Registro",
       "waiting": "Esperando un servidor de compilación…",
-      "noLog": "Sin salida."
+      "noLog": "Sin salida.",
+      "byHook": "Deploy hook · {name}"
+    },
+    "hooks": {
+      "title": "Deploy hooks",
+      "lead": "Un deploy hook es una URL secreta que compila una rama cuando algo la llama: un CMS headless puede reconstruir tu web cuando cambia su contenido, sin hacer commit.",
+      "noRepo": "Conecta antes un repositorio de GitHub: los hooks compilan una rama suya.",
+      "empty": "Todavía no hay deploy hooks.",
+      "madeBy": "creado por {name}",
+      "lastCalled": "última llamada {when}",
+      "neverCalled": "sin llamadas",
+      "delete": "Eliminar",
+      "deleting": "Eliminando…",
+      "deleteWarning": "La URL del hook deja de funcionar al instante. Lo que la llame recibirá un error.",
+      "confirmDelete": "Eliminar el hook «{name}»",
+      "confirmNeeded": "Marca la casilla para confirmar.",
+      "deleted": "Deploy hook eliminado.",
+      "shownOnce": "La URL del hook se muestra una sola vez, al crearlo.",
+      "name": "Nombre",
+      "nameHint": "Por ejemplo: Contentful. Hasta 60 caracteres.",
+      "nameInvalid": "Un nombre de 1 a 60 caracteres.",
+      "branch": "Rama",
+      "branchHint": "La rama que se compila. Si la dejas vacía, la de producción.",
+      "branchInvalid": "Un nombre de rama.",
+      "create": "Añadir hook",
+      "creating": "Añadiendo…",
+      "created": "Hook añadido. Copia ahora su URL: no se volverá a mostrar. Quien la tenga puede lanzar una compilación, así que pégala solo en los ajustes de webhook del servicio.",
+      "createdNoUrl": "Hook añadido.",
+      "keptByLock": "Guardada como vista previa",
+      "keptByLockHelp": "La producción estaba bloqueada tras volver atrás, así que esta compilación se desplegó como vista previa. Publica su despliegue para ponerlo en producción.",
+      "scheduled": "Programada"
     },
     "notify": {
       "lead": "Avisa a personas o a un canal cuando una compilación falla o una web se publica, para no tener que vigilar la consola.",
@@ -5119,12 +5771,16 @@
       "succeeded": "Compilaciones publicadas",
       "withPreviews": "también vistas previas",
       "productionOnly": "solo producción",
+      "formsAll": "Envíos de formularios (todos los formularios)",
+      "formsSome": "Envíos de formularios ({forms})",
+      "monitors": "Avisos de monitores",
       "last": "Último envío {when}",
       "never": "Aún no se ha enviado nada.",
       "test": "Enviar una prueba",
       "testing": "Enviando…",
       "testSent": "Prueba enviada. Comprueba que ha llegado.",
       "testFailed": "No se ha podido entregar la prueba: {error}",
+      "testForm": "Enviar un envío de prueba",
       "pause": "Desactivar",
       "resume": "Activar",
       "delete": "Eliminar",
@@ -5148,6 +5804,18 @@
       "onFailed": "Cuando una compilación falla",
       "onSucceeded": "Cuando una compilación se publica",
       "onPreviews": "También en vistas previas (otras ramas y pull requests)",
+      "onForms": "Cuando un formulario recibe un envío",
+      "onFormsNew": "Cuando un formulario recibe un envío (Slack, Discord o webhook)",
+      "formsPrivacy": "Los envíos suelen contener datos personales de los visitantes. Enviarlos a este servicio es decisión de tu equipo, como responsable de esos datos.",
+      "formsWhich": "Solo estos formularios (ninguno marcado: todos)",
+      "formsLoadError": "No se han podido cargar los formularios, así que los formularios a los que se limita este aviso se mantienen.",
+      "formsLoadErrorNew": "No se han podido cargar los formularios del proyecto: un aviso nuevo recibe todos; edítalo después para elegir algunos.",
+      "formsEmail": "Los avisos por email no pueden llevar envíos de formularios: los formularios ya avisan por email a sus destinatarios. Elige Slack, Discord o webhook.",
+      "formsTooMany": "Elige hasta 20 formularios.",
+      "onMonitors": "Avisos de monitores (caído, recuperado, certificado)",
+      "onMonitorsNew": "Avisos de monitores: caído, recuperado, certificado (Slack, Discord o webhook)",
+      "onMonitorsHint": "Solo avisan aquí los monitores vinculados a este proyecto. Las personas elegidas en cada monitor siguen recibiendo su email.",
+      "monitorAlertsEmail": "Los avisos de monitores van a Slack, Discord o un webhook: los monitores ya envían un email a las personas elegidas en ellos.",
       "newTitle": "Nuevo aviso",
       "create": "Añadir aviso",
       "creating": "Añadiendo…",

@@ -16,12 +16,15 @@ export async function AppShell({
   user,
   areaLabel,
   items,
+  search,
   children,
 }: {
   locale: AppLocale;
   user: AuthUser;
   areaLabel: string;
   items: AppNavItem[];
+  /** The admin search's button (the admin layout gives it; the portal has none). */
+  search?: ReactNode;
   children: ReactNode;
 }) {
   const t = await getTranslations({ locale, namespace: 'App' });
@@ -36,6 +39,7 @@ export async function AppShell({
         <div className={styles.brandRow}>
           <Logo href="/" size="sm" label={tc('homeLabel')} />
           <span className={styles.area}>{areaLabel}</span>
+          {search ? <div className={styles.search}>{search}</div> : null}
         </div>
         <AppNav items={items} label={t('navLabel')} />
         <div className={styles.userBox}>

@@ -9,9 +9,15 @@ import {
   savedState,
   unconfirmedDelete,
 } from '@/lib/actions';
-import { adminCreatePost, adminDeletePost, adminUpdatePost } from '@/lib/api/posts';
+import {
+  adminCreatePost,
+  adminDeletePost,
+  adminRestorePostRevision,
+  adminUpdatePost,
+} from '@/lib/api/posts';
 import type { PostInput } from '@/lib/api/types';
-import { formString, formText, type FormState } from '@/lib/forms';
+import { formBoolean, formString, formText, type FormState } from '@/lib/forms';
+import { newsletterChoice } from '@/lib/newsletter';
 import { POST_TRANSLATION_FIELDS, postFormSchema } from '@/lib/schemas/admin';
 
 function translationFields(formData: FormData, locale: 'en' | 'es') {
@@ -36,6 +42,12 @@ function parsePost(formData: FormData) {
   const tagIds = formData.getAll('tagIds').filter((value) => typeof value === 'string');
   const input: PostInput = { ...rest, tagIds, translations: [{ locale: 'en', ...en }] };
   if (es.title.trim() !== '') input.translations.push({ locale: 'es', ...es });
+  // "Email it to subscribers": left out once the email went out (the box is disabled).
+  const newsletter = newsletterChoice(
+    formBoolean(formData, 'newsletterSent'),
+    formBoolean(formData, 'newsletter'),
+  );
+  if (newsletter !== undefined) input.newsletter = newsletter;
   return { input };
 }
 
@@ -102,4 +114,25 @@ export async function deletePostAction(
 
   revalidateSite();
   redirect(`/${locale}/admin/posts`);
+}
+
+/** Puts an earlier version back (after the confirmation box is ticked). */
+export async function restorePostRevisionAction(
+  locale: AppLocale,
+  id: string,
+  revisionId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const unconfirmed = await unconfirmedDelete(locale, formData);
+  if (unconfirmed) return unconfirmed;
+
+  try {
+    await adminRestorePostRevision(id, revisionId);
+  } catch (apiError) {
+    return failedState(apiError, locale, formData);
+  }
+
+  revalidateSite();
+  redirect(`/${locale}/admin/posts/${encodeURIComponent(id)}?restored=1`);
 }

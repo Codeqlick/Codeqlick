@@ -133,6 +133,24 @@ export class AppConfigService {
     return domain && root ? { domain, root } : undefined;
   }
 
+  /** The key Nginx sends to the password-protection routes (architecture 4.13); undefined: off. */
+  get cloudProtectionKey(): string | undefined {
+    return this.get('CLOUD_PROTECTION_KEY');
+  }
+
+  /** Exact domains the platform team may use under codeqlick.com (lowercase, trimmed; none if unset). */
+  get cloudPlatformDomains(): string[] {
+    return (this.get('CLOUD_PLATFORM_DOMAINS') ?? '')
+      .split(',')
+      .map((domain) => domain.trim().toLowerCase().replace(/\.+$/, ''))
+      .filter(Boolean);
+  }
+
+  /** Id of the team allowed those domains; undefined while it isn't set. */
+  get cloudPlatformTeamId(): string | undefined {
+    return this.get('CLOUD_PLATFORM_TEAM_ID')?.trim() || undefined;
+  }
+
   /** Managed PostgreSQL (architecture 4.13 "Databases"); undefined while it isn't set up. */
   get cloudPg(): { adminUrl: string; host: string; port: number } | undefined {
     const adminUrl = this.get('CLOUD_PG_ADMIN_URL');
@@ -252,6 +270,10 @@ export class AppConfigService {
 
   get adminTwoFactorRequired(): boolean {
     return this.get('ADMIN_TWO_FACTOR_REQUIRED');
+  }
+
+  get passwordBreachCheck(): boolean {
+    return this.get('PASSWORD_BREACH_CHECK');
   }
 
   get leadsNotifyTo(): string {

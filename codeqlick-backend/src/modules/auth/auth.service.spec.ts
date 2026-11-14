@@ -8,6 +8,7 @@ import type { AuthRepository, SessionWithUser } from './auth.repository.js';
 import { AuthService, hashRefreshToken, toAuthUser, type AuthTokens } from './auth.service.js';
 import { totpCode } from './totp.js';
 import type { MailService } from '../mail/mail.service.js';
+import type { PasswordBreachService } from './password-breach.service.js';
 import type { PasswordService } from './password.service.js';
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -17,6 +18,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: '$argon2id$stub',
     name: 'Ada',
     role: 'ADMIN',
+    locale: 'EN',
     isActive: true,
     totpSecret: null,
     totpEnabledAt: null,
@@ -67,6 +69,7 @@ describe('AuthService', () => {
     listActiveSessions: ReturnType<typeof vi.fn>;
     revokeUserFamily: ReturnType<typeof vi.fn>;
     revokeOtherFamilies: ReturnType<typeof vi.fn>;
+    listSessionUserAgents: ReturnType<typeof vi.fn>;
   };
   let passwords: {
     hash: ReturnType<typeof vi.fn>;
@@ -75,6 +78,7 @@ describe('AuthService', () => {
   };
   let jwt: { signAsync: ReturnType<typeof vi.fn>; verifyAsync: ReturnType<typeof vi.fn> };
   let mail: { send: ReturnType<typeof vi.fn> };
+  let breaches: { assertNotBreached: ReturnType<typeof vi.fn> };
   let service: AuthService;
 
   beforeEach(() => {
@@ -97,6 +101,7 @@ describe('AuthService', () => {
       listActiveSessions: vi.fn().mockResolvedValue([]),
       revokeUserFamily: vi.fn().mockResolvedValue(true),
       revokeOtherFamilies: vi.fn().mockResolvedValue(undefined),
+      listSessionUserAgents: vi.fn().mockResolvedValue([]),
     };
     passwords = {
       hash: vi.fn(),
@@ -108,6 +113,7 @@ describe('AuthService', () => {
       verifyAsync: vi.fn(),
     };
     mail = { send: vi.fn().mockResolvedValue(undefined) };
+    breaches = { assertNotBreached: vi.fn().mockResolvedValue(undefined) };
     const config = {
       jwtAccessTtl: 900,
       refreshTokenTtlDays: 30,
@@ -122,6 +128,7 @@ describe('AuthService', () => {
       config,
       mail as unknown as MailService,
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+      breaches as unknown as PasswordBreachService,
     );
   });
 
@@ -181,6 +188,93 @@ describe('AuthService', () => {
         UnauthorizedException,
       );
       expect(repository.createSession).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('new-device sign-in email', () => {
+    const FIREFOX_LINUX = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
+    const SAFARI_IPHONE =
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+
+    beforeEach(() => {
+      passwords.verify.mockResolvedValue(true);
+    });
+
+    it('emails the account when the browser and system are new to it', async () => {
+      const user = makeUser({ role: 'CLIENT', locale: 'ES' });
+      repository.findUserByEmail.mockResolvedValue(user);
+      repository.listSessionUserAgents.mockResolvedValue([FIREFOX_LINUX, null]);
+
+      await service.login(user.email, 'correct horse', {
+        userAgent: SAFARI_IPHONE,
+        ip: '203.0.113.7',
+      });
+
+      expect(repository.listSessionUserAgents).toHaveBeenCalledWith(user.id);
+      // Checked before the new session is stored, so it can't match itself.
+      expect(repository.listSessionUserAgents.mock.invocationCallOrder[0]).toBeLessThan(
+        repository.createSession.mock.invocationCallOrder[0] ?? 0,
+      );
+      expect(mail.send).toHaveBeenCalledTimes(1);
+      const message = mail.send.mock.calls[0]?.[0] as { to: string; subject: string; text: string };
+      expect(message.to).toBe(user.email);
+      expect(message.subject).toBe('Nuevo inicio de sesión en tu cuenta — Codeqlick');
+      expect(message.text).toContain('Safari en iOS');
+      expect(message.text).toContain('203.0.113.7');
+      expect(message.text).toContain('https://codeqlick.com/es/portal/account');
+      expect(message.text).toContain('https://codeqlick.com/es/forgot-password');
+    });
+
+    it('links admins to their own account page', async () => {
+      const user = makeUser({ role: 'ADMIN' });
+      repository.findUserByEmail.mockResolvedValue(user);
+
+      await service.login(user.email, 'correct horse', { userAgent: FIREFOX_LINUX, ip: null });
+
+      const message = mail.send.mock.calls[0]?.[0] as { subject: string; text: string };
+      expect(message.subject).toBe('New sign-in to your account — Codeqlick');
+      expect(message.text).toContain('Firefox on Linux');
+      expect(message.text).toContain('https://codeqlick.com/en/admin/account');
+    });
+
+    it('stays quiet for a browser and system the account already uses, whatever the version', async () => {
+      const user = makeUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+      repository.listSessionUserAgents.mockResolvedValue([FIREFOX_LINUX.replaceAll('140', '139')]);
+
+      await service.login(user.email, 'correct horse', { userAgent: FIREFOX_LINUX });
+
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it('stays quiet when neither the browser nor the system can be told', async () => {
+      const user = makeUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+
+      await service.login(user.email, 'correct horse', { userAgent: 'curl/8.7.1' });
+      await service.login(user.email, 'correct horse');
+
+      expect(repository.listSessionUserAgents).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+
+    it('still signs in when the check or the email fails', async () => {
+      const user = makeUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+      repository.listSessionUserAgents.mockRejectedValueOnce(new Error('database down'));
+
+      const first = (await service.login(user.email, 'correct horse', {
+        userAgent: FIREFOX_LINUX,
+      })) as AuthTokens;
+      expect(first.accessToken).toBe('signed.jwt.token');
+      expect(mail.send).not.toHaveBeenCalled();
+
+      mail.send.mockRejectedValueOnce(new Error('SMTP down'));
+      const second = (await service.login(user.email, 'correct horse', {
+        userAgent: FIREFOX_LINUX,
+      })) as AuthTokens;
+      expect(second.accessToken).toBe('signed.jwt.token');
+      expect(mail.send).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -283,6 +377,18 @@ describe('AuthService', () => {
       await expect(
         service.changePassword('id', 'same password 123', 'same password 123', 'my-token'),
       ).rejects.toBeInstanceOf(BadRequestException);
+      expect(repository.changePassword).not.toHaveBeenCalled();
+    });
+
+    it('refuses a password found in a data breach without changing anything', async () => {
+      repository.findUserById.mockResolvedValue(makeUser());
+      passwords.verify.mockResolvedValue(true);
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.changePassword('id', 'old password 123', 'password1234', 'my-token'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'newPassword');
       expect(repository.changePassword).not.toHaveBeenCalled();
     });
 
@@ -390,12 +496,58 @@ describe('AuthService', () => {
       expect(passwords.hash).toHaveBeenCalledWith('new password 456');
     });
 
+    it('refuses a password found in a data breach before spending the token', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.confirmPasswordReset('emailed-token', 'password1234'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'newPassword');
+      expect(repository.resetPassword).not.toHaveBeenCalled();
+    });
+
     it('rejects a token that is unknown, used or expired', async () => {
       repository.resetPassword.mockResolvedValue(false);
 
       await expect(
         service.confirmPasswordReset('bad-token', 'new password 456'),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('register', () => {
+    it('refuses a password found in a data breach before looking the email up', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.register({
+          name: 'Ada',
+          email: 'ada@example.com',
+          password: 'password1234',
+          locale: 'en',
+          acceptPrivacy: true,
+        } as Parameters<AuthService['register']>[0]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
+      expect(repository.findUserByEmail).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('acceptInvitation', () => {
+    it('refuses a password found in a data breach without accepting the invitation', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.acceptInvitation({
+          token: 'invitation-token',
+          name: 'Ada',
+          password: 'password1234',
+          locale: 'en',
+          acceptPrivacy: true,
+        } as Parameters<AuthService['acceptInvitation']>[0]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
     });
   });
 
@@ -480,6 +632,24 @@ describe('AuthService', () => {
       expect(tokens.accessToken).toBe('signed.jwt.token');
       expect(repository.useTotpStep).toHaveBeenCalledWith(user.id, step);
       expect(repository.createSession).toHaveBeenCalledTimes(1);
+    });
+
+    it('emails about a new device once the code finishes the sign-in, not before', async () => {
+      const { user, secret } = await enrolledUser();
+      repository.findUserByEmail.mockResolvedValue(user);
+      repository.findUserById.mockResolvedValue(user);
+      passwords.verify.mockResolvedValue(true);
+      const firefox = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
+
+      await service.login(user.email, 'correct horse', { userAgent: firefox });
+      expect(mail.send).not.toHaveBeenCalled();
+
+      jwt.verifyAsync.mockResolvedValue({ sub: user.id, purpose: '2fa' });
+      const step = Math.floor(Date.now() / 30_000);
+      await service.verifyTwoFactor('challenge.jwt', totpCode(secret, step), {
+        userAgent: firefox,
+      });
+      expect(mail.send).toHaveBeenCalledTimes(1);
     });
 
     it('refuses a replayed code, a wrong code and a token for another purpose', async () => {

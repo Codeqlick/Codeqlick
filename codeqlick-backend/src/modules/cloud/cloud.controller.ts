@@ -5,16 +5,19 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Patch,
   Post,
   Query,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, NoFilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CloudApi } from '../../common/decorators/cloud-api.decorator.js';
@@ -29,9 +32,13 @@ import {
   type PaginationQuery,
 } from '../../common/schemas/common.schemas.js';
 import type { Paginated } from '../../common/types/paginated.js';
+import { attachmentDisposition } from '../projects/project-file-name.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
+import { configJsonSchema } from './cloud-config.js';
 import { MAX_UPLOAD_BYTES } from './cloud-plans.js';
 import {
+  configCheckSchema,
+  compareQuerySchema,
   createDomainSchema,
   createProjectSchema,
   createTeamSchema,
@@ -42,6 +49,8 @@ import {
   devicePollSchema,
   deviceStartSchema,
   domainParamSchema,
+  eventsExportQuerySchema,
+  eventsQuerySchema,
   inviteParamSchema,
   inviteSchema,
   inviteTokenParamSchema,
@@ -50,19 +59,24 @@ import {
   reportSchema,
   teamParamSchema,
   termsSchema,
+  transferProjectSchema,
   updateProjectSchema,
   updateTeamSchema,
   userCodeParamSchema,
+  type CompareQuery,
   type CreateDomainInput,
   type CreateProjectInput,
   type CreateTeamInput,
   type CreateTokenInput,
+  type ConfigCheckInput,
   type DeploymentFields,
   type DeploymentParam,
   type DeviceDecisionInput,
   type DevicePollInput,
   type DeviceStartInput,
   type DomainParam,
+  type EventsExportQuery,
+  type EventsQuery,
   type InviteInput,
   type InviteParam,
   type InviteTokenParam,
@@ -71,14 +85,17 @@ import {
   type ReportInput,
   type TeamParam,
   type TermsInput,
+  type TransferProjectInput,
   type UpdateProjectInput,
   type UpdateTeamInput,
   type UserCodeParam,
 } from './cloud.schemas.js';
 import { CloudAdminService } from './cloud-admin.service.js';
+import type { DeploymentComparison, DeploymentFilesView } from './cloud-deployment-files.js';
 import { CloudDomainsService, type DomainView } from './cloud-domains.service.js';
 import {
   CloudProjectsService,
+  type ConfigCheck,
   type DeploymentView,
   type ProjectView,
 } from './cloud-projects.service.js';
@@ -91,6 +108,7 @@ import {
   type TeamView,
   type UsageView,
 } from './cloud-teams.service.js';
+import { CloudTransferService, type TransferView } from './cloud-transfer.service.js';
 import {
   CloudTokensService,
   type DevicePoll,
@@ -99,7 +117,9 @@ import {
   type TokenView,
 } from './cloud-tokens.service.js';
 
-/** The CLI's sign-in and the public abuse form: no session. */
+let schemaBody: Record<string, unknown> | undefined;
+
+/** The CLI's sign-in, the public abuse form and the `codeqlick.json` schema: no session. */
 @ApiTags('cloud')
 @Public()
 @Controller('cloud')
@@ -125,6 +145,14 @@ export class CloudPublicController {
     return this.tokens.poll(body.deviceCode);
   }
 
+  /** The JSON Schema of `codeqlick.json` (hard maximums), for editors (`$schema`). */
+  @Get('schema/codeqlick.json')
+  @Header('Content-Type', 'application/schema+json')
+  @Header('Cache-Control', 'public, max-age=86400')
+  schema(): Record<string, unknown> {
+    return (schemaBody ??= configJsonSchema());
+  }
+
   @Post('reports')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
@@ -142,11 +170,14 @@ export class CloudPublicController {
 @Roles('CLIENT', 'ADMIN')
 @Controller('cloud')
 export class CloudController {
+  private readonly logger = new Logger(CloudController.name);
+
   constructor(
     private readonly tokens: CloudTokensService,
     private readonly teams: CloudTeamsService,
     private readonly projects: CloudProjectsService,
     private readonly domains: CloudDomainsService,
+    private readonly transfers: CloudTransferService,
   ) {}
 
   // ── CLI sign-in (the person's side) ─────────────────────────────────────────────────────────
@@ -186,7 +217,7 @@ export class CloudController {
     @Caller() ctx: CloudCtx,
     @Body({ schema: createTokenSchema }) body: CreateTokenInput,
   ): Promise<{ token: string; item: TokenView }> {
-    return this.tokens.create(ctx.user, body);
+    return this.tokens.create(ctx, body);
   }
 
   @Delete('tokens/:id')
@@ -309,14 +340,30 @@ export class CloudController {
     return this.teams.usage(ctx, params.team);
   }
 
+  /** Declared before `teams/:team/events` so nothing ever reads `events.csv` as another route. */
+  @Get('teams/:team/events.csv')
+  @CloudApi()
+  @Throttle({ default: { limit: 10, ttl: 60 * 60_000 } })
+  async exportEvents(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: teamParamSchema }) params: TeamParam,
+    @Query({ schema: eventsExportQuerySchema }) query: EventsExportQuery,
+  ): Promise<StreamableFile> {
+    const { fileName, stream } = await this.teams.exportEvents(ctx, params.team, query);
+    return new StreamableFile(stream, {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${fileName}"`,
+    });
+  }
+
   @Get('teams/:team/events')
   @CloudApi()
   events(
     @Caller() ctx: CloudCtx,
     @Param({ schema: teamParamSchema }) params: TeamParam,
-    @Query({ schema: paginationSchema }) query: PaginationQuery,
+    @Query({ schema: eventsQuerySchema }) query: EventsQuery,
   ): Promise<Paginated<EventView>> {
-    return this.teams.events(ctx, params.team, query.page, query.pageSize);
+    return this.teams.events(ctx, params.team, query);
   }
 
   // ── Projects ────────────────────────────────────────────────────────────────────────────────
@@ -370,6 +417,18 @@ export class CloudController {
     return this.projects.remove(ctx, params.id);
   }
 
+  /** Moves the project to another team; session only, like members and teams (decision 58). */
+  @Post('projects/:id/transfer')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  transferProject(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: transferProjectSchema }) body: TransferProjectInput,
+  ): Promise<TransferView> {
+    return this.transfers.transfer(ctx, params.id, body);
+  }
+
   // ── Deployments ─────────────────────────────────────────────────────────────────────────────
 
   @Get('projects/:id/deployments')
@@ -401,6 +460,21 @@ export class CloudController {
     return this.projects.deploy(ctx, params.id, file?.path, body);
   }
 
+  /** Checks a `codeqlick.json` against the team's plan; keeps nothing. */
+  @Post('config/check')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  // Multipart (fields `teamSlug` and `config`; a small JSON body works too): the text can be
+  // bigger than the JSON parser's default limit. Over 1 MB the schema answers 400.
+  @UseInterceptors(NoFilesInterceptor({ limits: { fieldSize: 2 * 1024 * 1024, fields: 5 } }))
+  checkConfig(
+    @Caller() ctx: CloudCtx,
+    @Body({ schema: configCheckSchema }) body: ConfigCheckInput,
+  ): Promise<ConfigCheck> {
+    return this.projects.checkConfig(ctx, body.teamSlug, body.config);
+  }
+
   @Get('projects/:id/deployments/:deploymentId')
   @CloudApi()
   deployment(
@@ -420,6 +494,29 @@ export class CloudController {
     return this.projects.removeDeployment(ctx, params.id, params.deploymentId);
   }
 
+  /** The deployment's files (paths and sizes; contents are never served here). */
+  @Get('projects/:id/deployments/:deploymentId/files')
+  @CloudApi()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  deploymentFiles(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<DeploymentFilesView> {
+    return this.projects.files(ctx, params.id, params.deploymentId);
+  }
+
+  /** Compares the deployment with production (the default) or another of the project's. */
+  @Get('projects/:id/deployments/:deploymentId/compare')
+  @CloudApi()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  compareDeployment(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+    @Query({ schema: compareQuerySchema }) query: CompareQuery,
+  ): Promise<DeploymentComparison> {
+    return this.projects.compare(ctx, params.id, params.deploymentId, query.with);
+  }
+
   @Post('projects/:id/deployments/:deploymentId/promote')
   @CloudApi()
   @HttpCode(HttpStatus.OK)
@@ -428,6 +525,66 @@ export class CloudController {
     @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
   ): Promise<ProjectView> {
     return this.projects.promote(ctx, params.id, params.deploymentId);
+  }
+
+  /** The deployment's files as a `tar.gz` built while it streams (decision 60). */
+  @Get('projects/:id/deployments/:deploymentId/archive')
+  @CloudApi()
+  @Header('Cache-Control', 'private, no-store')
+  async archive(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<StreamableFile> {
+    const archive = await this.projects.archive(ctx, params.id, params.deploymentId);
+    return new StreamableFile(archive.stream, {
+      type: 'application/gzip',
+      disposition: attachmentDisposition(archive.filename),
+    })
+      .setErrorHandler((error, response) => {
+        // Headers are gone by now: cut the connection so the archive can't look complete. A
+        // reader who went away is ordinary; anything else (files gone mid-way) is worth a line.
+        const code = (error as NodeJS.ErrnoException).code;
+        if (
+          code !== 'ERR_STREAM_PREMATURE_CLOSE' &&
+          code !== 'ECONNRESET' &&
+          !/aborted/i.test(error.message)
+        ) {
+          this.logger.warn(`Archive of ${params.deploymentId} cut: ${error.message}`);
+        }
+        (response as unknown as { destroy(): void }).destroy();
+      })
+      .setErrorLogger(() => undefined);
+  }
+
+  /** Unlocks production after a rollback without publishing anything (ADMIN). */
+  @Post('projects/:id/production/unlock')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  unlockProduction(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<ProjectView> {
+    return this.projects.unlock(ctx, params.id);
+  }
+
+  @Post('projects/:id/deployments/:deploymentId/keep')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  keep(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<DeploymentView> {
+    return this.projects.keep(ctx, params.id, params.deploymentId);
+  }
+
+  @Delete('projects/:id/deployments/:deploymentId/keep')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  unkeep(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<DeploymentView> {
+    return this.projects.unkeep(ctx, params.id, params.deploymentId);
   }
 
   // ── Domains ─────────────────────────────────────────────────────────────────────────────────

@@ -9,9 +9,10 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { createHash, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
-import { toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
+import { describeUserAgent, deviceKey } from '../../common/user-agent.js';
 import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
 import { ActivityService } from '../activity/activity.service.js';
@@ -19,12 +20,14 @@ import { MailService } from '../mail/mail.service.js';
 import {
   alreadyRegisteredEmail,
   invitationEmail,
+  newDeviceSignInEmail,
   passwordResetEmail,
   signupConfirmEmail,
   signupInvitationEmail,
   type SignupReason,
 } from './auth-emails.js';
 import type { AcceptInvitationInput, RegisterInput } from './auth.schemas.js';
+import { PasswordBreachService } from './password-breach.service.js';
 import { PasswordService } from './password.service.js';
 import { SecretBox } from './secret-box.js';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
@@ -145,6 +148,7 @@ export class AuthService {
     private readonly config: AppConfigService,
     private readonly mail: MailService,
     private readonly activity: ActivityService,
+    private readonly breaches: PasswordBreachService,
   ) {
     this.secrets = new SecretBox(config.jwtAccessSecret);
     this.challengeKey = Buffer.from(
@@ -172,7 +176,7 @@ export class AuthService {
       return { twoFactorRequired: true, challengeToken };
     }
 
-    return this.startSession(user, client);
+    return this.signIn(user, client);
   }
 
   async refresh(refreshToken: string, client: ClientInfo = {}): Promise<AuthTokens> {
@@ -296,6 +300,7 @@ export class AuthService {
         errors: [{ path: 'newPassword', message: 'Choose a password you are not already using' }],
       });
     }
+    await this.breaches.assertNotBreached(newPassword, 'newPassword');
 
     await this.repository.changePassword(
       user.id,
@@ -400,6 +405,8 @@ export class AuthService {
     if (isDisposableEmail(email)) {
       throw new BadRequestException({ errors: [DISPOSABLE_EMAIL_ERROR] });
     }
+    // Before looking the email up: the answer must not depend on whether it has an account.
+    await this.breaches.assertNotBreached(input.password, 'password');
     const existing = await this.repository.findUserByEmail(email);
     const site = this.config.siteUrl;
     // From a web app (architecture 6.3), the links open on its host so the person ends up there.
@@ -466,6 +473,7 @@ export class AuthService {
     input: AcceptInvitationInput,
     client: ClientInfo = {},
   ): Promise<AuthTokens> {
+    await this.breaches.assertNotBreached(input.password, 'password');
     const user = await this.repository.acceptInvitation(hashRefreshToken(input.token), {
       name: input.name,
       passwordHash: await this.passwords.hash(input.password),
@@ -483,6 +491,8 @@ export class AuthService {
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */
   async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    // Before the token is spent, so the person can try another password with the same link.
+    await this.breaches.assertNotBreached(newPassword, 'newPassword');
     const done = await this.repository.resetPassword(hashRefreshToken(token), () =>
       this.passwords.hash(newPassword),
     );
@@ -512,7 +522,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid code');
     }
 
-    return this.startSession(user, client);
+    return this.signIn(user, client);
   }
 
   async twoFactorStatus(userId: string): Promise<TwoFactorStatus> {
@@ -603,6 +613,48 @@ export class AuthService {
     if (!user.totpRecoveryHashes.includes(hash)) return false;
     const remaining = user.totpRecoveryHashes.filter((item) => item !== hash);
     return this.repository.useRecoveryCode(user.id, hash, remaining);
+  }
+
+  /**
+   * A completed sign-in to an existing account (password, or password and code): a new session,
+   * and an email when it comes from a browser and system the account hasn't used lately.
+   */
+  private async signIn(user: User, client: ClientInfo): Promise<AuthTokens> {
+    // Read before the new session exists, which would otherwise always match.
+    const isNew = await this.isNewDevice(user.id, client.userAgent).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`New-device check failed: ${reason}`);
+      return false;
+    });
+    const tokens = await this.startSession(user, client);
+    if (isNew) this.sendNewDeviceEmail(user, client);
+    return tokens;
+  }
+
+  /** True when the agent names a browser or system and no session of the account matches it. */
+  private async isNewDevice(userId: string, userAgent: string | null | undefined) {
+    const key = deviceKey(userAgent);
+    if (!key) return false;
+    const known = await this.repository.listSessionUserAgents(userId);
+    return !known.some((agent) => deviceKey(agent) === key);
+  }
+
+  private sendNewDeviceEmail(user: User, client: ClientInfo): void {
+    const locale = toApiLocale(user.locale);
+    const site = this.config.siteUrl;
+    const accountUrl = `${site}/${locale}/${user.role === 'ADMIN' ? 'admin' : 'portal'}/account`;
+    const message = newDeviceSignInEmail(
+      user,
+      { at: new Date(), ...describeUserAgent(client.userAgent), ip: client.ip ?? null },
+      accountUrl,
+      `${site}/${locale}/forgot-password`,
+      locale,
+      site,
+    );
+    this.mail.send(message).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to send new-device sign-in email: ${reason}`);
+    });
   }
 
   /** New session family for a completed sign-in. */

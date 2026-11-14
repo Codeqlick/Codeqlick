@@ -37,6 +37,7 @@ import {
   buildParamSchema,
   builderBuildParamSchema,
   claimSchema,
+  envImportSchema,
   envKeyQuerySchema,
   envVarSchema,
   finishSchema,
@@ -45,11 +46,13 @@ import {
   linkInstallationSchema,
   logQuerySchema,
   manualBuildSchema,
+  rebuildScheduleSchema,
   reposQuerySchema,
   teamParamSchema,
   type BuildParam,
   type BuilderBuildParam,
   type ClaimInput,
+  type EnvImportInput,
   type EnvKeyQuery,
   type EnvVarInput,
   type FinishInput,
@@ -58,9 +61,11 @@ import {
   type LinkInstallationInput,
   type LogQuery,
   type ManualBuildInput,
+  type RebuildScheduleInput,
   type ReposQuery,
   type TeamParam,
 } from './cloud.schemas.js';
+import type { EnvImportOutcome } from './cloud-builds.repository.js';
 import {
   CloudBuildsService,
   type BuildDetail,
@@ -68,6 +73,7 @@ import {
   type ClaimedBuild,
   type GitView,
 } from './cloud-builds.service.js';
+import type { ProjectView } from './cloud-projects.service.js';
 
 /** GitHub's webhook and the build server's agent: no session (architecture 4.13, 8.4). */
 @ApiTags('cloud')
@@ -216,6 +222,16 @@ export class CloudBuildsController {
     return this.builds.disconnect(ctx, params.id);
   }
 
+  @Put('projects/:id/rebuild-schedule')
+  @CloudApi()
+  setRebuildSchedule(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: rebuildScheduleSchema }) body: RebuildScheduleInput,
+  ): Promise<ProjectView> {
+    return this.builds.setRebuildSchedule(ctx, params.id, body);
+  }
+
   @Get('projects/:id/env')
   @CloudApi()
   env(@Caller() ctx: CloudCtx, @Param({ schema: idParamSchema }) params: IdParam) {
@@ -230,6 +246,17 @@ export class CloudBuildsController {
     @Body({ schema: envVarSchema }) body: EnvVarInput,
   ) {
     return this.builds.setEnvVar(ctx, params.id, body);
+  }
+
+  @Post('projects/:id/env/import')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  importEnv(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: envImportSchema }) body: EnvImportInput,
+  ): Promise<EnvImportOutcome> {
+    return this.builds.importEnvVars(ctx, params.id, body);
   }
 
   @Delete('projects/:id/env')
@@ -261,7 +288,7 @@ export class CloudBuildsController {
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: manualBuildSchema }) body: ManualBuildInput,
   ): Promise<BuildView> {
-    return this.builds.manual(ctx, params.id, body.branch);
+    return this.builds.manual(ctx, params.id, body.branch, body.noCache);
   }
 
   @Get('projects/:id/builds/:number')

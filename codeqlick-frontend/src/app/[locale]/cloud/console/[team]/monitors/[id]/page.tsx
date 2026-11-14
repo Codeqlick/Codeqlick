@@ -1,16 +1,21 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { MonitorStatus } from '@/components/cloud/MonitorStatus';
 import { formatUptime, UptimeBars } from '@/components/cloud/UptimeBars';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCloudMonitor, getCloudTeam } from '@/lib/api/cloud';
+import { getCloudMonitor, getCloudTeam, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
-import { deleteMonitorAction, toggleMonitorAction } from '../../../../actions';
+import {
+  deleteMonitorAction,
+  saveMonitorTextAction,
+  toggleMonitorAction,
+} from '../../../../actions';
 import styles from '../../../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string; id: string }> };
@@ -37,6 +42,12 @@ export default async function CloudMonitorPage({ params }: PageProps) {
   }
   const [team, monitor] = data;
   const admin = team.role !== 'MEMBER';
+  // A monitor tied to a project can also alert that project's channels (decision 64).
+  const project = monitor.projectId
+    ? await listCloudProjects(team.slug)
+        .then((result) => result.items.find((item) => item.id === monitor.projectId) ?? null)
+        .catch(() => null)
+    : null;
   const slowest = Math.max(1, ...monitor.checks.map((c) => c.responseMs ?? 0));
   const hidden = (
     <>
@@ -60,11 +71,28 @@ export default async function CloudMonitorPage({ params }: PageProps) {
           </span>
         </p>
         {monitor.lastError ? <p className={styles.small}>{monitor.lastError}</p> : null}
+        {project ? (
+          <p className={styles.spacedSmall}>
+            {t.rich('monitors.projectChannels', {
+              project: project.name,
+              link: (chunks) => (
+                <Link href={`/cloud/console/${team.slug}/${project.slug}?tab=notifications`}>
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </p>
+        ) : null}
       </div>
 
       {monitor.kind === 'HTTP' ? (
         <div className={styles.card}>
           <p className={`${styles.mono}`}>{monitor.url}</p>
+          {monitor.keyword ? (
+            <p className={styles.small}>
+              {t(`monitors.textChecks.${monitor.keywordMode}`, { text: monitor.keyword })}
+            </p>
+          ) : null}
           <p className={styles.small}>
             {monitor.lastCheckedAt
               ? t('monitors.lastCheck', { when: formatWhen(monitor.lastCheckedAt, locale) })
@@ -106,6 +134,40 @@ export default async function CloudMonitorPage({ params }: PageProps) {
           </p>
         </div>
       )}
+
+      {admin && monitor.kind === 'HTTP' ? (
+        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="text-title">
+          <h2 id="text-title" className={styles.cardTitle}>
+            {t('monitors.textTitle')}
+          </h2>
+          <ActionForm
+            action={saveMonitorTextAction.bind(null, locale, team.slug, monitor.id)}
+            className={styles.form}
+          >
+            <FormInput
+              name="keyword"
+              label={t('monitors.text')}
+              hint={t('monitors.textEditHint')}
+              maxLength={100}
+              defaultValue={monitor.keyword ?? ''}
+            />
+            <FormSelect
+              name="keywordMode"
+              label={t('monitors.textMode')}
+              defaultValue={monitor.keywordMode}
+              options={[
+                { value: 'CONTAINS', label: t('monitors.textModes.CONTAINS') },
+                { value: 'NOT_CONTAINS', label: t('monitors.textModes.NOT_CONTAINS') },
+              ]}
+            />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={t('monitors.textSaving')}>
+                {t('monitors.textSave')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+        </section>
+      ) : null}
 
       <section className={styles.card} aria-labelledby="uptime-title">
         <h2 id="uptime-title" className={styles.cardTitle}>

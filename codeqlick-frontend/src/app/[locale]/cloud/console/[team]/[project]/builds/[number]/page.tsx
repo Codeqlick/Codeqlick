@@ -8,10 +8,12 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudBuild, listCloudDeployments, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatWhen } from '@/lib/cloud';
-import { cancelBuildAction } from '../../../../../actions';
+import { addressHref, formatWhen, isProtected } from '@/lib/cloud';
+import { appPath } from '@/lib/webapp-request';
+import { cancelBuildAction, startBuildAction } from '../../../../../actions';
 import styles from '../../../../../cloud.module.css';
 import { BUILD_TONE, duration } from '../../BuildsTab';
+import { ProtectionLock } from '../../ProtectionCard';
 
 type PageProps = {
   params: Promise<{ locale: string; team: string; project: string; number: string }>;
@@ -46,6 +48,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
         (d) => d.id === build.deploymentId,
       )
     : undefined;
+  const open = await appPath(`/${locale}/cloud/console/${team}/${slug}/open`, locale);
 
   return (
     <div className={styles.landing}>
@@ -58,22 +61,45 @@ export default async function CloudBuildPage({ params }: PageProps) {
         <p className={styles.rowTitle}>
           <Badge tone={BUILD_TONE[build.status]}>{t(`builds.status.${build.status}`)}</Badge>
           <Badge>{build.target === 'production' ? t('git.production') : t('git.preview')}</Badge>
+          {build.noCache ? <Badge>{t('builds.noCache')}</Badge> : null}
+          {build.keptAsPreview ? <Badge tone="warning">{t('builds.keptByLock')}</Badge> : null}
+          {build.trigger === 'schedule' ? <Badge>{t('builds.scheduled')}</Badge> : null}
           <span className={styles.small}>
             <span className={styles.mono}>{build.branch}</span> ·{' '}
             <span className={styles.mono}>{build.commit.slice(0, 7)}</span>
-            {build.pullRequest ? ` · PR #${build.pullRequest}` : ''} ·{' '}
-            {formatWhen(build.queuedAt, locale)} · {duration(build.durationMs)}
+            {build.pullRequest ? ` · PR #${build.pullRequest}` : ''}
+            {build.trigger === 'hook'
+              ? ` · ${t('builds.byHook', { name: build.hookName ?? '—' })}`
+              : ''}{' '}
+            · {formatWhen(build.queuedAt, locale)} · {duration(build.durationMs)}
           </span>
         </p>
         {build.commitMessage ? (
           <p className={styles.muted}>{build.commitMessage.split('\n')[0]}</p>
         ) : null}
         {build.error ? <p className={styles.small}>{build.error}</p> : null}
+        {build.audit ? (
+          <p className={styles.spacedSmall}>
+            <Link href={`/cloud/console/${team}/audits/${build.audit.id}`}>
+              {t('builds.check', { score: build.audit.score })}
+            </Link>
+          </p>
+        ) : null}
+        {build.keptAsPreview ? <p className={styles.small}>{t('builds.keptByLockHelp')}</p> : null}
         {deployment ? (
           <p className={styles.spacedSmall}>
-            <a href={deployment.url} target="_blank" rel="noreferrer">
-              {deployment.url.replace('https://', '')}
-            </a>
+            <span className={styles.address}>
+              <a
+                href={addressHref(project.protection, 'previews', deployment.url, open)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {deployment.url.replace('https://', '')}
+              </a>
+              {isProtected(project.protection, 'previews') ? (
+                <ProtectionLock label={t('protection.locked')} />
+              ) : null}
+            </span>
           </p>
         ) : null}
       </div>
@@ -86,6 +112,19 @@ export default async function CloudBuildPage({ params }: PageProps) {
           <input type="hidden" name="number" value={build.number} />
           <SubmitButton size="sm" variant="outline">
             {t('builds.cancel')}
+          </SubmitButton>
+        </form>
+      ) : null}
+      {build.status === 'FAILED' ? (
+        <form action={startBuildAction}>
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="team" value={team} />
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="project" value={project.id} />
+          <input type="hidden" name="branch" value={build.branch} />
+          <input type="hidden" name="noCache" value="on" />
+          <SubmitButton size="sm" variant="outline">
+            {t('builds.retryNoCache')}
           </SubmitButton>
         </form>
       ) : null}

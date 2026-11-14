@@ -45,6 +45,8 @@ export type PostSummary = {
   excerpt: string;
   coverImageUrl: string | null;
   publishedAt: string;
+  /** Minutes to read, computed by the API from the shown translation. */
+  readingMinutes: number;
   tags: PublicTag[];
 };
 
@@ -73,16 +75,45 @@ export type PostInput = {
   tagIds?: string[];
   coverImageUrl?: string | null;
   translations: Translation<PostTranslationFields>[]; // at least 'en'
+  /** Email it to the newsletter's subscribers when it goes live (default true, section 4.14). */
+  newsletter?: boolean;
 };
 
-export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds'> & {
+export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds' | 'newsletter'> & {
   id: string;
   tagIds: string[];
   coverImageUrl: string | null;
   publishedAt: string | null;
+  newsletter: boolean;
+  /** When its email went out (or was skipped); null until the post is live and the job saw it. */
+  newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this post, newest first (decision 71). */
+  oldSlugs: string[];
 };
+
+export const NEWSLETTER_STATUSES = ['PENDING', 'ACTIVE', 'UNSUBSCRIBED'] as const;
+export type NewsletterStatus = (typeof NEWSLETTER_STATUSES)[number];
+
+/** `GET /admin/newsletter` items (architecture 4.14). */
+export type NewsletterSubscriberView = {
+  id: string;
+  email: string;
+  locale: Locale;
+  status: NewsletterStatus;
+  createdAt: string;
+  confirmedAt: string | null;
+  unsubscribedAt: string | null;
+};
+
+/** `GET /admin/newsletter`: the page plus the counts of all subscribers per status. */
+export type NewsletterList = Paginated<NewsletterSubscriberView> & {
+  counts: { active: number; pending: number; unsubscribed: number };
+};
+
+/** `GET /posts/redirects/:slug` and `GET /portfolio/redirects/:slug`: the item's current slug. */
+export type SlugRedirect = { slug: string };
 
 export type Testimonial = { quote: string; author: string; role: string | null };
 
@@ -152,7 +183,40 @@ export type AdminPortfolioItem = Omit<
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this case study, newest first (decision 71). */
+  oldSlugs: string[];
 };
+
+/**
+ * A replaced version of a post or case study (decision 72). `createdAt`: when it was replaced;
+ * `author`: who replaced it (null once that user is deleted).
+ */
+export type ContentRevision = {
+  id: string;
+  createdAt: string;
+  author: { name: string } | null;
+};
+
+/** A post's content as it was in a revision. */
+export type PostSnapshot = {
+  coverImageUrl: string | null;
+  tagIds: string[];
+  translations: Translation<PostTranslationFields>[];
+};
+
+/** A case study's content as it was in a revision. */
+export type PortfolioSnapshot = {
+  coverImageUrl: string | null;
+  clientName: string | null;
+  projectUrl: string | null;
+  technologies: string[];
+  services: ServiceKey[];
+  testimonialAuthor: string | null;
+  translations: Translation<PortfolioTranslationFields>[];
+};
+
+export type PostRevision = ContentRevision & { snapshot: PostSnapshot };
+export type PortfolioRevision = ContentRevision & { snapshot: PortfolioSnapshot };
 
 export const PROJECT_PHASES = [
   'DISCOVERY',
@@ -403,6 +467,29 @@ export type AdminUser = AuthUser & {
   owns?: { projects: number; members: number; proposals: number; tickets: number };
 };
 
+/** What the admin search finds, in the order the API groups them (section 4.14). */
+export const ADMIN_SEARCH_KINDS = [
+  'lead',
+  'user',
+  'project',
+  'ticket',
+  'proposal',
+  'post',
+  'caseStudy',
+] as const;
+export type AdminSearchKind = (typeof ADMIN_SEARCH_KINDS)[number];
+
+/** `GET /admin/search`: up to 5 matches per kind, only kinds with matches. */
+export type AdminSearch = {
+  /** As searched (trimmed). */
+  q: string;
+  groups: {
+    kind: AdminSearchKind;
+    /** `sublabel` holds data only (names, emails, numbers, slugs), never words to translate. */
+    items: { id: string; label: string; sublabel: string | null }[];
+  }[];
+};
+
 /** `GET /auth/preferences`: the caller's email preferences. */
 export type Preferences = { weeklyDigest: boolean; monthlyReport: boolean };
 
@@ -449,7 +536,41 @@ export type AdminStats = {
   drafts: { pending: number };
   /** Calls booked from the website, still to happen. */
   bookings: { upcoming: number };
+  /** Links of published posts and case studies found broken by the weekly check (4.6). */
+  links: { broken: number };
 };
+
+export type LinkCheckStatus = 'OK' | 'BROKEN';
+export type LinkSourceType = 'POST' | 'PORTFOLIO';
+
+/** Where a checked link was found: the post or case study, in one of its languages. */
+export type LinkSource = {
+  type: LinkSourceType;
+  id: string;
+  slug: string;
+  title: string;
+  locale: Locale;
+};
+
+/** `GET /admin/links` item: a link of published content and its last check (4.6, Broken links). */
+export type LinkCheck = {
+  id: string;
+  /** As written, absolute (relative links resolved against the site's URL). */
+  url: string;
+  internal: boolean;
+  status: LinkCheckStatus;
+  statusCode: number | null;
+  /** Network failure (timeout, DNS, refused, private address…), in English. */
+  error: string | null;
+  /** Checks failed in a row. */
+  failures: number;
+  brokenSince: string | null;
+  checkedAt: string;
+  source: LinkSource;
+};
+
+/** `GET /admin/links`: broken first, then by URL (up to 500); `lastRunAt` null before the first run. */
+export type LinkCheckList = { items: LinkCheck[]; lastRunAt: string | null };
 
 /** `GET /admin/stats/timeline`: one entry per month, oldest first, months as `yyyy-mm`. */
 export type AdminTimeline = {
@@ -463,7 +584,14 @@ export type AdminTimeline = {
 };
 
 /** One entry of the RFC 9457 `errors` extension used by the API for validation failures. */
-export type ProblemFieldError = { path: string; message: string };
+export type ProblemFieldError = {
+  path: string;
+  message: string;
+  /** A `.env` import's line (`POST /cloud/projects/:id/env/import`). */
+  line?: number;
+  /** The variable's name on that line, when known. */
+  key?: string;
+};
 
 export type ProblemDetails = {
   type?: string;
@@ -524,6 +652,8 @@ export const ACTIVITY_TARGETS = [
   'account',
   'videochat',
   'swipe',
+  'site_news',
+  'newsletter',
 ] as const;
 export type ActivityTarget = (typeof ACTIVITY_TARGETS)[number];
 
@@ -831,6 +961,8 @@ export type ManagedSite = {
   content: Record<string, unknown>;
   /** The menu extra is on (architecture 8.2). */
   menuEnabled: boolean;
+  /** The client switched the news section on (architecture 8.2). */
+  newsEnabled: boolean;
   updatedAt: string;
 };
 
@@ -962,4 +1094,37 @@ export type SiteEditorView = {
   bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
   /** The menu extra is on: the client can edit and publish it (architecture 8.2). */
   menuEnabled: boolean;
+  /** The news section is switched on (architecture 8.2). */
+  newsEnabled: boolean;
 };
+
+export type SiteNewsStatus = 'DRAFT' | 'PUBLISHED' | 'EXPIRED';
+
+/** A news item or offer of a managed site (architecture 4.2 and 8.2). */
+export type SiteNewsPost = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  /** Plain text in a Markdown subset (architecture 8.2). */
+  body: string;
+  /** `file` is `media/<name>`, from the site's photo uploads. */
+  photo: { file: string; url: string } | null;
+  status: SiteNewsStatus;
+  publishedAt: string | null;
+  /** The end of the Madrid day the post is shown through. */
+  expiresAt: string | null;
+  /** The live address while the post is published. */
+  url: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** `GET …/site/news`: a page of posts with the section's switch beside it. */
+export type SiteNewsList = Paginated<SiteNewsPost> & { enabled: boolean };
+
+/** How the build a change triggered ended (the post is saved either way). */
+export type SiteNewsBuild = 'OK' | 'FAILED';
+
+/** The post a publish or unpublish answers with, and the build's result. */
+export type SiteNewsPostResult = SiteNewsPost & { build?: SiteNewsBuild };

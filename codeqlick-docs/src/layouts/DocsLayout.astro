@@ -1,0 +1,84 @@
+---
+import type { MarkdownHeading } from 'astro';
+import Base from './Base.astro';
+import Logo from '../components/Logo.astro';
+import Search from '../components/Search.astro';
+import Sidebar from '../components/Sidebar.astro';
+import PrevNext from '../components/PrevNext.astro';
+import { getDocs, twinOf, type DocPage } from '../lib/docs';
+import { otherLang, ui } from '../lib/i18n';
+
+interface Props {
+  page: DocPage;
+  headings: MarkdownHeading[];
+}
+
+const { page, headings } = Astro.props;
+const lang = page.lang;
+const t = ui[lang];
+const docs = await getDocs();
+const pages = docs[lang];
+const twin = twinOf(docs, page);
+const position = pages.findIndex((p) => p.slug === page.slug);
+const prev = position > 0 ? pages[position - 1] : undefined;
+const next = position >= 0 ? pages[position + 1] : undefined;
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const alternates = [
+  { hreflang: lang, href: page.url },
+  ...(twin ? [{ hreflang: otherLang(lang), href: twin.url }] : []),
+  { hreflang: 'x-default', href: '/' },
+];
+---
+
+<Base title={page.title} description={page.description} lang={lang} alternates={alternates} search>
+  <a class="skip" href="#content">
+    {t.skip}
+  </a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <Logo href={`/${lang}/`} label={t.homeLabel} />
+      <Search lang={lang} />
+      {twin ? (
+        <a class="lang-switch" href={twin.url} hreflang={otherLang(lang)} lang={otherLang(lang)}>
+          <span aria-hidden="true">{t.switchTo}</span>
+          <span class="sr-only">{t.switchLabel}</span>
+        </a>
+      ) : null}
+    </div>
+  </header>
+  <div class="shell">
+    <aside class="sidebar">
+      <Sidebar lang={lang} pages={pages} current={page.slug} />
+    </aside>
+    <main id="content" tabindex="-1">
+      <article class="article">
+        <h1>{page.title}</h1>
+        <p class="lead">{page.description}</p>
+        <div class="prose">
+          <slot />
+        </div>
+        <PrevNext lang={lang} prev={prev} next={next} />
+      </article>
+    </main>
+    {toc.length > 0 ? (
+      <aside class="toc" aria-labelledby="toc-title">
+        <p class="toc-title" id="toc-title">
+          {t.onThisPage}
+        </p>
+        <ul>
+          {toc.map((h) => (
+            <li class={h.depth === 3 ? 'sub' : undefined}>
+              <a href={`#${h.slug}`}>{h.text}</a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    ) : null}
+  </div>
+  <footer class="footer">
+    <p>
+      {t.footer} · <a href="https://codeqlick.com">codeqlick.com</a> ·{' '}
+      <a href="mailto:hello@codeqlick.com">hello@codeqlick.com</a>
+    </p>
+  </footer>
+</Base>

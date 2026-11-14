@@ -13,29 +13,68 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
+import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import type { CloudBuild, CloudBuildTrigger } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { SecretBox } from '../auth/secret-box.js';
+import { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
+import { cloudRebuildOffEmail } from './cloud-emails.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
-import { CloudProjectsService } from './cloud-projects.service.js';
+import { commentBody, shouldCheckPreview, type PreviewCheck } from './cloud-preview-check.js';
+import { CloudProjectsService, type ProjectView } from './cloud-projects.service.js';
+import { BundleError } from './cloud.storage.js';
+import { parseDotenv, type DotenvError } from './cloud-dotenv.js';
+import { keptAsPreview, LOCKED_BUILD_LOG_LINE } from './cloud-production-lock.js';
+import { nextRebuild, REBUILD_MAX_FAILURES } from './cloud-rebuild-schedule.js';
 import type {
+  EnvImportInput,
   EnvVarInput,
   FinishInput,
   GitSettingsInput,
   LinkInstallationInput,
+  RebuildScheduleInput,
 } from './cloud.schemas.js';
-import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.repository.js';
+import { cacheKey } from './cloud-build-cache.js';
+import { CloudDiskService } from './cloud-disk.service.js';
+import {
+  CloudBuildsRepository,
+  type BuildWithProject,
+  type EnvImportOutcome,
+  REBUILD_OFF,
+} from './cloud-builds.repository.js';
+import { CloudAuditsService } from './cloud-audits.service.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { GithubClient, GithubError } from './github.client.js';
+import { changesRoot, pushChangedFiles } from './cloud-changes.js';
+
+/** The most line errors an import answers with. */
+const IMPORT_ERRORS_MAX = 100;
+
+/**
+ * A refused import: `400` with each line's problem (never a value). The problem details filter
+ * answers any error list with the detail "Validation failed", so that is the message here too.
+ */
+function importRefused(errors: DotenvError[]): BadRequestException {
+  return new BadRequestException({
+    message: 'Validation failed',
+    errors: errors.slice(0, IMPORT_ERRORS_MAX).map((e) => ({ path: 'content', ...e })),
+  });
+}
+
+function overLimit(entry: { line: number; key: string }, limit: number): DotenvError {
+  return { line: entry.line, key: entry.key, message: `A project has at most ${limit} variables` };
+}
 
 export interface BuildView {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook' | 'schedule';
+  /** The deploy hook's name, for builds it started (kept after the hook is deleted). */
+  hookName: string | null;
   target: 'preview' | 'production';
   branch: string;
   commit: string;
@@ -45,11 +84,33 @@ export interface BuildView {
   status: CloudBuild['status'];
   error: string | null;
   deploymentId: string | null;
+  noCache: boolean;
+  /** The preview's website check (decision 69). */
+  audit: { id: string; score: number } | null;
+  /** A production build deployed while production was locked after a rollback (architecture 4.13). */
+  keptAsPreview: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
   durationMs: number | null;
 }
+
+/** What a build needs to know of its project to be queued. */
+export interface BuildProject {
+  id: string;
+  teamId: string;
+  slug: string;
+  gitBranch: string;
+  gitInstallationId: bigint | null;
+  gitRepoId: bigint | null;
+  gitRepo: string | null;
+  team: { slug: string; plan: 'FREE' | 'PRO' };
+}
+
+/** Who asked for a build of a branch's latest commit: a person ("Deploy again") or a deploy hook. */
+export type BuildOrigin =
+  | { trigger: 'MANUAL'; createdById: string; noCache?: boolean }
+  | { trigger: 'HOOK'; hookName: string };
 
 export interface BuildDetail extends BuildView {
   log: string;
@@ -69,6 +130,8 @@ export interface GitView {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  previewChecks: boolean;
+  onlyRootChanges: boolean;
 }
 
 export interface ClaimedBuild {
@@ -84,11 +147,30 @@ export interface ClaimedBuild {
   timeoutSeconds: number;
   /** Values the agent hides from the log. */
   secrets: string[];
+  /** The dependency cache the agent mounts (4.13): `fresh` to empty it first, null for none. */
+  cache: { key: string; fresh?: true } | null;
+}
+
+/** The project fields the GitHub report needs. */
+interface ReportProject {
+  id: string;
+  slug: string;
+  gitInstallationId: bigint | null;
+  gitRepoId: bigint | null;
+  gitRepo: string | null;
+  team: { slug: string };
+}
+
+interface TeamRef {
+  slug: string;
+  plan: 'FREE' | 'PRO';
 }
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const STATE_MINUTES = 30;
+/** Scheduled rebuilds queued per minute, at most. */
+const REBUILDS_PER_RUN = 20;
 
 /** Builds from Git (architecture 4.13, 8.4; decisions 40–42). */
 @Injectable()
@@ -98,6 +180,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
   private readonly stateKey: Buffer;
   private timer?: NodeJS.Timeout;
   private daily?: NodeJS.Timeout;
+  private scheduler?: NodeJS.Timeout;
 
   constructor(
     private readonly repository: CloudBuildsRepository,
@@ -106,6 +189,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     private readonly github: GithubClient,
     private readonly config: AppConfigService,
     private readonly notifications: CloudNotificationsService,
+    private readonly disk: CloudDiskService,
+    private readonly audits: CloudAuditsService,
+    private readonly mail: MailService,
   ) {
     this.box = new SecretBox(config.credentialsSecret, 'cloud-env-v1');
     this.stateKey = createHmac('sha256', config.jwtAccessSecret)
@@ -120,11 +206,13 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       () => void this.repository.cleanup(new Date()).catch(() => undefined),
       24 * 60 * MINUTE,
     ).unref();
+    this.scheduler = setInterval(() => void this.runScheduled(), MINUTE).unref();
   }
 
   onApplicationShutdown(): void {
     if (this.timer) clearInterval(this.timer);
     if (this.daily) clearInterval(this.daily);
+    if (this.scheduler) clearInterval(this.scheduler);
   }
 
   // ── Linking GitHub (decision 40) ───────────────────────────────────────────────────────────
@@ -248,6 +336,8 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     nodeVersion: string;
     buildBranches: boolean;
     buildPullRequests: boolean;
+    previewChecks: boolean;
+    onlyRootChanges: boolean;
   }): GitView {
     return {
       installationId: project.gitInstallationId === null ? null : Number(project.gitInstallationId),
@@ -261,6 +351,8 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       nodeVersion: project.nodeVersion,
       buildBranches: project.buildBranches,
       buildPullRequests: project.buildPullRequests,
+      previewChecks: project.previewChecks,
+      onlyRootChanges: project.onlyRootChanges,
     };
   }
 
@@ -276,21 +368,29 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       (r) => r.id === input.repoId,
     );
     if (!repo) throw new BadRequestException("That repository isn't in the GitHub installation");
-    await this.repository.setGit(project.id, {
-      gitInstallationId: BigInt(input.installationId),
-      gitRepoId: BigInt(repo.id),
-      gitRepo: repo.fullName,
-      gitBranch: input.branch,
-      ...(input.rootDir !== undefined ? { rootDir: input.rootDir } : {}),
-      ...(input.installCommand !== undefined ? { installCommand: input.installCommand } : {}),
-      ...(input.buildCommand !== undefined ? { buildCommand: input.buildCommand } : {}),
-      ...(input.outputDir !== undefined ? { outputDir: input.outputDir } : {}),
-      ...(input.nodeVersion !== undefined ? { nodeVersion: input.nodeVersion } : {}),
-      ...(input.buildBranches !== undefined ? { buildBranches: input.buildBranches } : {}),
-      ...(input.buildPullRequests !== undefined
-        ? { buildPullRequests: input.buildPullRequests }
-        : {}),
-    });
+    // Deploy hooks belong to one repository: connecting a different one deletes them (decision 51).
+    const otherRepo = project.gitRepoId !== null && project.gitRepoId !== BigInt(repo.id);
+    await this.repository.setGit(
+      project.id,
+      {
+        gitInstallationId: BigInt(input.installationId),
+        gitRepoId: BigInt(repo.id),
+        gitRepo: repo.fullName,
+        gitBranch: input.branch,
+        ...(input.rootDir !== undefined ? { rootDir: input.rootDir } : {}),
+        ...(input.installCommand !== undefined ? { installCommand: input.installCommand } : {}),
+        ...(input.buildCommand !== undefined ? { buildCommand: input.buildCommand } : {}),
+        ...(input.outputDir !== undefined ? { outputDir: input.outputDir } : {}),
+        ...(input.nodeVersion !== undefined ? { nodeVersion: input.nodeVersion } : {}),
+        ...(input.buildBranches !== undefined ? { buildBranches: input.buildBranches } : {}),
+        ...(input.buildPullRequests !== undefined
+          ? { buildPullRequests: input.buildPullRequests }
+          : {}),
+      },
+      otherRepo,
+      ...(input.previewChecks !== undefined ? { previewChecks: input.previewChecks } : {}),
+      ...(input.onlyRootChanges !== undefined ? { onlyRootChanges: input.onlyRootChanges } : {}),
+    );
     await this.teams.record(
       ctx,
       project.teamId,
@@ -303,12 +403,169 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   async disconnect(ctx: CloudCtx, projectId: string): Promise<void> {
     const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
-    await this.repository.setGit(project.id, {
-      gitInstallationId: null,
-      gitRepoId: null,
-      gitRepo: null,
-    });
+    // Deploy hooks go with the connection (decision 51).
+    await this.repository.setGit(
+      project.id,
+      { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+      true,
+      ...REBUILD_OFF,
+    );
     await this.teams.record(ctx, project.teamId, 'git.disconnected', project.slug);
+  }
+
+  // ── Scheduled rebuilds (decision 65) ───────────────────────────────────────────────────────
+
+  async setRebuildSchedule(
+    ctx: CloudCtx,
+    projectId: string,
+    input: RebuildScheduleInput,
+  ): Promise<ProjectView> {
+    const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
+    if (!project.gitInstallationId || !project.gitRepoId || !project.gitRepo) {
+      throw new ConflictException('Connect a GitHub repository first');
+    }
+    const schedule = {
+      frequency: input.frequency.toUpperCase() as 'OFF' | 'HOURLY' | 'DAILY' | 'WEEKLY',
+      minute: 'minute' in input ? input.minute : null,
+      hour: 'hour' in input ? input.hour : null,
+      weekday: 'weekday' in input ? input.weekday : null,
+    };
+    await this.repository.setGit(project.id, {
+      rebuildFrequency: schedule.frequency,
+      rebuildMinute: schedule.minute,
+      rebuildHour: schedule.hour,
+      rebuildWeekday: schedule.weekday,
+      rebuildNextAt: nextRebuild(schedule, new Date()),
+      rebuildFailures: 0,
+    });
+    await this.teams.record(ctx, project.teamId, 'rebuild.scheduled', project.slug, {
+      frequency: input.frequency,
+      minute: schedule.minute,
+      hour: schedule.hour,
+      weekday: schedule.weekday,
+    });
+    return this.projects.get(ctx, projectId);
+  }
+
+  /**
+   * Every minute: queues the scheduled rebuilds that are due, each claimed first by moving its
+   * next run on. Public so the tests can run it.
+   */
+  async runScheduled(now = new Date()): Promise<void> {
+    const due = await this.repository.dueRebuilds(now, REBUILDS_PER_RUN).catch((error: unknown) => {
+      this.logger.error(`Scheduled rebuilds check failed: ${String(error)}`);
+      return [];
+    });
+    for (const project of due) {
+      try {
+        const next = nextRebuild(
+          {
+            frequency: project.rebuildFrequency,
+            minute: project.rebuildMinute,
+            hour: project.rebuildHour,
+            weekday: project.rebuildWeekday,
+          },
+          now,
+        );
+        if (!project.rebuildNextAt) continue;
+        if (!(await this.repository.claimRebuild(project.id, project.rebuildNextAt, next)))
+          continue;
+        if (
+          project.deletedAt ||
+          project.suspendedAt ||
+          !project.gitInstallationId ||
+          !project.gitRepoId ||
+          !project.gitRepo
+        )
+          continue;
+        // A build of the branch already waiting or running: this run is skipped.
+        if (await this.repository.hasActiveBuild(project.id, project.gitBranch)) continue;
+        let head;
+        try {
+          head = await this.github.branchHead(
+            project.gitInstallationId,
+            project.gitRepoId,
+            project.gitRepo,
+            project.gitBranch,
+          );
+        } catch (error) {
+          // A deleted branch or repository, or a suspended installation: a failed run.
+          if (!(error instanceof GithubError)) throw error;
+          this.logger.warn(
+            `Project ${project.id}: ${project.gitBranch} unreadable (${error.message})`,
+          );
+          await this.scheduledFailed(
+            project.id,
+            `The branch ${project.gitBranch} couldn't be read from GitHub`,
+          );
+          continue;
+        }
+        await this.queue(project, {
+          trigger: 'SCHEDULE',
+          branch: project.gitBranch,
+          commit: head.sha,
+          commitMessage: head.message,
+          author: head.author,
+          pullRequest: null,
+          createdById: null,
+        });
+      } catch (error) {
+        this.logger.error(`Project ${project.id}: scheduled rebuild failed: ${String(error)}`);
+      }
+    }
+  }
+
+  /**
+   * A scheduled build ended: a success resets the failures, a failure counts, and the fifth in a
+   * row switches the schedule off and emails the team's admins once. Logged, never thrown.
+   */
+  private async scheduledEnded(build: CloudBuild): Promise<void> {
+    if (build.trigger !== 'SCHEDULE') return;
+    if (build.status === 'SUCCEEDED') {
+      await this.repository
+        .rebuildSucceeded(build.projectId)
+        .catch((error: unknown) => this.logger.error(`Build ${build.id}: ${String(error)}`));
+      return;
+    }
+    if (build.status === 'FAILED') await this.scheduledFailed(build.projectId, build.error);
+  }
+
+  /**
+   * A scheduled run failed (its build, or reading its branch from GitHub): it counts, and the
+   * fifth in a row switches the schedule off and emails the team's admins once. Never throws.
+   */
+  private async scheduledFailed(projectId: string, error: string | null): Promise<void> {
+    try {
+      const failures = await this.repository.rebuildFailed(projectId);
+      if (failures < REBUILD_MAX_FAILURES) return;
+      if (!(await this.repository.switchOffRebuild(projectId))) return;
+      const project = await this.projects.projectRow(projectId);
+      if (!project) return;
+      await this.teams.recordSystem(
+        project.teamId,
+        'Codeqlick Cloud',
+        'rebuild.switched_off',
+        project.slug,
+        { failures },
+      );
+      for (const admin of await this.notifications.admins(project.teamId)) {
+        const locale = toApiLocale(admin.locale);
+        await this.mail
+          .send(
+            cloudRebuildOffEmail({
+              to: admin.email,
+              locale,
+              project: project.name,
+              error,
+              url: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/${project.slug}?tab=git`,
+              siteUrl: this.config.siteUrl,
+            }),
+          )
+          .catch((e: unknown) => this.logger.warn(`Project ${project.id}: ${String(e)}`));
+      }
+    } catch (e) {
+      this.logger.error(`Project ${projectId}: scheduled rebuild bookkeeping failed: ${String(e)}`);
+    }
   }
 
   // ── Environment variables (decision 42) ────────────────────────────────────────────────────
@@ -346,6 +603,44 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     return this.envVars(ctx, projectId);
   }
 
+  /** Imports a `.env` file, all or nothing (architecture 4.13). Values are never sent back. */
+  async importEnvVars(
+    ctx: CloudCtx,
+    projectId: string,
+    input: EnvImportInput,
+  ): Promise<EnvImportOutcome> {
+    const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    const { entries, errors } = parseDotenv(input.content);
+    if (errors.length > 0) throw importRefused(errors);
+    if (entries.length === 0) {
+      throw importRefused([{ line: 1, message: 'No variables in the file' }]);
+    }
+    const limit = CLOUD_PLANS[membership.team.plan].envVarsPerProject;
+    // A file with more names than the limit can't fit whatever exists: refuse before sealing.
+    const first = entries[limit];
+    if (first) throw importRefused([overLimit(first, limit)]);
+    const vars = entries.map((entry) => ({
+      key: entry.key,
+      valueSealed: this.box.seal(entry.value),
+    }));
+    const outcome = await this.repository.importEnvVars(project.id, vars, {
+      production: input.production,
+      preview: input.preview,
+      overwrite: input.overwrite,
+      limit,
+    });
+    if ('overLimit' in outcome) {
+      const entry = entries.find((e) => e.key === outcome.overLimit)!;
+      throw importRefused([overLimit(entry, limit)]);
+    }
+    await this.teams.record(ctx, project.teamId, 'env.imported', project.slug, {
+      keys: { created: outcome.created, updated: outcome.updated, skipped: outcome.skipped },
+      production: input.production,
+      preview: input.preview,
+    });
+    return outcome;
+  }
+
   async deleteEnvVar(ctx: CloudCtx, projectId: string, key: string): Promise<void> {
     const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
     if (!(await this.repository.deleteEnvVar(project.id, key)))
@@ -355,7 +650,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   // ── Builds ─────────────────────────────────────────────────────────────────────────────────
 
-  view(build: Omit<CloudBuild, 'log'>): BuildView {
+  view(
+    build: Omit<CloudBuild, 'log'> & { audit?: { id: string; score: number } | null },
+  ): BuildView {
     const end = build.finishedAt ?? (build.status === 'RUNNING' ? new Date() : null);
     return {
       id: build.id,
@@ -365,7 +662,12 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           ? 'pull_request'
           : build.trigger === 'MANUAL'
             ? 'manual'
-            : 'push',
+            : build.trigger === 'HOOK'
+              ? 'hook'
+              : build.trigger === 'SCHEDULE'
+                ? 'schedule'
+                : 'push',
+      hookName: build.trigger === 'HOOK' ? build.hookName : null,
       target: build.target === 'PRODUCTION' ? 'production' : 'preview',
       branch: build.branch,
       commit: build.commit,
@@ -375,6 +677,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       status: build.status,
       error: build.error,
       deploymentId: build.deploymentId,
+      noCache: build.noCache,
+      audit: build.audit ? { id: build.audit.id, score: build.audit.score } : null,
+      keptAsPreview: build.keptAsPreview,
       queuedAt: build.queuedAt.toISOString(),
       startedAt: build.startedAt?.toISOString() ?? null,
       finishedAt: build.finishedAt?.toISOString() ?? null,
@@ -407,38 +712,53 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
   }
 
   /** "Deploy again": a build of the branch's latest commit. */
-  async manual(ctx: CloudCtx, projectId: string, branch: string | undefined): Promise<BuildView> {
+  async manual(
+    ctx: CloudCtx,
+    projectId: string,
+    branch: string | undefined,
+    noCache = false,
+  ): Promise<BuildView> {
     const { project } = await this.projects.project(ctx, projectId);
+    const build = await this.queueHead(
+      { ...project, team: { slug: project.team.slug, plan: project.team.plan } },
+      branch ?? project.gitBranch,
+      { trigger: 'MANUAL', createdById: ctx.user.id, noCache },
+    );
+    return this.view(build);
+  }
+
+  /**
+   * Queues a build of a branch's latest commit, read from GitHub: for "Deploy again" and for deploy
+   * hooks (decision 51). `409` when the project has no repository, `404` when the branch is gone.
+   */
+  async queueHead(project: BuildProject, branch: string, origin: BuildOrigin): Promise<CloudBuild> {
     if (!project.gitInstallationId || !project.gitRepoId || !project.gitRepo) {
       throw new ConflictException('Connect a GitHub repository first');
     }
-    const target = branch ?? project.gitBranch;
     let head;
     try {
       head = await this.github.branchHead(
         project.gitInstallationId,
         project.gitRepoId,
         project.gitRepo,
-        target,
+        branch,
       );
     } catch (error) {
       if (error instanceof GithubError && error.status === 404)
         throw new NotFoundException('That branch was not found');
       throw error;
     }
-    const build = await this.queue(
-      { ...project, team: { slug: project.team.slug, plan: project.team.plan } },
-      {
-        trigger: 'MANUAL',
-        branch: target,
-        commit: head.sha,
-        commitMessage: head.message,
-        author: head.author,
-        pullRequest: null,
-        createdById: ctx.user.id,
-      },
-    );
-    return this.view(build);
+    return this.queue(project, {
+      trigger: origin.trigger,
+      branch,
+      commit: head.sha,
+      commitMessage: head.message,
+      author: head.author,
+      pullRequest: null,
+      createdById: origin.trigger === 'MANUAL' ? origin.createdById : null,
+      noCache: origin.trigger === 'MANUAL' && origin.noCache === true,
+      hookName: origin.trigger === 'HOOK' ? origin.hookName : null,
+    });
   }
 
   async cancel(ctx: CloudCtx, projectId: string, number: number): Promise<BuildView> {
@@ -460,16 +780,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
    * the month's builds it is recorded as failed. Older queued builds of the branch are canceled.
    */
   private async queue(
-    project: {
-      id: string;
-      teamId: string;
-      slug: string;
-      gitBranch: string;
-      gitInstallationId: bigint | null;
-      gitRepoId: bigint | null;
-      gitRepo: string | null;
-      team: { slug: string; plan: 'FREE' | 'PRO' };
-    },
+    project: BuildProject,
     input: {
       trigger: CloudBuildTrigger;
       branch: string;
@@ -478,6 +789,8 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       author: string | null;
       pullRequest: number | null;
       createdById: string | null;
+      hookName?: string | null;
+      noCache?: boolean;
     },
     now = new Date(),
   ): Promise<CloudBuild> {
@@ -496,6 +809,8 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       author: input.author?.slice(0, 100) ?? null,
       pullRequest: input.pullRequest,
       createdById: input.createdById,
+      hookName: input.hookName ?? null,
+      noCache: input.noCache ?? false,
       queuedAt: now,
       ...(over
         ? {
@@ -506,7 +821,10 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         : {}),
     });
     void this.report(project, build, over ? 'failure' : 'pending');
-    if (over) void this.notifications.buildEnded(build.id);
+    if (over) {
+      void this.notifications.buildEnded(build.id);
+      await this.scheduledEnded(build);
+    }
     return build;
   }
 
@@ -569,8 +887,10 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     if (!/^[0-9a-f]{40}$/.test(commit) || head?.message?.includes('[skip cloud]')) return;
     const repoId = (payload.repository as { id?: number } | undefined)?.id;
     if (!repoId) return;
+    const files = pushChangedFiles(payload);
     for (const project of await this.repository.projectsForRepo(installation, BigInt(repoId))) {
       if (branch !== project.gitBranch && !project.buildBranches) continue;
+      if (!changesRoot(project, files)) continue;
       await this.queue(project, {
         trigger: 'PUSH',
         branch,
@@ -593,15 +913,21 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       title?: string;
       user?: { login?: string };
       head: { sha: string; ref: string; repo: { id: number } | null };
-      base: { repo: { id: number } };
+      base: { sha?: string; repo: { id: number } };
     };
     // A fork's pull request is a stranger's code with the project's variables: never built (decision 41).
     if (!pr?.head?.repo || pr.head.repo.id !== pr.base.repo.id) return;
+    // Asked of GitHub once, and only when a project skips changes outside its root folder.
+    let files: Promise<string[] | null> | undefined;
     for (const project of await this.repository.projectsForRepo(
       installation,
       BigInt(pr.base.repo.id),
     )) {
       if (!project.buildPullRequests) continue;
+      if (project.onlyRootChanges && project.rootDir) {
+        files ??= this.pullRequestFiles(installation, project, pr.base.sha, pr.head.sha);
+        if (!changesRoot(project, await files)) continue;
+      }
       await this.queue(project, {
         trigger: 'PULL_REQUEST',
         branch: pr.head.ref,
@@ -611,6 +937,28 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         pullRequest: pr.number,
         createdById: null,
       });
+    }
+  }
+
+  /** A pull request's changed files, or null when GitHub can't say for sure (then it builds). */
+  private async pullRequestFiles(
+    installation: bigint,
+    project: { gitRepoId: bigint | null; gitRepo: string | null },
+    base: string | undefined,
+    head: string,
+  ): Promise<string[] | null> {
+    if (!base || !project.gitRepoId || !project.gitRepo) return null;
+    try {
+      return await this.github.compareFiles(
+        installation,
+        project.gitRepoId,
+        project.gitRepo,
+        base,
+        head,
+      );
+    } catch (error) {
+      this.logger.warn(`Couldn't compare ${project.gitRepo} ${base}...${head}: ${String(error)}`);
+      return null;
     }
   }
 
@@ -656,6 +1004,12 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         env,
         timeoutSeconds: plan.buildMinutes * 60,
         secrets: [token, ...Object.values(env).filter((value) => value.length >= 4)],
+        cache: this.disk.full
+          ? null
+          : {
+              key: cacheKey(project.id, build.target, project.nodeVersion),
+              ...(build.noCache ? { fresh: true as const } : {}),
+            },
       };
     } catch (error) {
       await this.finishFailed(build, error instanceof Error ? error.message : String(error));
@@ -704,22 +1058,38 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
             message: (build.commitMessage ?? '').split('\n')[0]?.slice(0, 200) || undefined,
             commit: build.commit,
             branch: build.branch,
+            config: input.config,
           },
           {
+            source: 'build',
             actorName: `GitHub · ${build.author ?? build.branch}`,
             createdById: build.createdById,
             tokenId: null,
           },
         );
+        // Production is locked after a rollback: the build is kept as a preview (architecture 4.13).
+        const kept = keptAsPreview(build.target, deployment.isProduction);
+        if (kept) {
+          const separator = build.log === '' || build.log.endsWith('\n') ? '' : '\n';
+          await this.repository.appendLog(build.id, `${separator}${LOCKED_BUILD_LOG_LINE}\n`);
+        }
         const done = await this.repository.update(build.id, {
           status: 'SUCCEEDED',
           deploymentId: deployment.id,
+          keptAsPreview: kept,
           finishedAt: new Date(),
           error: null,
         });
-        void this.report(build.project, done, 'success', deployment.url);
+        // `deployment.url` is the deployment's own address: the preview while production is locked.
+        void this.reportSuccess(build.project, done, deployment.url);
         void this.notifications.buildEnded(done.id, deployment.url);
+        await this.scheduledEnded(done);
       } catch (error) {
+        // An invalid `codeqlick.json` is also in the build's log, one problem a line.
+        if (error instanceof BundleError && error.errors) {
+          const lines = error.errors.map((item) => `codeqlick.json: ${item.path}: ${item.message}`);
+          await this.repository.appendLog(build.id, `\n${lines.join('\n')}\n`).catch(() => null);
+        }
         await this.finishFailed(
           build,
           error instanceof HttpException ? error.message : 'The output could not be deployed',
@@ -739,6 +1109,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     const full = 'project' in build ? build : await this.repository.findById(build.id);
     if (full) void this.report(full.project, done, 'failure');
     void this.notifications.buildEnded(done.id);
+    await this.scheduledEnded(done);
   }
 
   /** Every 30 s: running builds whose agent went quiet for 2 minutes fail. */
@@ -754,23 +1125,67 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   // ── Back on GitHub ─────────────────────────────────────────────────────────────────────────
 
-  private buildUrl(project: { slug: string; team: { slug: string } }, build: CloudBuild): string {
+  buildUrl(project: { slug: string; team: { slug: string } }, build: CloudBuild): string {
     return `${this.config.cloudUrl}/en/console/${project.team.slug}/${project.slug}/builds/${build.number}`;
+  }
+
+  private auditUrl(project: { team: { slug: string } }): (id: string) => string {
+    return (id) => `${this.config.cloudUrl}/en/console/${project.team.slug}/audits/${id}`;
+  }
+
+  /**
+   * A successful build: the status and comment, then, for a pull request with "Check each preview"
+   * on, the website check of its preview in the background (decision 69). Never throws.
+   */
+  private async reportSuccess(
+    project: ReportProject & { teamId: string; previewChecks: boolean; team: TeamRef },
+    build: CloudBuild,
+    deploymentUrl: string,
+  ): Promise<void> {
+    const wanted =
+      shouldCheckPreview(build, project) &&
+      this.github.configured &&
+      !!project.gitInstallationId &&
+      !!project.gitRepoId &&
+      !!project.gitRepo;
+    try {
+      const latest =
+        wanted && build.pullRequest !== null
+          ? await this.repository.latestPullBuild(project.id, build.pullRequest)
+          : null;
+      const check = wanted && latest === build.number;
+      await this.report(
+        project,
+        build,
+        'success',
+        deploymentUrl,
+        check ? { state: 'running' } : undefined,
+      );
+      if (!check || build.pullRequest === null) return;
+      const outcome = await this.audits.runPreview({
+        teamId: project.teamId,
+        plan: project.team.plan,
+        url: deploymentUrl,
+      });
+      if (outcome.state === 'done') {
+        await this.repository.update(build.id, { auditId: outcome.auditId });
+      }
+      const newest = await this.repository.latestPullBuild(project.id, build.pullRequest);
+      if (newest !== build.number) return;
+      const fresh = await this.repository.findById(build.id);
+      if (fresh) await this.comment(fresh.project, fresh, 'success', deploymentUrl, outcome);
+    } catch (error) {
+      this.logger.warn(`Build ${build.id}: the preview check failed (${String(error)})`);
+    }
   }
 
   /** The commit status and, for pull requests, the app's comment. Best effort: logged, never thrown. */
   private async report(
-    project: {
-      id: string;
-      slug: string;
-      gitInstallationId: bigint | null;
-      gitRepoId: bigint | null;
-      gitRepo: string | null;
-      team: { slug: string };
-    },
+    project: ReportProject,
     build: CloudBuild,
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
+    check?: PreviewCheck,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -782,7 +1197,11 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     const buildUrl = this.buildUrl(project, build);
     const description = {
       pending: 'Building…',
-      success: build.target === 'PRODUCTION' ? 'Published' : 'Preview ready',
+      success: build.keptAsPreview
+        ? 'Preview ready (production is locked after a rollback)'
+        : build.target === 'PRODUCTION'
+          ? 'Published'
+          : 'Preview ready',
       failure: build.error ?? 'The build failed',
     }[state];
     try {
@@ -795,29 +1214,50 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         description,
         deploymentUrl ?? buildUrl,
       );
-      if (build.pullRequest !== null) {
-        const existing = await this.repository.pullComment(project.id, build.pullRequest);
-        const body = [
-          `**Codeqlick Cloud** · ${project.slug}`,
-          '',
-          '| | |',
-          '|---|---|',
-          `| Commit | \`${build.commit.slice(0, 7)}\` |`,
-          `| State | ${{ pending: '⏳ Building', success: '✅ Ready', failure: '❌ Failed' }[state]} |`,
-          ...(deploymentUrl ? [`| Preview | ${deploymentUrl} |`] : []),
-          `| Build | ${buildUrl} |`,
-        ].join('\n');
-        const commentId = await this.github.upsertComment(
-          project.gitInstallationId,
-          project.gitRepoId,
-          project.gitRepo,
-          build.pullRequest,
-          existing?.commentId ?? null,
-          body,
-        );
-        if (!existing)
-          await this.repository.savePullComment(project.id, build.pullRequest, commentId);
-      }
+    } catch (error) {
+      this.logger.warn(`Build ${build.id}: GitHub couldn't be told (${String(error)})`);
+      return;
+    }
+    await this.comment(project, build, state, deploymentUrl, check);
+  }
+
+  /** The app's comment on the build's pull request, if it has one. Best effort. */
+  private async comment(
+    project: ReportProject,
+    build: CloudBuild,
+    state: 'pending' | 'success' | 'failure',
+    deploymentUrl?: string,
+    check?: PreviewCheck,
+  ): Promise<void> {
+    if (
+      !this.github.configured ||
+      !project.gitInstallationId ||
+      !project.gitRepoId ||
+      !project.gitRepo ||
+      build.pullRequest === null
+    )
+      return;
+    try {
+      const existing = await this.repository.pullComment(project.id, build.pullRequest);
+      const body = commentBody({
+        project: project.slug,
+        commit: build.commit,
+        state,
+        buildUrl: this.buildUrl(project, build),
+        ...(deploymentUrl ? { deploymentUrl } : {}),
+        ...(check ? { check } : {}),
+        auditUrl: this.auditUrl(project),
+      });
+      const commentId = await this.github.upsertComment(
+        project.gitInstallationId,
+        project.gitRepoId,
+        project.gitRepo,
+        build.pullRequest,
+        existing?.commentId ?? null,
+        body,
+      );
+      if (!existing)
+        await this.repository.savePullComment(project.id, build.pullRequest, commentId);
     } catch (error) {
       this.logger.warn(`Build ${build.id}: GitHub couldn't be told (${String(error)})`);
     }

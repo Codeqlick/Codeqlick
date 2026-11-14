@@ -18,10 +18,24 @@ import { CloudDatabasesController } from './cloud-databases.controller.js';
 import { CloudDatabasesRepository } from './cloud-databases.repository.js';
 import { CloudDatabasesService } from './cloud-databases.service.js';
 import { CloudPgClient } from './cloud-pg.client.js';
+import {
+  CloudEdgeController,
+  CloudProtectionController,
+  CloudProtectionPublicController,
+} from './cloud-protection.controller.js';
+import { CloudProtectionRepository } from './cloud-protection.repository.js';
+import { CloudProtectionService } from './cloud-protection.service.js';
+import { CloudRulesService } from './cloud-rules.service.js';
 import { CloudStorageController } from './cloud-storage.controller.js';
 import { CloudStorageRepository } from './cloud-storage.repository.js';
 import { CloudStorageService } from './cloud-storage.service.js';
 import { GarageClient } from './garage.client.js';
+import {
+  CloudDeployHooksController,
+  CloudDeployHooksPublicController,
+} from './cloud-deploy-hooks.controller.js';
+import { CloudDeployHooksRepository } from './cloud-deploy-hooks.repository.js';
+import { CloudDeployHooksService } from './cloud-deploy-hooks.service.js';
 import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
@@ -40,6 +54,9 @@ import {
 import { CloudMonitorsRepository } from './cloud-monitors.repository.js';
 import { CloudMonitorsService } from './cloud-monitors.service.js';
 import { CloudNotificationsController } from './cloud-notifications.controller.js';
+import { CloudStatusNoticesController } from './cloud-status-notices.controller.js';
+import { CloudStatusNoticesRepository } from './cloud-status-notices.repository.js';
+import { CloudStatusNoticesService } from './cloud-status-notices.service.js';
 import { CloudNotificationsRepository } from './cloud-notifications.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudAdminService } from './cloud-admin.service.js';
@@ -51,6 +68,13 @@ import { CloudStorage } from './cloud.storage.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { CloudTokensRepository } from './cloud-tokens.repository.js';
 import { CloudTokensService } from './cloud-tokens.service.js';
+import { CloudUsageAlertsRepository } from './cloud-usage-alerts.repository.js';
+import { CloudUsageAlertsService } from './cloud-usage-alerts.service.js';
+import { CloudUsageService } from './cloud-usage.service.js';
+import { CloudBadgesController } from './cloud-badges.controller.js';
+import { CloudBadgesService } from './cloud-badges.service.js';
+import { CloudTransferRepository } from './cloud-transfer.repository.js';
+import { CloudTransferService } from './cloud-transfer.service.js';
 
 /** Codeqlick Cloud (architecture 4.13). Its API tokens are resolved for JwtAuthGuard. */
 @Module({
@@ -61,19 +85,26 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudFormsPublicController,
     CloudMonitorsPublicController,
     CloudBuildsPublicController,
+    CloudDeployHooksPublicController,
     CloudAnalyticsPublicController,
     CloudKvPublicController,
+    CloudProtectionPublicController,
+    CloudEdgeController,
+    CloudBadgesController,
     CloudController,
     CloudFormsController,
     CloudMonitorsController,
+    CloudStatusNoticesController,
     CloudAuditsController,
     CloudBuildsController,
+    CloudDeployHooksController,
     CloudNotificationsController,
     CloudAnalyticsController,
     CloudKvController,
     CloudBillingController,
     CloudDatabasesController,
     CloudStorageController,
+    CloudProtectionController,
     CloudAdminController,
   ],
   providers: [
@@ -82,6 +113,9 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudStorage,
     CloudDns,
     CloudTokensService,
+    CloudUsageService,
+    CloudUsageAlertsRepository,
+    CloudUsageAlertsService,
     CloudTeamsService,
     CloudProjectsService,
     CloudDomainsService,
@@ -90,10 +124,14 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudFormsService,
     CloudMonitorsRepository,
     CloudMonitorsService,
+    CloudStatusNoticesRepository,
+    CloudStatusNoticesService,
     CloudAuditsRepository,
     CloudAuditsService,
     CloudBuildsRepository,
     CloudBuildsService,
+    CloudDeployHooksRepository,
+    CloudDeployHooksService,
     CloudNotificationsRepository,
     CloudNotificationsService,
     CloudAnalyticsRepository,
@@ -109,7 +147,13 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     GarageClient,
     CloudStorageRepository,
     CloudStorageService,
+    CloudProtectionRepository,
+    CloudProtectionService,
+    CloudRulesService,
+    CloudBadgesService,
     GithubClient,
+    CloudTransferRepository,
+    CloudTransferService,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
   exports: [API_TOKEN_RESOLVER, CloudTeamsService, CloudBillingService],

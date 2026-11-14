@@ -118,6 +118,9 @@ model User {
   timeEntries                TimeEntry[]
   credentials                ProjectCredential[]
   siteRevisions              ManagedSiteRevision[]
+  siteNewsPosts              SiteNewsPost[]
+  postRevisions              PostRevision[]
+  portfolioRevisions         PortfolioRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
   memberOfId                 String?                     @map("member_of_id") @db.Uuid
@@ -163,7 +166,11 @@ model User {
   cloudTokens                CloudToken[]
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
+  cloudProductionLocks       CloudProject[]
   cloudEvents                CloudEvent[]
+  cloudDeployHooks           CloudDeployHook[]
+  cloudStatusNotices         CloudStatusNotice[]
+  cloudStatusNoticeUpdates   CloudStatusNoticeUpdate[]
 
   @@map("users")
 }
@@ -308,16 +315,51 @@ model Post {
   status        PublishStatus @default(DRAFT)
   publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
   coverImageUrl String?       @map("cover_image_url")
+  /// Email it to the newsletter's subscribers when it goes live (architecture 4.14).
+  newsletter    Boolean       @default(true)
+  /// When its email went out or was skipped; null until it is live and the job has seen it.
+  newsletterSentAt DateTime? @map("newsletter_sent_at") @db.Timestamptz(3)
   authorId      String?       @map("author_id") @db.Uuid
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  author       User?             @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  translations PostTranslation[]
-  tags         PostTag[]
+  author        User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  translations  PostTranslation[]
+  tags          PostTag[]
+  slugRedirects PostSlugRedirect[]
+  revisions    PostRevision[]
 
   @@index([status, publishedAt])
   @@map("posts")
+}
+
+/// An old slug of a post, kept after a slug change so old links still work (decision 71).
+model PostSlugRedirect {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_slug_redirects")
+}
+
+/// A post's content before an admin change (the last 20 are kept, decision 72). `createdAt` is
+/// when it was replaced and `author` who replaced it; `snapshot` is a PostSnapshot (API 5).
+model PostRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  snapshot  Json
+  authorId  String?  @map("author_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  post   Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@map("post_revisions")
 }
 
 /// A blog topic, shared by both languages: one slug for URLs, a name per language.
@@ -379,10 +421,41 @@ model PortfolioItem {
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  translations PortfolioTranslation[]
+  translations  PortfolioTranslation[]
+  slugRedirects PortfolioSlugRedirect[]
+  revisions    PortfolioRevision[]
 
   @@index([status, sortOrder])
   @@map("portfolio_items")
+}
+
+/// An old slug of a case study, kept after a slug change so old links still work (decision 71).
+model PortfolioSlugRedirect {
+  id              String   @id @default(uuid()) @db.Uuid
+  slug            String   @unique
+  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioItemId])
+  @@map("portfolio_slug_redirects")
+}
+
+/// A case study's content before an admin change (the last 20 are kept, decision 72). `createdAt`
+/// is when it was replaced and `author` who replaced it; `snapshot` is a PortfolioSnapshot (API 5).
+model PortfolioRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
+  snapshot        Json
+  authorId        String?  @map("author_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([portfolioItemId, createdAt])
+  @@map("portfolio_revisions")
 }
 
 model PortfolioTranslation {
@@ -1067,13 +1140,46 @@ model ManagedSite {
   draftKey        String?          @unique @map("draft_key")
   /// The menu extra (architecture 8.2): turned on by the team, billed apart.
   menuEnabled     Boolean          @default(false) @map("menu_enabled")
+  /// The client has switched on the news section (architecture 8.2, decision 55).
+  newsEnabled     Boolean          @default(false) @map("news_enabled")
+  /// When the last successful build started: a post that expired after it is still online.
+  newsBuiltAt     DateTime?        @map("news_built_at") @db.Timestamptz(3)
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project   ClientProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   revisions ManagedSiteRevision[]
+  newsPosts SiteNewsPost[]
 
   @@map("managed_sites")
+}
+
+/// A news item or offer of a managed site, outside its content's draft/publish cycle (decision 55).
+model SiteNewsPost {
+  id          String    @id @default(uuid()) @db.Uuid
+  siteId      String    @map("site_id") @db.Uuid
+  /// Unique per site; made from the title when created and never changed.
+  slug        String
+  title       String    @db.VarChar(120)
+  summary     String    @db.VarChar(300)
+  /// Plain text, a Markdown subset rendered by the template at build time.
+  body        String
+  /// `media/<file>`, from the site's photo uploads.
+  photo       String?
+  /// Null = draft; kept when a published post is edited.
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+  /// The end of a Madrid day: after it the post is hidden from the site.
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(3)
+  authorId    String?   @map("author_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  site   ManagedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  author User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([siteId, slug])
+  @@index([siteId, publishedAt])
+  @@map("site_news_posts")
 }
 
 /// The content a managed site had before a change (the last 20 are kept).
@@ -1818,6 +1924,48 @@ model ErrorGroup {
   @@map("error_groups")
 }
 
+/// Where a checked link was found: a blog post or a case study.
+enum LinkSourceType {
+  POST
+  PORTFOLIO
+}
+
+/// A checked link: OK, or broken after two failed checks in a row.
+enum LinkStatus {
+  OK
+  BROKEN
+}
+
+/// A link of published content and its last check (Admin → Content → Broken links, architecture
+/// 4.6). `sourceId` is a post's or a case study's id (by `sourceType`), so it is no foreign key:
+/// deleting a post or a case study deletes its rows; the weekly run deletes links no longer there.
+model LinkCheck {
+  id          String         @id @default(uuid()) @db.Uuid
+  /// As written, absolute after resolving a relative link against the page's address on SITE_URL.
+  url         String         @db.VarChar(2048)
+  sourceType  LinkSourceType @map("source_type")
+  sourceId    String         @map("source_id") @db.Uuid
+  /// The translation the link appears in.
+  locale      Locale
+  /// On SITE_URL: checked against the database and the site's routes, never fetched.
+  internal    Boolean
+  status      LinkStatus     @default(OK)
+  /// The last check's HTTP status (404 for an internal page that doesn't exist).
+  statusCode  Int?           @map("status_code")
+  /// The last check's network failure (timeout, DNS, refused, private address...), in English.
+  error       String?        @db.VarChar(200)
+  /// Checks failed in a row; two make the link BROKEN.
+  failures    Int            @default(0)
+  brokenSince DateTime?      @map("broken_since") @db.Timestamptz(3)
+  checkedAt   DateTime       @map("checked_at") @db.Timestamptz(3)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([url, sourceType, sourceId, locale])
+  @@index([sourceType, sourceId])
+  @@index([status, url])
+  @@map("link_checks")
+}
+
 /// A free website check (architecture 4.12): a visitor's site analysed in the background.
 model SiteAudit {
   id         String          @id @default(uuid()) @db.Uuid
@@ -1870,6 +2018,13 @@ enum CloudTarget {
   PRODUCTION
 }
 
+/// Which of a project's addresses ask for its password (architecture 4.13 "Password protection").
+enum CloudProtection {
+  OFF
+  PREVIEWS
+  ALL
+}
+
 enum CloudDomainState {
   PENDING
   VERIFIED
@@ -1909,7 +2064,9 @@ model CloudTeam {
   events                  CloudEvent[]
   monitors                CloudMonitor[]
   statusPage              CloudStatusPage?
+  statusNotices           CloudStatusNotice[]
   cloudAudits             CloudAudit[]
+  usageAlerts             CloudUsageAlert[]
   gitInstallations        CloudGitInstallation[]
   /// The PRO subscription (architecture 4.13 "Plans and billing", decision 46).
   stripeCustomerId        String?                @unique @map("stripe_customer_id") @db.VarChar(100)
@@ -1919,8 +2076,31 @@ model CloudTeam {
   cancelAtPeriodEnd       Boolean                @default(false) @map("cancel_at_period_end")
   /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
   analyticsOverLimitMonth String?                @map("analytics_over_limit_month") @db.VarChar(7)
+  /// Every member needs two-step verification to use the team (architecture 4.13, decision 57).
+  requireTwoFactor        Boolean                @default(false) @map("require_two_factor")
 
   @@map("cloud_teams")
+}
+
+/// A usage alert already sent: one row per team, limit and Madrid month (architecture 4.13
+/// "Usage alerts", decision 54). Its unique key is the claim that makes the sweep idempotent.
+model CloudUsageAlert {
+  id        String   @id @default(uuid()) @db.Uuid
+  teamId    String   @map("team_id") @db.Uuid
+  /// `builds`, `formSubmissions`, `analyticsEvents`, `storage` or `deploymentsPerHour`.
+  key       String   @db.VarChar(30)
+  /// The Madrid month, `YYYY-MM`.
+  period    String   @db.VarChar(7)
+  percent   Int
+  used      BigInt
+  limit     BigInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, key, period])
+  @@index([createdAt])
+  @@map("cloud_usage_alerts")
 }
 
 model CloudMember {
@@ -1971,6 +2151,8 @@ model CloudToken {
   /// The token's first 12 characters, to recognise it.
   prefix     String    @db.VarChar(12)
   tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  /// Read only: GET, HEAD and OPTIONS alone (decision 61). Set when made, never changed.
+  readOnly   Boolean   @default(false) @map("read_only")
   expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
   lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
   lastUsedIp String?   @map("last_used_ip") @db.VarChar(45)
@@ -2012,6 +2194,10 @@ model CloudProject {
   slug                   String    @unique @db.VarChar(40)
   name                   String    @db.VarChar(60)
   productionDeploymentId String?   @unique @map("production_deployment_id") @db.Uuid
+  /// Production lock after a rollback (architecture 4.13): builds from Git don't move production.
+  productionLockedAt     DateTime? @map("production_locked_at") @db.Timestamptz(3)
+  /// Who locked it (kept as `null` when they leave).
+  productionLockedById   String?   @map("production_locked_by_id") @db.Uuid
   suspendedAt            DateTime? @map("suspended_at") @db.Timestamptz(3)
   suspendedReason        String?   @map("suspended_reason") @db.VarChar(500)
   deletedAt              DateTime? @map("deleted_at") @db.Timestamptz(3)
@@ -2027,28 +2213,58 @@ model CloudProject {
   nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
   buildBranches          Boolean   @default(true) @map("build_branches")
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
+  /// Runs the website check on each pull request's preview (architecture 4.13; decision 69).
+  previewChecks          Boolean   @default(false) @map("preview_checks")
+  /// Skip pushes and pull requests that change nothing under `rootDir` (architecture 4.13).
+  onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
+  /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
+  /// hash, how many days access lasts, and a version raised on every change that ends access.
+  protection             CloudProtection @default(OFF)
+  protectionHash         String?   @map("protection_hash")
+  protectionDays         Int       @default(7) @map("protection_days")
+  protectionVersion      Int       @default(0) @map("protection_version")
+  protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
+  /// Scheduled rebuilds of the production branch, Madrid time (architecture 4.13, decision 65).
+  rebuildFrequency       CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
+  rebuildMinute          Int?      @map("rebuild_minute")
+  rebuildHour            Int?      @map("rebuild_hour")
+  /// 1–7, Monday first.
+  rebuildWeekday         Int?      @map("rebuild_weekday")
+  rebuildNextAt          DateTime? @map("rebuild_next_at") @db.Timestamptz(3)
+  /// Scheduled builds failed in a row; five switch the schedule off.
+  rebuildFailures        Int       @default(0) @map("rebuild_failures")
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team            CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production      CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  deployments     CloudDeployment[]     @relation("CloudDeployments")
-  domains         CloudDomain[]
-  reports         CloudReport[]
-  forms           CloudForm[]
-  envVars         CloudEnvVar[]
-  builds          CloudBuild[]
-  prComments      CloudPullComment[]
-  notifyChannels  CloudNotifyChannel[]
-  analyticsEvents CloudAnalyticsEvent[]
-  kvEntries       CloudKvEntry[]
-  cloudDatabases  CloudDatabase[]
-  buckets         CloudBucket[]
+  team               CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production         CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  productionLockedBy User?                 @relation(fields: [productionLockedById], references: [id], onDelete: SetNull)
+  deployments        CloudDeployment[]     @relation("CloudDeployments")
+  domains            CloudDomain[]
+  reports            CloudReport[]
+  forms              CloudForm[]
+  envVars            CloudEnvVar[]
+  builds             CloudBuild[]
+  prComments         CloudPullComment[]
+  notifyChannels     CloudNotifyChannel[]
+  deployHooks     CloudDeployHook[]
+  analyticsEvents    CloudAnalyticsEvent[]
+  kvEntries          CloudKvEntry[]
+  cloudDatabases     CloudDatabase[]
+  buckets            CloudBucket[]
 
   @@index([teamId, createdAt])
+  @@index([rebuildNextAt])
   @@map("cloud_projects")
+}
+
+enum CloudRebuildFrequency {
+  OFF
+  HOURLY
+  DAILY
+  WEEKLY
 }
 
 /// An immutable upload of a built folder.
@@ -2063,9 +2279,13 @@ model CloudDeployment {
   branch      String?     @db.VarChar(100)
   sizeBytes   BigInt      @map("size_bytes")
   fileCount   Int         @map("file_count")
+  /// The parsed rules of `codeqlick.json` (redirects, rewrites, headers); null when it has none.
+  config      Json?
   createdById String?     @map("created_by_id") @db.Uuid
   tokenId     String?     @map("token_id") @db.Uuid
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Set when a member keeps it by hand: hourly cleanup never deletes it (at most 5 per project).
+  keptAt      DateTime?   @map("kept_at") @db.Timestamptz(3)
 
   project      CloudProject  @relation("CloudDeployments", fields: [projectId], references: [id], onDelete: Cascade)
   productionOf CloudProject? @relation("CloudProduction")
@@ -2148,6 +2368,8 @@ model CloudForm {
   enabled        Boolean  @default(true)
   /// Email each submission to the recipients.
   notify         Boolean  @default(true)
+  /// Flag spam with local rules: kept apart, never delivered or counted (decision 66).
+  spamFilter     Boolean  @default(true) @map("spam_filter")
   /// Team members who get the submissions by email (never typed addresses, decision 37).
   recipientIds   String[] @map("recipient_ids") @db.Uuid
   /// `yyyy-mm` of the month its team was told it ran out of submissions (once a month).
@@ -2164,18 +2386,26 @@ model CloudForm {
 
 /// What a page sent through a Cloud form; kept 180 days, no IP.
 model CloudFormSubmission {
-  id        String   @id @default(uuid()) @db.Uuid
-  formId    String   @map("form_id") @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  formId      String   @map("form_id") @db.Uuid
   /// The fields as sent (names to values), without the `_` instructions.
-  data      Json
-  email     String?  @db.VarChar(254)
+  data        Json
+  email       String?  @db.VarChar(254)
   /// The page it came from: origin and path only.
-  page      String?  @db.VarChar(500)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page        String?  @db.VarChar(500)
+  /// Flagged as spam: kept 30 days, never delivered or counted (decision 66).
+  spam        Boolean  @default(false)
+  /// `markup` | `links` | `field` | `page` | `repeat` | `manual`.
+  spamReason  String?  @map("spam_reason") @db.VarChar(20)
+  /// SHA-256 of the fields, to spot the same message again and again.
+  contentHash String?  @map("content_hash") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   form CloudForm @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId, createdAt])
+  @@index([formId, spam, createdAt])
+  @@index([formId, contentHash, createdAt])
   @@index([createdAt])
   @@map("cloud_form_submissions")
 }
@@ -2183,6 +2413,12 @@ model CloudFormSubmission {
 enum CloudMonitorKind {
   HTTP
   HEARTBEAT
+}
+
+/// HTTP monitors' text check: the page must contain the keyword, or must not.
+enum CloudMonitorKeywordMode {
+  CONTAINS
+  NOT_CONTAINS
 }
 
 enum CloudMonitorStatus {
@@ -2194,35 +2430,38 @@ enum CloudMonitorStatus {
 
 /// A URL checked every 5 minutes, or a heartbeat a scheduled job calls (architecture 4.13, Monitors).
 model CloudMonitor {
-  id              String             @id @default(uuid()) @db.Uuid
-  teamId          String             @map("team_id") @db.Uuid
-  projectId       String?            @map("project_id") @db.Uuid
-  name            String             @db.VarChar(60)
+  id              String                  @id @default(uuid()) @db.Uuid
+  teamId          String                  @map("team_id") @db.Uuid
+  projectId       String?                 @map("project_id") @db.Uuid
+  name            String                  @db.VarChar(60)
   kind            CloudMonitorKind
-  url             String?            @db.VarChar(2048)
+  url             String?                 @db.VarChar(2048)
+  /// HTTP: text the page must (or must not) contain; null when not checked.
+  keyword         String?                 @db.VarChar(100)
+  keywordMode     CloudMonitorKeywordMode @default(CONTAINS) @map("keyword_mode")
   /// Heartbeats: `cqh_` + 16 random bytes, the URL's last part.
-  key             String?            @unique @db.VarChar(40)
-  periodMinutes   Int?               @map("period_minutes")
-  graceMinutes    Int?               @map("grace_minutes")
-  enabled         Boolean            @default(true)
-  status          CloudMonitorStatus @default(UNKNOWN)
-  statusSince     DateTime           @default(now()) @map("status_since") @db.Timestamptz(3)
+  key             String?                 @unique @db.VarChar(40)
+  periodMinutes   Int?                    @map("period_minutes")
+  graceMinutes    Int?                    @map("grace_minutes")
+  enabled         Boolean                 @default(true)
+  status          CloudMonitorStatus      @default(UNKNOWN)
+  statusSince     DateTime                @default(now()) @map("status_since") @db.Timestamptz(3)
   /// HTTP: failed checks in a row (DOWN after two).
-  failures        Int                @default(0)
-  lastCheckedAt   DateTime?          @map("last_checked_at") @db.Timestamptz(3)
-  lastPingAt      DateTime?          @map("last_ping_at") @db.Timestamptz(3)
+  failures        Int                     @default(0)
+  lastCheckedAt   DateTime?               @map("last_checked_at") @db.Timestamptz(3)
+  lastPingAt      DateTime?               @map("last_ping_at") @db.Timestamptz(3)
   /// Heartbeats: when it is late without a call.
-  deadlineAt      DateTime?          @map("deadline_at") @db.Timestamptz(3)
-  lastError       String?            @map("last_error") @db.VarChar(300)
-  certExpiresAt   DateTime?          @map("cert_expires_at") @db.Timestamptz(3)
-  certCheckedAt   DateTime?          @map("cert_checked_at") @db.Timestamptz(3)
-  certWarnedFor   DateTime?          @map("cert_warned_for") @db.Timestamptz(3)
+  deadlineAt      DateTime?               @map("deadline_at") @db.Timestamptz(3)
+  lastError       String?                 @map("last_error") @db.VarChar(300)
+  certExpiresAt   DateTime?               @map("cert_expires_at") @db.Timestamptz(3)
+  certCheckedAt   DateTime?               @map("cert_checked_at") @db.Timestamptz(3)
+  certWarnedFor   DateTime?               @map("cert_warned_for") @db.Timestamptz(3)
   /// Team members told by email when it goes down or comes back.
-  alertIds        String[]           @map("alert_ids") @db.Uuid
-  lastDownAlertAt DateTime?          @map("last_down_alert_at") @db.Timestamptz(3)
-  lastUpAlertAt   DateTime?          @map("last_up_alert_at") @db.Timestamptz(3)
-  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  alertIds        String[]                @map("alert_ids") @db.Uuid
+  lastDownAlertAt DateTime?               @map("last_down_alert_at") @db.Timestamptz(3)
+  lastUpAlertAt   DateTime?               @map("last_up_alert_at") @db.Timestamptz(3)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   team   CloudTeam           @relation(fields: [teamId], references: [id], onDelete: Cascade)
   checks CloudMonitorCheck[]
@@ -2280,6 +2519,66 @@ model CloudStatusPage {
   @@map("cloud_status_pages")
 }
 
+enum CloudStatusNoticeKind {
+  INCIDENT
+  MAINTENANCE
+}
+
+enum CloudStatusNoticeState {
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// An incident note or a scheduled maintenance on a team's status page (architecture 4.13, Notices).
+model CloudStatusNotice {
+  id          String                 @id @default(uuid()) @db.Uuid
+  teamId      String                 @map("team_id") @db.Uuid
+  kind        CloudStatusNoticeKind
+  title       String                 @db.VarChar(120)
+  /// Incidents: the latest update's state. Maintenance: SCHEDULED, or COMPLETED when ended early
+  /// (its phase is derived from the time).
+  state       CloudStatusNoticeState
+  /// The team's monitors it affects (1–20; a deleted monitor is removed).
+  monitorIds  String[]               @map("monitor_ids") @db.Uuid
+  startsAt    DateTime?              @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime?              @map("ends_at") @db.Timestamptz(3)
+  /// An incident resolved, or a maintenance ended early.
+  resolvedAt  DateTime?              @map("resolved_at") @db.Timestamptz(3)
+  createdById String?                @map("created_by_id") @db.Uuid
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  team      CloudTeam                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  updates   CloudStatusNoticeUpdate[]
+
+  @@index([teamId, resolvedAt])
+  @@index([teamId, createdAt])
+  @@map("cloud_status_notices")
+}
+
+/// One entry of a notice's timeline (at most 50): plain text, shown with its line breaks.
+model CloudStatusNoticeUpdate {
+  id          String                  @id @default(uuid()) @db.Uuid
+  noticeId    String                  @map("notice_id") @db.Uuid
+  /// Incidents: the state it set. Maintenance: COMPLETED when it ended it, else null (a note).
+  state       CloudStatusNoticeState?
+  body        String                  @db.VarChar(2000)
+  createdById String?                 @map("created_by_id") @db.Uuid
+  createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  notice    CloudStatusNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  createdBy User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([noticeId, createdAt])
+  @@map("cloud_status_notice_updates")
+}
+
 /// A website check run through Cloud's API (architecture 4.13, Website check API); kept 30 days.
 model CloudAudit {
   id        String   @id @default(uuid()) @db.Uuid
@@ -2291,7 +2590,8 @@ model CloudAudit {
   result    Json
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team   CloudTeam    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  builds CloudBuild[]
 
   @@index([teamId, createdAt])
   @@index([createdAt])
@@ -2355,6 +2655,12 @@ model CloudNotifyChannel {
   buildFailed    Boolean         @default(true) @map("build_failed")
   buildSucceeded Boolean         @default(false) @map("build_succeeded")
   previews       Boolean         @default(false)
+  /// Slack, Discord and webhooks: also tell it about the project's form submissions (decision 63).
+  formSubmitted  Boolean         @default(false) @map("form_submitted")
+  /// Only these forms of the project (empty: all of them).
+  formIds        String[]        @default([]) @map("form_ids") @db.Uuid
+  /// Slack, Discord and webhooks: also the alerts of the project's monitors (decision 64).
+  monitorAlerts  Boolean         @default(false) @map("monitor_alerts")
   /// The language of Slack, Discord and webhook messages (`en` or `es`).
   locale         String          @default("en") @db.VarChar(2)
   /// Failed deliveries in a row; ten switch the channel off.
@@ -2375,6 +2681,8 @@ enum CloudBuildTrigger {
   PUSH
   PULL_REQUEST
   MANUAL
+  HOOK
+  SCHEDULE
 }
 
 enum CloudBuildStatus {
@@ -2403,19 +2711,50 @@ model CloudBuild {
   /// stdout and stderr, at most 1 MB (the end is kept); emptied after 30 days.
   log           String            @default("")
   deploymentId  String?           @map("deployment_id") @db.Uuid
+  /// Run without the dependency cache (asked from the console or the CLI).
+  noCache       Boolean           @default(false) @map("no_cache")
+  /// The preview's website check (decision 69); empty once the audit is cleaned up.
+  auditId       String?           @map("audit_id") @db.Uuid
+  /// A production build deployed while production was locked after a rollback (architecture 4.13).
+  keptAsPreview Boolean           @default(false) @map("kept_as_preview")
   builder       String?           @db.VarChar(60)
   createdById   String?           @map("created_by_id") @db.Uuid
+  /// The deploy hook's name when the build came from one (trigger HOOK); kept after the hook is deleted.
+  hookName      String?           @map("hook_name") @db.VarChar(60)
   queuedAt      DateTime          @default(now()) @map("queued_at") @db.Timestamptz(3)
   startedAt     DateTime?         @map("started_at") @db.Timestamptz(3)
   heartbeatAt   DateTime?         @map("heartbeat_at") @db.Timestamptz(3)
   finishedAt    DateTime?         @map("finished_at") @db.Timestamptz(3)
 
   project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  audit   CloudAudit?  @relation(fields: [auditId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, number])
   @@index([status, queuedAt])
   @@index([projectId, queuedAt])
+  @@index([auditId])
   @@map("cloud_builds")
+}
+
+/// A secret URL that builds one branch of a project when called (architecture 4.13 "Deploy hooks", decision 51).
+model CloudDeployHook {
+  id           String    @id @default(uuid()) @db.Uuid
+  projectId    String    @map("project_id") @db.Uuid
+  name         String    @db.VarChar(60)
+  branch       String    @db.VarChar(200)
+  /// The token's first 12 characters (`cqd_` + 8), to recognise it.
+  prefix       String    @db.VarChar(12)
+  /// SHA-256 of the token, which is shown once.
+  tokenHash    String    @unique @map("token_hash") @db.VarChar(64)
+  createdById  String?   @map("created_by_id") @db.Uuid
+  lastCalledAt DateTime? @map("last_called_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project   CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, name])
+  @@map("cloud_deploy_hooks")
 }
 
 /// A GitHub webhook delivery already handled (kept a day).
@@ -2546,4 +2885,34 @@ model CloudBucketKey {
 
   @@index([bucketId])
   @@map("cloud_bucket_keys")
+}
+
+/// A blog reader who signed up for new posts by email (architecture 4.14). Not a `User`.
+model NewsletterSubscriber {
+  id               String                 @id @default(uuid()) @db.Uuid
+  /// Lower-cased.
+  email            String                 @unique
+  /// The language of the emails.
+  locale           Locale
+  status           NewsletterStatus       @default(PENDING)
+  /// SHA-256 of the confirmation token, cleared once confirmed.
+  confirmTokenHash String?                @unique @map("confirm_token_hash")
+  confirmExpiresAt DateTime?              @map("confirm_expires_at") @db.Timestamptz(3)
+  /// The last confirmation email (at most one every 10 minutes).
+  confirmSentAt    DateTime?              @map("confirm_sent_at") @db.Timestamptz(3)
+  /// With the stored language, the proof of consent.
+  confirmedAt      DateTime?              @map("confirmed_at") @db.Timestamptz(3)
+  /// In every email's unsubscribe link; it can only unsubscribe.
+  unsubscribeToken String                 @unique @map("unsubscribe_token")
+  unsubscribedAt   DateTime?              @map("unsubscribed_at") @db.Timestamptz(3)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@map("newsletter_subscribers")
+}
+
+enum NewsletterStatus {
+  PENDING
+  ACTIVE
+  UNSUBSCRIBED
 }

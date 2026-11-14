@@ -4,13 +4,17 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
-import type { AppLocale } from '@/i18n/routing';
+import { routing, type AppLocale } from '@/i18n/routing';
 import {
   acceptCloudInvite,
   addCloudDomain,
+  addCloudStatusNoticeUpdate,
   checkCloudDomain,
   createCloudForm,
+  createCloudHook,
+  deleteCloudHook,
   createCloudMonitor,
+  createCloudStatusNotice,
   createCloudNotification,
   createCloudBucket,
   createCloudBucketKey,
@@ -32,15 +36,19 @@ import {
   createCloudToken,
   decideCloudDevice,
   deleteCloudDeployment,
+  keepCloudDeployment,
   deleteCloudForm,
   deleteCloudMonitor,
+  deleteCloudStatusNotice,
   deleteCloudProject,
   deleteCloudSubmission,
   deleteCloudTeam,
   inviteCloudMember,
   promoteCloudDeployment,
+  unkeepCloudDeployment,
   removeCloudDomain,
   removeCloudMember,
+  markCloudSubmissionSpam,
   replaceCloudFormKey,
   renameCloudProject,
   renameCloudTeam,
@@ -50,20 +58,43 @@ import {
   runCloudAudit,
   saveCloudStatusPage,
   setCloudMemberRole,
+  setCloudProtection,
+  setCloudTeamTwoFactor,
+  transferCloudProject,
   updateCloudForm,
   updateCloudMonitor,
+  type CloudEnvImportResult,
+  updateCloudStatusNotice,
+  type CloudNoticeKind,
   type CloudReportReason,
   type CloudRole,
   cancelCloudBuild,
   deleteCloudEnv,
   disconnectCloudGit,
   getCloudGithubInstallUrl,
+  importCloudEnv,
   setCloudEnv,
   setCloudGit,
+  setCloudRebuildSchedule,
   startCloudBuild,
+  unlockCloudProduction,
 } from '@/lib/api/cloud';
+import {
+  hookBranchValid,
+  hookName,
+  protectionInput,
+  ENV_IMPORT_MAX_BYTES,
+  envImportErrors,
+  type EnvImportState,
+  cloudTokenOptions,
+  monitorKeyword,
+  monitorKeywordMode,
+  parseRebuildForm,
+} from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
+import { parseNoticeWindow, parseUpdateState } from '@/lib/cloud-notices';
+import { formBoolean, formString, formValues, type FormState, initialFormState } from '@/lib/forms';
+import { toDateTimeInput } from '@/lib/format';
 import { appPath } from '@/lib/webapp-request';
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -147,6 +178,29 @@ export async function renameTeamAction(
   }
   refresh(lang, `/${team}`);
   return { status: 'success', message: t('renamed') };
+}
+
+/** Owners require (or stop requiring) two-step verification of every member. */
+export async function setTeamTwoFactorAction(
+  locale: string,
+  team: string,
+  enabled: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.twoFactor' });
+  try {
+    await setCloudTeamTwoFactor(team, enabled);
+  } catch (error) {
+    // The only conflict: the owner's own account has no two-step verification yet.
+    if (isApiError(error) && error.status === 409) {
+      return { status: 'error', message: t('ownFirst') };
+    }
+    return failure(lang, error);
+  }
+  refresh(lang, `/${team}/members`);
+  return { status: 'success', message: enabled ? t('turnedOn') : t('turnedOff') };
 }
 
 export async function deleteTeamAction(
@@ -321,9 +375,98 @@ export async function deleteProjectAction(
   return go(lang, `/console/${team}`);
 }
 
+/** Moves the project to another team the caller runs, then opens it there (decision 58). */
+export async function transferProjectAction(
+  locale: string,
+  team: string,
+  id: string,
+  slug: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.project.transfer' });
+  const values = formValues(formData);
+  const target = formString(formData, 'team');
+  if (!SLUG.test(target) || target === team) {
+    return { status: 'error', fieldErrors: { team: t('chooseTeam') }, values };
+  }
+  if (formString(formData, 'confirm') !== slug) {
+    const tc = await getTranslations({ locale: lang, namespace: 'Common' });
+    return { status: 'error', fieldErrors: { confirm: tc('confirmType', { text: slug }) }, values };
+  }
+  let git: string;
+  try {
+    ({ git } = await transferCloudProject(id, target));
+  } catch (error) {
+    if (isApiError(error)) {
+      const detail = error.detail ?? '';
+      if (error.status === 403 && /suspended/i.test(detail)) {
+        return { status: 'error', message: t('suspended'), values };
+      }
+      if (error.status === 409 && /builds/i.test(detail)) {
+        return { status: 'error', message: t('builds'), values };
+      }
+      if (error.status === 409 && /changed/i.test(detail)) {
+        return { status: 'error', message: t('changed'), values };
+      }
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}`);
+  refresh(lang, `/${target}`);
+  const notice = git === 'dropped' ? 'moved=1&git=dropped' : 'moved=1';
+  return go(lang, `/console/${target}/${slug}?${notice}`);
+}
+
 export async function promoteAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await promoteCloudDeployment(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
+}
+
+/** Unlocks production after a rollback (ADMIN): the next production build goes live again. */
+export async function unlockProductionAction(
+  locale: string,
+  path: string,
+  id: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  try {
+    await unlockCloudProduction(id);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  // The banner (and this form) goes away with the lock: no message to show.
+  return { status: 'idle' };
+}
+
+export async function keepDeploymentAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const locale = localeOrDefault(formData.get('locale'));
+  try {
+    await keepCloudDeployment(formString(formData, 'project'), formString(formData, 'id'));
+  } catch (error) {
+    if (isApiError(error) && error.status === 409) {
+      const t = await getTranslations({ locale, namespace: 'Cloud' });
+      return { status: 'error', message: t('project.keptFull') };
+    }
+    return failure(locale, error);
+  }
+  refresh(locale, formString(formData, 'path'));
+  return initialFormState;
+}
+
+export async function unkeepDeploymentAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await unkeepCloudDeployment(formString(formData, 'project'), formString(formData, 'id')).catch(
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));
@@ -335,6 +478,59 @@ export async function deleteDeploymentAction(formData: FormData): Promise<void> 
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));
+}
+
+/**
+ * Saves the project's password protection (architecture 4.13). The password is write-only: it is
+ * never echoed back in the form's values, and empty keeps the current one.
+ */
+export async function saveProtectionAction(
+  locale: string,
+  path: string,
+  id: string,
+  hasPassword: boolean,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.protection' });
+  const values = formValues(formData, ['password']);
+  const password = formData.get('password');
+  const parsed = protectionInput(
+    {
+      mode: formString(formData, 'mode'),
+      password: typeof password === 'string' ? password : '',
+      days: formString(formData, 'days'),
+    },
+    hasPassword,
+  );
+  if (!parsed.ok) {
+    const message =
+      parsed.field === 'password'
+        ? t(parsed.reason === 'required' ? 'passwordRequired' : 'passwordInvalid')
+        : t('invalid');
+    return { status: 'error', fieldErrors: { [parsed.field]: message }, values };
+  }
+  try {
+    await setCloudProtection(id, parsed.input);
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      return {
+        status: 'error',
+        message: error.fieldErrors._form ?? error.detail ?? t('invalid'),
+        fieldErrors: error.fieldErrors,
+        values,
+      };
+    }
+    if (isApiError(error) && error.status === 503) {
+      return { status: 'error', message: t('unavailable'), values };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  // The team's page shows the lock next to each project's address too.
+  refresh(lang, path.slice(0, path.lastIndexOf('/')));
+  return { status: 'success', message: t('saved') };
 }
 
 // ── Domains ───────────────────────────────────────────────────────────────────────────────────
@@ -401,13 +597,14 @@ export async function createTokenAction(
     const tv = await getTranslations({ locale: lang, namespace: 'Validation' });
     return { status: 'error', fieldErrors: { name: tv('required') }, values };
   }
-  const team = formString(formData, 'team');
-  const expiry = formString(formData, 'expiry');
-  const expiresInDays =
-    expiry === '30' ? 30 : expiry === '365' ? 365 : expiry === 'never' ? null : 90;
+  const options = cloudTokenOptions({
+    team: formString(formData, 'team'),
+    expiry: formString(formData, 'expiry'),
+    access: formString(formData, 'access'),
+  });
   let token: string;
   try {
-    token = (await createCloudToken({ name, teamSlug: team || undefined, expiresInDays })).token;
+    token = (await createCloudToken({ name, ...options })).token;
   } catch (error) {
     if (isApiError(error) && error.status === 409) {
       return { status: 'error', message: t('tooMany'), values };
@@ -513,6 +710,7 @@ export async function createFormAction(
       name,
       notify: formBoolean(formData, 'notify'),
       recipientIds,
+      spamFilter: formBoolean(formData, 'spamFilter'),
     });
   } catch (error) {
     return failure(lang, error, values);
@@ -525,6 +723,14 @@ export async function toggleFormAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
     enabled: formString(formData, 'enabled') === 'on',
+  }).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function toggleSpamFilterAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
+    spamFilter: formString(formData, 'spamFilter') === 'on',
   }).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
@@ -555,6 +761,18 @@ export async function deleteSubmissionAction(formData: FormData): Promise<void> 
   refresh(locale, formString(formData, 'path'));
 }
 
+/** "Spam" / "Not spam" on a submission (`spam` = on or off); "Not spam" delivers it if needed. */
+export async function markSubmissionSpamAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await markCloudSubmissionSpam(
+    formString(formData, 'project'),
+    formString(formData, 'form'),
+    formString(formData, 'id'),
+    formString(formData, 'spam') === 'on',
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
 // ── Monitors and status page (phase 1b) ───────────────────────────────────────────────────────
 
 export async function createMonitorAction(
@@ -576,6 +794,9 @@ export async function createMonitorAction(
   const period = Math.round(Number(formString(formData, 'period')));
   const grace = Math.round(Number(formString(formData, 'grace')));
   if (kind === 'HTTP' && !/^https?:\/\/\S+$/i.test(url)) fieldErrors.url = t('urlInvalid');
+  const keyword = monitorKeyword(formString(formData, 'keyword'));
+  const keywordMode = monitorKeywordMode(formString(formData, 'keywordMode'));
+  if (kind === 'HTTP' && keyword === undefined) fieldErrors.keyword = t('textInvalid');
   if (kind === 'HEARTBEAT' && !(period >= 1 && period <= 10080))
     fieldErrors.period = t('periodInvalid');
   if (kind === 'HEARTBEAT' && !(grace >= 1 && grace <= 1440)) fieldErrors.grace = t('graceInvalid');
@@ -586,7 +807,7 @@ export async function createMonitorAction(
       await createCloudMonitor(
         team,
         kind === 'HTTP'
-          ? { kind, name, url, alertIds }
+          ? { kind, name, url, ...(keyword ? { keyword, keywordMode } : {}), alertIds }
           : { kind, name, periodMinutes: period, graceMinutes: grace, alertIds },
       )
     ).id;
@@ -598,6 +819,33 @@ export async function createMonitorAction(
   }
   refresh(lang, `/${team}/monitors`);
   return go(lang, `/console/${team}/monitors/${id}`);
+}
+
+/** An HTTP monitor's text check: set, changed, or switched off (left empty). */
+export async function saveMonitorTextAction(
+  locale: string,
+  team: string,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.monitors' });
+  const values = formValues(formData);
+  const keyword = monitorKeyword(formString(formData, 'keyword'));
+  if (keyword === undefined) {
+    return { status: 'error', fieldErrors: { keyword: t('textInvalid') }, values };
+  }
+  try {
+    await updateCloudMonitor(id, {
+      keyword,
+      keywordMode: monitorKeywordMode(formString(formData, 'keywordMode')),
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}/monitors/${id}`);
+  return { status: 'success', message: t('textSaved') };
 }
 
 export async function toggleMonitorAction(formData: FormData): Promise<void> {
@@ -654,6 +902,167 @@ export async function saveStatusPageAction(
   refresh(lang, `/${team}/status-page`);
   revalidatePath(`/${lang}/cloud/status/${team}`);
   return { status: 'success', message: t('saved') };
+}
+
+// ── Status page notices (architecture 4.13, Notices; decision 62) ──────────────────────────────
+
+/** After a notice changes: the console's tab and the public page, in every language. */
+function refreshNotices(team: string) {
+  for (const locale of routing.locales) {
+    refresh(locale, `/${team}/status-page`);
+    revalidatePath(`/${locale}/cloud/status/${team}`);
+  }
+}
+
+/** Title (1–120), monitors (1–20) and message (1–2,000): the checks every notice form shares. */
+function noticeFields(
+  formData: FormData,
+  t: (key: 'titleInvalid' | 'monitorsInvalid' | 'bodyInvalid') => string,
+  withBody: boolean,
+) {
+  const title = formString(formData, 'title');
+  const monitorIds = [...new Set(formData.getAll('monitors').map(String).filter(Boolean))];
+  const body = formString(formData, 'body');
+  const fieldErrors: Record<string, string> = {};
+  if (title.length < 1 || title.length > 120) fieldErrors.title = t('titleInvalid');
+  if (monitorIds.length < 1 || monitorIds.length > 20) fieldErrors.monitors = t('monitorsInvalid');
+  if (withBody && (body.length < 1 || body.length > 2000)) fieldErrors.body = t('bodyInvalid');
+  return { title, monitorIds, body, fieldErrors };
+}
+
+/** "New incident" or "Schedule maintenance" (its window typed in Madrid time). */
+export async function createNoticeAction(
+  locale: string,
+  team: string,
+  kind: CloudNoticeKind,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  const values = formValues(formData);
+  const { title, monitorIds, body, fieldErrors } = noticeFields(formData, (key) => t(key), true);
+  try {
+    if (kind === 'INCIDENT') {
+      const state = parseUpdateState('INCIDENT', formString(formData, 'state'));
+      if (!state) fieldErrors.state = t('stateInvalid');
+      if (Object.keys(fieldErrors).length > 0 || !state) {
+        return { status: 'error', fieldErrors, values };
+      }
+      await createCloudStatusNotice(team, { kind, title, monitorIds, body, state });
+    } else {
+      const parsed = parseNoticeWindow(
+        formString(formData, 'startsAt'),
+        formString(formData, 'endsAt'),
+      );
+      if (!parsed.ok) {
+        fieldErrors[parsed.field] =
+          parsed.problem === 'date' ? t('dateInvalid') : t('windowInvalid');
+      }
+      if (Object.keys(fieldErrors).length > 0 || !parsed.ok) {
+        return { status: 'error', fieldErrors, values };
+      }
+      await createCloudStatusNotice(team, { kind, title, monitorIds, body, ...parsed.window });
+    }
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refreshNotices(team);
+  return { status: 'success', message: t('created') };
+}
+
+/** "Post an update": an incident's new state, or a maintenance's note or early completion. */
+export async function addNoticeUpdateAction(
+  locale: string,
+  team: string,
+  noticeId: string,
+  kind: CloudNoticeKind,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  const values = formValues(formData);
+  const body = formString(formData, 'body');
+  const state = parseUpdateState(kind, formString(formData, 'state'));
+  const fieldErrors: Record<string, string> = {};
+  if (body.length < 1 || body.length > 2000) fieldErrors.body = t('bodyInvalid');
+  if (state === null) fieldErrors.state = t('stateInvalid');
+  if (Object.keys(fieldErrors).length > 0 || state === null) {
+    return { status: 'error', fieldErrors, values };
+  }
+  try {
+    await addCloudStatusNoticeUpdate(noticeId, state ? { body, state } : { body });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refreshNotices(team);
+  return { status: 'success', message: t('updated') };
+}
+
+/**
+ * "Edit window" of a maintenance not completed: title, monitors and times. A time left as it was
+ * isn't sent, so a maintenance in progress keeps its (past) start.
+ */
+export async function editNoticeAction(
+  locale: string,
+  team: string,
+  noticeId: string,
+  current: { startsAt: string | null; endsAt: string | null },
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  const values = formValues(formData);
+  const { title, monitorIds, fieldErrors } = noticeFields(formData, (key) => t(key), false);
+  const start = formString(formData, 'startsAt');
+  const end = formString(formData, 'endsAt');
+  const parsed = parseNoticeWindow(start, end);
+  if (!parsed.ok) {
+    fieldErrors[parsed.field] = parsed.problem === 'date' ? t('dateInvalid') : t('windowInvalid');
+  }
+  const endChanged = end !== toDateTimeInput(current.endsAt);
+  if (parsed.ok && endChanged && Date.parse(parsed.window.endsAt) <= Date.now()) {
+    fieldErrors.endsAt = t('endPast');
+  }
+  if (Object.keys(fieldErrors).length > 0 || !parsed.ok) {
+    return { status: 'error', fieldErrors, values };
+  }
+  try {
+    await updateCloudStatusNotice(noticeId, {
+      title,
+      monitorIds,
+      ...(start === toDateTimeInput(current.startsAt) ? {} : { startsAt: parsed.window.startsAt }),
+      ...(endChanged ? { endsAt: parsed.window.endsAt } : {}),
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refreshNotices(team);
+  return { status: 'success', message: t('saved') };
+}
+
+/** Deletes a notice and its timeline, once the box confirming it is ticked. */
+export async function deleteNoticeAction(
+  locale: string,
+  team: string,
+  noticeId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  if (!formBoolean(formData, 'confirm')) {
+    return { status: 'error', fieldErrors: { confirm: t('confirmRequired') } };
+  }
+  try {
+    await deleteCloudStatusNotice(noticeId);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refreshNotices(team);
+  return { status: 'success' };
 }
 
 // ── Website check (phase 1b) ──────────────────────────────────────────────────────────────────
@@ -735,6 +1144,8 @@ export async function saveGitAction(
       nodeVersion: ['20', '22', '24'].includes(node) ? node : '24',
       buildBranches: formBoolean(formData, 'buildBranches'),
       buildPullRequests: formBoolean(formData, 'buildPullRequests'),
+      previewChecks: formBoolean(formData, 'previewChecks'),
+      onlyRootChanges: formBoolean(formData, 'onlyRootChanges'),
     });
   } catch (error) {
     if (isApiError(error) && error.status === 400) {
@@ -755,6 +1166,53 @@ export async function disconnectGitAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await disconnectCloudGit(formString(formData, 'project')).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
+}
+
+/** Scheduled rebuilds of the production branch (architecture 4.13 "Builds from Git"). */
+export async function saveRebuildAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.git.rebuild' });
+  const values = formValues(formData);
+  const parsed = parseRebuildForm({
+    frequency: formString(formData, 'frequency'),
+    minute: formString(formData, 'minute'),
+    hour: formString(formData, 'hour'),
+    weekday: formString(formData, 'weekday'),
+  });
+  if (!parsed.ok) {
+    const fieldErrors: Record<string, string> = {};
+    if (parsed.errors.frequency) fieldErrors.frequency = t('frequencyInvalid');
+    if (parsed.errors.minute) {
+      fieldErrors.minute = parsed.errors.minute === 'required' ? t('required') : t('minuteInvalid');
+    }
+    if (parsed.errors.hour) {
+      fieldErrors.hour = parsed.errors.hour === 'required' ? t('required') : t('hourInvalid');
+    }
+    if (parsed.errors.weekday) fieldErrors.weekday = t('weekdayInvalid');
+    return { status: 'error', fieldErrors, values };
+  }
+  try {
+    await setCloudRebuildSchedule(projectId, parsed.body);
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      const tg = await getTranslations({ locale: lang, namespace: 'Cloud.git' });
+      return {
+        status: 'error',
+        message: error.fieldErrors._form ?? error.detail ?? tg('invalid'),
+        fieldErrors: error.fieldErrors,
+        values,
+      };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved') };
 }
 
 export async function saveEnvAction(
@@ -783,6 +1241,39 @@ export async function saveEnvAction(
   return { status: 'success', message: t('envSaved') };
 }
 
+/** "Import .env" (architecture 4.13): all or nothing; answers keys or line errors, never values. */
+export async function importEnvAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: EnvImportState,
+  formData: FormData,
+): Promise<EnvImportState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.git.import' });
+  const content = String(formData.get('content') ?? '');
+  const production = formBoolean(formData, 'production');
+  const preview = formBoolean(formData, 'preview');
+  const overwrite = formBoolean(formData, 'overwrite');
+  if (!content.trim()) return { status: 'error', fieldErrors: { content: t('empty') } };
+  if (new TextEncoder().encode(content).length > ENV_IMPORT_MAX_BYTES)
+    return { status: 'error', fieldErrors: { content: t('tooBig') } };
+  if (!production && !preview)
+    return { status: 'error', fieldErrors: { production: t('targetRequired') } };
+  let result: CloudEnvImportResult;
+  try {
+    result = await importCloudEnv(projectId, { content, production, preview, overwrite });
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      const lineErrors = envImportErrors(error.errors);
+      if (lineErrors.length > 0) return { status: 'error', message: t('refused'), lineErrors };
+    }
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('done'), ...result };
+}
+
 export async function deleteEnvAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await deleteCloudEnv(formString(formData, 'project'), formString(formData, 'key')).catch(
@@ -797,7 +1288,13 @@ export async function startBuildAction(formData: FormData): Promise<void> {
   const slug = formString(formData, 'slug');
   let number: number | null = null;
   try {
-    number = (await startCloudBuild(formString(formData, 'project'))).number;
+    number = (
+      await startCloudBuild(
+        formString(formData, 'project'),
+        formString(formData, 'branch') || undefined,
+        formBoolean(formData, 'noCache'),
+      )
+    ).number;
   } catch {
     // The page shows the builds as they are.
   }
@@ -849,13 +1346,38 @@ function notifyUrlProblem(
   return null;
 }
 
-function notifyEvents(formData: FormData, locale: AppLocale) {
+/** The ticked forms of a channel's form submissions (none: all forms). */
+function notifyFormIds(formData: FormData): string[] {
+  return formData.getAll('forms').map(String).filter(Boolean);
+}
+
+/** The events a channel is told about; form submissions only for Slack, Discord and webhooks. */
+function notifyEvents(formData: FormData, locale: AppLocale, kind: CloudNotifyKind) {
   return {
     buildFailed: formBoolean(formData, 'buildFailed'),
     buildSucceeded: formBoolean(formData, 'buildSucceeded'),
     previews: formBoolean(formData, 'previews'),
+    ...(kind === 'EMAIL'
+      ? {}
+      : {
+          formSubmitted: formBoolean(formData, 'formSubmitted'),
+          // The console couldn't load the forms: keep the channel's list (none sent).
+          ...(formBoolean(formData, 'formsUnknown') ? {} : { formIds: notifyFormIds(formData) }),
+        }),
     locale,
   };
+}
+
+/** Form submissions go to Slack, Discord and webhooks only (decision 63), up to 20 forms. */
+function notifyFormsProblem(
+  formData: FormData,
+  kind: CloudNotifyKind,
+): 'formsEmail' | 'formsTooMany' | null {
+  if (kind === 'EMAIL')
+    return formBoolean(formData, 'formSubmitted') || notifyFormIds(formData).length > 0
+      ? 'formsEmail'
+      : null;
+  return notifyFormIds(formData).length > 20 ? 'formsTooMany' : null;
 }
 
 /** Adds a channel; a webhook's signing secret goes back once in the values (`token`). */
@@ -873,23 +1395,32 @@ export async function createNotifyAction(
   const kind = formString(formData, 'kind') as CloudNotifyKind;
   const url = formString(formData, 'url');
   const recipientIds = formData.getAll('recipients').map(String).filter(Boolean);
+  const monitorAlerts = formBoolean(formData, 'monitorAlerts');
   const fieldErrors: Record<string, string> = {};
   if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
   if (!NOTIFY_KINDS.includes(kind)) fieldErrors.kind = t('kindInvalid');
   else if (kind === 'EMAIL') {
     if (recipientIds.length < 1 || recipientIds.length > 10)
       fieldErrors.recipients = t('recipientsInvalid');
+    // Monitors already email their own chosen people (decision 64).
+    if (monitorAlerts) fieldErrors.monitorAlerts = t('monitorAlertsEmail');
   } else {
     const problem = notifyUrlProblem(kind, url);
     if (problem) fieldErrors.url = t(problem);
   }
+  if (NOTIFY_KINDS.includes(kind)) {
+    const formsProblem = notifyFormsProblem(formData, kind);
+    if (formsProblem) fieldErrors.formSubmitted = t(formsProblem);
+  }
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
-  const events = notifyEvents(formData, lang);
+  const events = notifyEvents(formData, lang, kind);
   let secret: string | undefined;
   try {
     const created = await createCloudNotification(
       projectId,
-      kind === 'EMAIL' ? { kind, name, recipientIds, ...events } : { kind, name, url, ...events },
+      kind === 'EMAIL'
+        ? { kind, name, recipientIds, ...events }
+        : { kind, name, url, ...events, monitorAlerts },
     );
     secret = created.secret;
   } catch (error) {
@@ -906,7 +1437,7 @@ export async function createNotifyAction(
     : { status: 'success', message: t('created') };
 }
 
-/** Saves a channel's name, events and (when given) a new URL or new recipients. */
+/** Saves a channel's name, events (monitor alerts only off email) and a new URL or recipients. */
 export async function updateNotifyAction(
   locale: string,
   path: string,
@@ -930,12 +1461,16 @@ export async function updateNotifyAction(
     const problem = notifyUrlProblem(kind, url);
     if (problem) fieldErrors.url = t(problem);
   }
+  const formsProblem = notifyFormsProblem(formData, kind);
+  if (formsProblem) fieldErrors.formSubmitted = t(formsProblem);
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
   try {
     await updateCloudNotification(projectId, channelId, {
       name,
-      ...notifyEvents(formData, lang),
-      ...(kind === 'EMAIL' ? { recipientIds } : url ? { url } : {}),
+      ...notifyEvents(formData, lang, kind),
+      ...(kind === 'EMAIL'
+        ? { recipientIds }
+        : { monitorAlerts: formBoolean(formData, 'monitorAlerts'), ...(url ? { url } : {}) }),
     });
   } catch (error) {
     return failure(lang, error, values);
@@ -944,19 +1479,24 @@ export async function updateNotifyAction(
   return { status: 'success', message: t('saved') };
 }
 
-/** "Send a test": the result as the form's message. */
+/** "Send a test" (a sample build, or a sample form submission): the result as the form's message. */
 export async function testNotifyAction(
   locale: string,
   path: string,
   projectId: string,
   channelId: string,
+  event: 'build' | 'form',
   _previous: FormState,
   _formData: FormData,
 ): Promise<FormState> {
   const lang = localeOrDefault(locale);
   const t = await getTranslations({ locale: lang, namespace: 'Cloud.notify' });
   try {
-    const result = await testCloudNotification(projectId, channelId);
+    const result = await testCloudNotification(
+      projectId,
+      channelId,
+      event === 'form' ? 'form' : 'build',
+    );
     refresh(lang, path);
     return result.ok
       ? { status: 'success', message: t('testSent') }
@@ -1204,4 +1744,67 @@ export async function deleteBucketKeyAction(formData: FormData): Promise<void> {
     formString(formData, 'id'),
   ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
+}
+
+// ── Deploy hooks (architecture 4.13, decision 51) ───────────────────────────────────────────────
+
+/** Makes a hook; its URL goes back once in the values (`token`), to copy. */
+export async function createHookAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.hooks' });
+  const values = formValues(formData);
+  const name = hookName(formString(formData, 'name'));
+  const branch = formString(formData, 'branch').trim();
+  const fieldErrors: Record<string, string> = {};
+  if (!name) fieldErrors.name = t('nameInvalid');
+  if (branch && !hookBranchValid(branch)) fieldErrors.branch = t('branchInvalid');
+  if (!name || Object.keys(fieldErrors).length > 0) {
+    return { status: 'error', fieldErrors, values };
+  }
+  let url: string | undefined;
+  try {
+    const created = await createCloudHook(projectId, { name, ...(branch ? { branch } : {}) });
+    url = created.url;
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return url
+    ? {
+        status: 'success',
+        message: t('created'),
+        // The URL to copy, and the branch kept for the next one.
+        values: { token: url, branch },
+      }
+    : { status: 'success', message: t('createdNoUrl') };
+}
+
+/** Deletes a hook after the confirmation box; its URL stops working at once. */
+export async function deleteHookAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  hookId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.hooks' });
+  const values = formValues(formData);
+  if (formString(formData, 'confirm') !== 'on') {
+    return { status: 'error', fieldErrors: { confirm: t('confirmNeeded') }, values };
+  }
+  try {
+    await deleteCloudHook(projectId, hookId);
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('deleted') };
 }

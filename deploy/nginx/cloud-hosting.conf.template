@@ -10,6 +10,51 @@ map $cq_label $cq_noindex {
     default "";
 }
 
+# Password protection (architecture 4.13, 8.3; deploy/nginx/cloud-protection.conf). The project's
+# slug and the kind of address from the label: `previews` for <slug>--<short>, `production`
+# otherwise. Custom domains' sites (cq-site ... cloud) set both themselves with `set`.
+map $cq_label $cq_slug {
+    "~^(.+)--[0-9a-f]{8}$" $1;
+    default $cq_label;
+}
+
+map $cq_label $cq_kind {
+    "~--[0-9a-f]{8}$" previews;
+    default production;
+}
+
+# Only the access cookie of the visitor goes to the API, never the site's other cookies. Also
+# used by the custom domains' sites, like the cache and the zone below.
+map $http_cookie $cq_access {
+    "~(?:^|;)\s*__Host-cq_access=([^;]*)" $1;
+    default "";
+}
+
+# Redirects, rewrites and headers (architecture 4.13, decision 52; deploy/nginx/cloud-protection.conf
+# and cloud-rule-headers.conf). $cq_deploy: the deployment's id, from the folder hosts/<label> points
+# at. $cq_path: the file to serve, from the API's answer ($cq_path_raw); empty (no rules, or the check
+# answered by itself) means the request's own path, so try_files behaves as before. `volatile`: an
+# internal redirect must read the next answer, not a cached one.
+map $realpath_root $cq_deploy {
+    "~/deployments/([0-9a-f-]+)$" $1;
+    default "";
+}
+
+map $cq_path_raw $cq_path {
+    volatile;
+    "" $uri;
+    default $cq_path_raw;
+}
+
+# The default Cache-Control of hashed assets, unless a rule sets one.
+map $cq_h_cache_control $cq_cache_default {
+    "" "public, max-age=31536000, immutable";
+    default "";
+}
+
+proxy_cache_path /var/cache/nginx/cq-protect levels=1:2 keys_zone=cq_protect:10m max_size=64m inactive=10m use_temp_path=off;
+limit_req_zone $binary_remote_addr zone=cq_cloud_password:10m rate=10r/m;
+
 server {
     listen 80;
     listen [::]:80;
@@ -37,32 +82,46 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
     add_header X-Robots-Tag $cq_noindex always;
+    # The headers a deployment's codeqlick.json adds (empty: nothing).
+    include /etc/nginx/snippets/cq-cloud-rule-headers.conf;
 
     gzip on;
     gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;
 
+    # Password protection: auth_request for every location below, /__cq_check and /__codeqlick/.
+    include /etc/nginx/snippets/cq-cloud-protection.conf;
+
     error_page 404 /404.html;
     error_page 451 @cq_suspended;
+
+    # Old deployments may still contain the file; its keys and rules are never public.
+    location = /codeqlick.json {
+        return 404;
+    }
 
     location / {
         if (-f $document_root/.cq-suspended) { return 451; }
         # No site at this address: 410 here, answered as 404 with "nothing here" (below).
         if (!-d $document_root) { return 410; }
-        try_files $uri $uri.html $uri/ /200.html =404;
+        try_files $cq_path $cq_path.html $cq_path/ /200.html =404;
     }
 
-    # Hashed file names: cached for a year. HTML and the rest are revalidated.
+    # Hashed file names: cached for a year (a rule's Cache-Control replaces that). HTML and the rest
+    # are revalidated.
     location ~ ^/(?:_astro|assets|_next/static)/ {
-        add_header Cache-Control "public, max-age=31536000, immutable";
+        # add_header isn't inherited here: the site's security headers and the rules' are repeated.
+        add_header Cache-Control $cq_cache_default;
         add_header Strict-Transport-Security "max-age=31536000" always;
         add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
         add_header X-Robots-Tag $cq_noindex always;
+        include /etc/nginx/snippets/cq-cloud-rule-headers.conf;
         if (-f $document_root/.cq-suspended) { return 451; }
         if (!-d $document_root) { return 410; }
-        try_files $uri =404;
+        try_files $cq_path =404;
     }
 
-    # The site's own 404.html; without one, "nothing here" when the address has no site and
+    # The site's own 404.html (protected like the rest); without one, "nothing here" when the address has no site and
     # "page not found" when it has.
     location = /404.html {
         internal;
@@ -72,16 +131,19 @@ server {
     error_page 410 =404 @cq_missing;
 
     location @cq_missing {
+        auth_request off;
         root /srv/codeqlick/cloud/pages/missing;
         try_files /index.html =404;
     }
 
     location @cq_notfound {
+        auth_request off;
         root /srv/codeqlick/cloud/pages/notfound;
         try_files /index.html =404;
     }
 
     location @cq_suspended {
+        auth_request off;
         root /srv/codeqlick/cloud/pages/suspended;
         try_files /index.html =404;
     }

@@ -16,6 +16,7 @@ This repo holds the whole platform:
 | `deploy/` + `docker-compose.prod.yml` | Production stack for the OVH VPS (Nginx sites, env template, runbook); `deploy/sites/` publishes static client sites | Deployed |
 | `codeqlick-cli/` | The `codeqlick` command of Codeqlick Cloud (architecture 4.13): sign-in, projects, deployments and domains, zero dependencies, published as `@codeqlick/cli` (tag `cli-v<version>` publishes it from CI) | Published (0.1.0) |
 | `codeqlick-builder/` | The build agent of Codeqlick Cloud (architecture 8.4): claims builds from the API, runs them in throwaway Docker containers sandboxed by gVisor (for now on the production VPS, behind a firewall that allows only the internet) and uploads the output; setup in `deploy/builder/` | Ready (GitHub App configured; the agent is installed with `deploy/builder/setup-builder.sh`) |
+| `codeqlick-docs/` | Cloud's public documentation, docs.codeqlick.com (architecture 4.13): Astro static site, EN/ES, built and hosted by Cloud itself | Ready (the CI workflow `docs.yml` checks it); live once the owner creates the Cloud project and the domain (`deploy/README.md`) |
 | `docs/architecture.md` | Architecture and API contract | Source of truth |
 | `tools/` | Scripts for client projects' repositories (architecture 8.1): `codeqlick-draft.sh` sends a work summary as a draft update, `codeqlick-tasks.sh` reads and closes the project's tasks, `codeqlick-brief.sh` prints the client's brief | Ready |
 
@@ -33,6 +34,21 @@ This repo holds the whole platform:
 - Lint with oxlint, format with Prettier (`singleQuote`, `trailingComma: all`, `printWidth: 100`).
 - **Document before implementing:** a feature's spec goes into `docs/architecture.md` and its row into the Notion roadmap before its code.
 - Commits: Conventional Commits. Work on branches, open PRs to `main`.
+
+## Agent team
+
+Development runs with an agent team defined in `.claude/`. Start a run with **`/next-feature`** (or `/next-feature <roadmap item>`): the main session acts as tech lead, takes the next item of the Notion **Platform Roadmap** and delegates to the specialists in `.claude/agents/`:
+
+| Agent | Scope |
+|---|---|
+| `docs-writer` | Spec in `docs/architecture.md` before code; READMEs, CLAUDE.md and Notion after |
+| `backend-dev` | `codeqlick-backend/` |
+| `frontend-dev` | `codeqlick-frontend/` |
+| `devops` | Compose, Nginx, `deploy/`, workflows |
+| `qa` | Tests and quality gates |
+| `reviewer` | Read-only review: security, correctness, repo rules |
+
+A run ends at an open pull request. Agents never merge, push to `main` or deploy: the owner reviews and merges, and merging deploys.
 
 ## Brand
 

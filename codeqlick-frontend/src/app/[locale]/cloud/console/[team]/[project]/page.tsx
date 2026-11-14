@@ -3,9 +3,12 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
+import { ProductionLockBanner } from '@/components/cloud/ProductionLockBanner';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
+import { ConfirmForm } from '@/components/cloud/ConfirmForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -18,15 +21,27 @@ import {
   type CloudDomainState,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatBytes, formatWhen } from '@/lib/cloud';
+import {
+  addressHref,
+  formatBytes,
+  formatWhen,
+  isProtected,
+  type ProtectionMode,
+  productionLockValues,
+  submissionsView,
+} from '@/lib/cloud';
+import { appPath } from '@/lib/webapp-request';
 import {
   addDomainAction,
   checkDomainAction,
   deleteDeploymentAction,
   deleteProjectAction,
+  keepDeploymentAction,
   promoteAction,
   removeDomainAction,
   renameProjectAction,
+  unlockProductionAction,
+  unkeepDeploymentAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
@@ -37,7 +52,9 @@ import { FormsTab } from './FormsTab';
 import { GitTab } from './GitTab';
 import { KvTab } from './KvTab';
 import { StorageTab } from './StorageTab';
+import { TransferProject } from './TransferProject';
 import { NotificationsTab } from './NotificationsTab';
+import { ProtectionCard, ProtectionLock } from './ProtectionCard';
 
 const TABS = [
   'deployments',
@@ -60,11 +77,14 @@ type PageProps = {
     page?: string;
     form?: string;
     q?: string;
+    view?: string;
     github?: string;
     period?: string;
     prefix?: string;
     cursor?: string;
     key?: string;
+    moved?: string;
+    git?: string;
   }>;
 };
 
@@ -110,6 +130,10 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const base = `/cloud/console/${team.slug}/${project.slug}`;
   const path = `/${team.slug}/${project.slug}`;
   const admin = team.role !== 'MEMBER';
+  const open = await appPath(`/${locale}/cloud/console${path}/open`, locale);
+  const lock = project.productionLock
+    ? productionLockValues(project.productionLock, project.production?.shortId ?? null, locale)
+    : null;
 
   return (
     <div className={styles.landing}>
@@ -118,10 +142,15 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
         </p>
         <h1 className={styles.heroTitle}>{project.name}</h1>
-        <CopyLink
-          url={project.url}
-          labels={{ copy: t('common.copy'), copied: t('common.copied') }}
-        />
+        <div className={styles.address}>
+          <CopyLink
+            url={project.url}
+            labels={{ copy: t('common.copy'), copied: t('common.copied') }}
+          />
+          {isProtected(project.protection, 'production') ? (
+            <ProtectionLock label={t('protection.locked')} />
+          ) : null}
+        </div>
         <nav className={`${styles.tabs} ${styles.spacedTabs}`} aria-label={project.name}>
           {TABS.map((key) => (
             <Link
@@ -136,11 +165,33 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
         </nav>
       </div>
 
+      {query.moved === '1' ? (
+        <Alert tone="success">
+          {t('project.transfer.moved')}
+          {query.git === 'dropped' ? ` ${t('project.transfer.gitDropped')}` : ''}
+        </Alert>
+      ) : null}
+
       {project.suspended ? (
         <Alert tone="error">
           <strong>{t('project.suspendedTitle')}.</strong>{' '}
           {t('project.suspendedBody', { reason: project.suspended.reason })}
         </Alert>
+      ) : null}
+
+      {lock ? (
+        <ProductionLockBanner
+          title={t('project.lock.title', { ...lock, id: lock.id ?? t('project.lock.noId') })}
+          body={t('project.lock.body')}
+        >
+          {admin ? (
+            <ActionForm action={unlockProductionAction.bind(null, locale, path, project.id)}>
+              <SubmitButton size="sm" variant="outline" pendingLabel={t('project.lock.unlocking')}>
+                {t('project.lock.unlock')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
+        </ProductionLockBanner>
       ) : null}
 
       {tab === 'deployments' ? (
@@ -152,9 +203,18 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           path={path}
           page={page}
           base={base}
+          protection={project.protection}
+          open={open}
         />
       ) : null}
-      {tab === 'domains' ? <Domains locale={locale} projectId={project.id} path={path} /> : null}
+      {tab === 'domains' ? (
+        <Domains
+          locale={locale}
+          projectId={project.id}
+          path={path}
+          protection={project.protection}
+        />
+      ) : null}
       {tab === 'git' ? (
         <GitTab
           locale={locale}
@@ -164,6 +224,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           path={path}
           admin={admin}
           github={query.github}
+          rebuild={project.rebuild}
         />
       ) : null}
       {tab === 'builds' ? (
@@ -225,11 +286,20 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           admin={admin}
           formId={query.form}
           q={query.q?.trim().slice(0, 100) || undefined}
+          view={submissionsView(query.view)}
           page={page}
         />
       ) : null}
       {tab === 'settings' ? (
         <>
+          <section className={`${styles.card} ${styles.narrow}`}>
+            <h2 className={styles.cardTitle}>{t('project.badgeTitle')}</h2>
+            <p className={styles.muted}>{t('project.badgeHelp')}</p>
+            <CopyLink
+              url={`[![Codeqlick](${env.PUBLIC_API_URL}/cloud/badges/${project.slug}.svg)](${project.url})`}
+              labels={{ copy: t('common.copy'), copied: t('common.copied') }}
+            />
+          </section>
           {admin ? (
             <section className={`${styles.card} ${styles.narrow}`}>
               <ActionForm
@@ -250,6 +320,15 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
                 </div>
               </ActionForm>
             </section>
+          ) : null}
+          <ProtectionCard locale={locale} projectId={project.id} path={path} admin={admin} />
+          {team.role === 'OWNER' ? (
+            <TransferProject
+              locale={locale}
+              teamSlug={team.slug}
+              projectId={project.id}
+              projectSlug={project.slug}
+            />
           ) : null}
           {admin ? (
             <section className={`${styles.card} ${styles.narrow} ${styles.danger}`}>
@@ -290,6 +369,8 @@ async function Deployments({
   path,
   page,
   base,
+  protection,
+  open,
 }: {
   locale: AppLocale;
   projectId: string;
@@ -298,9 +379,16 @@ async function Deployments({
   path: string;
   page: number;
   base: string;
+  protection: ProtectionMode;
+  /** The console's route that opens a protected address with a ticket. */
+  open: string;
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const list = await listCloudDeployments(projectId, page).catch(() => null);
+  const archive = await appPath(
+    `/${locale}/cloud/console/${teamSlug}/${projectSlug}/deployments`,
+    locale,
+  );
   return (
     <section aria-labelledby="deployments-title" className={styles.landing}>
       <div className={styles.card}>
@@ -313,6 +401,7 @@ async function Deployments({
       <h2 id="deployments-title" className={styles.sectionTitle}>
         {t('project.tabs.deployments')}
       </h2>
+      <p className={styles.muted}>{t('project.retention')}</p>
       {list === null ? (
         <p className={styles.muted}>{t('common.loadError')}</p>
       ) : list.items.length === 0 ? (
@@ -324,22 +413,31 @@ async function Deployments({
               <li key={deployment.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <p className={styles.rowTitle}>
-                    <span className={styles.mono}>{deployment.shortId}</span>
+                    <Link href={`${base}/deployments/${deployment.id}`} className={styles.mono}>
+                      {deployment.shortId}
+                    </Link>
                     {deployment.isProduction ? (
                       <Badge tone="success">{t('project.productionTag')}</Badge>
                     ) : (
                       <Badge>{t('project.preview')}</Badge>
                     )}
+                    {deployment.rules ? <Badge>{t('project.rules.badge')}</Badge> : null}
+                    {deployment.keptAt ? <Badge tone="brand">{t('project.kept')}</Badge> : null}
                     {deployment.message ? <span>{deployment.message}</span> : null}
                   </p>
-                  <a
-                    href={deployment.url}
-                    className={`${styles.small} ${styles.mono}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {deployment.url.replace('https://', '')}
-                  </a>
+                  <span className={styles.address}>
+                    <a
+                      href={addressHref(protection, 'previews', deployment.url, open)}
+                      className={`${styles.small} ${styles.mono}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {deployment.url.replace('https://', '')}
+                    </a>
+                    {isProtected(protection, 'previews') ? (
+                      <ProtectionLock label={t('protection.locked')} />
+                    ) : null}
+                  </span>
                   <p className={styles.small}>
                     {formatWhen(deployment.createdAt, locale)}
                     {deployment.createdBy ? ` · ${deployment.createdBy.name}` : ''}
@@ -354,8 +452,16 @@ async function Deployments({
                     {deployment.branch ? ` (${deployment.branch})` : ''}
                   </p>
                 </div>
-                {deployment.isProduction ? null : (
-                  <div className={styles.actions}>
+                <div className={styles.actions}>
+                  <a href={`${archive}/${deployment.id}/archive`} className={styles.small}>
+                    {t('project.download')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </a>
+                  <Button href={`${base}/deployments/${deployment.id}`} size="sm" variant="ghost">
+                    {t('deployment.tabs.files')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </Button>
+                  {deployment.isProduction ? null : (
                     <form action={promoteAction}>
                       <input type="hidden" name="locale" value={locale} />
                       <input type="hidden" name="project" value={projectId} />
@@ -365,6 +471,34 @@ async function Deployments({
                         {t('project.promote')}
                       </SubmitButton>
                     </form>
+                  )}
+                  {deployment.keptAt ? (
+                    <ConfirmForm
+                      action={unkeepDeploymentAction}
+                      message={t('project.unkeepConfirm')}
+                    >
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="project" value={projectId} />
+                      <input type="hidden" name="id" value={deployment.id} />
+                      <input type="hidden" name="path" value={path} />
+                      <SubmitButton size="sm" variant="ghost">
+                        {t('project.unkeep')}
+                        <span className="visually-hidden"> — {deployment.shortId}</span>
+                      </SubmitButton>
+                    </ConfirmForm>
+                  ) : deployment.isProduction ? null : (
+                    <ActionForm action={keepDeploymentAction}>
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="project" value={projectId} />
+                      <input type="hidden" name="id" value={deployment.id} />
+                      <input type="hidden" name="path" value={path} />
+                      <SubmitButton size="sm" variant="ghost">
+                        {t('project.keep')}
+                        <span className="visually-hidden"> — {deployment.shortId}</span>
+                      </SubmitButton>
+                    </ActionForm>
+                  )}
+                  {deployment.isProduction ? null : (
                     <form action={deleteDeploymentAction}>
                       <input type="hidden" name="locale" value={locale} />
                       <input type="hidden" name="project" value={projectId} />
@@ -375,8 +509,8 @@ async function Deployments({
                         <span className="visually-hidden"> — {deployment.shortId}</span>
                       </SubmitButton>
                     </form>
-                  </div>
-                )}
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -391,10 +525,12 @@ async function Domains({
   locale,
   projectId,
   path,
+  protection,
 }: {
   locale: AppLocale;
   projectId: string;
   path: string;
+  protection: ProtectionMode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const domains = await listCloudDomains(projectId)
@@ -435,6 +571,9 @@ async function Domains({
             <li key={domain.id} className={`${styles.card}`}>
               <p className={styles.rowTitle}>
                 <span className={styles.mono}>{domain.name}</span>
+                {isProtected(protection, 'production') ? (
+                  <ProtectionLock label={t('protection.locked')} />
+                ) : null}
                 <Badge tone={STATE_TONE[domain.state]}>{t(`common.states.${domain.state}`)}</Badge>
               </p>
               {domain.lastError ? <p className={styles.small}>{domain.lastError}</p> : null}

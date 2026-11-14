@@ -7,6 +7,7 @@ import {
 } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { Badge } from '@/components/ui/Badge';
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -17,14 +18,16 @@ import {
   listCloudSubmissions,
   type CloudForm,
 } from '@/lib/api/cloud';
-import { formatWhen } from '@/lib/cloud';
+import { formatWhen, spamReasonKey } from '@/lib/cloud';
 import { appPath } from '@/lib/webapp-request';
 import {
   createFormAction,
   deleteFormAction,
   deleteSubmissionAction,
+  markSubmissionSpamAction,
   replaceFormKeyAction,
   toggleFormAction,
+  toggleSpamFilterAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 
@@ -51,6 +54,7 @@ type Props = {
   admin: boolean;
   formId?: string;
   q?: string;
+  view: 'inbox' | 'spam';
   page: number;
 };
 
@@ -95,6 +99,7 @@ export async function FormsTab(props: Props) {
               {form.enabled ? t('forms.on') : t('forms.off')}
             </Badge>
             {form.notify ? <Badge>{t('forms.emails')}</Badge> : null}
+            {form.spamFilter ? null : <Badge tone="warning">{t('forms.spamFilterOff')}</Badge>}
           </p>
           <p className={styles.small}>
             <Link href={`${props.base}?tab=forms&form=${form.id}`}>
@@ -117,6 +122,13 @@ export async function FormsTab(props: Props) {
                 <input type="hidden" name="enabled" value={form.enabled ? 'off' : 'on'} />
                 <SubmitButton size="sm" variant="outline">
                   {form.enabled ? t('forms.pause') : t('forms.resume')}
+                </SubmitButton>
+              </form>
+              <form action={toggleSpamFilterAction}>
+                {hidden(form)}
+                <input type="hidden" name="spamFilter" value={form.spamFilter ? 'off' : 'on'} />
+                <SubmitButton size="sm" variant="outline">
+                  {form.spamFilter ? t('forms.spamFilterTurnOff') : t('forms.spamFilterTurnOn')}
                 </SubmitButton>
               </form>
               <form action={replaceFormKeyAction}>
@@ -163,6 +175,12 @@ export async function FormsTab(props: Props) {
               defaultValues={members.slice(0, 1).map((member) => member.userId)}
             />
             <FormCheckbox name="notify" label={t('forms.notify')} defaultChecked />
+            <FormCheckbox
+              name="spamFilter"
+              label={t('forms.spamFilter')}
+              hint={t('forms.spamFilterHint')}
+              defaultChecked
+            />
             <div className={styles.actions}>
               <SubmitButton pendingLabel={t('forms.creating')}>{t('forms.create')}</SubmitButton>
             </div>
@@ -175,11 +193,19 @@ export async function FormsTab(props: Props) {
 
 async function Submissions(props: Props & { form: CloudForm }) {
   const t = await getTranslations({ locale: props.locale, namespace: 'Cloud' });
+  const spamView = props.view === 'spam';
+  const viewHref = (view: 'inbox' | 'spam') => {
+    const params = new URLSearchParams({ tab: 'forms', form: props.form.id });
+    if (view === 'spam') params.set('view', 'spam');
+    if (props.q) params.set('q', props.q);
+    return `${props.base}?${params.toString()}`;
+  };
   const list = await listCloudSubmissions(
     props.projectId,
     props.form.id,
     props.q,
     props.page,
+    spamView,
   ).catch(() => null);
   const csv = await appPath(
     `/${props.locale}/cloud/console/${props.teamSlug}/${props.projectSlug}/forms/${props.form.id}/csv`,
@@ -194,10 +220,28 @@ async function Submissions(props: Props & { form: CloudForm }) {
         <h2 id="submissions-title" className={styles.sectionTitle}>
           {props.form.name}
         </h2>
+        <nav className={styles.actions} aria-label={t('forms.views')}>
+          <Link
+            href={viewHref('inbox')}
+            className={buttonClassName({ variant: spamView ? 'outline' : 'primary', size: 'sm' })}
+            aria-current={spamView ? undefined : 'page'}
+          >
+            {t('forms.inbox')}
+          </Link>
+          <Link
+            href={viewHref('spam')}
+            className={buttonClassName({ variant: spamView ? 'primary' : 'outline', size: 'sm' })}
+            aria-current={spamView ? 'page' : undefined}
+          >
+            {t('forms.spamView', { count: props.form.spam })}
+          </Link>
+        </nav>
+        {spamView ? <p className={styles.muted}>{t('forms.spamNote')}</p> : null}
         <div className={styles.actions}>
           <form method="get" className={styles.actions}>
             <input type="hidden" name="tab" value="forms" />
             <input type="hidden" name="form" value={props.form.id} />
+            {spamView ? <input type="hidden" name="view" value="spam" /> : null}
             <label className="visually-hidden" htmlFor="q">
               {t('forms.search')}
             </label>
@@ -212,15 +256,17 @@ async function Submissions(props: Props & { form: CloudForm }) {
               {t('forms.search')}
             </SubmitButton>
           </form>
-          <a href={csv} className={styles.small} download>
-            {t('forms.csv')}
-          </a>
+          {spamView ? null : (
+            <a href={csv} className={styles.small} download>
+              {t('forms.csv')}
+            </a>
+          )}
         </div>
       </div>
       {list === null ? (
         <p className={styles.muted}>{t('common.loadError')}</p>
       ) : list.items.length === 0 ? (
-        <p className={styles.muted}>{t('forms.noSubmissions')}</p>
+        <p className={styles.muted}>{spamView ? t('forms.noSpam') : t('forms.noSubmissions')}</p>
       ) : (
         <>
           <ul className={styles.list}>
@@ -230,6 +276,12 @@ async function Submissions(props: Props & { form: CloudForm }) {
                   {formatWhen(submission.createdAt, props.locale)}
                   {submission.page ? ` · ${submission.page}` : ''}
                 </p>
+                {submission.spam ? (
+                  <p className={styles.small}>
+                    <Badge tone="warning">{t('forms.spamBadge')}</Badge>{' '}
+                    {t(`forms.spamReasons.${spamReasonKey(submission.spamReason)}`)}
+                  </p>
+                ) : null}
                 <dl className={styles.fields}>
                   {Object.entries(submission.data).map(([name, value]) => (
                     <div key={name}>
@@ -244,16 +296,29 @@ async function Submissions(props: Props & { form: CloudForm }) {
                     </div>
                   ))}
                 </dl>
-                <form action={deleteSubmissionAction}>
-                  <input type="hidden" name="locale" value={props.locale} />
-                  <input type="hidden" name="project" value={props.projectId} />
-                  <input type="hidden" name="form" value={props.form.id} />
-                  <input type="hidden" name="id" value={submission.id} />
-                  <input type="hidden" name="path" value={props.path} />
-                  <SubmitButton size="sm" variant="ghost">
-                    {t('forms.deleteSubmission')}
-                  </SubmitButton>
-                </form>
+                <div className={styles.actions}>
+                  <form action={markSubmissionSpamAction}>
+                    <input type="hidden" name="locale" value={props.locale} />
+                    <input type="hidden" name="project" value={props.projectId} />
+                    <input type="hidden" name="form" value={props.form.id} />
+                    <input type="hidden" name="id" value={submission.id} />
+                    <input type="hidden" name="path" value={props.path} />
+                    <input type="hidden" name="spam" value={submission.spam ? 'off' : 'on'} />
+                    <SubmitButton size="sm" variant="outline">
+                      {submission.spam ? t('forms.notSpam') : t('forms.markSpam')}
+                    </SubmitButton>
+                  </form>
+                  <form action={deleteSubmissionAction}>
+                    <input type="hidden" name="locale" value={props.locale} />
+                    <input type="hidden" name="project" value={props.projectId} />
+                    <input type="hidden" name="form" value={props.form.id} />
+                    <input type="hidden" name="id" value={submission.id} />
+                    <input type="hidden" name="path" value={props.path} />
+                    <SubmitButton size="sm" variant="ghost">
+                      {t('forms.deleteSubmission')}
+                    </SubmitButton>
+                  </form>
+                </div>
               </li>
             ))}
           </ul>
@@ -261,7 +326,12 @@ async function Submissions(props: Props & { form: CloudForm }) {
             page={list.page}
             totalPages={list.totalPages}
             pathname={props.base}
-            query={{ tab: 'forms', form: props.form.id, q: props.q }}
+            query={{
+              tab: 'forms',
+              form: props.form.id,
+              view: spamView ? 'spam' : undefined,
+              q: props.q,
+            }}
           />
         </>
       )}

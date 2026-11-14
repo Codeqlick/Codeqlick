@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { unsubscribeLinks } from '../auth/unsubscribe-token.js';
 import { MailService } from '../mail/mail.service.js';
 import { uptimeRatio } from '../monitoring/uptime.js';
 import { UmamiClient } from '../stats/umami.client.js';
@@ -131,6 +132,11 @@ export class SiteReportsService implements OnApplicationBootstrap, OnApplication
             project: `${base}/projects/${site.projectId}`,
             account: `${base}/account`,
             site: this.config.siteUrl,
+            unsubscribe: unsubscribeLinks({ userId: person.id, kind: 'report' }, locale, {
+              secret: this.config.jwtAccessSecret,
+              publicApiUrl: this.config.publicApiUrl,
+              siteUrl: this.config.siteUrl,
+            }),
           }),
         );
         sent += 1;

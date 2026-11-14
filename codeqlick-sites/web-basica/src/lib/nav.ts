@@ -1,5 +1,6 @@
 import type { SectionKey } from '../types';
 import { MENU_PATH, menuLabel } from './menu';
+import { NEWS_PATH, posts } from './news';
 import { sectionLabel, sectionOrder } from './site';
 
 const HREFS: Record<SectionKey, string> = {
@@ -17,5 +18,6 @@ export const nav = [
     edit: `navLabels.${key}`,
   })),
   ...(menuLabel ? [{ label: menuLabel, href: MENU_PATH, edit: undefined }] : []),
+  ...(posts.length ? [{ label: 'Noticias', href: NEWS_PATH, edit: undefined }] : []),
   { label: 'Contacto', href: '/#contacto', edit: undefined },
 ];

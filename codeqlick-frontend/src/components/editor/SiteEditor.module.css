@@ -112,6 +112,37 @@
   background: var(--color-white);
 }
 
+/* Switches between the site's forms and its news. */
+.sections {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.sections button {
+  min-height: 40px;
+  padding: 0.4rem 1.1rem;
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sections button[aria-pressed='true'] {
+  border-color: var(--color-fuchsia);
+  background: var(--color-blush);
+}
+
+.siteSection {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.siteSection[hidden] {
+  display: none;
+}
+
 .banner,
 .bannerOk {
   padding: var(--space-3) var(--space-4);

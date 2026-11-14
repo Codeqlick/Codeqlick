@@ -81,6 +81,8 @@ services:
       CLOUD_STORAGE_ADMIN_TOKEN: ${CLOUD_STORAGE_ADMIN_TOKEN:-}
       CLOUD_STORAGE_ENDPOINT: ${CLOUD_STORAGE_ENDPOINT:-}
       CLOUD_ROOT: /tmp/codeqlick-cloud
+      # Password protection: nothing calls its Nginx-only routes locally; set it in the root .env to try them.
+      CLOUD_PROTECTION_KEY: ${CLOUD_PROTECTION_KEY:-}
       CLOUD_URL: http://cloud.localhost:${WEB_PORT:-3000}
       # Client domains (architecture 11): OVH stays off without keys in the root .env.
       SITES_SERVER_IP: ${SITES_SERVER_IP:-}

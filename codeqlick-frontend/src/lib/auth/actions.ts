@@ -16,7 +16,7 @@ import {
   startTwoFactorSetup,
   updatePreferences,
 } from '@/lib/api/auth';
-import { isApiError } from '@/lib/api/errors';
+import { isApiError, isBreachedPasswordError } from '@/lib/api/errors';
 import { formBoolean, zodFieldErrors, type FormState } from '@/lib/forms';
 import { changePasswordSchema } from '@/lib/schemas/auth';
 import { clearAuthCookies, getTokens } from './session';
@@ -70,6 +70,10 @@ export async function changePasswordAction(
     if (isApiError(error) && error.status === 401) redirect(`/${locale}/login`);
     if (isApiError(error) && error.status === 429) {
       return { status: 'error', message: t('rateLimited') };
+    }
+    if (isBreachedPasswordError(error, 'newPassword')) {
+      const tv = await getTranslations({ locale, namespace: 'Validation' });
+      return { status: 'error', fieldErrors: { newPassword: tv('breachedPassword') } };
     }
     if (isApiError(error) && error.status === 400) {
       // The API's two own rules, in the user's language.
