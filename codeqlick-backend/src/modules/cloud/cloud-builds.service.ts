@@ -20,6 +20,7 @@ import { SecretBox } from '../auth/secret-box.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
+import { commentBody, shouldCheckPreview, type PreviewCheck } from './cloud-preview-check.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import type {
   EnvVarInput,
@@ -28,6 +29,7 @@ import type {
   LinkInstallationInput,
 } from './cloud.schemas.js';
 import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.repository.js';
+import { CloudAuditsService } from './cloud-audits.service.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { GithubClient, GithubError } from './github.client.js';
@@ -45,6 +47,8 @@ export interface BuildView {
   status: CloudBuild['status'];
   error: string | null;
   deploymentId: string | null;
+  /** The preview's website check (decision 52). */
+  audit: { id: string; score: number } | null;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -69,6 +73,7 @@ export interface GitView {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  previewChecks: boolean;
 }
 
 export interface ClaimedBuild {
@@ -84,6 +89,21 @@ export interface ClaimedBuild {
   timeoutSeconds: number;
   /** Values the agent hides from the log. */
   secrets: string[];
+}
+
+/** The project fields the GitHub report needs. */
+interface ReportProject {
+  id: string;
+  slug: string;
+  gitInstallationId: bigint | null;
+  gitRepoId: bigint | null;
+  gitRepo: string | null;
+  team: { slug: string };
+}
+
+interface TeamRef {
+  slug: string;
+  plan: 'FREE' | 'PRO';
 }
 
 const SECOND = 1000;
@@ -106,6 +126,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     private readonly github: GithubClient,
     private readonly config: AppConfigService,
     private readonly notifications: CloudNotificationsService,
+    private readonly audits: CloudAuditsService,
   ) {
     this.box = new SecretBox(config.credentialsSecret, 'cloud-env-v1');
     this.stateKey = createHmac('sha256', config.jwtAccessSecret)
@@ -248,6 +269,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     nodeVersion: string;
     buildBranches: boolean;
     buildPullRequests: boolean;
+    previewChecks: boolean;
   }): GitView {
     return {
       installationId: project.gitInstallationId === null ? null : Number(project.gitInstallationId),
@@ -261,6 +283,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       nodeVersion: project.nodeVersion,
       buildBranches: project.buildBranches,
       buildPullRequests: project.buildPullRequests,
+      previewChecks: project.previewChecks,
     };
   }
 
@@ -290,6 +313,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       ...(input.buildPullRequests !== undefined
         ? { buildPullRequests: input.buildPullRequests }
         : {}),
+      ...(input.previewChecks !== undefined ? { previewChecks: input.previewChecks } : {}),
     });
     await this.teams.record(
       ctx,
@@ -355,7 +379,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   // ── Builds ─────────────────────────────────────────────────────────────────────────────────
 
-  view(build: Omit<CloudBuild, 'log'>): BuildView {
+  view(
+    build: Omit<CloudBuild, 'log'> & { audit?: { id: string; score: number } | null },
+  ): BuildView {
     const end = build.finishedAt ?? (build.status === 'RUNNING' ? new Date() : null);
     return {
       id: build.id,
@@ -375,6 +401,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       status: build.status,
       error: build.error,
       deploymentId: build.deploymentId,
+      audit: build.audit ? { id: build.audit.id, score: build.audit.score } : null,
       queuedAt: build.queuedAt.toISOString(),
       startedAt: build.startedAt?.toISOString() ?? null,
       finishedAt: build.finishedAt?.toISOString() ?? null,
@@ -717,7 +744,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           finishedAt: new Date(),
           error: null,
         });
-        void this.report(build.project, done, 'success', deployment.url);
+        void this.reportSuccess(build.project, done, deployment.url);
         void this.notifications.buildEnded(done.id, deployment.url);
       } catch (error) {
         await this.finishFailed(
@@ -758,19 +785,63 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     return `${this.config.cloudUrl}/en/console/${project.team.slug}/${project.slug}/builds/${build.number}`;
   }
 
+  private auditUrl(project: { team: { slug: string } }): (id: string) => string {
+    return (id) => `${this.config.cloudUrl}/en/console/${project.team.slug}/audits/${id}`;
+  }
+
+  /**
+   * A successful build: the status and comment, then, for a pull request with "Check each preview"
+   * on, the website check of its preview in the background (decision 52). Never throws.
+   */
+  private async reportSuccess(
+    project: ReportProject & { teamId: string; previewChecks: boolean; team: TeamRef },
+    build: CloudBuild,
+    deploymentUrl: string,
+  ): Promise<void> {
+    const wanted =
+      shouldCheckPreview(build, project) &&
+      this.github.configured &&
+      !!project.gitInstallationId &&
+      !!project.gitRepoId &&
+      !!project.gitRepo;
+    try {
+      const latest =
+        wanted && build.pullRequest !== null
+          ? await this.repository.latestPullBuild(project.id, build.pullRequest)
+          : null;
+      const check = wanted && latest === build.number;
+      await this.report(
+        project,
+        build,
+        'success',
+        deploymentUrl,
+        check ? { state: 'running' } : undefined,
+      );
+      if (!check || build.pullRequest === null) return;
+      const outcome = await this.audits.runPreview({
+        teamId: project.teamId,
+        plan: project.team.plan,
+        url: deploymentUrl,
+      });
+      if (outcome.state === 'done') {
+        await this.repository.update(build.id, { auditId: outcome.auditId });
+      }
+      const newest = await this.repository.latestPullBuild(project.id, build.pullRequest);
+      if (newest !== build.number) return;
+      const fresh = await this.repository.findById(build.id);
+      if (fresh) await this.comment(fresh.project, fresh, 'success', deploymentUrl, outcome);
+    } catch (error) {
+      this.logger.warn(`Build ${build.id}: the preview check failed (${String(error)})`);
+    }
+  }
+
   /** The commit status and, for pull requests, the app's comment. Best effort: logged, never thrown. */
   private async report(
-    project: {
-      id: string;
-      slug: string;
-      gitInstallationId: bigint | null;
-      gitRepoId: bigint | null;
-      gitRepo: string | null;
-      team: { slug: string };
-    },
+    project: ReportProject,
     build: CloudBuild,
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
+    check?: PreviewCheck,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -795,29 +866,50 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         description,
         deploymentUrl ?? buildUrl,
       );
-      if (build.pullRequest !== null) {
-        const existing = await this.repository.pullComment(project.id, build.pullRequest);
-        const body = [
-          `**Codeqlick Cloud** · ${project.slug}`,
-          '',
-          '| | |',
-          '|---|---|',
-          `| Commit | \`${build.commit.slice(0, 7)}\` |`,
-          `| State | ${{ pending: '⏳ Building', success: '✅ Ready', failure: '❌ Failed' }[state]} |`,
-          ...(deploymentUrl ? [`| Preview | ${deploymentUrl} |`] : []),
-          `| Build | ${buildUrl} |`,
-        ].join('\n');
-        const commentId = await this.github.upsertComment(
-          project.gitInstallationId,
-          project.gitRepoId,
-          project.gitRepo,
-          build.pullRequest,
-          existing?.commentId ?? null,
-          body,
-        );
-        if (!existing)
-          await this.repository.savePullComment(project.id, build.pullRequest, commentId);
-      }
+    } catch (error) {
+      this.logger.warn(`Build ${build.id}: GitHub couldn't be told (${String(error)})`);
+      return;
+    }
+    await this.comment(project, build, state, deploymentUrl, check);
+  }
+
+  /** The app's comment on the build's pull request, if it has one. Best effort. */
+  private async comment(
+    project: ReportProject,
+    build: CloudBuild,
+    state: 'pending' | 'success' | 'failure',
+    deploymentUrl?: string,
+    check?: PreviewCheck,
+  ): Promise<void> {
+    if (
+      !this.github.configured ||
+      !project.gitInstallationId ||
+      !project.gitRepoId ||
+      !project.gitRepo ||
+      build.pullRequest === null
+    )
+      return;
+    try {
+      const existing = await this.repository.pullComment(project.id, build.pullRequest);
+      const body = commentBody({
+        project: project.slug,
+        commit: build.commit,
+        state,
+        buildUrl: this.buildUrl(project, build),
+        ...(deploymentUrl ? { deploymentUrl } : {}),
+        ...(check ? { check } : {}),
+        auditUrl: this.auditUrl(project),
+      });
+      const commentId = await this.github.upsertComment(
+        project.gitInstallationId,
+        project.gitRepoId,
+        project.gitRepo,
+        build.pullRequest,
+        existing?.commentId ?? null,
+        body,
+      );
+      if (!existing)
+        await this.repository.savePullComment(project.id, build.pullRequest, commentId);
     } catch (error) {
       this.logger.warn(`Build ${build.id}: GitHub couldn't be told (${String(error)})`);
     }

@@ -123,6 +123,7 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
 
     const list = await request(server).get(`/v1/cloud/teams/${team}/audits`).set(auth).expect(200);
     expect(list.body.items).toHaveLength(1);
+    expect(list.body.items[0].preview).toBe(false);
     const again = await request(server)
       .get(`/v1/cloud/audits/${report.body.id as string}?locale=en`)
       .set(auth)

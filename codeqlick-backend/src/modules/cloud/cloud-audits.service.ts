@@ -16,7 +16,7 @@ import type { CloudAudit } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { gather } from '../site-audits/gather.js';
 import { assertCheckableUrl } from '../site-audits/safe-fetch.js';
-import { runChecks, scoreOf } from '../site-audits/site-audit-checks.js';
+import { runChecks, scoreOf, type CheckId } from '../site-audits/site-audit-checks.js';
 import { failureText } from '../site-audits/site-audit-texts.js';
 import {
   reportCategories,
@@ -24,6 +24,7 @@ import {
   type StoredResult,
 } from '../site-audits/site-audits.service.js';
 import type { CloudCtx } from './cloud-caller.js';
+import { PREVIEW_IGNORED_CHECKS, type PreviewCheck } from './cloud-preview-check.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -98,10 +99,31 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
         'Use an http(s) address on port 80 or 443, without a user or password',
       );
     }
-    const limit = CLOUD_PLANS[membership.team.plan].auditsPerHour;
-    if (
-      (await this.repository.countSince(membership.teamId, new Date(Date.now() - HOUR))) >= limit
-    ) {
+    const row = await this.execute({
+      teamId: membership.teamId,
+      plan: membership.team.plan,
+      url,
+      userId: ctx.user.id,
+      locale: input.locale,
+    });
+    await this.teams.record(ctx, membership.teamId, 'audit.run', url.host, { score: row.score });
+    return this.report(row, input.locale);
+  }
+
+  /**
+   * The limit, the fetch, the scoring and the storing, for a member's check and for a preview's.
+   * Throws a 429 past the team's hourly limit, a 504 after 60 s, a 422 when the site can't be read.
+   */
+  private async execute(input: {
+    teamId: string;
+    plan: 'FREE' | 'PRO';
+    url: URL;
+    userId: string | null;
+    locale: ApiLocale;
+    ignore?: readonly CheckId[];
+  }): Promise<CloudAudit> {
+    const limit = CLOUD_PLANS[input.plan].auditsPerHour;
+    if ((await this.repository.countSince(input.teamId, new Date(Date.now() - HOUR))) >= limit) {
       throw new HttpException(
         `At most ${limit} website checks an hour per team`,
         HttpStatus.TOO_MANY_REQUESTS,
@@ -111,7 +133,7 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
     let result: StoredResult;
     try {
       const inputs = await Promise.race([
-        this.gatherInputs(url.toString()),
+        this.gatherInputs(input.url.toString()),
         new Promise<never>((_, reject) => {
           timer = setTimeout(
             () => reject(new GatewayTimeoutException('The check took over 60 seconds')),
@@ -119,7 +141,8 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
           );
         }),
       ]);
-      const checks = runChecks(inputs);
+      const ignore = input.ignore ?? [];
+      const checks = runChecks(inputs).filter((check) => !ignore.includes(check.id));
       const { categories } = scoreOf(checks);
       result = { finalUrl: inputs.page.url, categories, checks };
     } catch (error) {
@@ -129,15 +152,59 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
     } finally {
       if (timer) clearTimeout(timer);
     }
-    const row = await this.repository.create({
-      teamId: membership.teamId,
-      userId: ctx.user.id,
-      url: url.toString(),
+    return this.repository.create({
+      teamId: input.teamId,
+      userId: input.userId,
+      url: input.url.toString(),
       score: scoreOf(result.checks).score,
       result: result as never,
     });
-    await this.teams.record(ctx, membership.teamId, 'audit.run', url.host, { score: row.score });
-    return this.report(row, input.locale);
+  }
+
+  /**
+   * The check of a pull request's preview (decision 52): no member, no team event, in English,
+   * counted in the hourly limit, and without the `indexable` check. Never throws.
+   */
+  async runPreview(input: {
+    teamId: string;
+    plan: 'FREE' | 'PRO';
+    url: string;
+  }): Promise<PreviewCheck> {
+    try {
+      const row = await this.execute({
+        teamId: input.teamId,
+        plan: input.plan,
+        url: new URL(input.url),
+        userId: null,
+        locale: 'en',
+        ignore: PREVIEW_IGNORED_CHECKS,
+      });
+      const result = row.result as unknown as StoredResult;
+      const checks = reportCategories(result, 'en').flatMap((category) => category.checks);
+      return {
+        state: 'done',
+        auditId: row.id,
+        score: row.score,
+        categories: result.categories,
+        failed: checks
+          .filter((check) => check.status === 'fail')
+          .map((check) => check.title)
+          .slice(0, 5),
+        warnings: checks.filter((check) => check.status === 'warn').length,
+      };
+    } catch (error) {
+      if (error instanceof HttpException && error.getStatus() === HttpStatus.TOO_MANY_REQUESTS) {
+        return { state: 'skipped' };
+      }
+      this.logger.warn(`Preview check of ${input.url} failed: ${String(error)}`);
+      return {
+        state: 'unavailable',
+        reason:
+          error instanceof HttpException
+            ? error.message
+            : failureText(error instanceof Error ? error.message : String(error), 'en'),
+      };
+    }
   }
 
   async list(ctx: CloudCtx, teamSlug: string, page: number, pageSize: number) {
@@ -148,6 +215,7 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
       id: row.id,
       url: row.url,
       score: row.score,
+      preview: row.userId === null,
       createdAt: row.createdAt.toISOString(),
     }));
     return paginate(items, total, page, pageSize) as Paginated<(typeof items)[number]>;

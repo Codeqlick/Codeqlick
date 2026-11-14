@@ -26,6 +26,7 @@ const projectForBuild = {
       buildCommand: true,
       outputDir: true,
       nodeVersion: true,
+      previewChecks: true,
       deletedAt: true,
       suspendedAt: true,
       team: { select: { slug: true, plan: true } },
@@ -182,6 +183,7 @@ export class CloudBuildsRepository {
         where: { projectId },
         orderBy: { number: 'desc' },
         omit: { log: true },
+        include: { audit: { select: { id: true, score: true } } },
         skip,
         take,
       }),
@@ -189,10 +191,21 @@ export class CloudBuildsRepository {
     ]);
   }
 
-  findBuild(projectId: string, number: number): Promise<CloudBuild | null> {
+  findBuild(projectId: string, number: number) {
     return this.prisma.cloudBuild.findUnique({
       where: { projectId_number: { projectId, number } },
+      include: { audit: { select: { id: true, score: true } } },
     });
+  }
+
+  /** The number of a pull request's latest build: only that one may update the comment. */
+  async latestPullBuild(projectId: string, pullRequest: number): Promise<number | null> {
+    const last = await this.prisma.cloudBuild.findFirst({
+      where: { projectId, pullRequest, status: { not: 'CANCELED' } },
+      orderBy: { number: 'desc' },
+      select: { number: true },
+    });
+    return last?.number ?? null;
   }
 
   findById(id: string): Promise<BuildWithProject | null> {
