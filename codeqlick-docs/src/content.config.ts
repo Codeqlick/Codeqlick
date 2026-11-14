@@ -7,7 +7,12 @@ import { z } from 'astro/zod';
  * Unknown frontmatter keys are an error, so a typo doesn't silently drop a page from the sidebar.
  */
 const docs = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/docs' }),
+  loader: glob({
+    pattern: '**/*.md',
+    base: './src/content/docs',
+    // `<lang>/<slug>`, `index` included (the default id drops it: `en/index.md` would be `en`).
+    generateId: ({ entry }) => entry.replace(/\.md$/, ''),
+  }),
   schema: z.strictObject({
     title: z.string().min(1),
     description: z.string().min(1).max(160),
