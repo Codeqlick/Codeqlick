@@ -35,12 +35,24 @@ const withProject = {
 export class CloudFormsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(projectId: string): Promise<Array<CloudForm & { _count: { submissions: number } }>> {
-    return this.prisma.cloudForm.findMany({
+  /** The project's forms, each with how many submissions it keeps: inbox and spam. */
+  async list(projectId: string): Promise<Array<CloudForm & { submissions: number; spam: number }>> {
+    const forms = await this.prisma.cloudForm.findMany({
       where: { projectId },
-      include: { _count: { select: { submissions: true } } },
+      include: { _count: { select: { submissions: { where: { spam: false } } } } },
       orderBy: { createdAt: 'asc' },
     });
+    const spam = await this.prisma.cloudFormSubmission.groupBy({
+      by: ['formId'],
+      where: { spam: true, formId: { in: forms.map((form) => form.id) } },
+      _count: { _all: true },
+    });
+    const spamOf = new Map(spam.map((row) => [row.formId, row._count._all]));
+    return forms.map(({ _count, ...form }) => ({
+      ...form,
+      submissions: _count.submissions,
+      spam: spamOf.get(form.id) ?? 0,
+    }));
   }
 
   count(projectId: string): Promise<number> {
@@ -80,45 +92,93 @@ export class CloudFormsRepository {
     ]);
   }
 
+  /** The submissions in the inbox (not spam). */
   async submissionsCount(formId: string): Promise<number> {
-    return this.prisma.cloudFormSubmission.count({ where: { formId } });
+    return this.prisma.cloudFormSubmission.count({ where: { formId, spam: false } });
+  }
+
+  /** The spam a form keeps. */
+  spamCount(formId: string): Promise<number> {
+    return this.prisma.cloudFormSubmission.count({ where: { formId, spam: true } });
+  }
+
+  /** How many times a form got the same content since `since` (spam or not). */
+  countSameContentSince(formId: string, hash: string, since: Date): Promise<number> {
+    return this.prisma.cloudFormSubmission.count({
+      where: { formId, contentHash: hash, createdAt: { gte: since } },
+    });
   }
 
   /** Submissions of every form of a team's projects since `since` (the plan's monthly count). */
   teamSubmissionsSince(teamId: string, since: Date): Promise<number> {
     return this.prisma.cloudFormSubmission.count({
-      where: { createdAt: { gte: since }, form: { project: { teamId } } },
+      where: { createdAt: { gte: since }, spam: false, form: { project: { teamId } } },
     });
   }
 
-  keep(formId: string, data: Array<[string, string]>, email: string | null, page: string | null) {
+  keep(
+    formId: string,
+    data: Array<[string, string]>,
+    email: string | null,
+    page: string | null,
+    contentHash: string,
+    spamReason: string | null = null,
+  ) {
     return this.prisma.cloudFormSubmission.create({
-      data: { formId, data, email, page },
+      data: { formId, data, email, page, contentHash, spam: spamReason !== null, spamReason },
     });
+  }
+
+  /** A submission of a form (null when it isn't the form's). */
+  findSubmission(formId: string, id: string): Promise<CloudFormSubmission | null> {
+    return this.prisma.cloudFormSubmission.findFirst({ where: { id, formId } });
+  }
+
+  /** A form with its project, for delivering a submission. */
+  findWithProject(id: string): Promise<FormWithProject | null> {
+    return this.prisma.cloudForm.findUnique({ where: { id }, include: withProject });
+  }
+
+  /** Moves a submission to or from the spam view (null when it doesn't exist). */
+  async setSpam(
+    formId: string,
+    id: string,
+    spam: boolean,
+    reason: string | null,
+  ): Promise<CloudFormSubmission | null> {
+    const { count } = await this.prisma.cloudFormSubmission.updateMany({
+      // Only from the other state: two clicks at once change (and deliver) it once.
+      where: { id, formId, spam: !spam },
+      data: { spam, spamReason: reason },
+    });
+    if (count === 0) return null;
+    return this.prisma.cloudFormSubmission.findUnique({ where: { id } });
   }
 
   async submissions(
     formId: string,
     q: string | undefined,
+    spam: boolean,
     skip: number,
     take: number,
   ): Promise<[CloudFormSubmission[], number]> {
     if (!q) {
       return this.prisma.$transaction([
         this.prisma.cloudFormSubmission.findMany({
-          where: { formId },
+          where: { formId, spam },
           orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
           skip,
           take,
         }),
-        this.prisma.cloudFormSubmission.count({ where: { formId } }),
+        this.prisma.cloudFormSubmission.count({ where: { formId, spam } }),
       ]);
     }
     // A search looks in the email and in the fields (the JSON as text), any case.
     const pattern = `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
     const ids = await this.prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM cloud_form_submissions
-      WHERE form_id = ${formId}::uuid AND (email ILIKE ${pattern} OR data::text ILIKE ${pattern})
+      WHERE form_id = ${formId}::uuid AND spam = ${spam}
+        AND (email ILIKE ${pattern} OR data::text ILIKE ${pattern})
       ORDER BY created_at DESC, id DESC`;
     const page = ids.slice(skip, skip + take).map((row) => row.id);
     const rows = await this.prisma.cloudFormSubmission.findMany({
@@ -128,10 +188,10 @@ export class CloudFormsRepository {
     return [rows, ids.length];
   }
 
-  /** Every submission of a form, newest first, for the CSV (at most 10,000). */
+  /** Every inbox submission of a form (not spam), newest first, for the CSV (at most 10,000). */
   allSubmissions(formId: string): Promise<CloudFormSubmission[]> {
     return this.prisma.cloudFormSubmission.findMany({
-      where: { formId },
+      where: { formId, spam: false },
       orderBy: { createdAt: 'desc' },
       take: 10_000,
     });
@@ -145,6 +205,14 @@ export class CloudFormsRepository {
   async deleteSubmissionsBefore(date: Date): Promise<number> {
     const { count } = await this.prisma.cloudFormSubmission.deleteMany({
       where: { createdAt: { lt: date } },
+    });
+    return count;
+  }
+
+  /** Deletes the spam received before `date`. */
+  async deleteSpamBefore(date: Date): Promise<number> {
+    const { count } = await this.prisma.cloudFormSubmission.deleteMany({
+      where: { spam: true, createdAt: { lt: date } },
     });
     return count;
   }

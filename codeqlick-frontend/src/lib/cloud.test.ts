@@ -25,6 +25,8 @@ import {
   productionLockValues,
   protectionInput,
   ruleSettings,
+  spamReasonKey,
+  submissionsView,
   transferTargets,
   usageWarnings,
   weekdayName,
@@ -429,5 +431,22 @@ describe('describeRebuild', () => {
   it('is null when off or incomplete', () => {
     expect(describeRebuild({ ...schedule, frequency: 'off' }, 'en')).toBeNull();
     expect(describeRebuild({ ...schedule, hour: null, frequency: 'daily' }, 'en')).toBeNull();
+  });
+});
+
+describe('spamReasonKey', () => {
+  it('keeps the known reasons and reads anything else as manual', () => {
+    expect(spamReasonKey('markup')).toBe('markup');
+    expect(spamReasonKey('repeat')).toBe('repeat');
+    expect(spamReasonKey(null)).toBe('manual');
+    expect(spamReasonKey('other')).toBe('manual');
+  });
+});
+
+describe('submissionsView', () => {
+  it('is the inbox unless the view is spam', () => {
+    expect(submissionsView('spam')).toBe('spam');
+    expect(submissionsView(undefined)).toBe('inbox');
+    expect(submissionsView('SPAM')).toBe('inbox');
   });
 });

@@ -29,12 +29,14 @@ import {
   createFormSchema,
   formKeyParamSchema,
   formParamSchema,
+  markSpamSchema,
   submissionParamSchema,
   submissionsQuerySchema,
   updateFormSchema,
   type CreateFormInput,
   type FormKeyParam,
   type FormParam,
+  type MarkSpamInput,
   type SubmissionParam,
   type SubmissionsQuery,
   type UpdateFormInput,
@@ -155,6 +157,7 @@ export class CloudFormsController {
       params.id,
       params.formId,
       query.q,
+      query.spam,
       query.page,
       query.pageSize,
     );
@@ -179,5 +182,15 @@ export class CloudFormsController {
     @Param({ schema: submissionParamSchema }) params: SubmissionParam,
   ): Promise<void> {
     return this.forms.removeSubmission(ctx, params.id, params.formId, params.submissionId);
+  }
+
+  @Post(':formId/submissions/:submissionId/spam')
+  @HttpCode(HttpStatus.OK)
+  markSpam(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: submissionParamSchema }) params: SubmissionParam,
+    @Body({ schema: markSpamSchema }) body: MarkSpamInput,
+  ): Promise<SubmissionView> {
+    return this.forms.markSpam(ctx, params.id, params.formId, params.submissionId, body.spam);
   }
 }

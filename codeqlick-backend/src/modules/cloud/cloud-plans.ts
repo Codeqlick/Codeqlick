@@ -137,6 +137,10 @@ export const DEVICE_POLL_SECONDS = 5;
 export const CLI_TOKEN_DAYS = 90;
 /** Form submissions are kept this long (decision 37). */
 export const FORM_SUBMISSION_DAYS = 180;
+/** Spam submissions are kept this long, apart (decision 66). */
+export const FORM_SPAM_DAYS = 30;
+/** At most this much spam is kept per form; past it, new spam is dropped (decision 66). */
+export const FORM_SPAM_PER_FORM = 1000;
 /** Analytics events are kept this long (decision 44). */
 export const ANALYTICS_DAYS = 365;
 /** The largest value of the key-value store, serialised (decision 45). */
