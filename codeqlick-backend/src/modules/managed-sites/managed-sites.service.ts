@@ -21,6 +21,8 @@ import {
   type UpdateSiteInput,
 } from './managed-sites.schemas.js';
 import { SiteBuilderClient } from './site-builder.client.js';
+import { toBuildPost, type BuildNewsPost } from './site-news.js';
+import { SiteNewsRepository } from './site-news.repository.js';
 import { contentFromRequest, type SiteRequest } from './site-request.js';
 
 export interface SiteView {
@@ -45,6 +47,8 @@ export interface SiteView {
   content: SiteContent;
   /** The menu extra is on (architecture 8.2). */
   menuEnabled: boolean;
+  /** The news section is switched on (architecture 8.2, decision 55). */
+  newsEnabled: boolean;
   updatedAt: string;
 }
 
@@ -71,6 +75,7 @@ export class ManagedSitesService {
     private readonly config: AppConfigService,
     private readonly umami: UmamiClient,
     private readonly domains: DomainsService,
+    private readonly news: SiteNewsRepository,
   ) {}
 
   async list(): Promise<SiteView[]> {
@@ -217,6 +222,19 @@ export class ManagedSitesService {
     return site.menuEnabled && menu !== undefined ? { ...rest, menu } : rest;
   }
 
+  /**
+   * The news a build gets (architecture 8.2): the published, non-expired posts, newest first;
+   * undefined while the section is off or has none, so the template builds no news pages.
+   */
+  async newsToBuild(
+    site: Pick<SiteRow, 'id' | 'newsEnabled'>,
+    now = new Date(),
+  ): Promise<{ posts: BuildNewsPost[] } | undefined> {
+    if (!site.newsEnabled) return undefined;
+    const posts = (await this.news.live(site.id, now)).flatMap((post) => toBuildPost(post) ?? []);
+    return posts.length > 0 ? { posts } : undefined;
+  }
+
   /** The domain now serves the site (or stopped): the project's URLs follow and it is rebuilt. */
   async addressChanged(projectId: string): Promise<SiteView> {
     await this.syncProject(await this.findSite(projectId));
@@ -229,6 +247,7 @@ export class ManagedSitesService {
     await this.repository.update(site.id, { status: 'BUILDING' });
     const form = await this.forms.get(projectId);
     const websiteId = await this.analyticsOf(site);
+    const news = await this.newsToBuild(site);
     const result = await this.builder.build({
       slug: site.slug,
       preset: site.preset,
@@ -238,6 +257,7 @@ export class ManagedSitesService {
         url: this.urlOf(site),
         demo: false,
         ...(form?.enabled ? { form: { key: form.key, api: this.config.publicApiUrl } } : {}),
+        ...(news ? { news } : {}),
         ...(websiteId ? { analytics: { websiteId, scriptUrl: this.config.umamiScriptUrl } } : {}),
       },
     });
@@ -394,6 +414,7 @@ export class ManagedSitesService {
       release: row.release,
       content: row.content as SiteContent,
       menuEnabled: row.menuEnabled,
+      newsEnabled: row.newsEnabled,
       updatedAt: row.updatedAt.toISOString(),
     };
   }

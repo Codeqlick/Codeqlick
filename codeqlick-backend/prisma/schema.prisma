@@ -118,6 +118,7 @@ model User {
   timeEntries                TimeEntry[]
   credentials                ProjectCredential[]
   siteRevisions              ManagedSiteRevision[]
+  siteNewsPosts              SiteNewsPost[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
   memberOfId                 String?                     @map("member_of_id") @db.Uuid
@@ -1067,13 +1068,44 @@ model ManagedSite {
   draftKey        String?          @unique @map("draft_key")
   /// The menu extra (architecture 8.2): turned on by the team, billed apart.
   menuEnabled     Boolean          @default(false) @map("menu_enabled")
+  /// The client has switched on the news section (architecture 8.2, decision 55).
+  newsEnabled     Boolean          @default(false) @map("news_enabled")
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project   ClientProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   revisions ManagedSiteRevision[]
+  newsPosts SiteNewsPost[]
 
   @@map("managed_sites")
+}
+
+/// A news item or offer of a managed site, outside its content's draft/publish cycle (decision 55).
+model SiteNewsPost {
+  id          String    @id @default(uuid()) @db.Uuid
+  siteId      String    @map("site_id") @db.Uuid
+  /// Unique per site; made from the title when created and never changed.
+  slug        String
+  title       String    @db.VarChar(120)
+  summary     String    @db.VarChar(300)
+  /// Plain text, a Markdown subset rendered by the template at build time.
+  body        String
+  /// `media/<file>`, from the site's photo uploads.
+  photo       String?
+  /// Null = draft; kept when a published post is edited.
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+  /// The end of a Madrid day: after it the post is hidden from the site.
+  expiresAt   DateTime? @map("expires_at") @db.Timestamptz(3)
+  authorId    String?   @map("author_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  site   ManagedSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  author User?       @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([siteId, slug])
+  @@index([siteId, publishedAt])
+  @@map("site_news_posts")
 }
 
 /// The content a managed site had before a change (the last 20 are kept).
