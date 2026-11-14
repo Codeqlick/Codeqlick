@@ -7,7 +7,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudMe, listCloudTokens } from '@/lib/api/cloud';
-import { formatWhen } from '@/lib/cloud';
+import { expiringInDays, formatWhen } from '@/lib/cloud';
 import { createTokenAction, revokeTokenAction } from '../../actions';
 import styles from '../../cloud.module.css';
 
@@ -30,6 +30,9 @@ export default async function CloudTokensPage({ params }: PageProps) {
       .catch(() => null),
     getCloudMe().catch(() => null),
   ]);
+
+  const now = new Date();
+  const soon = (expiresAt: string | null) => expiringInDays(expiresAt, now);
 
   return (
     <div className={styles.landing}>
@@ -105,6 +108,16 @@ export default async function CloudTokensPage({ params }: PageProps) {
                   {token.expiresAt
                     ? t('tokens.expiresOn', { when: formatWhen(token.expiresAt, locale) })
                     : t('tokens.noExpiry')}
+                  {soon(token.expiresAt) !== null && (
+                    <>
+                      {' '}
+                      <Badge tone="warning">
+                        {soon(token.expiresAt) === 0
+                          ? t('tokens.expiresToday')
+                          : t('tokens.expiresSoon', { days: soon(token.expiresAt) ?? 0 })}
+                      </Badge>
+                    </>
+                  )}
                 </p>
               </div>
               <form action={revokeTokenAction}>
