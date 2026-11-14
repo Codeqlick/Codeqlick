@@ -291,6 +291,13 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         ? { buildPullRequests: input.buildPullRequests }
         : {}),
     });
+    if (input.branch !== project.gitBranch) {
+      // The old production branch can have a branch address now, the new one loses it.
+      await this.projects.tryRelink({ ...project, gitBranch: input.branch }, [
+        project.gitBranch,
+        input.branch,
+      ]);
+    }
     await this.teams.record(
       ctx,
       project.teamId,
@@ -717,7 +724,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           finishedAt: new Date(),
           error: null,
         });
-        void this.report(build.project, done, 'success', deployment.url);
+        void this.report(build.project, done, 'success', deployment.url, deployment.branchUrl);
         void this.notifications.buildEnded(done.id, deployment.url);
       } catch (error) {
         await this.finishFailed(
@@ -771,6 +778,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     build: CloudBuild,
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
+    branchUrl?: string | null,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -805,6 +813,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           `| Commit | \`${build.commit.slice(0, 7)}\` |`,
           `| State | ${{ pending: '⏳ Building', success: '✅ Ready', failure: '❌ Failed' }[state]} |`,
           ...(deploymentUrl ? [`| Preview | ${deploymentUrl} |`] : []),
+          ...(branchUrl ? [`| Branch | ${branchUrl} |`] : []),
           `| Build | ${buildUrl} |`,
         ].join('\n');
         const commentId = await this.github.upsertComment(

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCloudBuild, listCloudDeployments, listCloudProjects } from '@/lib/api/cloud';
+import { getCloudBuild, getCloudDeployment, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
 import { cancelBuildAction } from '../../../../../actions';
@@ -42,9 +42,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
   }
   const live = build.status === 'QUEUED' || build.status === 'RUNNING';
   const deployment = build.deploymentId
-    ? (await listCloudDeployments(project.id).catch(() => null))?.items.find(
-        (d) => d.id === build.deploymentId,
-      )
+    ? await getCloudDeployment(project.id, build.deploymentId).catch(() => undefined)
     : undefined;
 
   return (
@@ -74,6 +72,15 @@ export default async function CloudBuildPage({ params }: PageProps) {
             <a href={deployment.url} target="_blank" rel="noreferrer">
               {deployment.url.replace('https://', '')}
             </a>
+            {deployment.branchUrl ? (
+              <>
+                <br />
+                {t('project.branchAddress')}:{' '}
+                <a href={deployment.branchUrl} target="_blank" rel="noreferrer">
+                  {deployment.branchUrl.replace('https://', '')}
+                </a>
+              </>
+            ) : null}
           </p>
         ) : null}
       </div>

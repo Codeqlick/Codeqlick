@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   chmod,
   lstat,
@@ -58,9 +58,26 @@ export function bundlePath(raw: string): string {
   return path;
 }
 
-/** Host labels: `<slug>` for production and `<slug>--<shortId>` for each deployment. */
+/** Host labels: `<slug>` for production and `<slug>--<shortId>` for each deployment (and `<slug>--b-<branch>`, see `branchLabel`). */
 export const productionLabel = (slug: string) => slug;
 export const deploymentLabel = (slug: string, shortId: string) => `${slug}--${shortId}`;
+
+/**
+ * The fixed address of a branch's newest preview: `<slug>--b-<branch>`, the branch lowercased
+ * with each run of other characters as one `-`. The label stays within DNS's 63 characters: a
+ * longer (or empty) branch is cut and ends in `-` plus 6 hex digits of its SHA-256.
+ */
+export function branchLabel(slug: string, branch: string): string {
+  const part = branch
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const budget = 63 - slug.length - 4;
+  if (part !== '' && part.length <= budget) return `${slug}--b-${part}`;
+  const hash = createHash('sha256').update(branch).digest('hex').slice(0, 6);
+  const cut = part.slice(0, Math.max(budget - 7, 0)).replace(/-+$/, '');
+  return `${slug}--b-${cut === '' ? hash : `${cut}-${hash}`}`;
+}
 
 /**
  * Codeqlick Cloud's files on disk (architecture 8.3): unpacked deployments, the host links Nginx
