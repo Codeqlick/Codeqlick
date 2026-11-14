@@ -83,7 +83,7 @@ export function originOf(url: string | null | undefined): string | null {
   }
 }
 
-/** Whether `origin` is one of a project's addresses: production, its deployments, its domains. */
+/** Whether `origin` is one of a project's addresses: production, its deployments, its branches, its domains. */
 export function isProjectOrigin(
   origin: string,
   project: { slug: string; hostingDomain: string; domains: string[] },
@@ -100,7 +100,10 @@ export function isProjectOrigin(
   const suffix = `.${project.hostingDomain}`;
   if (!host.endsWith(suffix)) return false;
   const label = host.slice(0, -suffix.length);
-  return label === project.slug || new RegExp(`^${project.slug}--[0-9a-f]{8}$`).test(label);
+  return (
+    label === project.slug ||
+    new RegExp(`^${project.slug}--(?:[0-9a-f]{8}|b-[a-z0-9]+(?:-[a-z0-9]+)*)$`).test(label)
+  );
 }
 
 /** The page a post came from, without query or fragment (nothing kept about the visitor). */
