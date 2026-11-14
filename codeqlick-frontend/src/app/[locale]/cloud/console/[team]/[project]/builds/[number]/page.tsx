@@ -9,7 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getCloudBuild, listCloudDeployments, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
-import { cancelBuildAction } from '../../../../../actions';
+import { cancelBuildAction, startBuildAction } from '../../../../../actions';
 import styles from '../../../../../cloud.module.css';
 import { BUILD_TONE, duration } from '../../BuildsTab';
 
@@ -58,6 +58,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
         <p className={styles.rowTitle}>
           <Badge tone={BUILD_TONE[build.status]}>{t(`builds.status.${build.status}`)}</Badge>
           <Badge>{build.target === 'production' ? t('git.production') : t('git.preview')}</Badge>
+          {build.noCache ? <Badge>{t('builds.noCache')}</Badge> : null}
           <span className={styles.small}>
             <span className={styles.mono}>{build.branch}</span> ·{' '}
             <span className={styles.mono}>{build.commit.slice(0, 7)}</span>
@@ -86,6 +87,19 @@ export default async function CloudBuildPage({ params }: PageProps) {
           <input type="hidden" name="number" value={build.number} />
           <SubmitButton size="sm" variant="outline">
             {t('builds.cancel')}
+          </SubmitButton>
+        </form>
+      ) : null}
+      {build.status === 'FAILED' ? (
+        <form action={startBuildAction}>
+          <input type="hidden" name="locale" value={locale} />
+          <input type="hidden" name="team" value={team} />
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="project" value={project.id} />
+          <input type="hidden" name="branch" value={build.branch} />
+          <input type="hidden" name="noCache" value="on" />
+          <SubmitButton size="sm" variant="outline">
+            {t('builds.retryNoCache')}
           </SubmitButton>
         </form>
       ) : null}

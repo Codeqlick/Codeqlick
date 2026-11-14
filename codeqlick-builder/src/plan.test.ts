@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { dockerArgs, envFile, inside, mask } from './plan.ts';
+import { cachePath, cachesToEvict, dockerArgs, envFile, inside, mask } from './plan.ts';
 
 test('hides secrets, the longest first', () => {
   assert.equal(
@@ -53,4 +53,66 @@ test('runs the build under gVisor when a runtime is set', () => {
   assert.equal(args[args.indexOf('--runtime') + 1], 'runsc');
   assert.ok(args.indexOf('--runtime') < args.indexOf('node:24-bookworm-slim'));
   assert.equal(args[args.indexOf('-w') + 1], '/work');
+});
+
+test('mounts the dependency cache and points the package managers at it', () => {
+  const base = {
+    name: 'cqb-3',
+    work: '/w/3/src',
+    rootDir: '',
+    envFile: '/w/3/env',
+    nodeVersion: '22',
+    uid: 998,
+    gid: 998,
+    command: 'npm ci',
+  };
+  const plain = dockerArgs(base).join(' ');
+  assert.ok(!plain.includes('/cache') && !plain.includes('npm_config_cache'));
+  const args = dockerArgs({ ...base, cache: '/w/cache/p/production-node22' });
+  assert.ok(args.includes('/w/cache/p/production-node22:/cache'));
+  assert.equal(args[args.indexOf('/w/cache/p/production-node22:/cache') - 1], '-v');
+  for (const variable of [
+    'npm_config_cache=/cache/npm',
+    'npm_config_logs_dir=/tmp/npm-logs',
+    'YARN_CACHE_FOLDER=/cache/yarn',
+    'YARN_GLOBAL_FOLDER=/cache/yarn-berry',
+    'npm_config_store_dir=/cache/pnpm',
+    'pnpm_config_store_dir=/cache/pnpm',
+  ]) {
+    assert.equal(args[args.indexOf(variable) - 1], '-e');
+  }
+  assert.ok(args.indexOf('/w/cache/p/production-node22:/cache') < args.indexOf('-w'));
+});
+
+test('keeps cache keys inside the cache folder', () => {
+  assert.equal(
+    cachePath('/w/cache', '3f9c-12/production-node22'),
+    '/w/cache/3f9c-12/production-node22',
+  );
+  assert.throws(() => cachePath('/w/cache', '../etc/passwd'));
+  assert.throws(() => cachePath('/w/cache', 'a/../../b'));
+  assert.throws(() => cachePath('/w/cache', '/abs/olute'));
+  assert.throws(() => cachePath('/w/cache', 'a/b/c'));
+  assert.throws(() => cachePath('/w/cache', 'abc'));
+  assert.throws(() => cachePath('/w/cache', 'A/b'));
+  assert.throws(() => cachePath('/w/cache', 'a/b c'));
+  assert.throws(() => cachePath('/w/cache', ''));
+});
+
+test('evicts the least recently used caches until the rest fits', () => {
+  const entries = [
+    { key: 'a/preview-node22', bytes: 400, usedAt: 300 },
+    { key: 'b/production-node22', bytes: 300, usedAt: 100 },
+    { key: 'c/preview-node24', bytes: 200, usedAt: 200 },
+  ];
+  assert.deepEqual(cachesToEvict(entries, 900), []);
+  assert.deepEqual(cachesToEvict(entries, 700), ['b/production-node22']);
+  assert.deepEqual(cachesToEvict(entries, 500), ['b/production-node22', 'c/preview-node24']);
+  assert.deepEqual(cachesToEvict(entries, 0), [
+    'b/production-node22',
+    'c/preview-node24',
+    'a/preview-node22',
+  ]);
+  assert.deepEqual(cachesToEvict([], 10), []);
+  assert.equal(entries[0]?.key, 'a/preview-node22'); // the input isn't reordered
 });

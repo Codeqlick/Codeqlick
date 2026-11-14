@@ -24,12 +24,12 @@ back in a second.
 
 Builds from Git (connect GitHub once in the console's Git tab):
 
-| Command                                                    | What it does                                        |
-| ---------------------------------------------------------- | --------------------------------------------------- |
-| `git` / `git connect <owner/repo>` / `git disconnect`      | The repository and build settings                   |
-| `env` / `env add <KEY> [value]` / `env rm <KEY>`           | Variables (without a value: stdin or hidden prompt) |
-| `builds` / `builds start [--branch]` / `builds cancel <n>` | List, build now and follow, cancel                  |
-| `logs [number]`                                            | A build's log, followed while it runs               |
+| Command                                                                 | What it does                                                                    |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `git` / `git connect <owner/repo>` / `git disconnect`                   | The repository and build settings                                               |
+| `env` / `env add <KEY> [value]` / `env rm <KEY>`                        | Variables (without a value: stdin or hidden prompt)                             |
+| `builds` / `builds start [--branch] [--no-cache]` / `builds cancel <n>` | List, build now and follow (`--no-cache`: without the dependency cache), cancel |
+| `logs [number]`                                                         | A build's log, followed while it runs                                           |
 
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 
