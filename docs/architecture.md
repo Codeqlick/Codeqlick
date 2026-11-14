@@ -1065,7 +1065,8 @@ type Locale = 'en' | 'es';
 type AuthUser = { id: string; email: string; name: string; role: 'ADMIN' | 'CLIENT' };
 type AuthTokens = { accessToken: string; refreshToken: string; expiresIn: number; user: AuthUser };
 
-type PostSummary = { slug: string; title: string; excerpt: string; coverImageUrl: string | null; publishedAt: string; tags: { slug: string; name: string }[] };
+type PostSummary = { slug: string; title: string; excerpt: string; coverImageUrl: string | null; publishedAt: string; readingMinutes: number; tags: { slug: string; name: string }[] };
+// readingMinutes: words of the returned translation's Markdown content (code blocks, link targets and image addresses not counted) / 220, rounded up, at least 1. Computed by the API when it reads the post; not stored.
 type PostDetail = PostSummary & { content: string; locales: Locale[] };
 
 type Translation<T> = { locale: Locale } & T;
@@ -1138,6 +1139,8 @@ src/
         page.tsx               Landing (hero, services, process, why us, stack, CTA)
         services/ services/[slug]/  One page per service (static copy from messages, built ahead of time)
         blog/ blog/[slug]/     blog/[slug]/og: the post's social preview image (route handler)
+                               the reading time (`readingMinutes`, "5 min read" / "5 min de lectura") sits next to
+                               the date on the blog index, tag and search results and on the post
         work/ work/[slug]/     Portfolio; work/[slug]/og: the case study's social preview image
         about/                 Who is behind Codeqlick (from the company overview in the Notion wiki)
         apps/                  "Nuestras apps": Codeqlick's own web apps (section 6.3), one card each with a
