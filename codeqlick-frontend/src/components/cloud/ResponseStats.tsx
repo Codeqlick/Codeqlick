@@ -47,7 +47,7 @@ export function ResponseStats({
 
   return (
     <div className={styles.root}>
-      <div role="group" aria-label={labels.group} className={styles.switch}>
+      <fieldset aria-label={labels.group} className={styles.switch}>
         {WINDOWS.map((range) => (
           <button
             key={range}
@@ -63,7 +63,7 @@ export function ResponseStats({
             {labels.windows[range]}
           </button>
         ))}
-      </div>
+      </fieldset>
       <dl className={styles.tiles} aria-live="polite">
         <div className={styles.tile}>
           <dt>{labels.median}</dt>

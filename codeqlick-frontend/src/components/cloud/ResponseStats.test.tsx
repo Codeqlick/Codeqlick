@@ -25,7 +25,7 @@ const stats = {
 describe('ResponseStats', () => {
   it('shows the 24 h window by default with the tiles and the check count', () => {
     const html = renderToStaticMarkup(<ResponseStats stats={stats} labels={labels} locale="en" />);
-    expect(html).toContain('role="group"');
+    expect(html).toContain('<fieldset aria-label="Time window"');
     expect(html).toMatch(/aria-pressed="true"[^>]*>24 h</);
     expect(html).toMatch(/aria-pressed="false"[^>]*>7 days</);
     expect(html).toContain('180 ms');
