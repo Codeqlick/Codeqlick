@@ -19,10 +19,12 @@ import {
   deleteEnvAction,
   deleteHookAction,
   disconnectGitAction,
+  importEnvAction,
   saveEnvAction,
   saveGitAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { EnvImport } from './EnvImport';
 
 type Props = {
   locale: AppLocale;
@@ -357,6 +359,11 @@ export async function GitTab(props: Props) {
               <SubmitButton variant="outline">{t('git.saveEnv')}</SubmitButton>
             </div>
           </ActionForm>
+        ) : null}
+        {props.admin ? (
+          <EnvImport
+            action={importEnvAction.bind(null, props.locale, props.path, props.projectId)}
+          />
         ) : null}
       </section>
     </section>

@@ -57,12 +57,14 @@ import {
   transferCloudProject,
   updateCloudForm,
   updateCloudMonitor,
+  type CloudEnvImportResult,
   type CloudReportReason,
   type CloudRole,
   cancelCloudBuild,
   deleteCloudEnv,
   disconnectCloudGit,
   getCloudGithubInstallUrl,
+  importCloudEnv,
   setCloudEnv,
   setCloudGit,
   startCloudBuild,
@@ -70,6 +72,7 @@ import {
 import { hookBranchValid, hookName } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { protectionInput } from '@/lib/cloud';
+import { ENV_IMPORT_MAX_BYTES, envImportErrors, type EnvImportState } from '@/lib/cloud';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -910,6 +913,39 @@ export async function saveEnvAction(
   }
   refresh(lang, path);
   return { status: 'success', message: t('envSaved') };
+}
+
+/** "Import .env" (architecture 4.13): all or nothing; answers keys or line errors, never values. */
+export async function importEnvAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: EnvImportState,
+  formData: FormData,
+): Promise<EnvImportState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.git.import' });
+  const content = String(formData.get('content') ?? '');
+  const production = formBoolean(formData, 'production');
+  const preview = formBoolean(formData, 'preview');
+  const overwrite = formBoolean(formData, 'overwrite');
+  if (!content.trim()) return { status: 'error', fieldErrors: { content: t('empty') } };
+  if (new TextEncoder().encode(content).length > ENV_IMPORT_MAX_BYTES)
+    return { status: 'error', fieldErrors: { content: t('tooBig') } };
+  if (!production && !preview)
+    return { status: 'error', fieldErrors: { production: t('targetRequired') } };
+  let result: CloudEnvImportResult;
+  try {
+    result = await importCloudEnv(projectId, { content, production, preview, overwrite });
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      const lineErrors = envImportErrors(error.errors);
+      if (lineErrors.length > 0) return { status: 'error', message: t('refused'), lineErrors };
+    }
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('done'), ...result };
 }
 
 export async function deleteEnvAction(formData: FormData): Promise<void> {
