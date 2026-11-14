@@ -50,11 +50,14 @@ export default async function PostRevisionPage({
       />
       {hasChanges(diff) ? null : <Alert tone="info">{tr('noChanges')}</Alert>}
       <RevisionCompare locale={locale} diff={diff} fieldLabel={(field) => t(field as never)} />
-      <RestoreRevisionForm
-        locale={locale}
-        action={restorePostRevisionAction.bind(null, locale, post.id, revision.id)}
-        body={tr('restoreBodyPost')}
-      />
+      {/* Restoring a version equal to the current one would change nothing. */}
+      {hasChanges(diff) ? (
+        <RestoreRevisionForm
+          locale={locale}
+          action={restorePostRevisionAction.bind(null, locale, post.id, revision.id)}
+          body={tr('restoreBodyPost')}
+        />
+      ) : null}
     </div>
   );
 }

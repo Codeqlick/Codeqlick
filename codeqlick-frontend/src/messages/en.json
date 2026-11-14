@@ -1221,7 +1221,8 @@
           "published": "published the post <target>{label}</target>",
           "unpublished": "moved the post <target>{label}</target> back to draft",
           "deleted": "deleted the post <target>{label}</target>",
-          "scheduled": "scheduled the post <target>{label}</target>"
+          "scheduled": "scheduled the post <target>{label}</target>",
+          "restored": "restored an earlier version of the post <target>{label}</target>"
         },
         "portfolio": {
           "created": "created the case study <target>{label}</target>",
@@ -1229,7 +1230,8 @@
           "published": "published the case study <target>{label}</target>",
           "unpublished": "moved the case study <target>{label}</target> back to draft",
           "deleted": "deleted the case study <target>{label}</target>",
-          "scheduled": "scheduled the case study <target>{label}</target>"
+          "scheduled": "scheduled the case study <target>{label}</target>",
+          "restored": "restored an earlier version of the case study <target>{label}</target>"
         },
         "project": {
           "created": "created the project <target>{label}</target>",
