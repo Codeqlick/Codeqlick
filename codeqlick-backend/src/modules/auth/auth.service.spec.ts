@@ -8,6 +8,7 @@ import type { AuthRepository, SessionWithUser } from './auth.repository.js';
 import { AuthService, hashRefreshToken, toAuthUser, type AuthTokens } from './auth.service.js';
 import { totpCode } from './totp.js';
 import type { MailService } from '../mail/mail.service.js';
+import type { PasswordBreachService } from './password-breach.service.js';
 import type { PasswordService } from './password.service.js';
 
 function makeUser(overrides: Partial<User> = {}): User {
@@ -77,6 +78,7 @@ describe('AuthService', () => {
   };
   let jwt: { signAsync: ReturnType<typeof vi.fn>; verifyAsync: ReturnType<typeof vi.fn> };
   let mail: { send: ReturnType<typeof vi.fn> };
+  let breaches: { assertNotBreached: ReturnType<typeof vi.fn> };
   let service: AuthService;
 
   beforeEach(() => {
@@ -111,6 +113,7 @@ describe('AuthService', () => {
       verifyAsync: vi.fn(),
     };
     mail = { send: vi.fn().mockResolvedValue(undefined) };
+    breaches = { assertNotBreached: vi.fn().mockResolvedValue(undefined) };
     const config = {
       jwtAccessTtl: 900,
       refreshTokenTtlDays: 30,
@@ -125,6 +128,7 @@ describe('AuthService', () => {
       config,
       mail as unknown as MailService,
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+      breaches as unknown as PasswordBreachService,
     );
   });
 
@@ -376,6 +380,18 @@ describe('AuthService', () => {
       expect(repository.changePassword).not.toHaveBeenCalled();
     });
 
+    it('refuses a password found in a data breach without changing anything', async () => {
+      repository.findUserById.mockResolvedValue(makeUser());
+      passwords.verify.mockResolvedValue(true);
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.changePassword('id', 'old password 123', 'password1234', 'my-token'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'newPassword');
+      expect(repository.changePassword).not.toHaveBeenCalled();
+    });
+
     it('rejects a disabled account', async () => {
       repository.findUserById.mockResolvedValue(makeUser({ isActive: false }));
 
@@ -480,12 +496,58 @@ describe('AuthService', () => {
       expect(passwords.hash).toHaveBeenCalledWith('new password 456');
     });
 
+    it('refuses a password found in a data breach before spending the token', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.confirmPasswordReset('emailed-token', 'password1234'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'newPassword');
+      expect(repository.resetPassword).not.toHaveBeenCalled();
+    });
+
     it('rejects a token that is unknown, used or expired', async () => {
       repository.resetPassword.mockResolvedValue(false);
 
       await expect(
         service.confirmPasswordReset('bad-token', 'new password 456'),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('register', () => {
+    it('refuses a password found in a data breach before looking the email up', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.register({
+          name: 'Ada',
+          email: 'ada@example.com',
+          password: 'password1234',
+          locale: 'en',
+          acceptPrivacy: true,
+        } as Parameters<AuthService['register']>[0]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
+      expect(repository.findUserByEmail).not.toHaveBeenCalled();
+      expect(mail.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('acceptInvitation', () => {
+    it('refuses a password found in a data breach without accepting the invitation', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.acceptInvitation({
+          token: 'invitation-token',
+          name: 'Ada',
+          password: 'password1234',
+          locale: 'en',
+          acceptPrivacy: true,
+        } as Parameters<AuthService['acceptInvitation']>[0]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
     });
   });
 

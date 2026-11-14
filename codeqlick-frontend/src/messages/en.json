@@ -436,7 +436,8 @@
     "duration": "Type the time as 1:30, 1.5 or 45m (up to 24 hours).",
     "domain": "Type a domain like peluqueria-ana.com.",
     "confirmMismatch": "That doesn’t match: type it exactly.",
-    "website": "Type your website's address, like yourwebsite.com."
+    "website": "Type your website's address, like yourwebsite.com.",
+    "breachedPassword": "This password has appeared in a data breach, so attackers try it first. Choose a different one."
   },
   "Login": {
     "metaTitle": "Sign in",

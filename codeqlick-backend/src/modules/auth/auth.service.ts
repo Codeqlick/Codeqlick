@@ -27,6 +27,7 @@ import {
   type SignupReason,
 } from './auth-emails.js';
 import type { AcceptInvitationInput, RegisterInput } from './auth.schemas.js';
+import { PasswordBreachService } from './password-breach.service.js';
 import { PasswordService } from './password.service.js';
 import { SecretBox } from './secret-box.js';
 import { generateTotpSecret, otpauthUri, verifyTotp } from './totp.js';
@@ -147,6 +148,7 @@ export class AuthService {
     private readonly config: AppConfigService,
     private readonly mail: MailService,
     private readonly activity: ActivityService,
+    private readonly breaches: PasswordBreachService,
   ) {
     this.secrets = new SecretBox(config.jwtAccessSecret);
     this.challengeKey = Buffer.from(
@@ -298,6 +300,7 @@ export class AuthService {
         errors: [{ path: 'newPassword', message: 'Choose a password you are not already using' }],
       });
     }
+    await this.breaches.assertNotBreached(newPassword, 'newPassword');
 
     await this.repository.changePassword(
       user.id,
@@ -402,6 +405,8 @@ export class AuthService {
     if (isDisposableEmail(email)) {
       throw new BadRequestException({ errors: [DISPOSABLE_EMAIL_ERROR] });
     }
+    // Before looking the email up: the answer must not depend on whether it has an account.
+    await this.breaches.assertNotBreached(input.password, 'password');
     const existing = await this.repository.findUserByEmail(email);
     const site = this.config.siteUrl;
     // From a web app (architecture 6.3), the links open on its host so the person ends up there.
@@ -468,6 +473,7 @@ export class AuthService {
     input: AcceptInvitationInput,
     client: ClientInfo = {},
   ): Promise<AuthTokens> {
+    await this.breaches.assertNotBreached(input.password, 'password');
     const user = await this.repository.acceptInvitation(hashRefreshToken(input.token), {
       name: input.name,
       passwordHash: await this.passwords.hash(input.password),
@@ -485,6 +491,8 @@ export class AuthService {
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */
   async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+    // Before the token is spent, so the person can try another password with the same link.
+    await this.breaches.assertNotBreached(newPassword, 'newPassword');
     const done = await this.repository.resetPassword(hashRefreshToken(token), () =>
       this.passwords.hash(newPassword),
     );

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { confirmPasswordReset } from '@/lib/api/auth';
-import { isApiError } from '@/lib/api/errors';
+import { isApiError, isBreachedPasswordError } from '@/lib/api/errors';
 import { clearAuthCookies } from '@/lib/auth/session';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { resetPasswordSchema } from '@/lib/schemas/auth';
@@ -36,6 +36,11 @@ export async function resetPasswordAction(
       newPassword: parsed.data.newPassword,
     });
   } catch (error) {
+    // The link is still good: the person only has to choose another password.
+    if (isBreachedPasswordError(error, 'newPassword')) {
+      const tv = await getTranslations({ locale, namespace: 'Validation' });
+      return { status: 'error', fieldErrors: { newPassword: tv('breachedPassword') } };
+    }
     const status = isApiError(error) ? error.status : 0;
     if (status === 400) {
       return { status: 'error', message: welcome ? t('welcomeInvalidLink') : t('invalidLink') };

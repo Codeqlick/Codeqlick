@@ -74,6 +74,9 @@ services:
       LEADS_NOTIFY_TO: ${LEADS_NOTIFY_TO:-hello@codeqlick.com}
       # Admins must turn on two-step verification before they can use the admin panel.
       ADMIN_TWO_FACTOR_REQUIRED: ${ADMIN_TWO_FACTOR_REQUIRED:-true}
+      # New passwords are refused when they appear in a known data breach (Have I Been Pwned,
+      # k-anonymity: only 5 characters of a hash leave the server; fails open).
+      PASSWORD_BREACH_CHECK: ${PASSWORD_BREACH_CHECK:-true}
       # Visit numbers on the admin dashboard, read from Umami with its dashboard account.
       UMAMI_URL: http://umami:3000
       UMAMI_WEBSITE_ID: ${UMAMI_WEBSITE_ID:-}
