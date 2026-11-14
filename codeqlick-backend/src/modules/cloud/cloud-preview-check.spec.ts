@@ -184,12 +184,10 @@ describe('CloudAuditsService.runPreview', () => {
     };
     expect(data.userId).toBeNull();
     expect(data.result.checks.map((check) => check.id)).not.toContain('indexable');
-    expect(outcome.state).toBe('done');
-    if (outcome.state === 'done') {
-      expect(outcome.auditId).toBe('audit-1');
-      expect(outcome.failed.length).toBeLessThanOrEqual(5);
-      expect(outcome.failed).not.toContain('Visible in Google');
-    }
+    expect(outcome).toMatchObject({ state: 'done', auditId: 'audit-1' });
+    const failed = outcome.state === 'done' ? outcome.failed : [];
+    expect(failed.length).toBeLessThanOrEqual(5);
+    expect(failed).not.toContain('Visible in Google');
   });
 
   it('is skipped past the hourly limit, without making an audit', async () => {
