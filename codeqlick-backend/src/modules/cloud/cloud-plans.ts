@@ -112,6 +112,8 @@ export const MAX_UPLOAD_BYTES = Math.max(...Object.values(CLOUD_PLANS).map((p) =
 
 /** Deployments kept per project besides production. */
 export const KEPT_DEPLOYMENTS = 20;
+/** Deployments a project keeps by hand (`keptAt`), out of the cleanup and the 20 above. */
+export const KEPT_BY_HAND = 5;
 /** A deleted project's address stays taken this long. */
 export const DELETED_PROJECT_DAYS = 30;
 export const EVENTS_DAYS = 365;

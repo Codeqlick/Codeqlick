@@ -2066,6 +2066,8 @@ model CloudDeployment {
   createdById String?     @map("created_by_id") @db.Uuid
   tokenId     String?     @map("token_id") @db.Uuid
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Set when a member keeps it by hand: hourly cleanup never deletes it (at most 5 per project).
+  keptAt      DateTime?   @map("kept_at") @db.Timestamptz(3)
 
   project      CloudProject  @relation("CloudDeployments", fields: [projectId], references: [id], onDelete: Cascade)
   productionOf CloudProject? @relation("CloudProduction")
