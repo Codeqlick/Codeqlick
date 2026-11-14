@@ -910,7 +910,9 @@
       "publishedAt": "Fecha de publicación",
       "publishedAtHint": "Si es futura, el artículo aparecerá solo en la web a esa hora (hora de Madrid). Vacía: al publicarlo.",
       "tags": "Etiquetas",
-      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos."
+      "noTags": "Aún no hay etiquetas. <link>Crea alguna</link> para clasificar los artículos.",
+      "oldAddresses": "Direcciones antiguas que redirigen aquí",
+      "oldAddressesHint": "Los enlaces a los slugs anteriores del artículo siguen funcionando: visitantes y buscadores llegan a su dirección actual."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -945,7 +947,9 @@
       "testimonialQuoteHint": "Las palabras del cliente en este idioma. Se muestran en el caso de éxito y en la portada.",
       "testimonialRole": "Cargo del autor",
       "testimonialRoleHint": "Por ejemplo: Fundadora, CircleSfera.",
-      "services": "Servicios del proyecto"
+      "services": "Servicios del proyecto",
+      "oldAddresses": "Direcciones antiguas que redirigen aquí",
+      "oldAddressesHint": "Los enlaces a los slugs anteriores del caso de éxito siguen funcionando: visitantes y buscadores llegan a su dirección actual."
     },
     "projects": {
       "title": "Proyectos",

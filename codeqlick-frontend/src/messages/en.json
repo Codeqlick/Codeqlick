@@ -910,7 +910,9 @@
       "publishedAt": "Publication date",
       "publishedAtHint": "In the future, the post goes live on its own at that time (Madrid time). Empty: when you publish it.",
       "tags": "Tags",
-      "noTags": "No tags yet. <link>Create some</link> to sort your posts."
+      "noTags": "No tags yet. <link>Create some</link> to sort your posts.",
+      "oldAddresses": "Old addresses that redirect here",
+      "oldAddressesHint": "Links to the post's earlier slugs still work: visitors and search engines land on its current address."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -945,7 +947,9 @@
       "testimonialQuoteHint": "The client's words in this language. Shown on the case study and on the home page.",
       "testimonialRole": "Author's role",
       "testimonialRoleHint": "For example: Founder, CircleSfera.",
-      "services": "Services in this project"
+      "services": "Services in this project",
+      "oldAddresses": "Old addresses that redirect here",
+      "oldAddressesHint": "Links to the case study's earlier slugs still work: visitors and search engines land on its current address."
     },
     "projects": {
       "title": "Projects",

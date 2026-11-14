@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ActivityService } from '../activity/activity.service.js';
 import type { TagsService } from './tags.service.js';
 import type { PostTranslation } from '../../generated/prisma/client.js';
-import type { PostsRepository, PostWithTranslations } from './posts.repository.js';
+import type { AdminPostRecord, PostsRepository, PostWithTranslations } from './posts.repository.js';
 import { PostsService } from './posts.service.js';
 
 const publishedAt = new Date('2026-09-01T08:00:00Z');
@@ -29,8 +29,8 @@ function tag(slug: string) {
 
 function post(
   translations: PostTranslation[],
-  extra: Partial<PostWithTranslations> = {},
-): PostWithTranslations {
+  extra: Partial<AdminPostRecord> = {},
+): AdminPostRecord {
   return {
     id: 'p1',
     slug: 'hello-world',
@@ -42,8 +42,9 @@ function post(
     updatedAt: publishedAt,
     translations,
     tags: [],
+    slugRedirects: [],
     ...extra,
-  } as PostWithTranslations;
+  } as AdminPostRecord;
 }
 
 const actor = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as const;
@@ -55,6 +56,7 @@ describe('PostsService', () => {
     findById: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
     findLiveCandidates: ReturnType<typeof vi.fn>;
+    findLiveSlugByRedirect: ReturnType<typeof vi.fn>;
   };
   let service: PostsService;
 
@@ -65,6 +67,7 @@ describe('PostsService', () => {
       findById: vi.fn(),
       update: vi.fn(),
       findLiveCandidates: vi.fn().mockResolvedValue([]),
+      findLiveSlugByRedirect: vi.fn(),
     };
     service = new PostsService(
       repository as unknown as PostsRepository,
@@ -162,6 +165,48 @@ describe('PostsService', () => {
     await expect(service.update(actor, 'nope', { status: 'DRAFT' })).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  describe('old slugs', () => {
+    it("answers an old slug with the live post's current slug", async () => {
+      repository.findLiveSlugByRedirect.mockResolvedValue('new-slug');
+
+      await expect(service.redirect('old-slug')).resolves.toEqual({ slug: 'new-slug' });
+      expect(repository.findLiveSlugByRedirect).toHaveBeenCalledWith('old-slug');
+    });
+
+    it('throws NotFound for an unknown old slug or a post that is not live', async () => {
+      repository.findLiveSlugByRedirect.mockResolvedValue(null);
+      await expect(service.redirect('old-slug')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('lists the old slugs in the admin answer, as the repository orders them', async () => {
+      repository.findById.mockResolvedValue(
+        post([translation('EN', 'Hello')], {
+          slugRedirects: [{ slug: 'second-name' }, { slug: 'first-name' }],
+        }),
+      );
+
+      const admin = await service.get('p1');
+
+      expect(admin.oldSlugs).toEqual(['second-name', 'first-name']);
+    });
+
+    it('passes a slug change to the repository, which keeps the old one', async () => {
+      const existing = post([translation('EN', 'Hello')]);
+      repository.findById.mockResolvedValue(existing);
+      repository.update.mockResolvedValue({
+        ...existing,
+        slug: 'hello-again',
+        slugRedirects: [{ slug: 'hello-world' }],
+      });
+
+      const updated = await service.update(actor, 'p1', { slug: 'hello-again' });
+
+      expect(repository.update).toHaveBeenCalledWith('p1', { slug: 'hello-again' });
+      expect(updated.slug).toBe('hello-again');
+      expect(updated.oldSlugs).toEqual(['hello-world']);
+    });
   });
 
   describe('related', () => {

@@ -312,12 +312,26 @@ model Post {
   createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  author       User?             @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  translations PostTranslation[]
-  tags         PostTag[]
+  author        User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  translations  PostTranslation[]
+  tags          PostTag[]
+  slugRedirects PostSlugRedirect[]
 
   @@index([status, publishedAt])
   @@map("posts")
+}
+
+/// An old slug of a post, kept after a slug change so old links still work (decision 51).
+model PostSlugRedirect {
+  id        String   @id @default(uuid()) @db.Uuid
+  slug      String   @unique
+  postId    String   @map("post_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_slug_redirects")
 }
 
 /// A blog topic, shared by both languages: one slug for URLs, a name per language.
@@ -379,10 +393,24 @@ model PortfolioItem {
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  translations PortfolioTranslation[]
+  translations  PortfolioTranslation[]
+  slugRedirects PortfolioSlugRedirect[]
 
   @@index([status, sortOrder])
   @@map("portfolio_items")
+}
+
+/// An old slug of a case study, kept after a slug change so old links still work (decision 51).
+model PortfolioSlugRedirect {
+  id              String   @id @default(uuid()) @db.Uuid
+  slug            String   @unique
+  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+
+  @@index([portfolioItemId])
+  @@map("portfolio_slug_redirects")
 }
 
 model PortfolioTranslation {
