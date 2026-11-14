@@ -20,6 +20,8 @@ const post: AdminPost = {
     { locale: 'en', title: 'Shipping', excerpt: 'Why', content: '## Small' },
     { locale: 'es', title: 'Publicar', excerpt: 'Por qué', content: '## Pequeño' },
   ],
+  newsletter: false,
+  newsletterSentAt: null,
   oldSlugs: [],
 };
 
