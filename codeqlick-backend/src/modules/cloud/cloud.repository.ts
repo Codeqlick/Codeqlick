@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import type {
-  CloudBuildStatus,
   CloudDeployment,
   CloudDomain,
   CloudDomainState,
@@ -14,6 +13,7 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { DeployBadgeFacts } from './cloud-badge.js';
 
 export type MembershipRow = CloudMember & { team: CloudTeam };
 export type MemberRow = CloudMember & { user: { id: string; name: string; email: string } };
@@ -375,29 +375,24 @@ export class CloudRepository {
   }
 
   /**
-   * What a project's README badge needs: whether it has a production deployment and its latest
-   * production builds (newest first). Null for a deleted or suspended project.
+   * What a project's README badge needs: when its production deployment was made and its latest
+   * production build that wasn't canceled. Null for a deleted or suspended project.
    */
-  async findBadgeFacts(
-    slug: string,
-  ): Promise<{ hasProduction: boolean; productionBuilds: CloudBuildStatus[] } | null> {
+  async findBadgeFacts(slug: string): Promise<DeployBadgeFacts | null> {
     const row = await this.prisma.cloudProject.findFirst({
       where: { slug, deletedAt: null, suspendedAt: null },
       select: {
-        productionDeploymentId: true,
+        production: { select: { createdAt: true } },
         builds: {
-          where: { target: 'PRODUCTION' },
+          where: { target: 'PRODUCTION', status: { not: 'CANCELED' } },
           orderBy: { queuedAt: 'desc' },
-          take: 5,
-          select: { status: true },
+          take: 1,
+          select: { status: true, queuedAt: true },
         },
       },
     });
     if (!row) return null;
-    return {
-      hasProduction: row.productionDeploymentId !== null,
-      productionBuilds: row.builds.map((build) => build.status),
-    };
+    return { productionAt: row.production?.createdAt ?? null, latestBuild: row.builds[0] ?? null };
   }
 
   async findProjectByDomain(name: string): Promise<{ id: string } | null> {

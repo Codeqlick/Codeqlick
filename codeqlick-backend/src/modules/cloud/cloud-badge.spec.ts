@@ -4,31 +4,39 @@ import { BADGE_TTL_MS, CloudBadgesService } from './cloud-badges.service.js';
 import type { CloudRepository } from './cloud.repository.js';
 
 describe('deployBadgeState', () => {
-  it('follows the latest production build, then the production deployment', () => {
-    expect(deployBadgeState({ productionBuilds: ['RUNNING'], hasProduction: true })).toBe(
+  const at = (minute: number) => new Date(Date.UTC(2026, 10, 14, 10, minute));
+  const build = (status: 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED', minute = 30) => ({
+    status,
+    queuedAt: at(minute),
+  });
+
+  it('shows a build in progress first', () => {
+    expect(deployBadgeState({ latestBuild: build('RUNNING'), productionAt: at(40) })).toBe(
       'building',
     );
-    expect(deployBadgeState({ productionBuilds: ['QUEUED', 'FAILED'], hasProduction: false })).toBe(
-      'building',
+    expect(deployBadgeState({ latestBuild: build('QUEUED'), productionAt: null })).toBe('building');
+  });
+
+  it('shows a failed build until a newer deployment is production', () => {
+    expect(deployBadgeState({ latestBuild: build('FAILED', 30), productionAt: at(10) })).toBe(
+      'failed',
     );
-    expect(
-      deployBadgeState({ productionBuilds: ['FAILED', 'SUCCEEDED'], hasProduction: true }),
-    ).toBe('failed');
-    expect(deployBadgeState({ productionBuilds: ['SUCCEEDED'], hasProduction: true })).toBe(
+    expect(deployBadgeState({ latestBuild: build('FAILED', 30), productionAt: null })).toBe(
+      'failed',
+    );
+    // Deployed with the CLI after the failed build.
+    expect(deployBadgeState({ latestBuild: build('FAILED', 30), productionAt: at(45) })).toBe(
+      'deployed',
+    );
+  });
+
+  it('otherwise follows the production deployment', () => {
+    expect(deployBadgeState({ latestBuild: build('SUCCEEDED'), productionAt: at(31) })).toBe(
       'deployed',
     );
     // Deployed with the CLI, never built from Git.
-    expect(deployBadgeState({ productionBuilds: [], hasProduction: true })).toBe('deployed');
-    expect(deployBadgeState({ productionBuilds: [], hasProduction: false })).toBe('not-deployed');
-  });
-
-  it('skips canceled builds', () => {
-    expect(
-      deployBadgeState({ productionBuilds: ['CANCELED', 'FAILED'], hasProduction: true }),
-    ).toBe('failed');
-    expect(deployBadgeState({ productionBuilds: ['CANCELED'], hasProduction: true })).toBe(
-      'deployed',
-    );
+    expect(deployBadgeState({ latestBuild: null, productionAt: at(1) })).toBe('deployed');
+    expect(deployBadgeState({ latestBuild: null, productionAt: null })).toBe('not-deployed');
   });
 
   it('is unknown without a public project', () => {
@@ -50,8 +58,11 @@ describe('CloudBadgesService', () => {
   it('asks the database at most once a minute per project', async () => {
     const findBadgeFacts = vi
       .fn()
-      .mockResolvedValueOnce({ productionBuilds: [], hasProduction: true })
-      .mockResolvedValueOnce({ productionBuilds: ['FAILED'], hasProduction: true });
+      .mockResolvedValueOnce({ latestBuild: null, productionAt: new Date(0) })
+      .mockResolvedValueOnce({
+        latestBuild: { status: 'FAILED', queuedAt: new Date(10) },
+        productionAt: new Date(0),
+      });
     const service = new CloudBadgesService({ findBadgeFacts } as unknown as CloudRepository);
 
     expect(await service.deployBadge('site', 1000)).toContain('deployed');
