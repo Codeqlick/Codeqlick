@@ -5294,6 +5294,7 @@
       "buildPullRequests": "Compilar pull requests (no de forks)",
       "previewChecks": "Revisar cada vista previa",
       "previewChecksHint": "Hace la revisión web de la vista previa de cada pull request y añade el resultado a su comentario en GitHub. Cuenta para las revisiones web por hora del equipo.",
+      "onlyRootChanges": "Compilar solo cuando cambien archivos de la carpeta raíz (para monorepos)",
       "save": "Guardar",
       "saved": "Guardado.",
       "invalid": "Revisa los campos.",

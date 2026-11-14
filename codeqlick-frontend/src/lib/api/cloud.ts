@@ -769,6 +769,8 @@ export type CloudGit = {
   buildBranches: boolean;
   buildPullRequests: boolean;
   previewChecks: boolean;
+  /** Skip pushes and pull requests that change nothing under `rootDir`. */
+  onlyRootChanges: boolean;
 };
 
 /** A deploy hook (architecture 4.13); `url` is only in the answer to making it: shown once. */

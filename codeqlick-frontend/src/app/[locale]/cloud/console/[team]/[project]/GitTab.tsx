@@ -186,6 +186,11 @@ export async function GitTab(props: Props) {
               hint={t('git.previewChecksHint')}
               defaultChecked={git.previewChecks}
             />
+            <FormCheckbox
+              name="onlyRootChanges"
+              label={t('git.onlyRootChanges')}
+              defaultChecked={git.onlyRootChanges}
+            />
             <div className={styles.actions}>
               <SubmitButton>{t('git.save')}</SubmitButton>
             </div>
