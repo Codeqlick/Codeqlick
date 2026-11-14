@@ -50,7 +50,19 @@ export async function saveArchive(
  */
 export function downloadFailure(error: unknown, file: string): Error {
   const failure = error as NodeJS.ErrnoException;
-  if (failure?.syscall) return new Error(`Can't save ${file}: ${failure.message}`);
+  const fileSystem = [
+    'EACCES',
+    'EPERM',
+    'EISDIR',
+    'ENOTDIR',
+    'ENOENT',
+    'ENOSPC',
+    'EROFS',
+    'EEXIST',
+  ];
+  if (failure?.code && fileSystem.includes(failure.code)) {
+    return new Error(`Can't save ${file}: ${failure.message}`);
+  }
   const detail = (failure?.cause as Error | undefined)?.message ?? failure?.message ?? 'unknown';
   return new Error(`The download was cut (${detail}); nothing was saved.`);
 }

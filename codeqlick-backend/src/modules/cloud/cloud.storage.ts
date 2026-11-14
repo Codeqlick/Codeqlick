@@ -254,6 +254,9 @@ export class CloudStorage {
       if (isMissing(error)) return null;
       throw error;
     }
+    // A failure before Nest pipes the stream (while the event is recorded) must not crash the
+    // process; Nest's own handler takes over once it pipes, and the connection is cut.
+    out.on('error', () => undefined);
     return out;
   }
 
