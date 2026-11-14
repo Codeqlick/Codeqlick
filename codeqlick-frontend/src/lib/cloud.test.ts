@@ -6,6 +6,7 @@ import {
   cloudEventFiltersQuery,
   cloudSlug,
   configJson,
+  envImportErrors,
   formatBytes,
   hookBranchValid,
   hookName,
@@ -186,5 +187,25 @@ describe('cloudEventFiltersQuery', () => {
       '?from=2026-01-01&action=domain.added',
     );
     expect(cloudEventFiltersQuery({ action: 'a b&c' })).toBe('?action=a+b%26c');
+  });
+});
+
+describe('envImportErrors', () => {
+  it('keeps the line, the name and the message, in line order', () => {
+    expect(
+      envImportErrors([
+        { path: 'content', line: 7, key: 'API_KEY', message: 'Twice in the file' },
+        { path: 'content', line: 2, message: 'Not KEY=value' },
+      ]),
+    ).toEqual([
+      { line: 2, message: 'Not KEY=value' },
+      { line: 7, key: 'API_KEY', message: 'Twice in the file' },
+    ]);
+  });
+
+  it('leaves the line out when the API names none', () => {
+    expect(envImportErrors([{ path: 'lines.4', message: 'Too long' }])).toEqual([
+      { line: null, message: 'Too long' },
+    ]);
   });
 });

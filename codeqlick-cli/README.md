@@ -34,9 +34,15 @@ Builds from Git (connect GitHub once in the console's Git tab):
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `git` / `git connect <owner/repo>` / `git disconnect`                   | The repository and build settings                                               |
 | `env` / `env add <KEY> [value]` / `env rm <KEY>`                        | Variables (without a value: stdin or hidden prompt)                             |
+| `env import <file> [--production] [--preview] [--overwrite]`            | Add a `.env` file's variables, all or nothing                                   |
 | `hooks` / `hooks add <name> [--branch]` / `hooks rm <id or name>`       | Deploy hooks: a secret URL a CMS calls to rebuild a branch                      |
 | `builds` / `builds start [--branch] [--no-cache]` / `builds cancel <n>` | List, build now and follow (`--no-cache`: without the dependency cache), cancel |
 | `logs [number]`                                                         | A build's log, followed while it runs                                           |
+
+`env import` reads dotenv syntax (`KEY=value`, `export `, quotes, `#` comments) and saves nothing
+when a line is wrong, printing each line's problem; names that already exist are skipped unless
+`--overwrite`. Values are never printed. `-` as the file reads it from standard input
+(`some-secret-tool export | codeqlick env import -`).
 
 `hooks add` prints the hook's URL once: paste it in the CMS's webhook (a `POST`, no body needed). Builds a hook queued show as `<branch> (hook <name>)` in `builds`.
 

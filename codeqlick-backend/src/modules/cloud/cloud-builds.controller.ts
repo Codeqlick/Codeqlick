@@ -37,6 +37,7 @@ import {
   buildParamSchema,
   builderBuildParamSchema,
   claimSchema,
+  envImportSchema,
   envKeyQuerySchema,
   envVarSchema,
   finishSchema,
@@ -50,6 +51,7 @@ import {
   type BuildParam,
   type BuilderBuildParam,
   type ClaimInput,
+  type EnvImportInput,
   type EnvKeyQuery,
   type EnvVarInput,
   type FinishInput,
@@ -61,6 +63,7 @@ import {
   type ReposQuery,
   type TeamParam,
 } from './cloud.schemas.js';
+import type { EnvImportOutcome } from './cloud-builds.repository.js';
 import {
   CloudBuildsService,
   type BuildDetail,
@@ -230,6 +233,17 @@ export class CloudBuildsController {
     @Body({ schema: envVarSchema }) body: EnvVarInput,
   ) {
     return this.builds.setEnvVar(ctx, params.id, body);
+  }
+
+  @Post('projects/:id/env/import')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  importEnv(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: envImportSchema }) body: EnvImportInput,
+  ): Promise<EnvImportOutcome> {
+    return this.builds.importEnvVars(ctx, params.id, body);
   }
 
   @Delete('projects/:id/env')
