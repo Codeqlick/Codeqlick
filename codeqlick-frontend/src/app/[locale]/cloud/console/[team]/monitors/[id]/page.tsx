@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { MonitorStatus } from '@/components/cloud/MonitorStatus';
+import { ResponseStats } from '@/components/cloud/ResponseStats';
 import { formatUptime, UptimeBars } from '@/components/cloud/UptimeBars';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -176,6 +177,41 @@ export default async function CloudMonitorPage({ params }: PageProps) {
         <UptimeBars days={monitor.days} locale={locale} label={t('monitors.uptime90')} />
         <p className={styles.small}>{t('monitors.uptime90')}</p>
       </section>
+
+      {monitor.kind === 'HTTP' && monitor.responseStats ? (
+        <section className={styles.card} aria-labelledby="response-title">
+          <h2 id="response-title" className={styles.cardTitle}>
+            {t('monitors.responseTime')}
+          </h2>
+          <ResponseStats
+            locale={locale}
+            stats={monitor.responseStats}
+            labels={{
+              group: t('monitors.responseWindow'),
+              windows: {
+                '24h': t('monitors.windows.24h'),
+                '7d': t('monitors.windows.7d'),
+                '30d': t('monitors.windows.30d'),
+              },
+              median: t('monitors.responseMedian'),
+              p95: t('monitors.responseP95'),
+              average: t('monitors.responseAverage'),
+              empty: t('monitors.responseEmpty'),
+              basedOn: {
+                '24h': t('monitors.responseBased', {
+                  count: monitor.responseStats['24h']?.checks ?? 0,
+                }),
+                '7d': t('monitors.responseBased', {
+                  count: monitor.responseStats['7d']?.checks ?? 0,
+                }),
+                '30d': t('monitors.responseBased', {
+                  count: monitor.responseStats['30d']?.checks ?? 0,
+                }),
+              },
+            }}
+          />
+        </section>
+      ) : null}
 
       {monitor.kind === 'HTTP' && monitor.checks.length > 0 ? (
         <section className={styles.card} aria-labelledby="checks-title">
