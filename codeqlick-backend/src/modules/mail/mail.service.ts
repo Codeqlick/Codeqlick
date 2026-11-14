@@ -16,6 +16,11 @@ export interface MailMessage {
   icalEvent?: { method: 'REQUEST' | 'CANCEL'; content: string };
   /** Extra headers, e.g. `List-Unsubscribe` (architecture 4.14). */
   headers?: Record<string, string>;
+  /**
+   * One-click unsubscribe URL of an optional email (architecture 4.3, decision 50): sent as the
+   * RFC 8058 `List-Unsubscribe` and `List-Unsubscribe-Post` headers. Transactional emails have none.
+   */
+  listUnsubscribe?: string;
 }
 
 /** The subset of a Nodemailer transporter we rely on (avoids its generic types). */
@@ -66,6 +71,12 @@ export class MailService {
       replyTo: message.replyTo,
       icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
       headers: message.headers,
+      headers: message.listUnsubscribe
+        ? {
+            'List-Unsubscribe': `<${message.listUnsubscribe}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          }
+        : undefined,
     });
     if (this.outbox) await this.keep(message);
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);
@@ -78,7 +89,12 @@ export class MailService {
     const name = `${Date.now()}-${randomBytes(4).toString('hex')}.json`;
     await writeFile(
       join(folder, name),
-      JSON.stringify({ to: message.to, subject: message.subject, text: message.text }),
+      JSON.stringify({
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+        ...(message.listUnsubscribe ? { listUnsubscribe: message.listUnsubscribe } : {}),
+      }),
     );
   }
 }

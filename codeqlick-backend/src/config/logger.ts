@@ -57,6 +57,16 @@ export function serializeRequest(request: LoggedRequest) {
   };
 }
 
+const TOKEN_PARAM = /([?&]token=)[^&#]*/gi;
+
+/**
+ * A URL with the value of every `token` query parameter replaced: the unsubscribe links' tokens
+ * (and any other link token) never reach the logs.
+ */
+export function redactUrlTokens(url: string): string {
+  return url.replace(TOKEN_PARAM, '$1[redacted]');
+}
+
 /** nestjs-pino options: JSON logs in production, pretty logs in development. */
 export function buildLoggerParams(config: AppConfigService): Params {
   return {
@@ -75,8 +85,16 @@ export function buildLoggerParams(config: AppConfigService): Params {
           '*.passwordHash',
           'refreshToken',
           '*.refreshToken',
+          'req.query.token',
         ],
         censor: '[redacted]',
+      },
+      serializers: {
+        // Receives pino's serialized request; only its URL is touched.
+        req: (req: { url?: string }) => {
+          if (typeof req.url === 'string') req.url = redactUrlTokens(req.url);
+          return req;
+        },
       },
       autoLogging: {
         ignore: (req: IncomingMessage) => (req.url ?? '').startsWith('/v1/health'),
