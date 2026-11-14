@@ -144,6 +144,12 @@ export type TransferProjectInput = z.infer<typeof transferProjectSchema>;
 export const deploymentParamSchema = z.object({ id: z.uuid(), deploymentId: z.uuid() });
 export type DeploymentParam = z.infer<typeof deploymentParamSchema>;
 
+/** `?with=production|<deploymentId>` of a comparison (production when left out). */
+export const compareQuerySchema = z.object({
+  with: z.union([z.literal('production'), z.uuid()]).default('production'),
+});
+export type CompareQuery = z.infer<typeof compareQuerySchema>;
+
 const optionalText = (max: number) =>
   z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),

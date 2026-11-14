@@ -5084,6 +5084,47 @@
       "adminsOnly": "Solo los propietarios y administradores del equipo pueden cambiarla.",
       "locked": "Pide contraseña"
     },
+    "deployment": {
+      "metaTitle": "Despliegue",
+      "title": "Despliegue {id}",
+      "tabs": {
+        "files": "Archivos",
+        "compare": "Comparar con producción"
+      },
+      "filesSummary": "{count, plural, one {# archivo} other {# archivos}}, {size} en total",
+      "filesEmpty": "Este despliegue no tiene archivos.",
+      "filesGone": "Los archivos de este despliegue ya no están en el servidor, así que no se pueden listar.",
+      "filesCaption": "Archivos de este despliegue",
+      "filter": "Filtrar archivos",
+      "filterHint": "Parte de la ruta, p. ej. assets/ o .css. Si escribes varias palabras, deben coincidir todas.",
+      "matches": "{count, plural, =0 {Ningún archivo coincide.} one {Coincide # archivo.} other {Coinciden # archivos.}}",
+      "showing": "Se muestran los primeros {shown, number} de {count, plural, one {# archivo} other {# archivos}}.",
+      "showMore": "Mostrar {count, number} más",
+      "path": "Ruta",
+      "size": "Tamaño",
+      "compare": {
+        "lead": "Qué cambia si publicas este despliegue, frente a producción ({id}). Los archivos se comparan por tamaño y contenido; no se descarga nada.",
+        "leadPlain": "Qué cambia si publicas este despliegue, frente a producción. Los archivos se comparan por tamaño y contenido; no se descarga nada.",
+        "noProduction": "Este proyecto aún no tiene nada publicado, así que no hay con qué comparar.",
+        "gone": "Los archivos de este despliegue o de producción ya no están en el servidor, así que no se pueden comparar.",
+        "identical": "Los mismos archivos que producción.",
+        "thisTotal": "Este despliegue",
+        "productionTotal": "Producción",
+        "unchanged": "Sin cambios",
+        "unchangedCount": "{count, plural, one {# archivo} other {# archivos}}",
+        "added": "Añadidos",
+        "addedHelp": "En este despliegue, no en producción.",
+        "removed": "Eliminados",
+        "removedHelp": "En producción, no en este despliegue.",
+        "changed": "Modificados",
+        "changedHelp": "En ambos, con distinto tamaño o contenido.",
+        "none": "Ninguno.",
+        "previousSize": "Producción",
+        "newSize": "Este despliegue",
+        "change": "Diferencia",
+        "more": "{count, plural, one {No se muestra # archivo más} other {No se muestran # archivos más}}. Míralos todos con {command}."
+      }
+    },
     "members": {
       "title": "Miembros",
       "invite": "Invitar a alguien",

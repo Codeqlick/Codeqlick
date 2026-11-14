@@ -10,18 +10,20 @@ npx @codeqlick/cli deploy dist --prod
 
 Every deployment gets its own address (`https://<project>--<id>.codeqlick.app`); `--prod` also
 publishes it at `https://<project>.codeqlick.app` and on your domains. `codeqlick rollback` goes
-back in a second.
+back in a second. A deployment is named by its id or short id (see `deployments`); `files`
+and `diff` take `--json` to print the API's answer.
 
-| Command                                     | What it does                                 |
-| ------------------------------------------- | -------------------------------------------- |
-| `login [--token <cqk_…>]`                   | Sign in through the browser, or save a token |
-| `logout` / `whoami`                         | Forget the token / your account and teams    |
-| `init`                                      | Link the folder to a project                 |
-| `deploy [folder] [--prod] [-m <text>]`      | Upload the folder as a new deployment        |
-| `deployments` / `promote <id>` / `rollback` | List, publish an earlier one, go back        |
+| Command                                     | What it does                                                            |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `login [--token <cqk_…>]`                   | Sign in through the browser, or save a token                            |
+| `logout` / `whoami`                         | Forget the token / your account and teams                               |
+| `init`                                      | Link the folder to a project                                            |
+| `deploy [folder] [--prod] [-m <text>]`      | Upload the folder as a new deployment                                   |
+| `deployments` / `promote <id>` / `rollback` | List, publish an earlier one, go back                                   |
+| `files <id>` / `diff <id> [other]`          | A deployment's files / compare it with production or another deployment |
 | `download [id] [-o <file>] [--force]`       | Save a deployment's files as a `tar.gz`      |
-| `domains [add\|check\|rm <domain>]`         | The project's own domains                    |
-| `open`                                      | Open the published site                      |
+| `domains [add\|check\|rm <domain>]`         | The project's own domains                                               |
+| `open`                                      | Open the published site                                                 |
 
 `download` saves the production deployment (or the one you name, by its short id) as
 `<project>-<id>.tar.gz` in the current folder; unpack it with `tar -xzf`. It never overwrites a

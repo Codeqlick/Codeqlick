@@ -245,3 +245,34 @@ export function cloudTokenOptions(form: { team: string; expiry: string; access: 
     readOnly: form.access === 'readOnly',
   };
 }
+
+/** A deployment's id as the API gives it (a UUID); anything else in the address is a 404. */
+export function isDeploymentId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/** Rows the Files tab shows at first, and how many more each "Show more" adds. */
+export const FILE_ROWS_STEP = 500;
+
+/**
+ * The files whose path contains every word of `query` (split on spaces), ignoring case. An empty
+ * query returns the same array, so a memoised list doesn't change.
+ */
+export function filterFiles<T extends { path: string }>(
+  items: readonly T[],
+  query: string,
+): readonly T[] {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return items;
+  return items.filter((item) => {
+    const path = item.path.toLowerCase();
+    return words.every((word) => path.includes(word));
+  });
+}
+
+/** How a changed file's size moved: "+1.5 KB", "−512 B" (a true minus sign) or "±0 B". */
+export function formatSizeChange(size: number, previousSize: number, locale: string): string {
+  const delta = size - previousSize;
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±';
+  return `${sign}${formatBytes(Math.abs(delta), locale)}`;
+}

@@ -1,0 +1,128 @@
+/* A deployment's files and its comparison with production (architecture 4.13, "Files and comparison"). */
+
+.files {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.filter {
+  max-width: 28rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: top;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--color-slate);
+  background: var(--color-surface-app);
+}
+
+.path {
+  font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
+}
+
+.table .number {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  font-size: 0.9rem;
+  color: var(--color-slate);
+  display: block;
+  margin: 0;
+}
+
+.groups {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.group {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  min-width: 0;
+}
+
+.group > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  font-family: var(--font-family-display);
+  font-weight: 600;
+}
+
+.group > summary:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.count {
+  min-width: 2rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-blush);
+  color: var(--color-ink);
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-align: center;
+}
+
+.groupBody {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.totals div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.totals dt {
+  font-size: 0.85rem;
+  color: var(--color-slate);
+}
+
+.totals dd {
+  margin: 0;
+  font-family: var(--font-family-mono);
+}
