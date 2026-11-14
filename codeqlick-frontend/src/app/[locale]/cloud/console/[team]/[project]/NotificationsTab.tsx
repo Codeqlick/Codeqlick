@@ -95,7 +95,9 @@ export async function NotificationsTab(props: Props) {
       {loadedForms === null ? (
         <>
           <input type="hidden" name="formsUnknown" value="on" />
-          <p className={styles.small}>{t('notify.formsLoadError')}</p>
+          <p className={styles.small}>
+            {channel ? t('notify.formsLoadError') : t('notify.formsLoadErrorNew')}
+          </p>
         </>
       ) : formOptions.length > 0 ? (
         <FormCheckboxGroup

@@ -386,6 +386,7 @@ describe('Codeqlick Cloud forms (e2e)', () => {
     await prisma.cloudFormSubmission.deleteMany({
       where: { formId: contact.id, email: 'filler@example.com' },
     });
+    const beforeQuote = new Date();
     await request(server)
       .post(`/v1/cloud/forms/${quote.key}`)
       .set(visitor)
@@ -401,7 +402,15 @@ describe('Codeqlick Cloud forms (e2e)', () => {
     expect(text).toContain('new submission to *Quote*');
     expect(text).toContain('budget: &lt;!channel&gt; 5000 &amp; up');
 
-    // A 429 is recorded but never counts towards switching the channel off.
+    // A 429 is recorded but never counts towards switching the channel off (once the webhook's
+    // Quote delivery is recorded, so its reset of the count can't land afterwards).
+    await vi.waitFor(async () => {
+      const recorded = await prisma.cloudNotifyChannel.findUniqueOrThrow({
+        where: { id: hook.body.id as string },
+      });
+      expect(recorded.lastOk).toBe(true);
+      expect(recorded.lastSentAt!.getTime()).toBeGreaterThanOrEqual(beforeQuote.getTime());
+    });
     await prisma.cloudNotifyChannel.update({
       where: { id: hook.body.id as string },
       data: { failures: 9 },
