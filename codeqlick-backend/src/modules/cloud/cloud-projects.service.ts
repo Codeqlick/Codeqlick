@@ -22,8 +22,14 @@ import {
 } from './cloud-plans.js';
 import { CloudRepository, type DeploymentRow, type ProjectRow } from './cloud.repository.js';
 import type { CreateProjectInput, DeploymentFields, UpdateProjectInput } from './cloud.schemas.js';
+import {
+  filesView,
+  type DeploymentComparison,
+  type DeploymentFilesView,
+} from './cloud-deployment-files.js';
 import { BundleError, CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
 import { CloudDiskService } from './cloud-disk.service.js';
+import { lockChange, type LockChange } from './cloud-production-lock.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { CloudTokensService } from './cloud-tokens.service.js';
 
@@ -52,6 +58,8 @@ export interface ProjectView {
   production: DeploymentView | null;
   domains: Array<{ name: string; state: 'PENDING' | 'VERIFIED' | 'LIVE' | 'ERROR' }>;
   suspended: { at: string; reason: string } | null;
+  /** Set after a rollback: builds from Git don't move production until a release or an unlock. */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
   createdAt: string;
 }
 
@@ -63,6 +71,8 @@ const DAY_MS = 86_400_000;
 export class CloudProjectsService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(CloudProjectsService.name);
   private timer?: NodeJS.Timeout;
+  /** Per project, the last production switch: switches (database, then disk) run one at a time. */
+  private readonly switches = new Map<string, Promise<unknown>>();
 
   constructor(
     private readonly repository: CloudRepository,
@@ -191,6 +201,45 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     return this.deploymentView(project, row);
   }
 
+  /** What a kept deployment contains (paths and sizes, never contents); 404 when its files are gone. */
+  async files(ctx: CloudCtx, id: string, deploymentId: string): Promise<DeploymentFilesView> {
+    const { project } = await this.project(ctx, id);
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    const files = await this.storage.deploymentFiles(row.id);
+    if (!files) throw new NotFoundException("This deployment's files are gone");
+    return filesView(files);
+  }
+
+  /**
+   * Compares a deployment with production (`with` = `production`, 409 when there is none) or with
+   * another deployment of the same project; 404 when either is unknown or its files are gone.
+   */
+  async compare(
+    ctx: CloudCtx,
+    id: string,
+    deploymentId: string,
+    withRef: string,
+  ): Promise<DeploymentComparison> {
+    const { project } = await this.project(ctx, id);
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    let withId: string;
+    if (withRef === 'production') {
+      if (!project.productionDeploymentId) {
+        throw new ConflictException('This project has no production deployment');
+      }
+      withId = project.productionDeploymentId;
+    } else {
+      const other = await this.repository.findDeployment(project.id, withRef);
+      if (!other) throw new NotFoundException('Deployment to compare with not found');
+      withId = other.id;
+    }
+    const comparison = await this.storage.compareDeployments(row.id, withId);
+    if (!comparison) throw new NotFoundException("The deployments' files are gone");
+    return comparison;
+  }
+
   /**
    * Unpacks an uploaded bundle as a new deployment; production ones go live at once. The upload
    * (a temporary file) is always deleted.
@@ -206,6 +255,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       this.storage.hosting();
       const { project, membership } = await this.project(ctx, id);
       return await this.deployBundle(project, membership.team.plan, bundle, fields, {
+        source: 'upload',
         ctx,
         createdById: ctx.user.id,
         tokenId: ctx.user.token?.id ?? null,
@@ -218,13 +268,21 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
   /**
    * Checks the team's limits, unpacks a bundle as a new deployment and, for production, publishes
    * it. Shared by uploads (`codeqlick deploy`) and builds from Git; the caller deletes the bundle.
+   * An upload to production unlocks a locked production; a production build while it is locked
+   * stays a preview (its view says `isProduction: false`).
    */
   async deployBundle(
     project: ProjectRow,
     plan: 'FREE' | 'PRO',
     bundle: string,
     fields: DeploymentFields,
-    who: { ctx?: CloudCtx; actorName?: string; createdById: string | null; tokenId: string | null },
+    who: {
+      source: 'upload' | 'build';
+      ctx?: CloudCtx;
+      actorName?: string;
+      createdById: string | null;
+      tokenId: string | null;
+    },
   ): Promise<DeploymentView> {
     this.storage.hosting();
     if (project.suspendedAt) throw new ForbiddenException('This project is suspended');
@@ -276,14 +334,18 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       await this.storage.removeDeployment(deploymentId);
       throw error;
     }
-    const record = (action: string, details?: Record<string, string | number>) =>
+    const record = (
+      action: string,
+      details?: Record<string, string | number>,
+      target = `${project.slug}--${shortId}`,
+    ) =>
       who.ctx
-        ? this.teams.record(who.ctx, project.teamId, action, `${project.slug}--${shortId}`, details)
+        ? this.teams.record(who.ctx, project.teamId, action, target, details)
         : this.teams.recordSystem(
             project.teamId,
             who.actorName ?? 'Codeqlick Cloud',
             action,
-            `${project.slug}--${shortId}`,
+            target,
             details,
           );
     await record('deployment.created', {
@@ -293,8 +355,27 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       ...(fields.commit ? { commit: fields.commit } : {}),
     });
     if (fields.target === 'production') {
-      await this.makeProduction(project, deploymentId);
+      let unlocked = false;
+      if (who.source === 'build') {
+        // While locked, a build from Git deploys but doesn't move production (decided in the
+        // update itself, so a lock made meanwhile counts).
+        const published = await this.oneSwitchAtATime(project.id, async () => {
+          if (!(await this.repository.publishUnlessLocked(project.id, deploymentId))) return false;
+          await this.storage.link(productionLabel(project.slug), deploymentId);
+          return true;
+        });
+        if (!published) return this.deploymentView(project, row);
+      } else {
+        // An explicit release (`codeqlick deploy --prod`) unlocks.
+        const change = lockChange({ kind: 'upload' });
+        unlocked = await this.oneSwitchAtATime(project.id, () =>
+          this.makeProduction(project, deploymentId, change, who.createdById),
+        );
+      }
       await record('deployment.promoted');
+      if (unlocked) {
+        await record('project.production_unlocked', { deployment: shortId }, project.slug);
+      }
       return this.deploymentView({ ...project, productionDeploymentId: deploymentId }, row);
     }
     return this.deploymentView(project, row);
@@ -306,20 +387,83 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     this.storage.hosting();
     const row = await this.repository.findDeployment(project.id, deploymentId);
     if (!row) throw new NotFoundException('Deployment not found');
-    await this.makeProduction(project, row.id);
+    const { change, wasLocked } = await this.oneSwitchAtATime(project.id, async () => {
+      // Older than the current production (a rollback) locks it; newer unlocks (architecture
+      // 4.13). Compared with production as it is now, not as it was when the request came in.
+      const current = (await this.repository.findProject(project.id))?.production ?? null;
+      const change = lockChange({
+        kind: 'promote',
+        current: current ? { id: current.id, createdAt: current.createdAt } : null,
+        promoted: { id: row.id, createdAt: row.createdAt },
+      });
+      return {
+        change,
+        wasLocked: await this.makeProduction(project, row.id, change, ctx.user.id),
+      };
+    });
     await this.teams.record(
       ctx,
       project.teamId,
       'deployment.promoted',
       `${project.slug}--${row.shortId}`,
     );
+    // Promoting another older one while locked keeps the first lock: no event then.
+    if (change === 'lock' && !wasLocked) {
+      await this.teams.record(ctx, project.teamId, 'project.production_locked', project.slug, {
+        deployment: row.shortId,
+      });
+    } else if (change === 'unlock' && wasLocked) {
+      await this.teams.record(ctx, project.teamId, 'project.production_unlocked', project.slug, {
+        deployment: row.shortId,
+      });
+    }
     const updated = await this.repository.findProject(project.id);
     return this.view(updated ?? project);
   }
 
-  private async makeProduction(project: ProjectRow, deploymentId: string): Promise<void> {
-    await this.repository.updateProject(project.id, { productionDeploymentId: deploymentId });
+  /** Unlocks production without publishing anything (ADMIN); unchanged when it wasn't locked. */
+  async unlock(ctx: CloudCtx, id: string): Promise<ProjectView> {
+    const { project } = await this.project(ctx, id, 'ADMIN');
+    if (!(await this.repository.unlockProduction(project.id))) return this.view(project);
+    await this.teams.record(ctx, project.teamId, 'project.production_unlocked', project.slug);
+    const updated = await this.repository.findProject(project.id);
+    return this.view(updated ?? project);
+  }
+
+  /**
+   * Runs production switches of one project one at a time, so the database and the disk's
+   * production link can't end up pointing at different deployments (one API instance).
+   */
+  private oneSwitchAtATime<T>(projectId: string, fn: () => Promise<T>): Promise<T> {
+    const previous = this.switches.get(projectId) ?? Promise.resolve();
+    const next = previous.then(fn, fn);
+    const settled = next.catch(() => undefined);
+    this.switches.set(projectId, settled);
+    void settled.then(() => {
+      if (this.switches.get(projectId) === settled) this.switches.delete(projectId);
+    });
+    return next;
+  }
+
+  /**
+   * Publishes a deployment, applying the lock change in the same transaction as the switch;
+   * whether production was locked before. Called inside `oneSwitchAtATime`.
+   */
+  private async makeProduction(
+    project: ProjectRow,
+    deploymentId: string,
+    change: LockChange,
+    by: string | null,
+  ): Promise<boolean> {
+    const { wasLocked } = await this.repository.setProduction(
+      project.id,
+      deploymentId,
+      change,
+      by,
+      new Date(),
+    );
     await this.storage.link(productionLabel(project.slug), deploymentId);
+    return wasLocked;
   }
 
   async removeDeployment(ctx: CloudCtx, id: string, deploymentId: string): Promise<void> {
@@ -395,6 +539,9 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
         project.suspendedAt && project.suspendedReason
           ? { at: project.suspendedAt.toISOString(), reason: project.suspendedReason }
           : null,
+      productionLock: project.productionLockedAt
+        ? { at: project.productionLockedAt.toISOString(), by: project.productionLockedBy }
+        : null,
       createdAt: project.createdAt.toISOString(),
     };
   }

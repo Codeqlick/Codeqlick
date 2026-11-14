@@ -10,17 +10,25 @@ npx @codeqlick/cli deploy dist --prod
 
 Every deployment gets its own address (`https://<project>--<id>.codeqlick.app`); `--prod` also
 publishes it at `https://<project>.codeqlick.app` and on your domains. `codeqlick rollback` goes
-back in a second.
+back in a second. A deployment is named by its id or short id (see `deployments`); `files`,
+`diff` and `unlock` take `--json` to print the API's answer.
 
-| Command                                     | What it does                                 |
-| ------------------------------------------- | -------------------------------------------- |
-| `login [--token <cqk_…>]`                   | Sign in through the browser, or save a token |
-| `logout` / `whoami`                         | Forget the token / your account and teams    |
-| `init`                                      | Link the folder to a project                 |
-| `deploy [folder] [--prod] [-m <text>]`      | Upload the folder as a new deployment        |
-| `deployments` / `promote <id>` / `rollback` | List, publish an earlier one, go back        |
-| `domains [add\|check\|rm <domain>]`         | The project's own domains                    |
-| `open`                                      | Open the published site                      |
+Going back to an older deployment (`rollback`, or `promote` of an older one) **locks**
+production: builds from Git still run, but deploy as previews, so the bug you rolled back can't
+return with the next push. `deploy --prod`, promoting a newer deployment or `codeqlick unlock`
+(team admins) lifts the lock.
+
+| Command                                     | What it does                                                            |
+| ------------------------------------------- | ----------------------------------------------------------------------- |
+| `login [--token <cqk_…>]`                   | Sign in through the browser, or save a token                            |
+| `logout` / `whoami`                         | Forget the token / your account and teams                               |
+| `init`                                      | Link the folder to a project                                            |
+| `deploy [folder] [--prod] [-m <text>]`      | Upload the folder as a new deployment                                   |
+| `deployments` / `promote <id>` / `rollback` | List, publish an earlier one, go back                                   |
+| `unlock`                                    | Let production builds go live again after a rollback                    |
+| `files <id>` / `diff <id> [other]`          | A deployment's files / compare it with production or another deployment |
+| `domains [add\|check\|rm <domain>]`         | The project's own domains                                               |
+| `open`                                      | Open the published site                                                 |
 
 Builds from Git (connect GitHub once in the console's Git tab):
 

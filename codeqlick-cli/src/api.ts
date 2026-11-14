@@ -42,6 +42,28 @@ export interface Deployment {
   createdAt: string;
 }
 
+export interface DeploymentFile {
+  path: string;
+  size: number;
+}
+
+export interface DeploymentFiles {
+  items: DeploymentFile[];
+  count: number;
+  totalBytes: number;
+}
+
+export interface DeploymentComparison {
+  deploymentId: string;
+  withId: string;
+  added: DeploymentFile[];
+  removed: DeploymentFile[];
+  changed: Array<DeploymentFile & { previousSize: number }>;
+  unchanged: number;
+  totalBytes: number;
+  withTotalBytes: number;
+}
+
 export interface Project {
   id: string;
   slug: string;
@@ -51,6 +73,8 @@ export interface Project {
   production: Deployment | null;
   domains: Array<{ name: string; state: string }>;
   suspended: { at: string; reason: string } | null;
+  /** Set after a rollback: builds from Git deploy as previews until it's lifted. */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
 }
 
 export interface Domain {
@@ -269,6 +293,18 @@ export class Api {
     );
   promote = (project: string, deployment: string) =>
     this.request<Project>('POST', `/cloud/projects/${project}/deployments/${deployment}/promote`);
+  unlockProduction = (project: string) =>
+    this.request<Project>('POST', `/cloud/projects/${project}/production/unlock`);
+  files = (project: string, deployment: string) =>
+    this.request<DeploymentFiles>(
+      'GET',
+      `/cloud/projects/${project}/deployments/${deployment}/files`,
+    );
+  compare = (project: string, deployment: string, other: string) =>
+    this.request<DeploymentComparison>(
+      'GET',
+      `/cloud/projects/${project}/deployments/${deployment}/compare?with=${encodeURIComponent(other)}`,
+    );
   domains = (project: string) =>
     this.request<{ items: Domain[] }>('GET', `/cloud/projects/${project}/domains`).then(
       (r) => r.items,

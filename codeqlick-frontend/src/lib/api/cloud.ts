@@ -72,6 +72,11 @@ export type CloudProject = {
   production: CloudDeployment | null;
   domains: Array<{ name: string; state: CloudDomainState }>;
   suspended: { at: string; reason: string } | null;
+  /**
+   * Set when a rollback locked production (architecture 4.13): production builds from Git deploy
+   * as previews until someone publishes or unlocks. `by` is null when that person left the team.
+   */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
   createdAt: string;
 };
 
@@ -229,11 +234,59 @@ export const listCloudDeployments = (id: string, page = 1) =>
     query: { page, pageSize: 20 },
   });
 
+export const getCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}`,
+    auth,
+  );
+
+/** A file of a deployment: its path relative to the deployment's folder and its size in bytes. */
+export type CloudDeploymentFile = { path: string; size: number };
+
+export type CloudDeploymentFiles = {
+  /** Sorted by path (byte order), at most 10,000. */
+  items: CloudDeploymentFile[];
+  count: number;
+  totalBytes: number;
+};
+
+export type CloudDeploymentComparison = {
+  deploymentId: string;
+  withId: string;
+  /** In this deployment, not in the other one. */
+  added: CloudDeploymentFile[];
+  /** In the other deployment only. */
+  removed: CloudDeploymentFile[];
+  /** In both, with a different size or SHA-256. */
+  changed: Array<CloudDeploymentFile & { previousSize: number }>;
+  unchanged: number;
+  totalBytes: number;
+  withTotalBytes: number;
+};
+
+/** `404` unknown deployment or its files are gone. */
+export const listCloudDeploymentFiles = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeploymentFiles>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}/files`,
+    auth,
+  );
+
+/** `with` is `production` or another kept deployment's id. `409` no production, `404` gone. */
+export const compareCloudDeployment = (id: string, deploymentId: string, withId = 'production') =>
+  apiFetch<CloudDeploymentComparison>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}/compare`,
+    { ...auth, query: { with: withId } },
+  );
+
 export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {
     ...write,
     method: 'POST',
   });
+
+/** Unlocks production after a rollback without publishing anything (ADMIN). `403` member. */
+export const unlockCloudProduction = (id: string) =>
+  apiFetch<CloudProject>(`/cloud/projects/${id}/production/unlock`, { ...write, method: 'POST' });
 
 export const deleteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<void>(`/cloud/projects/${id}/deployments/${deploymentId}`, {
@@ -699,6 +752,8 @@ export type CloudBuild = {
   status: CloudBuildStatus;
   error: string | null;
   deploymentId: string | null;
+  /** A production build that deployed as a preview because production was locked (4.13). */
+  keptAsPreview: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;

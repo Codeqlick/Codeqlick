@@ -37,3 +37,54 @@ export function cloudSlug(text: string, max: number): string {
     .slice(0, max)
     .replace(/-+$/, '');
 }
+
+/** A deployment's id as the API gives it (a UUID); anything else in the address is a 404. */
+export function isDeploymentId(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/** Rows the Files tab shows at first, and how many more each "Show more" adds. */
+export const FILE_ROWS_STEP = 500;
+
+/**
+ * The files whose path contains every word of `query` (split on spaces), ignoring case. An empty
+ * query returns the same array, so a memoised list doesn't change.
+ */
+export function filterFiles<T extends { path: string }>(
+  items: readonly T[],
+  query: string,
+): readonly T[] {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return items;
+  return items.filter((item) => {
+    const path = item.path.toLowerCase();
+    return words.every((word) => path.includes(word));
+  });
+}
+
+/** How a changed file's size moved: "+1.5 KB", "−512 B" (a true minus sign) or "±0 B". */
+export function formatSizeChange(size: number, previousSize: number, locale: string): string {
+  const delta = size - previousSize;
+  const sign = delta > 0 ? '+' : delta < 0 ? '−' : '±';
+  return `${sign}${formatBytes(Math.abs(delta), locale)}`;
+}
+
+/** A project's production lock after a rollback, as the API gives it (`CloudProject`). */
+export type ProductionLockInfo = { at: string; by: { id: string; name: string } | null };
+
+/**
+ * The values of the "Production is locked" banner: the production deployment's short id (null
+ * when there's none), since when, and who locked it (`who` is `former` when they left the team).
+ */
+export function productionLockValues(
+  lock: ProductionLockInfo,
+  productionShortId: string | null,
+  locale: string,
+): { id: string | null; since: string; who: 'person' | 'former'; name: string } {
+  return {
+    id: productionShortId,
+    since: formatWhen(lock.at, locale),
+    who: lock.by ? 'person' : 'former',
+    name: lock.by?.name ?? '',
+  };
+}

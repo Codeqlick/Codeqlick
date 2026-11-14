@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
+import { ProductionLockBanner } from '@/components/cloud/ProductionLockBanner';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -18,7 +20,7 @@ import {
   type CloudDomainState,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatBytes, formatWhen } from '@/lib/cloud';
+import { formatBytes, formatWhen, productionLockValues } from '@/lib/cloud';
 import {
   addDomainAction,
   checkDomainAction,
@@ -27,6 +29,7 @@ import {
   promoteAction,
   removeDomainAction,
   renameProjectAction,
+  unlockProductionAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
@@ -110,6 +113,9 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const base = `/cloud/console/${team.slug}/${project.slug}`;
   const path = `/${team.slug}/${project.slug}`;
   const admin = team.role !== 'MEMBER';
+  const lock = project.productionLock
+    ? productionLockValues(project.productionLock, project.production?.shortId ?? null, locale)
+    : null;
 
   return (
     <div className={styles.landing}>
@@ -141,6 +147,21 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           <strong>{t('project.suspendedTitle')}.</strong>{' '}
           {t('project.suspendedBody', { reason: project.suspended.reason })}
         </Alert>
+      ) : null}
+
+      {lock ? (
+        <ProductionLockBanner
+          title={t('project.lock.title', { ...lock, id: lock.id ?? t('project.lock.noId') })}
+          body={t('project.lock.body')}
+        >
+          {admin ? (
+            <ActionForm action={unlockProductionAction.bind(null, locale, path, project.id)}>
+              <SubmitButton size="sm" variant="outline" pendingLabel={t('project.lock.unlocking')}>
+                {t('project.lock.unlock')}
+              </SubmitButton>
+            </ActionForm>
+          ) : null}
+        </ProductionLockBanner>
       ) : null}
 
       {tab === 'deployments' ? (
@@ -324,7 +345,9 @@ async function Deployments({
               <li key={deployment.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <p className={styles.rowTitle}>
-                    <span className={styles.mono}>{deployment.shortId}</span>
+                    <Link href={`${base}/deployments/${deployment.id}`} className={styles.mono}>
+                      {deployment.shortId}
+                    </Link>
                     {deployment.isProduction ? (
                       <Badge tone="success">{t('project.productionTag')}</Badge>
                     ) : (
@@ -354,29 +377,35 @@ async function Deployments({
                     {deployment.branch ? ` (${deployment.branch})` : ''}
                   </p>
                 </div>
-                {deployment.isProduction ? null : (
-                  <div className={styles.actions}>
-                    <form action={promoteAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="outline">
-                        {t('project.promote')}
-                      </SubmitButton>
-                    </form>
-                    <form action={deleteDeploymentAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="ghost">
-                        {t('project.delete')}
-                        <span className="visually-hidden"> — {deployment.shortId}</span>
-                      </SubmitButton>
-                    </form>
-                  </div>
-                )}
+                <div className={styles.actions}>
+                  <Button href={`${base}/deployments/${deployment.id}`} size="sm" variant="ghost">
+                    {t('deployment.tabs.files')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </Button>
+                  {deployment.isProduction ? null : (
+                    <>
+                      <form action={promoteAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="outline">
+                          {t('project.promote')}
+                        </SubmitButton>
+                      </form>
+                      <form action={deleteDeploymentAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="ghost">
+                          {t('project.delete')}
+                          <span className="visually-hidden"> — {deployment.shortId}</span>
+                        </SubmitButton>
+                      </form>
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
