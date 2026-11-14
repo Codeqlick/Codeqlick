@@ -8,10 +8,12 @@ import {
   Header,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Patch,
   Post,
   Query,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -30,6 +32,7 @@ import {
   type PaginationQuery,
 } from '../../common/schemas/common.schemas.js';
 import type { Paginated } from '../../common/types/paginated.js';
+import { attachmentDisposition } from '../projects/project-file-name.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
 import { configJsonSchema } from './cloud-config.js';
 import { MAX_UPLOAD_BYTES } from './cloud-plans.js';
@@ -160,6 +163,8 @@ export class CloudPublicController {
 @Roles('CLIENT', 'ADMIN')
 @Controller('cloud')
 export class CloudController {
+  private readonly logger = new Logger(CloudController.name);
+
   constructor(
     private readonly tokens: CloudTokensService,
     private readonly teams: CloudTeamsService,
@@ -474,6 +479,35 @@ export class CloudController {
     @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
   ): Promise<ProjectView> {
     return this.projects.promote(ctx, params.id, params.deploymentId);
+  }
+
+  /** The deployment's files as a `tar.gz` built while it streams (decision 60). */
+  @Get('projects/:id/deployments/:deploymentId/archive')
+  @CloudApi()
+  @Header('Cache-Control', 'private, no-store')
+  async archive(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<StreamableFile> {
+    const archive = await this.projects.archive(ctx, params.id, params.deploymentId);
+    return new StreamableFile(archive.stream, {
+      type: 'application/gzip',
+      disposition: attachmentDisposition(archive.filename),
+    })
+      .setErrorHandler((error, response) => {
+        // Headers are gone by now: cut the connection so the archive can't look complete. A
+        // reader who went away is ordinary; anything else (files gone mid-way) is worth a line.
+        const code = (error as NodeJS.ErrnoException).code;
+        if (
+          code !== 'ERR_STREAM_PREMATURE_CLOSE' &&
+          code !== 'ECONNRESET' &&
+          !/aborted/i.test(error.message)
+        ) {
+          this.logger.warn(`Archive of ${params.deploymentId} cut: ${error.message}`);
+        }
+        (response as unknown as { destroy(): void }).destroy();
+      })
+      .setErrorLogger(() => undefined);
   }
 
   // ── Domains ─────────────────────────────────────────────────────────────────────────────────
