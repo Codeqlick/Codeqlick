@@ -110,7 +110,11 @@ export class CloudBuildsRepository {
   // ── Environment variables ──────────────────────────────────────────────────────────────────
 
   envVars(projectId: string): Promise<CloudEnvVar[]> {
-    return this.prisma.cloudEnvVar.findMany({ where: { projectId }, orderBy: { key: 'asc' } });
+    // By key, the general one ('') first, then its branches A–Z.
+    return this.prisma.cloudEnvVar.findMany({
+      where: { projectId },
+      orderBy: [{ key: 'asc' }, { branch: 'asc' }],
+    });
   }
 
   countEnvVars(projectId: string): Promise<number> {
@@ -123,16 +127,20 @@ export class CloudBuildsRepository {
     valueSealed: string,
     production: boolean,
     preview: boolean,
+    branch: string,
   ) {
     return this.prisma.cloudEnvVar.upsert({
-      where: { projectId_key: { projectId, key } },
-      create: { projectId, key, valueSealed, production, preview },
+      where: { projectId_key_branch: { projectId, key, branch } },
+      create: { projectId, key, branch, valueSealed, production, preview },
       update: { valueSealed, production, preview },
     });
   }
 
-  async deleteEnvVar(projectId: string, key: string): Promise<boolean> {
-    const { count } = await this.prisma.cloudEnvVar.deleteMany({ where: { projectId, key } });
+  /** Deletes one variable: the general one when `branch` is `''`. */
+  async deleteEnvVar(projectId: string, key: string, branch: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudEnvVar.deleteMany({
+      where: { projectId, key, branch },
+    });
     return count > 0;
   }
 

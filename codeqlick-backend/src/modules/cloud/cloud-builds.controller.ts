@@ -240,7 +240,7 @@ export class CloudBuildsController {
     @Param({ schema: idParamSchema }) params: IdParam,
     @Query({ schema: envKeyQuerySchema }) query: EnvKeyQuery,
   ): Promise<void> {
-    return this.builds.deleteEnvVar(ctx, params.id, query.key);
+    return this.builds.deleteEnvVar(ctx, params.id, query.key, query.branch);
   }
 
   @Get('projects/:id/builds')

@@ -18,6 +18,7 @@ import type { CloudBuild, CloudBuildTrigger } from '../../generated/prisma/clien
 import { AppConfigService } from '../../config/app-config.service.js';
 import { SecretBox } from '../auth/secret-box.js';
 import type { CloudCtx } from './cloud-caller.js';
+import { buildEnvRows } from './cloud-env.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
@@ -85,6 +86,10 @@ export interface ClaimedBuild {
   /** Values the agent hides from the log. */
   secrets: string[];
 }
+
+/** A variable in the activity log: `site: API_URL`, or `site: API_URL (staging)` for a branch's. */
+const envLabel = (slug: string, key: string, branch: string) =>
+  `${slug}: ${key}${branch ? ` (${branch})` : ''}`;
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -321,6 +326,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         key: row.key,
         production: row.production,
         preview: row.preview,
+        branch: row.branch || null,
         updatedAt: row.updatedAt.toISOString(),
       })),
     };
@@ -328,8 +334,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   async setEnvVar(ctx: CloudCtx, projectId: string, input: EnvVarInput) {
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    const branch = input.branch ?? '';
     const existing = (await this.repository.envVars(project.id)).some(
-      (row) => row.key === input.key,
+      (row) => row.key === input.key && row.branch === branch,
     );
     const limit = CLOUD_PLANS[membership.team.plan].envVarsPerProject;
     if (!existing && (await this.repository.countEnvVars(project.id)) >= limit) {
@@ -341,16 +348,33 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       this.box.seal(input.value),
       input.production,
       input.preview,
+      branch,
     );
-    await this.teams.record(ctx, project.teamId, 'env.saved', `${project.slug}: ${input.key}`);
+    await this.teams.record(
+      ctx,
+      project.teamId,
+      'env.saved',
+      envLabel(project.slug, input.key, branch),
+    );
     return this.envVars(ctx, projectId);
   }
 
-  async deleteEnvVar(ctx: CloudCtx, projectId: string, key: string): Promise<void> {
+  /** Deletes a variable: the one of `branch`, or the general one without it. */
+  async deleteEnvVar(
+    ctx: CloudCtx,
+    projectId: string,
+    key: string,
+    branch?: string,
+  ): Promise<void> {
     const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
-    if (!(await this.repository.deleteEnvVar(project.id, key)))
+    if (!(await this.repository.deleteEnvVar(project.id, key, branch ?? '')))
       throw new NotFoundException('Variable not found');
-    await this.teams.record(ctx, project.teamId, 'env.deleted', `${project.slug}: ${key}`);
+    await this.teams.record(
+      ctx,
+      project.teamId,
+      'env.deleted',
+      envLabel(project.slug, key, branch ?? ''),
+    );
   }
 
   // ── Builds ─────────────────────────────────────────────────────────────────────────────────
@@ -638,10 +662,11 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         project.gitInstallationId,
         project.gitRepoId,
       );
+      // build.branch is the pushed branch, or a pull request's head branch.
       const env: Record<string, string> = {};
-      for (const row of await this.repository.envVars(project.id)) {
-        if (build.target === 'PRODUCTION' ? row.production : row.preview)
-          env[row.key] = this.box.open(row.valueSealed);
+      const rows = await this.repository.envVars(project.id);
+      for (const row of buildEnvRows(rows, build.target, build.branch)) {
+        env[row.key] = this.box.open(row.valueSealed);
       }
       const plan = CLOUD_PLANS[project.team.plan];
       return {
