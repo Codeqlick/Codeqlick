@@ -87,6 +87,7 @@ describe('PostsService', () => {
       content: 'Hola content',
       coverImageUrl: null,
       publishedAt: publishedAt.toISOString(),
+      readingMinutes: 1,
       locales: ['en', 'es'],
       tags: [],
     });
@@ -129,6 +130,7 @@ describe('PostsService', () => {
           excerpt: 'Hello excerpt',
           coverImageUrl: null,
           publishedAt: publishedAt.toISOString(),
+          readingMinutes: 1,
           tags: [],
         },
       ],

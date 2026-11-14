@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import { readingMinutes } from '../../common/reading-time.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
@@ -32,6 +33,7 @@ export interface PostSummary {
   excerpt: string;
   coverImageUrl: string | null;
   publishedAt: string;
+  readingMinutes: number;
   tags: PublicTag[];
 }
 
@@ -118,6 +120,7 @@ export class PostsService {
       excerpt: translation.excerpt,
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      readingMinutes: readingMinutes(translation.content),
       content: translation.content,
       locales: availableLocales(post.translations),
       tags: publicTags(post, locale),
@@ -235,6 +238,7 @@ export class PostsService {
       excerpt: translation.excerpt,
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      readingMinutes: readingMinutes(translation.content),
       tags: publicTags(post, locale),
     };
   }

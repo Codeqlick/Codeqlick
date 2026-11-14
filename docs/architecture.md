@@ -1066,7 +1066,7 @@ type AuthUser = { id: string; email: string; name: string; role: 'ADMIN' | 'CLIE
 type AuthTokens = { accessToken: string; refreshToken: string; expiresIn: number; user: AuthUser };
 
 type PostSummary = { slug: string; title: string; excerpt: string; coverImageUrl: string | null; publishedAt: string; readingMinutes: number; tags: { slug: string; name: string }[] };
-// readingMinutes: words of the returned translation's Markdown content (code blocks, link targets and image addresses not counted) / 220, rounded up, at least 1. Computed by the API when it reads the post; not stored.
+// readingMinutes: words of the returned translation's Markdown content (fenced code blocks, HTML tags, link targets and image addresses not counted) / 220, rounded up, at least 1. Computed by the API when it reads the post; not stored.
 type PostDetail = PostSummary & { content: string; locales: Locale[] };
 
 type Translation<T> = { locale: Locale } & T;
