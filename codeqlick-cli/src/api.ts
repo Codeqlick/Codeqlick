@@ -328,6 +328,7 @@ export interface Analytics {
   snippet: string;
   period: AnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
+  previous: { visitors: number; pageviews: number; complete: boolean };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
   pages: AnalyticsRow[];
   referrers: AnalyticsRow[];

@@ -1272,6 +1272,28 @@ function table(title: string, rows: AnalyticsRow[], unit: string): void {
   }
 }
 
+/**
+ * The change of a total against the previous period: `+12 %`, `-8 %`, `0 %`, `new` (nothing
+ * before, something now) or null (both 0, or the previous window isn't complete).
+ */
+export function changeText(current: number, previous: number, complete: boolean): string | null {
+  if (!complete) return null;
+  if (previous === 0) return current > 0 ? 'new' : null;
+  const percent = Math.round(((current - previous) / previous) * 100);
+  return percent > 0 ? `+${percent} %` : `${percent === 0 ? 0 : percent} %`;
+}
+
+/** A total with its change next to it, e.g. `120 visitors (+12 %)`. */
+export function totalText(
+  current: number,
+  previous: number,
+  complete: boolean,
+  label: string,
+): string {
+  const change = changeText(current, previous, complete);
+  return `${bold(String(current))} ${label}${change ? ` ${dim(`(${change})`)}` : ''}`;
+}
+
 async function analytics(options: Options): Promise<void> {
   const period = (options.period ?? '7d') as AnalyticsPeriod;
   if (!PERIODS.includes(period)) throw new UsageError(`--period is one of ${PERIODS.join(', ')}.`);
@@ -1285,8 +1307,9 @@ async function analytics(options: Options): Promise<void> {
     );
     console.log(dim(`  ${report.snippet}`));
   }
+  const { totals, previous } = report;
   console.log(
-    `${bold(project.slug)} · ${period}: ${bold(String(report.totals.visitors))} visitors, ${bold(String(report.totals.pageviews))} page views`,
+    `${bold(project.slug)} · ${period}: ${totalText(totals.visitors, previous.visitors, previous.complete, 'visitors')}, ${totalText(totals.pageviews, previous.pageviews, previous.complete, 'page views')}`,
   );
   table('Pages', report.pages, 'views');
   table('Sources', report.referrers, 'views');

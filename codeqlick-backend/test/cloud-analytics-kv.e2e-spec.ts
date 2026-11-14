@@ -139,6 +139,7 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
       enabled: true,
       period: '24h',
       totals: { visitors: 1, pageviews: 3 },
+      previous: { visitors: 0, pageviews: 0, complete: true },
     });
     expect(report.body.series).toHaveLength(24);
     expect(report.body.series.at(-1).pageviews).toBe(3);
@@ -146,7 +147,41 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
     expect(report.body.referrers).toEqual([{ key: 'newsletter', visitors: 1, count: 1 }]);
     expect(report.body.events).toEqual([{ key: 'signup', visitors: 1, count: 1 }]);
     expect(report.body.browsers[0].key).toBe('Chrome');
-    await request(server).get(`${base}?period=7d`).set(auth).expect(200);
+
+    // Earlier events: two visitors 2 days ago (this 7d window) and two 8 days ago (the 7 days
+    // before it).
+    const { teamId } = await prisma.cloudProject.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    const day = 86_400_000;
+    const old = (visitor: string, ago: number) => ({
+      projectId,
+      teamId,
+      name: 'pageview',
+      path: '/old',
+      browser: 'Chrome',
+      os: 'macOS',
+      device: 'desktop',
+      visitor,
+      createdAt: new Date(Date.now() - ago * day),
+    });
+    await prisma.cloudAnalyticsEvent.createMany({
+      data: [
+        old('cur-1', 2),
+        old('cur-2', 2),
+        old('prev-1', 8),
+        old('prev-2', 8),
+        old('prev-2', 8.1),
+      ],
+    });
+    const week = await request(server).get(`${base}?period=7d`).set(auth).expect(200);
+    expect(week.body.totals).toEqual({ visitors: 3, pageviews: 5 });
+    expect(week.body.previous).toEqual({ visitors: 2, pageviews: 3, complete: true });
+    // A year back needs the year before it, which isn't kept.
+    const year = await request(server).get(`${base}?period=365d`).set(auth).expect(200);
+    expect(year.body.totals).toEqual({ visitors: 5, pageviews: 8 });
+    expect(year.body.previous).toEqual({ visitors: 0, pageviews: 0, complete: false });
     await request(server).get(`${base}?period=2y`).set(auth).expect(400);
     await request(server).get(base).expect(401);
   });

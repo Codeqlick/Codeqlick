@@ -24,6 +24,7 @@ import {
   parseHit,
   pathOf,
   periodRange,
+  previousRange,
   referrerOf,
   siteOf,
   trackerScript,
@@ -49,6 +50,7 @@ import { CloudTeamsService } from './cloud-teams.service.js';
 export interface AnalyticsNumbers {
   period: AnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
+  previous: { visitors: number; pageviews: number; complete: boolean };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
   pages: TopRow[];
   referrers: TopRow[];
@@ -269,21 +271,30 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
   }
 
   private async numbers(projectId: string, period: AnalyticsPeriod): Promise<AnalyticsNumbers> {
-    const { since, unit } = periodRange(period);
-    const [totals, series, pages, referrers, browsers, os, devices, events] = await Promise.all([
-      this.analytics.totals(projectId, since),
-      this.analytics.series(projectId, since, unit),
-      this.analytics.top(projectId, since, 'pages'),
-      this.analytics.referrers(projectId, since),
-      this.analytics.top(projectId, since, 'browsers'),
-      this.analytics.top(projectId, since, 'os'),
-      this.analytics.top(projectId, since, 'devices'),
-      this.analytics.events(projectId, since),
-    ]);
+    const now = new Date();
+    const { since, unit } = periodRange(period, now);
+    const before = previousRange(period, since);
+    const [totals, previous, series, pages, referrers, browsers, os, devices, events] =
+      await Promise.all([
+        this.analytics.totals(projectId, since),
+        this.analytics.totals(projectId, before.from, before.until),
+        this.analytics.series(projectId, since, unit),
+        this.analytics.top(projectId, since, 'pages'),
+        this.analytics.referrers(projectId, since),
+        this.analytics.top(projectId, since, 'browsers'),
+        this.analytics.top(projectId, since, 'os'),
+        this.analytics.top(projectId, since, 'devices'),
+        this.analytics.events(projectId, since),
+      ]);
     return {
       period,
       totals,
-      series: fillSeries(series, period),
+      // Events older than the retention are gone: a window starting before it is partial.
+      previous: {
+        ...previous,
+        complete: before.from.getTime() >= now.getTime() - ANALYTICS_DAYS * DAY_MS,
+      },
+      series: fillSeries(series, period, now),
       pages,
       referrers,
       browsers,

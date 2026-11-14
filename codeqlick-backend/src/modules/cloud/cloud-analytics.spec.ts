@@ -13,6 +13,7 @@ import {
   parseHit,
   pathOf,
   periodRange,
+  previousRange,
   referrerOf,
   siteOf,
   trackerScript,
@@ -113,6 +114,33 @@ describe('Cloud web analytics', () => {
     expect(series[6]).toEqual({ t: '2026-11-13', visitors: 0, pageviews: 0 });
     const hours = fillSeries([], '24h', now);
     expect(hours[23]!.t).toBe('2026-11-13T15:00:00.000Z');
+  });
+
+  it('finds the window of the same length right before a period', () => {
+    const now = new Date('2026-11-13T15:30:00Z');
+    const day = periodRange('24h', now);
+    expect(previousRange('24h', day.since)).toEqual({
+      from: new Date('2026-11-11T16:00:00Z'),
+      until: day.since,
+    });
+    // 7d from 2026-11-07 (Madrid) → 2026-10-31 00:00 Madrid, after the change: winter time (UTC+1).
+    const week = periodRange('7d', now);
+    expect(previousRange('7d', week.since)).toEqual({
+      from: new Date('2026-10-30T23:00:00Z'),
+      until: week.since,
+    });
+    // The clocks go back on 2026-10-25 (UTC+2 → UTC+1). Here the change is inside both windows'
+    // neighbourhood but the edges stay on Madrid midnights: 2026-10-22 and 2026-10-15 (UTC+2).
+    const across = periodRange('7d', new Date('2026-10-28T10:00:00Z'));
+    expect(across.since).toEqual(new Date('2026-10-21T22:00:00Z'));
+    expect(previousRange('7d', across.since).from).toEqual(new Date('2026-10-14T22:00:00Z'));
+    // The previous window spans the change: it starts 2026-10-19 00:00 (UTC+2) and ends
+    // 2026-10-26 00:00 (UTC+1), so it is 169 hours long and still 7 Madrid days.
+    const spanning = periodRange('7d', new Date('2026-11-01T10:00:00Z'));
+    expect(spanning.since).toEqual(new Date('2026-10-25T23:00:00Z'));
+    const before = previousRange('7d', spanning.since);
+    expect(before.from).toEqual(new Date('2026-10-18T22:00:00Z'));
+    expect((before.until.getTime() - before.from.getTime()) / 3_600_000).toBe(169);
   });
 
   it('builds a tracker that posts to the endpoint', () => {
