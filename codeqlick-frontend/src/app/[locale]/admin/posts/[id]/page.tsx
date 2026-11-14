@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/app/app.module.css';
 import { DeleteForm } from '@/components/app/DeleteForm';
+import { OldAddresses } from '@/components/app/OldAddresses';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
@@ -55,6 +56,13 @@ export default async function EditPostPage({
           post={post}
         />
       </section>
+      <OldAddresses
+        locale={locale}
+        section="blog"
+        slugs={post.oldSlugs}
+        title={t('oldAddresses')}
+        hint={t('oldAddressesHint')}
+      />
       <DeleteForm
         action={deletePostAction.bind(null, locale, post.id)}
         title={t('deleteTitle')}

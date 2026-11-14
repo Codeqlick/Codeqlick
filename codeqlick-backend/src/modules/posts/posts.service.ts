@@ -14,6 +14,7 @@ import {
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PostsRepository,
+  type AdminPostRecord,
   type PostTranslationData,
   type PostUpdateData,
   type PostWithTranslations,
@@ -54,6 +55,8 @@ export interface AdminPost {
   newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this post (decision 51), newest first. */
+  oldSlugs: string[];
 }
 
 function toTranslationData(t: PostTranslationInput): PostTranslationData {
@@ -64,7 +67,7 @@ function publicTags(post: PostWithTranslations, locale: ApiLocale): PublicTag[] 
   return post.tags.map(({ tag }) => ({ slug: tag.slug, name: tagName(tag, locale) }));
 }
 
-function toAdminPost(post: PostWithTranslations): AdminPost {
+function toAdminPost(post: AdminPostRecord): AdminPost {
   return {
     id: post.id,
     slug: post.slug,
@@ -82,6 +85,7 @@ function toAdminPost(post: PostWithTranslations): AdminPost {
     newsletterSentAt: post.newsletterSentAt?.toISOString() ?? null,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
+    oldSlugs: post.slugRedirects.map((redirect) => redirect.slug),
   };
 }
 
@@ -129,6 +133,13 @@ export class PostsService {
       locales: availableLocales(post.translations),
       tags: publicTags(post, locale),
     };
+  }
+
+  /** The current slug of the live post an old slug redirects to (decision 51). */
+  async redirect(slug: string): Promise<{ slug: string }> {
+    const current = await this.repository.findLiveSlugByRedirect(slug);
+    if (!current) throw new NotFoundException('Redirect not found');
+    return { slug: current };
   }
 
   /**
@@ -229,7 +240,7 @@ export class PostsService {
     });
   }
 
-  private async findOrThrow(id: string): Promise<PostWithTranslations> {
+  private async findOrThrow(id: string): Promise<AdminPostRecord> {
     const post = await this.repository.findById(id);
     if (!post) throw new NotFoundException('Post not found');
     return post;

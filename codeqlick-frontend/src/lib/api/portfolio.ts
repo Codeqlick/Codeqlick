@@ -9,6 +9,7 @@ import type {
   PortfolioFilters,
   PortfolioInput,
   PortfolioSummary,
+  SlugRedirect,
 } from './types';
 
 /** With `testimonials`, only case studies with a testimonial in `locale`. */
@@ -41,6 +42,13 @@ export function getPortfolioFilters() {
 export function getPortfolioItem(slug: string, locale: Locale) {
   return apiFetch<PortfolioDetail>(`/portfolio/${encodeURIComponent(slug)}`, {
     query: { locale },
+    revalidate: PUBLIC_REVALIDATE,
+  });
+}
+
+/** The current slug of the live case study that `slug` used to name (decision 51); 404 otherwise. */
+export function getPortfolioRedirect(slug: string) {
+  return apiFetch<SlugRedirect>(`/portfolio/redirects/${encodeURIComponent(slug)}`, {
     revalidate: PUBLIC_REVALIDATE,
   });
 }

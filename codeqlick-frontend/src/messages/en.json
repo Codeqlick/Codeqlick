@@ -966,7 +966,9 @@
       "newsletter": "Email it to subscribers",
       "newsletterHint": "When the post is live (a scheduled one, when it goes live), the newsletter's subscribers get it by email. It is emailed only once.",
       "newsletterSentOn": "Already emailed to subscribers on {date}.",
-      "newsletterSkippedOn": "Not emailed to subscribers."
+      "newsletterSkippedOn": "Not emailed to subscribers.",
+      "oldAddresses": "Old addresses that redirect here",
+      "oldAddressesHint": "Links to the post's earlier slugs still work: visitors and search engines land on its current address."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -1001,7 +1003,9 @@
       "testimonialQuoteHint": "The client's words in this language. Shown on the case study and on the home page.",
       "testimonialRole": "Author's role",
       "testimonialRoleHint": "For example: Founder, CircleSfera.",
-      "services": "Services in this project"
+      "services": "Services in this project",
+      "oldAddresses": "Old addresses that redirect here",
+      "oldAddressesHint": "Links to the case study's earlier slugs still work: visitors and search engines land on its current address."
     },
     "projects": {
       "title": "Projects",
