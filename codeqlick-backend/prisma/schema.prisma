@@ -164,6 +164,8 @@ model User {
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
   cloudEvents                CloudEvent[]
+  cloudStatusNotices         CloudStatusNotice[]
+  cloudStatusNoticeUpdates   CloudStatusNoticeUpdate[]
 
   @@map("users")
 }
@@ -1909,6 +1911,7 @@ model CloudTeam {
   events                  CloudEvent[]
   monitors                CloudMonitor[]
   statusPage              CloudStatusPage?
+  statusNotices           CloudStatusNotice[]
   cloudAudits             CloudAudit[]
   gitInstallations        CloudGitInstallation[]
   /// The PRO subscription (architecture 4.13 "Plans and billing", decision 46).
@@ -2278,6 +2281,66 @@ model CloudStatusPage {
   team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@map("cloud_status_pages")
+}
+
+enum CloudStatusNoticeKind {
+  INCIDENT
+  MAINTENANCE
+}
+
+enum CloudStatusNoticeState {
+  INVESTIGATING
+  IDENTIFIED
+  MONITORING
+  RESOLVED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// An incident note or a scheduled maintenance on a team's status page (architecture 4.13, Notices).
+model CloudStatusNotice {
+  id          String                 @id @default(uuid()) @db.Uuid
+  teamId      String                 @map("team_id") @db.Uuid
+  kind        CloudStatusNoticeKind
+  title       String                 @db.VarChar(120)
+  /// Incidents: the latest update's state. Maintenance: SCHEDULED, or COMPLETED when ended early
+  /// (its phase is derived from the time).
+  state       CloudStatusNoticeState
+  /// The team's monitors it affects (1–20; a deleted monitor is removed).
+  monitorIds  String[]               @map("monitor_ids") @db.Uuid
+  startsAt    DateTime?              @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime?              @map("ends_at") @db.Timestamptz(3)
+  /// An incident resolved, or a maintenance ended early.
+  resolvedAt  DateTime?              @map("resolved_at") @db.Timestamptz(3)
+  createdById String?                @map("created_by_id") @db.Uuid
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  team      CloudTeam                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  updates   CloudStatusNoticeUpdate[]
+
+  @@index([teamId, resolvedAt])
+  @@index([teamId, createdAt])
+  @@map("cloud_status_notices")
+}
+
+/// One entry of a notice's timeline (at most 50): plain text, shown with its line breaks.
+model CloudStatusNoticeUpdate {
+  id          String                  @id @default(uuid()) @db.Uuid
+  noticeId    String                  @map("notice_id") @db.Uuid
+  /// Incidents: the state it set. Maintenance: COMPLETED when it ended it, else null (a note).
+  state       CloudStatusNoticeState?
+  body        String                  @db.VarChar(2000)
+  createdById String?                 @map("created_by_id") @db.Uuid
+  createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  notice    CloudStatusNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  createdBy User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([noticeId, createdAt])
+  @@map("cloud_status_notice_updates")
 }
 
 /// A website check run through Cloud's API (architecture 4.13, Website check API); kept 30 days.
