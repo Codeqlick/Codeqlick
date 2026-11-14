@@ -31,6 +31,15 @@ export class AuthRepository {
     });
   }
 
+  /** Like `setPreferences`, but false instead of an error when the user no longer exists. */
+  async setPreferencesIfExists(
+    id: string,
+    data: { weeklyDigest?: boolean; monthlyReport?: boolean },
+  ): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({ where: { id }, data });
+    return result.count === 1;
+  }
+
   findUserById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }
