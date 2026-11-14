@@ -9,6 +9,16 @@ export function liveWhere(now = new Date()) {
   return { status: PublishStatus.PUBLISHED, publishedAt: { lte: now } };
 }
 
+/** Whether an item is live: PUBLISHED and its publication date has come (see liveWhere). */
+export function isLive(
+  item: { status: PublishStatus; publishedAt: Date | null },
+  now = new Date(),
+): boolean {
+  return (
+    item.status === PublishStatus.PUBLISHED && item.publishedAt !== null && item.publishedAt <= now
+  );
+}
+
 export function isScheduled(
   item: { status: PublishStatus; publishedAt: Date | null },
   now = new Date(),

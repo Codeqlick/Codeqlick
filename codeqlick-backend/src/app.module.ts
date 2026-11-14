@@ -15,6 +15,7 @@ import { AppConfigModule } from './config/config.module.js';
 import { buildLoggerParams } from './config/logger.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { IndexNowModule } from './modules/indexnow/indexnow.module.js';
 import { LeadsModule } from './modules/leads/leads.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { MediaModule } from './modules/media/media.module.js';
@@ -61,6 +62,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AuthModule,
     UsersModule,
     LeadsModule,
+    IndexNowModule,
     PostsModule,
     PortfolioModule,
     LinkChecksModule,

@@ -12,6 +12,7 @@ import {
   scheduledDetails,
 } from '../activity/activity.service.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
+import { IndexNowService, slugsToAnnounce } from '../indexnow/indexnow.service.js';
 import {
   PortfolioRepository,
   type AdminPortfolioRecord,
@@ -144,6 +145,7 @@ export class PortfolioService {
   constructor(
     private readonly repository: PortfolioRepository,
     private readonly activity: ActivityService,
+    private readonly indexNow: IndexNowService,
   ) {}
 
   // ---- Public -------------------------------------------------------------------------
@@ -236,6 +238,7 @@ export class PortfolioService {
       targetLabel: contentLabel(created),
       details: { status: created.status, ...scheduledDetails(created) },
     });
+    this.announce(null, item);
     return created;
   }
 
@@ -260,12 +263,14 @@ export class PortfolioService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
-    const updated = toAdminItem(await this.repository.update(id, data, actor.id));
+    const saved = await this.repository.update(id, data, actor.id);
+    const updated = toAdminItem(saved);
     await this.activity.record(actor, {
       action: `portfolio.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
     });
+    this.announce(existing, saved);
     return updated;
   }
 
@@ -291,7 +296,7 @@ export class PortfolioService {
    * revision itself. Status, publication date, slug and order stay.
    */
   async restore(actor: AuthUser, id: string, revisionId: string): Promise<AdminPortfolioItem> {
-    await this.findOrThrow(id);
+    const existing = await this.findOrThrow(id);
     const revision = await this.repository.findRevision(id, revisionId);
     if (!revision) throw new NotFoundException('Revision not found');
     const parsed = portfolioSnapshotSchema.safeParse(revision.snapshot);
@@ -306,24 +311,38 @@ export class PortfolioService {
       testimonialAuthor: snapshot.testimonialAuthor,
       translations: snapshot.translations.map(toTranslationData),
     };
-    const updated = toAdminItem(await this.repository.update(id, data, actor.id));
+    const saved = await this.repository.update(id, data, actor.id);
+    const updated = toAdminItem(saved);
     await this.activity.record(actor, {
       action: 'portfolio.restored',
       targetId: id,
       targetLabel: contentLabel(updated),
       details: { revisionCreatedAt: revision.createdAt.toISOString() },
     });
+    // A restored live item changed: search engines hear about it like after any edit.
+    this.announce(existing, saved);
     return updated;
   }
 
   async delete(actor: AuthUser, id: string): Promise<void> {
-    const existing = toAdminItem(await this.findOrThrow(id));
+    const item = await this.findOrThrow(id);
+    const existing = toAdminItem(item);
     await this.repository.delete(id);
     await this.activity.record(actor, {
       action: 'portfolio.deleted',
       targetId: id,
       targetLabel: contentLabel(existing),
     });
+    this.announce(item, null);
+  }
+
+  /** Tells search engines through IndexNow when the case study was live before or is after. */
+  private announce(
+    before: PortfolioWithTranslations | null,
+    after: PortfolioWithTranslations | null,
+  ): void {
+    const slugs = slugsToAnnounce(before, after);
+    if (slugs.length > 0) this.indexNow.announce({ kind: 'portfolio', slugs });
   }
 
   private async findOrThrow(id: string): Promise<AdminPortfolioRecord> {

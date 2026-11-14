@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
+import type { IndexNowService } from '../indexnow/indexnow.service.js';
 import { portfolioSnapshot } from './portfolio-snapshot.js';
 import { PortfolioRepository, type PortfolioWithTranslations } from './portfolio.repository.js';
 import { PortfolioService } from './portfolio.service.js';
@@ -134,6 +135,7 @@ describe('PortfolioService revisions', () => {
     service = new PortfolioService(
       repository as unknown as PortfolioRepository,
       activity as unknown as ActivityService,
+      { announce: vi.fn() } as unknown as IndexNowService,
     );
   });
 

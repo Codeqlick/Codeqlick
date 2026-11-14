@@ -2,9 +2,11 @@ import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ActivityService } from '../activity/activity.service.js';
 import type { TagsService } from './tags.service.js';
+import type { IndexNowService } from '../indexnow/indexnow.service.js';
 import type { PostTranslation } from '../../generated/prisma/client.js';
 import type { AdminPostRecord, PostsRepository, PostWithTranslations } from './posts.repository.js';
 import { PostsService } from './posts.service.js';
+import type { CreatePostInput } from './posts.schemas.js';
 
 const publishedAt = new Date('2026-09-01T08:00:00Z');
 
@@ -73,6 +75,7 @@ describe('PostsService', () => {
       repository as unknown as PostsRepository,
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
       { assertExist: vi.fn().mockResolvedValue(undefined) } as unknown as TagsService,
+      { announce: vi.fn() } as unknown as IndexNowService,
     );
   });
 
@@ -240,6 +243,99 @@ describe('PostsService', () => {
       const related = await service.related('hello-world', 'en', 3);
 
       expect(related.map((item) => item.slug)).toEqual(['one-shared', 'latest']);
+    });
+  });
+
+  describe('IndexNow', () => {
+    const en = [translation('EN', 'Hello')];
+    const live = post(en);
+    const draft = post(en, { status: 'DRAFT', publishedAt: null });
+    const future = post(en, { publishedAt: new Date(Date.now() + 86_400_000) });
+    let announce: ReturnType<typeof vi.fn>;
+    let repo: Record<string, ReturnType<typeof vi.fn>>;
+    let posts: PostsService;
+
+    beforeEach(() => {
+      announce = vi.fn();
+      repo = { findById: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() };
+      posts = new PostsService(
+        repo as unknown as PostsRepository,
+        { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+        { assertExist: vi.fn().mockResolvedValue(undefined) } as unknown as TagsService,
+        { announce } as unknown as IndexNowService,
+      );
+    });
+
+    const createInput = (status: 'DRAFT' | 'PUBLISHED', date?: string) =>
+      ({
+        slug: 'hello-world',
+        status,
+        publishedAt: date,
+        translations: [{ locale: 'en', title: 'Hello', excerpt: 'x', content: 'y' }],
+        tagIds: [],
+      }) as CreatePostInput;
+
+    it('announces a post created live', async () => {
+      repo.create.mockResolvedValue(live);
+      await posts.create(actor, createInput('PUBLISHED'));
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('does not announce a draft or a post scheduled for later', async () => {
+      repo.create.mockResolvedValue(draft);
+      await posts.create(actor, createInput('DRAFT'));
+      repo.create.mockResolvedValue(future);
+      await posts.create(actor, createInput('PUBLISHED', future.publishedAt?.toISOString()));
+      expect(announce).not.toHaveBeenCalled();
+    });
+
+    it('announces an edit of a live post', async () => {
+      repo.findById.mockResolvedValue(live);
+      repo.update.mockResolvedValue(live);
+      await posts.update(actor, 'p1', { coverImageUrl: null });
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('announces a draft being published', async () => {
+      repo.findById.mockResolvedValue(draft);
+      repo.update.mockResolvedValue(live);
+      await posts.update(actor, 'p1', { status: 'PUBLISHED' });
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('announces a live post made a draft', async () => {
+      repo.findById.mockResolvedValue(live);
+      repo.update.mockResolvedValue(draft);
+      await posts.update(actor, 'p1', { status: 'DRAFT' });
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('announces the new and the old slug after a slug change', async () => {
+      repo.findById.mockResolvedValue(live);
+      repo.update.mockResolvedValue({ ...live, slug: 'hello-again' });
+      await posts.update(actor, 'p1', { slug: 'hello-again' });
+      expect(announce).toHaveBeenCalledWith({
+        kind: 'post',
+        slugs: ['hello-again', 'hello-world'],
+      });
+    });
+
+    it('does not announce an edit of a draft', async () => {
+      repo.findById.mockResolvedValue(draft);
+      repo.update.mockResolvedValue(draft);
+      await posts.update(actor, 'p1', { coverImageUrl: null });
+      expect(announce).not.toHaveBeenCalled();
+    });
+
+    it('announces the deletion of a live post, not of a draft', async () => {
+      repo.findById.mockResolvedValue(live);
+      await posts.delete(actor, 'p1');
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+
+      announce.mockClear();
+      repo.findById.mockResolvedValue(draft);
+      await posts.delete(actor, 'p1');
+      expect(announce).not.toHaveBeenCalled();
     });
   });
 });
