@@ -5378,7 +5378,28 @@
       "search": "Search",
       "csv": "Download CSV",
       "noSubmissions": "No submissions.",
-      "deleteSubmission": "Delete"
+      "deleteSubmission": "Delete",
+      "views": "Submissions view",
+      "inbox": "Inbox",
+      "spamView": "Spam ({count})",
+      "spamNote": "Spam is kept for 30 days, then deleted. It isn't emailed or sent to your channels, and it doesn't count towards the month's submissions.",
+      "noSpam": "No spam.",
+      "spamBadge": "Spam",
+      "spamReasons": {
+        "markup": "Contains link markup.",
+        "links": "Contains too many links.",
+        "field": "A name or email field holds something else (a link, a very long text or an invalid email).",
+        "page": "Sent from a page that isn't one of your project's addresses.",
+        "repeat": "The same message arrived again and again within an hour.",
+        "manual": "Marked as spam by someone on the team."
+      },
+      "markSpam": "Spam",
+      "notSpam": "Not spam",
+      "spamFilter": "Spam filter",
+      "spamFilterHint": "Flags link spam, fields that hold something else, posts from other pages and repeated messages. Spam is kept 30 days apart; it isn't emailed or counted.",
+      "spamFilterOff": "No spam filter",
+      "spamFilterTurnOff": "Turn spam filter off",
+      "spamFilterTurnOn": "Turn spam filter on"
     },
     "monitors": {
       "title": "Monitors",

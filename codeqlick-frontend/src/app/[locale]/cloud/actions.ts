@@ -46,6 +46,7 @@ import {
   promoteCloudDeployment,
   removeCloudDomain,
   removeCloudMember,
+  markCloudSubmissionSpam,
   replaceCloudFormKey,
   renameCloudProject,
   renameCloudTeam,
@@ -675,6 +676,7 @@ export async function createFormAction(
       name,
       notify: formBoolean(formData, 'notify'),
       recipientIds,
+      spamFilter: formBoolean(formData, 'spamFilter'),
     });
   } catch (error) {
     return failure(lang, error, values);
@@ -687,6 +689,14 @@ export async function toggleFormAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
     enabled: formString(formData, 'enabled') === 'on',
+  }).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function toggleSpamFilterAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
+    spamFilter: formString(formData, 'spamFilter') === 'on',
   }).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
@@ -713,6 +723,18 @@ export async function deleteSubmissionAction(formData: FormData): Promise<void> 
     formString(formData, 'project'),
     formString(formData, 'form'),
     formString(formData, 'id'),
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+/** "Spam" / "Not spam" on a submission (`spam` = on or off); "Not spam" delivers it if needed. */
+export async function markSubmissionSpamAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await markCloudSubmissionSpam(
+    formString(formData, 'project'),
+    formString(formData, 'form'),
+    formString(formData, 'id'),
+    formString(formData, 'spam') === 'on',
   ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }

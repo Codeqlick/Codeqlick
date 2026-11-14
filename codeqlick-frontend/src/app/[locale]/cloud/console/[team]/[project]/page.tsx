@@ -27,6 +27,7 @@ import {
   isProtected,
   type ProtectionMode,
   productionLockValues,
+  submissionsView,
 } from '@/lib/cloud';
 import { appPath } from '@/lib/webapp-request';
 import {
@@ -73,6 +74,7 @@ type PageProps = {
     page?: string;
     form?: string;
     q?: string;
+    view?: string;
     github?: string;
     period?: string;
     prefix?: string;
@@ -281,6 +283,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           admin={admin}
           formId={query.form}
           q={query.q?.trim().slice(0, 100) || undefined}
+          view={submissionsView(query.view)}
           page={page}
         />
       ) : null}
