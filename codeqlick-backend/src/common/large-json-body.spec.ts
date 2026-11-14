@@ -36,6 +36,13 @@ describe('largeJsonBody', () => {
     expect(bad.error?.status).toBe(400);
   });
 
+  it('accepts any case of the JSON content type and refuses compressed bodies with 415', async () => {
+    const upper = await send('/v1/import', '{"a":1}', { 'content-type': 'Application/JSON' });
+    expect(upper.req.body).toEqual({ a: 1 });
+    const gzip = await send('/v1/import', '{}', { 'content-encoding': 'gzip' });
+    expect(gzip.error?.status).toBe(415);
+  });
+
   it('leaves other routes to the global parser', async () => {
     const { req, error } = await send('/v1/other', '{"a":1}');
     expect(error).toBeUndefined();

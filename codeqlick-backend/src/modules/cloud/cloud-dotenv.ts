@@ -33,7 +33,7 @@ const ESCAPES: Record<string, string> = { n: '\n', r: '\r', t: '\t', '"': '"', '
  * Every problem is reported with its line; errors never include values.
  */
 export function parseDotenv(content: string): DotenvResult {
-  const lines = content.replace(/^﻿/, '').split(/\r?\n/);
+  const lines = content.replace(/^\uFEFF/, '').split(/\r?\n/);
   const entries: DotenvEntry[] = [];
   const errors: DotenvError[] = [];
   const seen = new Map<string, number>();

@@ -22,6 +22,10 @@ export function EnvImport({ action }: Props) {
   const t = useTranslations('Cloud.git.import');
   const [content, setContent] = useState('');
   const [fileError, setFileError] = useState<string | undefined>(undefined);
+  // Controlled: React resets uncontrolled fields after each action, so a retry would lose them.
+  const [production, setProduction] = useState(true);
+  const [preview, setPreview] = useState(true);
+  const [overwrite, setOverwrite] = useState(false);
   const [state, formAction] = useActionState(
     async (previous: EnvImportState, formData: FormData) => {
       const next = await action(previous, formData);
@@ -85,7 +89,6 @@ export function EnvImport({ action }: Props) {
         <Input
           id="env-import-file"
           type="file"
-          accept=".env,text/plain"
           label={t('file')}
           hint={t('fileHint')}
           error={fileError}
@@ -112,14 +115,23 @@ export function EnvImport({ action }: Props) {
           name="production"
           label={t('production')}
           error={state.fieldErrors?.production}
-          defaultChecked
+          checked={production}
+          onChange={(event) => setProduction(event.currentTarget.checked)}
         />
-        <Checkbox id="env-import-preview" name="preview" label={t('preview')} defaultChecked />
+        <Checkbox
+          id="env-import-preview"
+          name="preview"
+          label={t('preview')}
+          checked={preview}
+          onChange={(event) => setPreview(event.currentTarget.checked)}
+        />
         <Checkbox
           id="env-import-overwrite"
           name="overwrite"
           label={t('overwrite')}
           hint={t('overwriteHint')}
+          checked={overwrite}
+          onChange={(event) => setOverwrite(event.currentTarget.checked)}
         />
         <div className={styles.actions}>
           <SubmitButton variant="outline" pendingLabel={t('importing')}>

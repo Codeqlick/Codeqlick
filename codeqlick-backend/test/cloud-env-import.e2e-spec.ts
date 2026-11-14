@@ -160,6 +160,7 @@ describe('Codeqlick Cloud: importing a .env file (e2e)', () => {
       overwrite: true,
     });
     expect(refused.status).toBe(400);
+    expect(refused.body.detail).toBe('Validation failed');
     expect(refused.body.errors).toEqual([
       { path: 'content', line: 2, message: 'Expected KEY=value' },
       { path: 'content', line: 3, message: expect.stringContaining('upper-case') },
@@ -200,6 +201,14 @@ describe('Codeqlick Cloud: importing a .env file (e2e)', () => {
       overwrite: false,
     });
     expect(tooBig.status).toBe(400);
+    const pastLimit = await importEnv({
+      content: `# ${'x'.repeat(1024 * 1024)}\nHUGE=1`,
+      production: true,
+      preview: true,
+      overwrite: false,
+    });
+    expect(pastLimit.status).toBe(413);
+    expect(pastLimit.headers['content-type']).toContain('application/problem+json');
     expect(await count()).toBe(5);
 
     // ── Past 50 variables nothing is saved; the error names the first one over.
@@ -215,8 +224,19 @@ describe('Codeqlick Cloud: importing a .env file (e2e)', () => {
       overwrite: false,
     });
     expect(over.status).toBe(400);
+    expect(over.body.detail).toBe('Validation failed');
     expect(over.body.errors).toEqual([
       { path: 'content', line: 46, key: 'VAR_45', message: 'A project has at most 50 variables' },
+    ]);
+    const tooMany = await importEnv({
+      content: many(51),
+      production: true,
+      preview: true,
+      overwrite: false,
+    });
+    expect(tooMany.status).toBe(400);
+    expect(tooMany.body.errors).toEqual([
+      { path: 'content', line: 51, key: 'VAR_50', message: 'A project has at most 50 variables' },
     ]);
     expect(await count()).toBe(5);
     const fill = await importEnv({
