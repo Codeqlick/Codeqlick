@@ -50,6 +50,7 @@ import {
   runCloudAudit,
   saveCloudStatusPage,
   setCloudMemberRole,
+  transferCloudProject,
   updateCloudForm,
   updateCloudMonitor,
   type CloudReportReason,
@@ -319,6 +320,50 @@ export async function deleteProjectAction(
   }
   refresh(lang, `/${team}`);
   return go(lang, `/console/${team}`);
+}
+
+/** Moves the project to another team the caller runs, then opens it there (decision 58). */
+export async function transferProjectAction(
+  locale: string,
+  team: string,
+  id: string,
+  slug: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.project.transfer' });
+  const values = formValues(formData);
+  const target = formString(formData, 'team');
+  if (!SLUG.test(target) || target === team) {
+    return { status: 'error', fieldErrors: { team: t('chooseTeam') }, values };
+  }
+  if (formString(formData, 'confirm') !== slug) {
+    const tc = await getTranslations({ locale: lang, namespace: 'Common' });
+    return { status: 'error', fieldErrors: { confirm: tc('confirmType', { text: slug }) }, values };
+  }
+  let git: string;
+  try {
+    ({ git } = await transferCloudProject(id, target));
+  } catch (error) {
+    if (isApiError(error)) {
+      const detail = error.detail ?? '';
+      if (error.status === 403 && /suspended/i.test(detail)) {
+        return { status: 'error', message: t('suspended'), values };
+      }
+      if (error.status === 409 && /builds/i.test(detail)) {
+        return { status: 'error', message: t('builds'), values };
+      }
+      if (error.status === 409 && /changed/i.test(detail)) {
+        return { status: 'error', message: t('changed'), values };
+      }
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}`);
+  refresh(lang, `/${target}`);
+  const notice = git === 'dropped' ? 'moved=1&git=dropped' : 'moved=1';
+  return go(lang, `/console/${target}/${slug}?${notice}`);
 }
 
 export async function promoteAction(formData: FormData): Promise<void> {
