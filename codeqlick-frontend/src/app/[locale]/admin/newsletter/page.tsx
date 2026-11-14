@@ -43,9 +43,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
 
   const query = await searchParams;
   const rawStatus = firstParam(query.status);
-  const status = NEWSLETTER_STATUSES.find((value) => value === rawStatus) as
-    | NewsletterStatus
-    | undefined;
+  const status: NewsletterStatus | undefined = NEWSLETTER_STATUSES.find((s) => s === rawStatus);
   const q = firstParam(query.q)?.trim() || undefined;
   const list = await adminListNewsletter({ status, q, page: parsePage(query.page) });
   const cards = [
