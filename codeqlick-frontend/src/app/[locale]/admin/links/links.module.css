@@ -1,0 +1,22 @@
+/* Admin → Broken links (architecture 4.6). The table itself is the shared `listTable`. */
+
+/* Long URLs end in an ellipsis; the full address is in the link's title. */
+.url {
+  display: block;
+  max-width: 28rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result {
+  font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
+}
+
+/* The row's link covers the row (`listTable`): the form stays clickable above it, like links. */
+.rowAction {
+  margin-top: var(--space-2);
+  position: relative;
+  z-index: 1;
+}

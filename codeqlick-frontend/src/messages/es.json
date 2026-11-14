@@ -764,6 +764,7 @@
       "posts": "Artículos",
       "portfolio": "Portfolio",
       "media": "Imágenes",
+      "links": "Enlaces rotos",
       "projects": "Proyectos",
       "users": "Usuarios",
       "activity": "Actividad",
@@ -808,7 +809,8 @@
       "activeTickets": "Peticiones abiertas",
       "sentProposals": "Propuestas por responder",
       "pendingDrafts": "Borradores por revisar",
-      "upcomingCalls": "Próximas llamadas"
+      "upcomingCalls": "Próximas llamadas",
+      "brokenLinks": "Enlaces rotos"
     },
     "leads": {
       "title": "Contactos",
@@ -4050,6 +4052,45 @@
       "WEB_SERVER": "Web (servidor)",
       "WEB_BROWSER": "Web (navegador)"
     }
+  },
+  "AdminLinks": {
+    "title": "Enlaces rotos",
+    "lead": "Los enlaces de los artículos y casos de éxito publicados, en los dos idiomas, revisados una vez por semana. Un enlace cuenta como roto cuando falla dos revisiones seguidas.",
+    "filtersLabel": "Mostrar",
+    "filters": {
+      "broken": "Rotos",
+      "all": "Todos"
+    },
+    "emptyTitle": "Ningún enlace roto",
+    "emptyAllTitle": "Ningún enlace revisado",
+    "lastRun": "Última revisión: {date}.",
+    "notCheckedYet": "Todavía no se ha revisado.",
+    "link": "Enlace",
+    "status": "Estado",
+    "since": "Roto desde",
+    "where": "Dónde",
+    "internal": "Interno",
+    "external": "Externo",
+    "newTab": "(se abre en una pestaña nueva)",
+    "statuses": {
+      "OK": "OK",
+      "BROKEN": "Roto"
+    },
+    "checkedAt": "Revisado el {date}",
+    "sources": {
+      "POST": "Artículo",
+      "PORTFOLIO": "Caso de éxito"
+    },
+    "languages": {
+      "en": "Inglés",
+      "es": "Español"
+    },
+    "edit": "Editar",
+    "checkAgain": "Revisar de nuevo",
+    "checking": "Revisando…",
+    "checkedOk": "El enlace ya funciona.",
+    "checkedBroken": "Sigue roto.",
+    "tooManyChecks": "Demasiadas revisiones en un minuto. Prueba de nuevo en un momento."
   },
   "Meetings": {
     "metaTitle": "Meetings: videollamadas con un enlace",
