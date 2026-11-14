@@ -61,6 +61,9 @@ log "User and folders"
 id builder >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin builder
 usermod -aG docker builder
 install -d -o builder -g builder -m 0700 /var/lib/codeqlick-builder
+# The dependency caches (architecture 4.13, decision 51): the agent's user must own them, since it
+# is also the user inside the build containers.
+install -d -o builder -g builder -m 0700 /var/lib/codeqlick-builder/cache
 
 log "Agent: $DIR (from $REPO)"
 if [ -d "$REPO/.git" ]; then
@@ -90,6 +93,9 @@ ENV
   chmod 600 "$ENV_FILE"
 fi
 grep -q '^BUILDER_RUNTIME=' "$ENV_FILE" || echo 'BUILDER_RUNTIME=runsc' >>"$ENV_FILE"
+# The dependency cache's limits, commented out with their defaults (added once, never overwritten).
+grep -q 'BUILDER_CACHE_PROJECT_MB' "$ENV_FILE" || echo '#BUILDER_CACHE_PROJECT_MB=1024' >>"$ENV_FILE"
+grep -q 'BUILDER_CACHE_TOTAL_MB' "$ENV_FILE" || echo '#BUILDER_CACHE_TOTAL_MB=10240' >>"$ENV_FILE"
 if grep -q '^CLOUD_BUILDER_TOKEN=$' "$ENV_FILE" && [ -f "$PROD/.env" ]; then
   token=$(sed -n 's/^CLOUD_BUILDER_TOKEN=//p' "$PROD/.env" | tail -1)
   if [ -n "$token" ]; then
