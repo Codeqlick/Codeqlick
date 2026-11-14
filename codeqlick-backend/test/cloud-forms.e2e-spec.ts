@@ -18,17 +18,18 @@ import { MailService, type MailMessage } from '../src/modules/mail/mail.service.
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 // What notification channels are sent (real fetching refuses made-up hosts): every post is kept
-// and answered 200. The URL checks stay the real ones.
+// and answered `answer.status`. The URL checks stay the real ones.
 const posts = vi.hoisted(
   () => [] as Array<{ url: string; body: string; headers: Record<string, string> }>,
 );
+const answer = vi.hoisted(() => ({ status: 200 }));
 vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
   const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
   return {
     ...actual,
     safePost: vi.fn((url: string, body: string, headers: Record<string, string>) => {
       posts.push({ url, body, headers });
-      return Promise.resolve({ status: 200, body: 'ok' });
+      return Promise.resolve({ status: answer.status, body: 'ok' });
     }),
   };
 });
@@ -357,24 +358,68 @@ describe('Codeqlick Cloud forms (e2e)', () => {
       ).toMatchObject({ lastOk: true, failures: 0 }),
     );
 
-    // A honeypot hit sends nothing; a submission to the other form reaches both channels.
+    // A honeypot hit, a post from another site and one over the month's limit send nothing; a
+    // submission to the other form reaches both channels.
     await request(server)
       .post(`/v1/cloud/forms/${contact.key}`)
       .set(visitor)
       .send({ name: 'bot', _gotcha: 'filled' })
       .expect(200);
     await request(server)
+      .post(`/v1/cloud/forms/${contact.key}`)
+      .set(visitor)
+      .set('Origin', 'https://evil.example')
+      .send({ name: 'evil' })
+      .expect(403);
+    await prisma.cloudFormSubmission.createMany({
+      data: Array.from({ length: 1000 }, () => ({
+        formId: contact.id,
+        data: [['filler', 'x']],
+        email: 'filler@example.com',
+      })),
+    });
+    await request(server)
+      .post(`/v1/cloud/forms/${contact.key}`)
+      .set(visitor)
+      .send({ name: 'overflow' })
+      .expect(429);
+    await prisma.cloudFormSubmission.deleteMany({
+      where: { formId: contact.id, email: 'filler@example.com' },
+    });
+    await request(server)
       .post(`/v1/cloud/forms/${quote.key}`)
       .set(visitor)
       .send({ name: 'Linus', budget: '<!channel> 5000 & up' })
       .expect(200);
     await vi.waitFor(() => expect(posts).toHaveLength(3));
-    expect(posts.some((p) => p.body.includes('bot'))).toBe(false);
+    for (const word of ['bot', 'evil', 'overflow']) {
+      expect(posts.some((p) => p.body.includes(word))).toBe(false);
+    }
     const toSlack = posts.filter((p) => p.url.startsWith('https://hooks.slack.com/'));
     expect(toSlack).toHaveLength(1);
     const text = (JSON.parse(toSlack[0]!.body) as { text: string }).text;
     expect(text).toContain('new submission to *Quote*');
     expect(text).toContain('budget: &lt;!channel&gt; 5000 &amp; up');
+
+    // A 429 is recorded but never counts towards switching the channel off.
+    await prisma.cloudNotifyChannel.update({
+      where: { id: hook.body.id as string },
+      data: { failures: 9 },
+    });
+    answer.status = 429;
+    await request(server)
+      .post(`/v1/cloud/forms/${contact.key}`)
+      .set(visitor)
+      .send({ name: 'Slow' })
+      .expect(200);
+    await vi.waitFor(async () =>
+      expect(
+        await prisma.cloudNotifyChannel.findUniqueOrThrow({
+          where: { id: hook.body.id as string },
+        }),
+      ).toMatchObject({ lastOk: false, lastError: 'HTTP 429: ok', failures: 9, enabled: true }),
+    );
+    answer.status = 200;
 
     // Deleting a form takes it out of the channels; one left with none stops getting submissions.
     await request(server)

@@ -80,6 +80,17 @@ export interface StoredSubmission {
   createdAt: Date;
 }
 
+/** Form events waiting per channel, the one being sent included; newer ones are dropped. */
+const MAX_FORM_QUEUE = 50;
+
+/** What one delivery came to. */
+interface Delivery {
+  /** The error, or null when it was delivered. */
+  error: string | null;
+  /** The service answered `429`. */
+  rateLimited: boolean;
+}
+
 const NO_FORMS_BY_EMAIL =
   "Email notifications don't get form submissions: forms email their own recipients";
 
@@ -88,6 +99,8 @@ const NO_FORMS_BY_EMAIL =
 export class CloudNotificationsService {
   private readonly logger = new Logger(CloudNotificationsService.name);
   private readonly box: SecretBox;
+  /** Form events waiting per channel id, sent one at a time (decision 63). */
+  private readonly formQueues = new Map<string, Array<() => Promise<void>>>();
 
   constructor(
     private readonly repository: CloudNotificationsRepository,
@@ -258,7 +271,7 @@ export class CloudNotificationsService {
       kind === 'form'
         ? testFormEvent(sample, `${consoleUrl}?tab=forms`, locale)
         : testEvent(sample, `${consoleUrl}?tab=notifications`);
-    const error = await this.deliver(channel, event, project.teamId);
+    const { error } = await this.deliver(channel, event, project.teamId);
     const now = new Date();
     if (error) await this.repository.failed(channel.id, error, now);
     else await this.repository.succeeded(channel.id, now);
@@ -329,7 +342,7 @@ export class CloudNotificationsService {
           deployment: deploymentUrl ? { url: deploymentUrl } : null,
           sentAt: new Date().toISOString(),
         };
-        const error = await this.deliver(channel, event, build.project.teamId);
+        const { error } = await this.deliver(channel, event, build.project.teamId);
         await this.recordDelivery(channel, error, build.project);
       }
     } catch (error) {
@@ -339,7 +352,8 @@ export class CloudNotificationsService {
 
   /**
    * Tells a project's Slack, Discord and webhook channels about a stored form submission
-   * (decision 63). Called in the background by the forms service; never throws.
+   * (decision 63). Called in the background by the forms service; never throws. Anyone can post
+   * to a form, so each channel gets its form events one at a time, at most 50 waiting.
    */
   async formSubmitted(submission: StoredSubmission): Promise<void> {
     const { form } = submission;
@@ -348,27 +362,69 @@ export class CloudNotificationsService {
         wantsForm(c, form.id),
       );
       for (const channel of channels) {
-        const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
-        const event: FormEvent = {
-          event: 'form.submitted',
-          project: { slug: form.project.slug, name: form.project.name },
-          form: { id: form.id, name: form.name },
-          submission: {
-            id: submission.id,
-            fields: submission.fields,
-            email: submission.email,
-            page: submission.page,
-            createdAt: submission.createdAt.toISOString(),
-            // The console has no page per submission: its form's list, newest first.
-            url: `${this.config.cloudUrl}/${locale}/console/${form.project.team.slug}/${form.project.slug}?tab=forms&form=${form.id}`,
-          },
-          sentAt: new Date().toISOString(),
-        };
-        const error = await this.deliver(channel, event, form.project.teamId);
-        await this.recordDelivery(channel, error, form.project);
+        this.enqueueForm(channel.id, () => this.sendForm(channel.id, submission));
       }
     } catch (error) {
       this.logger.error(`Form ${form.id}: notifications failed: ${String(error)}`);
+    }
+  }
+
+  /** Adds a form event to a channel's queue and starts it when it was idle. */
+  private enqueueForm(channelId: string, job: () => Promise<void>): void {
+    let queue = this.formQueues.get(channelId);
+    if (!queue) {
+      queue = [];
+      this.formQueues.set(channelId, queue);
+    }
+    if (queue.length >= MAX_FORM_QUEUE) {
+      // It stays in the console; the channel just isn't told.
+      this.logger.debug(`Channel ${channelId}: ${MAX_FORM_QUEUE} form events waiting, one dropped`);
+      return;
+    }
+    queue.push(job);
+    if (queue.length === 1) void this.drainForms(channelId, queue);
+  }
+
+  private async drainForms(channelId: string, queue: Array<() => Promise<void>>): Promise<void> {
+    while (queue.length > 0) {
+      try {
+        await queue[0]!();
+      } catch (error) {
+        this.logger.error(`Channel ${channelId}: a form event failed: ${String(error)}`);
+      }
+      queue.shift();
+    }
+    this.formQueues.delete(channelId);
+  }
+
+  /** Sends one form event to a channel that still wants it. */
+  private async sendForm(channelId: string, submission: StoredSubmission): Promise<void> {
+    const { form } = submission;
+    // It may have been switched off, changed or deleted while the event waited.
+    const channel = await this.repository.find(form.project.id, channelId);
+    if (!channel || !wantsForm(channel, form.id)) return;
+    const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
+    const event: FormEvent = {
+      event: 'form.submitted',
+      project: { slug: form.project.slug, name: form.project.name },
+      form: { id: form.id, name: form.name },
+      submission: {
+        id: submission.id,
+        fields: submission.fields,
+        email: submission.email,
+        page: submission.page,
+        createdAt: submission.createdAt.toISOString(),
+        // The console has no page per submission: its form's list, newest first.
+        url: `${this.config.cloudUrl}/${locale}/console/${form.project.team.slug}/${form.project.slug}?tab=forms&form=${form.id}`,
+      },
+      sentAt: new Date().toISOString(),
+    };
+    const delivery = await this.deliver(channel, event, form.project.teamId);
+    // A 429 is the service slowing us down, not a dead endpoint: kept, never counted.
+    if (delivery.error && delivery.rateLimited) {
+      await this.repository.rateLimited(channel.id, delivery.error, new Date());
+    } else {
+      await this.recordDelivery(channel, delivery.error, form.project);
     }
   }
 
@@ -408,17 +464,18 @@ export class CloudNotificationsService {
     }
   }
 
-  /** Sends one event to one channel; the error, or null when it was delivered. */
+  /** Sends one event to one channel. */
   private async deliver(
     channel: CloudNotifyChannel,
     event: AnyNotifyEvent,
     teamId: string,
-  ): Promise<string | null> {
+  ): Promise<Delivery> {
+    const failed = (error: string): Delivery => ({ error, rateLimited: false });
     const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
     if (channel.kind === 'EMAIL') {
-      if ('submission' in event) return NO_FORMS_BY_EMAIL;
+      if ('submission' in event) return failed(NO_FORMS_BY_EMAIL);
       const people = await this.repository.recipients(teamId, channel.recipientIds);
-      if (people.length === 0) return 'None of its people is in the team any more';
+      if (people.length === 0) return failed('None of its people is in the team any more');
       try {
         for (const person of people) {
           const personLocale = toApiLocale(person.locale);
@@ -439,17 +496,17 @@ export class CloudNotificationsService {
             }),
           );
         }
-        return null;
+        return { error: null, rateLimited: false };
       } catch (error) {
-        return `The email couldn't be sent: ${String(error)}`.slice(0, 300);
+        return failed(`The email couldn't be sent: ${String(error)}`.slice(0, 300));
       }
     }
-    if (!channel.urlSealed) return 'No address';
+    if (!channel.urlSealed) return failed('No address');
     let url: string;
     try {
       url = this.box.open(channel.urlSealed);
     } catch {
-      return 'The address could not be read: enter it again';
+      return failed('The address could not be read: enter it again');
     }
     const body = payload(channel.kind, event, locale);
     const headers: Record<string, string> = {
@@ -464,11 +521,15 @@ export class CloudNotificationsService {
     }
     try {
       const response = await safePost(url, body, headers);
-      if (response.status >= 200 && response.status < 300) return null;
+      if (response.status >= 200 && response.status < 300)
+        return { error: null, rateLimited: false };
       const detail = response.body.replace(/\s+/g, ' ').trim().slice(0, 120);
-      return `HTTP ${response.status}${detail ? `: ${detail}` : ''}`.slice(0, 300);
+      return {
+        error: `HTTP ${response.status}${detail ? `: ${detail}` : ''}`.slice(0, 300),
+        rateLimited: response.status === 429,
+      };
     } catch (error) {
-      return (error instanceof Error ? error.message : String(error)).slice(0, 300);
+      return failed((error instanceof Error ? error.message : String(error)).slice(0, 300));
     }
   }
 }

@@ -5155,6 +5155,7 @@
       "onFormsNew": "Cuando un formulario recibe un envío (Slack, Discord o webhook)",
       "formsPrivacy": "Los envíos suelen contener datos personales de los visitantes. Enviarlos a este servicio es decisión de tu equipo, como responsable de esos datos.",
       "formsWhich": "Solo estos formularios (ninguno marcado: todos)",
+      "formsLoadError": "No se han podido cargar los formularios, así que los formularios a los que se limita este aviso se mantienen.",
       "formsEmail": "Los avisos por email no pueden llevar envíos de formularios: los formularios ya avisan por email a sus destinatarios. Elige Slack, Discord o webhook.",
       "formsTooMany": "Elige hasta 20 formularios.",
       "newTitle": "Nuevo aviso",
