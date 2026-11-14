@@ -6,6 +6,8 @@ import { CopyLink } from '@/components/app/CopyLink';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
+import { ActionForm } from '@/components/app/ActionForm';
+import { ConfirmForm } from '@/components/cloud/ConfirmForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -24,9 +26,11 @@ import {
   checkDomainAction,
   deleteDeploymentAction,
   deleteProjectAction,
+  keepDeploymentAction,
   promoteAction,
   removeDomainAction,
   renameProjectAction,
+  unkeepDeploymentAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
@@ -313,6 +317,7 @@ async function Deployments({
       <h2 id="deployments-title" className={styles.sectionTitle}>
         {t('project.tabs.deployments')}
       </h2>
+      <p className={styles.muted}>{t('project.retention')}</p>
       {list === null ? (
         <p className={styles.muted}>{t('common.loadError')}</p>
       ) : list.items.length === 0 ? (
@@ -330,6 +335,7 @@ async function Deployments({
                     ) : (
                       <Badge>{t('project.preview')}</Badge>
                     )}
+                    {deployment.keptAt ? <Badge tone="brand">{t('project.kept')}</Badge> : null}
                     {deployment.message ? <span>{deployment.message}</span> : null}
                   </p>
                   <a
@@ -354,27 +360,59 @@ async function Deployments({
                     {deployment.branch ? ` (${deployment.branch})` : ''}
                   </p>
                 </div>
-                {deployment.isProduction ? null : (
+                {deployment.isProduction && !deployment.keptAt ? null : (
                   <div className={styles.actions}>
-                    <form action={promoteAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="outline">
-                        {t('project.promote')}
-                      </SubmitButton>
-                    </form>
-                    <form action={deleteDeploymentAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="ghost">
-                        {t('project.delete')}
-                        <span className="visually-hidden"> — {deployment.shortId}</span>
-                      </SubmitButton>
-                    </form>
+                    {deployment.isProduction ? null : (
+                      <>
+                        <form action={promoteAction}>
+                          <input type="hidden" name="locale" value={locale} />
+                          <input type="hidden" name="project" value={projectId} />
+                          <input type="hidden" name="id" value={deployment.id} />
+                          <input type="hidden" name="path" value={path} />
+                          <SubmitButton size="sm" variant="outline">
+                            {t('project.promote')}
+                          </SubmitButton>
+                        </form>
+                      </>
+                    )}
+                    {deployment.keptAt ? (
+                      <ConfirmForm
+                        action={unkeepDeploymentAction}
+                        message={t('project.unkeepConfirm')}
+                      >
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="ghost">
+                          {t('project.unkeep')}
+                          <span className="visually-hidden"> — {deployment.shortId}</span>
+                        </SubmitButton>
+                      </ConfirmForm>
+                    ) : deployment.isProduction ? null : (
+                      <ActionForm action={keepDeploymentAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="ghost">
+                          {t('project.keep')}
+                          <span className="visually-hidden"> — {deployment.shortId}</span>
+                        </SubmitButton>
+                      </ActionForm>
+                    )}
+                    {deployment.isProduction ? null : (
+                      <form action={deleteDeploymentAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="ghost">
+                          {t('project.delete')}
+                          <span className="visually-hidden"> — {deployment.shortId}</span>
+                        </SubmitButton>
+                      </form>
+                    )}
                   </div>
                 )}
               </li>

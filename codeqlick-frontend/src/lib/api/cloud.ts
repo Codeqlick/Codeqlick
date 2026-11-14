@@ -58,6 +58,8 @@ export type CloudDeployment = {
   fileCount: number;
   createdBy: { id: string; name: string } | null;
   viaToken: string | null;
+  /** When it was kept from the automatic cleanup; null when it isn't kept. */
+  keptAt: string | null;
   createdAt: string;
 };
 
@@ -233,6 +235,18 @@ export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {
     ...write,
     method: 'POST',
+  });
+
+export const keepCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(`/cloud/projects/${id}/deployments/${deploymentId}/keep`, {
+    ...write,
+    method: 'POST',
+  });
+
+export const unkeepCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(`/cloud/projects/${id}/deployments/${deploymentId}/keep`, {
+    ...write,
+    method: 'DELETE',
   });
 
 export const deleteCloudDeployment = (id: string, deploymentId: string) =>
