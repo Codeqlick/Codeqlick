@@ -5489,6 +5489,18 @@
       "deadline": "next one before {when}",
       "uptime": "Uptime in the last 30 days: {value}",
       "uptime90": "Last 90 days, a bar per day",
+      "responseTime": "Response time",
+      "responseWindow": "Time window",
+      "responseMedian": "Median",
+      "responseP95": "95th percentile",
+      "responseAverage": "Average",
+      "responseEmpty": "No response times yet",
+      "responseBased": "Based on {count, plural, one {# check} other {# checks}}",
+      "windows": {
+        "24h": "24 h",
+        "7d": "7 days",
+        "30d": "30 days"
+      },
       "checks": "Response time in the last 24 hours",
       "incidents": "Incidents (30 days)",
       "noIncidents": "No incidents.",

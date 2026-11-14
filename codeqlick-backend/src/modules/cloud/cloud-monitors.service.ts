@@ -15,7 +15,11 @@ import { MailService } from '../mail/mail.service.js';
 import { assertCheckableUrl, safeFetch } from '../site-audits/safe-fetch.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudMonitorEmail } from './cloud-emails.js';
-import { CloudMonitorsRepository, type MonitorWithTeam } from './cloud-monitors.repository.js';
+import {
+  CloudMonitorsRepository,
+  type MonitorWithTeam,
+  type ResponseWindow,
+} from './cloud-monitors.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import {
@@ -76,6 +80,30 @@ export interface MonitorView {
   createdAt: string;
 }
 
+/** Response times of the successful checks in a window, whole ms (architecture 4.13). */
+export interface ResponseStats {
+  checks: number;
+  median: number;
+  p95: number;
+  average: number;
+}
+
+export interface ResponseStatsWindows {
+  '24h': ResponseStats | null;
+  '7d': ResponseStats | null;
+  '30d': ResponseStats | null;
+}
+
+function responseStats(window: ResponseWindow): ResponseStats | null {
+  if (window.checks === 0 || window.median === null || window.p95 === null) return null;
+  return {
+    checks: window.checks,
+    median: Math.round(window.median),
+    p95: Math.round(window.p95),
+    average: Math.round(window.average ?? window.median),
+  };
+}
+
 export interface MonitorDetail extends MonitorView {
   checks: Array<{
     at: string;
@@ -87,6 +115,8 @@ export interface MonitorDetail extends MonitorView {
   uptime30: number | null;
   days: DayUptime[];
   incidents: Incident[];
+  /** HTTP monitors only; null for heartbeats. */
+  responseStats: ResponseStatsWindows | null;
 }
 
 export interface StatusPageSettings {
@@ -375,9 +405,10 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
 
   async detail(ctx: CloudCtx, id: string, now = new Date()): Promise<MonitorDetail> {
     const monitor = await this.monitor(ctx, id);
-    const [checks, events] = await Promise.all([
+    const [checks, events, windows] = await Promise.all([
       this.repository.checksSince(monitor.id, new Date(now.getTime() - DAY)),
       this.repository.eventsSince([monitor.id], new Date(now.getTime() - 90 * DAY)),
+      monitor.kind === 'HTTP' ? this.repository.responseWindows(monitor.id, now) : null,
     ]);
     return {
       ...this.view(monitor),
@@ -391,6 +422,11 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       uptime30: uptime(events, new Date(now.getTime() - 30 * DAY), now),
       days: dailyUptime(events, 90, now),
       incidents: incidents(events, new Date(now.getTime() - 30 * DAY), now),
+      responseStats: windows && {
+        '24h': responseStats(windows['24h']),
+        '7d': responseStats(windows['7d']),
+        '30d': responseStats(windows['30d']),
+      },
     };
   }
 

@@ -5489,6 +5489,18 @@
       "deadline": "la siguiente antes de {when}",
       "uptime": "Disponibilidad en los últimos 30 días: {value}",
       "uptime90": "Últimos 90 días, una barra por día",
+      "responseTime": "Tiempo de respuesta",
+      "responseWindow": "Intervalo de tiempo",
+      "responseMedian": "Mediana",
+      "responseP95": "Percentil 95",
+      "responseAverage": "Media",
+      "responseEmpty": "Aún no hay tiempos de respuesta",
+      "responseBased": "Basado en {count, plural, one {# comprobación} other {# comprobaciones}}",
+      "windows": {
+        "24h": "24 h",
+        "7d": "7 días",
+        "30d": "30 días"
+      },
       "checks": "Tiempo de respuesta en las últimas 24 horas",
       "incidents": "Incidencias (30 días)",
       "noIncidents": "Sin incidencias.",

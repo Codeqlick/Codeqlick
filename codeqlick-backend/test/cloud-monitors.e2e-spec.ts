@@ -687,4 +687,77 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
       vi.useRealTimers();
     }
   });
+
+  it('shows response-time stats of the successful checks of an HTTP monitor', async () => {
+    const server = app.getHttpServer();
+    const teamRow = await prisma.cloudTeam.findUniqueOrThrow({ where: { slug: team } });
+    const monitor = await prisma.cloudMonitor.create({
+      data: { teamId: teamRow.id, name: 'Stats', kind: 'HTTP', url: 'https://example.com/' },
+    });
+    const empty = await request(server)
+      .get(`/v1/cloud/monitors/${monitor.id}`)
+      .set(auth)
+      .expect(200);
+    expect(empty.body.responseStats).toEqual({ '24h': null, '7d': null, '30d': null });
+
+    const now = Date.now();
+    const HOUR = 60 * MINUTE;
+    const row = (ago: number, ok: boolean, responseMs: number | null) => ({
+      monitorId: monitor.id,
+      checkedAt: new Date(now - ago),
+      ok,
+      statusCode: ok ? 200 : 503,
+      responseMs,
+    });
+    await prisma.cloudMonitorCheck.createMany({
+      data: [
+        // Inside 24 h: 100, 200, 300, 400 ms.
+        row(1 * HOUR, true, 100),
+        row(2 * HOUR, true, 200),
+        row(3 * HOUR, true, 300),
+        row(4 * HOUR, true, 400),
+        // Failed (even with a time) and ok without a time: never counted.
+        row(5 * HOUR, false, 5000),
+        row(6 * HOUR, true, null),
+        // Older than 24 h, inside 7 d.
+        row(48 * HOUR, true, 1000),
+        // Older than 7 d, inside 30 d.
+        row(10 * 24 * HOUR, true, 2000),
+        // Older than 30 d: in no window.
+        row(40 * 24 * HOUR, true, 9000),
+      ],
+    });
+
+    const { body } = await request(server)
+      .get(`/v1/cloud/monitors/${monitor.id}`)
+      .set(auth)
+      .expect(200);
+    // percentile_cont interpolates linearly at rank p * (n - 1) over the sorted times.
+    // 24 h: [100,200,300,400]: median 250, p95 at rank 2.85 = 300 + 0.85 * 100 = 385, avg 250.
+    // 7 d: [100,200,300,400,1000]: median 300, p95 at rank 3.8 = 400 + 0.8 * 600 = 880, avg 400.
+    // 30 d: [100,200,300,400,1000,2000]: median 350, p95 at rank 4.75 = 1000 + 0.75 * 1000 = 1750,
+    // avg 666.67 (667).
+    expect(body.responseStats).toEqual({
+      '24h': { checks: 4, median: 250, p95: 385, average: 250 },
+      '7d': { checks: 5, median: 300, p95: 880, average: 400 },
+      '30d': { checks: 6, median: 350, p95: 1750, average: 667 },
+    });
+
+    // A heartbeat has none.
+    const beat = await prisma.cloudMonitor.create({
+      data: {
+        teamId: teamRow.id,
+        name: 'Beat',
+        kind: 'HEARTBEAT',
+        key: `cqh_${randomUUID().replaceAll('-', '').slice(0, 22)}`,
+        periodMinutes: 60,
+        graceMinutes: 10,
+      },
+    });
+    const heartbeat = await request(server)
+      .get(`/v1/cloud/monitors/${beat.id}`)
+      .set(auth)
+      .expect(200);
+    expect(heartbeat.body.responseStats).toBeNull();
+  });
 });

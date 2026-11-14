@@ -855,6 +855,16 @@ export type CloudIncident = {
   error: string | null;
 };
 
+/** Response-time figures of one window in whole ms; null when it has no successful check. */
+export type CloudResponseStats = {
+  checks: number;
+  median: number;
+  p95: number;
+  average: number;
+} | null;
+
+export type CloudResponseWindow = '24h' | '7d' | '30d';
+
 export type CloudMonitorDetail = CloudMonitor & {
   checks: Array<{
     at: string;
@@ -866,6 +876,8 @@ export type CloudMonitorDetail = CloudMonitor & {
   uptime30: number | null;
   days: CloudDayUptime[];
   incidents: CloudIncident[];
+  /** Null for heartbeats. */
+  responseStats: Record<CloudResponseWindow, CloudResponseStats> | null;
 };
 
 export type CloudStatusPageSettings = {
