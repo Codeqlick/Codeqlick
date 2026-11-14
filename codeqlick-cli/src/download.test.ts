@@ -3,7 +3,14 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
-import { archiveName, archivePath, downloadFailure, exists, saveArchive } from './download.ts';
+import {
+  archiveName,
+  archivePath,
+  downloadFailure,
+  exists,
+  logPath,
+  saveArchive,
+} from './download.ts';
 
 test('the archive is named after the project and the deployment', () => {
   assert.equal(archiveName('docs', 'a1b2c3d4'), 'docs-a1b2c3d4.tar.gz');
@@ -66,6 +73,39 @@ test('file system errors say what went wrong; anything else is a cut download', 
       downloadFailure(cut, file).message,
       'The download was cut (other side closed); nothing was saved.',
     );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a build log is saved where --out says, and an existing file is noticed', async () => {
+  assert.equal(logPath('logs/build-3.log'), resolve('logs/build-3.log'));
+
+  const dir = await mkdtemp(join(tmpdir(), 'cq-download-'));
+  try {
+    const file = logPath(join(dir, 'build-3.log'));
+    assert.equal(await exists(file), false);
+    const text = async function* () {
+      yield new TextEncoder().encode('npm ci\n');
+      yield new TextEncoder().encode('built\n');
+    };
+    assert.equal(await saveArchive(text(), file), 13);
+    assert.equal(await readFile(file, 'utf8'), 'npm ci\nbuilt\n');
+    // The caller refuses without --force; with it, a later save replaces the file.
+    assert.equal(await exists(file), true);
+    const again = async function* () {
+      yield new TextEncoder().encode('second');
+    };
+    await saveArchive(again(), file);
+    assert.equal(await readFile(file, 'utf8'), 'second');
+    // An empty log (cleared after 30 days) is an empty file.
+    const empty = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.close();
+      },
+    });
+    assert.equal(await saveArchive(empty, file), 0);
+    assert.deepEqual(await readdir(dir), ['build-3.log']);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -454,6 +454,22 @@ export async function downloadCloudDeployment(
   );
 }
 
+/**
+ * The API's response for a build's whole log as a plain-text download (architecture 4.13), unread
+ * so the caller can stream its body. `undefined` without a session.
+ */
+export async function downloadCloudBuildLog(
+  id: string,
+  number: number,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  return fetch(
+    `${env.API_URL}/cloud/projects/${encodeURIComponent(id)}/builds/${encodeURIComponent(String(number))}/log`,
+    { headers: { Authorization: authorization }, cache: 'no-store' },
+  );
+}
+
 export const listCloudDomains = (id: string) =>
   apiFetch<{ items: CloudDomain[] }>(`/cloud/projects/${id}/domains`, auth);
 

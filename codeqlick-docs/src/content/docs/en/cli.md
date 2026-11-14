@@ -84,7 +84,7 @@ See [custom domains](/en/custom-domains/).
 | `builds`                                                                                      | List the latest builds.                                                                |
 | `builds start [--branch <name>]`                                                              | Build the branch's latest commit and follow the log.                                   |
 | `builds cancel <number>`                                                                      | Cancel a queued or running build.                                                      |
-| `logs [number]`                                                                               | Show a build's log (the latest by default), followed while it runs.                    |
+| `logs [number]`                                                                               | A build's log (the latest by default), followed live; `--out <file>` saves it.         |
 | `--json`                                                                                      | Print the API's answer, for `git`, `env` and `builds`.                                 |
 
 See [builds from Git](/en/builds-from-git/).

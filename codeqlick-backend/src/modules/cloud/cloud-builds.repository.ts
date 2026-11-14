@@ -346,6 +346,14 @@ export class CloudBuildsRepository {
     });
   }
 
+  /** A build's log alone (no other column or relation), for the download. */
+  findBuildLog(projectId: string, number: number): Promise<{ log: string } | null> {
+    return this.prisma.cloudBuild.findUnique({
+      where: { projectId_number: { projectId, number } },
+      select: { log: true },
+    });
+  }
+
   /** The number of a pull request's latest build: only that one may update the comment. */
   async latestPullBuild(projectId: string, pullRequest: number): Promise<number | null> {
     const last = await this.prisma.cloudBuild.findFirst({

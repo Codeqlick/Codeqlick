@@ -393,12 +393,11 @@ export class Api {
     return headers;
   }
 
-  /** A deployment's files as a `tar.gz` stream (built by the API while it is read). */
-  async archive(project: string, deployment: string): Promise<ReadableStream<Uint8Array>> {
-    const url = `${this.base}/cloud/projects/${project}/deployments/${deployment}/archive`;
+  /** A GET whose body is read as a stream (a download), or the API's problem when it fails. */
+  private async stream(path: string, accept: string): Promise<ReadableStream<Uint8Array>> {
     let response: Response;
     try {
-      response = await fetch(url, { headers: this.headers('application/gzip, application/json') });
+      response = await fetch(`${this.base}${path}`, { headers: this.headers(accept) });
     } catch (error) {
       throw new ApiError(0, `Can't reach ${this.base} (${(error as Error).message})`);
     }
@@ -414,6 +413,17 @@ export class Api {
     }
     return response.body;
   }
+
+  /** A deployment's files as a `tar.gz` stream (built by the API while it is read). */
+  archive = (project: string, deployment: string) =>
+    this.stream(
+      `/cloud/projects/${project}/deployments/${deployment}/archive`,
+      'application/gzip, application/json',
+    );
+
+  /** A build's whole kept log as a text stream (the log download route). */
+  buildLog = (project: string, number: number) =>
+    this.stream(`/cloud/projects/${project}/builds/${number}/log`, 'text/plain, application/json');
 
   me = () => this.request<Me>('GET', '/cloud/me');
   projects = (team: string) =>

@@ -31,6 +31,7 @@ import {
   type PaginationQuery,
 } from '../../common/schemas/common.schemas.js';
 import type { Paginated } from '../../common/types/paginated.js';
+import { attachmentDisposition } from '../projects/project-file-name.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
 import { MAX_UPLOAD_BYTES } from './cloud-plans.js';
 import {
@@ -313,6 +314,20 @@ export class CloudBuildsController {
     @Query({ schema: logQuerySchema }) query: LogQuery,
   ): Promise<BuildDetail> {
     return this.builds.get(ctx, params.id, params.number, query.after);
+  }
+
+  @Get('projects/:id/builds/:number/log')
+  @CloudApi()
+  async logFile(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: buildParamSchema }) params: BuildParam,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { filename, text } = await this.builds.logFile(ctx, params.id, params.number);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', attachmentDisposition(filename));
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(text);
   }
 
   @Post('projects/:id/builds/:number/cancel')

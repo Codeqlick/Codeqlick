@@ -457,6 +457,50 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       log: 'npm ci\nbuilt\n',
     });
     expect(first.body.deploymentId).toBeTruthy();
+
+    // ── Downloading the log: a member gets the file, a read-only token too, anyone else a 404.
+    const logUrl = `/v1/cloud/projects/${projectId}/builds/1/log`;
+    const download = await request(server).get(logUrl).set(auth).expect(200);
+    expect(download.headers['content-type']).toBe('text/plain; charset=utf-8');
+    expect(download.headers['content-disposition']).toBe(
+      `attachment; filename="bp-${tag}-build-1.log"; filename*=UTF-8''bp-${tag}-build-1.log`,
+    );
+    expect(download.headers['cache-control']).toBe('no-store');
+    expect(download.text).toBe('npm ci\nbuilt\n');
+    const reader = await request(server)
+      .post('/v1/cloud/tokens')
+      .set(auth)
+      .send({ name: 'Reader', teamSlug: team, expiresInDays: null, readOnly: true })
+      .expect(201);
+    const readerAuth = { Authorization: `Bearer ${reader.body.token as string}` };
+    const readerFile = await request(server).get(logUrl).set(readerAuth).expect(200);
+    expect(readerFile.text).toBe('npm ci\nbuilt\n');
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/builds/999/log`)
+      .set(auth)
+      .expect(404);
+    await prisma.user.create({
+      data: {
+        email: `e2e-cb-other-${tag}@codeqlick.test`,
+        name: 'Grace',
+        role: Role.CLIENT,
+        passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+        registeredAt: new Date(),
+      },
+    });
+    const otherLogin = await request(server)
+      .post('/v1/auth/login')
+      .send({ email: `e2e-cb-other-${tag}@codeqlick.test`, password })
+      .expect(200);
+    await request(server)
+      .get(logUrl)
+      .set({ Authorization: `Bearer ${otherLogin.body.accessToken as string}` })
+      .expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${randomUUID()}/builds/1/log`)
+      .set(auth)
+      .expect(404);
+
     // The build root's codeqlick.json travels with the output (architecture 4.13).
     expect(
       (await prisma.cloudDeployment.findUniqueOrThrow({ where: { id: first.body.deploymentId } }))
