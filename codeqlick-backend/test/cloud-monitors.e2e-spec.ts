@@ -2,13 +2,17 @@ import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // The site a monitor checks: what it answers is up to the test (real fetching refuses local
 // addresses, decision 38). The URL check stays the real one.
 const site = vi.hoisted(() => ({ status: 200 as number | 'error' }));
+// What the project's notification channels are sent (decision 64), instead of the internet.
+const posts = vi.hoisted(
+  () => [] as Array<{ url: string; body: string; headers: Record<string, string> }>,
+);
 vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
   const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
   return {
@@ -28,6 +32,10 @@ vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
             certificateValidTo: new Date(Date.now() + 5 * 86_400_000),
           }),
     ),
+    safePost: vi.fn((url: string, body: string, headers: Record<string, string>) => {
+      posts.push({ url, body, headers });
+      return Promise.resolve({ status: 200, body: '' });
+    }),
   };
 });
 
@@ -49,6 +57,8 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
   let prisma: InstanceType<typeof PrismaService>;
   const sent: Array<{ to: string; subject: string }> = [];
   let ownerId = '';
+  const team = `m-${tag}`;
+  let auth: { Authorization: string } = { Authorization: '' };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -86,8 +96,7 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
     const server = app.getHttpServer();
     const engine = app.get(CloudMonitorsService);
     const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
-    const auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
-    const team = `m-${tag}`;
+    auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
     await request(server)
       .post('/v1/cloud/teams')
       .set(auth)
@@ -214,5 +223,134 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
     const badge = await request(server).get(`/v1/cloud/status/${team}/badge.svg`).expect(200);
     expect(badge.headers['content-type']).toMatch(/image\/svg\+xml/);
     expect(badge.headers['cross-origin-resource-policy']).toBe('cross-origin');
+  });
+
+  // Keeps the whole file under the create limit (10 a minute): the first test made 6 monitors.
+  it("alerts the project's Slack, Discord and webhook channels that asked (decision 64)", async () => {
+    const server = app.getHttpServer();
+    const engine = app.get(CloudMonitorsService);
+    const project = await request(server)
+      .post(`/v1/cloud/teams/${team}/projects`)
+      .set(auth)
+      .send({ name: 'Web', slug: `mp-${tag}` })
+      .expect(201);
+    const projectId = project.body.id as string;
+    const notifications = `/v1/cloud/projects/${projectId}/notifications`;
+
+    // Email channels can't take monitor alerts: monitors email their own people.
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'EMAIL', name: 'Team', recipientIds: [ownerId], monitorAlerts: true })
+      .expect(400);
+    const email = await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'EMAIL', name: 'Team', recipientIds: [ownerId] })
+      .expect(201);
+    expect(email.body.monitorAlerts).toBe(false);
+    await request(server)
+      .patch(`${notifications}/${email.body.id as string}`)
+      .set(auth)
+      .send({ monitorAlerts: true })
+      .expect(400);
+    const hook = await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({
+        kind: 'WEBHOOK',
+        name: 'Ops',
+        url: 'https://hooks.example.com/monitors/aaaa',
+        monitorAlerts: true,
+      })
+      .expect(201);
+    expect(hook.body.monitorAlerts).toBe(true);
+    const secret = hook.body.secret as string;
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'WEBHOOK', name: 'Builds', url: 'https://hooks.example.com/builds/bbbb' })
+      .expect(201);
+
+    const api = await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set(auth)
+      .send({
+        kind: 'HTTP',
+        name: 'API',
+        url: 'https://api.example.com/',
+        projectId,
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    const monitorId = api.body.id as string;
+    const received = (event: string) =>
+      posts
+        .filter((p) => p.headers['X-Codeqlick-Event'] === event)
+        .map((p) => ({ ...p, json: JSON.parse(p.body) as Record<string, unknown> }));
+
+    // First check: UP, no alert, but the certificate (5 days left) warns.
+    const t1 = new Date();
+    site.status = 200;
+    await engine.tick(t1);
+    await vi.waitFor(() => expect(received('monitor.cert')).toHaveLength(1));
+    expect(received('monitor.cert')[0]!.json).toMatchObject({
+      monitor: { id: monitorId, kind: 'HTTP', url: 'https://api.example.com/' },
+      error: null,
+      downMinutes: null,
+    });
+    expect(received('monitor.cert')[0]!.json.certExpiresAt).toEqual(expect.any(String));
+
+    // Two failures: DOWN, the email and one signed post to the channel that asked.
+    site.status = 503;
+    await engine.tick(new Date(t1.getTime() + 5 * MINUTE));
+    await engine.tick(new Date(t1.getTime() + 10 * MINUTE));
+    await vi.waitFor(() => expect(received('monitor.down')).toHaveLength(1));
+    const down = received('monitor.down')[0]!;
+    expect(down.url).toBe('https://hooks.example.com/monitors/aaaa');
+    expect(down.headers['X-Codeqlick-Signature']).toBe(
+      `sha256=${createHmac('sha256', secret).update(down.body).digest('hex')}`,
+    );
+    expect(down.json).toMatchObject({
+      event: 'monitor.down',
+      project: { slug: `mp-${tag}`, name: 'Web' },
+      monitor: { id: monitorId, name: 'API', kind: 'HTTP', url: 'https://api.example.com/' },
+      error: 'HTTP 503',
+      downMinutes: null,
+      certExpiresAt: null,
+    });
+    expect(down.json.consoleUrl).toMatch(new RegExp(`/en/console/${team}/monitors/${monitorId}$`));
+    await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Down: API')).toBe(true));
+
+    // Back up after 5 minutes.
+    site.status = 200;
+    await engine.tick(new Date(t1.getTime() + 15 * MINUTE));
+    await vi.waitFor(() => expect(received('monitor.up')).toHaveLength(1));
+    expect(received('monitor.up')[0]!.json).toMatchObject({ downMinutes: 5, error: null });
+    // Nothing ever went to the channel without monitor alerts.
+    expect(posts.every((p) => p.url === 'https://hooks.example.com/monitors/aaaa')).toBe(true);
+    const channel = await prisma.cloudNotifyChannel.findUniqueOrThrow({
+      where: { id: hook.body.id as string },
+    });
+    expect(channel).toMatchObject({ lastOk: true, failures: 0 });
+
+    // A monitor without a project keeps email only.
+    const before = posts.length;
+    const beat = await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set(auth)
+      .send({
+        kind: 'HEARTBEAT',
+        name: 'Nightly',
+        periodMinutes: 60,
+        graceMinutes: 10,
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    await request(server)
+      .get(`${new URL(beat.body.heartbeatUrl as string).pathname}?status=fail`)
+      .expect(200);
+    await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Down: Nightly')).toBe(true));
+    expect(posts).toHaveLength(before);
   });
 });

@@ -2355,6 +2355,8 @@ model CloudNotifyChannel {
   buildFailed    Boolean         @default(true) @map("build_failed")
   buildSucceeded Boolean         @default(false) @map("build_succeeded")
   previews       Boolean         @default(false)
+  /// Slack, Discord and webhooks: also the alerts of the project's monitors (decision 64).
+  monitorAlerts  Boolean         @default(false) @map("monitor_alerts")
   /// The language of Slack, Discord and webhook messages (`en` or `es`).
   locale         String          @default("en") @db.VarChar(2)
   /// Failed deliveries in a row; ten switch the channel off.
