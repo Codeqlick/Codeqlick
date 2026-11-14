@@ -502,6 +502,24 @@
     "welcomeSubmit": "Create password",
     "welcomeInvalidLink": "This link is invalid or has expired. Welcome links work once and for 7 days. Ask for a new one below with your email."
   },
+  "Unsubscribe": {
+    "metaTitle": "Email preferences",
+    "title": "Email preferences",
+    "subscribed": "{email} gets {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}}. Unsubscribe and we'll stop sending it; project updates and other emails about your account keep arriving.",
+    "unsubscribed": "Done: {email} won't get {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}} any more.",
+    "alreadyUnsubscribed": "{email} is already unsubscribed from {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}}.",
+    "resubscribed": "You're subscribed again: {email} will keep getting {kind, select, digest {the weekly summary of your projects} other {the monthly report of your website}}.",
+    "unsubscribe": "Unsubscribe",
+    "unsubscribing": "Unsubscribing…",
+    "undo": "Undo (subscribe again)",
+    "subscribeAgain": "Subscribe again",
+    "subscribing": "Subscribing…",
+    "account": "Manage all your emails in My account",
+    "invalidLink": "This link doesn't work any more. Sign in and choose which emails you get in My account.",
+    "signIn": "Sign in",
+    "retry": "We couldn't save the change right now. Please try again in a minute.",
+    "loadFailed": "We couldn't open this link right now. Please reload the page in a minute."
+  },
   "Account": {
     "nav": "Account",
     "title": "Your account",

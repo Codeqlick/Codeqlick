@@ -107,6 +107,52 @@ describe('renderEmail', () => {
     expect(html).toContain('.cq-card { padding: 24px 20px !important; }');
   });
 
+  it('links the unsubscribe page in the footer of an optional email, in its language', () => {
+    const url = 'https://codeqlick.com/es/email/unsubscribe?token=abc.d_e';
+    const { text, html } = renderEmail(
+      { locale: 'es', preheader: 'x', intro: ['Resumen.'], unsubscribeUrl: url },
+      siteUrl,
+    );
+    expect(text).toBe(
+      [
+        'Resumen.',
+        '',
+        'Un saludo,',
+        'El equipo de Codeqlick',
+        '',
+        `¿No quieres recibir estos correos? Darse de baja: ${url}`,
+      ].join('\n'),
+    );
+    expect(html).toContain(
+      `¿No quieres recibir estos correos? <a href="${url}" target="_blank" style="color:#D9177E;text-decoration:underline;">Darse de baja</a>`,
+    );
+
+    const english = renderEmail(
+      {
+        locale: 'en',
+        preheader: 'x',
+        intro: ['Summary.'],
+        unsubscribeUrl: 'https://x.test/u?a=1&b=2',
+      },
+      siteUrl,
+    );
+    expect(english.text).toContain(
+      "Don't want these emails? Unsubscribe: https://x.test/u?a=1&b=2",
+    );
+    expect(english.html).toContain('href="https://x.test/u?a=1&amp;b=2"');
+    expect(english.html).toContain('>Unsubscribe</a>');
+  });
+
+  it('has no unsubscribe link in transactional emails', () => {
+    const { text, html } = renderEmail(
+      { locale: 'en', preheader: 'x', intro: ['Reset.'] },
+      siteUrl,
+    );
+    expect(text).not.toContain('Unsubscribe');
+    expect(html).not.toContain('Unsubscribe');
+    expect(html).not.toContain('email/unsubscribe');
+  });
+
   it('can end without a signature', () => {
     const { text } = renderEmail(
       { locale: 'en', preheader: 'x', intro: ['Only this.'], signoff: [] },

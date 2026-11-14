@@ -42,6 +42,7 @@ export const SITE_SECTIONS = [
   'calculator',
   'confirm-email',
   'contact',
+  'email',
   'legal',
   'portal',
   'privacy',
