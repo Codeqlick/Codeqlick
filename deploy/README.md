@@ -606,6 +606,13 @@ The console (cloud.codeqlick.com) is a web app and publishes itself; **deploying
    (`python3-certbot-dns-ovh`; renewed by certbot's timer), installs the Nginx site, lets the API's
    site take 50 MB deployments, and saves `CLOUD_HOSTING_DOMAIN` in `.env`. Safe to run again.
 
+   Run `sudo ./deploy/setup-cloud.sh <domain>` again whenever
+   `deploy/nginx/cloud-hosting.conf.template` changes: a normal deploy does not touch that Nginx
+   site. The script re-renders it, checks it with `nginx -t` (restoring the previous site if it
+   fails) and reloads Nginx; every other step skips what is already done. The branch addresses
+   (`<project>--b-<branch>.<domain>`) changed the template, so run it once after that release is
+   merged, or those addresses won't resolve.
+
 Custom domains of Cloud projects are published by the same cron as client sites
 (`sync-sites.sh`, through `cq-site add <domain> cloud <slug>`) once the API has verified them.
 Deployments are not backed up: developers keep their sources and deploy again. To take a project
