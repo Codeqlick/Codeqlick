@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   addressHost,
   addressHref,
+  cloudEventFilters,
+  cloudEventFiltersQuery,
   cloudSlug,
   configJson,
   formatBytes,
@@ -157,5 +159,32 @@ describe('transferTargets', () => {
     ];
     expect(transferTargets(teams, 'studio').map((team) => team.slug)).toEqual(['client', 'mine']);
     expect(transferTargets([{ slug: 'studio', role: 'OWNER' }], 'studio')).toEqual([]);
+  });
+});
+
+describe('cloudEventFilters', () => {
+  it('keeps well-formed dates and a trimmed, lowercased action', () => {
+    expect(
+      cloudEventFilters({ from: '2026-01-01', to: ['2026-01-31', 'x'], action: ' Domain. ' }),
+    ).toEqual({
+      from: '2026-01-01',
+      to: '2026-01-31',
+      action: 'domain.',
+    });
+  });
+
+  it('drops empty and malformed values', () => {
+    expect(cloudEventFilters({ from: '1/1/2026', to: '', action: '   ', page: '2' })).toEqual({});
+    expect(cloudEventFilters({ action: 'a'.repeat(150) }).action).toHaveLength(60);
+  });
+});
+
+describe('cloudEventFiltersQuery', () => {
+  it('builds the query string in a stable order', () => {
+    expect(cloudEventFiltersQuery({})).toBe('');
+    expect(cloudEventFiltersQuery({ action: 'domain.added', from: '2026-01-01' })).toBe(
+      '?from=2026-01-01&action=domain.added',
+    );
+    expect(cloudEventFiltersQuery({ action: 'a b&c' })).toBe('?action=a+b%26c');
   });
 });

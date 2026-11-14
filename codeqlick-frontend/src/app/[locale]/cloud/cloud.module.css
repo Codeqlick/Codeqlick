@@ -429,6 +429,28 @@
   gap: var(--space-4);
 }
 
+/* The Events page's GET filters: period and action (tops aligned, the action has a hint), then
+   the buttons on their own line. */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.filters > div {
+  min-width: 11rem;
+}
+
+.filters > div:has(input[name='action']) {
+  flex: 1 1 16rem;
+  max-width: 24rem;
+}
+
+.filters > .actions {
+  flex-basis: 100%;
+}
+
 .spacedTabs {
   margin: var(--space-5) 0 0;
 }

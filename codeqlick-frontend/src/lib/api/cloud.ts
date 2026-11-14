@@ -2,7 +2,11 @@ import 'server-only';
 import { cache } from 'react';
 import { authHeader } from './projects';
 import { env } from '@/lib/env';
+import { clientHeaders } from '@/lib/auth/refresh';
+import { type CloudEventFilters, cloudEventFiltersQuery } from '@/lib/cloud';
+import { env } from '@/lib/env';
 import { apiFetch } from './client';
+import { authHeader } from './projects';
 import type { Paginated } from './types';
 
 /** Codeqlick Cloud (architecture 4.13). Shapes mirror the API's cloud module. */
@@ -234,11 +238,34 @@ export const getCloudUsage = cache((team: string) =>
   apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth),
 );
 
-export const listCloudEvents = (team: string, page = 1) =>
+export type { CloudEventFilters };
+
+export const listCloudEvents = (team: string, page = 1, filters: CloudEventFilters = {}) =>
   apiFetch<Paginated<CloudEvent>>(`/cloud/teams/${encodeURIComponent(team)}/events`, {
     ...auth,
-    query: { page, pageSize: 30 },
+    query: { page, pageSize: 30, from: filters.from, to: filters.to, action: filters.action },
   });
+
+/**
+ * The API's response for a team's events as CSV (ADMIN), raw so the route handler can stream it
+ * (apiFetch reads whole bodies). `incoming` are the visitor's request headers: their IP goes on,
+ * as the API allows 10 exports an hour per IP. Undefined without a session.
+ */
+export async function exportCloudEvents(
+  team: string,
+  filters: CloudEventFilters,
+  incoming: Headers,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  const path = `/cloud/teams/${encodeURIComponent(team)}/events.csv`;
+  return fetch(`${env.API_URL}${path}${cloudEventFiltersQuery(filters)}`, {
+    headers: { ...clientHeaders(incoming), Authorization: authorization },
+    cache: 'no-store',
+    // A year of a busy team's events streams for a while.
+    signal: AbortSignal.timeout(5 * 60_000),
+  });
+}
 
 export const listCloudMembers = (team: string) =>
   apiFetch<CloudMembers>(`/cloud/teams/${encodeURIComponent(team)}/members`, auth);

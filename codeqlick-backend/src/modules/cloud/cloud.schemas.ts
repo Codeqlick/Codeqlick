@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { localeSchema, paginationSchema } from '../../common/schemas/common.schemas.js';
 import { limitsFor } from './cloud-config.js';
+import { exportRange, isCalendarDay, rangeError } from './cloud-events.js';
 
 const slug = (min: number, max: number) =>
   z
@@ -17,6 +18,45 @@ const name = z.string().trim().min(1).max(60);
 
 export const teamParamSchema = z.object({ team: teamSlugSchema });
 export type TeamParam = z.infer<typeof teamParamSchema>;
+
+// ── Events: filters of the list and the CSV export (architecture 4.13 "Exporting events") ──
+
+const eventDay = z.string().refine(isCalendarDay, 'A date written YYYY-MM-DD');
+const eventFilterFields = {
+  from: eventDay.optional(),
+  to: eventDay.optional(),
+  /** Exact (`domain.added`) or a prefix ending in `.` (`domain.`). */
+  action: z
+    .string()
+    .trim()
+    .max(60)
+    .regex(
+      /^[a-z_]+(?:\.[a-z_]+)*\.?$/,
+      'An action such as domain.added, or a prefix such as domain.',
+    )
+    .optional(),
+};
+
+/** The list: filters optional, no default period; `from`–`to` checked when both are given. */
+export const eventsQuerySchema = paginationSchema
+  .extend(eventFilterFields)
+  .superRefine((value, context) => {
+    const problem = value.from && value.to ? rangeError(value.from, value.to) : null;
+    if (problem) context.addIssue({ code: 'custom', path: ['to'], message: problem });
+  });
+export type EventsQuery = z.infer<typeof eventsQuerySchema>;
+
+/** The export: `from` and `to` always set (by default the last 30 days up to today, Madrid). */
+export const eventsExportQuerySchema = z.object(eventFilterFields).transform((value, context) => {
+  const { from, to } = exportRange(value);
+  const problem = rangeError(from, to);
+  if (problem) {
+    context.addIssue({ code: 'custom', path: ['to'], message: problem });
+    return z.NEVER;
+  }
+  return { from, to, action: value.action };
+});
+export type EventsExportQuery = z.infer<typeof eventsExportQuerySchema>;
 
 export const termsSchema = z.object({
   acceptTerms: z.literal(true),

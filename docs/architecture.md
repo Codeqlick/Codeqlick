@@ -472,6 +472,8 @@ Git hosting itself is left to GitHub (or a self-hosted Forgejo): developers alre
   - **Answer:** `200 CloudProject` (its `team` now the target) with `git: 'kept' | 'dropped' | 'none'`.
   - **Console:** the project's settings gain "Move to another team", shown to the team's owners: a select of the caller's other teams where they are `OWNER` or `ADMIN` (from `/cloud/me`; with none, a line saying so), what moves and what changes (Git, tokens restricted to this team, `codeqlick.json`), a confirmation typing the project's slug, then a redirect to `/console/<target>/<project>` with a notice when the Git link was dropped.
 - **Events:** every change in a team is recorded (`CloudEvent`: who, through which token if any, `action` such as `project.created`, `deployment.created`, `deployment.promoted`, `domain.added`, `member.invited`, `token.created`, a label, details and the IP) and listed newest first in the console. Kept 365 days. Admin actions on Cloud also go to the platform's activity log.
+- **Exporting events:** a team's admins and owners download its events as CSV (`GET /cloud/teams/:team/events.csv`, session or token): optional `from` and `to` (dates, `YYYY-MM-DD`, Madrid days, inclusive; at most 365 days apart; default the last 30 days) and `action` (an exact action such as `domain.added`, or a prefix ending in `.` such as `domain.`). Columns: `date` (UTC, ISO 8601), `actor`, `token`, `action`, `target`, `details` (JSON), `ip`; newest first. Written as it is read, 1,000 rows at a time (a busy year never sits in memory), UTF-8 with BOM, cells that start like a formula (`=`, `+`, `-`, `@`, tab, carriage return) get a leading `'`, like the leads export. File name `<team>-events-<from>-<to>.csv`. 10 exports an hour per IP (`@Throttle`; `429`). Exporting isn't recorded as an event.
+  - **Console:** the team's **Events** page gets the period (from, to) and action filters, applied to the list too, and "Export CSV" with the same filters.
 
 #### Authentication for machines
 
@@ -1053,7 +1055,8 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | PATCH | `/cloud/teams/:team/members/:userId` | `{ role }` (OWNER for owners; ADMIN otherwise) | `204`; `409` would leave no owner |
 | DELETE | `/cloud/teams/:team/members/:userId` | ADMIN, or myself to leave | `204`; `409` the last owner |
 | GET | `/cloud/teams/:team/usage` 🔑 | | `{ plan, limits, projects, storageBytes, deploymentsLastHour, members, meters }`; `meters` (usage alerts) is `[{ key: 'builds' \| 'formSubmissions' \| 'analyticsEvents' \| 'storage' \| 'deploymentsPerHour', used, limit, percent }]`, `percent` being `floor(used / limit × 100)` (may pass 100); the console shows its banner from it |
-| GET | `/cloud/teams/:team/events` 🔑 | `?page&pageSize` | `Paginated<CloudEvent>` newest first |
+| GET | `/cloud/teams/:team/events` 🔑 | `?page&pageSize&from&to&action` (filters as in the export) | `Paginated<CloudEvent>` newest first |
+| GET | `/cloud/teams/:team/events.csv` 🔑 | ADMIN. `?from&to&action` (dates `YYYY-MM-DD`, at most 365 days apart, default the last 30 days; `action` exact or a prefix ending in `.`) | `text/csv` attachment `<team>-events-<from>-<to>.csv`, streamed, newest first; `400` bad dates or range, `429` past 10/h per IP (section 4.13, Events) |
 | GET | `/cloud/teams/:team/projects` 🔑 | | `{ items: CloudProject[] }` |
 | POST | `/cloud/teams/:team/projects` 🔑 | ADMIN. `{ name, slug }` | `201 CloudProject`; `409` slug taken or reserved, or past 10 |
 | GET / PATCH / DELETE | `/cloud/projects/:id` 🔑 | PATCH `{ name }` (ADMIN) | `CloudProject` / `CloudProject` / `204` (ADMIN, see 4.13) |
