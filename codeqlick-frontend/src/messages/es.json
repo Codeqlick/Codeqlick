@@ -303,6 +303,7 @@
     "readMore": "Leer artículo",
     "back": "Todos los artículos",
     "publishedOn": "Publicado el {date}",
+    "readingTime": "{minutes} min de lectura",
     "tagsLabel": "Etiquetas",
     "topics": "Temas",
     "allTopics": "Todos los temas",
