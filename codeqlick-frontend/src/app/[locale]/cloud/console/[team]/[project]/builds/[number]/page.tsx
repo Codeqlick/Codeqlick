@@ -62,6 +62,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
           <Badge tone={BUILD_TONE[build.status]}>{t(`builds.status.${build.status}`)}</Badge>
           <Badge>{build.target === 'production' ? t('git.production') : t('git.preview')}</Badge>
           {build.noCache ? <Badge>{t('builds.noCache')}</Badge> : null}
+          {build.keptAsPreview ? <Badge tone="warning">{t('builds.keptByLock')}</Badge> : null}
           <span className={styles.small}>
             <span className={styles.mono}>{build.branch}</span> ·{' '}
             <span className={styles.mono}>{build.commit.slice(0, 7)}</span>
@@ -83,6 +84,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
             </Link>
           </p>
         ) : null}
+        {build.keptAsPreview ? <p className={styles.small}>{t('builds.keptByLockHelp')}</p> : null}
         {deployment ? (
           <p className={styles.spacedSmall}>
             <span className={styles.address}>

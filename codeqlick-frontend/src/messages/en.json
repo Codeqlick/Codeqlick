@@ -5014,6 +5014,13 @@
       "files": "{count, plural, one {# file} other {# files}}",
       "suspendedTitle": "This project is suspended",
       "suspendedBody": "Its addresses show a notice and it takes no deployments. Reason: {reason}. Reply to our email if you think it's a mistake.",
+      "lock": {
+        "title": "Production is locked to {id} since {since}, {who, select, former {by a former member} other {by {name}}}.",
+        "noId": "an earlier deployment",
+        "body": "A rollback locked it so the bug just rolled back can't come back on its own: production builds from Git still build and deploy, but as previews, until someone publishes a deployment or unlocks production.",
+        "unlock": "Unlock",
+        "unlocking": "Unlocking…"
+      },
       "domainsLead": "Serve the published version on your own domains (up to 5).",
       "domainName": "Domain",
       "domainHint": "e.g. docs.example.com",
@@ -5500,7 +5507,9 @@
       "create": "Add hook",
       "creating": "Adding…",
       "created": "Hook added. Copy its URL now: it won't be shown again. Anyone with it can trigger a build, so paste it only in the service's webhook settings.",
-      "createdNoUrl": "Hook added."
+      "createdNoUrl": "Hook added.",
+      "keptByLock": "Kept as preview",
+      "keptByLockHelp": "Production was locked after a rollback, so this build deployed as a preview. Promote its deployment to publish it."
     },
     "notify": {
       "lead": "Tell people or a channel when a build fails or a site is published, so nobody has to watch the console.",

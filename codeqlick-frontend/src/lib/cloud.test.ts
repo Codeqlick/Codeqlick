@@ -11,11 +11,13 @@ import {
   filterFiles,
   formatBytes,
   formatSizeChange,
+  formatWhen,
   hookBranchValid,
   hookName,
   isAddressHost,
   isDeploymentId,
   isProtected,
+  productionLockValues,
   protectionInput,
   ruleSettings,
   transferTargets,
@@ -282,5 +284,27 @@ describe('formatSizeChange', () => {
     expect(formatSizeChange(100, 612, 'en')).toBe('−512 B');
     expect(formatSizeChange(2560, 1024, 'es')).toBe('+1,5 KB');
     expect(formatSizeChange(300, 300, 'en')).toBe('±0 B');
+  });
+});
+
+describe('productionLockValues', () => {
+  const at = '2026-11-12T17:05:00.000Z';
+
+  it('names the deployment, the date and who locked it', () => {
+    expect(productionLockValues({ at, by: { id: 'u1', name: 'Ana' } }, 'abc1234', 'es')).toEqual({
+      id: 'abc1234',
+      since: formatWhen(at, 'es'),
+      who: 'person',
+      name: 'Ana',
+    });
+  });
+
+  it('says a former member when the person left, and no id without production', () => {
+    expect(productionLockValues({ at, by: null }, null, 'en')).toEqual({
+      id: null,
+      since: formatWhen(at, 'en'),
+      who: 'former',
+      name: '',
+    });
   });
 });

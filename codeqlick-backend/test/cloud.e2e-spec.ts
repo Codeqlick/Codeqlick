@@ -321,6 +321,11 @@ describe('Codeqlick Cloud (e2e)', () => {
       .set(tokenAuth)
       .expect(200);
     expect(promoted.body.production).toMatchObject({ id: first.id, isProduction: true });
+    // Promoting an older deployment locks production (architecture 4.13), by the token's person.
+    expect(promoted.body.productionLock).toEqual({
+      at: expect.any(String),
+      by: { id: expect.any(String), name: 'Ada' },
+    });
     expect(await readlink(join(root, 'hosts', slug))).toBe(join('..', 'deployments', first.id));
     await request(server)
       .delete(`/v1/cloud/projects/${projectId}/deployments/${first.id}`)
@@ -434,6 +439,44 @@ describe('Codeqlick Cloud (e2e)', () => {
       .set(mateAuth)
       .send({ name: 'Other', slug: `p-${tag}-x` })
       .expect(403);
+
+    // ── Production lock after a rollback ───────────────────────────────────────────────────
+    const unlockUrl = `/v1/cloud/projects/${projectId}/production/unlock`;
+    // Only an admin unlocks.
+    await request(server).post(unlockUrl).set(mateAuth).expect(403);
+    // An explicit release (`codeqlick deploy --prod`) publishes and unlocks.
+    const release = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments`)
+      .set(tokenAuth)
+      .field('target', 'production')
+      .attach('bundle', await bundle({ 'index.html': '<h1>v3</h1>' }))
+      .expect(201);
+    expect(release.body).toMatchObject({ target: 'production', isProduction: true });
+    const released = await request(server)
+      .get(`/v1/cloud/projects/${projectId}`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(released.body).toMatchObject({
+      production: { id: release.body.id as string },
+      productionLock: null,
+    });
+    // Rolling back again locks; promoting the current production again changes nothing.
+    const relocked = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments/${first.id}/promote`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(relocked.body.productionLock).toMatchObject({ by: { name: 'Ada' } });
+    const again = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments/${first.id}/promote`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(again.body.productionLock).toEqual(relocked.body.productionLock);
+    // Unlocking publishes nothing: production stays the rolled-back one.
+    const unlocked = await request(server).post(unlockUrl).set(tokenAuth).expect(200);
+    expect(unlocked.body).toMatchObject({ production: { id: first.id }, productionLock: null });
+    const unchanged = await request(server).post(unlockUrl).set(tokenAuth).expect(200);
+    expect(unchanged.body).toMatchObject({ production: { id: first.id }, productionLock: null });
+    expect(await readlink(join(root, 'hosts', slug))).toBe(join('..', 'deployments', first.id));
 
     // ── CLI sign-in (device flow) ──────────────────────────────────────────────────────────
     const started = await request(server)
@@ -569,6 +612,7 @@ describe('Codeqlick Cloud (e2e)', () => {
     // ── Events, housekeeping and deletion ──────────────────────────────────────────────────
     const events = await request(server)
       .get(`/v1/cloud/teams/${teamSlug}/events`)
+      .query({ pageSize: 100 })
       .set(ownerAuth)
       .expect(200);
     const actions = (events.body.items as Array<{ action: string }>).map((e) => e.action);
@@ -577,6 +621,8 @@ describe('Codeqlick Cloud (e2e)', () => {
         'team.created',
         'deployment.created',
         'deployment.promoted',
+        'project.production_locked',
+        'project.production_unlocked',
         'member.joined',
         'domain.added',
       ]),

@@ -79,6 +79,7 @@ export class CloudNotificationsRepository {
         pullRequest: true,
         status: true,
         error: true,
+        keptAsPreview: true,
         startedAt: true,
         finishedAt: true,
         project: {

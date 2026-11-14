@@ -17,6 +17,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { CloudConfig } from './cloud-config.js';
 import type { DeployBadgeFacts } from './cloud-badge.js';
 import type { EventCursor, EventsFilter } from './cloud-events.js';
+import type { LockChange } from './cloud-production-lock.js';
 
 /** The member's account comes with its two-step verification state (architecture 4.13). */
 const membershipInclude = {
@@ -47,11 +48,13 @@ export type DeploymentRow = CloudDeployment & {
 const projectInclude = {
   team: true,
   production: { include: deploymentInclude },
+  productionLockedBy: { select: { id: true, name: true } },
   domains: { orderBy: { createdAt: 'asc' } },
 } as const;
 export type ProjectRow = CloudProject & {
   team: CloudTeam;
   production: DeploymentRow | null;
+  productionLockedBy: { id: string; name: string } | null;
   domains: CloudDomain[];
 };
 
@@ -465,6 +468,56 @@ export class CloudRepository {
 
   updateProject(id: string, data: Prisma.CloudProjectUncheckedUpdateInput): Promise<ProjectRow> {
     return this.prisma.cloudProject.update({ where: { id }, data, include: projectInclude });
+  }
+
+  /**
+   * Makes a deployment production and applies the lock change in the same transaction
+   * (architecture 4.13 "Production lock after a rollback"), the project's row locked meanwhile so
+   * `wasLocked` is exact. A lock keeps an existing one (its date and person); an unlock clears it.
+   */
+  setProduction(
+    id: string,
+    deploymentId: string,
+    change: LockChange,
+    by: string | null,
+    now: Date,
+  ): Promise<{ wasLocked: boolean }> {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ production_locked_at: Date | null }>>`
+        SELECT production_locked_at FROM cloud_projects WHERE id = ${id}::uuid FOR UPDATE`;
+      const wasLocked = (rows[0]?.production_locked_at ?? null) !== null;
+      await tx.cloudProject.update({
+        where: { id },
+        data: {
+          productionDeploymentId: deploymentId,
+          ...(change === 'lock' && !wasLocked
+            ? { productionLockedAt: now, productionLockedById: by }
+            : {}),
+          ...(change === 'unlock' && wasLocked
+            ? { productionLockedAt: null, productionLockedById: null }
+            : {}),
+        },
+      });
+      return { wasLocked };
+    });
+  }
+
+  /** A build's deployment becomes production only while production isn't locked; whether it did. */
+  async publishUnlessLocked(id: string, deploymentId: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id, productionLockedAt: null },
+      data: { productionDeploymentId: deploymentId },
+    });
+    return count > 0;
+  }
+
+  /** Unlocks production without publishing anything; false when it wasn't locked. */
+  async unlockProduction(id: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id, productionLockedAt: { not: null } },
+      data: { productionLockedAt: null, productionLockedById: null },
+    });
+    return count > 0;
   }
 
   /** Marks the project deleted (its address stays taken) and drops its deployments and domains. */

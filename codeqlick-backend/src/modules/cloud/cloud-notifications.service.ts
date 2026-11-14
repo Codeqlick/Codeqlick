@@ -255,6 +255,7 @@ export class CloudNotificationsService {
             pullRequest: build.pullRequest,
             status: build.status,
             error: build.error,
+            keptAsPreview: build.keptAsPreview,
             durationMs:
               build.startedAt && build.finishedAt
                 ? build.finishedAt.getTime() - build.startedAt.getTime()
@@ -330,6 +331,7 @@ export class CloudNotificationsService {
               test: event.event === 'test',
               project: event.project.name,
               error: event.build.error,
+              keptAsPreview: event.build.keptAsPreview,
               buildUrl: event.build.url.replace(
                 /\/(en|es)\/console\//,
                 `/${personLocale}/console/`,

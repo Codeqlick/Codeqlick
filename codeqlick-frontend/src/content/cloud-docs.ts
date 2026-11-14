@@ -45,6 +45,7 @@ Tu web queda en \`https://<proyecto>.${domain}\`. Si lo usas a menudo, instálal
 | \`codeqlick promote <id>\` | Publica un despliegue anterior |
 | \`codeqlick rollback\` | Vuelve al despliegue publicado antes del actual |
 | \`codeqlick download [id]\` | Descarga los archivos de un despliegue en \`.tar.gz\` (el publicado si no indicas cuál) |
+| \`codeqlick unlock\` | Desbloquea producción tras volver atrás, sin publicar nada |
 | \`codeqlick files <id>\` | Los archivos de un despliegue, con su tamaño |
 | \`codeqlick diff <id> [otro]\` | Qué archivos añade, quita o cambia un despliegue respecto a producción (u otro) |
 | \`codeqlick domains\` | Tus dominios (\`add\`, \`check\` y \`rm <dominio>\`) |
@@ -56,7 +57,7 @@ Tu web queda en \`https://<proyecto>.${domain}\`. Si lo usas a menudo, instálal
 
 Cada \`deploy\` crea un despliegue que no cambia nunca, con su propia dirección: \`https://<proyecto>--<id>.${domain}\` (sin indexar en buscadores). Sin \`--prod\` es una **vista previa**; con \`--prod\` además pasa a ser la versión publicada en \`https://<proyecto>.${domain}\` y en tus dominios.
 
-Para volver atrás, \`codeqlick rollback\` o el botón «Publicar» de cualquier despliegue en la consola. El cambio es instantáneo y atómico: nadie ve media web.
+Para volver atrás, \`codeqlick rollback\` o el botón «Publicar» de cualquier despliegue en la consola. El cambio es instantáneo y atómico: nadie ve media web. Publicar un despliegue anterior al actual **bloquea producción**: las compilaciones desde Git se despliegan como vistas previas hasta que publicas otro despliegue (\`deploy --prod\` o «Publicar» en uno más reciente) o la desbloqueas con \`codeqlick unlock\` o desde la consola.
 
 Guardamos los 20 últimos despliegues de cada proyecto, además del publicado. **No hacemos copia de tus archivos**: guarda tus fuentes.
 
@@ -308,6 +309,7 @@ Your site is live at \`https://<project>.${domain}\`. If you use it often, insta
 | \`codeqlick promote <id>\` | Publishes an earlier deployment |
 | \`codeqlick rollback\` | Goes back to the deployment published before the current one |
 | \`codeqlick download [id]\` | Downloads a deployment's files as \`.tar.gz\` (the published one when you don't say which) |
+| \`codeqlick unlock\` | Unlocks production after a rollback, without publishing anything |
 | \`codeqlick files <id>\` | A deployment's files, with their sizes |
 | \`codeqlick diff <id> [other]\` | Which files a deployment adds, removes or changes against production (or another one) |
 | \`codeqlick domains\` | Your domains (\`add\`, \`check\` and \`rm <domain>\`) |
@@ -319,7 +321,7 @@ Your site is live at \`https://<project>.${domain}\`. If you use it often, insta
 
 Each \`deploy\` creates a deployment that never changes, with its own address: \`https://<project>--<id>.${domain}\` (not indexed by search engines). Without \`--prod\` it is a **preview**; with \`--prod\` it also becomes the published version at \`https://<project>.${domain}\` and on your domains.
 
-To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in the console. The switch is instant and atomic: nobody sees half a site.
+To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in the console. The switch is instant and atomic: nobody sees half a site. Publishing a deployment older than the current one **locks production**: builds from Git deploy as previews until you publish another deployment (\`deploy --prod\` or "Publish" on a newer one) or unlock it with \`codeqlick unlock\` or from the console.
 
 We keep the last 20 deployments of each project, plus the published one. **We don't back up your files**: keep your sources.
 

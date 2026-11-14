@@ -556,6 +556,17 @@ export class CloudController {
       .setErrorLogger(() => undefined);
   }
 
+  /** Unlocks production after a rollback without publishing anything (ADMIN). */
+  @Post('projects/:id/production/unlock')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  unlockProduction(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<ProjectView> {
+    return this.projects.unlock(ctx, params.id);
+  }
+
   // ── Domains ─────────────────────────────────────────────────────────────────────────────────
 
   @Get('projects/:id/domains')
