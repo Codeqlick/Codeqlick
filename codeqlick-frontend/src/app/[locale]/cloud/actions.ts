@@ -23,6 +23,8 @@ import {
   deleteCloudKv,
   putCloudKv,
   setCloudAnalytics,
+  shareCloudAnalytics,
+  unshareCloudAnalytics,
   deleteCloudNotification,
   testCloudNotification,
   updateCloudNotification,
@@ -990,6 +992,40 @@ export async function toggleAnalyticsAction(formData: FormData): Promise<void> {
     formString(formData, 'project'),
     formString(formData, 'enabled') === 'on',
   ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function shareAnalyticsAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await shareCloudAnalytics(formString(formData, 'project')).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+/** Replaces the public link; the old one stops working, so it needs the ticked confirmation. */
+export async function renewAnalyticsLinkAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  if (!formBoolean(formData, 'confirm')) {
+    const t = await getTranslations({ locale: lang, namespace: 'Cloud.analytics.share' });
+    return { status: 'error', fieldErrors: { confirm: t('confirmNew') } };
+  }
+  try {
+    await shareCloudAnalytics(projectId);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success' };
+}
+
+export async function unshareAnalyticsAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await unshareCloudAnalytics(formString(formData, 'project')).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
 

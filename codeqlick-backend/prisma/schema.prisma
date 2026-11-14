@@ -2029,6 +2029,10 @@ model CloudProject {
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
+  /// The shared analytics link: its SHA-256 (the lookup) and the link itself, sealed
+  /// (purpose cloud-analytics-share-v1), so admins can copy it again.
+  analyticsShareHash     String?   @unique @map("analytics_share_hash") @db.VarChar(64)
+  analyticsShareSealed   String?   @map("analytics_share_sealed")
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 

@@ -4,8 +4,10 @@ import {
   campaignOf,
   deviceOf,
   fillSeries,
+  hashShareToken,
   isBot,
   madridMidnight,
+  newShareToken,
   osOf,
   parseHit,
   pathOf,
@@ -114,5 +116,14 @@ describe('Cloud web analytics', () => {
     // It is valid JavaScript.
     expect(() => new Function(script)).not.toThrow();
     expect(script).not.toMatch(/\.cookie|localStorage|sessionStorage/);
+  });
+
+  it('makes shared-link tokens that are random and found again by their hash', () => {
+    const token = newShareToken();
+    expect(token).toMatch(/^cqa_[A-Za-z0-9_-]{32}$/);
+    expect(newShareToken()).not.toBe(token);
+    expect(hashShareToken(token)).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashShareToken(token)).toBe(hashShareToken(token));
+    expect(hashShareToken(token)).not.toBe(hashShareToken(newShareToken()));
   });
 });

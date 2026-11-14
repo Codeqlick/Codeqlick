@@ -2,17 +2,21 @@ import { randomBytes } from 'node:crypto';
 import {
   Injectable,
   Logger,
+  NotFoundException,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { SecretBox } from '../auth/secret-box.js';
 import { MailService } from '../mail/mail.service.js';
 import {
   browserOf,
   campaignOf,
   deviceOf,
   fillSeries,
+  hashShareToken,
+  newShareToken,
   isBot,
   osOf,
   parseHit,
@@ -34,13 +38,13 @@ import type { CloudCtx } from './cloud-caller.js';
 import { cloudAnalyticsLimitEmail } from './cloud-emails.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { ANALYTICS_DAYS, CLOUD_PLANS } from './cloud-plans.js';
+import { analyticsShareTokenSchema } from './cloud.schemas.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { CloudRepository } from './cloud.repository.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 
-export interface AnalyticsReport {
-  enabled: boolean;
-  snippet: string;
+/** A project's numbers for a period: what the console and a shared link both show. */
+export interface AnalyticsNumbers {
   period: AnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
@@ -50,6 +54,22 @@ export interface AnalyticsReport {
   os: TopRow[];
   devices: TopRow[];
   events: TopRow[];
+}
+
+export interface AnalyticsReport extends AnalyticsNumbers {
+  enabled: boolean;
+  snippet: string;
+}
+
+export interface SharedAnalyticsReport extends AnalyticsNumbers {
+  project: { name: string };
+}
+
+export interface AnalyticsShareStatus {
+  enabled: boolean;
+  /** Only for team admins; `token` is what the website builds the localized address from. */
+  url?: string;
+  token?: string;
 }
 
 export interface AnalyticsHitInput {
@@ -73,6 +93,7 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
   /** Teams' events this month, counted at most once a minute and added to in between. */
   private readonly counts = new Map<string, { month: string; count: number; at: number }>();
   private readonly salts = new Map<string, string>();
+  private readonly box: SecretBox;
 
   constructor(
     private readonly analytics: CloudAnalyticsRepository,
@@ -81,7 +102,9 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
     private readonly cloud: CloudRepository,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
-  ) {}
+  ) {
+    this.box = new SecretBox(config.credentialsSecret, 'cloud-analytics-share-v1');
+  }
 
   onApplicationBootstrap(): void {
     if (this.config.isTest) return;
@@ -225,20 +248,26 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
     period: AnalyticsPeriod,
   ): Promise<AnalyticsReport> {
     const { project } = await this.projects.project(ctx, projectId);
-    const { since, unit } = periodRange(period);
-    const [totals, series, pages, referrers, browsers, os, devices, events] = await Promise.all([
-      this.analytics.totals(project.id, since),
-      this.analytics.series(project.id, since, unit),
-      this.analytics.top(project.id, since, 'pages'),
-      this.analytics.referrers(project.id, since),
-      this.analytics.top(project.id, since, 'browsers'),
-      this.analytics.top(project.id, since, 'os'),
-      this.analytics.top(project.id, since, 'devices'),
-      this.analytics.events(project.id, since),
-    ]);
     return {
       enabled: project.analytics,
       snippet: this.snippet,
+      ...(await this.numbers(project.id, period)),
+    };
+  }
+
+  private async numbers(projectId: string, period: AnalyticsPeriod): Promise<AnalyticsNumbers> {
+    const { since, unit } = periodRange(period);
+    const [totals, series, pages, referrers, browsers, os, devices, events] = await Promise.all([
+      this.analytics.totals(projectId, since),
+      this.analytics.series(projectId, since, unit),
+      this.analytics.top(projectId, since, 'pages'),
+      this.analytics.referrers(projectId, since),
+      this.analytics.top(projectId, since, 'browsers'),
+      this.analytics.top(projectId, since, 'os'),
+      this.analytics.top(projectId, since, 'devices'),
+      this.analytics.events(projectId, since),
+    ]);
+    return {
       period,
       totals,
       series: fillSeries(series, period),
@@ -249,6 +278,51 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
       devices,
       events,
     };
+  }
+
+  // ── The shared link (architecture 4.13 "Web analytics" → Shared link) ──────────────────────
+
+  private shareUrl(token: string): string {
+    return `${this.config.cloudUrl}/en/analytics/${token}`;
+  }
+
+  async shareStatus(ctx: CloudCtx, projectId: string): Promise<AnalyticsShareStatus> {
+    const { project, membership } = await this.projects.project(ctx, projectId);
+    if (!project.analyticsShareHash || !project.analyticsShareSealed) return { enabled: false };
+    if (membership.role === 'MEMBER') return { enabled: true };
+    try {
+      const token = this.box.open(project.analyticsShareSealed);
+      return { enabled: true, url: this.shareUrl(token), token };
+    } catch {
+      // Sealed with another key: still on, and an admin can replace or stop it.
+      this.logger.error(`Project ${project.id}: the shared analytics link couldn't be opened`);
+      return { enabled: true };
+    }
+  }
+
+  /** Creates the link, or replaces it (the old one stops working). */
+  async share(ctx: CloudCtx, projectId: string): Promise<{ url: string; token: string }> {
+    const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    const token = newShareToken();
+    await this.analytics.setShare(project.id, hashShareToken(token), this.box.seal(token));
+    await this.teams.record(ctx, membership.teamId, 'analytics.shared', project.slug);
+    return { url: this.shareUrl(token), token };
+  }
+
+  async unshare(ctx: CloudCtx, projectId: string): Promise<void> {
+    const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    await this.analytics.setShare(project.id, null, null);
+    await this.teams.record(ctx, membership.teamId, 'analytics.unshared', project.slug);
+  }
+
+  /** What a shared link shows; unknown, malformed, suspended, deleted or switched off: 404. */
+  async sharedReport(token: string, period: AnalyticsPeriod): Promise<SharedAnalyticsReport> {
+    const parsed = analyticsShareTokenSchema.safeParse(token);
+    const project = parsed.success
+      ? await this.analytics.projectByShareHash(hashShareToken(parsed.data))
+      : null;
+    if (!project?.analytics) throw new NotFoundException('Not found');
+    return { project: { name: project.name }, ...(await this.numbers(project.id, period)) };
   }
 
   async setEnabled(

@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Header,
   Headers,
   HttpCode,
   HttpStatus,
@@ -19,7 +21,12 @@ import { CloudApi } from '../../common/decorators/cloud-api.decorator.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
-import { CloudAnalyticsService, type AnalyticsReport } from './cloud-analytics.service.js';
+import {
+  CloudAnalyticsService,
+  type AnalyticsReport,
+  type AnalyticsShareStatus,
+  type SharedAnalyticsReport,
+} from './cloud-analytics.service.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
 import {
   analyticsQuerySchema,
@@ -56,6 +63,18 @@ export class CloudAnalyticsPublicController {
   ): Promise<void> {
     await this.analytics.hit({ body, origin, userAgent, ip });
   }
+
+  /** A project's report for people outside its team, by the secret link's token. */
+  @Get('shared/:token')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  shared(
+    @Param('token') token: string,
+    @Query({ schema: analyticsQuerySchema }) query: AnalyticsQuery,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<SharedAnalyticsReport> {
+    res.setHeader('Cache-Control', 'private, max-age=60');
+    return this.analytics.sharedReport(token, query.period);
+  }
 }
 
 /** A project's analytics, for its team (session or API token). */
@@ -83,5 +102,32 @@ export class CloudAnalyticsController {
     @Body({ schema: analyticsSwitchSchema }) body: AnalyticsSwitchInput,
   ): Promise<{ enabled: boolean; snippet: string }> {
     return this.analytics.setEnabled(ctx, params.id, body.enabled);
+  }
+
+  @Get('share')
+  @Header('Cache-Control', 'private, no-store')
+  shareStatus(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<AnalyticsShareStatus> {
+    return this.analytics.shareStatus(ctx, params.id);
+  }
+
+  @Post('share')
+  @Header('Cache-Control', 'private, no-store')
+  share(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<{ url: string; token: string }> {
+    return this.analytics.share(ctx, params.id);
+  }
+
+  @Delete('share')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unshare(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.analytics.unshare(ctx, params.id);
   }
 }

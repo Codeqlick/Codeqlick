@@ -5166,6 +5166,22 @@
       "turnOn": "Encender la analítica",
       "turnOff": "Apagar la analítica",
       "privacy": "Sin cookies, sin almacenamiento local y sin guardar direcciones IP: cada visitante cuenta una vez al día y no se le puede seguir de un día a otro. Los bots no cuentan. Si tu web tiene Content-Security-Policy, permite https://api.codeqlick.com en script-src y connect-src.",
+      "share": {
+        "title": "Compartir",
+        "on": "Compartida con un enlace público",
+        "off": "No compartida",
+        "offHint": "El enlace no mostrará nada hasta que enciendas la analítica.",
+        "help": "Cualquiera con el enlace puede ver estas cifras, solo lectura y sin iniciar sesión. Solo propietarios y administradores ven el enlace.",
+        "create": "Crear enlace",
+        "newLink": "Nuevo enlace",
+        "stop": "Dejar de compartir",
+        "confirmNew": "Entiendo que el enlace anterior dejará de funcionar."
+      },
+      "shared": {
+        "suffix": "Analítica",
+        "lead": "Visitas a esta web, contadas sin cookies. Solo lectura.",
+        "by": "Analítica de Codeqlick Cloud"
+      },
       "period": "Periodo",
       "periods": {
         "24h": "Últimas 24 horas",

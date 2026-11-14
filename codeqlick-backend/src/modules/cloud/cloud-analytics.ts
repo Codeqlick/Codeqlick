@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 /**
  * Cloud's web analytics (architecture 4.13 "Web analytics", decision 44): what an event says,
@@ -213,4 +213,14 @@ w.addEventListener("popstate",view);
 w.codeqlick={track:function(name){if(typeof name==="string")send(name)}};
 if(d.visibilityState==="prerender")d.addEventListener("visibilitychange",function f(){if(d.visibilityState!=="prerender"){d.removeEventListener("visibilitychange",f);view()}});else view()})();
 `;
+}
+
+/** A shared analytics link's token: `cqa_` and 24 random bytes (architecture 4.13). */
+export function newShareToken(): string {
+  return `cqa_${randomBytes(24).toString('base64url')}`;
+}
+
+/** What is stored to find a token again (never the token itself in the clear). */
+export function hashShareToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }

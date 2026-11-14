@@ -30,7 +30,8 @@ import {
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
-import { ANALYTICS_PERIODS, AnalyticsTab } from './AnalyticsTab';
+import { AnalyticsTab } from './AnalyticsTab';
+import { ANALYTICS_PERIODS } from './AnalyticsReport';
 import { BuildsTab } from './BuildsTab';
 import { DatabasesTab } from './DatabasesTab';
 import { FormsTab } from './FormsTab';
