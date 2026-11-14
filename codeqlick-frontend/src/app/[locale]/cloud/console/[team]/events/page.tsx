@@ -51,7 +51,7 @@ export default async function CloudEventsPage({ params, searchParams }: PageProp
   }
   const [team, events] = data;
   const pathname = `/cloud/console/${team.slug}/events`;
-  const canExport = team.role === 'OWNER' || team.role === 'ADMIN';
+  const canExport = (team.role === 'OWNER' || team.role === 'ADMIN') && events !== null;
   const csv = canExport
     ? `${await appPath(`/${locale}${pathname}/csv`, locale)}${cloudEventFiltersQuery(filters)}`
     : null;
@@ -94,7 +94,7 @@ export default async function CloudEventsPage({ params, searchParams }: PageProp
 
       {csv ? (
         <div className={styles.actions}>
-          <a href={csv} className={buttonClassName({ variant: 'outline', size: 'sm' })} download>
+          <a href={csv} className={buttonClassName({ variant: 'outline', size: 'sm' })}>
             {t('events.export')}
           </a>
           <p className={styles.small}>{t('events.exportHint')}</p>

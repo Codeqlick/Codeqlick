@@ -166,7 +166,7 @@ describe('events CSV', () => {
     const chunks: string[] = [];
     for await (const chunk of eventsCsv(page, 2)) chunks.push(chunk);
 
-    expect(chunks[0]).toBe('﻿date,actor,token,action,target,details,ip\r\n');
+    expect(chunks[0]).toBe('\uFEFFdate,actor,token,action,target,details,ip\r\n');
     expect(chunks).toHaveLength(4);
     expect(chunks.join('').split('\r\n')).toHaveLength(7);
     expect(calls).toEqual([
@@ -179,7 +179,7 @@ describe('events CSV', () => {
   it('asks once more when the last page is full, and writes only the header when empty', async () => {
     const empty: string[] = [];
     for await (const chunk of eventsCsv(() => Promise.resolve([]), 2)) empty.push(chunk);
-    expect(empty).toEqual(['﻿date,actor,token,action,target,details,ip\r\n']);
+    expect(empty).toEqual(['\uFEFFdate,actor,token,action,target,details,ip\r\n']);
 
     const all = [row(1), row(2)];
     let calls = 0;

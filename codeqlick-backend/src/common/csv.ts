@@ -1,5 +1,5 @@
 /** UTF-8 byte order mark: Excel opens accents correctly when a CSV starts with it. */
-export const CSV_BOM = '﻿';
+export const CSV_BOM = '\uFEFF';
 
 /**
  * One RFC 4180 CSV field. Text that a spreadsheet would read as a formula (=, +, -, @, tab,
