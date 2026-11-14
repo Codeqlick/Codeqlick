@@ -531,6 +531,9 @@ export type CloudMonitor = {
   name: string;
   kind: 'HTTP' | 'HEARTBEAT';
   url: string | null;
+  /** HTTP: text the page must (or must not) contain; null when not checked. */
+  keyword: string | null;
+  keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
   heartbeatUrl: string | null;
   periodMinutes: number | null;
   graceMinutes: number | null;
@@ -595,7 +598,14 @@ export const listCloudMonitors = (team: string) =>
 export const createCloudMonitor = (
   team: string,
   input:
-    | { kind: 'HTTP'; name: string; url: string; alertIds: string[] }
+    | {
+        kind: 'HTTP';
+        name: string;
+        url: string;
+        keyword?: string;
+        keywordMode?: 'CONTAINS' | 'NOT_CONTAINS';
+        alertIds: string[];
+      }
     | {
         kind: 'HEARTBEAT';
         name: string;
@@ -615,7 +625,14 @@ export const getCloudMonitor = (id: string) =>
 
 export const updateCloudMonitor = (
   id: string,
-  input: Partial<{ name: string; enabled: boolean; alertIds: string[] }>,
+  input: Partial<{
+    name: string;
+    enabled: boolean;
+    alertIds: string[];
+    /** `null` switches the text check off. */
+    keyword: string | null;
+    keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
+  }>,
 ) => apiFetch<CloudMonitor>(`/cloud/monitors/${id}`, { ...write, method: 'PATCH', body: input });
 
 export const deleteCloudMonitor = (id: string) =>
