@@ -313,3 +313,17 @@ export function monitorKeyword(raw: string): string | null | undefined {
 export function monitorKeywordMode(raw: string): MonitorKeywordMode {
   return raw === 'NOT_CONTAINS' ? 'NOT_CONTAINS' : 'CONTAINS';
 }
+
+/**
+ * The forms whose submissions a notification channel gets (decision 63), by name in the
+ * channel's order, or null when it gets all of them (no form listed). A form that isn't in
+ * `forms` (they couldn't be loaded) shows as "—".
+ */
+export function notifiedFormNames(
+  formIds: string[],
+  forms: { id: string; name: string }[],
+): string[] | null {
+  if (formIds.length === 0) return null;
+  const names = new Map(forms.map((form) => [form.id, form.name]));
+  return formIds.map((id) => names.get(id) ?? '—');
+}

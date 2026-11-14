@@ -644,7 +644,10 @@ export const deleteCloudForm = (projectId: string, formId: string) =>
 
 export type CloudNotifyKind = 'EMAIL' | 'SLACK' | 'DISCORD' | 'WEBHOOK';
 
-/** A build notification channel (architecture 4.13, decision 43); its URL is never returned. */
+/**
+ * A notification channel (architecture 4.13, decisions 43 and 63); its URL is never returned.
+ * Slack, Discord and webhooks can also get form submissions (`formIds` empty: all forms).
+ */
 export type CloudNotifyChannel = {
   id: string;
   name: string;
@@ -655,6 +658,8 @@ export type CloudNotifyChannel = {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  formSubmitted: boolean;
+  formIds: string[];
   locale: 'en' | 'es';
   failures: number;
   lastSentAt: string | null;
@@ -667,6 +672,9 @@ type NotifyEvents = {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  /** Slack, Discord and webhooks only: the API refuses them on email channels (400). */
+  formSubmitted?: boolean;
+  formIds?: string[];
   locale: 'en' | 'es';
 };
 
@@ -705,10 +713,15 @@ export const deleteCloudNotification = (projectId: string, channelId: string) =>
     method: 'DELETE',
   });
 
-export const testCloudNotification = (projectId: string, channelId: string) =>
+/** "Send a test": a sample build, or a sample form submission (`event: 'form'`). */
+export const testCloudNotification = (
+  projectId: string,
+  channelId: string,
+  event: 'build' | 'form' = 'build',
+) =>
   apiFetch<{ ok: boolean; error: string | null }>(
     `/cloud/projects/${projectId}/notifications/${channelId}/test`,
-    { ...write, method: 'POST' },
+    { ...write, method: 'POST', body: { event } },
   );
 
 export const listCloudSubmissions = (

@@ -19,6 +19,7 @@ import {
   isProtected,
   monitorKeyword,
   monitorKeywordMode,
+  notifiedFormNames,
   productionLockValues,
   protectionInput,
   ruleSettings,
@@ -332,5 +333,27 @@ describe('monitorKeywordMode', () => {
     expect(monitorKeywordMode('CONTAINS')).toBe('CONTAINS');
     expect(monitorKeywordMode('')).toBe('CONTAINS');
     expect(monitorKeywordMode('other')).toBe('CONTAINS');
+  });
+});
+
+describe('notifiedFormNames', () => {
+  const forms = [
+    { id: 'a', name: 'Contact' },
+    { id: 'b', name: 'Quote' },
+  ];
+
+  it('is null for all forms', () => {
+    expect(notifiedFormNames([], forms)).toBeNull();
+    expect(notifiedFormNames([], [])).toBeNull();
+  });
+
+  it("names the listed forms in the channel's order", () => {
+    expect(notifiedFormNames(['b', 'a'], forms)).toEqual(['Quote', 'Contact']);
+    expect(notifiedFormNames(['a'], forms)).toEqual(['Contact']);
+  });
+
+  it('marks forms it does not know', () => {
+    expect(notifiedFormNames(['a', 'z'], forms)).toEqual(['Contact', '—']);
+    expect(notifiedFormNames(['a'], [])).toEqual(['—']);
   });
 });
