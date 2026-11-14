@@ -243,13 +243,16 @@ export function AdminSearch({ locale, labels }: { locale: string; labels: AdminS
   }
 
   // Every option across the groups, numbered in order for the keyboard.
-  let count = 0;
-  const groups = (result?.groups ?? [])
-    .filter((group) => group.items.length > 0)
-    .map((group) => ({
-      kind: group.kind,
-      options: group.items.map((item): Option => ({ ...item, kind: group.kind, index: count++ })),
-    }));
+  const visible = (result?.groups ?? []).filter((group) => group.items.length > 0);
+  const starts = visible.map((_, at) =>
+    visible.slice(0, at).reduce((total, group) => total + group.items.length, 0),
+  );
+  const groups = visible.map((group, at) => ({
+    kind: group.kind,
+    options: group.items.map(
+      (item, i): Option => ({ ...item, kind: group.kind, index: (starts[at] ?? 0) + i }),
+    ),
+  }));
   const options = groups.flatMap((group) => group.options);
   const expanded = options.length > 0;
 
