@@ -345,7 +345,8 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
   /**
    * A kept deployment's files as a `tar.gz` stream (decision 60): any member, also while the
    * project is suspended, 10 an hour per team counted from its `deployment.downloaded` events.
-   * The download is recorded before the stream starts.
+   * The download is recorded once the archive's first bytes are ready, so an attempt that fails
+   * before then doesn't count.
    */
   async archive(
     ctx: CloudCtx,

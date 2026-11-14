@@ -110,6 +110,7 @@ describe('Codeqlick Cloud downloads (e2e)', () => {
         await bundle({
           'index.html': '<h1>hi</h1>',
           'assets/app.js': 'console.log(1)',
+          '@vite.js': 'export {}',
           '.well-known/security.txt': 'Contact: mailto:hello@codeqlick.com',
         }),
       )
@@ -144,17 +145,21 @@ describe('Codeqlick Cloud downloads (e2e)', () => {
       await writeFile(file, body);
       const paths: string[] = [];
       await list({ file, onReadEntry: (entry) => paths.push(entry.path) });
+      // Names starting with `@` keep a `./` (tar would read them as archives to append).
       expect(paths.filter((p) => !p.endsWith('/')).sort()).toEqual([
+        './@vite.js',
         '.well-known/security.txt',
         'assets/app.js',
         'index.html',
       ]);
-      expect(paths.every((p) => !p.startsWith('./') && !p.startsWith('/'))).toBe(true);
+      expect(paths.every((p) => !p.startsWith('/'))).toBe(true);
+      expect(paths.filter((p) => p.startsWith('./'))).toEqual(['./@vite.js']);
       const out = join(work, 'out');
       await mkdir(out);
       await x({ file, cwd: out });
       expect(await readFile(join(out, 'index.html'), 'utf8')).toBe('<h1>hi</h1>');
       expect(await readFile(join(out, 'assets', 'app.js'), 'utf8')).toBe('console.log(1)');
+      expect(await readFile(join(out, '@vite.js'), 'utf8')).toBe('export {}');
     } finally {
       await rm(work, { recursive: true, force: true });
     }

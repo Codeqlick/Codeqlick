@@ -38,8 +38,19 @@ export async function saveArchive(
     await pipeline(source, sink);
     await rename(part, file);
   } catch (error) {
-    await rm(part, { force: true });
+    await rm(part, { force: true }).catch(() => undefined);
     throw error;
   }
   return sink.bytesWritten;
+}
+
+/**
+ * What to tell the person when saving failed: the file system's own error (no permission, a
+ * folder in the way…) as it is, anything else as a cut download. Nothing is left behind either way.
+ */
+export function downloadFailure(error: unknown, file: string): Error {
+  const failure = error as NodeJS.ErrnoException;
+  if (failure?.syscall) return new Error(`Can't save ${file}: ${failure.message}`);
+  const detail = (failure?.cause as Error | undefined)?.message ?? failure?.message ?? 'unknown';
+  return new Error(`The download was cut (${detail}); nothing was saved.`);
 }

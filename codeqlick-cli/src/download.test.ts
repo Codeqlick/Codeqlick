@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
-import { archiveName, archivePath, exists, saveArchive } from './download.ts';
+import { archiveName, archivePath, downloadFailure, exists, saveArchive } from './download.ts';
 
 test('the archive is named after the project and the deployment', () => {
   assert.equal(archiveName('docs', 'a1b2c3d4'), 'docs-a1b2c3d4.tar.gz');
@@ -44,6 +44,28 @@ test('saves through a .part file and leaves nothing behind when cut', async () =
     await saveArchive(web, other);
     assert.equal(await readFile(other, 'utf8'), 'from fetch');
     assert.deepEqual((await readdir(dir)).sort(), ['docs-a1b2c3d4.tar.gz', 'other.tar.gz']);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('file system errors say what went wrong; anything else is a cut download', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'cq-download-'));
+  try {
+    // A folder where the .part file would go: the write fails with EISDIR.
+    const file = join(dir, 'site.tar.gz');
+    await mkdir(`${file}.part`);
+    const chunks = async function* () {
+      yield new TextEncoder().encode('data');
+    };
+    const error = await saveArchive(chunks(), file).catch((e: unknown) => e);
+    assert.match(downloadFailure(error, file).message, /^Can't save .*EISDIR/);
+
+    const cut = new TypeError('terminated', { cause: new Error('other side closed') });
+    assert.equal(
+      downloadFailure(cut, file).message,
+      'The download was cut (other side closed); nothing was saved.',
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
