@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormCheckboxGroup, FormInput, FormSelect } from '@/components/app/ActionForm';
-import { MonitorStatus } from '@/components/cloud/MonitorStatus';
+import { MonitorStatus, SlowBadge } from '@/components/cloud/MonitorStatus';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -67,6 +67,7 @@ export default async function CloudMonitorsPage({ params }: PageProps) {
                     status={monitor.status}
                     label={t(`monitors.states.${monitor.status}`)}
                   />
+                  {monitor.slowSince ? <SlowBadge label={t('monitors.slow')} /> : null}
                 </p>
                 <p className={`${styles.small} ${styles.mono}`}>
                   {monitor.kind === 'HTTP'
@@ -120,6 +121,15 @@ export default async function CloudMonitorsPage({ params }: PageProps) {
                 hint={t('monitors.urlHint')}
                 placeholder="https://"
                 mono
+              />
+              <FormInput
+                name="slowMs"
+                type="number"
+                min={500}
+                max={14000}
+                step={1}
+                label={t('monitors.slowLabel')}
+                hint={t('monitors.slowHint')}
               />
             </fieldset>
             <fieldset className={styles.fieldset}>

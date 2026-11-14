@@ -546,6 +546,10 @@ export type CloudMonitor = {
   deadlineAt: string | null;
   lastError: string | null;
   certExpiresAt: string | null;
+  /** HTTP only: alert when a check answers slower than this (ms); null is off. */
+  slowMs: number | null;
+  /** Set while a slow episode lasts (the state stays UP). */
+  slowSince: string | null;
   alertIds: string[];
   createdAt: string;
 };
@@ -598,7 +602,7 @@ export const listCloudMonitors = (team: string) =>
 export const createCloudMonitor = (
   team: string,
   input:
-    | { kind: 'HTTP'; name: string; url: string; alertIds: string[] }
+    | { kind: 'HTTP'; name: string; url: string; alertIds: string[]; slowMs?: number | null }
     | {
         kind: 'HEARTBEAT';
         name: string;
@@ -618,7 +622,12 @@ export const getCloudMonitor = (id: string) =>
 
 export const updateCloudMonitor = (
   id: string,
-  input: Partial<{ name: string; enabled: boolean; alertIds: string[] }>,
+  input: Partial<{
+    name: string;
+    enabled: boolean;
+    alertIds: string[];
+    slowMs: number | null;
+  }>,
 ) => apiFetch<CloudMonitor>(`/cloud/monitors/${id}`, { ...write, method: 'PATCH', body: input });
 
 export const deleteCloudMonitor = (id: string) =>
