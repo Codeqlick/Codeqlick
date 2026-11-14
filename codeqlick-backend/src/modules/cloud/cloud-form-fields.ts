@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 /** What a page sent to a Cloud form, checked (architecture 4.13, Forms). Pure: tested alone. */
 
 export const MAX_FIELDS = 30;
@@ -101,6 +103,60 @@ export function isProjectOrigin(
   if (!host.endsWith(suffix)) return false;
   const label = host.slice(0, -suffix.length);
   return label === project.slug || new RegExp(`^${project.slug}--[0-9a-f]{8}$`).test(label);
+}
+
+/** Why a post looks like spam: the first rule that matches (decision 66). `repeat` is the service's. */
+export type SpamReason = 'markup' | 'links' | 'field' | 'page' | 'repeat' | 'manual';
+
+const LINK_MARKUP = /\[url=|\[\/url\]|\[link=|<a\s[^>]{0,500}\bhref/i;
+/** A link: `http://`, `https://` or `www.` (not the `www.` of an address already counted). */
+const LINK = /https?:\/\/|(?<!\/\/)www\./gi;
+const NAME_FIELDS = new Set([
+  'name',
+  'nombre',
+  'first_name',
+  'last_name',
+  'firstname',
+  'lastname',
+  'fullname',
+  'full_name',
+]);
+const MAX_LINKS = 3;
+const MAX_NAME_VALUE = 100;
+
+/**
+ * The first static spam rule a post breaks, or null: link markup, more than 3 links, a short
+ * field holding something else, a page that isn't the project's (decision 66). No page: that
+ * rule doesn't apply.
+ */
+export function staticSpamReason(
+  fields: Record<string, string>,
+  page: string | null,
+  project: { slug: string; hostingDomain: string; domains: string[] },
+): Exclude<SpamReason, 'repeat' | 'manual'> | null {
+  const entries = Object.entries(fields);
+  if (entries.some(([, value]) => LINK_MARKUP.test(value))) return 'markup';
+  const links = entries.reduce((sum, [, value]) => sum + (value.match(LINK)?.length ?? 0), 0);
+  if (links > MAX_LINKS) return 'links';
+  for (const [name, value] of entries) {
+    const key = name.trim().toLowerCase();
+    if (key === 'email' && !(value.length <= 254 && EMAIL.test(value))) return 'field';
+    if (NAME_FIELDS.has(key) && (value.search(LINK) !== -1 || value.length > MAX_NAME_VALUE))
+      return 'field';
+  }
+  const origin = originOf(page);
+  if (origin && !isProjectOrigin(origin, project)) return 'page';
+  return null;
+}
+
+/** SHA-256 (hex) of the fields: names sorted, values trimmed, so the same message hashes alike. */
+export function contentHash(fields: Record<string, string>): string {
+  const canonical = Object.fromEntries(
+    Object.entries(fields)
+      .map(([name, value]): [string, string] => [name, value.trim()])
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
+  return createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
 }
 
 /** The page a post came from, without query or fragment (nothing kept about the visitor). */

@@ -1,29 +1,31 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { cache } from 'react';
 import { PostArticle } from '@/components/content/PostArticle';
 import { PostCard } from '@/components/content/PostCard';
+import { NewsletterSignup } from '@/components/newsletter/NewsletterSignup';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { isNotFound } from '@/lib/api/errors';
-import { getPost, getRelatedPosts } from '@/lib/api/posts';
+import { getPost, getPostRedirect, getRelatedPosts } from '@/lib/api/posts';
 import type { Locale, PostSummary } from '@/lib/api/types';
 import { absoluteUrl, pageMetadata, shareImage } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
+import { contentPath, lookUpSlug } from '@/lib/slug-redirect';
 import styles from '../../site.module.css';
 
 type PageProps = { params: Promise<{ locale: string; slug: string }> };
 
-/** Shared by generateMetadata and the page; a missing post renders the 404 page. */
+/**
+ * Shared by generateMetadata and the page, so both settle the same way: an old slug redirects
+ * (308) to the post's current address, a missing post renders the 404 page.
+ */
 const loadPost = cache(async (slug: string, locale: Locale) => {
-  try {
-    return await getPost(slug, locale);
-  } catch (error) {
-    if (isNotFound(error)) notFound();
-    throw error;
-  }
+  const found = await lookUpSlug(slug, (current) => getPost(current, locale), getPostRedirect);
+  if (found.status === 'moved') permanentRedirect(contentPath(locale, 'blog', found.slug));
+  if (found.status === 'missing') notFound();
+  return found.item;
 });
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -77,6 +79,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           ← {t('back')}
         </Link>
       </PostArticle>
+      <div className={`wrap ${styles.narrow} ${styles.newsletter}`}>
+        <NewsletterSignup />
+      </div>
       {related.length > 0 ? (
         <section className={`wrap ${styles.related}`} aria-labelledby="related-heading">
           <h2 id="related-heading" className={styles.listHeading}>

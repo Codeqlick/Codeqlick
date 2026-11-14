@@ -19,13 +19,15 @@ import { CloudNotificationsService, type ChannelView } from './cloud-notificatio
 import {
   channelParamSchema,
   createChannelSchema,
+  testChannelSchema,
   updateChannelSchema,
   type ChannelParam,
   type CreateChannelInput,
+  type TestChannelInput,
   type UpdateChannelInput,
 } from './cloud.schemas.js';
 
-/** A project's build notifications (architecture 4.13 "Build notifications", decision 43). */
+/** A project's notifications (architecture 4.13 "Build notifications", decisions 43 and 63). */
 @ApiTags('cloud')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
@@ -79,7 +81,8 @@ export class CloudNotificationsController {
   test(
     @Caller() ctx: CloudCtx,
     @Param({ schema: channelParamSchema }) params: ChannelParam,
+    @Body({ schema: testChannelSchema }) body: TestChannelInput,
   ): Promise<{ ok: boolean; error: string | null }> {
-    return this.notifications.test(ctx, params.id, params.channelId);
+    return this.notifications.test(ctx, params.id, params.channelId, body.event);
   }
 }

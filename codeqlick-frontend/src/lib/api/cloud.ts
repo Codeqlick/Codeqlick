@@ -1,5 +1,10 @@
 import 'server-only';
+import { cache } from 'react';
+import { clientHeaders } from '@/lib/auth/refresh';
+import { type CloudEventFilters, cloudEventFiltersQuery } from '@/lib/cloud';
+import { env } from '@/lib/env';
 import { apiFetch } from './client';
+import { authHeader } from './projects';
 import type { Paginated } from './types';
 
 /** Codeqlick Cloud (architecture 4.13). Shapes mirror the API's cloud module. */
@@ -12,13 +17,19 @@ export type CloudTeam = {
   name: string;
   plan: 'FREE' | 'PRO';
   role: CloudRole;
+  /** Every member must have two-step verification (architecture 4.13). */
+  requireTwoFactor: boolean;
+  /** It is required and this account has none: the team's routes answer 403. */
+  twoFactorBlocked: boolean;
   createdAt: string;
 };
+
+export type CloudTeamSummary = Omit<CloudTeam, 'createdAt'>;
 
 export type CloudMe = {
   user: { id: string; name: string; email: string };
   via: 'session' | 'token';
-  teams: Array<Pick<CloudTeam, 'id' | 'slug' | 'name' | 'role' | 'plan'>>;
+  teams: CloudTeamSummary[];
   termsVersion: string;
 };
 
@@ -36,6 +47,17 @@ export type CloudLimits = {
   tokensPerPerson: number;
 };
 
+export type CloudUsageMeterKey =
+  'builds' | 'formSubmissions' | 'analyticsEvents' | 'storage' | 'deploymentsPerHour';
+
+/** One limit of the plan; `percent` is `floor(used / limit × 100)` and can pass 100. */
+export type CloudUsageMeter = {
+  key: CloudUsageMeterKey;
+  used: number;
+  limit: number;
+  percent: number;
+};
+
 export type CloudUsage = {
   plan: 'FREE' | 'PRO';
   limits: CloudLimits;
@@ -43,6 +65,8 @@ export type CloudUsage = {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Missing from an API older than the usage alerts. */
+  meters?: CloudUsageMeter[];
 };
 
 export type CloudDeployment = {
@@ -56,9 +80,33 @@ export type CloudDeployment = {
   branch: string | null;
   sizeBytes: number;
   fileCount: number;
+  /** Null when the deployment has no `codeqlick.json` rules (architecture 4.13). */
+  rules: CloudRulesSummary | null;
   createdBy: { id: string; name: string } | null;
   viaToken: string | null;
+  /** When it was kept from the automatic cleanup; null when it isn't kept. */
+  keptAt: string | null;
   createdAt: string;
+};
+
+/** `codeqlick.json` without the CLI's link keys (team, project, dir) and `$schema`. */
+export type CloudConfig = {
+  cleanUrls?: boolean;
+  trailingSlash?: boolean;
+  redirects?: Array<{ source: string; destination: string; status?: 301 | 302 | 307 | 308 }>;
+  rewrites?: Array<{ source: string; destination: string }>;
+  headers?: Array<{ source: string; headers: Record<string, string> }>;
+};
+
+export type CloudRulesSummary = {
+  redirects: number;
+  rewrites: number;
+  /** Header rules, not headers. */
+  headers: number;
+  cleanUrls: boolean;
+  trailingSlash: boolean | null;
+  /** Only in the single-deployment read. */
+  config?: CloudConfig;
 };
 
 export type CloudDomainState = 'PENDING' | 'VERIFIED' | 'LIVE' | 'ERROR';
@@ -72,7 +120,39 @@ export type CloudProject = {
   production: CloudDeployment | null;
   domains: Array<{ name: string; state: CloudDomainState }>;
   suspended: { at: string; reason: string } | null;
+  protection: CloudProtectionMode;
+  /**
+   * Set when a rollback locked production (architecture 4.13): production builds from Git deploy
+   * as previews until someone publishes or unlocks. `by` is null when that person left the team.
+   */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
+  /** Scheduled rebuilds of the production branch. */
+  rebuild: CloudRebuild;
   createdAt: string;
+};
+
+export type CloudProtectionMode = 'OFF' | 'PREVIEWS' | 'ALL';
+export type CloudProtectionDays = 1 | 7 | 30;
+
+/** A project's password protection (architecture 4.13, Password protection). */
+export type CloudProtection = {
+  mode: CloudProtectionMode;
+  days: CloudProtectionDays;
+  /** Never the password or its hash. */
+  hasPassword: boolean;
+  updatedAt: string | null;
+};
+
+export type CloudRebuildFrequency = 'off' | 'hourly' | 'daily' | 'weekly';
+
+/** A project's scheduled rebuilds, in Madrid time (`weekday` 1–7, Monday first). */
+export type CloudRebuild = {
+  frequency: CloudRebuildFrequency;
+  minute: number | null;
+  hour: number | null;
+  weekday: number | null;
+  nextAt: string | null;
+  failures: number;
 };
 
 export type CloudDomain = {
@@ -86,7 +166,14 @@ export type CloudDomain = {
 };
 
 export type CloudMembers = {
-  items: Array<{ userId: string; name: string; email: string; role: CloudRole; joinedAt: string }>;
+  items: Array<{
+    userId: string;
+    name: string;
+    email: string;
+    role: CloudRole;
+    joinedAt: string;
+    twoFactor: boolean;
+  }>;
   invites: Array<{ id: string; email: string; role: CloudRole; expiresAt: string }>;
 };
 
@@ -106,6 +193,8 @@ export type CloudToken = {
   name: string;
   prefix: string;
   team: { slug: string; name: string } | null;
+  /** Read-only tokens may only call GET, HEAD and OPTIONS (architecture 4.13). */
+  readOnly: boolean;
   expiresAt: string | null;
   lastUsedAt: string | null;
   lastUsedIp: string | null;
@@ -113,7 +202,7 @@ export type CloudToken = {
 };
 
 export type CloudInvite = {
-  team: { name: string; slug: string };
+  team: { name: string; slug: string; requireTwoFactor: boolean };
   role: CloudRole;
   invitedBy: string | null;
   email: string;
@@ -154,17 +243,50 @@ export const renameCloudTeam = (team: string, name: string) =>
     body: { name },
   });
 
+/** Owners only; turning it on needs two-step verification on the owner's own account (409). */
+export const setCloudTeamTwoFactor = (team: string, requireTwoFactor: boolean) =>
+  apiFetch<CloudTeam>(`/cloud/teams/${encodeURIComponent(team)}`, {
+    ...write,
+    method: 'PATCH',
+    body: { requireTwoFactor },
+  });
+
 export const deleteCloudTeam = (team: string) =>
   apiFetch<void>(`/cloud/teams/${encodeURIComponent(team)}`, { ...write, method: 'DELETE' });
 
-export const getCloudUsage = (team: string) =>
-  apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth);
+/** Cached per request: the team layout and its page share one fetch. */
+export const getCloudUsage = cache((team: string) =>
+  apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth),
+);
 
-export const listCloudEvents = (team: string, page = 1) =>
+export type { CloudEventFilters };
+
+export const listCloudEvents = (team: string, page = 1, filters: CloudEventFilters = {}) =>
   apiFetch<Paginated<CloudEvent>>(`/cloud/teams/${encodeURIComponent(team)}/events`, {
     ...auth,
-    query: { page, pageSize: 30 },
+    query: { page, pageSize: 30, from: filters.from, to: filters.to, action: filters.action },
   });
+
+/**
+ * The API's response for a team's events as CSV (ADMIN), raw so the route handler can stream it
+ * (apiFetch reads whole bodies). `incoming` are the visitor's request headers: their IP goes on,
+ * as the API allows 10 exports an hour per IP. Undefined without a session.
+ */
+export async function exportCloudEvents(
+  team: string,
+  filters: CloudEventFilters,
+  incoming: Headers,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  const path = `/cloud/teams/${encodeURIComponent(team)}/events.csv`;
+  return fetch(`${env.API_URL}${path}${cloudEventFiltersQuery(filters)}`, {
+    headers: { ...clientHeaders(incoming), Authorization: authorization },
+    cache: 'no-store',
+    // A year of a busy team's events streams for a while.
+    signal: AbortSignal.timeout(5 * 60_000),
+  });
+}
 
 export const listCloudMembers = (team: string) =>
   apiFetch<CloudMembers>(`/cloud/teams/${encodeURIComponent(team)}/members`, auth);
@@ -223,11 +345,68 @@ export const renameCloudProject = (id: string, name: string) =>
 export const deleteCloudProject = (id: string) =>
   apiFetch<void>(`/cloud/projects/${id}`, { ...write, method: 'DELETE' });
 
+/** What happened to the Git link when a project moved: kept, dropped, or there was none. */
+export type CloudTransferGit = 'kept' | 'dropped' | 'none';
+
+export type CloudTransfer = CloudProject & { git: CloudTransferGit };
+
+/** Moves a project to another team (session only; owner here, owner or admin there). */
+export const transferCloudProject = (id: string, team: string) =>
+  apiFetch<CloudTransfer>(`/cloud/projects/${id}/transfer`, {
+    ...write,
+    method: 'POST',
+    body: { team },
+  });
+
 export const listCloudDeployments = (id: string, page = 1) =>
   apiFetch<Paginated<CloudDeployment>>(`/cloud/projects/${id}/deployments`, {
     ...auth,
     query: { page, pageSize: 20 },
   });
+
+export const getCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}`,
+    auth,
+  );
+
+/** A file of a deployment: its path relative to the deployment's folder and its size in bytes. */
+export type CloudDeploymentFile = { path: string; size: number };
+
+export type CloudDeploymentFiles = {
+  /** Sorted by path (byte order), at most 10,000. */
+  items: CloudDeploymentFile[];
+  count: number;
+  totalBytes: number;
+};
+
+export type CloudDeploymentComparison = {
+  deploymentId: string;
+  withId: string;
+  /** In this deployment, not in the other one. */
+  added: CloudDeploymentFile[];
+  /** In the other deployment only. */
+  removed: CloudDeploymentFile[];
+  /** In both, with a different size or SHA-256. */
+  changed: Array<CloudDeploymentFile & { previousSize: number }>;
+  unchanged: number;
+  totalBytes: number;
+  withTotalBytes: number;
+};
+
+/** `404` unknown deployment or its files are gone. */
+export const listCloudDeploymentFiles = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeploymentFiles>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}/files`,
+    auth,
+  );
+
+/** `with` is `production` or another kept deployment's id. `409` no production, `404` gone. */
+export const compareCloudDeployment = (id: string, deploymentId: string, withId = 'production') =>
+  apiFetch<CloudDeploymentComparison>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}/compare`,
+    { ...auth, query: { with: withId } },
+  );
 
 export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {
@@ -235,11 +414,43 @@ export const promoteCloudDeployment = (id: string, deploymentId: string) =>
     method: 'POST',
   });
 
+/** Unlocks production after a rollback without publishing anything (ADMIN). `403` member. */
+export const unlockCloudProduction = (id: string) =>
+  apiFetch<CloudProject>(`/cloud/projects/${id}/production/unlock`, { ...write, method: 'POST' });
+
+export const keepCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(`/cloud/projects/${id}/deployments/${deploymentId}/keep`, {
+    ...write,
+    method: 'POST',
+  });
+
+export const unkeepCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(`/cloud/projects/${id}/deployments/${deploymentId}/keep`, {
+    ...write,
+    method: 'DELETE',
+  });
+
 export const deleteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<void>(`/cloud/projects/${id}/deployments/${deploymentId}`, {
     ...write,
     method: 'DELETE',
   });
+
+/**
+ * The API's response for a deployment's files as `tar.gz` (architecture 4.13, Download), unread so
+ * the caller can stream its body. `undefined` without a session.
+ */
+export async function downloadCloudDeployment(
+  id: string,
+  deploymentId: string,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  return fetch(
+    `${env.API_URL}/cloud/projects/${encodeURIComponent(id)}/deployments/${encodeURIComponent(deploymentId)}/archive`,
+    { headers: { Authorization: authorization }, cache: 'no-store' },
+  );
+}
 
 export const listCloudDomains = (id: string) =>
   apiFetch<{ items: CloudDomain[] }>(`/cloud/projects/${id}/domains`, auth);
@@ -260,12 +471,33 @@ export const checkCloudDomain = (id: string, domainId: string) =>
 export const removeCloudDomain = (id: string, domainId: string) =>
   apiFetch<void>(`/cloud/projects/${id}/domains/${domainId}`, { ...write, method: 'DELETE' });
 
+export const getCloudProtection = (id: string) =>
+  apiFetch<CloudProtection>(`/cloud/projects/${id}/protection`, auth);
+
+export const setCloudProtection = (
+  id: string,
+  input: { mode: CloudProtectionMode; password?: string; days?: CloudProtectionDays },
+) =>
+  apiFetch<CloudProtection>(`/cloud/projects/${id}/protection`, {
+    ...write,
+    method: 'PUT',
+    body: input,
+  });
+
+/** A one-use link (60 s) that lets a team member into a protected address; plain when it isn't. */
+export const getCloudProtectionTicket = (id: string, host: string) =>
+  apiFetch<{ url: string; expiresIn: number }>(`/cloud/projects/${id}/protection/ticket`, {
+    ...auth,
+    query: { host },
+  });
+
 export const listCloudTokens = () => apiFetch<{ items: CloudToken[] }>('/cloud/tokens', auth);
 
 export const createCloudToken = (input: {
   name: string;
   teamSlug?: string;
   expiresInDays: 30 | 90 | 365 | null;
+  readOnly?: boolean;
 }) =>
   apiFetch<{ token: string; item: CloudToken }>('/cloud/tokens', {
     ...write,
@@ -385,7 +617,12 @@ export type CloudForm = {
   enabled: boolean;
   notify: boolean;
   recipientIds: string[];
+  /** Local spam rules on (decision 66). */
+  spamFilter: boolean;
+  /** Non-spam submissions. */
   submissions: number;
+  /** Spam kept (30 days). */
+  spam: number;
   createdAt: string;
 };
 
@@ -394,6 +631,9 @@ export type CloudSubmission = {
   data: Record<string, string>;
   email: string | null;
   page: string | null;
+  spam: boolean;
+  /** markup, links, field, page, repeat or manual; null when it isn't spam. */
+  spamReason: string | null;
   createdAt: string;
 };
 
@@ -402,7 +642,7 @@ export const listCloudForms = (projectId: string) =>
 
 export const createCloudForm = (
   projectId: string,
-  input: { name: string; notify: boolean; recipientIds: string[] },
+  input: { name: string; notify: boolean; recipientIds: string[]; spamFilter?: boolean },
 ) =>
   apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms`, {
     ...write,
@@ -413,7 +653,13 @@ export const createCloudForm = (
 export const updateCloudForm = (
   projectId: string,
   formId: string,
-  input: Partial<{ name: string; enabled: boolean; notify: boolean; recipientIds: string[] }>,
+  input: Partial<{
+    name: string;
+    enabled: boolean;
+    notify: boolean;
+    recipientIds: string[];
+    spamFilter: boolean;
+  }>,
 ) =>
   apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms/${formId}`, {
     ...write,
@@ -432,7 +678,10 @@ export const deleteCloudForm = (projectId: string, formId: string) =>
 
 export type CloudNotifyKind = 'EMAIL' | 'SLACK' | 'DISCORD' | 'WEBHOOK';
 
-/** A build notification channel (architecture 4.13, decision 43); its URL is never returned. */
+/**
+ * A notification channel (architecture 4.13, decisions 43 and 63); its URL is never returned.
+ * Slack, Discord and webhooks can also get form submissions (`formIds` empty: all forms).
+ */
 export type CloudNotifyChannel = {
   id: string;
   name: string;
@@ -443,6 +692,10 @@ export type CloudNotifyChannel = {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  formSubmitted: boolean;
+  formIds: string[];
+  /** Also the alerts of the project's monitors (Slack, Discord and webhook only, decision 64). */
+  monitorAlerts: boolean;
   locale: 'en' | 'es';
   failures: number;
   lastSentAt: string | null;
@@ -455,6 +708,10 @@ type NotifyEvents = {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  /** Slack, Discord and webhooks only: the API refuses them on email channels (400). */
+  formSubmitted?: boolean;
+  formIds?: string[];
+  monitorAlerts?: boolean;
   locale: 'en' | 'es';
 };
 
@@ -493,10 +750,15 @@ export const deleteCloudNotification = (projectId: string, channelId: string) =>
     method: 'DELETE',
   });
 
-export const testCloudNotification = (projectId: string, channelId: string) =>
+/** "Send a test": a sample build, or a sample form submission (`event: 'form'`). */
+export const testCloudNotification = (
+  projectId: string,
+  channelId: string,
+  event: 'build' | 'form' = 'build',
+) =>
   apiFetch<{ ok: boolean; error: string | null }>(
     `/cloud/projects/${projectId}/notifications/${channelId}/test`,
-    { ...write, method: 'POST' },
+    { ...write, method: 'POST', body: { event } },
   );
 
 export const listCloudSubmissions = (
@@ -504,10 +766,11 @@ export const listCloudSubmissions = (
   formId: string,
   q: string | undefined,
   page = 1,
+  spam = false,
 ) =>
   apiFetch<Paginated<CloudSubmission>>(`/cloud/projects/${projectId}/forms/${formId}/submissions`, {
     ...auth,
-    query: { q, page, pageSize: 20 },
+    query: { q, page, pageSize: 20, spam: spam ? 'true' : undefined },
   });
 
 export const exportCloudSubmissions = (projectId: string, formId: string) =>
@@ -522,6 +785,18 @@ export const deleteCloudSubmission = (projectId: string, formId: string, submiss
     method: 'DELETE',
   });
 
+/** "Spam" or "Not spam" on one submission (decision 66). */
+export const markCloudSubmissionSpam = (
+  projectId: string,
+  formId: string,
+  submissionId: string,
+  spam: boolean,
+) =>
+  apiFetch<CloudSubmission>(
+    `/cloud/projects/${projectId}/forms/${formId}/submissions/${submissionId}/spam`,
+    { ...write, method: 'POST', body: { spam } },
+  );
+
 // ── Monitors and status pages (phase 1b) ────────────────────────────────────────────────────
 
 export type CloudMonitorState = 'UNKNOWN' | 'UP' | 'DOWN' | 'PAUSED';
@@ -531,6 +806,9 @@ export type CloudMonitor = {
   name: string;
   kind: 'HTTP' | 'HEARTBEAT';
   url: string | null;
+  /** HTTP: text the page must (or must not) contain; null when not checked. */
+  keyword: string | null;
+  keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
   heartbeatUrl: string | null;
   periodMinutes: number | null;
   graceMinutes: number | null;
@@ -575,18 +853,77 @@ export type CloudStatusPageSettings = {
   items: Array<{ monitorId: string; label: string }>;
 };
 
+/** On the public page a monitor under a maintenance in progress shows MAINTENANCE. */
+export type CloudPublicMonitorState = CloudMonitorState | 'MAINTENANCE';
+
+export type CloudPublicOverall = 'operational' | 'partial' | 'major' | 'maintenance' | 'unknown';
+
+export type CloudNoticeKind = 'INCIDENT' | 'MAINTENANCE';
+
+/** Incidents: INVESTIGATING…RESOLVED; maintenance: its phase from the time (SCHEDULED…COMPLETED). */
+export type CloudNoticeState =
+  | 'INVESTIGATING'
+  | 'IDENTIFIED'
+  | 'MONITORING'
+  | 'RESOLVED'
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED';
+
+/** A status page notice as the console sees it (architecture 4.13, Notices). */
+export type CloudStatusNotice = {
+  id: string;
+  kind: CloudNoticeKind;
+  title: string;
+  /** Effective: a maintenance's phase now. */
+  state: CloudNoticeState;
+  open: boolean;
+  monitorIds: string[];
+  startsAt: string | null;
+  endsAt: string | null;
+  resolvedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** Newest first; a maintenance note has no state. */
+  updates: Array<{
+    id: string;
+    state: CloudNoticeState | null;
+    body: string;
+    createdBy: string | null;
+    createdAt: string;
+  }>;
+};
+
+/** A notice on the public page: monitors only by their public labels. */
+export type CloudPublicNotice = {
+  id: string;
+  kind: CloudNoticeKind;
+  title: string;
+  state: CloudNoticeState;
+  monitors: string[];
+  startsAt: string | null;
+  endsAt: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  /** Newest first. */
+  updates: Array<{ state: CloudNoticeState | null; body: string; createdAt: string }>;
+};
+
 export type CloudPublicStatus = {
   title: string;
   intro: string | null;
-  overall: 'operational' | 'partial' | 'major' | 'unknown';
+  overall: CloudPublicOverall;
   updatedAt: string;
   monitors: Array<{
     label: string;
-    status: CloudMonitorState;
+    status: CloudPublicMonitorState;
     uptime90: number | null;
     days: CloudDayUptime[];
     incidents: CloudIncident[];
   }>;
+  /** Open notices and those closed in the last 14 days, in the page's order. */
+  notices: CloudPublicNotice[];
 };
 
 export const listCloudMonitors = (team: string) =>
@@ -595,7 +932,14 @@ export const listCloudMonitors = (team: string) =>
 export const createCloudMonitor = (
   team: string,
   input:
-    | { kind: 'HTTP'; name: string; url: string; alertIds: string[] }
+    | {
+        kind: 'HTTP';
+        name: string;
+        url: string;
+        keyword?: string;
+        keywordMode?: 'CONTAINS' | 'NOT_CONTAINS';
+        alertIds: string[];
+      }
     | {
         kind: 'HEARTBEAT';
         name: string;
@@ -615,7 +959,14 @@ export const getCloudMonitor = (id: string) =>
 
 export const updateCloudMonitor = (
   id: string,
-  input: Partial<{ name: string; enabled: boolean; alertIds: string[] }>,
+  input: Partial<{
+    name: string;
+    enabled: boolean;
+    alertIds: string[];
+    /** `null` switches the text check off. */
+    keyword: string | null;
+    keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
+  }>,
 ) => apiFetch<CloudMonitor>(`/cloud/monitors/${id}`, { ...write, method: 'PATCH', body: input });
 
 export const deleteCloudMonitor = (id: string) =>
@@ -629,6 +980,60 @@ export const saveCloudStatusPage = (team: string, input: CloudStatusPageSettings
     ...write,
     method: 'PUT',
     body: { ...input, intro: input.intro ?? undefined },
+  });
+
+export const listCloudStatusNotices = (team: string, open: boolean, page = 1, pageSize = 20) =>
+  apiFetch<Paginated<CloudStatusNotice>>(
+    `/cloud/teams/${encodeURIComponent(team)}/status-notices`,
+    { ...auth, query: { open, page, pageSize } },
+  );
+
+export const createCloudStatusNotice = (
+  team: string,
+  input:
+    | {
+        kind: 'INCIDENT';
+        title: string;
+        monitorIds: string[];
+        body: string;
+        state: CloudNoticeState;
+      }
+    | {
+        kind: 'MAINTENANCE';
+        title: string;
+        monitorIds: string[];
+        body: string;
+        startsAt: string;
+        endsAt: string;
+      },
+) =>
+  apiFetch<CloudStatusNotice>(`/cloud/teams/${encodeURIComponent(team)}/status-notices`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const updateCloudStatusNotice = (
+  id: string,
+  input: Partial<{ title: string; monitorIds: string[]; startsAt: string; endsAt: string }>,
+) =>
+  apiFetch<CloudStatusNotice>(`/cloud/status-notices/${id}`, {
+    ...write,
+    method: 'PATCH',
+    body: input,
+  });
+
+export const deleteCloudStatusNotice = (id: string) =>
+  apiFetch<void>(`/cloud/status-notices/${id}`, { ...write, method: 'DELETE' });
+
+export const addCloudStatusNoticeUpdate = (
+  id: string,
+  input: { body: string; state?: CloudNoticeState },
+) =>
+  apiFetch<CloudStatusNotice>(`/cloud/status-notices/${id}/updates`, {
+    ...write,
+    method: 'POST',
+    body: input,
   });
 
 /** A team's public status (no session; the API caches it 60 s). */
@@ -659,11 +1064,20 @@ export const runCloudAudit = (input: { url: string; teamSlug: string; locale: 'e
     signal: AbortSignal.timeout(75_000),
   });
 
+export type CloudAuditListItem = {
+  id: string;
+  url: string;
+  score: number;
+  /** Made for a build's preview, not by a member. */
+  preview: boolean;
+  createdAt: string;
+};
+
 export const listCloudAudits = (team: string, page = 1) =>
-  apiFetch<Paginated<{ id: string; url: string; score: number; createdAt: string }>>(
-    `/cloud/teams/${encodeURIComponent(team)}/audits`,
-    { ...auth, query: { page, pageSize: 20 } },
-  );
+  apiFetch<Paginated<CloudAuditListItem>>(`/cloud/teams/${encodeURIComponent(team)}/audits`, {
+    ...auth,
+    query: { page, pageSize: 20 },
+  });
 
 export const getCloudAudit = (id: string, locale: 'en' | 'es') =>
   apiFetch<CloudAuditReport>(`/cloud/audits/${id}`, { ...auth, query: { locale } });
@@ -682,27 +1096,63 @@ export type CloudGit = {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  previewChecks: boolean;
+  /** Skip pushes and pull requests that change nothing under `rootDir`. */
+  onlyRootChanges: boolean;
 };
+
+/** A deploy hook (architecture 4.13); `url` is only in the answer to making it: shown once. */
+export type CloudDeployHook = {
+  id: string;
+  name: string;
+  branch: string;
+  /** The token's first 12 characters, to recognise it. */
+  prefix: string;
+  lastCalledAt: string | null;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  url?: string;
+};
+
+export const listCloudHooks = (projectId: string) =>
+  apiFetch<{ items: CloudDeployHook[] }>(`/cloud/projects/${projectId}/hooks`, auth);
+
+export const createCloudHook = (projectId: string, input: { name: string; branch?: string }) =>
+  apiFetch<CloudDeployHook>(`/cloud/projects/${projectId}/hooks`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const deleteCloudHook = (projectId: string, hookId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/hooks/${hookId}`, { ...write, method: 'DELETE' });
 
 export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
 
 export type CloudBuild = {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook' | 'schedule';
+  /** The deploy hook's name when the build came from one (kept after the hook is deleted). */
+  hookName: string | null;
   target: 'preview' | 'production';
   branch: string;
   commit: string;
   commitMessage: string | null;
   author: string | null;
   pullRequest: number | null;
+  noCache: boolean;
   status: CloudBuildStatus;
   error: string | null;
   deploymentId: string | null;
+  /** A production build that deployed as a preview because production was locked (4.13). */
+  keptAsPreview: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
   durationMs: number | null;
+  /** The website check of the build's preview, when there is one. */
+  audit: { id: string; score: number } | null;
 };
 
 export const getCloudGithubInstallUrl = (teamSlug: string, projectSlug?: string) =>
@@ -749,6 +1199,16 @@ export const setCloudGit = (
 export const disconnectCloudGit = (projectId: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/git`, { ...write, method: 'DELETE' });
 
+export const setCloudRebuildSchedule = (
+  projectId: string,
+  input: { frequency: CloudRebuildFrequency; minute?: number; hour?: number; weekday?: number },
+) =>
+  apiFetch<CloudProject>(`/cloud/projects/${projectId}/rebuild-schedule`, {
+    ...write,
+    method: 'PUT',
+    body: input,
+  });
+
 export const listCloudEnv = (projectId: string) =>
   apiFetch<{
     items: Array<{ key: string; production: boolean; preview: boolean; updatedAt: string }>;
@@ -759,6 +1219,26 @@ export const setCloudEnv = (
   input: { key: string; value: string; production: boolean; preview: boolean },
 ) =>
   apiFetch<unknown>(`/cloud/projects/${projectId}/env`, { ...write, method: 'PUT', body: input });
+
+export type CloudEnvImportInput = {
+  /** The `.env` file's text (dotenv syntax, up to 256 KB). */
+  content: string;
+  production: boolean;
+  preview: boolean;
+  /** Replace variables that already exist (otherwise they are skipped). */
+  overwrite: boolean;
+};
+
+/** Keys only, never values. */
+export type CloudEnvImportResult = { created: string[]; updated: string[]; skipped: string[] };
+
+/** All or nothing: a `400` with `errors: [{ line, key?, message }]` saves nothing. */
+export const importCloudEnv = (projectId: string, input: CloudEnvImportInput) =>
+  apiFetch<CloudEnvImportResult>(`/cloud/projects/${projectId}/env/import`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
 
 export const deleteCloudEnv = (projectId: string, key: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/env`, {
@@ -779,11 +1259,11 @@ export const getCloudBuild = (projectId: string, number: number) =>
     auth,
   );
 
-export const startCloudBuild = (projectId: string, branch?: string) =>
+export const startCloudBuild = (projectId: string, branch?: string, noCache = false) =>
   apiFetch<CloudBuild>(`/cloud/projects/${projectId}/builds`, {
     ...write,
     method: 'POST',
-    body: branch ? { branch } : {},
+    body: { ...(branch ? { branch } : {}), ...(noCache ? { noCache: true } : {}) },
   });
 
 export const cancelCloudBuild = (projectId: string, number: number) =>

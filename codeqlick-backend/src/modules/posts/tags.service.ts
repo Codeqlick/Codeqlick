@@ -68,6 +68,14 @@ export class TagsService {
     }
   }
 
+  /** The ids among `ids` that are still tags, in the same order (deleted ones left out). */
+  async existing(ids: string[]): Promise<string[]> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return [];
+    const found = new Set(await this.repository.findExistingIds(unique));
+    return unique.filter((id) => found.has(id));
+  }
+
   async create(actor: AuthUser, input: CreateTagInput): Promise<AdminTag> {
     if (await this.repository.findBySlug(input.slug)) {
       throw new ConflictException('A tag with this slug already exists');

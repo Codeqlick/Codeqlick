@@ -112,6 +112,17 @@ describe('Weekly project summary (e2e)', () => {
     expect(email.text).toContain('→ Pendiente de tu aprobación: Portada');
     expect(email.text).toContain('Siguiente hito: Pagos');
     expect(email.text).not.toContain('Antigua');
+    // An optional email: one-click unsubscribe header and a footer link (architecture 4.3).
+    expect(email.listUnsubscribe).toMatch(/\/v1\/email\/unsubscribe\?token=[\w%-]+\.[\w-]+$/);
+    const token = new URL(email.listUnsubscribe!).searchParams.get('token')!;
+    expect(email.text).toContain(
+      `http://localhost:3000/es/email/unsubscribe?token=${encodeURIComponent(token)}`,
+    );
+    expect(email.html).toContain('Darse de baja</a>');
+    await request(server)
+      .get('/v1/email/preferences')
+      .query({ token })
+      .expect(200, { kind: 'digest', subscribed: true, email: 'e***@codeqlick.test' });
     await request(server)
       .post(`/v1/admin/projects/weekly-digest/${ids.quiet}`)
       .set(auth)

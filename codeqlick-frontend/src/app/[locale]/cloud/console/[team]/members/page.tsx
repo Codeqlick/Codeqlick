@@ -14,6 +14,7 @@ import {
   removeMemberAction,
   revokeInviteAction,
   setRoleAction,
+  setTeamTwoFactorAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 
@@ -40,11 +41,13 @@ export default async function CloudMembersPage({ params }: PageProps) {
   const locale = resolveLocale(raw);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cloud' });
+  const tc = await getTranslations({ locale, namespace: 'Common' });
   const [team, members, me] = await load(slug);
   const admin = team.role !== 'MEMBER';
   const roles = (['OWNER', 'ADMIN', 'MEMBER'] as const).filter(
     (role) => role !== 'OWNER' || team.role === 'OWNER',
   );
+  const ownTwoFactor = members.items.find((member) => member.userId === me.user.id)?.twoFactor;
 
   return (
     <div className={styles.landing}>
@@ -70,6 +73,9 @@ export default async function CloudMembersPage({ params }: PageProps) {
                   </Badge>
                 </p>
                 <p className={styles.small}>{member.email}</p>
+                <p className={styles.small}>
+                  {member.twoFactor ? t('twoFactor.memberOn') : t('twoFactor.memberOff')}
+                </p>
               </div>
               <div className={styles.actions}>
                 {canManage && !self ? (
@@ -114,6 +120,38 @@ export default async function CloudMembersPage({ params }: PageProps) {
           );
         })}
       </ul>
+
+      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="two-factor-title">
+        <h2 id="two-factor-title" className={styles.cardTitle}>
+          {t('twoFactor.title')}
+        </h2>
+        <p className={styles.muted}>
+          {team.requireTwoFactor ? t('twoFactor.required') : t('twoFactor.notRequired')}
+        </p>
+        {team.role === 'OWNER' ? (
+          <>
+            {!team.requireTwoFactor && ownTwoFactor === false ? (
+              <p className={styles.small}>
+                {t('twoFactor.ownHint')}{' '}
+                <Link href="/portal/account">{t('twoFactor.accountLink')}</Link>
+              </p>
+            ) : null}
+            <ActionForm
+              action={setTeamTwoFactorAction.bind(null, locale, team.slug, !team.requireTwoFactor)}
+              className={styles.form}
+            >
+              <div className={styles.actions}>
+                <SubmitButton
+                  variant={team.requireTwoFactor ? 'outline' : 'primary'}
+                  pendingLabel={tc('saving')}
+                >
+                  {team.requireTwoFactor ? t('twoFactor.turnOff') : t('twoFactor.turnOn')}
+                </SubmitButton>
+              </div>
+            </ActionForm>
+          </>
+        ) : null}
+      </section>
 
       {members.invites.length > 0 ? (
         <section aria-labelledby="pending-title">

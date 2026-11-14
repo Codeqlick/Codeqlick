@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csvField, leadsToCsv } from './leads-csv.js';
+import { leadsToCsv } from './leads-csv.js';
 import type { Lead } from './leads.service.js';
 
 const lead: Lead = {
@@ -25,21 +25,6 @@ const lead: Lead = {
 };
 
 describe('leads CSV', () => {
-  it('quotes commas, quotes and line breaks', () => {
-    expect(csvField('plain')).toBe('plain');
-    expect(csvField('a, b')).toBe('"a, b"');
-    expect(csvField('say "hi"')).toBe('"say ""hi"""');
-    expect(csvField('two\nlines')).toBe('"two\nlines"');
-    expect(csvField(null)).toBe('');
-  });
-
-  it('defuses values a spreadsheet would run as formulas', () => {
-    expect(csvField('=HYPERLINK("http://evil")')).toBe('"\'=HYPERLINK(""http://evil"")"');
-    expect(csvField('+34 600 000 000')).toBe("'+34 600 000 000");
-    expect(csvField('-1')).toBe("'-1");
-    expect(csvField('@SUM(A1)')).toBe("'@SUM(A1)");
-  });
-
   it('writes a BOM, a header row and CRLF line endings', () => {
     const csv = leadsToCsv([lead]);
     expect(

@@ -110,6 +110,20 @@ export const preferencesSchema = z
   .strict();
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 
+/** An optional email's unsubscribe token; a wrong one is a 404 like a deleted account's. */
+const unsubscribeTokenSchema = z.string().max(1024);
+
+/** `?token=` of the unsubscribe endpoints (missing counts as a wrong token). */
+export const unsubscribeQuerySchema = z.object({
+  token: unsubscribeTokenSchema.default(''),
+});
+export type UnsubscribeQuery = z.infer<typeof unsubscribeQuerySchema>;
+
+export const emailPreferenceSchema = z
+  .object({ token: unsubscribeTokenSchema, subscribed: z.boolean() })
+  .strict();
+export type EmailPreferenceInput = z.infer<typeof emailPreferenceSchema>;
+
 export const updateMeSchema = z
   .object({ name: z.string().trim().min(1).max(120).optional(), locale: localeSchema.optional() })
   .strict();

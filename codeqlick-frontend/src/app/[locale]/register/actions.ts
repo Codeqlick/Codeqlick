@@ -4,7 +4,12 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import { acceptInvitation, confirmSignup, register } from '@/lib/api/auth';
-import { isApiError, isCaptchaError, isDisposableEmailError } from '@/lib/api/errors';
+import {
+  isApiError,
+  isBreachedPasswordError,
+  isCaptchaError,
+  isDisposableEmailError,
+} from '@/lib/api/errors';
 import type { AuthTokens } from '@/lib/api/types';
 import { setAuthCookies } from '@/lib/auth/session';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
@@ -24,6 +29,14 @@ async function failure(
   const t = await getTranslations({ locale, namespace: 'Register' });
   if (isCaptchaError(error))
     return { status: 'error', message: t('captcha'), values: kept(formData) };
+  if (isBreachedPasswordError(error)) {
+    const tv = await getTranslations({ locale, namespace: 'Validation' });
+    return {
+      status: 'error',
+      fieldErrors: { password: tv('breachedPassword') },
+      values: kept(formData),
+    };
+  }
   if (isDisposableEmailError(error)) {
     return {
       status: 'error',

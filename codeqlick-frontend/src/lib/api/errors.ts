@@ -49,6 +49,15 @@ export function isCaptchaError(error: unknown): boolean {
   return isApiError(error) && error.status === 400 && error.fieldErrors.captcha !== undefined;
 }
 
+/** The field error's message when the API refuses a new password found in a data breach (4.3). */
+export const BREACHED_PASSWORD = 'breached';
+
+/** The API refused a new password found in a known data breach (architecture 4.3). */
+export function isBreachedPasswordError(error: unknown, field = 'password'): boolean {
+  if (!isApiError(error) || error.status !== 400) return false;
+  return error.fieldErrors[field] === BREACHED_PASSWORD;
+}
+
 /** The API refused an address of a disposable email service (architecture 4.3). */
 export function isDisposableEmailError(error: unknown): boolean {
   return isApiError(error) && error.status === 400 && error.fieldErrors.email === 'disposable';

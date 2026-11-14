@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { getOutline } from '@/lib/markdown-outline';
 import { Markdown } from './Markdown';
 
 const render = (markdown: string) => renderToStaticMarkup(<Markdown>{markdown}</Markdown>);
@@ -25,10 +26,107 @@ describe('Markdown', () => {
     expect(html).toContain('<a href="mailto:hello@codeqlick.com">mail</a>');
   });
 
+  it('keeps headings without ids or links when anchors are off', () => {
+    const html = render('## Plan\n\n### Step one\n\nText.');
+    expect(html).toContain('<h2>Plan</h2>');
+    expect(html).toContain('<h3>Step one</h3>');
+    expect(html).not.toContain('id=');
+  });
+
   it('lazy-loads images and always gives them an alt attribute', () => {
     const html = render('![](https://codeqlick.com/media/a.png)');
     expect(html).toMatch(/<img[^>]*src="https:\/\/codeqlick\.com\/media\/a\.png"/);
     expect(html).toContain('alt=""');
     expect(html).toContain('loading="lazy"');
+  });
+});
+
+describe('Markdown with anchors', () => {
+  const renderAnchored = (markdown: string) =>
+    renderToStaticMarkup(
+      <Markdown anchors={{ linkLabel: 'Link to this section' }}>{markdown}</Markdown>,
+    );
+
+  it('gives ## and ### an id and a "#" link to it, and nothing to other headings', () => {
+    const html = renderAnchored('# Title\n\n## Cómo *empezar*\n\n### Paso 1\n\n#### Detail');
+    expect(html).toMatch(
+      /<h2 id="como-empezar"[^>]*>Cómo <em>empezar<\/em><a href="#como-empezar"[^>]*aria-label="Link to this section"[^>]*>#<\/a><\/h2>/,
+    );
+    expect(html).toMatch(/<h3 id="paso-1"[^>]*>Paso 1<a href="#paso-1"/);
+    expect(html).toContain('<h1>Title</h1>');
+    expect(html).toContain('<h4>Detail</h4>');
+  });
+
+  it('renders the same ids as the outline, repeated headings included', () => {
+    const markdown = [
+      '## Intro',
+      '### Setup',
+      '## Usage',
+      '### Setup',
+      '## Intro',
+      '## `code` & [links](https://example.com)',
+    ].join('\n\n');
+    const html = renderAnchored(markdown);
+    const rendered = [...html.matchAll(/<h[23] id="([^"]+)"/g)].map((match) => match[1]);
+    const outlined = getOutline(markdown).flatMap((entry) => [
+      entry.id,
+      ...entry.children.map((child) => child.id),
+    ]);
+    expect(rendered).toEqual(['intro', 'setup', 'usage', 'setup-2', 'intro-2', 'code-links']);
+    expect(rendered).toEqual(outlined);
+  });
+
+  it('keeps the outline ids after a numbered collision and with raw HTML in a heading', () => {
+    const markdown = '## Notes\n\n## Notes\n\n## Notes 2\n\n## Diseño <b>web</b>';
+    const html = renderAnchored(markdown);
+    const rendered = [...html.matchAll(/<h2 id="([^"]+)"/g)].map((match) => match[1]);
+    expect(rendered).toEqual(['notes', 'notes-2', 'notes-2-2', 'diseno-web']);
+    expect(rendered).toEqual(getOutline(markdown).map((entry) => entry.id));
+    // skipHtml still drops the tags: the heading shows only their text.
+    expect(html).not.toContain('<b>');
+    expect(html).toMatch(/<h2 id="diseno-web"[^>]*>Diseño web<a href="#diseno-web"/);
+  });
+});
+
+describe('Markdown with copyCode', () => {
+  const labels = { copy: 'Copy', copied: 'Copied', failed: "Couldn't copy" };
+  const block = '```sh\nnpx @codeqlick/cli login\n```';
+
+  it('wraps code blocks for the copy button, which only appears in the browser', () => {
+    const html = renderToStaticMarkup(
+      <Markdown copyCode={labels}>{`Run \`this\`:\n\n${block}`}</Markdown>,
+    );
+    expect(html).toMatch(
+      /<div[^>]*><pre><code class="language-sh">npx @codeqlick\/cli login\n<\/code><\/pre><\/div>/,
+    );
+    // Rendered on the server (no Clipboard API yet): no button, so hydration matches.
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('<output');
+    // Inline code stays as it is.
+    expect(html).toContain('<p>Run <code>this</code>:</p>');
+  });
+
+  it('wraps indented code blocks too', () => {
+    const html = renderToStaticMarkup(
+      <Markdown copyCode={labels}>{'Run:\n\n    npm ci\n'}</Markdown>,
+    );
+    expect(html).toMatch(/<div[^>]*><pre><code>npm ci\n<\/code><\/pre><\/div>/);
+  });
+
+  it('leaves code blocks unwrapped without it', () => {
+    const html = render(block);
+    expect(html).toMatch(/<div[^>]*><pre><code class="language-sh">/);
+    expect(html.match(/<div/g)).toHaveLength(1);
+  });
+
+  it('combines with anchors', () => {
+    const html = renderToStaticMarkup(
+      <Markdown anchors={{ linkLabel: 'Link to this section' }} copyCode={labels}>
+        {`## Install\n\n${block}`}
+      </Markdown>,
+    );
+    expect(html).toMatch(/<h2 id="install"[^>]*>Install<a href="#install"/);
+    expect(html).toMatch(/<div[^>]*><pre><code class="language-sh">/);
+    expect(html.match(/<div/g)).toHaveLength(2);
   });
 });

@@ -11,6 +11,7 @@ updates:
       - /codeqlick-backend
       - /codeqlick-frontend
       - /codeqlick-sites/web-basica
+      - /codeqlick-docs
       - /codeqlick-cli
       - /codeqlick-builder
     schedule:

@@ -19,6 +19,8 @@ export type LegalDocument = {
 export type LegalPage = 'legal' | 'privacy' | 'terms';
 
 const UPDATED = { es: '28 de octubre de 2026', en: '28 October 2026' } as const;
+/** The privacy policy changed later (it now covers the newsletter). */
+const PRIVACY_UPDATED = { es: '14 de noviembre de 2026', en: '14 November 2026' } as const;
 
 export function ownerLines(owner: LegalOwner, locale: AppLocale): string {
   const es = locale === 'es';
@@ -103,7 +105,9 @@ ${ownerLines(owner, locale)}
 
 **Área de clientes.** Si eres cliente, tu nombre, tu correo electrónico, tu contraseña (guardada cifrada, nunca en claro), el idioma en que prefieres los correos, los comentarios y aprobaciones que dejas en tus proyectos y, por seguridad, la dirección IP y el navegador de cada sesión iniciada. Los usamos para darte acceso y prestarte el servicio contratado (artículo 6.1.b del RGPD) y para proteger tu cuenta (interés legítimo, artículo 6.1.f).
 
-**Correos.** Te escribimos para responderte, para avisarte de novedades en tus proyectos o para restablecer tu contraseña. No enviamos publicidad ni boletines.
+**Correos.** Te escribimos para responderte, para avisarte de novedades en tus proyectos o para restablecer tu contraseña. No enviamos publicidad.
+
+**Boletín del blog.** Si te suscribes, guardamos tu correo electrónico y el idioma en que quieres recibirlo, y la fecha en que confirmaste la suscripción. Los usamos solo para enviarte por correo cada artículo nuevo del blog. La base legal es tu consentimiento (artículo 6.1.a del RGPD), que das al suscribirte y confirmar desde el enlace que te enviamos. Puedes darte de baja cuando quieras con el enlace que lleva cada correo. Las suscripciones que no se confirman se borran a los nueve días, aproximadamente. No enviamos publicidad.
 
 **Compra de tu web.** Si compras tu web desde su vista previa, el pago lo procesa Stripe: tú le das los datos de tu tarjeta, tu nombre, tu dirección de facturación y, si quieres, tu NIF, y nosotros no vemos ni guardamos los datos de tu tarjeta. Conservamos tu correo, el importe, la fecha y la factura que emite Stripe. La base legal es el contrato (artículo 6.1.b del RGPD) y nuestras obligaciones fiscales y contables (artículo 6.1.c).
 
@@ -111,7 +115,7 @@ ${ownerLines(owner, locale)}
 
 ## Cuánto tiempo los guardamos
 
-Los mensajes del formulario, mientras sean necesarios para atender tu solicitud o hasta que nos pidas que los borremos. Los datos de clientes, mientras dure la relación y, después, durante los plazos que exija la ley. Las compras y sus facturas, seis años, como exige la normativa mercantil y fiscal. Las copias de seguridad se eliminan automáticamente a los 14 días.
+Los mensajes del formulario, mientras sean necesarios para atender tu solicitud o hasta que nos pidas que los borremos. Los datos de clientes, mientras dure la relación y, después, durante los plazos que exija la ley. Las compras y sus facturas, seis años, como exige la normativa mercantil y fiscal. Los datos del boletín, mientras estés suscrito; si te das de baja, solo conservamos tu dirección y la fecha de la baja, para respetarla, durante 12 meses y luego las borramos. Las suscripciones sin confirmar se borran a los nueve días, aproximadamente, y si nos lo pides las borramos al momento. Las copias de seguridad se eliminan automáticamente a los 14 días.
 
 ## Con quién los compartimos
 
@@ -143,7 +147,9 @@ ${ownerLines(owner, locale)}
 
 **Client area.** If you are a client: your name, your email address, your password (stored hashed, never in plain text), the language you prefer for emails, the comments and approvals you leave on your projects and, for security, the IP address and browser of each session. We use them to give you access and provide the contracted service (article 6.1.b GDPR) and to protect your account (legitimate interest, article 6.1.f).
 
-**Emails.** We write to answer you, to let you know about updates on your projects or to reset your password. We send no advertising or newsletters.
+**Emails.** We write to answer you, to let you know about updates on your projects or to reset your password. We send no advertising.
+
+**Blog newsletter.** If you subscribe, we keep your email address, the language you want to receive it in and the date you confirmed the subscription. We use them only to email you each new blog post. The legal basis is your consent (article 6.1.a GDPR), which you give by subscribing and confirming through the link we send you. You can unsubscribe at any time from the link in every email. Sign-ups that are never confirmed are deleted after about nine days. We send no advertising.
 
 **Buying your website.** If you buy your website from its preview, Stripe processes the payment: you give it your card details, your name, your billing address and, if you like, your tax ID, and we never see or keep your card details. We keep your email, the amount, the date and the invoice Stripe issues. The legal basis is the contract (article 6.1.b GDPR) and our tax and accounting obligations (article 6.1.c).
 
@@ -151,7 +157,7 @@ ${ownerLines(owner, locale)}
 
 ## How long we keep it
 
-Contact form messages, for as long as needed to handle your request or until you ask us to delete them. Client data, for as long as we work together and afterwards for the periods the law requires. Purchases and their invoices, six years, as commercial and tax law require. Backups are deleted automatically after 14 days.
+Contact form messages, for as long as needed to handle your request or until you ask us to delete them. Client data, for as long as we work together and afterwards for the periods the law requires. Purchases and their invoices, six years, as commercial and tax law require. Newsletter data, while you are subscribed; if you unsubscribe, we keep only your address and the date you unsubscribed, to respect your choice, for 12 months and then delete them. Unconfirmed sign-ups are deleted after about nine days, and if you ask us to, we delete everything at once. Backups are deleted automatically after 14 days.
 
 ## Who we share it with
 
@@ -289,7 +295,7 @@ export function legalDocument(
         description: es
           ? 'Qué datos personales trata Codeqlick, para qué, cuánto tiempo los guarda y cómo ejercer tus derechos.'
           : 'What personal data Codeqlick handles, why, how long it keeps it and how to exercise your rights.',
-        updated: UPDATED[locale],
+        updated: PRIVACY_UPDATED[locale],
         markdown: privacyPolicy(owner, locale),
       };
 }

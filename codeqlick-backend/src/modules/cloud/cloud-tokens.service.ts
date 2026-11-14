@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import {
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -14,7 +15,9 @@ import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { MailService } from '../mail/mail.service.js';
 import { tokenExpiryEmail } from './cloud-emails.js';
 import { ACTIVE_DAYS, EXPIRED_USED_DAYS, groupByUser, WARN_DAYS } from './cloud-token-expiry.js';
+import { TWO_FACTOR_REQUIRED, twoFactorBlocked } from './cloud-caller.js';
 import { CLI_TOKEN_DAYS, DEVICE_CODE_MINUTES, DEVICE_POLL_SECONDS, FREE } from './cloud-plans.js';
+import type { CloudCtx } from './cloud-caller.js';
 import { CloudRepository } from './cloud.repository.js';
 import type { CreateTokenInput } from './cloud.schemas.js';
 import {
@@ -28,6 +31,7 @@ export interface TokenView {
   name: string;
   prefix: string;
   team: { slug: string; name: string } | null;
+  readOnly: boolean;
   expiresAt: string | null;
   lastUsedAt: string | null;
   lastUsedIp: string | null;
@@ -93,7 +97,7 @@ export class CloudTokensService implements ApiTokenResolver {
       name: row.user.name,
       role: row.user.role,
       via: 'token',
-      token: { id: row.id, name: row.name, teamId: row.teamId },
+      token: { id: row.id, name: row.name, teamId: row.teamId, readOnly: row.readOnly },
     };
   }
 
@@ -102,9 +106,10 @@ export class CloudTokensService implements ApiTokenResolver {
   }
 
   async create(
-    user: AuthUser,
+    ctx: CloudCtx,
     input: CreateTokenInput,
   ): Promise<{ token: string; item: TokenView }> {
+    const { user } = ctx;
     if ((await this.tokens.count(user.id)) >= FREE.tokensPerPerson) {
       throw new ConflictException(`At most ${FREE.tokensPerPerson} tokens per person`);
     }
@@ -112,11 +117,39 @@ export class CloudTokensService implements ApiTokenResolver {
     if (input.teamSlug) {
       const membership = await this.cloud.membership(input.teamSlug, user.id);
       if (!membership) throw new NotFoundException('Team not found');
+      if (twoFactorBlocked(membership)) throw new ForbiddenException(TWO_FACTOR_REQUIRED);
       teamId = membership.teamId;
     }
     const expiresAt =
       input.expiresInDays === null ? null : new Date(Date.now() + input.expiresInDays * DAY_MS);
-    return this.issue(user.id, input.name, teamId, expiresAt);
+    const readOnly = input.readOnly ?? false;
+    const issued = await this.issue(user.id, input.name, teamId, expiresAt, readOnly);
+    // Events belong to a team: a token restricted to one is recorded there.
+    if (teamId) await this.recordCreated(ctx, teamId, input.name, readOnly);
+    return issued;
+  }
+
+  /** The `token.created` event (a failure is logged, never fails the change). */
+  private async recordCreated(
+    ctx: CloudCtx,
+    teamId: string,
+    name: string,
+    readOnly: boolean,
+  ): Promise<void> {
+    try {
+      await this.cloud.event({
+        teamId,
+        actorId: ctx.user.id,
+        actorName: ctx.user.name || ctx.user.email,
+        tokenName: ctx.user.token?.name ?? null,
+        action: 'token.created',
+        targetLabel: name,
+        details: { readOnly },
+        ip: ctx.ip,
+      });
+    } catch (error) {
+      this.logger.error(`Could not record token.created: ${String(error)}`);
+    }
   }
 
   async revoke(user: AuthUser, id: string): Promise<void> {
@@ -128,6 +161,7 @@ export class CloudTokensService implements ApiTokenResolver {
     name: string,
     teamId: string | null,
     expiresAt: Date | null,
+    readOnly: boolean,
   ): Promise<{ token: string; item: TokenView }> {
     const token = `${API_TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`;
     const row = await this.tokens.create({
@@ -136,6 +170,7 @@ export class CloudTokensService implements ApiTokenResolver {
       name,
       prefix: token.slice(0, 12),
       tokenHash: sha256(token),
+      readOnly,
       expiresAt,
     });
     return { token, item: tokenView(row) };
@@ -189,11 +224,13 @@ export class CloudTokensService implements ApiTokenResolver {
     if (!row.userId || !(await this.tokens.consume(row.id, now))) return { status: 'expired' };
     const owner = await this.cloud.activeUser(row.userId);
     if (!owner) return { status: 'expired' };
+    // CLI sign-ins are always Full (decision 61).
     const { token } = await this.issue(
       row.userId,
       `CLI · ${row.clientName}`.slice(0, 80),
       null,
       new Date(now.getTime() + CLI_TOKEN_DAYS * DAY_MS),
+      false,
     );
     return { status: 'approved', token, user: owner };
   }
@@ -310,6 +347,7 @@ function tokenView(row: TokenRow): TokenView {
     name: row.name,
     prefix: row.prefix,
     team: row.team,
+    readOnly: row.readOnly,
     expiresAt: row.expiresAt?.toISOString() ?? null,
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
     lastUsedIp: row.lastUsedIp,

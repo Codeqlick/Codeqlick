@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
+import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -83,6 +84,7 @@ export default async function CloudAuditsPage({ params }: PageProps) {
                       {audit.score}/100
                     </Link>
                     <span className={styles.mono}>{audit.url}</span>
+                    {audit.preview ? <Badge>{t('audits.previewBadge')}</Badge> : null}
                   </p>
                   <p className={styles.small}>{formatWhen(audit.createdAt, locale)}</p>
                 </div>

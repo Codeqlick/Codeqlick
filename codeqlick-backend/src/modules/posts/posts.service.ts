@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { toContentRevision, type ContentRevision } from '../../common/content-revisions.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import { readingMinutes } from '../../common/reading-time.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
@@ -13,16 +15,19 @@ import {
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PostsRepository,
+  type AdminPostRecord,
   type PostTranslationData,
   type PostUpdateData,
   type PostWithTranslations,
 } from './posts.repository.js';
-import type {
-  CreatePostInput,
-  ListAdminPostsQuery,
-  ListPublicPostsQuery,
-  PostTranslationInput,
-  UpdatePostInput,
+import type { PostSnapshot } from './post-snapshot.js';
+import {
+  postSnapshotSchema,
+  type CreatePostInput,
+  type ListAdminPostsQuery,
+  type ListPublicPostsQuery,
+  type PostTranslationInput,
+  type UpdatePostInput,
 } from './posts.schemas.js';
 import { TagsService, tagName, type PublicTag } from './tags.service.js';
 
@@ -32,6 +37,7 @@ export interface PostSummary {
   excerpt: string;
   coverImageUrl: string | null;
   publishedAt: string;
+  readingMinutes: number;
   tags: PublicTag[];
 }
 
@@ -48,9 +54,15 @@ export interface AdminPost {
   translations: PostTranslationInput[];
   tagIds: string[];
   publishedAt: string | null;
+  newsletter: boolean;
+  newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this post (decision 71), newest first. */
+  oldSlugs: string[];
 }
+
+export type PostRevisionDetail = ContentRevision & { snapshot: PostSnapshot };
 
 function toTranslationData(t: PostTranslationInput): PostTranslationData {
   return { locale: toDbLocale(t.locale), title: t.title, excerpt: t.excerpt, content: t.content };
@@ -60,7 +72,7 @@ function publicTags(post: PostWithTranslations, locale: ApiLocale): PublicTag[] 
   return post.tags.map(({ tag }) => ({ slug: tag.slug, name: tagName(tag, locale) }));
 }
 
-function toAdminPost(post: PostWithTranslations): AdminPost {
+function toAdminPost(post: AdminPostRecord): AdminPost {
   return {
     id: post.id,
     slug: post.slug,
@@ -74,8 +86,11 @@ function toAdminPost(post: PostWithTranslations): AdminPost {
     })),
     tagIds: post.tags.map((item) => item.tag.id),
     publishedAt: post.publishedAt?.toISOString() ?? null,
+    newsletter: post.newsletter,
+    newsletterSentAt: post.newsletterSentAt?.toISOString() ?? null,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
+    oldSlugs: post.slugRedirects.map((redirect) => redirect.slug),
   };
 }
 
@@ -118,10 +133,18 @@ export class PostsService {
       excerpt: translation.excerpt,
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      readingMinutes: readingMinutes(translation.content),
       content: translation.content,
       locales: availableLocales(post.translations),
       tags: publicTags(post, locale),
     };
+  }
+
+  /** The current slug of the live post an old slug redirects to (decision 71). */
+  async redirect(slug: string): Promise<{ slug: string }> {
+    const current = await this.repository.findLiveSlugByRedirect(slug);
+    if (!current) throw new NotFoundException('Redirect not found');
+    return { slug: current };
   }
 
   /**
@@ -172,6 +195,7 @@ export class PostsService {
       status: input.status,
       publishedAt: publishedAtOnCreate(input.status, input.publishedAt),
       coverImageUrl: input.coverImageUrl ?? null,
+      newsletter: input.newsletter,
       authorId,
       translations: input.translations.map(toTranslationData),
       tagIds: [...new Set(input.tagIds)],
@@ -192,6 +216,7 @@ export class PostsService {
     if (input.slug !== undefined) data.slug = input.slug;
     if (input.coverImageUrl !== undefined) data.coverImageUrl = input.coverImageUrl;
     if (input.status !== undefined) data.status = input.status;
+    if (input.newsletter !== undefined) data.newsletter = input.newsletter;
     const publishedAt = publishedAtOnUpdate(existing, input.status, input.publishedAt);
     if (publishedAt !== undefined) data.publishedAt = publishedAt;
     if (input.translations !== undefined) {
@@ -201,11 +226,54 @@ export class PostsService {
       await this.tags.assertExist(input.tagIds);
       data.tagIds = [...new Set(input.tagIds)];
     }
-    const updated = toAdminPost(await this.repository.update(id, data));
+    const updated = toAdminPost(await this.repository.update(id, data, actor.id));
     await this.activity.record(actor, {
       action: `post.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
+    });
+    return updated;
+  }
+
+  // ---- Revisions (decision 72) --------------------------------------------------------
+
+  async revisions(id: string): Promise<ContentRevision[]> {
+    await this.findOrThrow(id);
+    return (await this.repository.revisions(id)).map(toContentRevision);
+  }
+
+  async revision(id: string, revisionId: string): Promise<PostRevisionDetail> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    return {
+      ...toContentRevision(revision),
+      snapshot: revision.snapshot as unknown as PostSnapshot,
+    };
+  }
+
+  /**
+   * Puts a revision's content back as a normal update, so the current content becomes a
+   * revision itself. Status, publication date and slug stay; tags deleted since are left out.
+   */
+  async restore(actor: AuthUser, id: string, revisionId: string): Promise<AdminPost> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    const parsed = postSnapshotSchema.safeParse(revision.snapshot);
+    if (!parsed.success) throw new ConflictException('That revision no longer fits the schema');
+    const snapshot = parsed.data;
+    const data: PostUpdateData = {
+      coverImageUrl: snapshot.coverImageUrl,
+      translations: snapshot.translations.map(toTranslationData),
+      tagIds: await this.tags.existing(snapshot.tagIds),
+    };
+    const updated = toAdminPost(await this.repository.update(id, data, actor.id));
+    await this.activity.record(actor, {
+      action: 'post.restored',
+      targetId: id,
+      targetLabel: contentLabel(updated),
+      details: { revisionCreatedAt: revision.createdAt.toISOString() },
     });
     return updated;
   }
@@ -220,7 +288,7 @@ export class PostsService {
     });
   }
 
-  private async findOrThrow(id: string): Promise<PostWithTranslations> {
+  private async findOrThrow(id: string): Promise<AdminPostRecord> {
     const post = await this.repository.findById(id);
     if (!post) throw new NotFoundException('Post not found');
     return post;
@@ -235,6 +303,7 @@ export class PostsService {
       excerpt: translation.excerpt,
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      readingMinutes: readingMinutes(translation.content),
       tags: publicTags(post, locale),
     };
   }

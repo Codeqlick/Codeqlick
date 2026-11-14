@@ -250,6 +250,15 @@ describe('Sales follow-ups: preview follow-up, proposal from a request, monthly 
     expect(emails[0]!.text).toMatch(/Mensajes del formulario\W+3/);
     expect(emails[0]!.text).toMatch(/Tiempo en línea\W+75/);
     expect(emails[0]!.text).toContain(`/es/portal/projects/${project.id}`);
+    // An optional email: one-click unsubscribe header and a footer link (architecture 4.3).
+    const token = new URL(emails[0]!.listUnsubscribe!).searchParams.get('token')!;
+    expect(emails[0]!.listUnsubscribe).toContain('/v1/email/unsubscribe?token=');
+    expect(emails[0]!.text).toContain(`/es/email/unsubscribe?token=${encodeURIComponent(token)}`);
+    await request(app.getHttpServer())
+      .get('/v1/email/preferences')
+      .query({ token })
+      .expect(200)
+      .expect((response) => expect(response.body).toMatchObject({ kind: 'report' }));
     const site = await prisma.managedSite.findUniqueOrThrow({ where: { projectId: project.id } });
     expect(site.reportedMonth).toBe('2027-02');
 
