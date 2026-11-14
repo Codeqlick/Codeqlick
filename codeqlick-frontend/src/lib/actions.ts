@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { z } from 'zod';
 import type { AppLocale } from '@/i18n/routing';
-import { isApiError } from '@/lib/api/errors';
+import { BREACHED_PASSWORD, isApiError } from '@/lib/api/errors';
 import { formBoolean, formValues, zodFieldErrors, type FormState } from '@/lib/forms';
 
 /** Helpers shared by the portal/admin Server Actions. */
@@ -48,7 +48,7 @@ export async function failedState(
     fieldErrors: Object.fromEntries(
       Object.entries(error.fieldErrors).map(([path, message]) => [
         mapPath(path),
-        message === 'breached' ? tv('breachedPassword') : message,
+        message === BREACHED_PASSWORD ? tv('breachedPassword') : message,
       ]),
     ),
     values,

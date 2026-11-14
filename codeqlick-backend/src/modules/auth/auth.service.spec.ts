@@ -444,6 +444,23 @@ describe('AuthService', () => {
     });
   });
 
+  describe('acceptInvitation', () => {
+    it('refuses a password found in a data breach without accepting the invitation', async () => {
+      breaches.assertNotBreached.mockRejectedValue(new BadRequestException());
+
+      await expect(
+        service.acceptInvitation({
+          token: 'invitation-token',
+          name: 'Ada',
+          password: 'password1234',
+          locale: 'en',
+          acceptPrivacy: true,
+        } as Parameters<AuthService['acceptInvitation']>[0]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(breaches.assertNotBreached).toHaveBeenCalledWith('password1234', 'password');
+    });
+  });
+
   describe('two-step verification', () => {
     /** Runs the setup through the service and returns the user as stored afterwards. */
     // oxlint-disable-next-line unicorn/consistent-function-scoping -- uses the mocks of the enclosing beforeEach
