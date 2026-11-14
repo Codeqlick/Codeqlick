@@ -1636,7 +1636,10 @@
   },
   "Markdown": {
     "anchorLink": "Enlace a esta sección",
-    "contents": "Contenido"
+    "contents": "Contenido",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "copyFailed": "No se pudo copiar"
   },
   "About": {
     "metaTitle": "Sobre nosotros",

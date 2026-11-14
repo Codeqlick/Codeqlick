@@ -86,6 +86,72 @@
   line-height: 1.7;
 }
 
+/* Code blocks with a "Copy" button (`Markdown` with `copyCode`, CodeBlock.tsx). The block keeps
+   room on its right so the button never covers the first line. */
+.codeBlock {
+  position: relative;
+}
+
+.markdown .codeBlock pre {
+  margin: 0;
+  padding-right: 6rem;
+}
+
+.copyButton {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-code-dot);
+  border-radius: var(--radius-sm);
+  background: var(--color-ink-hover);
+  color: var(--color-code-text);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    opacity var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.copyButton:hover {
+  border-color: var(--color-fuchsia-light);
+  color: var(--color-white);
+}
+
+.copyButton:focus-visible {
+  outline: 2px solid var(--color-fuchsia-light);
+  outline-offset: 2px;
+}
+
+.copyButton[data-status='copied'] {
+  border-color: var(--color-fuchsia-light);
+  color: var(--color-fuchsia-light);
+}
+
+/* With a mouse: shown on hover, on keyboard focus and while it reports a copy. On touch screens
+   it is always shown. */
+@media (hover: hover) {
+  .copyButton {
+    opacity: 0;
+  }
+
+  .codeBlock:hover .copyButton,
+  .codeBlock:focus-within .copyButton,
+  .copyButton[data-status] {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copyButton {
+    transition: none;
+  }
+}
+
 .markdown pre code {
   background: none;
   color: inherit;
