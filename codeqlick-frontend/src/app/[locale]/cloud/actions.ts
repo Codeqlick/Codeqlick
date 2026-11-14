@@ -50,6 +50,7 @@ import {
   runCloudAudit,
   saveCloudStatusPage,
   setCloudMemberRole,
+  setCloudTeamTwoFactor,
   updateCloudForm,
   updateCloudMonitor,
   type CloudReportReason,
@@ -147,6 +148,29 @@ export async function renameTeamAction(
   }
   refresh(lang, `/${team}`);
   return { status: 'success', message: t('renamed') };
+}
+
+/** Owners require (or stop requiring) two-step verification of every member. */
+export async function setTeamTwoFactorAction(
+  locale: string,
+  team: string,
+  enabled: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.twoFactor' });
+  try {
+    await setCloudTeamTwoFactor(team, enabled);
+  } catch (error) {
+    // The only conflict: the owner's own account has no two-step verification yet.
+    if (isApiError(error) && error.status === 409) {
+      return { status: 'error', message: t('ownFirst') };
+    }
+    return failure(lang, error);
+  }
+  refresh(lang, `/${team}/members`);
+  return { status: 'success', message: enabled ? t('turnedOn') : t('turnedOff') };
 }
 
 export async function deleteTeamAction(

@@ -11,6 +11,8 @@ export function cloudInviteEmail(input: {
   role: 'ADMIN' | 'MEMBER';
   url: string;
   siteUrl: string;
+  /** The team requires two-step verification of every member (architecture 4.13). */
+  requireTwoFactor?: boolean;
 }): MailMessage {
   const es = input.locale === 'es';
   const role = es
@@ -34,6 +36,13 @@ export function cloudInviteEmail(input: {
           es
             ? `${input.invitedBy} te invita a unirte a ${input.team} en Codeqlick Cloud como ${role}. Inicia sesión (o crea tu cuenta) con este email para aceptar.`
             : `${input.invitedBy} invited you to join ${input.team} on Codeqlick Cloud as a ${role}. Sign in (or create your account) with this email to accept.`,
+          ...(input.requireTwoFactor
+            ? [
+                es
+                  ? 'Este equipo exige la verificación en dos pasos: actívala en tu cuenta de Codeqlick antes de usar el equipo.'
+                  : 'This team requires two-step verification: set it up in your Codeqlick account before using the team.',
+              ]
+            : []),
         ],
         button: { label: es ? 'Ver la invitación' : 'View the invitation', url: input.url },
         note: es
