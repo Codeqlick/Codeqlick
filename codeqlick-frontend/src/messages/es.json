@@ -5357,6 +5357,23 @@
       "urlHint": "http o https, puertos estándar. Funciona si responde por debajo de 400 en 15 segundos.",
       "urlInvalid": "Escribe la dirección completa, con http:// o https://.",
       "urlUnsafe": "Esa dirección no se puede comprobar (privada, otro puerto o con contraseña).",
+      "text": "Texto en la página (opcional)",
+      "textHint": "Distingue mayúsculas, hasta 100 caracteres. Déjalo vacío para comprobar solo la respuesta.",
+      "textMode": "La página",
+      "textModes": {
+        "CONTAINS": "debe contener este texto",
+        "NOT_CONTAINS": "no debe contener este texto"
+      },
+      "textInvalid": "Hasta 100 caracteres, en una sola línea.",
+      "textChecks": {
+        "CONTAINS": "Comprueba que la página contiene «{text}»",
+        "NOT_CONTAINS": "Comprueba que la página no contiene «{text}»"
+      },
+      "textTitle": "Texto en la página",
+      "textEditHint": "Distingue mayúsculas, hasta 100 caracteres, en el primer MB de la página. Déjalo vacío para dejar de comprobar texto.",
+      "textSave": "Guardar",
+      "textSaving": "Guardando…",
+      "textSaved": "Guardado.",
       "forHeartbeat": "Para un latido",
       "period": "Cada cuánto (minutos)",
       "periodHint": "Cada cuánto se ejecuta tu tarea: 60 = cada hora, 1440 = cada día.",

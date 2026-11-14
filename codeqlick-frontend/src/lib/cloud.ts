@@ -296,3 +296,20 @@ export function productionLockValues(
     name: lock.by?.name ?? '',
   };
 }
+
+export type MonitorKeywordMode = 'CONTAINS' | 'NOT_CONTAINS';
+
+/**
+ * An HTTP monitor's "text on the page" from its form (architecture 4.13): `null` when left empty
+ * (no text check), the trimmed text when it has 1–100 characters on one line, else `undefined`.
+ */
+export function monitorKeyword(raw: string): string | null | undefined {
+  const text = raw.trim();
+  if (text === '') return null;
+  return text.length <= 100 && !/[\r\n]/.test(text) ? text : undefined;
+}
+
+/** The form's "must contain" / "must not contain" choice; anything else is `CONTAINS`. */
+export function monitorKeywordMode(raw: string): MonitorKeywordMode {
+  return raw === 'NOT_CONTAINS' ? 'NOT_CONTAINS' : 'CONTAINS';
+}

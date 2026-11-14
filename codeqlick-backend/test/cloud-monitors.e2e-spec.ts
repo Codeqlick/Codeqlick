@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // The site a monitor checks: what it answers is up to the test (real fetching refuses local
 // addresses, decision 38). The URL check stays the real one.
-const site = vi.hoisted(() => ({ status: 200 as number | 'error' }));
+const site = vi.hoisted(() => ({ status: 200 as number | 'error', body: '' }));
 vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
   const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
   return {
@@ -20,8 +20,8 @@ vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
             url,
             status: site.status,
             headers: {},
-            body: '',
-            bytes: 0,
+            body: site.body,
+            bytes: Buffer.byteLength(site.body),
             truncated: false,
             ttfbMs: 20,
             redirects: [],
@@ -76,7 +76,7 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      await prisma.cloudTeam.deleteMany({ where: { slug: `m-${tag}` } });
+      await prisma.cloudTeam.deleteMany({ where: { slug: { in: [`m-${tag}`, `k-${tag}`] } } });
       await prisma.user.deleteMany({ where: { email: { contains: `-${tag}@` } } });
     }
     await app?.close();
@@ -214,5 +214,109 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
     const badge = await request(server).get(`/v1/cloud/status/${team}/badge.svg`).expect(200);
     expect(badge.headers['content-type']).toMatch(/image\/svg\+xml/);
     expect(badge.headers['cross-origin-resource-policy']).toBe('cross-origin');
+  });
+
+  it('checks text on the page of HTTP monitors and refuses it on heartbeats', async () => {
+    const server = app.getHttpServer();
+    const engine = app.get(CloudMonitorsService);
+    const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
+    const auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    const team = `k-${tag}`;
+    await request(server)
+      .post('/v1/cloud/teams')
+      .set(auth)
+      .send({ name: 'Shop', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
+      .expect(201);
+    const monitors = `/v1/cloud/teams/${team}/monitors`;
+
+    // Heartbeats with text are refused. (Creating monitors is limited to 10 a minute, shared with
+    // the test above, so invalid texts are tried on PATCH below.)
+    const heartbeat = {
+      kind: 'HEARTBEAT',
+      name: 'Backups',
+      periodMinutes: 60,
+      graceMinutes: 10,
+      alertIds: [ownerId],
+    };
+    await request(server)
+      .post(monitors)
+      .set(auth)
+      .send({ ...heartbeat, keyword: 'done' })
+      .expect(400);
+    const beat = await request(server).post(monitors).set(auth).send(heartbeat).expect(201);
+    expect(beat.body).toMatchObject({ keyword: null, keywordMode: 'CONTAINS' });
+    await request(server)
+      .patch(`/v1/cloud/monitors/${beat.body.id as string}`)
+      .set(auth)
+      .send({ keyword: 'done' })
+      .expect(400);
+
+    const created = await request(server)
+      .post(monitors)
+      .set(auth)
+      .send({
+        kind: 'HTTP',
+        name: 'Shop',
+        url: 'https://example.com/',
+        keyword: ' Add to cart ',
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    expect(created.body).toMatchObject({ keyword: 'Add to cart', keywordMode: 'CONTAINS' });
+    const id = created.body.id as string;
+    for (const keyword of ['', 'a'.repeat(101), 'two\nlines']) {
+      await request(server)
+        .patch(`/v1/cloud/monitors/${id}`)
+        .set(auth)
+        .send({ keyword })
+        .expect(400);
+    }
+    const load = () =>
+      prisma.cloudMonitor.findUniqueOrThrow({
+        where: { id },
+        include: { team: { select: { slug: true, name: true } } },
+      });
+
+    // The text is there: UP. Missing twice in a row: DOWN with the reason.
+    const t0 = new Date();
+    site.status = 200;
+    site.body = '<button>Add to cart</button>';
+    await engine.checkHttp(await load(), t0);
+    expect((await load()).status).toBe('UP');
+    site.body = '<p>Out of stock</p>';
+    await engine.checkHttp(await load(), new Date(t0.getTime() + 5 * MINUTE));
+    expect(await load()).toMatchObject({ status: 'UP', failures: 1 });
+    await engine.checkHttp(await load(), new Date(t0.getTime() + 10 * MINUTE));
+    expect(await load()).toMatchObject({
+      status: 'DOWN',
+      lastError: "The page doesn't contain «Add to cart»",
+    });
+    const checks = await prisma.cloudMonitorCheck.findMany({
+      where: { monitorId: id },
+      orderBy: { checkedAt: 'desc' },
+    });
+    expect(checks[0]).toMatchObject({ ok: false, statusCode: 200 });
+
+    // Switching the mode resets the count; "must not contain" now holds.
+    const patched = await request(server)
+      .patch(`/v1/cloud/monitors/${id}`)
+      .set(auth)
+      .send({ keyword: 'Out of stock', keywordMode: 'NOT_CONTAINS' })
+      .expect(200);
+    expect(patched.body).toMatchObject({ keyword: 'Out of stock', keywordMode: 'NOT_CONTAINS' });
+    expect((await load()).failures).toBe(0);
+    site.body = '<button>Add to cart</button>';
+    await engine.checkHttp(await load(), new Date(t0.getTime() + 15 * MINUTE));
+    expect((await load()).status).toBe('UP');
+
+    // null switches the check off.
+    const cleared = await request(server)
+      .patch(`/v1/cloud/monitors/${id}`)
+      .set(auth)
+      .send({ keyword: null })
+      .expect(200);
+    expect(cleared.body.keyword).toBeNull();
+    const detail = await request(server).get(`/v1/cloud/monitors/${id}`).set(auth).expect(200);
+    expect(detail.body).toMatchObject({ keyword: null, keywordMode: 'NOT_CONTAINS' });
   });
 });

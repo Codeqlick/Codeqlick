@@ -274,12 +274,22 @@ export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
 // ── Monitors and status pages (phase 1b) ─────────────────────────────────────────────────────
 
 const alertIds = z.array(z.uuid()).min(1).max(10);
+/** HTTP monitors' text check: 1–100 characters, no line breaks, compared case-sensitively. */
+const keyword = z
+  .string()
+  .regex(/^[^\r\n]*$/, 'The text cannot have line breaks')
+  .trim()
+  .min(1)
+  .max(100);
+const keywordMode = z.enum(['CONTAINS', 'NOT_CONTAINS']);
 
 export const createMonitorSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('HTTP'),
     name: z.string().trim().min(1).max(60),
     url: z.url().max(2048),
+    keyword: keyword.optional(),
+    keywordMode: keywordMode.default('CONTAINS'),
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -296,6 +306,8 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
       .int()
       .min(1)
       .max(24 * 60),
+    // Only HTTP monitors check text on the page.
+    keyword: z.undefined({ error: 'Heartbeats cannot check text on a page' }).optional(),
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -306,6 +318,9 @@ export const updateMonitorSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   enabled: z.boolean().optional(),
   url: z.url().max(2048).optional(),
+  /** `null` switches the text check off. */
+  keyword: keyword.nullable().optional(),
+  keywordMode: keywordMode.optional(),
   periodMinutes: z
     .number()
     .int()

@@ -17,6 +17,8 @@ import {
   isAddressHost,
   isDeploymentId,
   isProtected,
+  monitorKeyword,
+  monitorKeywordMode,
   productionLockValues,
   protectionInput,
   ruleSettings,
@@ -306,5 +308,29 @@ describe('productionLockValues', () => {
       who: 'former',
       name: '',
     });
+  });
+});
+
+describe('monitorKeyword', () => {
+  it('is null when empty and the trimmed text otherwise', () => {
+    expect(monitorKeyword('')).toBeNull();
+    expect(monitorKeyword('   ')).toBeNull();
+    expect(monitorKeyword('  Add to cart ')).toBe('Add to cart');
+    expect(monitorKeyword('a'.repeat(100))).toHaveLength(100);
+  });
+
+  it('refuses more than 100 characters and line breaks', () => {
+    expect(monitorKeyword('a'.repeat(101))).toBeUndefined();
+    expect(monitorKeyword('two\nlines')).toBeUndefined();
+    expect(monitorKeyword('two\r\nlines')).toBeUndefined();
+  });
+});
+
+describe('monitorKeywordMode', () => {
+  it('defaults to CONTAINS', () => {
+    expect(monitorKeywordMode('NOT_CONTAINS')).toBe('NOT_CONTAINS');
+    expect(monitorKeywordMode('CONTAINS')).toBe('CONTAINS');
+    expect(monitorKeywordMode('')).toBe('CONTAINS');
+    expect(monitorKeywordMode('other')).toBe('CONTAINS');
   });
 });
