@@ -4841,7 +4841,18 @@
       "title": "History",
       "lead": "Every change in the team, newest first (kept 365 days).",
       "empty": "Nothing yet.",
-      "via": "token: {token}"
+      "via": "token: {token}",
+      "filters": "Filter the history",
+      "from": "From",
+      "to": "To",
+      "action": "Action",
+      "actionHint": "Exact, or a prefix like domain.",
+      "apply": "Apply",
+      "clear": "Clear filters",
+      "export": "Export CSV",
+      "exportHint": "With these filters; without dates, the last 30 days.",
+      "invalidFilters": "Those filters aren't valid: the start date must come before the end, at most 365 days apart, and the action looks like domain.added or domain.",
+      "noMatches": "No events match these filters."
     },
     "tokens": {
       "title": "API tokens",
