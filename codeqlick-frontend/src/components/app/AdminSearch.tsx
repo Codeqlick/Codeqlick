@@ -1,5 +1,8 @@
 'use client';
 
+// The WAI-ARIA combobox pattern: a native select or datalist can't hold grouped, two-line options.
+/* oxlint-disable jsx-a11y/prefer-tag-over-role */
+
 import {
   useEffect,
   useId,
@@ -126,7 +129,7 @@ export function AdminSearch({ locale, labels }: { locale: string; labels: AdminS
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    let pressedOnBackdrop = false;
+    const press = { onBackdrop: false };
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
@@ -138,12 +141,12 @@ export function AdminSearch({ locale, labels }: { locale: string; labels: AdminS
       else openModal(dialog, inputRef.current, returnFocusRef);
     };
     const onPointerDown = (event: PointerEvent) => {
-      pressedOnBackdrop = event.target === dialog;
+      press.onBackdrop = event.target === dialog;
     };
     const onClick = (event: MouseEvent) => {
       // Only a click that started there too: selecting text and letting go outside keeps it open.
-      if (event.target === dialog && pressedOnBackdrop) dialog.close();
-      pressedOnBackdrop = false;
+      if (event.target === dialog && press.onBackdrop) dialog.close();
+      press.onBackdrop = false;
     };
 
     window.addEventListener('keydown', onKeyDown);

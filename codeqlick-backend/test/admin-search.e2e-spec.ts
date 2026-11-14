@@ -96,8 +96,10 @@ describe('Admin search (e2e)', () => {
 
   it('is for admins only', async () => {
     const server = app.getHttpServer();
-    await request(server).get('/v1/admin/search').query({ q: tag }).expect(401);
-    await request(server).get('/v1/admin/search').query({ q: tag }).set(clientAuth).expect(403);
+    const anonymous = await request(server).get('/v1/admin/search').query({ q: tag });
+    expect(anonymous.status).toBe(401);
+    const client = await request(server).get('/v1/admin/search').query({ q: tag }).set(clientAuth);
+    expect(client.status).toBe(403);
   });
 
   it('refuses a q shorter than 2 characters once trimmed, or longer than 100', async () => {
@@ -107,10 +109,9 @@ describe('Admin search (e2e)', () => {
         .get('/v1/admin/search')
         .query(q === undefined ? {} : { q })
         .set(adminAuth);
-    await search().expect(400);
-    await search('a').expect(400);
-    await search(' a ').expect(400);
-    await search('x'.repeat(101)).expect(400);
+    for (const q of [undefined, 'a', ' a ', 'x'.repeat(101)]) {
+      expect((await search(q)).status).toBe(400);
+    }
   });
 
   it('groups what it finds by kind, in the fixed order, with labels and sublabels', async () => {
