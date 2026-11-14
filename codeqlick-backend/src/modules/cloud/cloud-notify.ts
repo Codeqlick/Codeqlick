@@ -162,11 +162,7 @@ export function payload(
 // ── Monitor alerts (decision 64) ─────────────────────────────────────────────────────────────
 
 export type MonitorEventName =
-  | 'monitor.down'
-  | 'monitor.up'
-  | 'monitor.cert'
-  | 'monitor.slow'
-  | 'monitor.fast';
+  'monitor.down' | 'monitor.up' | 'monitor.cert' | 'monitor.slow' | 'monitor.fast';
 
 /** What a Slack, Discord or webhook channel is told when a monitor of its project alerts. */
 export interface MonitorNotifyEvent {
