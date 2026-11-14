@@ -4793,6 +4793,7 @@
       "deploymentsEmpty": "Aún no hay despliegues.",
       "preview": "Vista previa",
       "productionTag": "Publicado",
+      "branchAddress": "Dirección de la rama",
       "promote": "Publicar",
       "delete": "Borrar",
       "via": "con {token}",
