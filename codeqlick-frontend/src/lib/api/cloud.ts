@@ -760,6 +760,26 @@ export const setCloudEnv = (
 ) =>
   apiFetch<unknown>(`/cloud/projects/${projectId}/env`, { ...write, method: 'PUT', body: input });
 
+export type CloudEnvImportInput = {
+  /** The `.env` file's text (dotenv syntax, up to 256 KB). */
+  content: string;
+  production: boolean;
+  preview: boolean;
+  /** Replace variables that already exist (otherwise they are skipped). */
+  overwrite: boolean;
+};
+
+/** Keys only, never values. */
+export type CloudEnvImportResult = { created: string[]; updated: string[]; skipped: string[] };
+
+/** All or nothing: a `400` with `errors: [{ line, key?, message }]` saves nothing. */
+export const importCloudEnv = (projectId: string, input: CloudEnvImportInput) =>
+  apiFetch<CloudEnvImportResult>(`/cloud/projects/${projectId}/env/import`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
 export const deleteCloudEnv = (projectId: string, key: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/env`, {
     ...write,

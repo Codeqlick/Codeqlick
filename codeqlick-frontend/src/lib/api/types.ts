@@ -463,7 +463,14 @@ export type AdminTimeline = {
 };
 
 /** One entry of the RFC 9457 `errors` extension used by the API for validation failures. */
-export type ProblemFieldError = { path: string; message: string };
+export type ProblemFieldError = {
+  path: string;
+  message: string;
+  /** A `.env` import's line (`POST /cloud/projects/:id/env/import`). */
+  line?: number;
+  /** The variable's name on that line, when known. */
+  key?: string;
+};
 
 export type ProblemDetails = {
   type?: string;

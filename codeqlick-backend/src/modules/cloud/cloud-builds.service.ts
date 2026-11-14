@@ -21,16 +21,40 @@ import type { CloudCtx } from './cloud-caller.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
+import { parseDotenv, type DotenvError } from './cloud-dotenv.js';
 import type {
+  EnvImportInput,
   EnvVarInput,
   FinishInput,
   GitSettingsInput,
   LinkInstallationInput,
 } from './cloud.schemas.js';
-import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.repository.js';
+import {
+  CloudBuildsRepository,
+  type BuildWithProject,
+  type EnvImportOutcome,
+} from './cloud-builds.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { GithubClient, GithubError } from './github.client.js';
+
+/** The most line errors an import answers with. */
+const IMPORT_ERRORS_MAX = 100;
+
+/**
+ * A refused import: `400` with each line's problem (never a value). The problem details filter
+ * answers any error list with the detail "Validation failed", so that is the message here too.
+ */
+function importRefused(errors: DotenvError[]): BadRequestException {
+  return new BadRequestException({
+    message: 'Validation failed',
+    errors: errors.slice(0, IMPORT_ERRORS_MAX).map((e) => ({ path: 'content', ...e })),
+  });
+}
+
+function overLimit(entry: { line: number; key: string }, limit: number): DotenvError {
+  return { line: entry.line, key: entry.key, message: `A project has at most ${limit} variables` };
+}
 
 export interface BuildView {
   id: string;
@@ -344,6 +368,44 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     );
     await this.teams.record(ctx, project.teamId, 'env.saved', `${project.slug}: ${input.key}`);
     return this.envVars(ctx, projectId);
+  }
+
+  /** Imports a `.env` file, all or nothing (architecture 4.13). Values are never sent back. */
+  async importEnvVars(
+    ctx: CloudCtx,
+    projectId: string,
+    input: EnvImportInput,
+  ): Promise<EnvImportOutcome> {
+    const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    const { entries, errors } = parseDotenv(input.content);
+    if (errors.length > 0) throw importRefused(errors);
+    if (entries.length === 0) {
+      throw importRefused([{ line: 1, message: 'No variables in the file' }]);
+    }
+    const limit = CLOUD_PLANS[membership.team.plan].envVarsPerProject;
+    // A file with more names than the limit can't fit whatever exists: refuse before sealing.
+    const first = entries[limit];
+    if (first) throw importRefused([overLimit(first, limit)]);
+    const vars = entries.map((entry) => ({
+      key: entry.key,
+      valueSealed: this.box.seal(entry.value),
+    }));
+    const outcome = await this.repository.importEnvVars(project.id, vars, {
+      production: input.production,
+      preview: input.preview,
+      overwrite: input.overwrite,
+      limit,
+    });
+    if ('overLimit' in outcome) {
+      const entry = entries.find((e) => e.key === outcome.overLimit)!;
+      throw importRefused([overLimit(entry, limit)]);
+    }
+    await this.teams.record(ctx, project.teamId, 'env.imported', project.slug, {
+      keys: { created: outcome.created, updated: outcome.updated, skipped: outcome.skipped },
+      production: input.production,
+      preview: input.preview,
+    });
+    return outcome;
   }
 
   async deleteEnvVar(ctx: CloudCtx, projectId: string, key: string): Promise<void> {
