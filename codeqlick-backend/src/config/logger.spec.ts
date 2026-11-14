@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { serializeRequest } from './logger.js';
+import { redactUrlTokens, serializeRequest } from './logger.js';
 
 const token = 'cqd_AbCdEfGh1234567890abcdefghijklmnopqrstuvw';
 
@@ -44,8 +44,6 @@ describe('serializeRequest', () => {
     expect(logged.id).toBe('req-1');
   });
 });
-import { describe, expect, it } from 'vitest';
-import { redactUrlTokens } from './logger.js';
 
 describe('redactUrlTokens', () => {
   it('hides the value of every token query parameter', () => {

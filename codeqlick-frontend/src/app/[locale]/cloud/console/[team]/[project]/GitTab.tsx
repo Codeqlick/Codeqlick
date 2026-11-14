@@ -13,10 +13,9 @@ import {
   listCloudHooks,
   type CloudRebuild,
 } from '@/lib/api/cloud';
-import { formatWhen } from '@/lib/cloud';
 import {
-  describeRebuild,
   formatWhen,
+  describeRebuild,
   REBUILD_FREQUENCIES,
   REBUILD_MAX_FAILURES,
   weekdayName,
