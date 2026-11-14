@@ -5725,7 +5725,10 @@
       "log": "Log",
       "waiting": "Waiting for a build server…",
       "noLog": "No output.",
-      "byHook": "Deploy hook · {name}"
+      "byHook": "Deploy hook · {name}",
+      "keptByLock": "Kept as preview",
+      "keptByLockHelp": "Production was locked after a rollback, so this build deployed as a preview. Promote its deployment to publish it.",
+      "scheduled": "Scheduled"
     },
     "hooks": {
       "title": "Deploy hooks",
@@ -5751,10 +5754,7 @@
       "create": "Add hook",
       "creating": "Adding…",
       "created": "Hook added. Copy its URL now: it won't be shown again. Anyone with it can trigger a build, so paste it only in the service's webhook settings.",
-      "createdNoUrl": "Hook added.",
-      "keptByLock": "Kept as preview",
-      "keptByLockHelp": "Production was locked after a rollback, so this build deployed as a preview. Promote its deployment to publish it.",
-      "scheduled": "Scheduled"
+      "createdNoUrl": "Hook added."
     },
     "notify": {
       "lead": "Tell people or a channel when a build fails or a site is published, so nobody has to watch the console.",

@@ -488,7 +488,7 @@ export class CloudNotificationsService {
           certExpires: extra.certExpires,
           consoleUrl: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/monitors/${monitor.id}`,
         });
-        const problem = await this.post(
+        const { error: problem } = await this.post(
           channel,
           event.event,
           monitorPayload(channel.kind, event, locale),
@@ -577,12 +577,13 @@ export class CloudNotificationsService {
     return this.post(channel, event.event, payload(channel.kind, event, locale));
   }
 
-  /** Posts `body` to a Slack, Discord or webhook channel; the error, or null when delivered. */
+  /** Posts `body` to a Slack, Discord or webhook channel: the error (null when delivered). */
   private async post(
     channel: CloudNotifyChannel,
     eventName: string,
     body: string,
-  ): Promise<string | null> {
+  ): Promise<Delivery> {
+    const failed = (error: string): Delivery => ({ error, rateLimited: false });
     if (!channel.urlSealed) return failed('No address');
     let url: string;
     try {

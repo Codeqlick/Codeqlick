@@ -119,6 +119,8 @@ export interface Project {
   domains: Array<{ name: string; state: string }>;
   suspended: { at: string; reason: string } | null;
   protection: ProtectionMode;
+  /** Set after a rollback: builds from Git deploy as previews until it's lifted. */
+  productionLock: { at: string; by: { id: string; name: string } | null } | null;
 }
 
 /** Which addresses ask visitors for a password: none, the deployments', or every one. */
@@ -136,8 +138,6 @@ export interface ProtectionInput {
   mode: ProtectionMode;
   password?: string;
   days?: ProtectionDays;
-  /** Set after a rollback: builds from Git deploy as previews until it's lifted. */
-  productionLock: { at: string; by: { id: string; name: string } | null } | null;
 }
 
 export interface Domain {

@@ -5725,7 +5725,10 @@
       "log": "Registro",
       "waiting": "Esperando un servidor de compilación…",
       "noLog": "Sin salida.",
-      "byHook": "Deploy hook · {name}"
+      "byHook": "Deploy hook · {name}",
+      "keptByLock": "Guardada como vista previa",
+      "keptByLockHelp": "La producción estaba bloqueada tras volver atrás, así que esta compilación se desplegó como vista previa. Publica su despliegue para ponerlo en producción.",
+      "scheduled": "Programada"
     },
     "hooks": {
       "title": "Deploy hooks",
@@ -5751,10 +5754,7 @@
       "create": "Añadir hook",
       "creating": "Añadiendo…",
       "created": "Hook añadido. Copia ahora su URL: no se volverá a mostrar. Quien la tenga puede lanzar una compilación, así que pégala solo en los ajustes de webhook del servicio.",
-      "createdNoUrl": "Hook añadido.",
-      "keptByLock": "Guardada como vista previa",
-      "keptByLockHelp": "La producción estaba bloqueada tras volver atrás, así que esta compilación se desplegó como vista previa. Publica su despliegue para ponerlo en producción.",
-      "scheduled": "Programada"
+      "createdNoUrl": "Hook añadido."
     },
     "notify": {
       "lead": "Avisa a personas o a un canal cuando una compilación falla o una web se publica, para no tener que vigilar la consola.",

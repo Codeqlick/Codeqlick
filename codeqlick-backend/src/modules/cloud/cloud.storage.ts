@@ -105,12 +105,6 @@ export function bundlePath(raw: string): string {
   return path;
 }
 
-/** A file or folder that isn't there (any more). */
-function isMissing(error: unknown): boolean {
-  const code = (error as NodeJS.ErrnoException | undefined)?.code;
-  return code === 'ENOENT' || code === 'ENOTDIR';
-}
-
 /** Host labels: `<slug>` for production and `<slug>--<shortId>` for each deployment. */
 export const productionLabel = (slug: string) => slug;
 export const deploymentLabel = (slug: string, shortId: string) => `${slug}--${shortId}`;

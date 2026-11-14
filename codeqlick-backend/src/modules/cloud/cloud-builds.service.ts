@@ -386,10 +386,10 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         ...(input.buildPullRequests !== undefined
           ? { buildPullRequests: input.buildPullRequests }
           : {}),
+        ...(input.previewChecks !== undefined ? { previewChecks: input.previewChecks } : {}),
+        ...(input.onlyRootChanges !== undefined ? { onlyRootChanges: input.onlyRootChanges } : {}),
       },
       otherRepo,
-      ...(input.previewChecks !== undefined ? { previewChecks: input.previewChecks } : {}),
-      ...(input.onlyRootChanges !== undefined ? { onlyRootChanges: input.onlyRootChanges } : {}),
     );
     await this.teams.record(
       ctx,
@@ -406,9 +406,8 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     // Deploy hooks go with the connection (decision 51).
     await this.repository.setGit(
       project.id,
-      { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+      { gitInstallationId: null, gitRepoId: null, gitRepo: null, ...REBUILD_OFF },
       true,
-      ...REBUILD_OFF,
     );
     await this.teams.record(ctx, project.teamId, 'git.disconnected', project.slug);
   }

@@ -3,6 +3,7 @@ import type { AppConfigService } from '../../config/app-config.service.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { CloudCtx, CloudRoleName } from './cloud-caller.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
+import type { CloudUsageService } from './cloud-usage.service.js';
 import type { CloudRepository } from './cloud.repository.js';
 import type { CloudStorage } from './cloud.storage.js';
 
@@ -39,7 +40,10 @@ function ctx(tokenTeamId?: string): CloudCtx {
       name: 'Ada',
       role: 'CLIENT',
       ...(tokenTeamId
-        ? { via: 'token' as const, token: { id: 't1', name: 'CI', teamId: tokenTeamId } }
+        ? {
+            via: 'token' as const,
+            token: { id: 't1', name: 'CI', teamId: tokenTeamId, readOnly: false },
+          }
         : {}),
     },
     ip: '127.0.0.1',
@@ -62,6 +66,7 @@ function service(row: ReturnType<typeof membership> | null) {
   const svc = new CloudTeamsService(
     repository as unknown as CloudRepository,
     {} as CloudStorage,
+    {} as CloudUsageService,
     {} as MailService,
     {} as AppConfigService,
   );

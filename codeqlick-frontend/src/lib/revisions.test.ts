@@ -20,6 +20,7 @@ const post: AdminPost = {
     { locale: 'en', title: 'Shipping', excerpt: 'Why', content: '## Small' },
     { locale: 'es', title: 'Publicar', excerpt: 'Por qué', content: '## Pequeño' },
   ],
+  oldSlugs: [],
 };
 
 const postSnapshot: PostSnapshot = {
@@ -91,6 +92,7 @@ const item: AdminPortfolioItem = {
   services: ['web', 'design'],
   testimonialAuthor: null,
   translations: [{ locale: 'en', title: 'Dashboard', summary: 'Fast', content: 'Text' }],
+  oldSlugs: [],
 };
 
 const itemSnapshot: PortfolioSnapshot = {
