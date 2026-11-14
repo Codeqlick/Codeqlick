@@ -32,6 +32,7 @@ import {
   createCloudToken,
   decideCloudDevice,
   deleteCloudDeployment,
+  keepCloudDeployment,
   deleteCloudForm,
   deleteCloudMonitor,
   deleteCloudProject,
@@ -39,6 +40,7 @@ import {
   deleteCloudTeam,
   inviteCloudMember,
   promoteCloudDeployment,
+  unkeepCloudDeployment,
   removeCloudDomain,
   removeCloudMember,
   replaceCloudFormKey,
@@ -63,7 +65,7 @@ import {
   startCloudBuild,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
+import { formBoolean, formString, formValues, initialFormState, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -324,6 +326,32 @@ export async function deleteProjectAction(
 export async function promoteAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await promoteCloudDeployment(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function keepDeploymentAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const locale = localeOrDefault(formData.get('locale'));
+  try {
+    await keepCloudDeployment(formString(formData, 'project'), formString(formData, 'id'));
+  } catch (error) {
+    if (isApiError(error) && error.status === 409) {
+      const t = await getTranslations({ locale, namespace: 'Cloud' });
+      return { status: 'error', message: t('project.keptFull') };
+    }
+    return failure(locale, error);
+  }
+  refresh(locale, formString(formData, 'path'));
+  return initialFormState;
+}
+
+export async function unkeepDeploymentAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await unkeepCloudDeployment(formString(formData, 'project'), formString(formData, 'id')).catch(
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));
