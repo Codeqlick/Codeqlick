@@ -32,7 +32,7 @@ export type ApiFetchOptions = {
   /**
    * Sends the visitor's IP as `X-Forwarded-For` so the API rate-limits per visitor instead of
    * per web server (it trusts one proxy hop), and their `User-Agent`, which the API records on new
-   * sessions. Reads request headers: Server Actions only.
+   * sessions. Reads request headers: Server Actions and Route Handlers.
    */
   forwardClientIp?: boolean;
   /** Fetch cache mode. Defaults to `no-store` for authenticated calls. */

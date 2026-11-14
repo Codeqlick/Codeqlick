@@ -5167,6 +5167,7 @@
       "turnOff": "Apagar la analítica",
       "privacy": "Sin cookies, sin almacenamiento local y sin guardar direcciones IP: cada visitante cuenta una vez al día y no se le puede seguir de un día a otro. Los bots no cuentan. Si tu web tiene Content-Security-Policy, permite https://api.codeqlick.com en script-src y connect-src.",
       "period": "Periodo",
+      "csv": "Exportar CSV",
       "periods": {
         "24h": "Últimas 24 horas",
         "7d": "7 días",

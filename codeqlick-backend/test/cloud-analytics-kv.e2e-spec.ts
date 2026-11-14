@@ -12,6 +12,7 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { madridDay } from '../src/modules/cloud/cloud-analytics.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
@@ -147,6 +148,75 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
     await request(server).get(`${base}?period=7d`).set(auth).expect(200);
     await request(server).get(`${base}?period=2y`).set(auth).expect(400);
     await request(server).get(base).expect(401);
+  });
+
+  it('exports the analytics as CSV for the team, also while the tracker is off', async () => {
+    const server = app.getHttpServer();
+    // Relies on the events the first test created (`/` twice, `/pricing`, `signup`).
+    await request(server)
+      .patch(`/v1/cloud/projects/${projectId}/analytics`)
+      .set(auth)
+      .send({ enabled: false })
+      .expect(200);
+    const url = `/v1/cloud/projects/${projectId}/analytics.csv`;
+    await prisma.cloudAnalyticsEvent.create({
+      data: {
+        projectId,
+        teamId: (await prisma.cloudProject.findUniqueOrThrow({ where: { id: projectId } })).teamId,
+        name: 'pageview',
+        path: '=cmd,"x"',
+        browser: 'Chrome',
+        os: 'macOS',
+        device: 'desktop',
+        visitor: 'f'.repeat(32),
+      },
+    });
+    const today = madridDay(new Date());
+
+    const res = await request(server).get(`${url}?period=7d`).set(auth).expect(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv; charset=utf-8/);
+    expect(res.headers['content-disposition']).toBe(
+      `attachment; filename="${slug}-analytics-7d.csv"`,
+    );
+    expect(res.headers['x-truncated']).toBeUndefined();
+    expect(res.text.startsWith('\uFEFFkind,date,name,visitors,count\r\n')).toBe(true);
+    const lines = res.text.slice(1).trimEnd().split('\r\n');
+    expect(lines).toContain(`event,${today},signup,1,1`);
+    expect(lines).toContain(`page,${today},/,1,2`);
+    expect(lines).toContain(`page,${today},/pricing,1,1`);
+    expect(lines).toContain(`page,${today},"'=cmd,""x""",1,1`);
+
+    const hours = await request(server).get(`${url}?period=24h`).set(auth).expect(200);
+    expect(hours.headers['content-disposition']).toContain(`${slug}-analytics-24h.csv`);
+    expect(hours.text).toMatch(/\r\nevent,\d{4}-\d{2}-\d{2} \d{2}:00,signup,1,1\r\n/);
+
+    // The default period is 7 days; a bad one and a caller outside the team are refused.
+    const def = await request(server).get(url).set(auth).expect(200);
+    expect(def.headers['content-disposition']).toContain('-analytics-7d.csv');
+    await request(server).get(`${url}?period=2y`).set(auth).expect(400);
+    await request(server).get(url).expect(401);
+
+    const strangerEmail = `e2e-ca-stranger-${tag}@codeqlick.test`;
+    await prisma.user.create({
+      data: {
+        email: strangerEmail,
+        name: 'Eve',
+        role: Role.CLIENT,
+        passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+        registeredAt: new Date(),
+      },
+    });
+    const login = await request(server)
+      .post('/v1/auth/login')
+      .send({ email: strangerEmail, password })
+      .expect(200);
+    const stranger = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    const report = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/analytics`)
+      .set(stranger);
+    const csv = await request(server).get(url).set(stranger);
+    expect([403, 404]).toContain(report.status);
+    expect(csv.status).toBe(report.status);
   });
 
   it('keeps JSON values with limits, increments atomically and reads public keys', async () => {

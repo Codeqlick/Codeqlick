@@ -3,6 +3,7 @@ import { StripeModule } from '../managed-sites/stripe.module.js';
 import { API_TOKEN_RESOLVER } from '../../common/api-tokens.js';
 import {
   CloudAnalyticsController,
+  CloudAnalyticsExportController,
   CloudAnalyticsPublicController,
 } from './cloud-analytics.controller.js';
 import { CloudAnalyticsRepository } from './cloud-analytics.repository.js';
@@ -70,6 +71,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudBuildsController,
     CloudNotificationsController,
     CloudAnalyticsController,
+    CloudAnalyticsExportController,
     CloudKvController,
     CloudBillingController,
     CloudDatabasesController,

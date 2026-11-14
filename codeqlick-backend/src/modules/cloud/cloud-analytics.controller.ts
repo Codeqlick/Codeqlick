@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Headers,
   HttpCode,
   HttpStatus,
@@ -83,5 +84,30 @@ export class CloudAnalyticsController {
     @Body({ schema: analyticsSwitchSchema }) body: AnalyticsSwitchInput,
   ): Promise<{ enabled: boolean; snippet: string }> {
     return this.analytics.setEnabled(ctx, params.id, body.enabled);
+  }
+}
+
+/** The analytics of a project as a CSV file, for its team (session or API token). */
+@ApiTags('cloud')
+@ApiBearerAuth()
+@Roles('CLIENT', 'ADMIN')
+@CloudApi()
+@Controller('cloud/projects/:id')
+export class CloudAnalyticsExportController {
+  constructor(private readonly analytics: CloudAnalyticsService) {}
+
+  @Get('analytics.csv')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async csv(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Query({ schema: analyticsQuerySchema }) query: AnalyticsQuery,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { name, body, truncated } = await this.analytics.csv(ctx, params.id, query.period);
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    if (truncated) res.setHeader('X-Truncated', 'true');
+    res.send(body);
   }
 }

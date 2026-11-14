@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { csvField } from '../leads/leads-csv.js';
 
 /**
  * Cloud's web analytics (architecture 4.13 "Web analytics", decision 44): what an event says,
@@ -213,4 +214,22 @@ w.addEventListener("popstate",view);
 w.codeqlick={track:function(name){if(typeof name==="string")send(name)}};
 if(d.visibilityState==="prerender")d.addEventListener("visibilitychange",function f(){if(d.visibilityState!=="prerender"){d.removeEventListener("visibilitychange",f);view()}});else view()})();
 `;
+}
+
+/** Most rows the analytics CSV holds. */
+export const EXPORT_ROWS = 100_000;
+
+/** The analytics CSV: UTF-8 with BOM, a row per day (or hour) and page or custom event. */
+export function analyticsToCsv(
+  rows: Array<{ date: string; kind: string; name: string; visitors: number; count: number }>,
+): string {
+  const lines = [
+    'kind,date,name,visitors,count',
+    ...rows.map((row) =>
+      [row.kind, row.date, row.name, String(row.visitors), String(row.count)]
+        .map(csvField)
+        .join(','),
+    ),
+  ];
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
 }

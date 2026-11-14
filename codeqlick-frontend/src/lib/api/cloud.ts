@@ -817,6 +817,15 @@ export const getCloudAnalytics = (projectId: string, period: CloudAnalyticsPerio
     query: { period },
   });
 
+export const exportCloudAnalytics = (projectId: string, period: CloudAnalyticsPeriod) =>
+  apiFetch<string>(`/cloud/projects/${projectId}/analytics.csv`, {
+    ...auth,
+    query: { period },
+    responseType: 'text',
+    forwardClientIp: true,
+    signal: AbortSignal.timeout(30_000),
+  });
+
 export const setCloudAnalytics = (projectId: string, enabled: boolean) =>
   apiFetch<{ enabled: boolean; snippet: string }>(`/cloud/projects/${projectId}/analytics`, {
     ...write,
