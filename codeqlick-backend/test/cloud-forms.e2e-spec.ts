@@ -709,7 +709,7 @@ describe('Codeqlick Cloud forms (e2e)', () => {
     it('switches off: nothing is flagged, and on again from the console', async () => {
       const open = await newForm('Open', { spamFilter: false });
       expect(open).toMatchObject({ spamFilter: false, spam: 0 });
-      const bodies = [
+      const bodies: Array<Record<string, string>> = [
         { message: 'x [url=http://a.example]y[/url] mk-off' },
         { message: 'http://a http://b http://c http://d mk-off' },
         { email: 'not-an-email', message: 'mk-off' },
