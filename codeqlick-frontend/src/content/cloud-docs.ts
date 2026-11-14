@@ -59,7 +59,7 @@ Cada \`deploy\` crea un despliegue que no cambia nunca, con su propia dirección
 
 Para volver atrás, \`codeqlick rollback\` o el botón «Publicar» de cualquier despliegue en la consola. El cambio es instantáneo y atómico: nadie ve media web. Publicar un despliegue anterior al actual **bloquea producción**: las compilaciones desde Git se despliegan como vistas previas hasta que publicas otro despliegue (\`deploy --prod\` o «Publicar» en uno más reciente) o la desbloqueas con \`codeqlick unlock\` o desde la consola.
 
-Guardamos los 20 últimos despliegues de cada proyecto, además del publicado. **No hacemos copia de tus archivos**: guarda tus fuentes.
+Guardamos los 20 últimos despliegues de cada proyecto, además del publicado y de hasta 5 que conserves a mano (botón "Conservar" en la consola): esos no se borran solos. Los demás se borran cada hora. **No hacemos copia de tus archivos**: guarda tus fuentes.
 
 Qué se sube: todo lo de la carpeta salvo los archivos y carpetas que empiezan por punto (excepto \`.well-known\`). Para excluir más, añade un \`.codeqlickignore\` con un patrón por línea (\`*.map\`, \`drafts/\`). Debe haber un \`index.html\` en la raíz.
 
@@ -264,7 +264,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET …/deployments/<id>/archive\` (el despliegue en \`.tar.gz\`), \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
+Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`POST|DELETE …/deployments/<id>/keep\`, \`GET …/deployments/<id>/archive\` (el despliegue en \`.tar.gz\`), \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
 
 ## Denunciar un abuso
 
@@ -325,7 +325,7 @@ Each \`deploy\` creates a deployment that never changes, with its own address: \
 
 To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in the console. The switch is instant and atomic: nobody sees half a site. Publishing a deployment older than the current one **locks production**: builds from Git deploy as previews until you publish another deployment (\`deploy --prod\` or "Publish" on a newer one) or unlock it with \`codeqlick unlock\` or from the console.
 
-We keep the last 20 deployments of each project, plus the published one. **We don't back up your files**: keep your sources.
+We keep the last 20 deployments of each project, plus the published one and up to 5 you keep by hand (the "Keep" button in the console): those are never deleted automatically. Older ones are deleted every hour. **We don't back up your files**: keep your sources.
 
 What is uploaded: everything in the folder except files and folders starting with a dot (but \`.well-known\`). To leave out more, add a \`.codeqlickignore\` with one pattern per line (\`*.map\`, \`drafts/\`). There must be an \`index.html\` at the root.
 
@@ -530,7 +530,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET …/deployments/<id>/archive\` (the deployment as \`.tar.gz\`), \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
+Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`POST|DELETE …/deployments/<id>/keep\`, \`GET …/deployments/<id>/archive\` (the deployment as \`.tar.gz\`), \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
 
 ## Reporting abuse
 

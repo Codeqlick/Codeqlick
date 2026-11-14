@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
+import { ConfirmForm } from '@/components/cloud/ConfirmForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -35,10 +36,12 @@ import {
   checkDomainAction,
   deleteDeploymentAction,
   deleteProjectAction,
+  keepDeploymentAction,
   promoteAction,
   removeDomainAction,
   renameProjectAction,
   unlockProductionAction,
+  unkeepDeploymentAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
@@ -398,6 +401,7 @@ async function Deployments({
       <h2 id="deployments-title" className={styles.sectionTitle}>
         {t('project.tabs.deployments')}
       </h2>
+      <p className={styles.muted}>{t('project.retention')}</p>
       {list === null ? (
         <p className={styles.muted}>{t('common.loadError')}</p>
       ) : list.items.length === 0 ? (
@@ -418,6 +422,7 @@ async function Deployments({
                       <Badge>{t('project.preview')}</Badge>
                     )}
                     {deployment.rules ? <Badge>{t('project.rules.badge')}</Badge> : null}
+                    {deployment.keptAt ? <Badge tone="brand">{t('project.kept')}</Badge> : null}
                     {deployment.message ? <span>{deployment.message}</span> : null}
                   </p>
                   <span className={styles.address}>
@@ -452,33 +457,58 @@ async function Deployments({
                     {t('project.download')}
                     <span className="visually-hidden"> — {deployment.shortId}</span>
                   </a>
-                  <div className={styles.actions}>
                   <Button href={`${base}/deployments/${deployment.id}`} size="sm" variant="ghost">
                     {t('deployment.tabs.files')}
                     <span className="visually-hidden"> — {deployment.shortId}</span>
                   </Button>
                   {deployment.isProduction ? null : (
-                    <>
-                      <form action={promoteAction}>
-                        <input type="hidden" name="locale" value={locale} />
-                        <input type="hidden" name="project" value={projectId} />
-                        <input type="hidden" name="id" value={deployment.id} />
-                        <input type="hidden" name="path" value={path} />
-                        <SubmitButton size="sm" variant="outline">
-                          {t('project.promote')}
-                        </SubmitButton>
-                      </form>
-                      <form action={deleteDeploymentAction}>
-                        <input type="hidden" name="locale" value={locale} />
-                        <input type="hidden" name="project" value={projectId} />
-                        <input type="hidden" name="id" value={deployment.id} />
-                        <input type="hidden" name="path" value={path} />
-                        <SubmitButton size="sm" variant="ghost">
-                          {t('project.delete')}
-                          <span className="visually-hidden"> — {deployment.shortId}</span>
-                        </SubmitButton>
-                      </form>
-                    </>
+                    <form action={promoteAction}>
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="project" value={projectId} />
+                      <input type="hidden" name="id" value={deployment.id} />
+                      <input type="hidden" name="path" value={path} />
+                      <SubmitButton size="sm" variant="outline">
+                        {t('project.promote')}
+                      </SubmitButton>
+                    </form>
+                  )}
+                  {deployment.keptAt ? (
+                    <ConfirmForm
+                      action={unkeepDeploymentAction}
+                      message={t('project.unkeepConfirm')}
+                    >
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="project" value={projectId} />
+                      <input type="hidden" name="id" value={deployment.id} />
+                      <input type="hidden" name="path" value={path} />
+                      <SubmitButton size="sm" variant="ghost">
+                        {t('project.unkeep')}
+                        <span className="visually-hidden"> — {deployment.shortId}</span>
+                      </SubmitButton>
+                    </ConfirmForm>
+                  ) : deployment.isProduction ? null : (
+                    <ActionForm action={keepDeploymentAction}>
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="project" value={projectId} />
+                      <input type="hidden" name="id" value={deployment.id} />
+                      <input type="hidden" name="path" value={path} />
+                      <SubmitButton size="sm" variant="ghost">
+                        {t('project.keep')}
+                        <span className="visually-hidden"> — {deployment.shortId}</span>
+                      </SubmitButton>
+                    </ActionForm>
+                  )}
+                  {deployment.isProduction ? null : (
+                    <form action={deleteDeploymentAction}>
+                      <input type="hidden" name="locale" value={locale} />
+                      <input type="hidden" name="project" value={projectId} />
+                      <input type="hidden" name="id" value={deployment.id} />
+                      <input type="hidden" name="path" value={path} />
+                      <SubmitButton size="sm" variant="ghost">
+                        {t('project.delete')}
+                        <span className="visually-hidden"> — {deployment.shortId}</span>
+                      </SubmitButton>
+                    </form>
                   )}
                 </div>
               </li>
