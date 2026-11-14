@@ -11,8 +11,9 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { join } from 'node:path';
+import { PassThrough, type Readable } from 'node:stream';
 import { HttpException, HttpStatus, Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { list, x } from 'tar';
+import { create, list, x } from 'tar';
 import { AppConfigService } from '../../config/app-config.service.js';
 
 /** What unpacking a bundle may take (from the team's plan). */
@@ -195,6 +196,40 @@ export class CloudStorage {
     };
     await walk(root);
     return { sizeBytes, fileCount };
+  }
+
+  /**
+   * A deployment's folder packed as a `tar.gz` stream, built while it is read (decision 60): its
+   * entries by name, so paths are the uploaded ones without `./`, dotfiles included, links never
+   * followed. Null when the folder is gone. If a file disappears while packing (the hourly
+   * cleanup), the stream fails with that error instead of ending as an incomplete archive.
+   */
+  async archive(id: string): Promise<Readable | null> {
+    const folder = this.dir('deployments', id);
+    let entries: string[];
+    try {
+      entries = (await readdir(folder)).sort();
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code === 'ENOENT' || code === 'ENOTDIR') return null;
+      throw error;
+    }
+    if (entries.length === 0) return null;
+    const pack = create(
+      { gzip: true, portable: true, strict: true, follow: false, cwd: folder },
+      entries,
+    );
+    const out = new PassThrough();
+    pack.on('error', (error) => out.destroy(error as Error));
+    out.once('close', () => {
+      // The reader went away: let the packer run dry so it closes the files it has open.
+      if (!out.writableFinished) {
+        pack.unpipe(out);
+        pack.resume();
+      }
+    });
+    pack.pipe(out);
+    return out;
   }
 
   /** Points `hosts/<label>` at a deployment, atomically (a new link renamed over the old). */

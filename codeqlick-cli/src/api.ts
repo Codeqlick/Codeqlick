@@ -165,6 +165,17 @@ export interface DeviceStart {
 
 const USER_AGENT = `codeqlick-cli/${VERSION}`;
 
+/** The API's problem details (architecture 4.4) as an ApiError. */
+function problemError(status: number, data: unknown): ApiError {
+  const problem = (data ?? {}) as {
+    detail?: string;
+    title?: string;
+    errors?: Array<{ path: string; message: string }>;
+  };
+  const fields = problem.errors?.map((e) => `${e.path}: ${e.message}`).join('; ');
+  return new ApiError(status, problem.detail ?? fields ?? problem.title ?? `HTTP ${status}`);
+}
+
 /** The Cloud API (`/v1/cloud`), with the token when there is one. */
 export type AnalyticsPeriod = '24h' | '7d' | '30d' | '90d' | '365d';
 export interface AnalyticsRow {
@@ -211,11 +222,7 @@ export class Api {
   }
 
   private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-      'User-Agent': USER_AGENT,
-    };
-    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    const headers = this.headers('application/json');
     let payload: FormData | string | undefined;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) {
@@ -236,19 +243,36 @@ export class Api {
     } catch {
       // Not JSON.
     }
-    if (!response.ok) {
-      const problem = (data ?? {}) as {
-        detail?: string;
-        title?: string;
-        errors?: Array<{ path: string; message: string }>;
-      };
-      const fields = problem.errors?.map((e) => `${e.path}: ${e.message}`).join('; ');
-      throw new ApiError(
-        response.status,
-        problem.detail ?? fields ?? problem.title ?? `HTTP ${response.status}`,
-      );
-    }
+    if (!response.ok) throw problemError(response.status, data);
     return data as T;
+  }
+
+  private headers(accept: string): Record<string, string> {
+    const headers: Record<string, string> = { Accept: accept, 'User-Agent': USER_AGENT };
+    if (this.token) headers.Authorization = `Bearer ${this.token}`;
+    return headers;
+  }
+
+  /** A deployment's files as a `tar.gz` stream (built by the API while it is read). */
+  async archive(project: string, deployment: string): Promise<ReadableStream<Uint8Array>> {
+    const url = `${this.base}/cloud/projects/${project}/deployments/${deployment}/archive`;
+    let response: Response;
+    try {
+      response = await fetch(url, { headers: this.headers('application/gzip, application/json') });
+    } catch (error) {
+      throw new ApiError(0, `Can't reach ${this.base} (${(error as Error).message})`);
+    }
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+      let data: unknown = undefined;
+      try {
+        data = text ? JSON.parse(text) : undefined;
+      } catch {
+        // Not JSON.
+      }
+      throw problemError(response.status, data);
+    }
+    return response.body;
   }
 
   me = () => this.request<Me>('GET', '/cloud/me');
