@@ -11,6 +11,7 @@ import {
   publishVerb,
   scheduledDetails,
 } from '../activity/activity.service.js';
+import { contentUpdatedAtOnUpdate, publicContentUpdatedAt } from '../../common/content-updated.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import { IndexNowService, slugsToAnnounce } from '../indexnow/indexnow.service.js';
 import {
@@ -48,6 +49,8 @@ export interface PortfolioSummary {
   technologies: string[];
   services: string[];
   testimonial: Testimonial | null;
+  /** When the content last really changed; null unless ≥ 24 h after publication (4.2). */
+  contentUpdatedAt: string | null;
 }
 
 export interface PortfolioFilters {
@@ -192,6 +195,7 @@ export class PortfolioService {
       technologies: item.technologies,
       services: item.services,
       testimonial: toTestimonial(item, translation),
+      contentUpdatedAt: publicContentUpdatedAt(item),
       content: translation.content,
       projectUrl: item.projectUrl,
       locales: availableLocales(item.translations),
@@ -263,6 +267,12 @@ export class PortfolioService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: data.status ?? existing.status,
+      coverImageUrl: data.coverImageUrl !== undefined ? data.coverImageUrl : existing.coverImageUrl,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
     const saved = await this.repository.update(id, data, actor.id);
     const updated = toAdminItem(saved);
     await this.activity.record(actor, {
@@ -311,6 +321,12 @@ export class PortfolioService {
       testimonialAuthor: snapshot.testimonialAuthor,
       translations: snapshot.translations.map(toTranslationData),
     };
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: existing.status,
+      coverImageUrl: data.coverImageUrl ?? null,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
     const saved = await this.repository.update(id, data, actor.id);
     const updated = toAdminItem(saved);
     await this.activity.record(actor, {
@@ -366,6 +382,7 @@ export class PortfolioService {
       technologies: item.technologies,
       services: item.services,
       testimonial: toTestimonial(item, translation),
+      contentUpdatedAt: publicContentUpdatedAt(item),
     };
   }
 }

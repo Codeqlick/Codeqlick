@@ -38,9 +38,12 @@ async function contentPaths(): Promise<{ path: string; lastModified?: string }[]
     return [
       ...posts.items.map((post) => ({
         path: `/blog/${post.slug}`,
-        lastModified: post.publishedAt,
+        lastModified: post.contentUpdatedAt ?? post.publishedAt,
       })),
-      ...portfolio.items.map((item) => ({ path: `/work/${item.slug}` })),
+      ...portfolio.items.map((item) => ({
+        path: `/work/${item.slug}`,
+        lastModified: item.contentUpdatedAt ?? undefined,
+      })),
     ];
   } catch {
     return [];

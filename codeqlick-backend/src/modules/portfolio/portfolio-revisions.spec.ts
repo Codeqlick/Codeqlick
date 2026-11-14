@@ -176,6 +176,8 @@ describe('PortfolioService revisions', () => {
             testimonialRole: null,
           },
         ],
+        // The case study is live and its content changes: readers see "Updated on" (4.2).
+        contentUpdatedAt: expect.any(Date),
       },
       'a1',
     );

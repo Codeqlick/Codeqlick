@@ -304,6 +304,7 @@
     "back": "All articles",
     "publishedOn": "Published on {date}",
     "readingTime": "{minutes} min read",
+    "updatedOn": "Updated on {date}",
     "tagsLabel": "Tags",
     "topics": "Topics",
     "allTopics": "All topics",

@@ -19,6 +19,8 @@ export type PostArticleContent = {
   publishedAt: string | null;
   /** Left out by the admin preview, which has no API summary. */
   readingMinutes?: number;
+  /** Shown after the publication date when set; the admin preview has none. */
+  contentUpdatedAt?: string | null;
   /** Linked to the blog filtered by each; the admin preview has none. */
   tags?: PublicTag[];
 };
@@ -48,7 +50,15 @@ export async function PostArticle({
               {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
             </time>
           ) : null}
-          {post.publishedAt && post.readingMinutes ? ' · ' : null}
+          {post.contentUpdatedAt ? (
+            <>
+              <span aria-hidden="true"> · </span>
+              <time dateTime={post.contentUpdatedAt}>
+                {t('updatedOn', { date: formatDate(post.contentUpdatedAt, locale) })}
+              </time>
+            </>
+          ) : null}
+          {(post.publishedAt || post.contentUpdatedAt) && post.readingMinutes ? ' · ' : null}
           {post.readingMinutes ? t('readingTime', { minutes: post.readingMinutes }) : null}
         </p>
       ) : null}

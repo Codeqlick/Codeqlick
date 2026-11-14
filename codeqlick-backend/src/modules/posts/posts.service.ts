@@ -12,6 +12,7 @@ import {
   publishVerb,
   scheduledDetails,
 } from '../activity/activity.service.js';
+import { contentUpdatedAtOnUpdate, publicContentUpdatedAt } from '../../common/content-updated.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import { IndexNowService, slugsToAnnounce } from '../indexnow/indexnow.service.js';
 import {
@@ -39,6 +40,8 @@ export interface PostSummary {
   coverImageUrl: string | null;
   publishedAt: string;
   readingMinutes: number;
+  /** When the content last really changed; null unless ≥ 24 h after publishedAt (4.2). */
+  contentUpdatedAt: string | null;
   tags: PublicTag[];
 }
 
@@ -136,6 +139,7 @@ export class PostsService {
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
       readingMinutes: readingMinutes(translation.content),
+      contentUpdatedAt: publicContentUpdatedAt(post),
       content: translation.content,
       locales: availableLocales(post.translations),
       tags: publicTags(post, locale),
@@ -229,6 +233,12 @@ export class PostsService {
       await this.tags.assertExist(input.tagIds);
       data.tagIds = [...new Set(input.tagIds)];
     }
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: data.status ?? existing.status,
+      coverImageUrl: data.coverImageUrl !== undefined ? data.coverImageUrl : existing.coverImageUrl,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
     const saved = await this.repository.update(id, data, actor.id);
     const updated = toAdminPost(saved);
     await this.activity.record(actor, {
@@ -273,6 +283,12 @@ export class PostsService {
       translations: snapshot.translations.map(toTranslationData),
       tagIds: await this.tags.existing(snapshot.tagIds),
     };
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: existing.status,
+      coverImageUrl: data.coverImageUrl ?? null,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
     const saved = await this.repository.update(id, data, actor.id);
     const updated = toAdminPost(saved);
     await this.activity.record(actor, {
@@ -320,6 +336,7 @@ export class PostsService {
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
       readingMinutes: readingMinutes(translation.content),
+      contentUpdatedAt: publicContentUpdatedAt(post),
       tags: publicTags(post, locale),
     };
   }

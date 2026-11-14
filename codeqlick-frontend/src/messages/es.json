@@ -304,6 +304,7 @@
     "back": "Todos los artículos",
     "publishedOn": "Publicado el {date}",
     "readingTime": "{minutes} min de lectura",
+    "updatedOn": "Actualizado el {date}",
     "tagsLabel": "Etiquetas",
     "topics": "Temas",
     "allTopics": "Todos los temas",

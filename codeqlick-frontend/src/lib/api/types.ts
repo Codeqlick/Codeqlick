@@ -47,6 +47,8 @@ export type PostSummary = {
   publishedAt: string;
   /** Minutes to read, computed by the API from the shown translation. */
   readingMinutes: number;
+  /** When the text last really changed; null unless ≥ 24 h after `publishedAt` (4.2). */
+  contentUpdatedAt: string | null;
   tags: PublicTag[];
 };
 
@@ -127,6 +129,8 @@ export type PortfolioSummary = {
   /** Service lines the work covered (keys of components/content/services). */
   services: ServiceKey[];
   testimonial: Testimonial | null;
+  /** As `PostSummary.contentUpdatedAt`; only the sitemap uses it. */
+  contentUpdatedAt: string | null;
 };
 
 export type ServiceKey = 'web' | 'custom' | 'mobile' | 'design' | 'consulting' | 'support';

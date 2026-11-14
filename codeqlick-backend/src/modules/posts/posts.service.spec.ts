@@ -39,6 +39,7 @@ function post(
     status: 'PUBLISHED',
     publishedAt,
     coverImageUrl: null,
+    contentUpdatedAt: null,
     authorId: null,
     createdAt: publishedAt,
     updatedAt: publishedAt,
@@ -94,6 +95,7 @@ describe('PostsService', () => {
       coverImageUrl: null,
       publishedAt: publishedAt.toISOString(),
       readingMinutes: 1,
+      contentUpdatedAt: null,
       locales: ['en', 'es'],
       tags: [],
     });
@@ -137,6 +139,7 @@ describe('PostsService', () => {
           coverImageUrl: null,
           publishedAt: publishedAt.toISOString(),
           readingMinutes: 1,
+          contentUpdatedAt: null,
           tags: [],
         },
       ],
@@ -163,6 +166,73 @@ describe('PostsService', () => {
     await service.update(actor, 'p1', { status: 'PUBLISHED' });
     const second = repository.update.mock.calls[0]?.[1] as { publishedAt?: Date };
     expect(second.publishedAt).toBeUndefined();
+  });
+
+  it('gives the updated date only from 24 hours after publication', async () => {
+    const en = [translation('EN', 'Hello')];
+    repository.findPublishedBySlug.mockResolvedValueOnce(
+      post(en, { contentUpdatedAt: new Date('2026-09-01T20:00:00Z') }),
+    );
+    expect((await service.getPublishedBySlug('hello-world', 'en')).contentUpdatedAt).toBeNull();
+
+    repository.findPublishedBySlug.mockResolvedValueOnce(
+      post(en, { contentUpdatedAt: new Date('2026-09-03T10:00:00Z') }),
+    );
+    expect((await service.getPublishedBySlug('hello-world', 'en')).contentUpdatedAt).toBe(
+      '2026-09-03T10:00:00.000Z',
+    );
+  });
+
+  describe('contentUpdatedAt on update', () => {
+    const live = post([translation('EN', 'Hello'), translation('ES', 'Hola')]);
+    const input = (title: string) => ({
+      translations: [
+        { locale: 'en' as const, title, excerpt: 'Hello excerpt', content: 'Hello content' },
+        { locale: 'es' as const, title: 'Hola', excerpt: 'Hola excerpt', content: 'Hola content' },
+      ],
+    });
+    const sentData = () =>
+      repository.update.mock.calls[0]?.[1] as { contentUpdatedAt?: Date; translations?: unknown };
+
+    beforeEach(() => {
+      repository.findById.mockResolvedValue(live);
+      repository.update.mockResolvedValue(live);
+    });
+
+    it("is set when a live post's text changes", async () => {
+      await service.update(actor, 'p1', input('Hello again'));
+      expect(sentData().contentUpdatedAt).toBeInstanceOf(Date);
+    });
+
+    it('is set when a translation is removed or the cover image changes', async () => {
+      await service.update(actor, 'p1', { translations: input('Hello').translations.slice(0, 1) });
+      expect(sentData().contentUpdatedAt).toBeInstanceOf(Date);
+
+      repository.update.mockClear();
+      await service.update(actor, 'p1', { coverImageUrl: 'https://example.com/cover.png' });
+      expect(sentData().contentUpdatedAt).toBeInstanceOf(Date);
+    });
+
+    it('is left alone when the same text is saved or only the slug or tags change', async () => {
+      await service.update(actor, 'p1', { ...input('Hello'), slug: 'new-slug', tagIds: [] });
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+    });
+
+    it('is left alone for drafts, scheduled posts and unpublishing', async () => {
+      repository.findById.mockResolvedValue({ ...live, status: 'DRAFT' });
+      await service.update(actor, 'p1', { ...input('Hello again'), status: 'PUBLISHED' });
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+
+      repository.update.mockClear();
+      repository.findById.mockResolvedValue({ ...live, publishedAt: new Date('2099-01-01') });
+      await service.update(actor, 'p1', input('Hello again'));
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+
+      repository.update.mockClear();
+      repository.findById.mockResolvedValue(live);
+      await service.update(actor, 'p1', { ...input('Hello again'), status: 'DRAFT' });
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+    });
   });
 
   it('throws NotFound when updating a missing post', async () => {
