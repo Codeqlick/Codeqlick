@@ -27,7 +27,7 @@ return with the next push. `deploy --prod`, promoting a newer deployment or `cod
 | `deployments` / `promote <id>` / `rollback` | List, publish an earlier one, go back                                   |
 | `unlock`                                    | Let production builds go live again after a rollback                    |
 | `files <id>` / `diff <id> [other]`          | A deployment's files / compare it with production or another deployment |
-| `download [id] [-o <file>] [--force]`       | Save a deployment's files as a `tar.gz`      |
+| `download [id] [-o <file>] [--force]`       | Save a deployment's files as a `tar.gz`                                 |
 | `domains [add\|check\|rm <domain>]`         | The project's own domains                                               |
 | `open`                                      | Open the published site                                                 |
 

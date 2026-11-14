@@ -84,7 +84,7 @@ export function SiteNews({
   const [uploading, setUploading] = useState(false);
   const [photoProblem, setPhotoProblem] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const today = madridDay(new Date());
+  const [today] = useState(() => madridDay(new Date()));
   const canUpload = scope === 'portal';
   const changed = editing ? newsChanged(form, saved) : false;
 
