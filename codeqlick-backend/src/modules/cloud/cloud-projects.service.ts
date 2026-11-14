@@ -23,6 +23,7 @@ import {
 import { CloudRepository, type DeploymentRow, type ProjectRow } from './cloud.repository.js';
 import type { CreateProjectInput, DeploymentFields, UpdateProjectInput } from './cloud.schemas.js';
 import { BundleError, CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
+import { rebuildView, type RebuildView } from './cloud-rebuild-schedule.js';
 import { CloudDiskService } from './cloud-disk.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { CloudTokensService } from './cloud-tokens.service.js';
@@ -52,6 +53,8 @@ export interface ProjectView {
   production: DeploymentView | null;
   domains: Array<{ name: string; state: 'PENDING' | 'VERIFIED' | 'LIVE' | 'ERROR' }>;
   suspended: { at: string; reason: string } | null;
+  /** Scheduled rebuilds (architecture 4.13, decision 65). */
+  rebuild: RebuildView;
   createdAt: string;
 }
 
@@ -395,6 +398,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
         project.suspendedAt && project.suspendedReason
           ? { at: project.suspendedAt.toISOString(), reason: project.suspendedReason }
           : null,
+      rebuild: rebuildView(project),
       createdAt: project.createdAt.toISOString(),
     };
   }

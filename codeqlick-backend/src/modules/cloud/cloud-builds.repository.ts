@@ -34,6 +34,9 @@ const projectForBuild = {
 } as const;
 export type BuildWithProject = Prisma.CloudBuildGetPayload<{ include: typeof projectForBuild }>;
 
+/** A project's scheduled rebuilds switched off (decision 65). */
+export const REBUILD_OFF = { rebuildFrequency: 'OFF', rebuildNextAt: null } as const;
+
 /** Builds from Git: installations, env vars, builds and GitHub bookkeeping (architecture 4.13). */
 @Injectable()
 export class CloudBuildsRepository {
@@ -70,7 +73,7 @@ export class CloudBuildsRepository {
     await this.prisma.$transaction([
       this.prisma.cloudProject.updateMany({
         where: { gitInstallationId: installationId },
-        data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+        data: { gitInstallationId: null, gitRepoId: null, gitRepo: null, ...REBUILD_OFF },
       }),
       this.prisma.cloudGitInstallation.deleteMany({ where: { installationId } }),
     ]);
@@ -86,7 +89,7 @@ export class CloudBuildsRepository {
   async unlinkRepos(installationId: bigint, repoIds: bigint[]): Promise<void> {
     await this.prisma.cloudProject.updateMany({
       where: { gitInstallationId: installationId, gitRepoId: { in: repoIds } },
-      data: { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+      data: { gitInstallationId: null, gitRepoId: null, gitRepo: null, ...REBUILD_OFF },
     });
   }
 
@@ -105,6 +108,76 @@ export class CloudBuildsRepository {
 
   async setGit(projectId: string, data: Prisma.CloudProjectUncheckedUpdateInput): Promise<void> {
     await this.prisma.cloudProject.update({ where: { id: projectId }, data });
+  }
+
+  // ── Scheduled rebuilds (decision 65) ──────────────────────────────────────────────────────
+
+  /** Projects whose next scheduled rebuild is due. */
+  dueRebuilds(now: Date, take: number) {
+    return this.prisma.cloudProject.findMany({
+      where: { rebuildNextAt: { lte: now }, rebuildFrequency: { not: 'OFF' } },
+      include: { team: { select: { slug: true, plan: true } } },
+      orderBy: { rebuildNextAt: 'asc' },
+      take,
+    });
+  }
+
+  /**
+   * Claims a due run by moving the project's next run on, only if nobody moved it since it was
+   * read (so several API processes queue one build per run).
+   */
+  async claimRebuild(projectId: string, due: Date, next: Date | null): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id: projectId, rebuildNextAt: due, rebuildFrequency: { not: 'OFF' } },
+      data: { rebuildNextAt: next },
+    });
+    return count === 1;
+  }
+
+  /** Whether a build of the branch is queued or running. */
+  async hasActiveBuild(projectId: string, branch: string): Promise<boolean> {
+    const build = await this.prisma.cloudBuild.findFirst({
+      where: { projectId, branch, status: { in: ['QUEUED', 'RUNNING'] } },
+      select: { id: true },
+    });
+    return build !== null;
+  }
+
+  /** One more scheduled build failed in a row: the count. */
+  async rebuildFailed(projectId: string): Promise<number> {
+    const project = await this.prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { rebuildFailures: { increment: 1 } },
+      select: { rebuildFailures: true },
+    });
+    return project.rebuildFailures;
+  }
+
+  async rebuildSucceeded(projectId: string): Promise<void> {
+    await this.prisma.cloudProject.updateMany({
+      where: { id: projectId, rebuildFailures: { not: 0 } },
+      data: { rebuildFailures: 0 },
+    });
+  }
+
+  /** Switches the schedule off; false when it already was (so it happens once). */
+  async switchOffRebuild(projectId: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id: projectId, rebuildFrequency: { not: 'OFF' } },
+      data: REBUILD_OFF,
+    });
+    return count === 1;
+  }
+
+  /** The team's owners and admins. */
+  admins(teamId: string) {
+    return this.prisma.user.findMany({
+      where: {
+        isActive: true,
+        cloudMemberships: { some: { teamId, role: { in: ['OWNER', 'ADMIN'] } } },
+      },
+      select: { email: true, locale: true },
+    });
   }
 
   // ── Environment variables ──────────────────────────────────────────────────────────────────

@@ -72,7 +72,21 @@ export type CloudProject = {
   production: CloudDeployment | null;
   domains: Array<{ name: string; state: CloudDomainState }>;
   suspended: { at: string; reason: string } | null;
+  /** Scheduled rebuilds of the production branch (missing from older APIs: treat as off). */
+  rebuild?: CloudRebuild;
   createdAt: string;
+};
+
+export type CloudRebuildFrequency = 'off' | 'hourly' | 'daily' | 'weekly';
+
+/** A project's scheduled rebuilds, in Madrid time (`weekday` 1–7, Monday first). */
+export type CloudRebuild = {
+  frequency: CloudRebuildFrequency;
+  minute: number | null;
+  hour: number | null;
+  weekday: number | null;
+  nextAt: string | null;
+  failures: number;
 };
 
 export type CloudDomain = {
@@ -689,7 +703,7 @@ export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | '
 export type CloudBuild = {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'schedule';
   target: 'preview' | 'production';
   branch: string;
   commit: string;
@@ -748,6 +762,16 @@ export const setCloudGit = (
 
 export const disconnectCloudGit = (projectId: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/git`, { ...write, method: 'DELETE' });
+
+export const setCloudRebuildSchedule = (
+  projectId: string,
+  input: { frequency: CloudRebuildFrequency; minute?: number; hour?: number; weekday?: number },
+) =>
+  apiFetch<CloudProject>(`/cloud/projects/${projectId}/rebuild-schedule`, {
+    ...write,
+    method: 'PUT',
+    body: input,
+  });
 
 export const listCloudEnv = (projectId: string) =>
   apiFetch<{
