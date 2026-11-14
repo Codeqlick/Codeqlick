@@ -629,6 +629,88 @@ describe('Codeqlick Cloud (e2e)', () => {
     );
     await app.get(CloudProjectsService).housekeeping();
 
+    // ── Keeping deployments by hand ────────────────────────────────────────────────────────
+    const keepUrl = (deploymentId: string) =>
+      `/v1/cloud/projects/${projectId}/deployments/${deploymentId}/keep`;
+    const keptEvents = async (action: string) =>
+      (
+        (
+          await request(server)
+            .get(`/v1/cloud/teams/${teamSlug}/events?pageSize=100`)
+            .set(ownerAuth)
+            .expect(200)
+        ).body.items as Array<{ action: string }>
+      ).filter((e) => e.action === action).length;
+    const older = production.body as { id: string };
+    // A member may keep; the second call changes nothing and records nothing.
+    const kept = await request(server).post(keepUrl(older.id)).set(mateAuth).expect(200);
+    expect(kept.body).toMatchObject({ id: older.id, keptAt: expect.any(String) });
+    await request(server).post(keepUrl(older.id)).set(mateAuth).expect(200);
+    expect(await keptEvents('deployment.kept')).toBe(1);
+    await request(server).post(keepUrl(randomUUID())).set(mateAuth).expect(404);
+    await request(server).delete(keepUrl(randomUUID())).set(mateAuth).expect(404);
+    // Not a member of the team (even a site admin): the project is not found.
+    await request(server).post(keepUrl(older.id)).set(adminAuth).expect(404);
+    await request(server).delete(keepUrl(older.id)).set(adminAuth).expect(404);
+    await request(server).post(keepUrl(older.id)).expect(401);
+
+    // 24 newer previews and one older than everything (non-hex ids: no clash with real ones).
+    const row = (shortId: string, createdAt: Date) => ({
+      projectId,
+      shortId,
+      target: 'PREVIEW' as const,
+      sizeBytes: 10n,
+      fileCount: 1,
+      createdAt,
+    });
+    const base = Date.now() + 60_000;
+    await prisma.cloudDeployment.createMany({
+      data: [
+        ...Array.from({ length: 24 }, (_, i) =>
+          row(`zz${i.toString(16).padStart(6, '0')}`, new Date(base + i * 1000)),
+        ),
+        row('yy000001', new Date('2020-01-01T00:00:00Z')),
+      ],
+    });
+    const extra = await prisma.cloudDeployment.findMany({
+      where: { projectId, shortId: { startsWith: 'zz' } },
+      orderBy: { shortId: 'asc' },
+    });
+    // At most 5 kept: `older` plus four more; the sixth is refused.
+    for (const d of extra.slice(0, 4)) {
+      await request(server).post(keepUrl(d.id)).set(ownerAuth).expect(200);
+    }
+    const sixth = await request(server).post(keepUrl(extra[4]!.id)).set(ownerAuth).expect(409);
+    expect(sixth.body.detail).toBe('A project keeps at most 5 deployments');
+    // Un-keeping works for a member, once; the second call records nothing.
+    const unkept = await request(server).delete(keepUrl(extra[3]!.id)).set(mateAuth).expect(200);
+    expect(unkept.body).toMatchObject({ id: extra[3]!.id, keptAt: null });
+    await request(server).delete(keepUrl(extra[3]!.id)).set(mateAuth).expect(200);
+    expect(await keptEvents('deployment.unkept')).toBe(1);
+    await request(server).post(keepUrl(extra[4]!.id)).set(ownerAuth).expect(200);
+
+    // Cleanup: 4 of the 24 are kept, so the newest 20 unkept ones stay and the oldest unkept goes.
+    await app.get(CloudProjectsService).housekeeping();
+    const left = await prisma.cloudDeployment.findMany({ where: { projectId } });
+    expect(left.some((d) => d.shortId === 'yy000001')).toBe(false);
+    expect(left.some((d) => d.id === older.id)).toBe(true);
+    expect(left.some((d) => d.id === first.id)).toBe(true);
+    expect(left).toHaveLength(26);
+    // Un-kept, the old one is back in the window by its date: the next cleanup deletes it.
+    await request(server).delete(keepUrl(older.id)).set(mateAuth).expect(200);
+    await app.get(CloudProjectsService).housekeeping();
+    expect(await prisma.cloudDeployment.findUnique({ where: { id: older.id } })).toBeNull();
+    expect(await prisma.cloudDeployment.findUnique({ where: { id: first.id } })).not.toBeNull();
+    // A kept deployment can still be deleted by hand.
+    expect(
+      (await prisma.cloudDeployment.findUnique({ where: { id: extra[0]!.id } }))?.keptAt,
+    ).not.toBeNull();
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/deployments/${extra[0]!.id}`)
+      .set(mateAuth)
+      .expect(204);
+    expect(await prisma.cloudDeployment.findUnique({ where: { id: extra[0]!.id } })).toBeNull();
+
     await request(server).delete(`/v1/cloud/projects/${projectId}`).set(tokenAuth).expect(204);
     await expect(readlink(join(root, 'hosts', slug))).rejects.toThrow(/ENOENT/);
     await expect(readFile(join(root, 'domains', `docs-${tag}.example.org`))).rejects.toThrow(

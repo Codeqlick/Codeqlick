@@ -567,6 +567,26 @@ export class CloudController {
     return this.projects.unlock(ctx, params.id);
   }
 
+  @Post('projects/:id/deployments/:deploymentId/keep')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  keep(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<DeploymentView> {
+    return this.projects.keep(ctx, params.id, params.deploymentId);
+  }
+
+  @Delete('projects/:id/deployments/:deploymentId/keep')
+  @CloudApi()
+  @HttpCode(HttpStatus.OK)
+  unkeep(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<DeploymentView> {
+    return this.projects.unkeep(ctx, params.id, params.deploymentId);
+  }
+
   // ── Domains ─────────────────────────────────────────────────────────────────────────────────
 
   @Get('projects/:id/domains')

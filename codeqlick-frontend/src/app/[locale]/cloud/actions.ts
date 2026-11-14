@@ -36,6 +36,7 @@ import {
   createCloudToken,
   decideCloudDevice,
   deleteCloudDeployment,
+  keepCloudDeployment,
   deleteCloudForm,
   deleteCloudMonitor,
   deleteCloudStatusNotice,
@@ -44,6 +45,7 @@ import {
   deleteCloudTeam,
   inviteCloudMember,
   promoteCloudDeployment,
+  unkeepCloudDeployment,
   removeCloudDomain,
   removeCloudMember,
   markCloudSubmissionSpam,
@@ -79,13 +81,18 @@ import {
 } from '@/lib/api/cloud';
 import { hookBranchValid, hookName } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { protectionInput } from '@/lib/cloud';
-import { ENV_IMPORT_MAX_BYTES, envImportErrors, type EnvImportState } from '@/lib/cloud';
-import { cloudTokenOptions } from '@/lib/cloud';
-import { monitorKeyword, monitorKeywordMode } from '@/lib/cloud';
+import {
+  protectionInput,
+  ENV_IMPORT_MAX_BYTES,
+  envImportErrors,
+  type EnvImportState,
+  cloudTokenOptions,
+  monitorKeyword,
+  monitorKeywordMode,
+  parseRebuildForm,
+} from '@/lib/cloud';
 import { parseNoticeWindow, parseUpdateState } from '@/lib/cloud-notices';
-import { parseRebuildForm } from '@/lib/cloud';
-import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
+import { formBoolean, formString, formValues, type FormState, initialFormState } from '@/lib/forms';
 import { toDateTimeInput } from '@/lib/format';
 import { appPath } from '@/lib/webapp-request';
 
@@ -436,6 +443,32 @@ export async function unlockProductionAction(
   refresh(lang, path);
   // The banner (and this form) goes away with the lock: no message to show.
   return { status: 'idle' };
+}
+
+export async function keepDeploymentAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const locale = localeOrDefault(formData.get('locale'));
+  try {
+    await keepCloudDeployment(formString(formData, 'project'), formString(formData, 'id'));
+  } catch (error) {
+    if (isApiError(error) && error.status === 409) {
+      const t = await getTranslations({ locale, namespace: 'Cloud' });
+      return { status: 'error', message: t('project.keptFull') };
+    }
+    return failure(locale, error);
+  }
+  refresh(locale, formString(formData, 'path'));
+  return initialFormState;
+}
+
+export async function unkeepDeploymentAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await unkeepCloudDeployment(formString(formData, 'project'), formString(formData, 'id')).catch(
+    () => undefined,
+  );
+  refresh(locale, formString(formData, 'path'));
 }
 
 export async function deleteDeploymentAction(formData: FormData): Promise<void> {
