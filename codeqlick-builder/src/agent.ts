@@ -8,6 +8,8 @@ import {
   type CacheEntry,
   cachePath,
   cachesToEvict,
+  choosePackageManager,
+  containerCommand,
   dockerArgs,
   envFile,
   inside,
@@ -15,6 +17,7 @@ import {
   mask,
   readRulesFile,
 } from './plan.ts';
+import { checkoutFiles } from './checkout.ts';
 import { realFolderInside } from './realpath.ts';
 
 /**
@@ -302,7 +305,12 @@ async function build(job: Job): Promise<void> {
     const root = inside(src, job.rootDir);
     const variables = join(work, 'env');
     await writeFile(variables, envFile(job.env), { mode: 0o600 });
-    const command = `${job.installCommand} && ${job.buildCommand}`;
+    const chosen = choosePackageManager({
+      rootDir: job.rootDir,
+      installCommand: job.installCommand,
+      buildCommand: job.buildCommand,
+      files: checkoutFiles(src),
+    });
     // An invalid key is refused (it fails the build); any other cache problem only turns it off.
     const cacheFolder = job.cache ? cachePath(CACHE_DIR, job.cache.key) : null;
     const cache =
@@ -311,7 +319,10 @@ async function build(job: Job): Promise<void> {
         ? cacheFolder
         : undefined;
     if (!job.cache) output('Dependency cache: off for this build\n');
-    output(`$ ${command}\n`);
+    output(`${chosen.log}\n`);
+    // The log shows the commands; the Corepack set-up in front of them is the same in every build.
+    output(`$ ${chosen.install} && ${chosen.build}\n`);
+    const command = containerCommand(chosen.install, chosen.build);
     const timer = setTimeout(() => {
       output(
         `\nThe build took longer than ${Math.round(job.timeoutSeconds / 60)} minutes: stopped.\n`,

@@ -248,6 +248,7 @@ export async function GitTab(props: Props) {
             <FormInput
               name="buildCommand"
               label={t('git.build')}
+              hint={t('git.commandsHint')}
               defaultValue={git.buildCommand}
               mono
             />

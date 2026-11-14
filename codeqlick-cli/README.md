@@ -54,6 +54,8 @@ when a line is wrong, printing each line's problem; names that already exist are
 
 `hooks add` prints the hook's URL once: paste it in the CMS's webhook (a `POST`, no body needed). Builds a hook queued show as `<branch> (hook <name>)` in `builds`.
 
+With `git connect`'s default install and build commands (`npm ci`, `npm run build`), each build picks npm, pnpm or Yarn from the repository's lockfile; a `--install` or `--build` you set is used as it is.
+
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 
 Analytics and the key-value store:
