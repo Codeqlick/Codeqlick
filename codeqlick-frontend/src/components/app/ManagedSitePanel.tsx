@@ -1,9 +1,15 @@
 import { getTranslations } from 'next-intl/server';
+import { SiteNews } from '@/components/editor/SiteNews';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
-import { SITE_PRESETS, type ManagedSite, type ManagedSiteRevision } from '@/lib/api/types';
+import {
+  SITE_PRESETS,
+  type ManagedSite,
+  type ManagedSiteRevision,
+  type SiteNewsList,
+} from '@/lib/api/types';
 import { formatDateTime } from '@/lib/format';
 import {
   buildSiteAction,
@@ -28,12 +34,15 @@ export async function ManagedSitePanel({
   projectName,
   site,
   revisions,
+  news,
 }: {
   locale: AppLocale;
   projectId: string;
   projectName: string;
   site: ManagedSite | null;
   revisions: ManagedSiteRevision[];
+  /** The site's news (switch and first posts); null when they could not be loaded. */
+  news: SiteNewsList | null;
 }) {
   const t = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tk = (key: string) => t(key as never);
@@ -149,6 +158,10 @@ export async function ManagedSitePanel({
           </SubmitButton>
         </ActionForm>
       </div>
+
+      {news ? (
+        <SiteNews locale={locale} scope="admin" projectId={projectId} initial={news} />
+      ) : null}
 
       <ActionForm
         key={`domain-${site.domain ?? ''}`}

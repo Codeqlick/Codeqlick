@@ -46,6 +46,11 @@ npm run check && npm run build                # checks and generates dist/
 The order of the middle sections and their menu names are changed with `sections` and
 `navLabels` (a portfolio shows the gallery first, «Trabajos», and «Sobre mí»).
 
+News: `news: { posts }` (see `NewsPost` in `src/types.ts`, newest first) builds `/noticias`,
+`/noticias/<slug>`, `/noticias/rss.xml`, a «Novedades» section on the home page and the header
+link «Noticias»; without posts none of it exists. Post bodies use a small Markdown subset
+(`src/lib/markdown.ts`); `examples/restaurante` has three posts.
+
 They are fictional businesses (`demo: true`: the phone and WhatsApp buttons call no one and the
 form sends nothing). The photos are public domain (CC0); see each demo's `CREDITS.md`.
 

@@ -14,6 +14,11 @@ export class SiteBuilderClient {
     return builder;
   }
 
+  /** Whether the builder's address and token are set (builds fail with a 503 otherwise). */
+  isConfigured(): boolean {
+    return this.config.siteBuilder !== undefined;
+  }
+
   /** The demos' content, which new sites start from. */
   async presets(): Promise<Array<{ key: string; content: Record<string, unknown> }>> {
     const { url, token } = this.target();

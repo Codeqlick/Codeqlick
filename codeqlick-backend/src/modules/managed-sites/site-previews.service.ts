@@ -17,7 +17,7 @@ import { toLabel } from '../domains/availability.js';
 import { renderEmail } from '../mail/email-layout.js';
 import { MailService } from '../mail/mail.service.js';
 import { madridToday } from '../proposals/proposals.service.js';
-import { siteContentSchema } from './managed-sites.schemas.js';
+import { presetContent, siteContentSchema } from './managed-sites.schemas.js';
 import { SiteBuilderClient } from './site-builder.client.js';
 import { SitePreviewsRepository } from './site-previews.repository.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -351,7 +351,7 @@ export class SitePreviewsService implements OnApplicationBootstrap, OnApplicatio
   ): Promise<void> {
     const preset = (await this.builder.presets()).find((item) => item.key === request.preset);
     if (!preset) throw new Error(`No preset ${request.preset}`);
-    const { url: _url, form: _form, demo: _demo, footerNote: _note, ...base } = preset.content;
+    const base = presetContent(preset.content);
     const parsed = siteContentSchema.parse({
       ...base,
       legal: {

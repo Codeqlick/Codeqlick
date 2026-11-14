@@ -67,9 +67,12 @@ class BuildError extends Error {}
 
 /** Every image a site uses, so they can be copied next to its content. */
 function imagesOf(content) {
-  return [content.hero?.image, content.about?.image, ...(content.gallery?.images ?? [])].filter(
-    (image) => image && typeof image.file === 'string',
-  );
+  return [
+    content.hero?.image,
+    content.about?.image,
+    ...(content.gallery?.images ?? []),
+    ...(content.news?.posts ?? []).map((post) => post.photo),
+  ].filter((image) => image && typeof image.file === 'string');
 }
 
 /** Copies the images into the work folder; `media/<name>` becomes `<name>` in the content. */
@@ -221,7 +224,9 @@ async function presets() {
   const list = [];
   for (const key of PRESETS) {
     const url = pathToFileURL(join(TEMPLATE, 'examples', key, 'site.ts')).href;
-    list.push({ key, content: (await import(url)).default });
+    // The demos' news posts are not starting content.
+    const { news: _news, ...content } = (await import(url)).default;
+    list.push({ key, content });
   }
   return { presets: list };
 }
