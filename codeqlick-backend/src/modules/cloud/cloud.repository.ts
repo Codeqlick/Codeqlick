@@ -439,7 +439,57 @@ export class CloudRepository {
     await this.prisma.cloudDeployment.delete({ where: { id } });
   }
 
-  /** Deployments past the newest `keep` of each project, production left out. */
+  /**
+   * Keeps a deployment out of the cleanup unless the project already keeps `max`. The project's
+   * row is locked for the count and the update, so concurrent calls can't go past `max`.
+   */
+  keepDeployment(
+    projectId: string,
+    id: string,
+    max: number,
+  ): Promise<'kept' | 'already' | 'full' | 'missing'> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM cloud_projects WHERE id = ${projectId}::uuid FOR UPDATE`;
+      const current = await tx.cloudDeployment.findFirst({
+        where: { id, projectId },
+        select: { keptAt: true },
+      });
+      if (!current) return 'missing';
+      if (current.keptAt) return 'already';
+      if (
+        (await tx.cloudDeployment.count({ where: { projectId, keptAt: { not: null } } })) >= max
+      ) {
+        return 'full';
+      }
+      await tx.cloudDeployment.update({ where: { id }, data: { keptAt: new Date() } });
+      return 'kept';
+    });
+  }
+
+  /**
+   * Deletes a deployment only if it is still neither kept nor production (the cleanup's list may
+   * be stale by now); true when it was deleted.
+   */
+  async deleteStaleDeployment(id: string): Promise<boolean> {
+    const result = await this.prisma.cloudDeployment.deleteMany({
+      where: { id, keptAt: null, productionOf: { is: null } },
+    });
+    return result.count === 1;
+  }
+
+  /** Puts a kept deployment back in the normal window; false when it was not kept. */
+  async unkeepDeployment(projectId: string, id: string): Promise<boolean> {
+    const result = await this.prisma.cloudDeployment.updateMany({
+      where: { id, projectId, keptAt: { not: null } },
+      data: { keptAt: null },
+    });
+    return result.count > 0;
+  }
+
+  /**
+   * Deployments past the newest `keep` of each project not kept by hand, production left out.
+   * Kept ones are neither counted nor returned.
+   */
   oldDeployments(keep: number) {
     return this.prisma.$queryRaw<Array<{ id: string; short_id: string; slug: string }>>`
       SELECT d.id, d.short_id, p.slug
@@ -447,6 +497,7 @@ export class CloudRepository {
         SELECT id, short_id, project_id,
                row_number() OVER (PARTITION BY project_id ORDER BY created_at DESC, id DESC) AS n
         FROM cloud_deployments
+        WHERE kept_at IS NULL
       ) d
       JOIN cloud_projects p ON p.id = d.project_id
       WHERE d.n > ${keep}

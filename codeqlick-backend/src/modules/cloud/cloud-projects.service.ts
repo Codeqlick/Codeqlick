@@ -17,6 +17,7 @@ import type { CloudCtx } from './cloud-caller.js';
 import {
   DELETED_PROJECT_DAYS,
   EVENTS_DAYS,
+  KEPT_BY_HAND,
   KEPT_DEPLOYMENTS,
   RESERVED_SLUGS,
 } from './cloud-plans.js';
@@ -40,6 +41,7 @@ export interface DeploymentView {
   fileCount: number;
   createdBy: { id: string; name: string } | null;
   viaToken: string | null;
+  keptAt: string | null;
   createdAt: string;
 }
 
@@ -317,6 +319,49 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     return this.view(updated ?? project);
   }
 
+  /** Keeps a deployment out of the hourly cleanup (a member may; suspended projects too). */
+  async keep(ctx: CloudCtx, id: string, deploymentId: string): Promise<DeploymentView> {
+    const { project } = await this.project(ctx, id);
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    const result = await this.repository.keepDeployment(project.id, row.id, KEPT_BY_HAND);
+    if (result === 'missing') throw new NotFoundException('Deployment not found');
+    if (result === 'full') {
+      throw new ConflictException(`A project keeps at most ${KEPT_BY_HAND} deployments`);
+    }
+    if (result === 'kept') {
+      await this.teams.record(
+        ctx,
+        project.teamId,
+        'deployment.kept',
+        `${project.slug}--${row.shortId}`,
+      );
+    }
+    return this.deploymentView(
+      project,
+      (await this.repository.findDeployment(project.id, row.id)) ?? row,
+    );
+  }
+
+  /** Puts a deployment back in the normal window of the cleanup. */
+  async unkeep(ctx: CloudCtx, id: string, deploymentId: string): Promise<DeploymentView> {
+    const { project } = await this.project(ctx, id);
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    if (await this.repository.unkeepDeployment(project.id, row.id)) {
+      await this.teams.record(
+        ctx,
+        project.teamId,
+        'deployment.unkept',
+        `${project.slug}--${row.shortId}`,
+      );
+    }
+    return this.deploymentView(
+      project,
+      (await this.repository.findDeployment(project.id, row.id)) ?? row,
+    );
+  }
+
   private async makeProduction(project: ProjectRow, deploymentId: string): Promise<void> {
     await this.repository.updateProject(project.id, { productionDeploymentId: deploymentId });
     await this.storage.link(productionLabel(project.slug), deploymentId);
@@ -366,9 +411,9 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
   async housekeeping(now = new Date()): Promise<void> {
     try {
       for (const old of await this.repository.oldDeployments(KEPT_DEPLOYMENTS)) {
+        if (!(await this.repository.deleteStaleDeployment(old.id))) continue;
         await this.storage.unlinkHost(deploymentLabel(old.slug, old.short_id));
         await this.storage.removeDeployment(old.id);
-        await this.repository.deleteDeployment(old.id);
       }
       await this.repository.purgeDeletedProjects(
         new Date(now.getTime() - DELETED_PROJECT_DAYS * DAY_MS),
@@ -416,6 +461,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       fileCount: row.fileCount,
       createdBy: row.createdBy,
       viaToken: row.token?.name ?? null,
+      keptAt: row.keptAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
     };
   }
