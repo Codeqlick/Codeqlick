@@ -1,4 +1,7 @@
-/** Browser and operating system named in a User-Agent string, as far as they can be told. */
+/**
+ * Browser and operating system named in a User-Agent string, as far as they can be told.
+ * The API has the same rules in `codeqlick-backend/src/common/user-agent.ts`: keep both in sync.
+ */
 export type DeviceDescription = { browser?: string; os?: string };
 
 // Order matters: Edge and Opera also say Chrome, Chrome also says Safari.
