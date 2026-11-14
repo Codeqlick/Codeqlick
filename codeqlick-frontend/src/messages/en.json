@@ -4819,6 +4819,47 @@
       "deleteTitle": "Delete the project",
       "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days."
     },
+    "deployment": {
+      "metaTitle": "Deployment",
+      "title": "Deployment {id}",
+      "tabs": {
+        "files": "Files",
+        "compare": "Compare with production"
+      },
+      "filesSummary": "{count, plural, one {# file} other {# files}}, {size} in total",
+      "filesEmpty": "This deployment has no files.",
+      "filesGone": "This deployment's files are no longer on the server, so they can't be listed.",
+      "filesCaption": "Files of this deployment",
+      "filter": "Filter files",
+      "filterHint": "Part of the path, e.g. assets/ or .css. Several words must all match.",
+      "matches": "{count, plural, =0 {No file matches.} one {# file matches.} other {# files match.}}",
+      "showing": "Showing the first {shown, number} of {count, plural, one {# file} other {# files}}.",
+      "showMore": "Show {count, number} more",
+      "path": "Path",
+      "size": "Size",
+      "compare": {
+        "lead": "What changes if this deployment is published, against production ({id}). Files are compared by size and content; nothing is downloaded.",
+        "leadPlain": "What changes if this deployment is published, against production. Files are compared by size and content; nothing is downloaded.",
+        "noProduction": "This project has nothing published yet, so there's nothing to compare with.",
+        "gone": "The files of this deployment or of production are no longer on the server, so they can't be compared.",
+        "identical": "Same files as production.",
+        "thisTotal": "This deployment",
+        "productionTotal": "Production",
+        "unchanged": "Unchanged",
+        "unchangedCount": "{count, plural, one {# file} other {# files}}",
+        "added": "Added",
+        "addedHelp": "In this deployment, not in production.",
+        "removed": "Removed",
+        "removedHelp": "In production, not in this deployment.",
+        "changed": "Changed",
+        "changedHelp": "In both, with a different size or content.",
+        "none": "None.",
+        "previousSize": "Production",
+        "newSize": "This deployment",
+        "change": "Difference",
+        "more": "{count, plural, one {# more file isn't shown} other {# more files aren't shown}}. See them all with {command}."
+      }
+    },
     "members": {
       "title": "Members",
       "invite": "Invite someone",
