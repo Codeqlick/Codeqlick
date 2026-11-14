@@ -11,6 +11,7 @@ import {
   scheduledDetails,
 } from '../activity/activity.service.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
+import { IndexNowService, slugsToAnnounce } from '../indexnow/indexnow.service.js';
 import {
   PostsRepository,
   type PostTranslationData,
@@ -85,6 +86,7 @@ export class PostsService {
     private readonly repository: PostsRepository,
     private readonly activity: ActivityService,
     private readonly tags: TagsService,
+    private readonly indexNow: IndexNowService,
   ) {}
 
   // ---- Public -------------------------------------------------------------------------
@@ -183,6 +185,7 @@ export class PostsService {
       targetLabel: contentLabel(created),
       details: { status: created.status, ...scheduledDetails(created) },
     });
+    this.announce(null, post);
     return created;
   }
 
@@ -201,23 +204,33 @@ export class PostsService {
       await this.tags.assertExist(input.tagIds);
       data.tagIds = [...new Set(input.tagIds)];
     }
-    const updated = toAdminPost(await this.repository.update(id, data));
+    const saved = await this.repository.update(id, data);
+    const updated = toAdminPost(saved);
     await this.activity.record(actor, {
       action: `post.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
     });
+    this.announce(existing, saved);
     return updated;
   }
 
   async delete(actor: AuthUser, id: string): Promise<void> {
-    const existing = toAdminPost(await this.findOrThrow(id));
+    const post = await this.findOrThrow(id);
+    const existing = toAdminPost(post);
     await this.repository.delete(id);
     await this.activity.record(actor, {
       action: 'post.deleted',
       targetId: id,
       targetLabel: contentLabel(existing),
     });
+    this.announce(post, null);
+  }
+
+  /** Tells search engines through IndexNow when the post was live before or is after. */
+  private announce(before: PostWithTranslations | null, after: PostWithTranslations | null): void {
+    const slugs = slugsToAnnounce(before, after);
+    if (slugs.length > 0) this.indexNow.announce({ kind: 'post', slugs });
   }
 
   private async findOrThrow(id: string): Promise<PostWithTranslations> {

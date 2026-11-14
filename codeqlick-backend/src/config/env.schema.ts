@@ -160,6 +160,8 @@ export const envSchema = z.object({
   /** Cloudflare Turnstile's secret key: sign-up and sign-in need a valid token; unset: off. */
   TURNSTILE_SECRET_KEY: optionalString,
   PAGESPEED_API_KEY: optionalString,
+  /** Tells search engines about changed posts and case studies (architecture 4.1, IndexNow). */
+  INDEXNOW_ENABLED: booleanString,
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 
