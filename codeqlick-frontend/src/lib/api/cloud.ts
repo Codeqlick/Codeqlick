@@ -443,6 +443,8 @@ export type CloudNotifyChannel = {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  /** Also the alerts of the project's monitors (Slack, Discord and webhook only, decision 64). */
+  monitorAlerts: boolean;
   locale: 'en' | 'es';
   failures: number;
   lastSentAt: string | null;
@@ -455,6 +457,7 @@ type NotifyEvents = {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  monitorAlerts?: boolean;
   locale: 'en' | 'es';
 };
 

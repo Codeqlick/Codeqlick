@@ -16,6 +16,7 @@ import { assertCheckableUrl, safeFetch } from '../site-audits/safe-fetch.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudMonitorEmail } from './cloud-emails.js';
 import { CloudMonitorsRepository, type MonitorWithTeam } from './cloud-monitors.repository.js';
+import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import type { CreateMonitorInput, StatusPageInput, UpdateMonitorInput } from './cloud.schemas.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -108,6 +109,7 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     private readonly teams: CloudTeamsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly notifications: CloudNotificationsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -330,6 +332,9 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     error: string | null,
     extra: { minutes?: number; certExpires?: Date },
   ): Promise<void> {
+    // A monitor tied to a project also tells its Slack, Discord and webhook channels that asked
+    // for monitor alerts (decision 64), in the background like these emails.
+    if (monitor.projectId) void this.notifications.monitorAlert(monitor, kind, error, extra);
     try {
       for (const person of await this.repository.alertees(monitor.teamId, monitor.alertIds)) {
         const locale = toApiLocale(person.locale);
