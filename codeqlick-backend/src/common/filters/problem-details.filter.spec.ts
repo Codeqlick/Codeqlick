@@ -69,7 +69,7 @@ describe('ProblemDetailsFilter', () => {
 
     filter.catch(
       new BadRequestException({
-        message: "The file can't be imported",
+        message: 'Validation failed',
         errors: [
           { path: 'content', line: 3, key: 'API_KEY', message: 'Already on line 1' },
           { path: 'content', line: 7, message: 'Expected KEY=value' },
@@ -81,6 +81,7 @@ describe('ProblemDetailsFilter', () => {
     expect(json).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 400,
+        detail: 'Validation failed',
         errors: [
           { path: 'content', line: 3, key: 'API_KEY', message: 'Already on line 1' },
           { path: 'content', line: 7, message: 'Expected KEY=value' },

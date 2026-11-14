@@ -34,7 +34,8 @@ Builds from Git (connect GitHub once in the console's Git tab):
 
 `env import` reads dotenv syntax (`KEY=value`, `export `, quotes, `#` comments) and saves nothing
 when a line is wrong, printing each line's problem; names that already exist are skipped unless
-`--overwrite`. Values are never printed.
+`--overwrite`. Values are never printed. `-` as the file reads it from standard input
+(`some-secret-tool export | codeqlick env import -`).
 
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 

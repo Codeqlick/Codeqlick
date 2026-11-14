@@ -1,5 +1,6 @@
 /** Formatting for Codeqlick Cloud's console (architecture 4.13). Pure: server and client. */
 
+import type { ProblemFieldError } from '@/lib/api/types';
 import type { FormState } from '@/lib/forms';
 
 const UNITS = ['B', 'KB', 'MB', 'GB'] as const;
@@ -55,23 +56,15 @@ export type EnvImportState = FormState & {
 };
 
 /**
- * The line errors of a refused `.env` import, from the problem's `errors`: `{ line, key?, message }`,
- * or `{ path, message }` with the line number in the path (`3`, `lines.3`). Never holds a value.
+ * The line errors of a refused `.env` import, from the problem's `errors`
+ * (`{ path: 'content', line, key?, message }`), in line order. Never holds a value.
  */
-export function envImportErrors(errors: readonly unknown[]): EnvImportError[] {
+export function envImportErrors(errors: readonly ProblemFieldError[]): EnvImportError[] {
   const result: EnvImportError[] = [];
   for (const item of errors) {
-    if (!item || typeof item !== 'object') continue;
-    const record = item as Record<string, unknown>;
-    if (typeof record.message !== 'string') continue;
-    let line: number | null = null;
-    if (typeof record.line === 'number' && Number.isInteger(record.line)) line = record.line;
-    else if (typeof record.path === 'string') {
-      const match = /\d+/.exec(record.path);
-      if (match) line = Number(match[0]);
-    }
-    const error: EnvImportError = { line, message: record.message };
-    if (typeof record.key === 'string' && record.key) error.key = record.key;
+    const line = typeof item.line === 'number' ? item.line : null;
+    const error: EnvImportError = { line, message: item.message };
+    if (item.key) error.key = item.key;
     result.push(error);
   }
   return result.sort((a, b) => (a.line ?? 0) - (b.line ?? 0));

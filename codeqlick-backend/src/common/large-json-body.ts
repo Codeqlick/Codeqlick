@@ -8,14 +8,21 @@ function clientError(status: number, message: string): Error {
 /**
  * Reads the JSON body of the routes matching `path` with a larger limit than the global JSON
  * parser's 100 KB (a `.env` import, architecture 4.13). It runs before that parser, which then
- * finds the body already read and leaves it alone. Other requests pass through untouched.
+ * sees the request already finished (on-finished's `isFinished`) and leaves it alone. Other
+ * requests pass through untouched. Compressed bodies are refused (415), as body-parser would
+ * otherwise inflate them past the limit.
  */
 export function largeJsonBody(path: RegExp, limit: number) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     const url = (req.originalUrl ?? req.url).split('?')[0] ?? '';
-    const type = req.headers['content-type'] ?? '';
+    const type = (req.headers['content-type'] ?? '').toLowerCase();
     if (req.method !== 'POST' || !path.test(url) || !type.startsWith('application/json')) {
       next();
+      return;
+    }
+    const encoding = (req.headers['content-encoding'] ?? 'identity').toLowerCase();
+    if (encoding !== 'identity') {
+      next(clientError(415, `unsupported content encoding "${encoding}"`));
       return;
     }
     if (Number(req.headers['content-length'] ?? 0) > limit) {
@@ -45,8 +52,6 @@ export function largeJsonBody(path: RegExp, limit: number) {
         finish(clientError(400, 'The body is not valid JSON'));
         return;
       }
-      // body-parser's mark for a body already read.
-      (req as Request & { _body?: boolean })._body = true;
       finish();
     });
     req.on('error', (error) => finish(error));

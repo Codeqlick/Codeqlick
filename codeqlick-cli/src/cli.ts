@@ -669,6 +669,11 @@ async function importEnvFile(
       'Which file? codeqlick env import <file> [--production] [--preview] [--overwrite]',
     );
   }
+  if (file === '-' && process.stdin.isTTY) {
+    throw new UsageError(
+      '"-" reads the file from standard input: pipe it in (codeqlick env import - < .env).',
+    );
+  }
   let content: string;
   try {
     content = file === '-' ? await readStdin() : await readFile(file, 'utf8');

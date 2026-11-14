@@ -41,12 +41,19 @@ import { GithubClient, GithubError } from './github.client.js';
 /** The most line errors an import answers with. */
 const IMPORT_ERRORS_MAX = 100;
 
-/** A refused import: `400` with each line's problem (never a value). */
+/**
+ * A refused import: `400` with each line's problem (never a value). The problem details filter
+ * answers any error list with the detail "Validation failed", so that is the message here too.
+ */
 function importRefused(errors: DotenvError[]): BadRequestException {
   return new BadRequestException({
-    message: "The file can't be imported",
+    message: 'Validation failed',
     errors: errors.slice(0, IMPORT_ERRORS_MAX).map((e) => ({ path: 'content', ...e })),
   });
+}
+
+function overLimit(entry: { line: number; key: string }, limit: number): DotenvError {
+  return { line: entry.line, key: entry.key, message: `A project has at most ${limit} variables` };
 }
 
 export interface BuildView {
@@ -376,6 +383,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       throw importRefused([{ line: 1, message: 'No variables in the file' }]);
     }
     const limit = CLOUD_PLANS[membership.team.plan].envVarsPerProject;
+    // A file with more names than the limit can't fit whatever exists: refuse before sealing.
+    const first = entries[limit];
+    if (first) throw importRefused([overLimit(first, limit)]);
     const vars = entries.map((entry) => ({
       key: entry.key,
       valueSealed: this.box.seal(entry.value),
@@ -388,9 +398,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     });
     if ('overLimit' in outcome) {
       const entry = entries.find((e) => e.key === outcome.overLimit)!;
-      throw importRefused([
-        { line: entry.line, key: entry.key, message: `A project has at most ${limit} variables` },
-      ]);
+      throw importRefused([overLimit(entry, limit)]);
     }
     await this.teams.record(ctx, project.teamId, 'env.imported', project.slug, {
       keys: { created: outcome.created, updated: outcome.updated, skipped: outcome.skipped },
