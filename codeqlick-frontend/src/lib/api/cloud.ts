@@ -106,6 +106,8 @@ export type CloudToken = {
   name: string;
   prefix: string;
   team: { slug: string; name: string } | null;
+  /** Read-only tokens may only call GET, HEAD and OPTIONS (architecture 4.13). */
+  readOnly: boolean;
   expiresAt: string | null;
   lastUsedAt: string | null;
   lastUsedIp: string | null;
@@ -266,6 +268,7 @@ export const createCloudToken = (input: {
   name: string;
   teamSlug?: string;
   expiresInDays: 30 | 90 | 365 | null;
+  readOnly?: boolean;
 }) =>
   apiFetch<{ token: string; item: CloudToken }>('/cloud/tokens', {
     ...write,

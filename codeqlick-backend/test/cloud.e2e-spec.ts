@@ -166,6 +166,59 @@ describe('Codeqlick Cloud (e2e)', () => {
     await request(server).get('/v1/auth/me').set(tokenAuth).expect(401);
     await request(server).get('/v1/cloud/tokens').set(tokenAuth).expect(401);
     await request(server).get('/v1/cloud/me').set({ Authorization: 'Bearer cqk_nope' }).expect(401);
+    expect(created.body.item.readOnly).toBe(false);
+
+    // A read-only token reads, and gets 403 for anything else (decision 61).
+    const reader = await request(server)
+      .post('/v1/cloud/tokens')
+      .set(ownerAuth)
+      .send({ name: 'Reader', teamSlug, expiresInDays: null, readOnly: true })
+      .expect(201);
+    expect(reader.body.item).toMatchObject({ name: 'Reader', readOnly: true, expiresAt: null });
+    const readerAuth = { Authorization: `Bearer ${reader.body.token as string}` };
+    await request(server).get('/v1/cloud/me').set(readerAuth).expect(200);
+    await request(server).get(`/v1/cloud/projects/${projectId}`).set(readerAuth).expect(200);
+    const readOnlyRefusal = await request(server)
+      .patch(`/v1/cloud/projects/${projectId}`)
+      .set(readerAuth)
+      .send({ name: 'Renamed' })
+      .expect(403);
+    expect(readOnlyRefusal.body).toMatchObject({ status: 403, detail: 'This token is read only' });
+    await request(server)
+      .post(`/v1/cloud/teams/${teamSlug}/projects`)
+      .set(readerAuth)
+      .send({ name: 'Nope', slug: `n-${tag}` })
+      .expect(403);
+    await request(server).delete(`/v1/cloud/projects/${projectId}`).set(readerAuth).expect(403);
+    const listed = await request(server).get('/v1/cloud/tokens').set(ownerAuth).expect(200);
+    expect(
+      (listed.body.items as Array<{ name: string; readOnly: boolean }>).map((t) => [
+        t.name,
+        t.readOnly,
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['CI', false],
+        ['Reader', true],
+      ]),
+    );
+    const tokenEvents = await request(server)
+      .get(`/v1/cloud/teams/${teamSlug}/events`)
+      .set(ownerAuth)
+      .expect(200);
+    expect(tokenEvents.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'token.created',
+          targetLabel: 'Reader',
+          details: { readOnly: true },
+        }),
+      ]),
+    );
+    await request(server)
+      .delete(`/v1/cloud/tokens/${reader.body.item.id as string}`)
+      .set(ownerAuth)
+      .expect(204);
 
     // ── Deployments ────────────────────────────────────────────────────────────────────────
     const noIndex = await bundle({ 'about.html': 'about' });

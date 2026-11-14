@@ -1971,6 +1971,8 @@ model CloudToken {
   /// The token's first 12 characters, to recognise it.
   prefix     String    @db.VarChar(12)
   tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  /// Read only: GET, HEAD and OPTIONS alone (decision 61). Set when made, never changed.
+  readOnly   Boolean   @default(false) @map("read_only")
   expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
   lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
   lastUsedIp String?   @map("last_used_ip") @db.VarChar(45)

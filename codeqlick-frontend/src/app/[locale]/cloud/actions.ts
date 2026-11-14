@@ -63,6 +63,7 @@ import {
   startCloudBuild,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { cloudTokenOptions } from '@/lib/cloud';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -401,13 +402,14 @@ export async function createTokenAction(
     const tv = await getTranslations({ locale: lang, namespace: 'Validation' });
     return { status: 'error', fieldErrors: { name: tv('required') }, values };
   }
-  const team = formString(formData, 'team');
-  const expiry = formString(formData, 'expiry');
-  const expiresInDays =
-    expiry === '30' ? 30 : expiry === '365' ? 365 : expiry === 'never' ? null : 90;
+  const options = cloudTokenOptions({
+    team: formString(formData, 'team'),
+    expiry: formString(formData, 'expiry'),
+    access: formString(formData, 'access'),
+  });
   let token: string;
   try {
-    token = (await createCloudToken({ name, teamSlug: team || undefined, expiresInDays })).token;
+    token = (await createCloudToken({ name, ...options })).token;
   } catch (error) {
     if (isApiError(error) && error.status === 409) {
       return { status: 'error', message: t('tooMany'), values };

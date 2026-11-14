@@ -186,7 +186,7 @@ export class CloudController {
     @Caller() ctx: CloudCtx,
     @Body({ schema: createTokenSchema }) body: CreateTokenInput,
   ): Promise<{ token: string; item: TokenView }> {
-    return this.tokens.create(ctx.user, body);
+    return this.tokens.create(ctx, body);
   }
 
   @Delete('tokens/:id')

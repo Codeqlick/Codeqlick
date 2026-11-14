@@ -180,6 +180,8 @@ Crea un token en la consola (**Tokens**, mejor limitado al equipo) y guárdalo c
 
 Con \`codeqlick.json\` en el repositorio no hace falta más. Sin él, añade \`CODEQLICK_TEAM\` y \`CODEQLICK_PROJECT\`. En GitHub Actions se guardan el commit y la rama de cada despliegue.
 
+Si un trabajo de CI solo consulta (listar proyectos, leer despliegues o el KV), crea el token con acceso **Solo lectura**: todo lo que no sea una lectura (\`GET\`) recibe \`403\`.
+
 ## Revisión web en tu CI
 
 \`codeqlick audit <url>\` revisa la rapidez, el móvil, Google y la seguridad de una página (la misma revisión que la web gratuita de Codeqlick) y termina con error por debajo de la nota que pidas, así que un paso de GitHub Actions puede frenar una pull request:
@@ -409,6 +411,8 @@ Create a token in the console (**Tokens**, ideally restricted to the team) and s
 \`\`\`
 
 With \`codeqlick.json\` in the repository nothing else is needed. Without it, add \`CODEQLICK_TEAM\` and \`CODEQLICK_PROJECT\`. On GitHub Actions each deployment records its commit and branch.
+
+For a CI job that only reads (listing projects, reading deployments or KV), make the token with **Read only** access: anything that isn't a read (\`GET\`) gets a \`403\`.
 
 ## Website check in your CI
 
