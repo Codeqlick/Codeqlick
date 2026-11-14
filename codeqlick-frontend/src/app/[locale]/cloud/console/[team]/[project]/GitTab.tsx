@@ -11,8 +11,16 @@ import {
   listCloudEnv,
   listCloudGithubRepos,
   listCloudHooks,
+  type CloudRebuild,
 } from '@/lib/api/cloud';
 import { formatWhen } from '@/lib/cloud';
+import {
+  describeRebuild,
+  formatWhen,
+  REBUILD_FREQUENCIES,
+  REBUILD_MAX_FAILURES,
+  weekdayName,
+} from '@/lib/cloud';
 import {
   connectGithubAction,
   createHookAction,
@@ -22,6 +30,7 @@ import {
   importEnvAction,
   saveEnvAction,
   saveGitAction,
+  saveRebuildAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { EnvImport } from './EnvImport';
@@ -34,6 +43,8 @@ type Props = {
   path: string;
   admin: boolean;
   github?: string;
+  /** The project's scheduled rebuilds. */
+  rebuild: CloudRebuild;
 };
 
 /** A project's GitHub connection, build settings and variables (architecture 4.13). */
@@ -72,6 +83,8 @@ export async function GitTab(props: Props) {
     </form>
   );
   const current = git.repoId && git.installationId ? `${git.installationId}:${git.repoId}` : '';
+  const { rebuild } = props;
+  const schedule = describeRebuild(rebuild, props.locale);
 
   return (
     <section className={styles.landing} aria-labelledby="git-title">
@@ -102,6 +115,86 @@ export async function GitTab(props: Props) {
             </form>
           ) : null}
         </div>
+      ) : null}
+
+      {git.repo ? (
+        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="rebuild-title">
+          <h3 id="rebuild-title" className={styles.cardTitle}>
+            {t('git.rebuild.title')}
+          </h3>
+          <p className={styles.small}>{t('git.rebuild.lead', { branch: git.branch })}</p>
+          {schedule ? (
+            <p className={styles.rowTitle}>
+              <Badge tone="success">
+                {t(`git.rebuild.every.${schedule.key}`, schedule.values)}
+              </Badge>
+            </p>
+          ) : (
+            <p className={styles.muted}>{t('git.rebuild.off', { branch: git.branch })}</p>
+          )}
+          {schedule && rebuild.nextAt ? (
+            <p className={styles.small}>
+              {t('git.rebuild.next', { when: formatWhen(rebuild.nextAt, props.locale) })}
+            </p>
+          ) : null}
+          {rebuild.frequency === 'off' && rebuild.failures >= REBUILD_MAX_FAILURES ? (
+            <Alert tone="error">
+              {t('git.rebuild.switchedOff', { max: REBUILD_MAX_FAILURES })}
+            </Alert>
+          ) : null}
+          {rebuild.frequency !== 'off' && rebuild.failures > 0 ? (
+            <Alert tone="info">
+              {t('git.rebuild.failing', { count: rebuild.failures, max: REBUILD_MAX_FAILURES })}
+            </Alert>
+          ) : null}
+          {props.admin ? (
+            <ActionForm
+              action={saveRebuildAction.bind(null, props.locale, props.path, props.projectId)}
+              className={styles.form}
+            >
+              <FormSelect
+                name="frequency"
+                label={t('git.rebuild.frequency')}
+                defaultValue={rebuild.frequency}
+                options={REBUILD_FREQUENCIES.map((value) => ({
+                  value,
+                  label: t(`git.rebuild.frequencies.${value}`),
+                }))}
+              />
+              <FormInput
+                name="minute"
+                type="number"
+                min={0}
+                max={59}
+                label={t('git.rebuild.minute')}
+                hint={t('git.rebuild.minuteHint')}
+                defaultValue={String(rebuild.minute ?? 0)}
+              />
+              <FormInput
+                name="hour"
+                type="number"
+                min={0}
+                max={23}
+                label={t('git.rebuild.hour')}
+                hint={t('git.rebuild.hourHint')}
+                defaultValue={String(rebuild.hour ?? 6)}
+              />
+              <FormSelect
+                name="weekday"
+                label={t('git.rebuild.weekday')}
+                hint={t('git.rebuild.weekdayHint')}
+                defaultValue={String(rebuild.weekday ?? 1)}
+                options={[1, 2, 3, 4, 5, 6, 7].map((day) => ({
+                  value: String(day),
+                  label: weekdayName(day, props.locale),
+                }))}
+              />
+              <div className={styles.actions}>
+                <SubmitButton variant="outline">{t('git.rebuild.save')}</SubmitButton>
+              </div>
+            </ActionForm>
+          ) : null}
+        </section>
       ) : null}
 
       {props.admin && team.installations.length === 0 ? (

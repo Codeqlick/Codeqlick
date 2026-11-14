@@ -72,6 +72,7 @@ import {
   importCloudEnv,
   setCloudEnv,
   setCloudGit,
+  setCloudRebuildSchedule,
   startCloudBuild,
   unlockCloudProduction,
 } from '@/lib/api/cloud';
@@ -82,6 +83,7 @@ import { ENV_IMPORT_MAX_BYTES, envImportErrors, type EnvImportState } from '@/li
 import { cloudTokenOptions } from '@/lib/cloud';
 import { monitorKeyword, monitorKeywordMode } from '@/lib/cloud';
 import { parseNoticeWindow, parseUpdateState } from '@/lib/cloud-notices';
+import { parseRebuildForm } from '@/lib/cloud';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { toDateTimeInput } from '@/lib/format';
 import { appPath } from '@/lib/webapp-request';
@@ -1108,6 +1110,53 @@ export async function disconnectGitAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await disconnectCloudGit(formString(formData, 'project')).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
+}
+
+/** Scheduled rebuilds of the production branch (architecture 4.13 "Builds from Git"). */
+export async function saveRebuildAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.git.rebuild' });
+  const values = formValues(formData);
+  const parsed = parseRebuildForm({
+    frequency: formString(formData, 'frequency'),
+    minute: formString(formData, 'minute'),
+    hour: formString(formData, 'hour'),
+    weekday: formString(formData, 'weekday'),
+  });
+  if (!parsed.ok) {
+    const fieldErrors: Record<string, string> = {};
+    if (parsed.errors.frequency) fieldErrors.frequency = t('frequencyInvalid');
+    if (parsed.errors.minute) {
+      fieldErrors.minute = parsed.errors.minute === 'required' ? t('required') : t('minuteInvalid');
+    }
+    if (parsed.errors.hour) {
+      fieldErrors.hour = parsed.errors.hour === 'required' ? t('required') : t('hourInvalid');
+    }
+    if (parsed.errors.weekday) fieldErrors.weekday = t('weekdayInvalid');
+    return { status: 'error', fieldErrors, values };
+  }
+  try {
+    await setCloudRebuildSchedule(projectId, parsed.body);
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      const tg = await getTranslations({ locale: lang, namespace: 'Cloud.git' });
+      return {
+        status: 'error',
+        message: error.fieldErrors._form ?? error.detail ?? tg('invalid'),
+        fieldErrors: error.fieldErrors,
+        values,
+      };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved') };
 }
 
 export async function saveEnvAction(

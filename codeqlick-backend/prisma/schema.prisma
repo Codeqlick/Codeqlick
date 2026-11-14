@@ -2162,6 +2162,15 @@ model CloudProject {
   protectionDays         Int       @default(7) @map("protection_days")
   protectionVersion      Int       @default(0) @map("protection_version")
   protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
+  /// Scheduled rebuilds of the production branch, Madrid time (architecture 4.13, decision 65).
+  rebuildFrequency       CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
+  rebuildMinute          Int?      @map("rebuild_minute")
+  rebuildHour            Int?      @map("rebuild_hour")
+  /// 1–7, Monday first.
+  rebuildWeekday         Int?      @map("rebuild_weekday")
+  rebuildNextAt          DateTime? @map("rebuild_next_at") @db.Timestamptz(3)
+  /// Scheduled builds failed in a row; five switch the schedule off.
+  rebuildFailures        Int       @default(0) @map("rebuild_failures")
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -2183,7 +2192,15 @@ model CloudProject {
   buckets            CloudBucket[]
 
   @@index([teamId, createdAt])
+  @@index([rebuildNextAt])
   @@map("cloud_projects")
+}
+
+enum CloudRebuildFrequency {
+  OFF
+  HOURLY
+  DAILY
+  WEEKLY
 }
 
 /// An immutable upload of a built folder.
@@ -2589,6 +2606,7 @@ enum CloudBuildTrigger {
   PULL_REQUEST
   MANUAL
   HOOK
+  SCHEDULE
 }
 
 enum CloudBuildStatus {
