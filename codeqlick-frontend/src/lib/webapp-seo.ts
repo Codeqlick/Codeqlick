@@ -39,5 +39,6 @@ export function webappAlternates(
 export const WEBAPP_PUBLIC_PATHS: Partial<Record<Webapp, string[]>> = {
   videochat: ['', '/rules'],
   swipe: ['', '/rules', '/takedown'],
-  cloud: ['', '/docs', '/terms-of-use'],
+  // With the public documentation site set up, /docs only redirects: not listed.
+  cloud: env.CLOUD_DOCS_URL ? ['', '/terms-of-use'] : ['', '/docs', '/terms-of-use'],
 };

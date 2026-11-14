@@ -24,6 +24,8 @@
   --color-danger-bg: #fdecea;
   --color-warning: #8a5300;
   --color-warning-bg: #fff4e0;
+  --color-info: #2f5fb4; /* calm states: planned maintenance (also the status badge's colour) */
+  --color-info-bg: #e9eff9;
 
   /* Typography — the next/font variables are set on <html> in app/[locale]/layout.tsx */
   --font-family-display:

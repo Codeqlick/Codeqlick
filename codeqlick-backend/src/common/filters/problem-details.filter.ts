@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { STATUS_CODES } from 'node:http';
 import type { Response } from 'express';
+import { redactHookPath } from '../redact-path.js';
 import type { AppRequest } from '../types/request.js';
 
 /** Keeps the API's unexpected errors for Admin → Errors (ErrorsService; architecture 4.11). */
@@ -26,6 +27,9 @@ export interface ErrorRecorder {
 export interface ProblemFieldError {
   path: string;
   message: string;
+  /** For errors inside a submitted file (a `.env` import): its line, and the name on it. */
+  line?: number;
+  key?: string;
 }
 
 /** RFC 9457 problem details body (architecture section 4.4). */
@@ -63,7 +67,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     if (problem.status >= 500) {
       const err = exception instanceof Error ? exception : new Error(String(exception));
       this.logger.error(
-        `Unhandled error on ${request.method} ${problem.instance} (requestId=${requestId ?? 'n/a'}): ${err.message}`,
+        `Unhandled error on ${request.method} ${redactHookPath(problem.instance)} (requestId=${requestId ?? 'n/a'}): ${err.message}`,
         err.stack,
       );
       // Only errors nobody meant: an HttpException with a 5xx (e.g. a service not set up) is a
@@ -75,7 +79,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
           message: `${err.name}: ${err.message}`,
           stack: err.stack,
           method: request.method,
-          path: (request.originalUrl ?? request.url).replace(/[?#].*$/, ''),
+          path: redactHookPath((request.originalUrl ?? request.url).replace(/[?#].*$/, '')),
           reference: requestId,
           userAgent: typeof userAgent === 'string' ? userAgent : undefined,
         });
@@ -144,7 +148,8 @@ function fromHttpException(exception: HttpException): ProblemDetails {
 
   if (errors.length > 0) {
     // Field-level validation errors (Standard Schema pipe or our own).
-    problem.detail = 'Validation failed';
+    // A service may name its own summary in `detail` (an invalid `codeqlick.json` says which).
+    problem.detail = typeof body.detail === 'string' ? body.detail : 'Validation failed';
     problem.errors = errors;
   } else if (typeof body.message === 'string') {
     problem.detail = body.message;
@@ -156,7 +161,7 @@ function fromHttpException(exception: HttpException): ProblemDetails {
   return problem;
 }
 
-/** Accepts Standard Schema issues, `{ path, message }` objects, or plain strings. */
+/** Accepts Standard Schema issues, `{ path, message, line?, key? }` objects, or plain strings. */
 function normalizeIssues(value: unknown): ProblemFieldError[] {
   if (!Array.isArray(value)) return [];
   const out: ProblemFieldError[] = [];
@@ -166,7 +171,10 @@ function normalizeIssues(value: unknown): ProblemFieldError[] {
       continue;
     }
     if (!isRecord(item) || typeof item.message !== 'string') continue;
-    out.push({ path: formatPath(item.path), message: item.message });
+    const issue: ProblemFieldError = { path: formatPath(item.path), message: item.message };
+    if (typeof item.line === 'number') issue.line = item.line;
+    if (typeof item.key === 'string') issue.key = item.key;
+    out.push(issue);
   }
   return out;
 }

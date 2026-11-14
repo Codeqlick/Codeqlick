@@ -84,7 +84,7 @@ export class ManagedSitesRepository {
         registeredAt: { not: null },
       },
       orderBy: { createdAt: 'asc' },
-      select: { name: true, email: true, locale: true },
+      select: { id: true, name: true, email: true, locale: true },
     });
   }
 

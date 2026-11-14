@@ -14,6 +14,13 @@ export interface MailMessage {
   replyTo?: string;
   /** A calendar invitation (iCalendar text), shown by mail apps as "add to calendar". */
   icalEvent?: { method: 'REQUEST' | 'CANCEL'; content: string };
+  /** Extra headers, e.g. `List-Unsubscribe` (architecture 4.14). */
+  headers?: Record<string, string>;
+  /**
+   * One-click unsubscribe URL of an optional email (architecture 4.3, decision 70): sent as the
+   * RFC 8058 `List-Unsubscribe` and `List-Unsubscribe-Post` headers. Transactional emails have none.
+   */
+  listUnsubscribe?: string;
 }
 
 /** The subset of a Nodemailer transporter we rely on (avoids its generic types). */
@@ -26,6 +33,7 @@ interface MailTransport {
     html?: string;
     replyTo?: string;
     icalEvent?: { method: string; content: string; filename: string };
+    headers?: Record<string, string>;
   }): Promise<unknown>;
 }
 
@@ -62,9 +70,20 @@ export class MailService {
       html: message.html,
       replyTo: message.replyTo,
       icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
+      headers: this.headers(message),
     });
     if (this.outbox) await this.keep(message);
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);
+  }
+
+  /** The message's own headers, plus one-click unsubscribe (RFC 8058) when it has a link. */
+  private headers(message: MailMessage): Record<string, string> | undefined {
+    if (!message.listUnsubscribe) return message.headers;
+    return {
+      ...message.headers,
+      'List-Unsubscribe': `<${message.listUnsubscribe}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    };
   }
 
   /** Tests: the email as `<time>-<random>.json` in the outbox folder, for browser tests. */
@@ -74,7 +93,12 @@ export class MailService {
     const name = `${Date.now()}-${randomBytes(4).toString('hex')}.json`;
     await writeFile(
       join(folder, name),
-      JSON.stringify({ to: message.to, subject: message.subject, text: message.text }),
+      JSON.stringify({
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+        ...(message.listUnsubscribe ? { listUnsubscribe: message.listUnsubscribe } : {}),
+      }),
     );
   }
 }

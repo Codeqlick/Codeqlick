@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { CloudNotifyChannel, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-/** Build notification channels (architecture 4.13 "Build notifications", decision 43). */
+/** Build notification channels (architecture 4.13 "Build notifications", decisions 43 and 63). */
 @Injectable()
 export class CloudNotificationsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -48,6 +48,14 @@ export class CloudNotificationsRepository {
     return row.failures;
   }
 
+  /** Records a `429` to a form event: shown, but neither counted nor clearing the count. */
+  async rateLimited(id: string, error: string, at: Date): Promise<void> {
+    await this.prisma.cloudNotifyChannel.update({
+      where: { id },
+      data: { lastSentAt: at, lastOk: false, lastError: error },
+    });
+  }
+
   async succeeded(id: string, at: Date): Promise<void> {
     await this.prisma.cloudNotifyChannel.update({
       where: { id },
@@ -79,6 +87,7 @@ export class CloudNotificationsRepository {
         pullRequest: true,
         status: true,
         error: true,
+        keptAsPreview: true,
         startedAt: true,
         finishedAt: true,
         project: {
@@ -90,6 +99,29 @@ export class CloudNotificationsRepository {
             team: { select: { slug: true, name: true } },
           },
         },
+      },
+    });
+  }
+
+  /** Which of `formIds` are forms of the project (decision 63). */
+  async formsAmong(projectId: string, formIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.cloudForm.findMany({
+      where: { projectId, id: { in: formIds } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
+  /** A monitor's project with what its alerts need (decision 64); null once deleted. */
+  project(id: string) {
+    return this.prisma.cloudProject.findFirst({
+      where: { id, deletedAt: null },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        teamId: true,
+        team: { select: { slug: true } },
       },
     });
   }

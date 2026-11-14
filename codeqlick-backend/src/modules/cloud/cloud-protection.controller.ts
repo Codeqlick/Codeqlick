@@ -1,0 +1,194 @@
+import { Body, Controller, Get, Param, Post, Put, Query, Req, Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiExcludeController, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
+import type { Request, Response } from 'express';
+import { CloudApi } from '../../common/decorators/cloud-api.decorator.js';
+import { Public } from '../../common/decorators/public.decorator.js';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
+import { Caller, type CloudCtx } from './cloud-caller.js';
+import { PROTECTION_PAGE_HEADERS, renderProtectionPage } from './cloud-protection-page.js';
+import { ACCESS_COOKIE, accessCookieOptions, nextFromUrl, pageLocale } from './cloud-protection.js';
+import {
+  CloudProtectionService,
+  type ProtectionView,
+  type ProxyHeaders,
+  type VisitorAnswer,
+} from './cloud-protection.service.js';
+import {
+  protectionSchema,
+  protectionTicketQuerySchema,
+  type ProtectionInput,
+  type ProtectionTicketQuery,
+} from './cloud.schemas.js';
+
+/** The headers the hosting site's Nginx sends (deploy/nginx/cloud-protection.conf). */
+function proxyHeaders(request: Request): ProxyHeaders {
+  const one = (name: string) => {
+    const value = request.headers[name];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  return {
+    key: one('x-cq-protection-key'),
+    host: one('x-cq-host'),
+    slug: one('x-cq-project'),
+    kind: one('x-cq-kind'),
+    access: one('x-cq-access'),
+    deployment: one('x-cq-deployment'),
+    uri: wire(one('x-cq-uri')),
+    args: wire(one('x-cq-args')),
+  };
+}
+
+/** Node reads header bytes as latin1: Nginx's UTF-8 bytes come back as the text they were. */
+function wire(value: string | undefined): string | undefined {
+  return value === undefined ? undefined : Buffer.from(value, 'latin1').toString('utf8');
+}
+
+/** The edge check's answer (see CloudEdgeController.check). */
+async function edgeCheck(
+  protection: CloudProtectionService,
+  request: Request,
+  res: Response,
+): Promise<void> {
+  const result = await protection.edge(proxyHeaders(request));
+  res.setHeader('Cache-Control', 'no-store');
+  if (result.type === 'password') {
+    res.status(401).end();
+  } else if (result.type === 'redirect') {
+    res.setHeader('X-Cq-Status', String(result.status));
+    res.setHeader('X-Cq-Location', result.location);
+    res.status(403).end();
+  } else {
+    // The path goes out as UTF-8 bytes, which Nginx reads back as the file's name.
+    res.setHeader('X-Cq-Path', Buffer.from(result.path, 'utf8').toString('latin1'));
+    for (const [name, value] of Object.entries(result.headers)) {
+      res.setHeader(`X-Cq-H-${name}`, value);
+    }
+    res.status(204).end();
+  }
+}
+
+/** Answers a visitor: the password page (EN/ES) or a `303` with the access cookie. */
+function answer(request: Request, res: Response, result: VisitorAnswer): void {
+  for (const [name, value] of Object.entries(PROTECTION_PAGE_HEADERS)) res.setHeader(name, value);
+  if (result.type === 'redirect') {
+    if (result.cookie) {
+      res.cookie(ACCESS_COOKIE, result.cookie.value, accessCookieOptions(result.cookie.days));
+    }
+    res.redirect(303, result.location);
+    return;
+  }
+  const html = renderProtectionPage({
+    locale: pageLocale(request.headers['accept-language']),
+    projectName: result.projectName,
+    next: result.next,
+    error: result.error,
+  });
+  res.status(result.status).type('html').send(html);
+}
+
+/**
+ * What the hosting sites' Nginx asks (architecture 4.13 "Password protection"): the visitor's
+ * `/__codeqlick/` pages (the per-request check is `cloud/edge/check`). Every route needs `X-Cq-Protection-Key`; `api.codeqlick.com` doesn't serve them.
+ */
+@ApiExcludeController()
+@Public()
+@Controller('cloud/protection')
+export class CloudProtectionPublicController {
+  constructor(private readonly protection: CloudProtectionService) {}
+
+  /** Deprecated alias of `GET /cloud/edge/check`, kept one release for Nginx snippets that predate it. */
+  @Get('check')
+  @SkipThrottle()
+  check(@Req() request: Request, @Res() res: Response): Promise<void> {
+    return edgeCheck(this.protection, request, res);
+  }
+
+  @Get('password')
+  async page(@Req() request: Request, @Res() res: Response): Promise<void> {
+    const next = nextFromUrl(request.originalUrl);
+    answer(request, res, await this.protection.page(proxyHeaders(request), next));
+  }
+
+  @Post('password')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async submit(
+    @Req() request: Request,
+    @Body() body: unknown,
+    @Res() res: Response,
+  ): Promise<void> {
+    const form = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
+    const result = await this.protection.submit(
+      proxyHeaders(request),
+      request.ip?.slice(0, 45) ?? null,
+      { password: form.password, next: form.next },
+    );
+    answer(request, res, result);
+  }
+
+  @Get('enter')
+  async enter(@Req() request: Request, @Res() res: Response): Promise<void> {
+    const ticket = request.query.ticket;
+    const value = typeof ticket === 'string' ? ticket : undefined;
+    answer(request, res, await this.protection.enter(proxyHeaders(request), value));
+  }
+}
+
+/**
+ * The one check the hosting sites' Nginx makes for password protection and `codeqlick.json`
+ * rules (architecture 4.13). Needs `X-Cq-Protection-Key`; `api.codeqlick.com` doesn't serve it.
+ */
+@ApiExcludeController()
+@Public()
+@Controller('cloud/edge')
+export class CloudEdgeController {
+  constructor(private readonly protection: CloudProtectionService) {}
+
+  /**
+   * `401` ask for the password; `403` with `X-Cq-Status` and `X-Cq-Location` a redirect; `204`
+   * serve, with `X-Cq-Path` and one `X-Cq-H-<name>` per header to add (Nginx caches 60 s).
+   */
+  @Get('check')
+  @SkipThrottle()
+  check(@Req() request: Request, @Res() res: Response): Promise<void> {
+    return edgeCheck(this.protection, request, res);
+  }
+}
+
+/** A project's password protection, for its team (session or API token). */
+@ApiTags('cloud')
+@ApiBearerAuth()
+@Roles('CLIENT', 'ADMIN')
+@CloudApi()
+@Controller('cloud/projects/:id/protection')
+export class CloudProtectionController {
+  constructor(private readonly protection: CloudProtectionService) {}
+
+  @Get()
+  get(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<ProtectionView> {
+    return this.protection.get(ctx, params.id);
+  }
+
+  @Put()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  update(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: protectionSchema }) body: ProtectionInput,
+  ): Promise<ProtectionView> {
+    return this.protection.update(ctx, params.id, body);
+  }
+
+  @Get('ticket')
+  ticket(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Query({ schema: protectionTicketQuerySchema }) query: ProtectionTicketQuery,
+  ): Promise<{ url: string; expiresIn: number }> {
+    return this.protection.ticket(ctx, params.id, query.host);
+  }
+}

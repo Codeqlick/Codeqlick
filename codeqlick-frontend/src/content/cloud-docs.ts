@@ -44,6 +44,10 @@ Tu web queda en \`https://<proyecto>.${domain}\`. Si lo usas a menudo, instálal
 | \`codeqlick deployments\` | Los despliegues del proyecto, el más reciente primero |
 | \`codeqlick promote <id>\` | Publica un despliegue anterior |
 | \`codeqlick rollback\` | Vuelve al despliegue publicado antes del actual |
+| \`codeqlick download [id]\` | Descarga los archivos de un despliegue en \`.tar.gz\` (el publicado si no indicas cuál) |
+| \`codeqlick unlock\` | Desbloquea producción tras volver atrás, sin publicar nada |
+| \`codeqlick files <id>\` | Los archivos de un despliegue, con su tamaño |
+| \`codeqlick diff <id> [otro]\` | Qué archivos añade, quita o cambia un despliegue respecto a producción (u otro) |
 | \`codeqlick domains\` | Tus dominios (\`add\`, \`check\` y \`rm <dominio>\`) |
 | \`codeqlick open\` | Abre la web publicada |
 
@@ -53,11 +57,24 @@ Tu web queda en \`https://<proyecto>.${domain}\`. Si lo usas a menudo, instálal
 
 Cada \`deploy\` crea un despliegue que no cambia nunca, con su propia dirección: \`https://<proyecto>--<id>.${domain}\` (sin indexar en buscadores). Sin \`--prod\` es una **vista previa**; con \`--prod\` además pasa a ser la versión publicada en \`https://<proyecto>.${domain}\` y en tus dominios.
 
-Para volver atrás, \`codeqlick rollback\` o el botón «Publicar» de cualquier despliegue en la consola. El cambio es instantáneo y atómico: nadie ve media web.
+Para volver atrás, \`codeqlick rollback\` o el botón «Publicar» de cualquier despliegue en la consola. El cambio es instantáneo y atómico: nadie ve media web. Publicar un despliegue anterior al actual **bloquea producción**: las compilaciones desde Git se despliegan como vistas previas hasta que publicas otro despliegue (\`deploy --prod\` o «Publicar» en uno más reciente) o la desbloqueas con \`codeqlick unlock\` o desde la consola.
 
-Guardamos los 20 últimos despliegues de cada proyecto, además del publicado. **No hacemos copia de tus archivos**: guarda tus fuentes.
+Guardamos los 20 últimos despliegues de cada proyecto, además del publicado y de hasta 5 que conserves a mano (botón "Conservar" en la consola): esos no se borran solos. Los demás se borran cada hora. **No hacemos copia de tus archivos**: guarda tus fuentes.
 
 Qué se sube: todo lo de la carpeta salvo los archivos y carpetas que empiezan por punto (excepto \`.well-known\`). Para excluir más, añade un \`.codeqlickignore\` con un patrón por línea (\`*.map\`, \`drafts/\`). Debe haber un \`index.html\` en la raíz.
+
+### Descargar un despliegue
+
+Puedes recuperar los archivos de cualquier despliegue guardado, para ver qué hay publicado o para llevarte la web: con el botón «Descargar» de la consola o desde la línea de comandos:
+
+\`\`\`sh
+codeqlick download              # el despliegue publicado
+codeqlick download a1b2c3d4     # otro, por su id corto
+codeqlick download -o web.tar.gz --force
+tar -xzf <proyecto>-<id>.tar.gz
+\`\`\`
+
+Se guarda como \`<proyecto>-<id>.tar.gz\` en la carpeta actual (o donde digas con \`-o\`); no sobrescribe un archivo existente sin \`--force\`, y una descarga cortada no deja nada a medias. Puede descargar cualquier miembro del equipo, también con el proyecto suspendido, hasta 10 veces por hora y equipo.
 
 ## Compilar desde GitHub
 
@@ -123,6 +140,21 @@ En la pestaña **Almacenamiento** crea buckets compatibles con S3 (2 por proyect
 - Si existe \`200.html\`, se sirve para **cualquier** ruta que no exista: así funcionan las aplicaciones de una página (React Router, Vue Router…). Copia tu \`index.html\` como \`200.html\` al compilar.
 - Los archivos de \`/assets/\`, \`/_astro/\` y \`/_next/static/\` se guardan en caché un año; el HTML se revalida siempre.
 
+## Redirecciones, reescrituras y cabeceras
+
+Declara reglas en el \`codeqlick.json\` de la carpeta donde ejecutas \`deploy\` (el mismo archivo que enlaza el proyecto; no se publica):
+
+\`\`\`json
+{
+  "$schema": "https://api.codeqlick.com/v1/cloud/schema/codeqlick.json",
+  "redirects": [{ "source": "/antiguo/:slug", "destination": "/blog/:slug", "status": 301 }],
+  "rewrites": [{ "source": "/app/*", "destination": "/app/index.html" }],
+  "headers": [{ "source": "/*", "headers": { "X-Frame-Options": "DENY" } }]
+}
+\`\`\`
+
+Una redirección se aplica antes que cualquier archivo; una reescritura solo cuando ningún archivo coincide. Un archivo no válido rechaza el despliegue y dice la ruta del error. La consola muestra las reglas de cada despliegue, solo lectura.
+
 ## Formularios
 
 Crea un formulario en la pestaña **Formularios** del proyecto y pega su HTML en tu página:
@@ -142,6 +174,8 @@ Crea un formulario en la pestaña **Formularios** del proyecto y pega su HTML en
 - \`_subject\` pone el asunto del email y \`_gotcha\` (oculto) frena los bots.
 - Con \`fetch\` y JSON recibes \`{ ok: true }\`. Solo se aceptan envíos desde las direcciones de tu proyecto y tus dominios.
 - Los envíos se guardan 180 días: búscalos, bórralos o descárgalos en CSV en la consola. El plan gratuito admite 1.000 envíos al mes por equipo.
+- El filtro de spam viene activado: marca los envíos con enlaces en código, demasiados enlaces, un nombre o email que no lo parece, una página que no es tuya o el mismo mensaje repetido. El spam se guarda 30 días en su propia vista de la consola, sin email ni aviso y sin contar en los envíos del mes; con «No es spam» lo recuperas y se entrega entonces.
+- Para recibirlos también en Slack, Discord o un webhook propio (un CRM, Zapier), activa «Cuando un formulario recibe un envío» en un aviso de la pestaña **Avisos**; el webhook recibe \`event: "form.submitted"\` con los campos.
 
 ## Dominios propios
 
@@ -157,7 +191,7 @@ Hasta 5 dominios por proyecto. \`www.tudominio.com\` y \`tudominio.com\` son dos
 
 En **Monitores** del equipo:
 
-- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días.
+- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días. Opcionalmente comprueba un **texto en la página** (hasta 100 caracteres, distingue mayúsculas): que la página lo contenga o que no lo contenga, en el primer MB de la respuesta.
 - **Un latido:** para tareas programadas (copias, colas, cron). Dale cada cuánto se ejecuta y un margen, y llama a su URL al terminar:
 
 \`\`\`sh
@@ -179,6 +213,8 @@ Crea un token en la consola (**Tokens**, mejor limitado al equipo) y guárdalo c
 \`\`\`
 
 Con \`codeqlick.json\` en el repositorio no hace falta más. Sin él, añade \`CODEQLICK_TEAM\` y \`CODEQLICK_PROJECT\`. En GitHub Actions se guardan el commit y la rama de cada despliegue.
+
+Si un trabajo de CI solo consulta (listar proyectos, leer despliegues o el KV), crea el token con acceso **Solo lectura**: todo lo que no sea una lectura (\`GET\`) recibe \`403\`.
 
 ## Revisión web en tu CI
 
@@ -228,7 +264,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
+Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`POST|DELETE …/deployments/<id>/keep\`, \`GET …/deployments/<id>/archive\` (el despliegue en \`.tar.gz\`), \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
 
 ## Denunciar un abuso
 
@@ -274,6 +310,10 @@ Your site is live at \`https://<project>.${domain}\`. If you use it often, insta
 | \`codeqlick deployments\` | The project's deployments, newest first |
 | \`codeqlick promote <id>\` | Publishes an earlier deployment |
 | \`codeqlick rollback\` | Goes back to the deployment published before the current one |
+| \`codeqlick download [id]\` | Downloads a deployment's files as \`.tar.gz\` (the published one when you don't say which) |
+| \`codeqlick unlock\` | Unlocks production after a rollback, without publishing anything |
+| \`codeqlick files <id>\` | A deployment's files, with their sizes |
+| \`codeqlick diff <id> [other]\` | Which files a deployment adds, removes or changes against production (or another one) |
 | \`codeqlick domains\` | Your domains (\`add\`, \`check\` and \`rm <domain>\`) |
 | \`codeqlick open\` | Opens the published site |
 
@@ -283,11 +323,24 @@ Your site is live at \`https://<project>.${domain}\`. If you use it often, insta
 
 Each \`deploy\` creates a deployment that never changes, with its own address: \`https://<project>--<id>.${domain}\` (not indexed by search engines). Without \`--prod\` it is a **preview**; with \`--prod\` it also becomes the published version at \`https://<project>.${domain}\` and on your domains.
 
-To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in the console. The switch is instant and atomic: nobody sees half a site.
+To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in the console. The switch is instant and atomic: nobody sees half a site. Publishing a deployment older than the current one **locks production**: builds from Git deploy as previews until you publish another deployment (\`deploy --prod\` or "Publish" on a newer one) or unlock it with \`codeqlick unlock\` or from the console.
 
-We keep the last 20 deployments of each project, plus the published one. **We don't back up your files**: keep your sources.
+We keep the last 20 deployments of each project, plus the published one and up to 5 you keep by hand (the "Keep" button in the console): those are never deleted automatically. Older ones are deleted every hour. **We don't back up your files**: keep your sources.
 
 What is uploaded: everything in the folder except files and folders starting with a dot (but \`.well-known\`). To leave out more, add a \`.codeqlickignore\` with one pattern per line (\`*.map\`, \`drafts/\`). There must be an \`index.html\` at the root.
+
+### Downloading a deployment
+
+You can get back the files of any kept deployment, to check what is live or to take your site elsewhere: with the "Download" button in the console or from the command line:
+
+\`\`\`sh
+codeqlick download              # the published deployment
+codeqlick download a1b2c3d4     # another one, by its short id
+codeqlick download -o site.tar.gz --force
+tar -xzf <project>-<id>.tar.gz
+\`\`\`
+
+It is saved as \`<project>-<id>.tar.gz\` in the current folder (or where \`-o\` says); it won't overwrite an existing file without \`--force\`, and a cut download leaves nothing half-written behind. Any member of the team can download, also while the project is suspended, up to 10 times an hour per team.
 
 ## Building from GitHub
 
@@ -353,6 +406,21 @@ In the **Storage** tab create S3-compatible buckets (2 per project, 1 GB and 100
 - If \`200.html\` exists, it is served for **any** route that doesn't exist: that's how single-page apps work (React Router, Vue Router…). Copy your \`index.html\` as \`200.html\` when building.
 - Files under \`/assets/\`, \`/_astro/\` and \`/_next/static/\` are cached for a year; HTML is always revalidated.
 
+## Redirects, rewrites and headers
+
+Declare rules in the \`codeqlick.json\` of the folder where you run \`deploy\` (the same file that links the project; it is not published):
+
+\`\`\`json
+{
+  "$schema": "https://api.codeqlick.com/v1/cloud/schema/codeqlick.json",
+  "redirects": [{ "source": "/old/:slug", "destination": "/blog/:slug", "status": 301 }],
+  "rewrites": [{ "source": "/app/*", "destination": "/app/index.html" }],
+  "headers": [{ "source": "/*", "headers": { "X-Frame-Options": "DENY" } }]
+}
+\`\`\`
+
+A redirect applies before any file; a rewrite only when no file matches. An invalid file rejects the deployment and names the path of the error. The console shows each deployment's rules, read-only.
+
 ## Forms
 
 Create a form in the project's **Forms** tab and paste its HTML into your page:
@@ -372,6 +440,8 @@ Create a form in the project's **Forms** tab and paste its HTML into your page:
 - \`_subject\` sets the email's subject and \`_gotcha\` (hidden) stops bots.
 - With \`fetch\` and JSON you get \`{ ok: true }\`. Only posts from your project's addresses and domains are accepted.
 - Submissions are kept 180 days: search, delete or download them as CSV in the console. The free plan takes 1,000 submissions a month per team.
+- The spam filter is on by default: it flags submissions with link markup, too many links, a name or email field that isn't one, a page that isn't yours or the same message again and again. Spam is kept 30 days in its own view in the console, isn't emailed or sent to channels, and doesn't count towards the month's submissions; "Not spam" brings it back and delivers it then.
+- To get them in Slack, Discord or a webhook of yours too (a CRM, Zapier), turn on "When a form gets a submission" in a channel of the **Notifications** tab; the webhook gets \`event: "form.submitted"\` with the fields.
 
 ## Custom domains
 
@@ -387,7 +457,7 @@ Up to 5 domains per project. \`www.yourdomain.com\` and \`yourdomain.com\` are t
 
 In the team's **Monitors**:
 
-- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days.
+- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days. Optionally it checks **text on the page** (up to 100 characters, case-sensitive): that the page contains it, or that it doesn't, in the first MB of the response.
 - **A heartbeat:** for scheduled jobs (backups, queues, cron). Give it how often it runs and a grace, and call its URL when it ends:
 
 \`\`\`sh
@@ -409,6 +479,8 @@ Create a token in the console (**Tokens**, ideally restricted to the team) and s
 \`\`\`
 
 With \`codeqlick.json\` in the repository nothing else is needed. Without it, add \`CODEQLICK_TEAM\` and \`CODEQLICK_PROJECT\`. On GitHub Actions each deployment records its commit and branch.
+
+For a CI job that only reads (listing projects, reading deployments or KV), make the token with **Read only** access: anything that isn't a read (\`GET\`) gets a \`403\`.
 
 ## Website check in your CI
 
@@ -458,7 +530,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
+Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`POST|DELETE …/deployments/<id>/keep\`, \`GET …/deployments/<id>/archive\` (the deployment as \`.tar.gz\`), \`GET …/deployments/<id>/files\`, \`GET …/deployments/<id>/compare?with=production\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
 
 ## Reporting abuse
 

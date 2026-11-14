@@ -1,26 +1,31 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { cache } from 'react';
 import { CaseStudyArticle } from '@/components/content/CaseStudyArticle';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { isNotFound } from '@/lib/api/errors';
-import { getPortfolioItem } from '@/lib/api/portfolio';
+import { getPortfolioItem, getPortfolioRedirect } from '@/lib/api/portfolio';
 import type { Locale } from '@/lib/api/types';
 import { pageMetadata, shareImage } from '@/lib/seo';
+import { contentPath, lookUpSlug } from '@/lib/slug-redirect';
 import styles from '../../site.module.css';
 
 type PageProps = { params: Promise<{ locale: string; slug: string }> };
 
-/** Shared by generateMetadata and the page; a missing item renders the 404 page. */
+/**
+ * Shared by generateMetadata and the page, so both settle the same way: an old slug redirects
+ * (308) to the case study's current address, a missing item renders the 404 page.
+ */
 const loadItem = cache(async (slug: string, locale: Locale) => {
-  try {
-    return await getPortfolioItem(slug, locale);
-  } catch (error) {
-    if (isNotFound(error)) notFound();
-    throw error;
-  }
+  const found = await lookUpSlug(
+    slug,
+    (current) => getPortfolioItem(current, locale),
+    getPortfolioRedirect,
+  );
+  if (found.status === 'moved') permanentRedirect(contentPath(locale, 'work', found.slug));
+  if (found.status === 'missing') notFound();
+  return found.item;
 });
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

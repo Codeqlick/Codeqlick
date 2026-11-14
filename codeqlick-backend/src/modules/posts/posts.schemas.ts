@@ -29,6 +29,8 @@ export const createPostSchema = z
     coverImageUrl: nullableUrlSchema,
     translations: translationsArray(postTranslationSchema),
     publishedAt: publishedAtSchema,
+    /** Email it to the newsletter's subscribers when it goes live (architecture 4.14). */
+    newsletter: z.boolean().default(true),
     tagIds: tagIdsSchema.default([]),
   })
   .strict();
@@ -41,6 +43,7 @@ export const updatePostSchema = z
     coverImageUrl: nullableUrlSchema,
     translations: translationsArray(postTranslationSchema).optional(),
     publishedAt: publishedAtSchema,
+    newsletter: z.boolean().optional(),
     tagIds: tagIdsSchema.optional(),
   })
   .strict();
@@ -69,3 +72,19 @@ export const listAdminPostsQuerySchema = paginationSchema.extend({
   status: publishStatusSchema.optional(),
 });
 export type ListAdminPostsQuery = z.infer<typeof listAdminPostsQuerySchema>;
+
+/** A stored `PostSnapshot`, checked before it is restored (decision 72). */
+export const postSnapshotSchema = z.object({
+  coverImageUrl: z.string().nullable(),
+  tagIds: z.array(z.string()),
+  translations: z
+    .array(
+      z.object({
+        locale: localeSchema,
+        title: z.string(),
+        excerpt: z.string(),
+        content: z.string(),
+      }),
+    )
+    .min(1),
+});

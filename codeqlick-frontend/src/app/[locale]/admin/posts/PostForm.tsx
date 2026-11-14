@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import {
   ActionForm,
+  FormCheckbox,
   FormCheckboxGroup,
   FormInput,
   FormSelect,
@@ -12,10 +13,11 @@ import { ImageField } from '@/components/app/ImageField';
 import { MarkdownField } from '@/components/app/MarkdownField';
 import { MarkdownImageButton } from '@/components/app/MarkdownImageButton';
 import { markdownPreviewLabels } from '@/components/app/markdownPreviewLabels';
+import { Checkbox } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
-import { toDateTimeInput } from '@/lib/format';
+import { formatDateTime, toDateTimeInput } from '@/lib/format';
 import { MAX_IMAGE_BYTES } from '@/lib/api/media';
 import { adminListTags } from '@/lib/api/posts';
 import type { AdminPost } from '@/lib/api/types';
@@ -68,6 +70,30 @@ export async function PostForm({
           defaultValue={toDateTimeInput(post?.publishedAt)}
         />
       </div>
+      {post?.newsletterSentAt ? (
+        <>
+          {/* Disabled boxes are not submitted: this tells the action to leave `newsletter` out. */}
+          <input type="hidden" name="newsletterSent" value="1" />
+          <Checkbox
+            name="newsletter"
+            label={t('newsletter')}
+            hint={
+              post.newsletter
+                ? t('newsletterSentOn', { date: formatDateTime(post.newsletterSentAt, locale) })
+                : t('newsletterSkippedOn')
+            }
+            defaultChecked={post.newsletter}
+            disabled
+          />
+        </>
+      ) : (
+        <FormCheckbox
+          name="newsletter"
+          label={t('newsletter')}
+          hint={t('newsletterHint')}
+          defaultChecked={post?.newsletter ?? true}
+        />
+      )}
       <ImageField
         name="coverImageUrl"
         label={t('coverImageUrl')}

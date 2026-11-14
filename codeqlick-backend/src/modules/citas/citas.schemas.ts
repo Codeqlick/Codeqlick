@@ -32,6 +32,7 @@ export const RESERVED_SLUGS: string[] = [
   'calculator',
   'confirm-email',
   'contact',
+  'email',
   'legal',
   'portal',
   'privacy',

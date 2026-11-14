@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser } from '@/lib/auth/session';
+import { cloudDocsUrl } from '@/lib/cloud-docs-url';
 import { env } from '@/lib/env';
 import styles from './cloud.module.css';
 
@@ -33,7 +34,7 @@ export default async function CloudLandingPage({ params }: PageProps) {
                 {t('landing.createAccount')}
               </Button>
             )}
-            <Button href="/cloud/docs" variant="outline">
+            <Button href={cloudDocsUrl(locale)} variant="outline">
               {t('landing.docs')}
             </Button>
           </div>

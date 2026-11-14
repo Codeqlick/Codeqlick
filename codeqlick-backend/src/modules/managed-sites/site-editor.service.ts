@@ -4,7 +4,12 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
-import { siteContentSchema, sitePresetSchema, type SiteContent } from './managed-sites.schemas.js';
+import {
+  presetContent,
+  siteContentSchema,
+  sitePresetSchema,
+  type SiteContent,
+} from './managed-sites.schemas.js';
 import { ManagedSitesService } from './managed-sites.service.js';
 import { PortalSitesService } from './portal-sites.service.js';
 import { SiteBuilderClient } from './site-builder.client.js';
@@ -32,12 +37,8 @@ export interface SiteEditorView {
   bookingPages: Array<{ slug: string; title: string; url: string; enabled: boolean }>;
   /** The menu extra is on: the client can edit and publish it (architecture 8.2). */
   menuEnabled: boolean;
-}
-
-/** The style's demo content with the fields a site's content doesn't keep. */
-function presetContent(content: Record<string, unknown>): Record<string, unknown> {
-  const { url: _url, form: _form, demo: _demo, footerNote: _note, ...rest } = content;
-  return rest;
+  /** The news section is on: the "Noticias" tab shows its posts (architecture 8.2). */
+  newsEnabled: boolean;
 }
 
 /**
@@ -159,6 +160,8 @@ export class SiteEditorService {
   }
 
   private async buildPreview(site: SiteRow): Promise<SiteEditorView> {
+    // The preview shows the published posts too (the menu link and the home section).
+    const news = await this.sites.newsToBuild(site);
     const result = await this.builder.buildDraft({
       slug: site.slug,
       preset: site.draftPreset ?? site.preset,
@@ -167,6 +170,7 @@ export class SiteEditorService {
         ...this.sites.contentToBuild(site, site.draftContent),
         url: this.sites.addressOf(site),
         demo: false,
+        ...(news ? { news } : {}),
       },
     });
     if (!result.ok) {
@@ -207,6 +211,7 @@ export class SiteEditorService {
           : null,
       bookingPages: pages.map((page) => ({ ...page, url: `${citas}/${page.slug}` })),
       menuEnabled: site.menuEnabled,
+      newsEnabled: site.newsEnabled,
     };
   }
 }

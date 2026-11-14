@@ -16,7 +16,21 @@ import { assertCheckableUrl, safeFetch } from '../site-audits/safe-fetch.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudMonitorEmail } from './cloud-emails.js';
 import { CloudMonitorsRepository, type MonitorWithTeam } from './cloud-monitors.repository.js';
+import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
+import {
+  CloudStatusNoticesRepository,
+  type PublicNoticeRow,
+} from './cloud-status-notices.repository.js';
+import {
+  monitorsInMaintenance,
+  noticeState,
+  publicOrder,
+  windowsFor,
+  withoutWindows,
+  type NoticeKind,
+  type NoticeState,
+} from './cloud-status-notices.js';
 import type { CreateMonitorInput, StatusPageInput, UpdateMonitorInput } from './cloud.schemas.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import {
@@ -27,14 +41,19 @@ import {
   type DayUptime,
   type Incident,
   type MonitorState,
+  type PublicMonitorState,
   type StateChange,
 } from './cloud-uptime.js';
+import { badgeSvg } from './cloud-badge.js';
 
 export interface MonitorView {
   id: string;
   name: string;
   kind: 'HTTP' | 'HEARTBEAT';
   url: string | null;
+  /** HTTP: text the page must (or must not) contain; null when not checked. */
+  keyword: string | null;
+  keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
   /** Heartbeats: the URL the job calls. */
   heartbeatUrl: string | null;
   periodMinutes: number | null;
@@ -75,14 +94,30 @@ export interface StatusPageSettings {
 export interface PublicStatus {
   title: string;
   intro: string | null;
-  overall: 'operational' | 'partial' | 'major' | 'unknown';
+  overall: 'operational' | 'partial' | 'major' | 'maintenance' | 'unknown';
   updatedAt: string;
   monitors: Array<{
     label: string;
-    status: MonitorState;
+    /** MAINTENANCE while a maintenance in progress covers it. */
+    status: PublicMonitorState;
     uptime90: number | null;
     days: DayUptime[];
     incidents: Incident[];
+  }>;
+  /** Open notices and those closed in the last 14 days, in the page's order. */
+  notices: Array<{
+    id: string;
+    kind: NoticeKind;
+    title: string;
+    state: NoticeState;
+    /** Public labels of the affected monitors that are on the page. */
+    monitors: string[];
+    startsAt: string | null;
+    endsAt: string | null;
+    resolvedAt: string | null;
+    createdAt: string;
+    /** Newest first. */
+    updates: Array<{ state: NoticeState | null; body: string; createdAt: string }>;
   }>;
 }
 
@@ -91,7 +126,26 @@ const DAY = 86_400_000;
 const CHECK_EVERY = 5 * MINUTE;
 const ALERT_GAP = 15 * MINUTE;
 const CERT_WARN_DAYS = 14;
+/** Body read by a plain check, and by one that looks for text on the page (cut there, not refused). */
+const PLAIN_BYTES = 64 * 1024;
+const KEYWORD_BYTES = 1024 * 1024;
 const newKey = () => `cqh_${randomBytes(16).toString('base64url')}`;
+
+/**
+ * The text check of an HTTP monitor on the body read (UTF-8, at most the first 1 MB): `null` when
+ * it holds or there is none, otherwise the error to record. Case-sensitive.
+ */
+export function keywordError(
+  monitor: Pick<CloudMonitor, 'keyword' | 'keywordMode'>,
+  body: string,
+): string | null {
+  if (!monitor.keyword) return null;
+  const found = body.includes(monitor.keyword);
+  if (monitor.keywordMode === 'NOT_CONTAINS') {
+    return found ? `The page contains «${monitor.keyword}»`.slice(0, 300) : null;
+  }
+  return found ? null : `The page doesn't contain «${monitor.keyword}»`.slice(0, 300);
+}
 
 /** Monitors, heartbeats and status pages of Cloud teams (architecture 4.13; decisions 38, 39). */
 @Injectable()
@@ -105,9 +159,11 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
 
   constructor(
     private readonly repository: CloudMonitorsRepository,
+    private readonly notices: CloudStatusNoticesRepository,
     private readonly teams: CloudTeamsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly notifications: CloudNotificationsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -131,6 +187,8 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       name: monitor.name,
       kind: monitor.kind,
       url: monitor.url,
+      keyword: monitor.keyword,
+      keywordMode: monitor.keywordMode,
       heartbeatUrl: monitor.key ? this.heartbeatUrl(monitor.key) : null,
       periodMinutes: monitor.periodMinutes,
       graceMinutes: monitor.graceMinutes,
@@ -206,6 +264,8 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
             name: input.name,
             kind: 'HTTP',
             url: this.checkUrl(input.url),
+            keyword: input.keyword ?? null,
+            keywordMode: input.keywordMode,
             alertIds,
           }
         : {
@@ -236,9 +296,23 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     const data: Parameters<CloudMonitorsRepository['update']>[1] = {};
     if (input.name !== undefined) data.name = input.name;
     if (input.alertIds) data.alertIds = await this.checkAlertees(monitor.teamId, input.alertIds);
+    if (monitor.kind === 'HEARTBEAT' && input.keyword) {
+      throw new BadRequestException('Heartbeats cannot check text on a page');
+    }
     if (input.url !== undefined && monitor.kind === 'HTTP') {
       data.url = this.checkUrl(input.url);
       data.failures = 0;
+    }
+    // A new text check starts counting failures again.
+    if (monitor.kind === 'HTTP') {
+      if (input.keyword !== undefined && input.keyword !== monitor.keyword) {
+        data.keyword = input.keyword;
+        data.failures = 0;
+      }
+      if (input.keywordMode !== undefined && input.keywordMode !== monitor.keywordMode) {
+        data.keywordMode = input.keywordMode;
+        data.failures = 0;
+      }
     }
     const period = input.periodMinutes ?? monitor.periodMinutes;
     const grace = input.graceMinutes ?? monitor.graceMinutes;
@@ -267,7 +341,9 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
 
   async remove(ctx: CloudCtx, id: string): Promise<void> {
     const monitor = await this.monitor(ctx, id, 'ADMIN');
+    await this.notices.forgetMonitor(monitor.teamId, monitor.id);
     await this.repository.remove(monitor.id);
+    this.forgetStatus(monitor.team.slug);
     await this.teams.record(ctx, monitor.teamId, 'monitor.deleted', monitor.name);
   }
 
@@ -309,10 +385,22 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       data.statusSince = now;
       await this.repository.event(monitor.id, status, now, error);
     }
-    // Back UP from UNKNOWN is the first result, not a recovery: no email.
-    const alert = changed && (status === 'DOWN' || monitor.status === 'DOWN');
-    const last = status === 'DOWN' ? monitor.lastDownAlertAt : monitor.lastUpAlertAt;
-    const send = alert && (!last || now.getTime() - last.getTime() >= ALERT_GAP);
+    const spaced = (last: Date | null) => !last || now.getTime() - last.getTime() >= ALERT_GAP;
+    let send = false;
+    if (changed && status === 'DOWN') {
+      // Not during a maintenance in progress (decision 62): the event above is kept all the same,
+      // and the tick sends the alert if it is still down when the window ends.
+      send =
+        spaced(monitor.lastDownAlertAt) &&
+        !(await this.notices.inMaintenance(monitor.teamId, monitor.id, now));
+    } else if (changed && monitor.status === 'DOWN') {
+      // Back up: only when this down episode (since `statusSince`) was alerted, maintenance or
+      // not. Back UP from UNKNOWN is the first result, not a recovery: no email.
+      send =
+        !!monitor.lastDownAlertAt &&
+        monitor.lastDownAlertAt.getTime() >= monitor.statusSince.getTime() &&
+        spaced(monitor.lastUpAlertAt);
+    }
     if (send) data[status === 'DOWN' ? 'lastDownAlertAt' : 'lastUpAlertAt'] = now;
     await this.repository.update(monitor.id, data);
     if (send) {
@@ -330,6 +418,9 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     error: string | null,
     extra: { minutes?: number; certExpires?: Date },
   ): Promise<void> {
+    // A monitor tied to a project also tells its Slack, Discord and webhook channels that asked
+    // for monitor alerts (decision 64), in the background like these emails.
+    if (monitor.projectId) void this.notifications.monitorAlert(monitor, kind, error, extra);
     try {
       for (const person of await this.repository.alertees(monitor.teamId, monitor.alertIds)) {
         const locale = toApiLocale(person.locale);
@@ -382,10 +473,25 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
         await this.repository.check(monitor.id, { ok: false, error: late }, now);
         await this.transition(monitor, 'DOWN', now, late);
       }
+      await this.sendPendingDownAlerts(now);
     } catch (error) {
       this.logger.error(`Cloud monitors tick failed: ${String(error)}`);
     } finally {
       this.running = false;
+    }
+  }
+
+  /**
+   * Down alerts held back: monitors still DOWN whose episode wasn't alerted (it began during a
+   * maintenance, or too soon after the last alert), now outside any maintenance (decision 62).
+   */
+  private async sendPendingDownAlerts(now: Date): Promise<void> {
+    const spacedBefore = new Date(now.getTime() - ALERT_GAP);
+    for (const monitor of await this.repository.pendingDownAlerts(now, spacedBefore)) {
+      if (!(await this.repository.claimDownAlert(monitor.id, monitor.lastDownAlertAt, now))) {
+        continue;
+      }
+      void this.alert(monitor, 'down', monitor.lastError, {});
     }
   }
 
@@ -403,16 +509,17 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     try {
       const page = await safeFetch(monitor.url, {
         timeoutMs: 15_000,
-        maxBytes: 64 * 1024,
+        maxBytes: monitor.keyword ? KEYWORD_BYTES : PLAIN_BYTES,
         maxRedirects: 5,
       });
       certificate = page.certificateValidTo;
       const ok = page.status < 400;
+      const textError = ok ? keywordError(monitor, page.body) : null;
       result = {
-        ok,
+        ok: ok && !textError,
         statusCode: page.status,
         responseMs: Date.now() - started,
-        error: ok ? null : `HTTP ${page.status}`,
+        error: ok ? textError : `HTTP ${page.status}`,
       };
     } catch (error) {
       const reason =
@@ -469,12 +576,18 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     try {
       await this.repository.deleteChecksBefore(new Date(now.getTime() - 90 * DAY));
       await this.repository.deleteEventsBefore(new Date(now.getTime() - 400 * DAY));
+      await this.notices.deleteClosedBefore(new Date(now.getTime() - 365 * DAY));
     } catch (error) {
       this.logger.error(`Cloud monitors cleanup failed: ${String(error)}`);
     }
   }
 
   // ── Status pages ───────────────────────────────────────────────────────────────────────────
+
+  /** Drops a team's cached public status, after its page or its notices change. */
+  forgetStatus(teamSlug: string): void {
+    this.cache.delete(teamSlug);
+  }
 
   async statusPage(ctx: CloudCtx, teamSlug: string): Promise<StatusPageSettings> {
     const membership = await this.teams.access(ctx, teamSlug);
@@ -509,7 +622,7 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       intro: input.intro || null,
       items,
     });
-    this.cache.delete(teamSlug);
+    this.forgetStatus(teamSlug);
     await this.teams.record(ctx, membership.teamId, 'status_page.saved', page.title, {
       enabled: page.enabled,
     });
@@ -527,32 +640,76 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       page.team.id,
       items.map((i) => i.monitorId),
     );
-    const events = await this.repository.eventsSince(
-      monitors.map((m) => m.id),
-      new Date(now.getTime() - 90 * DAY),
-    );
-    const byMonitor = (id: string): StateChange[] => events.filter((e) => e.monitorId === id);
+    const since = new Date(now.getTime() - 90 * DAY);
+    const [events, maintenance, notices] = await Promise.all([
+      this.repository.eventsSince(
+        monitors.map((m) => m.id),
+        since,
+      ),
+      this.notices.maintenanceSince(page.team.id, since, now),
+      this.notices.publicNotices(page.team.id, now, new Date(now.getTime() - 14 * DAY)),
+    ]);
+    const inMaintenance = monitorsInMaintenance(maintenance, now);
+    // Maintenance time is left out of uptime and incidents, like UNKNOWN and PAUSED (decision 62).
+    const byMonitor = (id: string): StateChange[] =>
+      withoutWindows(
+        events.filter((e) => e.monitorId === id),
+        windowsFor(maintenance, id),
+      );
     const rows = items
       .map((item) => ({ item, monitor: monitors.find((m) => m.id === item.monitorId) }))
       .filter(
         (row): row is { item: (typeof items)[number]; monitor: CloudMonitor } => !!row.monitor,
       )
-      .map(({ item, monitor }) => ({
-        label: item.label,
-        status: monitor.status,
-        uptime90: uptime(byMonitor(monitor.id), new Date(now.getTime() - 90 * DAY), now),
-        days: dailyUptime(byMonitor(monitor.id), 90, now),
-        incidents: incidents(byMonitor(monitor.id), new Date(now.getTime() - 14 * DAY), now),
-      }));
+      .map(({ item, monitor }) => {
+        const changes = byMonitor(monitor.id);
+        const status: PublicMonitorState = inMaintenance.has(monitor.id)
+          ? 'MAINTENANCE'
+          : monitor.status;
+        return {
+          label: item.label,
+          status,
+          uptime90: uptime(changes, since, now),
+          days: dailyUptime(changes, 90, now),
+          incidents: incidents(changes, new Date(now.getTime() - 14 * DAY), now),
+        };
+      });
     const value: PublicStatus = {
       title: page.title,
       intro: page.intro,
       overall: overall(rows.map((r) => r.status)),
       updatedAt: now.toISOString(),
       monitors: rows,
+      notices: this.publicNotices(notices, items, now),
     };
     this.cache.set(teamSlug, { at: now.getTime(), value });
     return value;
+  }
+
+  /** Notices as the public page shows them: monitors named only by their labels on the page. */
+  private publicNotices(
+    notices: PublicNoticeRow[],
+    items: StatusPageSettings['items'],
+    now: Date,
+  ): PublicStatus['notices'] {
+    return publicOrder(notices, now).map((notice) => ({
+      id: notice.id,
+      kind: notice.kind,
+      title: notice.title,
+      state: noticeState(notice, now),
+      monitors: items
+        .filter((item) => notice.monitorIds.includes(item.monitorId))
+        .map((item) => item.label),
+      startsAt: notice.startsAt?.toISOString() ?? null,
+      endsAt: notice.endsAt?.toISOString() ?? null,
+      resolvedAt: notice.resolvedAt?.toISOString() ?? null,
+      createdAt: notice.createdAt.toISOString(),
+      updates: notice.updates.map((update) => ({
+        state: update.state,
+        body: update.body,
+        createdAt: update.createdAt.toISOString(),
+      })),
+    }));
   }
 
   /** A small SVG badge with the overall state. */
@@ -562,11 +719,9 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       operational: ['operational', '#1e7a4a'],
       partial: ['partial outage', '#b26b00'],
       major: ['major outage', '#b3261e'],
+      maintenance: ['under maintenance', '#2f5fb4'],
       unknown: ['unknown', '#5c5768'],
     }[status.overall];
-    const left = 'status';
-    const lw = 6 * left.length + 12;
-    const rw = 6.5 * text.length + 12;
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${lw + rw}" height="20" role="img" aria-label="${left}: ${text}"><title>${left}: ${text}</title><rect width="${lw}" height="20" fill="#14101f"/><rect x="${lw}" width="${rw}" height="20" fill="${color}"/><g fill="#fff" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11" text-anchor="middle"><text x="${lw / 2}" y="14">${left}</text><text x="${lw + rw / 2}" y="14">${text}</text></g></svg>`;
+    return badgeSvg('status', text, color);
   }
 }

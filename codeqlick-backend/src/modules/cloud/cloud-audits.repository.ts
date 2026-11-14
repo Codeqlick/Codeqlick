@@ -24,7 +24,7 @@ export class CloudAuditsRepository {
       this.prisma.cloudAudit.findMany({
         where: { teamId },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        select: { id: true, url: true, score: true, createdAt: true },
+        select: { id: true, url: true, score: true, userId: true, createdAt: true },
         skip,
         take,
       }),

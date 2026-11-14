@@ -31,6 +31,15 @@ export class AuthRepository {
     });
   }
 
+  /** Like `setPreferences`, but false instead of an error when the user no longer exists. */
+  async setPreferencesIfExists(
+    id: string,
+    data: { weeklyDigest?: boolean; monthlyReport?: boolean },
+  ): Promise<boolean> {
+    const result = await this.prisma.user.updateMany({ where: { id }, data });
+    return result.count === 1;
+  }
+
   findUserById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }
@@ -239,6 +248,15 @@ export class AuthRepository {
       data: { totpRecoveryHashes: remaining },
     });
     return result.count === 1;
+  }
+
+  /**
+   * The distinct User-Agents of every session row the user still has (live, signed out or
+   * expired but not yet cleaned up), to tell a new device from a known one.
+   */
+  async listSessionUserAgents(userId: string): Promise<(string | null)[]> {
+    const rows = await this.prisma.session.groupBy({ by: ['userAgent'], where: { userId } });
+    return rows.map((row) => row.userAgent);
   }
 
   /** The user's live sessions: one row per family (the latest rotation), newest first. */

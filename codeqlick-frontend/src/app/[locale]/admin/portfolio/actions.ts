@@ -12,6 +12,7 @@ import {
 import {
   adminCreatePortfolioItem,
   adminDeletePortfolioItem,
+  adminRestorePortfolioRevision,
   adminUpdatePortfolioItem,
 } from '@/lib/api/portfolio';
 import type { PortfolioInput, ServiceKey } from '@/lib/api/types';
@@ -124,4 +125,25 @@ export async function deletePortfolioAction(
 
   revalidateSite();
   redirect(`/${locale}/admin/portfolio`);
+}
+
+/** Puts an earlier version back (after the confirmation box is ticked). */
+export async function restorePortfolioRevisionAction(
+  locale: AppLocale,
+  id: string,
+  revisionId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const unconfirmed = await unconfirmedDelete(locale, formData);
+  if (unconfirmed) return unconfirmed;
+
+  try {
+    await adminRestorePortfolioRevision(id, revisionId);
+  } catch (apiError) {
+    return failedState(apiError, locale, formData);
+  }
+
+  revalidateSite();
+  redirect(`/${locale}/admin/portfolio/${encodeURIComponent(id)}?restored=1`);
 }
