@@ -16,6 +16,8 @@ export interface AdminStats {
   drafts: { pending: number };
   /** Calls booked from the website, still to happen. */
   bookings: { upcoming: number };
+  /** Links of published posts and case studies found broken (architecture 4.6). */
+  links: { broken: number };
 }
 
 export interface AdminTimeline {
@@ -58,6 +60,7 @@ export class StatsService {
       proposals: { sent: c.proposalsSent },
       drafts: { pending: c.draftsPending },
       bookings: { upcoming: c.bookingsUpcoming },
+      links: { broken: c.linksBroken },
     };
   }
 
