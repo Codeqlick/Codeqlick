@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
-import type { AppLocale } from '@/i18n/routing';
+import { routing, type AppLocale } from '@/i18n/routing';
 import {
   acceptCloudInvite,
   addCloudDomain,
@@ -665,10 +665,12 @@ export async function saveStatusPageAction(
 
 // ── Status page notices (architecture 4.13, Notices; decision 62) ──────────────────────────────
 
-/** After a notice changes: the console's tab and the public page in this language. */
-function refreshNotices(lang: AppLocale, team: string) {
-  refresh(lang, `/${team}/status-page`);
-  revalidatePath(`/${lang}/cloud/status/${team}`);
+/** After a notice changes: the console's tab and the public page, in every language. */
+function refreshNotices(team: string) {
+  for (const locale of routing.locales) {
+    refresh(locale, `/${team}/status-page`);
+    revalidatePath(`/${locale}/cloud/status/${team}`);
+  }
 }
 
 /** Title (1–120), monitors (1–20) and message (1–2,000): the checks every notice form shares. */
@@ -724,7 +726,7 @@ export async function createNoticeAction(
   } catch (error) {
     return failure(lang, error, values);
   }
-  refreshNotices(lang, team);
+  refreshNotices(team);
   return { status: 'success', message: t('created') };
 }
 
@@ -753,7 +755,7 @@ export async function addNoticeUpdateAction(
   } catch (error) {
     return failure(lang, error, values);
   }
-  refreshNotices(lang, team);
+  refreshNotices(team);
   return { status: 'success', message: t('updated') };
 }
 
@@ -779,6 +781,10 @@ export async function editNoticeAction(
   if (!parsed.ok) {
     fieldErrors[parsed.field] = parsed.problem === 'date' ? t('dateInvalid') : t('windowInvalid');
   }
+  const endChanged = end !== toDateTimeInput(current.endsAt);
+  if (parsed.ok && endChanged && Date.parse(parsed.window.endsAt) <= Date.now()) {
+    fieldErrors.endsAt = t('endPast');
+  }
   if (Object.keys(fieldErrors).length > 0 || !parsed.ok) {
     return { status: 'error', fieldErrors, values };
   }
@@ -787,12 +793,12 @@ export async function editNoticeAction(
       title,
       monitorIds,
       ...(start === toDateTimeInput(current.startsAt) ? {} : { startsAt: parsed.window.startsAt }),
-      ...(end === toDateTimeInput(current.endsAt) ? {} : { endsAt: parsed.window.endsAt }),
+      ...(endChanged ? { endsAt: parsed.window.endsAt } : {}),
     });
   } catch (error) {
     return failure(lang, error, values);
   }
-  refreshNotices(lang, team);
+  refreshNotices(team);
   return { status: 'success', message: t('saved') };
 }
 
@@ -814,7 +820,7 @@ export async function deleteNoticeAction(
   } catch (error) {
     return failure(lang, error);
   }
-  refreshNotices(lang, team);
+  refreshNotices(team);
   return { status: 'success' };
 }
 

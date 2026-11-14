@@ -223,6 +223,8 @@ async function NoticeCard({
   const maintenance = notice.kind === 'MAINTENANCE';
   // A completed maintenance takes no more updates (409); a resolved incident can be reopened.
   const canUpdate = !maintenance || notice.open;
+  // Once a maintenance has started the API only lets its monitors be removed, not added (400).
+  const started = maintenance && notice.state === 'IN_PROGRESS';
   const by = (update: CloudStatusNotice['updates'][number]) =>
     update.createdBy
       ? t('notices.by', { when: formatWhen(update.createdAt, locale), name: update.createdBy })
@@ -339,10 +341,14 @@ async function NoticeCard({
               name="monitors"
               idPrefix={id('monitors')}
               legend={t('notices.monitors')}
-              options={monitors.map((m) => ({ value: m.id, label: m.name }))}
+              options={(started
+                ? monitors.filter((m) => notice.monitorIds.includes(m.id))
+                : monitors
+              ).map((m) => ({ value: m.id, label: m.name }))}
               defaultValues={notice.monitorIds}
               className={styles.fieldset}
             />
+            {started ? <p className={styles.small}>{t('notices.inProgressHint')}</p> : null}
             <FormInput
               id={id('start')}
               name="startsAt"

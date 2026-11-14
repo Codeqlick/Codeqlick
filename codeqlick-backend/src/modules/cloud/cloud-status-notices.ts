@@ -112,15 +112,20 @@ export function withoutWindows(
 
 /**
  * Why a maintenance window is refused, or null: the end after the start, at most 7 days long, the
- * start within the next 90 days and, when `earliestStart` is given, not before it.
+ * start within the next 90 days; when `earliestStart` is given, the start not before it; when
+ * `endSet` (a new maintenance or a changed end), the end in the future.
  */
 export function windowProblem(
   startsAt: Date,
   endsAt: Date,
   now: Date,
-  earliestStart: Date | null,
+  rules: { earliestStart: Date | null; endSet: boolean },
 ): string | null {
+  const earliestStart = rules.earliestStart;
   if (endsAt.getTime() <= startsAt.getTime()) return 'The maintenance must end after it starts';
+  if (rules.endSet && endsAt.getTime() <= now.getTime()) {
+    return 'A maintenance must end in the future';
+  }
   if (endsAt.getTime() - startsAt.getTime() > 7 * DAY) return 'A maintenance lasts at most 7 days';
   if (startsAt.getTime() > now.getTime() + 90 * DAY) {
     return 'A maintenance starts within the next 90 days';

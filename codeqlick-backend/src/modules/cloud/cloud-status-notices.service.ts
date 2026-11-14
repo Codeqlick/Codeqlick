@@ -99,14 +99,17 @@ export class CloudStatusNoticesService {
     }
   }
 
-  private async checkOpenLimit(teamId: string, now: Date): Promise<void> {
-    if ((await this.repository.countOpen(teamId, now)) >= MAX_OPEN) {
-      throw new ConflictException(`A team has at most ${MAX_OPEN} open notices`);
-    }
+  private tooManyOpen(): ConflictException {
+    return new ConflictException(`A team has at most ${MAX_OPEN} open notices`);
   }
 
-  private checkWindow(startsAt: Date, endsAt: Date, now: Date, earliest: Date | null): void {
-    const problem = windowProblem(startsAt, endsAt, now, earliest);
+  private checkWindow(
+    startsAt: Date,
+    endsAt: Date,
+    now: Date,
+    rules: Parameters<typeof windowProblem>[3],
+  ): void {
+    const problem = windowProblem(startsAt, endsAt, now, rules);
     if (problem) throw new BadRequestException(problem);
   }
 
@@ -165,12 +168,14 @@ export class CloudStatusNoticesService {
       }
       startsAt = new Date(input.startsAt);
       endsAt = new Date(input.endsAt);
-      this.checkWindow(startsAt, endsAt, now, earliestNewStart(now));
+      this.checkWindow(startsAt, endsAt, now, {
+        earliestStart: earliestNewStart(now),
+        endSet: true,
+      });
       state = 'SCHEDULED';
     }
     await this.checkMonitors(teamId, input.monitorIds);
     const resolvedAt = state === 'RESOLVED' ? now : null;
-    if (!resolvedAt) await this.checkOpenLimit(teamId, now);
     const notice = await this.repository.create(
       {
         teamId,
@@ -184,7 +189,9 @@ export class CloudStatusNoticesService {
         createdById: ctx.user.id,
       },
       { state: input.kind === 'INCIDENT' ? state : null, body: input.body },
+      { maxOpen: MAX_OPEN, open: !resolvedAt, now },
     );
+    if (notice === 'open') throw this.tooManyOpen();
     this.monitors.forgetStatus(notice.team.slug);
     await this.teams.record(ctx, teamId, 'status.notice.create', notice.title, {
       id: notice.id,
@@ -212,12 +219,26 @@ export class CloudStatusNoticesService {
       const endsAt = input.endsAt ? new Date(input.endsAt) : notice.endsAt!;
       // A past start only when the maintenance is created: a changed start can't be in the past.
       const moved = startsAt.getTime() !== notice.startsAt?.getTime();
-      this.checkWindow(startsAt, endsAt, now, moved ? now : null);
+      this.checkWindow(startsAt, endsAt, now, {
+        earliestStart: moved ? now : null,
+        endSet: endsAt.getTime() !== notice.endsAt?.getTime(),
+      });
       data.startsAt = startsAt;
       data.endsAt = endsAt;
     }
     if (input.title !== undefined) data.title = input.title;
     if (input.monitorIds) {
+      // Once a maintenance has started, monitors can be removed but not added: adding one would
+      // hide downtime it already had.
+      if (
+        notice.kind === 'MAINTENANCE' &&
+        noticeState(notice, now) === 'IN_PROGRESS' &&
+        input.monitorIds.some((monitorId) => !notice.monitorIds.includes(monitorId))
+      ) {
+        throw new BadRequestException(
+          'Monitors can be removed from a maintenance that has started, not added',
+        );
+      }
       await this.checkMonitors(notice.teamId, input.monitorIds);
       data.monitorIds = input.monitorIds;
     }
@@ -239,6 +260,7 @@ export class CloudStatusNoticesService {
     const notice = await this.notice(ctx, id, 'ADMIN');
     const data: Parameters<CloudStatusNoticesRepository['update']>[1] = {};
     let state: CloudStatusNoticeState | null = null;
+    let reopens = false;
     if (notice.kind === 'INCIDENT') {
       if (!input.state || !(INCIDENT_STATES as readonly string[]).includes(input.state)) {
         throw new BadRequestException(
@@ -251,7 +273,7 @@ export class CloudStatusNoticesService {
         if (!notice.resolvedAt) data.resolvedAt = now;
       } else if (notice.resolvedAt) {
         // Reopened: it counts as open again.
-        await this.checkOpenLimit(notice.teamId, now);
+        reopens = true;
         data.resolvedAt = null;
       }
     } else {
@@ -269,14 +291,16 @@ export class CloudStatusNoticesService {
         data.resolvedAt = now;
       }
     }
-    if ((await this.repository.countUpdates(notice.id)) >= MAX_UPDATES) {
-      throw new ConflictException(`A notice has at most ${MAX_UPDATES} updates`);
-    }
     const updated = await this.repository.addUpdate(
-      notice.id,
+      notice,
       { state, body: input.body, createdById: ctx.user.id },
       data,
+      { maxUpdates: MAX_UPDATES, maxOpen: MAX_OPEN, reopens, now },
     );
+    if (updated === 'updates') {
+      throw new ConflictException(`A notice has at most ${MAX_UPDATES} updates`);
+    }
+    if (updated === 'open') throw this.tooManyOpen();
     this.monitors.forgetStatus(updated.team.slug);
     await this.teams.record(ctx, notice.teamId, 'status.notice.update', updated.title, {
       id: notice.id,
