@@ -162,6 +162,15 @@ export function AdminSearch({ locale, labels }: { locale: string; labels: AdminS
     document.getElementById(`${baseId}-option-${active}`)?.scrollIntoView({ block: 'nearest' });
   }, [active, baseId]);
 
+  // Leaving the admin drops a search still waiting or in flight.
+  useEffect(
+    () => () => {
+      clearTimeout(timerRef.current);
+      controllerRef.current?.abort();
+    },
+    [],
+  );
+
   function cancelPending() {
     clearTimeout(timerRef.current);
     controllerRef.current?.abort();
