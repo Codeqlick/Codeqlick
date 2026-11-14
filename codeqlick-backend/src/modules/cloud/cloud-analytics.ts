@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { csvField } from '../leads/leads-csv.js';
+import { csvField } from '../../common/csv.js';
 
 /**
  * Cloud's web analytics (architecture 4.13 "Web analytics", decision 44): what an event says,

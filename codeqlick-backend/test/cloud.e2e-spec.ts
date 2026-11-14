@@ -729,7 +729,7 @@ describe('Codeqlick Cloud (e2e)', () => {
     // Housekeeping removes the newest preview of `zz` (the older one is production, so it
     // stays: the address moves to it) and the only one of `yy` (its address goes away).
     await prisma.cloudDeployment.update({ where: { id: first.id }, data: { branch: 'zz' } });
-    const row = (branch: string | null, at: number, n: number) => ({
+    const previewRow = (branch: string | null, at: number, n: number) => ({
       projectId,
       shortId: `f${tag.slice(0, 3)}${n.toString().padStart(4, '0')}`.slice(0, 8),
       target: 'PREVIEW' as const,
@@ -738,10 +738,10 @@ describe('Codeqlick Cloud (e2e)', () => {
       fileCount: 1,
       createdAt: new Date(Date.now() + at),
     });
-    const zzNew = await prisma.cloudDeployment.create({ data: row('zz', 60_000, 1) });
-    const yyOnly = await prisma.cloudDeployment.create({ data: row('yy', 120_000, 2) });
+    const zzNew = await prisma.cloudDeployment.create({ data: previewRow('zz', 60_000, 1) });
+    const yyOnly = await prisma.cloudDeployment.create({ data: previewRow('yy', 120_000, 2) });
     await prisma.cloudDeployment.createMany({
-      data: Array.from({ length: 20 }, (_, i) => row(null, 3_600_000 + i, 10 + i)),
+      data: Array.from({ length: 20 }, (_, i) => previewRow(null, 3_600_000 + i, 10 + i)),
     });
     await projects.relinkBranches({ ...relinkArgs, gitBranch: 'main' }, ['zz', 'yy']);
     const zzLink = join(root, 'hosts', `${slug}--b-zz`);
