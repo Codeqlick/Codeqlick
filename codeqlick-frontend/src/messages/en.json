@@ -4795,6 +4795,7 @@
       "productionTag": "Published",
       "promote": "Publish",
       "delete": "Delete",
+      "download": "Download",
       "via": "via {token}",
       "files": "{count, plural, one {# file} other {# files}}",
       "suspendedTitle": "This project is suspended",

@@ -19,6 +19,7 @@ import {
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatBytes, formatWhen } from '@/lib/cloud';
+import { appPath } from '@/lib/webapp-request';
 import {
   addDomainAction,
   checkDomainAction,
@@ -301,6 +302,10 @@ async function Deployments({
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const list = await listCloudDeployments(projectId, page).catch(() => null);
+  const archive = await appPath(
+    `/${locale}/cloud/console/${teamSlug}/${projectSlug}/deployments`,
+    locale,
+  );
   return (
     <section aria-labelledby="deployments-title" className={styles.landing}>
       <div className={styles.card}>
@@ -354,29 +359,35 @@ async function Deployments({
                     {deployment.branch ? ` (${deployment.branch})` : ''}
                   </p>
                 </div>
-                {deployment.isProduction ? null : (
-                  <div className={styles.actions}>
-                    <form action={promoteAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="outline">
-                        {t('project.promote')}
-                      </SubmitButton>
-                    </form>
-                    <form action={deleteDeploymentAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="ghost">
-                        {t('project.delete')}
-                        <span className="visually-hidden"> — {deployment.shortId}</span>
-                      </SubmitButton>
-                    </form>
-                  </div>
-                )}
+                <div className={styles.actions}>
+                  <a href={`${archive}/${deployment.id}/archive`} className={styles.small}>
+                    {t('project.download')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </a>
+                  {deployment.isProduction ? null : (
+                    <>
+                      <form action={promoteAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="outline">
+                          {t('project.promote')}
+                        </SubmitButton>
+                      </form>
+                      <form action={deleteDeploymentAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="ghost">
+                          {t('project.delete')}
+                          <span className="visually-hidden"> — {deployment.shortId}</span>
+                        </SubmitButton>
+                      </form>
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

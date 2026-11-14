@@ -11,8 +11,9 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { join } from 'node:path';
+import { PassThrough, type Readable } from 'node:stream';
 import { HttpException, HttpStatus, Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { list, x } from 'tar';
+import { create, list, x } from 'tar';
 import { AppConfigService } from '../../config/app-config.service.js';
 
 /** What unpacking a bundle may take (from the team's plan). */
@@ -56,6 +57,12 @@ export function bundlePath(raw: string): string {
     }
   }
   return path;
+}
+
+/** A file or folder that isn't there (any more). */
+function isMissing(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  return code === 'ENOENT' || code === 'ENOTDIR';
 }
 
 /** Host labels: `<slug>` for production and `<slug>--<shortId>` for each deployment. */
@@ -195,6 +202,62 @@ export class CloudStorage {
     };
     await walk(root);
     return { sizeBytes, fileCount };
+  }
+
+  /**
+   * A deployment's folder packed as a `tar.gz` stream, built while it is read (decision 60): its
+   * entries by name, so paths are the uploaded ones without `./` (except names starting with `@`,
+   * which tar would read as archives to append), dotfiles included, links never followed.
+   * Resolves once the first bytes are ready, so an early failure is an ordinary error; null when
+   * the folder is gone. If a file disappears later (the hourly cleanup), the stream fails with
+   * that error instead of ending as an incomplete archive.
+   */
+  async archive(id: string): Promise<Readable | null> {
+    const folder = this.dir('deployments', id);
+    let names: string[];
+    try {
+      names = (await readdir(folder)).sort();
+    } catch (error) {
+      if (isMissing(error)) return null;
+      throw error;
+    }
+    if (names.length === 0) return null;
+    const entries = names.map((name) => (name.startsWith('@') ? `./${name}` : name));
+    const pack = create(
+      { gzip: true, portable: true, strict: true, follow: false, cwd: folder },
+      entries,
+    );
+    const out = new PassThrough();
+    out.once('close', () => {
+      // The reader went away (or packing failed): let the packer run dry so it closes its files.
+      if (!out.writableFinished) {
+        pack.unpipe(out);
+        pack.resume();
+      }
+    });
+    pack.pipe(out);
+    let started = false;
+    const ready = new Promise<void>((resolve, reject) => {
+      pack.on('error', (error) => {
+        // Before the first bytes the caller gets the error; after, the reader's stream fails.
+        out.destroy(started ? (error as Error) : undefined);
+        reject(error as Error);
+      });
+      pack.once('data', () => {
+        started = true;
+        resolve();
+      });
+    });
+    try {
+      await ready;
+    } catch (error) {
+      if (isMissing(error)) return null;
+      throw error;
+    }
+    // A failure before Nest pipes the stream (while the event is recorded) must not crash the
+    // process; Nest's own handler takes over once it pipes, and the connection is cut.
+    out.on('error', () => undefined);
+    return out;
   }
 
   /** Points `hosts/<label>` at a deployment, atomically (a new link renamed over the old). */
