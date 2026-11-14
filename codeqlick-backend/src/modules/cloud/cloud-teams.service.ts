@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { Readable } from 'node:stream';
 import {
   BadRequestException,
   ConflictException,
@@ -12,6 +13,7 @@ import { pageToSkipTake, paginate, type Paginated } from '../../common/types/pag
 import { AppConfigService } from '../../config/app-config.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { cloudInviteEmail } from './cloud-emails.js';
+import { eventsCsv, eventsFilter } from './cloud-events.js';
 import { ROLE_RANK, type CloudCtx, type CloudRoleName } from './cloud-caller.js';
 import {
   CLOUD_PLANS,
@@ -23,6 +25,8 @@ import {
 import { CloudRepository, type MembershipRow } from './cloud.repository.js';
 import type {
   CreateTeamInput,
+  EventsExportQuery,
+  EventsQuery,
   InviteInput,
   MemberRoleInput,
   TermsInput,
@@ -467,15 +471,16 @@ export class CloudTeamsService {
     };
   }
 
-  async events(
-    ctx: CloudCtx,
-    slug: string,
-    page: number,
-    pageSize: number,
-  ): Promise<Paginated<EventView>> {
+  async events(ctx: CloudCtx, slug: string, query: EventsQuery): Promise<Paginated<EventView>> {
+    const { page, pageSize } = query;
     const membership = await this.access(ctx, slug);
     const { skip, take } = pageToSkipTake(page, pageSize);
-    const [rows, total] = await this.repository.events(membership.teamId, skip, take);
+    const [rows, total] = await this.repository.events(
+      membership.teamId,
+      eventsFilter(query),
+      skip,
+      take,
+    );
     return paginate(
       rows.map((row) => ({
         id: row.id,
@@ -491,6 +496,29 @@ export class CloudTeamsService {
       page,
       pageSize,
     );
+  }
+
+  /**
+   * The team's events as CSV, for its admins and owners (architecture 4.13 "Exporting events"):
+   * access is checked before anything is sent, then the rows are read and written 1,000 at a
+   * time. Exporting isn't recorded as an event.
+   */
+  async exportEvents(
+    ctx: CloudCtx,
+    slug: string,
+    query: EventsExportQuery,
+  ): Promise<{ fileName: string; stream: Readable }> {
+    const membership = await this.access(ctx, slug, 'ADMIN');
+    const filter = eventsFilter(query);
+    const stream = Readable.from(
+      eventsCsv((after, take) =>
+        this.repository.eventsAfter(membership.teamId, filter, after, take),
+      ),
+    );
+    return {
+      fileName: `${membership.team.slug}-events-${query.from}-${query.to}.csv`,
+      stream,
+    };
   }
 
   /**
