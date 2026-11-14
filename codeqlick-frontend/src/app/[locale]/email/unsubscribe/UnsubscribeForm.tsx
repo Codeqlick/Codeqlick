@@ -58,7 +58,9 @@ export function UnsubscribeForm({
 
   return (
     <div className={styles.body}>
-      <p role="status">{copy[view]}</p>
+      <p>
+        <output>{copy[view]}</output>
+      </p>
       {state.problem === 'retry' ? <Alert tone="error">{copy.retry}</Alert> : null}
       <form action={formAction}>
         <input type="hidden" name="token" value={token} />

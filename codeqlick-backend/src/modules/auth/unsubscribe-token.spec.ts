@@ -52,7 +52,7 @@ describe('unsubscribe tokens', () => {
       payload,
       '',
     ]) {
-      expect(verifyUnsubscribeToken(bad, secret), bad).toBeNull();
+      expect(verifyUnsubscribeToken(bad, secret)).toBeNull();
     }
   });
 
