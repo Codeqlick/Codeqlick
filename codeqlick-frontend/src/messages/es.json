@@ -436,7 +436,8 @@
     "duration": "Escribe el tiempo como 1:30, 1,5 o 45m (hasta 24 horas).",
     "domain": "Escribe un dominio como peluqueria-ana.com.",
     "confirmMismatch": "No coincide: escríbelo tal cual.",
-    "website": "Escribe la dirección de tu web, como tuweb.com."
+    "website": "Escribe la dirección de tu web, como tuweb.com.",
+    "breachedPassword": "Esta contraseña aparece en una filtración de datos, así que es de las primeras que se prueban. Elige otra."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
