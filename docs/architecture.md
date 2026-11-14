@@ -164,9 +164,11 @@ erDiagram
   ClientProject ||--o{ ProjectMilestone : has
   ProjectUpdate ||--o{ ProjectUpdateComment : has
   Post ||--|{ PostTranslation : "en / es"
+  Post ||--o{ PostRevision : "last 20"
   PortfolioItem ||--|{ PortfolioTranslation : "en / es"
   Post ||--o{ PostSlugRedirect : "old slugs"
   PortfolioItem ||--o{ PortfolioSlugRedirect : "old slugs"
+  PortfolioItem ||--o{ PortfolioRevision : "last 20"
   Lead ||--o{ LeadReply : has
 ```
 
@@ -183,6 +185,7 @@ erDiagram
 - **Scheduling (posts and case studies):** content is live when `status = PUBLISHED` and `publishedAt <= now`. A published item dated in the future is *scheduled*: the public API (lists, detail, so also the sitemap and RSS) hides it until then and it appears on its own, with no job to run, within the public pages' 5-minute revalidation. `publishedAt` is set on the first publish unless one is given; clearing it on a published item means now. The admin panel types it in Madrid time.
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `services[]` (the website's service keys: web, custom, mobile, design, consulting, support), `sortOrder`, `testimonialAuthor?`; translation has `title`, `summary`, `content`, `testimonialQuote?`, `testimonialRole?`. A case study has a testimonial in a language when it has an author and a quote in that language; it is shown on the case study and on the home page.
 - **PostSlugRedirect / PortfolioSlugRedirect** — old addresses of a post or case study after a slug change (decision 51): `slug` (unique), `postId` (or `portfolioItemId`; cascade delete), `createdAt`. A slug is editable in the admin panel; when an item that has a publication date (`publishedAt` set before the save: published now or before, or scheduled) gets a new slug, its old slug is stored pointing to the item. A draft that was never published (no `publishedAt`) leaves nothing behind. A redirect points to the item, not to a slug, so renames never chain: after A → B → C, both A and B lead to C. In the same transaction as the save, giving any item (new or edited) a slug that is a stored redirect deletes that redirect (the new owner wins), and renaming an item back to one of its old slugs deletes that row. Nothing else changes: the activity log records the save as the usual update.
+- **PostRevision / PortfolioRevision** — revision history of posts and case studies (decision 52): `postId` / `portfolioItemId` (cascade), `authorId?` (who made the change that replaced it; null once the user is deleted), `createdAt` (when it was replaced), `snapshot` (JSON: the item's content as it was until then). A post's snapshot is `{ coverImageUrl, tagIds, translations: [{ locale, title, excerpt, content }] }`; a case study's is `{ coverImageUrl, clientName, projectUrl, technologies, services, testimonialAuthor, translations: [{ locale, title, summary, content, testimonialQuote, testimonialRole }] }`. Publishing fields (`status`, `publishedAt`), `slug` and the case study's `sortOrder` are not content and are never part of it. Every admin update (`PATCH`) whose snapshot differs from the current one stores the current one as a revision in the same transaction as the change (tag ids and translations compared without regard to order); creating an item stores nothing, nor does a PATCH that changes nothing or only those other fields. The last 20 per item are kept: older ones are deleted in the same transaction. Images used only by a revision don't count as used in the media library.
 - **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`, `showHours` (the client sees the hours logged on it; off by default), and its watched domain: `domainName?`, `domainSource` (`RDAP` | `MANUAL` | `OVH`), `domainExpiresAt?` (date), `domainCheckedAt?`, `domainWarnedFor?` (`<day>:<30|7>`, the last reminder). With `RDAP` the expiry is read from the registry's RDAP server (found in IANA's bootstrap, `data.iana.org/rdap/dns.json`); TLDs without RDAP (`.es`) take a date typed by the team. A domain the team's OVH account manages (the client made it the technical contact, decision 15) switches to `OVH` on its next check: the expiry is OVH's (`GET /domain/{name}/serviceInfos`), `.es` included; one OVH stops managing goes back to `RDAP`. 30 and 7 days before it, the team inbox and every person of the client account are emailed, once each per expiry date. A managed site's own domain becomes the project's watched domain when it has none.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`, `approvalRequested` (the team asks the client to approve it), `approvedAt?`, `approvedById?`. A **release** is an update with `version`, `environment` (`STAGING` | `PRODUCTION`) and `url?`: the version deployed, where, and where to try it; posting one also sets the project's `stagingUrl` or `productionUrl` to that URL. A project may have a release key (`releaseTokenHash`, SHA-256 of `cqr_…`, and `releaseTokenCreatedAt`) for its deploy pipeline.
 - **ProjectUpdateComment** — a comment on an update by the client or the team: `body` (plain text, max 5000), `authorId?`, `createdAt`. Comments by an ADMIN are shown as the team's.
@@ -1257,11 +1260,17 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | GET | `/admin/newsletter` | `?status=PENDING\|ACTIVE\|UNSUBSCRIBED&q&page&pageSize` → `Paginated<NewsletterSubscriberView>` plus `counts: { active, pending, unsubscribed }` (all subscribers, not only the page), newest first; `q`: part of the email (section 4.14) |
 | DELETE | `/admin/newsletter/:id` | `204`: deletes the subscriber (erasure on request); `404` when unknown. `newsletter.subscriber_deleted` in the activity log, by id only (no email) |
 | GET / POST | `/admin/posts` | POST `PostInput` (`newsletter?: boolean`, default true) |
-| GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput`. `AdminPost` carries `newsletter` and `newsletterSentAt`; the editor disables the checkbox once it is sent. Changing the slug of a post with a publication date keeps the old one as a redirect (section 4.2) |
+| GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput`. `AdminPost` carries `newsletter` and `newsletterSentAt`; the editor disables the checkbox once it is sent. Changing the slug of a post with a publication date keeps the old one as a redirect (section 4.2); when the content changes, the previous content becomes a revision (`PostRevision`, section 4.2) |
+| GET | `/admin/posts/:id/revisions` | `ContentRevision[]`, newest first (at most 20) |
+| GET | `/admin/posts/:id/revisions/:revisionId` | `ContentRevision & { snapshot: PostSnapshot }`; 404 when it isn't that post's |
+| POST | `/admin/posts/:id/revisions/:revisionId/restore` | Puts that snapshot back as a normal change (so the current content becomes a revision) → `AdminPost`. Status, publication date and slug are never changed; tags deleted since are left out. 404 when the revision isn't that post's. `post.restored` in the activity log, with `details: { revisionCreatedAt }` |
 | GET / POST | `/admin/tags` | GET → `AdminTag[]` (`{ id, slug, nameEn, nameEs, postCount }`); POST `{ slug, nameEn, nameEs }`, `409` when the slug is taken |
 | PATCH / DELETE | `/admin/tags/:id` | PATCH partial; DELETE removes the tag from its posts |
 | GET / POST | `/admin/portfolio` | POST `PortfolioInput` |
-| GET / PATCH / DELETE | `/admin/portfolio/:id` | GET and PATCH answer the item with `oldSlugs: string[]` (its redirects, newest first); changing the slug keeps the old one like a post's |
+| GET / PATCH / DELETE | `/admin/portfolio/:id` | GET and PATCH answer the item with `oldSlugs: string[]` (its redirects, newest first); changing the slug keeps the old one like a post's PATCH partial `PortfolioInput`; when the content changes, the previous content becomes a revision (`PortfolioRevision`, section 4.2) |
+| GET | `/admin/portfolio/:id/revisions` | `ContentRevision[]`, newest first (at most 20) |
+| GET | `/admin/portfolio/:id/revisions/:revisionId` | `ContentRevision & { snapshot: PortfolioSnapshot }`; 404 when it isn't that case study's |
+| POST | `/admin/portfolio/:id/revisions/:revisionId/restore` | Puts that snapshot back as a normal change (so the current content becomes a revision) → the case study, as `GET /admin/portfolio/:id`. Status, publication date, slug and order are never changed. 404 when the revision isn't that case study's. `portfolio.restored` in the activity log, with `details: { revisionCreatedAt }` |
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
 | GET / PATCH / DELETE | `/admin/projects/:id` | DELETE answers `409` while the project has invoices (they must be kept) |
 | POST | `/admin/projects/:id/updates/:updateId/comments` | `{ body }` → `201 UpdateComment & { clientNotified }`: the client is emailed the comment in their `locale` with a link to the update |
@@ -1449,6 +1458,14 @@ type PortfolioInput = {
   translations: Translation<{ title: string; summary: string; content: string; testimonialQuote?: string | null; testimonialRole?: string | null }>[];
 };
 
+// Revision history of posts and case studies (decision 52). `createdAt`: when that version was replaced; `author`: who replaced it.
+type ContentRevision = { id: string; createdAt: string; author: { name: string } | null };
+type PostSnapshot = { coverImageUrl: string | null; tagIds: string[]; translations: Translation<{ title: string; excerpt: string; content: string }>[] };
+type PortfolioSnapshot = {
+  coverImageUrl: string | null; clientName: string | null; projectUrl: string | null; technologies: string[]; services: string[]; testimonialAuthor: string | null;
+  translations: Translation<{ title: string; summary: string; content: string; testimonialQuote: string | null; testimonialRole: string | null }>[];
+};
+
 type ClientProject = {
   id: string; name: string; description: string | null;
   phase: 'DISCOVERY' | 'DESIGN' | 'DEVELOPMENT' | 'QA' | 'LAUNCHED' | 'SUPPORT' | 'ON_HOLD';
@@ -1548,7 +1565,11 @@ src/
                                básica", also from a lead), previews (list, "Nueva vista previa"), media, users, activity,
                                account; leads, users and managed sites can be deleted (typing to confirm), leads' contact
                                details and requests edited;
-                               posts and portfolio items have a preview page that renders the saved draft; Markdown
+                               posts and portfolio items have a preview page that renders the saved draft, and a
+                               "History" panel on their edit page (decision 52: each revision's date, author and
+                               "View"); posts/[id]/revisions/[revisionId] and portfolio/[id]/revisions/[revisionId]
+                               show that version next to the current one, field by field and per language (changed
+                               fields marked), with "Restore this version" (asks to confirm); Markdown
                                fields (post and case-study content, project description and updates) have a live
                                preview next to the editor (MarkdownField, client-side, same renderer as the site);
                                search/route.ts: the admin search's BFF route (section 6.2, "Admin search")
@@ -2044,3 +2065,4 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 65 | Scheduled rebuilds are a few fixed frequencies in Madrid time, run by the API's minute loop, not cron expressions | Hourly, daily and weekly cover sites that pull content at build time; a cron field invites schedules every minute that would fill the shared build server and the month's builds. The API already runs a loop every minute; claiming each run by moving its next time first means one build per run even with several API processes. Switching off after five failures in a row keeps a broken site from burning builds unnoticed |
 | 50 | Optional recurring emails carry a one-click unsubscribe (RFC 8058 headers and a footer link) with a signed, stateless token | Gmail and Yahoo require one-click unsubscribe from senders of recurring mail, and a person who can't find how to stop an email marks it as spam, which hurts every email from `hello@codeqlick.com`. Only the weekly summary and the monthly report carry it: transactional emails must always arrive. An HMAC token with a key derived from `JWT_ACCESS_SECRET` needs no table, no new secret and no expiry (an old email's link still works); rotating the secret only sends people to My account. The links do nothing on `GET`, since mail scanners open them, and a wrong token and a deleted account answer the same, so links reveal nothing |
 | 51 | A post's or case study's old slugs are kept as redirects to the item, once it has a publication date | Shared links and search results keep working after a slug is edited. Pointing at the item instead of at a slug means renames never chain and the answer is always the current slug. Drafts never published leave nothing, because nobody can have linked them. A slug in use always wins over a redirect, so a redirect never blocks a new item. The endpoint answers only while the item is live, so a redirect never reveals a draft or a scheduled item |
+| 52 | Posts and case studies keep their last 20 versions as snapshots, stored on each admin change and restorable as a normal change | An edit that removes good text, or a wrong paste in one language, was lost for good. A whole snapshot of the content per change (like the managed sites' revisions) is simple to show next to the current version and to put back, and 20 per item cover weeks of editing while keeping the table small. Publishing fields, the slug and the order stay out: restoring old text must never unpublish, reschedule or move an item, or break its links. A restore goes through the normal update, so it is itself undoable |

@@ -13,7 +13,13 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
-import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
+import type { ContentRevision } from '../../common/content-revisions.js';
+import {
+  contentRevisionParamSchema,
+  idParamSchema,
+  type ContentRevisionParam,
+  type IdParam,
+} from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
@@ -24,7 +30,11 @@ import {
   type ListAdminPortfolioQuery,
   type UpdatePortfolioInput,
 } from './portfolio.schemas.js';
-import { PortfolioService, type AdminPortfolioItem } from './portfolio.service.js';
+import {
+  PortfolioService,
+  type AdminPortfolioItem,
+  type PortfolioRevisionDetail,
+} from './portfolio.service.js';
 
 @ApiTags('admin/portfolio')
 @ApiBearerAuth()
@@ -60,6 +70,27 @@ export class AdminPortfolioController {
     @Body({ schema: updatePortfolioSchema }) body: UpdatePortfolioInput,
   ): Promise<AdminPortfolioItem> {
     return this.portfolio.update(user, params.id, body);
+  }
+
+  @Get(':id/revisions')
+  revisions(@Param({ schema: idParamSchema }) params: IdParam): Promise<ContentRevision[]> {
+    return this.portfolio.revisions(params.id);
+  }
+
+  @Get(':id/revisions/:revisionId')
+  revision(
+    @Param({ schema: contentRevisionParamSchema }) params: ContentRevisionParam,
+  ): Promise<PortfolioRevisionDetail> {
+    return this.portfolio.revision(params.id, params.revisionId);
+  }
+
+  @Post(':id/revisions/:revisionId/restore')
+  @HttpCode(HttpStatus.OK)
+  restore(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: contentRevisionParamSchema }) params: ContentRevisionParam,
+  ): Promise<AdminPortfolioItem> {
+    return this.portfolio.restore(user, params.id, params.revisionId);
   }
 
   @Delete(':id')

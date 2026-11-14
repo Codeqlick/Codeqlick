@@ -13,7 +13,13 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
-import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
+import type { ContentRevision } from '../../common/content-revisions.js';
+import {
+  contentRevisionParamSchema,
+  idParamSchema,
+  type ContentRevisionParam,
+  type IdParam,
+} from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Paginated } from '../../common/types/paginated.js';
 import {
@@ -24,7 +30,7 @@ import {
   type ListAdminPostsQuery,
   type UpdatePostInput,
 } from './posts.schemas.js';
-import { PostsService, type AdminPost } from './posts.service.js';
+import { PostsService, type AdminPost, type PostRevisionDetail } from './posts.service.js';
 
 @ApiTags('admin/posts')
 @ApiBearerAuth()
@@ -60,6 +66,27 @@ export class AdminPostsController {
     @Body({ schema: updatePostSchema }) body: UpdatePostInput,
   ): Promise<AdminPost> {
     return this.posts.update(user, params.id, body);
+  }
+
+  @Get(':id/revisions')
+  revisions(@Param({ schema: idParamSchema }) params: IdParam): Promise<ContentRevision[]> {
+    return this.posts.revisions(params.id);
+  }
+
+  @Get(':id/revisions/:revisionId')
+  revision(
+    @Param({ schema: contentRevisionParamSchema }) params: ContentRevisionParam,
+  ): Promise<PostRevisionDetail> {
+    return this.posts.revision(params.id, params.revisionId);
+  }
+
+  @Post(':id/revisions/:revisionId/restore')
+  @HttpCode(HttpStatus.OK)
+  restore(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: contentRevisionParamSchema }) params: ContentRevisionParam,
+  ): Promise<AdminPost> {
+    return this.posts.restore(user, params.id, params.revisionId);
   }
 
   @Delete(':id')

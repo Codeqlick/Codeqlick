@@ -6,9 +6,11 @@ import {
   type PortfolioTranslation,
   type Prisma,
 } from '../../generated/prisma/client.js';
+import { revisionsToPrune, sameSnapshot } from '../../common/content-revisions.js';
 import { liveWhere } from '../../common/publishing.js';
 import { slugToRedirect } from '../../common/slug-redirects.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { portfolioSnapshot } from './portfolio-snapshot.js';
 
 export type PortfolioWithTranslations = PortfolioItem & { translations: PortfolioTranslation[] };
 
@@ -166,16 +168,22 @@ export class PortfolioRepository {
    * Updates the item; when `translations` is given they replace the existing ones wholesale.
    * With a slug, in the same transaction (decision 51): a redirect with the new slug is deleted
    * (a slug in use wins, and renaming back drops it), and the old slug of an item with a
-   * publication date is kept as a redirect to the item.
+   * publication date is kept as a redirect to the item. When its content changes, the previous
+   * content is kept as a revision by `authorId` in the same transaction, and only the latest
+   * revisions are kept (decision 52).
    */
-  update(id: string, data: PortfolioUpdateData): Promise<AdminPortfolioRecord> {
+  update(
+    id: string,
+    data: PortfolioUpdateData,
+    authorId: string | null,
+  ): Promise<AdminPortfolioRecord> {
     const { translations, ...item } = data;
     return this.prisma.$transaction(async (tx) => {
+      const before = await tx.portfolioItem.findUniqueOrThrow({
+        where: { id },
+        include: withRedirects,
+      });
       if (item.slug !== undefined) {
-        const before = await tx.portfolioItem.findUniqueOrThrow({
-          where: { id },
-          select: { slug: true, publishedAt: true },
-        });
         await tx.portfolioSlugRedirect.deleteMany({ where: { slug: item.slug } });
         const oldSlug = slugToRedirect(before, item.slug);
         if (oldSlug) {
@@ -192,7 +200,53 @@ export class PortfolioRepository {
           data: translations.map((t) => ({ ...t, portfolioItemId: id })),
         });
       }
-      return tx.portfolioItem.update({ where: { id }, data: item, include: withRedirects });
+      const after = await tx.portfolioItem.update({
+        where: { id },
+        data: item,
+        include: withRedirects,
+      });
+      const previous = portfolioSnapshot(before);
+      if (!sameSnapshot(previous, portfolioSnapshot(after))) {
+        await tx.portfolioRevision.create({
+          data: {
+            portfolioItemId: id,
+            snapshot: previous as Prisma.InputJsonValue,
+            authorId,
+          },
+        });
+        const kept = await tx.portfolioRevision.findMany({
+          where: { portfolioItemId: id },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        });
+        const old = revisionsToPrune(kept);
+        if (old.length > 0) {
+          await tx.portfolioRevision.deleteMany({ where: { id: { in: old } } });
+        }
+      }
+      return after;
+    });
+  }
+
+  /** The case study's revisions, newest first. */
+  revisions(portfolioItemId: string) {
+    return this.prisma.portfolioRevision.findMany({
+      where: { portfolioItemId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true, author: { select: { name: true } } },
+    });
+  }
+
+  /** One of the case study's revisions with its snapshot; null when it isn't that item's. */
+  findRevision(portfolioItemId: string, id: string) {
+    return this.prisma.portfolioRevision.findFirst({
+      where: { id, portfolioItemId },
+      select: {
+        id: true,
+        createdAt: true,
+        snapshot: true,
+        author: { select: { name: true } },
+      },
     });
   }
 

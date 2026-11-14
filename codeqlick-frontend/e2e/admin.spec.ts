@@ -135,6 +135,73 @@ test("a post's old address redirects to its new slug", async ({
   }
 });
 
+test('the team restores an earlier version of a post from its history', async ({
+  page,
+  context,
+  baseURL,
+  request,
+}) => {
+  const tag = runTag();
+  const slug = `e2e-revision-${tag}`;
+  const original = `Small releases ${tag}`;
+  const changed = `Big releases ${tag}`;
+  await asAdmin(context, baseURL!);
+  try {
+    await page.goto('/es/admin/posts/new');
+    await page.getByLabel('Slug').fill(slug);
+    const newEn = page.getByRole('group', { name: 'Inglés' });
+    await newEn.getByLabel('Título').fill(original);
+    await newEn.getByLabel('Extracto').fill('Why we ship often.');
+    await newEn.getByLabel('Contenido (Markdown)').fill('Little and often.');
+    await page.getByRole('button', { name: 'Crear', exact: true }).click();
+    await expect(page).not.toHaveURL(/\/new$/);
+
+    const list = await request.get(`${API_URL}/admin/posts?pageSize=100`, {
+      headers: adminHeaders(),
+    });
+    const { items } = (await list.json()) as { items: Array<{ id: string; slug: string }> };
+    const id = items.find((item) => item.slug === slug)?.id;
+    expect(id).toBeTruthy();
+
+    await page.goto(`/es/admin/posts/${id}`);
+    const history = page.getByRole('region', { name: 'Historial', exact: true });
+    await expect(history.getByText('Todavía no hay versiones anteriores.')).toBeVisible();
+
+    const en = page.getByRole('group', { name: 'Inglés' });
+    await en.getByLabel('Título').fill(changed);
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    await expect(page.getByText('Cambios guardados.')).toBeVisible();
+
+    await page.reload();
+    await expect(history.getByRole('listitem')).toHaveCount(1);
+    await history.getByRole('link', { name: /^Ver/ }).click();
+    await expect(page).toHaveURL(new RegExp(`/es/admin/posts/${id}/revisions/[^/]+$`));
+
+    const english = page.getByRole('region', { name: 'Inglés', exact: true });
+    const title = english.getByRole('listitem').filter({ hasText: 'Título' });
+    await expect(title.getByText('Cambiado')).toBeVisible();
+    await expect(title.getByText(original, { exact: true })).toBeVisible();
+    await expect(title.getByText(changed, { exact: true })).toBeVisible();
+
+    await page.getByLabel('Sustituir el contenido actual por esta versión.').check();
+    await page.getByRole('button', { name: 'Restaurar esta versión' }).click();
+    await expect(page).toHaveURL(new RegExp(`/es/admin/posts/${id}\\?restored=1$`));
+    await expect(page.getByText('Versión restaurada.', { exact: false })).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Inglés' }).getByLabel('Título')).toHaveValue(
+      original,
+    );
+    await expect(history.getByRole('listitem')).toHaveCount(2);
+  } finally {
+    const list = await request.get(`${API_URL}/admin/posts?pageSize=100`, {
+      headers: adminHeaders(),
+    });
+    const { items } = (await list.json()) as { items: Array<{ id: string; slug: string }> };
+    for (const post of items.filter((item) => item.slug === slug)) {
+      await request.delete(`${API_URL}/admin/posts/${post.id}`, { headers: adminHeaders() });
+    }
+  }
+});
+
 test('an error the website reports shows up in Errores and gets resolved', async ({
   page,
   context,

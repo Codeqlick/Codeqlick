@@ -1139,6 +1139,31 @@
       "unsaved": "Muestra lo que está guardado: guarda los cambios antes de previsualizarlos.",
       "otherLanguages": "También disponible en:"
     },
+    "revisions": {
+      "history": "Historial",
+      "historyEmpty": "Todavía no hay versiones anteriores. Se guarda una cada vez que cambias el contenido.",
+      "entry": "{date} · {author}",
+      "title": "Versión sustituida el {date}",
+      "replacedBy": "La sustituyó {author}.",
+      "back": "Volver a la edición",
+      "thisVersion": "Esta versión",
+      "current": "Actual",
+      "changed": "Cambiado",
+      "noChanges": "Esta versión es igual que el contenido actual.",
+      "shared": "Ambos idiomas",
+      "languages": {
+        "en": "Inglés",
+        "es": "Español"
+      },
+      "deletedTag": "Etiqueta eliminada",
+      "restoreTitle": "Restaurar esta versión",
+      "restoreBodyPost": "El contenido actual se sustituye por esta versión y queda en el historial, así que puedes deshacerlo. El estado, la fecha de publicación y el slug no cambian; las etiquetas eliminadas desde entonces no se recuperan.",
+      "restoreBodyPortfolio": "El contenido actual se sustituye por esta versión y queda en el historial, así que puedes deshacerlo. El estado, la fecha de publicación, el slug y el orden no cambian.",
+      "restoreConfirm": "Sustituir el contenido actual por esta versión.",
+      "restore": "Restaurar esta versión",
+      "restoring": "Restaurando…",
+      "restored": "Versión restaurada. El contenido que había queda en el historial."
+    },
     "users": {
       "title": "Usuarios",
       "new": "Nuevo usuario",
@@ -1258,7 +1283,8 @@
           "published": "publicó el artículo <target>{label}</target>",
           "unpublished": "pasó a borrador el artículo <target>{label}</target>",
           "deleted": "borró el artículo <target>{label}</target>",
-          "scheduled": "programó el artículo <target>{label}</target>"
+          "scheduled": "programó el artículo <target>{label}</target>",
+          "restored": "restauró una versión anterior del artículo <target>{label}</target>"
         },
         "portfolio": {
           "created": "creó el caso de éxito <target>{label}</target>",
@@ -1266,7 +1292,8 @@
           "published": "publicó el caso de éxito <target>{label}</target>",
           "unpublished": "pasó a borrador el caso de éxito <target>{label}</target>",
           "deleted": "borró el caso de éxito <target>{label}</target>",
-          "scheduled": "programó el caso de éxito <target>{label}</target>"
+          "scheduled": "programó el caso de éxito <target>{label}</target>",
+          "restored": "restauró una versión anterior del caso de éxito <target>{label}</target>"
         },
         "project": {
           "created": "creó el proyecto <target>{label}</target>",

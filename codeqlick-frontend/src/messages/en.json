@@ -1139,6 +1139,31 @@
       "unsaved": "It shows what is saved: save your changes before previewing them.",
       "otherLanguages": "Also available in:"
     },
+    "revisions": {
+      "history": "History",
+      "historyEmpty": "No earlier versions yet. One is kept each time you change the content.",
+      "entry": "{date} · {author}",
+      "title": "Version replaced on {date}",
+      "replacedBy": "Replaced by {author}.",
+      "back": "Back to editing",
+      "thisVersion": "This version",
+      "current": "Current",
+      "changed": "Changed",
+      "noChanges": "This version is the same as the current content.",
+      "shared": "Both languages",
+      "languages": {
+        "en": "English",
+        "es": "Spanish"
+      },
+      "deletedTag": "Deleted tag",
+      "restoreTitle": "Restore this version",
+      "restoreBodyPost": "The current content is replaced by this version and kept in the history, so you can undo it. Status, publication date and slug don't change; tags deleted since are left out.",
+      "restoreBodyPortfolio": "The current content is replaced by this version and kept in the history, so you can undo it. Status, publication date, slug and order don't change.",
+      "restoreConfirm": "Replace the current content with this version.",
+      "restore": "Restore this version",
+      "restoring": "Restoring…",
+      "restored": "Version restored. The content it replaced is now in the history."
+    },
     "users": {
       "title": "Users",
       "new": "New user",
@@ -1258,7 +1283,8 @@
           "published": "published the post <target>{label}</target>",
           "unpublished": "moved the post <target>{label}</target> back to draft",
           "deleted": "deleted the post <target>{label}</target>",
-          "scheduled": "scheduled the post <target>{label}</target>"
+          "scheduled": "scheduled the post <target>{label}</target>",
+          "restored": "restored an earlier version of the post <target>{label}</target>"
         },
         "portfolio": {
           "created": "created the case study <target>{label}</target>",
@@ -1266,7 +1292,8 @@
           "published": "published the case study <target>{label}</target>",
           "unpublished": "moved the case study <target>{label}</target> back to draft",
           "deleted": "deleted the case study <target>{label}</target>",
-          "scheduled": "scheduled the case study <target>{label}</target>"
+          "scheduled": "scheduled the case study <target>{label}</target>",
+          "restored": "restored an earlier version of the case study <target>{label}</target>"
         },
         "project": {
           "created": "created the project <target>{label}</target>",

@@ -7,9 +7,11 @@ import {
   type Prisma,
   type Tag,
 } from '../../generated/prisma/client.js';
+import { revisionsToPrune, sameSnapshot } from '../../common/content-revisions.js';
 import { liveWhere } from '../../common/publishing.js';
 import { slugToRedirect } from '../../common/slug-redirects.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { postSnapshot } from './post-snapshot.js';
 
 export type PostWithTranslations = Post & {
   translations: PostTranslation[];
@@ -178,16 +180,16 @@ export class PostsRepository {
    * Updates the post; when `translations` is given they replace the existing ones wholesale.
    * With a slug, in the same transaction (decision 51): a redirect with the new slug is deleted
    * (a slug in use wins, and renaming back drops it), and the old slug of a post with a
-   * publication date is kept as a redirect to the post.
+   * publication date is kept as a redirect to the post. When its content changes, the previous
+   * content is kept as a revision by `authorId` in the same transaction, and only the latest
+   * revisions are kept (decision 52).
    */
-  update(id: string, data: PostUpdateData): Promise<AdminPostRecord> {
+  update(id: string, data: PostUpdateData, authorId: string | null): Promise<AdminPostRecord> {
     const { translations, tagIds, ...post } = data;
+    const include = withRedirects;
     return this.prisma.$transaction(async (tx) => {
+      const before = await tx.post.findUniqueOrThrow({ where: { id }, include });
       if (post.slug !== undefined) {
-        const before = await tx.post.findUniqueOrThrow({
-          where: { id },
-          select: { slug: true, publishedAt: true },
-        });
         await tx.postSlugRedirect.deleteMany({ where: { slug: post.slug } });
         const oldSlug = slugToRedirect(before, post.slug);
         if (oldSlug) {
@@ -208,7 +210,43 @@ export class PostsRepository {
           data: translations.map((t) => ({ ...t, postId: id })),
         });
       }
-      return tx.post.update({ where: { id }, data: post, include: withRedirects });
+      const after = await tx.post.update({ where: { id }, data: post, include });
+      const previous = postSnapshot(before);
+      if (!sameSnapshot(previous, postSnapshot(after))) {
+        await tx.postRevision.create({
+          data: { postId: id, snapshot: previous as Prisma.InputJsonValue, authorId },
+        });
+        const kept = await tx.postRevision.findMany({
+          where: { postId: id },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        });
+        const old = revisionsToPrune(kept);
+        if (old.length > 0) await tx.postRevision.deleteMany({ where: { id: { in: old } } });
+      }
+      return after;
+    });
+  }
+
+  /** The post's revisions, newest first. */
+  revisions(postId: string) {
+    return this.prisma.postRevision.findMany({
+      where: { postId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true, author: { select: { name: true } } },
+    });
+  }
+
+  /** One of the post's revisions with its snapshot; null when it isn't that post's. */
+  findRevision(postId: string, id: string) {
+    return this.prisma.postRevision.findFirst({
+      where: { id, postId },
+      select: {
+        id: true,
+        createdAt: true,
+        snapshot: true,
+        author: { select: { name: true } },
+      },
     });
   }
 
