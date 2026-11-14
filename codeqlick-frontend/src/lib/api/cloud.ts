@@ -821,6 +821,10 @@ export type CloudMonitor = {
   deadlineAt: string | null;
   lastError: string | null;
   certExpiresAt: string | null;
+  /** HTTP only: alert when a check answers slower than this (ms); null is off. */
+  slowMs: number | null;
+  /** Set while a slow episode lasts (the state stays UP). */
+  slowSince: string | null;
   alertIds: string[];
   createdAt: string;
 };
@@ -939,6 +943,7 @@ export const createCloudMonitor = (
         keyword?: string;
         keywordMode?: 'CONTAINS' | 'NOT_CONTAINS';
         alertIds: string[];
+        slowMs?: number | null;
       }
     | {
         kind: 'HEARTBEAT';
@@ -966,6 +971,7 @@ export const updateCloudMonitor = (
     /** `null` switches the text check off. */
     keyword: string | null;
     keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
+    slowMs: number | null;
   }>,
 ) => apiFetch<CloudMonitor>(`/cloud/monitors/${id}`, { ...write, method: 'PATCH', body: input });
 

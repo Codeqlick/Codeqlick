@@ -22,6 +22,7 @@ import {
   monitorKeywordMode,
   notifiedFormNames,
   parseRebuildForm,
+  parseSlowMs,
   productionLockValues,
   protectionInput,
   ruleSettings,
@@ -448,5 +449,24 @@ describe('submissionsView', () => {
     expect(submissionsView('spam')).toBe('spam');
     expect(submissionsView(undefined)).toBe('inbox');
     expect(submissionsView('SPAM')).toBe('inbox');
+  });
+});
+
+describe('parseSlowMs', () => {
+  it('reads an empty field as off', () => {
+    expect(parseSlowMs('')).toEqual({ ok: true, value: null });
+    expect(parseSlowMs('  ')).toEqual({ ok: true, value: null });
+  });
+
+  it('accepts whole milliseconds from 500 to 14000', () => {
+    expect(parseSlowMs('500')).toEqual({ ok: true, value: 500 });
+    expect(parseSlowMs(' 1200 ')).toEqual({ ok: true, value: 1200 });
+    expect(parseSlowMs('14000')).toEqual({ ok: true, value: 14000 });
+  });
+
+  it('refuses the rest', () => {
+    for (const raw of ['499', '14001', '1000.5', 'abc', '-1000', '1e3x']) {
+      expect(parseSlowMs(raw)).toEqual({ ok: false });
+    }
   });
 });

@@ -434,3 +434,12 @@ export function spamReasonKey(reason: string | null): SpamReason {
 export function submissionsView(view: string | undefined): 'inbox' | 'spam' {
   return view === 'spam' ? 'spam' : 'inbox';
 }
+
+/** A monitor's slow-response threshold from a form: empty is off (`null`), else 500 to 14,000 ms. */
+export function parseSlowMs(raw: string): { ok: true; value: number | null } | { ok: false } {
+  const text = raw.trim();
+  if (text === '') return { ok: true, value: null };
+  const value = Number(text);
+  if (!Number.isInteger(value) || value < 500 || value > 14000) return { ok: false };
+  return { ok: true, value };
+}

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
-import { MonitorStatus } from '@/components/cloud/MonitorStatus';
+import { MonitorStatus, SlowBadge } from '@/components/cloud/MonitorStatus';
 import { formatUptime, UptimeBars } from '@/components/cloud/UptimeBars';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -15,6 +15,7 @@ import {
   deleteMonitorAction,
   saveMonitorTextAction,
   toggleMonitorAction,
+  updateMonitorSlowAction,
 } from '../../../../actions';
 import styles from '../../../../cloud.module.css';
 
@@ -48,7 +49,8 @@ export default async function CloudMonitorPage({ params }: PageProps) {
         .then((result) => result.items.find((item) => item.id === monitor.projectId) ?? null)
         .catch(() => null)
     : null;
-  const slowest = Math.max(1, ...monitor.checks.map((c) => c.responseMs ?? 0));
+  // The chart's top is the slowest check, or the threshold when that is higher.
+  const slowest = Math.max(1, monitor.slowMs ?? 0, ...monitor.checks.map((c) => c.responseMs ?? 0));
   const hidden = (
     <>
       <input type="hidden" name="locale" value={locale} />
@@ -66,10 +68,16 @@ export default async function CloudMonitorPage({ params }: PageProps) {
         <h1 className={styles.heroTitle}>{monitor.name}</h1>
         <p className={styles.rowTitle}>
           <MonitorStatus status={monitor.status} label={t(`monitors.states.${monitor.status}`)} />
+          {monitor.slowSince ? <SlowBadge label={t('monitors.slow')} /> : null}
           <span className={styles.small}>
             {t('monitors.since', { when: formatWhen(monitor.statusSince, locale) })}
           </span>
         </p>
+        {monitor.slowSince ? (
+          <p className={styles.small}>
+            {t('monitors.slowSince', { when: formatWhen(monitor.slowSince, locale) })}
+          </p>
+        ) : null}
         {monitor.lastError ? <p className={styles.small}>{monitor.lastError}</p> : null}
         {project ? (
           <p className={styles.spacedSmall}>
@@ -177,12 +185,25 @@ export default async function CloudMonitorPage({ params }: PageProps) {
         <p className={styles.small}>{t('monitors.uptime90')}</p>
       </section>
 
+      {monitor.kind === 'HTTP' && monitor.slowMs && monitor.checks.length === 0 ? (
+        <p className={styles.small}>{t('monitors.slowLimitPlain', { ms: monitor.slowMs })}</p>
+      ) : null}
+
       {monitor.kind === 'HTTP' && monitor.checks.length > 0 ? (
         <section className={styles.card} aria-labelledby="checks-title">
           <h2 id="checks-title" className={styles.cardTitle}>
             {t('monitors.checks')}
           </h2>
+          {monitor.slowMs ? (
+            <p className={styles.small}>{t('monitors.slowLimit', { ms: monitor.slowMs })}</p>
+          ) : null}
           <div className={styles.spark} aria-hidden="true">
+            {monitor.slowMs ? (
+              <span
+                className={styles.sparkLimit}
+                style={{ bottom: `${Math.round((monitor.slowMs / slowest) * 100)}%` }}
+              />
+            ) : null}
             {monitor.checks.map((check) => (
               <span
                 key={check.at}
@@ -194,6 +215,32 @@ export default async function CloudMonitorPage({ params }: PageProps) {
               />
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {monitor.kind === 'HTTP' && admin ? (
+        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="slow-title">
+          <h2 id="slow-title" className={styles.cardTitle}>
+            {t('monitors.slowTitle')}
+          </h2>
+          <ActionForm
+            action={updateMonitorSlowAction.bind(null, locale, team.slug, monitor.id)}
+            className={styles.form}
+          >
+            <FormInput
+              name="slowMs"
+              type="number"
+              min={500}
+              max={14000}
+              step={1}
+              label={t('monitors.slowLabel')}
+              hint={t('monitors.slowHint')}
+              defaultValue={monitor.slowMs ?? ''}
+            />
+            <div className={styles.actions}>
+              <SubmitButton pendingLabel={t('monitors.saving')}>{t('monitors.save')}</SubmitButton>
+            </div>
+          </ActionForm>
         </section>
       ) : null}
 

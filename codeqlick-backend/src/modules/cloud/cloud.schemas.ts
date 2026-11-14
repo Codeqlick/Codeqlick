@@ -292,6 +292,8 @@ const keyword = z
   .min(1)
   .max(100);
 const keywordMode = z.enum(['CONTAINS', 'NOT_CONTAINS']);
+/** Slow-response threshold in ms (HTTP monitors; null switches it off). */
+const slowMs = z.number().int().min(500).max(14_000).nullable().optional();
 
 export const createMonitorSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -300,6 +302,7 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
     url: z.url().max(2048),
     keyword: keyword.optional(),
     keywordMode: keywordMode.default('CONTAINS'),
+    slowMs,
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -318,6 +321,7 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
       .max(24 * 60),
     // Only HTTP monitors check text on the page.
     keyword: z.undefined({ error: 'Heartbeats cannot check text on a page' }).optional(),
+    slowMs,
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -343,6 +347,7 @@ export const updateMonitorSchema = z.object({
     .min(1)
     .max(24 * 60)
     .optional(),
+  slowMs,
   alertIds: alertIds.optional(),
 });
 export type UpdateMonitorInput = z.infer<typeof updateMonitorSchema>;
