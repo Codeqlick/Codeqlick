@@ -161,7 +161,12 @@ export function payload(
 
 // ── Monitor alerts (decision 64) ─────────────────────────────────────────────────────────────
 
-export type MonitorEventName = 'monitor.down' | 'monitor.up' | 'monitor.cert';
+export type MonitorEventName =
+  | 'monitor.down'
+  | 'monitor.up'
+  | 'monitor.cert'
+  | 'monitor.slow'
+  | 'monitor.fast';
 
 /** What a Slack, Discord or webhook channel is told when a monitor of its project alerts. */
 export interface MonitorNotifyEvent {
@@ -171,21 +176,27 @@ export interface MonitorNotifyEvent {
   error: string | null;
   downMinutes: number | null;
   certExpiresAt: string | null;
+  responseMs: number | null;
+  slowMs: number | null;
+  slowMinutes: number | null;
   consoleUrl: string;
   sentAt: string;
 }
 
 /** A monitor alert as channels receive it: each field only where the spec gives it. */
 export function monitorEvent(input: {
-  kind: 'down' | 'up' | 'cert';
+  kind: 'down' | 'up' | 'cert' | 'slow' | 'fast';
   project: { slug: string; name: string };
   monitor: { id: string; name: string; kind: 'HTTP' | 'HEARTBEAT'; url: string | null };
   error: string | null;
   minutes?: number;
   certExpires?: Date;
+  responseMs?: number;
+  slowMs?: number;
   consoleUrl: string;
   now?: Date;
 }): MonitorNotifyEvent {
+  const slowKind = input.kind === 'slow' || input.kind === 'fast';
   return {
     event: `monitor.${input.kind}`,
     project: { slug: input.project.slug, name: input.project.name },
@@ -195,9 +206,12 @@ export function monitorEvent(input: {
       kind: input.monitor.kind,
       url: input.monitor.kind === 'HTTP' ? input.monitor.url : null,
     },
-    error: input.kind === 'cert' ? null : input.error,
+    error: input.kind === 'down' || input.kind === 'up' ? input.error : null,
     downMinutes: input.kind === 'up' ? (input.minutes ?? null) : null,
     certExpiresAt: input.kind === 'cert' ? (input.certExpires?.toISOString() ?? null) : null,
+    responseMs: slowKind ? (input.responseMs ?? null) : null,
+    slowMs: slowKind ? (input.slowMs ?? null) : null,
+    slowMinutes: input.kind === 'fast' ? (input.minutes ?? null) : null,
     consoleUrl: input.consoleUrl,
     sentAt: (input.now ?? new Date()).toISOString(),
   };
@@ -216,6 +230,8 @@ export function monitorSummary(
   const es = locale === 'es';
   const project = strong(e.project.name);
   const monitor = strong(e.monitor.name);
+  const ms = (value: number | null) =>
+    `${new Intl.NumberFormat(es ? 'es-ES' : 'en-US').format(value ?? 0)} ms`;
   if (e.event === 'monitor.down') {
     const reason = e.error ? `: ${plain(e.error)}` : '';
     return es
@@ -232,6 +248,21 @@ export function monitorSummary(
       ? `${project} · ${monitor} vuelve a funcionar tras ${e.downMinutes} min`
       : `${project} · ${monitor} is back up after ${e.downMinutes} min`;
   }
+  if (e.event === 'monitor.slow') {
+    return es
+      ? `${project} · ${monitor} responde despacio: ${ms(e.responseMs)} (límite ${ms(e.slowMs)})`
+      : `${project} · ${monitor} is slow: ${ms(e.responseMs)} (limit ${ms(e.slowMs)})`;
+  }
+  if (e.event === 'monitor.fast') {
+    const after = e.slowMinutes
+      ? es
+        ? ` tras ${e.slowMinutes} min`
+        : ` after ${e.slowMinutes} min`
+      : '';
+    return es
+      ? `${project} · ${monitor} vuelve a la normalidad${after}`
+      : `${project} · ${monitor} is back to normal${after}`;
+  }
   const date = e.certExpiresAt
     ? new Intl.DateTimeFormat(es ? 'es-ES' : 'en-GB', {
         day: 'numeric',
@@ -245,8 +276,21 @@ export function monitorSummary(
     : `${project} · the certificate of ${monitor} expires on ${date}`;
 }
 
-const monitorIcon = (e: MonitorNotifyEvent) =>
-  e.event === 'monitor.down' ? '🔴' : e.event === 'monitor.up' ? '🟢' : '⚠️';
+const MONITOR_ICONS: Record<MonitorEventName, string> = {
+  'monitor.down': '🔴',
+  'monitor.up': '🟢',
+  'monitor.cert': '⚠️',
+  'monitor.slow': '🐢',
+  'monitor.fast': '⚡',
+};
+const MONITOR_COLORS: Record<MonitorEventName, number> = {
+  'monitor.down': 0xd92d20,
+  'monitor.up': 0x12b76a,
+  'monitor.cert': 0xf79009,
+  'monitor.slow': 0xfb6514,
+  'monitor.fast': 0x12b76a,
+};
+const monitorIcon = (e: MonitorNotifyEvent) => MONITOR_ICONS[e.event];
 
 /** The body of a monitor alert posted to a channel of `kind` (JSON). */
 export function monitorPayload(
@@ -270,8 +314,7 @@ export function monitorPayload(
           title: `${monitorIcon(e)} ${e.project.name} · ${e.monitor.name}`.slice(0, 256),
           url: e.consoleUrl,
           description: monitorSummary(e, locale).slice(0, 4000),
-          color:
-            e.event === 'monitor.down' ? 0xd92d20 : e.event === 'monitor.up' ? 0x12b76a : 0xf79009,
+          color: MONITOR_COLORS[e.event],
           timestamp: e.sentAt,
         },
       ],

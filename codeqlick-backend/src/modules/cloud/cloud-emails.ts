@@ -231,21 +231,26 @@ export function cloudAnalyticsLimitEmail(input: {
   };
 }
 
-/** To a monitor's chosen members: it went down, came back, or its certificate is about to expire. */
+/** To a monitor's chosen members: it went down, came back, is slow or back to normal, or its certificate is about to expire. */
 export function cloudMonitorEmail(input: {
   to: string;
   locale: ApiLocale;
-  kind: 'down' | 'up' | 'cert';
+  kind: 'down' | 'up' | 'cert' | 'slow' | 'fast';
   monitor: string;
   target: string;
   team: string;
   error: string | null;
   minutes?: number;
   certExpires?: string;
+  /** Slow and back to normal: the last response time and the threshold, in ms. */
+  responseMs?: number;
+  slowMs?: number;
   url: string;
   siteUrl: string;
 }): MailMessage {
   const es = input.locale === 'es';
+  const ms = (value: number | undefined) =>
+    `${new Intl.NumberFormat(es ? 'es-ES' : 'en-GB').format(value ?? 0)} ms`;
   const texts = {
     down: {
       subject: es ? `Caído: ${input.monitor}` : `Down: ${input.monitor}`,
@@ -260,6 +265,20 @@ export function cloudMonitorEmail(input: {
       intro: es
         ? `${input.monitor} (${input.target}) vuelve a funcionar${input.minutes ? ` después de ${input.minutes} min` : ''}.`
         : `${input.monitor} (${input.target}) is working again${input.minutes ? ` after ${input.minutes} min` : ''}.`,
+    },
+    slow: {
+      subject: es ? `Lento: ${input.monitor}` : `Slow: ${input.monitor}`,
+      title: es ? 'Un monitor responde despacio' : 'A monitor is slow',
+      intro: es
+        ? `${input.monitor} (${input.target}), del equipo ${input.team}, responde despacio: la última respuesta tardó ${ms(input.responseMs)} y el límite es ${ms(input.slowMs)}. Lleva tres comprobaciones seguidas por encima.`
+        : `${input.monitor} (${input.target}), of the team ${input.team}, is answering slowly: the last response took ${ms(input.responseMs)} and the limit is ${ms(input.slowMs)}. It has been over the limit for three checks in a row.`,
+    },
+    fast: {
+      subject: es ? `Vuelve a la normalidad: ${input.monitor}` : `Back to normal: ${input.monitor}`,
+      title: es ? 'Un monitor vuelve a responder con normalidad' : 'A monitor is back to normal',
+      intro: es
+        ? `${input.monitor} (${input.target}) vuelve a responder con normalidad (última respuesta: ${ms(input.responseMs)}, límite: ${ms(input.slowMs)})${input.minutes ? ` después de ${input.minutes} min de lentitud` : ''}.`
+        : `${input.monitor} (${input.target}) is answering normally again (last response: ${ms(input.responseMs)}, limit: ${ms(input.slowMs)})${input.minutes ? ` after being slow for ${input.minutes} min` : ''}.`,
     },
     cert: {
       subject: es

@@ -291,7 +291,8 @@ export class CloudNotificationsService {
 
   /**
    * Tells a project's Slack, Discord and webhook channels with monitor alerts that one of its
-   * monitors went down, came back up or has a certificate about to expire (decision 64). Called
+   * monitors went down, came back up, is slow or back to normal, or has a certificate about to
+   * expire (decision 64). Called
    * in the background by the monitors service exactly when its emails go; never throws.
    */
   async monitorAlert(
@@ -302,9 +303,9 @@ export class CloudNotificationsService {
       url: string | null;
       projectId: string | null;
     },
-    kind: 'down' | 'up' | 'cert',
+    kind: 'down' | 'up' | 'cert' | 'slow' | 'fast',
     error: string | null,
-    extra: { minutes?: number; certExpires?: Date } = {},
+    extra: { minutes?: number; certExpires?: Date; responseMs?: number; slowMs?: number } = {},
   ): Promise<void> {
     try {
       if (!monitor.projectId) return;
@@ -324,6 +325,8 @@ export class CloudNotificationsService {
           error,
           minutes: extra.minutes,
           certExpires: extra.certExpires,
+          responseMs: extra.responseMs,
+          slowMs: extra.slowMs,
           consoleUrl: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/monitors/${monitor.id}`,
         });
         const problem = await this.post(
