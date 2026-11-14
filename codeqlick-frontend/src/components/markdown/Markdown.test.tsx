@@ -87,3 +87,46 @@ describe('Markdown with anchors', () => {
     expect(html).toMatch(/<h2 id="diseno-web"[^>]*>Diseño web<a href="#diseno-web"/);
   });
 });
+
+describe('Markdown with copyCode', () => {
+  const labels = { copy: 'Copy', copied: 'Copied', failed: "Couldn't copy" };
+  const block = '```sh\nnpx @codeqlick/cli login\n```';
+
+  it('wraps code blocks for the copy button, which only appears in the browser', () => {
+    const html = renderToStaticMarkup(
+      <Markdown copyCode={labels}>{`Run \`this\`:\n\n${block}`}</Markdown>,
+    );
+    expect(html).toMatch(
+      /<div[^>]*><pre><code class="language-sh">npx @codeqlick\/cli login\n<\/code><\/pre><\/div>/,
+    );
+    // Rendered on the server (no Clipboard API yet): no button, so hydration matches.
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('<output');
+    // Inline code stays as it is.
+    expect(html).toContain('<p>Run <code>this</code>:</p>');
+  });
+
+  it('wraps indented code blocks too', () => {
+    const html = renderToStaticMarkup(
+      <Markdown copyCode={labels}>{'Run:\n\n    npm ci\n'}</Markdown>,
+    );
+    expect(html).toMatch(/<div[^>]*><pre><code>npm ci\n<\/code><\/pre><\/div>/);
+  });
+
+  it('leaves code blocks unwrapped without it', () => {
+    const html = render(block);
+    expect(html).toMatch(/<div[^>]*><pre><code class="language-sh">/);
+    expect(html.match(/<div/g)).toHaveLength(1);
+  });
+
+  it('combines with anchors', () => {
+    const html = renderToStaticMarkup(
+      <Markdown anchors={{ linkLabel: 'Link to this section' }} copyCode={labels}>
+        {`## Install\n\n${block}`}
+      </Markdown>,
+    );
+    expect(html).toMatch(/<h2 id="install"[^>]*>Install<a href="#install"/);
+    expect(html).toMatch(/<div[^>]*><pre><code class="language-sh">/);
+    expect(html.match(/<div/g)).toHaveLength(2);
+  });
+});

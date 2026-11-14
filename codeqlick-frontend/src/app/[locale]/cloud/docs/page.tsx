@@ -29,11 +29,14 @@ export default async function CloudDocsPage({ params }: PageProps) {
   if (env.CLOUD_DOCS_URL) redirect(cloudDocsUrl(locale));
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cloud' });
+  const tm = await getTranslations({ locale, namespace: 'Markdown' });
   return (
     <article className={styles.docs}>
       <p className={styles.eyebrow}>{t('landing.eyebrow')}</p>
       <h1 className={styles.heroTitle}>{t('nav.docs')}</h1>
-      <Markdown>{cloudDocs(locale, env.CLOUD_HOSTING_DOMAIN, env.PUBLIC_API_URL)}</Markdown>
+      <Markdown copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}>
+        {cloudDocs(locale, env.CLOUD_HOSTING_DOMAIN, env.PUBLIC_API_URL)}
+      </Markdown>
     </article>
   );
 }
