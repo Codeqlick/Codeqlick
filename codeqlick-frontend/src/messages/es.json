@@ -4817,7 +4817,24 @@
       "rename": "Cambiar el nombre",
       "saved": "Guardado.",
       "deleteTitle": "Borrar el proyecto",
-      "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días."
+      "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días.",
+      "transfer": {
+        "title": "Mover a otro equipo",
+        "lead": "Pasa este proyecto a otro equipo que gestiones. Su dirección, despliegues, dominios, formularios, variables, datos, compilaciones y los monitores ligados a él se van con el proyecto, sin volver a desplegar.",
+        "git": "La conexión con Git solo se mantiene si la instalación de GitHub del otro equipo ve el repositorio; si no, sus administradores la vuelven a conectar en la pestaña Git.",
+        "tokens": "Los tokens limitados a este equipo dejan de tener acceso al proyecto.",
+        "config": "Las carpetas con un codeqlick.json siguen apuntando a este equipo: vuelve a ejecutar codeqlick init en ellas.",
+        "team": "Equipo de destino",
+        "chooseTeam": "Elige un equipo",
+        "noTeams": "No eres propietario ni administrador de ningún otro equipo, así que no hay adónde moverlo.",
+        "submit": "Mover el proyecto",
+        "moving": "Moviendo…",
+        "suspended": "Este proyecto está suspendido, así que no se puede mover.",
+        "builds": "Espera a que terminen las compilaciones del proyecto (o cancélalas) antes de moverlo.",
+        "changed": "El proyecto ha cambiado entretanto. Inténtalo de nuevo.",
+        "moved": "Proyecto movido a este equipo.",
+        "gitDropped": "Se ha quitado la conexión con Git: vuelve a conectarla en la pestaña Git."
+      }
     },
     "members": {
       "title": "Miembros",

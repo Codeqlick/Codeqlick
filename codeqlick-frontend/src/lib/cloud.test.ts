@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloudSlug, formatBytes } from './cloud';
+import { cloudSlug, formatBytes, transferTargets } from './cloud';
 
 describe('formatBytes', () => {
   it('picks the unit and the decimals', () => {
@@ -16,5 +16,18 @@ describe('cloudSlug', () => {
     expect(cloudSlug('Mi Web Ñandú!', 40)).toBe('mi-web-nandu');
     expect(cloudSlug('  --Docs--  ', 40)).toBe('docs');
     expect(cloudSlug('a'.repeat(50), 40)).toHaveLength(40);
+  });
+});
+
+describe('transferTargets', () => {
+  it('keeps the other teams the caller owns or runs', () => {
+    const teams = [
+      { slug: 'studio', role: 'OWNER' },
+      { slug: 'client', role: 'ADMIN' },
+      { slug: 'friends', role: 'MEMBER' },
+      { slug: 'mine', role: 'OWNER' },
+    ];
+    expect(transferTargets(teams, 'studio').map((team) => team.slug)).toEqual(['client', 'mine']);
+    expect(transferTargets([{ slug: 'studio', role: 'OWNER' }], 'studio')).toEqual([]);
   });
 });

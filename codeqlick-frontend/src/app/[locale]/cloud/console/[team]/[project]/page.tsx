@@ -37,6 +37,7 @@ import { FormsTab } from './FormsTab';
 import { GitTab } from './GitTab';
 import { KvTab } from './KvTab';
 import { StorageTab } from './StorageTab';
+import { TransferProject } from './TransferProject';
 import { NotificationsTab } from './NotificationsTab';
 
 const TABS = [
@@ -65,6 +66,8 @@ type PageProps = {
     prefix?: string;
     cursor?: string;
     key?: string;
+    moved?: string;
+    git?: string;
   }>;
 };
 
@@ -135,6 +138,13 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           ))}
         </nav>
       </div>
+
+      {query.moved === '1' ? (
+        <Alert tone="success">
+          {t('project.transfer.moved')}
+          {query.git === 'dropped' ? ` ${t('project.transfer.gitDropped')}` : ''}
+        </Alert>
+      ) : null}
 
       {project.suspended ? (
         <Alert tone="error">
@@ -250,6 +260,14 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
                 </div>
               </ActionForm>
             </section>
+          ) : null}
+          {team.role === 'OWNER' ? (
+            <TransferProject
+              locale={locale}
+              teamSlug={team.slug}
+              projectId={project.id}
+              projectSlug={project.slug}
+            />
           ) : null}
           {admin ? (
             <section className={`${styles.card} ${styles.narrow} ${styles.danger}`}>
