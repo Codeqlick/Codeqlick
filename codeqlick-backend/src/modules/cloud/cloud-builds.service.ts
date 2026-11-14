@@ -391,6 +391,13 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       },
       otherRepo,
     );
+    if (input.branch !== project.gitBranch) {
+      // The old production branch can have a branch address now, the new one loses it.
+      await this.projects.tryRelink({ ...project, gitBranch: input.branch }, [
+        project.gitBranch,
+        input.branch,
+      ]);
+    }
     await this.teams.record(
       ctx,
       project.teamId,
@@ -1080,7 +1087,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           error: null,
         });
         // `deployment.url` is the deployment's own address: the preview while production is locked.
-        void this.reportSuccess(build.project, done, deployment.url);
+        void this.reportSuccess(build.project, done, deployment.url, deployment.branchUrl);
         void this.notifications.buildEnded(done.id, deployment.url);
         await this.scheduledEnded(done);
       } catch (error) {
@@ -1140,6 +1147,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     project: ReportProject & { teamId: string; previewChecks: boolean; team: TeamRef },
     build: CloudBuild,
     deploymentUrl: string,
+    branchUrl?: string | null,
   ): Promise<void> {
     const wanted =
       shouldCheckPreview(build, project) &&
@@ -1159,6 +1167,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         'success',
         deploymentUrl,
         check ? { state: 'running' } : undefined,
+        branchUrl,
       );
       if (!check || build.pullRequest === null) return;
       const outcome = await this.audits.runPreview({
@@ -1172,7 +1181,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       const newest = await this.repository.latestPullBuild(project.id, build.pullRequest);
       if (newest !== build.number) return;
       const fresh = await this.repository.findById(build.id);
-      if (fresh) await this.comment(fresh.project, fresh, 'success', deploymentUrl, outcome);
+      if (fresh) {
+        await this.comment(fresh.project, fresh, 'success', deploymentUrl, outcome, branchUrl);
+      }
     } catch (error) {
       this.logger.warn(`Build ${build.id}: the preview check failed (${String(error)})`);
     }
@@ -1185,6 +1196,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
     check?: PreviewCheck,
+    branchUrl?: string | null,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -1217,7 +1229,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       this.logger.warn(`Build ${build.id}: GitHub couldn't be told (${String(error)})`);
       return;
     }
-    await this.comment(project, build, state, deploymentUrl, check);
+    await this.comment(project, build, state, deploymentUrl, check, branchUrl);
   }
 
   /** The app's comment on the build's pull request, if it has one. Best effort. */
@@ -1227,6 +1239,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
     check?: PreviewCheck,
+    branchUrl?: string | null,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -1244,6 +1257,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         state,
         buildUrl: this.buildUrl(project, build),
         ...(deploymentUrl ? { deploymentUrl } : {}),
+        ...(branchUrl ? { branchUrl } : {}),
         ...(check ? { check } : {}),
         auditUrl: this.auditUrl(project),
       });

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCloudBuild, listCloudDeployments, listCloudProjects } from '@/lib/api/cloud';
+import { getCloudBuild, getCloudDeployment, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { addressHref, formatWhen, isProtected } from '@/lib/cloud';
 import { appPath } from '@/lib/webapp-request';
@@ -44,9 +44,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
   }
   const live = build.status === 'QUEUED' || build.status === 'RUNNING';
   const deployment = build.deploymentId
-    ? (await listCloudDeployments(project.id).catch(() => null))?.items.find(
-        (d) => d.id === build.deploymentId,
-      )
+    ? await getCloudDeployment(project.id, build.deploymentId).catch(() => undefined)
     : undefined;
   const open = await appPath(`/${locale}/cloud/console/${team}/${slug}/open`, locale);
 
@@ -100,6 +98,24 @@ export default async function CloudBuildPage({ params }: PageProps) {
                 <ProtectionLock label={t('protection.locked')} />
               ) : null}
             </span>
+            {deployment.branchUrl ? (
+              <>
+                <br />
+                {t('project.branchAddress')}:{' '}
+                <span className={styles.address}>
+                  <a
+                    href={addressHref(project.protection, 'previews', deployment.branchUrl, open)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {deployment.branchUrl.replace('https://', '')}
+                  </a>
+                  {isProtected(project.protection, 'previews') ? (
+                    <ProtectionLock label={t('protection.locked')} />
+                  ) : null}
+                </span>
+              </>
+            ) : null}
           </p>
         ) : null}
       </div>

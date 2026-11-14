@@ -214,6 +214,8 @@ export class CloudProtectionService {
       ) {
         return 'previews';
       }
+      // A branch address (`<slug>--b-<branch>`, 4.13 "Branch addresses"): always a preview.
+      if (/^b-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(shortId)) return 'previews';
     }
     return null;
   }

@@ -5091,6 +5091,7 @@
       "deploymentsEmpty": "Aún no hay despliegues.",
       "preview": "Vista previa",
       "productionTag": "Publicado",
+      "branchAddress": "Dirección de la rama",
       "promote": "Publicar",
       "kept": "Conservado",
       "keep": "Conservar",

@@ -55,7 +55,11 @@ export function siteOf(
   const name = host.toLowerCase();
   const suffix = `.${hostingDomain}`;
   if (name.endsWith(suffix)) {
-    const match = /^([a-z0-9-]+?)(?:--[0-9a-f]{8})?$/.exec(name.slice(0, -suffix.length));
+    // A slug never holds `--`, so the first one splits it from a deployment or branch label.
+    const match =
+      /^([a-z0-9]+(?:-[a-z0-9]+)*)(?:--(?:[0-9a-f]{8}|b-[a-z0-9]+(?:-[a-z0-9]+)*))?$/.exec(
+        name.slice(0, -suffix.length),
+      );
     return match ? { slug: match[1]! } : null;
   }
   return name.includes('.') ? { domain: name } : null;

@@ -73,6 +73,8 @@ export type CloudDeployment = {
   id: string;
   shortId: string;
   url: string;
+  /** The branch's fixed address, when this is that branch's newest preview. */
+  branchUrl: string | null;
   target: 'preview' | 'production';
   isProduction: boolean;
   message: string | null;
