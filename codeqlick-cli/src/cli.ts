@@ -43,7 +43,7 @@ import {
   writeProjectFile,
   PROJECT_FILE,
 } from './config.ts';
-import { archivePath, downloadFailure, exists, saveArchive } from './download.ts';
+import { archivePath, downloadFailure, exists, logPath, saveArchive } from './download.ts';
 import { collect, pack } from './pack.ts';
 import { VERSION } from './version.ts';
 
@@ -113,6 +113,7 @@ Builds from Git:
                             --no-cache skips the dependency cache
   builds cancel <number>    Cancel a queued or running build
   logs [number]             A build's log (the latest by default), followed while it runs
+      -o, --out <file>        save the whole log to a file instead (--force overwrites one)
       --json                  (git, env, hooks, builds) print the API's answer
 
 Analytics and key-value store:
@@ -1129,7 +1130,22 @@ async function logs(arg: string | undefined, options: Options): Promise<number> 
   }
   if (!Number.isInteger(number) || number < 1)
     throw new UsageError('Which build? codeqlick logs <number>');
-  return follow(api, project, number);
+  if (options.out === undefined) return follow(api, project, number);
+  if (!options.out) throw new UsageError('--out needs a file name.');
+  const file = logPath(options.out);
+  if (!options.force && (await exists(file))) {
+    throw new UsageError(`${file} already exists: pass --force to overwrite it.`);
+  }
+  const body = await api.buildLog(project.id, number);
+  let size: number;
+  try {
+    size = await saveArchive(body, file);
+  } catch (error) {
+    throw downloadFailure(error, file);
+  }
+  const shown = relative(process.cwd(), file) || file;
+  console.log(`${green('✓')} Build ${bold(String(number))} log saved to ${shown} (${bytes(size)})`);
+  return 0;
 }
 
 // ── Entry ─────────────────────────────────────────────────────────────────────────────────────

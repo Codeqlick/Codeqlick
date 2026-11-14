@@ -45,7 +45,7 @@ Builds from Git (connect GitHub once in the console's Git tab):
 | `env import <file> [--production] [--preview] [--overwrite]`            | Add a `.env` file's variables, all or nothing                                   |
 | `hooks` / `hooks add <name> [--branch]` / `hooks rm <id or name>`       | Deploy hooks: a secret URL a CMS calls to rebuild a branch                      |
 | `builds` / `builds start [--branch] [--no-cache]` / `builds cancel <n>` | List, build now and follow (`--no-cache`: without the dependency cache), cancel |
-| `logs [number]`                                                         | A build's log, followed while it runs                                           |
+| `logs [number] [-o <file>] [--force]`                                   | A build's log, followed while it runs (`-o`: save the whole log to a file)      |
 
 `env import` reads dotenv syntax (`KEY=value`, `export `, quotes, `#` comments) and saves nothing
 when a line is wrong, printing each line's problem; names that already exist are skipped unless
@@ -53,6 +53,9 @@ when a line is wrong, printing each line's problem; names that already exist are
 (`some-secret-tool export | codeqlick env import -`).
 
 `hooks add` prints the hook's URL once: paste it in the CMS's webhook (a `POST`, no body needed). Builds a hook queued show as `<branch> (hook <name>)` in `builds`.
+
+`logs --out` writes the whole kept log (at most 1 MB) instead of following it and, like `download`,
+never overwrites a file unless you pass `--force`.
 
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 

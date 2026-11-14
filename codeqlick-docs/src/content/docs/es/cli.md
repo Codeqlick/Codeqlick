@@ -84,7 +84,7 @@ Consulta [dominios propios](/es/custom-domains/).
 | `builds`                                                                                      | Lista las últimas compilaciones.                                                              |
 | `builds start [--branch <name>]`                                                              | Compila el último commit de la rama y sigue el registro.                                      |
 | `builds cancel <number>`                                                                      | Cancela una compilación en cola o en curso.                                                   |
-| `logs [number]`                                                                               | Muestra el registro de una compilación (la última por defecto), en directo mientras corre.    |
+| `logs [number]`                                                                               | El registro de una compilación (la última por defecto), en directo; `--out` lo guarda.        |
 | `--json`                                                                                      | Imprime la respuesta de la API, para `git`, `env` y `builds`.                                 |
 
 Consulta [compilaciones desde Git](/es/builds-from-git/).

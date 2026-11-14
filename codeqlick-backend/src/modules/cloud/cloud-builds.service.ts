@@ -710,6 +710,21 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     return { ...this.view(build), log: build.log.slice(after), logOffset: build.log.length };
   }
 
+  /**
+   * The whole kept log as a file (architecture 4.13): what is there so far while the build runs,
+   * empty once the daily cleanup has cleared it. `404` as for `get`.
+   */
+  async logFile(
+    ctx: CloudCtx,
+    projectId: string,
+    number: number,
+  ): Promise<{ filename: string; text: string }> {
+    const { project } = await this.projects.project(ctx, projectId);
+    const build = await this.repository.findBuildLog(project.id, number);
+    if (!build) throw new NotFoundException('Build not found');
+    return { filename: `${project.slug}-build-${number}.log`, text: build.log };
+  }
+
   /** "Deploy again": a build of the branch's latest commit. */
   async manual(
     ctx: CloudCtx,

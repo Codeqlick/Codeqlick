@@ -14,6 +14,7 @@ import { cancelBuildAction, startBuildAction } from '../../../../../actions';
 import styles from '../../../../../cloud.module.css';
 import { BUILD_TONE, duration } from '../../BuildsTab';
 import { ProtectionLock } from '../../ProtectionCard';
+import { CopyLogButton } from './CopyLogButton';
 
 type PageProps = {
   params: Promise<{ locale: string; team: string; project: string; number: string }>;
@@ -49,6 +50,10 @@ export default async function CloudBuildPage({ params }: PageProps) {
       )
     : undefined;
   const open = await appPath(`/${locale}/cloud/console/${team}/${slug}/open`, locale);
+  const logHref = await appPath(
+    `/${locale}/cloud/console/${team}/${slug}/builds/${build.number}/log`,
+    locale,
+  );
 
   return (
     <div className={styles.landing}>
@@ -132,6 +137,17 @@ export default async function CloudBuildPage({ params }: PageProps) {
         <h2 id="log-title" className={styles.sectionTitle}>
           {t('builds.log')}
         </h2>
+        {build.log ? (
+          <div className={styles.actions}>
+            <a href={logHref} className={styles.small}>
+              {t('builds.downloadLog')}
+            </a>
+            <CopyLogButton
+              text={build.log}
+              labels={{ copy: t('builds.copyLog'), copied: t('builds.logCopied') }}
+            />
+          </div>
+        ) : null}
         <pre className={`${styles.terminal} ${styles.log}`}>
           {build.log || (build.status === 'QUEUED' ? t('builds.waiting') : t('builds.noLog'))}
         </pre>
