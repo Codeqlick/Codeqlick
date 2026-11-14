@@ -89,6 +89,8 @@ export type AdminPost = Omit<PostInput, 'coverImageUrl' | 'tagIds' | 'newsletter
   newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this post, newest first (decision 51). */
+  oldSlugs: string[];
 };
 
 export const NEWSLETTER_STATUSES = ['PENDING', 'ACTIVE', 'UNSUBSCRIBED'] as const;
@@ -109,6 +111,9 @@ export type NewsletterSubscriberView = {
 export type NewsletterList = Paginated<NewsletterSubscriberView> & {
   counts: { active: number; pending: number; unsubscribed: number };
 };
+
+/** `GET /posts/redirects/:slug` and `GET /portfolio/redirects/:slug`: the item's current slug. */
+export type SlugRedirect = { slug: string };
 
 export type Testimonial = { quote: string; author: string; role: string | null };
 
@@ -178,6 +183,8 @@ export type AdminPortfolioItem = Omit<
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Old slugs that redirect to this case study, newest first (decision 51). */
+  oldSlugs: string[];
 };
 
 export const PROJECT_PHASES = [

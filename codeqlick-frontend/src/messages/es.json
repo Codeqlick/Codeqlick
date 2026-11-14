@@ -966,7 +966,9 @@
       "newsletter": "Enviarlo por correo a los suscriptores",
       "newsletterHint": "Cuando el artículo esté publicado (uno programado, cuando salga), los suscriptores del boletín lo reciben por correo. Solo se envía una vez.",
       "newsletterSentOn": "Ya enviado a los suscriptores el {date}.",
-      "newsletterSkippedOn": "No se envió por correo a los suscriptores."
+      "newsletterSkippedOn": "No se envió por correo a los suscriptores.",
+      "oldAddresses": "Direcciones antiguas que redirigen aquí",
+      "oldAddressesHint": "Los enlaces a los slugs anteriores del artículo siguen funcionando: visitantes y buscadores llegan a su dirección actual."
     },
     "portfolio": {
       "title": "Portfolio",
@@ -1001,7 +1003,9 @@
       "testimonialQuoteHint": "Las palabras del cliente en este idioma. Se muestran en el caso de éxito y en la portada.",
       "testimonialRole": "Cargo del autor",
       "testimonialRoleHint": "Por ejemplo: Fundadora, CircleSfera.",
-      "services": "Servicios del proyecto"
+      "services": "Servicios del proyecto",
+      "oldAddresses": "Direcciones antiguas que redirigen aquí",
+      "oldAddressesHint": "Los enlaces a los slugs anteriores del caso de éxito siguen funcionando: visitantes y buscadores llegan a su dirección actual."
     },
     "projects": {
       "title": "Proyectos",

@@ -9,6 +9,7 @@ import type {
   PostInput,
   PostSummary,
   PublicTag,
+  SlugRedirect,
   TagInput,
 } from './types';
 
@@ -55,6 +56,13 @@ export function getRelatedPosts(slug: string, locale: Locale, limit = 3) {
 export function getPost(slug: string, locale: Locale) {
   return apiFetch<PostDetail>(`/posts/${encodeURIComponent(slug)}`, {
     query: { locale },
+    revalidate: PUBLIC_REVALIDATE,
+  });
+}
+
+/** The current slug of the live post that `slug` used to name (decision 51); 404 otherwise. */
+export function getPostRedirect(slug: string) {
+  return apiFetch<SlugRedirect>(`/posts/redirects/${encodeURIComponent(slug)}`, {
     revalidate: PUBLIC_REVALIDATE,
   });
 }
