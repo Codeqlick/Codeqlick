@@ -1,3 +1,4 @@
+import { CSV_BOM, csvField } from '../../common/csv.js';
 import type { Lead } from './leads.service.js';
 
 const COLUMNS: [header: string, value: (lead: Lead) => string | null][] = [
@@ -17,20 +18,13 @@ const COLUMNS: [header: string, value: (lead: Lead) => string | null][] = [
 ];
 
 /**
- * One CSV field. Text that a spreadsheet would read as a formula (=, +, -, @, tab, carriage return
- * at the start) gets a leading apostrophe: the contact form is public, so its content is untrusted.
+ * RFC 4180 CSV with a UTF-8 byte order mark, so Excel opens accents correctly. The contact form
+ * is public, so its content is untrusted: `csvField` defuses formulas.
  */
-export function csvField(value: string | null): string {
-  if (value === null || value === '') return '';
-  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
-  return /[",\r\n]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
-}
-
-/** RFC 4180 CSV with a UTF-8 byte order mark, so Excel opens accents correctly. */
 export function leadsToCsv(leads: Lead[]): string {
   const rows = [
     COLUMNS.map(([header]) => header).join(','),
     ...leads.map((lead) => COLUMNS.map(([, value]) => csvField(value(lead))).join(',')),
   ];
-  return `\uFEFF${rows.join('\r\n')}\r\n`;
+  return `${CSV_BOM}${rows.join('\r\n')}\r\n`;
 }
