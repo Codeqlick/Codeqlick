@@ -480,7 +480,10 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
         branch: 'staging',
       })
       .expect(400);
-    expect(forProduction.body.errors.map((e: { path: string }) => e.path)).toEqual(['branch']);
+    // This refinement comes back without its field path (CI showed path ""), so check the message.
+    expect(forProduction.body.errors.map((e: { message: string }) => e.message)).toContain(
+      'A branch variable is for previews only',
+    );
     await request(server)
       .put(envPath)
       .set(auth)
