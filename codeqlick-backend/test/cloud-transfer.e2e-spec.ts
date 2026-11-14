@@ -190,19 +190,19 @@ describe('Codeqlick Cloud: moving a project to another team (e2e)', () => {
       .set(luisAuth)
       .send({ team: studioSlug })
       .expect(403);
-    expect(notOwner.body.message).toBe('Only a team owner can do this');
+    expect(notOwner.body.detail).toBe('Only a team owner can do this');
     const unknown = await request(server)
       .post(url)
       .set(adaAuth)
       .send({ team: `ct-${tag}-nope` })
       .expect(404);
-    expect(unknown.body.message).toBe('Team not found');
+    expect(unknown.body.detail).toBe('Team not found');
     const same = await request(server)
       .post(url)
       .set(adaAuth)
       .send({ team: studioSlug })
       .expect(400);
-    expect(same.body.message).toBe('The project is already in that team');
+    expect(same.body.detail).toBe('The project is already in that team');
     const build = await prisma.cloudBuild.create({
       data: {
         projectId,
@@ -218,7 +218,7 @@ describe('Codeqlick Cloud: moving a project to another team (e2e)', () => {
       .set(adaAuth)
       .send({ team: clientSlug })
       .expect(409);
-    expect(busy.body.message).toBe("Wait for the project's builds to finish");
+    expect(busy.body.detail).toBe("Wait for the project's builds to finish");
     await prisma.cloudBuild.update({ where: { id: build.id }, data: { status: 'CANCELED' } });
 
     // ── The move ─────────────────────────────────────────────────────────────────────────────
@@ -248,10 +248,11 @@ describe('Codeqlick Cloud: moving a project to another team (e2e)', () => {
     const movedForm = await prisma.cloudForm.findUniqueOrThrow({ where: { id: form.id } });
     expect(movedForm.recipientIds).toEqual([adaRow.id]);
 
-    // This month's analytics at once, older ones right after.
-    expect(
-      (await prisma.cloudAnalyticsEvent.findUniqueOrThrow({ where: { id: recent.id } })).teamId,
-    ).toBe(client.id);
+    // Analytics events move right after the answer: this month's first, then older ones.
+    await vi.waitFor(async () => {
+      const row = await prisma.cloudAnalyticsEvent.findUniqueOrThrow({ where: { id: recent.id } });
+      expect(row.teamId).toBe(client.id);
+    });
     await vi.waitFor(async () => {
       const row = await prisma.cloudAnalyticsEvent.findUniqueOrThrow({ where: { id: old.id } });
       expect(row.teamId).toBe(client.id);
