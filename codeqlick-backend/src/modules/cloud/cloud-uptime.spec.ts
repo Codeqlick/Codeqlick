@@ -51,5 +51,8 @@ describe('Cloud monitor uptime', () => {
     expect(overall(['UP', 'DOWN'])).toBe('partial');
     expect(overall(['DOWN', 'PAUSED'])).toBe('major');
     expect(overall(['UNKNOWN'])).toBe('unknown');
+    expect(overall(['UP', 'MAINTENANCE'])).toBe('maintenance');
+    expect(overall(['MAINTENANCE', 'PAUSED'])).toBe('maintenance');
+    expect(overall(['DOWN', 'MAINTENANCE'])).toBe('major');
   });
 });
