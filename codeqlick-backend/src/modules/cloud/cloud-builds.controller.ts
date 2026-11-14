@@ -46,6 +46,7 @@ import {
   linkInstallationSchema,
   logQuerySchema,
   manualBuildSchema,
+  rebuildScheduleSchema,
   reposQuerySchema,
   teamParamSchema,
   type BuildParam,
@@ -60,6 +61,7 @@ import {
   type LinkInstallationInput,
   type LogQuery,
   type ManualBuildInput,
+  type RebuildScheduleInput,
   type ReposQuery,
   type TeamParam,
 } from './cloud.schemas.js';
@@ -71,6 +73,7 @@ import {
   type ClaimedBuild,
   type GitView,
 } from './cloud-builds.service.js';
+import type { ProjectView } from './cloud-projects.service.js';
 
 /** GitHub's webhook and the build server's agent: no session (architecture 4.13, 8.4). */
 @ApiTags('cloud')
@@ -217,6 +220,16 @@ export class CloudBuildsController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<void> {
     return this.builds.disconnect(ctx, params.id);
+  }
+
+  @Put('projects/:id/rebuild-schedule')
+  @CloudApi()
+  setRebuildSchedule(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: rebuildScheduleSchema }) body: RebuildScheduleInput,
+  ): Promise<ProjectView> {
+    return this.builds.setRebuildSchedule(ctx, params.id, body);
   }
 
   @Get('projects/:id/env')

@@ -126,6 +126,8 @@ export type CloudProject = {
    * as previews until someone publishes or unlocks. `by` is null when that person left the team.
    */
   productionLock: { at: string; by: { id: string; name: string } | null } | null;
+  /** Scheduled rebuilds of the production branch. */
+  rebuild: CloudRebuild;
   createdAt: string;
 };
 
@@ -139,6 +141,18 @@ export type CloudProtection = {
   /** Never the password or its hash. */
   hasPassword: boolean;
   updatedAt: string | null;
+};
+
+export type CloudRebuildFrequency = 'off' | 'hourly' | 'daily' | 'weekly';
+
+/** A project's scheduled rebuilds, in Madrid time (`weekday` 1–7, Monday first). */
+export type CloudRebuild = {
+  frequency: CloudRebuildFrequency;
+  minute: number | null;
+  hour: number | null;
+  weekday: number | null;
+  nextAt: string | null;
+  failures: number;
 };
 
 export type CloudDomain = {
@@ -1085,7 +1099,7 @@ export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | '
 export type CloudBuild = {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual' | 'hook';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook' | 'schedule';
   /** The deploy hook's name when the build came from one (kept after the hook is deleted). */
   hookName: string | null;
   target: 'preview' | 'production';
@@ -1151,6 +1165,16 @@ export const setCloudGit = (
 
 export const disconnectCloudGit = (projectId: string) =>
   apiFetch<void>(`/cloud/projects/${projectId}/git`, { ...write, method: 'DELETE' });
+
+export const setCloudRebuildSchedule = (
+  projectId: string,
+  input: { frequency: CloudRebuildFrequency; minute?: number; hour?: number; weekday?: number },
+) =>
+  apiFetch<CloudProject>(`/cloud/projects/${projectId}/rebuild-schedule`, {
+    ...write,
+    method: 'PUT',
+    body: input,
+  });
 
 export const listCloudEnv = (projectId: string) =>
   apiFetch<{

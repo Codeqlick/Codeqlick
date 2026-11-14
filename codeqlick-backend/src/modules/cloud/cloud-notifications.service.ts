@@ -118,6 +118,11 @@ export class CloudNotificationsService {
     this.box = new SecretBox(config.credentialsSecret, 'cloud-notify-v1');
   }
 
+  /** The team's owners and admins (also told when scheduled rebuilds switch off). */
+  admins(teamId: string) {
+    return this.repository.admins(teamId);
+  }
+
   view(channel: CloudNotifyChannel): ChannelView {
     return {
       id: channel.id,

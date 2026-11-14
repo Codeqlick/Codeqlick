@@ -39,6 +39,7 @@ import {
   type DeploymentFilesView,
 } from './cloud-deployment-files.js';
 import { BundleError, CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
+import { rebuildView, type RebuildView } from './cloud-rebuild-schedule.js';
 import { CloudDiskService } from './cloud-disk.service.js';
 import { lockChange, type LockChange } from './cloud-production-lock.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -78,6 +79,8 @@ export interface ProjectView {
   protection: 'OFF' | 'PREVIEWS' | 'ALL';
   /** Set after a rollback: builds from Git don't move production until a release or an unlock. */
   productionLock: { at: string; by: { id: string; name: string } | null } | null;
+  /** Scheduled rebuilds (architecture 4.13, decision 65). */
+  rebuild: RebuildView;
   createdAt: string;
 }
 
@@ -642,6 +645,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       productionLock: project.productionLockedAt
         ? { at: project.productionLockedAt.toISOString(), by: project.productionLockedBy }
         : null,
+      rebuild: rebuildView(project),
       createdAt: project.createdAt.toISOString(),
     };
   }

@@ -219,6 +219,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           path={path}
           admin={admin}
           github={query.github}
+          rebuild={project.rebuild}
         />
       ) : null}
       {tab === 'builds' ? (
