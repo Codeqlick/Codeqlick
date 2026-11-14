@@ -50,7 +50,7 @@ export function buildMeters(limits: CloudLimits, usage: MeterUsage): Meter[] {
   });
 }
 
-/** The measures that call for an alert. */
+/** The measures that call for an alert (a limit of 0 or less is not a limit). */
 export function crossing(meters: Meter[]): Meter[] {
-  return meters.filter((meter) => reachesThreshold(meter.used, meter.limit));
+  return meters.filter((meter) => meter.limit > 0 && reachesThreshold(meter.used, meter.limit));
 }

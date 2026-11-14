@@ -32,6 +32,8 @@ export class CloudUsageAlertsService implements OnApplicationBootstrap, OnApplic
   private lastSweep?: Date;
   private lastCleanup?: Date;
   private running = false;
+  /** Teams whose check failed: looked at again next sweep, whatever their activity. */
+  private readonly retry = new Set<string>();
 
   constructor(
     private readonly alerts: CloudUsageAlertsRepository,
@@ -59,10 +61,13 @@ export class CloudUsageAlertsService implements OnApplicationBootstrap, OnApplic
     let claimed = 0;
     try {
       const since = this.lastSweep ?? new Date(now.getTime() - FIRST_LOOKBACK_MS);
-      for (const teamId of await this.alerts.activeTeamIds(since)) {
+      const active = await this.alerts.activeTeamIds(since);
+      for (const teamId of new Set([...active, ...this.retry])) {
         try {
           claimed += await this.checkTeam(teamId, now);
+          this.retry.delete(teamId);
         } catch (error) {
+          this.retry.add(teamId);
           this.logger.error(`Team ${teamId}: the usage alerts failed: ${String(error)}`);
         }
       }
@@ -96,8 +101,8 @@ export class CloudUsageAlertsService implements OnApplicationBootstrap, OnApplic
       if (!won) continue;
       claimed += 1;
       let emailed = 0;
-      try {
-        for (const owner of await this.cloud.ownerEmails(team.id)) {
+      for (const owner of await this.cloud.ownerEmails(team.id)) {
+        try {
           const locale = toApiLocale(owner.locale);
           const base = `${this.config.cloudUrl}/${locale}/console/${team.slug}`;
           await this.mail.send(
@@ -116,10 +121,12 @@ export class CloudUsageAlertsService implements OnApplicationBootstrap, OnApplic
             }),
           );
           emailed += 1;
+        } catch (error) {
+          // Like the other limit emails: logged, and not retried this month.
+          this.logger.error(
+            `Team ${team.id}: the ${meter.key} alert email to an owner failed: ${String(error)}`,
+          );
         }
-      } catch (error) {
-        // Like the other limit emails: logged, and not retried this month.
-        this.logger.error(`Team ${team.id}: the ${meter.key} alert email failed: ${String(error)}`);
       }
       await this.teams.recordSystem(team.id, 'Codeqlick', 'usage.alert_sent', meter.key, {
         key: meter.key,

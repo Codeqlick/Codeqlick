@@ -6,7 +6,12 @@ import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCloudTeam, getCloudUsage, listCloudProjects } from '@/lib/api/cloud';
+import {
+  getCloudTeam,
+  getCloudUsage,
+  listCloudProjects,
+  type CloudUsageMeterKey,
+} from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatBytes, formatWhen } from '@/lib/cloud';
 import { env } from '@/lib/env';
@@ -14,11 +19,7 @@ import { createProjectAction, deleteTeamAction, renameTeamAction } from '../../a
 import styles from '../../cloud.module.css';
 
 /** The monthly meters the usage card adds to the ones it always shows. */
-const MONTHLY: Record<string, true> = {
-  builds: true,
-  formSubmissions: true,
-  analyticsEvents: true,
-};
+const MONTHLY = new Set<CloudUsageMeterKey>(['builds', 'formSubmissions', 'analyticsEvents']);
 
 type PageProps = { params: Promise<{ locale: string; team: string }> };
 
@@ -170,7 +171,7 @@ export default async function CloudTeamPage({ params }: PageProps) {
             </span>
           </div>
           {(usage.meters ?? [])
-            .filter((meter) => meter.key in MONTHLY)
+            .filter((meter) => MONTHLY.has(meter.key))
             .map((meter) => (
               <div key={meter.key} className={styles.meter}>
                 <span className={styles.small}>{t(`team.meters.${meter.key}`)}</span>

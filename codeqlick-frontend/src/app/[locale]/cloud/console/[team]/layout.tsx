@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudUsage } from '@/lib/api/cloud';
+import { isApiError } from '@/lib/api/errors';
 import { formatBytes, usageWarnings } from '@/lib/cloud';
 import styles from '../../cloud.module.css';
 
@@ -19,10 +20,13 @@ export default async function CloudTeamLayout({ children, params }: LayoutProps)
   const t = await getTranslations({ locale, namespace: 'Cloud' });
 
   // The pages report an unknown team or an API failure themselves; the banner just stays away.
-  const usage = await getCloudUsage(team).catch(() => null);
+  // Anything that is not an API error (a redirect, say) must keep going up.
+  const usage = await getCloudUsage(team).catch((error: unknown) =>
+    isApiError(error) ? null : Promise.reject(error),
+  );
   const warnings = usage ? usageWarnings(usage.meters ?? []) : null;
   const value = (key: string, amount: number) =>
-    key === 'storage' ? formatBytes(amount, locale) : String(amount);
+    key === 'storage' ? formatBytes(amount, locale) : amount.toLocaleString(locale);
 
   return (
     <div className={styles.teamShell}>
@@ -42,7 +46,7 @@ export default async function CloudTeamLayout({ children, params }: LayoutProps)
                   label: t(`team.meters.${meter.key}`),
                   used: value(meter.key, meter.used),
                   limit: value(meter.key, meter.limit),
-                  percent: String(meter.percent),
+                  percent: meter.percent.toLocaleString(locale),
                 })}
               </li>
             ))}

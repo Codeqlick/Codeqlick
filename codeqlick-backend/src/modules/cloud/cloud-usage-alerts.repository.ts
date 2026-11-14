@@ -13,38 +13,24 @@ export interface AlertTeam {
 export class CloudUsageAlertsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** The teams with a build queued, a form submission, an analytics event or a deployment since. */
+  /**
+   * The teams with a build queued, a form submission, an analytics event or a deployment since.
+   * Each branch walks an index on its timestamp; nothing else is read.
+   */
   async activeTeamIds(since: Date): Promise<string[]> {
-    const [builds, submissions, events, deployments] = await Promise.all([
-      this.prisma.cloudBuild.findMany({
-        where: { queuedAt: { gte: since } },
-        distinct: ['projectId'],
-        select: { project: { select: { teamId: true } } },
-      }),
-      this.prisma.cloudFormSubmission.findMany({
-        where: { createdAt: { gte: since } },
-        distinct: ['formId'],
-        select: { form: { select: { project: { select: { teamId: true } } } } },
-      }),
-      this.prisma.cloudAnalyticsEvent.findMany({
-        where: { createdAt: { gte: since } },
-        distinct: ['teamId'],
-        select: { teamId: true },
-      }),
-      this.prisma.cloudDeployment.findMany({
-        where: { createdAt: { gte: since } },
-        distinct: ['projectId'],
-        select: { project: { select: { teamId: true } } },
-      }),
-    ]);
-    return [
-      ...new Set([
-        ...builds.map((row) => row.project.teamId),
-        ...submissions.map((row) => row.form.project.teamId),
-        ...events.map((row) => row.teamId),
-        ...deployments.map((row) => row.project.teamId),
-      ]),
-    ];
+    const rows = await this.prisma.$queryRaw<Array<{ team_id: string }>>`
+      SELECT p.team_id::text AS team_id FROM cloud_builds b
+        JOIN cloud_projects p ON p.id = b.project_id WHERE b.queued_at >= ${since}
+      UNION
+      SELECT p.team_id::text FROM cloud_form_submissions s
+        JOIN cloud_forms f ON f.id = s.form_id
+        JOIN cloud_projects p ON p.id = f.project_id WHERE s.created_at >= ${since}
+      UNION
+      SELECT team_id::text FROM cloud_analytics_events WHERE created_at >= ${since}
+      UNION
+      SELECT p.team_id::text FROM cloud_deployments d
+        JOIN cloud_projects p ON p.id = d.project_id WHERE d.created_at >= ${since}`;
+    return rows.map((row) => row.team_id);
   }
 
   team(id: string): Promise<AlertTeam | null> {
