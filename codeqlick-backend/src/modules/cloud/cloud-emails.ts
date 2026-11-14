@@ -462,3 +462,51 @@ export function cloudDatabaseFullEmail(input: {
     ),
   };
 }
+
+/** To the target team's owners: a project was moved into their team (decision 58). */
+export function cloudProjectTransferredEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  movedBy: string;
+  project: string;
+  from: string;
+  team: string;
+  address: string;
+  gitDropped: boolean;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  return {
+    to: input.to,
+    subject: es
+      ? `${input.movedBy} ha movido ${input.project} a ${input.team} en Codeqlick Cloud`
+      : `${input.movedBy} moved ${input.project} to ${input.team} on Codeqlick Cloud`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: es
+          ? `${input.project} ahora es de ${input.team}`
+          : `${input.project} now belongs to ${input.team}`,
+        title: es ? 'Un proyecto nuevo en tu equipo' : 'A new project in your team',
+        intro: [
+          es
+            ? `${input.movedBy} ha movido el proyecto ${input.project} del equipo ${input.from} a ${input.team}. Su dirección sigue siendo ${input.address}.`
+            : `${input.movedBy} moved the project ${input.project} from the team ${input.from} to ${input.team}. Its address is still ${input.address}.`,
+          es
+            ? 'Sus despliegues, dominios, formularios, variables, bases de datos, buckets y demás datos han venido con él, y desde ahora cuentan para los límites de tu equipo.'
+            : "Its deployments, domains, forms, variables, databases, buckets and the rest of its data came with it, and count against your team's limits from now on.",
+          ...(input.gitDropped
+            ? [
+                es
+                  ? 'Ninguna instalación de GitHub de tu equipo ve su repositorio, así que se ha desconectado de Git: conéctalo de nuevo en la pestaña Git para seguir construyendo desde él.'
+                  : "None of your team's GitHub installations can see its repository, so it was disconnected from Git: connect it again in the Git tab to keep building from it.",
+              ]
+            : []),
+        ],
+        button: { label: es ? 'Abrir el proyecto' : 'Open the project', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}
