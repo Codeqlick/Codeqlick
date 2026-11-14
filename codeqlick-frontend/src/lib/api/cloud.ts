@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { apiFetch } from './client';
 import type { Paginated } from './types';
 
@@ -36,6 +37,17 @@ export type CloudLimits = {
   tokensPerPerson: number;
 };
 
+export type CloudUsageMeterKey =
+  'builds' | 'formSubmissions' | 'analyticsEvents' | 'storage' | 'deploymentsPerHour';
+
+/** One limit of the plan; `percent` is `floor(used / limit × 100)` and can pass 100. */
+export type CloudUsageMeter = {
+  key: CloudUsageMeterKey;
+  used: number;
+  limit: number;
+  percent: number;
+};
+
 export type CloudUsage = {
   plan: 'FREE' | 'PRO';
   limits: CloudLimits;
@@ -43,6 +55,8 @@ export type CloudUsage = {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Missing from an API older than the usage alerts. */
+  meters?: CloudUsageMeter[];
 };
 
 export type CloudDeployment = {
@@ -157,8 +171,10 @@ export const renameCloudTeam = (team: string, name: string) =>
 export const deleteCloudTeam = (team: string) =>
   apiFetch<void>(`/cloud/teams/${encodeURIComponent(team)}`, { ...write, method: 'DELETE' });
 
-export const getCloudUsage = (team: string) =>
-  apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth);
+/** Cached per request: the team layout and its page share one fetch. */
+export const getCloudUsage = cache((team: string) =>
+  apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth),
+);
 
 export const listCloudEvents = (team: string, page = 1) =>
   apiFetch<Paginated<CloudEvent>>(`/cloud/teams/${encodeURIComponent(team)}/events`, {
