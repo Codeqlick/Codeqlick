@@ -87,6 +87,7 @@ function row(key: LinkKey, data: Partial<LinkCheck>): LinkCheck {
 
 function setup(existing: LinkCheck[] = [], times: Partial<RunTimes> = {}) {
   const saved: { key: LinkKey; data: LinkCheckData }[] = [];
+  const runTimes: RunTimes = { lastRunAt: null, lastAttemptAt: null, ...times };
   const repository = {
     liveContent: vi.fn(async () => CONTENT),
     findAll: vi.fn(async () => existing),
@@ -95,13 +96,7 @@ function setup(existing: LinkCheck[] = [], times: Partial<RunTimes> = {}) {
       saved.push({ key, data });
       return row(key, data);
     }),
-    runTimes: vi.fn(
-      async (): Promise<RunTimes> => ({
-        lastRunAt: null,
-        lastAttemptAt: null,
-        ...times,
-      }),
-    ),
+    runTimes: vi.fn(async () => runTimes),
     saveRunTimes: vi.fn(async () => {}),
   };
   const media = { exists: vi.fn(async () => false) };
