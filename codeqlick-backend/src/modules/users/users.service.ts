@@ -14,6 +14,7 @@ import type { Prisma, User } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import type { SignupReason } from '../auth/auth-emails.js';
 import { AuthService } from '../auth/auth.service.js';
+import { PasswordBreachService } from '../auth/password-breach.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import type { Webapp } from '../../common/webapps.js';
 import {
@@ -81,6 +82,7 @@ export class UsersService {
     private readonly passwords: PasswordService,
     private readonly auth: AuthService,
     private readonly activity: ActivityService,
+    private readonly breaches: PasswordBreachService,
   ) {}
 
   async list(query: ListUsersQuery): Promise<Paginated<AdminUser>> {
@@ -166,6 +168,9 @@ export class UsersService {
     input: Pick<CreateUserInput, 'name' | 'role' | 'locale' | 'memberOfId' | 'password'>,
     email: string,
   ): Promise<UserWithUsage> {
+    if (input.password !== undefined) {
+      await this.breaches.assertNotBreached(input.password, 'password');
+    }
     const password = input.password ?? randomBytes(32).toString('base64url');
     const user = await this.repository.create({
       email,
@@ -256,7 +261,10 @@ export class UsersService {
     if (input.locale !== undefined) data.locale = toDbLocale(input.locale);
     if (input.weeklyDigest !== undefined) data.weeklyDigest = input.weeklyDigest;
     if (input.monthlyReport !== undefined) data.monthlyReport = input.monthlyReport;
-    if (input.password !== undefined) data.passwordHash = await this.passwords.hash(input.password);
+    if (input.password !== undefined) {
+      await this.breaches.assertNotBreached(input.password, 'password');
+      data.passwordHash = await this.passwords.hash(input.password);
+    }
 
     // Deactivation, a password reset or a role change ends every existing session.
     const revokeSessions =
