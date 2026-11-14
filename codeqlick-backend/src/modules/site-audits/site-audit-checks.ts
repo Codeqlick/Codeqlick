@@ -273,14 +273,22 @@ export function runChecks(input: AuditInputs): CheckResult[] {
 
 const POINTS: Record<CheckStatus, number> = { pass: 1, warn: 0.5, fail: 0 };
 
-/** Each category's score (share of points, a warn counting half) and their average. */
-export function scoreOf(checks: CheckResult[]): {
+/**
+ * Each category's score (share of points, a warn counting half) and their average. The checks
+ * named in `ignore` count for nothing (a pull request's preview is noindex on purpose).
+ */
+export function scoreOf(
+  checks: CheckResult[],
+  ignore: readonly CheckId[] = [],
+): {
   score: number;
   categories: Record<Category, number>;
 } {
   const categories = {} as Record<Category, number>;
   for (const category of CATEGORIES) {
-    const own = checks.filter((check) => CHECK_CATEGORY[check.id] === category);
+    const own = checks.filter(
+      (check) => CHECK_CATEGORY[check.id] === category && !ignore.includes(check.id),
+    );
     categories[category] = own.length
       ? Math.round((100 * own.reduce((sum, check) => sum + POINTS[check.status], 0)) / own.length)
       : 100;

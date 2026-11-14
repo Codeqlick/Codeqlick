@@ -346,6 +346,7 @@ export const gitSettingsSchema = z.object({
   nodeVersion: z.enum(['20', '22', '24']).optional(),
   buildBranches: z.boolean().optional(),
   buildPullRequests: z.boolean().optional(),
+  previewChecks: z.boolean().optional(),
 });
 export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
 

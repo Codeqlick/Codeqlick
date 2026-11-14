@@ -180,6 +180,12 @@ export async function GitTab(props: Props) {
               label={t('git.buildPullRequests')}
               defaultChecked={git.buildPullRequests}
             />
+            <FormCheckbox
+              name="previewChecks"
+              label={t('git.previewChecks')}
+              hint={t('git.previewChecksHint')}
+              defaultChecked={git.previewChecks}
+            />
             <div className={styles.actions}>
               <SubmitButton>{t('git.save')}</SubmitButton>
             </div>

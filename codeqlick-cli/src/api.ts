@@ -142,6 +142,7 @@ export interface GitSettings {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  previewChecks?: boolean;
 }
 
 export interface GitSettingsInput {

@@ -14,9 +14,11 @@ import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { CloudDiskService } from '../src/modules/cloud/cloud-disk.service.js';
+import { CloudAuditsService } from '../src/modules/cloud/cloud-audits.service.js';
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { GithubClient } from '../src/modules/cloud/github.client.js';
+import type { AuditInputs } from '../src/modules/site-audits/site-audit-checks.js';
 import { MailService } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
@@ -69,6 +71,24 @@ const github = {
     },
   ),
 };
+
+/** The preview's page for the website check: a few problems, as the audits e2e has. */
+const previewPage = {
+  page: {
+    url: 'https://preview.example/',
+    status: 200,
+    headers: { 'content-encoding': 'gzip', 'x-content-type-options': 'nosniff' },
+    body: '<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>The shop of examples</title></head><body><h1>Shop</h1></body></html>',
+    bytes: 2_000,
+    ttfbMs: 150,
+  },
+  certificate: { validTo: new Date(Date.now() + 90 * 86_400_000), error: null },
+  httpVersion: 'https',
+  robotsTxt: null,
+  sitemapFound: false,
+  pageSpeed: null,
+  now: new Date(),
+} as unknown as AuditInputs;
 
 function signed(body: object) {
   const raw = JSON.stringify(body);
@@ -369,6 +389,106 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .expect(204);
     await vi.waitFor(() =>
       expect(github.comments.some((c) => c.pr === 8 && c.body.includes('Failed'))).toBe(true),
+    );
+
+    // Preview checks (decision 52): a pull request's preview is checked, in the background, and
+    // the result goes into the comment; the audit has no member and leaves `indexable` out.
+    const audits = app.get(CloudAuditsService);
+    const noindex: AuditInputs = {
+      ...previewPage,
+      page: {
+        ...previewPage.page,
+        body: previewPage.page.body.replace(
+          '<head>',
+          '<head><meta name="robots" content="noindex">',
+        ),
+      },
+    };
+    audits.gatherInputs = () => Promise.resolve(noindex);
+    const checked = await request(server)
+      .put(`/v1/cloud/projects/${projectId}/git`)
+      .set(auth)
+      .send({ installationId: INSTALLATION, repoId: REPO, branch: 'main', previewChecks: true })
+      .expect(200);
+    expect(checked.body.previewChecks).toBe(true);
+    const finishPull = async (commit: string) => {
+      await send('pull_request', {
+        action: 'synchronize',
+        pull_request: {
+          number: 8,
+          title: 'New header',
+          user: { login: 'grace' },
+          head: { sha: commit, ref: 'header', repo: repository },
+          base: { repo: repository },
+        },
+        repository,
+        installation,
+      });
+      const claim = await request(server)
+        .post('/v1/cloud/builder/claim')
+        .set(builder)
+        .send({ builder: 'b1' })
+        .expect(200);
+      const output = join(tmpdir(), `cq-build-${randomUUID()}.tar.gz`);
+      await create({ gzip: true, file: output, cwd: dist, portable: true }, ['.']);
+      await request(server)
+        .post(`/v1/cloud/builder/builds/${claim.body.build.id as string}/finish`)
+        .set(builder)
+        .field('status', 'succeeded')
+        .attach('bundle', output)
+        .expect(204);
+      return claim.body.build.id as string;
+    };
+    const checkedBuild = await finishPull(sha(5));
+    await vi.waitFor(() =>
+      expect(
+        github.comments.some((c) => c.pr === 8 && c.body.includes('Website check: running…')),
+      ).toBe(true),
+    );
+    await vi.waitFor(async () =>
+      expect(
+        (await prisma.cloudBuild.findUniqueOrThrow({ where: { id: checkedBuild } })).auditId,
+      ).not.toBeNull(),
+    );
+    const audit = await prisma.cloudAudit.findFirstOrThrow({
+      where: { builds: { some: { id: checkedBuild } } },
+    });
+    expect(audit.userId).toBeNull();
+    expect(JSON.stringify(audit.result)).not.toContain('"indexable"');
+    await vi.waitFor(() =>
+      expect(
+        github.comments.some(
+          (c) =>
+            c.pr === 8 &&
+            c.body.includes(`Website check: ${audit.score}/100`) &&
+            c.body.includes(`/en/console/${team}/audits/${audit.id}`),
+        ),
+      ).toBe(true),
+    );
+    const detail = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/builds`)
+      .set(auth)
+      .expect(200);
+    expect(detail.body.items[0].audit).toEqual({ id: audit.id, score: audit.score });
+    expect(detail.body.items[1].audit).toBeNull();
+    const auditList = await request(server)
+      .get(`/v1/cloud/teams/${team}/audits`)
+      .set(auth)
+      .expect(200);
+    expect(auditList.body.items[0]).toMatchObject({ id: audit.id, preview: true });
+
+    // A preview that can't be opened says why, and the build is still a success.
+    audits.gatherInputs = () => Promise.reject(new Error('getaddrinfo ENOTFOUND'));
+    const unreachable = await finishPull(sha(6));
+    await vi.waitFor(() =>
+      expect(
+        github.comments.some(
+          (c) => c.pr === 8 && c.body.includes("Website check: couldn't open the preview"),
+        ),
+      ).toBe(true),
+    );
+    expect(await prisma.cloudBuild.findUniqueOrThrow({ where: { id: unreachable } })).toMatchObject(
+      { status: 'SUCCEEDED', auditId: null },
     );
 
     // Build notifications (decision 43): channels are checked, their URLs never come back, and a
