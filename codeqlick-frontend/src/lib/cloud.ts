@@ -37,3 +37,30 @@ export function cloudSlug(text: string, max: number): string {
     .slice(0, max)
     .replace(/-+$/, '');
 }
+
+/**
+ * The forms whose submissions a notification channel gets (decision 63), by name in the
+ * channel's order, or null when it gets all of them (no form listed). A form that isn't in
+ * `forms` (they couldn't be loaded) shows as "—".
+ */
+export function notifiedFormNames(
+  formIds: string[],
+  forms: { id: string; name: string }[],
+): string[] | null {
+  if (formIds.length === 0) return null;
+  const names = new Map(forms.map((form) => [form.id, form.name]));
+  return formIds.map((id) => names.get(id) ?? '—');
+}
+
+export const SPAM_REASONS = ['markup', 'links', 'field', 'page', 'repeat', 'manual'] as const;
+export type SpamReason = (typeof SPAM_REASONS)[number];
+
+/** The reason a submission was flagged, as a known key; anything unexpected reads as "manual". */
+export function spamReasonKey(reason: string | null): SpamReason {
+  return SPAM_REASONS.find((key) => key === reason) ?? 'manual';
+}
+
+/** The submissions view from `?view=`: the inbox unless it is exactly "spam". */
+export function submissionsView(view: string | undefined): 'inbox' | 'spam' {
+  return view === 'spam' ? 'spam' : 'inbox';
+}

@@ -41,6 +41,7 @@ import {
   promoteCloudDeployment,
   removeCloudDomain,
   removeCloudMember,
+  markCloudSubmissionSpam,
   replaceCloudFormKey,
   renameCloudProject,
   renameCloudTeam,
@@ -513,6 +514,7 @@ export async function createFormAction(
       name,
       notify: formBoolean(formData, 'notify'),
       recipientIds,
+      spamFilter: formBoolean(formData, 'spamFilter'),
     });
   } catch (error) {
     return failure(lang, error, values);
@@ -525,6 +527,14 @@ export async function toggleFormAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
   await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
     enabled: formString(formData, 'enabled') === 'on',
+  }).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function toggleSpamFilterAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await updateCloudForm(formString(formData, 'project'), formString(formData, 'id'), {
+    spamFilter: formString(formData, 'spamFilter') === 'on',
   }).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
@@ -551,6 +561,18 @@ export async function deleteSubmissionAction(formData: FormData): Promise<void> 
     formString(formData, 'project'),
     formString(formData, 'form'),
     formString(formData, 'id'),
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+/** "Spam" / "Not spam" on a submission (`spam` = on or off); "Not spam" delivers it if needed. */
+export async function markSubmissionSpamAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await markCloudSubmissionSpam(
+    formString(formData, 'project'),
+    formString(formData, 'form'),
+    formString(formData, 'id'),
+    formString(formData, 'spam') === 'on',
   ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
@@ -849,13 +871,38 @@ function notifyUrlProblem(
   return null;
 }
 
-function notifyEvents(formData: FormData, locale: AppLocale) {
+/** The ticked forms of a channel's form submissions (none: all forms). */
+function notifyFormIds(formData: FormData): string[] {
+  return formData.getAll('forms').map(String).filter(Boolean);
+}
+
+/** The events a channel is told about; form submissions only for Slack, Discord and webhooks. */
+function notifyEvents(formData: FormData, locale: AppLocale, kind: CloudNotifyKind) {
   return {
     buildFailed: formBoolean(formData, 'buildFailed'),
     buildSucceeded: formBoolean(formData, 'buildSucceeded'),
     previews: formBoolean(formData, 'previews'),
+    ...(kind === 'EMAIL'
+      ? {}
+      : {
+          formSubmitted: formBoolean(formData, 'formSubmitted'),
+          // The console couldn't load the forms: keep the channel's list (none sent).
+          ...(formBoolean(formData, 'formsUnknown') ? {} : { formIds: notifyFormIds(formData) }),
+        }),
     locale,
   };
+}
+
+/** Form submissions go to Slack, Discord and webhooks only (decision 63), up to 20 forms. */
+function notifyFormsProblem(
+  formData: FormData,
+  kind: CloudNotifyKind,
+): 'formsEmail' | 'formsTooMany' | null {
+  if (kind === 'EMAIL')
+    return formBoolean(formData, 'formSubmitted') || notifyFormIds(formData).length > 0
+      ? 'formsEmail'
+      : null;
+  return notifyFormIds(formData).length > 20 ? 'formsTooMany' : null;
 }
 
 /** Adds a channel; a webhook's signing secret goes back once in the values (`token`). */
@@ -883,8 +930,12 @@ export async function createNotifyAction(
     const problem = notifyUrlProblem(kind, url);
     if (problem) fieldErrors.url = t(problem);
   }
+  if (NOTIFY_KINDS.includes(kind)) {
+    const formsProblem = notifyFormsProblem(formData, kind);
+    if (formsProblem) fieldErrors.formSubmitted = t(formsProblem);
+  }
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
-  const events = notifyEvents(formData, lang);
+  const events = notifyEvents(formData, lang, kind);
   let secret: string | undefined;
   try {
     const created = await createCloudNotification(
@@ -930,11 +981,13 @@ export async function updateNotifyAction(
     const problem = notifyUrlProblem(kind, url);
     if (problem) fieldErrors.url = t(problem);
   }
+  const formsProblem = notifyFormsProblem(formData, kind);
+  if (formsProblem) fieldErrors.formSubmitted = t(formsProblem);
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
   try {
     await updateCloudNotification(projectId, channelId, {
       name,
-      ...notifyEvents(formData, lang),
+      ...notifyEvents(formData, lang, kind),
       ...(kind === 'EMAIL' ? { recipientIds } : url ? { url } : {}),
     });
   } catch (error) {
@@ -944,19 +997,24 @@ export async function updateNotifyAction(
   return { status: 'success', message: t('saved') };
 }
 
-/** "Send a test": the result as the form's message. */
+/** "Send a test" (a sample build, or a sample form submission): the result as the form's message. */
 export async function testNotifyAction(
   locale: string,
   path: string,
   projectId: string,
   channelId: string,
+  event: 'build' | 'form',
   _previous: FormState,
   _formData: FormData,
 ): Promise<FormState> {
   const lang = localeOrDefault(locale);
   const t = await getTranslations({ locale: lang, namespace: 'Cloud.notify' });
   try {
-    const result = await testCloudNotification(projectId, channelId);
+    const result = await testCloudNotification(
+      projectId,
+      channelId,
+      event === 'form' ? 'form' : 'build',
+    );
     refresh(lang, path);
     return result.ok
       ? { status: 'success', message: t('testSent') }

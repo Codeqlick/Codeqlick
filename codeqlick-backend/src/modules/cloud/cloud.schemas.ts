@@ -173,6 +173,7 @@ const recipientIds = z.array(z.uuid()).min(1).max(5);
 export const createFormSchema = z.object({
   name: z.string().trim().min(1).max(60),
   notify: z.boolean().default(true),
+  spamFilter: z.boolean().default(true),
   recipientIds,
 });
 export type CreateFormInput = z.infer<typeof createFormSchema>;
@@ -181,6 +182,7 @@ export const updateFormSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   enabled: z.boolean().optional(),
   notify: z.boolean().optional(),
+  spamFilter: z.boolean().optional(),
   recipientIds: recipientIds.optional(),
 });
 export type UpdateFormInput = z.infer<typeof updateFormSchema>;
@@ -197,10 +199,18 @@ export type SubmissionParam = z.infer<typeof submissionParamSchema>;
 
 export const submissionsQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
+  /** `true`: the spam view; `false` (default): the inbox. */
+  spam: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .default(false),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type SubmissionsQuery = z.infer<typeof submissionsQuerySchema>;
+
+export const markSpamSchema = z.object({ spam: z.boolean() });
+export type MarkSpamInput = z.infer<typeof markSpamSchema>;
 
 export const formKeyParamSchema = z.object({ key: z.string().regex(/^cqf_[\w-]{20,30}$/) });
 export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
@@ -403,6 +413,9 @@ const channelEvents = {
   buildFailed: z.boolean().optional(),
   buildSucceeded: z.boolean().optional(),
   previews: z.boolean().optional(),
+  // Form submissions (decision 63): Slack, Discord and webhooks only, checked by the service.
+  formSubmitted: z.boolean().optional(),
+  formIds: z.array(z.uuid()).max(20).optional(),
   locale: localeSchema.optional(),
 };
 
@@ -433,6 +446,12 @@ export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
 
 export const channelParamSchema = z.object({ id: z.uuid(), channelId: z.uuid() });
 export type ChannelParam = z.infer<typeof channelParamSchema>;
+
+/** "Send a test": a sample build (the default) or a sample form submission. No body is a build. */
+export const testChannelSchema = z
+  .object({ event: z.enum(['build', 'form']).default('build') })
+  .default({ event: 'build' });
+export type TestChannelInput = z.infer<typeof testChannelSchema>;
 
 // ── Web analytics (architecture 4.13 "Web analytics", decision 44) ──────────────────────────
 

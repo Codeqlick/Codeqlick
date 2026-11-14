@@ -2148,6 +2148,8 @@ model CloudForm {
   enabled        Boolean  @default(true)
   /// Email each submission to the recipients.
   notify         Boolean  @default(true)
+  /// Flag spam with local rules: kept apart, never delivered or counted (decision 66).
+  spamFilter     Boolean  @default(true) @map("spam_filter")
   /// Team members who get the submissions by email (never typed addresses, decision 37).
   recipientIds   String[] @map("recipient_ids") @db.Uuid
   /// `yyyy-mm` of the month its team was told it ran out of submissions (once a month).
@@ -2164,18 +2166,26 @@ model CloudForm {
 
 /// What a page sent through a Cloud form; kept 180 days, no IP.
 model CloudFormSubmission {
-  id        String   @id @default(uuid()) @db.Uuid
-  formId    String   @map("form_id") @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  formId      String   @map("form_id") @db.Uuid
   /// The fields as sent (names to values), without the `_` instructions.
-  data      Json
-  email     String?  @db.VarChar(254)
+  data        Json
+  email       String?  @db.VarChar(254)
   /// The page it came from: origin and path only.
-  page      String?  @db.VarChar(500)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  page        String?  @db.VarChar(500)
+  /// Flagged as spam: kept 30 days, never delivered or counted (decision 66).
+  spam        Boolean  @default(false)
+  /// `markup` | `links` | `field` | `page` | `repeat` | `manual`.
+  spamReason  String?  @map("spam_reason") @db.VarChar(20)
+  /// SHA-256 of the fields, to spot the same message again and again.
+  contentHash String?  @map("content_hash") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
   form CloudForm @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId, createdAt])
+  @@index([formId, spam, createdAt])
+  @@index([formId, contentHash, createdAt])
   @@index([createdAt])
   @@map("cloud_form_submissions")
 }
@@ -2355,6 +2365,10 @@ model CloudNotifyChannel {
   buildFailed    Boolean         @default(true) @map("build_failed")
   buildSucceeded Boolean         @default(false) @map("build_succeeded")
   previews       Boolean         @default(false)
+  /// Slack, Discord and webhooks: also tell it about the project's form submissions (decision 63).
+  formSubmitted  Boolean         @default(false) @map("form_submitted")
+  /// Only these forms of the project (empty: all of them).
+  formIds        String[]        @default([]) @map("form_ids") @db.Uuid
   /// The language of Slack, Discord and webhook messages (`en` or `es`).
   locale         String          @default("en") @db.VarChar(2)
   /// Failed deliveries in a row; ten switch the channel off.
