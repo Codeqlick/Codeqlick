@@ -1,9 +1,12 @@
 import { ForbiddenException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
+import type { MailService } from '../mail/mail.service.js';
+import type { CloudAuditsService } from './cloud-audits.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import type { CloudBuildsRepository } from './cloud-builds.repository.js';
 import { CloudBuildsService } from './cloud-builds.service.js';
+import type { CloudDiskService } from './cloud-disk.service.js';
 import type { CloudNotificationsService } from './cloud-notifications.service.js';
 import type { CloudProjectsService } from './cloud-projects.service.js';
 import type { CloudTeamsService } from './cloud-teams.service.js';
@@ -71,6 +74,9 @@ function setup(options: Setup = {}) {
     github as unknown as GithubClient,
     config as unknown as AppConfigService,
     {} as CloudNotificationsService,
+    {} as CloudDiskService,
+    {} as CloudAuditsService,
+    {} as MailService,
   );
   const githubCalls = () =>
     repoAccess.mock.calls.length + listFolder.mock.calls.length + fileText.mock.calls.length;

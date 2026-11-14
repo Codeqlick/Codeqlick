@@ -342,6 +342,7 @@ describe('PostsService', () => {
         status,
         publishedAt: date,
         translations: [{ locale: 'en', title: 'Hello', excerpt: 'x', content: 'y' }],
+        newsletter: false,
         tagIds: [],
       }) as CreatePostInput;
 
