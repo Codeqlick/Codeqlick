@@ -2221,6 +2221,12 @@ model CloudMonitor {
   alertIds        String[]           @map("alert_ids") @db.Uuid
   lastDownAlertAt DateTime?          @map("last_down_alert_at") @db.Timestamptz(3)
   lastUpAlertAt   DateTime?          @map("last_up_alert_at") @db.Timestamptz(3)
+  /// HTTP: alert when a response takes longer than this many ms (500-14000); null = off.
+  slowMs          Int?               @map("slow_ms")
+  /// Slow episode counter: slow checks in a row outside an episode, normal ones in a row inside.
+  slowCount       Int                @default(0) @map("slow_count")
+  /// When the current slow episode started; null outside one.
+  slowSince       DateTime?          @map("slow_since") @db.Timestamptz(3)
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 

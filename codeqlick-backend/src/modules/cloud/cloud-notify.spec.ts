@@ -152,6 +152,28 @@ describe('Cloud build notifications', () => {
       now,
     });
 
+    const slow = monitorEvent({
+      kind: 'slow',
+      project,
+      monitor: api,
+      error: null,
+      responseMs: 2400,
+      slowMs: 1000,
+      consoleUrl,
+      now,
+    });
+    const fast = monitorEvent({
+      kind: 'fast',
+      project,
+      monitor: api,
+      error: null,
+      minutes: 25,
+      responseMs: 300,
+      slowMs: 1000,
+      consoleUrl,
+      now,
+    });
+
     it('gives each field only where it belongs', () => {
       expect(down).toEqual({
         event: 'monitor.down',
@@ -160,6 +182,9 @@ describe('Cloud build notifications', () => {
         error: 'Timeout after 15 s @everyone',
         downMinutes: null,
         certExpiresAt: null,
+        responseMs: null,
+        slowMs: null,
+        slowMinutes: null,
         consoleUrl,
         sentAt: now.toISOString(),
       });
@@ -169,6 +194,22 @@ describe('Cloud build notifications', () => {
         error: null,
         downMinutes: null,
         certExpiresAt: '2026-12-02T10:00:00.000Z',
+      });
+      expect(slow).toMatchObject({
+        event: 'monitor.slow',
+        error: null,
+        downMinutes: null,
+        certExpiresAt: null,
+        responseMs: 2400,
+        slowMs: 1000,
+        slowMinutes: null,
+      });
+      expect(fast).toMatchObject({
+        event: 'monitor.fast',
+        responseMs: 300,
+        slowMs: 1000,
+        slowMinutes: 25,
+        downMinutes: null,
       });
       const beat = monitorEvent({
         kind: 'down',
@@ -192,6 +233,14 @@ describe('Cloud build notifications', () => {
         'Web · the certificate of API <prod> expires on 2 Dec 2026',
       );
       expect(monitorSummary(cert, 'es')).toContain('el certificado de API <prod> caduca el 2');
+      expect(monitorSummary(slow, 'en')).toBe(
+        'Web · API <prod> is slow: 2,400 ms (limit 1,000 ms)',
+      );
+      expect(monitorSummary(slow, 'es')).toContain('API <prod> responde despacio: 2400 ms');
+      expect(monitorSummary(fast, 'en')).toBe('Web · API <prod> is back to normal after 25 min');
+      expect(monitorSummary(fast, 'es')).toBe(
+        'Web · API <prod> vuelve a la normalidad tras 25 min',
+      );
     });
 
     it('escapes Slack markup and links the monitor', () => {
@@ -201,6 +250,12 @@ describe('Cloud build notifications', () => {
       const es = JSON.parse(monitorPayload('SLACK', up, 'es')) as { text: string };
       expect(es.text).toContain('🟢');
       expect(es.text).toContain('|Ver el monitor>');
+      const slowText = JSON.parse(monitorPayload('SLACK', slow, 'en')) as { text: string };
+      expect(slowText.text).toContain('🐢 *Web* · *API &lt;prod&gt;* is slow: 2,400 ms');
+      const fastText = JSON.parse(monitorPayload('SLACK', fast, 'en')) as { text: string };
+      expect(fastText.text).toContain(
+        '⚡ *Web* · *API &lt;prod&gt;* is back to normal after 25 min',
+      );
     });
 
     it('colours Discord embeds and never pings anyone', () => {
@@ -217,11 +272,14 @@ describe('Cloud build notifications', () => {
       expect(body.allowed_mentions.parse).toEqual([]);
       expect(colour(down)).toMatchObject({ url: consoleUrl, color: 0xd92d20 });
       expect(colour(up).color).toBe(0x12b76a);
+      expect(colour(slow)).toMatchObject({ color: 0xfb6514, title: '🐢 Web · API <prod>' });
+      expect(colour(fast).color).toBe(0x12b76a);
       expect(colour(cert)).toMatchObject({ color: 0xf79009, title: '⚠️ Web · API <prod>' });
     });
 
     it('posts the whole alert to a webhook', () => {
       expect(JSON.parse(monitorPayload('WEBHOOK', up, 'en'))).toEqual(up);
+      expect(JSON.parse(monitorPayload('WEBHOOK', slow, 'en'))).toEqual(slow);
     });
   });
 });

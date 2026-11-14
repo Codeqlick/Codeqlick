@@ -208,12 +208,15 @@ export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
 // ── Monitors and status pages (phase 1b) ─────────────────────────────────────────────────────
 
 const alertIds = z.array(z.uuid()).min(1).max(10);
+/** Slow-response threshold in ms (HTTP monitors; null switches it off). */
+const slowMs = z.number().int().min(500).max(14_000).nullable().optional();
 
 export const createMonitorSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('HTTP'),
     name: z.string().trim().min(1).max(60),
     url: z.url().max(2048),
+    slowMs,
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -230,6 +233,7 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
       .int()
       .min(1)
       .max(24 * 60),
+    slowMs,
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -252,6 +256,7 @@ export const updateMonitorSchema = z.object({
     .min(1)
     .max(24 * 60)
     .optional(),
+  slowMs,
   alertIds: alertIds.optional(),
 });
 export type UpdateMonitorInput = z.infer<typeof updateMonitorSchema>;
