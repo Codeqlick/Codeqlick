@@ -29,6 +29,7 @@ import {
   type MonitorState,
   type StateChange,
 } from './cloud-uptime.js';
+import { badgeSvg } from './cloud-badge.js';
 
 export interface MonitorView {
   id: string;
@@ -564,9 +565,6 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       major: ['major outage', '#b3261e'],
       unknown: ['unknown', '#5c5768'],
     }[status.overall];
-    const left = 'status';
-    const lw = 6 * left.length + 12;
-    const rw = 6.5 * text.length + 12;
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${lw + rw}" height="20" role="img" aria-label="${left}: ${text}"><title>${left}: ${text}</title><rect width="${lw}" height="20" fill="#14101f"/><rect x="${lw}" width="${rw}" height="20" fill="${color}"/><g fill="#fff" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11" text-anchor="middle"><text x="${lw / 2}" y="14">${left}</text><text x="${lw + rw / 2}" y="14">${text}</text></g></svg>`;
+    return badgeSvg('status', text, color);
   }
 }

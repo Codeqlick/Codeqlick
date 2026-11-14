@@ -273,6 +273,17 @@ export const statusPageSchema = z.object({
 export type StatusPageInput = z.infer<typeof statusPageSchema>;
 
 export const statusTeamParamSchema = z.object({ team: teamSlugSchema });
+/** `<project slug>.svg`, the README badge's file name. */
+export const badgeFileParamSchema = z.object({
+  file: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(44)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*\.svg$/, 'A project slug followed by .svg')
+    .refine((file) => file.length - '.svg'.length >= 3, 'A project slug followed by .svg'),
+});
+export type BadgeFileParam = z.infer<typeof badgeFileParamSchema>;
 
 // ── Website check API (phase 1b) ─────────────────────────────────────────────────────────────
 

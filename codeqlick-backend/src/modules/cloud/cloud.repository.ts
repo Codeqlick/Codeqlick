@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  CloudBuildStatus,
   CloudDeployment,
   CloudDomain,
   CloudDomainState,
@@ -371,6 +372,32 @@ export class CloudRepository {
 
   findProjectBySlug(slug: string): Promise<{ id: string } | null> {
     return this.prisma.cloudProject.findFirst({ where: { slug }, select: { id: true } });
+  }
+
+  /**
+   * What a project's README badge needs: whether it has a production deployment and its latest
+   * production builds (newest first). Null for a deleted or suspended project.
+   */
+  async findBadgeFacts(
+    slug: string,
+  ): Promise<{ hasProduction: boolean; productionBuilds: CloudBuildStatus[] } | null> {
+    const row = await this.prisma.cloudProject.findFirst({
+      where: { slug, deletedAt: null, suspendedAt: null },
+      select: {
+        productionDeploymentId: true,
+        builds: {
+          where: { target: 'PRODUCTION' },
+          orderBy: { queuedAt: 'desc' },
+          take: 5,
+          select: { status: true },
+        },
+      },
+    });
+    if (!row) return null;
+    return {
+      hasProduction: row.productionDeploymentId !== null,
+      productionBuilds: row.builds.map((build) => build.status),
+    };
   }
 
   async findProjectByDomain(name: string): Promise<{ id: string } | null> {

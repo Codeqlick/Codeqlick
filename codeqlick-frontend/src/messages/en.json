@@ -4817,6 +4817,8 @@
       "rename": "Rename",
       "saved": "Saved.",
       "deleteTitle": "Delete the project",
+      "badgeTitle": "README badge",
+      "badgeHelp": "Shows whether the production site is deployed, building or failed. Copy the Markdown into your README:",
       "deleteBody": "Takes its sites offline and deletes its deployments and domains. Its address stays reserved for 30 days."
     },
     "members": {

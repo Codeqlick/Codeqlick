@@ -230,6 +230,14 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
       ) : null}
       {tab === 'settings' ? (
         <>
+          <section className={`${styles.card} ${styles.narrow}`}>
+            <h2 className={styles.cardTitle}>{t('project.badgeTitle')}</h2>
+            <p className={styles.muted}>{t('project.badgeHelp')}</p>
+            <CopyLink
+              url={`[![Codeqlick](${env.PUBLIC_API_URL}/cloud/badges/${project.slug}.svg)](${project.url})`}
+              labels={{ copy: t('common.copy'), copied: t('common.copied') }}
+            />
+          </section>
           {admin ? (
             <section className={`${styles.card} ${styles.narrow}`}>
               <ActionForm
