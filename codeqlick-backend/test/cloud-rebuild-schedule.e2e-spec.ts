@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -13,9 +13,10 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { CloudBuildsRepository } from '../src/modules/cloud/cloud-builds.repository.js';
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
-import { GithubClient } from '../src/modules/cloud/github.client.js';
+import { GithubClient, GithubError } from '../src/modules/cloud/github.client.js';
 import { MailService } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
@@ -26,6 +27,7 @@ const BUILDER = 'builder-token-for-tests-0123456789';
 const INSTALLATION = 5252000 + Math.floor(Math.random() * 1000);
 const REPO = 888000 + Math.floor(Math.random() * 1000);
 const HEAD = 'c'.repeat(40);
+const WEBHOOK_SECRET = 'webhook-secret-for-tests';
 
 /** GitHub, as the tests want it. */
 const github = {
@@ -73,7 +75,7 @@ describe('Codeqlick Cloud scheduled rebuilds (e2e)', () => {
       clientId: 'Iv1.x',
       clientSecret: 'secret',
       privateKey: 'unused',
-      webhookSecret: 'webhook-secret-for-tests',
+      webhookSecret: WEBHOOK_SECRET,
     });
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
     await prisma.user.create({
@@ -287,7 +289,62 @@ describe('Codeqlick Cloud scheduled rebuilds (e2e)', () => {
     await builds.runScheduled();
     expect(await prisma.cloudBuild.count({ where: { projectId, status: 'QUEUED' } })).toBe(0);
 
-    // ── Scheduling again resets the failures; disconnecting Git switches it off.
+    // ── Scheduling again resets the failures.
+    const hourly = await request(server)
+      .put(schedule)
+      .set(auth)
+      .send({ frequency: 'hourly', minute: 5 })
+      .expect(200);
+    expect(hourly.body.rebuild).toMatchObject({ frequency: 'hourly', failures: 0 });
+
+    // A canceled scheduled build doesn't count.
+    await makeDue();
+    await builds.runScheduled();
+    const queued = await prisma.cloudBuild.findFirstOrThrow({
+      where: { projectId, status: 'QUEUED' },
+    });
+    await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds/${queued.number}/cancel`)
+      .set(auth)
+      .expect(200);
+    expect((await project()).rebuildFailures).toBe(0);
+
+    // One refused because the month's builds ran out counts as failed.
+    vi.spyOn(app.get(CloudBuildsRepository), 'countBuildsSince').mockResolvedValueOnce(1_000_000);
+    await makeDue();
+    await builds.runScheduled();
+    const refused = await prisma.cloudBuild.findFirstOrThrow({
+      where: { projectId, trigger: 'SCHEDULE' },
+      orderBy: { number: 'desc' },
+    });
+    expect(refused).toMatchObject({ status: 'FAILED', error: expect.stringContaining('builds') });
+    expect((await project()).rebuildFailures).toBe(1);
+
+    // A branch GitHub can't read (deleted, or the installation suspended) is a failed run too:
+    // five in a row switch the schedule off with one email that says why.
+    await request(server)
+      .put(schedule)
+      .set(auth)
+      .send({ frequency: 'hourly', minute: 5 })
+      .expect(200);
+    sent.mockClear();
+    github.branchHead.mockRejectedValue(new GithubError(404, 'Not Found'));
+    const buildsBefore = await prisma.cloudBuild.count({ where: { projectId } });
+    for (let i = 1; i <= 5; i++) {
+      await makeDue();
+      await builds.runScheduled();
+      const row = await project();
+      expect(row.rebuildFailures).toBe(i);
+      expect(row.rebuildFrequency).toBe(i < 5 ? 'HOURLY' : 'OFF');
+    }
+    expect(await prisma.cloudBuild.count({ where: { projectId } })).toBe(buildsBefore);
+    expect(switchedOffEmails()).toHaveLength(1);
+    expect(switchedOffEmails()[0]![0].text).toContain(
+      "The branch main couldn't be read from GitHub",
+    );
+    github.branchHead.mockResolvedValue({ sha: HEAD, message: 'Content', author: 'Ada' });
+
+    // ── Disconnecting Git switches it off.
     const weekly = await request(server)
       .put(schedule)
       .set(auth)
@@ -309,6 +366,38 @@ describe('Codeqlick Cloud scheduled rebuilds (e2e)', () => {
       .set(auth)
       .send({ frequency: 'daily', minute: 0, hour: 6 })
       .expect(409);
+
+    // ── So does GitHub removing the repository from the installation.
+    await request(server)
+      .put(`/v1/cloud/projects/${projectId}/git`)
+      .set(auth)
+      .send({ installationId: INSTALLATION, repoId: REPO, branch: 'main' })
+      .expect(200);
+    await request(server)
+      .put(schedule)
+      .set(auth)
+      .send({ frequency: 'daily', minute: 0, hour: 6 })
+      .expect(200);
+    const removal = JSON.stringify({
+      action: 'removed',
+      installation: { id: INSTALLATION },
+      repositories_removed: [{ id: REPO }],
+    });
+    await request(server)
+      .post('/v1/cloud/github/webhook')
+      .set({
+        'X-GitHub-Event': 'installation_repositories',
+        'X-GitHub-Delivery': randomUUID(),
+        'X-Hub-Signature-256': `sha256=${createHmac('sha256', WEBHOOK_SECRET).update(removal).digest('hex')}`,
+        'Content-Type': 'application/json',
+      })
+      .send(removal)
+      .expect(202);
+    expect(await project()).toMatchObject({
+      gitRepo: null,
+      rebuildFrequency: 'OFF',
+      rebuildNextAt: null,
+    });
 
     await rm(dist, { recursive: true, force: true });
     await rm(bundle, { force: true });

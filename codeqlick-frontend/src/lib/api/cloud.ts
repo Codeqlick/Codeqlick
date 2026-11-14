@@ -72,8 +72,8 @@ export type CloudProject = {
   production: CloudDeployment | null;
   domains: Array<{ name: string; state: CloudDomainState }>;
   suspended: { at: string; reason: string } | null;
-  /** Scheduled rebuilds of the production branch (missing from older APIs: treat as off). */
-  rebuild?: CloudRebuild;
+  /** Scheduled rebuilds of the production branch. */
+  rebuild: CloudRebuild;
   createdAt: string;
 };
 

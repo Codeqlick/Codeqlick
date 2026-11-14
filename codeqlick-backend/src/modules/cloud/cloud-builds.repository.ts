@@ -115,7 +115,7 @@ export class CloudBuildsRepository {
   /** Projects whose next scheduled rebuild is due. */
   dueRebuilds(now: Date, take: number) {
     return this.prisma.cloudProject.findMany({
-      where: { rebuildNextAt: { lte: now }, rebuildFrequency: { not: 'OFF' } },
+      where: { rebuildNextAt: { lte: now }, rebuildFrequency: { not: 'OFF' }, deletedAt: null },
       include: { team: { select: { slug: true, plan: true } } },
       orderBy: { rebuildNextAt: 'asc' },
       take,
@@ -167,17 +167,6 @@ export class CloudBuildsRepository {
       data: REBUILD_OFF,
     });
     return count === 1;
-  }
-
-  /** The team's owners and admins. */
-  admins(teamId: string) {
-    return this.prisma.user.findMany({
-      where: {
-        isActive: true,
-        cloudMemberships: { some: { teamId, role: { in: ['OWNER', 'ADMIN'] } } },
-      },
-      select: { email: true, locale: true },
-    });
   }
 
   // ── Environment variables ──────────────────────────────────────────────────────────────────

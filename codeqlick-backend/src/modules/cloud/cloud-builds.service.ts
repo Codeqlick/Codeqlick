@@ -394,12 +394,26 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           continue;
         // A build of the branch already waiting or running: this run is skipped.
         if (await this.repository.hasActiveBuild(project.id, project.gitBranch)) continue;
-        const head = await this.github.branchHead(
-          project.gitInstallationId,
-          project.gitRepoId,
-          project.gitRepo,
-          project.gitBranch,
-        );
+        let head;
+        try {
+          head = await this.github.branchHead(
+            project.gitInstallationId,
+            project.gitRepoId,
+            project.gitRepo,
+            project.gitBranch,
+          );
+        } catch (error) {
+          // A deleted branch or repository, or a suspended installation: a failed run.
+          if (!(error instanceof GithubError)) throw error;
+          this.logger.warn(
+            `Project ${project.id}: ${project.gitBranch} unreadable (${error.message})`,
+          );
+          await this.scheduledFailed(
+            project.id,
+            `The branch ${project.gitBranch} couldn't be read from GitHub`,
+          );
+          continue;
+        }
         await this.queue(project, {
           trigger: 'SCHEDULE',
           branch: project.gitBranch,
@@ -421,18 +435,26 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
    */
   private async scheduledEnded(build: CloudBuild): Promise<void> {
     if (build.trigger !== 'SCHEDULE') return;
+    if (build.status === 'SUCCEEDED') {
+      await this.repository
+        .rebuildSucceeded(build.projectId)
+        .catch((error: unknown) => this.logger.error(`Build ${build.id}: ${String(error)}`));
+      return;
+    }
+    if (build.status === 'FAILED') await this.scheduledFailed(build.projectId, build.error);
+  }
+
+  /**
+   * A scheduled run failed (its build, or reading its branch from GitHub): it counts, and the
+   * fifth in a row switches the schedule off and emails the team's admins once. Never throws.
+   */
+  private async scheduledFailed(projectId: string, error: string | null): Promise<void> {
     try {
-      if (build.status === 'SUCCEEDED') {
-        await this.repository.rebuildSucceeded(build.projectId);
-        return;
-      }
-      if (build.status !== 'FAILED') return;
-      const failures = await this.repository.rebuildFailed(build.projectId);
+      const failures = await this.repository.rebuildFailed(projectId);
       if (failures < REBUILD_MAX_FAILURES) return;
-      if (!(await this.repository.switchOffRebuild(build.projectId))) return;
-      const full = await this.repository.findById(build.id);
-      if (!full) return;
-      const project = full.project;
+      if (!(await this.repository.switchOffRebuild(projectId))) return;
+      const project = await this.projects.projectRow(projectId);
+      if (!project) return;
       await this.teams.recordSystem(
         project.teamId,
         'Codeqlick Cloud',
@@ -440,7 +462,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         project.slug,
         { failures },
       );
-      for (const admin of await this.repository.admins(project.teamId)) {
+      for (const admin of await this.notifications.admins(project.teamId)) {
         const locale = toApiLocale(admin.locale);
         await this.mail
           .send(
@@ -448,17 +470,15 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
               to: admin.email,
               locale,
               project: project.name,
-              error: build.error,
+              error,
               url: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/${project.slug}?tab=git`,
               siteUrl: this.config.siteUrl,
             }),
           )
           .catch((e: unknown) => this.logger.warn(`Project ${project.id}: ${String(e)}`));
       }
-    } catch (error) {
-      this.logger.error(
-        `Build ${build.id}: scheduled rebuild bookkeeping failed: ${String(error)}`,
-      );
+    } catch (e) {
+      this.logger.error(`Project ${projectId}: scheduled rebuild bookkeeping failed: ${String(e)}`);
     }
   }
 
