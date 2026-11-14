@@ -154,6 +154,37 @@ export type AdminPortfolioItem = Omit<
   updatedAt: string;
 };
 
+/**
+ * A replaced version of a post or case study (decision 52). `createdAt`: when it was replaced;
+ * `author`: who replaced it (null once that user is deleted).
+ */
+export type ContentRevision = {
+  id: string;
+  createdAt: string;
+  author: { name: string } | null;
+};
+
+/** A post's content as it was in a revision. */
+export type PostSnapshot = {
+  coverImageUrl: string | null;
+  tagIds: string[];
+  translations: Translation<PostTranslationFields>[];
+};
+
+/** A case study's content as it was in a revision. */
+export type PortfolioSnapshot = {
+  coverImageUrl: string | null;
+  clientName: string | null;
+  projectUrl: string | null;
+  technologies: string[];
+  services: ServiceKey[];
+  testimonialAuthor: string | null;
+  translations: Translation<PortfolioTranslationFields>[];
+};
+
+export type PostRevision = ContentRevision & { snapshot: PostSnapshot };
+export type PortfolioRevision = ContentRevision & { snapshot: PortfolioSnapshot };
+
 export const PROJECT_PHASES = [
   'DISCOVERY',
   'DESIGN',
