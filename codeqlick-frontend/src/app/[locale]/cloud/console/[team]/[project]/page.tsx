@@ -5,6 +5,7 @@ import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -426,6 +427,11 @@ async function Deployments({
                     {t('project.download')}
                     <span className="visually-hidden"> — {deployment.shortId}</span>
                   </a>
+                  <div className={styles.actions}>
+                  <Button href={`${base}/deployments/${deployment.id}`} size="sm" variant="ghost">
+                    {t('deployment.tabs.files')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </Button>
                   {deployment.isProduction ? null : (
                     <>
                       <form action={promoteAction}>

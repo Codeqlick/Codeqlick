@@ -28,6 +28,16 @@ import {
   type ConfigLimits,
 } from './cloud-config.js';
 import { protects, type ProtectionMode } from './cloud-protection.js';
+import {
+  compareFiles,
+  CONCURRENT_COMPARES,
+  DeploymentHashes,
+  isMissing,
+  Limiter,
+  listFiles,
+  type DeploymentComparison,
+  type DeploymentFile,
+} from './cloud-deployment-files.js';
 
 /** What unpacking a bundle may take (from the team's plan). */
 export interface BundleLimits {
@@ -111,6 +121,11 @@ export const deploymentLabel = (slug: string, shortId: string) => `${slug}--${sh
  */
 @Injectable()
 export class CloudStorage {
+  /** Files' hashes of the last deployments compared (architecture 4.13, "Files and comparison"). */
+  private readonly hashes = new DeploymentHashes();
+  /** At most two comparisons stream files from disk at once. */
+  private readonly compares = new Limiter(CONCURRENT_COMPARES);
+
   constructor(private readonly config: AppConfigService) {}
 
   /** The hosting domain and root, or 503 while hosting isn't set up. */
@@ -370,6 +385,7 @@ export class CloudStorage {
   }
 
   async removeDeployment(id: string): Promise<void> {
+    this.hashes.forget(id);
     if (!this.available) return;
     await rm(this.dir('deployments', id), { recursive: true, force: true });
   }
@@ -411,6 +427,38 @@ export class CloudStorage {
       );
       if (!marked) await writeFile(marker, '', { mode: 0o644 });
     }
+  }
+
+  /**
+   * A deployment's files (relative path and size, sorted by path); symbolic links are skipped and
+   * never followed. `null` when its folder is gone.
+   */
+  async deploymentFiles(id: string): Promise<DeploymentFile[] | null> {
+    return await listFiles(this.dir('deployments', id));
+  }
+
+  /**
+   * Compares deployment `id` with `withId` (added, removed, changed, unchanged), hashing only files
+   * of equal size and keeping those hashes in memory. `null` when either folder is gone.
+   */
+  async compareDeployments(id: string, withId: string): Promise<DeploymentComparison | null> {
+    const root = this.dir('deployments', id);
+    const withRoot = this.dir('deployments', withId);
+    return this.compares.run(async () => {
+      const [files, withFiles] = await Promise.all([listFiles(root), listFiles(withRoot)]);
+      if (!files || !withFiles) return null;
+      try {
+        return await compareFiles(
+          { id, root, files },
+          { id: withId, root: withRoot, files: withFiles },
+          this.hashes,
+        );
+      } catch (error) {
+        // Deleted while it was being read (the hourly cleanup): as if its files were gone.
+        if (isMissing(error)) return null;
+        throw error;
+      }
+    });
   }
 
   /** Asks the host to publish a verified custom domain for the project (`sync-sites.sh`). */
