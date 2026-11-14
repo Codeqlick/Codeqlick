@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { csvField } from '../leads/leads-csv.js';
 
 /**
@@ -236,4 +236,14 @@ export function analyticsToCsv(
     ),
   ];
   return `\uFEFF${lines.join('\r\n')}\r\n`;
+}
+
+/** A shared analytics link's token: `cqa_` and 24 random bytes (architecture 4.13). */
+export function newShareToken(): string {
+  return `cqa_${randomBytes(24).toString('base64url')}`;
+}
+
+/** What is stored to find a token again (never the token itself in the clear). */
+export function hashShareToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }

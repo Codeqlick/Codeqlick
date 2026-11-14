@@ -5868,6 +5868,22 @@
       "turnOn": "Switch analytics on",
       "turnOff": "Switch analytics off",
       "privacy": "No cookies, no local storage, no IP addresses kept: a visitor is counted once a day and can't be followed from one day to the next. Bots are left out. If your site has a Content-Security-Policy, allow https://api.codeqlick.com in script-src and connect-src.",
+      "share": {
+        "title": "Share",
+        "on": "Shared with a public link",
+        "off": "Not shared",
+        "offHint": "The link shows nothing until analytics are switched on.",
+        "help": "Anyone with the link can see these numbers, read-only, without signing in. Only owners and admins can see the link.",
+        "create": "Create link",
+        "newLink": "New link",
+        "stop": "Stop sharing",
+        "confirmNew": "I understand the old link will stop working."
+      },
+      "shared": {
+        "suffix": "Analytics",
+        "lead": "Visits to this site, counted without cookies. Read-only.",
+        "by": "Analytics by Codeqlick Cloud"
+      },
       "period": "Period",
       "csv": "Export CSV",
       "periods": {

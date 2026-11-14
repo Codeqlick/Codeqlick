@@ -5,8 +5,10 @@ import {
   campaignOf,
   deviceOf,
   fillSeries,
+  hashShareToken,
   isBot,
   madridMidnight,
+  newShareToken,
   osOf,
   parseHit,
   pathOf,
@@ -137,5 +139,14 @@ describe('Cloud web analytics', () => {
       'event,2026-11-13,"/a,b ""c""",2,2',
     ]);
     expect(analyticsToCsv([])).toBe('\uFEFFkind,date,name,visitors,count\r\n');
+  });
+
+  it('makes shared-link tokens that are random and found again by their hash', () => {
+    const token = newShareToken();
+    expect(token).toMatch(/^cqa_[A-Za-z0-9_-]{32}$/);
+    expect(newShareToken()).not.toBe(token);
+    expect(hashShareToken(token)).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashShareToken(token)).toBe(hashShareToken(token));
+    expect(hashShareToken(token)).not.toBe(hashShareToken(newShareToken()));
   });
 });

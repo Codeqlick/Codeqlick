@@ -81,6 +81,23 @@ export class CloudAnalyticsRepository {
     });
   }
 
+  setShare(projectId: string, hash: string | null, sealed: string | null): Promise<unknown> {
+    return this.prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { analyticsShareHash: hash, analyticsShareSealed: sealed },
+    });
+  }
+
+  /** The live project a shared link belongs to (suspended or deleted ones are not found). */
+  projectByShareHash(
+    hash: string,
+  ): Promise<{ id: string; name: string; analytics: boolean } | null> {
+    return this.prisma.cloudProject.findFirst({
+      where: { analyticsShareHash: hash, deletedAt: null, suspendedAt: null },
+      select: { id: true, name: true, analytics: true },
+    });
+  }
+
   /** The day's salt, created by whoever asks first. */
   async salt(day: string, fresh: string): Promise<string> {
     const row = await this.prisma.cloudAnalyticsSalt.upsert({

@@ -2225,6 +2225,10 @@ model CloudProject {
   onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
+  /// The shared analytics link: its SHA-256 (the lookup) and the link itself, sealed
+  /// (purpose cloud-analytics-share-v1), so admins can copy it again.
+  analyticsShareHash     String?   @unique @map("analytics_share_hash") @db.VarChar(64)
+  analyticsShareSealed   String?   @map("analytics_share_sealed")
   /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
   /// hash, how many days access lasts, and a version raised on every change that ends access.
   protection             CloudProtection @default(OFF)

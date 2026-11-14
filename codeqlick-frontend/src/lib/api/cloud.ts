@@ -1349,6 +1349,30 @@ export const exportCloudAnalytics = (projectId: string, period: CloudAnalyticsPe
     signal: AbortSignal.timeout(30_000),
   });
 
+export type CloudAnalyticsReport = Omit<CloudAnalytics, 'enabled' | 'snippet'>;
+export type CloudSharedAnalytics = CloudAnalyticsReport & { project: { name: string } };
+export type CloudAnalyticsShare = { enabled: boolean; url?: string; token?: string };
+
+export const getCloudAnalyticsShare = (projectId: string) =>
+  apiFetch<CloudAnalyticsShare>(`/cloud/projects/${projectId}/analytics/share`, auth);
+
+export const shareCloudAnalytics = (projectId: string) =>
+  apiFetch<{ url: string; token: string }>(`/cloud/projects/${projectId}/analytics/share`, {
+    ...write,
+    method: 'POST',
+  });
+
+export const unshareCloudAnalytics = (projectId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/analytics/share`, { ...write, method: 'DELETE' });
+
+/** A project's analytics through its public link (no session; never cached, so stopping sharing is immediate). */
+export const getSharedAnalytics = (token: string, period: CloudAnalyticsPeriod) =>
+  apiFetch<CloudSharedAnalytics>(`/cloud/analytics/shared/${encodeURIComponent(token)}`, {
+    cache: 'no-store',
+    forwardClientIp: true,
+    query: { period },
+  });
+
 export const setCloudAnalytics = (projectId: string, enabled: boolean) =>
   apiFetch<{ enabled: boolean; snippet: string }>(`/cloud/projects/${projectId}/analytics`, {
     ...write,

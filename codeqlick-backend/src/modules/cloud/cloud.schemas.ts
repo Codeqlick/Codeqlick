@@ -785,6 +785,9 @@ export const createBucketKeySchema = z.object({
 });
 export type CreateBucketKeyInput = z.infer<typeof createBucketKeySchema>;
 
+/** A shared link's token; a malformed one is answered like an unknown one (404), not as a 400. */
+export const analyticsShareTokenSchema = z.string().regex(/^cqa_[A-Za-z0-9_-]{32}$/);
+
 // ── Password protection (architecture 4.13 "Password protection", decision 50) ─────────────
 
 export const protectionSchema = z.object({
