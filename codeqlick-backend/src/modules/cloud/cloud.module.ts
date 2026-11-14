@@ -70,6 +70,8 @@ import { CloudUsageAlertsService } from './cloud-usage-alerts.service.js';
 import { CloudUsageService } from './cloud-usage.service.js';
 import { CloudBadgesController } from './cloud-badges.controller.js';
 import { CloudBadgesService } from './cloud-badges.service.js';
+import { CloudTransferRepository } from './cloud-transfer.repository.js';
+import { CloudTransferService } from './cloud-transfer.service.js';
 
 /** Codeqlick Cloud (architecture 4.13). Its API tokens are resolved for JwtAuthGuard. */
 @Module({
@@ -144,6 +146,8 @@ import { CloudBadgesService } from './cloud-badges.service.js';
     CloudRulesService,
     CloudBadgesService,
     GithubClient,
+    CloudTransferRepository,
+    CloudTransferService,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
   exports: [API_TOKEN_RESOLVER, CloudTeamsService, CloudBillingService],

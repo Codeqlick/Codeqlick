@@ -26,6 +26,19 @@ export function formatWhen(iso: string, locale: string): string {
   }).format(new Date(iso));
 }
 
+/**
+ * The teams a project can move to: the caller's other teams where they are an owner or an admin
+ * (architecture 4.13, moving a project to another team), in the order given.
+ */
+export function transferTargets<T extends { slug: string; role: string }>(
+  teams: readonly T[],
+  current: string,
+): T[] {
+  return teams.filter(
+    (team) => team.slug !== current && (team.role === 'OWNER' || team.role === 'ADMIN'),
+  );
+}
+
 /** A project's or team's address part: lowercase letters, digits and single dashes. */
 export function cloudSlug(text: string, max: number): string {
   return text

@@ -53,6 +53,7 @@ import {
   reportSchema,
   teamParamSchema,
   termsSchema,
+  transferProjectSchema,
   updateProjectSchema,
   updateTeamSchema,
   userCodeParamSchema,
@@ -75,6 +76,7 @@ import {
   type ReportInput,
   type TeamParam,
   type TermsInput,
+  type TransferProjectInput,
   type UpdateProjectInput,
   type UpdateTeamInput,
   type UserCodeParam,
@@ -96,6 +98,7 @@ import {
   type TeamView,
   type UsageView,
 } from './cloud-teams.service.js';
+import { CloudTransferService, type TransferView } from './cloud-transfer.service.js';
 import {
   CloudTokensService,
   type DevicePoll,
@@ -162,6 +165,7 @@ export class CloudController {
     private readonly teams: CloudTeamsService,
     private readonly projects: CloudProjectsService,
     private readonly domains: CloudDomainsService,
+    private readonly transfers: CloudTransferService,
   ) {}
 
   // ── CLI sign-in (the person's side) ─────────────────────────────────────────────────────────
@@ -383,6 +387,18 @@ export class CloudController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<void> {
     return this.projects.remove(ctx, params.id);
+  }
+
+  /** Moves the project to another team; session only, like members and teams (decision 58). */
+  @Post('projects/:id/transfer')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  transferProject(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+    @Body({ schema: transferProjectSchema }) body: TransferProjectInput,
+  ): Promise<TransferView> {
+    return this.transfers.transfer(ctx, params.id, body);
   }
 
   // ── Deployments ─────────────────────────────────────────────────────────────────────────────

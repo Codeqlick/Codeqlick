@@ -57,6 +57,9 @@ export type DomainRow = CloudDomain & {
   project: CloudProject & { team: CloudTeam };
 };
 
+/** The app's client, or an interactive transaction's (both have the models). */
+type Db = Prisma.TransactionClient;
+
 export interface EventInput {
   teamId: string;
   actorId: string | null;
@@ -157,10 +160,10 @@ export class CloudRepository {
 
   async ownerEmails(
     teamId: string,
-  ): Promise<Array<{ email: string; name: string; locale: 'EN' | 'ES' }>> {
+  ): Promise<Array<{ id: string; email: string; name: string; locale: 'EN' | 'ES' }>> {
     const rows = await this.prisma.cloudMember.findMany({
       where: { teamId, role: 'OWNER' },
-      select: { user: { select: { email: true, name: true, locale: true } } },
+      select: { user: { select: { id: true, email: true, name: true, locale: true } } },
     });
     return rows.map((row) => row.user);
   }
@@ -321,8 +324,9 @@ export class CloudRepository {
     return Number(sum._sum.sizeBytes ?? 0n);
   }
 
-  async storageBytes(teamId: string): Promise<number> {
-    const sum = await this.prisma.cloudDeployment.aggregate({
+  /** `db` is a transaction's client when counted inside one (moving a project). */
+  async storageBytes(teamId: string, db: Db = this.prisma): Promise<number> {
+    const sum = await db.cloudDeployment.aggregate({
       where: { project: { teamId } },
       _sum: { sizeBytes: true },
     });
@@ -359,8 +363,8 @@ export class CloudRepository {
     });
   }
 
-  countProjects(teamId: string): Promise<number> {
-    return this.prisma.cloudProject.count({ where: { teamId, deletedAt: null } });
+  countProjects(teamId: string, db: Db = this.prisma): Promise<number> {
+    return db.cloudProject.count({ where: { teamId, deletedAt: null } });
   }
 
   projectSlugTaken(slug: string): Promise<boolean> {

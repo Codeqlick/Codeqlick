@@ -295,6 +295,19 @@ export const renameCloudProject = (id: string, name: string) =>
 export const deleteCloudProject = (id: string) =>
   apiFetch<void>(`/cloud/projects/${id}`, { ...write, method: 'DELETE' });
 
+/** What happened to the Git link when a project moved: kept, dropped, or there was none. */
+export type CloudTransferGit = 'kept' | 'dropped' | 'none';
+
+export type CloudTransfer = CloudProject & { git: CloudTransferGit };
+
+/** Moves a project to another team (session only; owner here, owner or admin there). */
+export const transferCloudProject = (id: string, team: string) =>
+  apiFetch<CloudTransfer>(`/cloud/projects/${id}/transfer`, {
+    ...write,
+    method: 'POST',
+    body: { team },
+  });
+
 export const listCloudDeployments = (id: string, page = 1) =>
   apiFetch<Paginated<CloudDeployment>>(`/cloud/projects/${id}/deployments`, {
     ...auth,
