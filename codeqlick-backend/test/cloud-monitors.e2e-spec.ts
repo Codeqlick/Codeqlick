@@ -229,20 +229,8 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
       .expect(201);
     const monitors = `/v1/cloud/teams/${team}/monitors`;
 
-    // Invalid text and heartbeats with text are refused.
-    for (const keyword of ['', 'a'.repeat(101), 'two\nlines']) {
-      await request(server)
-        .post(monitors)
-        .set(auth)
-        .send({
-          kind: 'HTTP',
-          name: 'x',
-          url: 'https://example.com/',
-          keyword,
-          alertIds: [ownerId],
-        })
-        .expect(400);
-    }
+    // Heartbeats with text are refused. (Creating monitors is limited to 10 a minute, shared with
+    // the test above, so invalid texts are tried on PATCH below.)
     const heartbeat = {
       kind: 'HEARTBEAT',
       name: 'Backups',
@@ -276,6 +264,13 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
       .expect(201);
     expect(created.body).toMatchObject({ keyword: 'Add to cart', keywordMode: 'CONTAINS' });
     const id = created.body.id as string;
+    for (const keyword of ['', 'a'.repeat(101), 'two\nlines']) {
+      await request(server)
+        .patch(`/v1/cloud/monitors/${id}`)
+        .set(auth)
+        .send({ keyword })
+        .expect(400);
+    }
     const load = () =>
       prisma.cloudMonitor.findUniqueOrThrow({
         where: { id },
