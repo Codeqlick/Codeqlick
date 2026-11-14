@@ -101,6 +101,8 @@ export const createTokenSchema = z.object({
   name: z.string().trim().min(1).max(80),
   teamSlug: teamSlugSchema.optional(),
   expiresInDays: z.union([z.literal(30), z.literal(90), z.literal(365), z.null()]),
+  /** Read only: GET, HEAD and OPTIONS alone (decision 61). */
+  readOnly: z.boolean().default(false),
 });
 export type CreateTokenInput = z.infer<typeof createTokenSchema>;
 
