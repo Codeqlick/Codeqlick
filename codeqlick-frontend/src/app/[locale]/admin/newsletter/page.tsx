@@ -111,6 +111,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
               <tbody>
                 {list.items.map((subscriber) => {
                   const date = statusDate(subscriber);
+                  const dateKey = subscriber.status === 'ACTIVE' ? 'confirmedOn' : 'unsubscribedOn';
                   const removeButton = (
                     <ActionForm action={deleteSubscriberAction.bind(null, locale, subscriber.id)}>
                       <SubmitButton variant="danger" size="sm" pendingLabel={tc('deleting')}>
@@ -129,9 +130,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
                         </Badge>
                         {date ? (
                           <span className={styles.sub}>
-                            {t(subscriber.status === 'ACTIVE' ? 'confirmedOn' : 'unsubscribedOn', {
-                              date: formatDate(date, locale),
-                            })}
+                            {t(dateKey, { date: formatDate(date, locale) })}
                           </span>
                         ) : null}
                       </td>
