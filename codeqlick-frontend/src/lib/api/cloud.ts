@@ -38,11 +38,7 @@ export type CloudLimits = {
 };
 
 export type CloudUsageMeterKey =
-  | 'builds'
-  | 'formSubmissions'
-  | 'analyticsEvents'
-  | 'storage'
-  | 'deploymentsPerHour';
+  'builds' | 'formSubmissions' | 'analyticsEvents' | 'storage' | 'deploymentsPerHour';
 
 /** One limit of the plan; `percent` is `floor(used / limit × 100)` and can pass 100. */
 export type CloudUsageMeter = {
