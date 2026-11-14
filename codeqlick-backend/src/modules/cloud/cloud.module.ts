@@ -51,6 +51,8 @@ import { CloudStorage } from './cloud.storage.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import { CloudTokensRepository } from './cloud-tokens.repository.js';
 import { CloudTokensService } from './cloud-tokens.service.js';
+import { CloudTransferRepository } from './cloud-transfer.repository.js';
+import { CloudTransferService } from './cloud-transfer.service.js';
 
 /** Codeqlick Cloud (architecture 4.13). Its API tokens are resolved for JwtAuthGuard. */
 @Module({
@@ -110,6 +112,8 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudStorageRepository,
     CloudStorageService,
     GithubClient,
+    CloudTransferRepository,
+    CloudTransferService,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],
   exports: [API_TOKEN_RESOLVER, CloudTeamsService, CloudBillingService],

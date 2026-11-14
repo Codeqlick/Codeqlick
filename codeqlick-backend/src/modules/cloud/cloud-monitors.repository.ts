@@ -18,8 +18,9 @@ export class CloudMonitorsRepository {
     return this.prisma.cloudMonitor.findMany({ where: { teamId }, orderBy: { createdAt: 'asc' } });
   }
 
-  count(teamId: string): Promise<number> {
-    return this.prisma.cloudMonitor.count({ where: { teamId } });
+  /** `db` is a transaction's client when counted inside one (moving a project). */
+  count(teamId: string, db: Prisma.TransactionClient = this.prisma): Promise<number> {
+    return db.cloudMonitor.count({ where: { teamId } });
   }
 
   find(id: string): Promise<MonitorWithTeam | null> {

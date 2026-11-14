@@ -169,6 +169,17 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
     return site;
   }
 
+  /**
+   * After a project moved to another team: the teams' cached month counts and the hosts that
+   * pointed at the project (they carry its team) are read again on the next hit.
+   */
+  forget(projectId: string, teamIds: string[]): void {
+    for (const teamId of teamIds) this.counts.delete(teamId);
+    for (const [host, cached] of this.sites) {
+      if (cached.site?.id === projectId) this.sites.delete(host);
+    }
+  }
+
   private async salt(day: string): Promise<string> {
     const known = this.salts.get(day);
     if (known) return known;
