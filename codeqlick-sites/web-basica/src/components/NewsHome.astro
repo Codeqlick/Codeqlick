@@ -1,0 +1,33 @@
+---
+import { HOME_COUNT, NEWS_PATH, posts } from '../lib/news';
+import NewsCard from './NewsCard.astro';
+---
+
+<section class="section section--alt" id="novedades" aria-labelledby="novedades-title">
+  <div class="container">
+    <div class="section-head">
+      <p class="eyebrow">Noticias</p>
+      <h2 id="novedades-title">Novedades</h2>
+    </div>
+    <div class="grid">
+      {posts.slice(0, HOME_COUNT).map((post) => <NewsCard post={post} level={3} />)}
+    </div>
+    <p class="more">
+      <a class="button button--ghost" href={NEWS_PATH}>
+        Ver todas las noticias
+      </a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1.25rem;
+  }
+
+  .more {
+    margin: 2rem 0 0;
+  }
+</style>

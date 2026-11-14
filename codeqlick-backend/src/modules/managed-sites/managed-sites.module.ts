@@ -14,6 +14,9 @@ import { ManagedSitesController } from './managed-sites.controller.js';
 import { ManagedSitesRepository } from './managed-sites.repository.js';
 import { ManagedSitesService } from './managed-sites.service.js';
 import { SiteBuilderModule } from './site-builder.module.js';
+import { AdminSiteNewsController, SiteNewsController } from './site-news.controller.js';
+import { SiteNewsRepository } from './site-news.repository.js';
+import { SiteNewsService } from './site-news.service.js';
 import { SiteDomainsService } from './site-domains.service.js';
 import { SitePreviewsRepository } from './site-previews.repository.js';
 import { SitePreviewsService } from './site-previews.service.js';
@@ -54,6 +57,8 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
     SiteRequestsController,
     SiteVisitsController,
     SiteDraftsController,
+    SiteNewsController,
+    AdminSiteNewsController,
     StripeWebhookController,
   ],
   providers: [
@@ -68,6 +73,8 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
     SiteProposalsService,
     SiteReportsService,
     SiteEditorService,
+    SiteNewsRepository,
+    SiteNewsService,
     SitePurchasesService,
     SitePurchasesRepository,
   ],

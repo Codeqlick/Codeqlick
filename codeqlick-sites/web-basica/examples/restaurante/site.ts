@@ -119,6 +119,32 @@ const site: Site = {
       },
     ],
   },
+  news: {
+    posts: [
+      {
+        slug: 'menu-de-otono',
+        title: 'Nuevo menú de otoño',
+        summary: 'Arroz de setas de temporada, calabaza asada y un postre de membrillo casero.',
+        body: 'Desde este viernes estrenamos **menú de otoño**.\n\n- Arroz de setas y panceta\n- Crema de calabaza asada\n- Tarta de membrillo casera\n\nSe sirve de martes a viernes al mediodía. [Reserva tu mesa](#contacto) con unos días de margen.',
+        photo: { file: 'galeria-2.jpg', alt: 'Un arroz recién sacado de la paella' },
+        publishedAt: '2026-11-10T09:00:00+01:00',
+      },
+      {
+        slug: 'paella-de-los-domingos',
+        title: 'Paella a leña todos los domingos',
+        summary: 'Cada domingo, paella valenciana a leña por encargo, para llevar o en la terraza.',
+        body: 'Los domingos hacemos *paella valenciana* a leña. Encárgala antes del jueves y la tienes lista a la hora que prefieras.',
+        publishedAt: '2026-10-22T10:30:00+02:00',
+      },
+      {
+        slug: 'vuelve-la-terraza',
+        title: 'Vuelve la terraza',
+        summary: 'Con el buen tiempo, la terraza abre de nuevo a mediodía y por la noche.',
+        body: 'La terraza vuelve a abrir. Hay **12 mesas**, y para grupos grandes conviene reservar.',
+        publishedAt: '2026-09-15T12:00:00+02:00',
+      },
+    ],
+  },
   banner: {
     title: '¿Mesa para este fin de semana?',
     text: 'Los domingos se llena: reserva con unos días de antelación.',

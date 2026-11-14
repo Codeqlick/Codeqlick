@@ -81,6 +81,11 @@ export class MediaService {
     return paginate(items, files.length, page, pageSize);
   }
 
+  /** Whether this is the name of an image that is stored here. */
+  async exists(filename: string): Promise<boolean> {
+    return FILENAME_PATTERN.test(filename) && (await this.storage.size(filename)) !== undefined;
+  }
+
   /** Deletes an image nothing uses. One that is still referenced would leave a broken page. */
   async remove(actor: AuthUser, filename: string): Promise<void> {
     const exists =
