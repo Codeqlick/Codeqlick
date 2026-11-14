@@ -86,6 +86,10 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export const updateProjectSchema = z.object({ name });
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
+/** Moving a project to another team (architecture 4.13, decision 58): the target's slug. */
+export const transferProjectSchema = z.object({ team: teamSlugSchema });
+export type TransferProjectInput = z.infer<typeof transferProjectSchema>;
+
 export const deploymentParamSchema = z.object({ id: z.uuid(), deploymentId: z.uuid() });
 export type DeploymentParam = z.infer<typeof deploymentParamSchema>;
 
