@@ -51,10 +51,14 @@ describe('isProjectOrigin', () => {
     expect(isProjectOrigin('https://docs.codeqlick.app', project)).toBe(true);
     expect(isProjectOrigin('https://docs--a1b2c3d4.codeqlick.app', project)).toBe(true);
     expect(isProjectOrigin('https://docs.example.com', project)).toBe(true);
+    expect(isProjectOrigin('https://docs--b-feature-x.codeqlick.app', project)).toBe(true);
   });
   it('refuses others', () => {
     expect(isProjectOrigin('https://other.codeqlick.app', project)).toBe(false);
     expect(isProjectOrigin('https://docs-evil.codeqlick.app', project)).toBe(false);
+    expect(isProjectOrigin('https://other--b-feature-x.codeqlick.app', project)).toBe(false);
+    expect(isProjectOrigin('https://docs--b-.codeqlick.app', project)).toBe(false);
+    expect(isProjectOrigin('https://docs--b-a--b.codeqlick.app', project)).toBe(false);
     expect(isProjectOrigin('http://docs.codeqlick.app', project)).toBe(false);
     expect(isProjectOrigin('https://docs.codeqlick.app.evil.com', project)).toBe(false);
     expect(isProjectOrigin('null', project)).toBe(false);

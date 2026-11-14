@@ -41,6 +41,11 @@ describe('Cloud web analytics', () => {
   it('tells which project an address belongs to', () => {
     expect(siteOf('web.codeqlick.app', 'codeqlick.app')).toEqual({ slug: 'web' });
     expect(siteOf('my-site--a1b2c3d4.codeqlick.app', 'codeqlick.app')).toEqual({ slug: 'my-site' });
+    expect(siteOf('my-site--b-feature-x.codeqlick.app', 'codeqlick.app')).toEqual({
+      slug: 'my-site',
+    });
+    expect(siteOf('my-site--b-.codeqlick.app', 'codeqlick.app')).toBeNull();
+    expect(siteOf('my-site--other.codeqlick.app', 'codeqlick.app')).toBeNull();
     expect(siteOf('a.b.codeqlick.app', 'codeqlick.app')).toBeNull();
     expect(siteOf('WWW.Example.com', 'codeqlick.app')).toEqual({ domain: 'www.example.com' });
     expect(siteOf('localhost', 'codeqlick.app')).toBeNull();

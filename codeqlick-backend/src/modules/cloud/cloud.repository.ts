@@ -341,7 +341,7 @@ export class CloudRepository {
         id: true,
         slug: true,
         deletedAt: true,
-        deployments: { select: { id: true, shortId: true } },
+        deployments: { select: { id: true, shortId: true, branch: true } },
         domains: { select: { name: true } },
       },
     });
@@ -435,16 +435,35 @@ export class CloudRepository {
     });
   }
 
+  /** The ids and branches of a project's preview deployments with a branch, newest first. */
+  previewHeads(projectId: string): Promise<Array<{ id: string; branch: string | null }>> {
+    return this.prisma.cloudDeployment.findMany({
+      where: { projectId, target: 'PREVIEW', branch: { not: null } },
+      select: { id: true, branch: true },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+  }
+
   async deleteDeployment(id: string): Promise<void> {
     await this.prisma.cloudDeployment.delete({ where: { id } });
   }
 
   /** Deployments past the newest `keep` of each project, production left out. */
   oldDeployments(keep: number) {
-    return this.prisma.$queryRaw<Array<{ id: string; short_id: string; slug: string }>>`
-      SELECT d.id, d.short_id, p.slug
+    return this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        short_id: string;
+        slug: string;
+        project_id: string;
+        branch: string | null;
+        git_branch: string;
+        suspended_at: Date | null;
+      }>
+    >`
+      SELECT d.id, d.short_id, d.project_id, d.branch, p.slug, p.git_branch, p.suspended_at
       FROM (
-        SELECT id, short_id, project_id,
+        SELECT id, short_id, project_id, branch,
                row_number() OVER (PARTITION BY project_id ORDER BY created_at DESC, id DESC) AS n
         FROM cloud_deployments
       ) d

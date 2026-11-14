@@ -409,6 +409,150 @@ describe('Codeqlick Cloud (e2e)', () => {
       .send({})
       .expect(204);
 
+    // ── A fixed address per branch ─────────────────────────────────────────────────────────
+    const branchLink = join(root, 'hosts', `${slug}--b-feature-x`);
+    const previewOf = (branch: string, html: string) =>
+      bundle({ 'index.html': html }).then((file) =>
+        request(server)
+          .post(`/v1/cloud/projects/${projectId}/deployments`)
+          .set(tokenAuth)
+          .field('target', 'preview')
+          .field('branch', branch)
+          .attach('bundle', file)
+          .expect(201),
+      );
+    const branchOld = (await previewOf('feature/x', '<h1>b1</h1>')).body as {
+      id: string;
+      branchUrl: string | null;
+    };
+    expect(branchOld.branchUrl).toBe(`https://${slug}--b-feature-x.cloud.test`);
+    expect(await readlink(branchLink)).toBe(join('..', 'deployments', branchOld.id));
+    const branchNew = (await previewOf('feature/x', '<h1>b2</h1>')).body as {
+      id: string;
+      branchUrl: string | null;
+    };
+    expect(branchNew.branchUrl).toBe(branchOld.branchUrl);
+    expect(await readFile(join(branchLink, 'index.html'), 'utf8')).toBe('<h1>b2</h1>');
+    const byId = async () => {
+      const page = await request(server)
+        .get(`/v1/cloud/projects/${projectId}/deployments`)
+        .set(tokenAuth)
+        .expect(200);
+      return new Map(
+        (page.body.items as Array<{ id: string; branchUrl: string | null }>).map(
+          (d) => [d.id, d.branchUrl] as const,
+        ),
+      );
+    };
+    let urls = await byId();
+    expect(urls.get(branchNew.id)).toBe(branchOld.branchUrl);
+    expect(urls.get(branchOld.id)).toBeNull();
+    expect(urls.get(first.id)).toBeNull();
+    // The production branch has no branch address.
+    const onMain = await previewOf('main', '<h1>m</h1>');
+    expect(onMain.body.branchUrl).toBeNull();
+    await expect(readlink(join(root, 'hosts', `${slug}--b-main`))).rejects.toThrow(/ENOENT/);
+    // Deleting the newest points the address back at the older one; deleting that removes it.
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/deployments/${branchNew.id}`)
+      .set(tokenAuth)
+      .expect(204);
+    expect(await readlink(branchLink)).toBe(join('..', 'deployments', branchOld.id));
+    urls = await byId();
+    expect(urls.get(branchOld.id)).toBe(branchOld.branchUrl);
+    const single = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${branchOld.id}`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(single.body.branchUrl).toBe(branchOld.branchUrl);
+    // Suspension points it at the suspended page and back.
+    await request(server)
+      .post(`/v1/admin/cloud/projects/${projectId}/suspend`)
+      .set(adminAuth)
+      .send({ reason: 'Again' })
+      .expect(204);
+    expect(await readlink(branchLink)).toBe(join('..', 'pages', 'suspended'));
+    await request(server)
+      .delete(`/v1/admin/cloud/projects/${projectId}/suspension`)
+      .set(adminAuth)
+      .expect(204);
+    expect(await readlink(branchLink)).toBe(join('..', 'deployments', branchOld.id));
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/deployments/${branchOld.id}`)
+      .set(tokenAuth)
+      .expect(204);
+    await expect(readlink(branchLink)).rejects.toThrow(/ENOENT/);
+    const branchThird = (await previewOf('feature/x', '<h1>b3</h1>')).body as { id: string };
+    expect(await readFile(join(branchLink, 'index.html'), 'utf8')).toBe('<h1>b3</h1>');
+
+    // `feature-x` shares the label of `feature/x`: the newest of the two holds it.
+    const projects = app.get(CloudProjectsService);
+    const shared = (await previewOf('feature-x', '<h1>b4</h1>')).body as {
+      id: string;
+      branchUrl: string | null;
+    };
+    expect(shared.branchUrl).toBe(`https://${slug}--b-feature-x.cloud.test`);
+    expect(await readFile(join(branchLink, 'index.html'), 'utf8')).toBe('<h1>b4</h1>');
+    urls = await byId();
+    expect(urls.get(shared.id)).toBe(shared.branchUrl);
+    expect(urls.get(branchThird.id)).toBeNull();
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/deployments/${shared.id}`)
+      .set(tokenAuth)
+      .expect(204);
+    expect(await readlink(branchLink)).toBe(join('..', 'deployments', branchThird.id));
+
+    // Making `feature/x` the production branch takes its address away, and suspension keeps it
+    // from serving anything but the suspended page.
+    await prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { gitBranch: 'feature/x' },
+    });
+    const relinkArgs = { id: projectId, slug, suspendedAt: null };
+    await projects.relinkBranches({ ...relinkArgs, gitBranch: 'feature/x' }, ['feature/x', 'main']);
+    await expect(readlink(branchLink)).rejects.toThrow(/ENOENT/);
+    await request(server)
+      .post(`/v1/admin/cloud/projects/${projectId}/suspend`)
+      .set(adminAuth)
+      .send({ reason: 'Third' })
+      .expect(204);
+    expect(await readlink(branchLink)).toBe(join('..', 'pages', 'suspended'));
+    await request(server)
+      .delete(`/v1/admin/cloud/projects/${projectId}/suspension`)
+      .set(adminAuth)
+      .expect(204);
+    await expect(readlink(branchLink)).rejects.toThrow(/ENOENT/);
+    await prisma.cloudProject.update({ where: { id: projectId }, data: { gitBranch: 'main' } });
+    await projects.relinkBranches({ ...relinkArgs, gitBranch: 'main' }, ['feature/x']);
+    expect(await readlink(branchLink)).toBe(join('..', 'deployments', branchThird.id));
+
+    // Housekeeping removes the newest preview of `zz` (the older one is production, so it
+    // stays: the address moves to it) and the only one of `yy` (its address goes away).
+    await prisma.cloudDeployment.update({ where: { id: first.id }, data: { branch: 'zz' } });
+    const row = (branch: string | null, at: number, n: number) => ({
+      projectId,
+      shortId: `f${tag.slice(0, 3)}${n.toString().padStart(4, '0')}`.slice(0, 8),
+      target: 'PREVIEW' as const,
+      branch,
+      sizeBytes: 0n,
+      fileCount: 1,
+      createdAt: new Date(Date.now() + at),
+    });
+    const zzNew = await prisma.cloudDeployment.create({ data: row('zz', 60_000, 1) });
+    const yyOnly = await prisma.cloudDeployment.create({ data: row('yy', 120_000, 2) });
+    await prisma.cloudDeployment.createMany({
+      data: Array.from({ length: 20 }, (_, i) => row(null, 3_600_000 + i, 10 + i)),
+    });
+    await projects.relinkBranches({ ...relinkArgs, gitBranch: 'main' }, ['zz', 'yy']);
+    const zzLink = join(root, 'hosts', `${slug}--b-zz`);
+    const yyLink = join(root, 'hosts', `${slug}--b-yy`);
+    expect(await readlink(zzLink)).toBe(join('..', 'deployments', zzNew.id));
+    expect(await readlink(yyLink)).toBe(join('..', 'deployments', yyOnly.id));
+    await projects.housekeeping();
+    expect(await readlink(zzLink)).toBe(join('..', 'deployments', first.id));
+    await expect(readlink(yyLink)).rejects.toThrow(/ENOENT/);
+    await expect(readlink(branchLink)).rejects.toThrow(/ENOENT/);
+
     // ── Events, housekeeping and deletion ──────────────────────────────────────────────────
     const events = await request(server)
       .get(`/v1/cloud/teams/${teamSlug}/events`)
@@ -428,6 +572,7 @@ describe('Codeqlick Cloud (e2e)', () => {
 
     await request(server).delete(`/v1/cloud/projects/${projectId}`).set(tokenAuth).expect(204);
     await expect(readlink(join(root, 'hosts', slug))).rejects.toThrow(/ENOENT/);
+    await expect(readlink(zzLink)).rejects.toThrow(/ENOENT/);
     await expect(readFile(join(root, 'domains', `docs-${tag}.example.org`))).rejects.toThrow(
       /ENOENT/,
     );
