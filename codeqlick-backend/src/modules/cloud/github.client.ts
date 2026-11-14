@@ -177,7 +177,7 @@ export class GithubClient {
 
   /**
    * The files changed between two commits (both names of a renamed file), or null when GitHub
-   * may have cut the list (300 files or more).
+   * may have cut the list (300 files or more) or sent none at all.
    */
   async compareFiles(
     installationId: bigint | number,
@@ -191,11 +191,12 @@ export class GithubClient {
       files?: Array<{ filename: string; previous_filename?: string }>;
     }>(
       'GET',
-      `/repos/${fullName}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}?per_page=${COMPARE_FILES_CAP}`,
+      `/repos/${fullName}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}?per_page=1`,
       `token ${token}`,
     );
-    const files = result.files ?? [];
-    if (files.length >= COMPARE_FILES_CAP) return null;
+    // `per_page` pages the commits; the files (up to 300) always come on the first page.
+    const files = result.files;
+    if (!Array.isArray(files) || files.length >= COMPARE_FILES_CAP) return null;
     return files.flatMap((file) =>
       file.previous_filename ? [file.filename, file.previous_filename] : [file.filename],
     );
