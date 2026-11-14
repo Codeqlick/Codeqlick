@@ -2095,6 +2095,8 @@ model CloudProject {
   nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
   buildBranches          Boolean   @default(true) @map("build_branches")
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
+  /// Runs the website check on each pull request's preview (architecture 4.13; decision 52).
+  previewChecks          Boolean   @default(false) @map("preview_checks")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
   /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
@@ -2369,7 +2371,8 @@ model CloudAudit {
   result    Json
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team   CloudTeam    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  builds CloudBuild[]
 
   @@index([teamId, createdAt])
   @@index([createdAt])
@@ -2484,6 +2487,8 @@ model CloudBuild {
   deploymentId  String?           @map("deployment_id") @db.Uuid
   /// Run without the dependency cache (asked from the console or the CLI).
   noCache       Boolean           @default(false) @map("no_cache")
+  /// The preview's website check (decision 52); empty once the audit is cleaned up.
+  auditId       String?           @map("audit_id") @db.Uuid
   builder       String?           @db.VarChar(60)
   createdById   String?           @map("created_by_id") @db.Uuid
   /// The deploy hook's name when the build came from one (trigger HOOK); kept after the hook is deleted.
@@ -2494,10 +2499,12 @@ model CloudBuild {
   finishedAt    DateTime?         @map("finished_at") @db.Timestamptz(3)
 
   project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  audit   CloudAudit?  @relation(fields: [auditId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, number])
   @@index([status, queuedAt])
   @@index([projectId, queuedAt])
+  @@index([auditId])
   @@map("cloud_builds")
 }
 

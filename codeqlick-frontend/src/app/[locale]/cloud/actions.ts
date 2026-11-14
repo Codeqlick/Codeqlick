@@ -793,6 +793,7 @@ export async function saveGitAction(
       nodeVersion: ['20', '22', '24'].includes(node) ? node : '24',
       buildBranches: formBoolean(formData, 'buildBranches'),
       buildPullRequests: formBoolean(formData, 'buildPullRequests'),
+      previewChecks: formBoolean(formData, 'previewChecks'),
     });
   } catch (error) {
     if (isApiError(error) && error.status === 400) {

@@ -587,7 +587,8 @@ function showGit(settings: GitSettings): void {
         'off',
     ],
   ];
-  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
+  if (settings.previewChecks) rows.push(['check previews', 'website check on each pull request']);
+  for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(16))}${value}`);
 }
 
 async function git(action: string | undefined, name: string | undefined, options: Options) {

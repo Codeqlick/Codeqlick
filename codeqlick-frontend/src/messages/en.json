@@ -5257,6 +5257,7 @@
       "ci": "In your CI it fails the step under the score you set:",
       "recent": "Recent checks",
       "empty": "No checks yet.",
+      "previewBadge": "Preview check",
       "status": {
         "pass": "OK",
         "warn": "Improve",
@@ -5289,6 +5290,8 @@
       "node": "Node version",
       "buildBranches": "Build other branches as previews",
       "buildPullRequests": "Build pull requests (not from forks)",
+      "previewChecks": "Check each preview",
+      "previewChecksHint": "Runs the website check on each pull request's preview and adds the result to its comment on GitHub. Counts toward the team's hourly website checks.",
       "save": "Save",
       "saved": "Saved.",
       "invalid": "Check the fields.",
@@ -5310,6 +5313,7 @@
       "backToConsole": "Back to the console"
     },
     "builds": {
+      "check": "Website check: {score}/100",
       "first": "Build {branch}",
       "again": "Deploy {branch} again",
       "noRepo": "Connect a GitHub repository in the Git tab to build on every push.",

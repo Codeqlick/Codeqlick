@@ -76,6 +76,13 @@ export default async function CloudBuildPage({ params }: PageProps) {
           <p className={styles.muted}>{build.commitMessage.split('\n')[0]}</p>
         ) : null}
         {build.error ? <p className={styles.small}>{build.error}</p> : null}
+        {build.audit ? (
+          <p className={styles.spacedSmall}>
+            <Link href={`/cloud/console/${team}/audits/${build.audit.id}`}>
+              {t('builds.check', { score: build.audit.score })}
+            </Link>
+          </p>
+        ) : null}
         {deployment ? (
           <p className={styles.spacedSmall}>
             <span className={styles.address}>
