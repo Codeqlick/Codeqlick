@@ -659,11 +659,20 @@ export const runCloudAudit = (input: { url: string; teamSlug: string; locale: 'e
     signal: AbortSignal.timeout(75_000),
   });
 
+export type CloudAuditListItem = {
+  id: string;
+  url: string;
+  score: number;
+  /** Made for a build's preview, not by a member. */
+  preview: boolean;
+  createdAt: string;
+};
+
 export const listCloudAudits = (team: string, page = 1) =>
-  apiFetch<Paginated<{ id: string; url: string; score: number; createdAt: string }>>(
-    `/cloud/teams/${encodeURIComponent(team)}/audits`,
-    { ...auth, query: { page, pageSize: 20 } },
-  );
+  apiFetch<Paginated<CloudAuditListItem>>(`/cloud/teams/${encodeURIComponent(team)}/audits`, {
+    ...auth,
+    query: { page, pageSize: 20 },
+  });
 
 export const getCloudAudit = (id: string, locale: 'en' | 'es') =>
   apiFetch<CloudAuditReport>(`/cloud/audits/${id}`, { ...auth, query: { locale } });
@@ -682,6 +691,7 @@ export type CloudGit = {
   nodeVersion: string;
   buildBranches: boolean;
   buildPullRequests: boolean;
+  previewChecks: boolean;
 };
 
 export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
@@ -703,6 +713,8 @@ export type CloudBuild = {
   startedAt: string | null;
   finishedAt: string | null;
   durationMs: number | null;
+  /** The website check of the build's preview, when there is one. */
+  audit: { id: string; score: number } | null;
 };
 
 export const getCloudGithubInstallUrl = (teamSlug: string, projectSlug?: string) =>
