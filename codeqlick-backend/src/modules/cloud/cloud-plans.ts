@@ -24,6 +24,8 @@ export interface CloudLimits {
   envVarsPerProject: number;
   /** Build notification channels per project (decision 43). */
   notifyChannelsPerProject: number;
+  /** Deploy hooks per project (decision 51). */
+  deployHooksPerProject: number;
   /** Web analytics events a Madrid calendar month (decision 44). */
   analyticsEventsPerMonth: number;
   /** Key-value store (decision 45). */
@@ -63,6 +65,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildMinutes: 15,
     envVarsPerProject: 50,
     notifyChannelsPerProject: 5,
+    deployHooksPerProject: 5,
     analyticsEventsPerMonth: 50_000,
     kvKeysPerProject: 1000,
     kvBytesPerProject: 10 * MB,
@@ -93,6 +96,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     buildMinutes: 30,
     envVarsPerProject: 200,
     notifyChannelsPerProject: 20,
+    deployHooksPerProject: 5,
     analyticsEventsPerMonth: 1_000_000,
     kvKeysPerProject: 100_000,
     kvBytesPerProject: 1024 * MB,

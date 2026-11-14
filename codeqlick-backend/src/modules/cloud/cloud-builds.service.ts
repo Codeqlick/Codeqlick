@@ -35,7 +35,9 @@ import { GithubClient, GithubError } from './github.client.js';
 export interface BuildView {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook';
+  /** The deploy hook's name, for builds it started (kept after the hook is deleted). */
+  hookName: string | null;
   target: 'preview' | 'production';
   branch: string;
   commit: string;
@@ -50,6 +52,22 @@ export interface BuildView {
   finishedAt: string | null;
   durationMs: number | null;
 }
+
+/** What a build needs to know of its project to be queued. */
+export interface BuildProject {
+  id: string;
+  teamId: string;
+  slug: string;
+  gitBranch: string;
+  gitInstallationId: bigint | null;
+  gitRepoId: bigint | null;
+  gitRepo: string | null;
+  team: { slug: string; plan: 'FREE' | 'PRO' };
+}
+
+/** Who asked for a build of a branch's latest commit: a person ("Deploy again") or a deploy hook. */
+export type BuildOrigin =
+  { trigger: 'MANUAL'; createdById: string } | { trigger: 'HOOK'; hookName: string };
 
 export interface BuildDetail extends BuildView {
   log: string;
@@ -276,21 +294,27 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       (r) => r.id === input.repoId,
     );
     if (!repo) throw new BadRequestException("That repository isn't in the GitHub installation");
-    await this.repository.setGit(project.id, {
-      gitInstallationId: BigInt(input.installationId),
-      gitRepoId: BigInt(repo.id),
-      gitRepo: repo.fullName,
-      gitBranch: input.branch,
-      ...(input.rootDir !== undefined ? { rootDir: input.rootDir } : {}),
-      ...(input.installCommand !== undefined ? { installCommand: input.installCommand } : {}),
-      ...(input.buildCommand !== undefined ? { buildCommand: input.buildCommand } : {}),
-      ...(input.outputDir !== undefined ? { outputDir: input.outputDir } : {}),
-      ...(input.nodeVersion !== undefined ? { nodeVersion: input.nodeVersion } : {}),
-      ...(input.buildBranches !== undefined ? { buildBranches: input.buildBranches } : {}),
-      ...(input.buildPullRequests !== undefined
-        ? { buildPullRequests: input.buildPullRequests }
-        : {}),
-    });
+    // Deploy hooks belong to one repository: connecting a different one deletes them (decision 51).
+    const otherRepo = project.gitRepoId !== null && project.gitRepoId !== BigInt(repo.id);
+    await this.repository.setGit(
+      project.id,
+      {
+        gitInstallationId: BigInt(input.installationId),
+        gitRepoId: BigInt(repo.id),
+        gitRepo: repo.fullName,
+        gitBranch: input.branch,
+        ...(input.rootDir !== undefined ? { rootDir: input.rootDir } : {}),
+        ...(input.installCommand !== undefined ? { installCommand: input.installCommand } : {}),
+        ...(input.buildCommand !== undefined ? { buildCommand: input.buildCommand } : {}),
+        ...(input.outputDir !== undefined ? { outputDir: input.outputDir } : {}),
+        ...(input.nodeVersion !== undefined ? { nodeVersion: input.nodeVersion } : {}),
+        ...(input.buildBranches !== undefined ? { buildBranches: input.buildBranches } : {}),
+        ...(input.buildPullRequests !== undefined
+          ? { buildPullRequests: input.buildPullRequests }
+          : {}),
+      },
+      otherRepo,
+    );
     await this.teams.record(
       ctx,
       project.teamId,
@@ -303,11 +327,12 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   async disconnect(ctx: CloudCtx, projectId: string): Promise<void> {
     const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
-    await this.repository.setGit(project.id, {
-      gitInstallationId: null,
-      gitRepoId: null,
-      gitRepo: null,
-    });
+    // Deploy hooks go with the connection (decision 51).
+    await this.repository.setGit(
+      project.id,
+      { gitInstallationId: null, gitRepoId: null, gitRepo: null },
+      true,
+    );
     await this.teams.record(ctx, project.teamId, 'git.disconnected', project.slug);
   }
 
@@ -365,7 +390,10 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           ? 'pull_request'
           : build.trigger === 'MANUAL'
             ? 'manual'
-            : 'push',
+            : build.trigger === 'HOOK'
+              ? 'hook'
+              : 'push',
+      hookName: build.trigger === 'HOOK' ? build.hookName : null,
       target: build.target === 'PRODUCTION' ? 'production' : 'preview',
       branch: build.branch,
       commit: build.commit,
@@ -409,36 +437,45 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
   /** "Deploy again": a build of the branch's latest commit. */
   async manual(ctx: CloudCtx, projectId: string, branch: string | undefined): Promise<BuildView> {
     const { project } = await this.projects.project(ctx, projectId);
+    const build = await this.queueHead(
+      { ...project, team: { slug: project.team.slug, plan: project.team.plan } },
+      branch ?? project.gitBranch,
+      { trigger: 'MANUAL', createdById: ctx.user.id },
+    );
+    return this.view(build);
+  }
+
+  /**
+   * Queues a build of a branch's latest commit, read from GitHub: for "Deploy again" and for deploy
+   * hooks (decision 51). `409` when the project has no repository, `404` when the branch is gone.
+   */
+  async queueHead(project: BuildProject, branch: string, origin: BuildOrigin): Promise<CloudBuild> {
     if (!project.gitInstallationId || !project.gitRepoId || !project.gitRepo) {
       throw new ConflictException('Connect a GitHub repository first');
     }
-    const target = branch ?? project.gitBranch;
     let head;
     try {
       head = await this.github.branchHead(
         project.gitInstallationId,
         project.gitRepoId,
         project.gitRepo,
-        target,
+        branch,
       );
     } catch (error) {
       if (error instanceof GithubError && error.status === 404)
         throw new NotFoundException('That branch was not found');
       throw error;
     }
-    const build = await this.queue(
-      { ...project, team: { slug: project.team.slug, plan: project.team.plan } },
-      {
-        trigger: 'MANUAL',
-        branch: target,
-        commit: head.sha,
-        commitMessage: head.message,
-        author: head.author,
-        pullRequest: null,
-        createdById: ctx.user.id,
-      },
-    );
-    return this.view(build);
+    return this.queue(project, {
+      trigger: origin.trigger,
+      branch,
+      commit: head.sha,
+      commitMessage: head.message,
+      author: head.author,
+      pullRequest: null,
+      createdById: origin.trigger === 'MANUAL' ? origin.createdById : null,
+      hookName: origin.trigger === 'HOOK' ? origin.hookName : null,
+    });
   }
 
   async cancel(ctx: CloudCtx, projectId: string, number: number): Promise<BuildView> {
@@ -460,16 +497,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
    * the month's builds it is recorded as failed. Older queued builds of the branch are canceled.
    */
   private async queue(
-    project: {
-      id: string;
-      teamId: string;
-      slug: string;
-      gitBranch: string;
-      gitInstallationId: bigint | null;
-      gitRepoId: bigint | null;
-      gitRepo: string | null;
-      team: { slug: string; plan: 'FREE' | 'PRO' };
-    },
+    project: BuildProject,
     input: {
       trigger: CloudBuildTrigger;
       branch: string;
@@ -478,6 +506,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       author: string | null;
       pullRequest: number | null;
       createdById: string | null;
+      hookName?: string | null;
     },
     now = new Date(),
   ): Promise<CloudBuild> {
@@ -496,6 +525,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       author: input.author?.slice(0, 100) ?? null,
       pullRequest: input.pullRequest,
       createdById: input.createdById,
+      hookName: input.hookName ?? null,
       queuedAt: now,
       ...(over
         ? {
@@ -754,7 +784,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   // ── Back on GitHub ─────────────────────────────────────────────────────────────────────────
 
-  private buildUrl(project: { slug: string; team: { slug: string } }, build: CloudBuild): string {
+  buildUrl(project: { slug: string; team: { slug: string } }, build: CloudBuild): string {
     return `${this.config.cloudUrl}/en/console/${project.team.slug}/${project.slug}/builds/${build.number}`;
   }
 

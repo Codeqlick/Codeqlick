@@ -403,6 +403,7 @@ export class CloudRepository {
       this.prisma.cloudDeployment.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudDomain.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudForm.deleteMany({ where: { projectId: id } }),
+      this.prisma.cloudDeployHook.deleteMany({ where: { projectId: id } }),
     ]);
   }
 
