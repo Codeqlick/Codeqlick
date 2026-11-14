@@ -1,5 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
+import { authHeader } from './projects';
+import { env } from '@/lib/env';
 import { apiFetch } from './client';
 import type { Paginated } from './types';
 
@@ -331,6 +333,22 @@ export const deleteCloudDeployment = (id: string, deploymentId: string) =>
     ...write,
     method: 'DELETE',
   });
+
+/**
+ * The API's response for a deployment's files as `tar.gz` (architecture 4.13, Download), unread so
+ * the caller can stream its body. `undefined` without a session.
+ */
+export async function downloadCloudDeployment(
+  id: string,
+  deploymentId: string,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  return fetch(
+    `${env.API_URL}/cloud/projects/${encodeURIComponent(id)}/deployments/${encodeURIComponent(deploymentId)}/archive`,
+    { headers: { Authorization: authorization }, cache: 'no-store' },
+  );
+}
 
 export const listCloudDomains = (id: string) =>
   apiFetch<{ items: CloudDomain[] }>(`/cloud/projects/${id}/domains`, auth);

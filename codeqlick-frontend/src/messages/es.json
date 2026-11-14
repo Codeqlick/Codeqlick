@@ -4996,6 +4996,7 @@
       "productionTag": "Publicado",
       "promote": "Publicar",
       "delete": "Borrar",
+      "download": "Descargar",
       "via": "con {token}",
       "deployment": "Despliegue",
       "rules": {

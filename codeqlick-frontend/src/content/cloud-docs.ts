@@ -44,6 +44,7 @@ Tu web queda en \`https://<proyecto>.${domain}\`. Si lo usas a menudo, instálal
 | \`codeqlick deployments\` | Los despliegues del proyecto, el más reciente primero |
 | \`codeqlick promote <id>\` | Publica un despliegue anterior |
 | \`codeqlick rollback\` | Vuelve al despliegue publicado antes del actual |
+| \`codeqlick download [id]\` | Descarga los archivos de un despliegue en \`.tar.gz\` (el publicado si no indicas cuál) |
 | \`codeqlick domains\` | Tus dominios (\`add\`, \`check\` y \`rm <dominio>\`) |
 | \`codeqlick open\` | Abre la web publicada |
 
@@ -58,6 +59,19 @@ Para volver atrás, \`codeqlick rollback\` o el botón «Publicar» de cualquier
 Guardamos los 20 últimos despliegues de cada proyecto, además del publicado. **No hacemos copia de tus archivos**: guarda tus fuentes.
 
 Qué se sube: todo lo de la carpeta salvo los archivos y carpetas que empiezan por punto (excepto \`.well-known\`). Para excluir más, añade un \`.codeqlickignore\` con un patrón por línea (\`*.map\`, \`drafts/\`). Debe haber un \`index.html\` en la raíz.
+
+### Descargar un despliegue
+
+Puedes recuperar los archivos de cualquier despliegue guardado, para ver qué hay publicado o para llevarte la web: con el botón «Descargar» de la consola o desde la línea de comandos:
+
+\`\`\`sh
+codeqlick download              # el despliegue publicado
+codeqlick download a1b2c3d4     # otro, por su id corto
+codeqlick download -o web.tar.gz --force
+tar -xzf <proyecto>-<id>.tar.gz
+\`\`\`
+
+Se guarda como \`<proyecto>-<id>.tar.gz\` en la carpeta actual (o donde digas con \`-o\`); no sobrescribe un archivo existente sin \`--force\`, y una descarga cortada no deja nada a medias. Puede descargar cualquier miembro del equipo, también con el proyecto suspendido, hasta 10 veces por hora y equipo.
 
 ## Compilar desde GitHub
 
@@ -243,7 +257,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
+Otras rutas: \`GET /cloud/me\`, \`GET /cloud/teams/<equipo>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET …/deployments/<id>/archive\` (el despliegue en \`.tar.gz\`), \`GET|POST /cloud/projects/<id>/domains\`. Los errores siguen RFC 9457 (\`application/problem+json\`).
 
 ## Denunciar un abuso
 
@@ -289,6 +303,7 @@ Your site is live at \`https://<project>.${domain}\`. If you use it often, insta
 | \`codeqlick deployments\` | The project's deployments, newest first |
 | \`codeqlick promote <id>\` | Publishes an earlier deployment |
 | \`codeqlick rollback\` | Goes back to the deployment published before the current one |
+| \`codeqlick download [id]\` | Downloads a deployment's files as \`.tar.gz\` (the published one when you don't say which) |
 | \`codeqlick domains\` | Your domains (\`add\`, \`check\` and \`rm <domain>\`) |
 | \`codeqlick open\` | Opens the published site |
 
@@ -303,6 +318,19 @@ To go back, \`codeqlick rollback\` or the "Publish" button of any deployment in 
 We keep the last 20 deployments of each project, plus the published one. **We don't back up your files**: keep your sources.
 
 What is uploaded: everything in the folder except files and folders starting with a dot (but \`.well-known\`). To leave out more, add a \`.codeqlickignore\` with one pattern per line (\`*.map\`, \`drafts/\`). There must be an \`index.html\` at the root.
+
+### Downloading a deployment
+
+You can get back the files of any kept deployment, to check what is live or to take your site elsewhere: with the "Download" button in the console or from the command line:
+
+\`\`\`sh
+codeqlick download              # the published deployment
+codeqlick download a1b2c3d4     # another one, by its short id
+codeqlick download -o site.tar.gz --force
+tar -xzf <project>-<id>.tar.gz
+\`\`\`
+
+It is saved as \`<project>-<id>.tar.gz\` in the current folder (or where \`-o\` says); it won't overwrite an existing file without \`--force\`, and a cut download leaves nothing half-written behind. Any member of the team can download, also while the project is suspended, up to 10 times an hour per team.
 
 ## Building from GitHub
 
@@ -488,7 +516,7 @@ curl -fsS -H "Authorization: Bearer $CODEQLICK_TOKEN" \\
   ${api}/cloud/projects/<id>/deployments
 \`\`\`
 
-Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
+Other routes: \`GET /cloud/me\`, \`GET /cloud/teams/<team>/projects\`, \`GET /cloud/projects/<id>/deployments\`, \`POST …/deployments/<id>/promote\`, \`GET …/deployments/<id>/archive\` (the deployment as \`.tar.gz\`), \`GET|POST /cloud/projects/<id>/domains\`. Errors follow RFC 9457 (\`application/problem+json\`).
 
 ## Reporting abuse
 

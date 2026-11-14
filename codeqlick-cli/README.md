@@ -19,8 +19,14 @@ back in a second.
 | `init`                                      | Link the folder to a project                 |
 | `deploy [folder] [--prod] [-m <text>]`      | Upload the folder as a new deployment        |
 | `deployments` / `promote <id>` / `rollback` | List, publish an earlier one, go back        |
+| `download [id] [-o <file>] [--force]`       | Save a deployment's files as a `tar.gz`      |
 | `domains [add\|check\|rm <domain>]`         | The project's own domains                    |
 | `open`                                      | Open the published site                      |
+
+`download` saves the production deployment (or the one you name, by its short id) as
+`<project>-<id>.tar.gz` in the current folder; unpack it with `tar -xzf`. It never overwrites a
+file unless you pass `--force`, and a cut download leaves nothing behind. A team can download 10
+deployments an hour.
 
 Builds from Git (connect GitHub once in the console's Git tab):
 
