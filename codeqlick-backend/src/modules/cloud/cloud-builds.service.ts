@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { rm } from 'node:fs/promises';
+import { posix } from 'node:path';
 import {
   BadRequestException,
   ConflictException,
@@ -31,6 +32,7 @@ import { keptAsPreview, LOCKED_BUILD_LOG_LINE } from './cloud-production-lock.js
 import { nextRebuild, REBUILD_MAX_FAILURES } from './cloud-rebuild-schedule.js';
 import type {
   EnvImportInput,
+  DetectQuery,
   EnvVarInput,
   FinishInput,
   GitSettingsInput,
@@ -39,6 +41,13 @@ import type {
 } from './cloud.schemas.js';
 import { cacheKey } from './cloud-build-cache.js';
 import { CloudDiskService } from './cloud-disk.service.js';
+import {
+  detectSettings,
+  frameworkOf,
+  MAX_DETECT_FILE_BYTES,
+  nextConfigFile,
+  type DetectedSettings,
+} from './cloud-detect.js';
 import {
   CloudBuildsRepository,
   type BuildWithProject,
@@ -320,6 +329,73 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     const membership = await this.teams.access(ctx, teamSlug);
     await this.teamInstallation(membership.teamId, installationId);
     return { items: await this.github.repositories(installationId) };
+  }
+
+  /**
+   * Build settings suggested from a repository's root folder (architecture 4.13 "Suggested
+   * settings", decision 75). At most 5 GitHub requests, counting the token, with one read-only
+   * token for that repository (its answer names the repository): the token, the listing,
+   * `package.json`, `.nvmrc` or `.node-version`, and the Next.js config. Files are only fetched
+   * when the listing has them, and nothing is kept.
+   */
+  async detect(ctx: CloudCtx, teamSlug: string, query: DetectQuery): Promise<DetectedSettings> {
+    const membership = await this.teams.access(ctx, teamSlug, 'ADMIN');
+    if (!this.github.configured) {
+      throw new ServiceUnavailableException('Builds from Git are not set up yet');
+    }
+    await this.teamInstallation(membership.teamId, query.installationId);
+    try {
+      const { token, fullName } = await this.github.repoAccess(query.installationId, query.repoId);
+      const entries = await this.github.listFolder(token, fullName, query.rootDir, query.branch);
+      const files = new Map<string, number>(
+        entries
+          .filter((entry) => entry.type === 'file')
+          .map((entry): [string, number] => [entry.name, entry.size]),
+      );
+      const listing = [...files.keys()];
+      const read = async (name: string | null): Promise<string | null> => {
+        const size = name === null ? undefined : files.get(name);
+        if (name === null || size === undefined || size > MAX_DETECT_FILE_BYTES) return null;
+        try {
+          return await this.github.fileText(
+            token,
+            fullName,
+            posix.join(query.rootDir, name),
+            query.branch,
+            MAX_DETECT_FILE_BYTES,
+          );
+        } catch (error) {
+          if (error instanceof GithubError && error.status === 413) return null;
+          throw error;
+        }
+      };
+      // `.node-version` is only read without an `.nvmrc`, to stay within 5 requests.
+      const nodeFile = files.has('.nvmrc')
+        ? '.nvmrc'
+        : files.has('.node-version')
+          ? '.node-version'
+          : null;
+      const [packageJson, nodeText] = await Promise.all([read('package.json'), read(nodeFile)]);
+      const nextConfig =
+        frameworkOf(packageJson) === 'next' ? await read(nextConfigFile(listing)) : null;
+      return detectSettings({
+        listing,
+        packageJson,
+        nvmrc: nodeFile === '.nvmrc' ? nodeText : null,
+        nodeVersionFile: nodeFile === '.node-version' ? nodeText : null,
+        nextConfig,
+      });
+    } catch (error) {
+      // An installation that can't see the repository answers 422 when the token is made.
+      if (error instanceof GithubError && (error.status === 404 || error.status === 422)) {
+        throw new NotFoundException('Repository, branch or folder not found');
+      }
+      // GitHub's rate limit (403 or 429): a suggestion can wait, so "try again later".
+      if (error instanceof GithubError && (error.status === 403 || error.status === 429)) {
+        throw new ServiceUnavailableException('GitHub is busy: try again in a minute');
+      }
+      throw error;
+    }
   }
 
   // ── A project's connection and settings ────────────────────────────────────────────────────

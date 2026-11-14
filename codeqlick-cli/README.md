@@ -56,6 +56,12 @@ when a line is wrong, printing each line's problem; names that already exist are
 
 With `git connect`'s default install and build commands (`npm ci`, `npm run build`), each build picks npm, pnpm or Yarn from the repository's lockfile; a `--install` or `--build` you set is used as it is.
 
+`git connect` reads the repository (its `package.json`, `.nvmrc` or `.node-version`) and suggests
+the build command, output folder and Node version for the framework it finds (Astro, Docusaurus,
+Gatsby, Next.js, Nuxt, SvelteKit, Eleventy, Create React App, Vite). It prints what it found and
+any notes, and uses the suggestion for each of `--build`, `--output` and `--node` you don't give.
+A project already connected to that repository keeps its saved settings instead.
+
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 
 Analytics and the key-value store:

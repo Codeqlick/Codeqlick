@@ -188,6 +188,22 @@ export interface GitSettingsInput {
   nodeVersion?: string;
 }
 
+export type Framework =
+  'astro' | 'docusaurus' | 'gatsby' | 'next' | 'nuxt' | 'sveltekit' | 'eleventy' | 'cra' | 'vite';
+
+export type DetectNote =
+  'next-not-static' | 'sveltekit-no-static-adapter' | 'node-unsupported' | 'no-package-json';
+
+/** The build settings suggested from what a repository contains (architecture 4.13). */
+export interface DetectedSettings {
+  framework: Framework | null;
+  buildCommand: string;
+  outputDir: string;
+  nodeVersion: string;
+  nodeFrom: '.nvmrc' | '.node-version' | 'engines' | null;
+  notes: DetectNote[];
+}
+
 export interface TeamGithub {
   configured: boolean;
   installations: Array<{
@@ -450,6 +466,21 @@ export class Api {
       'GET',
       `/cloud/teams/${encodeURIComponent(team)}/github/repos?installationId=${installationId}`,
     ).then((r) => r.items);
+  detect = (
+    team: string,
+    input: { installationId: number; repoId: number; branch: string; rootDir: string },
+  ) => {
+    const query = new URLSearchParams({
+      installationId: String(input.installationId),
+      repoId: String(input.repoId),
+      branch: input.branch,
+      rootDir: input.rootDir,
+    });
+    return this.request<DetectedSettings>(
+      'GET',
+      `/cloud/teams/${encodeURIComponent(team)}/github/detect?${query.toString()}`,
+    );
+  };
   git = (project: string) => this.request<GitSettings>('GET', `/cloud/projects/${project}/git`);
   setGit = (project: string, settings: GitSettingsInput) =>
     this.request<GitSettings>('PUT', `/cloud/projects/${project}/git`, settings);

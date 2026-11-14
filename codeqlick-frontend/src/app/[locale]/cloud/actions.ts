@@ -70,9 +70,11 @@ import {
   type CloudRole,
   cancelCloudBuild,
   deleteCloudEnv,
+  detectCloudGithub,
   disconnectCloudGit,
   getCloudGithubInstallUrl,
   importCloudEnv,
+  type CloudDetect,
   setCloudEnv,
   setCloudGit,
   setCloudRebuildSchedule,
@@ -93,6 +95,7 @@ import {
   parseSlowMs,
 } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { detectQuery } from '@/lib/cloud-detect';
 import { parseNoticeWindow, parseUpdateState } from '@/lib/cloud-notices';
 import { formBoolean, formString, formValues, type FormState, initialFormState } from '@/lib/forms';
 import { toDateTimeInput } from '@/lib/format';
@@ -1145,6 +1148,25 @@ export async function connectGithubAction(formData: FormData): Promise<void> {
     return;
   }
   redirect(url);
+}
+
+/**
+ * Suggested build settings for the connect form (4.13, Suggested settings). Null when they can't
+ * be had (an unknown branch or folder, GitHub down, too many asks): the form then stays as it is.
+ */
+export async function detectGitAction(
+  team: string,
+  repo: string,
+  branch: string,
+  rootDir: string,
+): Promise<CloudDetect | null> {
+  const query = detectQuery(repo, branch, rootDir);
+  if (!query) return null;
+  try {
+    return await detectCloudGithub(team, query);
+  } catch {
+    return null;
+  }
 }
 
 export async function saveGitAction(
