@@ -35,6 +35,14 @@ export class TagsRepository {
     return this.prisma.tag.count({ where: { id: { in: ids } } });
   }
 
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const rows = await this.prisma.tag.findMany({
+      where: { id: { in: ids } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
   create(data: Prisma.TagCreateInput): Promise<Tag> {
     return this.prisma.tag.create({ data });
   }

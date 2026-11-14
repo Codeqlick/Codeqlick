@@ -118,6 +118,8 @@ model User {
   timeEntries                TimeEntry[]
   credentials                ProjectCredential[]
   siteRevisions              ManagedSiteRevision[]
+  postRevisions              PostRevision[]
+  portfolioRevisions         PortfolioRevision[]
   /// A person of a client company: they see and act on the account of `memberOf` (the company's
   /// main client account), which owns the projects, requests and proposals.
   memberOfId                 String?                     @map("member_of_id") @db.Uuid
@@ -315,9 +317,26 @@ model Post {
   author       User?             @relation(fields: [authorId], references: [id], onDelete: SetNull)
   translations PostTranslation[]
   tags         PostTag[]
+  revisions    PostRevision[]
 
   @@index([status, publishedAt])
   @@map("posts")
+}
+
+/// A post's content before an admin change (the last 20 are kept, decision 52). `createdAt` is
+/// when it was replaced and `author` who replaced it; `snapshot` is a PostSnapshot (API 5).
+model PostRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @map("post_id") @db.Uuid
+  snapshot  Json
+  authorId  String?  @map("author_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  post   Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@map("post_revisions")
 }
 
 /// A blog topic, shared by both languages: one slug for URLs, a name per language.
@@ -380,9 +399,26 @@ model PortfolioItem {
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   translations PortfolioTranslation[]
+  revisions    PortfolioRevision[]
 
   @@index([status, sortOrder])
   @@map("portfolio_items")
+}
+
+/// A case study's content before an admin change (the last 20 are kept, decision 52). `createdAt`
+/// is when it was replaced and `author` who replaced it; `snapshot` is a PortfolioSnapshot (API 5).
+model PortfolioRevision {
+  id              String   @id @default(uuid()) @db.Uuid
+  portfolioItemId String   @map("portfolio_item_id") @db.Uuid
+  snapshot        Json
+  authorId        String?  @map("author_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  portfolioItem PortfolioItem @relation(fields: [portfolioItemId], references: [id], onDelete: Cascade)
+  author        User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([portfolioItemId, createdAt])
+  @@map("portfolio_revisions")
 }
 
 model PortfolioTranslation {

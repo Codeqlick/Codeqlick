@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { toContentRevision, type ContentRevision } from '../../common/content-revisions.js';
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { availableLocales, pickTranslation } from '../../common/translations.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -17,12 +18,14 @@ import {
   type PostUpdateData,
   type PostWithTranslations,
 } from './posts.repository.js';
-import type {
-  CreatePostInput,
-  ListAdminPostsQuery,
-  ListPublicPostsQuery,
-  PostTranslationInput,
-  UpdatePostInput,
+import type { PostSnapshot } from './post-snapshot.js';
+import {
+  postSnapshotSchema,
+  type CreatePostInput,
+  type ListAdminPostsQuery,
+  type ListPublicPostsQuery,
+  type PostTranslationInput,
+  type UpdatePostInput,
 } from './posts.schemas.js';
 import { TagsService, tagName, type PublicTag } from './tags.service.js';
 
@@ -51,6 +54,8 @@ export interface AdminPost {
   createdAt: string;
   updatedAt: string;
 }
+
+export type PostRevisionDetail = ContentRevision & { snapshot: PostSnapshot };
 
 function toTranslationData(t: PostTranslationInput): PostTranslationData {
   return { locale: toDbLocale(t.locale), title: t.title, excerpt: t.excerpt, content: t.content };
@@ -201,11 +206,54 @@ export class PostsService {
       await this.tags.assertExist(input.tagIds);
       data.tagIds = [...new Set(input.tagIds)];
     }
-    const updated = toAdminPost(await this.repository.update(id, data));
+    const updated = toAdminPost(await this.repository.update(id, data, actor.id));
     await this.activity.record(actor, {
       action: `post.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
+    });
+    return updated;
+  }
+
+  // ---- Revisions (decision 52) --------------------------------------------------------
+
+  async revisions(id: string): Promise<ContentRevision[]> {
+    await this.findOrThrow(id);
+    return (await this.repository.revisions(id)).map(toContentRevision);
+  }
+
+  async revision(id: string, revisionId: string): Promise<PostRevisionDetail> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    return {
+      ...toContentRevision(revision),
+      snapshot: revision.snapshot as unknown as PostSnapshot,
+    };
+  }
+
+  /**
+   * Puts a revision's content back as a normal update, so the current content becomes a
+   * revision itself. Status, publication date and slug stay; tags deleted since are left out.
+   */
+  async restore(actor: AuthUser, id: string, revisionId: string): Promise<AdminPost> {
+    await this.findOrThrow(id);
+    const revision = await this.repository.findRevision(id, revisionId);
+    if (!revision) throw new NotFoundException('Revision not found');
+    const parsed = postSnapshotSchema.safeParse(revision.snapshot);
+    if (!parsed.success) throw new ConflictException('That revision no longer fits the schema');
+    const snapshot = parsed.data;
+    const data: PostUpdateData = {
+      coverImageUrl: snapshot.coverImageUrl,
+      translations: snapshot.translations.map(toTranslationData),
+      tagIds: await this.tags.existing(snapshot.tagIds),
+    };
+    const updated = toAdminPost(await this.repository.update(id, data, actor.id));
+    await this.activity.record(actor, {
+      action: 'post.restored',
+      targetId: id,
+      targetLabel: contentLabel(updated),
+      details: { revisionCreatedAt: revision.createdAt.toISOString() },
     });
     return updated;
   }
