@@ -5,6 +5,7 @@ import { ActionForm, FormInput } from '@/components/app/ActionForm';
 import { CopyLink } from '@/components/app/CopyLink';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -324,7 +325,9 @@ async function Deployments({
               <li key={deployment.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <p className={styles.rowTitle}>
-                    <span className={styles.mono}>{deployment.shortId}</span>
+                    <Link href={`${base}/deployments/${deployment.id}`} className={styles.mono}>
+                      {deployment.shortId}
+                    </Link>
                     {deployment.isProduction ? (
                       <Badge tone="success">{t('project.productionTag')}</Badge>
                     ) : (
@@ -354,29 +357,35 @@ async function Deployments({
                     {deployment.branch ? ` (${deployment.branch})` : ''}
                   </p>
                 </div>
-                {deployment.isProduction ? null : (
-                  <div className={styles.actions}>
-                    <form action={promoteAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="outline">
-                        {t('project.promote')}
-                      </SubmitButton>
-                    </form>
-                    <form action={deleteDeploymentAction}>
-                      <input type="hidden" name="locale" value={locale} />
-                      <input type="hidden" name="project" value={projectId} />
-                      <input type="hidden" name="id" value={deployment.id} />
-                      <input type="hidden" name="path" value={path} />
-                      <SubmitButton size="sm" variant="ghost">
-                        {t('project.delete')}
-                        <span className="visually-hidden"> — {deployment.shortId}</span>
-                      </SubmitButton>
-                    </form>
-                  </div>
-                )}
+                <div className={styles.actions}>
+                  <Button href={`${base}/deployments/${deployment.id}`} size="sm" variant="ghost">
+                    {t('deployment.tabs.files')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </Button>
+                  {deployment.isProduction ? null : (
+                    <>
+                      <form action={promoteAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="outline">
+                          {t('project.promote')}
+                        </SubmitButton>
+                      </form>
+                      <form action={deleteDeploymentAction}>
+                        <input type="hidden" name="locale" value={locale} />
+                        <input type="hidden" name="project" value={projectId} />
+                        <input type="hidden" name="id" value={deployment.id} />
+                        <input type="hidden" name="path" value={path} />
+                        <SubmitButton size="sm" variant="ghost">
+                          {t('project.delete')}
+                          <span className="visually-hidden"> — {deployment.shortId}</span>
+                        </SubmitButton>
+                      </form>
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

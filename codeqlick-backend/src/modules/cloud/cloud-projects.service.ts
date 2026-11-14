@@ -22,6 +22,11 @@ import {
 } from './cloud-plans.js';
 import { CloudRepository, type DeploymentRow, type ProjectRow } from './cloud.repository.js';
 import type { CreateProjectInput, DeploymentFields, UpdateProjectInput } from './cloud.schemas.js';
+import {
+  filesView,
+  type DeploymentComparison,
+  type DeploymentFilesView,
+} from './cloud-deployment-files.js';
 import { BundleError, CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
 import { CloudDiskService } from './cloud-disk.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -189,6 +194,45 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     const row = await this.repository.findDeployment(project.id, deploymentId);
     if (!row) throw new NotFoundException('Deployment not found');
     return this.deploymentView(project, row);
+  }
+
+  /** What a kept deployment contains (paths and sizes, never contents); 404 when its files are gone. */
+  async files(ctx: CloudCtx, id: string, deploymentId: string): Promise<DeploymentFilesView> {
+    const { project } = await this.project(ctx, id);
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    const files = await this.storage.deploymentFiles(row.id);
+    if (!files) throw new NotFoundException("This deployment's files are gone");
+    return filesView(files);
+  }
+
+  /**
+   * Compares a deployment with production (`with` = `production`, 409 when there is none) or with
+   * another deployment of the same project; 404 when either is unknown or its files are gone.
+   */
+  async compare(
+    ctx: CloudCtx,
+    id: string,
+    deploymentId: string,
+    withRef: string,
+  ): Promise<DeploymentComparison> {
+    const { project } = await this.project(ctx, id);
+    const row = await this.repository.findDeployment(project.id, deploymentId);
+    if (!row) throw new NotFoundException('Deployment not found');
+    let withId: string;
+    if (withRef === 'production') {
+      if (!project.productionDeploymentId) {
+        throw new ConflictException('This project has no production deployment');
+      }
+      withId = project.productionDeploymentId;
+    } else {
+      const other = await this.repository.findDeployment(project.id, withRef);
+      if (!other) throw new NotFoundException('Deployment to compare with not found');
+      withId = other.id;
+    }
+    const comparison = await this.storage.compareDeployments(row.id, withId);
+    if (!comparison) throw new NotFoundException("The deployments' files are gone");
+    return comparison;
   }
 
   /**

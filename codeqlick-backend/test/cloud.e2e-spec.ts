@@ -226,6 +226,32 @@ describe('Codeqlick Cloud (e2e)', () => {
       await readFile(join(root, 'hosts', `${slug}--${first.shortId}`, 'index.html'), 'utf8'),
     ).toBe('<h1>v1</h1>');
 
+    // Files and comparison (architecture 4.13): the list, and no production to compare with yet.
+    const files = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/files`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(files.body).toEqual({
+      items: [
+        { path: 'assets/app.js', size: 14 },
+        { path: 'index.html', size: 11 },
+      ],
+      count: 2,
+      totalBytes: 25,
+    });
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/compare`)
+      .set(tokenAuth)
+      .expect(409);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${randomUUID()}/files`)
+      .set(tokenAuth)
+      .expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/files`)
+      .set(mateAuth)
+      .expect(404);
+
     const v2 = await bundle({ 'index.html': '<h1>v2</h1>', '200.html': 'spa' });
     const production = await request(server)
       .post(`/v1/cloud/projects/${projectId}/deployments`)
@@ -259,6 +285,61 @@ describe('Codeqlick Cloud (e2e)', () => {
       .expect(200);
     expect(usage.body).toMatchObject({ plan: 'FREE', projects: 1, deploymentsLastHour: 2 });
     expect(usage.body.storageBytes).toBeGreaterThan(0);
+
+    // Compare the old production (v2) with the current one (v1): same-size index.html differs.
+    const second = production.body as { id: string };
+    const compareUrl = `/v1/cloud/projects/${projectId}/deployments/${second.id}/compare`;
+    const diff = await request(server).get(compareUrl).set(tokenAuth).expect(200);
+    expect(diff.body).toEqual({
+      deploymentId: second.id,
+      withId: first.id,
+      added: [{ path: '200.html', size: 3 }],
+      removed: [{ path: 'assets/app.js', size: 14 }],
+      changed: [{ path: 'index.html', size: 11, previousSize: 11 }],
+      unchanged: 0,
+      totalBytes: 14,
+      withTotalBytes: 25,
+    });
+    const self = await request(server)
+      .get(compareUrl)
+      .query({ with: second.id })
+      .set(tokenAuth)
+      .expect(200);
+    expect(self.body).toMatchObject({ added: [], removed: [], changed: [], unchanged: 2 });
+    await request(server).get(compareUrl).query({ with: 'latest' }).set(tokenAuth).expect(400);
+    await request(server).get(compareUrl).query({ with: randomUUID() }).set(tokenAuth).expect(404);
+    // A deployment of another project is unknown here, even in the same team.
+    const other = await request(server)
+      .post(`/v1/cloud/teams/${teamSlug}/projects`)
+      .set(ownerAuth)
+      .send({ name: 'Other docs', slug: `p-${tag}-b` })
+      .expect(201);
+    const elsewhere = await request(server)
+      .post(`/v1/cloud/projects/${other.body.id as string}/deployments`)
+      .set(tokenAuth)
+      .attach('bundle', await bundle({ 'index.html': '<h1>v1</h1>' }))
+      .expect(201);
+    await request(server)
+      .get(compareUrl)
+      .query({ with: elsewhere.body.id as string })
+      .set(tokenAuth)
+      .expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${elsewhere.body.id as string}/files`)
+      .set(tokenAuth)
+      .expect(404);
+    // A deployment whose files are gone answers 404.
+    await rm(join(root, 'deployments', second.id), { recursive: true, force: true });
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${second.id}/files`)
+      .set(tokenAuth)
+      .expect(404);
+    await request(server).get(compareUrl).set(tokenAuth).expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/compare`)
+      .query({ with: second.id })
+      .set(tokenAuth)
+      .expect(404);
 
     // ── Invitations ────────────────────────────────────────────────────────────────────────
     await request(server)

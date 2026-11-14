@@ -32,6 +32,7 @@ import type { Paginated } from '../../common/types/paginated.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
 import { MAX_UPLOAD_BYTES } from './cloud-plans.js';
 import {
+  compareQuerySchema,
   createDomainSchema,
   createProjectSchema,
   createTeamSchema,
@@ -53,6 +54,7 @@ import {
   updateProjectSchema,
   updateTeamSchema,
   userCodeParamSchema,
+  type CompareQuery,
   type CreateDomainInput,
   type CreateProjectInput,
   type CreateTeamInput,
@@ -76,6 +78,7 @@ import {
   type UserCodeParam,
 } from './cloud.schemas.js';
 import { CloudAdminService } from './cloud-admin.service.js';
+import type { DeploymentComparison, DeploymentFilesView } from './cloud-deployment-files.js';
 import { CloudDomainsService, type DomainView } from './cloud-domains.service.js';
 import {
   CloudProjectsService,
@@ -418,6 +421,29 @@ export class CloudController {
     @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
   ): Promise<void> {
     return this.projects.removeDeployment(ctx, params.id, params.deploymentId);
+  }
+
+  /** The deployment's files (paths and sizes; contents are never served here). */
+  @Get('projects/:id/deployments/:deploymentId/files')
+  @CloudApi()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  deploymentFiles(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+  ): Promise<DeploymentFilesView> {
+    return this.projects.files(ctx, params.id, params.deploymentId);
+  }
+
+  /** Compares the deployment with production (the default) or another of the project's. */
+  @Get('projects/:id/deployments/:deploymentId/compare')
+  @CloudApi()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  compareDeployment(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: deploymentParamSchema }) params: DeploymentParam,
+    @Query({ schema: compareQuerySchema }) query: CompareQuery,
+  ): Promise<DeploymentComparison> {
+    return this.projects.compare(ctx, params.id, params.deploymentId, query.with);
   }
 
   @Post('projects/:id/deployments/:deploymentId/promote')

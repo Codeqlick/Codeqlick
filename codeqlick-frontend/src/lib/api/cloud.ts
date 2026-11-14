@@ -229,6 +229,50 @@ export const listCloudDeployments = (id: string, page = 1) =>
     query: { page, pageSize: 20 },
   });
 
+export const getCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}`,
+    auth,
+  );
+
+/** A file of a deployment: its path relative to the deployment's folder and its size in bytes. */
+export type CloudDeploymentFile = { path: string; size: number };
+
+export type CloudDeploymentFiles = {
+  /** Sorted by path (byte order), at most 10,000. */
+  items: CloudDeploymentFile[];
+  count: number;
+  totalBytes: number;
+};
+
+export type CloudDeploymentComparison = {
+  deploymentId: string;
+  withId: string;
+  /** In this deployment, not in the other one. */
+  added: CloudDeploymentFile[];
+  /** In the other deployment only. */
+  removed: CloudDeploymentFile[];
+  /** In both, with a different size or SHA-256. */
+  changed: Array<CloudDeploymentFile & { previousSize: number }>;
+  unchanged: number;
+  totalBytes: number;
+  withTotalBytes: number;
+};
+
+/** `404` unknown deployment or its files are gone. */
+export const listCloudDeploymentFiles = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeploymentFiles>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}/files`,
+    auth,
+  );
+
+/** `with` is `production` or another kept deployment's id. `409` no production, `404` gone. */
+export const compareCloudDeployment = (id: string, deploymentId: string, withId = 'production') =>
+  apiFetch<CloudDeploymentComparison>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}/compare`,
+    { ...auth, query: { with: withId } },
+  );
+
 export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {
     ...write,
