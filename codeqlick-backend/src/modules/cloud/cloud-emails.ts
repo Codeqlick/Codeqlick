@@ -1,6 +1,7 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
+import type { MeterKey } from './cloud-usage.js';
 
 /** To the invited person: join a team on Codeqlick Cloud. */
 export function cloudInviteEmail(input: {
@@ -457,6 +458,115 @@ export function cloudDatabaseFullEmail(input: {
             : `Database ${input.database} of project ${input.project} is over ${size}, its plan's maximum, and is read-only now. Delete data (DELETE and VACUUM) or move to PRO; it takes writes again as soon as it is under the limit. If it keeps growing to 150 %, it stops taking connections.`,
         ],
         button: { label: es ? 'Abrir la consola' : 'Open the console', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
+/** What each measure of a usage alert is called, in a sentence about the team's use of it. */
+const ALERT_WHAT: Record<MeterKey, { en: string; es: string }> = {
+  builds: { en: 'its builds this month', es: 'sus builds este mes' },
+  formSubmissions: {
+    en: 'its form submissions this month',
+    es: 'sus envíos de formularios este mes',
+  },
+  analyticsEvents: {
+    en: 'its analytics events this month',
+    es: 'sus eventos de analítica este mes',
+  },
+  storage: { en: 'its storage', es: 'su almacenamiento' },
+  deploymentsPerHour: { en: 'its deployments per hour', es: 'sus despliegues por hora' },
+};
+
+const ALERT_RESETS: Record<MeterKey, { en: string; es: string }> = {
+  builds: { en: 'on the 1st, Madrid time', es: 'el día 1, hora de Madrid' },
+  formSubmissions: { en: 'on the 1st, Madrid time', es: 'el día 1, hora de Madrid' },
+  analyticsEvents: { en: 'on the 1st, Madrid time', es: 'el día 1, hora de Madrid' },
+  storage: { en: 'when you delete deployments', es: 'cuando borres despliegues' },
+  deploymentsPerHour: { en: 'as the last hour passes', es: 'según pase la última hora' },
+};
+
+const ALERT_AT_FULL: Record<MeterKey, { en: string; es: string }> = {
+  builds: {
+    en: 'At 100 % new builds are refused.',
+    es: 'Al 100 % los builds nuevos se rechazan.',
+  },
+  formSubmissions: {
+    en: 'At 100 % form posts are refused with a 429.',
+    es: 'Al 100 % los envíos de formularios se rechazan con un 429.',
+  },
+  analyticsEvents: {
+    en: 'At 100 % new analytics events are dropped; the sites keep working.',
+    es: 'Al 100 % los eventos de analítica nuevos se descartan; las webs siguen funcionando.',
+  },
+  storage: {
+    en: 'At 100 % new deployments are refused.',
+    es: 'Al 100 % los despliegues nuevos se rechazan.',
+  },
+  deploymentsPerHour: {
+    en: 'At 100 % new deployments are refused until the hour passes.',
+    es: 'Al 100 % los despliegues nuevos se rechazan hasta que pase la hora.',
+  },
+};
+
+function alertAmount(key: MeterKey, value: number, es: boolean): string {
+  const locale = es ? 'es-ES' : 'en-GB';
+  if (key !== 'storage') return value.toLocaleString(locale);
+  const mb = value / (1024 * 1024);
+  return mb >= 1024
+    ? `${(mb / 1024).toLocaleString(locale, { maximumFractionDigits: 1 })} GB`
+    : `${mb.toLocaleString(locale, { maximumFractionDigits: 0 })} MB`;
+}
+
+/** To a team's owners: one of its plan's limits is at 80 % or more (decision 54). */
+export function cloudUsageAlertEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  team: string;
+  key: MeterKey;
+  used: number;
+  limit: number;
+  percent: number;
+  /** A FREE team on a server where PRO can be bought: say PRO has higher limits. */
+  proHint: boolean;
+  url: string;
+  planUrl: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const lang = es ? 'es' : 'en';
+  const what = ALERT_WHAT[input.key][lang];
+  const used = alertAmount(input.key, input.used, es);
+  const limit = alertAmount(input.key, input.limit, es);
+  const intro = [
+    es
+      ? `El equipo ${input.team} ha usado ${input.percent} % de ${what}: ${used} de ${limit}.`
+      : `The team ${input.team} used ${input.percent} % of ${what}: ${used} of ${limit}.`,
+    es
+      ? `El contador se reinicia ${ALERT_RESETS[input.key].es}. ${ALERT_AT_FULL[input.key].es}`
+      : `It resets ${ALERT_RESETS[input.key].en}. ${ALERT_AT_FULL[input.key].en}`,
+  ];
+  const outro = input.proHint
+    ? [
+        es
+          ? `El plan PRO tiene límites más altos: ${input.planUrl}`
+          : `The PRO plan has higher limits: ${input.planUrl}`,
+      ]
+    : undefined;
+  return {
+    to: input.to,
+    subject: es
+      ? `Tu equipo ${input.team} ha usado el ${input.percent} % de ${what}`
+      : `Your team ${input.team} used ${input.percent} % of ${what}`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: es ? `${used} de ${limit}` : `${used} of ${limit}`,
+        title: es ? 'Te acercas a un límite del plan' : 'You are close to a plan limit',
+        intro,
+        button: { label: es ? 'Ver el uso' : 'See the usage', url: input.url },
+        ...(outro ? { outro } : {}),
       },
       input.siteUrl,
     ),

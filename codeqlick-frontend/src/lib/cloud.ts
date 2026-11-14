@@ -136,3 +136,17 @@ export function ruleSettings(rules: {
 export function configJson(config: unknown): string {
   return JSON.stringify(config, null, 2);
 }
+
+/** At this percent of a limit the console warns (the API's `CLOUD_USAGE_ALERT_PERCENT`). */
+export const USAGE_WARNING_PERCENT = 80;
+
+type UsageMeter = { key: string; used: number; limit: number; percent: number };
+
+/** The limits a team is close to or has reached, or null when none is. */
+export function usageWarnings<T extends UsageMeter>(
+  meters: readonly T[],
+): { level: 'warning' | 'error'; meters: T[] } | null {
+  const hit = meters.filter((meter) => meter.percent >= USAGE_WARNING_PERCENT);
+  if (hit.length === 0) return null;
+  return { level: hit.some((meter) => meter.percent >= 100) ? 'error' : 'warning', meters: hit };
+}

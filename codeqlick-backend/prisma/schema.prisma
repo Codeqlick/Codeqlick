@@ -1918,6 +1918,7 @@ model CloudTeam {
   monitors                CloudMonitor[]
   statusPage              CloudStatusPage?
   cloudAudits             CloudAudit[]
+  usageAlerts             CloudUsageAlert[]
   gitInstallations        CloudGitInstallation[]
   /// The PRO subscription (architecture 4.13 "Plans and billing", decision 46).
   stripeCustomerId        String?                @unique @map("stripe_customer_id") @db.VarChar(100)
@@ -1929,6 +1930,27 @@ model CloudTeam {
   analyticsOverLimitMonth String?                @map("analytics_over_limit_month") @db.VarChar(7)
 
   @@map("cloud_teams")
+}
+
+/// A usage alert already sent: one row per team, limit and Madrid month (architecture 4.13
+/// "Usage alerts", decision 54). Its unique key is the claim that makes the sweep idempotent.
+model CloudUsageAlert {
+  id        String   @id @default(uuid()) @db.Uuid
+  teamId    String   @map("team_id") @db.Uuid
+  /// `builds`, `formSubmissions`, `analyticsEvents`, `storage` or `deploymentsPerHour`.
+  key       String   @db.VarChar(30)
+  /// The Madrid month, `YYYY-MM`.
+  period    String   @db.VarChar(7)
+  percent   Int
+  used      BigInt
+  limit     BigInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, key, period])
+  @@index([createdAt])
+  @@map("cloud_usage_alerts")
 }
 
 model CloudMember {
