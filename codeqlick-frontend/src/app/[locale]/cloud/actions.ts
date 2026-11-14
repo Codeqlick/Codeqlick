@@ -8,9 +8,11 @@ import type { AppLocale } from '@/i18n/routing';
 import {
   acceptCloudInvite,
   addCloudDomain,
+  addCloudStatusNoticeUpdate,
   checkCloudDomain,
   createCloudForm,
   createCloudMonitor,
+  createCloudStatusNotice,
   createCloudNotification,
   createCloudBucket,
   createCloudBucketKey,
@@ -34,6 +36,7 @@ import {
   deleteCloudDeployment,
   deleteCloudForm,
   deleteCloudMonitor,
+  deleteCloudStatusNotice,
   deleteCloudProject,
   deleteCloudSubmission,
   deleteCloudTeam,
@@ -52,6 +55,8 @@ import {
   setCloudMemberRole,
   updateCloudForm,
   updateCloudMonitor,
+  updateCloudStatusNotice,
+  type CloudNoticeKind,
   type CloudReportReason,
   type CloudRole,
   cancelCloudBuild,
@@ -63,7 +68,9 @@ import {
   startCloudBuild,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { parseNoticeWindow, parseUpdateState } from '@/lib/cloud-notices';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
+import { toDateTimeInput } from '@/lib/format';
 import { appPath } from '@/lib/webapp-request';
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -654,6 +661,161 @@ export async function saveStatusPageAction(
   refresh(lang, `/${team}/status-page`);
   revalidatePath(`/${lang}/cloud/status/${team}`);
   return { status: 'success', message: t('saved') };
+}
+
+// ── Status page notices (architecture 4.13, Notices; decision 62) ──────────────────────────────
+
+/** After a notice changes: the console's tab and the public page in this language. */
+function refreshNotices(lang: AppLocale, team: string) {
+  refresh(lang, `/${team}/status-page`);
+  revalidatePath(`/${lang}/cloud/status/${team}`);
+}
+
+/** Title (1–120), monitors (1–20) and message (1–2,000): the checks every notice form shares. */
+function noticeFields(
+  formData: FormData,
+  t: (key: 'titleInvalid' | 'monitorsInvalid' | 'bodyInvalid') => string,
+  withBody: boolean,
+) {
+  const title = formString(formData, 'title');
+  const monitorIds = [...new Set(formData.getAll('monitors').map(String).filter(Boolean))];
+  const body = formString(formData, 'body');
+  const fieldErrors: Record<string, string> = {};
+  if (title.length < 1 || title.length > 120) fieldErrors.title = t('titleInvalid');
+  if (monitorIds.length < 1 || monitorIds.length > 20) fieldErrors.monitors = t('monitorsInvalid');
+  if (withBody && (body.length < 1 || body.length > 2000)) fieldErrors.body = t('bodyInvalid');
+  return { title, monitorIds, body, fieldErrors };
+}
+
+/** "New incident" or "Schedule maintenance" (its window typed in Madrid time). */
+export async function createNoticeAction(
+  locale: string,
+  team: string,
+  kind: CloudNoticeKind,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  const values = formValues(formData);
+  const { title, monitorIds, body, fieldErrors } = noticeFields(formData, (key) => t(key), true);
+  try {
+    if (kind === 'INCIDENT') {
+      const state = parseUpdateState('INCIDENT', formString(formData, 'state'));
+      if (!state) fieldErrors.state = t('stateInvalid');
+      if (Object.keys(fieldErrors).length > 0 || !state) {
+        return { status: 'error', fieldErrors, values };
+      }
+      await createCloudStatusNotice(team, { kind, title, monitorIds, body, state });
+    } else {
+      const parsed = parseNoticeWindow(
+        formString(formData, 'startsAt'),
+        formString(formData, 'endsAt'),
+      );
+      if (!parsed.ok) {
+        fieldErrors[parsed.field] =
+          parsed.problem === 'date' ? t('dateInvalid') : t('windowInvalid');
+      }
+      if (Object.keys(fieldErrors).length > 0 || !parsed.ok) {
+        return { status: 'error', fieldErrors, values };
+      }
+      await createCloudStatusNotice(team, { kind, title, monitorIds, body, ...parsed.window });
+    }
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refreshNotices(lang, team);
+  return { status: 'success', message: t('created') };
+}
+
+/** "Post an update": an incident's new state, or a maintenance's note or early completion. */
+export async function addNoticeUpdateAction(
+  locale: string,
+  team: string,
+  noticeId: string,
+  kind: CloudNoticeKind,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  const values = formValues(formData);
+  const body = formString(formData, 'body');
+  const state = parseUpdateState(kind, formString(formData, 'state'));
+  const fieldErrors: Record<string, string> = {};
+  if (body.length < 1 || body.length > 2000) fieldErrors.body = t('bodyInvalid');
+  if (state === null) fieldErrors.state = t('stateInvalid');
+  if (Object.keys(fieldErrors).length > 0 || state === null) {
+    return { status: 'error', fieldErrors, values };
+  }
+  try {
+    await addCloudStatusNoticeUpdate(noticeId, state ? { body, state } : { body });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refreshNotices(lang, team);
+  return { status: 'success', message: t('updated') };
+}
+
+/**
+ * "Edit window" of a maintenance not completed: title, monitors and times. A time left as it was
+ * isn't sent, so a maintenance in progress keeps its (past) start.
+ */
+export async function editNoticeAction(
+  locale: string,
+  team: string,
+  noticeId: string,
+  current: { startsAt: string | null; endsAt: string | null },
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  const values = formValues(formData);
+  const { title, monitorIds, fieldErrors } = noticeFields(formData, (key) => t(key), false);
+  const start = formString(formData, 'startsAt');
+  const end = formString(formData, 'endsAt');
+  const parsed = parseNoticeWindow(start, end);
+  if (!parsed.ok) {
+    fieldErrors[parsed.field] = parsed.problem === 'date' ? t('dateInvalid') : t('windowInvalid');
+  }
+  if (Object.keys(fieldErrors).length > 0 || !parsed.ok) {
+    return { status: 'error', fieldErrors, values };
+  }
+  try {
+    await updateCloudStatusNotice(noticeId, {
+      title,
+      monitorIds,
+      ...(start === toDateTimeInput(current.startsAt) ? {} : { startsAt: parsed.window.startsAt }),
+      ...(end === toDateTimeInput(current.endsAt) ? {} : { endsAt: parsed.window.endsAt }),
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refreshNotices(lang, team);
+  return { status: 'success', message: t('saved') };
+}
+
+/** Deletes a notice and its timeline, once the box confirming it is ticked. */
+export async function deleteNoticeAction(
+  locale: string,
+  team: string,
+  noticeId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.notices' });
+  if (!formBoolean(formData, 'confirm')) {
+    return { status: 'error', fieldErrors: { confirm: t('confirmRequired') } };
+  }
+  try {
+    await deleteCloudStatusNotice(noticeId);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refreshNotices(lang, team);
+  return { status: 'success' };
 }
 
 // ── Website check (phase 1b) ──────────────────────────────────────────────────────────────────
