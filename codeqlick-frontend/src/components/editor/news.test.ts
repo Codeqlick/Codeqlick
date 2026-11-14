@@ -62,7 +62,9 @@ describe('the news section’s helpers', () => {
   it('accepts today or later as the last day, and nothing in the past', () => {
     expect(newsProblems({ ...form, expiresAt: '2026-11-14' }, '2026-11-14')).toEqual({});
     expect(newsProblems({ ...form, expiresAt: '2026-12-01' }, '2026-11-14')).toEqual({});
-    expect(newsProblems({ ...form, expiresAt: '2026-11-13' }, '2026-11-14')).toEqual({
+    // Saving a past day is allowed; publishing is not.
+    expect(newsProblems({ ...form, expiresAt: '2026-11-13' }, '2026-11-14')).toEqual({});
+    expect(newsProblems({ ...form, expiresAt: '2026-11-13' }, '2026-11-14', true)).toEqual({
       expiresAt: 'past',
     });
     expect(newsProblems({ ...form, expiresAt: '14/11/2026' }, '2026-11-14')).toEqual({

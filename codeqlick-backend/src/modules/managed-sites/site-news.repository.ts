@@ -7,7 +7,7 @@ import type { NewsStatus } from './site-news.js';
 export class SiteNewsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** A site's posts, newest first (drafts by creation, published ones by publication). */
+  /** A site's posts, newest first (by creation). */
   async list(
     siteId: string,
     status: NewsStatus | undefined,
@@ -77,19 +77,18 @@ export class SiteNewsRepository {
   }
 
   /**
-   * Sites with news on and a published post that expired: the job keeps those whose last build
-   * is older than the expiry.
+   * Sites with news on and a published post that expired: the job keeps those whose expiry is
+   * after the start of their last successful build.
    */
   sitesWithExpiredPosts(now: Date) {
     return this.prisma.managedSite.findMany({
       where: {
         newsEnabled: true,
-        lastBuildAt: { not: null },
         newsPosts: { some: { publishedAt: { not: null }, expiresAt: { lt: now } } },
       },
       select: {
         projectId: true,
-        lastBuildAt: true,
+        newsBuiltAt: true,
         newsPosts: {
           where: { publishedAt: { not: null }, expiresAt: { lt: now } },
           select: { expiresAt: true },

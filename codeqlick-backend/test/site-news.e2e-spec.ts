@@ -61,6 +61,16 @@ const PNG = Buffer.from(
   'base64',
 );
 
+/** A demo may carry sample news: starting a site from it must not fail. */
+const presetWithNews = {
+  ...preset,
+  news: {
+    posts: [
+      { slug: 'demo', title: 'Demo', summary: 'x', body: 'x', publishedAt: '2026-01-01T00:00:00Z' },
+    ],
+  },
+};
+
 type Built = { content: { news?: { posts: Array<Record<string, unknown>> } } };
 
 describe('News of a managed site (e2e)', () => {
@@ -68,6 +78,7 @@ describe('News of a managed site (e2e)', () => {
   let prisma: PrismaService;
   const builds: Built[] = [];
   let hold: Promise<void> | undefined;
+  let failNext = false;
   const ids: Record<string, string> = {};
 
   beforeAll(async () => {
@@ -77,11 +88,17 @@ describe('News of a managed site (e2e)', () => {
     await app.init();
     prisma = app.get(PrismaService);
     const builder = app.get(SiteBuilderClient);
-    vi.spyOn(builder, 'presets').mockResolvedValue([{ key: 'peluqueria', content: preset }]);
+    vi.spyOn(builder, 'presets').mockResolvedValue([
+      { key: 'peluqueria', content: presetWithNews },
+    ]);
     vi.spyOn(builder, 'isConfigured').mockReturnValue(true);
     vi.spyOn(builder, 'build').mockImplementation(async (input) => {
       builds.push(input as unknown as Built);
       await hold;
+      if (failNext) {
+        failNext = false;
+        return { ok: false, error: 'boom' };
+      }
       return { ok: true, release: `r${builds.length}`, ms: 10 };
     });
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
@@ -255,7 +272,7 @@ describe('News of a managed site (e2e)', () => {
       .set(clientAuth)
       .expect(200);
     expect(published.body).toMatchObject({ status: 'PUBLISHED', build: 'OK' });
-    expect(published.body.url).toMatch(/\/noticias\/menu-de-navidad\/$/);
+    expect(published.body.url).toMatch(/\/noticias\/menu-de-navidad$/);
     expect(builds).toHaveLength(built + 1);
     expect(lastPosts()).toBeUndefined();
 
@@ -359,18 +376,24 @@ describe('News of a managed site (e2e)', () => {
     expect(lastPosts()?.[0]).toHaveProperty('expiresAt');
     const afterOffer = builds.length;
     const newsService = app.get(SiteNewsService);
-    const buildAt = (await prisma.managedSite.findUniqueOrThrow({ where: { id: site.id } }))
-      .lastBuildAt!;
+    const builtAt = (await prisma.managedSite.findUniqueOrThrow({ where: { id: site.id } }))
+      .newsBuiltAt!;
     await prisma.siteNewsPost.update({
       where: { id: offer.body.id },
-      data: { expiresAt: new Date(buildAt.getTime() + 1) },
+      data: { expiresAt: new Date(builtAt.getTime() + 1) },
     });
     await new Promise((resolve) => setTimeout(resolve, 30));
+    // A failed build leaves the mark where it was, so the next run tries again.
+    failNext = true;
     expect(await newsService.rebuildExpired()).toBe(1);
-    expect(builds).toHaveLength(afterOffer + 1);
+    expect((await prisma.managedSite.findUniqueOrThrow({ where: { id: site.id } })).status).toBe(
+      'FAILED',
+    );
+    expect(await newsService.rebuildExpired()).toBe(1);
+    expect(builds).toHaveLength(afterOffer + 2);
     expect(lastPosts()?.map((item) => item.slug)).toEqual(['rebajas-de-invierno']);
     expect(await newsService.rebuildExpired()).toBe(0);
-    expect(builds).toHaveLength(afterOffer + 1);
+    expect(builds).toHaveLength(afterOffer + 2);
     const expired = await request(server).get(`${news}?status=EXPIRED`).set(clientAuth).expect(200);
     expect(expired.body.items.map((item: { id: string }) => item.id)).toEqual([offer.body.id]);
     expect(expired.body.items[0]).toMatchObject({ status: 'EXPIRED', url: null });

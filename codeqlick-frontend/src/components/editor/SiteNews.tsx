@@ -153,8 +153,8 @@ export function SiteNews({
   };
 
   /** Checks the form; true when it can be sent. */
-  const check = () => {
-    const problems = newsProblems(form, today);
+  const check = (publishing = false) => {
+    const problems = newsProblems(form, today, publishing);
     const fields: Errors = {};
     for (const [field, problem] of Object.entries(problems) as [keyof NewsForm, NewsProblem][])
       fields[field] = problemText(problem, field);
@@ -189,7 +189,7 @@ export function SiteNews({
   };
 
   const publish = async () => {
-    if (!editing || !check()) return;
+    if (!editing || !check(true)) return;
     setBusy(true);
     setNotice(null);
     // A new post is saved first; an existing one is saved by the publish call with its edits.
@@ -224,6 +224,7 @@ export function SiteNews({
 
   const unpublish = async () => {
     if (!editing?.id) return;
+    const wasLive = editing.status === 'PUBLISHED';
     setBusy(true);
     const result = await unpublishNewsAction(locale, scope, projectId, editing.id);
     setBusy(false);
@@ -233,7 +234,11 @@ export function SiteNews({
     }
     put(result.data);
     setEditing({ id: result.data.id, status: result.data.status });
-    setNotice(buildNotice(result.data, result.build, 'unpublished'));
+    setNotice(
+      wasLive
+        ? buildNotice(result.data, result.build, 'unpublished')
+        : { tone: 'ok', text: t('unpublishedPlain') },
+    );
   };
 
   const remove = async () => {
@@ -500,6 +505,9 @@ export function SiteNews({
                 <p id={`${field('expiresAt')}-hint`} className={editor.hint}>
                   {t('expiresHint')}
                 </p>
+                {!errors.expiresAt && form.expiresAt && form.expiresAt < today ? (
+                  <p className={editor.hint}>{t('pastHint')}</p>
+                ) : null}
                 {errors.expiresAt ? (
                   <p id={`${field('expiresAt')}-error`} className={editor.error} role="alert">
                     {errors.expiresAt}

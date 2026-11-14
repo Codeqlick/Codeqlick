@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { presetContent } from './managed-sites.schemas.js';
 import {
   createNewsSchema,
   disallowedLinks,
@@ -139,5 +140,19 @@ describe('the post a build gets', () => {
     expect(plain).not.toHaveProperty('photo');
     expect(plain).not.toHaveProperty('expiresAt');
     expect(toBuildPost({ ...row, publishedAt: null })).toBeUndefined();
+  });
+});
+
+describe("a style's demo content", () => {
+  it('loses what a build sets and what only a demo has, news included', () => {
+    const demo = {
+      url: 'https://x.demo.codeqlick.com',
+      form: { demo: true },
+      demo: true,
+      footerNote: 'Demo',
+      news: { posts: [] },
+      hero: { title: 'Hola' },
+    };
+    expect(presetContent(demo)).toEqual({ hero: { title: 'Hola' } });
   });
 });

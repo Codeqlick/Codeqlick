@@ -21,6 +21,7 @@ import { SiteBuilderClient } from './site-builder.client.js';
 import {
   MAX_NEWS_POSTS,
   endOfMadridDay,
+  isUniqueViolation,
   newsStatus,
   slugOf,
   uniqueSlug,
@@ -39,16 +40,13 @@ export type NewsPublishResult = SiteNewsPostView & { build?: 'OK' | 'FAILED' };
 /**
  * The news of a managed site (architecture 8.2, decision 55): posts outside the site's
  * draft/publish cycle. Publishing, or changing a published post, rebuilds the live site from its
- * published content plus the published posts, one build per site at a time.
+ * published content plus the published posts.
  */
 @Injectable()
 export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(SiteNewsService.name);
   private timer: NodeJS.Timeout | undefined;
   private expiring = false;
-  /** The build in progress of each site (by project) and the one waiting behind it. */
-  private readonly running = new Map<string, Promise<SiteView>>();
-  private readonly queued = new Map<string, Promise<SiteView>>();
 
   constructor(
     private readonly repository: SiteNewsRepository,
@@ -110,19 +108,28 @@ export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShu
     }
     if (input.photo) await this.assertPhoto(input.photo);
     const base = slugOf(input.title);
-    const slug = uniqueSlug(base, await this.repository.slugsStartingWith(site.id, base));
-    const post = await this.repository.create({
-      siteId: site.id,
-      slug,
-      title: input.title,
-      summary: input.summary,
-      body: input.body,
-      photo: input.photo ?? null,
-      expiresAt: input.expiresAt ? endOfMadridDay(input.expiresAt) : null,
-      authorId: caller.id,
-    });
-    await this.record(caller, 'site_news.created', site, post);
-    return this.view(site, post, new Date());
+    const taken = await this.repository.slugsStartingWith(site.id, base);
+    // Two posts with one title at once: the loser takes the next free address.
+    for (let attempt = 0; ; attempt++) {
+      const slug = uniqueSlug(base, taken);
+      try {
+        const post = await this.repository.create({
+          siteId: site.id,
+          slug,
+          title: input.title,
+          summary: input.summary,
+          body: input.body,
+          photo: input.photo ?? null,
+          expiresAt: input.expiresAt ? endOfMadridDay(input.expiresAt) : null,
+          authorId: caller.id,
+        });
+        await this.record(caller, 'site_news.created', site, post);
+        return this.view(site, post, new Date());
+      } catch (error) {
+        if (!isUniqueViolation(error) || attempt >= 4) throw error;
+        taken.add(slug);
+      }
+    }
   }
 
   /** Saves the changes; a post that is online (before or after) rebuilds the site. */
@@ -145,11 +152,17 @@ export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShu
         : {}),
     };
     const now = new Date();
+    // Nothing to change: nothing is saved, logged or built.
+    if (Object.keys(data).length === 0) return this.view(site, post, now);
+    const nextExpiry =
+      input.expiresAt !== undefined ? (data.expiresAt as Date | null) : post.expiresAt;
     const wasLive = newsStatus(post, now) === 'PUBLISHED';
-    const updated =
-      Object.keys(data).length > 0 ? await this.repository.update(postId, data) : post;
+    const willBeLive =
+      newsStatus({ publishedAt: post.publishedAt, expiresAt: nextExpiry }, now) === 'PUBLISHED';
+    if (wasLive || willBeLive) this.assertBuilder();
+    const updated = await this.repository.update(postId, data);
     await this.record(caller, 'site_news.updated', site, updated);
-    if (wasLive || newsStatus(updated, now) === 'PUBLISHED') await this.rebuild(projectId);
+    if (wasLive || willBeLive) await this.rebuild(projectId);
     return this.view(site, updated, now);
   }
 
@@ -215,7 +228,8 @@ export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShu
 
   /**
    * Rebuilds the sites whose published post expired after their last build, which hides it
-   * (architecture 4.6). Idempotent: the build moves `lastBuildAt` past the expiry. Never throws.
+   * (architecture 4.6): those whose expiry is after the start of their last successful build.
+   * Idempotent: a successful build moves `newsBuiltAt` past the expiry; a failed one is retried. Never throws.
    */
   async rebuildExpired(now = new Date()): Promise<number> {
     if (this.expiring) return 0;
@@ -223,7 +237,7 @@ export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShu
     let rebuilt = 0;
     try {
       for (const site of await this.repository.sitesWithExpiredPosts(now)) {
-        const since = site.lastBuildAt?.getTime() ?? 0;
+        const since = site.newsBuiltAt?.getTime() ?? 0;
         if (!site.newsPosts.some((post) => (post.expiresAt?.getTime() ?? 0) > since)) continue;
         try {
           await this.rebuild(site.projectId);
@@ -242,31 +256,9 @@ export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShu
     return rebuilt;
   }
 
-  /**
-   * One build per site at a time: a change made while one runs waits for it and is folded,
-   * with any others made meanwhile, into one more build whose result every caller gets.
-   */
+  /** One build per site at a time, folded by `ManagedSitesService.build`. */
   private rebuild(projectId: string): Promise<SiteView> {
-    const running = this.running.get(projectId);
-    if (!running) return this.start(projectId);
-    const waiting = this.queued.get(projectId);
-    if (waiting) return waiting;
-    const next = running
-      .catch(() => undefined)
-      .then(() => {
-        this.queued.delete(projectId);
-        return this.start(projectId);
-      });
-    this.queued.set(projectId, next);
-    return next;
-  }
-
-  private start(projectId: string): Promise<SiteView> {
-    const run = this.sites.build(projectId).finally(() => {
-      if (this.running.get(projectId) === run) this.running.delete(projectId);
-    });
-    this.running.set(projectId, run);
-    return run;
+    return this.sites.build(projectId);
   }
 
   /** Posts that go online need the builder: without it nothing is changed. */
@@ -319,7 +311,7 @@ export class SiteNewsService implements OnApplicationBootstrap, OnApplicationShu
       status,
       publishedAt: post.publishedAt?.toISOString() ?? null,
       expiresAt: post.expiresAt?.toISOString() ?? null,
-      url: status === 'PUBLISHED' ? `${this.sites.addressOf(site)}/noticias/${post.slug}/` : null,
+      url: status === 'PUBLISHED' ? `${this.sites.addressOf(site)}/noticias/${post.slug}` : null,
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
     };

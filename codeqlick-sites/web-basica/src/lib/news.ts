@@ -10,8 +10,8 @@ export const HOME_COUNT = 3;
 export const FEED_COUNT = 20;
 
 /** The published posts, newest first (the platform sends them that way; sorted here to be sure). */
-export const posts: NewsPost[] = [...(site.news?.posts ?? [])].sort((a, b) =>
-  b.publishedAt.localeCompare(a.publishedAt),
+export const posts: NewsPost[] = [...(site.news?.posts ?? [])].sort(
+  (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
 );
 
 export const pageCount = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));

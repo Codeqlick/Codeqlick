@@ -1,5 +1,6 @@
 -- AlterTable
-ALTER TABLE "managed_sites" ADD COLUMN     "news_enabled" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "managed_sites" ADD COLUMN     "news_built_at" TIMESTAMPTZ(3),
+ADD COLUMN     "news_enabled" BOOLEAN NOT NULL DEFAULT false;
 
 -- CreateTable
 CREATE TABLE "site_news_posts" (

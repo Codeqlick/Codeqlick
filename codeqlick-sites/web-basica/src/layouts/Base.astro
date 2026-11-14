@@ -67,7 +67,13 @@ parent.postMessage({ type: 'cq-ready' }, '*');`;
 
 const fullTitle = title ? `${title} · ${site.business.name}` : site.business.name;
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
-const ogImage = await getImage({ src: image ?? imageOf(site.hero.image), width: 1200, format: 'jpg' });
+const ogImage = await getImage({
+  src: image ?? imageOf(site.hero.image),
+  width: 1200,
+  format: 'jpg',
+});
+// `<` escaped so no text of the schema can close the script element.
+const schemaJson = schema ? JSON.stringify(schema).replace(/</g, '\\u003c') : undefined;
 
 const fonts: Record<HeadingFont | BodyFont, string> = {
   inter: "'Inter Variable', system-ui, sans-serif",
@@ -123,7 +129,7 @@ const theme = [
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={new URL(ogImage.src, Astro.site).toString()} />
     <meta name="twitter:card" content="summary_large_image" />
-    {schema ? <script type="application/ld+json" set:html={JSON.stringify(schema)} /> : null}
+    {schemaJson ? <script type="application/ld+json" set:html={schemaJson} /> : null}
     {site.analytics ? (
       <script
         is:inline

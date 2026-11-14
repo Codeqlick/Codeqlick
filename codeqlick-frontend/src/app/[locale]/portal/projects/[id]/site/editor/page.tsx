@@ -24,7 +24,8 @@ export default async function SiteEditorPage({
   const [view, site, news] = await Promise.all([
     getSiteEditor(id),
     getMySite(id),
-    listSiteNews('portal', id, { pageSize: NEWS_PAGE_SIZE }),
+    // Optional: a failure here must not take the website editor with it.
+    listSiteNews('portal', id, { pageSize: NEWS_PAGE_SIZE }).catch(() => null),
   ]).catch((error: unknown) => {
     if (isNotFound(error)) notFound();
     throw error;
