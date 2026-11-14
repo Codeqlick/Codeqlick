@@ -163,6 +163,7 @@ model User {
   cloudTokens                CloudToken[]
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
+  cloudProductionLocks       CloudProject[]
   cloudEvents                CloudEvent[]
 
   @@map("users")
@@ -2012,6 +2013,10 @@ model CloudProject {
   slug                   String    @unique @db.VarChar(40)
   name                   String    @db.VarChar(60)
   productionDeploymentId String?   @unique @map("production_deployment_id") @db.Uuid
+  /// Production lock after a rollback (architecture 4.13): builds from Git don't move production.
+  productionLockedAt     DateTime? @map("production_locked_at") @db.Timestamptz(3)
+  /// Who locked it (kept as `null` when they leave).
+  productionLockedById   String?   @map("production_locked_by_id") @db.Uuid
   suspendedAt            DateTime? @map("suspended_at") @db.Timestamptz(3)
   suspendedReason        String?   @map("suspended_reason") @db.VarChar(500)
   deletedAt              DateTime? @map("deleted_at") @db.Timestamptz(3)
@@ -2032,20 +2037,21 @@ model CloudProject {
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team            CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production      CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  deployments     CloudDeployment[]     @relation("CloudDeployments")
-  domains         CloudDomain[]
-  reports         CloudReport[]
-  forms           CloudForm[]
-  envVars         CloudEnvVar[]
-  builds          CloudBuild[]
-  prComments      CloudPullComment[]
-  notifyChannels  CloudNotifyChannel[]
-  analyticsEvents CloudAnalyticsEvent[]
-  kvEntries       CloudKvEntry[]
-  cloudDatabases  CloudDatabase[]
-  buckets         CloudBucket[]
+  team               CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production         CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  productionLockedBy User?                 @relation(fields: [productionLockedById], references: [id], onDelete: SetNull)
+  deployments        CloudDeployment[]     @relation("CloudDeployments")
+  domains            CloudDomain[]
+  reports            CloudReport[]
+  forms              CloudForm[]
+  envVars            CloudEnvVar[]
+  builds             CloudBuild[]
+  prComments         CloudPullComment[]
+  notifyChannels     CloudNotifyChannel[]
+  analyticsEvents    CloudAnalyticsEvent[]
+  kvEntries          CloudKvEntry[]
+  cloudDatabases     CloudDatabase[]
+  buckets            CloudBucket[]
 
   @@index([teamId, createdAt])
   @@map("cloud_projects")
@@ -2403,6 +2409,8 @@ model CloudBuild {
   /// stdout and stderr, at most 1 MB (the end is kept); emptied after 30 days.
   log           String            @default("")
   deploymentId  String?           @map("deployment_id") @db.Uuid
+  /// A production build deployed while production was locked after a rollback (architecture 4.13).
+  keptAsPreview Boolean           @default(false) @map("kept_as_preview")
   builder       String?           @db.VarChar(60)
   createdById   String?           @map("created_by_id") @db.Uuid
   queuedAt      DateTime          @default(now()) @map("queued_at") @db.Timestamptz(3)

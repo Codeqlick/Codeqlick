@@ -85,6 +85,9 @@ export async function BuildsTab(props: Props) {
                     <Badge>
                       {build.target === 'production' ? t('git.production') : t('git.preview')}
                     </Badge>
+                    {build.keptAsPreview ? (
+                      <Badge tone="warning">{t('builds.keptByLock')}</Badge>
+                    ) : null}
                     <span>{(build.commitMessage ?? '').split('\n')[0]}</span>
                   </p>
                   <p className={styles.small}>

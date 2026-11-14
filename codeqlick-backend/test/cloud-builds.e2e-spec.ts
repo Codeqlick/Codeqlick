@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as argon2 from 'argon2';
 import { createHmac, randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import request from 'supertest';
@@ -15,6 +15,7 @@ import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
+import { LOCKED_BUILD_LOG_LINE } from '../src/modules/cloud/cloud-production-lock.js';
 import { GithubClient } from '../src/modules/cloud/github.client.js';
 import { MailService } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -460,6 +461,96 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .post(`/v1/cloud/builder/builds/${third.body.build.id as string}/heartbeat`)
       .set(builder)
       .expect(409);
+
+    // ── Production lock after a rollback (architecture 4.13): while locked, a production build
+    // deploys as a preview; after an unlock the next one goes live as usual.
+    const host = join(root, 'hosts', `bp-${tag}`);
+    const projectUrl = `/v1/cloud/projects/${projectId}`;
+    const before = await request(server).get(projectUrl).set(auth).expect(200);
+    const productionBefore = before.body.production as { id: string };
+    expect(productionBefore).toBeTruthy();
+    const linkBefore = await readlink(host);
+    await prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { productionLockedAt: new Date() },
+    });
+    const buildOnMain = async (commit: string, html: string) => {
+      await send('push', { ...push, after: commit, head_commit: { message: `Release ${html}` } });
+      const job = await request(server)
+        .post('/v1/cloud/builder/claim')
+        .set(builder)
+        .send({ builder: 'b1' })
+        .expect(200);
+      const id = job.body.build.id as string;
+      expect(job.body.build.commit).toBe(commit);
+      await request(server)
+        .post(`/v1/cloud/builder/builds/${id}/log`)
+        .set(builder)
+        .send({ text: 'npm run build' }) // no newline at the end: the lock's line starts a new one
+        .expect(204);
+      const out = await mkdtemp(join(tmpdir(), 'cq-build-out-'));
+      await writeFile(join(out, 'index.html'), html);
+      const file = join(tmpdir(), `cq-build-${randomUUID()}.tar.gz`);
+      await create({ gzip: true, file, cwd: out, portable: true }, ['.']);
+      await request(server)
+        .post(`/v1/cloud/builder/builds/${id}/finish`)
+        .set(builder)
+        .field('status', 'succeeded')
+        .attach('bundle', file)
+        .expect(204);
+      await rm(out, { recursive: true, force: true });
+      const row = await prisma.cloudBuild.findUniqueOrThrow({ where: { id } });
+      return (await request(server).get(`${projectUrl}/builds/${row.number}`).set(auth).expect(200))
+        .body as {
+        status: string;
+        target: string;
+        keptAsPreview: boolean;
+        log: string;
+        deploymentId: string;
+      };
+    };
+
+    const kept = await buildOnMain(sha(5), '<h1>locked</h1>');
+    expect(kept).toMatchObject({ status: 'SUCCEEDED', target: 'production', keptAsPreview: true });
+    expect(kept.log).toBe(`npm run build\n${LOCKED_BUILD_LOG_LINE}\n`);
+    expect(await readlink(host)).toBe(linkBefore);
+    const stillLocked = await request(server).get(projectUrl).set(auth).expect(200);
+    expect(stillLocked.body.production.id).toBe(productionBefore.id);
+    expect(stillLocked.body.productionLock).toMatchObject({ at: expect.any(String), by: null });
+    const keptDeployment = await request(server)
+      .get(`${projectUrl}/deployments/${kept.deploymentId}`)
+      .set(auth)
+      .expect(200);
+    expect(keptDeployment.body).toMatchObject({ target: 'production', isProduction: false });
+    const previewUrl = `https://bp-${tag}--${keptDeployment.body.shortId as string}.cloud.test`;
+    expect(keptDeployment.body.url).toBe(previewUrl);
+    // GitHub's commit status links the preview and says production is locked.
+    await vi.waitFor(() =>
+      expect(github.setStatus).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        'ada-labs/site',
+        sha(5),
+        'success',
+        'Preview ready (production is locked after a rollback)',
+        previewUrl,
+      ),
+    );
+
+    const unlocked = await request(server)
+      .post(`${projectUrl}/production/unlock`)
+      .set(auth)
+      .expect(200);
+    expect(unlocked.body).toMatchObject({
+      production: { id: productionBefore.id },
+      productionLock: null,
+    });
+    const live = await buildOnMain(sha(6), '<h1>live</h1>');
+    expect(live).toMatchObject({ status: 'SUCCEEDED', target: 'production', keptAsPreview: false });
+    expect(live.log).not.toContain(LOCKED_BUILD_LOG_LINE);
+    expect(await readFile(join(host, 'index.html'), 'utf8')).toBe('<h1>live</h1>');
+    const published = await request(server).get(projectUrl).set(auth).expect(200);
+    expect(published.body.production.id).toBe(live.deploymentId);
 
     // Uninstalling the app disconnects the project.
     await send('installation', { action: 'deleted', installation });
