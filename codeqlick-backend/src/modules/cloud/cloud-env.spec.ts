@@ -64,7 +64,7 @@ describe('buildEnvRows', () => {
 describe('isGitBranchName', () => {
   it('takes the names Git takes', () => {
     for (const name of ['staging', 'feature/new-header', 'release-1.2', 'user@x', 'v2_beta']) {
-      expect(isGitBranchName(name), name).toBe(true);
+      expect({ name, valid: isGitBranchName(name) }).toEqual({ name, valid: true });
     }
   });
 
@@ -93,7 +93,7 @@ describe('isGitBranchName', () => {
       '.hidden',
       'feature/.hidden',
     ]) {
-      expect(isGitBranchName(name), name).toBe(false);
+      expect({ name, valid: isGitBranchName(name) }).toEqual({ name, valid: false });
     }
   });
 });
@@ -130,10 +130,13 @@ describe('envVarSchema', () => {
 
   it('refuses a branch Git would not take, an empty one or a long one', () => {
     for (const branch of ['', '   ', 'a b', 'a..b', 'x'.repeat(201)]) {
-      expect(
-        envVarSchema.safeParse({ ...base, production: false, preview: true, branch }).success,
+      const { success } = envVarSchema.safeParse({
+        ...base,
+        production: false,
+        preview: true,
         branch,
-      ).toBe(false);
+      });
+      expect({ branch, success }).toEqual({ branch, success: false });
     }
   });
 });
