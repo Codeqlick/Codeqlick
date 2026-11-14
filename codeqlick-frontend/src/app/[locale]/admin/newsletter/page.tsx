@@ -111,6 +111,14 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
               <tbody>
                 {list.items.map((subscriber) => {
                   const date = statusDate(subscriber);
+                  const removeButton = (
+                    <ActionForm action={deleteSubscriberAction.bind(null, locale, subscriber.id)}>
+                      <SubmitButton variant="danger" size="sm" pendingLabel={tc('deleting')}>
+                        {tc('delete')}
+                        <span className="visually-hidden"> {subscriber.email}</span>
+                      </SubmitButton>
+                    </ActionForm>
+                  );
                   return (
                     <tr key={subscriber.id}>
                       <th scope="row">{subscriber.email}</th>
@@ -128,16 +136,7 @@ export default async function AdminNewsletterPage({ params, searchParams }: Page
                         ) : null}
                       </td>
                       <td data-label={t('signedUp')}>{formatDate(subscriber.createdAt, locale)}</td>
-                      <td data-wide>
-                        <ActionForm
-                          action={deleteSubscriberAction.bind(null, locale, subscriber.id)}
-                        >
-                          <SubmitButton variant="danger" size="sm" pendingLabel={tc('deleting')}>
-                            {tc('delete')}
-                            <span className="visually-hidden"> {subscriber.email}</span>
-                          </SubmitButton>
-                        </ActionForm>
-                      </td>
+                      <td data-wide>{removeButton}</td>
                     </tr>
                   );
                 })}

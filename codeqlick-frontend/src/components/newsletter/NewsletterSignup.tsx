@@ -1,7 +1,7 @@
 'use client';
 
 import { useLocale, useTranslations } from 'next-intl';
-import { useActionState, useEffect, useId, useState } from 'react';
+import { useActionState, useEffect, useId, useRef } from 'react';
 import { Alert } from '@/components/ui/Alert';
 import { Checkbox, Input } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -21,8 +21,11 @@ export function NewsletterSignup({ headingLevel = 2 }: { headingLevel?: 2 | 3 })
   const locale = useLocale();
   const id = useId();
   const [state, formAction] = useActionState(subscribeAction, initialFormState);
-  const [renderedAt, setRenderedAt] = useState(0);
-  useEffect(() => setRenderedAt(Date.now()), []);
+  // Stamped straight into the hidden field (no state, so no extra render).
+  const renderedAt = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (renderedAt.current) renderedAt.current.value = String(Date.now());
+  }, []);
 
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
   const errors = state.fieldErrors ?? {};
@@ -42,7 +45,7 @@ export function NewsletterSignup({ headingLevel = 2 }: { headingLevel?: 2 | 3 })
         <form action={formAction} className={styles.form} noValidate>
           {state.message ? <Alert tone="error">{state.message}</Alert> : null}
           <input type="hidden" name="locale" value={locale} />
-          <input type="hidden" name="renderedAt" value={renderedAt} />
+          <input ref={renderedAt} type="hidden" name="renderedAt" defaultValue="0" />
           <Input
             id={`${id}-email`}
             name="email"
