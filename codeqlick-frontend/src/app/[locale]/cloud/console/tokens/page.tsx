@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
+import { ActionForm, FormInput, FormRadioGroup, FormSelect } from '@/components/app/ActionForm';
 import { TokenReveal } from '@/components/cloud/TokenReveal';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -76,6 +76,20 @@ export default async function CloudTokensPage({ params }: PageProps) {
               { value: 'never', label: t('tokens.never') },
             ]}
           />
+          <FormRadioGroup
+            name="access"
+            legend={t('tokens.access')}
+            defaultValue="full"
+            className={styles.fieldset}
+            options={[
+              { value: 'full', label: t('tokens.accessFull'), hint: t('tokens.accessFullHint') },
+              {
+                value: 'readOnly',
+                label: t('tokens.accessReadOnly'),
+                hint: t('tokens.accessReadOnlyHint'),
+              },
+            ]}
+          />
           <div className={styles.actions}>
             <SubmitButton pendingLabel={t('tokens.creating')}>{t('tokens.create')}</SubmitButton>
           </div>
@@ -95,6 +109,7 @@ export default async function CloudTokensPage({ params }: PageProps) {
                   {token.name}
                   <span className={styles.mono}>{token.prefix}…</span>
                   <Badge>{token.team ? token.team.name : t('tokens.allTeams')}</Badge>
+                  {token.readOnly ? <Badge tone="brand">{t('tokens.accessReadOnly')}</Badge> : null}
                 </p>
                 <p className={styles.small}>
                   {token.lastUsedAt

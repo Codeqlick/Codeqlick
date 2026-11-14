@@ -5,6 +5,7 @@ import {
   cloudEventFilters,
   cloudEventFiltersQuery,
   cloudSlug,
+  cloudTokenOptions,
   configJson,
   envImportErrors,
   formatBytes,
@@ -207,5 +208,26 @@ describe('envImportErrors', () => {
     expect(envImportErrors([{ path: 'lines.4', message: 'Too long' }])).toEqual([
       { line: null, message: 'Too long' },
     ]);
+  });
+});
+
+describe('cloudTokenOptions', () => {
+  it('sends read only only when it was chosen', () => {
+    expect(cloudTokenOptions({ team: '', expiry: '90', access: 'readOnly' }).readOnly).toBe(true);
+    expect(cloudTokenOptions({ team: '', expiry: '90', access: 'full' }).readOnly).toBe(false);
+    expect(cloudTokenOptions({ team: '', expiry: '90', access: '' }).readOnly).toBe(false);
+    expect(cloudTokenOptions({ team: '', expiry: '90', access: 'admin' }).readOnly).toBe(false);
+  });
+
+  it('maps the team and the expiry', () => {
+    expect(cloudTokenOptions({ team: 'acme', expiry: 'never', access: 'full' })).toEqual({
+      teamSlug: 'acme',
+      expiresInDays: null,
+      readOnly: false,
+    });
+    expect(cloudTokenOptions({ team: '', expiry: '30', access: 'full' }).teamSlug).toBeUndefined();
+    expect(cloudTokenOptions({ team: '', expiry: '30', access: 'full' }).expiresInDays).toBe(30);
+    expect(cloudTokenOptions({ team: '', expiry: '365', access: 'full' }).expiresInDays).toBe(365);
+    expect(cloudTokenOptions({ team: '', expiry: 'x', access: 'full' }).expiresInDays).toBe(90);
   });
 });
