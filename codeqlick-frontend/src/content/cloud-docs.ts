@@ -174,6 +174,7 @@ Crea un formulario en la pestaña **Formularios** del proyecto y pega su HTML en
 - \`_subject\` pone el asunto del email y \`_gotcha\` (oculto) frena los bots.
 - Con \`fetch\` y JSON recibes \`{ ok: true }\`. Solo se aceptan envíos desde las direcciones de tu proyecto y tus dominios.
 - Los envíos se guardan 180 días: búscalos, bórralos o descárgalos en CSV en la consola. El plan gratuito admite 1.000 envíos al mes por equipo.
+- Para recibirlos también en Slack, Discord o un webhook propio (un CRM, Zapier), activa «Cuando un formulario recibe un envío» en un aviso de la pestaña **Avisos**; el webhook recibe \`event: "form.submitted"\` con los campos.
 
 ## Dominios propios
 
@@ -438,6 +439,7 @@ Create a form in the project's **Forms** tab and paste its HTML into your page:
 - \`_subject\` sets the email's subject and \`_gotcha\` (hidden) stops bots.
 - With \`fetch\` and JSON you get \`{ ok: true }\`. Only posts from your project's addresses and domains are accepted.
 - Submissions are kept 180 days: search, delete or download them as CSV in the console. The free plan takes 1,000 submissions a month per team.
+- To get them in Slack, Discord or a webhook of yours too (a CRM, Zapier), turn on "When a form gets a submission" in a channel of the **Notifications** tab; the webhook gets \`event: "form.submitted"\` with the fields.
 
 ## Custom domains
 

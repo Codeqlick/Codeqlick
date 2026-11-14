@@ -2,12 +2,16 @@ import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   channelUrlProblem,
+  formLines,
   payload,
   signature,
   summary,
   testEvent,
+  testFormEvent,
   urlHint,
   wants,
+  wantsForm,
+  type FormEvent,
   type NotifyEvent,
 } from './cloud-notify.js';
 
@@ -128,5 +132,117 @@ describe('Cloud build notifications', () => {
     const event = testEvent({ slug: 'web', name: 'Web' }, 'https://cloud/x');
     expect(event.event).toBe('test');
     expect(summary(event, 'es')).toBe('Web · mensaje de prueba de Codeqlick Cloud');
+  });
+
+  // Form submissions (decision 63).
+  const submitted: FormEvent = {
+    event: 'form.submitted',
+    project: { slug: 'web', name: 'Web & Co' },
+    form: { id: 'f1', name: 'Contact' },
+    submission: {
+      id: 's1',
+      fields: [
+        ['name <b>', 'Eve & <!channel> <@123> [click](https://evil.example)'],
+        ['message', `${'x'.repeat(320)}\n# end`],
+        ...Array.from({ length: 10 }, (_, i): [string, string] => [`f${i}`, `v${i}`]),
+      ],
+      email: 'eve@example.com',
+      page: 'https://web.codeqlick.app/contact',
+      createdAt: '2026-11-14T12:00:00.000Z',
+      url: 'https://cloud.codeqlick.com/en/console/team/web?tab=forms&form=f1',
+    },
+    sentAt: '2026-11-14T12:00:01.000Z',
+  };
+
+  it('tells only Slack, Discord and webhook channels that follow the form', () => {
+    const channel = { enabled: true, kind: 'WEBHOOK' as const, formSubmitted: true, formIds: [] };
+    expect(wantsForm(channel, 'f1')).toBe(true);
+    expect(wantsForm({ ...channel, formIds: ['f1'] }, 'f1')).toBe(true);
+    expect(wantsForm({ ...channel, formIds: ['f2'] }, 'f1')).toBe(false);
+    expect(wantsForm({ ...channel, formSubmitted: false }, 'f1')).toBe(false);
+    expect(wantsForm({ ...channel, enabled: false }, 'f1')).toBe(false);
+    expect(wantsForm({ ...channel, kind: 'EMAIL' }, 'f1')).toBe(false);
+  });
+
+  it('shows 10 fields at most, in order, on one line each and cut to 300 characters', () => {
+    const lines = formLines(submitted.submission.fields, 'en', (text) => text);
+    expect(lines).toHaveLength(11);
+    expect(lines[0]).toBe('name <b>: Eve & <!channel> <@123> [click](https://evil.example)');
+    expect(lines[1]).toBe(`message: ${'x'.repeat(299)}…`);
+    expect(lines[9]).toBe('f7: v7');
+    expect(lines[10]).toBe('+2 more fields');
+    expect(formLines(submitted.submission.fields.slice(0, 11), 'es', (t) => t)[10]).toBe(
+      '+1 campo más',
+    );
+    expect(formLines([['a', 'b']], 'en', (t) => t)).toEqual(['a: b']);
+  });
+
+  it("escapes visitors' words for Slack and links the submissions", () => {
+    const body = JSON.parse(payload('SLACK', submitted, 'en')) as {
+      text: string;
+      unfurl_links: boolean;
+    };
+    expect(body.text.split('\n')[0]).toBe('📨 *Web &amp; Co* · new submission to *Contact*');
+    expect(body.text).toContain('name &lt;b&gt;: Eve &amp; &lt;!channel&gt; &lt;@123&gt;');
+    expect(body.text).not.toContain('<!channel>');
+    expect(body.text).toContain('+2 more fields');
+    expect(body.text).toContain(`<${submitted.submission.url}|See the submissions>`);
+    expect(body.unfurl_links).toBe(false);
+  });
+
+  it('never lets Discord ping anyone or make links from a submission', () => {
+    const body = JSON.parse(payload('DISCORD', submitted, 'es')) as {
+      allowed_mentions: { parse: string[] };
+      embeds: Array<{ title: string; url: string; description: string }>;
+    };
+    expect(body.allowed_mentions.parse).toEqual([]);
+    const embed = body.embeds[0]!;
+    expect(embed.title).toBe('📨 Web & Co · nuevo envío en Contact');
+    expect(embed.url).toBe(submitted.submission.url);
+    expect(embed.description).toContain(
+      'name \\<b\\>: Eve & \\<!channel\\> \\<\\@123\\> \\[click\\]\\(https\\://evil.example\\)',
+    );
+    expect(embed.description).toContain('+2 campos más');
+    expect(embed.description.endsWith(`[Ver los envíos](${submitted.submission.url})`)).toBe(true);
+  });
+
+  it('keeps a Discord description within its length, by whole lines', () => {
+    const heavy: FormEvent = {
+      ...submitted,
+      submission: {
+        ...submitted.submission,
+        fields: Array.from({ length: 10 }, (_, i): [string, string] => [
+          `field_${i}`,
+          `${'*_<>[]()'.repeat(35)}😀😀😀`,
+        ]),
+      },
+    };
+    const body = JSON.parse(payload('DISCORD', heavy, 'en')) as {
+      embeds: Array<{ title: string; description: string }>;
+    };
+    const { description } = body.embeds[0]!;
+    expect(description.length).toBeLessThanOrEqual(4096);
+    const unpaired = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    expect(unpaired.test(description)).toBe(false);
+    expect(description).toMatch(/\n\+\d+ more fields\n\[See the submissions\]/);
+    const shown = description.split('\n').filter((l) => l.startsWith('field\\_')).length;
+    expect(shown).toBeGreaterThan(0);
+    expect(description).toContain(`+${10 - shown} more fields`);
+    const long = { ...heavy, form: { ...heavy.form, name: '😀'.repeat(300) } };
+    const title = (JSON.parse(payload('DISCORD', long, 'en')) as typeof body).embeds[0]!.title;
+    expect(Array.from(title)).toHaveLength(256);
+    expect(unpaired.test(title)).toBe(false);
+  });
+
+  it('posts the whole submission to a webhook', () => {
+    expect(JSON.parse(payload('WEBHOOK', submitted, 'en'))).toEqual(submitted);
+  });
+
+  it('builds a sample submission for tests', () => {
+    const event = testFormEvent({ slug: 'web', name: 'Web' }, 'https://cloud/x', 'es');
+    expect(event).toMatchObject({ event: 'test', form: { name: 'Contacto' } });
+    const body = JSON.parse(payload('SLACK', event, 'es')) as { text: string };
+    expect(body.text).toContain('🔔 *Web* · prueba: nuevo envío en *Contacto*');
+    expect(body.text).toContain('email: ada@example.com');
   });
 });
