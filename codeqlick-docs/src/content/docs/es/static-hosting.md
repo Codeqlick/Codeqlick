@@ -1,6 +1,6 @@
 ---
 title: Alojamiento estático
-description: Cómo sirve Codeqlick Cloud tu web compilada: despliegues, vistas previas, rollbacks, aplicaciones de una página, qué se sube y los límites del plan gratuito.
+description: Cómo sirve Codeqlick Cloud tu web compilada. Despliegues, vistas previas, rollbacks, aplicaciones de una página, qué se sube y los límites del plan gratuito.
 group: hosting
 order: 3
 ---
