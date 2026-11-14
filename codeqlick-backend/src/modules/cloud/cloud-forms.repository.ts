@@ -63,8 +63,21 @@ export class CloudFormsRepository {
     return this.prisma.cloudForm.update({ where: { id }, data });
   }
 
+  /**
+   * Deletes a form and takes it out of the notification channels that listed it (decision 63).
+   * A channel left with no forms stops getting submissions rather than getting every form's
+   * (an empty list means all of them).
+   */
   async remove(id: string): Promise<void> {
-    await this.prisma.cloudForm.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.$executeRaw`
+        UPDATE cloud_notify_channels
+        SET form_ids = array_remove(form_ids, ${id}::uuid),
+            form_submitted = form_submitted AND cardinality(array_remove(form_ids, ${id}::uuid)) > 0,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE ${id}::uuid = ANY(form_ids)`,
+      this.prisma.cloudForm.delete({ where: { id } }),
+    ]);
   }
 
   async submissionsCount(formId: string): Promise<number> {

@@ -21,8 +21,12 @@ import {
   signature,
   summary,
   testEvent,
+  testFormEvent,
   urlHint,
   wants,
+  wantsForm,
+  type AnyNotifyEvent,
+  type FormEvent,
   type NotifyEvent,
 } from './cloud-notify.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
@@ -41,6 +45,10 @@ export interface ChannelView {
   buildFailed: boolean;
   buildSucceeded: boolean;
   previews: boolean;
+  /** Slack, Discord and webhooks: the project's form submissions too (decision 63). */
+  formSubmitted: boolean;
+  /** Only these forms (empty: all). */
+  formIds: string[];
   locale: ApiLocale;
   failures: number;
   lastSentAt: string | null;
@@ -52,7 +60,30 @@ export interface ChannelView {
 /** Failed deliveries in a row that switch a channel off. */
 const MAX_FAILURES = 10;
 
-/** Build notifications (architecture 4.13 "Build notifications", decision 43). */
+/** A stored form submission, as the forms service hands it over (decision 63). */
+export interface StoredSubmission {
+  form: {
+    id: string;
+    name: string;
+    project: {
+      id: string;
+      slug: string;
+      name: string;
+      teamId: string;
+      team: { slug: string };
+    };
+  };
+  id: string;
+  fields: Array<[string, string]>;
+  email: string | null;
+  page: string | null;
+  createdAt: Date;
+}
+
+const NO_FORMS_BY_EMAIL =
+  "Email notifications don't get form submissions: forms email their own recipients";
+
+/** Build notifications (architecture 4.13 "Build notifications", decisions 43 and 63). */
 @Injectable()
 export class CloudNotificationsService {
   private readonly logger = new Logger(CloudNotificationsService.name);
@@ -79,6 +110,8 @@ export class CloudNotificationsService {
       buildFailed: channel.buildFailed,
       buildSucceeded: channel.buildSucceeded,
       previews: channel.previews,
+      formSubmitted: channel.formSubmitted,
+      formIds: channel.formIds,
       locale: channel.locale === 'es' ? 'es' : 'en',
       failures: channel.failures,
       lastSentAt: channel.lastSentAt?.toISOString() ?? null,
@@ -112,9 +145,14 @@ export class CloudNotificationsService {
       buildFailed: input.buildFailed ?? true,
       buildSucceeded: input.buildSucceeded ?? false,
       previews: input.previews ?? false,
+      formSubmitted: input.formSubmitted ?? false,
       locale: input.locale ?? 'en',
     };
     let secret: string | undefined;
+    if (input.kind === 'EMAIL' && (input.formSubmitted || (input.formIds?.length ?? 0) > 0)) {
+      throw new BadRequestException(NO_FORMS_BY_EMAIL);
+    }
+    data.formIds = await this.checkForms(project.id, input.formIds ?? []);
     if (input.kind === 'EMAIL') {
       data.recipientIds = await this.checkRecipients(project.teamId, input.recipientIds);
     } else {
@@ -148,6 +186,14 @@ export class CloudNotificationsService {
     if (input.buildFailed !== undefined) data.buildFailed = input.buildFailed;
     if (input.buildSucceeded !== undefined) data.buildSucceeded = input.buildSucceeded;
     if (input.previews !== undefined) data.previews = input.previews;
+    const formSubmitted = input.formSubmitted ?? channel.formSubmitted;
+    const formIds = input.formIds ?? channel.formIds;
+    if (channel.kind === 'EMAIL' && (formSubmitted || formIds.length > 0)) {
+      throw new BadRequestException(NO_FORMS_BY_EMAIL);
+    }
+    if (input.formSubmitted !== undefined) data.formSubmitted = input.formSubmitted;
+    if (input.formIds !== undefined)
+      data.formIds = await this.checkForms(project.id, input.formIds);
     if (input.locale !== undefined) data.locale = input.locale;
     if (input.enabled !== undefined) {
       data.enabled = input.enabled;
@@ -189,20 +235,29 @@ export class CloudNotificationsService {
     );
   }
 
-  /** "Send a test": a sample event, at once, whether the channel is on or not. */
+  /**
+   * "Send a test": a sample event, at once, whether the channel is on or not: a build, or a form
+   * submission for a Slack, Discord or webhook channel.
+   */
   async test(
     ctx: CloudCtx,
     projectId: string,
     channelId: string,
+    kind: 'build' | 'form' = 'build',
   ): Promise<{ ok: boolean; error: string | null }> {
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
     const channel = await this.repository.find(project.id, channelId);
     if (!channel) throw new NotFoundException('Notification not found');
+    if (kind === 'form' && channel.kind === 'EMAIL') {
+      throw new BadRequestException(NO_FORMS_BY_EMAIL);
+    }
     const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
-    const event = testEvent(
-      { slug: project.slug, name: project.name },
-      `${this.config.cloudUrl}/${locale}/console/${membership.team.slug}/${project.slug}?tab=notifications`,
-    );
+    const consoleUrl = `${this.config.cloudUrl}/${locale}/console/${membership.team.slug}/${project.slug}`;
+    const sample = { slug: project.slug, name: project.name };
+    const event =
+      kind === 'form'
+        ? testFormEvent(sample, `${consoleUrl}?tab=forms`, locale)
+        : testEvent(sample, `${consoleUrl}?tab=notifications`);
     const error = await this.deliver(channel, event, project.teamId);
     const now = new Date();
     if (error) await this.repository.failed(channel.id, error, now);
@@ -214,6 +269,16 @@ export class CloudNotificationsService {
     const problem = channelUrlProblem(kind, url);
     if (problem) throw new BadRequestException(problem);
     return { urlSealed: this.box.seal(url), urlHint: urlHint(url) };
+  }
+
+  /** Forms a channel is limited to: forms of the project, each once. */
+  private async checkForms(projectId: string, ids: string[]): Promise<string[]> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return unique;
+    if ((await this.repository.formsAmong(projectId, unique)).length !== unique.length) {
+      throw new BadRequestException('Notifications can only follow forms of the project');
+    }
+    return unique;
   }
 
   private async checkRecipients(teamId: string, ids: string[]): Promise<string[]> {
@@ -272,6 +337,41 @@ export class CloudNotificationsService {
     }
   }
 
+  /**
+   * Tells a project's Slack, Discord and webhook channels about a stored form submission
+   * (decision 63). Called in the background by the forms service; never throws.
+   */
+  async formSubmitted(submission: StoredSubmission): Promise<void> {
+    const { form } = submission;
+    try {
+      const channels = (await this.repository.list(form.project.id)).filter((c) =>
+        wantsForm(c, form.id),
+      );
+      for (const channel of channels) {
+        const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
+        const event: FormEvent = {
+          event: 'form.submitted',
+          project: { slug: form.project.slug, name: form.project.name },
+          form: { id: form.id, name: form.name },
+          submission: {
+            id: submission.id,
+            fields: submission.fields,
+            email: submission.email,
+            page: submission.page,
+            createdAt: submission.createdAt.toISOString(),
+            // The console has no page per submission: its form's list, newest first.
+            url: `${this.config.cloudUrl}/${locale}/console/${form.project.team.slug}/${form.project.slug}?tab=forms&form=${form.id}`,
+          },
+          sentAt: new Date().toISOString(),
+        };
+        const error = await this.deliver(channel, event, form.project.teamId);
+        await this.recordDelivery(channel, error, form.project);
+      }
+    } catch (error) {
+      this.logger.error(`Form ${form.id}: notifications failed: ${String(error)}`);
+    }
+  }
+
   private async recordDelivery(
     channel: CloudNotifyChannel,
     error: string | null,
@@ -311,11 +411,12 @@ export class CloudNotificationsService {
   /** Sends one event to one channel; the error, or null when it was delivered. */
   private async deliver(
     channel: CloudNotifyChannel,
-    event: NotifyEvent,
+    event: AnyNotifyEvent,
     teamId: string,
   ): Promise<string | null> {
     const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
     if (channel.kind === 'EMAIL') {
+      if ('submission' in event) return NO_FORMS_BY_EMAIL;
       const people = await this.repository.recipients(teamId, channel.recipientIds);
       if (people.length === 0) return 'None of its people is in the team any more';
       try {

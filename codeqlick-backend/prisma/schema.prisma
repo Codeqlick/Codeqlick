@@ -2355,6 +2355,10 @@ model CloudNotifyChannel {
   buildFailed    Boolean         @default(true) @map("build_failed")
   buildSucceeded Boolean         @default(false) @map("build_succeeded")
   previews       Boolean         @default(false)
+  /// Slack, Discord and webhooks: also tell it about the project's form submissions (decision 63).
+  formSubmitted  Boolean         @default(false) @map("form_submitted")
+  /// Only these forms of the project (empty: all of them).
+  formIds        String[]        @default([]) @map("form_ids") @db.Uuid
   /// The language of Slack, Discord and webhook messages (`en` or `es`).
   locale         String          @default("en") @db.VarChar(2)
   /// Failed deliveries in a row; ten switch the channel off.

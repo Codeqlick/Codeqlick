@@ -29,6 +29,7 @@ import {
   toStored,
 } from './cloud-form-fields.js';
 import { CloudFormsRepository, type FormWithProject } from './cloud-forms.repository.js';
+import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CLOUD_PLANS, FORM_SUBMISSION_DAYS } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { CloudRepository } from './cloud.repository.js';
@@ -82,6 +83,7 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
     private readonly cloud: CloudRepository,
     private readonly projects: CloudProjectsService,
     private readonly teams: CloudTeamsService,
+    private readonly notifications: CloudNotificationsService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
   ) {}
@@ -309,8 +311,18 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
     }
 
     const page = pageOf(post.referer);
-    await this.forms.keep(form.id, toStored(parsed.value.fields), parsed.value.email, page);
+    const fields = toStored(parsed.value.fields);
+    const kept = await this.forms.keep(form.id, fields, parsed.value.email, page);
     if (form.notify) void this.notify(form, parsed.value, page);
+    // Slack, Discord and webhook channels that follow this form (decision 63), in the background.
+    void this.notifications.formSubmitted({
+      form,
+      id: kept.id,
+      fields,
+      email: kept.email,
+      page: kept.page,
+      createdAt: kept.createdAt,
+    });
     return answer(true);
   }
 
