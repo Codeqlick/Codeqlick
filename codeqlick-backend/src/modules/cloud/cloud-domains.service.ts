@@ -68,6 +68,24 @@ export const verificationName = (domain: string) => `_codeqlick.${domain}`;
 
 const under = (name: string, parent: string) => name === parent || name.endsWith(`.${parent}`);
 
+/**
+ * Whether a domain is Codeqlick's own and so refused (architecture 4.13). The one exception: an
+ * exact domain of `platformDomains` is allowed for the team whose id is `platformTeam.teamId`; with
+ * either unset there is none. Subdomains of a listed domain are not covered.
+ */
+export function isReservedDomain(
+  name: string,
+  parents: string[],
+  platform: { domains: string[]; teamId?: string; projectTeamId: string },
+): boolean {
+  if (!parents.some((parent) => under(name, parent))) return false;
+  const exempt =
+    platform.teamId !== undefined &&
+    platform.teamId === platform.projectTeamId &&
+    platform.domains.includes(name);
+  return !exempt;
+}
+
 /** Custom domains of Cloud projects (architecture 4.13). */
 @Injectable()
 export class CloudDomainsService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -106,7 +124,12 @@ export class CloudDomainsService implements OnApplicationBootstrap, OnApplicatio
       'codeqlick.com',
       this.config.sitesPreviewDomain,
     ];
-    if (own.some((parent) => under(name, parent))) {
+    const platform = {
+      domains: this.config.cloudPlatformDomains,
+      teamId: this.config.cloudPlatformTeamId,
+      projectTeamId: project.teamId,
+    };
+    if (isReservedDomain(name, own, platform)) {
       throw new BadRequestException('That domain belongs to Codeqlick');
     }
     const limits = this.teams.limits(membership.team.plan);

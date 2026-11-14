@@ -72,6 +72,12 @@ export const envSchema = z.object({
   SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
   /** Codeqlick Cloud's hosting domain (architecture 4.13): projects at <slug>.<this>; unset: no deploys. */
   CLOUD_HOSTING_DOMAIN: optionalString,
+  /**
+   * Exact domains under codeqlick.com that only the team with id CLOUD_PLATFORM_TEAM_ID may add as
+   * custom domains (architecture 4.13), comma-separated; either empty: no exception.
+   */
+  CLOUD_PLATFORM_DOMAINS: optionalString,
+  CLOUD_PLATFORM_TEAM_ID: optionalString,
   /** Where deployments, host links and domain files are written (/srv/codeqlick/cloud on the host). */
   CLOUD_ROOT: optionalString,
   /** Cloud's GitHub App (architecture 4.13, Builds from Git); builds from Git are off without them. */

@@ -347,6 +347,29 @@ describe('Codeqlick Cloud (e2e)', () => {
       .set(tokenAuth)
       .send({ name: 'x.codeqlick.com' })
       .expect(400);
+    // The platform exception: an exact listed domain, for the platform team only.
+    const platformName = `docs-${tag}.codeqlick.com`;
+    const platformDomains = vi
+      .spyOn(app.get(AppConfigService), 'cloudPlatformDomains', 'get')
+      .mockReturnValue([platformName]);
+    const platformTeam = vi
+      .spyOn(app.get(AppConfigService), 'cloudPlatformTeamId', 'get')
+      .mockReturnValue('other-team-id');
+    const addPlatform = (name: string) =>
+      request(server).post(`/v1/cloud/projects/${projectId}/domains`).set(tokenAuth).send({ name });
+    await addPlatform(platformName).expect(400); // another team's project
+    platformTeam.mockReturnValue(team.body.id as string);
+    await addPlatform(`sub.${platformName}`).expect(400); // subdomains are not covered
+    await addPlatform(`other-${tag}.codeqlick.com`).expect(400); // not listed
+    const platform = await addPlatform(platformName).expect(201);
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/domains/${platform.body.id as string}`)
+      .set(tokenAuth)
+      .expect(204);
+    platformDomains.mockReturnValue([]); // either unset: no exception
+    await addPlatform(platformName).expect(400);
+    platformDomains.mockRestore();
+    platformTeam.mockRestore();
     const domain = await request(server)
       .post(`/v1/cloud/projects/${projectId}/domains`)
       .set(tokenAuth)

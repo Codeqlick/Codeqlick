@@ -1,0 +1,26 @@
+---
+import type { InferGetStaticPropsType } from 'astro';
+import { render } from 'astro:content';
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { getDocs } from '../../lib/docs';
+import { LANGS } from '../../lib/i18n';
+
+export async function getStaticPaths() {
+  const docs = await getDocs();
+  return LANGS.flatMap((lang) =>
+    docs[lang].map((page) => ({
+      // `index` is the introduction: `/<lang>/`.
+      params: { lang, slug: page.slug === 'index' ? undefined : page.slug },
+      props: { page },
+    })),
+  );
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+const { page } = Astro.props as Props;
+const { Content, headings } = await render(page.entry);
+---
+
+<DocsLayout page={page} headings={headings}>
+  <Content />
+</DocsLayout>

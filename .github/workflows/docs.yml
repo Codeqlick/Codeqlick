@@ -1,0 +1,41 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'codeqlick-docs/**'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'codeqlick-docs/**'
+      - '.github/workflows/docs.yml'
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Gate only: Codeqlick Cloud builds and publishes the site itself from main (Builds from Git).
+jobs:
+  site:
+    name: Documentation site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: codeqlick-docs
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: codeqlick-docs/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run check
+      - run: npm run build
+      - name: Every link and anchor resolves, every English page has its Spanish twin
+        run: npm run linkcheck
