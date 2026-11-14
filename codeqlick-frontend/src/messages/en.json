@@ -5156,6 +5156,7 @@
       "formsPrivacy": "Submissions usually hold visitors' personal data. Sending them to this service is your team's decision, as the one responsible for that data.",
       "formsWhich": "Only these forms (none ticked: all forms)",
       "formsLoadError": "The forms couldn't be loaded, so the forms this channel is limited to stay as they are.",
+      "formsLoadErrorNew": "The project's forms couldn't be loaded: a new channel gets all forms; edit it later to choose some.",
       "formsEmail": "Email notifications can't carry form submissions: forms already email their own recipients. Choose Slack, Discord or webhook.",
       "formsTooMany": "Choose up to 20 forms.",
       "newTitle": "New notification",
