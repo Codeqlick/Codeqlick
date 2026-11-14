@@ -45,6 +45,8 @@ export type PostSummary = {
   excerpt: string;
   coverImageUrl: string | null;
   publishedAt: string;
+  /** Minutes to read, computed by the API from the shown translation. */
+  readingMinutes: number;
   tags: PublicTag[];
 };
 

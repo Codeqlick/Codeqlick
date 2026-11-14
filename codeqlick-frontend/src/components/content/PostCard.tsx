@@ -38,6 +38,8 @@ export async function PostCard({
       ) : null}
       <p className={styles.meta}>
         <time dateTime={post.publishedAt}>{formatDate(post.publishedAt, locale)}</time>
+        {' · '}
+        {t('readingTime', { minutes: post.readingMinutes })}
       </p>
       <Heading className={styles.itemTitle}>
         <Link href={`/blog/${post.slug}`}>{post.title}</Link>
