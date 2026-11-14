@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import {
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -9,6 +10,7 @@ import {
 import { API_TOKEN_PREFIX, type ApiTokenResolver } from '../../common/api-tokens.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { TWO_FACTOR_REQUIRED, twoFactorBlocked } from './cloud-caller.js';
 import { CLI_TOKEN_DAYS, DEVICE_CODE_MINUTES, DEVICE_POLL_SECONDS, FREE } from './cloud-plans.js';
 import { CloudRepository } from './cloud.repository.js';
 import type { CreateTokenInput } from './cloud.schemas.js';
@@ -100,6 +102,7 @@ export class CloudTokensService implements ApiTokenResolver {
     if (input.teamSlug) {
       const membership = await this.cloud.membership(input.teamSlug, user.id);
       if (!membership) throw new NotFoundException('Team not found');
+      if (twoFactorBlocked(membership)) throw new ForbiddenException(TWO_FACTOR_REQUIRED);
       teamId = membership.teamId;
     }
     const expiresAt =

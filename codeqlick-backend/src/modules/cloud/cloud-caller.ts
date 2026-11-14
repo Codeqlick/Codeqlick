@@ -19,3 +19,16 @@ export const Caller = createParamDecorator(
 
 export const ROLE_RANK = { MEMBER: 1, ADMIN: 2, OWNER: 3 } as const;
 export type CloudRoleName = keyof typeof ROLE_RANK;
+
+export const TWO_FACTOR_REQUIRED = 'This team requires two-step verification';
+
+/**
+ * Whether the member's own account lacks two-step verification while their team requires it
+ * (architecture 4.13, decision 57): then they may only see the team and leave it.
+ */
+export function twoFactorBlocked(membership: {
+  team: { requireTwoFactor: boolean };
+  user: { totpEnabledAt: Date | null };
+}): boolean {
+  return membership.team.requireTwoFactor && !membership.user.totpEnabledAt;
+}
