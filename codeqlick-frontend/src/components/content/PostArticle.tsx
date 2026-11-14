@@ -63,7 +63,12 @@ export async function PostArticle({
       ) : null}
       <TableOfContents outline={getOutline(post.content)} title={tm('contents')} />
       <div className={styles.content}>
-        <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{post.content}</Markdown>
+        <Markdown
+          anchors={{ linkLabel: tm('anchorLink') }}
+          copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}
+        >
+          {post.content}
+        </Markdown>
       </div>
     </article>
   );

@@ -97,7 +97,12 @@ export async function CaseStudyArticle({
       ) : null}
       <TableOfContents outline={getOutline(item.content)} title={tm('contents')} />
       <div className={styles.content}>
-        <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{item.content}</Markdown>
+        <Markdown
+          anchors={{ linkLabel: tm('anchorLink') }}
+          copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}
+        >
+          {item.content}
+        </Markdown>
       </div>
       {item.testimonial ? (
         <section className={styles.testimonial} aria-label={t('testimonial')}>
