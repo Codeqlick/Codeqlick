@@ -59,6 +59,11 @@ export default async function CloudConsolePage({ params }: PageProps) {
                     {t(`common.roles.${team.role}`)}
                   </Badge>
                 </p>
+                {team.twoFactorBlocked ? (
+                  <p>
+                    <Badge tone="warning">{t('twoFactor.badge')}</Badge>
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

@@ -47,6 +47,12 @@ export default async function CloudInvitePage({ params, searchParams }: PageProp
               role: t(`common.roles.${invite.role}`),
             })}
           </p>
+          {invite.team.requireTwoFactor ? (
+            <p className={styles.small}>
+              {t('twoFactor.inviteNote')}{' '}
+              <Link href="/portal/account">{t('twoFactor.accountLink')}</Link>
+            </p>
+          ) : null}
           <ActionForm
             action={acceptInviteAction.bind(null, locale, token, me.termsVersion)}
             className={styles.form}
