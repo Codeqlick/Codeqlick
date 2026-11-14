@@ -4793,6 +4793,7 @@
       "deploymentsEmpty": "No deployments yet.",
       "preview": "Preview",
       "productionTag": "Published",
+      "branchAddress": "Branch address",
       "promote": "Publish",
       "delete": "Delete",
       "via": "via {token}",

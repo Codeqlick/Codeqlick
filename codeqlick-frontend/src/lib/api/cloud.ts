@@ -49,6 +49,8 @@ export type CloudDeployment = {
   id: string;
   shortId: string;
   url: string;
+  /** The branch's fixed address, when this is that branch's newest preview. */
+  branchUrl: string | null;
   target: 'preview' | 'production';
   isProduction: boolean;
   message: string | null;
@@ -228,6 +230,9 @@ export const listCloudDeployments = (id: string, page = 1) =>
     ...auth,
     query: { page, pageSize: 20 },
   });
+
+export const getCloudDeployment = (id: string, deploymentId: string) =>
+  apiFetch<CloudDeployment>(`/cloud/projects/${id}/deployments/${deploymentId}`, auth);
 
 export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {

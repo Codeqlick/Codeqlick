@@ -340,6 +340,19 @@ async function Deployments({
                   >
                     {deployment.url.replace('https://', '')}
                   </a>
+                  {deployment.branchUrl ? (
+                    <p className={styles.small}>
+                      {t('project.branchAddress')}:{' '}
+                      <a
+                        href={deployment.branchUrl}
+                        className={styles.mono}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {deployment.branchUrl.replace('https://', '')}
+                      </a>
+                    </p>
+                  ) : null}
                   <p className={styles.small}>
                     {formatWhen(deployment.createdAt, locale)}
                     {deployment.createdBy ? ` · ${deployment.createdBy.name}` : ''}
