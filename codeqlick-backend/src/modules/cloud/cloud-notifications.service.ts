@@ -17,6 +17,8 @@ import { cloudBuildEmail, cloudChannelOffEmail } from './cloud-emails.js';
 import { CloudNotificationsRepository } from './cloud-notifications.repository.js';
 import {
   channelUrlProblem,
+  monitorEvent,
+  monitorPayload,
   payload,
   signature,
   summary,
@@ -49,6 +51,8 @@ export interface ChannelView {
   formSubmitted: boolean;
   /** Only these forms (empty: all). */
   formIds: string[];
+  /** Slack, Discord and webhooks: also the project's monitor alerts (decision 64). */
+  monitorAlerts: boolean;
   locale: ApiLocale;
   failures: number;
   lastSentAt: string | null;
@@ -59,6 +63,8 @@ export interface ChannelView {
 
 /** Failed deliveries in a row that switch a channel off. */
 const MAX_FAILURES = 10;
+const NO_EMAIL_ALERTS =
+  'Monitor alerts go to Slack, Discord or a webhook: monitors email their own people';
 
 /** A stored form submission, as the forms service hands it over (decision 63). */
 export interface StoredSubmission {
@@ -125,6 +131,7 @@ export class CloudNotificationsService {
       previews: channel.previews,
       formSubmitted: channel.formSubmitted,
       formIds: channel.formIds,
+      monitorAlerts: channel.monitorAlerts,
       locale: channel.locale === 'es' ? 'es' : 'en',
       failures: channel.failures,
       lastSentAt: channel.lastSentAt?.toISOString() ?? null,
@@ -147,6 +154,9 @@ export class CloudNotificationsService {
     input: CreateChannelInput,
   ): Promise<ChannelView & { secret?: string }> {
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    if (input.kind === 'EMAIL' && input.monitorAlerts) {
+      throw new BadRequestException(NO_EMAIL_ALERTS);
+    }
     const limit = CLOUD_PLANS[membership.team.plan].notifyChannelsPerProject;
     if ((await this.repository.count(project.id)) >= limit) {
       throw new ConflictException(`A project has at most ${limit} notifications`);
@@ -159,6 +169,7 @@ export class CloudNotificationsService {
       buildSucceeded: input.buildSucceeded ?? false,
       previews: input.previews ?? false,
       formSubmitted: input.formSubmitted ?? false,
+      monitorAlerts: input.monitorAlerts ?? false,
       locale: input.locale ?? 'en',
     };
     let secret: string | undefined;
@@ -207,6 +218,12 @@ export class CloudNotificationsService {
     if (input.formSubmitted !== undefined) data.formSubmitted = input.formSubmitted;
     if (input.formIds !== undefined)
       data.formIds = await this.checkForms(project.id, input.formIds);
+    if (input.monitorAlerts !== undefined) {
+      if (input.monitorAlerts && channel.kind === 'EMAIL') {
+        throw new BadRequestException(NO_EMAIL_ALERTS);
+      }
+      data.monitorAlerts = input.monitorAlerts;
+    }
     if (input.locale !== undefined) data.locale = input.locale;
     if (input.enabled !== undefined) {
       data.enabled = input.enabled;
@@ -429,6 +446,55 @@ export class CloudNotificationsService {
     }
   }
 
+  /**
+   * Tells a project's Slack, Discord and webhook channels with monitor alerts that one of its
+   * monitors went down, came back up or has a certificate about to expire (decision 64). Called
+   * in the background by the monitors service exactly when its emails go; never throws.
+   */
+  async monitorAlert(
+    monitor: {
+      id: string;
+      name: string;
+      kind: 'HTTP' | 'HEARTBEAT';
+      url: string | null;
+      projectId: string | null;
+    },
+    kind: 'down' | 'up' | 'cert',
+    error: string | null,
+    extra: { minutes?: number; certExpires?: Date } = {},
+  ): Promise<void> {
+    try {
+      if (!monitor.projectId) return;
+      const project = await this.repository.project(monitor.projectId);
+      if (!project) return;
+      const channels = (await this.repository.list(project.id)).filter(
+        (c) => c.enabled && c.monitorAlerts,
+      );
+      for (const channel of channels) {
+        // Email channels can't have monitor alerts: monitors email their own people.
+        if (channel.kind === 'EMAIL') continue;
+        const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
+        const event = monitorEvent({
+          kind,
+          project,
+          monitor,
+          error,
+          minutes: extra.minutes,
+          certExpires: extra.certExpires,
+          consoleUrl: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/monitors/${monitor.id}`,
+        });
+        const problem = await this.post(
+          channel,
+          event.event,
+          monitorPayload(channel.kind, event, locale),
+        );
+        await this.recordDelivery(channel, problem, project);
+      }
+    } catch (failure) {
+      this.logger.error(`Monitor ${monitor.id}: notifications failed: ${String(failure)}`);
+    }
+  }
+
   private async recordDelivery(
     channel: CloudNotifyChannel,
     error: string | null,
@@ -503,6 +569,15 @@ export class CloudNotificationsService {
         return failed(`The email couldn't be sent: ${String(error)}`.slice(0, 300));
       }
     }
+    return this.post(channel, event.event, payload(channel.kind, event, locale));
+  }
+
+  /** Posts `body` to a Slack, Discord or webhook channel; the error, or null when delivered. */
+  private async post(
+    channel: CloudNotifyChannel,
+    eventName: string,
+    body: string,
+  ): Promise<string | null> {
     if (!channel.urlSealed) return failed('No address');
     let url: string;
     try {
@@ -510,13 +585,12 @@ export class CloudNotificationsService {
     } catch {
       return failed('The address could not be read: enter it again');
     }
-    const body = payload(channel.kind, event, locale);
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'User-Agent': 'Codeqlick-Cloud/1.0 (+https://cloud.codeqlick.com)',
     };
     if (channel.kind === 'WEBHOOK') {
-      headers['X-Codeqlick-Event'] = event.event;
+      headers['X-Codeqlick-Event'] = eventName;
       if (channel.secretSealed) {
         headers['X-Codeqlick-Signature'] = signature(this.box.open(channel.secretSealed), body);
       }

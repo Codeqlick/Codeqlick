@@ -2566,6 +2566,8 @@ model CloudNotifyChannel {
   formSubmitted  Boolean         @default(false) @map("form_submitted")
   /// Only these forms of the project (empty: all of them).
   formIds        String[]        @default([]) @map("form_ids") @db.Uuid
+  /// Slack, Discord and webhooks: also the alerts of the project's monitors (decision 64).
+  monitorAlerts  Boolean         @default(false) @map("monitor_alerts")
   /// The language of Slack, Discord and webhook messages (`en` or `es`).
   locale         String          @default("en") @db.VarChar(2)
   /// Failed deliveries in a row; ten switch the channel off.

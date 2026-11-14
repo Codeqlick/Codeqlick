@@ -573,6 +573,8 @@ const channelEvents = {
   // Form submissions (decision 63): Slack, Discord and webhooks only, checked by the service.
   formSubmitted: z.boolean().optional(),
   formIds: z.array(z.uuid()).max(20).optional(),
+  /** Slack, Discord and webhooks only (decision 64). */
+  monitorAlerts: z.boolean().optional(),
   locale: localeSchema.optional(),
 };
 

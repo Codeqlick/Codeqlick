@@ -8,7 +8,7 @@ import { formatUptime, UptimeBars } from '@/components/cloud/UptimeBars';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCloudMonitor, getCloudTeam } from '@/lib/api/cloud';
+import { getCloudMonitor, getCloudTeam, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
 import {
@@ -42,6 +42,12 @@ export default async function CloudMonitorPage({ params }: PageProps) {
   }
   const [team, monitor] = data;
   const admin = team.role !== 'MEMBER';
+  // A monitor tied to a project can also alert that project's channels (decision 64).
+  const project = monitor.projectId
+    ? await listCloudProjects(team.slug)
+        .then((result) => result.items.find((item) => item.id === monitor.projectId) ?? null)
+        .catch(() => null)
+    : null;
   const slowest = Math.max(1, ...monitor.checks.map((c) => c.responseMs ?? 0));
   const hidden = (
     <>
@@ -65,6 +71,18 @@ export default async function CloudMonitorPage({ params }: PageProps) {
           </span>
         </p>
         {monitor.lastError ? <p className={styles.small}>{monitor.lastError}</p> : null}
+        {project ? (
+          <p className={styles.spacedSmall}>
+            {t.rich('monitors.projectChannels', {
+              project: project.name,
+              link: (chunks) => (
+                <Link href={`/cloud/console/${team.slug}/${project.slug}?tab=notifications`}>
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </p>
+        ) : null}
       </div>
 
       {monitor.kind === 'HTTP' ? (
