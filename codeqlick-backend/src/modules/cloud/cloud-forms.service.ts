@@ -13,24 +13,31 @@ import {
 } from '@nestjs/common';
 import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
-import type { CloudForm } from '../../generated/prisma/client.js';
+import type { CloudForm, CloudFormSubmission } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudFormEmail, cloudFormsLimitEmail } from './cloud-emails.js';
 import {
+  contentHash,
   fromStored,
   isProjectOrigin,
   madridMonth,
   originOf,
   pageOf,
   parseSubmission,
+  staticSpamReason,
   toCsv,
   toStored,
 } from './cloud-form-fields.js';
 import { CloudFormsRepository, type FormWithProject } from './cloud-forms.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
-import { CLOUD_PLANS, FORM_SUBMISSION_DAYS } from './cloud-plans.js';
+import {
+  CLOUD_PLANS,
+  FORM_SPAM_DAYS,
+  FORM_SPAM_PER_FORM,
+  FORM_SUBMISSION_DAYS,
+} from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { CloudRepository } from './cloud.repository.js';
 import type { CreateFormInput, UpdateFormInput } from './cloud.schemas.js';
@@ -43,8 +50,12 @@ export interface FormView {
   endpoint: string;
   enabled: boolean;
   notify: boolean;
+  spamFilter: boolean;
   recipientIds: string[];
+  /** Submissions in the inbox (not spam). */
   submissions: number;
+  /** Spam submissions kept. */
+  spam: number;
   createdAt: string;
 }
 
@@ -53,6 +64,8 @@ export interface SubmissionView {
   data: Record<string, string>;
   email: string | null;
   page: string | null;
+  spam: boolean;
+  spamReason: string | null;
   createdAt: string;
 }
 
@@ -70,6 +83,9 @@ export interface FormPost {
 }
 
 const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+/** The same content received this many times in the last hour makes the next one spam. */
+const REPEAT_LIMIT = 2;
 const newKey = () => `cqf_${randomBytes(16).toString('base64url')}`;
 
 /** Forms of Cloud projects (architecture 4.13, Forms; decision 37). */
@@ -106,9 +122,14 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
     } catch (error) {
       this.logger.error(`Form submissions cleanup failed: ${String(error)}`);
     }
+    try {
+      await this.forms.deleteSpamBefore(new Date(now.getTime() - FORM_SPAM_DAYS * DAY_MS));
+    } catch (error) {
+      this.logger.error(`Form spam cleanup failed: ${String(error)}`);
+    }
   }
 
-  private view(form: CloudForm, submissions: number): FormView {
+  private view(form: CloudForm, submissions: number, spam: number): FormView {
     return {
       id: form.id,
       name: form.name,
@@ -116,8 +137,10 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
       endpoint: `${this.config.publicApiUrl}/cloud/forms/${form.key}`,
       enabled: form.enabled,
       notify: form.notify,
+      spamFilter: form.spamFilter,
       recipientIds: form.recipientIds,
       submissions,
+      spam,
       createdAt: form.createdAt.toISOString(),
     };
   }
@@ -147,7 +170,7 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
   async list(ctx: CloudCtx, projectId: string): Promise<FormView[]> {
     const { project } = await this.projects.project(ctx, projectId);
     return (await this.forms.list(project.id)).map((form) =>
-      this.view(form, form._count.submissions),
+      this.view(form, form.submissions, form.spam),
     );
   }
 
@@ -163,10 +186,11 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
       name: input.name,
       key: newKey(),
       notify: input.notify,
+      spamFilter: input.spamFilter,
       recipientIds,
     });
     await this.teams.record(ctx, project.teamId, 'form.created', `${project.slug}: ${form.name}`);
-    return this.view(form, 0);
+    return this.view(form, 0, 0);
   }
 
   async update(
@@ -183,6 +207,7 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
       ...(input.notify !== undefined ? { notify: input.notify } : {}),
+      ...(input.spamFilter !== undefined ? { spamFilter: input.spamFilter } : {}),
       ...(recipientIds ? { recipientIds } : {}),
     });
     await this.teams.record(
@@ -191,7 +216,11 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
       'form.updated',
       `${project.slug}: ${updated.name}`,
     );
-    return this.view(updated, await this.forms.submissionsCount(form.id));
+    return this.view(
+      updated,
+      await this.forms.submissionsCount(form.id),
+      await this.forms.spamCount(form.id),
+    );
   }
 
   async replaceKey(ctx: CloudCtx, projectId: string, formId: string): Promise<FormView> {
@@ -203,7 +232,11 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
       'form.key_replaced',
       `${project.slug}: ${form.name}`,
     );
-    return this.view(updated, await this.forms.submissionsCount(form.id));
+    return this.view(
+      updated,
+      await this.forms.submissionsCount(form.id),
+      await this.forms.spamCount(form.id),
+    );
   }
 
   async remove(ctx: CloudCtx, projectId: string, formId: string): Promise<void> {
@@ -217,24 +250,83 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
     projectId: string,
     formId: string,
     q: string | undefined,
+    spam: boolean,
     page: number,
     pageSize: number,
   ): Promise<Paginated<SubmissionView>> {
     const { form } = await this.form(ctx, projectId, formId);
     const { skip, take } = pageToSkipTake(page, pageSize);
-    const [rows, total] = await this.forms.submissions(form.id, q, skip, take);
+    const [rows, total] = await this.forms.submissions(form.id, q, spam, skip, take);
     return paginate(
-      rows.map((row) => ({
-        id: row.id,
-        data: fromStored(row.data),
-        email: row.email,
-        page: row.page,
-        createdAt: row.createdAt.toISOString(),
-      })),
+      rows.map((row) => this.submissionView(row)),
       total,
       page,
       pageSize,
     );
+  }
+
+  private submissionView(row: CloudFormSubmission): SubmissionView {
+    return {
+      id: row.id,
+      data: fromStored(row.data),
+      email: row.email,
+      page: row.page,
+      spam: row.spam,
+      spamReason: row.spamReason,
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * "Spam" / "Not spam" (decision 66). A flagged submission was never delivered, so "Not spam"
+   * delivers it now unless it was marked by hand (then it had been delivered already).
+   */
+  async markSpam(
+    ctx: CloudCtx,
+    projectId: string,
+    formId: string,
+    id: string,
+    spam: boolean,
+  ): Promise<SubmissionView> {
+    const { form } = await this.form(ctx, projectId, formId);
+    const row = await this.forms.findSubmission(form.id, id);
+    if (!row) throw new NotFoundException('Submission not found');
+    if (row.spam === spam) return this.submissionView(row);
+    const updated = await this.forms.setSpam(form.id, id, spam, spam ? 'manual' : null);
+    // Someone else changed it meanwhile: answer what it is now, deliver nothing.
+    if (!updated) {
+      const current = await this.forms.findSubmission(form.id, id);
+      if (!current) throw new NotFoundException('Submission not found');
+      return this.submissionView(current);
+    }
+    if (!spam && row.spamReason !== 'manual') {
+      const full = await this.forms.findWithProject(form.id);
+      // A paused form or a suspended or deleted project delivers nothing, as for new posts.
+      if (full && full.enabled && !full.project.suspendedAt && !full.project.deletedAt) {
+        this.deliver(full, updated);
+      }
+    }
+    return this.submissionView(updated);
+  }
+
+  /** Emails a stored submission and sends it to the channels, in the background. */
+  private deliver(form: FormWithProject, row: CloudFormSubmission): void {
+    const fields = toStored(fromStored(row.data));
+    if (form.notify) {
+      void this.notify(
+        form,
+        { fields: Object.fromEntries(fields), email: row.email, subject: null },
+        row.page,
+      );
+    }
+    void this.notifications.formSubmitted({
+      form,
+      id: row.id,
+      fields,
+      email: row.email,
+      page: row.page,
+      createdAt: row.createdAt,
+    });
   }
 
   async csv(
@@ -298,6 +390,25 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
     // A bot filled in the honeypot: pretend it worked, keep nothing.
     if (parsed.value.spam) return answer(true);
 
+    const page = pageOf(post.referer);
+    const fields = toStored(parsed.value.fields);
+    const hash = contentHash(parsed.value.fields);
+    // Spam is kept apart (never delivered or counted), and the sender sees a success (decision 66).
+    if (form.spamFilter) {
+      let reason: string | null = staticSpamReason(parsed.value.fields, page, project);
+      if (!reason) {
+        const since = new Date(now.getTime() - HOUR_MS);
+        const same = await this.forms.countSameContentSince(form.id, hash, since);
+        if (same >= REPEAT_LIMIT) reason = 'repeat';
+      }
+      if (reason) {
+        if ((await this.forms.spamCount(form.id)) < FORM_SPAM_PER_FORM) {
+          await this.forms.keep(form.id, fields, parsed.value.email, page, hash, reason);
+        }
+        return answer(true);
+      }
+    }
+
     const month = madridMonth(now);
     const limit = CLOUD_PLANS[form.project.team.plan].formSubmissionsPerMonth;
     if ((await this.forms.teamSubmissionsSince(form.project.teamId, month.start)) >= limit) {
@@ -310,9 +421,7 @@ export class CloudFormsService implements OnApplicationBootstrap, OnApplicationS
       return answer(false, 'limit', HttpStatus.TOO_MANY_REQUESTS);
     }
 
-    const page = pageOf(post.referer);
-    const fields = toStored(parsed.value.fields);
-    const kept = await this.forms.keep(form.id, fields, parsed.value.email, page);
+    const kept = await this.forms.keep(form.id, fields, parsed.value.email, page, hash);
     if (form.notify) void this.notify(form, parsed.value, page);
     // Slack, Discord and webhook channels that follow this form (decision 63), in the background.
     void this.notifications.formSubmitted({
