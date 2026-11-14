@@ -175,8 +175,8 @@ async function NoticeItem({ notice, locale }: { notice: CloudPublicNotice; local
             {t('status.timeline', { count: notice.updates.length })}
           </summary>
           <ol className={styles.timeline}>
-            {notice.updates.map((update) => (
-              <li key={`${update.createdAt}-${update.state ?? 'note'}`}>
+            {notice.updates.map((update, index) => (
+              <li key={`${index}-${update.createdAt}`}>
                 <p className={styles.small}>
                   {formatWhen(update.createdAt, locale)} · {label(update.state)}
                 </p>

@@ -155,6 +155,26 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
     ]);
     const incidentUrl = `/v1/cloud/status-notices/${incident.body.id as string}`;
 
+    // Another team's notice doesn't exist for this one's people.
+    const theirs = await prisma.cloudStatusNotice.create({
+      data: {
+        teamId: other.id,
+        kind: 'INCIDENT',
+        title: 'Theirs',
+        state: 'INVESTIGATING',
+        monitorIds: [foreign.id],
+      },
+    });
+    const theirsUrl = `/v1/cloud/status-notices/${theirs.id}`;
+    await request(server).get(theirsUrl).set(memberAuth).expect(404);
+    await request(server).patch(theirsUrl).set(auth).send({ title: 'Mine' }).expect(404);
+    await request(server)
+      .post(`${theirsUrl}/updates`)
+      .set(auth)
+      .send({ body: 'x', state: 'RESOLVED' })
+      .expect(404);
+    await request(server).delete(theirsUrl).set(auth).expect(404);
+
     await request(server).post(`${incidentUrl}/updates`).set(auth).send({ body: 'x' }).expect(400);
     await request(server)
       .post(`${incidentUrl}/updates`)
@@ -231,6 +251,7 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
       { startsAt: iso(91 * DAY), endsAt: iso(91 * DAY + HOUR) },
       { startsAt: iso(-2 * HOUR), endsAt: iso(HOUR) },
       { startsAt: iso(HOUR), endsAt: iso(2 * HOUR), state: 'SCHEDULED' },
+      { startsAt: iso(-50 * MINUTE), endsAt: iso(-10 * MINUTE) },
     ]) {
       await request(server)
         .post(base)
@@ -264,6 +285,17 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
       .send({ endsAt: iso(2 * HOUR) })
       .expect(200);
     expect(longer.body.endsAt).toBe(iso(2 * HOUR));
+    await request(server)
+      .patch(maintenanceUrl)
+      .set(auth)
+      .send({ endsAt: iso(-MINUTE) })
+      .expect(400);
+    // Once started, no monitor can be added (it would hide its downtime).
+    await request(server)
+      .patch(maintenanceUrl)
+      .set(auth)
+      .send({ monitorIds: [jobs.id, api.id] })
+      .expect(400);
 
     // During the maintenance: events go on, alerts don't.
     const ping = (monitor: { heartbeatUrl: string }, fail = false) =>
@@ -277,6 +309,7 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
       'DOWN',
     );
     expect(await prisma.cloudMonitorEvent.count({ where: { monitorId: jobs.id } })).toBe(2);
+    await engine.tick();
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(sent.filter((m) => m.subject.startsWith('Down:'))).toEqual([]);
 
@@ -326,6 +359,12 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
       .send({ body: 'Done.', state: 'COMPLETED' })
       .expect(201);
     expect(done.body).toMatchObject({ state: 'COMPLETED', open: false });
+    // Still down when the window ends: the held-back alert goes out on the next tick, once.
+    await engine.tick();
+    await vi.waitFor(() => expect(sent.filter((m) => m.subject === 'Down: Jobs')).toHaveLength(1));
+    await engine.tick();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(sent.filter((m) => m.subject === 'Down: Jobs')).toHaveLength(1);
     await request(server)
       .post(`${maintenanceUrl}/updates`)
       .set(auth)
@@ -405,5 +444,116 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
     expect(
       await prisma.cloudStatusNotice.findUnique({ where: { id: maintenance.body.id as string } }),
     ).not.toBeNull();
+  });
+
+  it('holds alerts during maintenance and leaves its time out of uptime', async () => {
+    const server = app.getHttpServer();
+    const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
+    const auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    const team = `na-${tag}`;
+    const created = await request(server)
+      .post('/v1/cloud/teams')
+      .set(auth)
+      .send({ name: 'Alerts', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
+      .expect(201);
+    const teamId = created.body.id as string;
+    const ownerRow = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
+    const beat = async (name: string) =>
+      (
+        await request(server)
+          .post(`/v1/cloud/teams/${team}/monitors`)
+          .set(auth)
+          .send({
+            kind: 'HEARTBEAT',
+            name,
+            periodMinutes: 60,
+            graceMinutes: 10,
+            alertIds: [ownerRow.id],
+          })
+          .expect(201)
+      ).body as { id: string; heartbeatUrl: string };
+    const ping = (monitor: { heartbeatUrl: string }, fail = false) =>
+      request(server)
+        .get(`${new URL(monitor.heartbeatUrl).pathname}${fail ? '?status=fail' : ''}`)
+        .expect(200);
+    const settle = () => new Promise((resolve) => setTimeout(resolve, 200));
+    const beta = await beat('Beta');
+    const gamma = await beat('Gamma');
+    await ping(beta);
+    await ping(gamma);
+
+    // Beta's outage is alerted before the window; Gamma's happens only inside it.
+    await ping(beta, true);
+    await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Down: Beta')).toBe(true));
+    const now = Date.now();
+    const maintenance = await request(server)
+      .post(`/v1/cloud/teams/${team}/status-notices`)
+      .set(auth)
+      .send({
+        kind: 'MAINTENANCE',
+        title: 'Cluster move',
+        monitorIds: [beta.id, gamma.id],
+        body: 'Moving servers.',
+        startsAt: new Date(now - MINUTE).toISOString(),
+        endsAt: new Date(now + HOUR).toISOString(),
+      })
+      .expect(201);
+    await ping(gamma, true);
+    await ping(gamma);
+    // Beta's recovery is announced, since its outage was.
+    await ping(beta);
+    await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Back up: Beta')).toBe(true));
+    await settle();
+    expect(sent.filter((m) => m.subject.endsWith(': Gamma'))).toEqual([]);
+
+    // A started maintenance can lose monitors.
+    const fewer = await request(server)
+      .patch(`/v1/cloud/status-notices/${maintenance.body.id as string}`)
+      .set(auth)
+      .send({ monitorIds: [beta.id] })
+      .expect(200);
+    expect(fewer.body.monitorIds).toEqual([beta.id]);
+
+    // Uptime and incidents leave a past window out: down 2 h ago, inside a window that ended.
+    const delta = await prisma.cloudMonitor.create({
+      data: { teamId, name: 'Delta', kind: 'HEARTBEAT', periodMinutes: 60, status: 'UP' },
+    });
+    await prisma.cloudMonitorEvent.createMany({
+      data: [
+        { monitorId: delta.id, status: 'UP', at: new Date(now - 4 * HOUR) },
+        { monitorId: delta.id, status: 'DOWN', at: new Date(now - 2 * HOUR), error: 'HTTP 503' },
+        { monitorId: delta.id, status: 'UP', at: new Date(now - 90 * MINUTE) },
+      ],
+    });
+    await prisma.cloudStatusNotice.create({
+      data: {
+        teamId,
+        kind: 'MAINTENANCE',
+        title: 'Disk swap',
+        state: 'SCHEDULED',
+        monitorIds: [delta.id],
+        startsAt: new Date(now - 3 * HOUR),
+        endsAt: new Date(now - HOUR),
+      },
+    });
+    await request(server)
+      .put(`/v1/cloud/teams/${team}/status-page`)
+      .set(auth)
+      .send({ enabled: true, title: 'Alerts', items: [{ monitorId: delta.id, label: 'Delta' }] })
+      .expect(200);
+    const status = await request(server).get(`/v1/cloud/status/${team}`).expect(200);
+    expect(status.body.monitors[0]).toMatchObject({ label: 'Delta', status: 'UP', uptime90: 1 });
+    expect(status.body.monitors[0].incidents).toEqual([]);
+    // The maintenance in progress no longer covers a monitor on the page: it names none.
+    expect(
+      status.body.notices.map((n: { title: string; state: string; monitors: string[] }) => [
+        n.title,
+        n.state,
+        n.monitors,
+      ]),
+    ).toEqual([
+      ['Cluster move', 'IN_PROGRESS', []],
+      ['Disk swap', 'COMPLETED', ['Delta']],
+    ]);
   });
 });

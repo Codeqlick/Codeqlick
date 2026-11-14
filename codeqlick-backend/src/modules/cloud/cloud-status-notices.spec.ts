@@ -124,13 +124,18 @@ describe('Cloud status notices', () => {
   it('checks a maintenance window', () => {
     const now = at('2026-11-14T10:00:00Z');
     const plus = (ms: number) => new Date(now.getTime() + ms);
-    expect(windowProblem(plus(HOUR), plus(2 * HOUR), now, earliestNewStart(now))).toBeNull();
-    expect(windowProblem(plus(2 * HOUR), plus(HOUR), now, null)).toMatch(/end after/);
-    expect(windowProblem(plus(HOUR), plus(HOUR + 7 * DAY + 1), now, null)).toMatch(/7 days/);
-    expect(windowProblem(plus(91 * DAY), plus(92 * DAY), now, null)).toMatch(/90 days/);
-    expect(windowProblem(plus(-30 * 60_000), plus(HOUR), now, earliestNewStart(now))).toBeNull();
-    expect(windowProblem(plus(-2 * HOUR), plus(HOUR), now, earliestNewStart(now))).toMatch(/past/);
-    expect(windowProblem(plus(-2 * HOUR), plus(HOUR), now, null)).toBeNull();
+    const created = { earliestStart: earliestNewStart(now), endSet: true };
+    const edited = { earliestStart: null, endSet: false };
+    expect(windowProblem(plus(HOUR), plus(2 * HOUR), now, created)).toBeNull();
+    expect(windowProblem(plus(2 * HOUR), plus(HOUR), now, edited)).toMatch(/end after/);
+    expect(windowProblem(plus(HOUR), plus(HOUR + 7 * DAY + 1), now, edited)).toMatch(/7 days/);
+    expect(windowProblem(plus(91 * DAY), plus(92 * DAY), now, edited)).toMatch(/90 days/);
+    expect(windowProblem(plus(-30 * 60_000), plus(HOUR), now, created)).toBeNull();
+    expect(windowProblem(plus(-2 * HOUR), plus(HOUR), now, created)).toMatch(/past/);
+    expect(windowProblem(plus(-2 * HOUR), plus(HOUR), now, edited)).toBeNull();
+    // The end, when it is set, is in the future; an unchanged past end isn't checked.
+    expect(windowProblem(plus(-50 * 60_000), plus(-10 * 60_000), now, created)).toMatch(/future/);
+    expect(windowProblem(plus(-3 * HOUR), plus(-HOUR), now, edited)).toBeNull();
   });
 
   it('orders notices as the public page shows them', () => {

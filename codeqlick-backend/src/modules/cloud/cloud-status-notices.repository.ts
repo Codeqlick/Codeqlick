@@ -68,50 +68,84 @@ export class CloudStatusNoticesRepository {
     return { items, total };
   }
 
-  countOpen(teamId: string, now: Date): Promise<number> {
-    return this.prisma.cloudStatusNotice.count({ where: { teamId, ...openWhere(now) } });
-  }
-
-  countUpdates(noticeId: string): Promise<number> {
-    return this.prisma.cloudStatusNoticeUpdate.count({ where: { noticeId } });
-  }
-
   async monitorsInTeam(teamId: string, ids: string[]): Promise<number> {
     return this.prisma.cloudMonitor.count({ where: { teamId, id: { in: ids } } });
   }
 
-  /** A notice and its first update. */
-  async create(
-    data: Omit<Prisma.CloudStatusNoticeUncheckedCreateInput, 'updates'>,
+  /** Serialises the team's notice changes until the transaction ends, so limits hold. */
+  private async lockTeam(tx: Prisma.TransactionClient, teamId: string): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`cloud-notices:${teamId}`}))`;
+  }
+
+  /**
+   * A notice and its first update, under the team's lock; 'open' (nothing created) when it is
+   * open and the team already has `maxOpen` open notices.
+   */
+  create(
+    data: Omit<Prisma.CloudStatusNoticeUncheckedCreateInput, 'updates'> & { teamId: string },
     update: { state: CloudStatusNoticeState | null; body: string },
-  ): Promise<NoticeRow> {
-    const notice = await this.prisma.cloudStatusNotice.create({
-      data: {
-        ...data,
-        updates: {
-          create: { state: update.state, body: update.body, createdById: data.createdById },
+    limit: { maxOpen: number; open: boolean; now: Date },
+  ): Promise<NoticeRow | 'open'> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockTeam(tx, data.teamId);
+      if (
+        limit.open &&
+        (await tx.cloudStatusNotice.count({
+          where: { teamId: data.teamId, ...openWhere(limit.now) },
+        })) >= limit.maxOpen
+      ) {
+        return 'open';
+      }
+      return tx.cloudStatusNotice.create({
+        data: {
+          ...data,
+          updates: {
+            create: { state: update.state, body: update.body, createdById: data.createdById },
+          },
         },
-      },
-      include: noticeInclude,
+        include: noticeInclude,
+      });
     });
-    return notice;
   }
 
   update(id: string, data: Prisma.CloudStatusNoticeUncheckedUpdateInput): Promise<NoticeRow> {
     return this.prisma.cloudStatusNotice.update({ where: { id }, data, include: noticeInclude });
   }
 
-  /** Adds an update to the timeline and applies what it changes on the notice, together. */
-  async addUpdate(
-    id: string,
+  /**
+   * Adds an update to the timeline and applies what it changes on the notice, together and under
+   * the team's lock: 'updates' when the notice already has `maxUpdates`, 'open' when it reopens
+   * the notice and the team already has `maxOpen` open ones (nothing changed then).
+   */
+  addUpdate(
+    notice: { id: string; teamId: string },
     update: { state: CloudStatusNoticeState | null; body: string; createdById: string },
     data: Prisma.CloudStatusNoticeUncheckedUpdateInput,
-  ): Promise<NoticeRow> {
-    const [, notice] = await this.prisma.$transaction([
-      this.prisma.cloudStatusNoticeUpdate.create({ data: { noticeId: id, ...update } }),
-      this.prisma.cloudStatusNotice.update({ where: { id }, data, include: noticeInclude }),
-    ]);
-    return notice;
+    limit: { maxUpdates: number; maxOpen: number; reopens: boolean; now: Date },
+  ): Promise<NoticeRow | 'updates' | 'open'> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockTeam(tx, notice.teamId);
+      if (
+        (await tx.cloudStatusNoticeUpdate.count({ where: { noticeId: notice.id } })) >=
+        limit.maxUpdates
+      ) {
+        return 'updates';
+      }
+      if (
+        limit.reopens &&
+        (await tx.cloudStatusNotice.count({
+          where: { teamId: notice.teamId, ...openWhere(limit.now) },
+        })) >= limit.maxOpen
+      ) {
+        return 'open';
+      }
+      await tx.cloudStatusNoticeUpdate.create({ data: { noticeId: notice.id, ...update } });
+      return tx.cloudStatusNotice.update({
+        where: { id: notice.id },
+        data,
+        include: noticeInclude,
+      });
+    });
   }
 
   async remove(id: string): Promise<void> {

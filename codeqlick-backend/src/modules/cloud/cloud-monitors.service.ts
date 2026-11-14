@@ -342,14 +342,22 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       data.statusSince = now;
       await this.repository.event(monitor.id, status, now, error);
     }
-    // Back UP from UNKNOWN is the first result, not a recovery: no email. Nor during a
-    // maintenance in progress (decision 62): the event above is kept all the same.
-    const alert =
-      changed &&
-      (status === 'DOWN' || monitor.status === 'DOWN') &&
-      !(await this.notices.inMaintenance(monitor.teamId, monitor.id, now));
-    const last = status === 'DOWN' ? monitor.lastDownAlertAt : monitor.lastUpAlertAt;
-    const send = alert && (!last || now.getTime() - last.getTime() >= ALERT_GAP);
+    const spaced = (last: Date | null) => !last || now.getTime() - last.getTime() >= ALERT_GAP;
+    let send = false;
+    if (changed && status === 'DOWN') {
+      // Not during a maintenance in progress (decision 62): the event above is kept all the same,
+      // and the tick sends the alert if it is still down when the window ends.
+      send =
+        spaced(monitor.lastDownAlertAt) &&
+        !(await this.notices.inMaintenance(monitor.teamId, monitor.id, now));
+    } else if (changed && monitor.status === 'DOWN') {
+      // Back up: only when this down episode (since `statusSince`) was alerted, maintenance or
+      // not. Back UP from UNKNOWN is the first result, not a recovery: no email.
+      send =
+        !!monitor.lastDownAlertAt &&
+        monitor.lastDownAlertAt.getTime() >= monitor.statusSince.getTime() &&
+        spaced(monitor.lastUpAlertAt);
+    }
     if (send) data[status === 'DOWN' ? 'lastDownAlertAt' : 'lastUpAlertAt'] = now;
     await this.repository.update(monitor.id, data);
     if (send) {
@@ -419,10 +427,25 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
         await this.repository.check(monitor.id, { ok: false, error: late }, now);
         await this.transition(monitor, 'DOWN', now, late);
       }
+      await this.sendPendingDownAlerts(now);
     } catch (error) {
       this.logger.error(`Cloud monitors tick failed: ${String(error)}`);
     } finally {
       this.running = false;
+    }
+  }
+
+  /**
+   * Down alerts held back: monitors still DOWN whose episode wasn't alerted (it began during a
+   * maintenance, or too soon after the last alert), now outside any maintenance (decision 62).
+   */
+  private async sendPendingDownAlerts(now: Date): Promise<void> {
+    const spacedBefore = new Date(now.getTime() - ALERT_GAP);
+    for (const monitor of await this.repository.pendingDownAlerts(now, spacedBefore)) {
+      if (!(await this.repository.claimDownAlert(monitor.id, monitor.lastDownAlertAt, now))) {
+        continue;
+      }
+      void this.alert(monitor, 'down', monitor.lastError, {});
     }
   }
 
