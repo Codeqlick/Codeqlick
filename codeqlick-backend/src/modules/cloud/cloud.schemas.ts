@@ -403,6 +403,8 @@ const channelEvents = {
   buildFailed: z.boolean().optional(),
   buildSucceeded: z.boolean().optional(),
   previews: z.boolean().optional(),
+  /** Slack, Discord and webhooks only (decision 64). */
+  monitorAlerts: z.boolean().optional(),
   locale: localeSchema.optional(),
 };
 

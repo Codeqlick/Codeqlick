@@ -2,6 +2,9 @@ import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   channelUrlProblem,
+  monitorEvent,
+  monitorPayload,
+  monitorSummary,
   payload,
   signature,
   summary,
@@ -108,5 +111,117 @@ describe('Cloud build notifications', () => {
     const event = testEvent({ slug: 'web', name: 'Web' }, 'https://cloud/x');
     expect(event.event).toBe('test');
     expect(summary(event, 'es')).toBe('Web · mensaje de prueba de Codeqlick Cloud');
+  });
+
+  describe('monitor alerts', () => {
+    const project = { slug: 'web', name: 'Web' };
+    const api = {
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'API <prod>',
+      kind: 'HTTP' as const,
+      url: 'https://api.example.com/health',
+    };
+    const consoleUrl = `https://cloud.codeqlick.com/en/console/team/monitors/${api.id}`;
+    const now = new Date('2026-11-14T12:00:00.000Z');
+    const down = monitorEvent({
+      kind: 'down',
+      project,
+      monitor: api,
+      error: 'Timeout after 15 s @everyone',
+      minutes: 3,
+      certExpires: new Date('2026-12-02T10:00:00.000Z'),
+      consoleUrl,
+      now,
+    });
+    const up = monitorEvent({
+      kind: 'up',
+      project,
+      monitor: api,
+      error: null,
+      minutes: 12,
+      consoleUrl,
+      now,
+    });
+    const cert = monitorEvent({
+      kind: 'cert',
+      project,
+      monitor: api,
+      error: null,
+      certExpires: new Date('2026-12-02T10:00:00.000Z'),
+      consoleUrl,
+      now,
+    });
+
+    it('gives each field only where it belongs', () => {
+      expect(down).toEqual({
+        event: 'monitor.down',
+        project,
+        monitor: api,
+        error: 'Timeout after 15 s @everyone',
+        downMinutes: null,
+        certExpiresAt: null,
+        consoleUrl,
+        sentAt: now.toISOString(),
+      });
+      expect(up).toMatchObject({ event: 'monitor.up', downMinutes: 12, certExpiresAt: null });
+      expect(cert).toMatchObject({
+        event: 'monitor.cert',
+        error: null,
+        downMinutes: null,
+        certExpiresAt: '2026-12-02T10:00:00.000Z',
+      });
+      const beat = monitorEvent({
+        kind: 'down',
+        project,
+        monitor: { ...api, kind: 'HEARTBEAT', url: null },
+        error: 'No call yet',
+        consoleUrl,
+        now,
+      });
+      expect(beat.monitor.url).toBeNull();
+    });
+
+    it('summarises an alert in both languages', () => {
+      expect(monitorSummary(down, 'en')).toBe(
+        'Web · API <prod> is down: Timeout after 15 s @everyone',
+      );
+      expect(monitorSummary(down, 'es')).toContain('API <prod> está caído');
+      expect(monitorSummary(up, 'en')).toBe('Web · API <prod> is back up after 12 min');
+      expect(monitorSummary(up, 'es')).toBe('Web · API <prod> vuelve a funcionar tras 12 min');
+      expect(monitorSummary(cert, 'en')).toBe(
+        'Web · the certificate of API <prod> expires on 2 Dec 2026',
+      );
+      expect(monitorSummary(cert, 'es')).toContain('el certificado de API <prod> caduca el 2');
+    });
+
+    it('escapes Slack markup and links the monitor', () => {
+      const body = JSON.parse(monitorPayload('SLACK', down, 'en')) as { text: string };
+      expect(body.text).toContain('🔴 *Web* · *API &lt;prod&gt;* is down');
+      expect(body.text).toContain(`<${consoleUrl}|Open the monitor>`);
+      const es = JSON.parse(monitorPayload('SLACK', up, 'es')) as { text: string };
+      expect(es.text).toContain('🟢');
+      expect(es.text).toContain('|Ver el monitor>');
+    });
+
+    it('colours Discord embeds and never pings anyone', () => {
+      const colour = (e: typeof down) =>
+        (
+          JSON.parse(monitorPayload('DISCORD', e, 'en')) as {
+            allowed_mentions: { parse: string[] };
+            embeds: Array<{ url: string; color: number; title: string }>;
+          }
+        ).embeds[0]!;
+      const body = JSON.parse(monitorPayload('DISCORD', down, 'en')) as {
+        allowed_mentions: { parse: string[] };
+      };
+      expect(body.allowed_mentions.parse).toEqual([]);
+      expect(colour(down)).toMatchObject({ url: consoleUrl, color: 0xd92d20 });
+      expect(colour(up).color).toBe(0x12b76a);
+      expect(colour(cert)).toMatchObject({ color: 0xf79009, title: '⚠️ Web · API <prod>' });
+    });
+
+    it('posts the whole alert to a webhook', () => {
+      expect(JSON.parse(monitorPayload('WEBHOOK', up, 'en'))).toEqual(up);
+    });
   });
 });
