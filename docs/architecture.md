@@ -159,7 +159,9 @@ erDiagram
   ClientProject ||--o{ ProjectMilestone : has
   ProjectUpdate ||--o{ ProjectUpdateComment : has
   Post ||--|{ PostTranslation : "en / es"
+  Post ||--o{ PostRevision : "last 20"
   PortfolioItem ||--|{ PortfolioTranslation : "en / es"
+  PortfolioItem ||--o{ PortfolioRevision : "last 20"
   Lead ||--o{ LeadReply : has
 ```
 
@@ -174,6 +176,7 @@ erDiagram
 - **Tag / PostTag** — blog topics shared by both languages: `slug` (unique, used in `/blog?tag=`), `nameEn`, `nameEs`; `PostTag` joins posts and tags (both sides cascade, so deleting a tag just removes it from its posts). Up to 10 tags per post.
 - **Scheduling (posts and case studies):** content is live when `status = PUBLISHED` and `publishedAt <= now`. A published item dated in the future is *scheduled*: the public API (lists, detail, so also the sitemap and RSS) hides it until then and it appears on its own, with no job to run, within the public pages' 5-minute revalidation. `publishedAt` is set on the first publish unless one is given; clearing it on a published item means now. The admin panel types it in Madrid time.
 - **PortfolioItem / PortfolioTranslation** — same publishing model plus `clientName?`, `projectUrl?`, `technologies[]`, `services[]` (the website's service keys: web, custom, mobile, design, consulting, support), `sortOrder`, `testimonialAuthor?`; translation has `title`, `summary`, `content`, `testimonialQuote?`, `testimonialRole?`. A case study has a testimonial in a language when it has an author and a quote in that language; it is shown on the case study and on the home page.
+- **PostRevision / PortfolioRevision** — revision history of posts and case studies (decision 52): `postId` / `portfolioItemId` (cascade), `authorId?` (who made the change that replaced it; null once the user is deleted), `createdAt` (when it was replaced), `snapshot` (JSON: the item's content as it was until then). A post's snapshot is `{ coverImageUrl, tagIds, translations: [{ locale, title, excerpt, content }] }`; a case study's is `{ coverImageUrl, clientName, projectUrl, technologies, services, testimonialAuthor, translations: [{ locale, title, summary, content, testimonialQuote, testimonialRole }] }`. Publishing fields (`status`, `publishedAt`), `slug` and the case study's `sortOrder` are not content and are never part of it. Every admin update (`PATCH`) whose snapshot differs from the current one stores the current one as a revision in the same transaction as the change (tag ids and translations compared without regard to order); creating an item stores nothing, nor does a PATCH that changes nothing or only those other fields. The last 20 per item are kept: older ones are deleted in the same transaction. Images used only by a revision don't count as used in the media library.
 - **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`, `showHours` (the client sees the hours logged on it; off by default), and its watched domain: `domainName?`, `domainSource` (`RDAP` | `MANUAL` | `OVH`), `domainExpiresAt?` (date), `domainCheckedAt?`, `domainWarnedFor?` (`<day>:<30|7>`, the last reminder). With `RDAP` the expiry is read from the registry's RDAP server (found in IANA's bootstrap, `data.iana.org/rdap/dns.json`); TLDs without RDAP (`.es`) take a date typed by the team. A domain the team's OVH account manages (the client made it the technical contact, decision 15) switches to `OVH` on its next check: the expiry is OVH's (`GET /domain/{name}/serviceInfos`), `.es` included; one OVH stops managing goes back to `RDAP`. 30 and 7 days before it, the team inbox and every person of the client account are emailed, once each per expiry date. A managed site's own domain becomes the project's watched domain when it has none.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`, `approvalRequested` (the team asks the client to approve it), `approvedAt?`, `approvedById?`. A **release** is an update with `version`, `environment` (`STAGING` | `PRODUCTION`) and `url?`: the version deployed, where, and where to try it; posting one also sets the project's `stagingUrl` or `productionUrl` to that URL. A project may have a release key (`releaseTokenHash`, SHA-256 of `cqr_…`, and `releaseTokenCreatedAt`) for its deploy pipeline.
 - **ProjectUpdateComment** — a comment on an update by the client or the team: `body` (plain text, max 5000), `authorId?`, `createdAt`. Comments by an ADMIN are shown as the team's.
@@ -950,11 +953,17 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | POST | `/admin/leads/:id/convert` | `{ projectName? }` → `201 { lead, client: { id, created, invitationSent? }, project: { id, name } }`: reuses the email's client account or prepares an unregistered one and invites them to create it, opens a project in DISCOVERY and sets the lead WON. 409 when already converted or the email is an admin's |
 | GET / POST | `/admin/leads/:id/replies` | GET → `LeadReply[]` (`{ id, subject, body, author: { name }, createdAt }`, oldest first). POST `{ subject, body }` emails the answer to the lead from `MAIL_FROM` (branded layout in the lead's language, their message quoted) → `201 { reply, lead }`; a lead still `NEW` becomes `TALKING`. `503` when the email can't be sent, and then nothing is stored |
 | GET / POST | `/admin/posts` | POST `PostInput` |
-| GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput` |
+| GET / PATCH / DELETE | `/admin/posts/:id` | PATCH partial `PostInput`; when the content changes, the previous content becomes a revision (`PostRevision`, section 4.2) |
+| GET | `/admin/posts/:id/revisions` | `ContentRevision[]`, newest first (at most 20) |
+| GET | `/admin/posts/:id/revisions/:revisionId` | `ContentRevision & { snapshot: PostSnapshot }`; 404 when it isn't that post's |
+| POST | `/admin/posts/:id/revisions/:revisionId/restore` | Puts that snapshot back as a normal change (so the current content becomes a revision) → `AdminPost`. Status, publication date and slug are never changed; tags deleted since are left out. 404 when the revision isn't that post's. `post.restored` in the activity log, with `details: { revisionCreatedAt }` |
 | GET / POST | `/admin/tags` | GET → `AdminTag[]` (`{ id, slug, nameEn, nameEs, postCount }`); POST `{ slug, nameEn, nameEs }`, `409` when the slug is taken |
 | PATCH / DELETE | `/admin/tags/:id` | PATCH partial; DELETE removes the tag from its posts |
 | GET / POST | `/admin/portfolio` | POST `PortfolioInput` |
-| GET / PATCH / DELETE | `/admin/portfolio/:id` | |
+| GET / PATCH / DELETE | `/admin/portfolio/:id` | PATCH partial `PortfolioInput`; when the content changes, the previous content becomes a revision (`PortfolioRevision`, section 4.2) |
+| GET | `/admin/portfolio/:id/revisions` | `ContentRevision[]`, newest first (at most 20) |
+| GET | `/admin/portfolio/:id/revisions/:revisionId` | `ContentRevision & { snapshot: PortfolioSnapshot }`; 404 when it isn't that case study's |
+| POST | `/admin/portfolio/:id/revisions/:revisionId/restore` | Puts that snapshot back as a normal change (so the current content becomes a revision) → the case study, as `GET /admin/portfolio/:id`. Status, publication date, slug and order are never changed. 404 when the revision isn't that case study's. `portfolio.restored` in the activity log, with `details: { revisionCreatedAt }` |
 | GET / POST | `/admin/projects` | POST `{ clientId, name, description?, phase, progress, startDate?, dueDate?, stagingUrl?, productionUrl? }` |
 | GET / PATCH / DELETE | `/admin/projects/:id` | DELETE answers `409` while the project has invoices (they must be kept) |
 | POST | `/admin/projects/:id/updates/:updateId/comments` | `{ body }` → `201 UpdateComment & { clientNotified }`: the client is emailed the comment in their `locale` with a link to the update |
@@ -1084,6 +1093,14 @@ type PortfolioInput = {
   translations: Translation<{ title: string; summary: string; content: string; testimonialQuote?: string | null; testimonialRole?: string | null }>[];
 };
 
+// Revision history of posts and case studies (decision 52). `createdAt`: when that version was replaced; `author`: who replaced it.
+type ContentRevision = { id: string; createdAt: string; author: { name: string } | null };
+type PostSnapshot = { coverImageUrl: string | null; tagIds: string[]; translations: Translation<{ title: string; excerpt: string; content: string }>[] };
+type PortfolioSnapshot = {
+  coverImageUrl: string | null; clientName: string | null; projectUrl: string | null; technologies: string[]; services: string[]; testimonialAuthor: string | null;
+  translations: Translation<{ title: string; summary: string; content: string; testimonialQuote: string | null; testimonialRole: string | null }>[];
+};
+
 type ClientProject = {
   id: string; name: string; description: string | null;
   phase: 'DISCOVERY' | 'DESIGN' | 'DEVELOPMENT' | 'QA' | 'LAUNCHED' | 'SUPPORT' | 'ON_HOLD';
@@ -1172,7 +1189,11 @@ src/
                                básica", also from a lead), previews (list, "Nueva vista previa"), media, users, activity,
                                account; leads, users and managed sites can be deleted (typing to confirm), leads' contact
                                details and requests edited;
-                               posts and portfolio items have a preview page that renders the saved draft; Markdown
+                               posts and portfolio items have a preview page that renders the saved draft, and a
+                               "History" panel on their edit page (decision 52: each revision's date, author and
+                               "View"); posts/[id]/revisions/[revisionId] and portfolio/[id]/revisions/[revisionId]
+                               show that version next to the current one, field by field and per language (changed
+                               fields marked), with "Restore this version" (asks to confirm); Markdown
                                fields (post and case-study content, project description and updates) have a live
                                preview next to the editor (MarkdownField, client-side, same renderer as the site)
     media/[file]/route.ts      Serves uploaded images from the API at /media/<filename>
@@ -1563,3 +1584,4 @@ Changes that touch neither app (only `deploy/` or docs) run no CI and aren't dep
 | 47 | Managed PostgreSQL runs, for now, in its own PostgreSQL container on the production VPS, open on 5432 with TLS only and a role per database | The owner chose to start on the current server (November 2026). A PostgreSQL apart from the platform's keeps teams away from its data and lets it be restarted or moved alone; TLS, SCRAM and `sameuser` rules keep each role in its own database, connection and size limits keep one team from starving the others, and nothing changes for teams when it moves to a server of its own |
 | 48 | Object storage is Garage on the production VPS, behind Nginx at s3.<hosting domain>, with quotas set in Garage | Garage is a small, maintained S3-compatible server meant for self-hosting, with an admin API to make buckets, keys and quotas, so the platform drives it instead of reimplementing S3. Quotas enforced by Garage itself hold even when the API is down. One node until the storage has its own servers (owner's choice, November 2026) |
 | 49 | While Cloud shares the platform's only server, a disk guard stops Cloud growing when free space runs low | The platform's database, its backups and every Cloud service write to the same disk; a team filling it would stop the whole platform. Refusing new deployments, databases and buckets and freezing databases and bucket quotas below a floor is reversible and loses nothing, while a full disk can corrupt data. The server monitor's 85 % alert gives the team time before the floor is reached |
+| 52 | Posts and case studies keep their last 20 versions as snapshots, stored on each admin change and restorable as a normal change | An edit that removes good text, or a wrong paste in one language, was lost for good. A whole snapshot of the content per change (like the managed sites' revisions) is simple to show next to the current version and to put back, and 20 per item cover weeks of editing while keeping the table small. Publishing fields, the slug and the order stay out: restoring old text must never unpublish, reschedule or move an item, or break its links. A restore goes through the normal update, so it is itself undoable |
