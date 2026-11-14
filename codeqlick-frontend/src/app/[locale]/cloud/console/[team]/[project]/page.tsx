@@ -353,12 +353,15 @@ async function Deployments({
               <li key={deployment.id} className={styles.row}>
                 <div className={styles.rowMain}>
                   <p className={styles.rowTitle}>
-                    <span className={styles.mono}>{deployment.shortId}</span>
+                    <Link href={`${base}/deployments/${deployment.id}`} className={styles.mono}>
+                      {deployment.shortId}
+                    </Link>
                     {deployment.isProduction ? (
                       <Badge tone="success">{t('project.productionTag')}</Badge>
                     ) : (
                       <Badge>{t('project.preview')}</Badge>
                     )}
+                    {deployment.rules ? <Badge>{t('project.rules.badge')}</Badge> : null}
                     {deployment.message ? <span>{deployment.message}</span> : null}
                   </p>
                   <span className={styles.address}>

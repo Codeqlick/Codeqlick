@@ -3,10 +3,12 @@ import {
   addressHost,
   addressHref,
   cloudSlug,
+  configJson,
   formatBytes,
   isAddressHost,
   isProtected,
   protectionInput,
+  ruleSettings,
 } from './cloud';
 
 describe('formatBytes', () => {
@@ -83,5 +85,23 @@ describe('password protection', () => {
     });
     expect(protectionInput({ ...on, mode: 'SOME' }, true)).toMatchObject({ field: 'mode' });
     expect(protectionInput({ ...on, days: '2' }, true)).toMatchObject({ field: 'days' });
+  });
+});
+
+describe('ruleSettings', () => {
+  it('lists only the settings that differ from the defaults', () => {
+    expect(ruleSettings({ cleanUrls: true, trailingSlash: null })).toEqual([]);
+    expect(ruleSettings({ cleanUrls: false, trailingSlash: null })).toEqual([
+      { key: 'cleanUrls', value: false },
+    ]);
+    expect(ruleSettings({ cleanUrls: true, trailingSlash: false })).toEqual([
+      { key: 'trailingSlash', value: false },
+    ]);
+  });
+});
+
+describe('configJson', () => {
+  it('pretty-prints the config with two spaces', () => {
+    expect(configJson({ trailingSlash: true })).toBe('{\n  "trailingSlash": true\n}');
   });
 });

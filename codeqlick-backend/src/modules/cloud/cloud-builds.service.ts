@@ -21,6 +21,7 @@ import type { CloudCtx } from './cloud-caller.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
+import { BundleError } from './cloud.storage.js';
 import type {
   EnvVarInput,
   FinishInput,
@@ -704,6 +705,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
             message: (build.commitMessage ?? '').split('\n')[0]?.slice(0, 200) || undefined,
             commit: build.commit,
             branch: build.branch,
+            config: input.config,
           },
           {
             actorName: `GitHub · ${build.author ?? build.branch}`,
@@ -720,6 +722,11 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         void this.report(build.project, done, 'success', deployment.url);
         void this.notifications.buildEnded(done.id, deployment.url);
       } catch (error) {
+        // An invalid `codeqlick.json` is also in the build's log, one problem a line.
+        if (error instanceof BundleError && error.errors) {
+          const lines = error.errors.map((item) => `codeqlick.json: ${item.path}: ${item.message}`);
+          await this.repository.appendLog(build.id, `\n${lines.join('\n')}\n`).catch(() => null);
+        }
         await this.finishFailed(
           build,
           error instanceof HttpException ? error.message : 'The output could not be deployed',

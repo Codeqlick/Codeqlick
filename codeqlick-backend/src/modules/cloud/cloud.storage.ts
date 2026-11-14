@@ -4,28 +4,50 @@ import {
   lstat,
   mkdir,
   readdir,
+  readFile,
   rename,
   rm,
+  stat,
   symlink,
   unlink,
   writeFile,
 } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { HttpException, HttpStatus, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { list, x } from 'tar';
 import { AppConfigService } from '../../config/app-config.service.js';
+import {
+  RULES_MARKER,
+  describeErrors,
+  needsMarker,
+  parseConfig,
+  sizeError,
+  type CloudConfig,
+  type ConfigError,
+  type ConfigLimits,
+} from './cloud-config.js';
 import { protects, type ProtectionMode } from './cloud-protection.js';
 
 /** What unpacking a bundle may take (from the team's plan). */
 export interface BundleLimits {
   bytes: number;
   files: number;
+  /**
+   * `codeqlick.json` (architecture 4.13): the text sent next to the bundle (it wins over the
+   * bundle's own file) and the plan's limits. Without it the file is deleted but not read.
+   */
+  config?: { text?: string; limits: ConfigLimits; plan: string };
 }
 
 export interface Unpacked {
   sizeBytes: number;
   fileCount: number;
+  /** The parsed rules, null when the deployment has none. */
+  config: CloudConfig | null;
 }
+
+const CONFIG_FILE = 'codeqlick.json';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const ALLOWED_TYPES = new Set(['File', 'OldFile', 'ContiguousFile', 'Directory']);
 const SEGMENT_MAX_BYTES = 255;
@@ -33,9 +55,22 @@ const PATH_MAX_BYTES = 1024;
 
 /** A bundle refused, with the reason the developer reads (400, or 413 for its size). */
 export class BundleError extends HttpException {
-  constructor(message: string, status: HttpStatus = HttpStatus.BAD_REQUEST) {
-    super(message, status);
+  /** Each problem of an invalid `codeqlick.json` (the problem body lists them). */
+  readonly errors?: ConfigError[];
+
+  constructor(
+    message: string,
+    status: HttpStatus = HttpStatus.BAD_REQUEST,
+    errors?: ConfigError[],
+  ) {
+    super(errors ? { message, detail: message, errors } : message, status);
+    this.errors = errors;
   }
+}
+
+/** An invalid `codeqlick.json`: the first problem is the message, all of them the `errors`. */
+export function configProblem(errors: ConfigError[]): BundleError {
+  return new BundleError(describeErrors(errors), HttpStatus.BAD_REQUEST, errors);
 }
 
 /**
@@ -114,7 +149,12 @@ export class CloudStorage {
                 `Only files and folders are allowed (${entry.path} is a ${entry.type})`,
               );
             }
-            bundlePath(entry.path);
+            const path = bundlePath(entry.path);
+            if (path.split('/').some((part) => part.startsWith('.cq-'))) {
+              throw new BundleError(
+                `Names starting with .cq- are reserved for Codeqlick Cloud (${entry.path})`,
+              );
+            }
             if (entry.type !== 'Directory') {
               files += 1;
               declared += entry.size ?? 0;
@@ -156,6 +196,7 @@ export class CloudStorage {
         noMtime: true,
         filter: (_path, entry) => 'type' in entry && ALLOWED_TYPES.has(entry.type as string),
       });
+      const config = await this.readConfig(work, limits.config);
       const result = await this.normalise(work);
       try {
         const index = await lstat(join(work, 'index.html'));
@@ -166,12 +207,43 @@ export class CloudStorage {
       if (result.sizeBytes > limits.bytes || result.fileCount > limits.files) {
         throw new BundleError('The bundle is larger than declared', HttpStatus.PAYLOAD_TOO_LARGE);
       }
+      // Only the API writes the marker, so an upload can't fake it (it is never in the bundle).
+      if (needsMarker(config)) await writeFile(join(work, RULES_MARKER), '', { mode: 0o644 });
       await rename(work, target);
-      return result;
+      return { ...result, config };
     } catch (error) {
       await rm(work, { recursive: true, force: true });
       if (error instanceof BundleError) throw error;
       throw new BundleError('The bundle could not be unpacked');
+    }
+  }
+
+  /**
+   * Takes `codeqlick.json` out of an unpacked bundle (it is never served: neither the link keys
+   * nor the rules are public) and checks it, the sent text first, the bundle's own otherwise.
+   */
+  private async readConfig(
+    work: string,
+    options: BundleLimits['config'],
+  ): Promise<CloudConfig | null> {
+    const file = join(work, CONFIG_FILE);
+    try {
+      let source = options?.text?.trim() ? options.text : undefined;
+      if (source === undefined && options) {
+        const info = await lstat(file).catch(() => null);
+        if (info?.isFile()) {
+          if (info.size > options.limits.bytes) {
+            throw configProblem([sizeError(info.size, options.limits, options.plan)]);
+          }
+          source = await readFile(file, 'utf8');
+        }
+      }
+      if (source === undefined || !options) return null;
+      const parsed = parseConfig(source, options.limits, options.plan);
+      if (!parsed.ok) throw configProblem(parsed.errors);
+      return parsed.config;
+    } finally {
+      await rm(file, { recursive: true, force: true });
     }
   }
 
@@ -228,6 +300,45 @@ export class CloudStorage {
   async removeDeployment(id: string): Promise<void> {
     if (!this.available) return;
     await rm(this.dir('deployments', id), { recursive: true, force: true });
+  }
+
+  /**
+   * Is `path` (such as `/about.html`) a regular file of deployment `id`? The edge check's own
+   * read-only look at the files; never leaves the deployment's folder.
+   */
+  async isFile(id: string, path: string): Promise<boolean> {
+    if (!this.available || !UUID.test(id) || !path.startsWith('/') || path.includes('\0')) {
+      return false;
+    }
+    const root = this.dir('deployments', id);
+    const full = resolve(root, `.${path}`);
+    if (!full.startsWith(root + sep)) return false;
+    return stat(full).then(
+      (info) => info.isFile(),
+      () => false,
+    );
+  }
+
+  /** Writes the `.cq-rules` marker of the deployments whose rules need it and lack it (hourly). */
+  async reconcileRules(
+    deployments: Array<{ id: string; config: CloudConfig | null }>,
+  ): Promise<void> {
+    if (!this.available) return;
+    for (const deployment of deployments) {
+      if (!needsMarker(deployment.config)) continue;
+      const folder = this.dir('deployments', deployment.id);
+      const exists = await lstat(folder).then(
+        (info) => info.isDirectory(),
+        () => false,
+      );
+      if (!exists) continue;
+      const marker = join(folder, RULES_MARKER);
+      const marked = await lstat(marker).then(
+        () => true,
+        () => false,
+      );
+      if (!marked) await writeFile(marker, '', { mode: 0o644 });
+    }
   }
 
   /** Asks the host to publish a verified custom domain for the project (`sync-sites.sh`). */

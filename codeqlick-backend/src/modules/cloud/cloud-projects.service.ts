@@ -13,7 +13,16 @@ import {
 } from '@nestjs/common';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 import type { CloudCtx } from './cloud-caller.js';
+import {
+  limitsFor,
+  parseConfig,
+  summarize,
+  type CloudConfig,
+  type ConfigError,
+  type RulesSummary,
+} from './cloud-config.js';
 import {
   DELETED_PROJECT_DAYS,
   EVENTS_DAYS,
@@ -38,10 +47,16 @@ export interface DeploymentView {
   branch: string | null;
   sizeBytes: number;
   fileCount: number;
+  /** The summary of the deployment's `codeqlick.json` rules; null when it has none. */
+  rules: (RulesSummary & { config?: CloudConfig }) | null;
   createdBy: { id: string; name: string } | null;
   viaToken: string | null;
   createdAt: string;
 }
+
+/** The answer of `POST /cloud/config/check`: both are `200`, nothing is kept. */
+export type ConfigCheck =
+  { ok: true; summary: RulesSummary } | { ok: false; errors: ConfigError[] };
 
 export interface ProjectView {
   id: string;
@@ -190,7 +205,24 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     const { project } = await this.project(ctx, id);
     const row = await this.repository.findDeployment(project.id, deploymentId);
     if (!row) throw new NotFoundException('Deployment not found');
-    return this.deploymentView(project, row);
+    return this.deploymentView(project, row, true);
+  }
+
+  /** Checks the text of a `codeqlick.json` against the team's plan (any member); keeps nothing. */
+  async checkConfig(ctx: CloudCtx, teamSlug: string, source: string): Promise<ConfigCheck> {
+    const membership = await this.teams.access(ctx, teamSlug);
+    const parsed = parseConfig(source, limitsFor(membership.team.plan), membership.team.plan);
+    if (!parsed.ok) return { ok: false, errors: parsed.errors };
+    return {
+      ok: true,
+      summary: summarize(parsed.config) ?? {
+        redirects: 0,
+        rewrites: 0,
+        headers: 0,
+        cleanUrls: true,
+        trailingSlash: null,
+      },
+    };
   }
 
   /**
@@ -257,6 +289,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
     const unpacked = await this.storage.unpack(bundle, deploymentId, {
       bytes: Math.min(limits.deploymentBytes, room),
       files: limits.deploymentFiles,
+      config: { text: fields.config, limits: limitsFor(plan), plan },
     });
     let row: DeploymentRow;
     try {
@@ -270,6 +303,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
         branch: fields.branch ?? null,
         sizeBytes: BigInt(unpacked.sizeBytes),
         fileCount: unpacked.fileCount,
+        ...(unpacked.config ? { config: unpacked.config as unknown as Prisma.InputJsonValue } : {}),
         createdById: who.createdById,
         tokenId: who.tokenId,
       });
@@ -366,7 +400,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
 
   /**
    * Hourly (and at start): old deployments, projects deleted 30 days ago, expired tokens, old
-   * events, and password protection's markers.
+   * events, and the markers of password protection and of `codeqlick.json` rules.
    */
   async housekeeping(now = new Date()): Promise<void> {
     try {
@@ -384,6 +418,16 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       this.logger.error(`Cloud housekeeping failed: ${String(error)}`);
     }
     await this.reconcileProtection();
+    await this.reconcileRules();
+  }
+
+  /** Writes the `.cq-rules` marker of the deployments that should have it and lack it. */
+  async reconcileRules(): Promise<void> {
+    try {
+      await this.storage.reconcileRules(await this.repository.deploymentsWithRules());
+    } catch (error) {
+      this.logger.error(`Rules' markers check failed: ${String(error)}`);
+    }
   }
 
   /** Puts password protection's marker files right against the database (decision 50). */
@@ -419,7 +463,10 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
   deploymentView(
     project: { slug: string; productionDeploymentId: string | null },
     row: DeploymentRow,
+    withConfig = false,
   ): DeploymentView {
+    const config = (row.config ?? null) as unknown as CloudConfig | null;
+    const summary = summarize(config);
     return {
       id: row.id,
       shortId: row.shortId,
@@ -431,6 +478,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       branch: row.branch,
       sizeBytes: Number(row.sizeBytes),
       fileCount: row.fileCount,
+      rules: summary && config ? { ...summary, ...(withConfig ? { config } : {}) } : null,
       createdBy: row.createdBy,
       viaToken: row.token?.name ?? null,
       createdAt: row.createdAt.toISOString(),

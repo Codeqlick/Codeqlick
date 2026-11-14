@@ -21,6 +21,8 @@ CLOUD_HOSTS=/srv/codeqlick/cloud/hosts
 CLOUD_PAGES=/srv/codeqlick/cloud/pages
 # Password protection of Cloud projects (architecture 4.13, 8.3): installed by deploy/setup-cloud.sh.
 CLOUD_PROTECTION=/etc/nginx/snippets/cq-cloud-protection.conf
+# Headers a deployment's codeqlick.json may add (4.13): include it at server level.
+CLOUD_RULE_HEADERS=/etc/nginx/snippets/cq-cloud-rule-headers.conf
 AVAILABLE=/etc/nginx/sites-available
 ENABLED=/etc/nginx/sites-enabled
 PREFIX=cq-site-
@@ -89,6 +91,7 @@ write_conf() {
       echo "    index index.html;"
       echo "    error_page 404 /404.html;"
       echo "    add_header Strict-Transport-Security \"max-age=31536000\" always;"
+      echo "    include $CLOUD_RULE_HEADERS;"
       echo
       echo "    gzip on;"
       echo "    gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;"
@@ -101,7 +104,7 @@ write_conf() {
       echo "    error_page 451 @cq_suspended;"
       echo "    location / {"
       echo "        if (-f \$document_root/.cq-suspended) { return 451; }"
-      echo "        try_files \$uri \$uri.html \$uri/ /200.html =404;"
+      echo "        try_files \$cq_path \$cq_path.html \$cq_path/ /200.html =404;"
       echo "    }"
       echo "    location @cq_suspended { auth_request off; root $CLOUD_PAGES/suspended; try_files /index.html =404; }"
       echo "    location = /404.html { internal; try_files /404.html @cq_notfound; }"
@@ -146,6 +149,8 @@ cmd_add() {
       [[ $target =~ ^[a-z0-9]+(-[a-z0-9]+)*$ && ${#target} -le 40 ]] || die "invalid project: '$target'"
       [[ -f $CLOUD_PROTECTION ]] ||
         die "$CLOUD_PROTECTION is missing: run deploy/setup-cloud.sh <hosting domain> again first"
+      [[ -f $CLOUD_RULE_HEADERS ]] ||
+        die "$CLOUD_RULE_HEADERS is missing: run deploy/setup-cloud.sh <hosting domain> again first"
       target="$CLOUD_HOSTS/$target"
       ;;
     *) die "usage: cq-site add <domain> static <dir> | proxy <port> | cloud <slug>" ;;

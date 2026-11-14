@@ -4796,6 +4796,14 @@
       "promote": "Publicar",
       "delete": "Borrar",
       "via": "con {token}",
+      "rules": {
+        "badge": "Reglas",
+        "title": "Reglas",
+        "none": "Este despliegue no tiene reglas de codeqlick.json.",
+        "summary": "Reglas: {redirects, plural, one {# redirección} other {# redirecciones}}, {rewrites, plural, one {# reescritura} other {# reescrituras}}, {headers, plural, one {# regla de cabeceras} other {# reglas de cabeceras}}",
+        "file": "codeqlick.json (tal como se interpretó)",
+        "readOnly": "Solo lectura: el archivo viaja con tu código, así que cámbialo allí y vuelve a desplegar."
+      },
       "files": "{count, plural, one {# archivo} other {# archivos}}",
       "suspendedTitle": "Este proyecto está suspendido",
       "suspendedBody": "Sus direcciones muestran un aviso y no admite despliegues. Motivo: {reason}. Responde a nuestro correo si crees que es un error.",
