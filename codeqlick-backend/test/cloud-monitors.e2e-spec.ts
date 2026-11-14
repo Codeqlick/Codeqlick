@@ -342,6 +342,8 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
       .expect(201);
     const projectId = project.body.id as string;
     const notifications = `/v1/cloud/projects/${projectId}/notifications`;
+    // Its own address: the earlier tests already used most of the minute's monitor creations.
+    const creator = { ...auth, 'X-Forwarded-For': '10.7.3.1' };
 
     // Email channels can't take monitor alerts: monitors email their own people.
     await request(server)
@@ -380,7 +382,7 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
 
     const api = await request(server)
       .post(`/v1/cloud/teams/${team}/monitors`)
-      .set(auth)
+      .set(creator)
       .send({
         kind: 'HTTP',
         name: 'API',
@@ -460,7 +462,7 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
     const before = posts.length;
     const beat = await request(server)
       .post(`/v1/cloud/teams/${team}/monitors`)
-      .set(auth)
+      .set(creator)
       .send({
         kind: 'HEARTBEAT',
         name: 'Nightly',
