@@ -27,6 +27,7 @@ export function legalPage(page: Page) {
     setRequestLocale(locale);
     if (!legalOwner) notFound();
     const t = await getTranslations({ locale, namespace: 'Legal' });
+    const tm = await getTranslations({ locale, namespace: 'Markdown' });
     const document = legalDocument(page, legalOwner, locale);
 
     return (
@@ -34,7 +35,7 @@ export function legalPage(page: Page) {
         <h1 className={styles.title}>{document.title}</h1>
         <p className={`lead ${styles.lead}`}>{t('updated', { date: document.updated })}</p>
         <div className={styles.content}>
-          <Markdown>{document.markdown}</Markdown>
+          <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{document.markdown}</Markdown>
         </div>
       </article>
     );
