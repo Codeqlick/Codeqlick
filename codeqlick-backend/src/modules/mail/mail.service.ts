@@ -70,16 +70,20 @@ export class MailService {
       html: message.html,
       replyTo: message.replyTo,
       icalEvent: message.icalEvent && { ...message.icalEvent, filename: 'invite.ics' },
-      headers: message.headers,
-      headers: message.listUnsubscribe
-        ? {
-            'List-Unsubscribe': `<${message.listUnsubscribe}>`,
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          }
-        : undefined,
+      headers: this.headers(message),
     });
     if (this.outbox) await this.keep(message);
     this.logger.debug(`Mail sent to ${message.to}: ${message.subject}`);
+  }
+
+  /** The message's own headers, plus one-click unsubscribe (RFC 8058) when it has a link. */
+  private headers(message: MailMessage): Record<string, string> | undefined {
+    if (!message.listUnsubscribe) return message.headers;
+    return {
+      ...message.headers,
+      'List-Unsubscribe': `<${message.listUnsubscribe}>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+    };
   }
 
   /** Tests: the email as `<time>-<random>.json` in the outbox folder, for browser tests. */
