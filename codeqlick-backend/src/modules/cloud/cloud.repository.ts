@@ -369,6 +369,14 @@ export class CloudRepository {
     });
   }
 
+  /** Every live project with password protection on (its markers, architecture 4.13). */
+  protectedProjects(): Promise<Array<{ slug: string; protection: CloudProject['protection'] }>> {
+    return this.prisma.cloudProject.findMany({
+      where: { deletedAt: null, protection: { not: 'OFF' } },
+      select: { slug: true, protection: true },
+    });
+  }
+
   findProjectBySlug(slug: string): Promise<{ id: string } | null> {
     return this.prisma.cloudProject.findFirst({ where: { slug }, select: { id: true } });
   }

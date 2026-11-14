@@ -10,6 +10,29 @@ map $cq_label $cq_noindex {
     default "";
 }
 
+# Password protection (architecture 4.13, 8.3; deploy/nginx/cloud-protection.conf). The project's
+# slug and the kind of address from the label: `previews` for <slug>--<short>, `production`
+# otherwise. Custom domains' sites (cq-site ... cloud) set both themselves with `set`.
+map $cq_label $cq_slug {
+    "~^(.+)--[0-9a-f]{8}$" $1;
+    default $cq_label;
+}
+
+map $cq_label $cq_kind {
+    "~--[0-9a-f]{8}$" previews;
+    default production;
+}
+
+# Only the access cookie of the visitor goes to the API, never the site's other cookies. Also
+# used by the custom domains' sites, like the cache and the zone below.
+map $http_cookie $cq_access {
+    "~(?:^|;)\s*__Host-cq_access=([^;]*)" $1;
+    default "";
+}
+
+proxy_cache_path /var/cache/nginx/cq-protect levels=1:2 keys_zone=cq_protect:10m max_size=64m inactive=10m use_temp_path=off;
+limit_req_zone $binary_remote_addr zone=cq_cloud_password:10m rate=10r/m;
+
 server {
     listen 80;
     listen [::]:80;
@@ -41,6 +64,9 @@ server {
     gzip on;
     gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;
 
+    # Password protection: auth_request for every location below, /__cq_check and /__codeqlick/.
+    include /etc/nginx/snippets/cq-cloud-protection.conf;
+
     error_page 404 /404.html;
     error_page 451 @cq_suspended;
 
@@ -62,7 +88,7 @@ server {
         try_files $uri =404;
     }
 
-    # The site's own 404.html; without one, "nothing here" when the address has no site and
+    # The site's own 404.html (protected like the rest); without one, "nothing here" when the address has no site and
     # "page not found" when it has.
     location = /404.html {
         internal;
@@ -72,16 +98,19 @@ server {
     error_page 410 =404 @cq_missing;
 
     location @cq_missing {
+        auth_request off;
         root /srv/codeqlick/cloud/pages/missing;
         try_files /index.html =404;
     }
 
     location @cq_notfound {
+        auth_request off;
         root /srv/codeqlick/cloud/pages/notfound;
         try_files /index.html =404;
     }
 
     location @cq_suspended {
+        auth_request off;
         root /srv/codeqlick/cloud/pages/suspended;
         try_files /index.html =404;
     }

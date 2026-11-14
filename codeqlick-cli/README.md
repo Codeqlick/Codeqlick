@@ -43,6 +43,20 @@ Analytics and the key-value store:
 | `kv set <key> <value> [--ttl <s>]`             | Save JSON (or text); `-` reads standard input       |
 | `kv incr <key> [--by <n>]`                     | Add to a counter atomically                         |
 
+Password protection (to show work in progress to a client without making it public):
+
+| Command                              | What it does                                |
+| ------------------------------------ | ------------------------------------------- |
+| `protect`                            | Which addresses ask visitors for a password |
+| `protect previews [--days 1\|7\|30]` | Ask for it on every deployment's address    |
+| `protect all [--days 1\|7\|30]`      | Also on production and your domains         |
+| `protect off`                        | Every address is public again               |
+
+The password is asked twice without echo, or read from standard input when it isn't a terminal
+(`echo "$PASSWORD" | codeqlick protect previews`); an empty answer keeps the current one, to
+change only the mode or the days. `--days` is how long access lasts once it's entered. While a
+printed address asks for the password, `deploy` and `builds` say so on standard error.
+
 `deploy --url-only` prints only the new deployment's URL, to chain it with `audit`:
 
 ```yaml

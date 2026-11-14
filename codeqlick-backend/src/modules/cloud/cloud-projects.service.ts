@@ -52,6 +52,7 @@ export interface ProjectView {
   production: DeploymentView | null;
   domains: Array<{ name: string; state: 'PENDING' | 'VERIFIED' | 'LIVE' | 'ERROR' }>;
   suspended: { at: string; reason: string } | null;
+  protection: 'OFF' | 'PREVIEWS' | 'ALL';
   createdAt: string;
 }
 
@@ -163,6 +164,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       await this.storage.removeDeployment(deployment.id);
     }
     for (const domain of project.domains) await this.storage.removeDomain(domain.name);
+    await this.storage.removeProtection(project.slug);
   }
 
   // ── Deployments ────────────────────────────────────────────────────────────────────────────
@@ -362,7 +364,10 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
 
   // ── Housekeeping ───────────────────────────────────────────────────────────────────────────
 
-  /** Hourly: old deployments, projects deleted 30 days ago, expired tokens, old events. */
+  /**
+   * Hourly (and at start): old deployments, projects deleted 30 days ago, expired tokens, old
+   * events, and password protection's markers.
+   */
   async housekeeping(now = new Date()): Promise<void> {
     try {
       for (const old of await this.repository.oldDeployments(KEPT_DEPLOYMENTS)) {
@@ -377,6 +382,17 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
       await this.repository.deleteEventsBefore(new Date(now.getTime() - EVENTS_DAYS * DAY_MS));
     } catch (error) {
       this.logger.error(`Cloud housekeeping failed: ${String(error)}`);
+    }
+    await this.reconcileProtection();
+  }
+
+  /** Puts password protection's marker files right against the database (decision 50). */
+  async reconcileProtection(): Promise<void> {
+    try {
+      const readAt = new Date();
+      await this.storage.reconcileProtection(await this.repository.protectedProjects(), readAt);
+    } catch (error) {
+      this.logger.error(`Protection markers' check failed: ${String(error)}`);
     }
   }
 
@@ -395,6 +411,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
         project.suspendedAt && project.suspendedReason
           ? { at: project.suspendedAt.toISOString(), reason: project.suspendedReason }
           : null,
+      protection: project.protection,
       createdAt: project.createdAt.toISOString(),
     };
   }
