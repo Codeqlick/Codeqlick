@@ -376,6 +376,7 @@ export const manualBuildSchema = z.object({
     .max(200)
     .regex(/^[\w./-]+$/)
     .optional(),
+  noCache: z.boolean().optional(),
 });
 export type ManualBuildInput = z.infer<typeof manualBuildSchema>;
 

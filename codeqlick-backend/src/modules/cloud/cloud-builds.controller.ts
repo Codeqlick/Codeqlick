@@ -261,7 +261,7 @@ export class CloudBuildsController {
     @Param({ schema: idParamSchema }) params: IdParam,
     @Body({ schema: manualBuildSchema }) body: ManualBuildInput,
   ): Promise<BuildView> {
-    return this.builds.manual(ctx, params.id, body.branch);
+    return this.builds.manual(ctx, params.id, body.branch, body.noCache);
   }
 
   @Get('projects/:id/builds/:number')

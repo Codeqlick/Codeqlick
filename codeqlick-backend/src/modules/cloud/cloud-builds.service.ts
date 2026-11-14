@@ -28,6 +28,8 @@ import type {
   GitSettingsInput,
   LinkInstallationInput,
 } from './cloud.schemas.js';
+import { cacheKey } from './cloud-build-cache.js';
+import { CloudDiskService } from './cloud-disk.service.js';
 import { CloudBuildsRepository, type BuildWithProject } from './cloud-builds.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -48,6 +50,7 @@ export interface BuildView {
   status: CloudBuild['status'];
   error: string | null;
   deploymentId: string | null;
+  noCache: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -68,7 +71,8 @@ export interface BuildProject {
 
 /** Who asked for a build of a branch's latest commit: a person ("Deploy again") or a deploy hook. */
 export type BuildOrigin =
-  { trigger: 'MANUAL'; createdById: string } | { trigger: 'HOOK'; hookName: string };
+  | { trigger: 'MANUAL'; createdById: string; noCache?: boolean }
+  | { trigger: 'HOOK'; hookName: string };
 
 export interface BuildDetail extends BuildView {
   log: string;
@@ -103,6 +107,8 @@ export interface ClaimedBuild {
   timeoutSeconds: number;
   /** Values the agent hides from the log. */
   secrets: string[];
+  /** The dependency cache the agent mounts (4.13): `fresh` to empty it first, null for none. */
+  cache: { key: string; fresh?: true } | null;
 }
 
 const SECOND = 1000;
@@ -125,6 +131,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     private readonly github: GithubClient,
     private readonly config: AppConfigService,
     private readonly notifications: CloudNotificationsService,
+    private readonly disk: CloudDiskService,
   ) {
     this.box = new SecretBox(config.credentialsSecret, 'cloud-env-v1');
     this.stateKey = createHmac('sha256', config.jwtAccessSecret)
@@ -404,6 +411,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       status: build.status,
       error: build.error,
       deploymentId: build.deploymentId,
+      noCache: build.noCache,
       queuedAt: build.queuedAt.toISOString(),
       startedAt: build.startedAt?.toISOString() ?? null,
       finishedAt: build.finishedAt?.toISOString() ?? null,
@@ -436,12 +444,17 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
   }
 
   /** "Deploy again": a build of the branch's latest commit. */
-  async manual(ctx: CloudCtx, projectId: string, branch: string | undefined): Promise<BuildView> {
+  async manual(
+    ctx: CloudCtx,
+    projectId: string,
+    branch: string | undefined,
+    noCache = false,
+  ): Promise<BuildView> {
     const { project } = await this.projects.project(ctx, projectId);
     const build = await this.queueHead(
       { ...project, team: { slug: project.team.slug, plan: project.team.plan } },
       branch ?? project.gitBranch,
-      { trigger: 'MANUAL', createdById: ctx.user.id },
+      { trigger: 'MANUAL', createdById: ctx.user.id, noCache },
     );
     return this.view(build);
   }
@@ -475,6 +488,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       author: head.author,
       pullRequest: null,
       createdById: origin.trigger === 'MANUAL' ? origin.createdById : null,
+      noCache: origin.trigger === 'MANUAL' && origin.noCache === true,
       hookName: origin.trigger === 'HOOK' ? origin.hookName : null,
     });
   }
@@ -508,6 +522,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       pullRequest: number | null;
       createdById: string | null;
       hookName?: string | null;
+      noCache?: boolean;
     },
     now = new Date(),
   ): Promise<CloudBuild> {
@@ -527,6 +542,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       pullRequest: input.pullRequest,
       createdById: input.createdById,
       hookName: input.hookName ?? null,
+      noCache: input.noCache ?? false,
       queuedAt: now,
       ...(over
         ? {
@@ -687,6 +703,12 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         env,
         timeoutSeconds: plan.buildMinutes * 60,
         secrets: [token, ...Object.values(env).filter((value) => value.length >= 4)],
+        cache: this.disk.full
+          ? null
+          : {
+              key: cacheKey(project.id, build.target, project.nodeVersion),
+              ...(build.noCache ? { fresh: true as const } : {}),
+            },
       };
     } catch (error) {
       await this.finishFailed(build, error instanceof Error ? error.message : String(error));

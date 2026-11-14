@@ -2482,6 +2482,8 @@ model CloudBuild {
   /// stdout and stderr, at most 1 MB (the end is kept); emptied after 30 days.
   log           String            @default("")
   deploymentId  String?           @map("deployment_id") @db.Uuid
+  /// Run without the dependency cache (asked from the console or the CLI).
+  noCache       Boolean           @default(false) @map("no_cache")
   builder       String?           @db.VarChar(60)
   createdById   String?           @map("created_by_id") @db.Uuid
   /// The deploy hook's name when the build came from one (trigger HOOK); kept after the hook is deleted.

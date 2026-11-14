@@ -855,7 +855,13 @@ export async function startBuildAction(formData: FormData): Promise<void> {
   const slug = formString(formData, 'slug');
   let number: number | null = null;
   try {
-    number = (await startCloudBuild(formString(formData, 'project'))).number;
+    number = (
+      await startCloudBuild(
+        formString(formData, 'project'),
+        formString(formData, 'branch') || undefined,
+        formBoolean(formData, 'noCache'),
+      )
+    ).number;
   } catch {
     // The page shows the builds as they are.
   }

@@ -5321,6 +5321,8 @@
         "CANCELED": "Cancelada"
       },
       "cancel": "Cancelar",
+      "noCache": "Sin caché",
+      "retryNoCache": "Reintentar sin caché",
       "log": "Registro",
       "waiting": "Esperando un servidor de compilación…",
       "noLog": "Sin salida.",

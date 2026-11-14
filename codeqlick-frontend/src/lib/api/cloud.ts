@@ -801,6 +801,7 @@ export type CloudBuild = {
   commitMessage: string | null;
   author: string | null;
   pullRequest: number | null;
+  noCache: boolean;
   status: CloudBuildStatus;
   error: string | null;
   deploymentId: string | null;
@@ -884,11 +885,11 @@ export const getCloudBuild = (projectId: string, number: number) =>
     auth,
   );
 
-export const startCloudBuild = (projectId: string, branch?: string) =>
+export const startCloudBuild = (projectId: string, branch?: string, noCache = false) =>
   apiFetch<CloudBuild>(`/cloud/projects/${projectId}/builds`, {
     ...write,
     method: 'POST',
-    body: branch ? { branch } : {},
+    body: { ...(branch ? { branch } : {}), ...(noCache ? { noCache: true } : {}) },
   });
 
 export const cancelCloudBuild = (projectId: string, number: number) =>
