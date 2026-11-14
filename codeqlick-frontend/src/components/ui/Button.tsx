@@ -24,7 +24,7 @@ type ButtonAsLink = CommonProps &
 
 export type ButtonProps = ButtonAsButton | ButtonAsLink;
 
-function isExternalHref(href: string): boolean {
+export function isExternalHref(href: string): boolean {
   return /^(https?:|mailto:|tel:)/.test(href);
 }
 

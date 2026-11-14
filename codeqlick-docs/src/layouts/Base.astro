@@ -1,0 +1,111 @@
+---
+import '../styles/global.css';
+import { SITE_NAME, ui, type Lang } from '../lib/i18n';
+
+interface Alternate {
+  hreflang: string;
+  href: string;
+}
+
+interface Props {
+  /** Page title without the site name; omit for pages that are just the site name. */
+  title?: string;
+  description: string;
+  /** Page language; the start and 404 pages have none. */
+  lang?: Lang;
+  /** hreflang links, with absolute-path hrefs (`/es/quickstart/`). */
+  alternates?: Alternate[];
+  /** Search is only offered on documentation pages. */
+  search?: boolean;
+}
+
+const { title, description, lang, alternates = [], search = false } = Astro.props;
+const fullTitle = !title
+  ? SITE_NAME
+  : title.includes('Codeqlick Cloud')
+    ? title
+    : `${title} · ${SITE_NAME}`;
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const image = new URL('/og-image.png', Astro.site).toString();
+const alternateLinks = alternates.map((alt) => ({
+  hreflang: alt.hreflang,
+  href: new URL(alt.href, Astro.site).toString(),
+}));
+const otherLocales = lang
+  ? alternates.filter((alt) => alt.hreflang !== 'x-default' && alt.hreflang !== lang)
+  : [];
+const t = lang ? ui[lang] : undefined;
+---
+
+<!doctype html>
+<html lang={t?.htmlLang ?? 'en'} data-anchor-label={t?.copyAnchor}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="canonical" href={canonical} />
+    {alternateLinks.map((alt) => (
+      <link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+    ))}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-sans-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/space-grotesk-latin-wght.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content={t?.ogLocale ?? 'en_US'} />
+    {otherLocales.map((alt) => (
+      <meta property="og:locale:alternate" content={ui[alt.hreflang as Lang].ogLocale} />
+    ))}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body>
+    <slot />
+    {search ? <script is:inline src="/search.js" defer /> : null}
+    <script>
+      // Menu: open on wide screens, closed on small ones (without JavaScript it stays open).
+      const menu = document.querySelector<HTMLDetailsElement>('[data-menu]');
+      if (menu) {
+        const narrow = matchMedia('(max-width: 59.99rem)');
+        const sync = () => {
+          menu.open = !narrow.matches;
+        };
+        sync();
+        narrow.addEventListener('change', sync);
+      }
+
+      // A link on each heading of the article, so a section can be shared.
+      const label = document.documentElement.dataset.anchorLabel ?? '';
+      const headings = document.querySelectorAll<HTMLElement>('.prose :is(h2, h3)[id]');
+      for (const heading of headings) {
+        const link = document.createElement('a');
+        link.className = 'anchor';
+        link.href = `#${heading.id}`;
+        link.textContent = '#';
+        link.setAttribute('aria-label', `${label}: ${heading.textContent}`);
+        heading.append(link);
+      }
+    </script>
+  </body>
+</html>
