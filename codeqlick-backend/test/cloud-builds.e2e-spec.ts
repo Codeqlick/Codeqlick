@@ -480,8 +480,9 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
         branch: 'staging',
       })
       .expect(400);
+    // The global validation pipe sends schema issues as "<path>: <message>" strings.
     expect(forProduction.body.errors).toEqual([
-      { path: 'branch', message: 'A branch variable is for previews only' },
+      { path: '', message: 'branch: A branch variable is for previews only' },
     ]);
     await request(server)
       .put(envPath)
