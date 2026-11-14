@@ -17,7 +17,9 @@ const t = ui[lang];
   data-count={t.searchCount}
   hidden
 >
-  <label class="sr-only" for="search-input">{t.searchLabel}</label>
+  <label class="sr-only" for="search-input">
+    {t.searchLabel}
+  </label>
   <input
     id="search-input"
     type="search"
@@ -30,7 +32,9 @@ const t = ui[lang];
     aria-autocomplete="list"
     aria-keyshortcuts="/"
   />
-  <kbd class="search-key" aria-hidden="true">/</kbd>
+  <kbd class="search-key" aria-hidden="true">
+    /
+  </kbd>
   <ul id="search-results" role="listbox" aria-label={t.searchLabel} hidden></ul>
   <p class="sr-only" role="status" data-status></p>
 </div>
