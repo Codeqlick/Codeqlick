@@ -75,7 +75,9 @@ Builds from Git:
       --production --preview  where it applies (both when neither is given)
   env rm <KEY>              Delete one
   builds                    The latest builds
-  builds start [--branch <name>]   Build the branch's latest commit and follow the log
+  builds start [--branch <name>] [--no-cache]
+                            Build the branch's latest commit and follow the log;
+                            --no-cache skips the dependency cache
   builds cancel <number>    Cancel a queued or running build
   logs [number]             A build's log (the latest by default), followed while it runs
       --json                  (git, env, builds) print the API's answer
@@ -108,6 +110,7 @@ interface Options {
   'fail-on'?: string;
   json?: boolean;
   branch?: string;
+  'no-cache'?: boolean;
   root?: string;
   install?: string;
   build?: string;
@@ -717,7 +720,7 @@ async function builds(action: string | undefined, arg: string | undefined, optio
     return 0;
   }
   if (action === 'start') {
-    const build = await api.startBuild(project.id, options.branch);
+    const build = await api.startBuild(project.id, options.branch, options['no-cache']);
     if (options.json) {
       console.log(JSON.stringify(build, null, 2));
       return 0;
@@ -890,6 +893,7 @@ export async function main(argv: string[]): Promise<number> {
       'fail-on': { type: 'string' },
       json: { type: 'boolean' },
       branch: { type: 'string' },
+      'no-cache': { type: 'boolean' },
       root: { type: 'string' },
       install: { type: 'string' },
       build: { type: 'string' },

@@ -139,6 +139,7 @@ export interface Build {
   status: BuildStatus;
   error: string | null;
   deploymentId: string | null;
+  noCache: boolean;
   queuedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -311,8 +312,11 @@ export class Api {
     ).then((r) => r.items);
   build = (project: string, number: number, after = 0) =>
     this.request<BuildDetail>('GET', `/cloud/projects/${project}/builds/${number}?after=${after}`);
-  startBuild = (project: string, branch?: string) =>
-    this.request<Build>('POST', `/cloud/projects/${project}/builds`, branch ? { branch } : {});
+  startBuild = (project: string, branch?: string, noCache?: boolean) =>
+    this.request<Build>('POST', `/cloud/projects/${project}/builds`, {
+      ...(branch ? { branch } : {}),
+      ...(noCache ? { noCache: true } : {}),
+    });
   cancelBuild = (project: string, number: number) =>
     this.request<Build>('POST', `/cloud/projects/${project}/builds/${number}/cancel`);
   analytics = (project: string, period: AnalyticsPeriod) =>

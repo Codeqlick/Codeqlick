@@ -13,6 +13,7 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { CloudDiskService } from '../src/modules/cloud/cloud-disk.service.js';
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { GithubClient } from '../src/modules/cloud/github.client.js';
@@ -300,6 +301,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       outputDir: 'build',
       nodeVersion: '22',
       env: { API_KEY: 's3cret-value' },
+      cache: { key: `${projectId}/production-node22` },
     });
     expect(job.cloneUrl).toBe(
       'https://x-access-token:ghs_installation_token@github.com/ada-labs/site.git',
@@ -433,6 +435,47 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .set(builder)
       .send({ builder: 'b1' })
       .expect(204);
+
+    // The dependency cache: fresh for a build asked "without cache", off while the disk is full.
+    const bare = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds`)
+      .set(auth)
+      .send({ noCache: true })
+      .expect(201);
+    expect(bare.body).toMatchObject({ noCache: true, status: 'QUEUED' });
+    expect(manual.body.noCache).toBe(false);
+    const claimedBare = await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b1' })
+      .expect(200);
+    expect(claimedBare.body.build.cache).toEqual({
+      key: `${projectId}/production-node22`,
+      fresh: true,
+    });
+    await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds/${bare.body.number as number}/cancel`)
+      .set(auth)
+      .expect(200);
+    const full = vi.spyOn(app.get(CloudDiskService), 'full', 'get').mockReturnValue(true);
+    const again = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds`)
+      .set(auth)
+      .send({ branch: 'header' })
+      .expect(201);
+    expect(again.body.noCache).toBe(false);
+    const claimedFull = await request(server)
+      .post('/v1/cloud/builder/claim')
+      .set(builder)
+      .send({ builder: 'b1' })
+      .expect(200);
+    expect(claimedFull.body.build.cache).toBeNull();
+    full.mockRestore();
+    await request(server)
+      .post(`/v1/cloud/projects/${projectId}/builds/${again.body.number as number}/cancel`)
+      .set(auth)
+      .expect(200);
+
     await send('push', { ...push, after: sha(4), head_commit: { message: 'More' } });
     const third = await request(server)
       .post('/v1/cloud/builder/claim')
