@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import styles from './Badge.module.css';
 
-export type BadgeTone = 'neutral' | 'brand' | 'ink' | 'success' | 'warning' | 'danger';
+export type BadgeTone = 'neutral' | 'brand' | 'ink' | 'success' | 'warning' | 'danger' | 'info';
 
 export function Badge({
   tone = 'neutral',

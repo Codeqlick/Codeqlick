@@ -575,18 +575,77 @@ export type CloudStatusPageSettings = {
   items: Array<{ monitorId: string; label: string }>;
 };
 
+/** On the public page a monitor under a maintenance in progress shows MAINTENANCE. */
+export type CloudPublicMonitorState = CloudMonitorState | 'MAINTENANCE';
+
+export type CloudPublicOverall = 'operational' | 'partial' | 'major' | 'maintenance' | 'unknown';
+
+export type CloudNoticeKind = 'INCIDENT' | 'MAINTENANCE';
+
+/** Incidents: INVESTIGATING…RESOLVED; maintenance: its phase from the time (SCHEDULED…COMPLETED). */
+export type CloudNoticeState =
+  | 'INVESTIGATING'
+  | 'IDENTIFIED'
+  | 'MONITORING'
+  | 'RESOLVED'
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED';
+
+/** A status page notice as the console sees it (architecture 4.13, Notices). */
+export type CloudStatusNotice = {
+  id: string;
+  kind: CloudNoticeKind;
+  title: string;
+  /** Effective: a maintenance's phase now. */
+  state: CloudNoticeState;
+  open: boolean;
+  monitorIds: string[];
+  startsAt: string | null;
+  endsAt: string | null;
+  resolvedAt: string | null;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** Newest first; a maintenance note has no state. */
+  updates: Array<{
+    id: string;
+    state: CloudNoticeState | null;
+    body: string;
+    createdBy: string | null;
+    createdAt: string;
+  }>;
+};
+
+/** A notice on the public page: monitors only by their public labels. */
+export type CloudPublicNotice = {
+  id: string;
+  kind: CloudNoticeKind;
+  title: string;
+  state: CloudNoticeState;
+  monitors: string[];
+  startsAt: string | null;
+  endsAt: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  /** Newest first. */
+  updates: Array<{ state: CloudNoticeState | null; body: string; createdAt: string }>;
+};
+
 export type CloudPublicStatus = {
   title: string;
   intro: string | null;
-  overall: 'operational' | 'partial' | 'major' | 'unknown';
+  overall: CloudPublicOverall;
   updatedAt: string;
   monitors: Array<{
     label: string;
-    status: CloudMonitorState;
+    status: CloudPublicMonitorState;
     uptime90: number | null;
     days: CloudDayUptime[];
     incidents: CloudIncident[];
   }>;
+  /** Open notices and those closed in the last 14 days, in the page's order. */
+  notices: CloudPublicNotice[];
 };
 
 export const listCloudMonitors = (team: string) =>
@@ -629,6 +688,60 @@ export const saveCloudStatusPage = (team: string, input: CloudStatusPageSettings
     ...write,
     method: 'PUT',
     body: { ...input, intro: input.intro ?? undefined },
+  });
+
+export const listCloudStatusNotices = (team: string, open: boolean, page = 1, pageSize = 20) =>
+  apiFetch<Paginated<CloudStatusNotice>>(
+    `/cloud/teams/${encodeURIComponent(team)}/status-notices`,
+    { ...auth, query: { open, page, pageSize } },
+  );
+
+export const createCloudStatusNotice = (
+  team: string,
+  input:
+    | {
+        kind: 'INCIDENT';
+        title: string;
+        monitorIds: string[];
+        body: string;
+        state: CloudNoticeState;
+      }
+    | {
+        kind: 'MAINTENANCE';
+        title: string;
+        monitorIds: string[];
+        body: string;
+        startsAt: string;
+        endsAt: string;
+      },
+) =>
+  apiFetch<CloudStatusNotice>(`/cloud/teams/${encodeURIComponent(team)}/status-notices`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const updateCloudStatusNotice = (
+  id: string,
+  input: Partial<{ title: string; monitorIds: string[]; startsAt: string; endsAt: string }>,
+) =>
+  apiFetch<CloudStatusNotice>(`/cloud/status-notices/${id}`, {
+    ...write,
+    method: 'PATCH',
+    body: input,
+  });
+
+export const deleteCloudStatusNotice = (id: string) =>
+  apiFetch<void>(`/cloud/status-notices/${id}`, { ...write, method: 'DELETE' });
+
+export const addCloudStatusNoticeUpdate = (
+  id: string,
+  input: { body: string; state?: CloudNoticeState },
+) =>
+  apiFetch<CloudStatusNotice>(`/cloud/status-notices/${id}/updates`, {
+    ...write,
+    method: 'POST',
+    body: input,
   });
 
 /** A team's public status (no session; the API caches it 60 s). */
