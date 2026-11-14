@@ -1,4 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import type { UnsubscribeLinks } from '../auth/unsubscribe-token.js';
 import { renderEmail } from '../mail/email-layout.js';
 import { madridInstant, madridParts } from '../projects/digest-schedule.js';
 
@@ -91,7 +92,7 @@ function trend(report: SiteReport, locale: ApiLocale): string | null {
 export function siteReportEmail(
   person: { name: string; email: string; locale: ApiLocale },
   report: SiteReport,
-  urls: { project: string; account: string; site: string },
+  urls: { project: string; account: string; site: string; unsubscribe?: UnsubscribeLinks },
 ) {
   const locale = person.locale;
   const es = locale === 'es';
@@ -156,8 +157,10 @@ export function siteReportEmail(
         note: es
           ? `¿Prefieres no recibir este informe? Desactívalo en tu cuenta: ${urls.account}`
           : `Rather not get this report? Turn it off in your account: ${urls.account}`,
+        unsubscribeUrl: urls.unsubscribe?.page,
       },
       urls.site,
     ),
+    ...(urls.unsubscribe ? { listUnsubscribe: urls.unsubscribe.oneClick } : {}),
   };
 }

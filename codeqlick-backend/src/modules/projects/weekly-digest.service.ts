@@ -9,6 +9,7 @@ import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import type { Locale } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { unsubscribeLinks } from '../auth/unsubscribe-token.js';
 import { digestHasNews, weeklyDigestEmail, type DigestProject } from './digest-email.js';
 import { digestWeekStart } from './digest-schedule.js';
 import { ProjectsRepository } from './projects.repository.js';
@@ -126,6 +127,11 @@ export class WeeklyDigestService implements OnApplicationBootstrap, OnApplicatio
         `${site}/${locale}/portal/account`,
         locale,
         site,
+        unsubscribeLinks({ userId: client.id, kind: 'digest' }, locale, {
+          secret: this.config.jwtAccessSecret,
+          publicApiUrl: this.config.publicApiUrl,
+          siteUrl: site,
+        }),
       ),
     );
     await this.repository.markDigestSent(client.id, now);
