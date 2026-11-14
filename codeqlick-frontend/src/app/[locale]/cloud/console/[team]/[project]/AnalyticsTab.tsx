@@ -9,6 +9,7 @@ import {
   type CloudAnalyticsPeriod,
   type CloudAnalyticsRow,
 } from '@/lib/api/cloud';
+import { appPath } from '@/lib/webapp-request';
 import { toggleAnalyticsAction } from '../../../actions';
 import styles from '../../../cloud.module.css';
 
@@ -34,6 +35,7 @@ export async function AnalyticsTab(props: Props) {
   const t = await getTranslations({ locale: props.locale, namespace: 'Cloud' });
   const report = await getCloudAnalytics(props.projectId, props.period).catch(() => null);
   if (!report) return <p className={styles.muted}>{t('common.loadError')}</p>;
+  const csv = await appPath(`/${props.locale}${props.base}/analytics/csv`, props.locale);
   const number = new Intl.NumberFormat(props.locale);
   const max = Math.max(1, ...report.series.map((point) => point.pageviews));
   const hourly = props.period === '24h';
@@ -130,6 +132,11 @@ export async function AnalyticsTab(props: Props) {
           </Link>
         ))}
       </nav>
+      <p className={styles.small}>
+        <a href={`${csv}?period=${props.period}`} download>
+          {t('analytics.csv')}
+        </a>
+      </p>
 
       <div className={styles.meters}>
         <div className={styles.meter}>

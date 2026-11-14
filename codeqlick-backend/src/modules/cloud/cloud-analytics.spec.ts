@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  analyticsToCsv,
   browserOf,
   campaignOf,
   deviceOf,
@@ -119,5 +120,22 @@ describe('Cloud web analytics', () => {
     // It is valid JavaScript.
     expect(() => new Function(script)).not.toThrow();
     expect(script).not.toMatch(/\.cookie|localStorage|sessionStorage/);
+  });
+
+  it('writes the analytics CSV with a BOM, a header and safe cells', () => {
+    const csv = analyticsToCsv([
+      { date: '2026-11-13', kind: 'page', name: '/pricing', visitors: 3, count: 5 },
+      { date: '2026-11-13 14:00', kind: 'page', name: '=cmd|calc', visitors: 1, count: 1 },
+      { date: '2026-11-13', kind: 'event', name: '/a,b "c"', visitors: 2, count: 2 },
+    ]);
+    expect(csv.startsWith('\uFEFFkind,date,name,visitors,count\r\n')).toBe(true);
+    expect(csv.endsWith('\r\n')).toBe(true);
+    expect(csv.slice(1).trimEnd().split('\r\n')).toEqual([
+      'kind,date,name,visitors,count',
+      'page,2026-11-13,/pricing,3,5',
+      "page,2026-11-13 14:00,'=cmd|calc,1,1",
+      'event,2026-11-13,"/a,b ""c""",2,2',
+    ]);
+    expect(analyticsToCsv([])).toBe('\uFEFFkind,date,name,visitors,count\r\n');
   });
 });

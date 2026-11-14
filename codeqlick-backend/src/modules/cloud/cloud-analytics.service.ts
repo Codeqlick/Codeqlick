@@ -9,9 +9,11 @@ import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { MailService } from '../mail/mail.service.js';
 import {
+  analyticsToCsv,
   browserOf,
   campaignOf,
   deviceOf,
+  EXPORT_ROWS,
   fillSeries,
   isBot,
   osOf,
@@ -259,6 +261,23 @@ export class CloudAnalyticsService implements OnApplicationBootstrap, OnApplicat
       os,
       devices,
       events,
+    };
+  }
+
+  /** The period's page views and events as CSV; works while analytics is off. */
+  async csv(
+    ctx: CloudCtx,
+    projectId: string,
+    period: AnalyticsPeriod,
+  ): Promise<{ name: string; body: string; truncated: boolean }> {
+    const { project } = await this.projects.project(ctx, projectId);
+    const { since, unit } = periodRange(period);
+    const rows = await this.analytics.exportRows(project.id, since, unit, EXPORT_ROWS + 1);
+    const truncated = rows.length > EXPORT_ROWS;
+    return {
+      name: `${project.slug}-analytics-${period}.csv`,
+      body: analyticsToCsv(truncated ? rows.slice(0, EXPORT_ROWS) : rows),
+      truncated,
     };
   }
 
