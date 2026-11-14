@@ -257,7 +257,7 @@ export class CloudStorage {
   }
 
   /** Walks an unpacked tree: folders 755, files 644, anything else refused; sums sizes. */
-  private async normalise(root: string): Promise<Unpacked> {
+  private async normalise(root: string): Promise<Omit<Unpacked, 'config'>> {
     let sizeBytes = 0;
     let fileCount = 0;
     const walk = async (folder: string): Promise<void> => {

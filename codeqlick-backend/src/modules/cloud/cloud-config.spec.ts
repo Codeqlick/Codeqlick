@@ -73,14 +73,15 @@ describe('patterns', () => {
   });
 
   it('refuses bad sources with the reason', () => {
-    const refused = (source: string) => {
+    const refused = (source: string): string | null => {
       try {
         compilePattern(source);
+        return null;
       } catch (error) {
-        expect(error).toBeInstanceOf(PatternError);
-        return (error as Error).message;
+        // Any other error fails the test.
+        if (!(error instanceof PatternError)) throw error;
+        return error.message;
       }
-      return null;
     };
     expect(refused('about')).toContain('start with /');
     expect(refused('/a//b')).toContain('empty segment');

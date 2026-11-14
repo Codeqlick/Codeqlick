@@ -90,9 +90,7 @@ export default async function CloudDeploymentPage({ params }: PageProps) {
             {rules.config ? (
               <details className={styles.spacedSmall}>
                 <summary>{t('project.rules.file')}</summary>
-                <pre className={styles.terminal} tabIndex={0}>
-                  {configJson(rules.config)}
-                </pre>
+                <pre className={styles.terminal}>{configJson(rules.config)}</pre>
               </details>
             ) : null}
             <p className={styles.small}>{t('project.rules.readOnly')}</p>
