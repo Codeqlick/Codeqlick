@@ -37,4 +37,14 @@ test.describe('public site', () => {
     const response = await page.goto('/es/does-not-exist');
     expect(response?.status()).toBe(404);
   });
+
+  test('llms.txt maps the website for AI assistants', async ({ request }) => {
+    const response = await request.get('/llms.txt');
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toBe('text/plain; charset=utf-8');
+    const text = await response.text();
+    expect(text.startsWith('# Codeqlick\n')).toBe(true);
+    expect(text).toMatch(/\]\(https?:\/\/[^)\s]+\/en\/blog\)/);
+    expect(text).not.toContain('€');
+  });
 });
