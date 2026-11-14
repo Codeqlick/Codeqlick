@@ -35,7 +35,7 @@ type Props = {
 };
 
 /**
- * A project's notifications (architecture 4.13 "Build notifications", decisions 43 and 63): builds,
+ * A project's notifications and monitor alerts (architecture 4.13, decisions 43 and 63 and 64): builds,
  * and form submissions for Slack, Discord and webhooks.
  */
 export async function NotificationsTab(props: Props) {
@@ -79,6 +79,7 @@ export async function NotificationsTab(props: Props) {
       channel.buildSucceeded ? t('notify.succeeded') : null,
       channel.previews ? t('notify.withPreviews') : t('notify.productionOnly'),
       formEvents(channel),
+      channel.monitorAlerts ? t('notify.monitors') : null,
     ]
       .filter(Boolean)
       .join(' · ');
@@ -253,6 +254,15 @@ export async function NotificationsTab(props: Props) {
                     defaultChecked={channel.previews}
                   />
                   {channel.kind === 'EMAIL' ? null : formFields(channel.id, channel)}
+                  {channel.kind === 'EMAIL' ? null : (
+                    <FormCheckbox
+                      id={`${channel.id}-monitors`}
+                      name="monitorAlerts"
+                      label={t('notify.onMonitors')}
+                      hint={t('notify.onMonitorsHint')}
+                      defaultChecked={channel.monitorAlerts}
+                    />
+                  )}
                   <div className={styles.actions}>
                     <SubmitButton size="sm" pendingLabel={t('notify.saving')}>
                       {t('notify.save')}
@@ -308,6 +318,11 @@ export async function NotificationsTab(props: Props) {
             <FormCheckbox name="buildSucceeded" label={t('notify.onSucceeded')} />
             <FormCheckbox name="previews" label={t('notify.onPreviews')} />
             {formFields(undefined)}
+            <FormCheckbox
+              name="monitorAlerts"
+              label={t('notify.onMonitorsNew')}
+              hint={t('notify.onMonitorsHint')}
+            />
             <div className={styles.actions}>
               <SubmitButton pendingLabel={t('notify.creating')}>{t('notify.create')}</SubmitButton>
             </div>

@@ -1290,12 +1290,15 @@ export async function createNotifyAction(
   const kind = formString(formData, 'kind') as CloudNotifyKind;
   const url = formString(formData, 'url');
   const recipientIds = formData.getAll('recipients').map(String).filter(Boolean);
+  const monitorAlerts = formBoolean(formData, 'monitorAlerts');
   const fieldErrors: Record<string, string> = {};
   if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
   if (!NOTIFY_KINDS.includes(kind)) fieldErrors.kind = t('kindInvalid');
   else if (kind === 'EMAIL') {
     if (recipientIds.length < 1 || recipientIds.length > 10)
       fieldErrors.recipients = t('recipientsInvalid');
+    // Monitors already email their own chosen people (decision 64).
+    if (monitorAlerts) fieldErrors.monitorAlerts = t('monitorAlertsEmail');
   } else {
     const problem = notifyUrlProblem(kind, url);
     if (problem) fieldErrors.url = t(problem);
@@ -1310,7 +1313,9 @@ export async function createNotifyAction(
   try {
     const created = await createCloudNotification(
       projectId,
-      kind === 'EMAIL' ? { kind, name, recipientIds, ...events } : { kind, name, url, ...events },
+      kind === 'EMAIL'
+        ? { kind, name, recipientIds, ...events }
+        : { kind, name, url, ...events, monitorAlerts },
     );
     secret = created.secret;
   } catch (error) {
@@ -1327,7 +1332,7 @@ export async function createNotifyAction(
     : { status: 'success', message: t('created') };
 }
 
-/** Saves a channel's name, events and (when given) a new URL or new recipients. */
+/** Saves a channel's name, events (monitor alerts only off email) and a new URL or recipients. */
 export async function updateNotifyAction(
   locale: string,
   path: string,
@@ -1358,7 +1363,9 @@ export async function updateNotifyAction(
     await updateCloudNotification(projectId, channelId, {
       name,
       ...notifyEvents(formData, lang, kind),
-      ...(kind === 'EMAIL' ? { recipientIds } : url ? { url } : {}),
+      ...(kind === 'EMAIL'
+        ? { recipientIds }
+        : { monitorAlerts: formBoolean(formData, 'monitorAlerts'), ...(url ? { url } : {}) }),
     });
   } catch (error) {
     return failure(lang, error, values);

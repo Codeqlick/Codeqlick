@@ -112,6 +112,20 @@ export class CloudNotificationsRepository {
     return rows.map((row) => row.id);
   }
 
+  /** A monitor's project with what its alerts need (decision 64); null once deleted. */
+  project(id: string) {
+    return this.prisma.cloudProject.findFirst({
+      where: { id, deletedAt: null },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        teamId: true,
+        team: { select: { slug: true } },
+      },
+    });
+  }
+
   /** Which of `userIds` are members of the team. */
   async membersAmong(teamId: string, userIds: string[]): Promise<string[]> {
     const rows = await this.prisma.cloudMember.findMany({

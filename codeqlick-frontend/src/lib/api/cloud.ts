@@ -660,6 +660,8 @@ export type CloudNotifyChannel = {
   previews: boolean;
   formSubmitted: boolean;
   formIds: string[];
+  /** Also the alerts of the project's monitors (Slack, Discord and webhook only, decision 64). */
+  monitorAlerts: boolean;
   locale: 'en' | 'es';
   failures: number;
   lastSentAt: string | null;
@@ -675,6 +677,7 @@ type NotifyEvents = {
   /** Slack, Discord and webhooks only: the API refuses them on email channels (400). */
   formSubmitted?: boolean;
   formIds?: string[];
+  monitorAlerts?: boolean;
   locale: 'en' | 'es';
 };
 
