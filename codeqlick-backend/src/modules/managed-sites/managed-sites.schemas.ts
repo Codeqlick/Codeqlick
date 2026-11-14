@@ -317,6 +317,15 @@ export type CreateSiteInput = z.infer<typeof createSiteSchema>;
 export const updateSiteSchema = z.object({ domain: domain.nullable() }).strict();
 export type UpdateSiteInput = z.infer<typeof updateSiteSchema>;
 
+/**
+ * A style's demo content as a site's content: without the keys a build sets (`url`, `form`,
+ * `demo`) and the ones only a demo has (`footerNote`, `news`, the sample posts).
+ */
+export function presetContent(content: Record<string, unknown>): Record<string, unknown> {
+  const { url: _url, form: _form, demo: _demo, footerNote: _note, news: _news, ...rest } = content;
+  return rest;
+}
+
 /** The menu extra, turned on or off by the team. */
 export const siteMenuBodySchema = z.object({ enabled: z.boolean() }).strict();
 export type SiteMenuBody = z.infer<typeof siteMenuBodySchema>;

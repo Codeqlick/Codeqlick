@@ -1070,6 +1070,8 @@ model ManagedSite {
   menuEnabled     Boolean          @default(false) @map("menu_enabled")
   /// The client has switched on the news section (architecture 8.2, decision 55).
   newsEnabled     Boolean          @default(false) @map("news_enabled")
+  /// When the last successful build started: a post that expired after it is still online.
+  newsBuiltAt     DateTime?        @map("news_built_at") @db.Timestamptz(3)
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 

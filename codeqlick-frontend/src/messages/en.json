@@ -2868,6 +2868,8 @@
     "publishedBuilt": "Published. Your website is up to date.",
     "publishedPending": "Published. Your website is being updated.",
     "unpublishedBuilt": "Unpublished. It is no longer on your website.",
+    "pastHint": "This day has passed. You can save it, but to publish choose today or a later day.",
+    "unpublishedPlain": "Unpublished.",
     "unpublishedPending": "Unpublished. Your website is being updated.",
     "buildFailed": "Saved, but your website could not be updated now. The previous version stays online and the post will go up with the next update.",
     "errors": {

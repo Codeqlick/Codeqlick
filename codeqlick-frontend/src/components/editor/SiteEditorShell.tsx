@@ -17,21 +17,31 @@ export function SiteEditorShell({
   ...editor
 }: ComponentProps<typeof SiteEditor> & {
   /** The news section's switch and first posts (their own save buttons, not the draft's). */
-  news: SiteNewsList;
+  news: SiteNewsList | null;
 }) {
   const t = useTranslations('SiteNews');
   const [section, setSection] = useState<'site' | 'news'>('site');
   return (
     <>
-      <div className={styles.sections} role="group" aria-label={t('tabsLabel')}>
-        <button type="button" aria-pressed={section === 'site'} onClick={() => setSection('site')}>
-          {t('tabSite')}
-        </button>
-        <button type="button" aria-pressed={section === 'news'} onClick={() => setSection('news')}>
-          {t('tabNews')}
-        </button>
-      </div>
-      {section === 'news' ? (
+      {news ? (
+        <nav className={styles.sections} aria-label={t('tabsLabel')}>
+          <button
+            type="button"
+            aria-pressed={section === 'site'}
+            onClick={() => setSection('site')}
+          >
+            {t('tabSite')}
+          </button>
+          <button
+            type="button"
+            aria-pressed={section === 'news'}
+            onClick={() => setSection('news')}
+          >
+            {t('tabNews')}
+          </button>
+        </nav>
+      ) : null}
+      {news && section === 'news' ? (
         <SiteNews
           locale={editor.locale}
           scope="portal"
@@ -39,7 +49,7 @@ export function SiteEditorShell({
           initial={news}
         />
       ) : null}
-      <div hidden={section === 'news'} className={styles.siteSection}>
+      <div hidden={Boolean(news) && section === 'news'} className={styles.siteSection}>
         <SiteEditor {...editor} />
       </div>
     </>

@@ -4,7 +4,12 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
-import { siteContentSchema, sitePresetSchema, type SiteContent } from './managed-sites.schemas.js';
+import {
+  presetContent,
+  siteContentSchema,
+  sitePresetSchema,
+  type SiteContent,
+} from './managed-sites.schemas.js';
 import { ManagedSitesService } from './managed-sites.service.js';
 import { PortalSitesService } from './portal-sites.service.js';
 import { SiteBuilderClient } from './site-builder.client.js';
@@ -34,12 +39,6 @@ export interface SiteEditorView {
   menuEnabled: boolean;
   /** The news section is on: the "Noticias" tab shows its posts (architecture 8.2). */
   newsEnabled: boolean;
-}
-
-/** The style's demo content with the fields a site's content doesn't keep. */
-function presetContent(content: Record<string, unknown>): Record<string, unknown> {
-  const { url: _url, form: _form, demo: _demo, footerNote: _note, ...rest } = content;
-  return rest;
 }
 
 /**

@@ -125,7 +125,7 @@ const site: Site = {
         slug: 'menu-de-otono',
         title: 'Nuevo menú de otoño',
         summary: 'Arroz de setas de temporada, calabaza asada y un postre de membrillo casero.',
-        body: 'Desde este viernes estrenamos **menú de otoño**.\n\n- Arroz de setas y panceta\n- Crema de calabaza asada\n- Tarta de membrillo casera\n\nSe sirve de martes a viernes al mediodía. [Reserva tu mesa](#contacto) con unos días de margen.',
+        body: 'Desde este viernes estrenamos **menú de otoño**.\n\n- Arroz de setas y panceta\n- Crema de calabaza asada\n- Tarta de membrillo casera\n\nSe sirve de martes a viernes al mediodía. Reserva tu mesa con unos días de margen.',
         photo: { file: 'galeria-2.jpg', alt: 'Un arroz recién sacado de la paella' },
         publishedAt: '2026-11-10T09:00:00+01:00',
       },

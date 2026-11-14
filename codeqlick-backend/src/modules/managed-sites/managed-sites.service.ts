@@ -15,6 +15,7 @@ import { SiteFormsService } from '../site-forms/site-forms.service.js';
 import { UmamiClient } from '../stats/umami.client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
 import {
+  presetContent,
   siteContentSchema,
   type CreateSiteInput,
   type SiteContent,
@@ -66,6 +67,9 @@ export interface SiteRevisionView {
 @Injectable()
 export class ManagedSitesService {
   private readonly logger = new Logger(ManagedSitesService.name);
+  /** The build in progress of each site (by project) and the one waiting behind it. */
+  private readonly building = new Map<string, Promise<SiteView>>();
+  private readonly queued = new Map<string, Promise<SiteView>>();
 
   constructor(
     private readonly repository: ManagedSitesRepository,
@@ -107,7 +111,7 @@ export class ManagedSitesService {
 
     const preset = (await this.builder.presets()).find((item) => item.key === input.preset);
     if (!preset) throw new InternalServerErrorException('The site builder has no such preset');
-    const { url: _url, form: _form, demo: _demo, footerNote: _note, ...base } = preset.content;
+    const base = presetContent(preset.content);
     const parsed = siteContentSchema.safeParse({
       ...base,
       business: { ...(base.business as object), name: project.name },
@@ -241,13 +245,42 @@ export class ManagedSitesService {
     return this.build(projectId);
   }
 
-  /** Builds the current content and publishes it; a failed build keeps the previous release. */
-  async build(projectId: string): Promise<SiteView> {
+  /**
+   * Builds the current content and publishes it; a failed build keeps the previous release. One
+   * build per site at a time: a request made while one runs waits for it and shares one more
+   * build, which reads everything saved by then, with any others made meanwhile.
+   */
+  build(projectId: string): Promise<SiteView> {
+    const running = this.building.get(projectId);
+    if (!running) return this.startBuild(projectId);
+    const waiting = this.queued.get(projectId);
+    if (waiting) return waiting;
+    const next = running
+      .catch(() => undefined)
+      .then(() => {
+        this.queued.delete(projectId);
+        return this.startBuild(projectId);
+      });
+    this.queued.set(projectId, next);
+    return next;
+  }
+
+  private startBuild(projectId: string): Promise<SiteView> {
+    const run = this.runBuild(projectId).finally(() => {
+      if (this.building.get(projectId) === run) this.building.delete(projectId);
+    });
+    this.building.set(projectId, run);
+    return run;
+  }
+
+  private async runBuild(projectId: string): Promise<SiteView> {
     const site = await this.findSite(projectId);
     await this.repository.update(site.id, { status: 'BUILDING' });
     const form = await this.forms.get(projectId);
     const websiteId = await this.analyticsOf(site);
-    const news = await this.newsToBuild(site);
+    // The posts it shows are those published and not expired from this moment on.
+    const startedAt = new Date();
+    const news = await this.newsToBuild(site, startedAt);
     const result = await this.builder.build({
       slug: site.slug,
       preset: site.preset,
@@ -264,7 +297,13 @@ export class ManagedSitesService {
     const row = await this.repository.update(
       site.id,
       result.ok
-        ? { status: 'LIVE', lastBuildAt: new Date(), lastBuildError: null, release: result.release }
+        ? {
+            status: 'LIVE',
+            lastBuildAt: new Date(),
+            newsBuiltAt: startedAt,
+            lastBuildError: null,
+            release: result.release,
+          }
         : { status: 'FAILED', lastBuildAt: new Date(), lastBuildError: result.error.slice(-4000) },
     );
     if (!result.ok) this.logger.warn(`Build of ${site.slug} failed: ${result.error.slice(-500)}`);

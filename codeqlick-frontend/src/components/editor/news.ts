@@ -47,10 +47,14 @@ export function expiryDay(expiresAt: string | null): string {
   return expiresAt ? expiresAt.slice(0, 10) : '';
 }
 
-/** Checks the form before it is sent; the API still has the last word. */
+/**
+ * Checks the form before it is sent; the API still has the last word. A past last day is fine
+ * for saving (an expired post, a draft) and only blocks publishing.
+ */
 export function newsProblems(
   form: NewsForm,
   today: string,
+  publishing = false,
 ): Partial<Record<keyof NewsForm, NewsProblem>> {
   const problems: Partial<Record<keyof NewsForm, NewsProblem>> = {};
   const title = form.title.trim();
@@ -64,7 +68,7 @@ export function newsProblems(
   else if (body.length > NEWS_LIMITS.body) problems.body = 'tooLong';
   if (form.expiresAt) {
     if (!DAY.test(form.expiresAt)) problems.expiresAt = 'date';
-    else if (form.expiresAt < today) problems.expiresAt = 'past';
+    else if (publishing && form.expiresAt < today) problems.expiresAt = 'past';
   }
   return problems;
 }

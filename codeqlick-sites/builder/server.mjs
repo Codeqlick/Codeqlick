@@ -224,7 +224,9 @@ async function presets() {
   const list = [];
   for (const key of PRESETS) {
     const url = pathToFileURL(join(TEMPLATE, 'examples', key, 'site.ts')).href;
-    list.push({ key, content: (await import(url)).default });
+    // The demos' news posts are not starting content.
+    const { news: _news, ...content } = (await import(url)).default;
+    list.push({ key, content });
   }
   return { presets: list };
 }

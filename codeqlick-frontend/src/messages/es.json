@@ -2868,6 +2868,8 @@
     "publishedBuilt": "Publicada. Tu web está al día.",
     "publishedPending": "Publicada. Tu web se está actualizando.",
     "unpublishedBuilt": "Despublicada. Ya no está en tu web.",
+    "pastHint": "Este día ya ha pasado. Puedes guardarlo, pero para publicar elige hoy o un día posterior.",
+    "unpublishedPlain": "Despublicada.",
     "unpublishedPending": "Despublicada. Tu web se está actualizando.",
     "buildFailed": "Guardado, pero ahora no se ha podido actualizar tu web. La versión anterior sigue en línea y la publicación saldrá con la próxima actualización.",
     "errors": {

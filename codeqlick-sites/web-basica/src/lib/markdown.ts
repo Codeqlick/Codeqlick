@@ -20,11 +20,24 @@ export const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (c)
 const SAFE_LINK = /^(?:https?:\/\/|mailto:|tel:)[^\s<>"']+$/i;
 const LINK = /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
 
-/** Bold and italics over text that is already escaped (it has no tags to confuse). */
+const BOLD = /\*\*(?=\S)(.+?)(?<=\S)\*\*(?!\*)/g;
+const italic = (escaped: string): string =>
+  escaped.replace(/\*(?=\S)(.+?)(?<=\S)\*/g, '<em>$1</em>');
+
+/**
+ * Bold, then italics inside and outside it, over text that is already escaped (it has no tags to
+ * confuse). Bold is cut out first so `***x***` nests properly as `<strong><em>x</em></strong>`.
+ * A `)` inside a link's URL ends it: write it as `%29`.
+ */
 function emphasis(escaped: string): string {
-  return escaped
-    .replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(?=\S)(.+?)(?<=\S)\*/g, '<em>$1</em>');
+  let out = '';
+  let last = 0;
+  for (const match of escaped.matchAll(BOLD)) {
+    out += italic(escaped.slice(last, match.index));
+    out += `<strong>${italic(match[1]!)}</strong>`;
+    last = match.index + match[0].length;
+  }
+  return out + italic(escaped.slice(last));
 }
 
 const plain = (text: string): string => emphasis(escapeHtml(text));

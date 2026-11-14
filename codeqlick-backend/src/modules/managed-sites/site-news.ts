@@ -18,7 +18,7 @@ export function disallowedLinks(body: string): string[] {
 
 /**
  * The address a title gives its post: lowercase letters, digits and dashes, at most 60
- * characters. A slug of only digits would collide with the list's pages (`/noticias/2/`), so it
+ * characters. A slug of only digits would collide with the list's pages (`/noticias/2`), so it
  * gets a word after it.
  */
 export function slugOf(title: string): string {
@@ -31,6 +31,16 @@ export function slugOf(title: string): string {
     .replace(/^-+|-+$/g, '');
   if (!slug) return 'noticia';
   return /^\d+$/.test(slug) ? `${slug}-noticia` : slug;
+}
+
+/** A write refused because the value is taken (Prisma's P2002). */
+export function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { name?: unknown }).name === 'PrismaClientKnownRequestError' &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
 }
 
 /** `base`, or `base-2`, `base-3`… the first the site doesn't have yet. */
