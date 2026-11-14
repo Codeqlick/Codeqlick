@@ -274,6 +274,60 @@ export type StatusPageInput = z.infer<typeof statusPageSchema>;
 
 export const statusTeamParamSchema = z.object({ team: teamSlugSchema });
 
+const noticeTitle = z.string().trim().min(1).max(120);
+/** Plain text, line breaks kept (architecture 4.13, Notices). */
+const noticeBody = z.string().trim().min(1).max(2000);
+const noticeMonitorIds = z
+  .array(z.uuid())
+  .min(1)
+  .max(20)
+  .refine((ids) => new Set(ids).size === ids.length, 'Each monitor only once');
+const noticeState = z.enum([
+  'INVESTIGATING',
+  'IDENTIFIED',
+  'MONITORING',
+  'RESOLVED',
+  'SCHEDULED',
+  'IN_PROGRESS',
+  'COMPLETED',
+]);
+const noticeTime = z.iso.datetime({ offset: true });
+
+export const createStatusNoticeSchema = z.object({
+  kind: z.enum(['INCIDENT', 'MAINTENANCE']),
+  title: noticeTitle,
+  monitorIds: noticeMonitorIds,
+  body: noticeBody,
+  state: noticeState.optional(),
+  startsAt: noticeTime.optional(),
+  endsAt: noticeTime.optional(),
+});
+export type CreateStatusNoticeInput = z.infer<typeof createStatusNoticeSchema>;
+
+export const updateStatusNoticeSchema = z.object({
+  title: noticeTitle.optional(),
+  monitorIds: noticeMonitorIds.optional(),
+  startsAt: noticeTime.optional(),
+  endsAt: noticeTime.optional(),
+});
+export type UpdateStatusNoticeInput = z.infer<typeof updateStatusNoticeSchema>;
+
+export const statusNoticeUpdateSchema = z.object({
+  body: noticeBody,
+  state: noticeState.optional(),
+});
+export type StatusNoticeUpdateInput = z.infer<typeof statusNoticeUpdateSchema>;
+
+export const statusNoticesQuerySchema = z.object({
+  open: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type StatusNoticesQuery = z.infer<typeof statusNoticesQuerySchema>;
+
 // ── Website check API (phase 1b) ─────────────────────────────────────────────────────────────
 
 export const runAuditSchema = z.object({
