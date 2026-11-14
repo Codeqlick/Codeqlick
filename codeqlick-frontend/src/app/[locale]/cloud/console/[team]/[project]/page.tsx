@@ -18,7 +18,14 @@ import {
   type CloudDomainState,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatBytes, formatWhen } from '@/lib/cloud';
+import {
+  addressHref,
+  formatBytes,
+  formatWhen,
+  isProtected,
+  type ProtectionMode,
+} from '@/lib/cloud';
+import { appPath } from '@/lib/webapp-request';
 import {
   addDomainAction,
   checkDomainAction,
@@ -38,6 +45,7 @@ import { GitTab } from './GitTab';
 import { KvTab } from './KvTab';
 import { StorageTab } from './StorageTab';
 import { NotificationsTab } from './NotificationsTab';
+import { ProtectionCard, ProtectionLock } from './ProtectionCard';
 
 const TABS = [
   'deployments',
@@ -110,6 +118,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const base = `/cloud/console/${team.slug}/${project.slug}`;
   const path = `/${team.slug}/${project.slug}`;
   const admin = team.role !== 'MEMBER';
+  const open = await appPath(`/${locale}/cloud/console${path}/open`, locale);
 
   return (
     <div className={styles.landing}>
@@ -118,10 +127,15 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
         </p>
         <h1 className={styles.heroTitle}>{project.name}</h1>
-        <CopyLink
-          url={project.url}
-          labels={{ copy: t('common.copy'), copied: t('common.copied') }}
-        />
+        <div className={styles.address}>
+          <CopyLink
+            url={project.url}
+            labels={{ copy: t('common.copy'), copied: t('common.copied') }}
+          />
+          {isProtected(project.protection, 'production') ? (
+            <ProtectionLock label={t('protection.locked')} />
+          ) : null}
+        </div>
         <nav className={`${styles.tabs} ${styles.spacedTabs}`} aria-label={project.name}>
           {TABS.map((key) => (
             <Link
@@ -152,9 +166,18 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           path={path}
           page={page}
           base={base}
+          protection={project.protection}
+          open={open}
         />
       ) : null}
-      {tab === 'domains' ? <Domains locale={locale} projectId={project.id} path={path} /> : null}
+      {tab === 'domains' ? (
+        <Domains
+          locale={locale}
+          projectId={project.id}
+          path={path}
+          protection={project.protection}
+        />
+      ) : null}
       {tab === 'git' ? (
         <GitTab
           locale={locale}
@@ -251,6 +274,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
               </ActionForm>
             </section>
           ) : null}
+          <ProtectionCard locale={locale} projectId={project.id} path={path} admin={admin} />
           {admin ? (
             <section className={`${styles.card} ${styles.narrow} ${styles.danger}`}>
               <h2 className={styles.cardTitle}>{t('project.deleteTitle')}</h2>
@@ -290,6 +314,8 @@ async function Deployments({
   path,
   page,
   base,
+  protection,
+  open,
 }: {
   locale: AppLocale;
   projectId: string;
@@ -298,6 +324,9 @@ async function Deployments({
   path: string;
   page: number;
   base: string;
+  protection: ProtectionMode;
+  /** The console's route that opens a protected address with a ticket. */
+  open: string;
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const list = await listCloudDeployments(projectId, page).catch(() => null);
@@ -332,14 +361,19 @@ async function Deployments({
                     )}
                     {deployment.message ? <span>{deployment.message}</span> : null}
                   </p>
-                  <a
-                    href={deployment.url}
-                    className={`${styles.small} ${styles.mono}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {deployment.url.replace('https://', '')}
-                  </a>
+                  <span className={styles.address}>
+                    <a
+                      href={addressHref(protection, 'previews', deployment.url, open)}
+                      className={`${styles.small} ${styles.mono}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {deployment.url.replace('https://', '')}
+                    </a>
+                    {isProtected(protection, 'previews') ? (
+                      <ProtectionLock label={t('protection.locked')} />
+                    ) : null}
+                  </span>
                   <p className={styles.small}>
                     {formatWhen(deployment.createdAt, locale)}
                     {deployment.createdBy ? ` · ${deployment.createdBy.name}` : ''}
@@ -391,10 +425,12 @@ async function Domains({
   locale,
   projectId,
   path,
+  protection,
 }: {
   locale: AppLocale;
   projectId: string;
   path: string;
+  protection: ProtectionMode;
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const domains = await listCloudDomains(projectId)
@@ -435,6 +471,9 @@ async function Domains({
             <li key={domain.id} className={`${styles.card}`}>
               <p className={styles.rowTitle}>
                 <span className={styles.mono}>{domain.name}</span>
+                {isProtected(protection, 'production') ? (
+                  <ProtectionLock label={t('protection.locked')} />
+                ) : null}
                 <Badge tone={STATE_TONE[domain.state]}>{t(`common.states.${domain.state}`)}</Badge>
               </p>
               {domain.lastError ? <p className={styles.small}>{domain.lastError}</p> : null}

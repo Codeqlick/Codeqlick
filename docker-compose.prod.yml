@@ -113,6 +113,9 @@ services:
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-}
       CLOUD_ROOT: /cloud
       CLOUD_URL: ${CLOUD_URL:-https://cloud.codeqlick.com}
+      # Password protection (architecture 4.13): the key the hosting sites' Nginx sends; created in
+      # .env by deploy/setup-cloud.sh. Protection can't be turned on while it is empty.
+      CLOUD_PROTECTION_KEY: ${CLOUD_PROTECTION_KEY:-}
       # Builds from Git (architecture 4.13, 8.4): off until the GitHub App's settings are set.
       GITHUB_APP_ID: ${GITHUB_APP_ID:-}
       GITHUB_APP_SLUG: ${GITHUB_APP_SLUG:-}

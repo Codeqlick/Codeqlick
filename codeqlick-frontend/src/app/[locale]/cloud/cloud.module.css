@@ -629,3 +629,25 @@
 .chartFigure {
   margin: 0;
 }
+
+/* Password protection: the padlock next to an address that asks for the project's password. */
+.lock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-fuchsia-dark);
+  vertical-align: middle;
+}
+
+.lock svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.address {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}

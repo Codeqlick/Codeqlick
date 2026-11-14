@@ -4819,6 +4819,37 @@
       "deleteTitle": "Borrar el proyecto",
       "deleteBody": "Deja sus webs fuera de línea y borra sus despliegues y dominios. Su dirección queda reservada 30 días."
     },
+    "protection": {
+      "title": "Protección con contraseña",
+      "lead": "Pide una contraseña a los visitantes antes de que vean este proyecto, para enseñar trabajo en curso sin hacerlo público. Los miembros del equipo abren desde aquí las direcciones protegidas sin escribirla.",
+      "mode": "Pedir la contraseña en",
+      "modes": {
+        "OFF": "Desactivada",
+        "PREVIEWS": "Previsualizaciones",
+        "ALL": "Previsualizaciones y producción"
+      },
+      "modeHints": {
+        "OFF": "Todas las direcciones son públicas.",
+        "PREVIEWS": "La dirección propia de cada despliegue. La web publicada y tus dominios siguen siendo públicos.",
+        "ALL": "Todas las direcciones, también la web publicada y tus dominios."
+      },
+      "password": "Contraseña",
+      "passwordKeep": "Déjala vacía para mantener la actual. De 8 a 128 caracteres.",
+      "passwordNew": "Necesaria para activarla. De 8 a 128 caracteres.",
+      "passwordRequired": "Elige una contraseña para activar la protección.",
+      "passwordInvalid": "Usa entre 8 y 128 caracteres.",
+      "days": "El acceso dura",
+      "daysHint": "Cuánto tiempo sigue dentro un visitante tras escribir la contraseña. Cambiar la contraseña o el ajuste termina todos los accesos dados antes.",
+      "daysValue": "{count, plural, one {# día} other {# días}}",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado.",
+      "invalid": "Revisa los campos marcados.",
+      "unavailable": "La protección con contraseña no está disponible ahora. Inténtalo más tarde.",
+      "updatedAt": "Cambiada {when}",
+      "adminsOnly": "Solo los propietarios y administradores del equipo pueden cambiarla.",
+      "locked": "Pide contraseña"
+    },
     "members": {
       "title": "Miembros",
       "invite": "Invitar a alguien",
