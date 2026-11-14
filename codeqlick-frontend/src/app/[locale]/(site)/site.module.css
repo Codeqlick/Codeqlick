@@ -225,6 +225,11 @@ li:hover > .more::after {
   margin-top: var(--space-6);
 }
 
+/* The newsletter box under a post: room below it before the related posts. */
+.newsletter {
+  padding-bottom: var(--space-section);
+}
+
 .related {
   padding-bottom: var(--space-16);
   border-top: 1px solid var(--color-line);

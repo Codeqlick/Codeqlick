@@ -48,6 +48,8 @@ export interface AdminPost {
   translations: PostTranslationInput[];
   tagIds: string[];
   publishedAt: string | null;
+  newsletter: boolean;
+  newsletterSentAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +76,8 @@ function toAdminPost(post: PostWithTranslations): AdminPost {
     })),
     tagIds: post.tags.map((item) => item.tag.id),
     publishedAt: post.publishedAt?.toISOString() ?? null,
+    newsletter: post.newsletter,
+    newsletterSentAt: post.newsletterSentAt?.toISOString() ?? null,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
   };
@@ -172,6 +176,7 @@ export class PostsService {
       status: input.status,
       publishedAt: publishedAtOnCreate(input.status, input.publishedAt),
       coverImageUrl: input.coverImageUrl ?? null,
+      newsletter: input.newsletter,
       authorId,
       translations: input.translations.map(toTranslationData),
       tagIds: [...new Set(input.tagIds)],
@@ -192,6 +197,7 @@ export class PostsService {
     if (input.slug !== undefined) data.slug = input.slug;
     if (input.coverImageUrl !== undefined) data.coverImageUrl = input.coverImageUrl;
     if (input.status !== undefined) data.status = input.status;
+    if (input.newsletter !== undefined) data.newsletter = input.newsletter;
     const publishedAt = publishedAtOnUpdate(existing, input.status, input.publishedAt);
     if (publishedAt !== undefined) data.publishedAt = publishedAt;
     if (input.translations !== undefined) {
