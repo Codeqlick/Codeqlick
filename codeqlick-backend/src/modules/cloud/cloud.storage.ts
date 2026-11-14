@@ -133,6 +133,13 @@ export class CloudStorage {
    * else throws a BundleError and leaves nothing behind.
    */
   async unpack(bundle: string, id: string, limits: BundleLimits): Promise<Unpacked> {
+    // The sent `config` is checked first: a refused file costs no unpacking.
+    let sent: { config: CloudConfig | null } | undefined;
+    if (limits.config?.text?.trim()) {
+      const parsed = parseConfig(limits.config.text, limits.config.limits, limits.config.plan);
+      if (!parsed.ok) throw configProblem(parsed.errors);
+      sent = { config: parsed.config };
+    }
     await this.ensureFolders();
     let declared = 0;
     let files = 0;
@@ -196,7 +203,7 @@ export class CloudStorage {
         noMtime: true,
         filter: (_path, entry) => 'type' in entry && ALLOWED_TYPES.has(entry.type as string),
       });
-      const config = await this.readConfig(work, limits.config);
+      const config = await this.readConfig(work, limits.config, sent);
       const result = await this.normalise(work);
       try {
         const index = await lstat(join(work, 'index.html'));
@@ -225,11 +232,13 @@ export class CloudStorage {
   private async readConfig(
     work: string,
     options: BundleLimits['config'],
+    sent: { config: CloudConfig | null } | undefined,
   ): Promise<CloudConfig | null> {
     const file = join(work, CONFIG_FILE);
     try {
-      let source = options?.text?.trim() ? options.text : undefined;
-      if (source === undefined && options) {
+      if (sent) return sent.config;
+      let source: string | undefined;
+      if (options) {
         const info = await lstat(file).catch(() => null);
         if (info?.isFile()) {
           if (info.size > options.limits.bytes) {
@@ -310,7 +319,7 @@ export class CloudStorage {
     if (!this.available || !UUID.test(id) || !path.startsWith('/') || path.includes('\0')) {
       return false;
     }
-    const root = this.dir('deployments', id);
+    const root = resolve(this.dir('deployments', id));
     const full = resolve(root, `.${path}`);
     if (!full.startsWith(root + sep)) return false;
     return stat(full).then(

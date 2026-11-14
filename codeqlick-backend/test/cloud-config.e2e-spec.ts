@@ -329,14 +329,19 @@ describe('Codeqlick Cloud codeqlick.json rules (e2e)', () => {
     expect((await edge('/about', '', randomUUID()).expect(204)).headers['x-cq-path']).toBe('');
     expect((await edge('/about', '', 'not-a-uuid').expect(204)).headers['x-cq-path']).toBe('');
 
-    // The key is still needed, and the old route is gone.
+    // The key is still needed, and the old route is an alias.
     await edge('/about').set('X-Cq-Protection-Key', 'cd'.repeat(32)).expect(403);
     const wrongKey = await request(server)
       .get('/v1/cloud/edge/check')
       .set({ ...nginx('/old/x'), 'X-Cq-Protection-Key': 'cd'.repeat(32) })
       .expect(403);
     expect(wrongKey.headers['x-cq-status']).toBeUndefined();
-    await request(server).get('/v1/cloud/protection/check').set(nginx('/about')).expect(404);
+    // The old route stays a deprecated alias for one release: the same answer.
+    const alias = await request(server)
+      .get('/v1/cloud/protection/check')
+      .set(nginx('/old/hello'))
+      .expect(403);
+    expect(alias.headers['x-cq-location']).toBe('/blog/hello');
 
     // ── Combined with password protection: the password comes first ───────────────────────
     const protect = `/v1/cloud/projects/${projectId}/protection`;
@@ -397,11 +402,16 @@ describe('Codeqlick Cloud codeqlick.json rules (e2e)', () => {
     expect(jsonCheck.body.errors[0].path).toBe('codeqlick.json');
     await check(outsiderAuth, { teamSlug, config: '{}' }).expect(404);
     await check(memberAuth, { teamSlug, config: 3 }).expect(400);
-    await check(memberAuth, { teamSlug, config: 'x'.repeat(1024 * 1024 + 1) }).expect(400);
+    const multipart = (config: string) =>
+      request(server)
+        .post('/v1/cloud/config/check')
+        .set(memberAuth)
+        .field('teamSlug', teamSlug)
+        .field('config', config);
+    await multipart('x'.repeat(1024 * 1024 + 1)).expect(400);
+    expect((await multipart(JSON.stringify(RULES)).expect(200)).body.ok).toBe(true);
     // Over the team's size, but under 1 MB: answered, not refused.
-    const bigCheck = await check(memberAuth, { teamSlug, config: ' '.repeat(70 * 1024) }).expect(
-      200,
-    );
+    const bigCheck = await multipart(' '.repeat(70 * 1024)).expect(200);
     expect(bigCheck.body).toEqual({
       ok: false,
       errors: [

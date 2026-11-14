@@ -265,7 +265,10 @@ export const listCloudDeployments = (id: string, page = 1) =>
   });
 
 export const getCloudDeployment = (id: string, deploymentId: string) =>
-  apiFetch<CloudDeployment>(`/cloud/projects/${id}/deployments/${deploymentId}`, auth);
+  apiFetch<CloudDeployment>(
+    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}`,
+    auth,
+  );
 
 export const promoteCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudProject>(`/cloud/projects/${id}/deployments/${deploymentId}/promote`, {

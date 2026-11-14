@@ -45,6 +45,30 @@ function wire(value: string | undefined): string | undefined {
   return value === undefined ? undefined : Buffer.from(value, 'latin1').toString('utf8');
 }
 
+/** The edge check's answer (see CloudEdgeController.check). */
+async function edgeCheck(
+  protection: CloudProtectionService,
+  request: Request,
+  res: Response,
+): Promise<void> {
+  const result = await protection.edge(proxyHeaders(request));
+  res.setHeader('Cache-Control', 'no-store');
+  if (result.type === 'password') {
+    res.status(401).end();
+  } else if (result.type === 'redirect') {
+    res.setHeader('X-Cq-Status', String(result.status));
+    res.setHeader('X-Cq-Location', result.location);
+    res.status(403).end();
+  } else {
+    // The path goes out as UTF-8 bytes, which Nginx reads back as the file's name.
+    res.setHeader('X-Cq-Path', Buffer.from(result.path, 'utf8').toString('latin1'));
+    for (const [name, value] of Object.entries(result.headers)) {
+      res.setHeader(`X-Cq-H-${name}`, value);
+    }
+    res.status(204).end();
+  }
+}
+
 /** Answers a visitor: the password page (EN/ES) or a `303` with the access cookie. */
 function answer(request: Request, res: Response, result: VisitorAnswer): void {
   for (const [name, value] of Object.entries(PROTECTION_PAGE_HEADERS)) res.setHeader(name, value);
@@ -73,6 +97,13 @@ function answer(request: Request, res: Response, result: VisitorAnswer): void {
 @Controller('cloud/protection')
 export class CloudProtectionPublicController {
   constructor(private readonly protection: CloudProtectionService) {}
+
+  /** Deprecated alias of `GET /cloud/edge/check`, kept one release for Nginx snippets that predate it. */
+  @Get('check')
+  @SkipThrottle()
+  check(@Req() request: Request, @Res() res: Response): Promise<void> {
+    return edgeCheck(this.protection, request, res);
+  }
 
   @Get('password')
   async page(@Req() request: Request, @Res() res: Response): Promise<void> {
@@ -120,23 +151,8 @@ export class CloudEdgeController {
    */
   @Get('check')
   @SkipThrottle()
-  async check(@Req() request: Request, @Res() res: Response): Promise<void> {
-    const answer = await this.protection.edge(proxyHeaders(request));
-    res.setHeader('Cache-Control', 'no-store');
-    if (answer.type === 'password') {
-      res.status(401).end();
-    } else if (answer.type === 'redirect') {
-      res.setHeader('X-Cq-Status', String(answer.status));
-      res.setHeader('X-Cq-Location', answer.location);
-      res.status(403).end();
-    } else {
-      // The path goes out as UTF-8 bytes, which Nginx reads back as the file's name.
-      res.setHeader('X-Cq-Path', Buffer.from(answer.path, 'utf8').toString('latin1'));
-      for (const [name, value] of Object.entries(answer.headers)) {
-        res.setHeader(`X-Cq-H-${name}`, value);
-      }
-      res.status(204).end();
-    }
+  check(@Req() request: Request, @Res() res: Response): Promise<void> {
+    return edgeCheck(this.protection, request, res);
   }
 }
 

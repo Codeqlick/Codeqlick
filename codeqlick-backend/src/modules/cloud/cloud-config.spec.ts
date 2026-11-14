@@ -94,6 +94,8 @@ describe('patterns', () => {
     expect(refused('/__codeqlick')).toContain('own');
     expect(refused('/__cq_check')).toContain('own');
     expect(refused('/a\\b')).toContain('backslashes');
+    expect(refused('/a?x=1')).toContain('? or #');
+    expect(refused('/a#top')).toContain('? or #');
     expect(refused('/ok/:slug')).toBeNull();
     // Only these two prefixes are Cloud's.
     expect(refused('/__codeqlickx')).toBeNull();
@@ -447,8 +449,12 @@ describe('evaluate: files, clean URLs and fallbacks', () => {
     expect(await run('/')).toEqual({ kind: 'serve', path: '/index.html', headers: {} });
     expect(await run('/about')).toMatchObject({ path: '/about.html' });
     expect(await run('/about.html')).toMatchObject({ path: '/about.html' });
-    expect(await run('/blog')).toMatchObject({ path: '/blog/index.html' });
     expect(await run('/blog/')).toMatchObject({ path: '/blog/index.html' });
+    // A folder asked for without its slash goes to it (301, query kept), as Nginx does.
+    expect(await run('/blog')).toEqual({ kind: 'redirect', status: 301, location: '/blog/' });
+    expect(await evaluate(config, '/blog', 'a=1', files(...present))).toMatchObject({
+      location: '/blog/?a=1',
+    });
     // <path>.html beats <path>/index.html.
     expect(await run('/a')).toMatchObject({ path: '/a.html' });
   });
@@ -459,7 +465,8 @@ describe('evaluate: files, clean URLs and fallbacks', () => {
     const run = (uri: string) => evaluate(config, uri, '', files(...present));
     expect(await run('/about')).toEqual({ kind: 'serve', path: NONE_PATH, headers: {} });
     expect(await run('/about.html')).toMatchObject({ path: '/about.html' });
-    expect(await run('/blog')).toMatchObject({ path: '/blog/index.html' });
+    expect(await run('/blog')).toMatchObject({ kind: 'redirect', status: 301 });
+    expect(await run('/blog/')).toMatchObject({ path: '/blog/index.html' });
     expect(await run('/')).toMatchObject({ path: '/index.html' });
   });
 
@@ -512,8 +519,31 @@ describe('evaluate: rewrites', () => {
   it('rewrites only when no file matched: a file always wins', async () => {
     expect(await run('/app/real.js')).toMatchObject({ path: '/app/real.js' });
     expect(await run('/app/dashboard/x')).toMatchObject({ path: '/app/index.html' });
-    expect(await run('/app')).toMatchObject({ path: '/app/index.html' });
+    expect(await run('/app')).toMatchObject({ kind: 'redirect', location: '/app/' });
+    expect(await run('/app/')).toMatchObject({ path: '/app/index.html' });
     expect(await run('/')).toMatchObject({ path: '/index.html' });
+  });
+
+  it('sends a file, never a folder: a folder target resolves to its index or answers nothing', async () => {
+    const folder = valid({
+      rewrites: [
+        { source: '/a/*', destination: '/app' },
+        { source: '/b/*', destination: '/app/' },
+        { source: '/c/*', destination: '/page' },
+        { source: '/d/*', destination: '/empty' },
+      ],
+    })!;
+    const present = ['/app/index.html', '/page.html'];
+    const run = (uri: string, config = folder) => evaluate(config, uri, '', files(...present));
+    expect(await run('/a/x')).toMatchObject({ path: '/app/index.html' });
+    expect(await run('/b/x')).toMatchObject({ path: '/app/index.html' });
+    expect(await run('/c/x')).toMatchObject({ path: '/page.html' });
+    expect(await run('/d/x')).toMatchObject({ path: NONE_PATH });
+    const strict = valid({
+      cleanUrls: false,
+      rewrites: [{ source: '/c/*', destination: '/page' }],
+    })!;
+    expect(await run('/c/x', strict)).toMatchObject({ path: NONE_PATH });
   });
 
   it('takes the first matching rewrite and substitutes parameters', async () => {
@@ -526,7 +556,9 @@ describe('evaluate: rewrites', () => {
     for (const uri of ['/v/../secret', '/v/.cq-rules', '/v/a/.cq-x']) {
       expect(await evaluate(loose, uri, '', files())).toMatchObject({ path: NONE_PATH });
     }
-    expect(await evaluate(loose, '/v/a//b', '', files())).toMatchObject({ path: '/pages/a/b' });
+    expect(await evaluate(loose, '/v/a//b', '', files('/pages/a/b'))).toMatchObject({
+      path: '/pages/a/b',
+    });
   });
 });
 
@@ -642,10 +674,10 @@ describe('evaluate: trailingSlash', () => {
     expect(await run('/blog/post.html')).toMatchObject({ kind: 'serve' });
   });
 
-  it('unset: both forms answer as they would without rules, with no redirect', async () => {
+  it('unset: both forms answer as without rules (a folder without its slash gets a 301)', async () => {
     const config = valid({ cleanUrls: false })!;
     const run = (uri: string) => evaluate(config, uri, '', files(...present));
-    expect(await run('/docs')).toMatchObject({ kind: 'serve', path: '/docs/index.html' });
+    expect(await run('/docs')).toEqual({ kind: 'redirect', status: 301, location: '/docs/' });
     expect(await run('/docs/')).toMatchObject({ kind: 'serve', path: '/docs/index.html' });
   });
 

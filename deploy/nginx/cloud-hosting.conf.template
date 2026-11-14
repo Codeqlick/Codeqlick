@@ -94,6 +94,11 @@ server {
     error_page 404 /404.html;
     error_page 451 @cq_suspended;
 
+    # Old deployments may still contain the file; its keys and rules are never public.
+    location = /codeqlick.json {
+        return 404;
+    }
+
     location / {
         if (-f $document_root/.cq-suspended) { return 451; }
         # No site at this address: 410 here, answered as 404 with "nothing here" (below).
@@ -108,6 +113,7 @@ server {
         add_header Cache-Control $cq_cache_default;
         add_header Strict-Transport-Security "max-age=31536000" always;
         add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
         add_header X-Robots-Tag $cq_noindex always;
         include /etc/nginx/snippets/cq-cloud-rule-headers.conf;
         if (-f $document_root/.cq-suspended) { return 451; }

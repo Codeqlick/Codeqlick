@@ -13,7 +13,13 @@ type PageProps = {
   params: Promise<{ locale: string; team: string; project: string; deploymentId: string }>;
 };
 
-export const metadata: Metadata = { title: 'Deployment' };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'Cloud' });
+  return { title: t('project.deployment') };
+}
 
 /** One deployment: its details and the rules of its `codeqlick.json`, read-only. */
 export default async function CloudDeploymentPage({ params }: PageProps) {
@@ -21,6 +27,7 @@ export default async function CloudDeploymentPage({ params }: PageProps) {
   const locale = resolveLocale(raw);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cloud' });
+  if (!UUID.test(deploymentId)) notFound();
   let project;
   let deployment;
   try {

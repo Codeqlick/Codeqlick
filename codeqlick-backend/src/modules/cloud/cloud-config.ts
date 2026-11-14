@@ -152,6 +152,11 @@ export function compilePattern(source: string): Pattern {
   if (hasControl(source) || source.includes('\\')) {
     throw new PatternError('must not contain control characters or backslashes');
   }
+  if (source.includes('?') || source.includes('#')) {
+    throw new PatternError(
+      'must not contain ? or # (a source is a path: the query is not matched)',
+    );
+  }
   if (
     source === '/__codeqlick' ||
     source.startsWith('/__codeqlick/') ||
@@ -406,7 +411,8 @@ export function sizeError(bytes: number, limits: ConfigLimits, plan: string): Co
 }
 
 export type ParseResult =
-  { ok: true; config: CloudConfig | null } | { ok: false; errors: ConfigError[] };
+  | { ok: true; config: CloudConfig | null }
+  | { ok: false; errors: ConfigError[] };
 
 /** Everything the structure can't say: patterns, destinations, headers and the plan's limits. */
 function semantic(config: CloudConfig, limits: ConfigLimits, plan: string): ConfigError[] {
@@ -730,11 +736,26 @@ export async function evaluate(
         (value) => value,
         (value) => value,
       ).replace(/\/{2,}/g, '/');
-      rewritten = target.startsWith('/') && !reserved(target) ? target : NONE_PATH;
+      // A file, never a folder: Nginx would redirect a folder to itself in a loop. A target that
+      // is no file (`/app` → `/app/index.html`, `/app.html` with clean URLs) answers nothing.
+      rewritten =
+        target.startsWith('/') && !reserved(target)
+          ? await resolveFile(target, cleanUrls, false, fileExists)
+          : null;
       break;
     }
   }
 
+  // Without `trailingSlash`, a folder asked for without its slash goes to it, as Nginx does.
+  if (
+    config.trailingSlash === undefined &&
+    found !== null &&
+    path !== '/' &&
+    !path.endsWith('/') &&
+    found === `${path}/index.html`
+  ) {
+    return { kind: 'redirect', status: 301, location: localLocation(`${path}/`, args) };
+  }
   if (config.trailingSlash !== undefined && path !== '/' && (found || rewritten !== null)) {
     const last = path.split('/').filter(Boolean).pop() ?? '';
     if (!hasExtension(last)) {

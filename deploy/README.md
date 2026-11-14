@@ -635,9 +635,9 @@ done, the API answers 503 when someone tries to turn it on. Once, as a user with
    docker compose -f docker-compose.prod.yml up -d api
    ```
 
-   The API must already be the release that serves `/v1/cloud/edge/check` (merge and let the
-   Deploy workflow finish first): the new snippet calls that route, and the old API only has
-   `/protection/check`, so a protected site would answer 500 until it is deployed.
+   The new snippet calls `/v1/cloud/edge/check`; the API keeps `/v1/cloud/protection/check` as an
+   alias for one release, so the order in which this and the password-protection release are
+   deployed doesn't matter.
 
 2. Install the newer `cq-site` (it includes the snippet and the rule headers in `cloud` sites,
    routes `try_files` through `$cq_path`, and refuses to write one without the snippets), then add each existing custom domain again so its site includes it too (the
@@ -681,7 +681,7 @@ deployment with `{"redirects":[{"source":"/old","destination":"/new"}],"headers"
 
 ```bash
 sudo nginx -t
-curl -sI https://<slug>.codeqlick.app/old | grep -iE '^(HTTP|location)'     # 308, Location: /new
+curl -sI https://<slug>.codeqlick.app/old | grep -iE '^(HTTP|location)'     # 308, Location: https://<slug>.codeqlick.app/new
 curl -sI https://<slug>.codeqlick.app/ | grep -iE '^(HTTP|x-frame-options)' # 200, DENY
 curl -sI https://<other-slug>.codeqlick.app/ | grep -ic x-frame-options     # a project without rules: 0
 ```

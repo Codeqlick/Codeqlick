@@ -1,5 +1,6 @@
-import { readFile, stat } from 'node:fs/promises';
-import { isAbsolute, join, normalize, relative } from 'node:path';
+import { constants } from 'node:fs';
+import { lstat, open, realpath } from 'node:fs/promises';
+import { isAbsolute, join, normalize, relative, sep } from 'node:path';
 
 /** What the API hands the agent for a build (POST /v1/cloud/builder/claim). */
 export interface Job {
@@ -105,22 +106,44 @@ const MAX_CONFIG_BYTES = 1024 * 1024;
 
 /**
  * The text of the build root's `codeqlick.json` (redirects, rewrites, headers; architecture 4.13),
- * or undefined when there is none. The API validates the rules; here only a file that isn't JSON
- * (or is absurdly big) fails the build, with a message that says so.
+ * or undefined when there is none. This runs on the host after untrusted build code, so it only
+ * accepts a regular file (never a symlink) whose real path, and the root's, stay inside `src`
+ * (the checkout), and it never puts anything of the file in an error. The API validates the rules;
+ * here only a file that isn't JSON (or is absurdly big) fails the build.
  */
-export async function readRulesFile(root: string): Promise<string | undefined> {
+export async function readRulesFile(src: string, root: string): Promise<string | undefined> {
   const path = join(root, 'codeqlick.json');
-  const info = await stat(path).catch(() => null);
-  if (!info?.isFile()) return undefined;
-  if (info.size > MAX_CONFIG_BYTES) throw new Error('codeqlick.json is over 1 MB');
-  const text = await readFile(path, 'utf8');
+  const info = await lstat(path).catch(() => null);
+  if (!info) return undefined;
+  if (!info.isFile()) throw new Error('codeqlick.json must be a regular file');
+  const base = await realpath(src);
+  const within = (real: string) => real === base || real.startsWith(`${base}${sep}`);
+  const realRoot = await realpath(root).catch(() => null);
+  if (!realRoot || !within(realRoot)) throw new Error('The build root is outside the repository');
+  const realFile = await realpath(path).catch(() => null);
+  if (!realFile || !within(realFile) || realFile !== join(realRoot, 'codeqlick.json'))
+    throw new Error('codeqlick.json must be a regular file inside the repository');
+  let handle;
   try {
-    const data: unknown = JSON.parse(text);
-    if (typeof data !== 'object' || data === null || Array.isArray(data))
-      throw new Error('not an object');
-  } catch (error) {
-    const reason = error instanceof SyntaxError ? error.message : 'it must be a JSON object';
-    throw new Error(`codeqlick.json is not valid JSON: ${reason}`);
+    handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  } catch {
+    throw new Error('codeqlick.json must be a regular file inside the repository');
   }
-  return text;
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile()) throw new Error('codeqlick.json must be a regular file');
+    if (opened.size > MAX_CONFIG_BYTES) throw new Error('codeqlick.json is over 1 MB');
+    const text = await handle.readFile('utf8');
+    let valid = false;
+    try {
+      const data: unknown = JSON.parse(text);
+      valid = typeof data === 'object' && data !== null && !Array.isArray(data);
+    } catch {
+      // Not JSON: the message below says so, without the parser's text.
+    }
+    if (!valid) throw new Error('codeqlick.json is not valid JSON');
+    return text;
+  } finally {
+    await handle.close();
+  }
 }

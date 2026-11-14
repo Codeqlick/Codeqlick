@@ -4796,6 +4796,7 @@
       "promote": "Publish",
       "delete": "Delete",
       "via": "via {token}",
+      "deployment": "Deployment",
       "rules": {
         "badge": "Rules",
         "title": "Rules",
