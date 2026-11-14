@@ -157,7 +157,7 @@ Hasta 5 dominios por proyecto. \`www.tudominio.com\` y \`tudominio.com\` son dos
 
 En **Monitores** del equipo:
 
-- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días.
+- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días. Opcionalmente, un umbral de lentitud (de 500 a 14.000 ms): si 3 comprobaciones seguidas (unos 15 minutos) tardan más, avisamos de que va lento y, cuando 3 seguidas vuelven a la normalidad, de que se ha recuperado; nunca la marca como caída.
 - **Un latido:** para tareas programadas (copias, colas, cron). Dale cada cuánto se ejecuta y un margen, y llama a su URL al terminar:
 
 \`\`\`sh
@@ -387,7 +387,7 @@ Up to 5 domains per project. \`www.yourdomain.com\` and \`yourdomain.com\` are t
 
 In the team's **Monitors**:
 
-- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days.
+- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days. Optionally set a slow threshold (500 to 14,000 ms): when 3 checks in a row (about 15 minutes) answer slower, we email that it is slow, and again when 3 in a row are back to normal; it never marks the site as down.
 - **A heartbeat:** for scheduled jobs (backups, queues, cron). Give it how often it runs and a grace, and call its URL when it ends:
 
 \`\`\`sh

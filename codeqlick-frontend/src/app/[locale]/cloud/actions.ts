@@ -63,6 +63,7 @@ import {
   startCloudBuild,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { parseSlowMs } from '@/lib/cloud';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -579,6 +580,8 @@ export async function createMonitorAction(
   if (kind === 'HEARTBEAT' && !(period >= 1 && period <= 10080))
     fieldErrors.period = t('periodInvalid');
   if (kind === 'HEARTBEAT' && !(grace >= 1 && grace <= 1440)) fieldErrors.grace = t('graceInvalid');
+  const slow = parseSlowMs(formString(formData, 'slowMs'));
+  if (kind === 'HTTP' && !slow.ok) fieldErrors.slowMs = t('slowInvalid');
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
   let id: string;
   try {
@@ -586,7 +589,7 @@ export async function createMonitorAction(
       await createCloudMonitor(
         team,
         kind === 'HTTP'
-          ? { kind, name, url, alertIds }
+          ? { kind, name, url, alertIds, slowMs: slow.ok ? slow.value : null }
           : { kind, name, periodMinutes: period, graceMinutes: grace, alertIds },
       )
     ).id;
@@ -598,6 +601,28 @@ export async function createMonitorAction(
   }
   refresh(lang, `/${team}/monitors`);
   return go(lang, `/console/${team}/monitors/${id}`);
+}
+
+/** Saves (or clears, when empty) an HTTP monitor's slow-response threshold. */
+export async function updateMonitorSlowAction(
+  locale: string,
+  team: string,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.monitors' });
+  const values = formValues(formData);
+  const slow = parseSlowMs(formString(formData, 'slowMs'));
+  if (!slow.ok) return { status: 'error', fieldErrors: { slowMs: t('slowInvalid') }, values };
+  try {
+    await updateCloudMonitor(id, { slowMs: slow.value });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}/monitors/${id}`);
+  return { status: 'success', message: t('slowSaved') };
 }
 
 export async function toggleMonitorAction(formData: FormData): Promise<void> {
@@ -873,12 +898,15 @@ export async function createNotifyAction(
   const kind = formString(formData, 'kind') as CloudNotifyKind;
   const url = formString(formData, 'url');
   const recipientIds = formData.getAll('recipients').map(String).filter(Boolean);
+  const monitorAlerts = formBoolean(formData, 'monitorAlerts');
   const fieldErrors: Record<string, string> = {};
   if (name.length < 1 || name.length > 60) fieldErrors.name = t('nameInvalid');
   if (!NOTIFY_KINDS.includes(kind)) fieldErrors.kind = t('kindInvalid');
   else if (kind === 'EMAIL') {
     if (recipientIds.length < 1 || recipientIds.length > 10)
       fieldErrors.recipients = t('recipientsInvalid');
+    // Monitors already email their own chosen people (decision 64).
+    if (monitorAlerts) fieldErrors.monitorAlerts = t('monitorAlertsEmail');
   } else {
     const problem = notifyUrlProblem(kind, url);
     if (problem) fieldErrors.url = t(problem);
@@ -889,7 +917,9 @@ export async function createNotifyAction(
   try {
     const created = await createCloudNotification(
       projectId,
-      kind === 'EMAIL' ? { kind, name, recipientIds, ...events } : { kind, name, url, ...events },
+      kind === 'EMAIL'
+        ? { kind, name, recipientIds, ...events }
+        : { kind, name, url, ...events, monitorAlerts },
     );
     secret = created.secret;
   } catch (error) {
@@ -906,7 +936,7 @@ export async function createNotifyAction(
     : { status: 'success', message: t('created') };
 }
 
-/** Saves a channel's name, events and (when given) a new URL or new recipients. */
+/** Saves a channel's name, events (monitor alerts only off email) and a new URL or recipients. */
 export async function updateNotifyAction(
   locale: string,
   path: string,
@@ -935,7 +965,9 @@ export async function updateNotifyAction(
     await updateCloudNotification(projectId, channelId, {
       name,
       ...notifyEvents(formData, lang),
-      ...(kind === 'EMAIL' ? { recipientIds } : url ? { url } : {}),
+      ...(kind === 'EMAIL'
+        ? { recipientIds }
+        : { monitorAlerts: formBoolean(formData, 'monitorAlerts'), ...(url ? { url } : {}) }),
     });
   } catch (error) {
     return failure(lang, error, values);

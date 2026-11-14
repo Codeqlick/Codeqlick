@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloudSlug, formatBytes } from './cloud';
+import { cloudSlug, formatBytes, parseSlowMs } from './cloud';
 
 describe('formatBytes', () => {
   it('picks the unit and the decimals', () => {
@@ -16,5 +16,24 @@ describe('cloudSlug', () => {
     expect(cloudSlug('Mi Web Ñandú!', 40)).toBe('mi-web-nandu');
     expect(cloudSlug('  --Docs--  ', 40)).toBe('docs');
     expect(cloudSlug('a'.repeat(50), 40)).toHaveLength(40);
+  });
+});
+
+describe('parseSlowMs', () => {
+  it('reads an empty field as off', () => {
+    expect(parseSlowMs('')).toEqual({ ok: true, value: null });
+    expect(parseSlowMs('  ')).toEqual({ ok: true, value: null });
+  });
+
+  it('accepts whole milliseconds from 500 to 14000', () => {
+    expect(parseSlowMs('500')).toEqual({ ok: true, value: 500 });
+    expect(parseSlowMs(' 1200 ')).toEqual({ ok: true, value: 1200 });
+    expect(parseSlowMs('14000')).toEqual({ ok: true, value: 14000 });
+  });
+
+  it('refuses the rest', () => {
+    for (const raw of ['499', '14001', '1000.5', 'abc', '-1000', '1e3x']) {
+      expect(parseSlowMs(raw)).toEqual({ ok: false });
+    }
   });
 });

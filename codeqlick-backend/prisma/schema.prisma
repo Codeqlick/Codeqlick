@@ -2221,6 +2221,12 @@ model CloudMonitor {
   alertIds        String[]           @map("alert_ids") @db.Uuid
   lastDownAlertAt DateTime?          @map("last_down_alert_at") @db.Timestamptz(3)
   lastUpAlertAt   DateTime?          @map("last_up_alert_at") @db.Timestamptz(3)
+  /// HTTP: alert when a response takes longer than this many ms (500-14000); null = off.
+  slowMs          Int?               @map("slow_ms")
+  /// Slow episode counter: slow checks in a row outside an episode, normal ones in a row inside.
+  slowCount       Int                @default(0) @map("slow_count")
+  /// When the current slow episode started; null outside one.
+  slowSince       DateTime?          @map("slow_since") @db.Timestamptz(3)
   createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -2355,6 +2361,8 @@ model CloudNotifyChannel {
   buildFailed    Boolean         @default(true) @map("build_failed")
   buildSucceeded Boolean         @default(false) @map("build_succeeded")
   previews       Boolean         @default(false)
+  /// Slack, Discord and webhooks: also the alerts of the project's monitors (decision 64).
+  monitorAlerts  Boolean         @default(false) @map("monitor_alerts")
   /// The language of Slack, Discord and webhook messages (`en` or `es`).
   locale         String          @default("en") @db.VarChar(2)
   /// Failed deliveries in a row; ten switch the channel off.

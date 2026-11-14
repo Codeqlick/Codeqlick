@@ -2,19 +2,26 @@ import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as argon2 from 'argon2';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // The site a monitor checks: what it answers is up to the test (real fetching refuses local
 // addresses, decision 38). The URL check stays the real one.
-const site = vi.hoisted(() => ({ status: 200 as number | 'error' }));
+// `responseMs` is how long the answer takes: the fake moves the clock instead of waiting.
+const site = vi.hoisted(() => ({ status: 200 as number | 'error', responseMs: 0 }));
+// What the project's notification channels are sent (decision 64), instead of the internet.
+const posts = vi.hoisted(
+  () => [] as Array<{ url: string; body: string; headers: Record<string, string> }>,
+);
+const hook = vi.hoisted(() => ({ status: 200 }));
 vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
   const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
   return {
     ...actual,
-    safeFetch: vi.fn((url: string) =>
-      site.status === 'error'
+    safeFetch: vi.fn((url: string) => {
+      if (site.responseMs) vi.setSystemTime(Date.now() + site.responseMs);
+      return site.status === 'error'
         ? Promise.reject(new Error('connect ECONNREFUSED'))
         : Promise.resolve({
             url,
@@ -26,8 +33,12 @@ vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
             ttfbMs: 20,
             redirects: [],
             certificateValidTo: new Date(Date.now() + 5 * 86_400_000),
-          }),
-    ),
+          });
+    }),
+    safePost: vi.fn((url: string, body: string, headers: Record<string, string>) => {
+      posts.push({ url, body, headers });
+      return Promise.resolve({ status: hook.status, body: '' });
+    }),
   };
 });
 
@@ -49,6 +60,8 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
   let prisma: InstanceType<typeof PrismaService>;
   const sent: Array<{ to: string; subject: string }> = [];
   let ownerId = '';
+  const team = `m-${tag}`;
+  let auth: { Authorization: string } = { Authorization: '' };
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -72,6 +85,14 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
         },
       })
     ).id;
+    const server = app.getHttpServer();
+    const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
+    auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    await request(server)
+      .post('/v1/cloud/teams')
+      .set(auth)
+      .send({ name: 'Ops', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
+      .expect(201);
   });
 
   afterAll(async () => {
@@ -85,14 +106,6 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
   it('checks URLs, takes heartbeats, alerts, and publishes a status page', async () => {
     const server = app.getHttpServer();
     const engine = app.get(CloudMonitorsService);
-    const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
-    const auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
-    const team = `m-${tag}`;
-    await request(server)
-      .post('/v1/cloud/teams')
-      .set(auth)
-      .send({ name: 'Ops', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
-      .expect(201);
 
     // Unsafe addresses are refused at once.
     for (const url of [
@@ -214,5 +227,358 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
     const badge = await request(server).get(`/v1/cloud/status/${team}/badge.svg`).expect(200);
     expect(badge.headers['content-type']).toMatch(/image\/svg\+xml/);
     expect(badge.headers['cross-origin-resource-policy']).toBe('cross-origin');
+  });
+
+  // Keeps the whole file under the create limit (10 monitors a minute): the first test makes 6.
+  it("alerts the project's Slack, Discord and webhook channels that asked (decision 64)", async () => {
+    const server = app.getHttpServer();
+    const engine = app.get(CloudMonitorsService);
+    const project = await request(server)
+      .post(`/v1/cloud/teams/${team}/projects`)
+      .set(auth)
+      .send({ name: 'Web', slug: `mp-${tag}` })
+      .expect(201);
+    const projectId = project.body.id as string;
+    const notifications = `/v1/cloud/projects/${projectId}/notifications`;
+
+    // Email channels can't take monitor alerts: monitors email their own people.
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'EMAIL', name: 'Team', recipientIds: [ownerId], monitorAlerts: true })
+      .expect(400);
+    const email = await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'EMAIL', name: 'Team', recipientIds: [ownerId] })
+      .expect(201);
+    expect(email.body.monitorAlerts).toBe(false);
+    await request(server)
+      .patch(`${notifications}/${email.body.id as string}`)
+      .set(auth)
+      .send({ monitorAlerts: true })
+      .expect(400);
+    const hookChannel = await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({
+        kind: 'WEBHOOK',
+        name: 'Ops',
+        url: 'https://hooks.example.com/monitors/aaaa',
+        monitorAlerts: true,
+      })
+      .expect(201);
+    expect(hookChannel.body.monitorAlerts).toBe(true);
+    const secret = hookChannel.body.secret as string;
+    await request(server)
+      .post(notifications)
+      .set(auth)
+      .send({ kind: 'WEBHOOK', name: 'Builds', url: 'https://hooks.example.com/builds/bbbb' })
+      .expect(201);
+
+    const api = await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set(auth)
+      .send({
+        kind: 'HTTP',
+        name: 'API',
+        url: 'https://api.example.com/',
+        projectId,
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    const monitorId = api.body.id as string;
+    const received = (event: string) =>
+      posts
+        .filter((p) => p.headers['X-Codeqlick-Event'] === event)
+        .map((p) => ({ ...p, json: JSON.parse(p.body) as Record<string, unknown> }));
+
+    // First check: UP, no alert, but the certificate (5 days left) warns.
+    const t1 = new Date();
+    site.status = 200;
+    await engine.tick(t1);
+    await vi.waitFor(() => expect(received('monitor.cert')).toHaveLength(1));
+    expect(received('monitor.cert')[0]!.json).toMatchObject({
+      monitor: { id: monitorId, kind: 'HTTP', url: 'https://api.example.com/' },
+      error: null,
+      downMinutes: null,
+    });
+    expect(received('monitor.cert')[0]!.json.certExpiresAt).toEqual(expect.any(String));
+
+    // Two failures: DOWN, the email and one signed post to the channel that asked.
+    site.status = 503;
+    await engine.tick(new Date(t1.getTime() + 5 * MINUTE));
+    await engine.tick(new Date(t1.getTime() + 10 * MINUTE));
+    await vi.waitFor(() => expect(received('monitor.down')).toHaveLength(1));
+    const down = received('monitor.down')[0]!;
+    expect(down.url).toBe('https://hooks.example.com/monitors/aaaa');
+    expect(down.headers['X-Codeqlick-Signature']).toBe(
+      `sha256=${createHmac('sha256', secret).update(down.body).digest('hex')}`,
+    );
+    expect(down.json).toMatchObject({
+      event: 'monitor.down',
+      project: { slug: `mp-${tag}`, name: 'Web' },
+      monitor: { id: monitorId, name: 'API', kind: 'HTTP', url: 'https://api.example.com/' },
+      error: 'HTTP 503',
+      downMinutes: null,
+      certExpiresAt: null,
+    });
+    expect(down.json.consoleUrl).toMatch(new RegExp(`/en/console/${team}/monitors/${monitorId}$`));
+    await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Down: API')).toBe(true));
+
+    // Back up after 5 minutes; the channel records the delivery.
+    const channelRow = () =>
+      prisma.cloudNotifyChannel.findUniqueOrThrow({ where: { id: hookChannel.body.id as string } });
+    const beforeUp = new Date();
+    site.status = 200;
+    await engine.tick(new Date(t1.getTime() + 15 * MINUTE));
+    await vi.waitFor(async () => {
+      const row = await channelRow();
+      expect(row.lastSentAt?.getTime() ?? 0).toBeGreaterThanOrEqual(beforeUp.getTime());
+      expect(row).toMatchObject({ lastOk: true, failures: 0 });
+    });
+    expect(received('monitor.up')).toHaveLength(1);
+    expect(received('monitor.up')[0]!.json).toMatchObject({ downMinutes: 5, error: null });
+    // Nothing ever went to the channel without monitor alerts.
+    expect(posts.every((p) => p.url === 'https://hooks.example.com/monitors/aaaa')).toBe(true);
+
+    // Down again 15 minutes after the last down alert, and the webhook answers 500: a failure.
+    hook.status = 500;
+    site.status = 503;
+    await engine.tick(new Date(t1.getTime() + 20 * MINUTE));
+    await engine.tick(new Date(t1.getTime() + 25 * MINUTE));
+    await vi.waitFor(async () =>
+      expect(await channelRow()).toMatchObject({ lastOk: false, failures: 1, enabled: true }),
+    );
+    expect((await channelRow()).lastError).toMatch(/^HTTP 500/);
+    expect(received('monitor.down')).toHaveLength(2);
+    hook.status = 200;
+
+    // A monitor without a project keeps email only.
+    const before = posts.length;
+    const beat = await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set(auth)
+      .send({
+        kind: 'HEARTBEAT',
+        name: 'Nightly',
+        periodMinutes: 60,
+        graceMinutes: 10,
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    await request(server)
+      .get(`${new URL(beat.body.heartbeatUrl as string).pathname}?status=fail`)
+      .expect(200);
+    await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Down: Nightly')).toBe(true));
+    expect(posts).toHaveLength(before);
+  });
+
+  // Slow-response episodes (architecture 4.13, Slow responses).
+  it('alerts on slow responses without going down, and ends episodes silently', async () => {
+    const server = app.getHttpServer();
+    const engine = app.get(CloudMonitorsService);
+    const project = await request(server)
+      .post(`/v1/cloud/teams/${team}/projects`)
+      .set(auth)
+      .send({ name: 'Shop', slug: `ms-${tag}` })
+      .expect(201);
+    const projectId = project.body.id as string;
+    const hookUrl = 'https://hooks.example.com/slow/cccc';
+    await request(server)
+      .post(`/v1/cloud/projects/${projectId}/notifications`)
+      .set(auth)
+      .send({ kind: 'WEBHOOK', name: 'Slow', url: hookUrl, monitorAlerts: true })
+      .expect(201);
+    const received = (event: string) =>
+      posts
+        .filter((p) => p.url === hookUrl && p.headers['X-Codeqlick-Event'] === event)
+        .map((p) => JSON.parse(p.body) as Record<string, unknown>);
+    const mails = (subject: string) => sent.filter((m) => m.subject === subject).length;
+
+    // Heartbeats can't have a threshold (on create and on update); neither can a value outside
+    // 500-14000 ms.
+    await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set('X-Forwarded-For', '203.0.113.41')
+      .set(auth)
+      .send({
+        kind: 'HEARTBEAT',
+        name: 'Beat',
+        periodMinutes: 60,
+        graceMinutes: 10,
+        slowMs: 1000,
+        alertIds: [ownerId],
+      })
+      .expect(400);
+    // Relies on the heartbeat the first test created in this team.
+    const heartbeat = await prisma.cloudMonitor.findFirstOrThrow({
+      where: { team: { slug: team }, kind: 'HEARTBEAT' },
+    });
+    await request(server)
+      .patch(`/v1/cloud/monitors/${heartbeat.id}`)
+      .set(auth)
+      .send({ slowMs: 1000 })
+      .expect(400);
+
+    const created = await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set('X-Forwarded-For', '203.0.113.41')
+      .set(auth)
+      .send({
+        kind: 'HTTP',
+        name: 'Latency',
+        url: 'https://latency.example.com/',
+        slowMs: 1000,
+        projectId,
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    const id = created.body.id as string;
+    expect(created.body).toMatchObject({ slowMs: 1000, slowSince: null });
+    for (const slowMs of [499, 14_001, 1500.5]) {
+      await request(server)
+        .patch(`/v1/cloud/monitors/${id}`)
+        .set(auth)
+        .send({ slowMs })
+        .expect(400);
+    }
+
+    // Freeze the clock (only Date) so the fake answer times are exact; it is restored below.
+    vi.setSystemTime(new Date());
+    const base = Date.now();
+    let step = 0;
+    // One check `step` x 5 minutes after the first, answering in `ms` (or failing).
+    const check = async (ms: number | 'fail') => {
+      site.status = ms === 'fail' ? 503 : 200;
+      site.responseMs = ms === 'fail' ? 0 : ms;
+      await engine.tick(new Date(base + step++ * 5 * MINUTE));
+    };
+    const row = () => prisma.cloudMonitor.findUniqueOrThrow({ where: { id } });
+    try {
+      await check(100);
+      expect(await row()).toMatchObject({ status: 'UP', slowCount: 0, slowSince: null });
+
+      // Two slow checks, a failure in between (it only counts, and doesn't reset), a third slow.
+      await check(2000);
+      await check(2000);
+      expect(await row()).toMatchObject({ slowCount: 2, slowSince: null });
+      await check('fail');
+      expect(await row()).toMatchObject({ status: 'UP', slowCount: 2, slowSince: null });
+      await check(2000);
+      const slow = await row();
+      expect(slow).toMatchObject({ status: 'UP', slowCount: 0 });
+      expect(slow.slowSince?.getTime()).toBe(base + 4 * 5 * MINUTE);
+      await vi.waitFor(() => expect(mails('Slow: Latency')).toBe(1));
+      await vi.waitFor(() => expect(received('monitor.slow')).toHaveLength(1));
+      expect(received('monitor.slow')[0]).toMatchObject({
+        event: 'monitor.slow',
+        project: { slug: `ms-${tag}`, name: 'Shop' },
+        monitor: { id, name: 'Latency', kind: 'HTTP', url: 'https://latency.example.com/' },
+        error: null,
+        downMinutes: null,
+        responseMs: 2000,
+        slowMs: 1000,
+        slowMinutes: null,
+      });
+      // The state stays UP: the only event is the first result.
+      expect(await prisma.cloudMonitorEvent.count({ where: { monitorId: id } })).toBe(1);
+      expect(mails('Down: Latency')).toBe(0);
+      const view = await request(server).get(`/v1/cloud/monitors/${id}`).set(auth).expect(200);
+      expect(view.body).toMatchObject({ status: 'UP', slowMs: 1000 });
+      expect(view.body.slowSince).toBe(slow.slowSince?.toISOString());
+
+      // Inside the episode a slow check resets the normal ones; three normal in a row end it.
+      await check(100);
+      await check(100);
+      await check(3000);
+      expect(await row()).toMatchObject({ slowCount: 0 });
+      expect((await row()).slowSince).not.toBeNull();
+      await check(100);
+      await check(100);
+      expect(await row()).toMatchObject({ slowCount: 2 });
+      expect((await row()).slowSince).not.toBeNull();
+      expect(mails('Back to normal: Latency')).toBe(0);
+      await check(100);
+      expect(await row()).toMatchObject({ status: 'UP', slowCount: 0, slowSince: null });
+      await vi.waitFor(() => expect(mails('Back to normal: Latency')).toBe(1));
+      await vi.waitFor(() => expect(received('monitor.fast')).toHaveLength(1));
+      expect(received('monitor.fast')[0]).toMatchObject({
+        event: 'monitor.fast',
+        responseMs: 100,
+        slowMs: 1000,
+        slowMinutes: 30,
+      });
+      expect(await prisma.cloudMonitorEvent.count({ where: { monitorId: id } })).toBe(1);
+
+      // Going down ends an episode silently.
+      await check(2000);
+      await check(2000);
+      await check(2000);
+      expect((await row()).slowSince).not.toBeNull();
+      await vi.waitFor(() => expect(mails('Slow: Latency')).toBe(2));
+      await check('fail');
+      await check('fail');
+      expect(await row()).toMatchObject({ status: 'DOWN', slowCount: 0, slowSince: null });
+      await vi.waitFor(() => expect(mails('Down: Latency')).toBe(1));
+      expect(mails('Back to normal: Latency')).toBe(1);
+      expect(received('monitor.fast')).toHaveLength(1);
+      await check(100);
+      expect(await row()).toMatchObject({ status: 'UP', slowSince: null });
+
+      // Changing the threshold resets the count and ends an episode silently; so does clearing it.
+      const patch = (body: object) =>
+        request(server).patch(`/v1/cloud/monitors/${id}`).set(auth).send(body).expect(200);
+      await check(2000);
+      await check(2000);
+      expect(await row()).toMatchObject({ slowCount: 2 });
+      const changed = await patch({ slowMs: 1500 });
+      expect(changed.body).toMatchObject({ slowMs: 1500, slowSince: null });
+      expect(await row()).toMatchObject({ slowMs: 1500, slowCount: 0, slowSince: null });
+      await check(2000);
+      await check(2000);
+      await check(2000);
+      expect((await row()).slowSince).not.toBeNull();
+      await patch({ slowMs: 2500 });
+      expect(await row()).toMatchObject({ slowMs: 2500, slowCount: 0, slowSince: null });
+      await check(3000);
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      // The same value changes nothing.
+      await patch({ slowMs: 2500 });
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      const cleared = await patch({ slowMs: null });
+      expect(cleared.body).toMatchObject({ slowMs: null, slowSince: null });
+      expect(await row()).toMatchObject({ slowMs: null, slowCount: 0 });
+      await check(3000);
+      expect(await row()).toMatchObject({ slowCount: 0, slowSince: null });
+      expect(mails('Back to normal: Latency')).toBe(1);
+
+      // Changing the URL or pausing ends an episode silently too; the same URL changes nothing.
+      await patch({ slowMs: 1000 });
+      const episode = async () => {
+        await check(2000);
+        await check(2000);
+        await check(2000);
+        expect((await row()).slowSince).not.toBeNull();
+      };
+      await episode();
+      await patch({ url: 'https://latency2.example.com/' });
+      expect(await row()).toMatchObject({ slowCount: 0, slowSince: null });
+      await check(2000);
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      await patch({ url: 'https://latency2.example.com/' });
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      await check(2000);
+      await check(2000);
+      expect((await row()).slowSince).not.toBeNull();
+      await patch({ enabled: false });
+      expect(await row()).toMatchObject({ status: 'PAUSED', slowCount: 0, slowSince: null });
+      expect(mails('Back to normal: Latency')).toBe(1);
+      expect(received('monitor.fast')).toHaveLength(1);
+    } finally {
+      site.status = 200;
+      site.responseMs = 0;
+      vi.useRealTimers();
+    }
   });
 });
