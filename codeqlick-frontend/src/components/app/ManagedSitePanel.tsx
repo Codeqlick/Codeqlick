@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { SiteNews } from '@/components/editor/SiteNews';
+import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -160,7 +161,9 @@ export async function ManagedSitePanel({
       </div>
 
       {news ? (
-        <SiteNews locale={locale} scope="admin" projectId={projectId} initial={news} />
+        <ClientMessages extra={APP_NAMESPACES.admin}>
+          <SiteNews locale={locale} scope="admin" projectId={projectId} initial={news} />
+        </ClientMessages>
       ) : null}
 
       <ActionForm

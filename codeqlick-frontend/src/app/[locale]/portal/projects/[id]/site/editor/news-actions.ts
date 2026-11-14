@@ -20,13 +20,7 @@ import type { SiteNewsBuild, SiteNewsList, SiteNewsPost } from '@/lib/api/types'
 
 /** Why a news call did not work, in the words the section has messages for. */
 export type NewsFailure =
-  | 'invalid'
-  | 'limit'
-  | 'expired'
-  | 'busy'
-  | 'unavailable'
-  | 'notFound'
-  | 'failed';
+  'invalid' | 'limit' | 'expired' | 'busy' | 'unavailable' | 'notFound' | 'failed';
 
 /** What the news section gets back: the data (and the build's result), or the problem. */
 export type NewsResult<T> =

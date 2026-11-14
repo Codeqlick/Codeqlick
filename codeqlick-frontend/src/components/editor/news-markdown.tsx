@@ -16,8 +16,7 @@ export type NewsInline =
   | { type: 'link'; href: string; children: NewsInline[] };
 
 export type NewsBlock =
-  | { type: 'paragraph'; children: NewsInline[] }
-  | { type: 'list'; items: NewsInline[][] };
+  { type: 'paragraph'; children: NewsInline[] } | { type: 'list'; items: NewsInline[][] };
 
 const SAFE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 
