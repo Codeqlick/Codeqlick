@@ -14,7 +14,10 @@ import {
   type AnalyticsRow,
   type Build,
   type BuildStatus,
+  type DetectNote,
+  type DetectedSettings,
   type Deployment,
+  type Framework,
   type GitSettings,
   type Project,
 } from './api.ts';
@@ -66,7 +69,9 @@ Commands:
 
 Builds from Git:
   git                       The connected repository and build settings
-  git connect <owner/repo>  Connect a repository (install the GitHub app in the console first)
+  git connect <owner/repo>  Connect a repository (install the GitHub app in the console first);
+                            build, output and Node are suggested from the repository unless given
+                            (not when the project is already connected to that repository)
       --branch <name>         production branch (the repository's default)
       --root <dir> --install <cmd> --build <cmd> --output <dir> --node <20|22|24>
   git disconnect            Stop building from Git
@@ -512,6 +517,62 @@ function showGit(settings: GitSettings): void {
   for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
 }
 
+const FRAMEWORKS: Record<Framework, string> = {
+  astro: 'Astro',
+  docusaurus: 'Docusaurus',
+  gatsby: 'Gatsby',
+  next: 'Next.js',
+  nuxt: 'Nuxt',
+  sveltekit: 'SvelteKit',
+  eleventy: 'Eleventy',
+  cra: 'Create React App',
+  vite: 'Vite',
+};
+
+const DETECT_NOTES: Record<DetectNote, string> = {
+  'next-not-static': "Next.js needs output: 'export' in next.config to be served as static files.",
+  'sveltekit-no-static-adapter': 'SvelteKit needs @sveltejs/adapter-static.',
+  'node-unsupported': "The repository asks for a Node version Cloud doesn't offer: check --node.",
+  'no-package-json':
+    'No package.json in this folder: pick the right root folder (--root), or use codeqlick deploy for a site that needs no build.',
+};
+
+/** The build settings to send: each option given wins over the suggestion (architecture 4.13). */
+export function withSuggestion(
+  options: { build?: string; output?: string; node?: string },
+  suggestion: DetectedSettings | null,
+): { buildCommand?: string; outputDir?: string; nodeVersion?: string } {
+  return {
+    buildCommand: options.build ?? suggestion?.buildCommand,
+    outputDir: options.output ?? suggestion?.outputDir,
+    nodeVersion: options.node ?? suggestion?.nodeVersion,
+  };
+}
+
+/**
+ * Whether a suggestion may fill the options not given: only while the project isn't connected, or
+ * when it moves to another repository. A project's saved settings for its own repository stay.
+ */
+export function suggestionApplies(current: Pick<GitSettings, 'repoId'>, repoId: number): boolean {
+  return current.repoId === null || current.repoId !== repoId;
+}
+
+/** The warning when the suggestion can't be had: the API then keeps what the project has. */
+export function detectFailed(current: Pick<GitSettings, 'repoId'>, error: Error): string {
+  const kept = current.repoId === null ? 'keeping the defaults' : 'keeping the current settings';
+  return `Couldn't suggest build settings (${error.message}): ${kept}.`;
+}
+
+/** What the suggestion found, then its notes, one line each. */
+export function detectSummary(suggestion: DetectedSettings): string[] {
+  const from = suggestion.nodeFrom === 'engines' ? 'engines in package.json' : suggestion.nodeFrom;
+  const settings = `build "${suggestion.buildCommand}", output ${suggestion.outputDir || '.'}, Node ${suggestion.nodeVersion}${from ? ` (${from})` : ''}`;
+  const found = suggestion.framework
+    ? `Detected ${FRAMEWORKS[suggestion.framework] ?? suggestion.framework} (package.json): ${settings}`
+    : `No framework detected: ${settings}`;
+  return [found, ...suggestion.notes.map((note) => `Note: ${DETECT_NOTES[note] ?? note}`)];
+}
+
 async function git(action: string | undefined, name: string | undefined, options: Options) {
   const { api } = await signedIn();
   const project = await target(api, options);
@@ -547,15 +608,32 @@ async function git(action: string | undefined, name: string | undefined, options
       (r) => r.fullName.toLowerCase() === wanted,
     );
     if (!repo) continue;
+    const branch = options.branch ?? repo.defaultBranch;
+    const current = await api.git(project.id);
+    let suggestion: DetectedSettings | null = null;
+    const missing =
+      options.build === undefined || options.output === undefined || options.node === undefined;
+    if (missing && suggestionApplies(current, repo.id)) {
+      try {
+        suggestion = await api.detect(team, {
+          installationId: installation.id,
+          repoId: repo.id,
+          branch,
+          // The API keeps the saved root folder when --root isn't given, so detect in that one.
+          rootDir: options.root ?? current.rootDir,
+        });
+        for (const line of detectSummary(suggestion)) console.log(line);
+      } catch (error) {
+        console.error(detectFailed(current, error as Error));
+      }
+    }
     const settings = await api.setGit(project.id, {
       installationId: installation.id,
       repoId: repo.id,
-      branch: options.branch ?? repo.defaultBranch,
+      branch,
       rootDir: options.root,
       installCommand: options.install,
-      buildCommand: options.build,
-      outputDir: options.output,
-      nodeVersion: options.node,
+      ...withSuggestion(options, suggestion),
     });
     console.log(`${green('✓')} ${bold(project.slug)} builds from ${bold(repo.fullName)}.`);
     showGit(settings);

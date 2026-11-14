@@ -15,7 +15,7 @@ import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
-import { GithubClient } from '../src/modules/cloud/github.client.js';
+import { GithubClient, GithubError } from '../src/modules/cloud/github.client.js';
 import { MailService } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
@@ -47,6 +47,23 @@ const github = {
     ]),
   ),
   branchHead: vi.fn(() => Promise.resolve({ sha: sha(9), message: 'Manual', author: 'Ada' })),
+  repoAccess: vi.fn(() => Promise.resolve({ token: 'ghs_read_token', fullName: 'ada-labs/site' })),
+  listFolder: vi.fn((_token: string, _full: string, _path: string, ref: string) =>
+    ref === 'missing'
+      ? Promise.reject(new GithubError(404, 'GitHub answered 404'))
+      : Promise.resolve([
+          { name: 'package.json', type: 'file', size: 120 },
+          { name: '.nvmrc', type: 'file', size: 3 },
+          { name: 'src', type: 'dir', size: 0 },
+        ]),
+  ),
+  fileText: vi.fn((_token: string, _full: string, path: string) =>
+    Promise.resolve(
+      path.endsWith('package.json')
+        ? JSON.stringify({ dependencies: { astro: '5.0.0' }, scripts: { build: 'astro build' } })
+        : '22\n',
+    ),
+  ),
   setStatus: vi.fn(
     (
       _i: unknown,
@@ -120,7 +137,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      await prisma.cloudTeam.deleteMany({ where: { slug: `b-${tag}` } });
+      await prisma.cloudTeam.deleteMany({ where: { slug: { in: [`b-${tag}`, `bo-${tag}`] } } });
       await prisma.cloudProject.deleteMany({ where: { slug: `bp-${tag}` } });
       await prisma.user.deleteMany({ where: { email: { contains: `-${tag}@` } } });
     }
@@ -173,6 +190,80 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .set(auth)
       .expect(200);
     expect(repos.body.items[0]).toMatchObject({ id: REPO, fullName: 'ada-labs/site' });
+
+    // ── Suggested settings: the team's installation only, read through a repo-limited token.
+    const detect = `/v1/cloud/teams/${team}/github/detect`;
+    const detectQuery = { installationId: INSTALLATION, repoId: REPO, branch: 'main' };
+    await request(server).get(detect).query(detectQuery).expect(401);
+    const suggested = await request(server).get(detect).set(auth).query(detectQuery).expect(200);
+    expect(suggested.body).toEqual({
+      framework: 'astro',
+      buildCommand: 'npm run build',
+      outputDir: 'dist',
+      nodeVersion: '22',
+      nodeFrom: '.nvmrc',
+      notes: [],
+    });
+    expect(github.repoAccess).toHaveBeenLastCalledWith(INSTALLATION, REPO);
+    expect(github.fileText).toHaveBeenCalledWith(
+      'ghs_read_token',
+      'ada-labs/site',
+      'package.json',
+      'main',
+      512 * 1024,
+    );
+    await request(server)
+      .get(detect)
+      .set(auth)
+      .query({ ...detectQuery, rootDir: '/apps/web/' })
+      .expect(200);
+    expect(github.listFolder).toHaveBeenLastCalledWith(
+      'ghs_read_token',
+      'ada-labs/site',
+      'apps/web',
+      'main',
+    );
+    expect(github.fileText).toHaveBeenLastCalledWith(
+      'ghs_read_token',
+      'ada-labs/site',
+      expect.stringMatching(/^apps\/web\/(package\.json|\.nvmrc)$/),
+      'main',
+      512 * 1024,
+    );
+    for (const bad of [
+      { installationId: INSTALLATION, repoId: REPO },
+      { ...detectQuery, repoId: 0 },
+      { ...detectQuery, installationId: 'abc' },
+      { ...detectQuery, branch: 'a'.repeat(256) },
+      { ...detectQuery, branch: 'main\u0007' },
+      { ...detectQuery, branch: 'my branch' },
+      { ...detectQuery, rootDir: '../etc' },
+    ]) {
+      await request(server).get(detect).set(auth).query(bad).expect(400);
+    }
+    await request(server)
+      .get(detect)
+      .set(auth)
+      .query({ ...detectQuery, branch: 'missing' })
+      .expect(404);
+    await request(server)
+      .post('/v1/cloud/teams')
+      .set(auth)
+      .send({
+        name: 'Other',
+        slug: `bo-${tag}`,
+        acceptTerms: true,
+        termsVersion: CLOUD_TERMS_VERSION,
+      })
+      .expect(201);
+    await request(server)
+      .get(`/v1/cloud/teams/bo-${tag}/github/detect`)
+      .set(auth)
+      .query(detectQuery)
+      .expect(404);
+    github.configured = false;
+    await request(server).get(detect).set(auth).query(detectQuery).expect(503);
+    github.configured = true;
     await request(server)
       .put(`/v1/cloud/projects/${projectId}/git`)
       .set(auth)

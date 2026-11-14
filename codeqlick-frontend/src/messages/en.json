@@ -5060,6 +5060,19 @@
       "branchInvalid": "A branch name.",
       "rootDir": "Root folder",
       "rootDirHint": "Leave it empty unless the site is in a subfolder (a monorepo).",
+      "detect": {
+        "checking": "Looking at the repository…",
+        "framework": "{framework} detected in package.json",
+        "noFramework": "No framework detected: defaults kept",
+        "nodeFile": "Node {version} from {file}",
+        "nodeEngines": "Node {version} from engines in package.json",
+        "notes": {
+          "nextNotStatic": "Next.js needs output: 'export' in next.config to be served as static files.",
+          "sveltekitNoStaticAdapter": "SvelteKit needs @sveltejs/adapter-static.",
+          "nodeUnsupported": "The repository asks for a Node version Cloud doesn't offer: check the Node version field.",
+          "noPackageJson": "No package.json in this folder: pick the right root folder, or use codeqlick deploy for a site that needs no build."
+        }
+      },
       "install": "Install command",
       "build": "Build command",
       "output": "Output folder",

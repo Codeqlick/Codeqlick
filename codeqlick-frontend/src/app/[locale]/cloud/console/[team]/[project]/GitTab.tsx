@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
+import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -18,6 +18,7 @@ import {
   saveGitAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { GitBuildFields } from './GitBuildFields';
 
 type Props = {
   locale: AppLocale;
@@ -108,57 +109,21 @@ export async function GitTab(props: Props) {
             action={saveGitAction.bind(null, props.locale, props.path, props.projectId)}
             className={styles.form}
           >
-            <FormSelect
-              name="repo"
-              label={t('git.repo')}
-              defaultValue={current}
-              options={[
-                { value: '', label: t('git.chooseRepo') },
-                ...repos.map((repo) => ({
-                  value: `${repo.installationId}:${repo.id}`,
-                  label: repo.fullName,
-                })),
-              ]}
-            />
-            <FormInput
-              name="branch"
-              label={t('git.branch')}
-              hint={t('git.branchHint')}
-              defaultValue={git.branch}
-              required
-              mono
-            />
-            <FormInput
-              name="rootDir"
-              label={t('git.rootDir')}
-              hint={t('git.rootDirHint')}
-              defaultValue={git.rootDir}
-              mono
-            />
-            <FormInput
-              name="installCommand"
-              label={t('git.install')}
-              defaultValue={git.installCommand}
-              mono
-            />
-            <FormInput
-              name="buildCommand"
-              label={t('git.build')}
-              defaultValue={git.buildCommand}
-              mono
-            />
-            <FormInput
-              name="outputDir"
-              label={t('git.output')}
-              hint={t('git.outputHint')}
-              defaultValue={git.outputDir}
-              mono
-            />
-            <FormSelect
-              name="nodeVersion"
-              label={t('git.node')}
-              defaultValue={git.nodeVersion}
-              options={['24', '22', '20'].map((v) => ({ value: v, label: `Node ${v}` }))}
+            <GitBuildFields
+              team={props.teamSlug}
+              repos={repos.map((repo) => ({
+                value: `${repo.installationId}:${repo.id}`,
+                label: repo.fullName,
+              }))}
+              defaults={{
+                repo: current,
+                branch: git.branch,
+                rootDir: git.rootDir,
+                installCommand: git.installCommand,
+                buildCommand: git.buildCommand,
+                outputDir: git.outputDir,
+                nodeVersion: git.nodeVersion,
+              }}
             />
             <FormCheckbox
               name="buildBranches"

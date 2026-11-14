@@ -5060,6 +5060,19 @@
       "branchInvalid": "Un nombre de rama.",
       "rootDir": "Carpeta raíz",
       "rootDirHint": "Déjala vacía salvo que la web esté en una subcarpeta (un monorepo).",
+      "detect": {
+        "checking": "Revisando el repositorio…",
+        "framework": "{framework} detectado en package.json",
+        "noFramework": "Ningún framework detectado: se mantienen los valores por defecto",
+        "nodeFile": "Node {version} de {file}",
+        "nodeEngines": "Node {version} de engines en package.json",
+        "notes": {
+          "nextNotStatic": "Next.js necesita output: 'export' en next.config para servirse como archivos estáticos.",
+          "sveltekitNoStaticAdapter": "SvelteKit necesita @sveltejs/adapter-static.",
+          "nodeUnsupported": "El repositorio pide una versión de Node que Cloud no ofrece: revisa el campo Versión de Node.",
+          "noPackageJson": "No hay package.json en esta carpeta: elige la carpeta raíz correcta o usa codeqlick deploy para una web que no necesita compilación."
+        }
+      },
       "install": "Orden de instalación",
       "build": "Orden de compilación",
       "output": "Carpeta de salida",

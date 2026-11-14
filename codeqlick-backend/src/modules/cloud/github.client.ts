@@ -21,6 +21,32 @@ export interface GithubRepo {
   private: boolean;
 }
 
+export interface GithubEntry {
+  name: string;
+  type: 'file' | 'dir' | 'symlink' | 'submodule';
+  size: number;
+}
+
+/** A read-only token limited to one repository, and the repository's `owner/name`. */
+export interface GithubRepoAccess {
+  token: string;
+  fullName: string;
+}
+
+interface SendOptions {
+  body?: unknown;
+  base?: string;
+  accept?: string;
+}
+
+/** `owner/name` and a path inside the repository, each segment encoded for a URL. */
+const encodePath = (path: string) =>
+  path
+    .split('/')
+    .filter((part) => part !== '')
+    .map((part) => encodeURIComponent(part))
+    .join('/');
+
 export interface GithubCommit {
   sha: string;
   message: string;
@@ -67,10 +93,21 @@ export class GithubClient {
     body?: unknown,
     base = API,
   ): Promise<T> {
+    const text = await this.send(method, path, auth, { body, base });
+    return (text ? JSON.parse(text) : undefined) as T;
+  }
+
+  /** One request; the answer's text, or a `GithubError` with GitHub's status. */
+  private async send(
+    method: string,
+    path: string,
+    auth: string,
+    { body, base = API, accept = 'application/vnd.github+json' }: SendOptions = {},
+  ): Promise<string> {
     const response = await fetch(`${base}${path}`, {
       method,
       headers: {
-        Accept: 'application/vnd.github+json',
+        Accept: accept,
         'X-GitHub-Api-Version': '2022-11-28',
         'User-Agent': USER_AGENT,
         ...(auth ? { Authorization: auth } : {}),
@@ -84,7 +121,7 @@ export class GithubClient {
       this.logger.warn(`GitHub ${method} ${path}: ${response.status} ${text.slice(0, 200)}`);
       throw new GithubError(response.status, `GitHub answered ${response.status}`);
     }
-    return (text ? JSON.parse(text) : undefined) as T;
+    return text;
   }
 
   /** A one-hour token of an installation, limited to one repository when given. */
@@ -218,5 +255,70 @@ export class GithubClient {
       { body },
     );
     return BigInt(created.id);
+  }
+
+  // ── Reading a repository's files (architecture 4.13 "Suggested settings") ───────────────────
+
+  /**
+   * A one-hour token limited to one repository that can only read its contents, with the
+   * repository's name from the token's answer (one request). An installation that can't see the
+   * repository answers 422 (or 404).
+   */
+  async repoAccess(
+    installationId: bigint | number,
+    repoId: bigint | number,
+  ): Promise<GithubRepoAccess> {
+    const result = await this.call<{
+      token: string;
+      repositories?: Array<{ id: number; full_name: string }>;
+    }>('POST', `/app/installations/${installationId}/access_tokens`, `Bearer ${this.appJwt()}`, {
+      repository_ids: [Number(repoId)],
+      permissions: { contents: 'read' },
+    });
+    const listed = result.repositories?.find((repo) => repo.id === Number(repoId));
+    // The token's answer names the repository; without it, one more request would break the
+    // detection's limit of 5 (architecture 4.13), so it counts as not found.
+    if (!listed) throw new GithubError(404, 'Repository not in the token');
+    return { token: result.token, fullName: listed.full_name };
+  }
+
+  /**
+   * A folder's entries at a ref (`''` is the root). A path that is a file, or an unknown
+   * repository, ref or folder: `GithubError` 404.
+   */
+  async listFolder(
+    token: string,
+    fullName: string,
+    path: string,
+    ref: string,
+  ): Promise<GithubEntry[]> {
+    const folder = encodePath(path);
+    const result = await this.call<unknown>(
+      'GET',
+      `/repos/${encodePath(fullName)}/contents${folder ? `/${folder}` : ''}?ref=${encodeURIComponent(ref)}`,
+      `token ${token}`,
+    );
+    if (!Array.isArray(result)) throw new GithubError(404, 'Not a folder');
+    return (result as Array<{ name: string; type: GithubEntry['type']; size: number }>).map(
+      (entry) => ({ name: entry.name, type: entry.type, size: entry.size }),
+    );
+  }
+
+  /** A file's text at a ref; `GithubError` 413 when it is larger than `maxBytes`. */
+  async fileText(
+    token: string,
+    fullName: string,
+    path: string,
+    ref: string,
+    maxBytes: number,
+  ): Promise<string> {
+    const text = await this.send(
+      'GET',
+      `/repos/${encodePath(fullName)}/contents/${encodePath(path)}?ref=${encodeURIComponent(ref)}`,
+      `token ${token}`,
+      { accept: 'application/vnd.github.raw+json' },
+    );
+    if (Buffer.byteLength(text) > maxBytes) throw new GithubError(413, 'File too large');
+    return text;
   }
 }

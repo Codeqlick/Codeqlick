@@ -737,6 +737,43 @@ export const listCloudGithubRepos = (team: string, installationId: number) =>
     query: { installationId },
   });
 
+export type CloudFramework =
+  | 'astro'
+  | 'docusaurus'
+  | 'gatsby'
+  | 'next'
+  | 'nuxt'
+  | 'sveltekit'
+  | 'eleventy'
+  | 'cra'
+  | 'vite';
+
+export type CloudDetectNote =
+  | 'next-not-static'
+  | 'sveltekit-no-static-adapter'
+  | 'node-unsupported'
+  | 'no-package-json';
+
+/** Build settings suggested from what a repository contains (4.13, Suggested settings). */
+export type CloudDetect = {
+  framework: CloudFramework | null;
+  buildCommand: string;
+  outputDir: string;
+  nodeVersion: string;
+  nodeFrom: '.nvmrc' | '.node-version' | 'engines' | null;
+  notes: CloudDetectNote[];
+};
+
+export const detectCloudGithub = (
+  team: string,
+  query: { installationId: number; repoId: number; branch: string; rootDir: string },
+) =>
+  // Server Actions only: forwards the visitor's IP, so the API's limit (20 a minute) is theirs.
+  apiFetch<CloudDetect>(`/cloud/teams/${encodeURIComponent(team)}/github/detect`, {
+    ...write,
+    query,
+  });
+
 export const getCloudGit = (projectId: string) =>
   apiFetch<CloudGit>(`/cloud/projects/${projectId}/git`, auth);
 

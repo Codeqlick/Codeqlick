@@ -307,6 +307,14 @@ const command = z
   .max(300)
   .refine((value) => !/[\r\n]/.test(value), 'One line');
 
+/** A branch name, as the project's settings take it. */
+const branchName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^[\w./-]+$/, 'A branch name');
+
 export const installUrlQuerySchema = z.object({
   teamSlug: teamSlugSchema,
   /** The project to come back to after installing. */
@@ -324,15 +332,19 @@ export type LinkInstallationInput = z.infer<typeof linkInstallationSchema>;
 export const reposQuerySchema = z.object({ installationId: z.coerce.number().int().positive() });
 export type ReposQuery = z.infer<typeof reposQuerySchema>;
 
+/** The repository, branch and root folder to suggest build settings for (decision 75). */
+export const detectQuerySchema = z.object({
+  installationId: z.coerce.number().int().positive(),
+  repoId: z.coerce.number().int().positive(),
+  branch: branchName,
+  rootDir: relativeDir.default(''),
+});
+export type DetectQuery = z.infer<typeof detectQuerySchema>;
+
 export const gitSettingsSchema = z.object({
   installationId: z.coerce.number().int().positive(),
   repoId: z.coerce.number().int().positive(),
-  branch: z
-    .string()
-    .trim()
-    .min(1)
-    .max(200)
-    .regex(/^[\w./-]+$/, 'A branch name'),
+  branch: branchName,
   rootDir: relativeDir.optional(),
   installCommand: command.optional(),
   buildCommand: command.optional(),

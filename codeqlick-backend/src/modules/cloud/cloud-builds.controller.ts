@@ -37,6 +37,7 @@ import {
   buildParamSchema,
   builderBuildParamSchema,
   claimSchema,
+  detectQuerySchema,
   envKeyQuerySchema,
   envVarSchema,
   finishSchema,
@@ -50,6 +51,7 @@ import {
   type BuildParam,
   type BuilderBuildParam,
   type ClaimInput,
+  type DetectQuery,
   type EnvKeyQuery,
   type EnvVarInput,
   type FinishInput,
@@ -68,6 +70,7 @@ import {
   type ClaimedBuild,
   type GitView,
 } from './cloud-builds.service.js';
+import type { DetectedSettings } from './cloud-detect.js';
 
 /** GitHub's webhook and the build server's agent: no session (architecture 4.13, 8.4). */
 @ApiTags('cloud')
@@ -185,6 +188,17 @@ export class CloudBuildsController {
     @Query({ schema: reposQuerySchema }) query: ReposQuery,
   ) {
     return this.builds.repos(ctx, params.team, query.installationId);
+  }
+
+  @Get('teams/:team/github/detect')
+  @CloudApi()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  detect(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: teamParamSchema }) params: TeamParam,
+    @Query({ schema: detectQuerySchema }) query: DetectQuery,
+  ): Promise<DetectedSettings> {
+    return this.builds.detect(ctx, params.team, query);
   }
 
   @Get('projects/:id/git')
