@@ -29,8 +29,12 @@ describe('FormRadioGroup', () => {
     const html = render('full');
     expect(html).toMatch(/<input[^>]*id="access-full"[^>]*aria-describedby="access-full-hint"/);
     expect(html).toContain('<p id="access-readOnly-hint"');
-    expect(html).toMatch(/<input[^>]*value="full"[^>]*checked=""/);
-    expect(html).not.toMatch(/<input[^>]*value="readOnly"[^>]*checked=""/);
+    // Attribute order is React's, so look at each radio's own tag.
+    const input = (value: string) =>
+      html.match(new RegExp(`<input[^>]*value="${value}"[^>]*>`))?.[0];
+    expect(input('full')).toContain('checked=""');
+    expect(input('readOnly')).toBeDefined();
+    expect(input('readOnly')).not.toContain('checked');
   });
 
   it('ticks nothing without a default', () => {
