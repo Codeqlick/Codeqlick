@@ -36,8 +36,8 @@ type Props = {
   path: string;
   admin: boolean;
   github?: string;
-  /** The project's scheduled rebuilds; missing means off. */
-  rebuild?: CloudRebuild;
+  /** The project's scheduled rebuilds. */
+  rebuild: CloudRebuild;
 };
 
 /** A project's GitHub connection, build settings and variables (architecture 4.13). */
@@ -71,14 +71,7 @@ export async function GitTab(props: Props) {
     </form>
   );
   const current = git.repoId && git.installationId ? `${git.installationId}:${git.repoId}` : '';
-  const rebuild: CloudRebuild = props.rebuild ?? {
-    frequency: 'off',
-    minute: null,
-    hour: null,
-    weekday: null,
-    nextAt: null,
-    failures: 0,
-  };
+  const { rebuild } = props;
   const schedule = describeRebuild(rebuild, props.locale);
 
   return (

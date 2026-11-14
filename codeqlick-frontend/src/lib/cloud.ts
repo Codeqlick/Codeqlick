@@ -110,15 +110,18 @@ const pad = (value: number) => String(value).padStart(2, '0');
  * Null when it is off or incomplete.
  */
 export function describeRebuild(
-  rebuild:
-    | { frequency: string; minute: number | null; hour: number | null; weekday: number | null }
-    | undefined,
+  rebuild: {
+    frequency: string;
+    minute: number | null;
+    hour: number | null;
+    weekday: number | null;
+  },
   locale: string,
 ): {
   key: 'hourly' | 'daily' | 'weekly';
   values: { minute: string; time: string; weekday: string };
 } | null {
-  if (!rebuild || rebuild.minute === null) return null;
+  if (rebuild.minute === null) return null;
   const minute = pad(rebuild.minute);
   const time = rebuild.hour === null ? '' : `${pad(rebuild.hour)}:${minute}`;
   const weekday = rebuild.weekday === null ? '' : weekdayName(rebuild.weekday, locale);

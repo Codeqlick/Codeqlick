@@ -84,8 +84,7 @@ describe('describeRebuild', () => {
     ).toEqual({ key: 'hourly', values: { minute: '05', time: '', weekday: '' } });
   });
 
-  it('is null when off, missing or incomplete', () => {
-    expect(describeRebuild(undefined, 'en')).toBeNull();
+  it('is null when off or incomplete', () => {
     expect(describeRebuild({ ...schedule, frequency: 'off' }, 'en')).toBeNull();
     expect(describeRebuild({ ...schedule, hour: null, frequency: 'daily' }, 'en')).toBeNull();
   });

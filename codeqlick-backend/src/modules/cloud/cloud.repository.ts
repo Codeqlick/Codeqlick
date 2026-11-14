@@ -390,7 +390,13 @@ export class CloudRepository {
     await this.prisma.$transaction([
       this.prisma.cloudProject.update({
         where: { id },
-        data: { deletedAt: now, productionDeploymentId: null },
+        // Scheduled rebuilds switch off with it (decision 65).
+        data: {
+          deletedAt: now,
+          productionDeploymentId: null,
+          rebuildFrequency: 'OFF',
+          rebuildNextAt: null,
+        },
       }),
       this.prisma.cloudDeployment.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudDomain.deleteMany({ where: { projectId: id } }),
