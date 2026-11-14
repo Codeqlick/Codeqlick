@@ -565,6 +565,62 @@ script: add a read-only deploy key of that server to the repository, then
 `/etc/codeqlick-builder.env`, `sudo systemctl restart codeqlick-builder`, and on this VPS
 `sudo systemctl disable --now codeqlick-builder`.
 
+## Public documentation (docs.codeqlick.com)
+
+The documentation site (`codeqlick-docs/`, architecture 4.13 and decision 53) is a static site that
+Codeqlick Cloud itself builds and hosts, from this repository. The Deploy workflow doesn't touch
+it, and `.github/workflows/docs.yml` only gates pull requests. Until the steps below are done
+nothing changes: the console keeps its own `/docs` page. Run them once, in order, after the pull
+request is merged and deployed:
+
+1. **Create the project.** In the console (cloud.codeqlick.com) open the Codeqlick team and create
+   a project with the slug `codeqlick-docs` (`docs` itself is reserved).
+2. **Connect the repository.** In the project's Git tab connect this repository (the GitHub App
+   must be installed on it, see "Codeqlick Cloud: builds from Git") and set: root folder
+   `codeqlick-docs`, install `npm ci`, build `npm run build`, output `dist`, Node 24, production
+   branch `main`, "build other branches" off and "build pull requests" off (CI already builds
+   every pull request; a Cloud preview for each would only cost builds).
+3. **Allow the domain.** On the server, edit `/srv/codeqlick/.env`:
+
+   ```
+   CLOUD_PLATFORM_TEAM_ID=<the Codeqlick team's id>
+   CLOUD_PLATFORM_DOMAINS=docs.codeqlick.com
+   ```
+
+   The first is the id (not the slug) of the Codeqlick team: read it from `GET /v1/cloud/me`
+   (`teams[].id`, with an API token or session) or with `SELECT id FROM cloud_teams WHERE slug =
+   'codeqlick';` in psql. The second is a comma-separated list of exact domains. Then recreate the API:
+
+   ```bash
+   cd /srv/codeqlick && docker compose -f docker-compose.prod.yml up -d api
+   ```
+
+4. **DNS.** At OVH (DNS zone of `codeqlick.com`) add the `A` record `docs.codeqlick.com` pointing
+   to `SITES_SERVER_IP` (the same address the other Cloud and client-site records use).
+5. **Add and verify the domain.** In the project's Domains tab add `docs.codeqlick.com`, create
+   the TXT record the console shows, then press "Check now". When it is verified, the cron of
+   `sync-sites.sh` publishes it with its own certificate (`cq-site add docs.codeqlick.com cloud
+   codeqlick-docs`) within a few minutes.
+6. **Point the console at it.** Set `CLOUD_DOCS_URL=https://docs.codeqlick.com` in
+   `/srv/codeqlick/.env` and recreate the web service:
+
+   ```bash
+   cd /srv/codeqlick && docker compose -f docker-compose.prod.yml up -d web
+   ```
+
+   `/cloud/docs` then redirects to the documentation site and the console, landing and emails link
+   there. To go back, empty the variable and recreate `web`.
+
+Check: `curl -sI https://docs.codeqlick.com/en/` answers `200` and
+`https://docs.codeqlick.com/sitemap-index.xml` exists.
+
+### Publishing a draft page
+
+Pages of features that haven't merged are `draft: true` in their front matter, in both languages
+(`src/content/docs/en/...` and `.../es/...`), and the site neither builds nor lists them. When the
+feature has merged and runs in production, remove `draft: true` from both files in the same pull
+request; merging to `main` publishes the page. CI fails if one language has no twin.
+
 ## Other domains of the brand
 
 Domains registered only to protect the brand (e.g. `codeqlick.es`) send every visit to

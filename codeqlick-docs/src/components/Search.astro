@@ -1,0 +1,40 @@
+---
+import { ui, type Lang } from '../lib/i18n';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = ui[lang];
+---
+
+<!-- Hidden until /search.js runs: without JavaScript the sidebar lists every page. -->
+<div
+  class="search"
+  data-search
+  data-index={`/search-${lang}.json`}
+  data-empty={t.searchEmpty}
+  data-count={t.searchCount}
+  hidden
+>
+  <label class="sr-only" for="search-input">
+    {t.searchLabel}
+  </label>
+  <input
+    id="search-input"
+    type="search"
+    role="combobox"
+    autocomplete="off"
+    spellcheck="false"
+    placeholder={t.searchPlaceholder}
+    aria-expanded="false"
+    aria-controls="search-results"
+    aria-autocomplete="list"
+    aria-keyshortcuts="/"
+  />
+  <kbd class="search-key" aria-hidden="true">
+    /
+  </kbd>
+  <ul id="search-results" role="listbox" aria-label={t.searchLabel} hidden></ul>
+  <p class="sr-only" role="status" data-status></p>
+</div>
