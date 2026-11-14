@@ -1,6 +1,7 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
+import type { UnsubscribeLinks } from '../auth/unsubscribe-token.js';
 
 export interface DigestProject {
   id: string;
@@ -49,6 +50,7 @@ export function weeklyDigestEmail(
   accountUrl: string,
   locale: ApiLocale,
   siteUrl: string,
+  unsubscribe?: UnsubscribeLinks,
 ): MailMessage {
   const es = locale === 'es';
   const date = (value: Date) =>
@@ -107,8 +109,10 @@ export function weeklyDigestEmail(
         note: es
           ? `Te lo enviamos cada lunes cuando hay novedades. Puedes desactivarlo en tu cuenta: ${accountUrl}`
           : `We send it every Monday when there's news. You can turn it off in your account: ${accountUrl}`,
+        unsubscribeUrl: unsubscribe?.page,
       },
       siteUrl,
     ),
+    ...(unsubscribe ? { listUnsubscribe: unsubscribe.oneClick } : {}),
   };
 }

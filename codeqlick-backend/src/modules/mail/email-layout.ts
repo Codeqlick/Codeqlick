@@ -26,6 +26,11 @@ export interface EmailContent {
   note?: string;
   /** Closing lines; defaults to the team's signature. */
   signoff?: string[];
+  /**
+   * The website's unsubscribe page of an optional email (architecture 4.3, decision 50), linked in
+   * the footer. Transactional emails never have one.
+   */
+  unsubscribeUrl?: string;
 }
 
 export interface EmailQuote {
@@ -57,16 +62,29 @@ const GRADIENT = `linear-gradient(90deg, ${BRAND.fuchsiaLight} 0%, ${BRAND.fuchs
 const FONT_DISPLAY = "'Space Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 const FONT_BODY = "'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 
-const COPY: Record<ApiLocale, { signoff: string[]; buttonFallback: string; replyable: string }> = {
+const COPY: Record<
+  ApiLocale,
+  {
+    signoff: string[];
+    buttonFallback: string;
+    replyable: string;
+    unsubscribePrompt: string;
+    unsubscribe: string;
+  }
+> = {
   en: {
     signoff: ['Best regards,', 'The Codeqlick team'],
     buttonFallback: "If the button doesn't work, paste this link into your browser:",
     replyable: 'Questions? Just reply to this email.',
+    unsubscribePrompt: "Don't want these emails?",
+    unsubscribe: 'Unsubscribe',
   },
   es: {
     signoff: ['Un saludo,', 'El equipo de Codeqlick'],
     buttonFallback: 'Si el botón no funciona, copia este enlace en tu navegador:',
     replyable: '¿Dudas? Responde a este correo y te contestamos.',
+    unsubscribePrompt: '¿No quieres recibir estos correos?',
+    unsubscribe: 'Darse de baja',
   },
 };
 
@@ -124,6 +142,10 @@ function renderText(content: EmailContent): string {
   for (const text of content.outro ?? []) block(text);
   if (content.note) block(content.note);
   block(...(content.signoff ?? COPY[content.locale].signoff));
+  if (content.unsubscribeUrl) {
+    const copy = COPY[content.locale];
+    block(`${copy.unsubscribePrompt} ${copy.unsubscribe}: ${content.unsubscribeUrl}`);
+  }
   return lines.join('\n');
 }
 
@@ -214,6 +236,9 @@ function renderHtml(content: EmailContent, siteUrl: string): string {
   const home = `${site}/${content.locale}`;
   const host = escapeHtml(siteUrl.replace(/^https?:\/\//, ''));
   const year = new Date().getFullYear();
+  const unsubscribe = content.unsubscribeUrl
+    ? `\n<p style="margin:6px 0 0;">${escapeHtml(copy.unsubscribePrompt)} <a href="${escapeHtml(content.unsubscribeUrl)}" target="_blank" style="color:${BRAND.fuchsia};text-decoration:underline;">${escapeHtml(copy.unsubscribe)}</a></p>`
+    : '';
   return `<!doctype html>
 <html lang="${content.locale}">
 <head>
@@ -245,7 +270,7 @@ ${rows.join('\n')}
 <tr><td align="center" style="padding:28px 16px 0 16px;font-family:${FONT_BODY};font-size:12px;line-height:19px;color:${BRAND.subtle};">
 <p style="margin:0 0 6px;font-family:${FONT_DISPLAY};font-size:13px;font-weight:700;color:${BRAND.ink};">${TAGLINE}</p>
 <p style="margin:0 0 6px;">${copy.replyable}</p>
-<p style="margin:0;">© ${year} Codeqlick · <a href="${home}" target="_blank" style="color:${BRAND.fuchsia};text-decoration:none;">${host}</a> · <a href="mailto:hello@codeqlick.com" style="color:${BRAND.fuchsia};text-decoration:none;">hello@codeqlick.com</a></p>
+<p style="margin:0;">© ${year} Codeqlick · <a href="${home}" target="_blank" style="color:${BRAND.fuchsia};text-decoration:none;">${host}</a> · <a href="mailto:hello@codeqlick.com" style="color:${BRAND.fuchsia};text-decoration:none;">hello@codeqlick.com</a></p>${unsubscribe}
 </td></tr>
 </table>
 </td></tr>
