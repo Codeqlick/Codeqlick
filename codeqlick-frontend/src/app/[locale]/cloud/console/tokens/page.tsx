@@ -60,7 +60,9 @@ export default async function CloudTokensPage({ params }: PageProps) {
             defaultValue=""
             options={[
               { value: '', label: t('tokens.allTeams') },
-              ...(me?.teams ?? []).map((team) => ({ value: team.slug, label: team.name })),
+              ...(me?.teams ?? [])
+                .filter((team) => !team.twoFactorBlocked)
+                .map((team) => ({ value: team.slug, label: team.name })),
             ]}
           />
           <FormSelect

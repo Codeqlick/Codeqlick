@@ -5062,6 +5062,24 @@
       "you": "tú",
       "lastOwner": "Un equipo necesita al menos un propietario."
     },
+    "twoFactor": {
+      "title": "Verificación en dos pasos",
+      "required": "Todos los miembros de este equipo deben tener la verificación en dos pasos en su cuenta.",
+      "notRequired": "Los miembros de este equipo no necesitan la verificación en dos pasos.",
+      "turnOn": "Exigir la verificación en dos pasos",
+      "turnOff": "Dejar de exigirla",
+      "turnedOn": "Ahora se exige la verificación en dos pasos. Quien no la tenga solo podrá salir del equipo hasta que la active.",
+      "turnedOff": "Ya no se exige la verificación en dos pasos.",
+      "ownFirst": "Activa primero la verificación en dos pasos en tu propia cuenta.",
+      "ownHint": "Para exigirla, actívala antes en tu propia cuenta.",
+      "memberOn": "Verificación en dos pasos: sí",
+      "memberOff": "Verificación en dos pasos: no",
+      "badge": "Exige verificación en dos pasos",
+      "blockedTitle": "Este equipo exige la verificación en dos pasos",
+      "blockedBody": "Sus propietarios exigen la verificación en dos pasos a todos los miembros y tu cuenta aún no la tiene. Actívala en tu cuenta para volver a ver los proyectos del equipo, o sal del equipo.",
+      "accountLink": "Ir a mi cuenta",
+      "inviteNote": "Este equipo exige la verificación en dos pasos: la necesitarás en tu cuenta para usar el equipo."
+    },
     "events": {
       "title": "Historial",
       "lead": "Cada cambio del equipo, el más reciente primero (se guarda 365 días).",

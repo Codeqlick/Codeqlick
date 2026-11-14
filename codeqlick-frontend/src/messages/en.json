@@ -5062,6 +5062,24 @@
       "you": "you",
       "lastOwner": "A team needs at least one owner."
     },
+    "twoFactor": {
+      "title": "Two-step verification",
+      "required": "Every member of this team must have two-step verification on their account.",
+      "notRequired": "Members of this team don't need two-step verification.",
+      "turnOn": "Require two-step verification",
+      "turnOff": "Stop requiring it",
+      "turnedOn": "Two-step verification is now required. Members without it can only leave the team until they set it up.",
+      "turnedOff": "Two-step verification is no longer required.",
+      "ownFirst": "Turn on two-step verification on your own account first.",
+      "ownHint": "To require it, first turn it on on your own account.",
+      "memberOn": "Two-step verification: yes",
+      "memberOff": "Two-step verification: no",
+      "badge": "Two-step verification required",
+      "blockedTitle": "This team requires two-step verification",
+      "blockedBody": "Its owners require two-step verification of every member, and your account doesn't have it yet. Turn it on in your account to see the team's projects again, or leave the team.",
+      "accountLink": "Go to my account",
+      "inviteNote": "This team requires two-step verification: you'll need it on your account to use the team."
+    },
     "events": {
       "title": "History",
       "lead": "Every change in the team, newest first (kept 365 days).",

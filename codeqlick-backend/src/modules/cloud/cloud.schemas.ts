@@ -27,7 +27,14 @@ export type TermsInput = z.infer<typeof termsSchema>;
 export const createTeamSchema = termsSchema.extend({ name, slug: teamSlugSchema });
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 
-export const updateTeamSchema = z.object({ name });
+export const updateTeamSchema = z
+  .object({
+    name: name.optional(),
+    requireTwoFactor: z.boolean().optional(),
+  })
+  .refine((v) => v.name !== undefined || v.requireTwoFactor !== undefined, {
+    message: 'Send a name or requireTwoFactor',
+  });
 export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 
 export const inviteSchema = z.object({
