@@ -101,11 +101,6 @@ export class MediaService {
     await this.activity.record(actor, { action: 'media.deleted', targetLabel: filename });
   }
 
-  /** Whether `filename` is one of our uploaded images (the broken links check, architecture 4.6). */
-  async exists(filename: string): Promise<boolean> {
-    return (await this.storedSize(filename)) !== undefined;
-  }
-
   async open(filename: string): Promise<MediaFile> {
     const size = await this.storedSize(filename);
     const match = FILENAME_PATTERN.exec(filename);
