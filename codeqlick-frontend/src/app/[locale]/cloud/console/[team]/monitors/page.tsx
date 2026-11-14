@@ -121,6 +121,21 @@ export default async function CloudMonitorsPage({ params }: PageProps) {
                 placeholder="https://"
                 mono
               />
+              <FormInput
+                name="keyword"
+                label={t('monitors.text')}
+                hint={t('monitors.textHint')}
+                maxLength={100}
+              />
+              <FormSelect
+                name="keywordMode"
+                label={t('monitors.textMode')}
+                defaultValue="CONTAINS"
+                options={[
+                  { value: 'CONTAINS', label: t('monitors.textModes.CONTAINS') },
+                  { value: 'NOT_CONTAINS', label: t('monitors.textModes.NOT_CONTAINS') },
+                ]}
+              />
             </fieldset>
             <fieldset className={styles.fieldset}>
               <legend>{t('monitors.forHeartbeat')}</legend>

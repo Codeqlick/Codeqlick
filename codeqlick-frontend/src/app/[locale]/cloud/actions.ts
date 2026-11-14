@@ -75,6 +75,7 @@ import { isApiError } from '@/lib/api/errors';
 import { protectionInput } from '@/lib/cloud';
 import { ENV_IMPORT_MAX_BYTES, envImportErrors, type EnvImportState } from '@/lib/cloud';
 import { cloudTokenOptions } from '@/lib/cloud';
+import { monitorKeyword, monitorKeywordMode } from '@/lib/cloud';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -728,6 +729,9 @@ export async function createMonitorAction(
   const period = Math.round(Number(formString(formData, 'period')));
   const grace = Math.round(Number(formString(formData, 'grace')));
   if (kind === 'HTTP' && !/^https?:\/\/\S+$/i.test(url)) fieldErrors.url = t('urlInvalid');
+  const keyword = monitorKeyword(formString(formData, 'keyword'));
+  const keywordMode = monitorKeywordMode(formString(formData, 'keywordMode'));
+  if (kind === 'HTTP' && keyword === undefined) fieldErrors.keyword = t('textInvalid');
   if (kind === 'HEARTBEAT' && !(period >= 1 && period <= 10080))
     fieldErrors.period = t('periodInvalid');
   if (kind === 'HEARTBEAT' && !(grace >= 1 && grace <= 1440)) fieldErrors.grace = t('graceInvalid');
@@ -738,7 +742,7 @@ export async function createMonitorAction(
       await createCloudMonitor(
         team,
         kind === 'HTTP'
-          ? { kind, name, url, alertIds }
+          ? { kind, name, url, ...(keyword ? { keyword, keywordMode } : {}), alertIds }
           : { kind, name, periodMinutes: period, graceMinutes: grace, alertIds },
       )
     ).id;
@@ -750,6 +754,33 @@ export async function createMonitorAction(
   }
   refresh(lang, `/${team}/monitors`);
   return go(lang, `/console/${team}/monitors/${id}`);
+}
+
+/** An HTTP monitor's text check: set, changed, or switched off (left empty). */
+export async function saveMonitorTextAction(
+  locale: string,
+  team: string,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.monitors' });
+  const values = formValues(formData);
+  const keyword = monitorKeyword(formString(formData, 'keyword'));
+  if (keyword === undefined) {
+    return { status: 'error', fieldErrors: { keyword: t('textInvalid') }, values };
+  }
+  try {
+    await updateCloudMonitor(id, {
+      keyword,
+      keywordMode: monitorKeywordMode(formString(formData, 'keywordMode')),
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}/monitors/${id}`);
+  return { status: 'success', message: t('textSaved') };
 }
 
 export async function toggleMonitorAction(formData: FormData): Promise<void> {
