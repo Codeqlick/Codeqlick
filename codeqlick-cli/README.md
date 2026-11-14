@@ -41,11 +41,16 @@ Builds from Git (connect GitHub once in the console's Git tab):
 | Command                                                                 | What it does                                                                    |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `git` / `git connect <owner/repo>` / `git disconnect`                   | The repository and build settings                                               |
-| `env` / `env add <KEY> [value]` / `env rm <KEY>`                        | Variables (without a value: stdin or hidden prompt)                             |
+| `env` / `env add <KEY> [value]` / `env rm <KEY> [--branch]`             | Variables (without a value: stdin or hidden prompt)                             |
 | `env import <file> [--production] [--preview] [--overwrite]`            | Add a `.env` file's variables, all or nothing                                   |
 | `hooks` / `hooks add <name> [--branch]` / `hooks rm <id or name>`       | Deploy hooks: a secret URL a CMS calls to rebuild a branch                      |
 | `builds` / `builds start [--branch] [--no-cache]` / `builds cancel <n>` | List, build now and follow (`--no-cache`: without the dependency cache), cancel |
 | `logs [number]`                                                         | A build's log, followed while it runs                                           |
+
+`env add <KEY> --branch <name>` saves a variable only for previews of that Git branch (it implies
+`--preview`): there it replaces the variable with the same name for every preview, and production
+never gets it. `env rm <KEY> --branch <name>` deletes that one; `env` shows each variable's branch.
+`env import` has no `--branch`: it saves variables for every build of the targets chosen.
 
 `env import` reads dotenv syntax (`KEY=value`, `export `, quotes, `#` comments) and saves nothing
 when a line is wrong, printing each line's problem; names that already exist are skipped unless

@@ -812,6 +812,109 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
     const published = await request(server).get(projectUrl).set(auth).expect(200);
     expect(published.body.production.id).toBe(live.deploymentId);
 
+    // Variables for one preview branch: they replace the general one with the same key, only in
+    // previews of that branch (a pull request's head branch too), never in production.
+    const envPath = `/v1/cloud/projects/${projectId}/env`;
+    await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({ key: 'API_URL', value: 'https://api.example.com', production: true, preview: true })
+      .expect(200);
+    const forProduction = await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({
+        key: 'API_URL',
+        value: 'https://staging.example.com',
+        production: true,
+        preview: true,
+        branch: 'staging',
+      })
+      .expect(400);
+    // The global validation pipe sends schema issues as "<path>: <message>" strings.
+    expect(forProduction.body.errors).toEqual([
+      { path: '', message: 'branch: A branch variable is for previews only' },
+    ]);
+    await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({ key: 'API_URL', value: 'x', production: false, preview: true, branch: 'bad..name' })
+      .expect(400);
+    const variables = await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({
+        key: 'API_URL',
+        value: 'https://staging.example.com',
+        production: false,
+        preview: true,
+        branch: 'staging',
+      })
+      .expect(200);
+    type EnvItem = { key: string; production: boolean; preview: boolean; branch: string | null };
+    expect(
+      variables.body.items.map((v: EnvItem) => [v.key, v.production, v.preview, v.branch]),
+    ).toEqual([
+      ['API_KEY', true, false, null],
+      ['API_URL', true, true, null],
+      ['API_URL', false, true, 'staging'],
+    ]);
+    expect(JSON.stringify(variables.body)).not.toContain('example.com');
+
+    await send('pull_request', {
+      action: 'opened',
+      pull_request: {
+        number: 9,
+        title: 'Staging',
+        user: { login: 'grace' },
+        head: { sha: sha(5), ref: 'staging', repo: repository },
+        base: { repo: repository },
+      },
+      repository,
+      installation,
+    });
+    await send('push', { ...push, ref: 'refs/heads/other', after: sha(6) });
+    await send('push', { ...push, after: sha(7) });
+    const claimAndFail = async () => {
+      const claim = await request(server)
+        .post('/v1/cloud/builder/claim')
+        .set(builder)
+        .send({ builder: 'b1' })
+        .expect(200);
+      await request(server)
+        .post(`/v1/cloud/builder/builds/${claim.body.build.id as string}/finish`)
+        .set(builder)
+        .field('status', 'failed')
+        .field('error', 'npm run build exited with 1')
+        .expect(204);
+      return claim.body.build as { commit: string; env: Record<string, string>; secrets: string[] };
+    };
+    const staging = await claimAndFail();
+    expect(staging.commit).toBe(sha(5));
+    expect(staging.env).toEqual({ API_URL: 'https://staging.example.com' });
+    expect(staging.secrets).toContain('https://staging.example.com'); // hidden in the log
+    const other = await claimAndFail();
+    expect(other.commit).toBe(sha(6));
+    expect(other.env).toEqual({ API_URL: 'https://api.example.com' });
+    const production = await claimAndFail();
+    expect(production.commit).toBe(sha(7));
+    expect(production.env).toEqual({
+      API_KEY: 's3cret-value',
+      API_URL: 'https://api.example.com',
+    });
+
+    // Deleting by key and branch leaves the general one.
+    await request(server).delete(`${envPath}?key=API_URL&branch=staging`).set(auth).expect(204);
+    await request(server).delete(`${envPath}?key=API_URL&branch=staging`).set(auth).expect(404);
+    const remaining = await request(server).get(envPath).set(auth).expect(200);
+    expect(remaining.body.items.map((v: EnvItem) => [v.key, v.branch])).toEqual([
+      ['API_KEY', null],
+      ['API_URL', null],
+    ]);
+    await prisma.cloudEvent.findFirstOrThrow({
+      where: { action: 'env.deleted', targetLabel: `bp-${tag}: API_URL (staging)` },
+    });
+
     // Uninstalling the app disconnects the project.
     await send('installation', { action: 'deleted', installation });
     const after = await request(server)

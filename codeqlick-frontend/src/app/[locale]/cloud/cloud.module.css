@@ -470,6 +470,12 @@
   color: var(--color-slate);
 }
 
+/* The variables form: "Only for branch" only while Previews is ticked (branch variables are
+   preview-only). */
+.envForm:has(input[name='preview']:not(:checked)) .envBranch {
+  display: none;
+}
+
 .spacedTabs {
   margin: var(--space-5) 0 0;
 }

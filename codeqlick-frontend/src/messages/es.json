@@ -5730,6 +5730,11 @@
         "save": "Guardar horario",
         "saved": "Horario guardado."
       },
+      "envBranch": "Solo para la rama",
+      "envBranchHint": "Opcional. Solo la reciben las vistas previas de esta rama de Git, en lugar de la variable con el mismo nombre para todas. Nunca producción.",
+      "envBranchInvalid": "Un nombre de rama de Git (p. ej. staging o feature/login), sin espacios.",
+      "envBranchProduction": "Una variable de rama es solo para vistas previas: desmarca Producción.",
+      "envBranchLabel": "Rama {branch}",
       "setupMissing": "GitHub no ha enviado lo esperado. Empieza de nuevo desde la pestaña Git del proyecto.",
       "backToConsole": "Volver a la consola"
     },

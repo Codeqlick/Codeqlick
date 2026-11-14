@@ -2633,11 +2633,13 @@ model CloudEnvVar {
   valueSealed String   @map("value_sealed")
   production  Boolean  @default(true)
   preview     Boolean  @default(true)
+  /// A preview branch the variable is only for; '' = every build of its targets.
+  branch      String   @default("") @db.VarChar(200)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, key])
+  @@unique([projectId, key, branch])
   @@map("cloud_env_vars")
 }
 

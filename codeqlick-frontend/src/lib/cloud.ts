@@ -443,3 +443,19 @@ export function parseSlowMs(raw: string): { ok: true; value: number | null } | {
   if (!Number.isInteger(value) || value < 500 || value > 14000) return { ok: false };
   return { ok: true, value };
 }
+
+/**
+ * Whether Git would take a name for a branch (`git check-ref-format`, simplified as the API does):
+ * no whitespace or control characters, none of `~ ^ : ? * [ \`, no `..`, `//` or `@{`, no part
+ * starting with `.` or ending with `.lock`, not starting with `-` or `/`, not ending with `/` or
+ * `.`, at most 200 characters.
+ */
+export function isGitBranchName(name: string): boolean {
+  if (name.length === 0 || name.length > 200 || name === '@') return false;
+  if (/[\s\p{Cc}~^:?*\\]/u.test(name) || name.includes('[')) return false;
+  if (name.includes('..') || name.includes('//') || name.includes('@{')) return false;
+  if (name.startsWith('-') || name.startsWith('/') || name.endsWith('/') || name.endsWith('.')) {
+    return false;
+  }
+  return name.split('/').every((part) => !part.startsWith('.') && !part.endsWith('.lock'));
+}

@@ -105,10 +105,11 @@ Builds from Git:
   env                       Environment variables (names only: values can't be read back)
   env add <KEY> [value]     Save one (no value: read from stdin, or asked without echo)
       --production --preview  where it applies (both when neither is given)
+      --branch <name>         only previews of that Git branch (implies --preview)
   env import <file>         Add the variables of a .env file ("-" reads stdin), all or nothing
       --production --preview  where they apply (both when neither is given)
       --overwrite             replace the ones that exist (otherwise they're skipped)
-  env rm <KEY>              Delete one
+  env rm <KEY> [--branch <name>]   Delete one (the branch's, or the general one)
   hooks                     Deploy hooks: secret URLs a CMS calls to rebuild a branch
   hooks add <name> [--branch <name>]   Make one (the production branch by default); its URL is shown once
   hooks rm <id or name>     Delete one: its URL stops working at once
@@ -942,9 +943,9 @@ async function env(
     if (items.length === 0) console.log(dim('No variables yet: codeqlick env add <KEY>'));
     for (const v of items) {
       const where = [v.production && 'production', v.preview && 'preview'].filter(Boolean);
-      console.log(
-        `${bold(v.key)}  ${where.join(', ')}  ${dim(new Date(v.updatedAt).toLocaleString())}`,
-      );
+      const branch = v.branch ? `  branch ${v.branch}` : '';
+      const when = dim(new Date(v.updatedAt).toLocaleString());
+      console.log(`${bold(v.key)}  ${where.join(', ')}${branch}  ${when}`);
     }
   };
   if (!action || action === 'ls' || action === 'list') return show(await api.env(project.id));
@@ -954,24 +955,51 @@ async function env(
       `Which variable? codeqlick env ${action} <KEY> (upper-case letters, digits, _)`,
     );
   }
+  const branch = envBranch(options);
   if (action === 'rm' || action === 'remove') {
-    await api.deleteEnv(project.id, key);
-    console.log(`${green('✓')} Deleted ${key}`);
+    await api.deleteEnv(project.id, key, branch);
+    console.log(`${green('✓')} Deleted ${key}${branch ? ` (branch ${branch})` : ''}`);
     return;
   }
   if (action !== 'add' && action !== 'set')
     throw new UsageError(`Unknown action "${action}": add or rm.`);
+  const targets = envTargets(options);
   const secret =
     value ??
     (process.stdin.isTTY ? await askSecret(`Value of ${key} (hidden): `) : await readStdin());
   if (secret.length > 4096) throw new UsageError('Values are at most 4 KB.');
-  const items = await api.setEnv(project.id, { key, value: secret, ...envTargets(options) });
+  const items = await api.setEnv(project.id, { key, value: secret, ...targets });
   if (options.json) return show(items);
-  console.log(`${green('✓')} Saved ${bold(key)}: it applies from the next build.`);
+  const where = targets.branch ? ` for previews of ${targets.branch}` : '';
+  console.log(`${green('✓')} Saved ${bold(key)}${where}: it applies from the next build.`);
 }
 
-/** Where variables apply: the flags given, or both when neither is. */
-export function envTargets(options: { production?: boolean; preview?: boolean }) {
+/** `--branch` of `env add` / `env rm`, trimmed; undefined without it. */
+export function envBranch(options: Pick<Options, 'branch'>): string | undefined {
+  if (options.branch === undefined) return undefined;
+  const branch = options.branch.trim();
+  if (!branch || /\s/.test(branch)) {
+    throw new UsageError('--branch needs a Git branch name, e.g. --branch staging');
+  }
+  return branch;
+}
+
+/**
+ * Where `env add` saves a variable: both targets when neither flag is given; with `--branch`,
+ * previews of that branch only (architecture 4.13).
+ */
+export function envTargets(options: Pick<Options, 'production' | 'preview' | 'branch'>): {
+  production: boolean;
+  preview: boolean;
+  branch?: string;
+} {
+  const branch = envBranch(options);
+  if (branch) {
+    if (options.production) {
+      throw new UsageError('A branch variable is for previews only: drop --production.');
+    }
+    return { production: false, preview: true, branch };
+  }
   const both = !options.production && !options.preview;
   return {
     production: both || options.production === true,
@@ -1015,6 +1043,9 @@ async function importEnvFile(
   }
   if (Buffer.byteLength(content, 'utf8') > ENV_IMPORT_MAX_BYTES) {
     throw new UsageError('The file is over 256 KB.');
+  }
+  if (options.branch !== undefined) {
+    throw new UsageError('env import saves variables for every build: --branch is for env add.');
   }
   const input = { content, ...envTargets(options), overwrite: options.overwrite === true };
   let result: EnvImportResult;

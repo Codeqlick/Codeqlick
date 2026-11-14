@@ -1243,14 +1243,22 @@ export const setCloudRebuildSchedule = (
     body: input,
   });
 
+/** A project's build variable: names and targets only, never its value. */
+export type CloudEnvVar = {
+  key: string;
+  production: boolean;
+  preview: boolean;
+  /** The one preview branch it is for; null = every build of its targets. */
+  branch: string | null;
+  updatedAt: string;
+};
+
 export const listCloudEnv = (projectId: string) =>
-  apiFetch<{
-    items: Array<{ key: string; production: boolean; preview: boolean; updatedAt: string }>;
-  }>(`/cloud/projects/${projectId}/env`, auth);
+  apiFetch<{ items: CloudEnvVar[] }>(`/cloud/projects/${projectId}/env`, auth);
 
 export const setCloudEnv = (
   projectId: string,
-  input: { key: string; value: string; production: boolean; preview: boolean },
+  input: { key: string; value: string; production: boolean; preview: boolean; branch?: string },
 ) =>
   apiFetch<unknown>(`/cloud/projects/${projectId}/env`, { ...write, method: 'PUT', body: input });
 
@@ -1274,11 +1282,12 @@ export const importCloudEnv = (projectId: string, input: CloudEnvImportInput) =>
     body: input,
   });
 
-export const deleteCloudEnv = (projectId: string, key: string) =>
+/** Deletes a variable: the one of `branch`, or the general one without it. */
+export const deleteCloudEnv = (projectId: string, key: string, branch?: string | null) =>
   apiFetch<void>(`/cloud/projects/${projectId}/env`, {
     ...write,
     method: 'DELETE',
-    query: { key },
+    query: { key, branch },
   });
 
 export const listCloudBuilds = (projectId: string, page = 1) =>

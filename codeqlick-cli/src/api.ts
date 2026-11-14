@@ -225,6 +225,8 @@ export interface EnvVar {
   key: string;
   production: boolean;
   preview: boolean;
+  /** The one preview branch it is for; null = every build of its targets. */
+  branch: string | null;
   updatedAt: string;
 }
 
@@ -490,15 +492,27 @@ export class Api {
     this.request<{ items: EnvVar[] }>('GET', `/cloud/projects/${project}/env`).then((r) => r.items);
   setEnv = (
     project: string,
-    variable: { key: string; value: string; production: boolean; preview: boolean },
+    variable: {
+      key: string;
+      value: string;
+      production: boolean;
+      preview: boolean;
+      branch?: string;
+    },
   ) =>
     this.request<{ items: EnvVar[] }>('PUT', `/cloud/projects/${project}/env`, variable).then(
       (r) => r.items,
     );
   importEnv = (project: string, input: EnvImportInput) =>
     this.request<EnvImportResult>('POST', `/cloud/projects/${project}/env/import`, input);
-  deleteEnv = (project: string, key: string) =>
-    this.request<void>('DELETE', `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}`);
+  /** Deletes a variable: the one of `branch`, or the general one without it. */
+  deleteEnv = (project: string, key: string, branch?: string) =>
+    this.request<void>(
+      'DELETE',
+      `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}${
+        branch ? `&branch=${encodeURIComponent(branch)}` : ''
+      }`,
+    );
   builds = (project: string, pageSize = 20) =>
     this.request<{ items: Build[] }>(
       'GET',

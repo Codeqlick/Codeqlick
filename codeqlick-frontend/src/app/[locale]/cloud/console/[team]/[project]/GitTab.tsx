@@ -366,12 +366,15 @@ export async function GitTab(props: Props) {
         {env.length > 0 ? (
           <ul className={styles.list}>
             {env.map((row) => (
-              <li key={row.key} className={styles.row}>
+              <li key={`${row.key}:${row.branch ?? ''}`} className={styles.row}>
                 <div className={styles.rowMain}>
                   <p className={styles.rowTitle}>
                     <span className={styles.mono}>{row.key}</span>
                     {row.production ? <Badge>{t('git.production')}</Badge> : null}
                     {row.preview ? <Badge>{t('git.preview')}</Badge> : null}
+                    {row.branch ? (
+                      <Badge tone="brand">{t('git.envBranchLabel', { branch: row.branch })}</Badge>
+                    ) : null}
                   </p>
                 </div>
                 {props.admin ? (
@@ -379,10 +382,14 @@ export async function GitTab(props: Props) {
                     <input type="hidden" name="locale" value={props.locale} />
                     <input type="hidden" name="project" value={props.projectId} />
                     <input type="hidden" name="key" value={row.key} />
+                    {row.branch ? <input type="hidden" name="branch" value={row.branch} /> : null}
                     <input type="hidden" name="path" value={props.path} />
                     <SubmitButton size="sm" variant="ghost">
                       {t('git.delete')}
-                      <span className="visually-hidden"> — {row.key}</span>
+                      <span className="visually-hidden">
+                        {' '}
+                        — {row.branch ? `${row.key} (${row.branch})` : row.key}
+                      </span>
                     </SubmitButton>
                   </form>
                 ) : null}
@@ -393,7 +400,7 @@ export async function GitTab(props: Props) {
         {props.admin ? (
           <ActionForm
             action={saveEnvAction.bind(null, props.locale, props.path, props.projectId)}
-            className={styles.form}
+            className={`${styles.form} ${styles.envForm}`}
           >
             <FormInput
               name="key"
@@ -412,6 +419,19 @@ export async function GitTab(props: Props) {
             />
             <FormCheckbox name="production" label={t('git.production')} defaultChecked />
             <FormCheckbox name="preview" label={t('git.preview')} defaultChecked />
+            {/* Shown while Previews is ticked (cloud.module.css): branch variables are preview-only. */}
+            <div className={styles.envBranch}>
+              <FormInput
+                name="branch"
+                label={t('git.envBranch')}
+                hint={t('git.envBranchHint')}
+                placeholder="staging"
+                mono
+                autoCapitalize="none"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
             <div className={styles.actions}>
               <SubmitButton variant="outline">{t('git.saveEnv')}</SubmitButton>
             </div>

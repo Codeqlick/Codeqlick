@@ -17,6 +17,7 @@ import {
   hookName,
   isAddressHost,
   isDeploymentId,
+  isGitBranchName,
   isProtected,
   monitorKeyword,
   monitorKeywordMode,
@@ -467,6 +468,38 @@ describe('parseSlowMs', () => {
   it('refuses the rest', () => {
     for (const raw of ['499', '14001', '1000.5', 'abc', '-1000', '1e3x']) {
       expect(parseSlowMs(raw)).toEqual({ ok: false });
+    }
+  });
+});
+
+describe('isGitBranchName', () => {
+  it('takes the branch names Git takes', () => {
+    for (const name of ['staging', 'feature/login', 'release-1.2', 'v2_beta']) {
+      expect(isGitBranchName(name), name).toBe(true);
+    }
+  });
+
+  it('refuses the ones Git refuses', () => {
+    for (const name of [
+      '',
+      'a b',
+      'a~1',
+      'a:b',
+      'a[b',
+      'a\\b',
+      'a..b',
+      'a@{1}',
+      '@',
+      '-x',
+      '/x',
+      'x/',
+      'x.',
+      'x.lock',
+      '.x',
+      'a/.x',
+      'x'.repeat(201),
+    ]) {
+      expect(isGitBranchName(name), name).toBe(false);
     }
   });
 });

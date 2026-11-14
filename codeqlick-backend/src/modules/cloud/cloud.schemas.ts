@@ -518,20 +518,54 @@ export const gitSettingsSchema = z.object({
 });
 export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
 
+const envKey = z.string().trim().regex(ENV_KEY_PATTERN, 'Upper-case letters, digits and _');
+
+/**
+ * Whether a name is one Git would take for a branch (`git check-ref-format`, simplified): no
+ * whitespace or control characters, none of `~ ^ : ? * [ \`, no `..`, `//` or `@{`, no part that
+ * starts with `.` or ends with `.lock`, not starting with `-` or `/`, not ending with `/` or `.`,
+ * and not `@` alone.
+ */
+export function isGitBranchName(name: string): boolean {
+  if (name === '@') return false;
+  if (/[\s\p{Cc}~^:?*\\]/u.test(name) || name.includes('[')) return false;
+  if (name.includes('..') || name.includes('//') || name.includes('@{')) return false;
+  if (name.startsWith('-') || name.startsWith('/') || name.endsWith('/') || name.endsWith('.')) {
+    return false;
+  }
+  return name.split('/').every((part) => !part.startsWith('.') && !part.endsWith('.lock'));
+}
+
+/** A Git branch a preview variable is only for (architecture 4.13). */
+export const envBranchSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .refine(isGitBranchName, 'A Git branch name');
+
 export const envVarSchema = z
   .object({
-    key: z.string().trim().regex(ENV_KEY_PATTERN, 'Upper-case letters, digits and _'),
+    key: envKey,
     value: z.string().max(ENV_VALUE_MAX),
     production: z.boolean(),
     preview: z.boolean(),
+    branch: envBranchSchema.optional(),
   })
   .refine((v) => v.production || v.preview, {
     message: 'For production, previews or both',
     path: ['production'],
+  })
+  .refine((v) => v.branch === undefined || (!v.production && v.preview), {
+    message: 'A branch variable is for previews only',
+    path: ['branch'],
   });
 export type EnvVarInput = z.infer<typeof envVarSchema>;
 
-export const envKeyQuerySchema = z.object({ key: z.string().regex(ENV_KEY_PATTERN) });
+export const envKeyQuerySchema = z.object({
+  key: envKey,
+  branch: envBranchSchema.optional(),
+});
 export type EnvKeyQuery = z.infer<typeof envKeyQuerySchema>;
 
 /** The largest `.env` file imported at once (architecture 4.13). */

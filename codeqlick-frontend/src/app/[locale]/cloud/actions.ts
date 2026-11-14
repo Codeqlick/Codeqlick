@@ -84,6 +84,7 @@ import {
 import {
   hookBranchValid,
   hookName,
+  isGitBranchName,
   protectionInput,
   ENV_IMPORT_MAX_BYTES,
   envImportErrors,
@@ -1280,16 +1281,33 @@ export async function saveEnvAction(
   const t = await getTranslations({ locale: lang, namespace: 'Cloud.git' });
   const key = formString(formData, 'key').toUpperCase();
   const value = String(formData.get('value') ?? '');
-  const production = formBoolean(formData, 'production');
   const preview = formBoolean(formData, 'preview');
+  // The branch field only shows with Previews ticked: a variable of one branch is preview-only.
+  const branch = preview ? formString(formData, 'branch') : '';
+  const production = formBoolean(formData, 'production');
+  const values = { ...formValues(formData, ['value']), key };
   if (!/^[A-Z_][A-Z0-9_]{0,63}$/.test(key))
-    return { status: 'error', fieldErrors: { key: t('keyInvalid') }, values: { key } };
+    return { status: 'error', fieldErrors: { key: t('keyInvalid') }, values };
   if (!production && !preview)
-    return { status: 'error', fieldErrors: { production: t('targetRequired') }, values: { key } };
+    return { status: 'error', fieldErrors: { production: t('targetRequired') }, values };
+  if (branch && !isGitBranchName(branch))
+    return { status: 'error', fieldErrors: { branch: t('envBranchInvalid') }, values };
+  // Like the API and the CLI: a branch variable is preview-only, never switched off silently.
+  if (branch && production)
+    return { status: 'error', fieldErrors: { branch: t('envBranchProduction') }, values };
   try {
-    await setCloudEnv(projectId, { key, value: value.slice(0, 4096), production, preview });
+    await setCloudEnv(projectId, {
+      key,
+      value: value.slice(0, 4096),
+      production,
+      preview,
+      ...(branch ? { branch } : {}),
+    });
   } catch (error) {
-    return failure(lang, error, { key });
+    if (isApiError(error) && error.status === 400 && error.fieldErrors.branch) {
+      return { status: 'error', fieldErrors: { branch: t('envBranchInvalid') }, values };
+    }
+    return failure(lang, error, values);
   }
   refresh(lang, path);
   return { status: 'success', message: t('envSaved') };
@@ -1330,9 +1348,11 @@ export async function importEnvAction(
 
 export async function deleteEnvAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
-  await deleteCloudEnv(formString(formData, 'project'), formString(formData, 'key')).catch(
-    () => undefined,
-  );
+  await deleteCloudEnv(
+    formString(formData, 'project'),
+    formString(formData, 'key'),
+    formString(formData, 'branch') || undefined,
+  ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
 
