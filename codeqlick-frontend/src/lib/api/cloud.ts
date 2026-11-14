@@ -738,21 +738,10 @@ export const listCloudGithubRepos = (team: string, installationId: number) =>
   });
 
 export type CloudFramework =
-  | 'astro'
-  | 'docusaurus'
-  | 'gatsby'
-  | 'next'
-  | 'nuxt'
-  | 'sveltekit'
-  | 'eleventy'
-  | 'cra'
-  | 'vite';
+  'astro' | 'docusaurus' | 'gatsby' | 'next' | 'nuxt' | 'sveltekit' | 'eleventy' | 'cra' | 'vite';
 
 export type CloudDetectNote =
-  | 'next-not-static'
-  | 'sveltekit-no-static-adapter'
-  | 'node-unsupported'
-  | 'no-package-json';
+  'next-not-static' | 'sveltekit-no-static-adapter' | 'node-unsupported' | 'no-package-json';
 
 /** Build settings suggested from what a repository contains (4.13, Suggested settings). */
 export type CloudDetect = {

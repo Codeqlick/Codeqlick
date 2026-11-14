@@ -181,7 +181,7 @@ describe('CloudBuildsService.detect', () => {
       notes: [],
     });
     expect(githubCalls()).toBeLessThanOrEqual(5);
-    expect(fileText.mock.calls.map((call) => call[2]).sort()).toEqual([
+    expect(fileText.mock.calls.map((call) => call[2]).toSorted()).toEqual([
       'apps/web/.nvmrc',
       'apps/web/next.config.js',
       'apps/web/package.json',
@@ -215,7 +215,7 @@ describe('CloudBuildsService.detect', () => {
       nodeVersion: '20',
       nodeFrom: '.node-version',
     });
-    expect(fileText.mock.calls.map((call) => call[2]).sort()).toEqual([
+    expect(fileText.mock.calls.map((call) => call[2]).toSorted()).toEqual([
       '.node-version',
       'package.json',
     ]);

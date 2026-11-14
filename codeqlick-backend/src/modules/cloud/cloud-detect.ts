@@ -4,21 +4,10 @@
  */
 
 export type DetectedFramework =
-  | 'astro'
-  | 'docusaurus'
-  | 'gatsby'
-  | 'next'
-  | 'nuxt'
-  | 'sveltekit'
-  | 'eleventy'
-  | 'cra'
-  | 'vite';
+  'astro' | 'docusaurus' | 'gatsby' | 'next' | 'nuxt' | 'sveltekit' | 'eleventy' | 'cra' | 'vite';
 
 export type DetectNote =
-  | 'next-not-static'
-  | 'sveltekit-no-static-adapter'
-  | 'node-unsupported'
-  | 'no-package-json';
+  'next-not-static' | 'sveltekit-no-static-adapter' | 'node-unsupported' | 'no-package-json';
 
 export type NodeSource = '.nvmrc' | '.node-version' | 'engines';
 

@@ -101,21 +101,10 @@ export interface GitSettingsInput {
 }
 
 export type Framework =
-  | 'astro'
-  | 'docusaurus'
-  | 'gatsby'
-  | 'next'
-  | 'nuxt'
-  | 'sveltekit'
-  | 'eleventy'
-  | 'cra'
-  | 'vite';
+  'astro' | 'docusaurus' | 'gatsby' | 'next' | 'nuxt' | 'sveltekit' | 'eleventy' | 'cra' | 'vite';
 
 export type DetectNote =
-  | 'next-not-static'
-  | 'sveltekit-no-static-adapter'
-  | 'node-unsupported'
-  | 'no-package-json';
+  'next-not-static' | 'sveltekit-no-static-adapter' | 'node-unsupported' | 'no-package-json';
 
 /** The build settings suggested from what a repository contains (architecture 4.13). */
 export interface DetectedSettings {
