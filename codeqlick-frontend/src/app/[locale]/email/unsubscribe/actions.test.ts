@@ -1,10 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api/errors';
+import type { EmailPreferences } from '@/lib/email-preferences';
 import { setEmailSubscriptionAction } from './actions';
 
-// Hoisted above the imports by Vitest: the action gets the mock.
-const { updateEmailPreferences } = vi.hoisted(() => ({ updateEmailPreferences: vi.fn() }));
-vi.mock('@/lib/api/email-preferences', () => ({ updateEmailPreferences }));
+// A plain stub instead of a spy: with a vi.fn returning a rejected promise, Vitest 5 failed the
+// error cases in CI although the action catches the rejection.
+const api = vi.hoisted(() => ({
+  calls: [] as unknown[],
+  answer: (): Promise<EmailPreferences> => Promise.reject(new Error('not set')),
+}));
+vi.mock('@/lib/api/email-preferences', () => ({
+  updateEmailPreferences: (input: unknown) => {
+    api.calls.push(input);
+    return api.answer();
+  },
+}));
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -12,43 +22,40 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-const shown = { subscribed: true, changed: false };
-
-/** The API call fails with `error` (thrown when called, so no rejection exists before). */
-function failWith(error: Error) {
-  updateEmailPreferences.mockImplementation(async () => {
-    throw error;
-  });
+function answerWith(preferences: EmailPreferences) {
+  api.answer = async () => preferences;
 }
 
+function failWith(error: Error) {
+  api.answer = async () => {
+    throw error;
+  };
+}
+
+const shown = { subscribed: true, changed: false };
+
 describe('setEmailSubscriptionAction', () => {
-  beforeEach(() => updateEmailPreferences.mockReset());
+  beforeEach(() => {
+    api.calls = [];
+  });
 
   it('unsubscribes and confirms the change', async () => {
-    updateEmailPreferences.mockResolvedValue({
-      kind: 'digest',
-      subscribed: false,
-      email: 'l***@x.com',
-    });
+    answerWith({ kind: 'digest', subscribed: false, email: 'l***@x.com' });
     const state = await setEmailSubscriptionAction(
       shown,
       form({ token: 't.s', subscribed: 'false' }),
     );
-    expect(updateEmailPreferences).toHaveBeenCalledWith({ token: 't.s', subscribed: false });
+    expect(api.calls).toEqual([{ token: 't.s', subscribed: false }]);
     expect(state).toEqual({ subscribed: false, changed: true });
   });
 
   it('subscribes again (undo)', async () => {
-    updateEmailPreferences.mockResolvedValue({
-      kind: 'report',
-      subscribed: true,
-      email: 'l***@x.com',
-    });
+    answerWith({ kind: 'report', subscribed: true, email: 'l***@x.com' });
     const state = await setEmailSubscriptionAction(
       { subscribed: false, changed: true },
       form({ token: 't.s', subscribed: 'true' }),
     );
-    expect(updateEmailPreferences).toHaveBeenCalledWith({ token: 't.s', subscribed: true });
+    expect(api.calls).toEqual([{ token: 't.s', subscribed: true }]);
     expect(state).toEqual({ subscribed: true, changed: true });
   });
 
@@ -74,7 +81,7 @@ describe('setEmailSubscriptionAction', () => {
 
   it('never calls the API without a token', async () => {
     const state = await setEmailSubscriptionAction(shown, form({ subscribed: 'false' }));
-    expect(updateEmailPreferences).not.toHaveBeenCalled();
+    expect(api.calls).toEqual([]);
     expect(state.problem).toBe('invalidLink');
   });
 });
