@@ -429,6 +429,29 @@ export type AdminUser = AuthUser & {
   owns?: { projects: number; members: number; proposals: number; tickets: number };
 };
 
+/** What the admin search finds, in the order the API groups them (section 4.14). */
+export const ADMIN_SEARCH_KINDS = [
+  'lead',
+  'user',
+  'project',
+  'ticket',
+  'proposal',
+  'post',
+  'caseStudy',
+] as const;
+export type AdminSearchKind = (typeof ADMIN_SEARCH_KINDS)[number];
+
+/** `GET /admin/search`: up to 5 matches per kind, only kinds with matches. */
+export type AdminSearch = {
+  /** As searched (trimmed). */
+  q: string;
+  groups: {
+    kind: AdminSearchKind;
+    /** `sublabel` holds data only (names, emails, numbers, slugs), never words to translate. */
+    items: { id: string; label: string; sublabel: string | null }[];
+  }[];
+};
+
 /** `GET /auth/preferences`: the caller's email preferences. */
 export type Preferences = { weeklyDigest: boolean; monthlyReport: boolean };
 

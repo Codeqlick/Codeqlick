@@ -1693,6 +1693,24 @@
       "emptyBody": "Readers can sign up at the end of the blog and of each post.",
       "noMatchTitle": "No subscribers match",
       "noMatchBody": "Try another status or other words."
+    },
+    "search": {
+      "button": "Search",
+      "shortcut": "Ctrl K",
+      "shortcutApple": "⌘K",
+      "title": "Search the admin panel",
+      "inputLabel": "Search leads, users, projects, requests, proposals, posts and case studies",
+      "placeholder": "Name, email, title or #number",
+      "close": "Close",
+      "results": "Results",
+      "hint": "Type at least 2 characters to search.",
+      "searching": "Searching…",
+      "empty": "Nothing found for “{q}”.",
+      "resultsOne": "1 result",
+      "resultsMany": "{count} results",
+      "tooMany": "Too many searches in a short time. Wait a moment and try again.",
+      "failed": "The search failed. Please try again.",
+      "expired": "Your session has expired. Reload the page to sign in again."
     }
   },
   "Sessions": {

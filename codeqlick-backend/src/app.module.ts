@@ -23,6 +23,7 @@ import { ProjectsModule } from './modules/projects/projects.module.js';
 import { InvoicesModule } from './modules/invoices/invoices.module.js';
 import { SavedRepliesModule } from './modules/saved-replies/saved-replies.module.js';
 import { StatsModule } from './modules/stats/stats.module.js';
+import { SearchModule } from './modules/search/search.module.js';
 import { ProposalsModule } from './modules/proposals/proposals.module.js';
 import { SupportModule } from './modules/support/support.module.js';
 import { BookingsModule } from './modules/bookings/bookings.module.js';
@@ -66,6 +67,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     MediaModule,
     SavedRepliesModule,
     StatsModule,
+    SearchModule,
     SupportModule,
     ProposalsModule,
     TimeModule,
