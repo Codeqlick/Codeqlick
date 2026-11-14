@@ -22,6 +22,7 @@ import {
   type DeploymentComparison,
   type DeploymentFiles,
   type GitSettings,
+  type Monitor,
   type Project,
   type Protection,
   type ProtectionDays,
@@ -114,6 +115,12 @@ Builds from Git:
   builds cancel <number>    Cancel a queued or running build
   logs [number]             A build's log (the latest by default), followed while it runs
       --json                  (git, env, hooks, builds) print the API's answer
+
+Monitors (the team's, no linked project needed; --team or CODEQLICK_TEAM):
+  monitors                  The team's monitors: state, time in it and last check
+  monitors pause <id|name>  Stop checking one (no alerts); its id or exact name
+  monitors resume <id|name> Check it again (its state is UNKNOWN until the next check)
+      --json                  (monitors) print the API's answer
 
 Analytics and key-value store:
   analytics                 Visitors, page views, top pages and sources
@@ -1168,6 +1175,122 @@ async function analytics(options: Options): Promise<void> {
   if (report.events.length > 0) table('Events', report.events, 'times');
 }
 
+/** The state a monitor shows: `PAUSED` also when it is switched off. */
+export function monitorState(m: Pick<Monitor, 'enabled' | 'status'>): Monitor['status'] {
+  return m.enabled ? m.status : 'PAUSED';
+}
+
+/** A span of time as `5 min`, `3 h` or `2 d`. */
+export function spanText(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  if (minutes < 1) return '<1 min';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
+}
+
+/** The rows of the `monitors` table, plain text (colours are added when printing). */
+export function monitorRows(
+  monitors: Monitor[],
+  now: number = Date.now(),
+): Array<{ name: string; kind: string; state: Monitor['status']; since: string; last: string }> {
+  return monitors.map((m) => {
+    const checked = m.kind === 'HTTP' ? m.lastCheckedAt : m.lastPingAt;
+    return {
+      name: m.name,
+      kind: m.kind,
+      state: monitorState(m),
+      since: spanText(now - Date.parse(m.statusSince)),
+      last: checked ? `${spanText(now - Date.parse(checked))} ago` : '-',
+    };
+  });
+}
+
+/** The table `codeqlick monitors` prints: a header, then a line per monitor. */
+export function monitorTable(monitors: Monitor[], now: number = Date.now()): string[] {
+  const rows = monitorRows(monitors, now);
+  const head = { name: 'NAME', kind: 'KIND', state: 'STATE', since: 'SINCE', last: 'LAST CHECK' };
+  const all = [head, ...rows];
+  const w = (key: 'name' | 'kind' | 'state' | 'since') =>
+    Math.max(...all.map((r) => r[key].length));
+  const widths = { name: w('name'), kind: w('kind'), state: w('state'), since: w('since') };
+  const stateColour = (state: string) => (state === 'UP' ? green : state === 'DOWN' ? pink : dim);
+  return all.map((r, i) => {
+    const cells = [
+      r.name.padEnd(widths.name),
+      r.kind.padEnd(widths.kind),
+      r.state.padEnd(widths.state),
+      r.since.padEnd(widths.since),
+      r.last,
+    ];
+    if (i === 0) return dim(cells.join('  '));
+    return [cells[0], cells[1], stateColour(r.state)(cells[2]!), cells[3], cells[4]].join('  ');
+  });
+}
+
+/** Finds the monitor an argument names: its id first, then its exact name. */
+export function findMonitors<T extends { id: string; name: string }>(
+  monitors: T[],
+  ref: string,
+): T[] {
+  const byId = monitors.find((m) => m.id === ref);
+  return byId ? [byId] : monitors.filter((m) => m.name === ref);
+}
+
+/** The one monitor an argument names; no match or several is an error that says so. */
+export function pickMonitor<T extends { id: string; name: string; kind: string }>(
+  monitors: T[],
+  ref: string,
+  team: string,
+): T {
+  const matches = findMonitors(monitors, ref);
+  if (matches.length === 0)
+    throw new UsageError(`There is no monitor "${ref}" in the team "${team}".`);
+  if (matches.length > 1) {
+    throw new UsageError(
+      [
+        `${matches.length} monitors are named "${ref}": use an id.`,
+        ...matches.map((m) => `  ${m.id}  ${m.kind}`),
+      ].join('\n'),
+    );
+  }
+  return matches[0]!;
+}
+
+/** Pauses or resumes; a monitor already in the wanted state is returned without a request. */
+export async function changeEnabled(
+  api: Pick<Api, 'setMonitorEnabled'>,
+  monitor: Monitor,
+  enabled: boolean,
+): Promise<Monitor> {
+  return monitor.enabled === enabled ? monitor : api.setMonitorEnabled(monitor.id, enabled);
+}
+
+async function monitors(
+  action: string | undefined,
+  ref: string | undefined,
+  options: Options,
+): Promise<void> {
+  const list = !action || action === 'ls' || action === 'list';
+  if (!list && action !== 'pause' && action !== 'resume')
+    throw new UsageError(`Unknown action "${action}": pause or resume.`);
+  if (!list && !ref) throw new UsageError(`Which monitor? codeqlick monitors ${action} <id|name>`);
+  const { api } = await signedIn();
+  const team = await teamOf(api, options);
+  const { items } = await api.monitors(team);
+  if (list) {
+    if (options.json) return console.log(JSON.stringify({ items }, null, 2));
+    if (items.length === 0) return console.log(dim('No monitors yet'));
+    for (const line of monitorTable(items)) console.log(line);
+    return;
+  }
+  const monitor = pickMonitor(items, ref!, team);
+  const enable = action === 'resume';
+  const updated = await changeEnabled(api, monitor, enable);
+  if (options.json) return console.log(JSON.stringify(updated, null, 2));
+  console.log(`${green('✓')} ${enable ? 'Resumed' : 'Paused'} ${bold(monitor.name)}`);
+}
+
 /** A value typed on the command line: JSON when it parses, otherwise the text itself. */
 export function parseValue(text: string): unknown {
   try {
@@ -1481,6 +1604,9 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'kv':
         return await kv(rest[0], rest[1], rest[2], options);
+      case 'monitors':
+        await monitors(rest[0], rest[1], options);
+        break;
       case 'protect':
         await protect(rest[0], options);
         break;

@@ -105,6 +105,18 @@ See [builds from Git](/en/builds-from-git/).
 
 See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-store/).
 
+## Monitors
+
+| Command                      | What it does                                                 |
+| ---------------------------- | ------------------------------------------------------------ |
+| `monitors`                   | List the team's monitors: state, time in it and last check.  |
+| `monitors pause <id\|name>`  | Stop checking a monitor, e.g. around planned work.           |
+| `monitors resume <id\|name>` | Check it again. Its state is `UNKNOWN` until the next check. |
+| `monitors --team <slug>`     | The team (or `CODEQLICK_TEAM`). No linked project needed.    |
+| `monitors --json`            | Print the API's answer.                                      |
+
+See [monitors, heartbeats and status pages](/en/monitors-and-status-pages/).
+
 ## Environment variables
 
 | Variable                              | What it does                                                    |

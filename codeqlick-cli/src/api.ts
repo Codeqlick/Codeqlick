@@ -334,6 +334,32 @@ export interface KvList {
   usage: { keys: number; bytes: number; maxKeys: number; maxBytes: number };
 }
 
+export type MonitorKind = 'HTTP' | 'HEARTBEAT';
+export type MonitorStatus = 'UP' | 'DOWN' | 'PAUSED' | 'UNKNOWN';
+/** A monitor as the API lists it (`MonitorView`). */
+export interface Monitor {
+  id: string;
+  name: string;
+  kind: MonitorKind;
+  url: string | null;
+  keyword: string | null;
+  keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
+  heartbeatUrl: string | null;
+  periodMinutes: number | null;
+  graceMinutes: number | null;
+  projectId: string | null;
+  enabled: boolean;
+  status: MonitorStatus;
+  statusSince: string;
+  lastCheckedAt: string | null;
+  lastPingAt: string | null;
+  deadlineAt: string | null;
+  lastError: string | null;
+  certExpiresAt: string | null;
+  alertIds: string[];
+  createdAt: string;
+}
+
 export class Api {
   private readonly base: string;
   private readonly token: string | undefined;
@@ -516,6 +542,10 @@ export class Api {
       `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
       { by },
     );
+  monitors = (team: string) =>
+    this.request<{ items: Monitor[] }>('GET', `/cloud/teams/${encodeURIComponent(team)}/monitors`);
+  setMonitorEnabled = (id: string, enabled: boolean) =>
+    this.request<Monitor>('PATCH', `/cloud/monitors/${encodeURIComponent(id)}`, { enabled });
   checkConfig = (teamSlug: string, config: string) => {
     // Multipart text fields (no file part), like the deployment upload.
     const form = new FormData();

@@ -29,6 +29,7 @@ return with the next push. `deploy --prod`, promoting a newer deployment or `cod
 | `files <id>` / `diff <id> [other]`          | A deployment's files / compare it with production or another deployment |
 | `download [id] [-o <file>] [--force]`       | Save a deployment's files as a `tar.gz`                                 |
 | `domains [add\|check\|rm <domain>]`         | The project's own domains                                               |
+| `monitors [pause\|resume <id\|name>]`       | The team's monitors, or pause and resume one (`--team`)                 |
 | `open`                                      | Open the published site                                                 |
 
 `download` saves the production deployment (or the one you name, by its short id) as
