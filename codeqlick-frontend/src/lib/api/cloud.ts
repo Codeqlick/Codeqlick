@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { apiFetch } from './client';
 import type { Paginated } from './types';
 
@@ -174,8 +175,10 @@ export const renameCloudTeam = (team: string, name: string) =>
 export const deleteCloudTeam = (team: string) =>
   apiFetch<void>(`/cloud/teams/${encodeURIComponent(team)}`, { ...write, method: 'DELETE' });
 
-export const getCloudUsage = (team: string) =>
-  apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth);
+/** Cached per request: the team layout and its page share one fetch. */
+export const getCloudUsage = cache((team: string) =>
+  apiFetch<CloudUsage>(`/cloud/teams/${encodeURIComponent(team)}/usage`, auth),
+);
 
 export const listCloudEvents = (team: string, page = 1) =>
   apiFetch<Paginated<CloudEvent>>(`/cloud/teams/${encodeURIComponent(team)}/events`, {

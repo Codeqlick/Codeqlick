@@ -30,7 +30,7 @@ import type {
 } from './cloud.schemas.js';
 import { CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
 import { sha256 } from './cloud-tokens.service.js';
-import type { Meter } from './cloud-usage.js';
+import { buildMeters, type Meter } from './cloud-usage.js';
 import { CloudUsageService } from './cloud-usage.service.js';
 
 export interface TeamView {
@@ -456,21 +456,21 @@ export class CloudTeamsService {
   async usage(ctx: CloudCtx, slug: string): Promise<UsageView> {
     const membership = await this.access(ctx, slug);
     const teamId = membership.teamId;
-    const [projects, storageBytes, deploymentsLastHour, members, meters] = await Promise.all([
+    const plan = membership.team.plan;
+    const [projects, members, usage] = await Promise.all([
       this.repository.countProjects(teamId),
-      this.repository.storageBytes(teamId),
-      this.repository.countDeploymentsSince(teamId, new Date(Date.now() - 3_600_000)),
       this.repository.countMembers(teamId),
-      this.usageMeters.meters(teamId, membership.team.plan),
+      this.usageMeters.measure(teamId),
     ]);
+    const limits = this.limits(plan);
     return {
-      plan: membership.team.plan,
-      limits: this.limits(membership.team.plan),
+      plan,
+      limits,
       projects,
-      storageBytes,
-      deploymentsLastHour,
+      storageBytes: usage.storage,
+      deploymentsLastHour: usage.deploymentsPerHour,
       members,
-      meters,
+      meters: buildMeters(limits, usage),
     };
   }
 
