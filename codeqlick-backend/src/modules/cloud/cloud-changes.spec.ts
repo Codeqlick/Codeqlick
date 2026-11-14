@@ -4,6 +4,7 @@ import {
   insideRoot,
   normalizeRoot,
   PUSH_COMMITS_CAP,
+  PUSH_FILES_PER_COMMIT_CAP,
   pushChangedFiles,
 } from './cloud-changes.js';
 
@@ -45,6 +46,11 @@ describe('pushChangedFiles', () => {
     expect(pushChangedFiles({ commits: [] })).toBeNull();
     expect(pushChangedFiles({})).toBeNull();
     expect(pushChangedFiles({ commits: [{ added: [] }] })).toBeNull();
+    // An empty commit, pushed to force a build.
+    expect(pushChangedFiles({ commits: [{ added: [], modified: [], removed: [] }] })).toBeNull();
+    // A commit with as many files as GitHub lists: the folder's may be past the cut.
+    const many = Array.from({ length: PUSH_FILES_PER_COMMIT_CAP }, (_, i) => `vendor/${i}.js`);
+    expect(pushChangedFiles({ commits: [{ added: many, modified: [], removed: [] }] })).toBeNull();
     expect(
       pushChangedFiles({ commits: Array.from({ length: PUSH_COMMITS_CAP }, () => commit) }),
     ).toBeNull();
