@@ -385,7 +385,12 @@ export type CloudForm = {
   enabled: boolean;
   notify: boolean;
   recipientIds: string[];
+  /** Local spam rules on (decision 66). */
+  spamFilter: boolean;
+  /** Non-spam submissions. */
   submissions: number;
+  /** Spam kept (30 days). */
+  spam: number;
   createdAt: string;
 };
 
@@ -394,6 +399,9 @@ export type CloudSubmission = {
   data: Record<string, string>;
   email: string | null;
   page: string | null;
+  spam: boolean;
+  /** markup, links, field, page, repeat or manual; null when it isn't spam. */
+  spamReason: string | null;
   createdAt: string;
 };
 
@@ -402,7 +410,7 @@ export const listCloudForms = (projectId: string) =>
 
 export const createCloudForm = (
   projectId: string,
-  input: { name: string; notify: boolean; recipientIds: string[] },
+  input: { name: string; notify: boolean; recipientIds: string[]; spamFilter?: boolean },
 ) =>
   apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms`, {
     ...write,
@@ -413,7 +421,13 @@ export const createCloudForm = (
 export const updateCloudForm = (
   projectId: string,
   formId: string,
-  input: Partial<{ name: string; enabled: boolean; notify: boolean; recipientIds: string[] }>,
+  input: Partial<{
+    name: string;
+    enabled: boolean;
+    notify: boolean;
+    recipientIds: string[];
+    spamFilter: boolean;
+  }>,
 ) =>
   apiFetch<CloudForm>(`/cloud/projects/${projectId}/forms/${formId}`, {
     ...write,
@@ -517,10 +531,11 @@ export const listCloudSubmissions = (
   formId: string,
   q: string | undefined,
   page = 1,
+  spam = false,
 ) =>
   apiFetch<Paginated<CloudSubmission>>(`/cloud/projects/${projectId}/forms/${formId}/submissions`, {
     ...auth,
-    query: { q, page, pageSize: 20 },
+    query: { q, page, pageSize: 20, spam: spam ? 'true' : undefined },
   });
 
 export const exportCloudSubmissions = (projectId: string, formId: string) =>
@@ -534,6 +549,18 @@ export const deleteCloudSubmission = (projectId: string, formId: string, submiss
     ...write,
     method: 'DELETE',
   });
+
+/** "Spam" or "Not spam" on one submission (decision 66). */
+export const markCloudSubmissionSpam = (
+  projectId: string,
+  formId: string,
+  submissionId: string,
+  spam: boolean,
+) =>
+  apiFetch<CloudSubmission>(
+    `/cloud/projects/${projectId}/forms/${formId}/submissions/${submissionId}/spam`,
+    { ...write, method: 'POST', body: { spam } },
+  );
 
 // ── Monitors and status pages (phase 1b) ────────────────────────────────────────────────────
 

@@ -142,6 +142,7 @@ Crea un formulario en la pestaña **Formularios** del proyecto y pega su HTML en
 - \`_subject\` pone el asunto del email y \`_gotcha\` (oculto) frena los bots.
 - Con \`fetch\` y JSON recibes \`{ ok: true }\`. Solo se aceptan envíos desde las direcciones de tu proyecto y tus dominios.
 - Los envíos se guardan 180 días: búscalos, bórralos o descárgalos en CSV en la consola. El plan gratuito admite 1.000 envíos al mes por equipo.
+- El filtro de spam viene activado: marca los envíos con enlaces en código, demasiados enlaces, un nombre o email que no lo parece, una página que no es tuya o el mismo mensaje repetido. El spam se guarda 30 días en su propia vista de la consola, sin email ni aviso y sin contar en los envíos del mes; con «No es spam» lo recuperas y se entrega entonces.
 - Para recibirlos también en Slack, Discord o un webhook propio (un CRM, Zapier), activa «Cuando un formulario recibe un envío» en un aviso de la pestaña **Avisos**; el webhook recibe \`event: "form.submitted"\` con los campos.
 
 ## Dominios propios
@@ -373,6 +374,7 @@ Create a form in the project's **Forms** tab and paste its HTML into your page:
 - \`_subject\` sets the email's subject and \`_gotcha\` (hidden) stops bots.
 - With \`fetch\` and JSON you get \`{ ok: true }\`. Only posts from your project's addresses and domains are accepted.
 - Submissions are kept 180 days: search, delete or download them as CSV in the console. The free plan takes 1,000 submissions a month per team.
+- The spam filter is on by default: it flags submissions with link markup, too many links, a name or email field that isn't one, a page that isn't yours or the same message again and again. Spam is kept 30 days in its own view in the console, isn't emailed or sent to channels, and doesn't count towards the month's submissions; "Not spam" brings it back and delivers it then.
 - To get them in Slack, Discord or a webhook of yours too (a CRM, Zapier), turn on "When a form gets a submission" in a channel of the **Notifications** tab; the webhook gets \`event: "form.submitted"\` with the fields.
 
 ## Custom domains

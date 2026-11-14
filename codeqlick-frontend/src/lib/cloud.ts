@@ -51,3 +51,16 @@ export function notifiedFormNames(
   const names = new Map(forms.map((form) => [form.id, form.name]));
   return formIds.map((id) => names.get(id) ?? '—');
 }
+
+export const SPAM_REASONS = ['markup', 'links', 'field', 'page', 'repeat', 'manual'] as const;
+export type SpamReason = (typeof SPAM_REASONS)[number];
+
+/** The reason a submission was flagged, as a known key; anything unexpected reads as "manual". */
+export function spamReasonKey(reason: string | null): SpamReason {
+  return SPAM_REASONS.find((key) => key === reason) ?? 'manual';
+}
+
+/** The submissions view from `?view=`: the inbox unless it is exactly "spam". */
+export function submissionsView(view: string | undefined): 'inbox' | 'spam' {
+  return view === 'spam' ? 'spam' : 'inbox';
+}

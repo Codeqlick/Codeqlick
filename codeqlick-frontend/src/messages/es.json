@@ -4938,7 +4938,28 @@
       "search": "Buscar",
       "csv": "Descargar CSV",
       "noSubmissions": "No hay envíos.",
-      "deleteSubmission": "Borrar"
+      "deleteSubmission": "Borrar",
+      "views": "Vista de envíos",
+      "inbox": "Bandeja de entrada",
+      "spamView": "Spam ({count})",
+      "spamNote": "El spam se guarda 30 días y luego se borra. No se envía por email ni a tus canales, y no cuenta en los envíos del mes.",
+      "noSpam": "No hay spam.",
+      "spamBadge": "Spam",
+      "spamReasons": {
+        "markup": "Contiene código de enlaces.",
+        "links": "Contiene demasiados enlaces.",
+        "field": "Un campo de nombre o de email contiene otra cosa (un enlace, un texto muy largo o un email no válido).",
+        "page": "Enviado desde una página que no es una de las direcciones de tu proyecto.",
+        "repeat": "El mismo mensaje llegó una y otra vez en una hora.",
+        "manual": "Alguien del equipo lo marcó como spam."
+      },
+      "markSpam": "Spam",
+      "notSpam": "No es spam",
+      "spamFilter": "Filtro de spam",
+      "spamFilterHint": "Marca el spam de enlaces, los campos que contienen otra cosa, los envíos desde otras páginas y los mensajes repetidos. El spam se guarda aparte 30 días; no se envía por email ni cuenta.",
+      "spamFilterOff": "Sin filtro de spam",
+      "spamFilterTurnOff": "Desactivar el filtro de spam",
+      "spamFilterTurnOn": "Activar el filtro de spam"
     },
     "monitors": {
       "title": "Monitores",
