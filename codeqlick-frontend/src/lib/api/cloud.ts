@@ -1,7 +1,5 @@
 import 'server-only';
 import { cache } from 'react';
-import { authHeader } from './projects';
-import { env } from '@/lib/env';
 import { clientHeaders } from '@/lib/auth/refresh';
 import { type CloudEventFilters, cloudEventFiltersQuery } from '@/lib/cloud';
 import { env } from '@/lib/env';
@@ -365,12 +363,6 @@ export const listCloudDeployments = (id: string, page = 1) =>
     ...auth,
     query: { page, pageSize: 20 },
   });
-
-export const getCloudDeployment = (id: string, deploymentId: string) =>
-  apiFetch<CloudDeployment>(
-    `/cloud/projects/${id}/deployments/${encodeURIComponent(deploymentId)}`,
-    auth,
-  );
 
 export const getCloudDeployment = (id: string, deploymentId: string) =>
   apiFetch<CloudDeployment>(
