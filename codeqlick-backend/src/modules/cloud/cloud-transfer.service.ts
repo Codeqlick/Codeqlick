@@ -20,6 +20,7 @@ import { CloudTeamsService } from './cloud-teams.service.js';
 import { ANALYTICS_BATCH, megabytes, type GitOutcome } from './cloud-transfer.js';
 import {
   CloudTransferRepository,
+  type AnalyticsCursor,
   type TransferState,
   type TransferTeams,
 } from './cloud-transfer.repository.js';
@@ -28,6 +29,10 @@ import { CloudRepository, type ProjectRow } from './cloud.repository.js';
 import { GithubClient } from './github.client.js';
 
 export type TransferView = ProjectView & { git: GitOutcome };
+
+/** The bounds of the older analytics events' window, and the month's open end. */
+const EPOCH = new Date(0);
+const FOREVER = new Date('9999-12-31T00:00:00Z');
 
 /**
  * Moving a project to another team (architecture 4.13 "Moving a project to another team",
@@ -78,17 +83,16 @@ export class CloudTransferService {
         ...teams,
         git:
           git.outcome === 'kept'
-            ? { installationId: git.installationId }
+            ? { installationId: git.installationId, repo: git.repo }
             : git.outcome === 'dropped'
               ? 'drop'
               : 'none',
-        monthStart: madridMonth(now).start,
       },
       check,
     );
 
     this.analytics.forget(project.id, [project.teamId, target.teamId]);
-    void this.moveOlderAnalytics(project.id, target.teamId);
+    void this.moveAnalytics(project.id, [project.teamId, target.teamId], madridMonth(now).start);
     // The databases' connection limit and the buckets' quotas follow the target's plan at the
     // next 10-minute check (CloudDatabasesService.check, CloudStorageService.sync): neither
     // service has a helper that applies one project's at once.
@@ -160,15 +164,22 @@ export class CloudTransferService {
   private async gitTarget(
     project: ProjectRow,
     teamId: string,
-  ): Promise<{ outcome: 'kept'; installationId: bigint } | { outcome: 'dropped' | 'none' }> {
+  ): Promise<
+    { outcome: 'kept'; installationId: bigint; repo: string } | { outcome: 'dropped' | 'none' }
+  > {
     if (project.gitRepoId === null) return { outcome: 'none' };
     if (!this.github.configured) return { outcome: 'dropped' };
     for (const installation of await this.builds.installations(teamId)) {
       if (installation.suspendedAt) continue;
       try {
         const repos = await this.github.repositories(installation.installationId);
-        if (repos.some((repo) => BigInt(repo.id) === project.gitRepoId)) {
-          return { outcome: 'kept', installationId: installation.installationId };
+        const repo = repos.find((r) => BigInt(r.id) === project.gitRepoId);
+        if (repo) {
+          return {
+            outcome: 'kept',
+            installationId: installation.installationId,
+            repo: repo.fullName,
+          };
         }
       } catch (error) {
         this.logger.warn(
@@ -179,17 +190,46 @@ export class CloudTransferService {
     return { outcome: 'dropped' };
   }
 
-  /** Older analytics events, in batches after the move (only the month's count by team). */
-  private async moveOlderAnalytics(projectId: string, teamId: string): Promise<void> {
+  /**
+   * All the project's analytics events, after the commit, in batches: the current Madrid month
+   * first (until then they still count for the source team), then the older ones. The teams'
+   * cached counts are dropped again once the month is done. Stops when the project moved again.
+   */
+  private async moveAnalytics(
+    projectId: string,
+    [fromTeamId, toTeamId]: [string, string],
+    monthStart: Date,
+  ): Promise<void> {
     try {
-      let moved: number;
-      do {
-        moved = await this.repository.moveAnalyticsBatch(projectId, teamId, ANALYTICS_BATCH);
-      } while (moved > 0);
+      const monthDone = await this.moveAnalyticsWindow(projectId, toTeamId, monthStart, FOREVER);
+      this.analytics.forget(projectId, [fromTeamId, toTeamId]);
+      if (monthDone) await this.moveAnalyticsWindow(projectId, toTeamId, EPOCH, monthStart);
     } catch (error) {
       this.logger.error(
-        `Project ${projectId}: older analytics events still name its old team: ${String(error)}`,
+        `Project ${projectId}: analytics events still name its old team: ${String(error)}`,
       );
+    }
+  }
+
+  /** Moves the events created in [since, before); false when the project moved again. */
+  private async moveAnalyticsWindow(
+    projectId: string,
+    teamId: string,
+    since: Date,
+    before: Date,
+  ): Promise<boolean> {
+    let cursor: AnalyticsCursor = { at: since, id: 0n };
+    for (;;) {
+      const batch = await this.repository.moveAnalyticsBatch(
+        projectId,
+        teamId,
+        cursor,
+        before,
+        ANALYTICS_BATCH,
+      );
+      if (!batch.last) return true;
+      if (batch.moved === 0) return false;
+      cursor = batch.last;
     }
   }
 

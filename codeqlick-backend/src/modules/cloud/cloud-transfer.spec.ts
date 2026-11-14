@@ -108,7 +108,7 @@ function setup(
         writes.push(write);
         return Promise.resolve(inside.monitors.length);
       }),
-    moveAnalyticsBatch: vi.fn().mockResolvedValue(0),
+    moveAnalyticsBatch: vi.fn().mockResolvedValue({ moved: 0, last: null }),
   } as unknown as CloudTransferRepository;
   const cloud = {
     findProject: vi.fn().mockResolvedValue({ ...project, teamId: target.id, team: target }),
@@ -315,8 +315,6 @@ describe('CloudTransferService', () => {
       userId: 'u-mover',
       git: 'none',
     });
-    // The Madrid month of 14 November 2026 starts on 31 October at 23:00 UTC.
-    expect(writes[0]!.monthStart.toISOString()).toBe('2026-10-31T23:00:00.000Z');
     expect(analytics.forget).toHaveBeenCalledWith('p1', [sourceTeam.id, targetTeam.id]);
     const details = { from: 'studio', to: 'client', monitors: 1, git: 'none' };
     expect(teams.record).toHaveBeenCalledWith(
@@ -356,7 +354,8 @@ describe('CloudTransferService', () => {
       repos: { '5': [77], '6': new Error('GitHub answered 502'), '7': [12, 77] },
     });
     await expect(move(svc)).resolves.toMatchObject({ git: 'kept' });
-    expect(writes[0]!.git).toEqual({ installationId: 7n });
+    // The repository's current name comes along (it may have been renamed).
+    expect(writes[0]!.git).toEqual({ installationId: 7n, repo: 'acme/77' });
     expect(sent[0]!.text).not.toContain('Git');
   });
 
@@ -414,5 +413,44 @@ describe('CloudTransferService', () => {
     });
     await move(svc);
     expect(sent).toHaveLength(0);
+  });
+
+  it('moves analytics after the commit, the current Madrid month first, then older ones', async () => {
+    const { svc, repository, analytics } = setup();
+    const at = (iso: string) => ({ at: new Date(iso), id: 1n });
+    vi.mocked(repository.moveAnalyticsBatch)
+      .mockResolvedValueOnce({ moved: 2, last: at('2026-11-10T00:00:00Z') })
+      .mockResolvedValueOnce({ moved: 0, last: null })
+      .mockResolvedValueOnce({ moved: 1, last: at('2026-09-01T00:00:00Z') })
+      .mockResolvedValueOnce({ moved: 0, last: null });
+    await move(svc);
+    await vi.waitFor(() => expect(repository.moveAnalyticsBatch).toHaveBeenCalledTimes(4));
+    const calls = vi.mocked(repository.moveAnalyticsBatch).mock.calls;
+    // The Madrid month of 14 November 2026 starts on 31 October at 23:00 UTC.
+    const monthStart = '2026-10-31T23:00:00.000Z';
+    expect(calls[0]![0]).toBe('p1');
+    expect(calls[0]![1]).toBe(targetTeam.id);
+    expect(calls[0]![2]).toEqual({ at: new Date(monthStart), id: 0n });
+    expect(calls[0]![4]).toBe(10_000);
+    // The next batch continues from the last event moved.
+    expect(calls[1]![2]).toEqual(at('2026-11-10T00:00:00Z'));
+    // Then the older ones, up to the month's start.
+    expect(calls[2]![2]).toEqual({ at: new Date(0), id: 0n });
+    expect(calls[2]![3]).toEqual(new Date(monthStart));
+    expect(calls[3]![2]).toEqual(at('2026-09-01T00:00:00Z'));
+    // The caches are dropped at once and again once the month's events are moved.
+    expect(analytics.forget).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops moving analytics when the project moved again', async () => {
+    const { svc, repository } = setup();
+    vi.mocked(repository.moveAnalyticsBatch).mockResolvedValueOnce({
+      moved: 0,
+      last: { at: new Date('2026-11-10T00:00:00Z'), id: 9n },
+    });
+    await move(svc);
+    await vi.waitFor(() => expect(repository.moveAnalyticsBatch).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(repository.moveAnalyticsBatch).toHaveBeenCalledTimes(1);
   });
 });

@@ -37,10 +37,17 @@ export interface TransferState {
 }
 
 export interface TransferWrite extends TransferTeams {
-  /** Keep the link through this installation of the target, clear it, or there is none. */
-  git: { installationId: bigint } | 'drop' | 'none';
-  /** The current Madrid month's start: its analytics events move inside the transaction. */
-  monthStart: Date;
+  /**
+   * Keep the link through this installation of the target (with the repository's current name),
+   * clear it, or there is none.
+   */
+  git: { installationId: bigint; repo: string } | 'drop' | 'none';
+}
+
+/** Where a run of analytics batches has got to: the last event moved (by time, then id). */
+export interface AnalyticsCursor {
+  at: Date;
+  id: bigint;
 }
 
 /** Moving a project to another team (architecture 4.13, decision 58). */
@@ -133,7 +140,7 @@ export class CloudTransferRepository {
               ? { gitInstallationId: null, gitRepoId: null, gitRepo: null }
               : input.git === 'none'
                 ? {}
-                : { gitInstallationId: input.git.installationId }),
+                : { gitInstallationId: input.git.installationId, gitRepo: input.git.repo }),
           },
         });
 
@@ -181,32 +188,54 @@ export class CloudTransferRepository {
             });
           }
         }
-
-        // This month's events count against the target's analytics limit at once.
-        await tx.cloudAnalyticsEvent.updateMany({
-          where: { projectId: input.projectId, createdAt: { gte: input.monthStart } },
-          data: { teamId: input.toTeamId },
-        });
+        // Analytics events move after the commit, in batches (moveAnalyticsBatch).
         return state.monitors.length;
       },
-      // Locks are waited for, and a busy month of analytics takes a while to rewrite.
-      { maxWait: 10_000, timeout: 60_000 },
+      // The teams' rows may be locked by another move for a moment.
+      { maxWait: 10_000, timeout: 15_000 },
     );
   }
 
   /**
-   * Rewrites up to `batch` of the project's analytics events still naming another team, while
-   * the project is in `teamId` (a later move takes over).
+   * Rewrites the next `size` of the project's analytics events created in [after.at, before) that
+   * still name another team, walking `(created_at, id)` from the cursor through the
+   * `(project_id, created_at)` index so no batch scans the ones before it. Nothing is rewritten
+   * once the project is no longer in `teamId` (a later move takes over): then `moved` is 0 while
+   * `last` is not null. `last` null means the window is done.
    */
-  moveAnalyticsBatch(projectId: string, teamId: string, batch: number): Promise<number> {
-    return this.prisma.$executeRaw`
-      UPDATE cloud_analytics_events SET team_id = ${teamId}::uuid
-      WHERE id IN (
-        SELECT e.id FROM cloud_analytics_events e
-        JOIN cloud_projects p ON p.id = e.project_id
-        WHERE e.project_id = ${projectId}::uuid AND p.team_id = ${teamId}::uuid
-          AND e.team_id <> ${teamId}::uuid
-        LIMIT ${batch}
-      )`;
+  async moveAnalyticsBatch(
+    projectId: string,
+    teamId: string,
+    after: AnalyticsCursor,
+    before: Date,
+    size: number,
+  ): Promise<{ moved: number; last: AnalyticsCursor | null }> {
+    const [row] = await this.prisma.$queryRaw<
+      Array<{ moved: number; at: Date | null; id: bigint | null }>
+    >`
+      WITH batch AS (
+        SELECT e.id, e.created_at FROM cloud_analytics_events e
+        WHERE e.project_id = ${projectId}::uuid AND e.team_id <> ${teamId}::uuid
+          AND e.created_at >= ${after.at}::timestamptz AND e.created_at < ${before}::timestamptz
+          AND (e.created_at, e.id) > (${after.at}::timestamptz, ${after.id}::bigint)
+        ORDER BY e.created_at, e.id
+        LIMIT ${size}
+      ), moved AS (
+        UPDATE cloud_analytics_events SET team_id = ${teamId}::uuid
+        WHERE id IN (SELECT id FROM batch)
+          AND EXISTS (
+            SELECT 1 FROM cloud_projects WHERE id = ${projectId}::uuid AND team_id = ${teamId}::uuid
+          )
+        RETURNING id
+      ), last AS (
+        SELECT id, created_at FROM batch ORDER BY created_at DESC, id DESC LIMIT 1
+      )
+      SELECT (SELECT count(*) FROM moved)::int AS moved,
+             (SELECT created_at FROM last) AS at,
+             (SELECT id FROM last) AS id`;
+    return {
+      moved: row?.moved ?? 0,
+      last: row?.at && row.id !== null ? { at: row.at, id: row.id } : null,
+    };
   }
 }
