@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { AuthRepository } from './auth.repository.js';
 import {
@@ -51,12 +52,26 @@ export class EmailPreferencesService {
     const user = await this.repository.findUserById(claim.userId);
     if (!user) throw new NotFoundException(NOT_FOUND);
     if (user[FIELD[claim.kind]] !== subscribed) {
-      await this.repository.setPreferences(
+      // Deleted since it was read: the same answer as a deleted account.
+      const saved = await this.repository.setPreferencesIfExists(
         user.id,
         claim.kind === 'digest' ? { weeklyDigest: subscribed } : { monthlyReport: subscribed },
       );
+      if (!saved) throw new NotFoundException(NOT_FOUND);
     }
     return { kind: claim.kind, subscribed, email: maskEmail(user.email) };
+  }
+
+  /**
+   * The website's page of a link opened in a browser (`GET /email/unsubscribe`), in the account's
+   * language. Changes nothing; a wrong token still goes to the page, which says the link is invalid.
+   */
+  async pageUrl(token: string): Promise<string> {
+    const claim = verifyUnsubscribeToken(token, this.config.jwtAccessSecret);
+    const user = claim ? await this.repository.findUserById(claim.userId) : null;
+    const locale: ApiLocale = user ? toApiLocale(user.locale) : 'en';
+    const site = this.config.siteUrl.replace(/\/+$/, '');
+    return `${site}/${locale}/email/unsubscribe?token=${encodeURIComponent(token)}`;
   }
 
   /** The provider's one-click `POST`: turns the token's email off. */

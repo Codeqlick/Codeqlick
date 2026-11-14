@@ -6,11 +6,11 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
-import { Role } from '../src/generated/prisma/client.js';
+import { Locale, Role } from '../src/generated/prisma/client.js';
 import { makeUnsubscribeToken } from '../src/modules/auth/unsubscribe-token.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
-// Its own file, so its own app: the links are limited to 30 per minute and per IP.
+// Its own file, so its own app: the browser routes are limited to 30 per minute and per IP.
 const tag = randomUUID().slice(0, 8);
 const email = `lin-${tag}@codeqlick.test`;
 const goneEmail = `gone-${tag}@codeqlick.test`;
@@ -61,6 +61,30 @@ describe('One-click unsubscribe from optional emails (e2e)', () => {
         .query({ token })
         .expect(200, { kind: 'digest', subscribed: true, email: `l***@codeqlick.test` });
     }
+    expect(await preferences()).toEqual({ weeklyDigest: true, monthlyReport: true });
+  });
+
+  it("sends a browser opening the one-click URL to the website's page, changing nothing", async () => {
+    const server = app.getHttpServer();
+    const site = process.env.SITE_URL!.replace(/\/+$/, '');
+    const token = makeUnsubscribeToken({ userId, kind: 'digest' }, secret);
+    await request(server)
+      .get('/v1/email/unsubscribe')
+      .query({ token })
+      .expect(302)
+      .expect('Location', `${site}/en/email/unsubscribe?token=${token}`);
+    await prisma.user.update({ where: { id: userId }, data: { locale: Locale.ES } });
+    await request(server)
+      .get('/v1/email/unsubscribe')
+      .query({ token })
+      .expect(302)
+      .expect('Location', `${site}/es/email/unsubscribe?token=${token}`);
+    // A wrong token still goes to the page, which says the link is invalid.
+    await request(server)
+      .get('/v1/email/unsubscribe')
+      .query({ token: goneToken })
+      .expect(302)
+      .expect('Location', `${site}/en/email/unsubscribe?token=${goneToken}`);
     expect(await preferences()).toEqual({ weeklyDigest: true, monthlyReport: true });
   });
 
