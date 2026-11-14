@@ -170,7 +170,11 @@ export class PostsRepository {
     });
   }
 
+  /** Deletes the post and its checked links (no foreign key: architecture 4.6, Broken links). */
   async delete(id: string): Promise<void> {
-    await this.prisma.post.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.linkCheck.deleteMany({ where: { sourceType: 'POST', sourceId: id } }),
+      this.prisma.post.delete({ where: { id } }),
+    ]);
   }
 }

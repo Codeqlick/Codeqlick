@@ -152,7 +152,11 @@ export class PortfolioRepository {
     });
   }
 
+  /** Deletes the case study and its checked links (no foreign key: architecture 4.6). */
   async delete(id: string): Promise<void> {
-    await this.prisma.portfolioItem.delete({ where: { id } });
+    await this.prisma.$transaction([
+      this.prisma.linkCheck.deleteMany({ where: { sourceType: 'PORTFOLIO', sourceId: id } }),
+      this.prisma.portfolioItem.delete({ where: { id } }),
+    ]);
   }
 }

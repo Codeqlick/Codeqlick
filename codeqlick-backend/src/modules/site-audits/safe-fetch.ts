@@ -96,6 +96,9 @@ export interface FetchOptions {
   maxRedirects?: number;
   /** Accept an invalid certificate (to still look at a site whose certificate failed). */
   insecure?: boolean;
+  /** `HEAD` asks for the headers only (the broken links check, architecture 4.6). */
+  method?: 'GET' | 'HEAD';
+  userAgent?: string;
 }
 
 export interface FetchedPage {
@@ -158,7 +161,7 @@ function once(
     const request = send(
       url,
       {
-        method: outgoing ? 'POST' : 'GET',
+        method: outgoing ? 'POST' : options.method,
         agent: false,
         lookup: safeLookup as never,
         rejectUnauthorized: !options.insecure,
@@ -168,7 +171,7 @@ function once(
               'Content-Length': String(Buffer.byteLength(outgoing.body)),
             }
           : {
-              'User-Agent': USER_AGENT,
+              'User-Agent': options.userAgent,
               Accept: 'text/html,application/xhtml+xml,*/*;q=0.8',
               'Accept-Encoding': 'gzip, br, deflate',
               'Accept-Language': 'es,en;q=0.8',
@@ -184,7 +187,9 @@ function once(
         const chunks: Buffer[] = [];
         let bytes = 0;
         let truncated = false;
-        const stream = decoded(response);
+        // A HEAD answer has no body, though it may still name an encoding (empty input would
+        // make the decompressor fail).
+        const stream = options.method === 'HEAD' ? response : decoded(response);
         const finish = () => {
           clearTimeout(deadline);
           resolve({
@@ -220,9 +225,9 @@ function once(
 }
 
 /**
- * GET `url` the safe way (architecture 4.12): public addresses only, checked on every connection
- * and every redirect; a time limit and a size limit. Redirects are followed up to `maxRedirects`
- * (0: the first answer is returned as is).
+ * GET (or HEAD) `url` the safe way (architecture 4.12): public addresses only, checked on every
+ * connection and every redirect; a time limit and a size limit. Redirects are followed up to
+ * `maxRedirects` (0: the first answer is returned as is), with the same method.
  */
 export async function safeFetch(input: string, options: FetchOptions = {}): Promise<FetchedPage> {
   const settings: Required<FetchOptions> = {
@@ -230,6 +235,8 @@ export async function safeFetch(input: string, options: FetchOptions = {}): Prom
     maxBytes: options.maxBytes ?? 3 * 1024 * 1024,
     maxRedirects: options.maxRedirects ?? 5,
     insecure: options.insecure ?? false,
+    method: options.method ?? 'GET',
+    userAgent: options.userAgent ?? USER_AGENT,
   };
   let url = new URL(input);
   const redirects: string[] = [];
@@ -275,7 +282,14 @@ export async function safePost(
 ): Promise<{ status: number; body: string }> {
   const response = await once(
     new URL(input),
-    { timeoutMs, maxBytes: 16 * 1024, maxRedirects: 0, insecure: false },
+    {
+      timeoutMs,
+      maxBytes: 16 * 1024,
+      maxRedirects: 0,
+      insecure: false,
+      method: 'GET',
+      userAgent: USER_AGENT,
+    },
     { body, headers },
   );
   return { status: response.status, body: response.body.toString('utf8') };
