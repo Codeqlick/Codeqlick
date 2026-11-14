@@ -13,6 +13,7 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { CloudConfig } from './cloud-config.js';
 
 export type MembershipRow = CloudMember & { team: CloudTeam };
 export type MemberRow = CloudMember & { user: { id: string; name: string; email: string } };
@@ -369,6 +370,14 @@ export class CloudRepository {
     });
   }
 
+  /** Every live project with password protection on (its markers, architecture 4.13). */
+  protectedProjects(): Promise<Array<{ slug: string; protection: CloudProject['protection'] }>> {
+    return this.prisma.cloudProject.findMany({
+      where: { deletedAt: null, protection: { not: 'OFF' } },
+      select: { slug: true, protection: true },
+    });
+  }
+
   findProjectBySlug(slug: string): Promise<{ id: string } | null> {
     return this.prisma.cloudProject.findFirst({ where: { slug }, select: { id: true } });
   }
@@ -437,6 +446,13 @@ export class CloudRepository {
 
   async deleteDeployment(id: string): Promise<void> {
     await this.prisma.cloudDeployment.delete({ where: { id } });
+  }
+
+  /** Deployments with `codeqlick.json` rules (their `.cq-rules` markers are put right hourly). */
+  deploymentsWithRules() {
+    return this.prisma.$queryRaw<Array<{ id: string; config: CloudConfig | null }>>`
+      SELECT id, config FROM cloud_deployments WHERE config IS NOT NULL
+    `;
   }
 
   /** Deployments past the newest `keep` of each project, production left out. */

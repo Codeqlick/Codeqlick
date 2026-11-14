@@ -611,6 +611,85 @@ Custom domains of Cloud projects are published by the same cron as client sites
 Deployments are not backed up: developers keep their sources and deploy again. To take a project
 down, suspend it in Admin → Cloud.
 
+### Password protection
+
+A project can ask visitors for a password on its deployment addresses, or on everything (production
+and custom domains too); architecture 4.13 "Password protection", 8.3 and decision 50. Nginx
+enforces it with `auth_request` (`deploy/nginx/cloud-protection.conf`, included by the hosting site
+and by every `cq-site … cloud` site): unprotected projects are answered from a marker-file check in
+`cloud/protect/` (and, since `codeqlick.json` rules, a deployment's `.cq-rules`) and never reach the
+API; protected ones, or those with rules, ask the API (`/v1/cloud/edge/check`, formerly
+`/v1/cloud/protection/check`, on 127.0.0.1, with `CLOUD_PROTECTION_KEY`) and keep each answer 60 s. Until the steps below are
+done, the API answers 503 when someone tries to turn it on. Once, as a user with sudo:
+
+1. Run the setup again (the same domain). It creates `CLOUD_PROTECTION_KEY` in `.env` when it is
+   missing, writes it for Nginx in `/etc/nginx/cq-cloud-protection-key.conf` (root, 600), installs
+   the snippet as `/etc/nginx/snippets/cq-cloud-protection.conf` and the headers of `codeqlick.json`
+   rules as `/etc/nginx/snippets/cq-cloud-rule-headers.conf`, creates `cloud/protect/` and the
+   cache `/var/cache/nginx/cq-protect`, renders the hosting site again, makes the API's site answer
+   404 for `/v1/cloud/protection/` and `/v1/cloud/edge/` and reloads Nginx. It stops if this Nginx lacks
+   `ngx_http_auth_request_module` (Ubuntu's package has it: `nginx -V 2>&1 | grep -o auth_request`).
+
+   ```bash
+   cd /srv/codeqlick && sudo ./deploy/setup-cloud.sh codeqlick.app
+   docker compose -f docker-compose.prod.yml up -d api
+   ```
+
+   The new snippet calls `/v1/cloud/edge/check`; the API keeps `/v1/cloud/protection/check` as an
+   alias for one release, so the order in which this and the password-protection release are
+   deployed doesn't matter.
+
+2. Install the newer `cq-site` (it includes the snippet and the rule headers in `cloud` sites,
+   routes `try_files` through `$cq_path`, and refuses to write one without the snippets), then add each existing custom domain again so its site includes it too (the
+   certificate is reused; `sync-sites.sh` only does this for new domains). Do it right after step 1:
+   until it is done, the custom domains of a project set to "everything" are **not** protected
+   (its `<slug>.codeqlick.app` addresses are):
+
+   ```bash
+   sudo install -o root -g root -m 755 /srv/codeqlick/deploy/sites/cq-site /usr/local/sbin/cq-site
+   for f in /srv/codeqlick/cloud/domains/*; do
+     [ -f "$f" ] && sudo cq-site add "$(basename "$f")" cloud "$(head -n 1 "$f")"
+   done
+   grep -L cq-cloud-protection /etc/nginx/sites-available/cq-site-*.conf  # Cloud domains must not be listed
+   sudo nginx -t
+   ```
+
+   (The `grep -L` also lists client sites of the `static` and `proxy` kinds; they don't use it.)
+
+3. Check it: `curl -sI https://<slug>.codeqlick.app/` answers as before for an unprotected project;
+   turn protection on for a test project (console → Settings → Password protection) and the same
+   request answers `302` to `/__codeqlick/password?next=/`; that page loads, and the right password
+   lets you in. `curl -s -o /dev/null -w '%{http_code}\n' https://api.codeqlick.com/v1/cloud/protection/check`
+   prints `404`, and so does `.../v1/cloud/edge/check`.
+
+### Redirects, rewrites and headers (`codeqlick.json`)
+
+Architecture 4.13 and 8.3, decision 52. The same single `auth_request` as password protection: the
+check answers `204` at once unless the project is protected or the deployment has a `.cq-rules`
+marker, so sites with neither never reach the API. Otherwise the API's answer carries the redirect
+(`403` + `X-Cq-Status`/`X-Cq-Location`, returned by `@cq_redirect`), the file to serve
+(`X-Cq-Path`, used by `try_files $cq_path ...`; `/.cq-none` when no file answers) and the headers to
+add (`X-Cq-H-<name>`, added by `/etc/nginx/snippets/cq-cloud-rule-headers.conf`, one line per name
+of the fixed list: keep it in step with the API's list). A rule's `Cache-Control` replaces the
+one-year default of hashed assets. Nothing is set up beyond the steps of "Password protection" above
+(run `setup-cloud.sh` again, reinstall `cq-site`, add the custom domains again); there is no new
+environment variable. Until a custom domain's site is added again it keeps its old `try_files`, so
+rules and headers don't apply to it (its protection does).
+
+Check it on the server after those steps (replace the address of a test project that has a
+deployment with `{"redirects":[{"source":"/old","destination":"/new"}],"headers":[{"source":"/*","headers":{"X-Frame-Options":"DENY"}}]}`):
+
+```bash
+sudo nginx -t
+curl -sI https://<slug>.codeqlick.app/old | grep -iE '^(HTTP|location)'     # 308, Location: https://<slug>.codeqlick.app/new
+curl -sI https://<slug>.codeqlick.app/ | grep -iE '^(HTTP|x-frame-options)' # 200, DENY
+curl -sI https://<other-slug>.codeqlick.app/ | grep -ic x-frame-options     # a project without rules: 0
+```
+
+If you ever change `CLOUD_PROTECTION_KEY` in `.env`, run step 1 again so Nginx sends the new one,
+and recreate the API. If the API is down, protected addresses answer 500 (never their files);
+unprotected ones are unaffected.
+
 ### Buying a preview online (Stripe)
 
 Requesters can buy their website from its preview (architecture 8.2, decision 20) for

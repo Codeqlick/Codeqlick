@@ -4,11 +4,48 @@ import { VERSION } from './version.ts';
 /** A failed API call: the problem details' text and status. */
 export class ApiError extends Error {
   readonly status: number;
+  /** The per-field problems of a 400 (`codeqlick.json`: the exact path of each). */
+  readonly errors: ConfigError[];
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, errors: ConfigError[] = []) {
     super(message);
     this.status = status;
+    this.errors = errors;
   }
+}
+
+/** One problem of a `codeqlick.json`: where it is and what is wrong. */
+export interface ConfigError {
+  path: string;
+  message: string;
+}
+
+/** The answer of `POST /cloud/config/check` (always 200). */
+export type ConfigCheck =
+  | {
+      ok: true;
+      summary: {
+        redirects: number;
+        rewrites: number;
+        headers: number;
+        cleanUrls: boolean;
+        trailingSlash: boolean | null;
+      };
+    }
+  | { ok: false; errors: ConfigError[] };
+
+/** One line per problem, `path: message`, indented. */
+export function formatConfigErrors(errors: ConfigError[]): string[] {
+  return errors.map((e) => `  ${e.path ? `${e.path}: ` : ''}${e.message}`);
+}
+
+/** The text to print for a failed call: the reason, then the problems with their paths. */
+export function formatApiError(error: ApiError): string {
+  if (error.errors.length === 0) return error.message;
+  const lines = formatConfigErrors(error.errors);
+  // Without a `detail` the message is already the joined problems: don't say them twice.
+  const joined = error.errors.map((e) => `${e.path}: ${e.message}`).join('; ');
+  return error.message === joined ? lines.join('\n') : [error.message, ...lines].join('\n');
 }
 
 export interface Team {
@@ -51,6 +88,24 @@ export interface Project {
   production: Deployment | null;
   domains: Array<{ name: string; state: string }>;
   suspended: { at: string; reason: string } | null;
+  protection: ProtectionMode;
+}
+
+/** Which addresses ask visitors for a password: none, the deployments', or every one. */
+export type ProtectionMode = 'OFF' | 'PREVIEWS' | 'ALL';
+export type ProtectionDays = 1 | 7 | 30;
+
+export interface Protection {
+  mode: ProtectionMode;
+  days: ProtectionDays;
+  hasPassword: boolean;
+  updatedAt: string | null;
+}
+
+export interface ProtectionInput {
+  mode: ProtectionMode;
+  password?: string;
+  days?: ProtectionDays;
 }
 
 export interface Domain {
@@ -240,12 +295,13 @@ export class Api {
       const problem = (data ?? {}) as {
         detail?: string;
         title?: string;
-        errors?: Array<{ path: string; message: string }>;
+        errors?: ConfigError[];
       };
       const fields = problem.errors?.map((e) => `${e.path}: ${e.message}`).join('; ');
       throw new ApiError(
         response.status,
         problem.detail ?? fields ?? problem.title ?? `HTTP ${response.status}`,
+        Array.isArray(problem.errors) ? problem.errors : [],
       );
     }
     return data as T;
@@ -279,6 +335,10 @@ export class Api {
     this.request<Domain>('POST', `/cloud/projects/${project}/domains/${id}/check`);
   removeDomain = (project: string, id: string) =>
     this.request<void>('DELETE', `/cloud/projects/${project}/domains/${id}`);
+  protection = (project: string) =>
+    this.request<Protection>('GET', `/cloud/projects/${project}/protection`);
+  setProtection = (project: string, settings: ProtectionInput) =>
+    this.request<Protection>('PUT', `/cloud/projects/${project}/protection`, settings);
   audit = (teamSlug: string, url: string, locale: string) =>
     this.request<AuditReport>('POST', '/cloud/audits', { teamSlug, url, locale });
   teamGithub = (team: string) =>
@@ -338,6 +398,13 @@ export class Api {
       `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
       { by },
     );
+  checkConfig = (teamSlug: string, config: string) => {
+    // Multipart text fields (no file part), like the deployment upload.
+    const form = new FormData();
+    form.set('teamSlug', teamSlug);
+    form.set('config', config);
+    return this.request<ConfigCheck>('POST', '/cloud/config/check', form);
+  };
   startDevice = (clientName: string, locale: string) =>
     this.request<DeviceStart>('POST', `/cloud/cli/device?locale=${locale}`, { clientName });
   pollDevice = (deviceCode: string) =>
@@ -351,6 +418,8 @@ export class Api {
       message?: string;
       commit?: string;
       branch?: string;
+      /** The text of the folder's `codeqlick.json` (redirects, rewrites, headers). */
+      config?: string;
     },
   ): Promise<Deployment> {
     const form = new FormData();
@@ -358,6 +427,7 @@ export class Api {
     if (fields.message) form.set('message', fields.message.slice(0, 200));
     if (fields.commit) form.set('commit', fields.commit);
     if (fields.branch) form.set('branch', fields.branch.slice(0, 100));
+    if (fields.config !== undefined) form.set('config', fields.config);
     form.set('bundle', await openAsBlob(bundle, { type: 'application/gzip' }), 'site.tar.gz');
     return this.request<Deployment>('POST', `/cloud/projects/${project}/deployments`, form);
   }

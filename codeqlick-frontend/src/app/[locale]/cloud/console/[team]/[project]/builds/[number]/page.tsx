@@ -8,10 +8,12 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudBuild, listCloudDeployments, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatWhen } from '@/lib/cloud';
+import { addressHref, formatWhen, isProtected } from '@/lib/cloud';
+import { appPath } from '@/lib/webapp-request';
 import { cancelBuildAction } from '../../../../../actions';
 import styles from '../../../../../cloud.module.css';
 import { BUILD_TONE, duration } from '../../BuildsTab';
+import { ProtectionLock } from '../../ProtectionCard';
 
 type PageProps = {
   params: Promise<{ locale: string; team: string; project: string; number: string }>;
@@ -46,6 +48,7 @@ export default async function CloudBuildPage({ params }: PageProps) {
         (d) => d.id === build.deploymentId,
       )
     : undefined;
+  const open = await appPath(`/${locale}/cloud/console/${team}/${slug}/open`, locale);
 
   return (
     <div className={styles.landing}>
@@ -71,9 +74,18 @@ export default async function CloudBuildPage({ params }: PageProps) {
         {build.error ? <p className={styles.small}>{build.error}</p> : null}
         {deployment ? (
           <p className={styles.spacedSmall}>
-            <a href={deployment.url} target="_blank" rel="noreferrer">
-              {deployment.url.replace('https://', '')}
-            </a>
+            <span className={styles.address}>
+              <a
+                href={addressHref(project.protection, 'previews', deployment.url, open)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {deployment.url.replace('https://', '')}
+              </a>
+              {isProtected(project.protection, 'previews') ? (
+                <ProtectionLock label={t('protection.locked')} />
+              ) : null}
+            </span>
           </p>
         ) : null}
       </div>

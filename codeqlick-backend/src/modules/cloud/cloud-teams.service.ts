@@ -266,6 +266,7 @@ export class CloudTeamsService {
         await this.storage.removeDeployment(deployment.id);
       }
       for (const domain of project.domains) await this.storage.removeDomain(domain.name);
+      await this.storage.removeProtection(project.slug);
     }
   }
 

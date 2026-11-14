@@ -144,7 +144,8 @@ function fromHttpException(exception: HttpException): ProblemDetails {
 
   if (errors.length > 0) {
     // Field-level validation errors (Standard Schema pipe or our own).
-    problem.detail = 'Validation failed';
+    // A service may name its own summary in `detail` (an invalid `codeqlick.json` says which).
+    problem.detail = typeof body.detail === 'string' ? body.detail : 'Validation failed';
     problem.errors = errors;
   } else if (typeof body.message === 'string') {
     problem.detail = body.message;

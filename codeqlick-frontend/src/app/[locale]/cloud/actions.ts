@@ -50,6 +50,7 @@ import {
   runCloudAudit,
   saveCloudStatusPage,
   setCloudMemberRole,
+  setCloudProtection,
   updateCloudForm,
   updateCloudMonitor,
   type CloudReportReason,
@@ -63,6 +64,7 @@ import {
   startCloudBuild,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { protectionInput } from '@/lib/cloud';
 import { formBoolean, formString, formValues, type FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -335,6 +337,59 @@ export async function deleteDeploymentAction(formData: FormData): Promise<void> 
     () => undefined,
   );
   refresh(locale, formString(formData, 'path'));
+}
+
+/**
+ * Saves the project's password protection (architecture 4.13). The password is write-only: it is
+ * never echoed back in the form's values, and empty keeps the current one.
+ */
+export async function saveProtectionAction(
+  locale: string,
+  path: string,
+  id: string,
+  hasPassword: boolean,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.protection' });
+  const values = formValues(formData, ['password']);
+  const password = formData.get('password');
+  const parsed = protectionInput(
+    {
+      mode: formString(formData, 'mode'),
+      password: typeof password === 'string' ? password : '',
+      days: formString(formData, 'days'),
+    },
+    hasPassword,
+  );
+  if (!parsed.ok) {
+    const message =
+      parsed.field === 'password'
+        ? t(parsed.reason === 'required' ? 'passwordRequired' : 'passwordInvalid')
+        : t('invalid');
+    return { status: 'error', fieldErrors: { [parsed.field]: message }, values };
+  }
+  try {
+    await setCloudProtection(id, parsed.input);
+  } catch (error) {
+    if (isApiError(error) && error.status === 400) {
+      return {
+        status: 'error',
+        message: error.fieldErrors._form ?? error.detail ?? t('invalid'),
+        fieldErrors: error.fieldErrors,
+        values,
+      };
+    }
+    if (isApiError(error) && error.status === 503) {
+      return { status: 'error', message: t('unavailable'), values };
+    }
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  // The team's page shows the lock next to each project's address too.
+  refresh(lang, path.slice(0, path.lastIndexOf('/')));
+  return { status: 'success', message: t('saved') };
 }
 
 // ── Domains ───────────────────────────────────────────────────────────────────────────────────

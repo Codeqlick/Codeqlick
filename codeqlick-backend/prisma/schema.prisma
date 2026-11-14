@@ -1870,6 +1870,13 @@ enum CloudTarget {
   PRODUCTION
 }
 
+/// Which of a project's addresses ask for its password (architecture 4.13 "Password protection").
+enum CloudProtection {
+  OFF
+  PREVIEWS
+  ALL
+}
+
 enum CloudDomainState {
   PENDING
   VERIFIED
@@ -2029,6 +2036,13 @@ model CloudProject {
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
+  /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
+  /// hash, how many days access lasts, and a version raised on every change that ends access.
+  protection             CloudProtection @default(OFF)
+  protectionHash         String?   @map("protection_hash")
+  protectionDays         Int       @default(7) @map("protection_days")
+  protectionVersion      Int       @default(0) @map("protection_version")
+  protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -2063,6 +2077,8 @@ model CloudDeployment {
   branch      String?     @db.VarChar(100)
   sizeBytes   BigInt      @map("size_bytes")
   fileCount   Int         @map("file_count")
+  /// The parsed rules of `codeqlick.json` (redirects, rewrites, headers); null when it has none.
+  config      Json?
   createdById String?     @map("created_by_id") @db.Uuid
   tokenId     String?     @map("token_id") @db.Uuid
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
