@@ -17,7 +17,7 @@ const password = 'cloud-events-password-1';
 const owner = { email: `e2e-ce-owner-${tag}@codeqlick.test`, password };
 const mate = { email: `e2e-ce-mate-${tag}@codeqlick.test`, password };
 const terms = { acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION };
-const HEADER = '﻿date,actor,token,action,target,details,ip';
+const HEADER = '\uFEFFdate,actor,token,action,target,details,ip';
 const BULK = 1_005;
 
 const madridToday = () =>
