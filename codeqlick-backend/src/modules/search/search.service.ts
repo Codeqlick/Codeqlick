@@ -9,13 +9,7 @@ import {
 } from './search.repository.js';
 
 export type AdminSearchKind =
-  | 'lead'
-  | 'user'
-  | 'project'
-  | 'ticket'
-  | 'proposal'
-  | 'post'
-  | 'caseStudy';
+  'lead' | 'user' | 'project' | 'ticket' | 'proposal' | 'post' | 'caseStudy';
 
 export interface AdminSearchItem {
   id: string;
