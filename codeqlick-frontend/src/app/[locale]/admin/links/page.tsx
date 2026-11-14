@@ -71,7 +71,6 @@ export default async function AdminLinksPage({ params, searchParams }: PageProps
                   <th scope="col">{t('link')}</th>
                   <th scope="col">{t('status')}</th>
                   <th scope="col">{t('since')}</th>
-                  <th scope="col">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,8 +122,6 @@ export default async function AdminLinksPage({ params, searchParams }: PageProps
                         <span className={styles.sub}>
                           {t('checkedAt', { date: formatDateTime(link.checkedAt, locale) })}
                         </span>
-                      </td>
-                      <td data-label={t('actions')}>
                         <ActionForm
                           action={checkLinkAction.bind(null, locale, link.id)}
                           className={linkStyles.rowAction}
