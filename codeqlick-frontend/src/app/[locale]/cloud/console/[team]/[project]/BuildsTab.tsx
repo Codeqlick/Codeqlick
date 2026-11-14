@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
+import { Checkbox } from '@/components/ui/Field';
 import { Pagination } from '@/components/ui/Pagination';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -53,6 +54,7 @@ export async function BuildsTab(props: Props) {
             <input type="hidden" name="team" value={props.teamSlug} />
             <input type="hidden" name="slug" value={props.projectSlug} />
             <input type="hidden" name="project" value={props.projectId} />
+            <Checkbox name="noCache" label={t('builds.noCache')} />
             <SubmitButton size="sm" variant="outline">
               {list.items.length === 0 && list.page === 1
                 ? t('builds.first', { branch: git.branch })
@@ -85,6 +87,7 @@ export async function BuildsTab(props: Props) {
                     <Badge>
                       {build.target === 'production' ? t('git.production') : t('git.preview')}
                     </Badge>
+                    {build.noCache ? <Badge>{t('builds.noCache')}</Badge> : null}
                     <span>{(build.commitMessage ?? '').split('\n')[0]}</span>
                   </p>
                   <p className={styles.small}>

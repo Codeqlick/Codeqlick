@@ -5100,6 +5100,8 @@
         "CANCELED": "Canceled"
       },
       "cancel": "Cancel",
+      "noCache": "Without cache",
+      "retryNoCache": "Retry without cache",
       "log": "Log",
       "waiting": "Waiting for a build server…",
       "noLog": "No output."
