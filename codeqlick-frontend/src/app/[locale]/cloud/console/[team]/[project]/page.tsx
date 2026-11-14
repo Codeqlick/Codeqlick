@@ -18,7 +18,7 @@ import {
   type CloudDomainState,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
-import { formatBytes, formatWhen } from '@/lib/cloud';
+import { formatBytes, formatWhen, submissionsView } from '@/lib/cloud';
 import {
   addDomainAction,
   checkDomainAction,
@@ -60,6 +60,7 @@ type PageProps = {
     page?: string;
     form?: string;
     q?: string;
+    view?: string;
     github?: string;
     period?: string;
     prefix?: string;
@@ -225,6 +226,7 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           admin={admin}
           formId={query.form}
           q={query.q?.trim().slice(0, 100) || undefined}
+          view={submissionsView(query.view)}
           page={page}
         />
       ) : null}

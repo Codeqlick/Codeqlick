@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cloudSlug, formatBytes, notifiedFormNames } from './cloud';
+import { cloudSlug, formatBytes, notifiedFormNames, spamReasonKey, submissionsView } from './cloud';
 
 describe('formatBytes', () => {
   it('picks the unit and the decimals', () => {
@@ -38,5 +38,22 @@ describe('notifiedFormNames', () => {
   it('marks forms it does not know', () => {
     expect(notifiedFormNames(['a', 'z'], forms)).toEqual(['Contact', '—']);
     expect(notifiedFormNames(['a'], [])).toEqual(['—']);
+  });
+});
+
+describe('spamReasonKey', () => {
+  it('keeps the known reasons and reads anything else as manual', () => {
+    expect(spamReasonKey('markup')).toBe('markup');
+    expect(spamReasonKey('repeat')).toBe('repeat');
+    expect(spamReasonKey(null)).toBe('manual');
+    expect(spamReasonKey('other')).toBe('manual');
+  });
+});
+
+describe('submissionsView', () => {
+  it('is the inbox unless the view is spam', () => {
+    expect(submissionsView('spam')).toBe('spam');
+    expect(submissionsView(undefined)).toBe('inbox');
+    expect(submissionsView('SPAM')).toBe('inbox');
   });
 });
