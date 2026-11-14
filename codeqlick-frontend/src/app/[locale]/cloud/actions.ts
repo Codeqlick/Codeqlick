@@ -794,6 +794,7 @@ export async function saveGitAction(
       buildBranches: formBoolean(formData, 'buildBranches'),
       buildPullRequests: formBoolean(formData, 'buildPullRequests'),
       previewChecks: formBoolean(formData, 'previewChecks'),
+      onlyRootChanges: formBoolean(formData, 'onlyRootChanges'),
     });
   } catch (error) {
     if (isApiError(error) && error.status === 400) {

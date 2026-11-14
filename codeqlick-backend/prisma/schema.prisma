@@ -2097,6 +2097,8 @@ model CloudProject {
   buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
   /// Runs the website check on each pull request's preview (architecture 4.13; decision 52).
   previewChecks          Boolean   @default(false) @map("preview_checks")
+  /// Skip pushes and pull requests that change nothing under `rootDir` (architecture 4.13).
+  onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
   /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id

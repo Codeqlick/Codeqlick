@@ -5294,6 +5294,7 @@
       "buildPullRequests": "Build pull requests (not from forks)",
       "previewChecks": "Check each preview",
       "previewChecksHint": "Runs the website check on each pull request's preview and adds the result to its comment on GitHub. Counts toward the team's hourly website checks.",
+      "onlyRootChanges": "Only build when files in the root folder change (for monorepos)",
       "save": "Save",
       "saved": "Saved.",
       "invalid": "Check the fields.",

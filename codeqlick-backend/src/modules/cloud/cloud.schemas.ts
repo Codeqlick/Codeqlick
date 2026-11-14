@@ -358,6 +358,7 @@ export const gitSettingsSchema = z.object({
   buildBranches: z.boolean().optional(),
   buildPullRequests: z.boolean().optional(),
   previewChecks: z.boolean().optional(),
+  onlyRootChanges: z.boolean().optional(),
 });
 export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
 
