@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/Button';
 import type { AppLocale } from '@/i18n/routing';
 import { Link } from '@/i18n/navigation';
 import type { ServiceKey, Testimonial } from '@/lib/api/types';
+import { getOutline } from '@/lib/markdown-outline';
 import { CoverImage } from './CoverImage';
 import { SERVICE_SLUGS } from './services';
+import { TableOfContents } from './TableOfContents';
 import { TestimonialQuote } from './TestimonialQuote';
 
 export type CaseStudyContent = {
@@ -36,6 +38,7 @@ export async function CaseStudyArticle({
 }) {
   const t = await getTranslations({ locale, namespace: 'Work' });
   const th = await getTranslations({ locale, namespace: 'Home' });
+  const tm = await getTranslations({ locale, namespace: 'Markdown' });
   // Responses cached before the field existed have no `services`.
   const services = item.services ?? [];
 
@@ -92,8 +95,14 @@ export async function CaseStudyArticle({
           priority
         />
       ) : null}
+      <TableOfContents outline={getOutline(item.content)} title={tm('contents')} />
       <div className={styles.content}>
-        <Markdown>{item.content}</Markdown>
+        <Markdown
+          anchors={{ linkLabel: tm('anchorLink') }}
+          copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}
+        >
+          {item.content}
+        </Markdown>
       </div>
       {item.testimonial ? (
         <section className={styles.testimonial} aria-label={t('testimonial')}>

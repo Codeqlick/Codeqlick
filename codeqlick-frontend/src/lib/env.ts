@@ -22,6 +22,8 @@ const envSchema = z.object({
   SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
   /** Codeqlick Cloud's hosting domain (architecture 4.13), shown in its docs and terms. */
   CLOUD_HOSTING_DOMAIN: z.string().min(3).default('codeqlick.app'),
+  /** The public documentation site (e.g. https://docs.codeqlick.com); unset: the console's /docs. */
+  CLOUD_DOCS_URL: z.url({ protocol: /^https?$/ }).optional(),
   /**
    * The video chat's signaling WebSocket as browsers open it. Unset: wss://<the page's host>/ws in
    * production (Nginx sends it to the API), the local API otherwise.
@@ -44,6 +46,7 @@ const parsed = envSchema.safeParse({
   LEGAL_OWNER_ADDRESS: process.env.LEGAL_OWNER_ADDRESS || undefined,
   SITES_PREVIEW_DOMAIN: process.env.SITES_PREVIEW_DOMAIN || undefined,
   CLOUD_HOSTING_DOMAIN: process.env.CLOUD_HOSTING_DOMAIN || undefined,
+  CLOUD_DOCS_URL: process.env.CLOUD_DOCS_URL || undefined,
   VIDEOCHAT_WS_URL: process.env.VIDEOCHAT_WS_URL || undefined,
   MEETINGS_WS_URL: process.env.MEETINGS_WS_URL || undefined,
   TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY || undefined,
@@ -73,6 +76,8 @@ export const env = {
   ).replace(/\/+$/, ''),
   /** Umami base URL without a trailing slash, when analytics is set up. */
   UMAMI_URL: parsed.data.UMAMI_URL?.replace(/\/+$/, ''),
+  /** Documentation site URL without a trailing slash, when it is set up. */
+  CLOUD_DOCS_URL: parsed.data.CLOUD_DOCS_URL?.replace(/\/+$/, ''),
 };
 
 /** The legal pages' owner, or undefined while LEGAL_OWNER_NAME isn't set. */

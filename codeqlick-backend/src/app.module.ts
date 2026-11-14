@@ -7,6 +7,7 @@ import { SiteFormsModule } from './modules/site-forms/site-forms.module.js';
 import { ManagedSitesModule } from './modules/managed-sites/managed-sites.module.js';
 import { DomainsModule } from './modules/domains/domains.module.js';
 import { ErrorsModule } from './modules/errors/errors.module.js';
+import { LinkChecksModule } from './modules/link-checks/link-checks.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { RolesGuard } from './common/guards/roles.guard.js';
 import { AppConfigService } from './config/app-config.service.js';
@@ -23,6 +24,7 @@ import { ProjectsModule } from './modules/projects/projects.module.js';
 import { InvoicesModule } from './modules/invoices/invoices.module.js';
 import { SavedRepliesModule } from './modules/saved-replies/saved-replies.module.js';
 import { StatsModule } from './modules/stats/stats.module.js';
+import { SearchModule } from './modules/search/search.module.js';
 import { ProposalsModule } from './modules/proposals/proposals.module.js';
 import { SupportModule } from './modules/support/support.module.js';
 import { BookingsModule } from './modules/bookings/bookings.module.js';
@@ -40,6 +42,7 @@ import { CitasModule } from './modules/citas/citas.module.js';
 import { SwipeModule } from './modules/swipe/swipe.module.js';
 import { SiteAuditsModule } from './modules/site-audits/site-audits.module.js';
 import { CloudModule } from './modules/cloud/cloud.module.js';
+import { NewsletterModule } from './modules/newsletter/newsletter.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -60,11 +63,13 @@ import { PrismaModule } from './prisma/prisma.module.js';
     LeadsModule,
     PostsModule,
     PortfolioModule,
+    LinkChecksModule,
     ProjectsModule,
     InvoicesModule,
     MediaModule,
     SavedRepliesModule,
     StatsModule,
+    SearchModule,
     SupportModule,
     ProposalsModule,
     TimeModule,
@@ -84,6 +89,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     SwipeModule,
     SiteAuditsModule,
     CloudModule,
+    NewsletterModule,
   ],
   providers: [
     // Order matters: rate limit first, then authentication, then authorization.

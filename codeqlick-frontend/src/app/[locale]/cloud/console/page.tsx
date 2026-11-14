@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudMe, type CloudMe } from '@/lib/api/cloud';
 import { createTeamAction } from '../actions';
+import { CloudDocsLink } from '../CloudDocsLink';
 import styles from '../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -32,7 +33,7 @@ export default async function CloudConsolePage({ params }: PageProps) {
         <p className={styles.spacedSmall}>
           <Link href="/cloud/console/tokens">{t('console.tokensLink')}</Link>
           {' · '}
-          <Link href="/cloud/docs">{t('nav.docs')}</Link>
+          <CloudDocsLink locale={locale}>{t('nav.docs')}</CloudDocsLink>
         </p>
       </div>
 
@@ -59,6 +60,11 @@ export default async function CloudConsolePage({ params }: PageProps) {
                     {t(`common.roles.${team.role}`)}
                   </Badge>
                 </p>
+                {team.twoFactorBlocked ? (
+                  <p>
+                    <Badge tone="warning">{t('twoFactor.badge')}</Badge>
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

@@ -6,14 +6,23 @@ import { CopyLink } from '@/components/app/CopyLink';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCloudStatusPage, getCloudTeam, listCloudMonitors } from '@/lib/api/cloud';
+import {
+  getCloudStatusPage,
+  getCloudTeam,
+  listCloudMonitors,
+  listCloudStatusNotices,
+} from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { env } from '@/lib/env';
 import { webappUrl } from '@/lib/webapp-seo';
 import { saveStatusPageAction } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { NoticesSection } from './NoticesSection';
 
-type PageProps = { params: Promise<{ locale: string; team: string }> };
+type PageProps = {
+  params: Promise<{ locale: string; team: string }>;
+  searchParams: Promise<{ page?: string }>;
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = resolveLocale((await params).locale);
@@ -21,9 +30,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return { title: t('title') };
 }
 
-/** A team's public status page: on or off, its title and which monitors it shows, as what. */
-export default async function CloudStatusPageSettings({ params }: PageProps) {
+/**
+ * A team's public status page: on or off, its title and which monitors it shows, as what; and its
+ * notices (incidents and scheduled maintenance).
+ */
+export default async function CloudStatusPageSettings({ params, searchParams }: PageProps) {
   const { locale: raw, team: slug } = await params;
+  const query = await searchParams;
+  const pastPage = Math.max(1, Number(query.page) || 1);
   const locale = resolveLocale(raw);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cloud' });
@@ -33,12 +47,15 @@ export default async function CloudStatusPageSettings({ params }: PageProps) {
       getCloudTeam(slug),
       getCloudStatusPage(slug),
       listCloudMonitors(slug),
+      // At most 20 are open at once (architecture 4.13, Notices): one page holds them all.
+      listCloudStatusNotices(slug, true, 1, 20),
+      listCloudStatusNotices(slug, false, pastPage, 10),
     ]);
   } catch (error) {
     if (isApiError(error) && error.status === 404) notFound();
     throw error;
   }
-  const [team, page, { items: monitors }] = data;
+  const [team, page, { items: monitors }, open, past] = data;
   const admin = team.role !== 'MEMBER';
   const publicUrl = webappUrl('cloud', locale, `/status/${team.slug}`);
   const badge = `${env.PUBLIC_API_URL}/cloud/status/${team.slug}/badge.svg`;
@@ -126,6 +143,14 @@ export default async function CloudStatusPageSettings({ params }: PageProps) {
           </ActionForm>
         </section>
       ) : null}
+      <NoticesSection
+        locale={locale}
+        team={team.slug}
+        admin={admin}
+        monitors={monitors}
+        open={open.items}
+        past={past}
+      />
     </div>
   );
 }

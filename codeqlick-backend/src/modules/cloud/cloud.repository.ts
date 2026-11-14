@@ -3,6 +3,7 @@ import type {
   CloudDeployment,
   CloudDomain,
   CloudDomainState,
+  CloudEvent,
   CloudInvite,
   CloudMember,
   CloudProject,
@@ -13,9 +14,23 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { CloudConfig } from './cloud-config.js';
+import type { DeployBadgeFacts } from './cloud-badge.js';
+import type { EventCursor, EventsFilter } from './cloud-events.js';
+import type { LockChange } from './cloud-production-lock.js';
 
-export type MembershipRow = CloudMember & { team: CloudTeam };
-export type MemberRow = CloudMember & { user: { id: string; name: string; email: string } };
+/** The member's account comes with its two-step verification state (architecture 4.13). */
+const membershipInclude = {
+  team: true,
+  user: { select: { totpEnabledAt: true } },
+} as const;
+export type MembershipRow = CloudMember & {
+  team: CloudTeam;
+  user: { totpEnabledAt: Date | null };
+};
+export type MemberRow = CloudMember & {
+  user: { id: string; name: string; email: string; totpEnabledAt: Date | null };
+};
 export type InviteRow = CloudInvite & {
   team: CloudTeam;
   invitedBy: { name: string } | null;
@@ -33,17 +48,22 @@ export type DeploymentRow = CloudDeployment & {
 const projectInclude = {
   team: true,
   production: { include: deploymentInclude },
+  productionLockedBy: { select: { id: true, name: true } },
   domains: { orderBy: { createdAt: 'asc' } },
 } as const;
 export type ProjectRow = CloudProject & {
   team: CloudTeam;
   production: DeploymentRow | null;
+  productionLockedBy: { id: string; name: string } | null;
   domains: CloudDomain[];
 };
 
 export type DomainRow = CloudDomain & {
   project: CloudProject & { team: CloudTeam };
 };
+
+/** The app's client, or an interactive transaction's (both have the models). */
+type Db = Prisma.TransactionClient;
 
 export interface EventInput {
   teamId: string;
@@ -66,7 +86,7 @@ export class CloudRepository {
   memberships(userId: string): Promise<MembershipRow[]> {
     return this.prisma.cloudMember.findMany({
       where: { userId },
-      include: { team: true },
+      include: membershipInclude,
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -74,14 +94,14 @@ export class CloudRepository {
   membership(teamSlug: string, userId: string): Promise<MembershipRow | null> {
     return this.prisma.cloudMember.findFirst({
       where: { userId, team: { slug: teamSlug } },
-      include: { team: true },
+      include: membershipInclude,
     });
   }
 
   membershipByTeamId(teamId: string, userId: string): Promise<MembershipRow | null> {
     return this.prisma.cloudMember.findUnique({
       where: { teamId_userId: { teamId, userId } },
-      include: { team: true },
+      include: membershipInclude,
     });
   }
 
@@ -119,8 +139,8 @@ export class CloudRepository {
     });
   }
 
-  updateTeam(id: string, name: string): Promise<CloudTeam> {
-    return this.prisma.cloudTeam.update({ where: { id }, data: { name } });
+  updateTeam(id: string, data: { name?: string; requireTwoFactor?: boolean }): Promise<CloudTeam> {
+    return this.prisma.cloudTeam.update({ where: { id }, data });
   }
 
   async deleteTeam(id: string): Promise<void> {
@@ -130,7 +150,7 @@ export class CloudRepository {
   members(teamId: string): Promise<MemberRow[]> {
     return this.prisma.cloudMember.findMany({
       where: { teamId },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: { user: { select: { id: true, name: true, email: true, totpEnabledAt: true } } },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -145,10 +165,10 @@ export class CloudRepository {
 
   async ownerEmails(
     teamId: string,
-  ): Promise<Array<{ email: string; name: string; locale: 'EN' | 'ES' }>> {
+  ): Promise<Array<{ id: string; email: string; name: string; locale: 'EN' | 'ES' }>> {
     const rows = await this.prisma.cloudMember.findMany({
       where: { teamId, role: 'OWNER' },
-      select: { user: { select: { email: true, name: true, locale: true } } },
+      select: { user: { select: { id: true, email: true, name: true, locale: true } } },
     });
     return rows.map((row) => row.user);
   }
@@ -282,16 +302,51 @@ export class CloudRepository {
     });
   }
 
-  events(teamId: string, skip: number, take: number) {
+  events(teamId: string, filter: EventsFilter, skip: number, take: number) {
+    const where = eventsWhere(teamId, filter);
     return this.prisma.$transaction([
       this.prisma.cloudEvent.findMany({
-        where: { teamId },
+        where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         skip,
         take,
       }),
-      this.prisma.cloudEvent.count({ where: { teamId } }),
+      this.prisma.cloudEvent.count({ where }),
     ]);
+  }
+
+  /** The team's events of one kind since a date (limits counted from the log, decision 60). */
+  countEventsSince(teamId: string, action: string, since: Date): Promise<number> {
+    return this.prisma.cloudEvent.count({
+      where: { teamId, action, createdAt: { gte: since } },
+    });
+  }
+
+  /** A page of the export, newest first, after `after` (keyset on `createdAt` desc, `id` desc). */
+  eventsAfter(
+    teamId: string,
+    filter: EventsFilter,
+    after: EventCursor | null,
+    take: number,
+  ): Promise<CloudEvent[]> {
+    const where = eventsWhere(teamId, filter);
+    return this.prisma.cloudEvent.findMany({
+      where: after
+        ? {
+            AND: [
+              where,
+              {
+                OR: [
+                  { createdAt: { lt: after.createdAt } },
+                  { createdAt: after.createdAt, id: { lt: after.id } },
+                ],
+              },
+            ],
+          }
+        : where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take,
+    });
   }
 
   async deleteEventsBefore(date: Date): Promise<number> {
@@ -309,8 +364,9 @@ export class CloudRepository {
     return Number(sum._sum.sizeBytes ?? 0n);
   }
 
-  async storageBytes(teamId: string): Promise<number> {
-    const sum = await this.prisma.cloudDeployment.aggregate({
+  /** `db` is a transaction's client when counted inside one (moving a project). */
+  async storageBytes(teamId: string, db: Db = this.prisma): Promise<number> {
+    const sum = await db.cloudDeployment.aggregate({
       where: { project: { teamId } },
       _sum: { sizeBytes: true },
     });
@@ -347,8 +403,8 @@ export class CloudRepository {
     });
   }
 
-  countProjects(teamId: string): Promise<number> {
-    return this.prisma.cloudProject.count({ where: { teamId, deletedAt: null } });
+  countProjects(teamId: string, db: Db = this.prisma): Promise<number> {
+    return db.cloudProject.count({ where: { teamId, deletedAt: null } });
   }
 
   projectSlugTaken(slug: string): Promise<boolean> {
@@ -369,8 +425,37 @@ export class CloudRepository {
     });
   }
 
+  /** Every live project with password protection on (its markers, architecture 4.13). */
+  protectedProjects(): Promise<Array<{ slug: string; protection: CloudProject['protection'] }>> {
+    return this.prisma.cloudProject.findMany({
+      where: { deletedAt: null, protection: { not: 'OFF' } },
+      select: { slug: true, protection: true },
+    });
+  }
+
   findProjectBySlug(slug: string): Promise<{ id: string } | null> {
     return this.prisma.cloudProject.findFirst({ where: { slug }, select: { id: true } });
+  }
+
+  /**
+   * What a project's README badge needs: when its production deployment was made and its latest
+   * production build that wasn't canceled. Null for a deleted or suspended project.
+   */
+  async findBadgeFacts(slug: string): Promise<DeployBadgeFacts | null> {
+    const row = await this.prisma.cloudProject.findFirst({
+      where: { slug, deletedAt: null, suspendedAt: null },
+      select: {
+        production: { select: { createdAt: true } },
+        builds: {
+          where: { target: 'PRODUCTION', status: { not: 'CANCELED' } },
+          orderBy: { queuedAt: 'desc' },
+          take: 1,
+          select: { status: true, queuedAt: true },
+        },
+      },
+    });
+    if (!row) return null;
+    return { productionAt: row.production?.createdAt ?? null, latestBuild: row.builds[0] ?? null };
   }
 
   async findProjectByDomain(name: string): Promise<{ id: string } | null> {
@@ -385,16 +470,73 @@ export class CloudRepository {
     return this.prisma.cloudProject.update({ where: { id }, data, include: projectInclude });
   }
 
+  /**
+   * Makes a deployment production and applies the lock change in the same transaction
+   * (architecture 4.13 "Production lock after a rollback"), the project's row locked meanwhile so
+   * `wasLocked` is exact. A lock keeps an existing one (its date and person); an unlock clears it.
+   */
+  setProduction(
+    id: string,
+    deploymentId: string,
+    change: LockChange,
+    by: string | null,
+    now: Date,
+  ): Promise<{ wasLocked: boolean }> {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ production_locked_at: Date | null }>>`
+        SELECT production_locked_at FROM cloud_projects WHERE id = ${id}::uuid FOR UPDATE`;
+      const wasLocked = (rows[0]?.production_locked_at ?? null) !== null;
+      await tx.cloudProject.update({
+        where: { id },
+        data: {
+          productionDeploymentId: deploymentId,
+          ...(change === 'lock' && !wasLocked
+            ? { productionLockedAt: now, productionLockedById: by }
+            : {}),
+          ...(change === 'unlock' && wasLocked
+            ? { productionLockedAt: null, productionLockedById: null }
+            : {}),
+        },
+      });
+      return { wasLocked };
+    });
+  }
+
+  /** A build's deployment becomes production only while production isn't locked; whether it did. */
+  async publishUnlessLocked(id: string, deploymentId: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id, productionLockedAt: null },
+      data: { productionDeploymentId: deploymentId },
+    });
+    return count > 0;
+  }
+
+  /** Unlocks production without publishing anything; false when it wasn't locked. */
+  async unlockProduction(id: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudProject.updateMany({
+      where: { id, productionLockedAt: { not: null } },
+      data: { productionLockedAt: null, productionLockedById: null },
+    });
+    return count > 0;
+  }
+
   /** Marks the project deleted (its address stays taken) and drops its deployments and domains. */
   async softDeleteProject(id: string, now: Date): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.cloudProject.update({
         where: { id },
-        data: { deletedAt: now, productionDeploymentId: null },
+        // Scheduled rebuilds switch off with it (decision 65).
+        data: {
+          deletedAt: now,
+          productionDeploymentId: null,
+          rebuildFrequency: 'OFF',
+          rebuildNextAt: null,
+        },
       }),
       this.prisma.cloudDeployment.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudDomain.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudForm.deleteMany({ where: { projectId: id } }),
+      this.prisma.cloudDeployHook.deleteMany({ where: { projectId: id } }),
     ]);
   }
 
@@ -439,7 +581,64 @@ export class CloudRepository {
     await this.prisma.cloudDeployment.delete({ where: { id } });
   }
 
-  /** Deployments past the newest `keep` of each project, production left out. */
+  /** Deployments with `codeqlick.json` rules (their `.cq-rules` markers are put right hourly). */
+  deploymentsWithRules() {
+    return this.prisma.$queryRaw<Array<{ id: string; config: CloudConfig | null }>>`
+      SELECT id, config FROM cloud_deployments WHERE config IS NOT NULL
+    `;
+  }
+
+  /**
+   * Keeps a deployment out of the cleanup unless the project already keeps `max`. The project's
+   * row is locked for the count and the update, so concurrent calls can't go past `max`.
+   */
+  keepDeployment(
+    projectId: string,
+    id: string,
+    max: number,
+  ): Promise<'kept' | 'already' | 'full' | 'missing'> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM cloud_projects WHERE id = ${projectId}::uuid FOR UPDATE`;
+      const current = await tx.cloudDeployment.findFirst({
+        where: { id, projectId },
+        select: { keptAt: true },
+      });
+      if (!current) return 'missing';
+      if (current.keptAt) return 'already';
+      if (
+        (await tx.cloudDeployment.count({ where: { projectId, keptAt: { not: null } } })) >= max
+      ) {
+        return 'full';
+      }
+      await tx.cloudDeployment.update({ where: { id }, data: { keptAt: new Date() } });
+      return 'kept';
+    });
+  }
+
+  /**
+   * Deletes a deployment only if it is still neither kept nor production (the cleanup's list may
+   * be stale by now); true when it was deleted.
+   */
+  async deleteStaleDeployment(id: string): Promise<boolean> {
+    const result = await this.prisma.cloudDeployment.deleteMany({
+      where: { id, keptAt: null, productionOf: { is: null } },
+    });
+    return result.count === 1;
+  }
+
+  /** Puts a kept deployment back in the normal window; false when it was not kept. */
+  async unkeepDeployment(projectId: string, id: string): Promise<boolean> {
+    const result = await this.prisma.cloudDeployment.updateMany({
+      where: { id, projectId, keptAt: { not: null } },
+      data: { keptAt: null },
+    });
+    return result.count > 0;
+  }
+
+  /**
+   * Deployments past the newest `keep` of each project not kept by hand, production left out.
+   * Kept ones are neither counted nor returned.
+   */
   oldDeployments(keep: number) {
     return this.prisma.$queryRaw<Array<{ id: string; short_id: string; slug: string }>>`
       SELECT d.id, d.short_id, p.slug
@@ -447,6 +646,7 @@ export class CloudRepository {
         SELECT id, short_id, project_id,
                row_number() OVER (PARTITION BY project_id ORDER BY created_at DESC, id DESC) AS n
         FROM cloud_deployments
+        WHERE kept_at IS NULL
       ) d
       JOIN cloud_projects p ON p.id = d.project_id
       WHERE d.n > ${keep}
@@ -635,4 +835,20 @@ export class CloudRepository {
     for (const id of teamIds) result.set(id, await this.storageBytes(id));
     return result;
   }
+}
+
+/** A team's events kept by the filters (period and action). */
+function eventsWhere(teamId: string, filter: EventsFilter): Prisma.CloudEventWhereInput {
+  return {
+    teamId,
+    ...(filter.since || filter.until
+      ? {
+          createdAt: {
+            ...(filter.since ? { gte: filter.since } : {}),
+            ...(filter.until ? { lt: filter.until } : {}),
+          },
+        }
+      : {}),
+    ...(filter.action ? { action: filter.action } : {}),
+  };
 }

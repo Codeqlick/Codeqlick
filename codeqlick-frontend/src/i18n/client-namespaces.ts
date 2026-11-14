@@ -11,15 +11,17 @@ export const BASE_CLIENT_NAMESPACES = [
   'Contact',
   'Error',
   'LocaleSwitcher',
+  'Newsletter',
   'WebsiteCheck',
 ] as const;
 
 /** What each section's own Client Components add, given by its layout. */
 export const APP_NAMESPACES = {
+  admin: ['SiteNews'],
   citas: ['Citas'],
   cloud: ['Cloud'],
   meetings: ['Meetings'],
-  portal: ['SiteEditor'],
+  portal: ['SiteEditor', 'SiteNews'],
   swipe: ['Swipe', 'Videochat'],
   videochat: ['Videochat'],
 } as const;

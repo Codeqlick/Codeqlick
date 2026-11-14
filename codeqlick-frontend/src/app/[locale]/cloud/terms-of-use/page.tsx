@@ -27,12 +27,13 @@ export default async function CloudTermsPage({ params }: PageProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Legal' });
+  const tm = await getTranslations({ locale, namespace: 'Markdown' });
   const document = cloudTermsDocument(owner(), locale, env.CLOUD_HOSTING_DOMAIN);
   return (
     <article className={styles.docs}>
       <h1 className={styles.heroTitle}>{document.title}</h1>
       <p className={styles.muted}>{t('updated', { date: document.updated })}</p>
-      <Markdown>{document.markdown}</Markdown>
+      <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{document.markdown}</Markdown>
     </article>
   );
 }

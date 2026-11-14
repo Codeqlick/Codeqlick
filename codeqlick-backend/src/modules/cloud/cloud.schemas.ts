@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { localeSchema, paginationSchema } from '../../common/schemas/common.schemas.js';
+import { limitsFor } from './cloud-config.js';
+import { exportRange, isCalendarDay, rangeError } from './cloud-events.js';
+import { ENV_KEY_PATTERN, ENV_VALUE_MAX } from './cloud-dotenv.js';
 
 const slug = (min: number, max: number) =>
   z
@@ -17,6 +20,45 @@ const name = z.string().trim().min(1).max(60);
 export const teamParamSchema = z.object({ team: teamSlugSchema });
 export type TeamParam = z.infer<typeof teamParamSchema>;
 
+// ── Events: filters of the list and the CSV export (architecture 4.13 "Exporting events") ──
+
+const eventDay = z.string().refine(isCalendarDay, 'A date written YYYY-MM-DD');
+const eventFilterFields = {
+  from: eventDay.optional(),
+  to: eventDay.optional(),
+  /** Exact (`domain.added`) or a prefix ending in `.` (`domain.`). */
+  action: z
+    .string()
+    .trim()
+    .max(60)
+    .regex(
+      /^[a-z_]+(?:\.[a-z_]+)*\.?$/,
+      'An action such as domain.added, or a prefix such as domain.',
+    )
+    .optional(),
+};
+
+/** The list: filters optional, no default period; `from`–`to` checked when both are given. */
+export const eventsQuerySchema = paginationSchema
+  .extend(eventFilterFields)
+  .superRefine((value, context) => {
+    const problem = value.from && value.to ? rangeError(value.from, value.to) : null;
+    if (problem) context.addIssue({ code: 'custom', path: ['to'], message: problem });
+  });
+export type EventsQuery = z.infer<typeof eventsQuerySchema>;
+
+/** The export: `from` and `to` always set (by default the last 30 days up to today, Madrid). */
+export const eventsExportQuerySchema = z.object(eventFilterFields).transform((value, context) => {
+  const { from, to } = exportRange(value);
+  const problem = rangeError(from, to);
+  if (problem) {
+    context.addIssue({ code: 'custom', path: ['to'], message: problem });
+    return z.NEVER;
+  }
+  return { from, to, action: value.action };
+});
+export type EventsExportQuery = z.infer<typeof eventsExportQuerySchema>;
+
 export const termsSchema = z.object({
   acceptTerms: z.literal(true),
   termsVersion: z.string().min(1).max(20),
@@ -26,7 +68,14 @@ export type TermsInput = z.infer<typeof termsSchema>;
 export const createTeamSchema = termsSchema.extend({ name, slug: teamSlugSchema });
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
 
-export const updateTeamSchema = z.object({ name });
+export const updateTeamSchema = z
+  .object({
+    name: name.optional(),
+    requireTwoFactor: z.boolean().optional(),
+  })
+  .refine((v) => v.name !== undefined || v.requireTwoFactor !== undefined, {
+    message: 'Send a name or requireTwoFactor',
+  });
 export type UpdateTeamInput = z.infer<typeof updateTeamSchema>;
 
 export const inviteSchema = z.object({
@@ -52,6 +101,8 @@ export const createTokenSchema = z.object({
   name: z.string().trim().min(1).max(80),
   teamSlug: teamSlugSchema.optional(),
   expiresInDays: z.union([z.literal(30), z.literal(90), z.literal(365), z.null()]),
+  /** Read only: GET, HEAD and OPTIONS alone (decision 61). */
+  readOnly: z.boolean().default(false),
 });
 export type CreateTokenInput = z.infer<typeof createTokenSchema>;
 
@@ -86,14 +137,27 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export const updateProjectSchema = z.object({ name });
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
+/** Moving a project to another team (architecture 4.13, decision 58): the target's slug. */
+export const transferProjectSchema = z.object({ team: teamSlugSchema });
+export type TransferProjectInput = z.infer<typeof transferProjectSchema>;
+
 export const deploymentParamSchema = z.object({ id: z.uuid(), deploymentId: z.uuid() });
 export type DeploymentParam = z.infer<typeof deploymentParamSchema>;
+
+/** `?with=production|<deploymentId>` of a comparison (production when left out). */
+export const compareQuerySchema = z.object({
+  with: z.union([z.literal('production'), z.uuid()]).default('production'),
+});
+export type CompareQuery = z.infer<typeof compareQuerySchema>;
 
 const optionalText = (max: number) =>
   z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z.string().trim().max(max).optional(),
   );
+
+/** The biggest `codeqlick.json` any plan takes (the field is refused above it before parsing). */
+const CONFIG_FIELD_MAX = limitsFor('PRO').bytes;
 
 /** The text fields of a deployment's multipart upload. */
 export const deploymentFieldsSchema = z.object({
@@ -109,6 +173,8 @@ export const deploymentFieldsSchema = z.object({
       .optional(),
   ),
   branch: optionalText(100),
+  /** The text of `codeqlick.json` (architecture 4.13); the plan's size is checked when parsing. */
+  config: z.string().max(CONFIG_FIELD_MAX).optional(),
 });
 export type DeploymentFields = z.infer<typeof deploymentFieldsSchema>;
 
@@ -173,6 +239,7 @@ const recipientIds = z.array(z.uuid()).min(1).max(5);
 export const createFormSchema = z.object({
   name: z.string().trim().min(1).max(60),
   notify: z.boolean().default(true),
+  spamFilter: z.boolean().default(true),
   recipientIds,
 });
 export type CreateFormInput = z.infer<typeof createFormSchema>;
@@ -181,6 +248,7 @@ export const updateFormSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   enabled: z.boolean().optional(),
   notify: z.boolean().optional(),
+  spamFilter: z.boolean().optional(),
   recipientIds: recipientIds.optional(),
 });
 export type UpdateFormInput = z.infer<typeof updateFormSchema>;
@@ -197,10 +265,18 @@ export type SubmissionParam = z.infer<typeof submissionParamSchema>;
 
 export const submissionsQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
+  /** `true`: the spam view; `false` (default): the inbox. */
+  spam: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .default(false),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type SubmissionsQuery = z.infer<typeof submissionsQuerySchema>;
+
+export const markSpamSchema = z.object({ spam: z.boolean() });
+export type MarkSpamInput = z.infer<typeof markSpamSchema>;
 
 export const formKeyParamSchema = z.object({ key: z.string().regex(/^cqf_[\w-]{20,30}$/) });
 export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
@@ -208,12 +284,22 @@ export type FormKeyParam = z.infer<typeof formKeyParamSchema>;
 // ── Monitors and status pages (phase 1b) ─────────────────────────────────────────────────────
 
 const alertIds = z.array(z.uuid()).min(1).max(10);
+/** HTTP monitors' text check: 1–100 characters, no line breaks, compared case-sensitively. */
+const keyword = z
+  .string()
+  .regex(/^[^\r\n]*$/, 'The text cannot have line breaks')
+  .trim()
+  .min(1)
+  .max(100);
+const keywordMode = z.enum(['CONTAINS', 'NOT_CONTAINS']);
 
 export const createMonitorSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('HTTP'),
     name: z.string().trim().min(1).max(60),
     url: z.url().max(2048),
+    keyword: keyword.optional(),
+    keywordMode: keywordMode.default('CONTAINS'),
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -230,6 +316,8 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
       .int()
       .min(1)
       .max(24 * 60),
+    // Only HTTP monitors check text on the page.
+    keyword: z.undefined({ error: 'Heartbeats cannot check text on a page' }).optional(),
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -240,6 +328,9 @@ export const updateMonitorSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   enabled: z.boolean().optional(),
   url: z.url().max(2048).optional(),
+  /** `null` switches the text check off. */
+  keyword: keyword.nullable().optional(),
+  keywordMode: keywordMode.optional(),
   periodMinutes: z
     .number()
     .int()
@@ -273,6 +364,71 @@ export const statusPageSchema = z.object({
 export type StatusPageInput = z.infer<typeof statusPageSchema>;
 
 export const statusTeamParamSchema = z.object({ team: teamSlugSchema });
+/** `<project slug>.svg`, the README badge's file name. */
+export const badgeFileParamSchema = z.object({
+  file: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(44)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*\.svg$/, 'A project slug followed by .svg')
+    .refine((file) => file.length - '.svg'.length >= 3, 'A project slug followed by .svg'),
+});
+export type BadgeFileParam = z.infer<typeof badgeFileParamSchema>;
+
+const noticeTitle = z.string().trim().min(1).max(120);
+/** Plain text, line breaks kept (architecture 4.13, Notices). */
+const noticeBody = z.string().trim().min(1).max(2000);
+const noticeMonitorIds = z
+  .array(z.uuid())
+  .min(1)
+  .max(20)
+  .refine((ids) => new Set(ids).size === ids.length, 'Each monitor only once');
+const noticeState = z.enum([
+  'INVESTIGATING',
+  'IDENTIFIED',
+  'MONITORING',
+  'RESOLVED',
+  'SCHEDULED',
+  'IN_PROGRESS',
+  'COMPLETED',
+]);
+const noticeTime = z.iso.datetime({ offset: true });
+
+export const createStatusNoticeSchema = z.object({
+  kind: z.enum(['INCIDENT', 'MAINTENANCE']),
+  title: noticeTitle,
+  monitorIds: noticeMonitorIds,
+  body: noticeBody,
+  state: noticeState.optional(),
+  startsAt: noticeTime.optional(),
+  endsAt: noticeTime.optional(),
+});
+export type CreateStatusNoticeInput = z.infer<typeof createStatusNoticeSchema>;
+
+export const updateStatusNoticeSchema = z.object({
+  title: noticeTitle.optional(),
+  monitorIds: noticeMonitorIds.optional(),
+  startsAt: noticeTime.optional(),
+  endsAt: noticeTime.optional(),
+});
+export type UpdateStatusNoticeInput = z.infer<typeof updateStatusNoticeSchema>;
+
+export const statusNoticeUpdateSchema = z.object({
+  body: noticeBody,
+  state: noticeState.optional(),
+});
+export type StatusNoticeUpdateInput = z.infer<typeof statusNoticeUpdateSchema>;
+
+export const statusNoticesQuerySchema = z.object({
+  open: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type StatusNoticesQuery = z.infer<typeof statusNoticesQuerySchema>;
 
 // ── Website check API (phase 1b) ─────────────────────────────────────────────────────────────
 
@@ -340,16 +496,15 @@ export const gitSettingsSchema = z.object({
   nodeVersion: z.enum(['20', '22', '24']).optional(),
   buildBranches: z.boolean().optional(),
   buildPullRequests: z.boolean().optional(),
+  previewChecks: z.boolean().optional(),
+  onlyRootChanges: z.boolean().optional(),
 });
 export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
 
 export const envVarSchema = z
   .object({
-    key: z
-      .string()
-      .trim()
-      .regex(/^[A-Z_][A-Z0-9_]{0,63}$/, 'Upper-case letters, digits and _'),
-    value: z.string().max(4096),
+    key: z.string().trim().regex(ENV_KEY_PATTERN, 'Upper-case letters, digits and _'),
+    value: z.string().max(ENV_VALUE_MAX),
     production: z.boolean(),
     preview: z.boolean(),
   })
@@ -359,8 +514,27 @@ export const envVarSchema = z
   });
 export type EnvVarInput = z.infer<typeof envVarSchema>;
 
-export const envKeyQuerySchema = z.object({ key: z.string().regex(/^[A-Z_][A-Z0-9_]{0,63}$/) });
+export const envKeyQuerySchema = z.object({ key: z.string().regex(ENV_KEY_PATTERN) });
 export type EnvKeyQuery = z.infer<typeof envKeyQuerySchema>;
+
+/** The largest `.env` file imported at once (architecture 4.13). */
+export const ENV_IMPORT_MAX_BYTES = 256 * 1024;
+
+export const envImportSchema = z
+  .object({
+    content: z
+      .string()
+      .max(ENV_IMPORT_MAX_BYTES)
+      .refine((text) => Buffer.byteLength(text, 'utf8') <= ENV_IMPORT_MAX_BYTES, 'At most 256 KB'),
+    production: z.boolean(),
+    preview: z.boolean(),
+    overwrite: z.boolean(),
+  })
+  .refine((v) => v.production || v.preview, {
+    message: 'For production, previews or both',
+    path: ['production'],
+  });
+export type EnvImportInput = z.infer<typeof envImportSchema>;
 
 export const manualBuildSchema = z.object({
   branch: z
@@ -370,8 +544,25 @@ export const manualBuildSchema = z.object({
     .max(200)
     .regex(/^[\w./-]+$/)
     .optional(),
+  noCache: z.boolean().optional(),
 });
 export type ManualBuildInput = z.infer<typeof manualBuildSchema>;
+
+/** Scheduled rebuilds, Madrid time (architecture 4.13, decision 65). */
+const rebuildMinute = z.number().int().min(0).max(59);
+const rebuildHour = z.number().int().min(0).max(23);
+export const rebuildScheduleSchema = z.discriminatedUnion('frequency', [
+  z.object({ frequency: z.literal('off') }),
+  z.object({ frequency: z.literal('hourly'), minute: rebuildMinute }),
+  z.object({ frequency: z.literal('daily'), minute: rebuildMinute, hour: rebuildHour }),
+  z.object({
+    frequency: z.literal('weekly'),
+    minute: rebuildMinute,
+    hour: rebuildHour,
+    weekday: z.number().int().min(1).max(7),
+  }),
+]);
+export type RebuildScheduleInput = z.infer<typeof rebuildScheduleSchema>;
 
 export const buildParamSchema = z.object({
   id: z.uuid(),
@@ -391,6 +582,8 @@ export type BuilderBuildParam = z.infer<typeof builderBuildParamSchema>;
 export const finishSchema = z.object({
   status: z.enum(['succeeded', 'failed']),
   error: z.string().max(500).optional(),
+  /** The build root's `codeqlick.json` (architecture 4.13). */
+  config: z.string().max(CONFIG_FIELD_MAX).optional(),
 });
 export type FinishInput = z.infer<typeof finishSchema>;
 
@@ -403,6 +596,11 @@ const channelEvents = {
   buildFailed: z.boolean().optional(),
   buildSucceeded: z.boolean().optional(),
   previews: z.boolean().optional(),
+  // Form submissions (decision 63): Slack, Discord and webhooks only, checked by the service.
+  formSubmitted: z.boolean().optional(),
+  formIds: z.array(z.uuid()).max(20).optional(),
+  /** Slack, Discord and webhooks only (decision 64). */
+  monitorAlerts: z.boolean().optional(),
   locale: localeSchema.optional(),
 };
 
@@ -433,6 +631,23 @@ export type UpdateChannelInput = z.infer<typeof updateChannelSchema>;
 
 export const channelParamSchema = z.object({ id: z.uuid(), channelId: z.uuid() });
 export type ChannelParam = z.infer<typeof channelParamSchema>;
+
+// ── Deploy hooks (decision 51) ───────────────────────────────────────────────────────────────
+
+export const createHookSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  branch: manualBuildSchema.shape.branch,
+});
+export type CreateHookInput = z.infer<typeof createHookSchema>;
+
+export const hookParamSchema = z.object({ id: z.uuid(), hookId: z.uuid() });
+export type HookParam = z.infer<typeof hookParamSchema>;
+
+/** "Send a test": a sample build (the default) or a sample form submission. No body is a build. */
+export const testChannelSchema = z
+  .object({ event: z.enum(['build', 'form']).default('build') })
+  .default({ event: 'build' });
+export type TestChannelInput = z.infer<typeof testChannelSchema>;
 
 // ── Web analytics (architecture 4.13 "Web analytics", decision 44) ──────────────────────────
 
@@ -518,3 +733,34 @@ export const createBucketKeySchema = z.object({
   write: z.boolean().default(false),
 });
 export type CreateBucketKeyInput = z.infer<typeof createBucketKeySchema>;
+
+// ── Password protection (architecture 4.13 "Password protection", decision 50) ─────────────
+
+export const protectionSchema = z.object({
+  mode: z.enum(['OFF', 'PREVIEWS', 'ALL']),
+  /** Write-only; empty or left out keeps the current one. */
+  password: z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.string().min(8).max(128).optional(),
+  ),
+  days: z.union([z.literal(1), z.literal(7), z.literal(30)]).optional(),
+});
+export type ProtectionInput = z.infer<typeof protectionSchema>;
+
+export const protectionTicketQuerySchema = z.object({
+  host: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1)
+    .max(253)
+    .transform((host) => host.replace(/\.+$/, '')),
+});
+export type ProtectionTicketQuery = z.infer<typeof protectionTicketQuerySchema>;
+
+/** `POST /cloud/config/check`: a `codeqlick.json` checked against a team's plan, nothing kept. */
+export const configCheckSchema = z.object({
+  teamSlug: teamSlugSchema,
+  config: z.string().max(1024 * 1024),
+});
+export type ConfigCheckInput = z.infer<typeof configCheckSchema>;

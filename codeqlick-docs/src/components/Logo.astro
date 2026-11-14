@@ -1,0 +1,20 @@
+---
+interface Props {
+  href: string;
+  label: string;
+}
+const { href, label } = Astro.props;
+---
+
+<a class="logo" href={href} aria-label={label}>
+  <svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <circle cx="28" cy="28" r="18" fill="none" stroke="var(--color-fuchsia)" stroke-width="8" />
+    <path d="M36 36 L60 45 L49 48 L46 59 Z" fill="var(--logo-cursor)" />
+  </svg>
+  <span class="wordmark" aria-hidden="true">
+    codeqlick
+  </span>
+  <span class="logo-label" aria-hidden="true">
+    docs
+  </span>
+</a>

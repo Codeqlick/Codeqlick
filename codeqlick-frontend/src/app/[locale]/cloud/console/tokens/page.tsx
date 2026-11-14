@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
+import { ActionForm, FormInput, FormRadioGroup, FormSelect } from '@/components/app/ActionForm';
 import { TokenReveal } from '@/components/cloud/TokenReveal';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -60,7 +60,9 @@ export default async function CloudTokensPage({ params }: PageProps) {
             defaultValue=""
             options={[
               { value: '', label: t('tokens.allTeams') },
-              ...(me?.teams ?? []).map((team) => ({ value: team.slug, label: team.name })),
+              ...(me?.teams ?? [])
+                .filter((team) => !team.twoFactorBlocked)
+                .map((team) => ({ value: team.slug, label: team.name })),
             ]}
           />
           <FormSelect
@@ -72,6 +74,20 @@ export default async function CloudTokensPage({ params }: PageProps) {
               { value: '90', label: t('tokens.days', { count: 90 }) },
               { value: '365', label: t('tokens.days', { count: 365 }) },
               { value: 'never', label: t('tokens.never') },
+            ]}
+          />
+          <FormRadioGroup
+            name="access"
+            legend={t('tokens.access')}
+            defaultValue="full"
+            className={styles.fieldset}
+            options={[
+              { value: 'full', label: t('tokens.accessFull'), hint: t('tokens.accessFullHint') },
+              {
+                value: 'readOnly',
+                label: t('tokens.accessReadOnly'),
+                hint: t('tokens.accessReadOnlyHint'),
+              },
             ]}
           />
           <div className={styles.actions}>
@@ -93,6 +109,7 @@ export default async function CloudTokensPage({ params }: PageProps) {
                   {token.name}
                   <span className={styles.mono}>{token.prefix}…</span>
                   <Badge>{token.team ? token.team.name : t('tokens.allTeams')}</Badge>
+                  {token.readOnly ? <Badge tone="brand">{t('tokens.accessReadOnly')}</Badge> : null}
                 </p>
                 <p className={styles.small}>
                   {token.lastUsedAt

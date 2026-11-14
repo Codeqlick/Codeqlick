@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { Readable } from 'node:stream';
 import {
   BadRequestException,
   ConflictException,
@@ -12,7 +13,14 @@ import { pageToSkipTake, paginate, type Paginated } from '../../common/types/pag
 import { AppConfigService } from '../../config/app-config.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { cloudInviteEmail } from './cloud-emails.js';
-import { ROLE_RANK, type CloudCtx, type CloudRoleName } from './cloud-caller.js';
+import {
+  ROLE_RANK,
+  TWO_FACTOR_REQUIRED,
+  twoFactorBlocked,
+  type CloudCtx,
+  type CloudRoleName,
+} from './cloud-caller.js';
+import { eventsCsv, eventsFilter } from './cloud-events.js';
 import {
   CLOUD_PLANS,
   CLOUD_TERMS_VERSION,
@@ -23,6 +31,8 @@ import {
 import { CloudRepository, type MembershipRow } from './cloud.repository.js';
 import type {
   CreateTeamInput,
+  EventsExportQuery,
+  EventsQuery,
   InviteInput,
   MemberRoleInput,
   TermsInput,
@@ -30,6 +40,8 @@ import type {
 } from './cloud.schemas.js';
 import { CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
 import { sha256 } from './cloud-tokens.service.js';
+import { buildMeters, type Meter } from './cloud-usage.js';
+import { CloudUsageService } from './cloud-usage.service.js';
 
 export interface TeamView {
   id: string;
@@ -37,14 +49,24 @@ export interface TeamView {
   name: string;
   plan: 'FREE' | 'PRO';
   role: CloudRoleName;
+  /** Every member needs two-step verification to use the team (architecture 4.13). */
+  requireTwoFactor: boolean;
+  /** The caller's account has no two-step verification while the team requires it. */
+  twoFactorBlocked: boolean;
   createdAt: string;
+}
+
+/** Options of `CloudTeamsService.access`. */
+export interface AccessOptions {
+  /** Lets in a member blocked by the two-step verification requirement (seeing it, leaving it). */
+  allowWithoutTwoFactor?: boolean;
 }
 
 export interface MeView {
   user: { id: string; name: string; email: string };
   via: 'session' | 'token';
   token: { id: string; name: string; teamId: string | null } | null;
-  teams: Array<Pick<TeamView, 'id' | 'slug' | 'name' | 'role' | 'plan'>>;
+  teams: Array<Omit<TeamView, 'createdAt'>>;
   termsVersion: string;
 }
 
@@ -54,6 +76,7 @@ export interface MembersView {
     name: string;
     email: string;
     role: CloudRoleName;
+    twoFactor: boolean;
     joinedAt: string;
   }>;
   invites: Array<{ id: string; email: string; role: CloudRoleName; expiresAt: string }>;
@@ -66,6 +89,8 @@ export interface UsageView {
   storageBytes: number;
   deploymentsLastHour: number;
   members: number;
+  /** Each limited measure against the plan; the console's banner reads it (decision 54). */
+  meters: Meter[];
 }
 
 export interface EventView {
@@ -80,7 +105,7 @@ export interface EventView {
 }
 
 export interface InviteView {
-  team: { name: string; slug: string };
+  team: { name: string; slug: string; requireTwoFactor: boolean };
   role: CloudRoleName;
   invitedBy: string | null;
   email: string;
@@ -98,22 +123,25 @@ export class CloudTeamsService {
   constructor(
     private readonly repository: CloudRepository,
     private readonly storage: CloudStorage,
+    private readonly usageMeters: CloudUsageService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
   ) {}
 
   /**
    * The caller's membership of a team with at least `min` role. Not a member, or a token
-   * restricted to another team: 404. A role too low: 403.
+   * restricted to another team: 404. The team requires two-step verification and the caller's
+   * account has none (unless `allowWithoutTwoFactor`): 403. A role too low: 403.
    */
   async access(
     ctx: CloudCtx,
     teamSlug: string,
     min: CloudRoleName = 'MEMBER',
+    options: AccessOptions = {},
   ): Promise<MembershipRow> {
     const membership = await this.repository.membership(teamSlug, ctx.user.id);
     if (!membership) throw new NotFoundException('Team not found');
-    this.checkAccess(ctx, membership, min);
+    this.checkAccess(ctx, membership, min, options);
     return membership;
   }
 
@@ -122,16 +150,25 @@ export class CloudTeamsService {
     ctx: CloudCtx,
     teamId: string,
     min: CloudRoleName = 'MEMBER',
+    options: AccessOptions = {},
   ): Promise<MembershipRow> {
     const membership = await this.repository.membershipByTeamId(teamId, ctx.user.id);
     if (!membership) throw new NotFoundException('Not found');
-    this.checkAccess(ctx, membership, min);
+    this.checkAccess(ctx, membership, min, options);
     return membership;
   }
 
-  private checkAccess(ctx: CloudCtx, membership: MembershipRow, min: CloudRoleName): void {
+  private checkAccess(
+    ctx: CloudCtx,
+    membership: MembershipRow,
+    min: CloudRoleName,
+    options: AccessOptions,
+  ): void {
     const restricted = ctx.user.token?.teamId;
     if (restricted && restricted !== membership.teamId) throw new NotFoundException('Not found');
+    if (!options.allowWithoutTwoFactor && twoFactorBlocked(membership)) {
+      throw new ForbiddenException(TWO_FACTOR_REQUIRED);
+    }
     if (ROLE_RANK[membership.role] < ROLE_RANK[min]) {
       throw new ForbiddenException(`Only a team ${min.toLowerCase()} can do this`);
     }
@@ -172,6 +209,7 @@ export class CloudTeamsService {
     action: string,
     targetLabel: string | null,
     details?: Prisma.InputJsonValue,
+    ip?: string | null,
   ): Promise<void> {
     try {
       await this.repository.event({
@@ -182,6 +220,7 @@ export class CloudTeamsService {
         action,
         targetLabel,
         details,
+        ip,
       });
     } catch (error) {
       this.logger.error(`Could not record ${action}: ${String(error)}`);
@@ -194,7 +233,9 @@ export class CloudTeamsService {
     return {
       user: { id: ctx.user.id, name: ctx.user.name, email: ctx.user.email },
       via: ctx.user.via ?? 'session',
-      token: ctx.user.token ?? null,
+      token: ctx.user.token
+        ? { id: ctx.user.token.id, name: ctx.user.token.name, teamId: ctx.user.token.teamId }
+        : null,
       teams: memberships
         .filter((m) => !restricted || m.teamId === restricted)
         .map((m) => ({
@@ -203,6 +244,8 @@ export class CloudTeamsService {
           name: m.team.name,
           role: m.role,
           plan: m.team.plan,
+          requireTwoFactor: m.team.requireTwoFactor,
+          twoFactorBlocked: twoFactorBlocked(m),
         })),
       termsVersion: CLOUD_TERMS_VERSION,
     };
@@ -235,19 +278,44 @@ export class CloudTeamsService {
       termsVersion: input.termsVersion,
     });
     await this.record(ctx, team.id, 'team.created', team.name);
-    return teamView(team, 'OWNER');
+    return teamView(team, 'OWNER', false);
   }
 
+  /** Open to a member blocked by the two-step verification requirement (it says so). */
   async getTeam(ctx: CloudCtx, slug: string): Promise<TeamView> {
-    const membership = await this.access(ctx, slug);
-    return teamView(membership.team, membership.role);
+    const membership = await this.access(ctx, slug, 'MEMBER', { allowWithoutTwoFactor: true });
+    return teamView(membership.team, membership.role, twoFactorBlocked(membership));
   }
 
+  /** Renames the team (ADMIN) and turns the two-step verification requirement on or off (OWNER). */
   async updateTeam(ctx: CloudCtx, slug: string, input: UpdateTeamInput): Promise<TeamView> {
-    const membership = await this.access(ctx, slug, 'ADMIN');
-    const team = await this.repository.updateTeam(membership.teamId, input.name);
-    await this.record(ctx, team.id, 'team.renamed', team.name, { from: membership.team.name });
-    return teamView(team, membership.role);
+    const membership = await this.access(
+      ctx,
+      slug,
+      input.requireTwoFactor === undefined ? 'ADMIN' : 'OWNER',
+    );
+    if (input.requireTwoFactor && !membership.user.totpEnabledAt) {
+      throw new ConflictException('Turn on two-step verification on your own account first');
+    }
+    const requireChanged =
+      input.requireTwoFactor !== undefined &&
+      input.requireTwoFactor !== membership.team.requireTwoFactor;
+    const data: { name?: string; requireTwoFactor?: boolean } = {};
+    if (input.name !== undefined) data.name = input.name;
+    if (requireChanged) data.requireTwoFactor = input.requireTwoFactor;
+    const team =
+      data.name !== undefined || requireChanged
+        ? await this.repository.updateTeam(membership.teamId, data)
+        : membership.team;
+    if (input.name !== undefined) {
+      await this.record(ctx, team.id, 'team.renamed', team.name, { from: membership.team.name });
+    }
+    if (requireChanged) {
+      await this.record(ctx, team.id, 'team.two_factor_required', team.name, {
+        enabled: team.requireTwoFactor,
+      });
+    }
+    return teamView(team, membership.role, twoFactorBlocked({ team, user: membership.user }));
   }
 
   /** Deletes the team with everything in it: its sites go offline at once. */
@@ -266,6 +334,7 @@ export class CloudTeamsService {
         await this.storage.removeDeployment(deployment.id);
       }
       for (const domain of project.domains) await this.storage.removeDomain(domain.name);
+      await this.storage.removeProtection(project.slug);
     }
   }
 
@@ -281,6 +350,7 @@ export class CloudTeamsService {
         name: m.user.name,
         email: m.user.email,
         role: m.role,
+        twoFactor: m.user.totpEnabledAt !== null,
         joinedAt: m.createdAt.toISOString(),
       })),
       invites: invites.map((i) => ({
@@ -334,6 +404,7 @@ export class CloudTeamsService {
           role: input.role,
           url,
           siteUrl: this.config.siteUrl,
+          requireTwoFactor: membership.team.requireTwoFactor,
         }),
       );
     } catch (error) {
@@ -366,7 +437,11 @@ export class CloudTeamsService {
   async getInvite(ctx: CloudCtx, token: string): Promise<InviteView> {
     const invite = await this.liveInvite(token);
     return {
-      team: { name: invite.team.name, slug: invite.team.slug },
+      team: {
+        name: invite.team.name,
+        slug: invite.team.slug,
+        requireTwoFactor: invite.team.requireTwoFactor,
+      },
       role: invite.role,
       invitedBy: invite.invitedBy?.name ?? null,
       email: invite.email,
@@ -430,7 +505,10 @@ export class CloudTeamsService {
 
   async removeMember(ctx: CloudCtx, slug: string, userId: string): Promise<void> {
     const self = userId === ctx.user.id;
-    const membership = await this.access(ctx, slug, self ? 'MEMBER' : 'ADMIN');
+    // Leaving stays open to a member blocked by the two-step verification requirement.
+    const membership = await this.access(ctx, slug, self ? 'MEMBER' : 'ADMIN', {
+      allowWithoutTwoFactor: self,
+    });
     const target = self
       ? membership
       : await this.repository.membershipByTeamId(membership.teamId, userId);
@@ -451,31 +529,34 @@ export class CloudTeamsService {
   async usage(ctx: CloudCtx, slug: string): Promise<UsageView> {
     const membership = await this.access(ctx, slug);
     const teamId = membership.teamId;
-    const [projects, storageBytes, deploymentsLastHour, members] = await Promise.all([
+    const plan = membership.team.plan;
+    const [projects, members, usage] = await Promise.all([
       this.repository.countProjects(teamId),
-      this.repository.storageBytes(teamId),
-      this.repository.countDeploymentsSince(teamId, new Date(Date.now() - 3_600_000)),
       this.repository.countMembers(teamId),
+      this.usageMeters.measure(teamId),
     ]);
+    const limits = this.limits(plan);
     return {
-      plan: membership.team.plan,
-      limits: this.limits(membership.team.plan),
+      plan,
+      limits,
       projects,
-      storageBytes,
-      deploymentsLastHour,
+      storageBytes: usage.storage,
+      deploymentsLastHour: usage.deploymentsPerHour,
       members,
+      meters: buildMeters(limits, usage),
     };
   }
 
-  async events(
-    ctx: CloudCtx,
-    slug: string,
-    page: number,
-    pageSize: number,
-  ): Promise<Paginated<EventView>> {
+  async events(ctx: CloudCtx, slug: string, query: EventsQuery): Promise<Paginated<EventView>> {
+    const { page, pageSize } = query;
     const membership = await this.access(ctx, slug);
     const { skip, take } = pageToSkipTake(page, pageSize);
-    const [rows, total] = await this.repository.events(membership.teamId, skip, take);
+    const [rows, total] = await this.repository.events(
+      membership.teamId,
+      eventsFilter(query),
+      skip,
+      take,
+    );
     return paginate(
       rows.map((row) => ({
         id: row.id,
@@ -491,6 +572,29 @@ export class CloudTeamsService {
       page,
       pageSize,
     );
+  }
+
+  /**
+   * The team's events as CSV, for its admins and owners (architecture 4.13 "Exporting events"):
+   * access is checked before anything is sent, then the rows are read and written 1,000 at a
+   * time. Exporting isn't recorded as an event.
+   */
+  async exportEvents(
+    ctx: CloudCtx,
+    slug: string,
+    query: EventsExportQuery,
+  ): Promise<{ fileName: string; stream: Readable }> {
+    const membership = await this.access(ctx, slug, 'ADMIN');
+    const filter = eventsFilter(query);
+    const stream = Readable.from(
+      eventsCsv((after, take) =>
+        this.repository.eventsAfter(membership.teamId, filter, after, take),
+      ),
+    );
+    return {
+      fileName: `${membership.team.slug}-events-${query.from}-${query.to}.csv`,
+      stream,
+    };
   }
 
   /**
@@ -512,8 +616,16 @@ export class CloudTeamsService {
 }
 
 function teamView(
-  team: { id: string; slug: string; name: string; plan: 'FREE' | 'PRO'; createdAt: Date },
+  team: {
+    id: string;
+    slug: string;
+    name: string;
+    plan: 'FREE' | 'PRO';
+    requireTwoFactor: boolean;
+    createdAt: Date;
+  },
   role: CloudRoleName,
+  blocked: boolean,
 ): TeamView {
   return {
     id: team.id,
@@ -521,6 +633,8 @@ function teamView(
     name: team.name,
     plan: team.plan,
     role,
+    requireTwoFactor: team.requireTwoFactor,
+    twoFactorBlocked: blocked,
     createdAt: team.createdAt.toISOString(),
   };
 }

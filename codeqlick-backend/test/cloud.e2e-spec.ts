@@ -166,6 +166,59 @@ describe('Codeqlick Cloud (e2e)', () => {
     await request(server).get('/v1/auth/me').set(tokenAuth).expect(401);
     await request(server).get('/v1/cloud/tokens').set(tokenAuth).expect(401);
     await request(server).get('/v1/cloud/me').set({ Authorization: 'Bearer cqk_nope' }).expect(401);
+    expect(created.body.item.readOnly).toBe(false);
+
+    // A read-only token reads, and gets 403 for anything else (decision 61).
+    const reader = await request(server)
+      .post('/v1/cloud/tokens')
+      .set(ownerAuth)
+      .send({ name: 'Reader', teamSlug, expiresInDays: null, readOnly: true })
+      .expect(201);
+    expect(reader.body.item).toMatchObject({ name: 'Reader', readOnly: true, expiresAt: null });
+    const readerAuth = { Authorization: `Bearer ${reader.body.token as string}` };
+    await request(server).get('/v1/cloud/me').set(readerAuth).expect(200);
+    await request(server).get(`/v1/cloud/projects/${projectId}`).set(readerAuth).expect(200);
+    const readOnlyRefusal = await request(server)
+      .patch(`/v1/cloud/projects/${projectId}`)
+      .set(readerAuth)
+      .send({ name: 'Renamed' })
+      .expect(403);
+    expect(readOnlyRefusal.body).toMatchObject({ status: 403, detail: 'This token is read only' });
+    await request(server)
+      .post(`/v1/cloud/teams/${teamSlug}/projects`)
+      .set(readerAuth)
+      .send({ name: 'Nope', slug: `n-${tag}` })
+      .expect(403);
+    await request(server).delete(`/v1/cloud/projects/${projectId}`).set(readerAuth).expect(403);
+    const listed = await request(server).get('/v1/cloud/tokens').set(ownerAuth).expect(200);
+    expect(
+      (listed.body.items as Array<{ name: string; readOnly: boolean }>).map((t) => [
+        t.name,
+        t.readOnly,
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        ['CI', false],
+        ['Reader', true],
+      ]),
+    );
+    const tokenEvents = await request(server)
+      .get(`/v1/cloud/teams/${teamSlug}/events`)
+      .set(ownerAuth)
+      .expect(200);
+    expect(tokenEvents.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'token.created',
+          targetLabel: 'Reader',
+          details: { readOnly: true },
+        }),
+      ]),
+    );
+    await request(server)
+      .delete(`/v1/cloud/tokens/${reader.body.item.id as string}`)
+      .set(ownerAuth)
+      .expect(204);
 
     // ── Deployments ────────────────────────────────────────────────────────────────────────
     const noIndex = await bundle({ 'about.html': 'about' });
@@ -226,6 +279,32 @@ describe('Codeqlick Cloud (e2e)', () => {
       await readFile(join(root, 'hosts', `${slug}--${first.shortId}`, 'index.html'), 'utf8'),
     ).toBe('<h1>v1</h1>');
 
+    // Files and comparison (architecture 4.13): the list, and no production to compare with yet.
+    const files = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/files`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(files.body).toEqual({
+      items: [
+        { path: 'assets/app.js', size: 14 },
+        { path: 'index.html', size: 11 },
+      ],
+      count: 2,
+      totalBytes: 25,
+    });
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/compare`)
+      .set(tokenAuth)
+      .expect(409);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${randomUUID()}/files`)
+      .set(tokenAuth)
+      .expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/files`)
+      .set(mateAuth)
+      .expect(404);
+
     const v2 = await bundle({ 'index.html': '<h1>v2</h1>', '200.html': 'spa' });
     const production = await request(server)
       .post(`/v1/cloud/projects/${projectId}/deployments`)
@@ -242,6 +321,11 @@ describe('Codeqlick Cloud (e2e)', () => {
       .set(tokenAuth)
       .expect(200);
     expect(promoted.body.production).toMatchObject({ id: first.id, isProduction: true });
+    // Promoting an older deployment locks production (architecture 4.13), by the token's person.
+    expect(promoted.body.productionLock).toEqual({
+      at: expect.any(String),
+      by: { id: expect.any(String), name: 'Ada' },
+    });
     expect(await readlink(join(root, 'hosts', slug))).toBe(join('..', 'deployments', first.id));
     await request(server)
       .delete(`/v1/cloud/projects/${projectId}/deployments/${first.id}`)
@@ -259,6 +343,61 @@ describe('Codeqlick Cloud (e2e)', () => {
       .expect(200);
     expect(usage.body).toMatchObject({ plan: 'FREE', projects: 1, deploymentsLastHour: 2 });
     expect(usage.body.storageBytes).toBeGreaterThan(0);
+
+    // Compare the old production (v2) with the current one (v1): same-size index.html differs.
+    const second = production.body as { id: string };
+    const compareUrl = `/v1/cloud/projects/${projectId}/deployments/${second.id}/compare`;
+    const diff = await request(server).get(compareUrl).set(tokenAuth).expect(200);
+    expect(diff.body).toEqual({
+      deploymentId: second.id,
+      withId: first.id,
+      added: [{ path: '200.html', size: 3 }],
+      removed: [{ path: 'assets/app.js', size: 14 }],
+      changed: [{ path: 'index.html', size: 11, previousSize: 11 }],
+      unchanged: 0,
+      totalBytes: 14,
+      withTotalBytes: 25,
+    });
+    const self = await request(server)
+      .get(compareUrl)
+      .query({ with: second.id })
+      .set(tokenAuth)
+      .expect(200);
+    expect(self.body).toMatchObject({ added: [], removed: [], changed: [], unchanged: 2 });
+    await request(server).get(compareUrl).query({ with: 'latest' }).set(tokenAuth).expect(400);
+    await request(server).get(compareUrl).query({ with: randomUUID() }).set(tokenAuth).expect(404);
+    // A deployment of another project is unknown here, even in the same team.
+    const other = await request(server)
+      .post(`/v1/cloud/teams/${teamSlug}/projects`)
+      .set(ownerAuth)
+      .send({ name: 'Other docs', slug: `p-${tag}-b` })
+      .expect(201);
+    const elsewhere = await request(server)
+      .post(`/v1/cloud/projects/${other.body.id as string}/deployments`)
+      .set(tokenAuth)
+      .attach('bundle', await bundle({ 'index.html': '<h1>v1</h1>' }))
+      .expect(201);
+    await request(server)
+      .get(compareUrl)
+      .query({ with: elsewhere.body.id as string })
+      .set(tokenAuth)
+      .expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${elsewhere.body.id as string}/files`)
+      .set(tokenAuth)
+      .expect(404);
+    // A deployment whose files are gone answers 404.
+    await rm(join(root, 'deployments', second.id), { recursive: true, force: true });
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${second.id}/files`)
+      .set(tokenAuth)
+      .expect(404);
+    await request(server).get(compareUrl).set(tokenAuth).expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/deployments/${first.id}/compare`)
+      .query({ with: second.id })
+      .set(tokenAuth)
+      .expect(404);
 
     // ── Invitations ────────────────────────────────────────────────────────────────────────
     await request(server)
@@ -300,6 +439,44 @@ describe('Codeqlick Cloud (e2e)', () => {
       .set(mateAuth)
       .send({ name: 'Other', slug: `p-${tag}-x` })
       .expect(403);
+
+    // ── Production lock after a rollback ───────────────────────────────────────────────────
+    const unlockUrl = `/v1/cloud/projects/${projectId}/production/unlock`;
+    // Only an admin unlocks.
+    await request(server).post(unlockUrl).set(mateAuth).expect(403);
+    // An explicit release (`codeqlick deploy --prod`) publishes and unlocks.
+    const release = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments`)
+      .set(tokenAuth)
+      .field('target', 'production')
+      .attach('bundle', await bundle({ 'index.html': '<h1>v3</h1>' }))
+      .expect(201);
+    expect(release.body).toMatchObject({ target: 'production', isProduction: true });
+    const released = await request(server)
+      .get(`/v1/cloud/projects/${projectId}`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(released.body).toMatchObject({
+      production: { id: release.body.id as string },
+      productionLock: null,
+    });
+    // Rolling back again locks; promoting the current production again changes nothing.
+    const relocked = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments/${first.id}/promote`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(relocked.body.productionLock).toMatchObject({ by: { name: 'Ada' } });
+    const again = await request(server)
+      .post(`/v1/cloud/projects/${projectId}/deployments/${first.id}/promote`)
+      .set(tokenAuth)
+      .expect(200);
+    expect(again.body.productionLock).toEqual(relocked.body.productionLock);
+    // Unlocking publishes nothing: production stays the rolled-back one.
+    const unlocked = await request(server).post(unlockUrl).set(tokenAuth).expect(200);
+    expect(unlocked.body).toMatchObject({ production: { id: first.id }, productionLock: null });
+    const unchanged = await request(server).post(unlockUrl).set(tokenAuth).expect(200);
+    expect(unchanged.body).toMatchObject({ production: { id: first.id }, productionLock: null });
+    expect(await readlink(join(root, 'hosts', slug))).toBe(join('..', 'deployments', first.id));
 
     // ── CLI sign-in (device flow) ──────────────────────────────────────────────────────────
     const started = await request(server)
@@ -347,6 +524,29 @@ describe('Codeqlick Cloud (e2e)', () => {
       .set(tokenAuth)
       .send({ name: 'x.codeqlick.com' })
       .expect(400);
+    // The platform exception: an exact listed domain, for the platform team only.
+    const platformName = `docs-${tag}.codeqlick.com`;
+    const platformDomains = vi
+      .spyOn(app.get(AppConfigService), 'cloudPlatformDomains', 'get')
+      .mockReturnValue([platformName]);
+    const platformTeam = vi
+      .spyOn(app.get(AppConfigService), 'cloudPlatformTeamId', 'get')
+      .mockReturnValue('other-team-id');
+    const addPlatform = (name: string) =>
+      request(server).post(`/v1/cloud/projects/${projectId}/domains`).set(tokenAuth).send({ name });
+    await addPlatform(platformName).expect(400); // another team's project
+    platformTeam.mockReturnValue(team.body.id as string);
+    await addPlatform(`sub.${platformName}`).expect(400); // subdomains are not covered
+    await addPlatform(`other-${tag}.codeqlick.com`).expect(400); // not listed
+    const platform = await addPlatform(platformName).expect(201);
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/domains/${platform.body.id as string}`)
+      .set(tokenAuth)
+      .expect(204);
+    platformDomains.mockReturnValue([]); // either unset: no exception
+    await addPlatform(platformName).expect(400);
+    platformDomains.mockRestore();
+    platformTeam.mockRestore();
     const domain = await request(server)
       .post(`/v1/cloud/projects/${projectId}/domains`)
       .set(tokenAuth)
@@ -412,6 +612,7 @@ describe('Codeqlick Cloud (e2e)', () => {
     // ── Events, housekeeping and deletion ──────────────────────────────────────────────────
     const events = await request(server)
       .get(`/v1/cloud/teams/${teamSlug}/events`)
+      .query({ pageSize: 100 })
       .set(ownerAuth)
       .expect(200);
     const actions = (events.body.items as Array<{ action: string }>).map((e) => e.action);
@@ -420,11 +621,95 @@ describe('Codeqlick Cloud (e2e)', () => {
         'team.created',
         'deployment.created',
         'deployment.promoted',
+        'project.production_locked',
+        'project.production_unlocked',
         'member.joined',
         'domain.added',
       ]),
     );
     await app.get(CloudProjectsService).housekeeping();
+
+    // ── Keeping deployments by hand ────────────────────────────────────────────────────────
+    const keepUrl = (deploymentId: string) =>
+      `/v1/cloud/projects/${projectId}/deployments/${deploymentId}/keep`;
+    const keptEvents = async (action: string) =>
+      (
+        (
+          await request(server)
+            .get(`/v1/cloud/teams/${teamSlug}/events?pageSize=100`)
+            .set(ownerAuth)
+            .expect(200)
+        ).body.items as Array<{ action: string }>
+      ).filter((e) => e.action === action).length;
+    const older = production.body as { id: string };
+    // A member may keep; the second call changes nothing and records nothing.
+    const kept = await request(server).post(keepUrl(older.id)).set(mateAuth).expect(200);
+    expect(kept.body).toMatchObject({ id: older.id, keptAt: expect.any(String) });
+    await request(server).post(keepUrl(older.id)).set(mateAuth).expect(200);
+    expect(await keptEvents('deployment.kept')).toBe(1);
+    await request(server).post(keepUrl(randomUUID())).set(mateAuth).expect(404);
+    await request(server).delete(keepUrl(randomUUID())).set(mateAuth).expect(404);
+    // Not a member of the team (even a site admin): the project is not found.
+    await request(server).post(keepUrl(older.id)).set(adminAuth).expect(404);
+    await request(server).delete(keepUrl(older.id)).set(adminAuth).expect(404);
+    await request(server).post(keepUrl(older.id)).expect(401);
+
+    // 24 newer previews and one older than everything (non-hex ids: no clash with real ones).
+    const row = (shortId: string, createdAt: Date) => ({
+      projectId,
+      shortId,
+      target: 'PREVIEW' as const,
+      sizeBytes: 10n,
+      fileCount: 1,
+      createdAt,
+    });
+    const base = Date.now() + 60_000;
+    await prisma.cloudDeployment.createMany({
+      data: [
+        ...Array.from({ length: 24 }, (_, i) =>
+          row(`zz${i.toString(16).padStart(6, '0')}`, new Date(base + i * 1000)),
+        ),
+        row('yy000001', new Date('2020-01-01T00:00:00Z')),
+      ],
+    });
+    const extra = await prisma.cloudDeployment.findMany({
+      where: { projectId, shortId: { startsWith: 'zz' } },
+      orderBy: { shortId: 'asc' },
+    });
+    // At most 5 kept: `older` plus four more; the sixth is refused.
+    for (const d of extra.slice(0, 4)) {
+      await request(server).post(keepUrl(d.id)).set(ownerAuth).expect(200);
+    }
+    const sixth = await request(server).post(keepUrl(extra[4]!.id)).set(ownerAuth).expect(409);
+    expect(sixth.body.detail).toBe('A project keeps at most 5 deployments');
+    // Un-keeping works for a member, once; the second call records nothing.
+    const unkept = await request(server).delete(keepUrl(extra[3]!.id)).set(mateAuth).expect(200);
+    expect(unkept.body).toMatchObject({ id: extra[3]!.id, keptAt: null });
+    await request(server).delete(keepUrl(extra[3]!.id)).set(mateAuth).expect(200);
+    expect(await keptEvents('deployment.unkept')).toBe(1);
+    await request(server).post(keepUrl(extra[4]!.id)).set(ownerAuth).expect(200);
+
+    // Cleanup: 4 of the 24 are kept, so the newest 20 unkept ones stay and the oldest unkept goes.
+    await app.get(CloudProjectsService).housekeeping();
+    const left = await prisma.cloudDeployment.findMany({ where: { projectId } });
+    expect(left.some((d) => d.shortId === 'yy000001')).toBe(false);
+    expect(left.some((d) => d.id === older.id)).toBe(true);
+    expect(left.some((d) => d.id === first.id)).toBe(true);
+    expect(left).toHaveLength(26);
+    // Un-kept, the old one is back in the window by its date: the next cleanup deletes it.
+    await request(server).delete(keepUrl(older.id)).set(mateAuth).expect(200);
+    await app.get(CloudProjectsService).housekeeping();
+    expect(await prisma.cloudDeployment.findUnique({ where: { id: older.id } })).toBeNull();
+    expect(await prisma.cloudDeployment.findUnique({ where: { id: first.id } })).not.toBeNull();
+    // A kept deployment can still be deleted by hand.
+    expect(
+      (await prisma.cloudDeployment.findUnique({ where: { id: extra[0]!.id } }))?.keptAt,
+    ).not.toBeNull();
+    await request(server)
+      .delete(`/v1/cloud/projects/${projectId}/deployments/${extra[0]!.id}`)
+      .set(mateAuth)
+      .expect(204);
+    expect(await prisma.cloudDeployment.findUnique({ where: { id: extra[0]!.id } })).toBeNull();
 
     await request(server).delete(`/v1/cloud/projects/${projectId}`).set(tokenAuth).expect(204);
     await expect(readlink(join(root, 'hosts', slug))).rejects.toThrow(/ENOENT/);

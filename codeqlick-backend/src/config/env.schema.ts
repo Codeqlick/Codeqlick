@@ -52,6 +52,8 @@ export const envSchema = z.object({
   SEED_ADMIN_NAME: optionalString,
   /** Admins must have two-step verification on to use the admin API (production: true). */
   ADMIN_TWO_FACTOR_REQUIRED: booleanString,
+  /** New passwords are refused when Have I Been Pwned lists them (production: true). */
+  PASSWORD_BREACH_CHECK: booleanString,
   /** Umami (analytics) for the admin dashboard's visit numbers; unset: no visit numbers. */
   UMAMI_URL: z.preprocess(
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
@@ -72,6 +74,12 @@ export const envSchema = z.object({
   SITES_PREVIEW_DOMAIN: z.string().min(3).default('demo.codeqlick.com'),
   /** Codeqlick Cloud's hosting domain (architecture 4.13): projects at <slug>.<this>; unset: no deploys. */
   CLOUD_HOSTING_DOMAIN: optionalString,
+  /**
+   * Exact domains under codeqlick.com that only the team with id CLOUD_PLATFORM_TEAM_ID may add as
+   * custom domains (architecture 4.13), comma-separated; either empty: no exception.
+   */
+  CLOUD_PLATFORM_DOMAINS: optionalString,
+  CLOUD_PLATFORM_TEAM_ID: optionalString,
   /** Where deployments, host links and domain files are written (/srv/codeqlick/cloud on the host). */
   CLOUD_ROOT: optionalString,
   /** Cloud's GitHub App (architecture 4.13, Builds from Git); builds from Git are off without them. */
@@ -101,6 +109,12 @@ export const envSchema = z.object({
    * Cloud warns (low) and stops growing (full). */
   CLOUD_DISK_LOW_GB: z.coerce.number().min(0).default(30),
   CLOUD_DISK_MIN_GB: z.coerce.number().min(0).default(15),
+  /** What the hosting sites' Nginx sends (`X-Cq-Protection-Key`) to /cloud/protection/*
+   * (architecture 4.13 "Password protection"); unset: those routes answer 503. */
+  CLOUD_PROTECTION_KEY: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(32).optional(),
+  ),
   /** The Cloud console, for links in emails and the CLI's sign-in page. */
   CLOUD_URL: z.url().default('https://cloud.codeqlick.com'),
   /** The API as browsers reach it: the form of a managed site posts to <this>/forms/:key. */

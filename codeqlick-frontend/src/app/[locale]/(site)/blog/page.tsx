@@ -6,6 +6,7 @@ import fieldStyles from '@/components/ui/Field.module.css';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { PostCard } from '@/components/content/PostCard';
+import { NewsletterSignup } from '@/components/newsletter/NewsletterSignup';
 import { TagLinks } from '@/components/content/TagLinks';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -150,6 +151,7 @@ export default async function BlogPage({ params, searchParams }: PageProps) {
           />
         </>
       )}
+      <NewsletterSignup />
     </section>
   );
 }

@@ -51,6 +51,8 @@ import { SiteStatus } from '@/components/app/SiteStatus';
 import { checkNowAction, setMonitorAction } from '../monitor-actions';
 import { adminGetSiteForm } from '@/lib/api/site-forms';
 import { adminGetSite, adminSiteRevisions } from '@/lib/api/managed-sites';
+import { listSiteNews } from '@/lib/api/site-news';
+import { NEWS_PAGE_SIZE } from '@/components/editor/news';
 import { ManagedSitePanel } from '@/components/app/ManagedSitePanel';
 import { adminGetDomain } from '@/lib/api/domains';
 import { checkDomainAction, saveDomainAction } from '../domain-actions';
@@ -148,6 +150,10 @@ export default async function EditProjectPage({
   const tin = await getTranslations({ locale, namespace: 'Invoices' });
   const site = 'slug' in managedSite ? managedSite : null;
   const siteRevisions = site ? await adminSiteRevisions(project.id) : [];
+  // Optional: the rest of the site's panel works without it.
+  const siteNews = site
+    ? await listSiteNews('admin', project.id, { pageSize: NEWS_PAGE_SIZE }).catch(() => null)
+    : null;
   const siteVisits = site
     ? await getProjectVisits(project.id, 30, 'admin').catch(() => undefined)
     : undefined;
@@ -366,6 +372,7 @@ export default async function EditProjectPage({
           projectName={project.name}
           site={site}
           revisions={siteRevisions}
+          news={siteNews}
         />
         {siteVisits ? (
           <>
