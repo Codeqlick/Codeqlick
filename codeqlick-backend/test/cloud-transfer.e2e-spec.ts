@@ -73,11 +73,7 @@ describe('Codeqlick Cloud: moving a project to another team (e2e)', () => {
     const graceAuth = await login(grace);
     const luisAuth = await login(luis);
     const user = (email: string) => prisma.user.findUniqueOrThrow({ where: { email } });
-    const [adaRow, graceRow, luisRow] = await Promise.all([
-      user(ada.email),
-      user(grace.email),
-      user(luis.email),
-    ]);
+    const [adaRow, luisRow] = await Promise.all([user(ada.email), user(luis.email)]);
     const join = (teamId: string, userId: string, role: 'ADMIN' | 'MEMBER') =>
       prisma.cloudMember.create({
         data: {
