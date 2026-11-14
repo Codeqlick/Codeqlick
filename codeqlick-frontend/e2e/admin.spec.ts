@@ -68,6 +68,53 @@ test('the team publishes a blog post and visitors read it', async ({
   }
 });
 
+test('a post edited days after publication shows when it was updated', async ({
+  page,
+  request,
+}) => {
+  const tag = runTag();
+  const slug = `e2e-post-updated-${tag}`;
+  const translations = (title: string) => [
+    { locale: 'en', title, excerpt: 'Before and after.', content: 'Body.' },
+    { locale: 'es', title: `Actualizado ${tag}`, excerpt: 'Antes y después.', content: 'Cuerpo.' },
+  ];
+  const created = await request.post(`${API_URL}/admin/posts`, {
+    headers: adminHeaders(),
+    data: {
+      slug,
+      status: 'PUBLISHED',
+      publishedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(),
+      translations: translations(`Updated ${tag}`),
+    },
+  });
+  expect(created.status()).toBe(201);
+  const { id } = (await created.json()) as { id: string };
+  try {
+    const edited = await request.patch(`${API_URL}/admin/posts/${id}`, {
+      headers: adminHeaders(),
+      data: { translations: translations(`Updated again ${tag}`) },
+    });
+    expect(edited.status()).toBe(200);
+
+    await page.goto(`/es/blog/${slug}`);
+    await expect(page.locator('time', { hasText: /^Publicado el / })).toBeVisible();
+    const updated = page.locator('time', { hasText: /^Actualizado el / });
+    await expect(updated).toBeVisible();
+    const dateModified = await updated.getAttribute('datetime');
+    expect(dateModified).toBeTruthy();
+    const structured = await page
+      .locator('script[type="application/ld+json"]')
+      .evaluateAll((scripts) =>
+        scripts
+          .map((script) => JSON.parse(script.textContent ?? '{}') as Record<string, unknown>)
+          .find((data) => data['@type'] === 'BlogPosting'),
+      );
+    expect(structured?.dateModified).toBe(dateModified);
+  } finally {
+    await request.delete(`${API_URL}/admin/posts/${id}`, { headers: adminHeaders() });
+  }
+});
+
 test('an error the website reports shows up in Errores and gets resolved', async ({
   page,
   context,

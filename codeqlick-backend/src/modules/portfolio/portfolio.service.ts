@@ -10,6 +10,7 @@ import {
   publishVerb,
   scheduledDetails,
 } from '../activity/activity.service.js';
+import { contentUpdatedAtOnUpdate, publicContentUpdatedAt } from '../../common/content-updated.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PortfolioRepository,
@@ -43,6 +44,8 @@ export interface PortfolioSummary {
   technologies: string[];
   services: string[];
   testimonial: Testimonial | null;
+  /** When the content last really changed; null unless ≥ 24 h after publication (4.2). */
+  contentUpdatedAt: string | null;
 }
 
 export interface PortfolioFilters {
@@ -181,6 +184,7 @@ export class PortfolioService {
       technologies: item.technologies,
       services: item.services,
       testimonial: toTestimonial(item, translation),
+      contentUpdatedAt: publicContentUpdatedAt(item),
       content: translation.content,
       projectUrl: item.projectUrl,
       locales: availableLocales(item.translations),
@@ -244,6 +248,12 @@ export class PortfolioService {
     if (input.translations !== undefined) {
       data.translations = input.translations.map(toTranslationData);
     }
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: data.status ?? existing.status,
+      coverImageUrl: data.coverImageUrl !== undefined ? data.coverImageUrl : existing.coverImageUrl,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
     const updated = toAdminItem(await this.repository.update(id, data));
     await this.activity.record(actor, {
       action: `portfolio.${publishVerb(existing, updated, input)}`,
@@ -284,6 +294,7 @@ export class PortfolioService {
       technologies: item.technologies,
       services: item.services,
       testimonial: toTestimonial(item, translation),
+      contentUpdatedAt: publicContentUpdatedAt(item),
     };
   }
 }

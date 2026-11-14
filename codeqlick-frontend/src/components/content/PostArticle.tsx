@@ -15,6 +15,8 @@ export type PostArticleContent = {
   coverImageUrl: string | null;
   /** Null for a draft that was never published: the date line is left out. */
   publishedAt: string | null;
+  /** Shown after the publication date when set; the admin preview has none. */
+  contentUpdatedAt?: string | null;
   /** Linked to the blog filtered by each; the admin preview has none. */
   tags?: PublicTag[];
 };
@@ -41,6 +43,14 @@ export async function PostArticle({
           <time dateTime={post.publishedAt}>
             {t('publishedOn', { date: formatDate(post.publishedAt, locale) })}
           </time>
+          {post.contentUpdatedAt ? (
+            <>
+              <span aria-hidden="true"> · </span>
+              <time dateTime={post.contentUpdatedAt}>
+                {t('updatedOn', { date: formatDate(post.contentUpdatedAt, locale) })}
+              </time>
+            </>
+          ) : null}
         </p>
       ) : null}
       <h1 className={styles.title}>{post.title}</h1>

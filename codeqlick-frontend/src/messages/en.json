@@ -303,6 +303,7 @@
     "readMore": "Read article",
     "back": "All articles",
     "publishedOn": "Published on {date}",
+    "updatedOn": "Updated on {date}",
     "tagsLabel": "Tags",
     "topics": "Topics",
     "allTopics": "All topics",

@@ -45,6 +45,7 @@ export interface PortfolioUpdateData {
   technologies?: string[];
   services?: string[];
   sortOrder?: number;
+  contentUpdatedAt?: Date;
   translations?: PortfolioTranslationData[];
 }
 

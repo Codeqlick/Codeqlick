@@ -10,6 +10,7 @@ import {
   publishVerb,
   scheduledDetails,
 } from '../activity/activity.service.js';
+import { contentUpdatedAtOnUpdate, publicContentUpdatedAt } from '../../common/content-updated.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
 import {
   PostsRepository,
@@ -32,6 +33,8 @@ export interface PostSummary {
   excerpt: string;
   coverImageUrl: string | null;
   publishedAt: string;
+  /** When the content last really changed; null unless ≥ 24 h after publishedAt (4.2). */
+  contentUpdatedAt: string | null;
   tags: PublicTag[];
 }
 
@@ -118,6 +121,7 @@ export class PostsService {
       excerpt: translation.excerpt,
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      contentUpdatedAt: publicContentUpdatedAt(post),
       content: translation.content,
       locales: availableLocales(post.translations),
       tags: publicTags(post, locale),
@@ -201,6 +205,12 @@ export class PostsService {
       await this.tags.assertExist(input.tagIds);
       data.tagIds = [...new Set(input.tagIds)];
     }
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: data.status ?? existing.status,
+      coverImageUrl: data.coverImageUrl !== undefined ? data.coverImageUrl : existing.coverImageUrl,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
     const updated = toAdminPost(await this.repository.update(id, data));
     await this.activity.record(actor, {
       action: `post.${publishVerb(existing, updated, input)}`,
@@ -235,6 +245,7 @@ export class PostsService {
       excerpt: translation.excerpt,
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
+      contentUpdatedAt: publicContentUpdatedAt(post),
       tags: publicTags(post, locale),
     };
   }

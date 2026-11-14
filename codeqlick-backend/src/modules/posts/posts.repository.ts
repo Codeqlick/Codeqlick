@@ -37,6 +37,7 @@ export interface PostUpdateData {
   status?: PublishStatus;
   publishedAt?: Date | null;
   coverImageUrl?: string | null;
+  contentUpdatedAt?: Date;
   translations?: PostTranslationData[];
   tagIds?: string[];
 }
