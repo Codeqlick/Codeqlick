@@ -27,6 +27,10 @@ export const slugSchema = z
 export const idParamSchema = z.object({ id: z.uuid() });
 export type IdParam = z.infer<typeof idParamSchema>;
 
+/** `:id/revisions/:revisionId` of a post or case study (decision 52). */
+export const contentRevisionParamSchema = z.object({ id: z.uuid(), revisionId: z.uuid() });
+export type ContentRevisionParam = z.infer<typeof contentRevisionParamSchema>;
+
 export const slugParamSchema = z.object({ slug: slugSchema });
 export type SlugParam = z.infer<typeof slugParamSchema>;
 

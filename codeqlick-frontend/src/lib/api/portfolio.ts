@@ -3,11 +3,13 @@ import { apiFetch } from './client';
 import { PUBLIC_REVALIDATE } from './posts';
 import type {
   AdminPortfolioItem,
+  ContentRevision,
   Locale,
   Paginated,
   PortfolioDetail,
   PortfolioFilters,
   PortfolioInput,
+  PortfolioRevision,
   PortfolioSummary,
 } from './types';
 
@@ -79,4 +81,25 @@ export function adminDeletePortfolioItem(id: string) {
     method: 'DELETE',
     auth: 'required',
   });
+}
+
+const revisionsPath = (id: string) => `/admin/portfolio/${encodeURIComponent(id)}/revisions`;
+
+/** The case study's earlier versions, newest first (at most 20). */
+export function adminListPortfolioRevisions(id: string) {
+  return apiFetch<ContentRevision[]>(revisionsPath(id), { auth: 'required' });
+}
+
+export function adminGetPortfolioRevision(id: string, revisionId: string) {
+  return apiFetch<PortfolioRevision>(`${revisionsPath(id)}/${encodeURIComponent(revisionId)}`, {
+    auth: 'required',
+  });
+}
+
+/** Puts that version back (the current content becomes a revision). */
+export function adminRestorePortfolioRevision(id: string, revisionId: string) {
+  return apiFetch<AdminPortfolioItem>(
+    `${revisionsPath(id)}/${encodeURIComponent(revisionId)}/restore`,
+    { method: 'POST', auth: 'required' },
+  );
 }

@@ -7,8 +7,10 @@ import {
   type Prisma,
   type Tag,
 } from '../../generated/prisma/client.js';
+import { revisionsToPrune, sameSnapshot } from '../../common/content-revisions.js';
 import { liveWhere } from '../../common/publishing.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { postSnapshot } from './post-snapshot.js';
 
 export type PostWithTranslations = Post & {
   translations: PostTranslation[];
@@ -150,10 +152,16 @@ export class PostsRepository {
     });
   }
 
-  /** Updates the post; when `translations` is given they replace the existing ones wholesale. */
-  update(id: string, data: PostUpdateData): Promise<PostWithTranslations> {
+  /**
+   * Updates the post; when `translations` is given they replace the existing ones wholesale. When
+   * its content changes, the previous content is kept as a revision by `authorId` in the same
+   * transaction, and only the latest revisions are kept (decision 52).
+   */
+  update(id: string, data: PostUpdateData, authorId: string | null) {
     const { translations, tagIds, ...post } = data;
-    return this.prisma.$transaction(async (tx) => {
+    const include = withTranslations;
+    return this.prisma.$transaction(async (tx): Promise<PostWithTranslations> => {
+      const before = await tx.post.findUniqueOrThrow({ where: { id }, include });
       if (tagIds) {
         await tx.postTag.deleteMany({ where: { postId: id } });
         await tx.postTag.createMany({ data: tagIds.map((tagId) => ({ postId: id, tagId })) });
@@ -164,7 +172,43 @@ export class PostsRepository {
           data: translations.map((t) => ({ ...t, postId: id })),
         });
       }
-      return tx.post.update({ where: { id }, data: post, include: withTranslations });
+      const after = await tx.post.update({ where: { id }, data: post, include });
+      const previous = postSnapshot(before);
+      if (!sameSnapshot(previous, postSnapshot(after))) {
+        await tx.postRevision.create({
+          data: { postId: id, snapshot: previous as Prisma.InputJsonValue, authorId },
+        });
+        const kept = await tx.postRevision.findMany({
+          where: { postId: id },
+          orderBy: { createdAt: 'desc' },
+          select: { id: true },
+        });
+        const old = revisionsToPrune(kept);
+        if (old.length > 0) await tx.postRevision.deleteMany({ where: { id: { in: old } } });
+      }
+      return after;
+    });
+  }
+
+  /** The post's revisions, newest first. */
+  revisions(postId: string) {
+    return this.prisma.postRevision.findMany({
+      where: { postId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true, author: { select: { name: true } } },
+    });
+  }
+
+  /** One of the post's revisions with its snapshot; null when it isn't that post's. */
+  findRevision(postId: string, id: string) {
+    return this.prisma.postRevision.findFirst({
+      where: { id, postId },
+      select: {
+        id: true,
+        createdAt: true,
+        snapshot: true,
+        author: { select: { name: true } },
+      },
     });
   }
 
