@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { CloudDeviceCode, CloudToken, Prisma } from '../../generated/prisma/client.js';
+import type { CloudDeviceCode, CloudToken, Locale, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type TokenRow = CloudToken & { team: { slug: string; name: string } | null };
@@ -13,6 +13,27 @@ export type TokenOwnerRow = CloudToken & {
     registeredAt: Date | null;
   };
 };
+
+/** A token and its person, for the expiry emails. */
+export interface TokenExpiryRow {
+  id: string;
+  name: string;
+  prefix: string;
+  expiresAt: Date | null;
+  lastUsedAt: Date | null;
+  team: { slug: string; name: string } | null;
+  user: { id: string; email: string; name: string; locale: Locale };
+}
+
+const expirySelect = {
+  id: true,
+  name: true,
+  prefix: true,
+  expiresAt: true,
+  lastUsedAt: true,
+  team: { select: { slug: true, name: true } },
+  user: { select: { id: true, email: true, name: true, locale: true } },
+} satisfies Prisma.CloudTokenSelect;
 
 /** Cloud's API tokens and CLI sign-ins (architecture 4.13). */
 @Injectable()
@@ -65,6 +86,50 @@ export class CloudTokensRepository {
     await this.prisma.cloudToken.update({
       where: { id },
       data: { lastUsedAt: at, lastUsedIp: ip },
+    });
+  }
+
+  /** Tokens expiring in (now, until], not warned yet, used or made since `activeSince`. */
+  findToWarn(now: Date, until: Date, activeSince: Date): Promise<TokenExpiryRow[]> {
+    return this.prisma.cloudToken.findMany({
+      where: {
+        expiresAt: { gt: now, lte: until },
+        expiryWarnedAt: null,
+        OR: [{ lastUsedAt: { gte: activeSince } }, { createdAt: { gte: activeSince } }],
+        user: { isActive: true },
+      },
+      select: expirySelect,
+      orderBy: { expiresAt: 'asc' },
+    });
+  }
+
+  /** Marks the tokens as warned if they weren't yet; returns how many this call claimed. */
+  async claimWarning(ids: string[], at: Date): Promise<number> {
+    const { count } = await this.prisma.cloudToken.updateMany({
+      where: { id: { in: ids }, expiryWarnedAt: null },
+      data: { expiryWarnedAt: at },
+    });
+    return count;
+  }
+
+  /** Undoes `claimWarning` (same instant) when the email couldn't be sent, so it is retried. */
+  async releaseWarning(ids: string[], at: Date): Promise<void> {
+    await this.prisma.cloudToken.updateMany({
+      where: { id: { in: ids }, expiryWarnedAt: at },
+      data: { expiryWarnedAt: null },
+    });
+  }
+
+  /** Expired tokens that were used since `usedSince` (the last chance to tell their person). */
+  findExpiredUsedSince(now: Date, usedSince: Date): Promise<TokenExpiryRow[]> {
+    return this.prisma.cloudToken.findMany({
+      where: {
+        expiresAt: { lt: now },
+        lastUsedAt: { gte: usedSince },
+        user: { isActive: true },
+      },
+      select: expirySelect,
+      orderBy: { expiresAt: 'asc' },
     });
   }
 

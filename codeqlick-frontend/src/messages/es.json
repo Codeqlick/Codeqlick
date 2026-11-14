@@ -5308,6 +5308,8 @@
       "lastUsed": "Usado {when} desde {ip}",
       "neverUsed": "Sin usar",
       "expiresOn": "Caduca {when}",
+      "expiresToday": "Caduca hoy",
+      "expiresSoon": "Caduca en {days, plural, one {# día} other {# días}}",
       "noExpiry": "No caduca",
       "revoke": "Revocar",
       "tooMany": "Tienes 20 tokens: revoca uno antes."

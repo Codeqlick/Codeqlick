@@ -30,6 +30,24 @@ export function formatWhen(iso: string, locale: string): string {
 }
 
 /**
+ * Days left before a token expires, when that is within `windowDays` (default 7) and still in
+ * the future: 0 means under 24 hours, 1..7 are the days left rounded up. null otherwise.
+ */
+export function expiringInDays(
+  expiresAt: string | null,
+  now: Date = new Date(),
+  windowDays = 7,
+): number | null {
+  if (!expiresAt) return null;
+  const left = new Date(expiresAt).getTime() - now.getTime();
+  if (!Number.isFinite(left) || left <= 0) return null;
+  const day = 24 * 60 * 60 * 1000;
+  if (left < day) return 0;
+  const days = Math.ceil(left / day);
+  return days <= windowDays ? days : null;
+}
+
+/**
  * The teams a project can move to: the caller's other teams where they are an owner or an admin
  * (architecture 4.13, moving a project to another team), in the order given.
  */
