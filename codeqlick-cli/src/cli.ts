@@ -14,6 +14,7 @@ import {
   type AnalyticsRow,
   type Build,
   type BuildStatus,
+  type DeployHook,
   type Deployment,
   type GitSettings,
   type Project,
@@ -77,11 +78,14 @@ Builds from Git:
   env add <KEY> [value]     Save one (no value: read from stdin, or asked without echo)
       --production --preview  where it applies (both when neither is given)
   env rm <KEY>              Delete one
+  hooks                     Deploy hooks: secret URLs a CMS calls to rebuild a branch
+  hooks add <name> [--branch <name>]   Make one (the production branch by default); its URL is shown once
+  hooks rm <id or name>     Delete one: its URL stops working at once
   builds                    The latest builds
   builds start [--branch <name>]   Build the branch's latest commit and follow the log
   builds cancel <number>    Cancel a queued or running build
   logs [number]             A build's log (the latest by default), followed while it runs
-      --json                  (git, env, builds) print the API's answer
+      --json                  (git, env, hooks, builds) print the API's answer
 
 Analytics and key-value store:
   analytics                 Visitors, page views, top pages and sources
@@ -670,8 +674,14 @@ function duration(ms: number | null): string {
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }
 
+/** What a build was for: the pull request, or the branch (with the hook's name for hook builds). */
+export function buildSubject(b: Pick<Build, 'pullRequest' | 'branch' | 'trigger' | 'hookName'>) {
+  if (b.pullRequest) return `#${b.pullRequest}`;
+  return b.trigger === 'hook' ? `${b.branch} (hook ${b.hookName ?? '?'})` : b.branch;
+}
+
 function buildLine(b: Build): string {
-  const subject = b.pullRequest ? `#${b.pullRequest}` : b.branch;
+  const subject = buildSubject(b);
   const message = (b.commitMessage ?? '').split('\n')[0]!.slice(0, 60);
   return [
     bold(`${b.number}`.padStart(4)),
@@ -755,6 +765,54 @@ async function builds(action: string | undefined, arg: string | undefined, optio
     return 0;
   }
   throw new UsageError(`Unknown action "${action}": start or cancel.`);
+}
+
+/** The hook an argument names: its id, else its name (names are unique in a project). */
+export function findHook<T extends { id: string; name: string }>(
+  hooks: T[],
+  ref: string,
+): T | undefined {
+  return hooks.find((h) => h.id === ref) ?? hooks.find((h) => h.name === ref);
+}
+
+function showHook(h: DeployHook): void {
+  const called = h.lastCalledAt ? new Date(h.lastCalledAt).toLocaleString() : 'never called';
+  console.log(
+    `${bold(h.name)}  ${h.branch}  ${dim(`${h.prefix}…`)}  ${dim(h.createdBy?.name ?? '')}  ${dim(called)}`,
+  );
+}
+
+async function hooks(action: string | undefined, arg: string | undefined, options: Options) {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (!action || action === 'ls' || action === 'list') {
+    const list = await api.hooks(project.id);
+    if (options.json) console.log(JSON.stringify(list, null, 2));
+    else if (list.length === 0) console.log(dim('No deploy hooks yet: codeqlick hooks add <name>'));
+    else list.forEach(showHook);
+    return;
+  }
+  if (action === 'add') {
+    if (!arg || arg.length > 60)
+      throw new UsageError('What name (1-60)? codeqlick hooks add <name>');
+    const hook = await api.createHook(project.id, arg, options.branch);
+    if (options.json) return console.log(JSON.stringify(hook, null, 2));
+    console.log(`${green('✓')} Deploy hook ${bold(hook.name)} builds ${bold(hook.branch)}.`);
+    console.log(`\n  ${hook.url ?? ''}\n`);
+    console.log(
+      "Paste it in your CMS's webhook (a POST, no body needed). It is shown only now: keep it secret.",
+    );
+    return;
+  }
+  if (action === 'rm' || action === 'remove') {
+    if (!arg) throw new UsageError('Which hook? codeqlick hooks rm <id or name>');
+    const found = findHook(await api.hooks(project.id), arg);
+    if (!found) throw new UsageError(`${project.slug} has no deploy hook "${arg}".`);
+    await api.deleteHook(project.id, found.id);
+    console.log(`${green('✓')} Deleted ${found.name}: its URL no longer works.`);
+    return;
+  }
+  throw new UsageError(`Unknown action "${action}": add or rm.`);
 }
 
 async function logs(arg: string | undefined, options: Options): Promise<number> {
@@ -1089,6 +1147,9 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'env':
         await env(rest[0], rest[1], rest[2], options);
+        break;
+      case 'hooks':
+        await hooks(rest[0], rest[1], options);
         break;
       case 'builds':
         return await builds(rest[0], rest[1], options);

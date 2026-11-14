@@ -172,6 +172,7 @@ export class CloudTeamsService {
     action: string,
     targetLabel: string | null,
     details?: Prisma.InputJsonValue,
+    ip?: string | null,
   ): Promise<void> {
     try {
       await this.repository.event({
@@ -182,6 +183,7 @@ export class CloudTeamsService {
         action,
         targetLabel,
         details,
+        ip,
       });
     } catch (error) {
       this.logger.error(`Could not record ${action}: ${String(error)}`);

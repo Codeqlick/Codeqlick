@@ -717,12 +717,40 @@ export type CloudGit = {
   buildPullRequests: boolean;
 };
 
+/** A deploy hook (architecture 4.13); `url` is only in the answer to making it: shown once. */
+export type CloudDeployHook = {
+  id: string;
+  name: string;
+  branch: string;
+  /** The token's first 12 characters, to recognise it. */
+  prefix: string;
+  lastCalledAt: string | null;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  url?: string;
+};
+
+export const listCloudHooks = (projectId: string) =>
+  apiFetch<{ items: CloudDeployHook[] }>(`/cloud/projects/${projectId}/hooks`, auth);
+
+export const createCloudHook = (projectId: string, input: { name: string; branch?: string }) =>
+  apiFetch<CloudDeployHook>(`/cloud/projects/${projectId}/hooks`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const deleteCloudHook = (projectId: string, hookId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/hooks/${hookId}`, { ...write, method: 'DELETE' });
+
 export type CloudBuildStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELED';
 
 export type CloudBuild = {
   id: string;
   number: number;
-  trigger: 'push' | 'pull_request' | 'manual';
+  trigger: 'push' | 'pull_request' | 'manual' | 'hook';
+  /** The deploy hook's name when the build came from one (kept after the hook is deleted). */
+  hookName: string | null;
   target: 'preview' | 'production';
   branch: string;
   commit: string;
