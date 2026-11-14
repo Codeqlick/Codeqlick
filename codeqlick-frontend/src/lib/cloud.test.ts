@@ -3,12 +3,14 @@ import {
   addressHost,
   addressHref,
   cloudSlug,
+  configJson,
   formatBytes,
   hookBranchValid,
   hookName,
   isAddressHost,
   isProtected,
   protectionInput,
+  ruleSettings,
 } from './cloud';
 
 describe('formatBytes', () => {
@@ -102,5 +104,23 @@ describe('hookBranchValid', () => {
     expect(hookBranchValid('feature/new-docs_1.0')).toBe(true);
     expect(hookBranchValid('a b')).toBe(false);
     expect(hookBranchValid('a'.repeat(201))).toBe(false);
+  });
+});
+
+describe('ruleSettings', () => {
+  it('lists only the settings that differ from the defaults', () => {
+    expect(ruleSettings({ cleanUrls: true, trailingSlash: null })).toEqual([]);
+    expect(ruleSettings({ cleanUrls: false, trailingSlash: null })).toEqual([
+      { key: 'cleanUrls', value: false },
+    ]);
+    expect(ruleSettings({ cleanUrls: true, trailingSlash: false })).toEqual([
+      { key: 'trailingSlash', value: false },
+    ]);
+  });
+});
+
+describe('configJson', () => {
+  it('pretty-prints the config with two spaces', () => {
+    expect(configJson({ trailingSlash: true })).toBe('{\n  "trailingSlash": true\n}');
   });
 });

@@ -19,11 +19,13 @@ import { CloudDatabasesRepository } from './cloud-databases.repository.js';
 import { CloudDatabasesService } from './cloud-databases.service.js';
 import { CloudPgClient } from './cloud-pg.client.js';
 import {
+  CloudEdgeController,
   CloudProtectionController,
   CloudProtectionPublicController,
 } from './cloud-protection.controller.js';
 import { CloudProtectionRepository } from './cloud-protection.repository.js';
 import { CloudProtectionService } from './cloud-protection.service.js';
+import { CloudRulesService } from './cloud-rules.service.js';
 import { CloudStorageController } from './cloud-storage.controller.js';
 import { CloudStorageRepository } from './cloud-storage.repository.js';
 import { CloudStorageService } from './cloud-storage.service.js';
@@ -77,6 +79,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudAnalyticsPublicController,
     CloudKvPublicController,
     CloudProtectionPublicController,
+    CloudEdgeController,
     CloudController,
     CloudFormsController,
     CloudMonitorsController,
@@ -129,6 +132,7 @@ import { CloudTokensService } from './cloud-tokens.service.js';
     CloudStorageService,
     CloudProtectionRepository,
     CloudProtectionService,
+    CloudRulesService,
     GithubClient,
     { provide: API_TOKEN_RESOLVER, useExisting: CloudTokensService },
   ],

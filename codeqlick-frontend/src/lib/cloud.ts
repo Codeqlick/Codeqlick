@@ -120,3 +120,19 @@ export function hookName(text: string): string | null {
 export function hookBranchValid(branch: string): boolean {
   return branch.length <= 200 && /^[\w./-]+$/.test(branch);
 }
+
+/** The non-default settings of a deployment's rules, to show next to the counts. */
+export function ruleSettings(rules: {
+  cleanUrls: boolean;
+  trailingSlash: boolean | null;
+}): Array<{ key: 'cleanUrls' | 'trailingSlash'; value: boolean }> {
+  const out: Array<{ key: 'cleanUrls' | 'trailingSlash'; value: boolean }> = [];
+  if (!rules.cleanUrls) out.push({ key: 'cleanUrls', value: false });
+  if (rules.trailingSlash !== null) out.push({ key: 'trailingSlash', value: rules.trailingSlash });
+  return out;
+}
+
+/** The parsed `codeqlick.json` as shown read-only in the console. */
+export function configJson(config: unknown): string {
+  return JSON.stringify(config, null, 2);
+}

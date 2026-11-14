@@ -8,6 +8,7 @@ import {
 import * as argon2 from 'argon2';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CloudCtx } from './cloud-caller.js';
+import type { RedirectStatus } from './cloud-config.js';
 import type { ProtectionPageError } from './cloud-protection-page.js';
 import { CloudProtectionRepository, type ProtectedProject } from './cloud-protection.repository.js';
 import {
@@ -25,6 +26,7 @@ import {
   type ProtectionMode,
 } from './cloud-protection.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
+import { CloudRulesService } from './cloud-rules.service.js';
 import type { ProtectionInput } from './cloud.schemas.js';
 import { CloudStorage } from './cloud.storage.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -43,7 +45,17 @@ export interface ProxyHeaders {
   slug?: string;
   kind?: string;
   access?: string;
+  /** Only for rules (4.13 "Redirects, rewrites and headers"): the deployment and the request. */
+  deployment?: string;
+  uri?: string;
+  args?: string;
 }
+
+/** What the edge check answers Nginx (`GET /cloud/edge/check`). */
+export type EdgeAnswer =
+  | { type: 'password' }
+  | { type: 'redirect'; status: RedirectStatus; location: string }
+  | { type: 'serve'; path: string; headers: Record<string, string> };
 
 /** The password page to show (the controller adds the visitor's language). */
 export interface PageAnswer {
@@ -62,6 +74,8 @@ export interface RedirectAnswer {
 }
 
 export type VisitorAnswer = PageAnswer | RedirectAnswer;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 const digest = (value: string) => createHash('sha256').update(value).digest();
 
@@ -89,6 +103,7 @@ export class CloudProtectionService {
     private readonly teams: CloudTeamsService,
     private readonly storage: CloudStorage,
     private readonly config: AppConfigService,
+    private readonly rules: CloudRulesService,
   ) {
     this.cookieKey = protectionKey(config.credentialsSecret, 'cloud-protection-v1');
     this.ticketKey = protectionKey(config.credentialsSecret, 'cloud-protection-ticket-v1');
@@ -242,6 +257,24 @@ export class CloudProtectionService {
     // Not protected for that kind (a marker not yet removed), suspended or unknown: through.
     if (!project) return true;
     return this.validAccess(project, headers.access, host, now);
+  }
+
+  /**
+   * The one check Nginx makes per request that needs it: the password first, then the
+   * deployment's rules (a redirect, or the file to serve and the headers to add). A deployment
+   * without rules answers an empty path: today's behaviour.
+   */
+  async edge(headers: ProxyHeaders, now: number = Date.now()): Promise<EdgeAnswer> {
+    if (!(await this.check(headers, now))) return { type: 'password' };
+    const deployment = headers.deployment?.trim().toLowerCase();
+    if (!deployment || !UUID.test(deployment) || headers.uri === undefined) {
+      return { type: 'serve', path: '', headers: {} };
+    }
+    const result = await this.rules.evaluate(deployment, headers.uri, headers.args ?? '');
+    if (!result) return { type: 'serve', path: '', headers: {} };
+    return result.kind === 'redirect'
+      ? { type: 'redirect', status: result.status, location: result.location }
+      : { type: 'serve', path: result.path, headers: result.headers };
   }
 
   private validAccess(

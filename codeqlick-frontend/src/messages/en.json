@@ -4796,6 +4796,15 @@
       "promote": "Publish",
       "delete": "Delete",
       "via": "via {token}",
+      "deployment": "Deployment",
+      "rules": {
+        "badge": "Rules",
+        "title": "Rules",
+        "none": "This deployment has no codeqlick.json rules.",
+        "summary": "Rules: {redirects, plural, one {# redirect} other {# redirects}}, {rewrites, plural, one {# rewrite} other {# rewrites}}, {headers, plural, one {# header rule} other {# header rules}}",
+        "file": "codeqlick.json (as parsed)",
+        "readOnly": "Read-only: the file travels with your code, so change it there and deploy again."
+      },
       "files": "{count, plural, one {# file} other {# files}}",
       "suspendedTitle": "This project is suspended",
       "suspendedBody": "Its addresses show a notice and it takes no deployments. Reason: {reason}. Reply to our email if you think it's a mistake.",
