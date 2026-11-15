@@ -1104,15 +1104,45 @@ export type CloudAuditListItem = {
   id: string;
   url: string;
   score: number;
-  /** Made for a build's preview, not by a member. */
-  preview: boolean;
+  /** `preview`: made for a build's preview; `scheduled`: the weekly check of production. */
+  kind: CloudAuditKind;
   createdAt: string;
 };
+
+export type CloudAuditKind = 'manual' | 'preview' | 'scheduled';
 
 export const listCloudAudits = (team: string, page = 1) =>
   apiFetch<Paginated<CloudAuditListItem>>(`/cloud/teams/${encodeURIComponent(team)}/audits`, {
     ...auth,
     query: { page, pageSize: 20 },
+  });
+
+/** The weekly website check of a project's production (architecture 4.13, decision 80). */
+export type CloudProductionChecks = {
+  enabled: boolean;
+  /** The next run; null when the check is off. */
+  nextAt: string | null;
+  /** The address checked: the hosting address, never a custom domain. */
+  url: string;
+  /** The last 12 scheduled checks, newest first. */
+  items: Array<{
+    id: string;
+    score: number;
+    categories: { speed: number; mobile: number; seo: number; security: number };
+    createdAt: string;
+    /** The score or a check got worse than the check before it. */
+    dropped: boolean;
+  }>;
+};
+
+export const getCloudProductionChecks = (projectId: string) =>
+  apiFetch<CloudProductionChecks>(`/cloud/projects/${projectId}/production-checks`, auth);
+
+export const setCloudProductionChecks = (projectId: string, productionChecks: boolean) =>
+  apiFetch<CloudProject>(`/cloud/projects/${projectId}`, {
+    ...write,
+    method: 'PATCH',
+    body: { productionChecks },
   });
 
 export const getCloudAudit = (id: string, locale: 'en' | 'es') =>

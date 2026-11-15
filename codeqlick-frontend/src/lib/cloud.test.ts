@@ -23,6 +23,7 @@ import {
   monitorKeyword,
   monitorKeywordMode,
   notifiedFormNames,
+  scoreTone,
   parseRebuildForm,
   parseSlowMs,
   productionLockValues,
@@ -525,5 +526,16 @@ describe('isGitBranchName', () => {
     ]) {
       expect(isGitBranchName(name), name).toBe(false);
     }
+  });
+});
+
+describe('scoreTone', () => {
+  it('maps the score to a tone at 90 and 50', () => {
+    expect(scoreTone(100)).toBe('success');
+    expect(scoreTone(90)).toBe('success');
+    expect(scoreTone(89)).toBe('warning');
+    expect(scoreTone(50)).toBe('warning');
+    expect(scoreTone(49)).toBe('danger');
+    expect(scoreTone(0)).toBe('danger');
   });
 });

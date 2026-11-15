@@ -20,6 +20,13 @@ export function formatBytes(bytes: number, locale: string): string {
   return `${number} ${UNITS[unit]}`;
 }
 
+/** The tone of a website-check score: 90 and over good, 50 and over to improve, else poor. */
+export function scoreTone(score: number): 'success' | 'warning' | 'danger' {
+  if (score >= 90) return 'success';
+  if (score >= 50) return 'warning';
+  return 'danger';
+}
+
 /** A date and time in Madrid, short: "12 nov 2026, 18:05". */
 export function formatWhen(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
