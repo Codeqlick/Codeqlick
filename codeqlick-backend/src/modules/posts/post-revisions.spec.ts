@@ -1,6 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ActivityService } from '../activity/activity.service.js';
+import type { IndexNowService } from '../indexnow/indexnow.service.js';
 import { postSnapshot } from './post-snapshot.js';
 import type { PostsRepository, PostWithTranslations } from './posts.repository.js';
 import { PostsService } from './posts.service.js';
@@ -70,6 +71,7 @@ describe('PostsService revisions', () => {
       repository as unknown as PostsRepository,
       activity as unknown as ActivityService,
       tags as unknown as TagsService,
+      { announce: vi.fn() } as unknown as IndexNowService,
     );
   });
 
@@ -119,6 +121,8 @@ describe('PostsService revisions', () => {
         coverImageUrl: 'https://x.test/old.png',
         tagIds: ['t1'],
         translations: [{ locale: 'ES', title: 'Antes', excerpt: 'Antes', content: 'Viejo' }],
+        // The post is live and its content changes: readers see "Updated on" (4.2).
+        contentUpdatedAt: expect.any(Date),
       },
       'a1',
     );

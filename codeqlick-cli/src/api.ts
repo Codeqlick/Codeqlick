@@ -188,6 +188,22 @@ export interface GitSettingsInput {
   nodeVersion?: string;
 }
 
+export type Framework =
+  'astro' | 'docusaurus' | 'gatsby' | 'next' | 'nuxt' | 'sveltekit' | 'eleventy' | 'cra' | 'vite';
+
+export type DetectNote =
+  'next-not-static' | 'sveltekit-no-static-adapter' | 'node-unsupported' | 'no-package-json';
+
+/** The build settings suggested from what a repository contains (architecture 4.13). */
+export interface DetectedSettings {
+  framework: Framework | null;
+  buildCommand: string;
+  outputDir: string;
+  nodeVersion: string;
+  nodeFrom: '.nvmrc' | '.node-version' | 'engines' | null;
+  notes: DetectNote[];
+}
+
 export interface TeamGithub {
   configured: boolean;
   installations: Array<{
@@ -209,6 +225,8 @@ export interface EnvVar {
   key: string;
   production: boolean;
   preview: boolean;
+  /** The one preview branch it is for; null = every build of its targets. */
+  branch: string | null;
   updatedAt: string;
 }
 
@@ -310,6 +328,7 @@ export interface Analytics {
   snippet: string;
   period: AnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
+  previous: { visitors: number; pageviews: number; complete: boolean };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
   pages: AnalyticsRow[];
   referrers: AnalyticsRow[];
@@ -332,6 +351,32 @@ export interface KvList {
   items: KvItem[];
   cursor: string | null;
   usage: { keys: number; bytes: number; maxKeys: number; maxBytes: number };
+}
+
+export type MonitorKind = 'HTTP' | 'HEARTBEAT';
+export type MonitorStatus = 'UP' | 'DOWN' | 'PAUSED' | 'UNKNOWN';
+/** A monitor as the API lists it (`MonitorView`). */
+export interface Monitor {
+  id: string;
+  name: string;
+  kind: MonitorKind;
+  url: string | null;
+  keyword: string | null;
+  keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
+  heartbeatUrl: string | null;
+  periodMinutes: number | null;
+  graceMinutes: number | null;
+  projectId: string | null;
+  enabled: boolean;
+  status: MonitorStatus;
+  statusSince: string;
+  lastCheckedAt: string | null;
+  lastPingAt: string | null;
+  deadlineAt: string | null;
+  lastError: string | null;
+  certExpiresAt: string | null;
+  alertIds: string[];
+  createdAt: string;
 }
 
 export class Api {
@@ -375,12 +420,11 @@ export class Api {
     return headers;
   }
 
-  /** A deployment's files as a `tar.gz` stream (built by the API while it is read). */
-  async archive(project: string, deployment: string): Promise<ReadableStream<Uint8Array>> {
-    const url = `${this.base}/cloud/projects/${project}/deployments/${deployment}/archive`;
+  /** A GET whose body is read as a stream (a download), or the API's problem when it fails. */
+  private async stream(path: string, accept: string): Promise<ReadableStream<Uint8Array>> {
     let response: Response;
     try {
-      response = await fetch(url, { headers: this.headers('application/gzip, application/json') });
+      response = await fetch(`${this.base}${path}`, { headers: this.headers(accept) });
     } catch (error) {
       throw new ApiError(0, `Can't reach ${this.base} (${(error as Error).message})`);
     }
@@ -396,6 +440,17 @@ export class Api {
     }
     return response.body;
   }
+
+  /** A deployment's files as a `tar.gz` stream (built by the API while it is read). */
+  archive = (project: string, deployment: string) =>
+    this.stream(
+      `/cloud/projects/${project}/deployments/${deployment}/archive`,
+      'application/gzip, application/json',
+    );
+
+  /** A build's whole kept log as a text stream (the log download route). */
+  buildLog = (project: string, number: number) =>
+    this.stream(`/cloud/projects/${project}/builds/${number}/log`, 'text/plain, application/json');
 
   me = () => this.request<Me>('GET', '/cloud/me');
   projects = (team: string) =>
@@ -450,6 +505,21 @@ export class Api {
       'GET',
       `/cloud/teams/${encodeURIComponent(team)}/github/repos?installationId=${installationId}`,
     ).then((r) => r.items);
+  detect = (
+    team: string,
+    input: { installationId: number; repoId: number; branch: string; rootDir: string },
+  ) => {
+    const query = new URLSearchParams({
+      installationId: String(input.installationId),
+      repoId: String(input.repoId),
+      branch: input.branch,
+      rootDir: input.rootDir,
+    });
+    return this.request<DetectedSettings>(
+      'GET',
+      `/cloud/teams/${encodeURIComponent(team)}/github/detect?${query.toString()}`,
+    );
+  };
   git = (project: string) => this.request<GitSettings>('GET', `/cloud/projects/${project}/git`);
   setGit = (project: string, settings: GitSettingsInput) =>
     this.request<GitSettings>('PUT', `/cloud/projects/${project}/git`, settings);
@@ -459,15 +529,27 @@ export class Api {
     this.request<{ items: EnvVar[] }>('GET', `/cloud/projects/${project}/env`).then((r) => r.items);
   setEnv = (
     project: string,
-    variable: { key: string; value: string; production: boolean; preview: boolean },
+    variable: {
+      key: string;
+      value: string;
+      production: boolean;
+      preview: boolean;
+      branch?: string;
+    },
   ) =>
     this.request<{ items: EnvVar[] }>('PUT', `/cloud/projects/${project}/env`, variable).then(
       (r) => r.items,
     );
   importEnv = (project: string, input: EnvImportInput) =>
     this.request<EnvImportResult>('POST', `/cloud/projects/${project}/env/import`, input);
-  deleteEnv = (project: string, key: string) =>
-    this.request<void>('DELETE', `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}`);
+  /** Deletes a variable: the one of `branch`, or the general one without it. */
+  deleteEnv = (project: string, key: string, branch?: string) =>
+    this.request<void>(
+      'DELETE',
+      `/cloud/projects/${project}/env?key=${encodeURIComponent(key)}${
+        branch ? `&branch=${encodeURIComponent(branch)}` : ''
+      }`,
+    );
   builds = (project: string, pageSize = 20) =>
     this.request<{ items: Build[] }>(
       'GET',
@@ -516,6 +598,10 @@ export class Api {
       `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
       { by },
     );
+  monitors = (team: string) =>
+    this.request<{ items: Monitor[] }>('GET', `/cloud/teams/${encodeURIComponent(team)}/monitors`);
+  setMonitorEnabled = (id: string, enabled: boolean) =>
+    this.request<Monitor>('PATCH', `/cloud/monitors/${encodeURIComponent(id)}`, { enabled });
   checkConfig = (teamSlug: string, config: string) => {
     // Multipart text fields (no file part), like the deployment upload.
     const form = new FormData();

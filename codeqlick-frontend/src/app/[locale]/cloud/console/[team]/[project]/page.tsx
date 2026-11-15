@@ -45,7 +45,8 @@ import {
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { env } from '@/lib/env';
-import { ANALYTICS_PERIODS, AnalyticsTab } from './AnalyticsTab';
+import { AnalyticsTab } from './AnalyticsTab';
+import { ANALYTICS_PERIODS } from './AnalyticsReport';
 import { BuildsTab } from './BuildsTab';
 import { DatabasesTab } from './DatabasesTab';
 import { FormsTab } from './FormsTab';
@@ -438,6 +439,19 @@ async function Deployments({
                       <ProtectionLock label={t('protection.locked')} />
                     ) : null}
                   </span>
+                  {deployment.branchUrl ? (
+                    <p className={styles.small}>
+                      {t('project.branchAddress')}:{' '}
+                      <a
+                        href={addressHref(protection, 'previews', deployment.branchUrl, open)}
+                        className={styles.mono}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {deployment.branchUrl.replace('https://', '')}
+                      </a>
+                    </p>
+                  ) : null}
                   <p className={styles.small}>
                     {formatWhen(deployment.createdAt, locale)}
                     {deployment.createdBy ? ` · ${deployment.createdBy.name}` : ''}

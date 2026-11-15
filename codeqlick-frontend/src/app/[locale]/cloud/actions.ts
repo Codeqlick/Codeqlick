@@ -27,6 +27,8 @@ import {
   deleteCloudKv,
   putCloudKv,
   setCloudAnalytics,
+  shareCloudAnalytics,
+  unshareCloudAnalytics,
   deleteCloudNotification,
   testCloudNotification,
   updateCloudNotification,
@@ -70,9 +72,11 @@ import {
   type CloudRole,
   cancelCloudBuild,
   deleteCloudEnv,
+  detectCloudGithub,
   disconnectCloudGit,
   getCloudGithubInstallUrl,
   importCloudEnv,
+  type CloudDetect,
   setCloudEnv,
   setCloudGit,
   setCloudRebuildSchedule,
@@ -82,6 +86,7 @@ import {
 import {
   hookBranchValid,
   hookName,
+  isGitBranchName,
   protectionInput,
   ENV_IMPORT_MAX_BYTES,
   envImportErrors,
@@ -90,8 +95,10 @@ import {
   monitorKeyword,
   monitorKeywordMode,
   parseRebuildForm,
+  parseSlowMs,
 } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { detectQuery } from '@/lib/cloud-detect';
 import { parseNoticeWindow, parseUpdateState } from '@/lib/cloud-notices';
 import { formBoolean, formString, formValues, type FormState, initialFormState } from '@/lib/forms';
 import { toDateTimeInput } from '@/lib/format';
@@ -800,6 +807,8 @@ export async function createMonitorAction(
   if (kind === 'HEARTBEAT' && !(period >= 1 && period <= 10080))
     fieldErrors.period = t('periodInvalid');
   if (kind === 'HEARTBEAT' && !(grace >= 1 && grace <= 1440)) fieldErrors.grace = t('graceInvalid');
+  const slow = parseSlowMs(formString(formData, 'slowMs'));
+  if (kind === 'HTTP' && !slow.ok) fieldErrors.slowMs = t('slowInvalid');
   if (Object.keys(fieldErrors).length > 0) return { status: 'error', fieldErrors, values };
   let id: string;
   try {
@@ -807,7 +816,14 @@ export async function createMonitorAction(
       await createCloudMonitor(
         team,
         kind === 'HTTP'
-          ? { kind, name, url, ...(keyword ? { keyword, keywordMode } : {}), alertIds }
+          ? {
+              kind,
+              name,
+              url,
+              ...(keyword ? { keyword, keywordMode } : {}),
+              alertIds,
+              slowMs: slow.ok ? slow.value : null,
+            }
           : { kind, name, periodMinutes: period, graceMinutes: grace, alertIds },
       )
     ).id;
@@ -846,6 +862,28 @@ export async function saveMonitorTextAction(
   }
   refresh(lang, `/${team}/monitors/${id}`);
   return { status: 'success', message: t('textSaved') };
+}
+
+/** Saves (or clears, when empty) an HTTP monitor's slow-response threshold. */
+export async function updateMonitorSlowAction(
+  locale: string,
+  team: string,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.monitors' });
+  const values = formValues(formData);
+  const slow = parseSlowMs(formString(formData, 'slowMs'));
+  if (!slow.ok) return { status: 'error', fieldErrors: { slowMs: t('slowInvalid') }, values };
+  try {
+    await updateCloudMonitor(id, { slowMs: slow.value });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, `/${team}/monitors/${id}`);
+  return { status: 'success', message: t('slowSaved') };
 }
 
 export async function toggleMonitorAction(formData: FormData): Promise<void> {
@@ -1115,6 +1153,25 @@ export async function connectGithubAction(formData: FormData): Promise<void> {
   redirect(url);
 }
 
+/**
+ * Suggested build settings for the connect form (4.13, Suggested settings). Null when they can't
+ * be had (an unknown branch or folder, GitHub down, too many asks): the form then stays as it is.
+ */
+export async function detectGitAction(
+  team: string,
+  repo: string,
+  branch: string,
+  rootDir: string,
+): Promise<CloudDetect | null> {
+  const query = detectQuery(repo, branch, rootDir);
+  if (!query) return null;
+  try {
+    return await detectCloudGithub(team, query);
+  } catch {
+    return null;
+  }
+}
+
 export async function saveGitAction(
   locale: string,
   path: string,
@@ -1226,16 +1283,33 @@ export async function saveEnvAction(
   const t = await getTranslations({ locale: lang, namespace: 'Cloud.git' });
   const key = formString(formData, 'key').toUpperCase();
   const value = String(formData.get('value') ?? '');
-  const production = formBoolean(formData, 'production');
   const preview = formBoolean(formData, 'preview');
+  // The branch field only shows with Previews ticked: a variable of one branch is preview-only.
+  const branch = preview ? formString(formData, 'branch') : '';
+  const production = formBoolean(formData, 'production');
+  const values = { ...formValues(formData, ['value']), key };
   if (!/^[A-Z_][A-Z0-9_]{0,63}$/.test(key))
-    return { status: 'error', fieldErrors: { key: t('keyInvalid') }, values: { key } };
+    return { status: 'error', fieldErrors: { key: t('keyInvalid') }, values };
   if (!production && !preview)
-    return { status: 'error', fieldErrors: { production: t('targetRequired') }, values: { key } };
+    return { status: 'error', fieldErrors: { production: t('targetRequired') }, values };
+  if (branch && !isGitBranchName(branch))
+    return { status: 'error', fieldErrors: { branch: t('envBranchInvalid') }, values };
+  // Like the API and the CLI: a branch variable is preview-only, never switched off silently.
+  if (branch && production)
+    return { status: 'error', fieldErrors: { branch: t('envBranchProduction') }, values };
   try {
-    await setCloudEnv(projectId, { key, value: value.slice(0, 4096), production, preview });
+    await setCloudEnv(projectId, {
+      key,
+      value: value.slice(0, 4096),
+      production,
+      preview,
+      ...(branch ? { branch } : {}),
+    });
   } catch (error) {
-    return failure(lang, error, { key });
+    if (isApiError(error) && error.status === 400 && error.fieldErrors.branch) {
+      return { status: 'error', fieldErrors: { branch: t('envBranchInvalid') }, values };
+    }
+    return failure(lang, error, values);
   }
   refresh(lang, path);
   return { status: 'success', message: t('envSaved') };
@@ -1276,9 +1350,11 @@ export async function importEnvAction(
 
 export async function deleteEnvAction(formData: FormData): Promise<void> {
   const locale = localeOrDefault(formData.get('locale'));
-  await deleteCloudEnv(formString(formData, 'project'), formString(formData, 'key')).catch(
-    () => undefined,
-  );
+  await deleteCloudEnv(
+    formString(formData, 'project'),
+    formString(formData, 'key'),
+    formString(formData, 'branch') || undefined,
+  ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
 
@@ -1530,6 +1606,40 @@ export async function toggleAnalyticsAction(formData: FormData): Promise<void> {
     formString(formData, 'project'),
     formString(formData, 'enabled') === 'on',
   ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function shareAnalyticsAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await shareCloudAnalytics(formString(formData, 'project')).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+/** Replaces the public link; the old one stops working, so it needs the ticked confirmation. */
+export async function renewAnalyticsLinkAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  if (!formBoolean(formData, 'confirm')) {
+    const t = await getTranslations({ locale: lang, namespace: 'Cloud.analytics.share' });
+    return { status: 'error', fieldErrors: { confirm: t('confirmNew') } };
+  }
+  try {
+    await shareCloudAnalytics(projectId);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success' };
+}
+
+export async function unshareAnalyticsAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await unshareCloudAnalytics(formString(formData, 'project')).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
 }
 

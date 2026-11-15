@@ -38,7 +38,7 @@ import type {
   TermsInput,
   UpdateTeamInput,
 } from './cloud.schemas.js';
-import { CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
+import { branchLabel, CloudStorage, deploymentLabel, productionLabel } from './cloud.storage.js';
 import { sha256 } from './cloud-tokens.service.js';
 import { buildMeters, type Meter } from './cloud-usage.js';
 import { CloudUsageService } from './cloud-usage.service.js';
@@ -332,6 +332,10 @@ export class CloudTeamsService {
       for (const deployment of project.deployments) {
         await this.storage.unlinkHost(deploymentLabel(project.slug, deployment.shortId));
         await this.storage.removeDeployment(deployment.id);
+      }
+      const branches = new Set(project.deployments.flatMap((d) => (d.branch ? [d.branch] : [])));
+      for (const branch of branches) {
+        await this.storage.unlinkHost(branchLabel(project.slug, branch));
       }
       for (const domain of project.domains) await this.storage.removeDomain(domain.name);
       await this.storage.removeProtection(project.slug);

@@ -1,15 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import {
+  analyticsToCsv,
   browserOf,
   campaignOf,
   deviceOf,
   fillSeries,
+  hashShareToken,
   isBot,
   madridMidnight,
+  newShareToken,
   osOf,
   parseHit,
   pathOf,
   periodRange,
+  previousRange,
   referrerOf,
   siteOf,
   trackerScript,
@@ -41,6 +45,11 @@ describe('Cloud web analytics', () => {
   it('tells which project an address belongs to', () => {
     expect(siteOf('web.codeqlick.app', 'codeqlick.app')).toEqual({ slug: 'web' });
     expect(siteOf('my-site--a1b2c3d4.codeqlick.app', 'codeqlick.app')).toEqual({ slug: 'my-site' });
+    expect(siteOf('my-site--b-feature-x.codeqlick.app', 'codeqlick.app')).toEqual({
+      slug: 'my-site',
+    });
+    expect(siteOf('my-site--b-.codeqlick.app', 'codeqlick.app')).toBeNull();
+    expect(siteOf('my-site--other.codeqlick.app', 'codeqlick.app')).toBeNull();
     expect(siteOf('a.b.codeqlick.app', 'codeqlick.app')).toBeNull();
     expect(siteOf('WWW.Example.com', 'codeqlick.app')).toEqual({ domain: 'www.example.com' });
     expect(siteOf('localhost', 'codeqlick.app')).toBeNull();
@@ -107,6 +116,33 @@ describe('Cloud web analytics', () => {
     expect(hours[23]!.t).toBe('2026-11-13T15:00:00.000Z');
   });
 
+  it('finds the window of the same length right before a period', () => {
+    const now = new Date('2026-11-13T15:30:00Z');
+    const day = periodRange('24h', now);
+    expect(previousRange('24h', day.since)).toEqual({
+      from: new Date('2026-11-11T16:00:00Z'),
+      until: day.since,
+    });
+    // 7d from 2026-11-07 (Madrid) → 2026-10-31 00:00 Madrid, after the change: winter time (UTC+1).
+    const week = periodRange('7d', now);
+    expect(previousRange('7d', week.since)).toEqual({
+      from: new Date('2026-10-30T23:00:00Z'),
+      until: week.since,
+    });
+    // The clocks go back on 2026-10-25 (UTC+2 → UTC+1). Here the change is inside both windows'
+    // neighbourhood but the edges stay on Madrid midnights: 2026-10-22 and 2026-10-15 (UTC+2).
+    const across = periodRange('7d', new Date('2026-10-28T10:00:00Z'));
+    expect(across.since).toEqual(new Date('2026-10-21T22:00:00Z'));
+    expect(previousRange('7d', across.since).from).toEqual(new Date('2026-10-14T22:00:00Z'));
+    // The previous window spans the change: it starts 2026-10-19 00:00 (UTC+2) and ends
+    // 2026-10-26 00:00 (UTC+1), so it is 169 hours long and still 7 Madrid days.
+    const spanning = periodRange('7d', new Date('2026-11-01T10:00:00Z'));
+    expect(spanning.since).toEqual(new Date('2026-10-25T23:00:00Z'));
+    const before = previousRange('7d', spanning.since);
+    expect(before.from).toEqual(new Date('2026-10-18T22:00:00Z'));
+    expect((before.until.getTime() - before.from.getTime()) / 3_600_000).toBe(169);
+  });
+
   it('builds a tracker that posts to the endpoint', () => {
     const script = trackerScript('https://api.codeqlick.com/v1/cloud/analytics/event');
     expect(script).toContain('"https://api.codeqlick.com/v1/cloud/analytics/event"');
@@ -114,5 +150,31 @@ describe('Cloud web analytics', () => {
     // It is valid JavaScript.
     expect(() => new Function(script)).not.toThrow();
     expect(script).not.toMatch(/\.cookie|localStorage|sessionStorage/);
+  });
+
+  it('writes the analytics CSV with a BOM, a header and safe cells', () => {
+    const csv = analyticsToCsv([
+      { date: '2026-11-13', kind: 'page', name: '/pricing', visitors: 3, count: 5 },
+      { date: '2026-11-13 14:00', kind: 'page', name: '=cmd|calc', visitors: 1, count: 1 },
+      { date: '2026-11-13', kind: 'event', name: '/a,b "c"', visitors: 2, count: 2 },
+    ]);
+    expect(csv.startsWith('\uFEFFkind,date,name,visitors,count\r\n')).toBe(true);
+    expect(csv.endsWith('\r\n')).toBe(true);
+    expect(csv.slice(1).trimEnd().split('\r\n')).toEqual([
+      'kind,date,name,visitors,count',
+      'page,2026-11-13,/pricing,3,5',
+      "page,2026-11-13 14:00,'=cmd|calc,1,1",
+      'event,2026-11-13,"/a,b ""c""",2,2',
+    ]);
+    expect(analyticsToCsv([])).toBe('\uFEFFkind,date,name,visitors,count\r\n');
+  });
+
+  it('makes shared-link tokens that are random and found again by their hash', () => {
+    const token = newShareToken();
+    expect(token).toMatch(/^cqa_[A-Za-z0-9_-]{32}$/);
+    expect(newShareToken()).not.toBe(token);
+    expect(hashShareToken(token)).toMatch(/^[0-9a-f]{64}$/);
+    expect(hashShareToken(token)).toBe(hashShareToken(token));
+    expect(hashShareToken(token)).not.toBe(hashShareToken(newShareToken()));
   });
 });

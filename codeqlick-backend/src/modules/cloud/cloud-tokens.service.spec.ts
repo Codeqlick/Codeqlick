@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
+import type { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import type { CloudRepository } from './cloud.repository.js';
 import type { CloudTokensRepository } from './cloud-tokens.repository.js';
@@ -46,6 +47,7 @@ function setup() {
     tokens as unknown as CloudTokensRepository,
     cloud as unknown as CloudRepository,
     { cloudUrl: 'https://cloud.codeqlick.com' } as unknown as AppConfigService,
+    { send: vi.fn(async () => undefined) } as unknown as MailService,
   );
   return { service, tokens, cloud };
 }

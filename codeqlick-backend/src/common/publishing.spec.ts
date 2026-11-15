@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PublishStatus } from '../generated/prisma/client.js';
-import { isScheduled, publishedAtOnCreate, publishedAtOnUpdate } from './publishing.js';
+import { isLive, isScheduled, publishedAtOnCreate, publishedAtOnUpdate } from './publishing.js';
 
 const { DRAFT, PUBLISHED } = PublishStatus;
 const earlier = new Date('2026-01-01T09:00:00Z');
@@ -37,5 +37,16 @@ describe('publication dates', () => {
     expect(isScheduled({ status: DRAFT, publishedAt: new Date('2026-10-15T00:00:00Z') }, now)).toBe(
       false,
     );
+  });
+
+  it('is live only when published and its date has come', () => {
+    const now = new Date('2026-10-14T12:00:00Z');
+    expect(isLive({ status: PUBLISHED, publishedAt: earlier }, now)).toBe(true);
+    expect(isLive({ status: PUBLISHED, publishedAt: now }, now)).toBe(true);
+    expect(isLive({ status: PUBLISHED, publishedAt: new Date('2026-10-15T00:00:00Z') }, now)).toBe(
+      false,
+    );
+    expect(isLive({ status: PUBLISHED, publishedAt: null }, now)).toBe(false);
+    expect(isLive({ status: DRAFT, publishedAt: earlier }, now)).toBe(false);
   });
 });

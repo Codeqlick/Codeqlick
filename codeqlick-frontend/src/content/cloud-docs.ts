@@ -82,6 +82,7 @@ En la pestaña **Git** del proyecto conecta GitHub (instala la app *Codeqlick Cl
 
 - cada **push a la rama de producción** se compila y se publica;
 - los push a **otras ramas** y las **pull requests** se compilan como vistas previas, y la pull request recibe un comentario con su dirección (las de forks no se compilan nunca);
+- cada rama distinta de la de producción tiene además una **dirección de rama** fija, \`https://<proyecto>--b-<rama>.${domain}\`, que muestra siempre la última vista previa de esa rama (el nombre se pasa a minúsculas y todo lo que no sea letra o cifra pasa a guion). Las vistas previas hechas con \`codeqlick deploy --branch\` también la tienen. Los nombres muy largos se acortan con un hash corto, y las ramas cuyo nombre da la misma dirección la comparten (sirve la más reciente);
 - GitHub muestra el estado de cada commit (*Codeqlick Cloud*).
 
 Ajusta la orden de instalación (\`npm ci\`), la de compilación (\`npm run build\`), la carpeta de salida (\`dist\`), la carpeta raíz y la versión de Node (20, 22 o 24). Las **variables de entorno** se guardan cifradas y no se pueden volver a leer; elige si son para producción, vistas previas o ambas. Cada compilación corre en un contenedor desechable de un servidor aparte, durante 15 minutos como máximo; el plan gratuito incluye 200 compilaciones al mes por equipo. Añade \`[skip cloud]\` al mensaje de un commit para no compilarlo.
@@ -191,7 +192,7 @@ Hasta 5 dominios por proyecto. \`www.tudominio.com\` y \`tudominio.com\` son dos
 
 En **Monitores** del equipo:
 
-- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días. Opcionalmente comprueba un **texto en la página** (hasta 100 caracteres, distingue mayúsculas): que la página lo contenga o que no lo contenga, en el primer MB de la respuesta.
+- **Una URL:** la comprobamos cada 5 minutos (http o https, puertos estándar). Funciona si responde por debajo de 400 en 15 segundos; tras dos fallos seguidos avisamos por email a quien elijas, y otra vez cuando vuelve. También avisamos si su certificado caduca en menos de 14 días. Opcionalmente comprueba un **texto en la página** (hasta 100 caracteres, distingue mayúsculas): que la página lo contenga o que no lo contenga, en el primer MB de la respuesta. Opcionalmente, un umbral de lentitud (de 500 a 14.000 ms): si 3 comprobaciones seguidas (unos 15 minutos) tardan más, avisamos de que va lento y, cuando 3 seguidas vuelven a la normalidad, de que se ha recuperado; nunca la marca como caída.
 - **Un latido:** para tareas programadas (copias, colas, cron). Dale cada cuánto se ejecuta y un margen, y llama a su URL al terminar:
 
 \`\`\`sh
@@ -348,6 +349,7 @@ In the project's **Git** tab, connect GitHub (install the *Codeqlick Cloud* app 
 
 - every **push to the production branch** is built and published;
 - pushes to **other branches** and **pull requests** are built as previews, and the pull request gets a comment with its address (forks are never built);
+- each branch other than the production one also has a fixed **branch address**, \`https://<project>--b-<branch>.${domain}\`, always showing the latest preview of that branch (the branch name is lowercased and anything but letters and digits becomes a dash). Previews made with \`codeqlick deploy --branch\` get it too. Very long names are shortened with a short hash, and branches whose names map to the same address share it (it serves the newest of them);
 - GitHub shows each commit's state (*Codeqlick Cloud*).
 
 Adjust the install command (\`npm ci\`), the build command (\`npm run build\`), the output folder (\`dist\`), the root folder and the Node version (20, 22 or 24). **Environment variables** are stored encrypted and can't be read back; choose whether they are for production, previews or both. Each build runs in a throwaway container on a separate server, for at most 15 minutes; the free plan includes 200 builds a month per team. Add \`[skip cloud]\` to a commit's message to skip it.
@@ -457,7 +459,7 @@ Up to 5 domains per project. \`www.yourdomain.com\` and \`yourdomain.com\` are t
 
 In the team's **Monitors**:
 
-- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days. Optionally it checks **text on the page** (up to 100 characters, case-sensitive): that the page contains it, or that it doesn't, in the first MB of the response.
+- **A URL:** checked every 5 minutes (http or https, standard ports). Up when it answers below 400 within 15 seconds; after two failures in a row we email the people you choose, and again when it's back. We also warn when its certificate expires in under 14 days. Optionally it checks **text on the page** (up to 100 characters, case-sensitive): that the page contains it, or that it doesn't, in the first MB of the response. Optionally set a slow threshold (500 to 14,000 ms): when 3 checks in a row (about 15 minutes) answer slower, we email that it is slow, and again when 3 in a row are back to normal; it never marks the site as down.
 - **A heartbeat:** for scheduled jobs (backups, queues, cron). Give it how often it runs and a grace, and call its URL when it ends:
 
 \`\`\`sh

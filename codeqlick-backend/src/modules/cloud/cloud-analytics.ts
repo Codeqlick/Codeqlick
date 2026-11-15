@@ -1,4 +1,5 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
+import { csvField } from '../../common/csv.js';
 
 /**
  * Cloud's web analytics (architecture 4.13 "Web analytics", decision 44): what an event says,
@@ -55,7 +56,11 @@ export function siteOf(
   const name = host.toLowerCase();
   const suffix = `.${hostingDomain}`;
   if (name.endsWith(suffix)) {
-    const match = /^([a-z0-9-]+?)(?:--[0-9a-f]{8})?$/.exec(name.slice(0, -suffix.length));
+    // A slug never holds `--`, so the first one splits it from a deployment or branch label.
+    const match =
+      /^([a-z0-9]+(?:-[a-z0-9]+)*)(?:--(?:[0-9a-f]{8}|b-[a-z0-9]+(?:-[a-z0-9]+)*))?$/.exec(
+        name.slice(0, -suffix.length),
+      );
     return match ? { slug: match[1]! } : null;
   }
   return name.includes('.') ? { domain: name } : null;
@@ -151,6 +156,17 @@ export function periodRange(
   return { since: madridMidnight(dayBefore(madridDay(now), days - 1)), unit: 'day', buckets: days };
 }
 
+/**
+ * The window of the same length right before a period: `[from, until)`, with `until` the
+ * period's `since`. Day periods go back whole Madrid days (so a clock change inside the window
+ * doesn't move the edges off midnight); `24h` goes back 24 hours.
+ */
+export function previousRange(period: AnalyticsPeriod, since: Date): { from: Date; until: Date } {
+  if (period === '24h') return { from: new Date(since.getTime() - 24 * 3_600_000), until: since };
+  const days = Number(period.slice(0, -1));
+  return { from: madridMidnight(dayBefore(madridDay(since), days)), until: since };
+}
+
 /** The Madrid date (`YYYY-MM-DD`) of an instant. */
 export const madridDay = (at: Date) =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(at);
@@ -213,4 +229,32 @@ w.addEventListener("popstate",view);
 w.codeqlick={track:function(name){if(typeof name==="string")send(name)}};
 if(d.visibilityState==="prerender")d.addEventListener("visibilitychange",function f(){if(d.visibilityState!=="prerender"){d.removeEventListener("visibilitychange",f);view()}});else view()})();
 `;
+}
+
+/** Most rows the analytics CSV holds. */
+export const EXPORT_ROWS = 100_000;
+
+/** The analytics CSV: UTF-8 with BOM, a row per day (or hour) and page or custom event. */
+export function analyticsToCsv(
+  rows: Array<{ date: string; kind: string; name: string; visitors: number; count: number }>,
+): string {
+  const lines = [
+    'kind,date,name,visitors,count',
+    ...rows.map((row) =>
+      [row.kind, row.date, row.name, String(row.visitors), String(row.count)]
+        .map(csvField)
+        .join(','),
+    ),
+  ];
+  return `\uFEFF${lines.join('\r\n')}\r\n`;
+}
+
+/** A shared analytics link's token: `cqa_` and 24 random bytes (architecture 4.13). */
+export function newShareToken(): string {
+  return `cqa_${randomBytes(24).toString('base64url')}`;
+}
+
+/** What is stored to find a token again (never the token itself in the clear). */
+export function hashShareToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }

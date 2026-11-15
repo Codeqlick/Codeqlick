@@ -17,11 +17,15 @@ import {
   type ConfigCheck,
   type BuildStatus,
   type DeployHook,
+  type DetectNote,
+  type DetectedSettings,
   type Deployment,
   type EnvImportResult,
   type DeploymentComparison,
   type DeploymentFiles,
+  type Framework,
   type GitSettings,
+  type Monitor,
   type Project,
   type Protection,
   type ProtectionDays,
@@ -43,7 +47,7 @@ import {
   writeProjectFile,
   PROJECT_FILE,
 } from './config.ts';
-import { archivePath, downloadFailure, exists, saveArchive } from './download.ts';
+import { archivePath, downloadFailure, exists, logPath, saveArchive } from './download.ts';
 import { collect, pack } from './pack.ts';
 import { VERSION } from './version.ts';
 
@@ -93,17 +97,20 @@ Commands:
 
 Builds from Git:
   git                       The connected repository and build settings
-  git connect <owner/repo>  Connect a repository (install the GitHub app in the console first)
+  git connect <owner/repo>  Connect a repository (install the GitHub app in the console first);
+                            build, output and Node are suggested from the repository unless given
+                            (not when the project is already connected to that repository)
       --branch <name>         production branch (the repository's default)
       --root <dir> --install <cmd> --build <cmd> --output <dir> --node <20|22|24>
   git disconnect            Stop building from Git
   env                       Environment variables (names only: values can't be read back)
   env add <KEY> [value]     Save one (no value: read from stdin, or asked without echo)
       --production --preview  where it applies (both when neither is given)
+      --branch <name>         only previews of that Git branch (implies --preview)
   env import <file>         Add the variables of a .env file ("-" reads stdin), all or nothing
       --production --preview  where they apply (both when neither is given)
       --overwrite             replace the ones that exist (otherwise they're skipped)
-  env rm <KEY>              Delete one
+  env rm <KEY> [--branch <name>]   Delete one (the branch's, or the general one)
   hooks                     Deploy hooks: secret URLs a CMS calls to rebuild a branch
   hooks add <name> [--branch <name>]   Make one (the production branch by default); its URL is shown once
   hooks rm <id or name>     Delete one: its URL stops working at once
@@ -113,7 +120,14 @@ Builds from Git:
                             --no-cache skips the dependency cache
   builds cancel <number>    Cancel a queued or running build
   logs [number]             A build's log (the latest by default), followed while it runs
+      -o, --out <file>        save the whole log to a file instead (--force overwrites one)
       --json                  (git, env, hooks, builds) print the API's answer
+
+Monitors (the team's, no linked project needed; --team or CODEQLICK_TEAM):
+  monitors                  The team's monitors: state, time in it and last check
+  monitors pause <id|name>  Stop checking one (no alerts); its id or exact name
+  monitors resume <id|name> Check it again (its state is UNKNOWN until the next check)
+      --json                  (monitors) print the API's answer
 
 Analytics and key-value store:
   analytics                 Visitors, page views, top pages and sources
@@ -773,6 +787,62 @@ function showGit(settings: GitSettings): void {
   for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(16))}${value}`);
 }
 
+const FRAMEWORKS: Record<Framework, string> = {
+  astro: 'Astro',
+  docusaurus: 'Docusaurus',
+  gatsby: 'Gatsby',
+  next: 'Next.js',
+  nuxt: 'Nuxt',
+  sveltekit: 'SvelteKit',
+  eleventy: 'Eleventy',
+  cra: 'Create React App',
+  vite: 'Vite',
+};
+
+const DETECT_NOTES: Record<DetectNote, string> = {
+  'next-not-static': "Next.js needs output: 'export' in next.config to be served as static files.",
+  'sveltekit-no-static-adapter': 'SvelteKit needs @sveltejs/adapter-static.',
+  'node-unsupported': "The repository asks for a Node version Cloud doesn't offer: check --node.",
+  'no-package-json':
+    'No package.json in this folder: pick the right root folder (--root), or use codeqlick deploy for a site that needs no build.',
+};
+
+/** The build settings to send: each option given wins over the suggestion (architecture 4.13). */
+export function withSuggestion(
+  options: { build?: string; output?: string; node?: string },
+  suggestion: DetectedSettings | null,
+): { buildCommand?: string; outputDir?: string; nodeVersion?: string } {
+  return {
+    buildCommand: options.build ?? suggestion?.buildCommand,
+    outputDir: options.output ?? suggestion?.outputDir,
+    nodeVersion: options.node ?? suggestion?.nodeVersion,
+  };
+}
+
+/**
+ * Whether a suggestion may fill the options not given: only while the project isn't connected, or
+ * when it moves to another repository. A project's saved settings for its own repository stay.
+ */
+export function suggestionApplies(current: Pick<GitSettings, 'repoId'>, repoId: number): boolean {
+  return current.repoId === null || current.repoId !== repoId;
+}
+
+/** The warning when the suggestion can't be had: the API then keeps what the project has. */
+export function detectFailed(current: Pick<GitSettings, 'repoId'>, error: Error): string {
+  const kept = current.repoId === null ? 'keeping the defaults' : 'keeping the current settings';
+  return `Couldn't suggest build settings (${error.message}): ${kept}.`;
+}
+
+/** What the suggestion found, then its notes, one line each. */
+export function detectSummary(suggestion: DetectedSettings): string[] {
+  const from = suggestion.nodeFrom === 'engines' ? 'engines in package.json' : suggestion.nodeFrom;
+  const settings = `build "${suggestion.buildCommand}", output ${suggestion.outputDir || '.'}, Node ${suggestion.nodeVersion}${from ? ` (${from})` : ''}`;
+  const found = suggestion.framework
+    ? `Detected ${FRAMEWORKS[suggestion.framework] ?? suggestion.framework} (package.json): ${settings}`
+    : `No framework detected: ${settings}`;
+  return [found, ...suggestion.notes.map((note) => `Note: ${DETECT_NOTES[note] ?? note}`)];
+}
+
 async function git(action: string | undefined, name: string | undefined, options: Options) {
   const { api } = await signedIn();
   const project = await target(api, options);
@@ -808,15 +878,32 @@ async function git(action: string | undefined, name: string | undefined, options
       (r) => r.fullName.toLowerCase() === wanted,
     );
     if (!repo) continue;
+    const branch = options.branch ?? repo.defaultBranch;
+    const current = await api.git(project.id);
+    let suggestion: DetectedSettings | null = null;
+    const missing =
+      options.build === undefined || options.output === undefined || options.node === undefined;
+    if (missing && suggestionApplies(current, repo.id)) {
+      try {
+        suggestion = await api.detect(team, {
+          installationId: installation.id,
+          repoId: repo.id,
+          branch,
+          // The API keeps the saved root folder when --root isn't given, so detect in that one.
+          rootDir: options.root ?? current.rootDir,
+        });
+        for (const line of detectSummary(suggestion)) console.log(line);
+      } catch (error) {
+        console.error(detectFailed(current, error as Error));
+      }
+    }
     const settings = await api.setGit(project.id, {
       installationId: installation.id,
       repoId: repo.id,
-      branch: options.branch ?? repo.defaultBranch,
+      branch,
       rootDir: options.root,
       installCommand: options.install,
-      buildCommand: options.build,
-      outputDir: options.output,
-      nodeVersion: options.node,
+      ...withSuggestion(options, suggestion),
     });
     console.log(`${green('✓')} ${bold(project.slug)} builds from ${bold(repo.fullName)}.`);
     showGit(settings);
@@ -864,9 +951,9 @@ async function env(
     if (items.length === 0) console.log(dim('No variables yet: codeqlick env add <KEY>'));
     for (const v of items) {
       const where = [v.production && 'production', v.preview && 'preview'].filter(Boolean);
-      console.log(
-        `${bold(v.key)}  ${where.join(', ')}  ${dim(new Date(v.updatedAt).toLocaleString())}`,
-      );
+      const branch = v.branch ? `  branch ${v.branch}` : '';
+      const when = dim(new Date(v.updatedAt).toLocaleString());
+      console.log(`${bold(v.key)}  ${where.join(', ')}${branch}  ${when}`);
     }
   };
   if (!action || action === 'ls' || action === 'list') return show(await api.env(project.id));
@@ -876,24 +963,51 @@ async function env(
       `Which variable? codeqlick env ${action} <KEY> (upper-case letters, digits, _)`,
     );
   }
+  const branch = envBranch(options);
   if (action === 'rm' || action === 'remove') {
-    await api.deleteEnv(project.id, key);
-    console.log(`${green('✓')} Deleted ${key}`);
+    await api.deleteEnv(project.id, key, branch);
+    console.log(`${green('✓')} Deleted ${key}${branch ? ` (branch ${branch})` : ''}`);
     return;
   }
   if (action !== 'add' && action !== 'set')
     throw new UsageError(`Unknown action "${action}": add or rm.`);
+  const targets = envTargets(options);
   const secret =
     value ??
     (process.stdin.isTTY ? await askSecret(`Value of ${key} (hidden): `) : await readStdin());
   if (secret.length > 4096) throw new UsageError('Values are at most 4 KB.');
-  const items = await api.setEnv(project.id, { key, value: secret, ...envTargets(options) });
+  const items = await api.setEnv(project.id, { key, value: secret, ...targets });
   if (options.json) return show(items);
-  console.log(`${green('✓')} Saved ${bold(key)}: it applies from the next build.`);
+  const where = targets.branch ? ` for previews of ${targets.branch}` : '';
+  console.log(`${green('✓')} Saved ${bold(key)}${where}: it applies from the next build.`);
 }
 
-/** Where variables apply: the flags given, or both when neither is. */
-export function envTargets(options: { production?: boolean; preview?: boolean }) {
+/** `--branch` of `env add` / `env rm`, trimmed; undefined without it. */
+export function envBranch(options: Pick<Options, 'branch'>): string | undefined {
+  if (options.branch === undefined) return undefined;
+  const branch = options.branch.trim();
+  if (!branch || /\s/.test(branch)) {
+    throw new UsageError('--branch needs a Git branch name, e.g. --branch staging');
+  }
+  return branch;
+}
+
+/**
+ * Where `env add` saves a variable: both targets when neither flag is given; with `--branch`,
+ * previews of that branch only (architecture 4.13).
+ */
+export function envTargets(options: Pick<Options, 'production' | 'preview' | 'branch'>): {
+  production: boolean;
+  preview: boolean;
+  branch?: string;
+} {
+  const branch = envBranch(options);
+  if (branch) {
+    if (options.production) {
+      throw new UsageError('A branch variable is for previews only: drop --production.');
+    }
+    return { production: false, preview: true, branch };
+  }
   const both = !options.production && !options.preview;
   return {
     production: both || options.production === true,
@@ -937,6 +1051,9 @@ async function importEnvFile(
   }
   if (Buffer.byteLength(content, 'utf8') > ENV_IMPORT_MAX_BYTES) {
     throw new UsageError('The file is over 256 KB.');
+  }
+  if (options.branch !== undefined) {
+    throw new UsageError('env import saves variables for every build: --branch is for env add.');
   }
   const input = { content, ...envTargets(options), overwrite: options.overwrite === true };
   let result: EnvImportResult;
@@ -1129,7 +1246,22 @@ async function logs(arg: string | undefined, options: Options): Promise<number> 
   }
   if (!Number.isInteger(number) || number < 1)
     throw new UsageError('Which build? codeqlick logs <number>');
-  return follow(api, project, number);
+  if (options.out === undefined) return follow(api, project, number);
+  if (!options.out) throw new UsageError('--out needs a file name.');
+  const file = logPath(options.out);
+  if (!options.force && (await exists(file))) {
+    throw new UsageError(`${file} already exists: pass --force to overwrite it.`);
+  }
+  const body = await api.buildLog(project.id, number);
+  let size: number;
+  try {
+    size = await saveArchive(body, file);
+  } catch (error) {
+    throw downloadFailure(error, file);
+  }
+  const shown = relative(process.cwd(), file) || file;
+  console.log(`${green('✓')} Build ${bold(String(number))} log saved to ${shown} (${bytes(size)})`);
+  return 0;
 }
 
 // ── Entry ─────────────────────────────────────────────────────────────────────────────────────
@@ -1147,6 +1279,28 @@ function table(title: string, rows: AnalyticsRow[], unit: string): void {
   }
 }
 
+/**
+ * The change of a total against the previous period: `+12 %`, `-8 %`, `0 %`, `new` (nothing
+ * before, something now) or null (both 0, or the previous window isn't complete).
+ */
+export function changeText(current: number, previous: number, complete: boolean): string | null {
+  if (!complete) return null;
+  if (previous === 0) return current > 0 ? 'new' : null;
+  const percent = Math.round(((current - previous) / previous) * 100);
+  return percent > 0 ? `+${percent} %` : `${percent === 0 ? 0 : percent} %`;
+}
+
+/** A total with its change next to it, e.g. `120 visitors (+12 %)`. */
+export function totalText(
+  current: number,
+  previous: number,
+  complete: boolean,
+  label: string,
+): string {
+  const change = changeText(current, previous, complete);
+  return `${bold(String(current))} ${label}${change ? ` ${dim(`(${change})`)}` : ''}`;
+}
+
 async function analytics(options: Options): Promise<void> {
   const period = (options.period ?? '7d') as AnalyticsPeriod;
   if (!PERIODS.includes(period)) throw new UsageError(`--period is one of ${PERIODS.join(', ')}.`);
@@ -1160,12 +1314,129 @@ async function analytics(options: Options): Promise<void> {
     );
     console.log(dim(`  ${report.snippet}`));
   }
+  const { totals, previous } = report;
   console.log(
-    `${bold(project.slug)} · ${period}: ${bold(String(report.totals.visitors))} visitors, ${bold(String(report.totals.pageviews))} page views`,
+    `${bold(project.slug)} · ${period}: ${totalText(totals.visitors, previous.visitors, previous.complete, 'visitors')}, ${totalText(totals.pageviews, previous.pageviews, previous.complete, 'page views')}`,
   );
   table('Pages', report.pages, 'views');
   table('Sources', report.referrers, 'views');
   if (report.events.length > 0) table('Events', report.events, 'times');
+}
+
+/** The state a monitor shows: `PAUSED` also when it is switched off. */
+export function monitorState(m: Pick<Monitor, 'enabled' | 'status'>): Monitor['status'] {
+  return m.enabled ? m.status : 'PAUSED';
+}
+
+/** A span of time as `5 min`, `3 h` or `2 d`. */
+export function spanText(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  if (minutes < 1) return '<1 min';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
+}
+
+/** The rows of the `monitors` table, plain text (colours are added when printing). */
+export function monitorRows(
+  monitors: Monitor[],
+  now: number = Date.now(),
+): Array<{ name: string; kind: string; state: Monitor['status']; since: string; last: string }> {
+  return monitors.map((m) => {
+    const checked = m.kind === 'HTTP' ? m.lastCheckedAt : m.lastPingAt;
+    return {
+      name: m.name,
+      kind: m.kind,
+      state: monitorState(m),
+      since: spanText(now - Date.parse(m.statusSince)),
+      last: checked ? `${spanText(now - Date.parse(checked))} ago` : '-',
+    };
+  });
+}
+
+/** The table `codeqlick monitors` prints: a header, then a line per monitor. */
+export function monitorTable(monitors: Monitor[], now: number = Date.now()): string[] {
+  const rows = monitorRows(monitors, now);
+  const head = { name: 'NAME', kind: 'KIND', state: 'STATE', since: 'SINCE', last: 'LAST CHECK' };
+  const all = [head, ...rows];
+  const w = (key: 'name' | 'kind' | 'state' | 'since') =>
+    Math.max(...all.map((r) => r[key].length));
+  const widths = { name: w('name'), kind: w('kind'), state: w('state'), since: w('since') };
+  const stateColour = (state: string) => (state === 'UP' ? green : state === 'DOWN' ? pink : dim);
+  return all.map((r, i) => {
+    const cells = [
+      r.name.padEnd(widths.name),
+      r.kind.padEnd(widths.kind),
+      r.state.padEnd(widths.state),
+      r.since.padEnd(widths.since),
+      r.last,
+    ];
+    if (i === 0) return dim(cells.join('  '));
+    return [cells[0], cells[1], stateColour(r.state)(cells[2]!), cells[3], cells[4]].join('  ');
+  });
+}
+
+/** Finds the monitor an argument names: its id first, then its exact name. */
+export function findMonitors<T extends { id: string; name: string }>(
+  monitors: T[],
+  ref: string,
+): T[] {
+  const byId = monitors.find((m) => m.id === ref);
+  return byId ? [byId] : monitors.filter((m) => m.name === ref);
+}
+
+/** The one monitor an argument names; no match or several is an error that says so. */
+export function pickMonitor<T extends { id: string; name: string; kind: string }>(
+  monitors: T[],
+  ref: string,
+  team: string,
+): T {
+  const matches = findMonitors(monitors, ref);
+  if (matches.length === 0)
+    throw new UsageError(`There is no monitor "${ref}" in the team "${team}".`);
+  if (matches.length > 1) {
+    throw new UsageError(
+      [
+        `${matches.length} monitors are named "${ref}": use an id.`,
+        ...matches.map((m) => `  ${m.id}  ${m.kind}`),
+      ].join('\n'),
+    );
+  }
+  return matches[0]!;
+}
+
+/** Pauses or resumes; a monitor already in the wanted state is returned without a request. */
+export async function changeEnabled(
+  api: Pick<Api, 'setMonitorEnabled'>,
+  monitor: Monitor,
+  enabled: boolean,
+): Promise<Monitor> {
+  return monitor.enabled === enabled ? monitor : api.setMonitorEnabled(monitor.id, enabled);
+}
+
+async function monitors(
+  action: string | undefined,
+  ref: string | undefined,
+  options: Options,
+): Promise<void> {
+  const list = !action || action === 'ls' || action === 'list';
+  if (!list && action !== 'pause' && action !== 'resume')
+    throw new UsageError(`Unknown action "${action}": pause or resume.`);
+  if (!list && !ref) throw new UsageError(`Which monitor? codeqlick monitors ${action} <id|name>`);
+  const { api } = await signedIn();
+  const team = await teamOf(api, options);
+  const { items } = await api.monitors(team);
+  if (list) {
+    if (options.json) return console.log(JSON.stringify({ items }, null, 2));
+    if (items.length === 0) return console.log(dim('No monitors yet'));
+    for (const line of monitorTable(items)) console.log(line);
+    return;
+  }
+  const monitor = pickMonitor(items, ref!, team);
+  const enable = action === 'resume';
+  const updated = await changeEnabled(api, monitor, enable);
+  if (options.json) return console.log(JSON.stringify(updated, null, 2));
+  console.log(`${green('✓')} ${enable ? 'Resumed' : 'Paused'} ${bold(monitor.name)}`);
 }
 
 /** A value typed on the command line: JSON when it parses, otherwise the text itself. */
@@ -1481,6 +1752,9 @@ export async function main(argv: string[]): Promise<number> {
         break;
       case 'kv':
         return await kv(rest[0], rest[1], rest[2], options);
+      case 'monitors':
+        await monitors(rest[0], rest[1], options);
+        break;
       case 'protect':
         await protect(rest[0], options);
         break;

@@ -18,7 +18,7 @@ import { CloudAuditsService } from '../src/modules/cloud/cloud-audits.service.js
 import { CloudBuildsService } from '../src/modules/cloud/cloud-builds.service.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { LOCKED_BUILD_LOG_LINE } from '../src/modules/cloud/cloud-production-lock.js';
-import { GithubClient } from '../src/modules/cloud/github.client.js';
+import { GithubClient, GithubError } from '../src/modules/cloud/github.client.js';
 import type { AuditInputs } from '../src/modules/site-audits/site-audit-checks.js';
 import { MailService } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -51,6 +51,23 @@ const github = {
     ]),
   ),
   branchHead: vi.fn(() => Promise.resolve({ sha: sha(9), message: 'Manual', author: 'Ada' })),
+  repoAccess: vi.fn(() => Promise.resolve({ token: 'ghs_read_token', fullName: 'ada-labs/site' })),
+  listFolder: vi.fn((_token: string, _full: string, _path: string, ref: string) =>
+    ref === 'missing'
+      ? Promise.reject(new GithubError(404, 'GitHub answered 404'))
+      : Promise.resolve([
+          { name: 'package.json', type: 'file', size: 120 },
+          { name: '.nvmrc', type: 'file', size: 3 },
+          { name: 'src', type: 'dir', size: 0 },
+        ]),
+  ),
+  fileText: vi.fn((_token: string, _full: string, path: string) =>
+    Promise.resolve(
+      path.endsWith('package.json')
+        ? JSON.stringify({ dependencies: { astro: '5.0.0' }, scripts: { build: 'astro build' } })
+        : '22\n',
+    ),
+  ),
   setStatus: vi.fn(
     (
       _i: unknown,
@@ -142,7 +159,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
 
   afterAll(async () => {
     if (prisma) {
-      await prisma.cloudTeam.deleteMany({ where: { slug: `b-${tag}` } });
+      await prisma.cloudTeam.deleteMany({ where: { slug: { in: [`b-${tag}`, `bo-${tag}`] } } });
       await prisma.cloudProject.deleteMany({ where: { slug: `bp-${tag}` } });
       await prisma.user.deleteMany({ where: { email: { contains: `-${tag}@` } } });
     }
@@ -195,6 +212,80 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .set(auth)
       .expect(200);
     expect(repos.body.items[0]).toMatchObject({ id: REPO, fullName: 'ada-labs/site' });
+
+    // ── Suggested settings: the team's installation only, read through a repo-limited token.
+    const detect = `/v1/cloud/teams/${team}/github/detect`;
+    const detectQuery = { installationId: INSTALLATION, repoId: REPO, branch: 'main' };
+    await request(server).get(detect).query(detectQuery).expect(401);
+    const suggested = await request(server).get(detect).set(auth).query(detectQuery).expect(200);
+    expect(suggested.body).toEqual({
+      framework: 'astro',
+      buildCommand: 'npm run build',
+      outputDir: 'dist',
+      nodeVersion: '22',
+      nodeFrom: '.nvmrc',
+      notes: [],
+    });
+    expect(github.repoAccess).toHaveBeenLastCalledWith(INSTALLATION, REPO);
+    expect(github.fileText).toHaveBeenCalledWith(
+      'ghs_read_token',
+      'ada-labs/site',
+      'package.json',
+      'main',
+      512 * 1024,
+    );
+    await request(server)
+      .get(detect)
+      .set(auth)
+      .query({ ...detectQuery, rootDir: '/apps/web/' })
+      .expect(200);
+    expect(github.listFolder).toHaveBeenLastCalledWith(
+      'ghs_read_token',
+      'ada-labs/site',
+      'apps/web',
+      'main',
+    );
+    expect(github.fileText).toHaveBeenLastCalledWith(
+      'ghs_read_token',
+      'ada-labs/site',
+      expect.stringMatching(/^apps\/web\/(package\.json|\.nvmrc)$/),
+      'main',
+      512 * 1024,
+    );
+    for (const bad of [
+      { installationId: INSTALLATION, repoId: REPO },
+      { ...detectQuery, repoId: 0 },
+      { ...detectQuery, installationId: 'abc' },
+      { ...detectQuery, branch: 'a'.repeat(256) },
+      { ...detectQuery, branch: 'main\u0007' },
+      { ...detectQuery, branch: 'my branch' },
+      { ...detectQuery, rootDir: '../etc' },
+    ]) {
+      await request(server).get(detect).set(auth).query(bad).expect(400);
+    }
+    await request(server)
+      .get(detect)
+      .set(auth)
+      .query({ ...detectQuery, branch: 'missing' })
+      .expect(404);
+    await request(server)
+      .post('/v1/cloud/teams')
+      .set(auth)
+      .send({
+        name: 'Other',
+        slug: `bo-${tag}`,
+        acceptTerms: true,
+        termsVersion: CLOUD_TERMS_VERSION,
+      })
+      .expect(201);
+    await request(server)
+      .get(`/v1/cloud/teams/bo-${tag}/github/detect`)
+      .set(auth)
+      .query(detectQuery)
+      .expect(404);
+    github.configured = false;
+    await request(server).get(detect).set(auth).query(detectQuery).expect(503);
+    github.configured = true;
     await request(server)
       .put(`/v1/cloud/projects/${projectId}/git`)
       .set(auth)
@@ -366,6 +457,50 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       log: 'npm ci\nbuilt\n',
     });
     expect(first.body.deploymentId).toBeTruthy();
+
+    // ── Downloading the log: a member gets the file, a read-only token too, anyone else a 404.
+    const logUrl = `/v1/cloud/projects/${projectId}/builds/1/log`;
+    const download = await request(server).get(logUrl).set(auth).expect(200);
+    expect(download.headers['content-type']).toBe('text/plain; charset=utf-8');
+    expect(download.headers['content-disposition']).toBe(
+      `attachment; filename="bp-${tag}-build-1.log"; filename*=UTF-8''bp-${tag}-build-1.log`,
+    );
+    expect(download.headers['cache-control']).toBe('no-store');
+    expect(download.text).toBe('npm ci\nbuilt\n');
+    const reader = await request(server)
+      .post('/v1/cloud/tokens')
+      .set(auth)
+      .send({ name: 'Reader', teamSlug: team, expiresInDays: null, readOnly: true })
+      .expect(201);
+    const readerAuth = { Authorization: `Bearer ${reader.body.token as string}` };
+    const readerFile = await request(server).get(logUrl).set(readerAuth).expect(200);
+    expect(readerFile.text).toBe('npm ci\nbuilt\n');
+    await request(server)
+      .get(`/v1/cloud/projects/${projectId}/builds/999/log`)
+      .set(auth)
+      .expect(404);
+    await prisma.user.create({
+      data: {
+        email: `e2e-cb-other-${tag}@codeqlick.test`,
+        name: 'Grace',
+        role: Role.CLIENT,
+        passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+        registeredAt: new Date(),
+      },
+    });
+    const otherLogin = await request(server)
+      .post('/v1/auth/login')
+      .send({ email: `e2e-cb-other-${tag}@codeqlick.test`, password })
+      .expect(200);
+    await request(server)
+      .get(logUrl)
+      .set({ Authorization: `Bearer ${otherLogin.body.accessToken as string}` })
+      .expect(404);
+    await request(server)
+      .get(`/v1/cloud/projects/${randomUUID()}/builds/1/log`)
+      .set(auth)
+      .expect(404);
+
     // The build root's codeqlick.json travels with the output (architecture 4.13).
     expect(
       (await prisma.cloudDeployment.findUniqueOrThrow({ where: { id: first.body.deploymentId } }))
@@ -720,6 +855,109 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
     expect(await readFile(join(host, 'index.html'), 'utf8')).toBe('<h1>live</h1>');
     const published = await request(server).get(projectUrl).set(auth).expect(200);
     expect(published.body.production.id).toBe(live.deploymentId);
+
+    // Variables for one preview branch: they replace the general one with the same key, only in
+    // previews of that branch (a pull request's head branch too), never in production.
+    const envPath = `/v1/cloud/projects/${projectId}/env`;
+    await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({ key: 'API_URL', value: 'https://api.example.com', production: true, preview: true })
+      .expect(200);
+    const forProduction = await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({
+        key: 'API_URL',
+        value: 'https://staging.example.com',
+        production: true,
+        preview: true,
+        branch: 'staging',
+      })
+      .expect(400);
+    // The global validation pipe sends schema issues as "<path>: <message>" strings.
+    expect(forProduction.body.errors).toEqual([
+      { path: '', message: 'branch: A branch variable is for previews only' },
+    ]);
+    await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({ key: 'API_URL', value: 'x', production: false, preview: true, branch: 'bad..name' })
+      .expect(400);
+    const variables = await request(server)
+      .put(envPath)
+      .set(auth)
+      .send({
+        key: 'API_URL',
+        value: 'https://staging.example.com',
+        production: false,
+        preview: true,
+        branch: 'staging',
+      })
+      .expect(200);
+    type EnvItem = { key: string; production: boolean; preview: boolean; branch: string | null };
+    expect(
+      variables.body.items.map((v: EnvItem) => [v.key, v.production, v.preview, v.branch]),
+    ).toEqual([
+      ['API_KEY', true, false, null],
+      ['API_URL', true, true, null],
+      ['API_URL', false, true, 'staging'],
+    ]);
+    expect(JSON.stringify(variables.body)).not.toContain('example.com');
+
+    await send('pull_request', {
+      action: 'opened',
+      pull_request: {
+        number: 9,
+        title: 'Staging',
+        user: { login: 'grace' },
+        head: { sha: sha(5), ref: 'staging', repo: repository },
+        base: { repo: repository },
+      },
+      repository,
+      installation,
+    });
+    await send('push', { ...push, ref: 'refs/heads/other', after: sha(6) });
+    await send('push', { ...push, after: sha(7) });
+    const claimAndFail = async () => {
+      const claim = await request(server)
+        .post('/v1/cloud/builder/claim')
+        .set(builder)
+        .send({ builder: 'b1' })
+        .expect(200);
+      await request(server)
+        .post(`/v1/cloud/builder/builds/${claim.body.build.id as string}/finish`)
+        .set(builder)
+        .field('status', 'failed')
+        .field('error', 'npm run build exited with 1')
+        .expect(204);
+      return claim.body.build as { commit: string; env: Record<string, string>; secrets: string[] };
+    };
+    const staging = await claimAndFail();
+    expect(staging.commit).toBe(sha(5));
+    expect(staging.env).toEqual({ API_URL: 'https://staging.example.com' });
+    expect(staging.secrets).toContain('https://staging.example.com'); // hidden in the log
+    const other = await claimAndFail();
+    expect(other.commit).toBe(sha(6));
+    expect(other.env).toEqual({ API_URL: 'https://api.example.com' });
+    const production = await claimAndFail();
+    expect(production.commit).toBe(sha(7));
+    expect(production.env).toEqual({
+      API_KEY: 's3cret-value',
+      API_URL: 'https://api.example.com',
+    });
+
+    // Deleting by key and branch leaves the general one.
+    await request(server).delete(`${envPath}?key=API_URL&branch=staging`).set(auth).expect(204);
+    await request(server).delete(`${envPath}?key=API_URL&branch=staging`).set(auth).expect(404);
+    const remaining = await request(server).get(envPath).set(auth).expect(200);
+    expect(remaining.body.items.map((v: EnvItem) => [v.key, v.branch])).toEqual([
+      ['API_KEY', null],
+      ['API_URL', null],
+    ]);
+    await prisma.cloudEvent.findFirstOrThrow({
+      where: { action: 'env.deleted', targetLabel: `bp-${tag}: API_URL (staging)` },
+    });
 
     // Uninstalling the app disconnects the project.
     await send('installation', { action: 'deleted', installation });

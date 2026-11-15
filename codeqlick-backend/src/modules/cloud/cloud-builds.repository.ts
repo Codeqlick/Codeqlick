@@ -199,7 +199,11 @@ export class CloudBuildsRepository {
   // ── Environment variables ──────────────────────────────────────────────────────────────────
 
   envVars(projectId: string): Promise<CloudEnvVar[]> {
-    return this.prisma.cloudEnvVar.findMany({ where: { projectId }, orderBy: { key: 'asc' } });
+    // By key, the general one ('') first, then its branches A–Z.
+    return this.prisma.cloudEnvVar.findMany({
+      where: { projectId },
+      orderBy: [{ key: 'asc' }, { branch: 'asc' }],
+    });
   }
 
   countEnvVars(projectId: string): Promise<number> {
@@ -212,10 +216,11 @@ export class CloudBuildsRepository {
     valueSealed: string,
     production: boolean,
     preview: boolean,
+    branch: string,
   ) {
     return this.prisma.cloudEnvVar.upsert({
-      where: { projectId_key: { projectId, key } },
-      create: { projectId, key, valueSealed, production, preview },
+      where: { projectId_key_branch: { projectId, key, branch } },
+      create: { projectId, key, branch, valueSealed, production, preview },
       update: { valueSealed, production, preview },
     });
   }
@@ -234,10 +239,14 @@ export class CloudBuildsRepository {
     return this.prisma.$transaction(async (tx) => {
       // Two imports to the same project wait for each other, so both can't pass the limit.
       await tx.$queryRaw`SELECT id FROM cloud_projects WHERE id = ${projectId}::uuid FOR UPDATE`;
-      const rows = await tx.cloudEnvVar.findMany({ where: { projectId }, select: { key: true } });
-      const existing = new Set(rows.map((row) => row.key));
+      const rows = await tx.cloudEnvVar.findMany({
+        where: { projectId },
+        select: { key: true, branch: true },
+      });
+      // An import writes general variables (no branch); branch ones only count toward the limit.
+      const existing = new Set(rows.filter((row) => row.branch === '').map((row) => row.key));
       const fresh = vars.filter((v) => !existing.has(v.key));
-      const room = Math.max(options.limit - existing.size, 0);
+      const room = Math.max(options.limit - rows.length, 0);
       if (fresh.length > room) return { overLimit: fresh[room]!.key };
       if (fresh.length > 0) {
         await tx.cloudEnvVar.createMany({
@@ -259,7 +268,7 @@ export class CloudBuildsRepository {
           continue;
         }
         await tx.cloudEnvVar.update({
-          where: { projectId_key: { projectId, key: v.key } },
+          where: { projectId_key_branch: { projectId, key: v.key, branch: '' } },
           data: { valueSealed: v.valueSealed, production, preview },
         });
         updated.push(v.key);
@@ -268,8 +277,11 @@ export class CloudBuildsRepository {
     });
   }
 
-  async deleteEnvVar(projectId: string, key: string): Promise<boolean> {
-    const { count } = await this.prisma.cloudEnvVar.deleteMany({ where: { projectId, key } });
+  /** Deletes one variable: the general one when `branch` is `''`. */
+  async deleteEnvVar(projectId: string, key: string, branch: string): Promise<boolean> {
+    const { count } = await this.prisma.cloudEnvVar.deleteMany({
+      where: { projectId, key, branch },
+    });
     return count > 0;
   }
 
@@ -331,6 +343,14 @@ export class CloudBuildsRepository {
     return this.prisma.cloudBuild.findUnique({
       where: { projectId_number: { projectId, number } },
       include: { audit: { select: { id: true, score: true } } },
+    });
+  }
+
+  /** A build's log alone (no other column or relation), for the download. */
+  findBuildLog(projectId: string, number: number): Promise<{ log: string } | null> {
+    return this.prisma.cloudBuild.findUnique({
+      where: { projectId_number: { projectId, number } },
+      select: { log: true },
     });
   }
 

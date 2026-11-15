@@ -31,6 +31,7 @@ import {
   type PaginationQuery,
 } from '../../common/schemas/common.schemas.js';
 import type { Paginated } from '../../common/types/paginated.js';
+import { attachmentDisposition } from '../projects/project-file-name.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
 import { MAX_UPLOAD_BYTES } from './cloud-plans.js';
 import {
@@ -38,6 +39,7 @@ import {
   builderBuildParamSchema,
   claimSchema,
   envImportSchema,
+  detectQuerySchema,
   envKeyQuerySchema,
   envVarSchema,
   finishSchema,
@@ -53,6 +55,7 @@ import {
   type BuilderBuildParam,
   type ClaimInput,
   type EnvImportInput,
+  type DetectQuery,
   type EnvKeyQuery,
   type EnvVarInput,
   type FinishInput,
@@ -74,6 +77,7 @@ import {
   type GitView,
 } from './cloud-builds.service.js';
 import type { ProjectView } from './cloud-projects.service.js';
+import type { DetectedSettings } from './cloud-detect.js';
 
 /** GitHub's webhook and the build server's agent: no session (architecture 4.13, 8.4). */
 @ApiTags('cloud')
@@ -193,6 +197,17 @@ export class CloudBuildsController {
     return this.builds.repos(ctx, params.team, query.installationId);
   }
 
+  @Get('teams/:team/github/detect')
+  @CloudApi()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  detect(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: teamParamSchema }) params: TeamParam,
+    @Query({ schema: detectQuerySchema }) query: DetectQuery,
+  ): Promise<DetectedSettings> {
+    return this.builds.detect(ctx, params.team, query);
+  }
+
   @Get('projects/:id/git')
   @CloudApi()
   git(
@@ -267,7 +282,7 @@ export class CloudBuildsController {
     @Param({ schema: idParamSchema }) params: IdParam,
     @Query({ schema: envKeyQuerySchema }) query: EnvKeyQuery,
   ): Promise<void> {
-    return this.builds.deleteEnvVar(ctx, params.id, query.key);
+    return this.builds.deleteEnvVar(ctx, params.id, query.key, query.branch);
   }
 
   @Get('projects/:id/builds')
@@ -299,6 +314,20 @@ export class CloudBuildsController {
     @Query({ schema: logQuerySchema }) query: LogQuery,
   ): Promise<BuildDetail> {
     return this.builds.get(ctx, params.id, params.number, query.after);
+  }
+
+  @Get('projects/:id/builds/:number/log')
+  @CloudApi()
+  async logFile(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: buildParamSchema }) params: BuildParam,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { filename, text } = await this.builds.logFile(ctx, params.id, params.number);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', attachmentDisposition(filename));
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(text);
   }
 
   @Post('projects/:id/builds/:number/cancel')

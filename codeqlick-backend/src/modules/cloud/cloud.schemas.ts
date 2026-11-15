@@ -292,6 +292,8 @@ const keyword = z
   .min(1)
   .max(100);
 const keywordMode = z.enum(['CONTAINS', 'NOT_CONTAINS']);
+/** Slow-response threshold in ms (HTTP monitors; null switches it off). */
+const slowMs = z.number().int().min(500).max(14_000).nullable().optional();
 
 export const createMonitorSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -300,6 +302,7 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
     url: z.url().max(2048),
     keyword: keyword.optional(),
     keywordMode: keywordMode.default('CONTAINS'),
+    slowMs,
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -318,6 +321,7 @@ export const createMonitorSchema = z.discriminatedUnion('kind', [
       .max(24 * 60),
     // Only HTTP monitors check text on the page.
     keyword: z.undefined({ error: 'Heartbeats cannot check text on a page' }).optional(),
+    slowMs,
     projectId: z.uuid().optional(),
     alertIds,
   }),
@@ -343,6 +347,7 @@ export const updateMonitorSchema = z.object({
     .min(1)
     .max(24 * 60)
     .optional(),
+  slowMs,
   alertIds: alertIds.optional(),
 });
 export type UpdateMonitorInput = z.infer<typeof updateMonitorSchema>;
@@ -463,6 +468,14 @@ const command = z
   .max(300)
   .refine((value) => !/[\r\n]/.test(value), 'One line');
 
+/** A branch name, as the project's settings take it. */
+const branchName = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^[\w./-]+$/, 'A branch name');
+
 export const installUrlQuerySchema = z.object({
   teamSlug: teamSlugSchema,
   /** The project to come back to after installing. */
@@ -480,15 +493,19 @@ export type LinkInstallationInput = z.infer<typeof linkInstallationSchema>;
 export const reposQuerySchema = z.object({ installationId: z.coerce.number().int().positive() });
 export type ReposQuery = z.infer<typeof reposQuerySchema>;
 
+/** The repository, branch and root folder to suggest build settings for (decision 75). */
+export const detectQuerySchema = z.object({
+  installationId: z.coerce.number().int().positive(),
+  repoId: z.coerce.number().int().positive(),
+  branch: branchName,
+  rootDir: relativeDir.default(''),
+});
+export type DetectQuery = z.infer<typeof detectQuerySchema>;
+
 export const gitSettingsSchema = z.object({
   installationId: z.coerce.number().int().positive(),
   repoId: z.coerce.number().int().positive(),
-  branch: z
-    .string()
-    .trim()
-    .min(1)
-    .max(200)
-    .regex(/^[\w./-]+$/, 'A branch name'),
+  branch: branchName,
   rootDir: relativeDir.optional(),
   installCommand: command.optional(),
   buildCommand: command.optional(),
@@ -501,20 +518,54 @@ export const gitSettingsSchema = z.object({
 });
 export type GitSettingsInput = z.infer<typeof gitSettingsSchema>;
 
+const envKey = z.string().trim().regex(ENV_KEY_PATTERN, 'Upper-case letters, digits and _');
+
+/**
+ * Whether a name is one Git would take for a branch (`git check-ref-format`, simplified): no
+ * whitespace or control characters, none of `~ ^ : ? * [ \`, no `..`, `//` or `@{`, no part that
+ * starts with `.` or ends with `.lock`, not starting with `-` or `/`, not ending with `/` or `.`,
+ * and not `@` alone.
+ */
+export function isGitBranchName(name: string): boolean {
+  if (name === '@') return false;
+  if (/[\s\p{Cc}~^:?*\\]/u.test(name) || name.includes('[')) return false;
+  if (name.includes('..') || name.includes('//') || name.includes('@{')) return false;
+  if (name.startsWith('-') || name.startsWith('/') || name.endsWith('/') || name.endsWith('.')) {
+    return false;
+  }
+  return name.split('/').every((part) => !part.startsWith('.') && !part.endsWith('.lock'));
+}
+
+/** A Git branch a preview variable is only for (architecture 4.13). */
+export const envBranchSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .refine(isGitBranchName, 'A Git branch name');
+
 export const envVarSchema = z
   .object({
-    key: z.string().trim().regex(ENV_KEY_PATTERN, 'Upper-case letters, digits and _'),
+    key: envKey,
     value: z.string().max(ENV_VALUE_MAX),
     production: z.boolean(),
     preview: z.boolean(),
+    branch: envBranchSchema.optional(),
   })
   .refine((v) => v.production || v.preview, {
     message: 'For production, previews or both',
     path: ['production'],
+  })
+  .refine((v) => v.branch === undefined || (!v.production && v.preview), {
+    message: 'A branch variable is for previews only',
+    path: ['branch'],
   });
 export type EnvVarInput = z.infer<typeof envVarSchema>;
 
-export const envKeyQuerySchema = z.object({ key: z.string().regex(ENV_KEY_PATTERN) });
+export const envKeyQuerySchema = z.object({
+  key: envKey,
+  branch: envBranchSchema.optional(),
+});
 export type EnvKeyQuery = z.infer<typeof envKeyQuerySchema>;
 
 /** The largest `.env` file imported at once (architecture 4.13). */
@@ -733,6 +784,9 @@ export const createBucketKeySchema = z.object({
   write: z.boolean().default(false),
 });
 export type CreateBucketKeyInput = z.infer<typeof createBucketKeySchema>;
+
+/** A shared link's token; a malformed one is answered like an unknown one (404), not as a 400. */
+export const analyticsShareTokenSchema = z.string().regex(/^cqa_[A-Za-z0-9_-]{32}$/);
 
 // ── Password protection (architecture 4.13 "Password protection", decision 50) ─────────────
 

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { openAsBlob } from 'node:fs';
-import { lstat, mkdir, readdir, rm, rmdir, stat, utimes, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readdir, rm, rmdir, utimes, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -8,6 +8,8 @@ import {
   type CacheEntry,
   cachePath,
   cachesToEvict,
+  choosePackageManager,
+  containerCommand,
   dockerArgs,
   envFile,
   inside,
@@ -15,6 +17,8 @@ import {
   mask,
   readRulesFile,
 } from './plan.ts';
+import { checkoutFiles } from './checkout.ts';
+import { realFolderInside } from './realpath.ts';
 
 /**
  * Codeqlick Cloud's build agent (architecture 8.4, decision 41). It asks the API for a build every
@@ -301,7 +305,12 @@ async function build(job: Job): Promise<void> {
     const root = inside(src, job.rootDir);
     const variables = join(work, 'env');
     await writeFile(variables, envFile(job.env), { mode: 0o600 });
-    const command = `${job.installCommand} && ${job.buildCommand}`;
+    const chosen = choosePackageManager({
+      rootDir: job.rootDir,
+      installCommand: job.installCommand,
+      buildCommand: job.buildCommand,
+      files: checkoutFiles(src),
+    });
     // An invalid key is refused (it fails the build); any other cache problem only turns it off.
     const cacheFolder = job.cache ? cachePath(CACHE_DIR, job.cache.key) : null;
     const cache =
@@ -310,7 +319,10 @@ async function build(job: Job): Promise<void> {
         ? cacheFolder
         : undefined;
     if (!job.cache) output('Dependency cache: off for this build\n');
-    output(`$ ${command}\n`);
+    output(`${chosen.log}\n`);
+    // The log shows the commands; the Corepack set-up in front of them is the same in every build.
+    output(`$ ${chosen.install} && ${chosen.build}\n`);
+    const command = containerCommand(chosen.install, chosen.build);
     const timer = setTimeout(() => {
       output(
         `\nThe build took longer than ${Math.round(job.timeoutSeconds / 60)} minutes: stopped.\n`,
@@ -346,13 +358,17 @@ async function build(job: Job): Promise<void> {
       throw new Error(`The build took longer than ${Math.round(job.timeoutSeconds / 60)} minutes`);
     if (code !== 0) throw new Error(`The build exited with code ${code}`);
 
-    const out = inside(root, job.outputDir);
-    if (!(await stat(out).catch(() => null))?.isDirectory())
-      throw new Error(`The output folder ${job.outputDir || '.'} doesn't exist`);
+    // The build may have turned the folder (or one above it) into a link to the host: one answer
+    // for "missing" and "outside", so a build can't probe which host folders exist.
+    const realOut = await realFolderInside(src, inside(root, job.outputDir));
+    if (!realOut)
+      throw new Error(
+        `The output folder ${job.outputDir || '.'} doesn't exist in the repository after the build`,
+      );
     // The rules travel with the source, not the output (architecture 4.13): a broken file fails here.
     const config = await readRulesFile(src, root);
     const bundle = join(work, 'out.tar.gz');
-    if ((await run('tar', ['-czf', bundle, '-C', out, '.'], { onOutput: output })) !== 0) {
+    if ((await run('tar', ['-czf', bundle, '-C', realOut, '.'], { onOutput: output })) !== 0) {
       throw new Error('The output folder could not be packed');
     }
     output('Uploading the output…\n');
@@ -369,6 +385,8 @@ async function build(job: Job): Promise<void> {
     clearInterval(flusher);
     clearInterval(beat);
     clearInterval(watcher);
+    // A killed build's container may still be running: remove it before deleting the work folder,
+    // so it can't swap a folder for a link to the host while `rm` walks the tree.
     await gone(container);
     await remove(work);
     if (settled) await evictCaches();

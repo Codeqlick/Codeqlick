@@ -11,12 +11,20 @@ import {
 import { API_TOKEN_PREFIX, type ApiTokenResolver } from '../../common/api-tokens.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
+import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { MailService } from '../mail/mail.service.js';
+import { tokenExpiryEmail } from './cloud-emails.js';
+import { ACTIVE_DAYS, EXPIRED_USED_DAYS, groupByUser, WARN_DAYS } from './cloud-token-expiry.js';
 import { TWO_FACTOR_REQUIRED, twoFactorBlocked } from './cloud-caller.js';
 import { CLI_TOKEN_DAYS, DEVICE_CODE_MINUTES, DEVICE_POLL_SECONDS, FREE } from './cloud-plans.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { CloudRepository } from './cloud.repository.js';
 import type { CreateTokenInput } from './cloud.schemas.js';
-import { CloudTokensRepository, type TokenRow } from './cloud-tokens.repository.js';
+import {
+  CloudTokensRepository,
+  type TokenExpiryRow,
+  type TokenRow,
+} from './cloud-tokens.repository.js';
 
 export interface TokenView {
   id: string;
@@ -69,6 +77,7 @@ export class CloudTokensService implements ApiTokenResolver {
     private readonly tokens: CloudTokensRepository,
     private readonly cloud: CloudRepository,
     private readonly config: AppConfigService,
+    private readonly mail: MailService,
   ) {}
 
   /** For JwtAuthGuard: the token's person, or null. Checked on every request. */
@@ -248,11 +257,87 @@ export class CloudTokensService implements ApiTokenResolver {
     }
   }
 
-  /** Hourly cleanup: expired tokens, device codes a day old, invitations a week past expiry. */
+  /**
+   * Hourly cleanup: warns about tokens about to expire, announces the recently used ones that
+   * expired, then deletes expired tokens, device codes a day old and invitations a week past
+   * expiry. Emails never block the deletions.
+   */
   async cleanup(now: Date): Promise<void> {
+    try {
+      await this.announce(
+        'soon',
+        await this.tokens.findToWarn(
+          now,
+          new Date(now.getTime() + WARN_DAYS * DAY_MS),
+          new Date(now.getTime() - ACTIVE_DAYS * DAY_MS),
+        ),
+        now,
+      );
+    } catch (error) {
+      this.logger.error(`Token expiry warnings failed: ${String(error)}`);
+    }
+    try {
+      await this.announce(
+        'expired',
+        await this.tokens.findExpiredUsedSince(
+          now,
+          new Date(now.getTime() - EXPIRED_USED_DAYS * DAY_MS),
+        ),
+        now,
+      );
+    } catch (error) {
+      this.logger.error(`Token expired emails failed: ${String(error)}`);
+    }
     await this.tokens.deleteExpired(now);
     await this.tokens.deleteDevicesBefore(new Date(now.getTime() - DAY_MS));
     await this.tokens.deleteExpiredInvites(new Date(now.getTime() - 7 * DAY_MS));
+  }
+
+  /**
+   * One email per person. Warnings are claimed (`expiryWarnedAt`) before sending so two runs
+   * never send the same one, and released when the send fails so the next run retries.
+   */
+  private async announce(
+    kind: 'soon' | 'expired',
+    rows: TokenExpiryRow[],
+    now: Date,
+  ): Promise<void> {
+    for (const { user, tokens } of groupByUser(rows)) {
+      const ids = tokens.map((token) => token.id);
+      let claimed = false;
+      try {
+        if (kind === 'soon') {
+          if ((await this.tokens.claimWarning(ids, now)) === 0) continue;
+          claimed = true;
+        }
+        const locale = toApiLocale(user.locale);
+        await this.mail.send(
+          tokenExpiryEmail({
+            to: user.email,
+            locale,
+            kind,
+            tokens: tokens.flatMap((token) =>
+              token.expiresAt
+                ? [
+                    {
+                      name: token.name,
+                      prefix: token.prefix,
+                      team: token.team?.name ?? null,
+                      expiresAt: token.expiresAt,
+                      lastUsedAt: token.lastUsedAt,
+                    },
+                  ]
+                : [],
+            ),
+            url: `${this.config.cloudUrl}/${locale}/console/tokens`,
+            siteUrl: this.config.siteUrl,
+          }),
+        );
+      } catch (error) {
+        this.logger.error(`Token ${kind} email to user ${user.id} failed: ${String(error)}`);
+        if (claimed) await this.tokens.releaseWarning(ids, now).catch(() => undefined);
+      }
+    }
   }
 }
 

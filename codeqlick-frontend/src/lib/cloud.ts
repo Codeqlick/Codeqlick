@@ -30,6 +30,24 @@ export function formatWhen(iso: string, locale: string): string {
 }
 
 /**
+ * Days left before a token expires, when that is within `windowDays` (default 7) and still in
+ * the future: 0 means under 24 hours, 1..7 are the days left rounded up. null otherwise.
+ */
+export function expiringInDays(
+  expiresAt: string | null,
+  now: Date = new Date(),
+  windowDays = 7,
+): number | null {
+  if (!expiresAt) return null;
+  const left = new Date(expiresAt).getTime() - now.getTime();
+  if (!Number.isFinite(left) || left <= 0) return null;
+  const day = 24 * 60 * 60 * 1000;
+  if (left < day) return 0;
+  const days = Math.ceil(left / day);
+  return days <= windowDays ? days : null;
+}
+
+/**
  * The teams a project can move to: the caller's other teams where they are an owner or an admin
  * (architecture 4.13, moving a project to another team), in the order given.
  */
@@ -433,4 +451,29 @@ export function spamReasonKey(reason: string | null): SpamReason {
 /** The submissions view from `?view=`: the inbox unless it is exactly "spam". */
 export function submissionsView(view: string | undefined): 'inbox' | 'spam' {
   return view === 'spam' ? 'spam' : 'inbox';
+}
+
+/** A monitor's slow-response threshold from a form: empty is off (`null`), else 500 to 14,000 ms. */
+export function parseSlowMs(raw: string): { ok: true; value: number | null } | { ok: false } {
+  const text = raw.trim();
+  if (text === '') return { ok: true, value: null };
+  const value = Number(text);
+  if (!Number.isInteger(value) || value < 500 || value > 14000) return { ok: false };
+  return { ok: true, value };
+}
+
+/**
+ * Whether Git would take a name for a branch (`git check-ref-format`, simplified as the API does):
+ * no whitespace or control characters, none of `~ ^ : ? * [ \`, no `..`, `//` or `@{`, no part
+ * starting with `.` or ending with `.lock`, not starting with `-` or `/`, not ending with `/` or
+ * `.`, at most 200 characters.
+ */
+export function isGitBranchName(name: string): boolean {
+  if (name.length === 0 || name.length > 200 || name === '@') return false;
+  if (/[\s\p{Cc}~^:?*\\]/u.test(name) || name.includes('[')) return false;
+  if (name.includes('..') || name.includes('//') || name.includes('@{')) return false;
+  if (name.startsWith('-') || name.startsWith('/') || name.endsWith('/') || name.endsWith('.')) {
+    return false;
+  }
+  return name.split('/').every((part) => !part.startsWith('.') && !part.endsWith('.lock'));
 }

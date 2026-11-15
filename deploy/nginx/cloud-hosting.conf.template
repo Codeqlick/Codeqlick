@@ -11,15 +11,18 @@ map $cq_label $cq_noindex {
 }
 
 # Password protection (architecture 4.13, 8.3; deploy/nginx/cloud-protection.conf). The project's
-# slug and the kind of address from the label: `previews` for <slug>--<short>, `production`
-# otherwise. Custom domains' sites (cq-site ... cloud) set both themselves with `set`.
+# slug and the kind of address from the label: `previews` for <slug>--<short> and for branch
+# addresses <slug>--b-<branch>, `production` otherwise. Custom domains' sites (cq-site ... cloud)
+# set both themselves with `set`.
 map $cq_label $cq_slug {
     "~^(.+)--[0-9a-f]{8}$" $1;
+    "~^(.+)--b-[a-z0-9]+(?:-[a-z0-9]+)*$" $1;
     default $cq_label;
 }
 
 map $cq_label $cq_kind {
     "~--[0-9a-f]{8}$" previews;
+    "~--b-[a-z0-9]+(?:-[a-z0-9]+)*$" previews;
     default production;
 }
 
@@ -66,7 +69,7 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name "~^(?<cq_label>[a-z0-9]+(?:-[a-z0-9]+)*(?:--[0-9a-f]{8})?)\.__DOMAIN_RE__$";
+    server_name "~^(?<cq_label>[a-z0-9]+(?:-[a-z0-9]+)*(?:--[0-9a-f]{8}|--b-[a-z0-9]+(?:-[a-z0-9]+)*)?)\.__DOMAIN_RE__$";
 
     ssl_certificate /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;

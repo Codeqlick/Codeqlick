@@ -9,6 +9,7 @@ import {
   configJson,
   describeRebuild,
   envImportErrors,
+  expiringInDays,
   filterFiles,
   formatBytes,
   formatSizeChange,
@@ -17,11 +18,13 @@ import {
   hookName,
   isAddressHost,
   isDeploymentId,
+  isGitBranchName,
   isProtected,
   monitorKeyword,
   monitorKeywordMode,
   notifiedFormNames,
   parseRebuildForm,
+  parseSlowMs,
   productionLockValues,
   protectionInput,
   ruleSettings,
@@ -47,6 +50,29 @@ describe('cloudSlug', () => {
     expect(cloudSlug('Mi Web Ñandú!', 40)).toBe('mi-web-nandu');
     expect(cloudSlug('  --Docs--  ', 40)).toBe('docs');
     expect(cloudSlug('a'.repeat(50), 40)).toHaveLength(40);
+  });
+});
+
+describe('expiringInDays', () => {
+  const now = new Date('2026-11-14T12:00:00Z');
+  const at = (hours: number) => new Date(now.getTime() + hours * 3600_000).toISOString();
+
+  it('is null without expiry, when expired or when far away', () => {
+    expect(expiringInDays(null, now)).toBeNull();
+    expect(expiringInDays(at(-1), now)).toBeNull();
+    expect(expiringInDays(at(7 * 24 + 1), now)).toBeNull();
+    expect(expiringInDays(at(30 * 24), now)).toBeNull();
+  });
+
+  it('is 0 under 24 hours', () => {
+    expect(expiringInDays(at(1), now)).toBe(0);
+    expect(expiringInDays(at(23), now)).toBe(0);
+  });
+
+  it('rounds the days up within 7 days', () => {
+    expect(expiringInDays(at(24), now)).toBe(1);
+    expect(expiringInDays(at(25), now)).toBe(2);
+    expect(expiringInDays(at(7 * 24), now)).toBe(7);
   });
 });
 
@@ -448,5 +474,56 @@ describe('submissionsView', () => {
     expect(submissionsView('spam')).toBe('spam');
     expect(submissionsView(undefined)).toBe('inbox');
     expect(submissionsView('SPAM')).toBe('inbox');
+  });
+});
+
+describe('parseSlowMs', () => {
+  it('reads an empty field as off', () => {
+    expect(parseSlowMs('')).toEqual({ ok: true, value: null });
+    expect(parseSlowMs('  ')).toEqual({ ok: true, value: null });
+  });
+
+  it('accepts whole milliseconds from 500 to 14000', () => {
+    expect(parseSlowMs('500')).toEqual({ ok: true, value: 500 });
+    expect(parseSlowMs(' 1200 ')).toEqual({ ok: true, value: 1200 });
+    expect(parseSlowMs('14000')).toEqual({ ok: true, value: 14000 });
+  });
+
+  it('refuses the rest', () => {
+    for (const raw of ['499', '14001', '1000.5', 'abc', '-1000', '1e3x']) {
+      expect(parseSlowMs(raw)).toEqual({ ok: false });
+    }
+  });
+});
+
+describe('isGitBranchName', () => {
+  it('takes the branch names Git takes', () => {
+    for (const name of ['staging', 'feature/login', 'release-1.2', 'v2_beta']) {
+      expect(isGitBranchName(name), name).toBe(true);
+    }
+  });
+
+  it('refuses the ones Git refuses', () => {
+    for (const name of [
+      '',
+      'a b',
+      'a~1',
+      'a:b',
+      'a[b',
+      'a\\b',
+      'a..b',
+      'a@{1}',
+      '@',
+      '-x',
+      '/x',
+      'x/',
+      'x.',
+      'x.lock',
+      '.x',
+      'a/.x',
+      'x'.repeat(201),
+    ]) {
+      expect(isGitBranchName(name), name).toBe(false);
+    }
   });
 });

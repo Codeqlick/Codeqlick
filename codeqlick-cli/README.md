@@ -29,6 +29,7 @@ return with the next push. `deploy --prod`, promoting a newer deployment or `cod
 | `files <id>` / `diff <id> [other]`          | A deployment's files / compare it with production or another deployment |
 | `download [id] [-o <file>] [--force]`       | Save a deployment's files as a `tar.gz`                                 |
 | `domains [add\|check\|rm <domain>]`         | The project's own domains                                               |
+| `monitors [pause\|resume <id\|name>]`       | The team's monitors, or pause and resume one (`--team`)                 |
 | `open`                                      | Open the published site                                                 |
 
 `download` saves the production deployment (or the one you name, by its short id) as
@@ -41,11 +42,16 @@ Builds from Git (connect GitHub once in the console's Git tab):
 | Command                                                                 | What it does                                                                    |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `git` / `git connect <owner/repo>` / `git disconnect`                   | The repository and build settings                                               |
-| `env` / `env add <KEY> [value]` / `env rm <KEY>`                        | Variables (without a value: stdin or hidden prompt)                             |
+| `env` / `env add <KEY> [value]` / `env rm <KEY> [--branch]`             | Variables (without a value: stdin or hidden prompt)                             |
 | `env import <file> [--production] [--preview] [--overwrite]`            | Add a `.env` file's variables, all or nothing                                   |
 | `hooks` / `hooks add <name> [--branch]` / `hooks rm <id or name>`       | Deploy hooks: a secret URL a CMS calls to rebuild a branch                      |
 | `builds` / `builds start [--branch] [--no-cache]` / `builds cancel <n>` | List, build now and follow (`--no-cache`: without the dependency cache), cancel |
-| `logs [number]`                                                         | A build's log, followed while it runs                                           |
+| `logs [number] [-o <file>] [--force]`                                   | A build's log, followed while it runs (`-o`: save the whole log to a file)      |
+
+`env add <KEY> --branch <name>` saves a variable only for previews of that Git branch (it implies
+`--preview`): there it replaces the variable with the same name for every preview, and production
+never gets it. `env rm <KEY> --branch <name>` deletes that one; `env` shows each variable's branch.
+`env import` has no `--branch`: it saves variables for every build of the targets chosen.
 
 `env import` reads dotenv syntax (`KEY=value`, `export `, quotes, `#` comments) and saves nothing
 when a line is wrong, printing each line's problem; names that already exist are skipped unless
@@ -53,6 +59,17 @@ when a line is wrong, printing each line's problem; names that already exist are
 (`some-secret-tool export | codeqlick env import -`).
 
 `hooks add` prints the hook's URL once: paste it in the CMS's webhook (a `POST`, no body needed). Builds a hook queued show as `<branch> (hook <name>)` in `builds`.
+
+With `git connect`'s default install and build commands (`npm ci`, `npm run build`), each build picks npm, pnpm or Yarn from the repository's lockfile; a `--install` or `--build` you set is used as it is.
+
+`git connect` reads the repository (its `package.json`, `.nvmrc` or `.node-version`) and suggests
+the build command, output folder and Node version for the framework it finds (Astro, Docusaurus,
+Gatsby, Next.js, Nuxt, SvelteKit, Eleventy, Create React App, Vite). It prints what it found and
+any notes, and uses the suggestion for each of `--build`, `--output` and `--node` you don't give.
+A project already connected to that repository keeps its saved settings instead.
+
+`logs --out` writes the whole kept log (at most 1 MB) instead of following it and, like `download`,
+never overwrites a file unless you pass `--force`.
 
 `builds start` and `logs` exit with 1 when the build fails, so CI can wait on a build.
 
