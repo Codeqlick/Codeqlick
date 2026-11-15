@@ -17,16 +17,26 @@ const ACCOUNT_PAGES = [
 const APP_PRIVATE_PAGES = {
   videochat: ['/*/room', '/*/contacts', '/*/settings', '/*/videochat/'],
   swipe: ['/*/deck', '/*/photos', '/*/matches', '/*/img/', '/*/swipe/'],
+  // The map's data route is for the page, not for crawlers.
+  cruising: [
+    '/*/new',
+    '/*/my-spots',
+    '/*/me',
+    '/*/members',
+    '/*/messages',
+    '/*/api/',
+    '/*/cruising/',
+  ],
 } as const;
 
 /**
- * robots.txt of the host asking. The video chat's and Swipe's hosts list their own sitemap and
- * keep their account-only pages out; any other host gets the website's.
+ * robots.txt of the host asking. The video chat's, Swipe's and Cruising's hosts list their own
+ * sitemap and keep their account-only pages out; any other host gets the website's.
  */
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = (await headers()).get('host');
   const app = webappForHost(host);
-  if (app === 'videochat' || app === 'swipe') {
+  if (app === 'videochat' || app === 'swipe' || app === 'cruising') {
     return {
       rules: [
         {

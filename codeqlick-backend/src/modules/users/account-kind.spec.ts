@@ -19,6 +19,7 @@ function user(over: Partial<UserWithUsage> = {}, count: Partial<typeof counts> =
     signupApp: null,
     videochatProfile: null,
     swipeProfile: null,
+    cruisingProfile: null,
     ...over,
     _count: { ...counts, ...count },
   } as UserWithUsage;

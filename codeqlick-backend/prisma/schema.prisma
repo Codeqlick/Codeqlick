@@ -161,6 +161,13 @@ model User {
   swipeBlocksMade            SwipeBlock[]                @relation("SwipeBlocker")
   swipeBlocksGot             SwipeBlock[]                @relation("SwipeBlocked")
   swipeTakedownsReviewed     SwipeTakedown[]
+  cruisingProfile            CruisingProfile?
+  cruisingSpots              CruisingSpot[]
+  cruisingReviews            CruisingReview[]
+  cruisingReportsMade        CruisingReport[]            @relation("CruisingReporter")
+  cruisingReportsGot         CruisingReport[]            @relation("CruisingReported")
+  cruisingReportsReviewed    CruisingReport[]            @relation("CruisingReportReviewer")
+  cruisingTakedownsReviewed  CruisingTakedown[]
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
@@ -2933,4 +2940,199 @@ enum NewsletterStatus {
   PENDING
   ACTIVE
   UNSUBSCRIBED
+}
+
+// ---- Cruising (architecture 4.15), phase 1: the directory ------------------------------------------
+
+enum CruisingSpotType {
+  BEACH
+  PARK
+  FOREST
+  REST_AREA
+  SAUNA
+  BAR_CLUB
+  CINEMA
+  OTHER
+}
+
+enum CruisingSpotStatus {
+  PENDING
+  LIVE
+  REJECTED
+  HIDDEN
+}
+
+enum CruisingReviewStatus {
+  LIVE
+  HIDDEN
+}
+
+enum CruisingReportTarget {
+  SPOT
+  REVIEW
+  /// Phase 2.
+  PROFILE
+  /// Phase 2.
+  CONVERSATION
+}
+
+enum CruisingReportReason {
+  MINOR
+  ILLEGAL
+  DANGER
+  WRONG_INFO
+  HARASSMENT
+  SPAM
+  OTHER
+}
+
+enum CruisingReportStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+enum CruisingTakedownStatus {
+  OPEN
+  /// The spot was removed (it became REJECTED).
+  REMOVED
+  /// Nothing to remove; the spot is restored.
+  CLOSED
+}
+
+/// A person in Cruising: 18+ declared (the date of birth is checked, not stored), the rules and the
+/// special category data consent accepted. Phase 2 adds the nickname, bio, country, lookingFor, showAge.
+model CruisingProfile {
+  userId           String    @id @map("user_id") @db.Uuid
+  /// Only the year of birth; the full date is never stored.
+  birthYear        Int       @map("birth_year")
+  termsVersion     String    @map("terms_version")
+  acceptedAt       DateTime  @map("accepted_at") @db.Timestamptz(3)
+  /// Emails about published spots (and, in phase 2, unread messages); the team's decisions are always mailed.
+  emailAlerts      Boolean   @default(true) @map("email_alerts")
+  suspendedAt      DateTime? @map("suspended_at") @db.Timestamptz(3)
+  /// Null with suspendedAt set: until lifted.
+  suspendedUntil   DateTime? @map("suspended_until") @db.Timestamptz(3)
+  suspensionReason String?   @map("suspension_reason") @db.VarChar(500)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("cruising_profiles")
+}
+
+/// A place on the map. Every spot starts PENDING and only the team publishes it. It stays when the
+/// account that proposed it is deleted (createdById becomes null).
+model CruisingSpot {
+  id           String             @id @default(uuid()) @db.Uuid
+  /// From the name, lower-case ASCII, -2, -3 on a clash; never changes.
+  slug         String             @unique @db.VarChar(100)
+  name         String             @db.VarChar(80)
+  type         CruisingSpotType
+  /// Rounded to 5 decimals.
+  lat          Decimal            @db.Decimal(8, 5)
+  lng          Decimal            @db.Decimal(8, 5)
+  /// ISO 3166-1 alpha-2.
+  countryCode  String             @map("country_code") @db.VarChar(2)
+  city         String             @db.VarChar(80)
+  citySlug     String             @map("city_slug") @db.VarChar(100)
+  description  String             @db.VarChar(1000)
+  bestTimes    String?            @map("best_times") @db.VarChar(200)
+  status       CruisingSpotStatus @default(PENDING)
+  rejectReason String?            @map("reject_reason") @db.VarChar(500)
+  createdById  String?            @map("created_by_id") @db.Uuid
+  reviewedAt   DateTime?          @map("reviewed_at") @db.Timestamptz(3)
+  /// Of the LIVE reviews, 2 decimals; recomputed with every review change.
+  ratingAvg    Decimal            @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount  Int                @default(0) @map("rating_count")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdBy User?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  reviews   CruisingReview[]
+  reports   CruisingReport[]
+  takedowns CruisingTakedown[]
+
+  @@index([status, lat])
+  @@index([countryCode, citySlug, status])
+  @@index([createdById, createdAt])
+  @@map("cruising_spots")
+}
+
+model CruisingReview {
+  id        String               @id @default(uuid()) @db.Uuid
+  spotId    String               @map("spot_id") @db.Uuid
+  userId    String               @map("user_id") @db.Uuid
+  /// 1 to 5.
+  rating    Int
+  text      String?              @db.VarChar(1000)
+  status    CruisingReviewStatus @default(LIVE)
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  spot    CruisingSpot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports CruisingReport[]
+
+  @@unique([spotId, userId])
+  @@index([spotId, status, createdAt])
+  @@index([userId, updatedAt])
+  @@map("cruising_reviews")
+}
+
+model CruisingReport {
+  id           String               @id @default(uuid()) @db.Uuid
+  reporterId   String               @map("reporter_id") @db.Uuid
+  targetType   CruisingReportTarget @map("target_type")
+  spotId       String?              @map("spot_id") @db.Uuid
+  reviewId     String?              @map("review_id") @db.Uuid
+  /// The person behind the target (the spot's proposer, the review's author); null when unknown.
+  reportedId   String?              @map("reported_id") @db.Uuid
+  reason       CruisingReportReason
+  details      String?              @db.VarChar(1000)
+  /// Phase 2, a conversation's last messages: [{ from: 'reporter' | 'reported', text, at }].
+  transcript   Json                 @default("[]")
+  status       CruisingReportStatus @default(OPEN)
+  reviewedById String?              @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?            @map("reviewed_at") @db.Timestamptz(3)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  reporter   User            @relation("CruisingReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported   User?           @relation("CruisingReported", fields: [reportedId], references: [id], onDelete: SetNull)
+  reviewedBy User?           @relation("CruisingReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  spot       CruisingSpot?   @relation(fields: [spotId], references: [id], onDelete: SetNull)
+  review     CruisingReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+  @@index([reportedId])
+  @@index([spotId])
+  @@index([reviewId])
+  @@map("cruising_reports")
+}
+
+/// A removal request from anyone, with or without an account (EU Digital Services Act).
+model CruisingTakedown {
+  id           String                 @id @default(uuid()) @db.Uuid
+  email        String                 @db.VarChar(254)
+  /// What they gave: the link to the spot, or its slug.
+  spotLink     String?                @map("spot_link") @db.VarChar(300)
+  spotId       String?                @map("spot_id") @db.Uuid
+  reason       CruisingReportReason
+  details      String                 @db.VarChar(2000)
+  /// Language of the emails sent to them.
+  locale       Locale                 @default(EN)
+  status       CruisingTakedownStatus @default(OPEN)
+  response     String?                @db.VarChar(2000)
+  reviewedById String?                @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime?              @map("reviewed_at") @db.Timestamptz(3)
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  spot       CruisingSpot? @relation(fields: [spotId], references: [id], onDelete: SetNull)
+  reviewedBy User?         @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([spotId])
+  @@map("cruising_takedowns")
 }
