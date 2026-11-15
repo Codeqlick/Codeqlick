@@ -2251,7 +2251,7 @@ model CloudProject {
   protectionDays         Int       @default(7) @map("protection_days")
   protectionVersion      Int       @default(0) @map("protection_version")
   protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
-  /// The bypass token for automation (architecture 4.13, decision 78): SHA-256 hex of the token,
+  /// The bypass token for automation (architecture 4.13, decision 80): SHA-256 hex of the token,
   /// its first 12 characters, who made it and when, and when it last let a request through.
   protectionBypassHash        String?   @unique @map("protection_bypass_hash")
   protectionBypassPrefix      String?   @map("protection_bypass_prefix")
