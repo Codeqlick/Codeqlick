@@ -98,7 +98,12 @@ export function cruisingTakedownEmail(
 }
 
 /** Things a person is told about. The emails never carry a spot name, a nickname or a message. */
-export type CruisingNotice = 'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended' | 'unread';
+export type CruisingNotice =
+  | 'spot-live'
+  | 'spot-rejected'
+  | 'spot-removed'
+  | 'suspended'
+  | 'unread';
 
 const NOTICE_COPY: Record<
   ApiLocale,
