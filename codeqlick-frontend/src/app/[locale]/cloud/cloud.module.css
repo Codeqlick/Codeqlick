@@ -814,3 +814,16 @@
 .history tbody th {
   font-weight: 500;
 }
+
+.stack {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.bypass {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+}

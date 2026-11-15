@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   TicketBook,
   TryLimiter,
+  bypassMatches,
+  generateBypassToken,
+  hashBypassToken,
   ipBucket,
   accessCookieOptions,
   nextFromUrl,
@@ -251,5 +254,28 @@ describe('page language', () => {
     expect(pageLocale('en;q=0.4,es;q=0.6')).toBe('es');
     expect(pageLocale('de-DE,fr;q=0.8')).toBe('en');
     expect(pageLocale('es;q=0')).toBe('en');
+  });
+});
+
+describe('bypass token', () => {
+  it('is cqb_ + 32 random bytes in base64url, stored as SHA-256 hex with a 12-character prefix', () => {
+    const { token, hash, prefix } = generateBypassToken();
+    expect(token).toMatch(/^cqb_[\w-]{43}$/);
+    expect(prefix).toBe(token.slice(0, 12));
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(hash).toBe(hashBypassToken(token));
+    expect(generateBypassToken().token).not.toBe(token);
+  });
+
+  it('matches only the token its hash was made from', () => {
+    const { token, hash } = generateBypassToken();
+    expect(bypassMatches(hash, token)).toBe(true);
+    expect(bypassMatches(hash, `${token}x`)).toBe(false);
+    expect(bypassMatches(hash, generateBypassToken().token)).toBe(false);
+    expect(bypassMatches(hash, '')).toBe(false);
+    expect(bypassMatches(null, token)).toBe(false);
+    expect(bypassMatches(undefined, token)).toBe(false);
+    // Not a SHA-256 hex at all: never throws, never matches.
+    expect(bypassMatches('zz', token)).toBe(false);
   });
 });

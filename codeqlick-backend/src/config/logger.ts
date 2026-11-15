@@ -79,6 +79,10 @@ export function buildLoggerParams(config: AppConfigService): Params {
         paths: [
           'req.headers.authorization',
           'req.headers.cookie',
+          'req.headers["x-cq-bypass"]',
+          'req.headers["x-cq-protection-key"]',
+          'req.headers["x-cq-access"]',
+          'req.headers["x-codeqlick-bypass"]',
           'res.headers["set-cookie"]',
           'password',
           '*.password',

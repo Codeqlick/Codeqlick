@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { parseProtectDays, parseProtectMode, protectionNote } from './cli.ts';
+import { bypassSummary, parseProtectDays, parseProtectMode, protectionNote } from './cli.ts';
 
 test('protect takes off, previews or all', () => {
   assert.equal(parseProtectMode('off'), 'OFF');
@@ -36,4 +36,18 @@ test('the note names only the printed addresses that ask for the password', () =
     protectionNote('ALL', { preview: false, production: true }) ?? '',
     /^The address asks/,
   );
+});
+
+test('the bypass summary shows the prefix and last use, or that none is set', () => {
+  assert.match(bypassSummary(null), /^none \(create one with: codeqlick protect bypass\)$/);
+  const bypass = {
+    prefix: 'cqb_abcdefgh',
+    createdAt: '2026-11-14T10:00:00.000Z',
+    createdBy: { id: 'u', name: 'Ada' },
+    lastUsedAt: null,
+  };
+  assert.equal(bypassSummary(bypass), 'cqb_abcdefgh… (never used)');
+  const used = bypassSummary({ ...bypass, lastUsedAt: '2026-11-14T11:00:00.000Z' });
+  assert.match(used, /^cqb_abcdefgh… \(last used .+\)$/);
+  assert.doesNotMatch(bypassSummary(bypass), /cqb_abcdefghi/);
 });

@@ -1,11 +1,18 @@
 import { getTranslations } from 'next-intl/server';
-import { ActionForm, FormInput, FormRadioGroup, FormSelect } from '@/components/app/ActionForm';
+import {
+  ActionForm,
+  FormCheckbox,
+  FormInput,
+  FormRadioGroup,
+  FormSelect,
+} from '@/components/app/ActionForm';
+import { BypassReveal } from '@/components/cloud/BypassReveal';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
-import { getCloudProtection } from '@/lib/api/cloud';
+import { getCloudProtection, type CloudProtectionBypass } from '@/lib/api/cloud';
 import { formatWhen, PROTECTION_DAYS, PROTECTION_MODES } from '@/lib/cloud';
-import { saveProtectionAction } from '../../../actions';
+import { generateBypassAction, revokeBypassAction, saveProtectionAction } from '../../../actions';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -13,6 +20,8 @@ type Props = {
   projectId: string;
   path: string;
   admin: boolean;
+  /** The project is suspended: the bypass token can't be changed. */
+  suspended?: boolean;
 };
 
 /** A padlock shown next to an address that asks for the project's password. */
@@ -122,8 +131,115 @@ export async function ProtectionCard(props: Props) {
           ) : (
             <p className={styles.small}>{t('protection.adminsOnly')}</p>
           )}
+          <BypassRow
+            {...props}
+            t={t}
+            bypass={protection.bypass}
+            canChange={props.admin && !props.suspended}
+          />
         </>
       )}
+    </section>
+  );
+}
+
+type BypassRowProps = Props & {
+  t: Awaited<ReturnType<typeof getTranslations<'Cloud'>>>;
+  bypass: CloudProtectionBypass | null;
+  canChange: boolean;
+};
+
+/**
+ * The "Bypass for automation" row (architecture 4.13): the token's state for everyone; admins
+ * generate (shown once), replace and revoke it.
+ */
+function BypassRow({
+  t,
+  bypass,
+  canChange,
+  locale,
+  path,
+  projectId,
+  admin,
+  suspended,
+}: BypassRowProps) {
+  return (
+    <section className={styles.bypass} aria-labelledby="bypass-title">
+      <h3 id="bypass-title" className={styles.rowTitle}>
+        {t('protection.bypass.title')}
+      </h3>
+      <p className={styles.muted}>{t('protection.bypass.lead')}</p>
+      {bypass ? (
+        <>
+          <p className={styles.rowTitle}>
+            <span className={styles.mono}>{bypass.prefix}…</span>
+          </p>
+          <p className={styles.small}>
+            {bypass.createdBy
+              ? t('protection.bypass.createdBy', {
+                  name: bypass.createdBy.name,
+                  when: formatWhen(bypass.createdAt, locale),
+                })
+              : t('protection.bypass.created', { when: formatWhen(bypass.createdAt, locale) })}
+            {' · '}
+            {bypass.lastUsedAt
+              ? t('protection.bypass.lastUsed', { when: formatWhen(bypass.lastUsedAt, locale) })
+              : t('protection.bypass.neverUsed')}
+          </p>
+        </>
+      ) : (
+        <p className={styles.small}>{t('protection.bypass.none')}</p>
+      )}
+      {suspended && admin ? (
+        <p className={styles.small}>{t('protection.bypass.suspended')}</p>
+      ) : null}
+      {canChange ? (
+        <>
+          <ActionForm
+            action={generateBypassAction.bind(null, locale, path, projectId, bypass !== null)}
+            className={styles.form}
+          >
+            <BypassReveal />
+            {bypass ? (
+              <FormCheckbox
+                id="bypass-confirm-replace"
+                name="confirm"
+                label={t('protection.bypass.confirmReplace')}
+                hint={t('protection.bypass.replaceWarning')}
+                required
+              />
+            ) : null}
+            <div className={styles.actions}>
+              <SubmitButton variant="outline" pendingLabel={t('protection.bypass.generating')}>
+                {bypass ? t('protection.bypass.regenerate') : t('protection.bypass.generate')}
+              </SubmitButton>
+            </div>
+          </ActionForm>
+          {bypass ? (
+            <ActionForm
+              action={revokeBypassAction.bind(null, locale, path, projectId)}
+              className={styles.form}
+            >
+              <FormCheckbox
+                id="bypass-confirm-revoke"
+                name="confirm"
+                label={t('protection.bypass.confirmRevoke')}
+                hint={t('protection.bypass.revokeWarning')}
+                required
+              />
+              <div className={styles.actions}>
+                <SubmitButton
+                  variant="danger"
+                  size="sm"
+                  pendingLabel={t('protection.bypass.revoking')}
+                >
+                  {t('protection.bypass.revoke')}
+                </SubmitButton>
+              </div>
+            </ActionForm>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }

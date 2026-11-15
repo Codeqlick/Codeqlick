@@ -35,6 +35,7 @@ import {
   type CloudNotifyKind,
   createCloudProject,
   createCloudTeam,
+  createCloudProtectionBypass,
   createCloudToken,
   decideCloudDevice,
   deleteCloudDeployment,
@@ -57,6 +58,7 @@ import {
   renameCloudTeam,
   reportCloudPage,
   revokeCloudInvite,
+  revokeCloudProtectionBypass,
   revokeCloudToken,
   runCloudAudit,
   saveCloudStatusPage,
@@ -558,6 +560,58 @@ export async function saveProtectionAction(
   // The team's page shows the lock next to each project's address too.
   refresh(lang, path.slice(0, path.lastIndexOf('/')));
   return { status: 'success', message: t('saved') };
+}
+
+/**
+ * Creates or replaces the project's bypass token for automation (architecture 4.13). Replacing
+ * needs the confirmation box; the token goes back once in the form's values (`token`).
+ */
+export async function generateBypassAction(
+  locale: string,
+  path: string,
+  id: string,
+  replacing: boolean,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.protection.bypass' });
+  if (replacing && formString(formData, 'confirm') !== 'on') {
+    return { status: 'error', fieldErrors: { confirm: t('confirmNeeded') } };
+  }
+  let token: string;
+  try {
+    token = (await createCloudProtectionBypass(id)).token;
+  } catch (error) {
+    if (isApiError(error) && error.status === 503) {
+      return { status: 'error', message: t('unavailable') };
+    }
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('generated'), values: { token } };
+}
+
+/** Revokes the project's bypass token, once the confirmation box is ticked. */
+export async function revokeBypassAction(
+  locale: string,
+  path: string,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.protection.bypass' });
+  if (formString(formData, 'confirm') !== 'on') {
+    return { status: 'error', fieldErrors: { confirm: t('confirmNeeded') } };
+  }
+  try {
+    await revokeCloudProtectionBypass(id);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('revoked') };
 }
 
 // ── Domains ───────────────────────────────────────────────────────────────────────────────────

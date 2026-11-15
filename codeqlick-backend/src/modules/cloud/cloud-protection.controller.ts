@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiExcludeController, ApiTags } from '@nestjs/swagger';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
@@ -11,6 +23,7 @@ import { PROTECTION_PAGE_HEADERS, renderProtectionPage } from './cloud-protectio
 import { ACCESS_COOKIE, accessCookieOptions, nextFromUrl, pageLocale } from './cloud-protection.js';
 import {
   CloudProtectionService,
+  type BypassCreated,
   type ProtectionView,
   type ProxyHeaders,
   type VisitorAnswer,
@@ -37,6 +50,7 @@ function proxyHeaders(request: Request): ProxyHeaders {
     deployment: one('x-cq-deployment'),
     uri: wire(one('x-cq-uri')),
     args: wire(one('x-cq-args')),
+    bypass: one('x-cq-bypass'),
   };
 }
 
@@ -190,5 +204,25 @@ export class CloudProtectionController {
     @Query({ schema: protectionTicketQuerySchema }) query: ProtectionTicketQuery,
   ): Promise<{ url: string; expiresIn: number }> {
     return this.protection.ticket(ctx, params.id, query.host);
+  }
+
+  /** Creates or replaces the bypass token for automation; the token is in this answer only. */
+  @Post('bypass')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  createBypass(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<BypassCreated> {
+    return this.protection.createBypass(ctx, params.id);
+  }
+
+  @Delete('bypass')
+  @HttpCode(204)
+  async revokeBypass(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<void> {
+    await this.protection.revokeBypass(ctx, params.id);
   }
 }

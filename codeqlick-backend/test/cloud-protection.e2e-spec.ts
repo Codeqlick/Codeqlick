@@ -162,6 +162,7 @@ describe('Codeqlick Cloud password protection (e2e)', () => {
       days: 7,
       hasPassword: false,
       updatedAt: null,
+      bypass: null,
     });
     await request(server).get(base).set(outsiderAuth).expect(404);
     await request(server)
