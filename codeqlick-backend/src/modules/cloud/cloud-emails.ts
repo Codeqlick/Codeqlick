@@ -802,3 +802,63 @@ export function cloudProjectTransferredEmail(input: {
     ),
   };
 }
+
+/** The weekly check of production dropped (decision 81): to the team's owners and admins. */
+export function cloudProductionCheckEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  project: string;
+  /** The address that was checked. */
+  url: string;
+  from: number;
+  scoreNow: number;
+  /** One row per drop, overall first (`dropLines`). */
+  lines: Array<{ label: string; value: string }>;
+  previousAt: Date;
+  checkedAt: Date;
+  previousReportUrl: string;
+  reportUrl: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const day = (date: Date) =>
+    new Intl.DateTimeFormat(es ? 'es-ES' : 'en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Europe/Madrid',
+    }).format(date);
+  const intro = es
+    ? `La revisión semanal de ${input.url} (proyecto ${input.project}) ha bajado de ${input.from} a ${input.scoreNow} puntos.`
+    : `The weekly check of ${input.url} (project ${input.project}) dropped from ${input.from} to ${input.scoreNow}.`;
+  return {
+    to: input.to,
+    subject: es
+      ? `La nota de la web ha bajado: ${input.project} (${input.from} → ${input.scoreNow})`
+      : `Website score dropped: ${input.project} (${input.from} → ${input.scoreNow})`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: intro.slice(0, 120),
+        title: es ? 'La nota de tu web ha bajado' : 'Your website score dropped',
+        intro: [intro],
+        details: [
+          ...input.lines.map((line): [string, string] => [line.label, line.value]),
+          [es ? 'Revisión anterior' : 'Previous check', day(input.previousAt)],
+          [es ? 'Esta revisión' : 'This check', day(input.checkedAt)],
+        ],
+        button: {
+          label: es ? 'Ver el nuevo informe' : 'See the new report',
+          url: input.reportUrl,
+        },
+        outro: [
+          es
+            ? `Informe anterior: ${input.previousReportUrl}`
+            : `Previous report: ${input.previousReportUrl}`,
+        ],
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}

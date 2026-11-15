@@ -55,6 +55,7 @@ import { KvTab } from './KvTab';
 import { StorageTab } from './StorageTab';
 import { TransferProject } from './TransferProject';
 import { NotificationsTab } from './NotificationsTab';
+import { ProductionChecksCard, ProductionChecksSummary } from './ProductionChecks';
 import { ProtectionCard, ProtectionLock } from './ProtectionCard';
 
 const TABS = [
@@ -329,6 +330,13 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
             admin={admin}
             suspended={project.suspended !== null}
           />
+          <ProductionChecksCard
+            locale={locale}
+            projectId={project.id}
+            path={path}
+            admin={admin}
+            protection={project.protection}
+          />
           {team.role === 'OWNER' ? (
             <TransferProject
               locale={locale}
@@ -405,6 +413,7 @@ async function Deployments({
           {`npx @codeqlick/cli deploy dist --prod --team ${teamSlug} --project ${projectSlug}`}
         </pre>
       </div>
+      <ProductionChecksSummary locale={locale} projectId={projectId} teamSlug={teamSlug} />
       <h2 id="deployments-title" className={styles.sectionTitle}>
         {t('project.tabs.deployments')}
       </h2>

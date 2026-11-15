@@ -54,6 +54,7 @@ import {
   markCloudSubmissionSpam,
   replaceCloudFormKey,
   renameCloudProject,
+  setCloudProductionChecks,
   renameCloudTeam,
   reportCloudPage,
   revokeCloudInvite,
@@ -355,6 +356,25 @@ export async function renameProjectAction(
   if (name.length < 1 || name.length > 60) return { status: 'error', values: formValues(formData) };
   try {
     await renameCloudProject(id, name);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: t('saved') };
+}
+
+/** Switches the weekly website check of production on or off (admins; decision 81). */
+export async function saveProductionChecksAction(
+  locale: string,
+  path: string,
+  id: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.productionChecks' });
+  try {
+    await setCloudProductionChecks(id, formBoolean(formData, 'productionChecks'));
   } catch (error) {
     return failure(lang, error);
   }

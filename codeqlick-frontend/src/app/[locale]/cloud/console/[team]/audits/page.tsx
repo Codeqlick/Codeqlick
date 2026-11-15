@@ -84,7 +84,13 @@ export default async function CloudAuditsPage({ params }: PageProps) {
                       {audit.score}/100
                     </Link>
                     <span className={styles.mono}>{audit.url}</span>
-                    {audit.preview ? <Badge>{t('audits.previewBadge')}</Badge> : null}
+                    {audit.kind === 'manual' ? null : (
+                      <Badge>
+                        {audit.kind === 'preview'
+                          ? t('audits.previewBadge')
+                          : t('audits.scheduledBadge')}
+                      </Badge>
+                    )}
                   </p>
                   <p className={styles.small}>{formatWhen(audit.createdAt, locale)}</p>
                 </div>

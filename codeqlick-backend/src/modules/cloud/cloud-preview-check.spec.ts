@@ -171,7 +171,12 @@ describe('CloudAuditsService.runPreview', () => {
     return { service, create, record, gather };
   }
 
-  const input = { teamId: 't1', plan: 'FREE' as const, url: 'https://site--x.cloud.test' };
+  const input = {
+    teamId: 't1',
+    plan: 'FREE' as const,
+    url: 'https://site--x.cloud.test',
+    projectId: 'p1',
+  };
 
   it('stores an audit with no member and no team event, without the indexable check', async () => {
     const { service, create, record } = setup(0);
@@ -180,9 +185,13 @@ describe('CloudAuditsService.runPreview', () => {
     expect(create).toHaveBeenCalledOnce();
     const data = create.mock.calls[0]![0] as {
       userId: string | null;
+      kind: string;
+      projectId: string | null;
       result: { checks: Array<{ id: string }> };
     };
     expect(data.userId).toBeNull();
+    expect(data.kind).toBe('PREVIEW');
+    expect(data.projectId).toBe('p1');
     expect(data.result.checks.map((check) => check.id)).not.toContain('indexable');
     expect(outcome).toMatchObject({ state: 'done', auditId: 'audit-1' });
     const failed = outcome.state === 'done' ? outcome.failed : [];
@@ -203,5 +212,55 @@ describe('CloudAuditsService.runPreview', () => {
     const outcome = await service.runPreview(input);
     expect(outcome.state).toBe('unavailable');
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it("stores the weekly check of production as scheduled, with every check and the project's id", async () => {
+    const { service, create, record } = setup(0);
+    const row = await service.runScheduled({
+      teamId: 't1',
+      plan: 'FREE',
+      projectId: 'p1',
+      url: 'https://site.cloud.test/',
+    });
+    expect(record).not.toHaveBeenCalled();
+    expect(row.id).toBe('audit-1');
+    const data = create.mock.calls[0]![0] as {
+      userId: string | null;
+      kind: string;
+      projectId: string | null;
+      result: { checks: Array<{ id: string }> };
+    };
+    expect(data).toMatchObject({ userId: null, kind: 'SCHEDULED', projectId: 'p1' });
+    expect(data.result.checks.map((check) => check.id)).toContain('indexable');
+  });
+
+  it('throws past the hourly limit when the weekly check runs', async () => {
+    const { service, create } = setup(CLOUD_PLANS.FREE.auditsPerHour);
+    await expect(
+      service.runScheduled({
+        teamId: 't1',
+        plan: 'FREE',
+        projectId: 'p1',
+        url: 'https://site.cloud.test/',
+      }),
+    ).rejects.toMatchObject({ status: 429 });
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe('CloudAuditsService.cleanup', () => {
+  it('keeps scheduled audits 90 days and the others 30', async () => {
+    const deleteExpired = vi.fn(() => Promise.resolve());
+    const service = new CloudAuditsService(
+      { deleteExpired } as unknown as CloudAuditsRepository,
+      {} as CloudTeamsService,
+      {} as AppConfigService,
+    );
+    const now = new Date('2026-11-15T00:00:00Z');
+    await service.cleanup(now);
+    expect(deleteExpired).toHaveBeenCalledWith(
+      new Date('2026-08-17T00:00:00Z'),
+      new Date('2026-10-16T00:00:00Z'),
+    );
   });
 });

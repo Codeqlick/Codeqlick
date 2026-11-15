@@ -5745,6 +5745,38 @@
         "gitDropped": "Se ha quitado la conexión con Git: vuelve a conectarla en la pestaña Git."
       }
     },
+    "productionChecks": {
+      "title": "Revisión web semanal",
+      "lead": "Revisa el sitio publicado una vez por semana y avisa a los administradores del equipo cuando baja su puntuación.",
+      "label": "Revisar el sitio publicado cada semana y avisar a los administradores cuando baje la puntuación",
+      "on": "Activada",
+      "off": "Desactivada",
+      "next": "Próxima revisión: {when} (hora de Madrid)",
+      "address": "Dirección revisada:",
+      "alerts": "Los avisos van por email a los administradores del equipo y a los canales del proyecto con avisos de monitores activados.",
+      "protected": "Se omiten los proyectos cuya protección con contraseña cubre producción: la revisión puntuaría la página de la contraseña.",
+      "adminsOnly": "Solo los administradores del equipo pueden cambiarlo.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado.",
+      "loadError": "No se pudo cargar la revisión semanal.",
+      "summaryTitle": "Revisión web",
+      "last": "Última revisión semanal: {when}",
+      "report": "Ver el informe",
+      "first": "La primera revisión se hará el {when} (hora de Madrid).",
+      "categories": {
+        "speed": "Velocidad",
+        "mobile": "Móvil",
+        "seo": "Google",
+        "security": "Seguridad"
+      },
+      "historyCaption": "Revisiones semanales de las últimas 12 semanas",
+      "date": "Fecha",
+      "score": "Puntuación",
+      "status": "Cambio",
+      "dropped": "Ha bajado",
+      "steady": "Sin bajada"
+    },
     "protection": {
       "title": "Protección con contraseña",
       "lead": "Pide una contraseña a los visitantes antes de que vean este proyecto, para enseñar trabajo en curso sin hacerlo público. Los miembros del equipo abren desde aquí las direcciones protegidas sin escribirla.",
@@ -6233,6 +6265,7 @@
       "recent": "Revisiones recientes",
       "empty": "Aún no hay revisiones.",
       "previewBadge": "Revisión de vista previa",
+      "scheduledBadge": "Revisión semanal",
       "status": {
         "pass": "Bien",
         "warn": "Mejorable",
@@ -6473,8 +6506,8 @@
       "formsLoadErrorNew": "No se han podido cargar los formularios del proyecto: un aviso nuevo recibe todos; edítalo después para elegir algunos.",
       "formsEmail": "Los avisos por email no pueden llevar envíos de formularios: los formularios ya avisan por email a sus destinatarios. Elige Slack, Discord o webhook.",
       "formsTooMany": "Elige hasta 20 formularios.",
-      "onMonitors": "Avisos de monitores (caído, recuperado, certificado)",
-      "onMonitorsNew": "Avisos de monitores: caído, recuperado, certificado (Slack, Discord o webhook)",
+      "onMonitors": "Avisos de monitores y bajadas de la revisión web",
+      "onMonitorsNew": "Avisos de monitores y bajadas de la revisión web (Slack, Discord o webhook)",
       "onMonitorsHint": "Solo avisan aquí los monitores vinculados a este proyecto. Las personas elegidas en cada monitor siguen recibiendo su email.",
       "monitorAlertsEmail": "Los avisos de monitores van a Slack, Discord o un webhook: los monitores ya envían un email a las personas elegidas en ellos.",
       "newTitle": "Nuevo aviso",

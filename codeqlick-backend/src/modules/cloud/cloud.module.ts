@@ -41,6 +41,7 @@ import { CloudAdminController } from './cloud-admin.controller.js';
 import { CloudAuditsController } from './cloud-audits.controller.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
 import { CloudAuditsService } from './cloud-audits.service.js';
+import { CloudProductionChecksService } from './cloud-production-checks.service.js';
 import { CloudBuildsController, CloudBuildsPublicController } from './cloud-builds.controller.js';
 import { CloudBuildsRepository } from './cloud-builds.repository.js';
 import { CloudBuildsService } from './cloud-builds.service.js';
@@ -130,6 +131,7 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudStatusNoticesService,
     CloudAuditsRepository,
     CloudAuditsService,
+    CloudProductionChecksService,
     CloudBuildsRepository,
     CloudBuildsService,
     CloudDeployHooksRepository,

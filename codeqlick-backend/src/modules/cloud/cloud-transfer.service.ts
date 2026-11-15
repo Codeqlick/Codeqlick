@@ -109,7 +109,13 @@ export class CloudTransferService {
 
     const moved = await this.cloud.findProject(project.id);
     const view = this.projects.view(
-      moved ?? { ...project, teamId: target.teamId, team: target.team },
+      moved ?? {
+        ...project,
+        teamId: target.teamId,
+        team: target.team,
+        productionChecks: false,
+        productionCheckNextAt: null,
+      },
     );
     return { ...view, git: git.outcome };
   }

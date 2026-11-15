@@ -2,6 +2,9 @@ import { createHmac } from 'node:crypto';
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { CloudNotifyKind } from '../../generated/prisma/client.js';
 import { assertCheckableUrl } from '../site-audits/safe-fetch.js';
+import type { Category, CheckId } from '../site-audits/site-audit-checks.js';
+import { CATEGORY_NAMES, CHECK_TEXTS } from '../site-audits/site-audit-texts.js';
+import type { Drop } from './cloud-production-checks.js';
 
 /**
  * Build notifications' messages (architecture 4.13 "Build notifications", decisions 43 and 63):
@@ -441,6 +444,115 @@ export function monitorPayload(
           url: e.consoleUrl,
           description: monitorSummary(e, locale).slice(0, 4000),
           color: MONITOR_COLORS[e.event],
+          timestamp: e.sentAt,
+        },
+      ],
+    });
+  }
+  return JSON.stringify(e);
+}
+
+// ── Website-check drops (decision 81) ────────────────────────────────────────────────────────
+
+type ScoredAudit = {
+  id: string;
+  score: number;
+  categories: Record<Category, number>;
+  createdAt: string;
+};
+
+/** What a Slack, Discord or webhook channel is told when the weekly check of production drops. */
+export interface AuditDroppedEvent {
+  event: 'audit.dropped';
+  project: { slug: string; name: string };
+  audit: ScoredAudit & { url: string };
+  previous: ScoredAudit;
+  dropped: {
+    score: { from: number; to: number } | null;
+    categories: Array<{ key: Category; from: number; to: number }>;
+    checks: Array<{ id: CheckId; category: Category; title: string }>;
+  };
+  consoleUrl: string;
+  sentAt: string;
+}
+
+/** A drop as channels receive it (the checks' titles in English). */
+export function auditDroppedEvent(input: {
+  project: { slug: string; name: string };
+  audit: ScoredAudit & { url: string };
+  previous: ScoredAudit;
+  drop: Drop;
+  consoleUrl: string;
+  now?: Date;
+}): AuditDroppedEvent {
+  return {
+    event: 'audit.dropped',
+    project: { slug: input.project.slug, name: input.project.name },
+    audit: input.audit,
+    previous: input.previous,
+    dropped: {
+      score: input.drop.score,
+      categories: input.drop.categories,
+      checks: input.drop.checks.map((check) => ({
+        ...check,
+        title: CHECK_TEXTS[check.id].title.en,
+      })),
+    },
+    consoleUrl: input.consoleUrl,
+    sentAt: (input.now ?? new Date()).toISOString(),
+  };
+}
+
+/** A drop's one line in `locale`; `strong` marks the project's name and `plain` the rest. */
+export function auditDroppedSummary(
+  e: AuditDroppedEvent,
+  locale: ApiLocale,
+  strong: (text: string) => string = (text) => text,
+  plain: (text: string) => string = (text) => text,
+): string {
+  const es = locale === 'es';
+  const parts = [
+    ...e.dropped.categories.map((c) => `${CATEGORY_NAMES[c.key][locale]} ${c.from} → ${c.to}`),
+    ...(e.dropped.checks.length > 0
+      ? [
+          es
+            ? `${e.dropped.checks.length} ${e.dropped.checks.length === 1 ? 'comprobación falla' : 'comprobaciones fallan'}`
+            : `${e.dropped.checks.length} ${e.dropped.checks.length === 1 ? 'check' : 'checks'} failed`,
+        ]
+      : []),
+  ];
+  const detail = parts.length > 0 ? ` (${plain(parts.join(', '))})` : '';
+  const from = e.previous.score;
+  const to = e.audit.score;
+  const name = strong(e.project.name);
+  return es
+    ? `${name} · la nota de la web ha bajado de ${from} a ${to}${detail}`
+    : `${name} · website score dropped from ${from} to ${to}${detail}`;
+}
+
+/** The body of a drop posted to a channel of `kind` (JSON). */
+export function auditDroppedPayload(
+  kind: Exclude<CloudNotifyKind, 'EMAIL'>,
+  e: AuditDroppedEvent,
+  locale: ApiLocale,
+): string {
+  const label = locale === 'es' ? 'Ver el informe' : 'See the report';
+  const title = locale === 'es' ? 'Revisión de la web' : 'Website check';
+  if (kind === 'SLACK') {
+    const text = `📉 ${auditDroppedSummary(e, locale, (t) => `*${slackEscape(t)}*`, slackEscape)}`;
+    return JSON.stringify({ text: `${text}\n<${e.consoleUrl}|${label}>`, unfurl_links: false });
+  }
+  if (kind === 'DISCORD') {
+    return JSON.stringify({
+      username: 'Codeqlick Cloud',
+      // Project names are people's words: never let them ping anyone.
+      allowed_mentions: { parse: [] },
+      embeds: [
+        {
+          title: `📉 ${e.project.name} · ${title}`.slice(0, 256),
+          url: e.consoleUrl,
+          description: auditDroppedSummary(e, locale).slice(0, 4000),
+          color: 0xf79009,
           timestamp: e.sentAt,
         },
       ],

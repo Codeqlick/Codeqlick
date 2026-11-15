@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
-import type { CloudAudit } from '../../generated/prisma/client.js';
+import type { CloudAudit, CloudAuditKind } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { gather } from '../site-audits/gather.js';
 import { assertCheckableUrl } from '../site-audits/safe-fetch.js';
@@ -26,6 +26,7 @@ import {
 import type { CloudCtx } from './cloud-caller.js';
 import { PREVIEW_IGNORED_CHECKS, type PreviewCheck } from './cloud-preview-check.js';
 import { CloudAuditsRepository } from './cloud-audits.repository.js';
+import { AUDIT_DAYS, SCHEDULED_AUDIT_DAYS } from './cloud-production-checks.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 
@@ -67,7 +68,10 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
 
   async cleanup(now = new Date()): Promise<void> {
     await this.repository
-      .deleteBefore(new Date(now.getTime() - 30 * DAY))
+      .deleteExpired(
+        new Date(now.getTime() - SCHEDULED_AUDIT_DAYS * DAY),
+        new Date(now.getTime() - AUDIT_DAYS * DAY),
+      )
       .catch((error: unknown) =>
         this.logger.error(`Cloud audits cleanup failed: ${String(error)}`),
       );
@@ -104,6 +108,8 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
       plan: membership.team.plan,
       url,
       userId: ctx.user.id,
+      kind: 'MANUAL',
+      projectId: null,
       locale: input.locale,
     });
     await this.teams.record(ctx, membership.teamId, 'audit.run', url.host, { score: row.score });
@@ -111,7 +117,8 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
   }
 
   /**
-   * The limit, the fetch, the scoring and the storing, for a member's check and for a preview's.
+   * The limit, the fetch, the scoring and the storing, for a member's check, a preview's and
+   * the weekly one of production.
    * Throws a 429 past the team's hourly limit, a 504 after 60 s, a 422 when the site can't be read.
    */
   private async execute(input: {
@@ -119,6 +126,8 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
     plan: 'FREE' | 'PRO';
     url: URL;
     userId: string | null;
+    kind: CloudAuditKind;
+    projectId: string | null;
     locale: ApiLocale;
     ignore?: readonly CheckId[];
   }): Promise<CloudAudit> {
@@ -155,6 +164,8 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
     return this.repository.create({
       teamId: input.teamId,
       userId: input.userId,
+      projectId: input.projectId,
+      kind: input.kind,
       url: input.url.toString(),
       score: scoreOf(result.checks).score,
       result: result as never,
@@ -169,6 +180,7 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
     teamId: string;
     plan: 'FREE' | 'PRO';
     url: string;
+    projectId?: string;
   }): Promise<PreviewCheck> {
     try {
       const row = await this.execute({
@@ -176,6 +188,8 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
         plan: input.plan,
         url: new URL(input.url),
         userId: null,
+        kind: 'PREVIEW',
+        projectId: input.projectId ?? null,
         locale: 'en',
         ignore: PREVIEW_IGNORED_CHECKS,
       });
@@ -207,6 +221,33 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
     }
   }
 
+  /**
+   * The weekly check of a project's production (decision 81): no member, no team event, every
+   * check counted, counted in the hourly limit. Throws like `execute`: a 429 past the limit, a 504
+   * after 60 s, a 422 when the site can't be read.
+   */
+  runScheduled(input: {
+    teamId: string;
+    plan: 'FREE' | 'PRO';
+    projectId: string;
+    url: string;
+  }): Promise<CloudAudit> {
+    return this.execute({
+      teamId: input.teamId,
+      plan: input.plan,
+      url: new URL(input.url),
+      userId: null,
+      kind: 'SCHEDULED',
+      projectId: input.projectId,
+      locale: 'en',
+    });
+  }
+
+  /** The newest scheduled audit of the same project before `audit`; null when none. */
+  previousScheduled(audit: CloudAudit): Promise<CloudAudit | null> {
+    return this.repository.previousScheduled(audit);
+  }
+
   async list(ctx: CloudCtx, teamSlug: string, page: number, pageSize: number) {
     const membership = await this.teams.access(ctx, teamSlug);
     const { skip, take } = pageToSkipTake(page, pageSize);
@@ -215,7 +256,7 @@ export class CloudAuditsService implements OnApplicationBootstrap, OnApplication
       id: row.id,
       url: row.url,
       score: row.score,
-      preview: row.userId === null,
+      kind: row.kind.toLowerCase() as Lowercase<CloudAuditKind>,
       createdAt: row.createdAt.toISOString(),
     }));
     return paginate(items, total, page, pageSize) as Paginated<(typeof items)[number]>;
