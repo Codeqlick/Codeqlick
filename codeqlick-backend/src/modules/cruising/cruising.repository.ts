@@ -52,6 +52,26 @@ export async function recomputeSpotRating(
   });
 }
 
+/**
+ * Deletes an account. Its Cruising reviews go with it (cascade), so the ratings of the spots it
+ * reviewed are worked out again in the same transaction.
+ */
+export async function deleteUserRecomputingRatings(
+  prisma: Pick<PrismaService, '$transaction'>,
+  id: string,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const reviewed = await tx.cruisingReview.findMany({
+      where: { userId: id },
+      select: { spotId: true },
+    });
+    await tx.user.delete({ where: { id } });
+    for (const spotId of new Set(reviewed.map((review) => review.spotId))) {
+      await recomputeSpotRating(tx, spotId);
+    }
+  });
+}
+
 @Injectable()
 export class CruisingRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -110,8 +130,25 @@ export class CruisingRepository {
     return this.prisma.cruisingSpot.update({ where: { id }, data });
   }
 
-  async deleteSpot(id: string): Promise<void> {
-    await this.prisma.cruisingSpot.delete({ where: { id } });
+  /**
+   * The proposer's own edit: applied only while the spot is still PENDING or REJECTED, so a team
+   * decision made a moment earlier is never overwritten. Returns the spot, or null when it no
+   * longer can be changed.
+   */
+  async updateOwnSpot(id: string, userId: string, data: Prisma.CruisingSpotUncheckedUpdateInput) {
+    const { count } = await this.prisma.cruisingSpot.updateMany({
+      where: { id, createdById: userId, status: { in: ['PENDING', 'REJECTED'] } },
+      data,
+    });
+    return count === 0 ? null : this.prisma.cruisingSpot.findUnique({ where: { id } });
+  }
+
+  /** Deletes the proposer's PENDING or REJECTED spot; false when it can no longer be deleted. */
+  async deleteOwnSpot(id: string, userId: string): Promise<boolean> {
+    const { count } = await this.prisma.cruisingSpot.deleteMany({
+      where: { id, createdById: userId, status: { in: ['PENDING', 'REJECTED'] } },
+    });
+    return count > 0;
   }
 
   countSpotsSince(userId: string, since: Date): Promise<number> {
@@ -253,7 +290,9 @@ export class CruisingRepository {
       where: { id },
       include: {
         spot: true,
-        review: { include: { spot: { select: { id: true, slug: true, name: true, status: true } } } },
+        review: {
+          include: { spot: { select: { id: true, slug: true, name: true, status: true } } },
+        },
       },
     });
   }

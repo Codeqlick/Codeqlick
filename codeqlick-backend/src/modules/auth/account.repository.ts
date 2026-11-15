@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Locale, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { recomputeSpotRating } from '../cruising/cruising.repository.js';
+import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
 
 export type EmailChangeResult =
   { status: 'done'; user: User; oldEmail: string } | { status: 'invalid' } | { status: 'taken' };
@@ -91,17 +91,7 @@ export class AccountRepository {
 
   /** Sessions, tokens, proposals, support requests and video chat data go with it (cascade). */
   async delete(id: string): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      // Their Cruising reviews go with them (cascade): the spots' ratings are worked out again.
-      const reviewed = await tx.cruisingReview.findMany({
-        where: { userId: id },
-        select: { spotId: true },
-      });
-      await tx.user.delete({ where: { id } });
-      for (const spotId of new Set(reviewed.map((review) => review.spotId))) {
-        await recomputeSpotRating(tx, spotId);
-      }
-    });
+    await deleteUserRecomputingRatings(this.prisma, id);
   }
 
   /**

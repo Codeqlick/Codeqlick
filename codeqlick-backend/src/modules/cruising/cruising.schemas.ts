@@ -1,9 +1,5 @@
 import { z } from 'zod';
-import {
-  localeSchema,
-  paginationSchema,
-  slugSchema,
-} from '../../common/schemas/common.schemas.js';
+import { localeSchema, paginationSchema, slugSchema } from '../../common/schemas/common.schemas.js';
 import { COUNTRIES } from '../swipe/swipe.schemas.js';
 import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
 import { parseBbox } from './cruising.rules.js';

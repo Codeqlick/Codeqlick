@@ -312,7 +312,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     input: ProfileInput,
     now = new Date(),
   ): Promise<CruisingStatus> {
-    await this.allowedProfile(userId, now);
+    await this.enteredProfile(userId);
     const profile = await this.repository.updateProfile(userId, {
       ...(input.emailAlerts !== undefined ? { emailAlerts: input.emailAlerts } : {}),
     });
@@ -517,19 +517,20 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (!memberCanChange(spot.status)) {
       throw new ConflictException('Only a pending or rejected spot can be changed');
     }
-    const updated = await this.repository.updateSpot(spot.id, {
+    const updated = await this.repository.updateOwnSpot(spot.id, userId, {
       ...spotChanges(patch),
-      ...(spot.status === 'REJECTED' ? { status: 'PENDING', rejectReason: null } : {}),
+      ...(spot.status === 'REJECTED' ? { status: 'PENDING' as const, rejectReason: null } : {}),
     });
+    // The team decided in between: it can't be changed any more.
+    if (!updated) throw new ConflictException('Only a pending or rejected spot can be changed');
     return { id: updated.id, slug: updated.slug, status: updated.status };
   }
 
   async deleteSpot(userId: string, spotId: string): Promise<void> {
     const spot = await this.mySpot(userId, spotId);
-    if (!memberCanChange(spot.status)) {
+    if (!memberCanChange(spot.status) || !(await this.repository.deleteOwnSpot(spot.id, userId))) {
       throw new ConflictException('Only a pending or rejected spot can be deleted');
     }
-    await this.repository.deleteSpot(spot.id);
   }
 
   // ---- Members: reviews --------------------------------------------------------------------------
@@ -541,7 +542,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   }
 
   private reviewView(
-    review: { id: string; rating: number; text: string | null; userId: string; createdAt: Date; updatedAt: Date },
+    review: {
+      id: string;
+      rating: number;
+      text: string | null;
+      userId: string;
+      createdAt: Date;
+      updatedAt: Date;
+    },
     viewerId: string,
   ): CruisingReviewView {
     return {
@@ -598,7 +606,12 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (touched + adds > REVIEWS_PER_DAY) {
       throw new HttpException('Too many reviews today', HttpStatus.TOO_MANY_REQUESTS);
     }
-    const review = await this.repository.saveReview(spotId, userId, input.rating, input.text);
+    const review = await this.repository.saveReview(
+      spotId,
+      userId,
+      input.rating,
+      input.text ?? null,
+    );
     return this.reviewView(review, userId);
   }
 
@@ -616,10 +629,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (input.reason === 'WRONG_INFO' && !input.spotId) {
       throw new BadRequestException('Wrong information can only be reported on a spot');
     }
-    const today = await this.repository.countReportsSince(
-      userId,
-      new Date(now.getTime() - DAY_MS),
-    );
+    const today = await this.repository.countReportsSince(userId, new Date(now.getTime() - DAY_MS));
     if (today >= REPORTS_PER_DAY) {
       throw new HttpException('Too many reports today', HttpStatus.TOO_MANY_REQUESTS);
     }
@@ -784,7 +794,12 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   private async rejectLoaded(
     actor: AuthUser,
-    spot: { id: string; slug: string; status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN'; createdById: string | null },
+    spot: {
+      id: string;
+      slug: string;
+      status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN';
+      createdById: string | null;
+    },
     reason: string,
     now: Date,
   ): Promise<void> {

@@ -114,13 +114,13 @@ const NOTICE_COPY: Record<
       subject: 'Tu lugar ya está publicado',
       body: 'Hemos revisado uno de los lugares que propusiste y ya está publicado en el mapa.',
       button: 'Ver mis lugares',
-      path: '/new',
+      path: '/my-spots',
     },
     'spot-rejected': {
       subject: 'No hemos publicado uno de tus lugares',
       body: 'Hemos revisado uno de los lugares que propusiste y no lo hemos publicado. Este es el motivo:',
       button: 'Ver mis lugares',
-      path: '/new',
+      path: '/my-spots',
     },
     suspended: {
       subject: 'Tu cuenta de Cruising está suspendida',
@@ -138,13 +138,13 @@ const NOTICE_COPY: Record<
       subject: 'Your spot is live',
       body: 'We reviewed one of the spots you proposed and it is live on the map.',
       button: 'See my spots',
-      path: '/new',
+      path: '/my-spots',
     },
     'spot-rejected': {
       subject: "We didn't publish one of your spots",
       body: "We reviewed one of the spots you proposed and didn't publish it. This is why:",
       button: 'See my spots',
-      path: '/new',
+      path: '/my-spots',
     },
     suspended: {
       subject: 'Your Cruising account is suspended',
