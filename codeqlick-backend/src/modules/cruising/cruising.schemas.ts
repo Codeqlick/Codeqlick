@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { localeSchema, paginationSchema, slugSchema } from '../../common/schemas/common.schemas.js';
-import { COUNTRIES } from '../swipe/swipe.schemas.js';
+import { COUNTRIES, SAFE_CHAT_MESSAGES, TRANSCRIPT_LINES } from '../swipe/swipe.schemas.js';
 import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
-import { parseBbox } from './cruising.rules.js';
+import { isReservedNickname, parseBbox } from './cruising.rules.js';
 
-export { ageOn, COUNTRIES, SUSPENSION_DURATIONS };
+export { ageOn, COUNTRIES, SAFE_CHAT_MESSAGES, SUSPENSION_DURATIONS, TRANSCRIPT_LINES };
 export { suspensionEnd, type SuspensionDuration } from '../videochat/videochat.schemas.js';
 
 /** Cruising is for adults. Declared age, checked on entry and not stored (decision 27). */
@@ -21,6 +21,16 @@ export const MAX_SPOTS_IN_BOX = 500;
 export const MAX_SPOTS_IN_CITY = 200;
 /** Rows of the team's lists. */
 export const ADMIN_LIST_LIMIT = 200;
+/** Check-ins a member can make per day. */
+export const CHECK_INS_PER_DAY = 10;
+/** New conversations a member can open per day. */
+export const CONVERSATIONS_PER_DAY = 10;
+/** Longest message. */
+export const MAX_MESSAGE_LENGTH = 1000;
+/** Messages a conversation shows at once. */
+export const MESSAGES_PAGE = 100;
+/** Cap on the blocks and conversations a list returns. */
+export const MAX_LIST_ROWS = 200;
 
 export const SPOT_TYPES = [
   'BEACH',
@@ -65,8 +75,40 @@ export const onboardingSchema = z.object({
 });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
-/** Phase 1: only the email switch; phase 2 adds the nickname, bio, country, lookingFor, showAge. */
-export const profileSchema = z.object({ emailAlerts: z.boolean().optional() });
+export const LOOKING_FOR = ['CHAT', 'FRIENDS', 'DATES', 'FUN', 'GROUP'] as const;
+export const lookingForSchema = z.enum(LOOKING_FOR);
+export type LookingFor = z.infer<typeof lookingForSchema>;
+
+/** 3-20 characters of a-z, 0-9 and `_`, lower-cased on save. */
+export const NICKNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+
+/** A nickname someone chooses: its format and the reserved words (they pose as the team). */
+export const nicknameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(NICKNAME_PATTERN, 'Nicknames have 3 to 20 characters: a-z, 0-9 and _')
+  .refine((value) => !isReservedNickname(value), { message: 'This nickname is not available' });
+
+/** A nickname someone looks up: anything unknown is a 404, not a 400. */
+export const nicknameLookupSchema = z.string().trim().toLowerCase().min(1).max(40);
+
+export const nicknameParamSchema = z.object({ nickname: nicknameLookupSchema });
+export type NicknameParam = z.infer<typeof nicknameParamSchema>;
+
+/** The email switch and, from phase 2, the nickname, bio, country, what I look for and the age switch. */
+export const profileSchema = z.object({
+  emailAlerts: z.boolean().optional(),
+  nickname: nicknameSchema.optional(),
+  bio: z.string().trim().max(160).optional(),
+  country: z.enum(COUNTRIES).nullable().optional(),
+  lookingFor: z
+    .array(lookingForSchema)
+    .max(LOOKING_FOR.length)
+    .transform((list) => [...new Set(list)])
+    .optional(),
+  showAge: z.boolean().optional(),
+});
 export type ProfileInput = z.infer<typeof profileSchema>;
 
 // ---- Spots ---------------------------------------------------------------------------------------
@@ -138,12 +180,19 @@ export const reportSchema = z
   .object({
     spotId: z.uuid().optional(),
     reviewId: z.uuid().optional(),
+    /** Phase 2: a profile. */
+    nickname: nicknameLookupSchema.optional(),
+    /** Phase 2: a conversation I am in; its last messages are saved with the report. */
+    conversationId: z.uuid().optional(),
     reason: reportReasonSchema,
     details: z.string().trim().max(1000).optional(),
   })
-  .refine((value) => (value.spotId ? 1 : 0) + (value.reviewId ? 1 : 0) === 1, {
-    message: 'Report a spot or a review, one of them',
-  })
+  .refine(
+    (value) =>
+      [value.spotId, value.reviewId, value.nickname, value.conversationId].filter(Boolean)
+        .length === 1,
+    { message: 'Report a spot, a review, a profile or a conversation, one of them' },
+  )
   .refine((value) => value.reason !== 'WRONG_INFO' || !!value.details, {
     message: 'Say what is wrong',
     path: ['details'],
@@ -161,6 +210,29 @@ export const takedownSchema = z.object({
   website: z.string().max(200).optional(),
 });
 export type TakedownInput = z.infer<typeof takedownSchema>;
+
+// ---- Check-ins, conversations, blocks (phase 2) --------------------------------------------------
+
+export const CHECK_IN_HOURS = [1, 2, 3] as const;
+
+export const checkInSchema = z.object({
+  spotId: z.uuid(),
+  hours: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  anonymous: z.boolean().default(false),
+});
+export type CheckInInput = z.infer<typeof checkInSchema>;
+
+export const openConversationSchema = z.object({ nickname: nicknameLookupSchema });
+export type OpenConversationInput = z.infer<typeof openConversationSchema>;
+
+export const messageSchema = z.object({ text: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH) });
+export type MessageInput = z.infer<typeof messageSchema>;
+
+export const messagesQuerySchema = z.object({ after: z.iso.datetime({ offset: true }).optional() });
+export type MessagesQuery = z.infer<typeof messagesQuerySchema>;
+
+export const blockSchema = z.object({ nickname: nicknameLookupSchema });
+export type BlockInput = z.infer<typeof blockSchema>;
 
 // ---- Admin ---------------------------------------------------------------------------------------
 

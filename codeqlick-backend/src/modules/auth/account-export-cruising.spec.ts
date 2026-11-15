@@ -36,16 +36,27 @@ describe('the account export (Cruising)', () => {
     expect(data.cruising).toBeNull();
   });
 
-  it('includes the profile, the spots proposed, the reviews and the reports made', async () => {
-    const profile = { birthYear: 1990, termsVersion: 'v1', emailAlerts: true };
+  it('includes the profile, spots, reviews, reports, check-ins and messages sent', async () => {
+    const profile = {
+      birthYear: 1990,
+      termsVersion: 'v1',
+      emailAlerts: true,
+      nickname: 'pier_fan',
+      bio: 'Hi',
+      showAge: true,
+    };
     const spots = [{ slug: 'the-pier', name: 'The pier', status: 'LIVE' }];
     const reviews = [{ rating: 4, text: 'Quiet', spot: { slug: 'the-pier' } }];
     const reports = [{ targetType: 'SPOT', reason: 'DANGER' }];
+    const checkIns = [{ anonymous: true, spot: { slug: 'the-pier' } }];
+    const messages = [{ text: 'Hello', createdAt: new Date('2026-11-15T12:00:00Z') }];
     const prisma = fakePrisma({
       cruisingProfile: { findUnique: vi.fn().mockResolvedValue(profile) },
       cruisingSpot: { findMany: vi.fn().mockResolvedValue(spots) },
       cruisingReview: { findMany: vi.fn().mockResolvedValue(reviews) },
       cruisingReport: { findMany: vi.fn().mockResolvedValue(reports) },
+      cruisingCheckIn: { findMany: vi.fn().mockResolvedValue(checkIns) },
+      cruisingMessage: { findMany: vi.fn().mockResolvedValue(messages) },
     });
     const data = await new AccountRepository(prisma).export(USER, null);
     expect(data.cruising).toEqual({
@@ -53,6 +64,8 @@ describe('the account export (Cruising)', () => {
       spotsProposed: spots,
       reviews,
       reportsMade: reports,
+      checkIns,
+      messagesSent: messages,
     });
     // The date of birth is never kept, so it cannot be exported: only the year is selected.
     expect(Object.keys(data.cruising?.profile ?? {})).not.toContain('birthDate');

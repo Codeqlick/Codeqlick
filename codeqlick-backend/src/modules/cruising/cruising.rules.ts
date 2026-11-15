@@ -1,4 +1,5 @@
 /** Pure rules of Cruising (architecture 4.15): slugs, coordinates, the map's box, ratings, statuses. */
+import { RESERVED_USERNAMES } from '../auth/auth.schemas.js';
 
 /** Lower-case ASCII words joined by hyphens: "Playa del Inglés" becomes "playa-del-ingles". */
 export function slugify(value: string, max = 60): string {
@@ -114,4 +115,72 @@ export function isSuspended(
 ): boolean {
   if (!profile?.suspendedAt) return false;
   return !profile.suspendedUntil || profile.suspendedUntil > now;
+}
+
+/** Words only Cruising reserves, besides the platform's reserved usernames. */
+const RESERVED_NICKNAMES = new Set([
+  'member',
+  'members',
+  'miembro',
+  'miembros',
+  'nickname',
+  'apodo',
+  'deleted',
+  'eliminado',
+  'unknown',
+  'desconocido',
+]);
+
+/** Nicknames nobody can take: the team's, the platform's and the generic words of the app. */
+export function isReservedNickname(nickname: string): boolean {
+  const word = nickname.toLowerCase().replace(/[._]/g, '');
+  return RESERVED_USERNAMES.has(word) || RESERVED_NICKNAMES.has(word);
+}
+
+/** The age shown on a profile: the current year minus the year of birth. */
+export function ageFromBirthYear(birthYear: number, now: Date = new Date()): number {
+  return now.getUTCFullYear() - birthYear;
+}
+
+/** When a check-in of `hours` made at `now` ends. */
+export function checkInEnd(hours: number, now: Date): Date {
+  return new Date(now.getTime() + hours * 60 * 60 * 1000);
+}
+
+/** The two people of a conversation in storage order (`userAId` < `userBId`). */
+export function conversationPair(first: string, second: string): [string, string] {
+  return first < second ? [first, second] : [second, first];
+}
+
+export type TranscriptLine = { from: 'reporter' | 'reported'; text: string; at: string };
+
+/** A conversation's messages as a report keeps them, seen from the reporter. */
+export function toTranscript(
+  messages: readonly { senderId: string; text: string; createdAt: Date }[],
+  reporterId: string,
+): TranscriptLine[] {
+  return messages.map((message) => ({
+    from: message.senderId === reporterId ? 'reporter' : 'reported',
+    text: message.text,
+    at: message.createdAt.toISOString(),
+  }));
+}
+
+/**
+ * Whether a message must be refused for sharing contact details: only until each of the two has
+ * sent `needed` messages (scammers and spammers go straight for them).
+ */
+export function contactStillBlocked(
+  sentByMe: number,
+  sentByPartner: number,
+  needed: number,
+): boolean {
+  return sentByMe < needed || sentByPartner < needed;
+}
+
+/** A write refused because the value is taken (Prisma's P2002). */
+export function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002'
+  );
 }
