@@ -77,6 +77,8 @@ export type CloudDeployment = {
   id: string;
   shortId: string;
   url: string;
+  /** The branch's fixed address, when this is that branch's newest preview. */
+  branchUrl: string | null;
   target: 'preview' | 'production';
   isProduction: boolean;
   message: string | null;
@@ -479,6 +481,22 @@ export async function downloadCloudDeployment(
   );
 }
 
+/**
+ * The API's response for a build's whole log as a plain-text download (architecture 4.13), unread
+ * so the caller can stream its body. `undefined` without a session.
+ */
+export async function downloadCloudBuildLog(
+  id: string,
+  number: number,
+): Promise<Response | undefined> {
+  const authorization = await authHeader();
+  if (!authorization) return undefined;
+  return fetch(
+    `${env.API_URL}/cloud/projects/${encodeURIComponent(id)}/builds/${encodeURIComponent(String(number))}/log`,
+    { headers: { Authorization: authorization }, cache: 'no-store' },
+  );
+}
+
 export const listCloudDomains = (id: string) =>
   apiFetch<{ items: CloudDomain[] }>(`/cloud/projects/${id}/domains`, auth);
 
@@ -857,6 +875,10 @@ export type CloudMonitor = {
   deadlineAt: string | null;
   lastError: string | null;
   certExpiresAt: string | null;
+  /** HTTP only: alert when a check answers slower than this (ms); null is off. */
+  slowMs: number | null;
+  /** Set while a slow episode lasts (the state stays UP). */
+  slowSince: string | null;
   alertIds: string[];
   createdAt: string;
 };
@@ -869,6 +891,16 @@ export type CloudIncident = {
   error: string | null;
 };
 
+/** Response-time figures of one window in whole ms; null when it has no successful check. */
+export type CloudResponseStats = {
+  checks: number;
+  median: number;
+  p95: number;
+  average: number;
+} | null;
+
+export type CloudResponseWindow = '24h' | '7d' | '30d';
+
 export type CloudMonitorDetail = CloudMonitor & {
   checks: Array<{
     at: string;
@@ -880,6 +912,8 @@ export type CloudMonitorDetail = CloudMonitor & {
   uptime30: number | null;
   days: CloudDayUptime[];
   incidents: CloudIncident[];
+  /** Null for heartbeats. */
+  responseStats: Record<CloudResponseWindow, CloudResponseStats> | null;
 };
 
 export type CloudStatusPageSettings = {
@@ -975,6 +1009,7 @@ export const createCloudMonitor = (
         keyword?: string;
         keywordMode?: 'CONTAINS' | 'NOT_CONTAINS';
         alertIds: string[];
+        slowMs?: number | null;
       }
     | {
         kind: 'HEARTBEAT';
@@ -1002,6 +1037,7 @@ export const updateCloudMonitor = (
     /** `null` switches the text check off. */
     keyword: string | null;
     keywordMode: 'CONTAINS' | 'NOT_CONTAINS';
+    slowMs: number | null;
   }>,
 ) => apiFetch<CloudMonitor>(`/cloud/monitors/${id}`, { ...write, method: 'PATCH', body: input });
 
@@ -1223,6 +1259,32 @@ export const listCloudGithubRepos = (team: string, installationId: number) =>
     query: { installationId },
   });
 
+export type CloudFramework =
+  'astro' | 'docusaurus' | 'gatsby' | 'next' | 'nuxt' | 'sveltekit' | 'eleventy' | 'cra' | 'vite';
+
+export type CloudDetectNote =
+  'next-not-static' | 'sveltekit-no-static-adapter' | 'node-unsupported' | 'no-package-json';
+
+/** Build settings suggested from what a repository contains (4.13, Suggested settings). */
+export type CloudDetect = {
+  framework: CloudFramework | null;
+  buildCommand: string;
+  outputDir: string;
+  nodeVersion: string;
+  nodeFrom: '.nvmrc' | '.node-version' | 'engines' | null;
+  notes: CloudDetectNote[];
+};
+
+export const detectCloudGithub = (
+  team: string,
+  query: { installationId: number; repoId: number; branch: string; rootDir: string },
+) =>
+  // Server Actions only: forwards the visitor's IP, so the API's limit (20 a minute) is theirs.
+  apiFetch<CloudDetect>(`/cloud/teams/${encodeURIComponent(team)}/github/detect`, {
+    ...write,
+    query,
+  });
+
 export const getCloudGit = (projectId: string) =>
   apiFetch<CloudGit>(`/cloud/projects/${projectId}/git`, auth);
 
@@ -1245,14 +1307,22 @@ export const setCloudRebuildSchedule = (
     body: input,
   });
 
+/** A project's build variable: names and targets only, never its value. */
+export type CloudEnvVar = {
+  key: string;
+  production: boolean;
+  preview: boolean;
+  /** The one preview branch it is for; null = every build of its targets. */
+  branch: string | null;
+  updatedAt: string;
+};
+
 export const listCloudEnv = (projectId: string) =>
-  apiFetch<{
-    items: Array<{ key: string; production: boolean; preview: boolean; updatedAt: string }>;
-  }>(`/cloud/projects/${projectId}/env`, auth);
+  apiFetch<{ items: CloudEnvVar[] }>(`/cloud/projects/${projectId}/env`, auth);
 
 export const setCloudEnv = (
   projectId: string,
-  input: { key: string; value: string; production: boolean; preview: boolean },
+  input: { key: string; value: string; production: boolean; preview: boolean; branch?: string },
 ) =>
   apiFetch<unknown>(`/cloud/projects/${projectId}/env`, { ...write, method: 'PUT', body: input });
 
@@ -1276,11 +1346,12 @@ export const importCloudEnv = (projectId: string, input: CloudEnvImportInput) =>
     body: input,
   });
 
-export const deleteCloudEnv = (projectId: string, key: string) =>
+/** Deletes a variable: the one of `branch`, or the general one without it. */
+export const deleteCloudEnv = (projectId: string, key: string, branch?: string | null) =>
   apiFetch<void>(`/cloud/projects/${projectId}/env`, {
     ...write,
     method: 'DELETE',
-    query: { key },
+    query: { key, branch },
   });
 
 export const listCloudBuilds = (projectId: string, page = 1) =>
@@ -1318,6 +1389,8 @@ export type CloudAnalytics = {
   snippet: string;
   period: CloudAnalyticsPeriod;
   totals: { visitors: number; pageviews: number };
+  /** The window of the same length before this one; `complete` is false when events were pruned. */
+  previous: { visitors: number; pageviews: number; complete: boolean };
   series: Array<{ t: string; visitors: number; pageviews: number }>;
   pages: CloudAnalyticsRow[];
   referrers: CloudAnalyticsRow[];
@@ -1330,6 +1403,39 @@ export type CloudAnalytics = {
 export const getCloudAnalytics = (projectId: string, period: CloudAnalyticsPeriod) =>
   apiFetch<CloudAnalytics>(`/cloud/projects/${projectId}/analytics`, {
     ...auth,
+    query: { period },
+  });
+
+export const exportCloudAnalytics = (projectId: string, period: CloudAnalyticsPeriod) =>
+  apiFetch<string>(`/cloud/projects/${projectId}/analytics.csv`, {
+    ...auth,
+    query: { period },
+    responseType: 'text',
+    forwardClientIp: true,
+    signal: AbortSignal.timeout(30_000),
+  });
+
+export type CloudAnalyticsReport = Omit<CloudAnalytics, 'enabled' | 'snippet'>;
+export type CloudSharedAnalytics = CloudAnalyticsReport & { project: { name: string } };
+export type CloudAnalyticsShare = { enabled: boolean; url?: string; token?: string };
+
+export const getCloudAnalyticsShare = (projectId: string) =>
+  apiFetch<CloudAnalyticsShare>(`/cloud/projects/${projectId}/analytics/share`, auth);
+
+export const shareCloudAnalytics = (projectId: string) =>
+  apiFetch<{ url: string; token: string }>(`/cloud/projects/${projectId}/analytics/share`, {
+    ...write,
+    method: 'POST',
+  });
+
+export const unshareCloudAnalytics = (projectId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/analytics/share`, { ...write, method: 'DELETE' });
+
+/** A project's analytics through its public link (no session; never cached, so stopping sharing is immediate). */
+export const getSharedAnalytics = (token: string, period: CloudAnalyticsPeriod) =>
+  apiFetch<CloudSharedAnalytics>(`/cloud/analytics/shared/${encodeURIComponent(token)}`, {
+    cache: 'no-store',
+    forwardClientIp: true,
     query: { period },
   });
 

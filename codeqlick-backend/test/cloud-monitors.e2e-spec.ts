@@ -8,7 +8,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 // The site a monitor checks: what it answers is up to the test (real fetching refuses local
 // addresses, decision 38). The URL check stays the real one.
-const site = vi.hoisted(() => ({ status: 200 as number | 'error', body: '' }));
+// `responseMs` is how long the answer takes: the fake moves the clock instead of waiting.
+const site = vi.hoisted(() => ({ status: 200 as number | 'error', body: '', responseMs: 0 }));
 // What the project's notification channels are sent (decision 64), instead of the internet.
 const posts = vi.hoisted(
   () => [] as Array<{ url: string; body: string; headers: Record<string, string> }>,
@@ -18,8 +19,9 @@ vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
   const actual = await original<typeof import('../src/modules/site-audits/safe-fetch.js')>();
   return {
     ...actual,
-    safeFetch: vi.fn((url: string) =>
-      site.status === 'error'
+    safeFetch: vi.fn((url: string) => {
+      if (site.responseMs) vi.setSystemTime(Date.now() + site.responseMs);
+      return site.status === 'error'
         ? Promise.reject(new Error('connect ECONNREFUSED'))
         : Promise.resolve({
             url,
@@ -31,8 +33,8 @@ vi.mock('../src/modules/site-audits/safe-fetch.js', async (original) => {
             ttfbMs: 20,
             redirects: [],
             certificateValidTo: new Date(Date.now() + 5 * 86_400_000),
-          }),
-    ),
+          });
+    }),
     safePost: vi.fn((url: string, body: string, headers: Record<string, string>) => {
       posts.push({ url, body, headers });
       return Promise.resolve({ status: hook.status, body: '' });
@@ -476,5 +478,286 @@ describe('Codeqlick Cloud monitors and status pages (e2e)', () => {
       .expect(200);
     await vi.waitFor(() => expect(sent.some((m) => m.subject === 'Down: Nightly')).toBe(true));
     expect(posts).toHaveLength(before);
+  });
+
+  // Slow-response episodes (architecture 4.13, Slow responses).
+  it('alerts on slow responses without going down, and ends episodes silently', async () => {
+    const server = app.getHttpServer();
+    const engine = app.get(CloudMonitorsService);
+    const project = await request(server)
+      .post(`/v1/cloud/teams/${team}/projects`)
+      .set(auth)
+      .send({ name: 'Shop', slug: `ms-${tag}` })
+      .expect(201);
+    const projectId = project.body.id as string;
+    const hookUrl = 'https://hooks.example.com/slow/cccc';
+    await request(server)
+      .post(`/v1/cloud/projects/${projectId}/notifications`)
+      .set(auth)
+      .send({ kind: 'WEBHOOK', name: 'Slow', url: hookUrl, monitorAlerts: true })
+      .expect(201);
+    const received = (event: string) =>
+      posts
+        .filter((p) => p.url === hookUrl && p.headers['X-Codeqlick-Event'] === event)
+        .map((p) => JSON.parse(p.body) as Record<string, unknown>);
+    const mails = (subject: string) => sent.filter((m) => m.subject === subject).length;
+
+    // Heartbeats can't have a threshold (on create and on update); neither can a value outside
+    // 500-14000 ms.
+    await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set('X-Forwarded-For', '203.0.113.41')
+      .set(auth)
+      .send({
+        kind: 'HEARTBEAT',
+        name: 'Beat',
+        periodMinutes: 60,
+        graceMinutes: 10,
+        slowMs: 1000,
+        alertIds: [ownerId],
+      })
+      .expect(400);
+    // Relies on the heartbeat the first test created in this team.
+    const heartbeat = await prisma.cloudMonitor.findFirstOrThrow({
+      where: { team: { slug: team }, kind: 'HEARTBEAT' },
+    });
+    await request(server)
+      .patch(`/v1/cloud/monitors/${heartbeat.id}`)
+      .set(auth)
+      .send({ slowMs: 1000 })
+      .expect(400);
+
+    const created = await request(server)
+      .post(`/v1/cloud/teams/${team}/monitors`)
+      .set('X-Forwarded-For', '203.0.113.41')
+      .set(auth)
+      .send({
+        kind: 'HTTP',
+        name: 'Latency',
+        url: 'https://latency.example.com/',
+        slowMs: 1000,
+        projectId,
+        alertIds: [ownerId],
+      })
+      .expect(201);
+    const id = created.body.id as string;
+    expect(created.body).toMatchObject({ slowMs: 1000, slowSince: null });
+    for (const slowMs of [499, 14_001, 1500.5]) {
+      await request(server)
+        .patch(`/v1/cloud/monitors/${id}`)
+        .set(auth)
+        .send({ slowMs })
+        .expect(400);
+    }
+
+    // Freeze the clock (only Date) so the fake answer times are exact; it is restored below.
+    vi.setSystemTime(new Date());
+    const base = Date.now();
+    let step = 0;
+    // One check `step` x 5 minutes after the first, answering in `ms` (or failing).
+    const check = async (ms: number | 'fail') => {
+      site.status = ms === 'fail' ? 503 : 200;
+      site.responseMs = ms === 'fail' ? 0 : ms;
+      await engine.tick(new Date(base + step++ * 5 * MINUTE));
+    };
+    const row = () => prisma.cloudMonitor.findUniqueOrThrow({ where: { id } });
+    try {
+      await check(100);
+      expect(await row()).toMatchObject({ status: 'UP', slowCount: 0, slowSince: null });
+
+      // Two slow checks, a failure in between (it only counts, and doesn't reset), a third slow.
+      await check(2000);
+      await check(2000);
+      expect(await row()).toMatchObject({ slowCount: 2, slowSince: null });
+      await check('fail');
+      expect(await row()).toMatchObject({ status: 'UP', slowCount: 2, slowSince: null });
+      await check(2000);
+      const slow = await row();
+      expect(slow).toMatchObject({ status: 'UP', slowCount: 0 });
+      expect(slow.slowSince?.getTime()).toBe(base + 4 * 5 * MINUTE);
+      await vi.waitFor(() => expect(mails('Slow: Latency')).toBe(1));
+      await vi.waitFor(() => expect(received('monitor.slow')).toHaveLength(1));
+      expect(received('monitor.slow')[0]).toMatchObject({
+        event: 'monitor.slow',
+        project: { slug: `ms-${tag}`, name: 'Shop' },
+        monitor: { id, name: 'Latency', kind: 'HTTP', url: 'https://latency.example.com/' },
+        error: null,
+        downMinutes: null,
+        responseMs: 2000,
+        slowMs: 1000,
+        slowMinutes: null,
+      });
+      // The state stays UP: the only event is the first result.
+      expect(await prisma.cloudMonitorEvent.count({ where: { monitorId: id } })).toBe(1);
+      expect(mails('Down: Latency')).toBe(0);
+      const view = await request(server).get(`/v1/cloud/monitors/${id}`).set(auth).expect(200);
+      expect(view.body).toMatchObject({ status: 'UP', slowMs: 1000 });
+      expect(view.body.slowSince).toBe(slow.slowSince?.toISOString());
+
+      // Inside the episode a slow check resets the normal ones; three normal in a row end it.
+      await check(100);
+      await check(100);
+      await check(3000);
+      expect(await row()).toMatchObject({ slowCount: 0 });
+      expect((await row()).slowSince).not.toBeNull();
+      await check(100);
+      await check(100);
+      expect(await row()).toMatchObject({ slowCount: 2 });
+      expect((await row()).slowSince).not.toBeNull();
+      expect(mails('Back to normal: Latency')).toBe(0);
+      await check(100);
+      expect(await row()).toMatchObject({ status: 'UP', slowCount: 0, slowSince: null });
+      await vi.waitFor(() => expect(mails('Back to normal: Latency')).toBe(1));
+      await vi.waitFor(() => expect(received('monitor.fast')).toHaveLength(1));
+      expect(received('monitor.fast')[0]).toMatchObject({
+        event: 'monitor.fast',
+        responseMs: 100,
+        slowMs: 1000,
+        slowMinutes: 30,
+      });
+      expect(await prisma.cloudMonitorEvent.count({ where: { monitorId: id } })).toBe(1);
+
+      // Going down ends an episode silently.
+      await check(2000);
+      await check(2000);
+      await check(2000);
+      expect((await row()).slowSince).not.toBeNull();
+      await vi.waitFor(() => expect(mails('Slow: Latency')).toBe(2));
+      await check('fail');
+      await check('fail');
+      expect(await row()).toMatchObject({ status: 'DOWN', slowCount: 0, slowSince: null });
+      await vi.waitFor(() => expect(mails('Down: Latency')).toBe(1));
+      expect(mails('Back to normal: Latency')).toBe(1);
+      expect(received('monitor.fast')).toHaveLength(1);
+      await check(100);
+      expect(await row()).toMatchObject({ status: 'UP', slowSince: null });
+
+      // Changing the threshold resets the count and ends an episode silently; so does clearing it.
+      const patch = (body: object) =>
+        request(server).patch(`/v1/cloud/monitors/${id}`).set(auth).send(body).expect(200);
+      await check(2000);
+      await check(2000);
+      expect(await row()).toMatchObject({ slowCount: 2 });
+      const changed = await patch({ slowMs: 1500 });
+      expect(changed.body).toMatchObject({ slowMs: 1500, slowSince: null });
+      expect(await row()).toMatchObject({ slowMs: 1500, slowCount: 0, slowSince: null });
+      await check(2000);
+      await check(2000);
+      await check(2000);
+      expect((await row()).slowSince).not.toBeNull();
+      await patch({ slowMs: 2500 });
+      expect(await row()).toMatchObject({ slowMs: 2500, slowCount: 0, slowSince: null });
+      await check(3000);
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      // The same value changes nothing.
+      await patch({ slowMs: 2500 });
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      const cleared = await patch({ slowMs: null });
+      expect(cleared.body).toMatchObject({ slowMs: null, slowSince: null });
+      expect(await row()).toMatchObject({ slowMs: null, slowCount: 0 });
+      await check(3000);
+      expect(await row()).toMatchObject({ slowCount: 0, slowSince: null });
+      expect(mails('Back to normal: Latency')).toBe(1);
+
+      // Changing the URL or pausing ends an episode silently too; the same URL changes nothing.
+      await patch({ slowMs: 1000 });
+      const episode = async () => {
+        await check(2000);
+        await check(2000);
+        await check(2000);
+        expect((await row()).slowSince).not.toBeNull();
+      };
+      await episode();
+      await patch({ url: 'https://latency2.example.com/' });
+      expect(await row()).toMatchObject({ slowCount: 0, slowSince: null });
+      await check(2000);
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      await patch({ url: 'https://latency2.example.com/' });
+      expect(await row()).toMatchObject({ slowCount: 1 });
+      await check(2000);
+      await check(2000);
+      expect((await row()).slowSince).not.toBeNull();
+      await patch({ enabled: false });
+      expect(await row()).toMatchObject({ status: 'PAUSED', slowCount: 0, slowSince: null });
+      expect(mails('Back to normal: Latency')).toBe(1);
+      expect(received('monitor.fast')).toHaveLength(1);
+    } finally {
+      site.status = 200;
+      site.responseMs = 0;
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows response-time stats of the successful checks of an HTTP monitor', async () => {
+    const server = app.getHttpServer();
+    const teamRow = await prisma.cloudTeam.findUniqueOrThrow({ where: { slug: team } });
+    const monitor = await prisma.cloudMonitor.create({
+      data: { teamId: teamRow.id, name: 'Stats', kind: 'HTTP', url: 'https://example.com/' },
+    });
+    const empty = await request(server)
+      .get(`/v1/cloud/monitors/${monitor.id}`)
+      .set(auth)
+      .expect(200);
+    expect(empty.body.responseStats).toEqual({ '24h': null, '7d': null, '30d': null });
+
+    const now = Date.now();
+    const HOUR = 60 * MINUTE;
+    const row = (ago: number, ok: boolean, responseMs: number | null) => ({
+      monitorId: monitor.id,
+      checkedAt: new Date(now - ago),
+      ok,
+      statusCode: ok ? 200 : 503,
+      responseMs,
+    });
+    await prisma.cloudMonitorCheck.createMany({
+      data: [
+        // Inside 24 h: 100, 200, 300, 400 ms.
+        row(1 * HOUR, true, 100),
+        row(2 * HOUR, true, 200),
+        row(3 * HOUR, true, 300),
+        row(4 * HOUR, true, 400),
+        // Failed (even with a time) and ok without a time: never counted.
+        row(5 * HOUR, false, 5000),
+        row(6 * HOUR, true, null),
+        // Older than 24 h, inside 7 d.
+        row(48 * HOUR, true, 1000),
+        // Older than 7 d, inside 30 d.
+        row(10 * 24 * HOUR, true, 2000),
+        // Older than 30 d: in no window.
+        row(40 * 24 * HOUR, true, 9000),
+      ],
+    });
+
+    const { body } = await request(server)
+      .get(`/v1/cloud/monitors/${monitor.id}`)
+      .set(auth)
+      .expect(200);
+    // percentile_cont interpolates linearly at rank p * (n - 1) over the sorted times.
+    // 24 h: [100,200,300,400]: median 250, p95 at rank 2.85 = 300 + 0.85 * 100 = 385, avg 250.
+    // 7 d: [100,200,300,400,1000]: median 300, p95 at rank 3.8 = 400 + 0.8 * 600 = 880, avg 400.
+    // 30 d: [100,200,300,400,1000,2000]: median 350, p95 at rank 4.75 = 1000 + 0.75 * 1000 = 1750,
+    // avg 666.67 (667).
+    expect(body.responseStats).toEqual({
+      '24h': { checks: 4, median: 250, p95: 385, average: 250 },
+      '7d': { checks: 5, median: 300, p95: 880, average: 400 },
+      '30d': { checks: 6, median: 350, p95: 1750, average: 667 },
+    });
+
+    // A heartbeat has none.
+    const beat = await prisma.cloudMonitor.create({
+      data: {
+        teamId: teamRow.id,
+        name: 'Beat',
+        kind: 'HEARTBEAT',
+        key: `cqh_${randomUUID().replaceAll('-', '').slice(0, 22)}`,
+        periodMinutes: 60,
+        graceMinutes: 10,
+      },
+    });
+    const heartbeat = await request(server)
+      .get(`/v1/cloud/monitors/${beat.id}`)
+      .set(auth)
+      .expect(200);
+    expect(heartbeat.body.responseStats).toBeNull();
   });
 });

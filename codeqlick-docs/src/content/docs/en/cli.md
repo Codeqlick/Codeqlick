@@ -84,7 +84,7 @@ See [custom domains](/en/custom-domains/).
 | `builds`                                                                                      | List the latest builds.                                                                |
 | `builds start [--branch <name>]`                                                              | Build the branch's latest commit and follow the log.                                   |
 | `builds cancel <number>`                                                                      | Cancel a queued or running build.                                                      |
-| `logs [number]`                                                                               | Show a build's log (the latest by default), followed while it runs.                    |
+| `logs [number]`                                                                               | A build's log (the latest by default), followed live; `--out <file>` saves it.         |
 | `--json`                                                                                      | Print the API's answer, for `git`, `env` and `builds`.                                 |
 
 See [builds from Git](/en/builds-from-git/).
@@ -105,6 +105,7 @@ See [builds from Git](/en/builds-from-git/).
 
 See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-store/).
 
+<<<<<<< HEAD
 ## Password protection
 
 | Command                                   | What it does                                                                      |
@@ -115,6 +116,19 @@ See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-stor
 | `protect bypass`                          | Create or replace the bypass token. Only the token goes to standard output.       |
 | `protect bypass --revoke`                 | Remove the bypass token.                                                          |
 | `--json`                                  | Print the API's answer (`{ token, prefix, createdAt }`, or `{}` with `--revoke`). |
+=======
+## Monitors
+
+| Command                      | What it does                                                 |
+| ---------------------------- | ------------------------------------------------------------ |
+| `monitors`                   | List the team's monitors: state, time in it and last check.  |
+| `monitors pause <id\|name>`  | Stop checking a monitor, e.g. around planned work.           |
+| `monitors resume <id\|name>` | Check it again. Its state is `UNKNOWN` until the next check. |
+| `monitors --team <slug>`     | The team (or `CODEQLICK_TEAM`). No linked project needed.    |
+| `monitors --json`            | Print the API's answer.                                      |
+
+See [monitors, heartbeats and status pages](/en/monitors-and-status-pages/).
+>>>>>>> origin/main
 
 ## Environment variables
 

@@ -311,18 +311,20 @@ model LeadReply {
 }
 
 model Post {
-  id            String        @id @default(uuid()) @db.Uuid
-  slug          String        @unique
-  status        PublishStatus @default(DRAFT)
-  publishedAt   DateTime?     @map("published_at") @db.Timestamptz(3)
-  coverImageUrl String?       @map("cover_image_url")
+  id               String        @id @default(uuid()) @db.Uuid
+  slug             String        @unique
+  status           PublishStatus @default(DRAFT)
+  publishedAt      DateTime?     @map("published_at") @db.Timestamptz(3)
+  coverImageUrl    String?       @map("cover_image_url")
+  /// When the readers' content last really changed after going live (architecture 4.2).
+  contentUpdatedAt DateTime?     @map("content_updated_at") @db.Timestamptz(3)
   /// Email it to the newsletter's subscribers when it goes live (architecture 4.14).
-  newsletter    Boolean       @default(true)
+  newsletter       Boolean       @default(true)
   /// When its email went out or was skipped; null until it is live and the job has seen it.
-  newsletterSentAt DateTime? @map("newsletter_sent_at") @db.Timestamptz(3)
-  authorId      String?       @map("author_id") @db.Uuid
-  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  newsletterSentAt DateTime?     @map("newsletter_sent_at") @db.Timestamptz(3)
+  authorId         String?       @map("author_id") @db.Uuid
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   author        User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
   translations  PostTranslation[]
@@ -419,6 +421,8 @@ model PortfolioItem {
   sortOrder         Int           @default(0) @map("sort_order")
   /// Who gave the testimonial; the quote and their role are per language (translations).
   testimonialAuthor String?       @map("testimonial_author")
+  /// When the readers' content last really changed after going live (architecture 4.2).
+  contentUpdatedAt  DateTime?     @map("content_updated_at") @db.Timestamptz(3)
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -2144,20 +2148,22 @@ model CloudInvite {
 
 /// A personal API token (`cqk_…`); only its SHA-256 is stored.
 model CloudToken {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
   /// Restricted to this team; null = every team of its person.
-  teamId     String?   @map("team_id") @db.Uuid
-  name       String    @db.VarChar(80)
+  teamId         String?   @map("team_id") @db.Uuid
+  name           String    @db.VarChar(80)
   /// The token's first 12 characters, to recognise it.
-  prefix     String    @db.VarChar(12)
-  tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  prefix         String    @db.VarChar(12)
+  tokenHash      String    @unique @map("token_hash") @db.VarChar(64)
   /// Read only: GET, HEAD and OPTIONS alone (decision 61). Set when made, never changed.
-  readOnly   Boolean   @default(false) @map("read_only")
-  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(3)
-  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
-  lastUsedIp String?   @map("last_used_ip") @db.VarChar(45)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  readOnly       Boolean   @default(false) @map("read_only")
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(3)
+  lastUsedAt     DateTime? @map("last_used_at") @db.Timestamptz(3)
+  lastUsedIp     String?   @map("last_used_ip") @db.VarChar(45)
+  /// When its "expires soon" email was sent (once per token).
+  expiryWarnedAt DateTime? @map("expiry_warned_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   team        CloudTeam?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -2220,6 +2226,10 @@ model CloudProject {
   onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
   analytics              Boolean   @default(false)
+  /// The shared analytics link: its SHA-256 (the lookup) and the link itself, sealed
+  /// (purpose cloud-analytics-share-v1), so admins can copy it again.
+  analyticsShareHash     String?   @unique @map("analytics_share_hash") @db.VarChar(64)
+  analyticsShareSealed   String?   @map("analytics_share_sealed")
   /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
   /// hash, how many days access lasts, and a version raised on every change that ends access.
   protection             CloudProtection @default(OFF)
@@ -2227,7 +2237,7 @@ model CloudProject {
   protectionDays         Int       @default(7) @map("protection_days")
   protectionVersion      Int       @default(0) @map("protection_version")
   protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
-  /// The bypass token for automation (architecture 4.13, decision 73): SHA-256 hex of the token,
+  /// The bypass token for automation (architecture 4.13, decision 78): SHA-256 hex of the token,
   /// its first 12 characters, who made it and when, and when it last let a request through.
   protectionBypassHash        String?   @unique @map("protection_bypass_hash")
   protectionBypassPrefix      String?   @map("protection_bypass_prefix")
@@ -2469,6 +2479,12 @@ model CloudMonitor {
   alertIds        String[]                @map("alert_ids") @db.Uuid
   lastDownAlertAt DateTime?               @map("last_down_alert_at") @db.Timestamptz(3)
   lastUpAlertAt   DateTime?               @map("last_up_alert_at") @db.Timestamptz(3)
+  /// HTTP: alert when a response takes longer than this many ms (500-14000); null = off.
+  slowMs          Int?                    @map("slow_ms")
+  /// Slow episode counter: slow checks in a row outside an episode, normal ones in a row inside.
+  slowCount       Int                     @default(0) @map("slow_count")
+  /// When the current slow episode started; null outside one.
+  slowSince       DateTime?               @map("slow_since") @db.Timestamptz(3)
   createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -2632,11 +2648,13 @@ model CloudEnvVar {
   valueSealed String   @map("value_sealed")
   production  Boolean  @default(true)
   preview     Boolean  @default(true)
+  /// A preview branch the variable is only for; '' = every build of its targets.
+  branch      String   @default("") @db.VarChar(200)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   project CloudProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, key])
+  @@unique([projectId, key, branch])
   @@map("cloud_env_vars")
 }
 

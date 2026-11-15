@@ -45,6 +45,7 @@ export interface PostUpdateData {
   publishedAt?: Date | null;
   coverImageUrl?: string | null;
   newsletter?: boolean;
+  contentUpdatedAt?: Date;
   translations?: PostTranslationData[];
   tagIds?: string[];
 }

@@ -111,6 +111,8 @@ services:
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
+      # IndexNow submissions for posts and case studies (architecture 4.1); off unless true.
+      INDEXNOW_ENABLED: ${INDEXNOW_ENABLED:-false}
       # Codeqlick Cloud (architecture 4.13, 8.3): deploying is off until deploy/setup-cloud.sh
       # sets the hosting domain. Its files live on the host, where Nginx serves them.
       CLOUD_HOSTING_DOMAIN: ${CLOUD_HOSTING_DOMAIN:-}

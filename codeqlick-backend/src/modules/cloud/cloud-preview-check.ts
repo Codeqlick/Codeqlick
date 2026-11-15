@@ -69,6 +69,8 @@ export function commentBody(input: {
   state: 'pending' | 'success' | 'failure';
   buildUrl: string;
   deploymentUrl?: string;
+  /** The branch address (architecture 4.13), when the build's branch has one. */
+  branchUrl?: string;
   check?: PreviewCheck;
   auditUrl: (id: string) => string;
 }): string {
@@ -80,6 +82,7 @@ export function commentBody(input: {
     `| Commit | \`${input.commit.slice(0, 7)}\` |`,
     `| State | ${{ pending: '⏳ Building', success: '✅ Ready', failure: '❌ Failed' }[input.state]} |`,
     ...(input.deploymentUrl ? [`| Preview | ${input.deploymentUrl} |`] : []),
+    ...(input.branchUrl ? [`| Branch | ${input.branchUrl} |`] : []),
     `| Build | ${input.buildUrl} |`,
     ...(input.check ? ['', ...previewCheckLines(input.check, input.auditUrl)] : []),
   ].join('\n');

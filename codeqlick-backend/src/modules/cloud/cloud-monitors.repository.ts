@@ -9,6 +9,37 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type MonitorWithTeam = CloudMonitor & { team: { slug: string; name: string } };
 
+/** Successful checks of one window: the count and, when there are any, the times in ms. */
+export interface ResponseWindow {
+  checks: number;
+  median: number | null;
+  p95: number | null;
+  average: number | null;
+}
+
+export interface ResponseWindows {
+  '24h': ResponseWindow;
+  '7d': ResponseWindow;
+  '30d': ResponseWindow;
+}
+
+interface ResponseWindowsRow {
+  c24: number;
+  median24: number | null;
+  p95_24: number | null;
+  avg24: number | null;
+  c7: number;
+  median7: number | null;
+  p95_7: number | null;
+  avg7: number | null;
+  c30: number;
+  median30: number | null;
+  p95_30: number | null;
+  avg30: number | null;
+}
+
+const num = (value: unknown): number | null => (value == null ? null : Number(value));
+
 /** Cloud monitors, their checks and events, and status pages (architecture 4.13). */
 @Injectable()
 export class CloudMonitorsRepository {
@@ -113,6 +144,58 @@ export class CloudMonitorsRepository {
       orderBy: { checkedAt: 'asc' },
       select: { checkedAt: true, ok: true, statusCode: true, responseMs: true, error: true },
     });
+  }
+
+  /**
+   * Response times of the monitor's successful checks (`ok` with a time) in the 24 hours, 7 days
+   * and 30 days before `now`: one query, one `FILTER` per window. Counts are cast to int and the
+   * times to float8 so the driver returns plain numbers; a window without checks has null times.
+   */
+  async responseWindows(monitorId: string, now: Date): Promise<ResponseWindows> {
+    const since24 = new Date(now.getTime() - 86_400_000);
+    const since7 = new Date(now.getTime() - 7 * 86_400_000);
+    const since30 = new Date(now.getTime() - 30 * 86_400_000);
+    const [row] = await this.prisma.$queryRaw<ResponseWindowsRow[]>`
+      SELECT
+        (COUNT(*) FILTER (WHERE checked_at >= ${since24}))::int AS c24,
+        (percentile_cont(0.5) WITHIN GROUP (ORDER BY response_ms)
+          FILTER (WHERE checked_at >= ${since24}))::float8 AS median24,
+        (percentile_cont(0.95) WITHIN GROUP (ORDER BY response_ms)
+          FILTER (WHERE checked_at >= ${since24}))::float8 AS p95_24,
+        (AVG(response_ms) FILTER (WHERE checked_at >= ${since24}))::float8 AS avg24,
+        (COUNT(*) FILTER (WHERE checked_at >= ${since7}))::int AS c7,
+        (percentile_cont(0.5) WITHIN GROUP (ORDER BY response_ms)
+          FILTER (WHERE checked_at >= ${since7}))::float8 AS median7,
+        (percentile_cont(0.95) WITHIN GROUP (ORDER BY response_ms)
+          FILTER (WHERE checked_at >= ${since7}))::float8 AS p95_7,
+        (AVG(response_ms) FILTER (WHERE checked_at >= ${since7}))::float8 AS avg7,
+        COUNT(*)::int AS c30,
+        (percentile_cont(0.5) WITHIN GROUP (ORDER BY response_ms))::float8 AS median30,
+        (percentile_cont(0.95) WITHIN GROUP (ORDER BY response_ms))::float8 AS p95_30,
+        AVG(response_ms)::float8 AS avg30
+      FROM cloud_monitor_checks
+      WHERE monitor_id = ${monitorId}::uuid AND ok AND response_ms IS NOT NULL
+        AND checked_at >= ${since30}`;
+    return {
+      '24h': {
+        checks: Number(row?.c24 ?? 0),
+        median: num(row?.median24),
+        p95: num(row?.p95_24),
+        average: num(row?.avg24),
+      },
+      '7d': {
+        checks: Number(row?.c7 ?? 0),
+        median: num(row?.median7),
+        p95: num(row?.p95_7),
+        average: num(row?.avg7),
+      },
+      '30d': {
+        checks: Number(row?.c30 ?? 0),
+        median: num(row?.median30),
+        p95: num(row?.p95_30),
+        average: num(row?.avg30),
+      },
+    };
   }
 
   /** Events from `since`, plus the last one before it (the state the window starts in). */

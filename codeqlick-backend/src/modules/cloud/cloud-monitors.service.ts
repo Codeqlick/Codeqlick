@@ -15,7 +15,11 @@ import { MailService } from '../mail/mail.service.js';
 import { assertCheckableUrl, safeFetch } from '../site-audits/safe-fetch.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudMonitorEmail } from './cloud-emails.js';
-import { CloudMonitorsRepository, type MonitorWithTeam } from './cloud-monitors.repository.js';
+import {
+  CloudMonitorsRepository,
+  type MonitorWithTeam,
+  type ResponseWindow,
+} from './cloud-monitors.repository.js';
 import { CloudNotificationsService } from './cloud-notifications.service.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import {
@@ -32,6 +36,7 @@ import {
   type NoticeState,
 } from './cloud-status-notices.js';
 import type { CreateMonitorInput, StatusPageInput, UpdateMonitorInput } from './cloud.schemas.js';
+import { slowStep } from './cloud-slow.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import {
   dailyUptime,
@@ -67,8 +72,36 @@ export interface MonitorView {
   deadlineAt: string | null;
   lastError: string | null;
   certExpiresAt: string | null;
+  /** HTTP: alert above this many ms (null = off). */
+  slowMs: number | null;
+  /** Set while a slow episode lasts. */
+  slowSince: string | null;
   alertIds: string[];
   createdAt: string;
+}
+
+/** Response times of the successful checks in a window, whole ms (architecture 4.13). */
+export interface ResponseStats {
+  checks: number;
+  median: number;
+  p95: number;
+  average: number;
+}
+
+export interface ResponseStatsWindows {
+  '24h': ResponseStats | null;
+  '7d': ResponseStats | null;
+  '30d': ResponseStats | null;
+}
+
+function responseStats(window: ResponseWindow): ResponseStats | null {
+  if (window.checks === 0 || window.median === null || window.p95 === null) return null;
+  return {
+    checks: window.checks,
+    median: Math.round(window.median),
+    p95: Math.round(window.p95),
+    average: Math.round(window.average ?? window.median),
+  };
 }
 
 export interface MonitorDetail extends MonitorView {
@@ -82,6 +115,8 @@ export interface MonitorDetail extends MonitorView {
   uptime30: number | null;
   days: DayUptime[];
   incidents: Incident[];
+  /** HTTP monitors only; null for heartbeats. */
+  responseStats: ResponseStatsWindows | null;
 }
 
 export interface StatusPageSettings {
@@ -201,6 +236,8 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       deadlineAt: monitor.deadlineAt?.toISOString() ?? null,
       lastError: monitor.lastError,
       certExpiresAt: monitor.certExpiresAt?.toISOString() ?? null,
+      slowMs: monitor.slowMs,
+      slowSince: monitor.slowMs === null ? null : (monitor.slowSince?.toISOString() ?? null),
       alertIds: monitor.alertIds,
       createdAt: monitor.createdAt.toISOString(),
     };
@@ -255,6 +292,9 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     if (input.projectId && !(await this.repository.projectInTeam(input.projectId, teamId))) {
       throw new NotFoundException('Project not found');
     }
+    if (input.kind === 'HEARTBEAT' && typeof input.slowMs === 'number') {
+      throw new BadRequestException('Only HTTP monitors can alert on slow responses');
+    }
     const alertIds = await this.checkAlertees(teamId, input.alertIds);
     const monitor = await this.repository.create(
       input.kind === 'HTTP'
@@ -266,6 +306,7 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
             url: this.checkUrl(input.url),
             keyword: input.keyword ?? null,
             keywordMode: input.keywordMode,
+            slowMs: input.slowMs ?? null,
             alertIds,
           }
         : {
@@ -299,9 +340,19 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     if (monitor.kind === 'HEARTBEAT' && input.keyword) {
       throw new BadRequestException('Heartbeats cannot check text on a page');
     }
+    if (monitor.kind === 'HEARTBEAT' && typeof input.slowMs === 'number') {
+      throw new BadRequestException('Only HTTP monitors can alert on slow responses');
+    }
+    // Changing or clearing the threshold, changing the URL or pausing ends a slow episode silently.
+    let resetSlow = false;
     if (input.url !== undefined && monitor.kind === 'HTTP') {
       data.url = this.checkUrl(input.url);
       data.failures = 0;
+      if (data.url !== monitor.url) resetSlow = true;
+    }
+    if (input.slowMs !== undefined && monitor.kind === 'HTTP' && input.slowMs !== monitor.slowMs) {
+      data.slowMs = input.slowMs;
+      resetSlow = true;
     }
     // A new text check starts counting failures again.
     if (monitor.kind === 'HTTP') {
@@ -329,10 +380,15 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       data.status = status;
       data.statusSince = now;
       data.failures = 0;
+      if (!input.enabled) resetSlow = true;
       if (input.enabled && monitor.kind === 'HEARTBEAT') {
         data.deadlineAt = new Date(now.getTime() + ((period ?? 0) + (grace ?? 0)) * MINUTE);
       }
       await this.repository.event(monitor.id, status, now);
+    }
+    if (resetSlow) {
+      data.slowSince = null;
+      data.slowCount = 0;
     }
     const updated = await this.repository.update(monitor.id, data);
     await this.teams.record(ctx, monitor.teamId, 'monitor.updated', updated.name);
@@ -349,9 +405,10 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
 
   async detail(ctx: CloudCtx, id: string, now = new Date()): Promise<MonitorDetail> {
     const monitor = await this.monitor(ctx, id);
-    const [checks, events] = await Promise.all([
+    const [checks, events, windows] = await Promise.all([
       this.repository.checksSince(monitor.id, new Date(now.getTime() - DAY)),
       this.repository.eventsSince([monitor.id], new Date(now.getTime() - 90 * DAY)),
+      monitor.kind === 'HTTP' ? this.repository.responseWindows(monitor.id, now) : null,
     ]);
     return {
       ...this.view(monitor),
@@ -365,6 +422,11 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       uptime30: uptime(events, new Date(now.getTime() - 30 * DAY), now),
       days: dailyUptime(events, 90, now),
       incidents: incidents(events, new Date(now.getTime() - 30 * DAY), now),
+      responseStats: windows && {
+        '24h': responseStats(windows['24h']),
+        '7d': responseStats(windows['7d']),
+        '30d': responseStats(windows['30d']),
+      },
     };
   }
 
@@ -380,6 +442,11 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
   ): Promise<void> {
     const changed = monitor.status !== status;
     const data: Parameters<CloudMonitorsRepository['update']>[1] = { ...extra, lastError: error };
+    // Going down ends any slow episode silently: the down alert says enough.
+    if (status === 'DOWN') {
+      data.slowSince = null;
+      data.slowCount = 0;
+    }
     if (changed) {
       data.status = status;
       data.statusSince = now;
@@ -414,9 +481,9 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
 
   private async alert(
     monitor: MonitorWithTeam,
-    kind: 'down' | 'up' | 'cert',
+    kind: 'down' | 'up' | 'cert' | 'slow' | 'fast',
     error: string | null,
-    extra: { minutes?: number; certExpires?: Date },
+    extra: { minutes?: number; certExpires?: Date; responseMs?: number; slowMs?: number },
   ): Promise<void> {
     // A monitor tied to a project also tells its Slack, Discord and webhook channels that asked
     // for monitor alerts (decision 64), in the background like these emails.
@@ -434,6 +501,8 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
             team: monitor.team.name,
             error,
             minutes: extra.minutes,
+            responseMs: extra.responseMs,
+            slowMs: extra.slowMs,
             certExpires: extra.certExpires
               ? new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
                   dateStyle: 'long',
@@ -531,6 +600,11 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     await this.repository.check(monitor.id, result, now);
 
     const extra: Parameters<CloudMonitorsRepository['update']>[1] = {};
+    // A check that raced a PATCH reset (threshold cleared) clears the leftovers here.
+    if (!monitor.slowMs && (monitor.slowSince || monitor.slowCount)) {
+      extra.slowSince = null;
+      extra.slowCount = 0;
+    }
     if (
       certificate &&
       (!monitor.certCheckedAt || now.getTime() - monitor.certCheckedAt.getTime() >= 60 * MINUTE)
@@ -544,7 +618,30 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       }
     }
     if (result.ok) {
+      // Slow-response episodes: only successful checks with a response time count.
+      let slowAlert: { kind: 'slow' | 'fast'; minutes?: number } | null = null;
+      if (monitor.slowMs && result.responseMs !== null) {
+        const step = slowStep(monitor, result.responseMs, monitor.slowMs, now);
+        extra.slowCount = step.slowCount;
+        extra.slowSince = step.slowSince;
+        if (step.alert) {
+          slowAlert = {
+            kind: step.alert,
+            minutes:
+              step.alert === 'fast' && monitor.slowSince
+                ? Math.round((now.getTime() - monitor.slowSince.getTime()) / MINUTE)
+                : undefined,
+          };
+        }
+      }
       await this.transition(monitor, 'UP', now, null, { ...extra, failures: 0 });
+      if (slowAlert) {
+        void this.alert(monitor, slowAlert.kind, null, {
+          minutes: slowAlert.minutes,
+          responseMs: result.responseMs ?? undefined,
+          slowMs: monitor.slowMs ?? undefined,
+        });
+      }
     } else {
       const failures = monitor.failures + 1;
       // DOWN after two failures in a row; the first one only counts.

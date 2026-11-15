@@ -65,6 +65,9 @@ function monitorRow(overrides: Partial<MonitorWithTeam> = {}): MonitorWithTeam {
     alertIds: [USER],
     lastDownAlertAt: null,
     lastUpAlertAt: null,
+    slowMs: null,
+    slowCount: 0,
+    slowSince: null,
     createdAt: new Date('2026-11-01T00:00:00Z'),
     updatedAt: new Date('2026-11-01T00:00:00Z'),
     team: { slug: 'ops', name: 'Ops' },
@@ -82,6 +85,9 @@ describe('Cloud monitors: text on the page', () => {
     event: ReturnType<typeof vi.fn>;
     membersAmong: ReturnType<typeof vi.fn>;
     alertees: ReturnType<typeof vi.fn>;
+    checksSince: ReturnType<typeof vi.fn>;
+    eventsSince: ReturnType<typeof vi.fn>;
+    responseWindows: ReturnType<typeof vi.fn>;
   };
   let service: CloudMonitorsService;
 
@@ -101,6 +107,9 @@ describe('Cloud monitors: text on the page', () => {
       event: vi.fn().mockResolvedValue(undefined),
       membersAmong: vi.fn((teamId: string, ids: string[]) => Promise.resolve(ids)),
       alertees: vi.fn().mockResolvedValue([]),
+      checksSince: vi.fn().mockResolvedValue([]),
+      eventsSince: vi.fn().mockResolvedValue([]),
+      responseWindows: vi.fn(),
     };
     const teams = {
       access: vi.fn().mockResolvedValue({ teamId: TEAM, team: { plan: 'FREE', name: 'Ops' } }),
@@ -312,6 +321,32 @@ describe('Cloud monitors: text on the page', () => {
       // Saving the same text again changes nothing.
       await service.update(ctx, 'id', { keyword: 'Welcome', name: 'Site' }, now);
       expect(repository.update).toHaveBeenLastCalledWith(expect.any(String), { name: 'Site' });
+    });
+  });
+
+  describe('response stats', () => {
+    it('maps the three windows to whole ms and a window without checks to null', async () => {
+      repository.responseWindows.mockResolvedValue({
+        '24h': { checks: 3, median: 120.5, p95: 199.04, average: 133.333 },
+        '7d': { checks: 10, median: 100, p95: 250.6, average: 140.5 },
+        '30d': { checks: 0, median: null, p95: null, average: null },
+      });
+      const detail = await service.detail(ctx, 'id', now);
+      expect(repository.responseWindows).toHaveBeenCalledWith(expect.any(String), now);
+      expect(detail.responseStats).toEqual({
+        '24h': { checks: 3, median: 121, p95: 199, average: 133 },
+        '7d': { checks: 10, median: 100, p95: 251, average: 141 },
+        '30d': null,
+      });
+    });
+
+    it('has none for a heartbeat and does not query', async () => {
+      repository.find.mockResolvedValue(
+        monitorRow({ kind: 'HEARTBEAT', url: null, key: 'cqh_x', periodMinutes: 60 }),
+      );
+      const detail = await service.detail(ctx, 'id', now);
+      expect(detail.responseStats).toBeNull();
+      expect(repository.responseWindows).not.toHaveBeenCalled();
     });
   });
 });

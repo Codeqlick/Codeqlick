@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { rm } from 'node:fs/promises';
+import { posix } from 'node:path';
 import {
   BadRequestException,
   ConflictException,
@@ -21,6 +22,7 @@ import { SecretBox } from '../auth/secret-box.js';
 import { MailService } from '../mail/mail.service.js';
 import type { CloudCtx } from './cloud-caller.js';
 import { cloudRebuildOffEmail } from './cloud-emails.js';
+import { buildEnvRows } from './cloud-env.js';
 import { madridMonth } from './cloud-form-fields.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { commentBody, shouldCheckPreview, type PreviewCheck } from './cloud-preview-check.js';
@@ -31,6 +33,7 @@ import { keptAsPreview, LOCKED_BUILD_LOG_LINE } from './cloud-production-lock.js
 import { nextRebuild, REBUILD_MAX_FAILURES } from './cloud-rebuild-schedule.js';
 import type {
   EnvImportInput,
+  DetectQuery,
   EnvVarInput,
   FinishInput,
   GitSettingsInput,
@@ -39,6 +42,13 @@ import type {
 } from './cloud.schemas.js';
 import { cacheKey } from './cloud-build-cache.js';
 import { CloudDiskService } from './cloud-disk.service.js';
+import {
+  detectSettings,
+  frameworkOf,
+  MAX_DETECT_FILE_BYTES,
+  nextConfigFile,
+  type DetectedSettings,
+} from './cloud-detect.js';
 import {
   CloudBuildsRepository,
   type BuildWithProject,
@@ -165,6 +175,10 @@ interface TeamRef {
   slug: string;
   plan: 'FREE' | 'PRO';
 }
+
+/** A variable in the activity log: `site: API_URL`, or `site: API_URL (staging)` for a branch's. */
+const envLabel = (slug: string, key: string, branch: string) =>
+  `${slug}: ${key}${branch ? ` (${branch})` : ''}`;
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -322,6 +336,73 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     return { items: await this.github.repositories(installationId) };
   }
 
+  /**
+   * Build settings suggested from a repository's root folder (architecture 4.13 "Suggested
+   * settings", decision 75). At most 5 GitHub requests, counting the token, with one read-only
+   * token for that repository (its answer names the repository): the token, the listing,
+   * `package.json`, `.nvmrc` or `.node-version`, and the Next.js config. Files are only fetched
+   * when the listing has them, and nothing is kept.
+   */
+  async detect(ctx: CloudCtx, teamSlug: string, query: DetectQuery): Promise<DetectedSettings> {
+    const membership = await this.teams.access(ctx, teamSlug, 'ADMIN');
+    if (!this.github.configured) {
+      throw new ServiceUnavailableException('Builds from Git are not set up yet');
+    }
+    await this.teamInstallation(membership.teamId, query.installationId);
+    try {
+      const { token, fullName } = await this.github.repoAccess(query.installationId, query.repoId);
+      const entries = await this.github.listFolder(token, fullName, query.rootDir, query.branch);
+      const files = new Map<string, number>(
+        entries
+          .filter((entry) => entry.type === 'file')
+          .map((entry): [string, number] => [entry.name, entry.size]),
+      );
+      const listing = [...files.keys()];
+      const read = async (name: string | null): Promise<string | null> => {
+        const size = name === null ? undefined : files.get(name);
+        if (name === null || size === undefined || size > MAX_DETECT_FILE_BYTES) return null;
+        try {
+          return await this.github.fileText(
+            token,
+            fullName,
+            posix.join(query.rootDir, name),
+            query.branch,
+            MAX_DETECT_FILE_BYTES,
+          );
+        } catch (error) {
+          if (error instanceof GithubError && error.status === 413) return null;
+          throw error;
+        }
+      };
+      // `.node-version` is only read without an `.nvmrc`, to stay within 5 requests.
+      const nodeFile = files.has('.nvmrc')
+        ? '.nvmrc'
+        : files.has('.node-version')
+          ? '.node-version'
+          : null;
+      const [packageJson, nodeText] = await Promise.all([read('package.json'), read(nodeFile)]);
+      const nextConfig =
+        frameworkOf(packageJson) === 'next' ? await read(nextConfigFile(listing)) : null;
+      return detectSettings({
+        listing,
+        packageJson,
+        nvmrc: nodeFile === '.nvmrc' ? nodeText : null,
+        nodeVersionFile: nodeFile === '.node-version' ? nodeText : null,
+        nextConfig,
+      });
+    } catch (error) {
+      // An installation that can't see the repository answers 422 when the token is made.
+      if (error instanceof GithubError && (error.status === 404 || error.status === 422)) {
+        throw new NotFoundException('Repository, branch or folder not found');
+      }
+      // GitHub's rate limit (403 or 429): a suggestion can wait, so "try again later".
+      if (error instanceof GithubError && (error.status === 403 || error.status === 429)) {
+        throw new ServiceUnavailableException('GitHub is busy: try again in a minute');
+      }
+      throw error;
+    }
+  }
+
   // ── A project's connection and settings ────────────────────────────────────────────────────
 
   gitView(project: {
@@ -391,6 +472,13 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       },
       otherRepo,
     );
+    if (input.branch !== project.gitBranch) {
+      // The old production branch can have a branch address now, the new one loses it.
+      await this.projects.tryRelink({ ...project, gitBranch: input.branch }, [
+        project.gitBranch,
+        input.branch,
+      ]);
+    }
     await this.teams.record(
       ctx,
       project.teamId,
@@ -577,6 +665,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         key: row.key,
         production: row.production,
         preview: row.preview,
+        branch: row.branch || null,
         updatedAt: row.updatedAt.toISOString(),
       })),
     };
@@ -584,8 +673,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
 
   async setEnvVar(ctx: CloudCtx, projectId: string, input: EnvVarInput) {
     const { project, membership } = await this.projects.project(ctx, projectId, 'ADMIN');
+    const branch = input.branch ?? '';
     const existing = (await this.repository.envVars(project.id)).some(
-      (row) => row.key === input.key,
+      (row) => row.key === input.key && row.branch === branch,
     );
     const limit = CLOUD_PLANS[membership.team.plan].envVarsPerProject;
     if (!existing && (await this.repository.countEnvVars(project.id)) >= limit) {
@@ -597,8 +687,14 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       this.box.seal(input.value),
       input.production,
       input.preview,
+      branch,
     );
-    await this.teams.record(ctx, project.teamId, 'env.saved', `${project.slug}: ${input.key}`);
+    await this.teams.record(
+      ctx,
+      project.teamId,
+      'env.saved',
+      envLabel(project.slug, input.key, branch),
+    );
     return this.envVars(ctx, projectId);
   }
 
@@ -640,11 +736,22 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     return outcome;
   }
 
-  async deleteEnvVar(ctx: CloudCtx, projectId: string, key: string): Promise<void> {
+  /** Deletes a variable: the one of `branch`, or the general one without it. */
+  async deleteEnvVar(
+    ctx: CloudCtx,
+    projectId: string,
+    key: string,
+    branch?: string,
+  ): Promise<void> {
     const { project } = await this.projects.project(ctx, projectId, 'ADMIN');
-    if (!(await this.repository.deleteEnvVar(project.id, key)))
+    if (!(await this.repository.deleteEnvVar(project.id, key, branch ?? '')))
       throw new NotFoundException('Variable not found');
-    await this.teams.record(ctx, project.teamId, 'env.deleted', `${project.slug}: ${key}`);
+    await this.teams.record(
+      ctx,
+      project.teamId,
+      'env.deleted',
+      envLabel(project.slug, key, branch ?? ''),
+    );
   }
 
   // ── Builds ─────────────────────────────────────────────────────────────────────────────────
@@ -708,6 +815,21 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     const build = await this.repository.findBuild(project.id, number);
     if (!build) throw new NotFoundException('Build not found');
     return { ...this.view(build), log: build.log.slice(after), logOffset: build.log.length };
+  }
+
+  /**
+   * The whole kept log as a file (architecture 4.13): what is there so far while the build runs,
+   * empty once the daily cleanup has cleared it. `404` as for `get`.
+   */
+  async logFile(
+    ctx: CloudCtx,
+    projectId: string,
+    number: number,
+  ): Promise<{ filename: string; text: string }> {
+    const { project } = await this.projects.project(ctx, projectId);
+    const build = await this.repository.findBuildLog(project.id, number);
+    if (!build) throw new NotFoundException('Build not found');
+    return { filename: `${project.slug}-build-${number}.log`, text: build.log };
   }
 
   /** "Deploy again": a build of the branch's latest commit. */
@@ -985,10 +1107,11 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         project.gitInstallationId,
         project.gitRepoId,
       );
+      // build.branch is the pushed branch, or a pull request's head branch.
       const env: Record<string, string> = {};
-      for (const row of await this.repository.envVars(project.id)) {
-        if (build.target === 'PRODUCTION' ? row.production : row.preview)
-          env[row.key] = this.box.open(row.valueSealed);
+      const rows = await this.repository.envVars(project.id);
+      for (const row of buildEnvRows(rows, build.target, build.branch)) {
+        env[row.key] = this.box.open(row.valueSealed);
       }
       const plan = CLOUD_PLANS[project.team.plan];
       return {
@@ -1080,7 +1203,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
           error: null,
         });
         // `deployment.url` is the deployment's own address: the preview while production is locked.
-        void this.reportSuccess(build.project, done, deployment.url);
+        void this.reportSuccess(build.project, done, deployment.url, deployment.branchUrl);
         void this.notifications.buildEnded(done.id, deployment.url);
         await this.scheduledEnded(done);
       } catch (error) {
@@ -1140,6 +1263,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     project: ReportProject & { teamId: string; previewChecks: boolean; team: TeamRef },
     build: CloudBuild,
     deploymentUrl: string,
+    branchUrl?: string | null,
   ): Promise<void> {
     const wanted =
       shouldCheckPreview(build, project) &&
@@ -1159,6 +1283,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         'success',
         deploymentUrl,
         check ? { state: 'running' } : undefined,
+        branchUrl,
       );
       if (!check || build.pullRequest === null) return;
       const outcome = await this.audits.runPreview({
@@ -1172,7 +1297,9 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       const newest = await this.repository.latestPullBuild(project.id, build.pullRequest);
       if (newest !== build.number) return;
       const fresh = await this.repository.findById(build.id);
-      if (fresh) await this.comment(fresh.project, fresh, 'success', deploymentUrl, outcome);
+      if (fresh) {
+        await this.comment(fresh.project, fresh, 'success', deploymentUrl, outcome, branchUrl);
+      }
     } catch (error) {
       this.logger.warn(`Build ${build.id}: the preview check failed (${String(error)})`);
     }
@@ -1185,6 +1312,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
     check?: PreviewCheck,
+    branchUrl?: string | null,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -1217,7 +1345,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
       this.logger.warn(`Build ${build.id}: GitHub couldn't be told (${String(error)})`);
       return;
     }
-    await this.comment(project, build, state, deploymentUrl, check);
+    await this.comment(project, build, state, deploymentUrl, check, branchUrl);
   }
 
   /** The app's comment on the build's pull request, if it has one. Best effort. */
@@ -1227,6 +1355,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
     state: 'pending' | 'success' | 'failure',
     deploymentUrl?: string,
     check?: PreviewCheck,
+    branchUrl?: string | null,
   ): Promise<void> {
     if (
       !this.github.configured ||
@@ -1244,6 +1373,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         state,
         buildUrl: this.buildUrl(project, build),
         ...(deploymentUrl ? { deploymentUrl } : {}),
+        ...(branchUrl ? { branchUrl } : {}),
         ...(check ? { check } : {}),
         auditUrl: this.auditUrl(project),
       });

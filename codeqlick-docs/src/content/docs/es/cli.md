@@ -84,7 +84,7 @@ Consulta [dominios propios](/es/custom-domains/).
 | `builds`                                                                                      | Lista las últimas compilaciones.                                                              |
 | `builds start [--branch <name>]`                                                              | Compila el último commit de la rama y sigue el registro.                                      |
 | `builds cancel <number>`                                                                      | Cancela una compilación en cola o en curso.                                                   |
-| `logs [number]`                                                                               | Muestra el registro de una compilación (la última por defecto), en directo mientras corre.    |
+| `logs [number]`                                                                               | El registro de una compilación (la última por defecto), en directo; `--out` lo guarda.        |
 | `--json`                                                                                      | Imprime la respuesta de la API, para `git`, `env` y `builds`.                                 |
 
 Consulta [compilaciones desde Git](/es/builds-from-git/).
@@ -105,6 +105,7 @@ Consulta [compilaciones desde Git](/es/builds-from-git/).
 
 Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-value-store/).
 
+<<<<<<< HEAD
 ## Protección con contraseña
 
 | Comando                                   | Qué hace                                                                                   |
@@ -115,6 +116,19 @@ Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-va
 | `protect bypass`                          | Crea o sustituye el token de acceso automático. Solo el token sale por la salida estándar. |
 | `protect bypass --revoke`                 | Elimina el token de acceso automático.                                                     |
 | `--json`                                  | Imprime la respuesta de la API (`{ token, prefix, createdAt }`, o `{}` con `--revoke`).    |
+=======
+## Monitores
+
+| Comando                      | Qué hace                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `monitors`                   | Lista los monitores del equipo: estado, tiempo en él y última comprobación.   |
+| `monitors pause <id\|name>`  | Deja de comprobar un monitor, p. ej. durante un trabajo planificado.          |
+| `monitors resume <id\|name>` | Vuelve a comprobarlo. Su estado es `UNKNOWN` hasta la siguiente comprobación. |
+| `monitors --team <slug>`     | El equipo (o `CODEQLICK_TEAM`). No hace falta un proyecto enlazado.           |
+| `monitors --json`            | Imprime la respuesta de la API.                                               |
+
+Consulta [monitores, latidos y páginas de estado](/es/monitors-and-status-pages/).
+>>>>>>> origin/main
 
 ## Variables de entorno
 

@@ -90,7 +90,7 @@ describe('Codeqlick Cloud: importing a .env file (e2e)', () => {
     const url = `/v1/cloud/projects/${projectId}/env/import`;
     const stored = async (key: string) => {
       const row = await prisma.cloudEnvVar.findUniqueOrThrow({
-        where: { projectId_key: { projectId, key } },
+        where: { projectId_key_branch: { projectId, key, branch: '' } },
       });
       expect(row.valueSealed).not.toContain('value-');
       return { value: box.open(row.valueSealed), production: row.production, preview: row.preview };

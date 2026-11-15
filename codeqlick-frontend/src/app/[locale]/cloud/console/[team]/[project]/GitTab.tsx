@@ -33,6 +33,7 @@ import {
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { EnvImport } from './EnvImport';
+import { GitBuildFields } from './GitBuildFields';
 
 type Props = {
   locale: AppLocale;
@@ -212,57 +213,21 @@ export async function GitTab(props: Props) {
             action={saveGitAction.bind(null, props.locale, props.path, props.projectId)}
             className={styles.form}
           >
-            <FormSelect
-              name="repo"
-              label={t('git.repo')}
-              defaultValue={current}
-              options={[
-                { value: '', label: t('git.chooseRepo') },
-                ...repos.map((repo) => ({
-                  value: `${repo.installationId}:${repo.id}`,
-                  label: repo.fullName,
-                })),
-              ]}
-            />
-            <FormInput
-              name="branch"
-              label={t('git.branch')}
-              hint={t('git.branchHint')}
-              defaultValue={git.branch}
-              required
-              mono
-            />
-            <FormInput
-              name="rootDir"
-              label={t('git.rootDir')}
-              hint={t('git.rootDirHint')}
-              defaultValue={git.rootDir}
-              mono
-            />
-            <FormInput
-              name="installCommand"
-              label={t('git.install')}
-              defaultValue={git.installCommand}
-              mono
-            />
-            <FormInput
-              name="buildCommand"
-              label={t('git.build')}
-              defaultValue={git.buildCommand}
-              mono
-            />
-            <FormInput
-              name="outputDir"
-              label={t('git.output')}
-              hint={t('git.outputHint')}
-              defaultValue={git.outputDir}
-              mono
-            />
-            <FormSelect
-              name="nodeVersion"
-              label={t('git.node')}
-              defaultValue={git.nodeVersion}
-              options={['24', '22', '20'].map((v) => ({ value: v, label: `Node ${v}` }))}
+            <GitBuildFields
+              team={props.teamSlug}
+              repos={repos.map((repo) => ({
+                value: `${repo.installationId}:${repo.id}`,
+                label: repo.fullName,
+              }))}
+              defaults={{
+                repo: current,
+                branch: git.branch,
+                rootDir: git.rootDir,
+                installCommand: git.installCommand,
+                buildCommand: git.buildCommand,
+                outputDir: git.outputDir,
+                nodeVersion: git.nodeVersion,
+              }}
             />
             <FormCheckbox
               name="buildBranches"
@@ -401,12 +366,15 @@ export async function GitTab(props: Props) {
         {env.length > 0 ? (
           <ul className={styles.list}>
             {env.map((row) => (
-              <li key={row.key} className={styles.row}>
+              <li key={`${row.key}:${row.branch ?? ''}`} className={styles.row}>
                 <div className={styles.rowMain}>
                   <p className={styles.rowTitle}>
                     <span className={styles.mono}>{row.key}</span>
                     {row.production ? <Badge>{t('git.production')}</Badge> : null}
                     {row.preview ? <Badge>{t('git.preview')}</Badge> : null}
+                    {row.branch ? (
+                      <Badge tone="brand">{t('git.envBranchLabel', { branch: row.branch })}</Badge>
+                    ) : null}
                   </p>
                 </div>
                 {props.admin ? (
@@ -414,10 +382,14 @@ export async function GitTab(props: Props) {
                     <input type="hidden" name="locale" value={props.locale} />
                     <input type="hidden" name="project" value={props.projectId} />
                     <input type="hidden" name="key" value={row.key} />
+                    {row.branch ? <input type="hidden" name="branch" value={row.branch} /> : null}
                     <input type="hidden" name="path" value={props.path} />
                     <SubmitButton size="sm" variant="ghost">
                       {t('git.delete')}
-                      <span className="visually-hidden"> — {row.key}</span>
+                      <span className="visually-hidden">
+                        {' '}
+                        — {row.branch ? `${row.key} (${row.branch})` : row.key}
+                      </span>
                     </SubmitButton>
                   </form>
                 ) : null}
@@ -428,7 +400,7 @@ export async function GitTab(props: Props) {
         {props.admin ? (
           <ActionForm
             action={saveEnvAction.bind(null, props.locale, props.path, props.projectId)}
-            className={styles.form}
+            className={`${styles.form} ${styles.envForm}`}
           >
             <FormInput
               name="key"
@@ -447,6 +419,19 @@ export async function GitTab(props: Props) {
             />
             <FormCheckbox name="production" label={t('git.production')} defaultChecked />
             <FormCheckbox name="preview" label={t('git.preview')} defaultChecked />
+            {/* Shown while Previews is ticked (cloud.module.css): branch variables are preview-only. */}
+            <div className={styles.envBranch}>
+              <FormInput
+                name="branch"
+                label={t('git.envBranch')}
+                hint={t('git.envBranchHint')}
+                placeholder="staging"
+                mono
+                autoCapitalize="none"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </div>
             <div className={styles.actions}>
               <SubmitButton variant="outline">{t('git.saveEnv')}</SubmitButton>
             </div>

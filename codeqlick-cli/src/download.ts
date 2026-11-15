@@ -15,6 +15,11 @@ export function archivePath(out: string | undefined, slug: string, shortId: stri
   return resolve(out || archiveName(slug, shortId));
 }
 
+/** Where to save a build's log: the `--out` file, resolved from the current folder. */
+export function logPath(out: string): string {
+  return resolve(out);
+}
+
 /** True when something already exists at `path` (a file, a folder or a link). */
 export async function exists(path: string): Promise<boolean> {
   return (await stat(path).catch(() => null)) !== null;

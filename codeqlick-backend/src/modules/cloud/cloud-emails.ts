@@ -1,5 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
-import { renderEmail } from '../mail/email-layout.js';
+import { renderEmail, type EmailQuote } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 import type { MeterKey } from './cloud-usage.js';
 
@@ -241,21 +241,26 @@ export function cloudAnalyticsLimitEmail(input: {
   };
 }
 
-/** To a monitor's chosen members: it went down, came back, or its certificate is about to expire. */
+/** To a monitor's chosen members: it went down, came back, is slow or back to normal, or its certificate is about to expire. */
 export function cloudMonitorEmail(input: {
   to: string;
   locale: ApiLocale;
-  kind: 'down' | 'up' | 'cert';
+  kind: 'down' | 'up' | 'cert' | 'slow' | 'fast';
   monitor: string;
   target: string;
   team: string;
   error: string | null;
   minutes?: number;
   certExpires?: string;
+  /** Slow and back to normal: the last response time and the threshold, in ms. */
+  responseMs?: number;
+  slowMs?: number;
   url: string;
   siteUrl: string;
 }): MailMessage {
   const es = input.locale === 'es';
+  const ms = (value: number | undefined) =>
+    `${new Intl.NumberFormat(es ? 'es-ES' : 'en-GB').format(value ?? 0)} ms`;
   const texts = {
     down: {
       subject: es ? `Caído: ${input.monitor}` : `Down: ${input.monitor}`,
@@ -270,6 +275,20 @@ export function cloudMonitorEmail(input: {
       intro: es
         ? `${input.monitor} (${input.target}) vuelve a funcionar${input.minutes ? ` después de ${input.minutes} min` : ''}.`
         : `${input.monitor} (${input.target}) is working again${input.minutes ? ` after ${input.minutes} min` : ''}.`,
+    },
+    slow: {
+      subject: es ? `Lento: ${input.monitor}` : `Slow: ${input.monitor}`,
+      title: es ? 'Un monitor responde despacio' : 'A monitor is slow',
+      intro: es
+        ? `${input.monitor} (${input.target}), del equipo ${input.team}, responde despacio: la última respuesta tardó ${ms(input.responseMs)} y el límite es ${ms(input.slowMs)}. Lleva tres comprobaciones seguidas por encima.`
+        : `${input.monitor} (${input.target}), of the team ${input.team}, is answering slowly: the last response took ${ms(input.responseMs)} and the limit is ${ms(input.slowMs)}. It has been over the limit for three checks in a row.`,
+    },
+    fast: {
+      subject: es ? `Vuelve a la normalidad: ${input.monitor}` : `Back to normal: ${input.monitor}`,
+      title: es ? 'Un monitor vuelve a responder con normalidad' : 'A monitor is back to normal',
+      intro: es
+        ? `${input.monitor} (${input.target}) vuelve a responder con normalidad (última respuesta: ${ms(input.responseMs)}, límite: ${ms(input.slowMs)})${input.minutes ? ` después de ${input.minutes} min de lentitud` : ''}.`
+        : `${input.monitor} (${input.target}) is answering normally again (last response: ${ms(input.responseMs)}, limit: ${ms(input.slowMs)})${input.minutes ? ` after being slow for ${input.minutes} min` : ''}.`,
     },
     cert: {
       subject: es
@@ -508,6 +527,119 @@ export function cloudDatabaseFullEmail(input: {
             : `Database ${input.database} of project ${input.project} is over ${size}, its plan's maximum, and is read-only now. Delete data (DELETE and VACUUM) or move to PRO; it takes writes again as soon as it is under the limit. If it keeps growing to 150 %, it stops taking connections.`,
         ],
         button: { label: es ? 'Abrir la consola' : 'Open the console', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
+/** One token in an expiry email. */
+export interface TokenExpiryItem {
+  name: string;
+  prefix: string;
+  /** The team it is restricted to; null = all the person's teams. */
+  team: string | null;
+  expiresAt: Date;
+  lastUsedAt: Date | null;
+}
+
+/**
+ * To a token's person: it expires soon, or has just expired (architecture 4.13 "Expiry emails").
+ * One email lists all of the person's tokens in that state.
+ */
+export function tokenExpiryEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  kind: 'soon' | 'expired';
+  tokens: TokenExpiryItem[];
+  /** The console's tokens page. */
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const soon = input.kind === 'soon';
+  const n = input.tokens.length;
+  const many = n > 1;
+  const date = new Intl.DateTimeFormat(es ? 'es-ES' : 'en-GB', {
+    dateStyle: 'long',
+    timeZone: 'Europe/Madrid',
+  });
+  const subject = es
+    ? soon
+      ? many
+        ? `${n} de tus tokens de Codeqlick Cloud caducan pronto`
+        : 'Tu token de Codeqlick Cloud caduca pronto'
+      : many
+        ? `${n} de tus tokens de Codeqlick Cloud han caducado`
+        : 'Tu token de Codeqlick Cloud ha caducado'
+    : soon
+      ? many
+        ? `${n} of your Codeqlick Cloud tokens expire soon`
+        : 'Your Codeqlick Cloud token expires soon'
+      : many
+        ? `${n} of your Codeqlick Cloud tokens have expired`
+        : 'Your Codeqlick Cloud token has expired';
+  const title = es
+    ? soon
+      ? many
+        ? 'Tus tokens caducan pronto'
+        : 'Tu token caduca pronto'
+      : many
+        ? 'Tus tokens han caducado'
+        : 'Tu token ha caducado'
+    : soon
+      ? many
+        ? 'Your tokens expire soon'
+        : 'Your token expires soon'
+      : many
+        ? 'Your tokens have expired'
+        : 'Your token has expired';
+  const intro = es
+    ? soon
+      ? many
+        ? 'Estos tokens de API de Codeqlick Cloud caducan en 7 días o menos y los creaste o usaste hace poco. Cuando caduquen, lo que los use (la CLI, un pipeline de CI) recibirá un error de autenticación.'
+        : 'Este token de API de Codeqlick Cloud caduca en 7 días o menos y lo creaste o usaste hace poco. Cuando caduque, lo que lo use (la CLI, un pipeline de CI) recibirá un error de autenticación.'
+      : many
+        ? 'Estos tokens de API de Codeqlick Cloud han caducado y los usaste hace menos de una semana. Se han eliminado y lo que los use (la CLI, un pipeline de CI) ya no puede autenticarse.'
+        : 'Este token de API de Codeqlick Cloud ha caducado y lo usaste hace menos de una semana. Se ha eliminado y lo que lo use (la CLI, un pipeline de CI) ya no puede autenticarse.'
+    : soon
+      ? many
+        ? 'These Codeqlick Cloud API tokens expire in 7 days or less and you made or used them recently. Once they expire, whatever uses them (the CLI, a CI pipeline) will get an authentication error.'
+        : 'This Codeqlick Cloud API token expires in 7 days or less and you made or used it recently. Once it expires, whatever uses it (the CLI, a CI pipeline) will get an authentication error.'
+      : many
+        ? 'These Codeqlick Cloud API tokens have expired and you used them less than a week ago. They have been deleted, so whatever uses them (the CLI, a CI pipeline) can no longer sign in.'
+        : 'This Codeqlick Cloud API token has expired and you used it less than a week ago. It has been deleted, so whatever uses it (the CLI, a CI pipeline) can no longer sign in.';
+  const quotes: EmailQuote[] = input.tokens.map((token) => ({
+    title: token.name,
+    body: [
+      `${token.prefix}…`,
+      token.team ?? (es ? 'todos los equipos' : 'all teams'),
+      `${soon ? (es ? 'Caduca' : 'Expires') : es ? 'Caducó' : 'Expired'}: ${date.format(token.expiresAt)}`,
+      `${es ? 'Último uso' : 'Last used'}: ${
+        token.lastUsedAt ? date.format(token.lastUsedAt) : es ? 'nunca' : 'never'
+      }`,
+    ].join(' · '),
+  }));
+  return {
+    to: input.to,
+    subject,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: subject,
+        title,
+        intro: [intro],
+        quote: quotes,
+        button: {
+          label: es ? 'Crear un token nuevo' : 'Create a new token',
+          url: input.url,
+        },
+        outro: [
+          es
+            ? 'Crea uno nuevo y actualiza CODEQLICK_TOKEN allí donde se use (secretos del CI, tu máquina).'
+            : 'Make a new one and update CODEQLICK_TOKEN wherever it is used (CI secrets, your machine).',
+        ],
+        signoff: [],
       },
       input.siteUrl,
     ),

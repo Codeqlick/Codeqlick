@@ -340,6 +340,11 @@ export class AppConfigService {
     return this.get('PAGESPEED_API_KEY');
   }
 
+  /** IndexNow submissions and the key route (architecture 4.1, IndexNow); off unless true. */
+  get indexNowEnabled(): boolean {
+    return this.get('INDEXNOW_ENABLED');
+  }
+
   get logLevel(): Env['LOG_LEVEL'] {
     return this.get('LOG_LEVEL');
   }

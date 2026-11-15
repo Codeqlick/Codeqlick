@@ -64,6 +64,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             headline: post.title,
             description: post.excerpt,
             datePublished: post.publishedAt,
+            dateModified: post.contentUpdatedAt ?? post.publishedAt,
             inLanguage: locale,
             image: post.coverImageUrl ?? absoluteUrl(`/${locale}/blog/${post.slug}/og`),
             mainEntityOfPage: absoluteUrl(`/${locale}/blog/${post.slug}`),

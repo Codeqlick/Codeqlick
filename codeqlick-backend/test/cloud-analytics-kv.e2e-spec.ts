@@ -12,12 +12,14 @@ import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
+import { madridDay } from '../src/modules/cloud/cloud-analytics.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 // Its own file, so its own app: login is limited to 5 per minute and per IP.
 const tag = randomUUID().slice(0, 8);
 const password = 'cloud-analytics-password-1';
+const member = { email: `e2e-ca-member-${tag}@codeqlick.test`, password };
 const owner = { email: `e2e-ca-owner-${tag}@codeqlick.test`, password };
 const terms = { acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION };
 const BROWSER =
@@ -137,6 +139,7 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
       enabled: true,
       period: '24h',
       totals: { visitors: 1, pageviews: 3 },
+      previous: { visitors: 0, pageviews: 0, complete: true },
     });
     expect(report.body.series).toHaveLength(24);
     expect(report.body.series.at(-1).pageviews).toBe(3);
@@ -144,9 +147,112 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
     expect(report.body.referrers).toEqual([{ key: 'newsletter', visitors: 1, count: 1 }]);
     expect(report.body.events).toEqual([{ key: 'signup', visitors: 1, count: 1 }]);
     expect(report.body.browsers[0].key).toBe('Chrome');
-    await request(server).get(`${base}?period=7d`).set(auth).expect(200);
+
+    // Earlier events: two visitors 2 days ago (this 7d window) and two 8 days ago (the 7 days
+    // before it).
+    const { teamId } = await prisma.cloudProject.findUniqueOrThrow({
+      where: { id: projectId },
+      select: { teamId: true },
+    });
+    const day = 86_400_000;
+    const old = (visitor: string, ago: number) => ({
+      projectId,
+      teamId,
+      name: 'pageview',
+      path: '/old',
+      browser: 'Chrome',
+      os: 'macOS',
+      device: 'desktop',
+      visitor,
+      createdAt: new Date(Date.now() - ago * day),
+    });
+    await prisma.cloudAnalyticsEvent.createMany({
+      data: [
+        old('cur-1', 2),
+        old('cur-2', 2),
+        old('prev-1', 8),
+        old('prev-2', 8),
+        old('prev-2', 8.1),
+      ],
+    });
+    const week = await request(server).get(`${base}?period=7d`).set(auth).expect(200);
+    expect(week.body.totals).toEqual({ visitors: 3, pageviews: 5 });
+    expect(week.body.previous).toEqual({ visitors: 2, pageviews: 3, complete: true });
+    // A year back needs the year before it, which isn't kept.
+    const year = await request(server).get(`${base}?period=365d`).set(auth).expect(200);
+    expect(year.body.totals).toEqual({ visitors: 5, pageviews: 8 });
+    expect(year.body.previous).toEqual({ visitors: 0, pageviews: 0, complete: false });
     await request(server).get(`${base}?period=2y`).set(auth).expect(400);
     await request(server).get(base).expect(401);
+  });
+
+  it('exports the analytics as CSV for the team, also while the tracker is off', async () => {
+    const server = app.getHttpServer();
+    // Relies on the events the first test created (`/` twice, `/pricing`, `signup`).
+    await request(server)
+      .patch(`/v1/cloud/projects/${projectId}/analytics`)
+      .set(auth)
+      .send({ enabled: false })
+      .expect(200);
+    const url = `/v1/cloud/projects/${projectId}/analytics.csv`;
+    await prisma.cloudAnalyticsEvent.create({
+      data: {
+        projectId,
+        teamId: (await prisma.cloudProject.findUniqueOrThrow({ where: { id: projectId } })).teamId,
+        name: 'pageview',
+        path: '=cmd,"x"',
+        browser: 'Chrome',
+        os: 'macOS',
+        device: 'desktop',
+        visitor: 'f'.repeat(32),
+      },
+    });
+    const today = madridDay(new Date());
+
+    const res = await request(server).get(`${url}?period=7d`).set(auth).expect(200);
+    expect(res.headers['content-type']).toMatch(/^text\/csv; charset=utf-8/);
+    expect(res.headers['content-disposition']).toBe(
+      `attachment; filename="${slug}-analytics-7d.csv"`,
+    );
+    expect(res.headers['x-truncated']).toBeUndefined();
+    expect(res.text.startsWith('\uFEFFkind,date,name,visitors,count\r\n')).toBe(true);
+    const lines = res.text.slice(1).trimEnd().split('\r\n');
+    expect(lines).toContain(`event,${today},signup,1,1`);
+    expect(lines).toContain(`page,${today},/,1,2`);
+    expect(lines).toContain(`page,${today},/pricing,1,1`);
+    expect(lines).toContain(`page,${today},"'=cmd,""x""",1,1`);
+
+    const hours = await request(server).get(`${url}?period=24h`).set(auth).expect(200);
+    expect(hours.headers['content-disposition']).toContain(`${slug}-analytics-24h.csv`);
+    expect(hours.text).toMatch(/\r\nevent,\d{4}-\d{2}-\d{2} \d{2}:00,signup,1,1\r\n/);
+
+    // The default period is 7 days; a bad one and a caller outside the team are refused.
+    const def = await request(server).get(url).set(auth).expect(200);
+    expect(def.headers['content-disposition']).toContain('-analytics-7d.csv');
+    await request(server).get(`${url}?period=2y`).set(auth).expect(400);
+    await request(server).get(url).expect(401);
+
+    const strangerEmail = `e2e-ca-stranger-${tag}@codeqlick.test`;
+    await prisma.user.create({
+      data: {
+        email: strangerEmail,
+        name: 'Eve',
+        role: Role.CLIENT,
+        passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+        registeredAt: new Date(),
+      },
+    });
+    const login = await request(server)
+      .post('/v1/auth/login')
+      .send({ email: strangerEmail, password })
+      .expect(200);
+    const stranger = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    const report = await request(server)
+      .get(`/v1/cloud/projects/${projectId}/analytics`)
+      .set(stranger);
+    const csv = await request(server).get(url).set(stranger);
+    expect([403, 404]).toContain(report.status);
+    expect(csv.status).toBe(report.status);
   });
 
   it('keeps JSON values with limits, increments atomically and reads public keys', async () => {
@@ -230,5 +336,105 @@ describe('Codeqlick Cloud analytics and key-value store (e2e)', () => {
     await request(server).delete(`${base}/public:flags`).set(auth).expect(204);
     await request(server).delete(`${base}/public:flags`).set(auth).expect(404);
     await request(server).get(base).expect(401);
+  });
+
+  it('shares a read-only report with a link that admins create, replace and stop', async () => {
+    const server = app.getHttpServer();
+    const base = `/v1/cloud/projects/${projectId}/analytics`;
+
+    // A plain member, added straight to the team.
+    const team = await prisma.cloudTeam.findUniqueOrThrow({ where: { slug: `a-${tag}` } });
+    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const user = await prisma.user.create({
+      data: {
+        email: member.email,
+        name: 'Grace',
+        role: Role.CLIENT,
+        passwordHash,
+        registeredAt: new Date(),
+      },
+    });
+    await prisma.cloudMember.create({
+      data: {
+        teamId: team.id,
+        userId: user.id,
+        role: 'MEMBER',
+        termsVersion: CLOUD_TERMS_VERSION,
+        termsAcceptedAt: new Date(),
+      },
+    });
+    const login = await request(server).post('/v1/auth/login').send(member).expect(200);
+    const memberAuth = { Authorization: `Bearer ${login.body.accessToken as string}` };
+
+    // The CSV test above switched the tracker off; the link needs it on.
+    await request(server).patch(base).set(auth).send({ enabled: true }).expect(200);
+    // Off until an admin creates it; members can't.
+    const off = await request(server).get(`${base}/share`).set(auth).expect(200);
+    expect(off.body).toEqual({ enabled: false });
+    await request(server).post(`${base}/share`).set(memberAuth).expect(403);
+    await request(server).delete(`${base}/share`).set(memberAuth).expect(403);
+    await request(server).post(`${base}/share`).expect(401);
+
+    const created = await request(server).post(`${base}/share`).set(auth).expect(201);
+    const token = created.body.token as string;
+    expect(token).toMatch(/^cqa_[A-Za-z0-9_-]{32}$/);
+    expect(created.body.url).toMatch(new RegExp(`/analytics/${token}$`));
+    const stored = await prisma.cloudProject.findUniqueOrThrow({ where: { id: projectId } });
+    expect(stored.analyticsShareHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(stored.analyticsShareSealed).not.toContain(token);
+
+    // Admins see the link again; members only that it is on.
+    const status = await request(server).get(`${base}/share`).set(auth).expect(200);
+    expect(status.body).toMatchObject({ enabled: true, url: created.body.url });
+    const seen = await request(server).get(`${base}/share`).set(memberAuth).expect(200);
+    expect(seen.body).toEqual({ enabled: true });
+
+    // Anyone with the link reads the numbers, not the console's switch or snippet.
+    const shared = await request(server).get(`/v1/cloud/analytics/shared/${token}`).expect(200);
+    expect(shared.headers['cache-control']).toBe('private, max-age=60');
+    // The same numbers as the console's report (the other tests add events of their own).
+    const own = await request(server).get(`${base}?period=7d`).set(auth).expect(200);
+    expect(shared.body).toMatchObject({
+      project: { name: 'Site' },
+      period: '7d',
+      totals: own.body.totals,
+      previous: own.body.previous,
+    });
+    expect(shared.body).not.toHaveProperty('snippet');
+    expect(shared.body).not.toHaveProperty('enabled');
+    await request(server).get(`/v1/cloud/analytics/shared/${token}?period=24h`).expect(200);
+    await request(server).get(`/v1/cloud/analytics/shared/${token}?period=2y`).expect(400);
+
+    // Malformed and unknown tokens are 404.
+    await request(server).get('/v1/cloud/analytics/shared/nope').expect(404);
+    await request(server)
+      .get(`/v1/cloud/analytics/shared/cqa_${'a'.repeat(32)}`)
+      .expect(404);
+
+    // Creating it again replaces it.
+    const again = await request(server).post(`${base}/share`).set(auth).expect(201);
+    expect(again.body.token).not.toBe(token);
+    await request(server).get(`/v1/cloud/analytics/shared/${token}`).expect(404);
+    await request(server).get(`/v1/cloud/analytics/shared/${again.body.token}`).expect(200);
+
+    // Switched off: the link answers 404, and works again when switched on.
+    await request(server).patch(base).set(auth).send({ enabled: false }).expect(200);
+    await request(server).get(`/v1/cloud/analytics/shared/${again.body.token}`).expect(404);
+    await request(server).patch(base).set(auth).send({ enabled: true }).expect(200);
+    await request(server).get(`/v1/cloud/analytics/shared/${again.body.token}`).expect(200);
+
+    // Stopping it.
+    await request(server).delete(`${base}/share`).set(auth).expect(204);
+    await request(server).get(`/v1/cloud/analytics/shared/${again.body.token}`).expect(404);
+    const gone = await request(server).get(`${base}/share`).set(auth).expect(200);
+    expect(gone.body).toEqual({ enabled: false });
+
+    const events = await prisma.cloudEvent.findMany({
+      where: { teamId: team.id, action: { startsWith: 'analytics.' } },
+      select: { action: true },
+    });
+    const actions = events.map((e) => e.action);
+    expect(actions.filter((a) => a === 'analytics.shared')).toHaveLength(2);
+    expect(actions).toContain('analytics.unshared');
   });
 });

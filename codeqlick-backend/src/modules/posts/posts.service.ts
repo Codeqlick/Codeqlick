@@ -12,7 +12,9 @@ import {
   publishVerb,
   scheduledDetails,
 } from '../activity/activity.service.js';
+import { contentUpdatedAtOnUpdate, publicContentUpdatedAt } from '../../common/content-updated.js';
 import { publishedAtOnCreate, publishedAtOnUpdate } from '../../common/publishing.js';
+import { IndexNowService, slugsToAnnounce } from '../indexnow/indexnow.service.js';
 import {
   PostsRepository,
   type AdminPostRecord,
@@ -38,6 +40,8 @@ export interface PostSummary {
   coverImageUrl: string | null;
   publishedAt: string;
   readingMinutes: number;
+  /** When the content last really changed; null unless ≥ 24 h after publishedAt (4.2). */
+  contentUpdatedAt: string | null;
   tags: PublicTag[];
 }
 
@@ -100,6 +104,7 @@ export class PostsService {
     private readonly repository: PostsRepository,
     private readonly activity: ActivityService,
     private readonly tags: TagsService,
+    private readonly indexNow: IndexNowService,
   ) {}
 
   // ---- Public -------------------------------------------------------------------------
@@ -134,6 +139,7 @@ export class PostsService {
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
       readingMinutes: readingMinutes(translation.content),
+      contentUpdatedAt: publicContentUpdatedAt(post),
       content: translation.content,
       locales: availableLocales(post.translations),
       tags: publicTags(post, locale),
@@ -207,6 +213,7 @@ export class PostsService {
       targetLabel: contentLabel(created),
       details: { status: created.status, ...scheduledDetails(created) },
     });
+    this.announce(null, post);
     return created;
   }
 
@@ -226,12 +233,20 @@ export class PostsService {
       await this.tags.assertExist(input.tagIds);
       data.tagIds = [...new Set(input.tagIds)];
     }
-    const updated = toAdminPost(await this.repository.update(id, data, actor.id));
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: data.status ?? existing.status,
+      coverImageUrl: data.coverImageUrl !== undefined ? data.coverImageUrl : existing.coverImageUrl,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
+    const saved = await this.repository.update(id, data, actor.id);
+    const updated = toAdminPost(saved);
     await this.activity.record(actor, {
       action: `post.${publishVerb(existing, updated, input)}`,
       targetId: id,
       targetLabel: contentLabel(updated),
     });
+    this.announce(existing, saved);
     return updated;
   }
 
@@ -257,7 +272,7 @@ export class PostsService {
    * revision itself. Status, publication date and slug stay; tags deleted since are left out.
    */
   async restore(actor: AuthUser, id: string, revisionId: string): Promise<AdminPost> {
-    await this.findOrThrow(id);
+    const existing = await this.findOrThrow(id);
     const revision = await this.repository.findRevision(id, revisionId);
     if (!revision) throw new NotFoundException('Revision not found');
     const parsed = postSnapshotSchema.safeParse(revision.snapshot);
@@ -268,24 +283,41 @@ export class PostsService {
       translations: snapshot.translations.map(toTranslationData),
       tagIds: await this.tags.existing(snapshot.tagIds),
     };
-    const updated = toAdminPost(await this.repository.update(id, data, actor.id));
+    const contentUpdatedAt = contentUpdatedAtOnUpdate(existing, {
+      status: existing.status,
+      coverImageUrl: data.coverImageUrl ?? null,
+      translations: data.translations ?? existing.translations,
+    });
+    if (contentUpdatedAt) data.contentUpdatedAt = contentUpdatedAt;
+    const saved = await this.repository.update(id, data, actor.id);
+    const updated = toAdminPost(saved);
     await this.activity.record(actor, {
       action: 'post.restored',
       targetId: id,
       targetLabel: contentLabel(updated),
       details: { revisionCreatedAt: revision.createdAt.toISOString() },
     });
+    // A restored live item changed: search engines hear about it like after any edit.
+    this.announce(existing, saved);
     return updated;
   }
 
   async delete(actor: AuthUser, id: string): Promise<void> {
-    const existing = toAdminPost(await this.findOrThrow(id));
+    const post = await this.findOrThrow(id);
+    const existing = toAdminPost(post);
     await this.repository.delete(id);
     await this.activity.record(actor, {
       action: 'post.deleted',
       targetId: id,
       targetLabel: contentLabel(existing),
     });
+    this.announce(post, null);
+  }
+
+  /** Tells search engines through IndexNow when the post was live before or is after. */
+  private announce(before: PostWithTranslations | null, after: PostWithTranslations | null): void {
+    const slugs = slugsToAnnounce(before, after);
+    if (slugs.length > 0) this.indexNow.announce({ kind: 'post', slugs });
   }
 
   private async findOrThrow(id: string): Promise<AdminPostRecord> {
@@ -304,6 +336,7 @@ export class PostsService {
       coverImageUrl: post.coverImageUrl,
       publishedAt: (post.publishedAt ?? post.createdAt).toISOString(),
       readingMinutes: readingMinutes(translation.content),
+      contentUpdatedAt: publicContentUpdatedAt(post),
       tags: publicTags(post, locale),
     };
   }

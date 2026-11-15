@@ -2,9 +2,11 @@ import { NotFoundException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ActivityService } from '../activity/activity.service.js';
 import type { TagsService } from './tags.service.js';
+import type { IndexNowService } from '../indexnow/indexnow.service.js';
 import type { PostTranslation } from '../../generated/prisma/client.js';
 import type { AdminPostRecord, PostsRepository, PostWithTranslations } from './posts.repository.js';
 import { PostsService } from './posts.service.js';
+import type { CreatePostInput } from './posts.schemas.js';
 
 const publishedAt = new Date('2026-09-01T08:00:00Z');
 
@@ -37,6 +39,7 @@ function post(
     status: 'PUBLISHED',
     publishedAt,
     coverImageUrl: null,
+    contentUpdatedAt: null,
     authorId: null,
     createdAt: publishedAt,
     updatedAt: publishedAt,
@@ -73,6 +76,7 @@ describe('PostsService', () => {
       repository as unknown as PostsRepository,
       { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
       { assertExist: vi.fn().mockResolvedValue(undefined) } as unknown as TagsService,
+      { announce: vi.fn() } as unknown as IndexNowService,
     );
   });
 
@@ -91,6 +95,7 @@ describe('PostsService', () => {
       coverImageUrl: null,
       publishedAt: publishedAt.toISOString(),
       readingMinutes: 1,
+      contentUpdatedAt: null,
       locales: ['en', 'es'],
       tags: [],
     });
@@ -134,6 +139,7 @@ describe('PostsService', () => {
           coverImageUrl: null,
           publishedAt: publishedAt.toISOString(),
           readingMinutes: 1,
+          contentUpdatedAt: null,
           tags: [],
         },
       ],
@@ -160,6 +166,73 @@ describe('PostsService', () => {
     await service.update(actor, 'p1', { status: 'PUBLISHED' });
     const second = repository.update.mock.calls[0]?.[1] as { publishedAt?: Date };
     expect(second.publishedAt).toBeUndefined();
+  });
+
+  it('gives the updated date only from 24 hours after publication', async () => {
+    const en = [translation('EN', 'Hello')];
+    repository.findPublishedBySlug.mockResolvedValueOnce(
+      post(en, { contentUpdatedAt: new Date('2026-09-01T20:00:00Z') }),
+    );
+    expect((await service.getPublishedBySlug('hello-world', 'en')).contentUpdatedAt).toBeNull();
+
+    repository.findPublishedBySlug.mockResolvedValueOnce(
+      post(en, { contentUpdatedAt: new Date('2026-09-03T10:00:00Z') }),
+    );
+    expect((await service.getPublishedBySlug('hello-world', 'en')).contentUpdatedAt).toBe(
+      '2026-09-03T10:00:00.000Z',
+    );
+  });
+
+  describe('contentUpdatedAt on update', () => {
+    const live = post([translation('EN', 'Hello'), translation('ES', 'Hola')]);
+    const input = (title: string) => ({
+      translations: [
+        { locale: 'en' as const, title, excerpt: 'Hello excerpt', content: 'Hello content' },
+        { locale: 'es' as const, title: 'Hola', excerpt: 'Hola excerpt', content: 'Hola content' },
+      ],
+    });
+    const sentData = () =>
+      repository.update.mock.calls[0]?.[1] as { contentUpdatedAt?: Date; translations?: unknown };
+
+    beforeEach(() => {
+      repository.findById.mockResolvedValue(live);
+      repository.update.mockResolvedValue(live);
+    });
+
+    it("is set when a live post's text changes", async () => {
+      await service.update(actor, 'p1', input('Hello again'));
+      expect(sentData().contentUpdatedAt).toBeInstanceOf(Date);
+    });
+
+    it('is set when a translation is removed or the cover image changes', async () => {
+      await service.update(actor, 'p1', { translations: input('Hello').translations.slice(0, 1) });
+      expect(sentData().contentUpdatedAt).toBeInstanceOf(Date);
+
+      repository.update.mockClear();
+      await service.update(actor, 'p1', { coverImageUrl: 'https://example.com/cover.png' });
+      expect(sentData().contentUpdatedAt).toBeInstanceOf(Date);
+    });
+
+    it('is left alone when the same text is saved or only the slug or tags change', async () => {
+      await service.update(actor, 'p1', { ...input('Hello'), slug: 'new-slug', tagIds: [] });
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+    });
+
+    it('is left alone for drafts, scheduled posts and unpublishing', async () => {
+      repository.findById.mockResolvedValue({ ...live, status: 'DRAFT' });
+      await service.update(actor, 'p1', { ...input('Hello again'), status: 'PUBLISHED' });
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+
+      repository.update.mockClear();
+      repository.findById.mockResolvedValue({ ...live, publishedAt: new Date('2099-01-01') });
+      await service.update(actor, 'p1', input('Hello again'));
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+
+      repository.update.mockClear();
+      repository.findById.mockResolvedValue(live);
+      await service.update(actor, 'p1', { ...input('Hello again'), status: 'DRAFT' });
+      expect(sentData()).not.toHaveProperty('contentUpdatedAt');
+    });
   });
 
   it('throws NotFound when updating a missing post', async () => {
@@ -240,6 +313,100 @@ describe('PostsService', () => {
       const related = await service.related('hello-world', 'en', 3);
 
       expect(related.map((item) => item.slug)).toEqual(['one-shared', 'latest']);
+    });
+  });
+
+  describe('IndexNow', () => {
+    const en = [translation('EN', 'Hello')];
+    const live = post(en);
+    const draft = post(en, { status: 'DRAFT', publishedAt: null });
+    const future = post(en, { publishedAt: new Date(Date.now() + 86_400_000) });
+    let announce: ReturnType<typeof vi.fn>;
+    let repo: Record<string, ReturnType<typeof vi.fn>>;
+    let posts: PostsService;
+
+    beforeEach(() => {
+      announce = vi.fn();
+      repo = { findById: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn() };
+      posts = new PostsService(
+        repo as unknown as PostsRepository,
+        { record: vi.fn().mockResolvedValue(undefined) } as unknown as ActivityService,
+        { assertExist: vi.fn().mockResolvedValue(undefined) } as unknown as TagsService,
+        { announce } as unknown as IndexNowService,
+      );
+    });
+
+    const createInput = (status: 'DRAFT' | 'PUBLISHED', date?: string) =>
+      ({
+        slug: 'hello-world',
+        status,
+        publishedAt: date,
+        translations: [{ locale: 'en', title: 'Hello', excerpt: 'x', content: 'y' }],
+        newsletter: false,
+        tagIds: [],
+      }) as CreatePostInput;
+
+    it('announces a post created live', async () => {
+      repo.create.mockResolvedValue(live);
+      await posts.create(actor, createInput('PUBLISHED'));
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('does not announce a draft or a post scheduled for later', async () => {
+      repo.create.mockResolvedValue(draft);
+      await posts.create(actor, createInput('DRAFT'));
+      repo.create.mockResolvedValue(future);
+      await posts.create(actor, createInput('PUBLISHED', future.publishedAt?.toISOString()));
+      expect(announce).not.toHaveBeenCalled();
+    });
+
+    it('announces an edit of a live post', async () => {
+      repo.findById.mockResolvedValue(live);
+      repo.update.mockResolvedValue(live);
+      await posts.update(actor, 'p1', { coverImageUrl: null });
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('announces a draft being published', async () => {
+      repo.findById.mockResolvedValue(draft);
+      repo.update.mockResolvedValue(live);
+      await posts.update(actor, 'p1', { status: 'PUBLISHED' });
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('announces a live post made a draft', async () => {
+      repo.findById.mockResolvedValue(live);
+      repo.update.mockResolvedValue(draft);
+      await posts.update(actor, 'p1', { status: 'DRAFT' });
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+    });
+
+    it('announces the new and the old slug after a slug change', async () => {
+      repo.findById.mockResolvedValue(live);
+      repo.update.mockResolvedValue({ ...live, slug: 'hello-again' });
+      await posts.update(actor, 'p1', { slug: 'hello-again' });
+      expect(announce).toHaveBeenCalledWith({
+        kind: 'post',
+        slugs: ['hello-again', 'hello-world'],
+      });
+    });
+
+    it('does not announce an edit of a draft', async () => {
+      repo.findById.mockResolvedValue(draft);
+      repo.update.mockResolvedValue(draft);
+      await posts.update(actor, 'p1', { coverImageUrl: null });
+      expect(announce).not.toHaveBeenCalled();
+    });
+
+    it('announces the deletion of a live post, not of a draft', async () => {
+      repo.findById.mockResolvedValue(live);
+      await posts.delete(actor, 'p1');
+      expect(announce).toHaveBeenCalledWith({ kind: 'post', slugs: ['hello-world'] });
+
+      announce.mockClear();
+      repo.findById.mockResolvedValue(draft);
+      await posts.delete(actor, 'p1');
+      expect(announce).not.toHaveBeenCalled();
     });
   });
 });

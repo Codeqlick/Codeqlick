@@ -13,7 +13,7 @@ export interface ProtectedProject {
   protectionVersion: number;
   suspendedAt: Date | null;
   protectionUpdatedAt: Date | null;
-  /** The bypass token for automation (decision 73): only its SHA-256 hex is kept. */
+  /** The bypass token for automation (decision 78): only its SHA-256 hex is kept. */
   protectionBypassHash: string | null;
   protectionBypassPrefix: string | null;
   protectionBypassCreatedAt: Date | null;

@@ -16,6 +16,15 @@ export interface TopRow {
   count: number;
 }
 
+/** A row of the CSV export: a page or a custom event on a Madrid day (or hour). */
+export interface ExportRow {
+  date: string;
+  kind: 'page' | 'event';
+  name: string;
+  visitors: number;
+  count: number;
+}
+
 /** Columns a report may group by (never from input: picked from this list). */
 const COLUMNS = {
   pages: 'path',
@@ -72,6 +81,23 @@ export class CloudAnalyticsRepository {
     });
   }
 
+  setShare(projectId: string, hash: string | null, sealed: string | null): Promise<unknown> {
+    return this.prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { analyticsShareHash: hash, analyticsShareSealed: sealed },
+    });
+  }
+
+  /** The live project a shared link belongs to (suspended or deleted ones are not found). */
+  projectByShareHash(
+    hash: string,
+  ): Promise<{ id: string; name: string; analytics: boolean } | null> {
+    return this.prisma.cloudProject.findFirst({
+      where: { analyticsShareHash: hash, deletedAt: null, suspendedAt: null },
+      select: { id: true, name: true, analytics: true },
+    });
+  }
+
   /** The day's salt, created by whoever asks first. */
   async salt(day: string, fresh: string): Promise<string> {
     const row = await this.prisma.cloudAnalyticsSalt.upsert({
@@ -116,12 +142,18 @@ export class CloudAnalyticsRepository {
     return count > 0;
   }
 
-  async totals(projectId: string, since: Date): Promise<{ visitors: number; pageviews: number }> {
+  /** Visitors and page views from `since` on, or in `[since, until)` when `until` is given. */
+  async totals(
+    projectId: string,
+    since: Date,
+    until?: Date,
+  ): Promise<{ visitors: number; pageviews: number }> {
+    const upTo = until ? Prisma.sql`AND created_at < ${until}` : Prisma.empty;
     const [row] = await this.prisma.$queryRaw<Array<{ visitors: number; pageviews: number }>>`
       SELECT count(DISTINCT visitor)::int AS visitors,
              (count(*) FILTER (WHERE name = 'pageview'))::int AS pageviews
       FROM cloud_analytics_events
-      WHERE project_id = ${projectId}::uuid AND created_at >= ${since}`;
+      WHERE project_id = ${projectId}::uuid AND created_at >= ${since} ${upTo}`;
     return row ?? { visitors: 0, pageviews: 0 };
   }
 
@@ -172,5 +204,33 @@ export class CloudAnalyticsRepository {
       FROM cloud_analytics_events
       WHERE project_id = ${projectId}::uuid AND created_at >= ${since} AND name <> 'pageview'
       GROUP BY 1 ORDER BY 3 DESC, 2 DESC, 1 LIMIT 10`;
+  }
+
+  /**
+   * Page views and custom events per Madrid day (`YYYY-MM-DD`) or hour (`YYYY-MM-DD HH:00`), at
+   * most `limit` rows, oldest first.
+   */
+  async exportRows(
+    projectId: string,
+    since: Date,
+    unit: 'hour' | 'day',
+    limit: number,
+  ): Promise<ExportRow[]> {
+    const format = unit === 'hour' ? 'YYYY-MM-DD HH24:00' : 'YYYY-MM-DD';
+    const rows = await this.prisma.$queryRaw<
+      Array<{ date: string; kind: 'page' | 'event'; name: string; visitors: bigint; count: bigint }>
+    >`
+      SELECT to_char(created_at AT TIME ZONE 'Europe/Madrid', ${format}) AS date,
+             CASE WHEN name = 'pageview' THEN 'page' ELSE 'event' END AS kind,
+             CASE WHEN name = 'pageview' THEN path ELSE name END AS name,
+             count(DISTINCT visitor) AS visitors, count(*) AS count
+      FROM cloud_analytics_events
+      WHERE project_id = ${projectId}::uuid AND created_at >= ${since}
+      GROUP BY 1, 2, 3 ORDER BY 1, 2, 5 DESC, 3 LIMIT ${limit}::int`;
+    return rows.map((row) => ({
+      ...row,
+      visitors: Number(row.visitors),
+      count: Number(row.count),
+    }));
   }
 }
