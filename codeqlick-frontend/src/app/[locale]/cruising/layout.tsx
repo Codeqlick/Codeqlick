@@ -9,6 +9,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link, WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { logoutAction } from '@/lib/auth/actions';
+import { getCruisingStatus } from '@/lib/api/cruising';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
@@ -60,6 +61,15 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cruising' });
   const user = await getCurrentUser();
+  // Messages and the profile are for members who have entered (and aren't suspended).
+  let entered = false;
+  if (user) {
+    try {
+      entered = (await getCruisingStatus()).allowed;
+    } catch {
+      // The frame still works when Cruising's state can't be read.
+    }
+  }
 
   const webapp = (await requestWebapp()) === 'cruising' ? 'cruising' : null;
 
@@ -87,6 +97,16 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
                 <Link href="/cruising/my-spots" className={vc.headerLink}>
                   {t('nav.mySpots')}
                 </Link>
+              ) : null}
+              {entered ? (
+                <>
+                  <Link href="/cruising/messages" className={vc.headerLink}>
+                    {t('nav.messages')}
+                  </Link>
+                  <Link href="/cruising/me" className={vc.headerLink}>
+                    {t('nav.profile')}
+                  </Link>
+                </>
               ) : null}
               <Link href="/cruising/rules" className={vc.headerLink}>
                 {t('nav.rules')}
