@@ -47,12 +47,12 @@ describe('Cruising social (e2e)', () => {
     await prisma.cruisingProfile.create({
       data: { userId: who.id, birthYear: 1990, termsVersion: version, acceptedAt: new Date() },
     });
+    // Set straight in the database: the profile route is tested on its own below.
     if (withNickname) {
-      const res = await request(server())
-        .patch('/v1/cruising/profile')
-        .set(who.auth)
-        .send({ nickname: who.nick });
-      expect(res.status).toBe(200);
+      await prisma.cruisingProfile.update({
+        where: { userId: who.id },
+        data: { nickname: who.nick },
+      });
     }
     return who;
   }
