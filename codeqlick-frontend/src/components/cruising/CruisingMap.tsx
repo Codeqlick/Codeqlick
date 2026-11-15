@@ -7,9 +7,7 @@ import styles from './Cruising.module.css';
 
 function MapLoading() {
   const t = useTranslations('Cruising.map');
-  return (
-    <output className={styles.mapStatus}>{t('loading')}</output>
-  );
+  return <output className={styles.mapStatus}>{t('loading')}</output>;
 }
 
 // Leaflet reads `window`: the map is loaded in the browser only, and only on this page.

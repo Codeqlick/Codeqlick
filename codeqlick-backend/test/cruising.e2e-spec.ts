@@ -454,7 +454,7 @@ describe('Cruising (e2e)', () => {
 
   it('keeps one review per member, recomputes the rating and filters contact details', async () => {
     const spot = await liveSpot('Reviewed', 5, ana);
-    const review = (who: Person, body: unknown) =>
+    const review = (who: Person, body: object) =>
       request(server()).put(`/v1/cruising/spots/${spot.id}/review`).set(who.auth).send(body);
     const rating = async () => {
       const res = await request(server()).get(`/v1/cruising/spots/${spot.slug}`).expect(200);
