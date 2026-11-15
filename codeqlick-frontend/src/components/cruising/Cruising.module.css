@@ -1,0 +1,358 @@
+/* Cruising: the map, spot pages, reviews and lists. Brand tokens only (architecture 7). */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.muted {
+  color: var(--color-slate);
+  font-size: 0.95rem;
+}
+
+.prewrap {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.section {
+  margin-top: var(--space-12);
+}
+
+.subTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.15rem;
+  margin: 0 0 var(--space-2);
+}
+
+/* The map */
+
+.mapWrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.mapControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-4);
+}
+
+.mapFilter {
+  display: grid;
+  gap: var(--space-1);
+  font-size: 0.9rem;
+}
+
+.mapFilter label {
+  font-weight: 600;
+}
+
+.select {
+  min-height: 2.5rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.select:focus-visible,
+.mapButton:focus-visible,
+.marker:focus-visible,
+.disclosure summary:focus-visible,
+.inView summary:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.mapButton {
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--color-fuchsia);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-fuchsia-dark);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mapButton:hover:not(:disabled) {
+  background: var(--color-blush);
+}
+
+.mapButton:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.mapStatus {
+  display: block;
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.9rem;
+}
+
+.mapNotice {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.mapHint {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.875rem;
+}
+
+.map,
+.miniMap {
+  /* Leaflet's panes use z-index up to 1000: keep them under the header's menus. */
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  width: 100%;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
+}
+
+.map {
+  height: min(70dvh, 40rem);
+  min-height: 22rem;
+}
+
+.miniMap {
+  height: 16rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--color-slate);
+}
+
+.inView summary,
+.disclosure summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.inView ul {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Markers: a round badge in the type's colour with a letter, so colour isn't the only cue. */
+
+.marker,
+.legendMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--color-white);
+  box-shadow: var(--shadow-md);
+  color: var(--color-white);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-slate);
+}
+
+.legendMark {
+  width: 1.5rem;
+  height: 1.5rem;
+  vertical-align: middle;
+}
+
+.markerBEACH {
+  background: var(--color-info);
+}
+
+.markerPARK {
+  background: var(--color-success);
+}
+
+.markerFOREST {
+  background: var(--color-ink);
+}
+
+.markerREST_AREA {
+  background: var(--color-warning);
+}
+
+.markerSAUNA {
+  background: var(--color-fuchsia);
+}
+
+.markerBAR_CLUB {
+  background: var(--color-fuchsia-dark);
+}
+
+.markerCINEMA {
+  background: var(--color-danger);
+}
+
+.markerOTHER {
+  background: var(--color-slate);
+}
+
+.popup {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 10rem;
+  color: var(--color-ink);
+  font-family: var(--font-family-body);
+}
+
+.popup p {
+  margin: 0;
+}
+
+.popupLink {
+  color: var(--color-fuchsia-dark);
+  font-weight: 600;
+}
+
+/* A spot's page and the lists */
+
+.spotMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-4);
+  color: var(--color-slate);
+}
+
+.typeTag {
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.spotLayout {
+  display: grid;
+  gap: var(--space-8);
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  align-items: start;
+}
+
+.spotList,
+.countries,
+.cities {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spotList,
+.countries {
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.cities {
+  gap: var(--space-2);
+}
+
+.spotCard,
+.countryCard {
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Reviews */
+
+.reviewForm {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 36rem;
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.reviews {
+  display: grid;
+  gap: var(--space-4);
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review {
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.reviewHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+}
+
+.stars {
+  color: var(--color-fuchsia-dark);
+  letter-spacing: 0.1em;
+}
+
+.reviewText {
+  margin: 0 0 var(--space-3);
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.disclosure {
+  margin-top: var(--space-2);
+}
+
+.disclosure > form {
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .map {
+    height: 60dvh;
+  }
+}

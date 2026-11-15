@@ -163,6 +163,7 @@ export const RESERVED_USERNAMES = new Set([
   'contacto',
   'videochat',
   'swipe',
+  'cruising',
   'meetings',
   'citas',
   'portal',

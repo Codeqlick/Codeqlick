@@ -28,13 +28,19 @@ const appSockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL]
 /** Cloudflare Turnstile on sign-in and sign-up (architecture 4.3): its script, frame and checks. */
 const TURNSTILE = 'https://challenges.cloudflare.com';
 
-/** `extra` adds third-party hosts to scripts, frames and connections (the video chat's ads). */
-const policy = (extra: string[] = []) =>
+/** OpenStreetMap's tile server: Cruising's map pictures (architecture 4.15). */
+const OSM_TILES = 'https://tile.openstreetmap.org';
+
+/**
+ * `extra` adds third-party hosts to scripts, frames and connections (the video chat's ads);
+ * `images` replaces the images' sources (Cruising's host takes its own and the map tiles only).
+ */
+const policy = (extra: string[] = [], images = "'self' data: blob: https:") =>
   [
     "default-src 'self'",
     ['script-src', "'self'", "'unsafe-inline'", TURNSTILE, ...extra].join(' '),
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https:",
+    `img-src ${images}`,
     "font-src 'self'",
     ['connect-src', "'self'", ...appSockets, TURNSTILE, ...extra].join(' '),
     ['frame-src', "'self'", TURNSTILE, ...extra].join(' '),
@@ -47,9 +53,13 @@ const policy = (extra: string[] = []) =>
 const contentSecurityPolicy = policy();
 /** The video chat's and Swipe's hosts also load ExoClick's ad zones (4.7, 4.10); no other host does. */
 const adsSecurityPolicy = policy(EXOCLICK_HOSTS);
+/** Cruising's host: images from itself and the map's tiles, nothing else (no Markdown content). */
+const cruisingSecurityPolicy = policy([], `'self' data: blob: ${OSM_TILES}`);
 
 /** Hosts of the web apps that make calls: videochat.codeqlick.com, meetings.localhost… (6.3). */
 const CALL_HOSTS = '(videochat|meetings)\\..+';
+/** Cruising's host (cruising.codeqlick.com, cruising.localhost): the only one that may locate. */
+const CRUISING_HOST = 'cruising\\..+';
 
 const productionHeaders =
   process.env.NODE_ENV === 'production'
@@ -93,7 +103,10 @@ const nextConfig: NextConfig = {
         // apps that make calls either: they get the same headers below, with the camera, the
         // microphone and screen sharing allowed.
         source: '/:path((?!site-draft/).*)',
-        missing: [{ type: 'host', value: CALL_HOSTS }],
+        missing: [
+          { type: 'host', value: CALL_HOSTS },
+          { type: 'host', value: CRUISING_HOST },
+        ],
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
@@ -116,6 +129,24 @@ const nextConfig: NextConfig = {
             value: 'camera=(self), microphone=(self), display-capture=(self), geolocation=()',
           },
           ...productionHeaders,
+        ],
+      },
+      {
+        // Cruising's map centres on the device when asked: only this host allows geolocation, and
+        // only for itself (the position never leaves the browser).
+        source: '/:path((?!site-draft/).*)',
+        has: [{ type: 'host', value: CRUISING_HOST }],
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+          ...(process.env.NODE_ENV === 'production'
+            ? [
+                { key: 'Content-Security-Policy', value: cruisingSecurityPolicy },
+                { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+              ]
+            : []),
         ],
       },
       ...(process.env.NODE_ENV === 'production'

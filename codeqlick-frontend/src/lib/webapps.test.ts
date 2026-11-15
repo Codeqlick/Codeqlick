@@ -20,6 +20,7 @@ describe('web apps on subdomains', () => {
     expect(webappForHost('videochat.localhost:3000')).toBe('videochat');
     expect(webappForHost('meetings.codeqlick.com')).toBe('meetings');
     expect(webappForHost('swipe.codeqlick.com')).toBe('swipe');
+    expect(webappForHost('cruising.codeqlick.com')).toBe('cruising');
     expect(webappForHost('codeqlick.com')).toBeNull();
     expect(webappForHost('www.codeqlick.com')).toBeNull();
     expect(webappForHost(undefined)).toBeNull();
@@ -126,6 +127,7 @@ describe('the apps menu', () => {
       { app: 'citas', adult: false },
       { app: 'cloud', adult: false },
       { app: 'swipe', adult: true },
+      { app: 'cruising', adult: true },
     ]);
   });
 });

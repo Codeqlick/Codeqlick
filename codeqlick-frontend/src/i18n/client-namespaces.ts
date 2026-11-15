@@ -20,6 +20,7 @@ export const APP_NAMESPACES = {
   admin: ['SiteNews'],
   citas: ['Citas'],
   cloud: ['Cloud'],
+  cruising: ['Cruising'],
   meetings: ['Meetings'],
   portal: ['SiteEditor', 'SiteNews'],
   swipe: ['Swipe', 'Videochat'],
