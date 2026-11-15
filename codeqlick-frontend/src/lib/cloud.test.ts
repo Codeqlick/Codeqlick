@@ -479,12 +479,13 @@ describe('submissionsView', () => {
   });
 });
 
-<<<<<<< HEAD
 describe('protection bypass for automation', () => {
   it('builds the header line to send with the token', () => {
     expect(BYPASS_HEADER).toBe('X-Codeqlick-Bypass');
     expect(bypassHeaderLine('cqb_abc123')).toBe('X-Codeqlick-Bypass: cqb_abc123');
-=======
+  });
+});
+
 describe('parseSlowMs', () => {
   it('reads an empty field as off', () => {
     expect(parseSlowMs('')).toEqual({ ok: true, value: null });
@@ -533,6 +534,5 @@ describe('isGitBranchName', () => {
     ]) {
       expect(isGitBranchName(name), name).toBe(false);
     }
->>>>>>> origin/main
   });
 });

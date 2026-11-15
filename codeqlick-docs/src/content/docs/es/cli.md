@@ -105,7 +105,6 @@ Consulta [compilaciones desde Git](/es/builds-from-git/).
 
 Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-value-store/).
 
-<<<<<<< HEAD
 ## Protección con contraseña
 
 | Comando                                   | Qué hace                                                                                   |
@@ -116,7 +115,7 @@ Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-va
 | `protect bypass`                          | Crea o sustituye el token de acceso automático. Solo el token sale por la salida estándar. |
 | `protect bypass --revoke`                 | Elimina el token de acceso automático.                                                     |
 | `--json`                                  | Imprime la respuesta de la API (`{ token, prefix, createdAt }`, o `{}` con `--revoke`).    |
-=======
+
 ## Monitores
 
 | Comando                      | Qué hace                                                                      |
@@ -128,7 +127,6 @@ Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-va
 | `monitors --json`            | Imprime la respuesta de la API.                                               |
 
 Consulta [monitores, latidos y páginas de estado](/es/monitors-and-status-pages/).
->>>>>>> origin/main
 
 ## Variables de entorno
 

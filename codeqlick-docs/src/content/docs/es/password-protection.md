@@ -110,7 +110,10 @@ export const test = base.extend({
   context: async ({ context }, use) => {
     await context.route('https://web--a1b2c3d4.codeqlick.app/**', (route) =>
       route.continue({
-        headers: { ...route.request().headers(), 'x-codeqlick-bypass': process.env.CQ_BYPASS ?? '' },
+        headers: {
+          ...route.request().headers(),
+          'x-codeqlick-bypass': process.env.CQ_BYPASS ?? '',
+        },
       }),
     );
     await use(context);

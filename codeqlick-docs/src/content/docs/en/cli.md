@@ -105,7 +105,6 @@ See [builds from Git](/en/builds-from-git/).
 
 See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-store/).
 
-<<<<<<< HEAD
 ## Password protection
 
 | Command                                   | What it does                                                                      |
@@ -116,7 +115,7 @@ See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-stor
 | `protect bypass`                          | Create or replace the bypass token. Only the token goes to standard output.       |
 | `protect bypass --revoke`                 | Remove the bypass token.                                                          |
 | `--json`                                  | Print the API's answer (`{ token, prefix, createdAt }`, or `{}` with `--revoke`). |
-=======
+
 ## Monitors
 
 | Command                      | What it does                                                 |
@@ -128,7 +127,6 @@ See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-stor
 | `monitors --json`            | Print the API's answer.                                      |
 
 See [monitors, heartbeats and status pages](/en/monitors-and-status-pages/).
->>>>>>> origin/main
 
 ## Environment variables
 
