@@ -4850,7 +4850,9 @@
       "places": "Places",
       "propose": "Propose a spot",
       "mySpots": "My spots",
-      "rules": "Rules"
+      "rules": "Rules",
+      "messages": "Messages",
+      "profile": "Profile"
     },
     "legal": {
       "terms": "Terms of use",
@@ -5101,13 +5103,15 @@
         "PENDING": "In review",
         "LIVE": "Published",
         "REJECTED": "Rejected",
-        "HIDDEN": "Hidden"
+        "HIDDEN": "Hidden",
+        "REMOVED": "Removed"
       },
       "explain": {
         "PENDING": "The team hasn't reviewed it yet. You can still edit or delete it.",
         "LIVE": "It is on the map. To correct it, open its page and suggest a correction.",
         "REJECTED": "It was not published. You can edit it and send it again, or delete it.",
-        "HIDDEN": "The team is checking it after a report. It is not visible for now."
+        "HIDDEN": "The team is checking it after a report. It is not visible for now.",
+        "REMOVED": "The team removed it after a report or a removal request. The removal is final: it can't be edited or sent again."
       },
       "proposedOn": "Proposed on {date}",
       "rejectReason": "Reason",
@@ -5124,8 +5128,8 @@
       "editLeadRejected": "When you save, the spot goes back to review.",
       "back": "Back to my spots",
       "alertsTitle": "Emails",
-      "alertsLabel": "Email me when one of my spots is published",
-      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot.",
+      "alertsLabel": "Email me when a spot of mine is published or a message waits unread",
+      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a nickname or a message.",
       "alertsSave": "Save",
       "alertsSaving": "Saving…",
       "alertsSaved": "Saved.",
@@ -5156,11 +5160,11 @@
     },
     "takedown": {
       "title": "Ask us to remove a spot",
-      "lead": "Anyone, with or without an account, can ask us to remove a spot (EU Digital Services Act). If you give the link, we hide the spot at once and answer within 24 hours.",
+      "lead": "Anyone, with or without an account, can ask us to remove a spot (EU Digital Services Act). If it involves a minor or something illegal and you give the link, we hide the spot at once. We answer every request within 24 hours.",
       "email": "Your email",
       "emailHint": "We reply here. We don't use it for anything else.",
       "spotLink": "Link to the spot",
-      "spotLinkHint": "The address of its page, or the end of it (for example el-parque-norte). We hide it at once if we find it.",
+      "spotLinkHint": "The address of its page, or the end of it (for example el-parque-norte). For a minor or something illegal, we hide it at once if we find it.",
       "optional": "optional",
       "reason": "Reason",
       "reasonPlaceholder": "Choose a reason",
@@ -5174,6 +5178,137 @@
       "detailsShort": "Tell us a little more (at least 10 characters).",
       "error": "We couldn't send it. Try again.",
       "sent": "Thanks. We got your request and we'll answer by email within 24 hours."
+    },
+    "lookingFor": {
+      "CHAT": "Chat",
+      "FRIENDS": "Friends",
+      "DATES": "Dates",
+      "FUN": "Fun",
+      "GROUP": "Group"
+    },
+    "me": {
+      "title": "My profile",
+      "lead": "What other members see, your check-in, your emails and the people you blocked.",
+      "leadNew": "Choose a nickname to check in at spots and to message other members. Nobody sees your name or email.",
+      "profileTitle": "Profile",
+      "nickname": "Nickname",
+      "nicknameHint": "3 to 20 characters: lower-case letters, numbers and underscores. You choose it once and it can't be removed.",
+      "nicknameFixed": "Your nickname is fixed. It can't be changed or removed.",
+      "bio": "About you",
+      "bioHint": "Up to 160 characters. Text only: no photos, phone numbers, emails or links.",
+      "optional": "optional",
+      "country": "Country",
+      "countryNone": "Not shown",
+      "lookingFor": "Looking for",
+      "showAge": "Show my age",
+      "showAgeHint": "Members who open your profile see your age. Your date of birth is never stored or shown.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "viewProfile": "See how others see my profile",
+      "checkInTitle": "My check-in",
+      "checkInActive": "You are checked in until {time} at",
+      "checkInAnonymous": "anonymous",
+      "checkInNone": "You are not checked in anywhere. Open a spot and tap \"I'm here\".",
+      "endCheckIn": "End my check-in",
+      "ending": "Ending…",
+      "alertsTitle": "Emails",
+      "alertsLabel": "Email me when a spot of mine is published or a message waits unread",
+      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a nickname or a message.",
+      "blocksTitle": "Blocked members",
+      "blocksLead": "Blocked members and you can't see each other anywhere. Unblock to lift it.",
+      "blocksEmpty": "You haven't blocked anyone.",
+      "blockedOn": "blocked on {date}",
+      "unblock": "Unblock",
+      "unblocking": "Unblocking…",
+      "unblocked": "Unblocked.",
+      "blockedDone": "Blocked. You can't see each other any more and the conversation was deleted.",
+      "nicknameInvalid": "Use 3 to 20 characters: lower-case letters, numbers and underscores.",
+      "nicknameTaken": "That nickname is taken. Try another.",
+      "nicknameRefused": "That nickname isn't allowed. Try another.",
+      "bioLong": "Use 160 characters or fewer.",
+      "countryInvalid": "Choose a country from the list.",
+      "notAllowed": "You need to enter Cruising and not be suspended to change your profile.",
+      "error": "We couldn't save it. Try again."
+    },
+    "presence": {
+      "title": "Here now",
+      "count": "{count, plural, =0 {Nobody is checked in here now} one {# person here now} other {# people here now}}",
+      "membersLabel": "Members checked in",
+      "hours": "{count, plural, one {# hour} other {# hours}}",
+      "duration": "For how long?",
+      "anonymous": "Anonymous",
+      "anonymousHint": "You count in the total but your nickname isn't listed.",
+      "anonymousNote": "(anonymous)",
+      "checkIn": "I'm here",
+      "renew": "Renew my check-in",
+      "checkingIn": "Checking in…",
+      "youAreHere": "You are checked in here until {time}.",
+      "youAreElsewhere": "You are checked in at {name} until {time}. A new check-in ends it.",
+      "end": "End my check-in",
+      "ending": "Ending…",
+      "ended": "Your check-in ended.",
+      "checkedIn": "You are checked in.",
+      "privacy": "A check-in is only this spot and a time. Your position is never asked for or stored.",
+      "needNickname": "Choose a nickname to check in and to see who is here.",
+      "chooseNickname": "Choose a nickname",
+      "error": "We couldn't do it. Try again.",
+      "gone": "This spot isn't available any more.",
+      "tooManyToday": "You've reached today's limit of check-ins. Try again tomorrow.",
+      "notAllowed": "You need to enter Cruising and not be suspended to check in."
+    },
+    "members": {
+      "age": "Age",
+      "ageValue": "{age} years old",
+      "country": "Country",
+      "memberSince": "Member since",
+      "memberSinceValue": "Member since {date}",
+      "lookingFor": "Looking for",
+      "thisIsYou": "This is your profile.",
+      "editProfile": "Edit my profile",
+      "message": "Send a message",
+      "opening": "Opening…",
+      "block": "Block",
+      "blockLead": "Blocking {nickname} hides you from each other everywhere and deletes your conversation. You can unblock from your profile.",
+      "blockConfirm": "Block this member",
+      "blocking": "Blocking…",
+      "error": "Something went wrong. Try again.",
+      "notFound": "This member isn't available.",
+      "tooManyConversations": "You've reached today's limit of new conversations. Try again tomorrow.",
+      "notAllowed": "You need to enter Cruising and not be suspended to send messages."
+    },
+    "messages": {
+      "title": "Messages",
+      "lead": "Your conversations with other members, the latest first.",
+      "empty": "No conversations yet. Open a member's profile to say hi.",
+      "unread": "Unread",
+      "you": "You",
+      "noMessages": "No messages yet.",
+      "left": "You left the conversation. It was deleted for both of you.",
+      "blockedDone": "Blocked. The conversation was deleted.",
+      "error": "Something went wrong. Try again."
+    },
+    "chat": {
+      "back": "All messages",
+      "listLabel": "Conversation with {nickname}",
+      "empty": "Say hi to {nickname}.",
+      "label": "Message",
+      "placeholder": "Write a message…",
+      "send": "Send",
+      "sendError": "Not sent. Try again.",
+      "rateLimited": "You are sending too fast. Wait a moment.",
+      "contactBlocked": "Phone numbers, emails, links and other apps can't be shared yet. Keep talking here: each of you has to send at least {count} messages.",
+      "gone": "This conversation has ended.",
+      "safety": "Text only. Never send money or share details you want to keep private.",
+      "guard": "For your safety, phone numbers, emails, links and other apps can't be shared until each of you has sent {count} messages.",
+      "leave": "Leave conversation",
+      "leaveLead": "Leaving deletes the conversation with {nickname} for both of you.",
+      "leaveConfirm": "Leave and delete it",
+      "leaving": "Leaving…",
+      "block": "Block",
+      "blockLead": "Blocking {nickname} deletes the conversation and hides you from each other everywhere.",
+      "blockConfirm": "Block this member",
+      "blocking": "Blocking…"
     }
   },
   "AdminCruising": {
@@ -5189,7 +5324,9 @@
       "liveSpots": "Live spots",
       "members": "Members",
       "reviews": "Reviews",
-      "suspended": "Suspended"
+      "suspended": "Suspended",
+      "activeCheckIns": "Check-ins now",
+      "conversations": "Conversations"
     },
     "tabs": {
       "queue": "To review",
@@ -5202,13 +5339,14 @@
       "title": "Spots to review",
       "lead": "Oldest first. The person is emailed when you publish or reject, without the spot's name.",
       "reason": "Reason if you reject it",
-      "reasonHint": "Required to reject (5 to 500 characters). The person gets it by email."
+      "reasonHint": "Required to reject (5 to 500 characters). The person gets it by email: don't name the spot, the place or anyone in it."
     },
     "status": {
       "PENDING": "in review",
       "LIVE": "live",
       "REJECTED": "rejected",
-      "HIDDEN": "hidden"
+      "HIDDEN": "hidden",
+      "REMOVED": "removed"
     },
     "noProposer": "No proposer (account deleted)",
     "sent": "Sent {date}",
@@ -5243,7 +5381,7 @@
     "reports": {
       "remove": "Remove it (the spot is rejected, the review is deleted)",
       "reason": "Reason (sent to the proposer if you remove a spot)",
-      "reasonHint": "Optional, up to 500 characters.",
+      "reasonHint": "Optional, up to 500 characters. It goes in the email to the person: don't name the spot, the place or anyone in it.",
       "suspend": "Suspend the person",
       "act": "Apply",
       "dismiss": "Dismiss (what was hidden goes live again)"
@@ -5254,16 +5392,17 @@
       "unmatched": "No spot matches (link: {link}). Find it from the description.",
       "response": "Answer (sent by email)",
       "remove": "Remove the spot",
-      "close": "Close without removing (it goes live again)",
-      "defaultRemoved": "We have removed the spot. Thank you for telling us.",
-      "defaultClosed": "We reviewed your request and decided to keep the spot. If you disagree, reply to this email."
+      "close": "Close without removing (it goes live again)"
     },
     "live": {
       "filter": "Status",
       "search": "Search by name or city",
       "searchButton": "Search"
     },
-    "reasonNeeded": "Write the reason (at least 5 characters)."
+    "reasonNeeded": "Write the reason (at least 5 characters).",
+    "reportedProfile": "Profile",
+    "transcript": "Saved chat",
+    "noTranscript": "No saved messages."
   },
   "MenuKit": {
     "title": "Your menu QR",

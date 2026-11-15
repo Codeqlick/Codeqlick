@@ -29,6 +29,7 @@ const TONES: Record<CruisingSpotStatus, BadgeTone> = {
   LIVE: 'success',
   REJECTED: 'danger',
   HIDDEN: 'neutral',
+  REMOVED: 'danger',
 };
 
 /** The spots I proposed: where each stands, why one was rejected, and what I can still change. */
@@ -78,7 +79,7 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
                   <span>{t('proposedOn', { date: formatDate(spot.createdAt, locale) })}</span>
                 </p>
                 <p className={vc.muted}>{t(`explain.${spot.status}`)}</p>
-                {spot.status === 'REJECTED' ? (
+                {spot.status === 'REJECTED' || spot.status === 'REMOVED' ? (
                   <p className={vc.answer}>
                     <strong>{t('rejectReason')}:</strong> {spot.rejectReason ?? t('noReason')}
                   </p>

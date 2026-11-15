@@ -28,6 +28,8 @@ import {
   LIMITS,
   osmLink,
   REPORT_REASONS,
+  reportedNickname,
+  reportTranscript,
   SPOT_TYPES,
   summarizeReportTarget,
   SUSPENSIONS,
@@ -50,14 +52,15 @@ type PageProps = {
 
 const TABS = ['queue', 'reports', 'takedowns', 'live', 'suspended'] as const;
 type Tab = (typeof TABS)[number];
-/** The live tab's filter: what is published, what is hidden, what was rejected. */
-const LIVE_FILTERS = ['LIVE', 'HIDDEN', 'REJECTED'] as const;
+/** The live tab's filter: what is published, hidden, rejected in review, or removed by moderation. */
+const LIVE_FILTERS = ['LIVE', 'HIDDEN', 'REJECTED', 'REMOVED'] as const;
 
 const TONES: Record<CruisingSpotStatus, BadgeTone> = {
   PENDING: 'warning',
   LIVE: 'success',
   REJECTED: 'danger',
   HIDDEN: 'neutral',
+  REMOVED: 'danger',
 };
 
 /** Cruising's moderation: every spot waits here before it goes live. */
@@ -94,6 +97,8 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
     { label: t('stats.members'), value: overview.members },
     { label: t('stats.reviews'), value: overview.reviews },
     { label: t('stats.suspended'), value: overview.suspended },
+    { label: t('stats.activeCheckIns'), value: overview.activeCheckIns ?? 0 },
+    { label: t('stats.conversations'), value: overview.conversations ?? 0 },
   ];
 
   /** One spot's facts, as the team needs them to decide. */
@@ -278,6 +283,10 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
           <h2 className={styles.panelTitle}>{t('tabs.reports')}</h2>
           {(await listAdminCruisingReports('OPEN')).map((report) => {
             const target = summarizeReportTarget(report.target);
+            const profileNickname =
+              report.targetType === 'PROFILE' ? reportedNickname(report.target) : null;
+            const savedChat = reportTranscript(report.transcript);
+            const transcript = savedChat.length > 0 ? savedChat : reportTranscript(report.target);
             return (
               <article key={report.id} className={admin.item}>
                 <div className={admin.body}>
@@ -303,6 +312,32 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                       {target.reviewRating ? `${'★'.repeat(target.reviewRating)} ` : ''}
                       {target.reviewText}
                     </blockquote>
+                  ) : null}
+                  {profileNickname ? (
+                    <p>
+                      {t('reportedProfile')}: <strong>{profileNickname}</strong>
+                    </p>
+                  ) : null}
+                  {report.targetType === 'CONVERSATION' ? (
+                    transcript.length > 0 ? (
+                      <ol className={admin.transcript} aria-label={t('transcript')}>
+                        {transcript.map((line) => (
+                          <li key={`${line.at ?? ''}-${line.from}-${line.text}`}>
+                            <strong>
+                              {line.from === 'reporter'
+                                ? t('reporter')
+                                : line.from === 'reported'
+                                  ? t('reported')
+                                  : '—'}
+                              :
+                            </strong>{' '}
+                            {line.text}
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className={styles.muted}>{t('noTranscript')}</p>
+                    )
                   ) : null}
                   {report.details ? <p className={styles.prewrap}>{report.details}</p> : null}
                   {report.reporter ? (

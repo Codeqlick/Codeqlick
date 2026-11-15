@@ -34,6 +34,7 @@ import {
   nextSpotStatus,
   roundCoordinate,
   spotSlugBase,
+  takedownHidesAtOnce,
   toTranscript,
   uniqueSlug,
   type Bbox,
@@ -547,7 +548,11 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     spotId: string,
     patch: SpotPatch,
     now = new Date(),
-  ): Promise<{ id: string; slug: string; status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN' }> {
+  ): Promise<{
+    id: string;
+    slug: string;
+    status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN' | 'REMOVED';
+  }> {
     await this.allowedProfile(userId, now);
     const spot = await this.mySpot(userId, spotId);
     if (!memberCanChange(spot.status)) {
@@ -753,7 +758,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       locale: toDbLocale(input.locale),
       createdAt: now,
     });
-    if (spot?.status === 'LIVE') await this.repository.updateSpot(spot.id, { status: 'HIDDEN' });
+    // Only a minor or something illegal hides the spot at once; anything else waits for the team.
+    if (spot?.status === 'LIVE' && takedownHidesAtOnce(input.reason)) {
+      await this.repository.updateSpot(spot.id, { status: 'HIDDEN' });
+    }
     this.alert('takedown', request.id);
     this.sendMail(
       cruisingTakedownEmail(
@@ -774,7 +782,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     return this.repository.overview(now);
   }
 
-  async adminSpots(status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN', q?: string) {
+  async adminSpots(status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN' | 'REMOVED', q?: string) {
     const spots = await this.repository.adminSpots(status, q || undefined);
     return spots.map((spot) => ({
       id: spot.id,
@@ -862,7 +870,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     spot: {
       id: string;
       slug: string;
-      status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN';
+      status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN' | 'REMOVED';
       createdById: string | null;
     },
     reason: string,
@@ -881,6 +889,27 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       details: { reason },
     });
     if (spot.createdById) await this.notifyMember(spot.createdById, 'spot-rejected', reason);
+  }
+
+  /** Removed by moderation after a report: final, the proposer sees it removed and can't resend it. */
+  private async removeLoaded(
+    actor: AuthUser,
+    spot: { id: string; slug: string; createdById: string | null },
+    reason: string,
+    now: Date,
+  ): Promise<void> {
+    await this.repository.updateSpot(spot.id, {
+      status: 'REMOVED',
+      rejectReason: reason,
+      reviewedAt: now,
+    });
+    await this.activity.record(actor, {
+      action: 'cruising.spot_removed',
+      targetId: spot.id,
+      targetLabel: spot.slug,
+      details: { reason },
+    });
+    if (spot.createdById) await this.notifyMember(spot.createdById, 'spot-removed', reason);
   }
 
   // ---- Admin: reports ----------------------------------------------------------------------------
@@ -980,8 +1009,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     }
     if (input.remove) {
       if (report.targetType === 'SPOT' && report.spot) {
-        if (nextSpotStatus(report.spot.status, 'reject')) {
-          await this.rejectLoaded(
+        if (nextSpotStatus(report.spot.status, 'remove')) {
+          await this.removeLoaded(
             actor,
             report.spot,
             input.reason || `Report: ${report.reason}`,
@@ -1028,7 +1057,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     }));
   }
 
-  /** Remove (the spot becomes REJECTED) or close (the spot is restored); the person is emailed. */
+  /** Remove (the spot becomes REMOVED, final) or close (the spot is restored); the person is emailed. */
   async decideTakedown(
     actor: AuthUser,
     takedownId: string,
@@ -1040,9 +1069,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       throw new NotFoundException('No open removal request');
     }
     const spot = request.spot;
-    if (input.remove && spot && spot.status !== 'REJECTED') {
+    if (input.remove && spot && spot.status !== 'REMOVED') {
       await this.repository.updateSpot(spot.id, {
-        status: 'REJECTED',
+        status: 'REMOVED',
         rejectReason: 'Removal request',
         reviewedAt: now,
       });

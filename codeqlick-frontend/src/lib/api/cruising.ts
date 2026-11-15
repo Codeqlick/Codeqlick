@@ -2,6 +2,8 @@ import 'server-only';
 import {
   formatBbox,
   type Bbox,
+  type CruisingLookingFor,
+  type CruisingMessage,
   type CruisingReportReason,
   type CruisingSpotStatus,
   type CruisingSpotType,
@@ -60,7 +62,7 @@ export type CruisingStatus = {
     nickname: string;
     bio: string;
     country: string | null;
-    lookingFor: ('CHAT' | 'FRIENDS' | 'DATES' | 'FUN' | 'GROUP')[];
+    lookingFor: CruisingLookingFor[];
     showAge: boolean;
   } | null;
 };
@@ -188,7 +190,15 @@ export function onboardCruising(input: {
 }
 
 /** My Cruising settings (PATCH /cruising/profile): email alerts now, the profile in phase 2. */
-export function updateCruisingProfile(input: { emailAlerts?: boolean }) {
+export function updateCruisingProfile(input: {
+  emailAlerts?: boolean;
+  /** Phase 2. Once set it can't be removed; `409` when taken, `400` when not allowed. */
+  nickname?: string;
+  bio?: string;
+  country?: string | null;
+  lookingFor?: CruisingLookingFor[];
+  showAge?: boolean;
+}) {
   return apiFetch<CruisingStatus>('/cruising/profile', {
     method: 'PATCH',
     body: input,
@@ -246,14 +256,169 @@ export function deleteCruisingReview(spotId: string) {
   });
 }
 
-/** Exactly one target: a spot or a review. */
+/** Exactly one target: a spot, a review, a profile (`nickname`) or a conversation. */
 export function reportCruising(input: {
   spotId?: string;
   reviewId?: string;
+  nickname?: string;
+  conversationId?: string;
   reason: CruisingReportReason;
   details?: string;
 }) {
   return apiFetch<void>('/cruising/reports', { method: 'POST', body: input, auth: 'required' });
+}
+
+// ---- Phase 2: members, check-ins, messages and blocks ------------------------------------------
+
+export type CruisingMember = {
+  nickname: string;
+  bio: string;
+  country: string | null;
+  lookingFor: CruisingLookingFor[];
+  /** null unless the member shows it. */
+  age: number | null;
+  memberSince: string;
+};
+
+export type CruisingCheckIn = {
+  spot: { id: string; slug: string; name: string };
+  anonymous: boolean;
+  expiresAt: string;
+};
+
+export type CruisingPresence = {
+  /** Includes anonymous check-ins and mine. */
+  count: number;
+  members: { nickname: string; since: string }[];
+};
+
+export type CruisingConversation = {
+  id: string;
+  partner: { nickname: string };
+  lastMessage: { text: string; mine: boolean; at: string } | null;
+  /** A flag or a count of unread messages. */
+  unread: boolean | number;
+  createdAt: string;
+};
+
+export type { CruisingMessage };
+
+/** A member's profile, or null when unknown, blocked either way or suspended (404). */
+export async function getCruisingMember(nickname: string): Promise<CruisingMember | null> {
+  try {
+    return await apiFetch<CruisingMember>(`/cruising/members/${encodeURIComponent(nickname)}`, {
+      auth: 'required',
+    });
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** My active check-in, or null. */
+export async function getMyCruisingCheckIn(): Promise<CruisingCheckIn | null> {
+  return (
+    (await apiFetch<CruisingCheckIn | null>('/cruising/check-in', { auth: 'required' })) ?? null
+  );
+}
+
+export function createCruisingCheckIn(input: {
+  spotId: string;
+  hours: 1 | 2 | 3;
+  anonymous: boolean;
+}) {
+  return apiFetch<CruisingCheckIn>('/cruising/check-ins', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+  });
+}
+
+export function endCruisingCheckIn() {
+  return apiFetch<void>('/cruising/check-in', { method: 'DELETE', auth: 'required' });
+}
+
+/** Who is at a spot now; only for a member who has entered. */
+export function getCruisingPresence(spotId: string) {
+  return apiFetch<CruisingPresence>(`/cruising/spots/${encodeURIComponent(spotId)}/presence`, {
+    auth: 'required',
+  });
+}
+
+export async function listCruisingConversations(): Promise<CruisingConversation[]> {
+  return (
+    await apiFetch<{ items: CruisingConversation[] }>('/cruising/conversations', {
+      auth: 'required',
+    })
+  ).items;
+}
+
+/** Opens the conversation with a member, or returns the existing one. */
+export function openCruisingConversation(nickname: string) {
+  return apiFetch<{ id: string }>('/cruising/conversations', {
+    method: 'POST',
+    body: { nickname },
+    auth: 'required',
+  });
+}
+
+/** The last 100 messages, or those after `after` (an ISO time); marks them read. */
+export async function listCruisingMessages(
+  conversationId: string,
+  after?: string,
+): Promise<CruisingMessage[]> {
+  return (
+    await apiFetch<{ items: CruisingMessage[] }>(
+      `/cruising/conversations/${encodeURIComponent(conversationId)}/messages`,
+      { auth: 'required', query: { after } },
+    )
+  ).items;
+}
+
+export function sendCruisingMessage(conversationId: string, text: string) {
+  return apiFetch<CruisingMessage>(
+    `/cruising/conversations/${encodeURIComponent(conversationId)}/messages`,
+    { method: 'POST', body: { text }, auth: 'required' },
+  );
+}
+
+/** Deletes the conversation for both. */
+export function leaveCruisingConversation(conversationId: string) {
+  return apiFetch<void>(`/cruising/conversations/${encodeURIComponent(conversationId)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+/** Deletes the conversation and blocks the person both ways. */
+export function blockCruisingConversation(conversationId: string) {
+  return apiFetch<void>(`/cruising/conversations/${encodeURIComponent(conversationId)}/block`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
+export async function listCruisingBlocks(): Promise<{ nickname: string; createdAt: string }[]> {
+  return (
+    await apiFetch<{ items: { nickname: string; createdAt: string }[] }>('/cruising/blocks', {
+      auth: 'required',
+    })
+  ).items;
+}
+
+export function blockCruisingMember(nickname: string) {
+  return apiFetch<void>('/cruising/blocks', {
+    method: 'POST',
+    body: { nickname },
+    auth: 'required',
+  });
+}
+
+export function unblockCruisingMember(nickname: string) {
+  return apiFetch<void>(`/cruising/blocks/${encodeURIComponent(nickname)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
 }
 
 // ---- Admin -------------------------------------------------------------------------------------
@@ -268,6 +433,9 @@ export type AdminCruisingOverview = {
   openTakedowns: number;
   reviews: number;
   suspended: number;
+  /** Phase 2. */
+  activeCheckIns?: number;
+  conversations?: number;
 };
 
 export type AdminCruisingSpot = {
@@ -302,6 +470,8 @@ export type AdminCruisingReport = {
   status: 'OPEN' | 'DISMISSED' | 'ACTIONED';
   createdAt: string;
   target?: unknown;
+  /** A conversation report's saved chat, when the API gives it beside `target`. */
+  transcript?: unknown;
   reporter?: (Partial<Person> & { userId?: string; reports?: number }) | null;
   reported?: (Partial<Person> & { userId?: string; reports?: number }) | null;
 };
@@ -416,7 +586,7 @@ export async function listAdminCruisingTakedowns(
   ).items;
 }
 
-export function decideCruisingTakedown(id: string, remove: boolean, response: string) {
+export function decideCruisingTakedown(id: string, remove: boolean, response?: string) {
   return apiFetch<void>(`/admin/cruising/takedowns/${encodeURIComponent(id)}`, {
     method: 'POST',
     body: { remove, response },

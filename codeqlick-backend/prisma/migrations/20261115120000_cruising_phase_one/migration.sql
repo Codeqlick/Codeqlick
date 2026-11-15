@@ -2,7 +2,7 @@
 CREATE TYPE "CruisingSpotType" AS ENUM ('BEACH', 'PARK', 'FOREST', 'REST_AREA', 'SAUNA', 'BAR_CLUB', 'CINEMA', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "CruisingSpotStatus" AS ENUM ('PENDING', 'LIVE', 'REJECTED', 'HIDDEN');
+CREATE TYPE "CruisingSpotStatus" AS ENUM ('PENDING', 'LIVE', 'REJECTED', 'HIDDEN', 'REMOVED');
 
 -- CreateEnum
 CREATE TYPE "CruisingReviewStatus" AS ENUM ('LIVE', 'HIDDEN');

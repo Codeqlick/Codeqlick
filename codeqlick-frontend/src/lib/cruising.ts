@@ -36,8 +36,11 @@ export const REVIEW_REPORT_REASONS = REPORT_REASONS.filter((reason) => reason !=
 export const TAKEDOWN_REASONS = ['MINOR', 'ILLEGAL', 'DANGER', 'OTHER'] as const;
 export type CruisingTakedownReason = (typeof TAKEDOWN_REASONS)[number];
 
-export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN'] as const;
+export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN', 'REMOVED'] as const;
 export type CruisingSpotStatus = (typeof SPOT_STATUSES)[number];
+
+/** Reasons for reporting a person or a conversation: like a review's, a wrong detail is about a place. */
+export const PERSON_REPORT_REASONS = REVIEW_REPORT_REASONS;
 
 export const SUSPENSIONS = ['24h', '7d', '30d', 'permanent'] as const;
 export type CruisingSuspension = (typeof SUSPENSIONS)[number];
@@ -51,7 +54,12 @@ export const LIMITS = {
   review: 1000,
   details: 1000,
   rejectReason: 500,
+  bio: 160,
+  message: 1000,
 } as const;
+
+/** The countries a profile can name: the same fixed list as Swipe's and the spots'. */
+export const CRUISING_COUNTRIES = SWIPE_COUNTRIES;
 
 /** The most spots one map request returns (the API's cap). */
 export const MAX_SPOTS = 500;
@@ -90,6 +98,29 @@ export function formatBbox(box: Bbox): string {
   return [box.minLng, box.minLat, box.maxLng, box.maxLat]
     .map((number) => String(Number(number.toFixed(4))))
     .join(',');
+}
+
+/** The grid the map's requests are snapped to, in degrees (about 28 km of latitude). */
+export const BBOX_GRID = 0.25;
+
+/**
+ * A box grown outwards to the whole cells of a coarse grid. What the map asks the API for then
+ * says nothing about where the view (or a device that "located me") is inside the box: the
+ * device's position never reaches the API, not even as the centre of a request (section 4.15).
+ */
+export function snapBbox(box: Bbox, step = BBOX_GRID): Bbox {
+  const down = (value: number) => Math.floor(value / step) * step;
+  const up = (value: number) => Math.ceil(value / step) * step;
+  const minLng = clamp(down(box.minLng), -180, 180);
+  const minLat = clamp(down(box.minLat), -90, 90);
+  const maxLng = clamp(up(box.maxLng), -180, 180);
+  const maxLat = clamp(up(box.maxLat), -90, 90);
+  return {
+    minLng: maxLng > minLng ? minLng : Math.max(-180, maxLng - step),
+    minLat: maxLat > minLat ? minLat : Math.max(-90, maxLat - step),
+    maxLng: maxLng > minLng ? maxLng : Math.min(180, minLng + step),
+    maxLat: maxLat > minLat ? maxLat : Math.min(90, minLat + step),
+  };
 }
 
 function wrapLongitude(lng: number): number {
@@ -374,13 +405,16 @@ export function toSpotInput(data: Partial<SpotInput>): SpotInput | null {
  * slug itself); null when it is neither.
  */
 export function spotLinkSlug(value: string): string | null {
-  const text = value
-    .trim()
-    .replace(/[?#].*$/, '')
-    .replace(/\/+$/, '');
+  const text = value.trim().toLowerCase();
   if (!text) return null;
-  const last = text.split('/').pop() ?? '';
-  return SLUG.test(last) ? last : null;
+  if (SLUG.test(text)) return text;
+  const segments = text
+    .replace(/[?#].*$/, '')
+    .split('/')
+    .filter(Boolean);
+  const at = segments.lastIndexOf('spots');
+  const slug = at >= 0 ? segments[at + 1] : undefined;
+  return slug && SLUG.test(slug) ? slug : null;
 }
 
 // ---- Admin reports -----------------------------------------------------------------------------
@@ -407,4 +441,135 @@ export function summarizeReportTarget(target: unknown): ReportTargetSummary {
     reviewText: text(review?.text),
     reviewRating: typeof review?.rating === 'number' ? review.rating : null,
   };
+}
+
+// ---- Phase 2: profiles, check-ins and messages ---------------------------------------------------
+
+/** What a member is looking for (any of them, on the profile). */
+export const LOOKING_FOR = ['CHAT', 'FRIENDS', 'DATES', 'FUN', 'GROUP'] as const;
+export type CruisingLookingFor = (typeof LOOKING_FOR)[number];
+
+export function isLookingFor(value: unknown): value is CruisingLookingFor {
+  return LOOKING_FOR.some((item) => item === value);
+}
+
+/** The hours a check-in can last. */
+export const CHECK_IN_HOURS = [1, 2, 3] as const;
+export type CheckInHours = (typeof CHECK_IN_HOURS)[number];
+
+export function parseCheckInHours(value: unknown): CheckInHours | null {
+  const hours = Number(value);
+  return CHECK_IN_HOURS.find((item) => item === hours) ?? null;
+}
+
+/** A nickname: 3 to 20 characters, lower-case letters, digits and underscores. */
+export const NICKNAME = /^[a-z0-9_]{3,20}$/;
+
+/** What is saved of a typed nickname: trimmed and lower-cased (the API lower-cases it too). */
+export function normalizeNickname(value: string | null | undefined): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
+}
+
+export function isNickname(value: string): boolean {
+  return NICKNAME.test(value);
+}
+
+/** Messages each side sends in a conversation before contact details can be shared (the API's). */
+export const SAFE_CHAT_MESSAGES = 5;
+
+/** How often an open chat asks for new messages while it is visible. */
+export const POLL_MS = 4000;
+
+export type CruisingMessage = { id: string; mine: boolean; text: string; createdAt: string };
+
+/** Adds the messages not already listed, in time order. */
+export function mergeMessages(
+  current: CruisingMessage[],
+  incoming: CruisingMessage[],
+): CruisingMessage[] {
+  const known = new Set(current.map((message) => message.id));
+  return [...current, ...incoming.filter((message) => !known.has(message.id))].toSorted((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
+}
+
+/** A member's profile page, and the messages' pages. */
+export function memberHref(nickname: string): string {
+  return `/cruising/members/${nickname}`;
+}
+
+export function conversationHref(id: string): string {
+  return `/cruising/messages/${id}`;
+}
+
+/** What the chat asks for new messages (the BFF route handler, never the API). */
+export function messagesEndpoint(locale: string, onHost: boolean, conversationId: string): string {
+  return cruisingPath(locale, `/api/conversations/${conversationId}/messages`, onHost);
+}
+
+/** The text of a conversation's last message, cut for a list: whole words, an ellipsis when cut. */
+export function previewMessage(text: string, max = 80): string {
+  return excerpt(text, max);
+}
+
+/** Whether a conversation has unread messages (the API says it as a flag or a count). */
+export function isUnread(unread: boolean | number | null | undefined): boolean {
+  return typeof unread === 'number' ? unread > 0 : unread === true;
+}
+
+/** The profile of a report's target and a chat's saved lines, whatever shape the API gave them. */
+export type TranscriptLine = {
+  from: 'reporter' | 'reported' | 'unknown';
+  text: string;
+  at: string | null;
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/** The nickname of a reported profile (`{ nickname }` or `{ profile: { nickname } }`), or null. */
+export function reportedNickname(target: unknown): string | null {
+  const root = asObject(target);
+  const profile = asObject(root?.profile) ?? root;
+  const nickname = profile?.nickname;
+  return typeof nickname === 'string' ? nickname : null;
+}
+
+function lineFrom(item: Record<string, unknown>): TranscriptLine['from'] {
+  if (item.from === 'reporter' || item.from === 'reported') return item.from;
+  if (typeof item.mine === 'boolean') return item.mine ? 'reporter' : 'reported';
+  return 'unknown';
+}
+
+/**
+ * The saved chat of a conversation report: an array, or an object holding one as `transcript` or
+ * `messages`. Lines without text are dropped.
+ */
+export function reportTranscript(target: unknown): TranscriptLine[] {
+  const root = asObject(target);
+  const list = Array.isArray(target)
+    ? target
+    : Array.isArray(root?.transcript)
+      ? root.transcript
+      : Array.isArray(root?.messages)
+        ? root.messages
+        : [];
+  const lines: TranscriptLine[] = [];
+  for (const entry of list) {
+    const item = asObject(entry);
+    if (!item || typeof item.text !== 'string') continue;
+    const at =
+      typeof item.at === 'string'
+        ? item.at
+        : typeof item.createdAt === 'string'
+          ? item.createdAt
+          : null;
+    lines.push({ from: lineFrom(item), text: item.text, at });
+  }
+  return lines;
 }

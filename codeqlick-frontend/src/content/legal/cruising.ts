@@ -42,7 +42,7 @@ Respeta a los demás, el lugar y la ley del sitio donde estás. Nada de venta de
 
 ## Moderación, denuncias y retirada
 
-Puedes denunciar cualquier lugar u opinión. Una denuncia por un menor o por contenido ilegal oculta el contenido al momento hasta que lo revisemos. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos un lugar en [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); lo ocultamos al momento si da el enlace y respondemos en 24 horas. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
+Puedes denunciar cualquier lugar u opinión. Una denuncia por un menor o por contenido ilegal oculta el contenido al momento hasta que lo revisemos. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos un lugar en [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); si se trata de un menor o de algo ilegal y da el enlace, lo ocultamos al momento, y siempre respondemos en 24 horas. Un lugar retirado por moderación no se puede volver a enviar. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
 
 ## Lo que no garantizamos
 
@@ -88,7 +88,7 @@ Respect others, the place and the law where you are. No selling sex or drugs, ha
 
 ## Moderation, reports and removal
 
-You can report any place or review. A report for a minor or illegal content hides it at once until we review it. Anyone, even without an account, can ask us to remove a place at [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); we hide it at once when they give the link and answer within 24 hours. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
+You can report any place or review. A report for a minor or illegal content hides it at once until we review it. Anyone, even without an account, can ask us to remove a place at [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); when it is about a minor or something illegal and they give the link, we hide it at once, and we always answer within 24 hours. A place removed by moderation can't be sent again. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
 
 ## What we don't guarantee
 

@@ -45,7 +45,7 @@ export const SPOT_TYPES = [
 export const spotTypeSchema = z.enum(SPOT_TYPES);
 export type SpotType = z.infer<typeof spotTypeSchema>;
 
-export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN'] as const;
+export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN', 'REMOVED'] as const;
 export type SpotStatus = (typeof SPOT_STATUSES)[number];
 
 export const REPORT_REASONS = [
@@ -266,7 +266,7 @@ export const takedownsQuerySchema = z.object({
 export type TakedownsQuery = z.infer<typeof takedownsQuerySchema>;
 
 export const takedownDecisionSchema = z.object({
-  /** True: the spot is removed (it becomes REJECTED). False: closed, the spot is restored. */
+  /** True: the spot is removed (it becomes REMOVED, final). False: closed, the spot is restored. */
   remove: z.boolean(),
   response: z.string().trim().max(2000).optional(),
 });

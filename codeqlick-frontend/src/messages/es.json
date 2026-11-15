@@ -4850,7 +4850,9 @@
       "places": "Lugares",
       "propose": "Proponer un lugar",
       "mySpots": "Mis lugares",
-      "rules": "Normas"
+      "rules": "Normas",
+      "messages": "Mensajes",
+      "profile": "Perfil"
     },
     "legal": {
       "terms": "Condiciones de uso",
@@ -5101,13 +5103,15 @@
         "PENDING": "En revisión",
         "LIVE": "Publicado",
         "REJECTED": "Rechazado",
-        "HIDDEN": "Oculto"
+        "HIDDEN": "Oculto",
+        "REMOVED": "Retirado"
       },
       "explain": {
         "PENDING": "El equipo aún no lo ha revisado. Todavía puedes editarlo o borrarlo.",
         "LIVE": "Está en el mapa. Para corregirlo, abre su página y sugiere una corrección.",
         "REJECTED": "No se publicó. Puedes editarlo y enviarlo de nuevo, o borrarlo.",
-        "HIDDEN": "El equipo lo está comprobando tras una denuncia. Por ahora no se ve."
+        "HIDDEN": "El equipo lo está comprobando tras una denuncia. Por ahora no se ve.",
+        "REMOVED": "El equipo lo retiró tras una denuncia o una solicitud de retirada. La retirada es definitiva: no se puede editar ni volver a enviar."
       },
       "proposedOn": "Propuesto el {date}",
       "rejectReason": "Motivo",
@@ -5124,8 +5128,8 @@
       "editLeadRejected": "Al guardar, el lugar vuelve a revisión.",
       "back": "Volver a mis lugares",
       "alertsTitle": "Correos",
-      "alertsLabel": "Avísame por correo cuando se publique uno de mis lugares",
-      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) se envían siempre. Los correos nunca nombran un lugar.",
+      "alertsLabel": "Avisarme por correo cuando se publique un lugar mío o me esperen mensajes sin leer",
+      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un apodo ni un mensaje.",
       "alertsSave": "Guardar",
       "alertsSaving": "Guardando…",
       "alertsSaved": "Guardado.",
@@ -5156,11 +5160,11 @@
     },
     "takedown": {
       "title": "Pídenos que retiremos un lugar",
-      "lead": "Cualquiera, con o sin cuenta, puede pedirnos que retiremos un lugar (Reglamento de Servicios Digitales de la UE). Si nos das el enlace, lo ocultamos al momento y respondemos en 24 horas.",
+      "lead": "Cualquiera, con o sin cuenta, puede pedirnos que retiremos un lugar (Reglamento de Servicios Digitales de la UE). Si se trata de un menor o de algo ilegal y nos das el enlace, lo ocultamos al momento. Respondemos a todas las solicitudes en 24 horas.",
       "email": "Tu correo",
       "emailHint": "Te respondemos aquí. No lo usamos para nada más.",
       "spotLink": "Enlace al lugar",
-      "spotLinkHint": "La dirección de su página, o el final de ella (por ejemplo el-parque-norte). Si lo encontramos, lo ocultamos al momento.",
+      "spotLinkHint": "La dirección de su página, o el final de ella (por ejemplo el-parque-norte). Si se trata de un menor o de algo ilegal y lo encontramos, lo ocultamos al momento.",
       "optional": "opcional",
       "reason": "Motivo",
       "reasonPlaceholder": "Elige un motivo",
@@ -5174,6 +5178,137 @@
       "detailsShort": "Cuéntanos un poco más (al menos 10 caracteres).",
       "error": "No hemos podido enviarlo. Inténtalo de nuevo.",
       "sent": "Gracias. Hemos recibido tu solicitud y te responderemos por correo en 24 horas."
+    },
+    "lookingFor": {
+      "CHAT": "Charlar",
+      "FRIENDS": "Amistad",
+      "DATES": "Citas",
+      "FUN": "Pasarlo bien",
+      "GROUP": "Grupo"
+    },
+    "me": {
+      "title": "Mi perfil",
+      "lead": "Lo que ven los demás miembros, tu registro de presencia, tus correos y las personas que has bloqueado.",
+      "leadNew": "Elige un apodo para marcar que estás en un lugar y para escribir a otros miembros. Nadie ve tu nombre ni tu correo.",
+      "profileTitle": "Perfil",
+      "nickname": "Apodo",
+      "nicknameHint": "De 3 a 20 caracteres: letras minúsculas, números y guiones bajos. Lo eliges una sola vez y no se puede quitar.",
+      "nicknameFixed": "Tu apodo es fijo. No se puede cambiar ni quitar.",
+      "bio": "Sobre ti",
+      "bioHint": "Hasta 160 caracteres. Solo texto: sin fotos, teléfonos, correos ni enlaces.",
+      "optional": "opcional",
+      "country": "País",
+      "countryNone": "No mostrar",
+      "lookingFor": "Qué buscas",
+      "showAge": "Mostrar mi edad",
+      "showAgeHint": "Los miembros que abran tu perfil verán tu edad. Tu fecha de nacimiento no se guarda ni se muestra nunca.",
+      "save": "Guardar",
+      "saving": "Guardando…",
+      "saved": "Guardado.",
+      "viewProfile": "Ver cómo ven mi perfil los demás",
+      "checkInTitle": "Mi registro de presencia",
+      "checkInActive": "Estás registrado hasta el {time} en",
+      "checkInAnonymous": "anónimo",
+      "checkInNone": "No has marcado que estés en ningún sitio. Abre un lugar y pulsa «Estoy aquí».",
+      "endCheckIn": "Terminar mi registro",
+      "ending": "Terminando…",
+      "alertsTitle": "Correos",
+      "alertsLabel": "Avisarme por correo cuando se publique un lugar mío o me esperen mensajes sin leer",
+      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un apodo ni un mensaje.",
+      "blocksTitle": "Miembros bloqueados",
+      "blocksLead": "Los miembros bloqueados y tú no os veis en ningún sitio. Desbloquea para deshacerlo.",
+      "blocksEmpty": "No has bloqueado a nadie.",
+      "blockedOn": "bloqueado el {date}",
+      "unblock": "Desbloquear",
+      "unblocking": "Desbloqueando…",
+      "unblocked": "Desbloqueado.",
+      "blockedDone": "Bloqueado. Ya no os veis y la conversación se ha borrado.",
+      "nicknameInvalid": "Usa de 3 a 20 caracteres: letras minúsculas, números y guiones bajos.",
+      "nicknameTaken": "Ese apodo ya está cogido. Prueba con otro.",
+      "nicknameRefused": "Ese apodo no está permitido. Prueba con otro.",
+      "bioLong": "Usa 160 caracteres o menos.",
+      "countryInvalid": "Elige un país de la lista.",
+      "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para cambiar tu perfil.",
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+    },
+    "presence": {
+      "title": "Aquí ahora",
+      "count": "{count, plural, =0 {Ahora no hay nadie aquí} one {# persona aquí ahora} other {# personas aquí ahora}}",
+      "membersLabel": "Miembros que están aquí",
+      "hours": "{count, plural, one {# hora} other {# horas}}",
+      "duration": "¿Cuánto tiempo?",
+      "anonymous": "Anónimo",
+      "anonymousHint": "Cuentas en el total, pero tu apodo no aparece en la lista.",
+      "anonymousNote": "(anónimo)",
+      "checkIn": "Estoy aquí",
+      "renew": "Renovar mi registro",
+      "checkingIn": "Registrando…",
+      "youAreHere": "Estás aquí hasta el {time}.",
+      "youAreElsewhere": "Estás en {name} hasta el {time}. Un registro nuevo termina el anterior.",
+      "end": "Terminar mi registro",
+      "ending": "Terminando…",
+      "ended": "Tu registro ha terminado.",
+      "checkedIn": "Ya figuras aquí.",
+      "privacy": "Un registro es solo este lugar y una hora. Tu posición nunca se pide ni se guarda.",
+      "needNickname": "Elige un apodo para marcar que estás aquí y para ver quién hay.",
+      "chooseNickname": "Elegir un apodo",
+      "error": "No hemos podido hacerlo. Inténtalo de nuevo.",
+      "gone": "Este lugar ya no está disponible.",
+      "tooManyToday": "Has llegado al límite de registros de hoy. Inténtalo mañana.",
+      "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para marcar que estás aquí."
+    },
+    "members": {
+      "age": "Edad",
+      "ageValue": "{age} años",
+      "country": "País",
+      "memberSince": "Miembro desde",
+      "memberSinceValue": "Miembro desde el {date}",
+      "lookingFor": "Qué busca",
+      "thisIsYou": "Este es tu perfil.",
+      "editProfile": "Editar mi perfil",
+      "message": "Enviar un mensaje",
+      "opening": "Abriendo…",
+      "block": "Bloquear",
+      "blockLead": "Si bloqueas a {nickname}, dejáis de veros en todas partes y se borra vuestra conversación. Puedes desbloquear desde tu perfil.",
+      "blockConfirm": "Bloquear a este miembro",
+      "blocking": "Bloqueando…",
+      "error": "Algo ha fallado. Inténtalo de nuevo.",
+      "notFound": "Este miembro no está disponible.",
+      "tooManyConversations": "Has llegado al límite de conversaciones nuevas de hoy. Inténtalo mañana.",
+      "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para enviar mensajes."
+    },
+    "messages": {
+      "title": "Mensajes",
+      "lead": "Tus conversaciones con otros miembros, las más recientes primero.",
+      "empty": "Aún no tienes conversaciones. Abre el perfil de un miembro para saludar.",
+      "unread": "Sin leer",
+      "you": "Tú",
+      "noMessages": "Todavía no hay mensajes.",
+      "left": "Has salido de la conversación. Se ha borrado para los dos.",
+      "blockedDone": "Bloqueado. La conversación se ha borrado.",
+      "error": "Algo ha fallado. Inténtalo de nuevo."
+    },
+    "chat": {
+      "back": "Todos los mensajes",
+      "listLabel": "Conversación con {nickname}",
+      "empty": "Di hola a {nickname}.",
+      "label": "Mensaje",
+      "placeholder": "Escribe un mensaje…",
+      "send": "Enviar",
+      "sendError": "No se ha enviado. Inténtalo de nuevo.",
+      "rateLimited": "Estás escribiendo demasiado rápido. Espera un momento.",
+      "contactBlocked": "Aún no se pueden compartir teléfonos, correos, enlaces ni otras apps. Seguid hablando aquí: cada uno tiene que enviar al menos {count} mensajes.",
+      "gone": "Esta conversación ha terminado.",
+      "safety": "Solo texto. Nunca envíes dinero ni compartas datos que no quieras que se sepan.",
+      "guard": "Por tu seguridad, hasta que cada uno haya enviado {count} mensajes no se pueden compartir teléfonos, correos, enlaces ni otras apps.",
+      "leave": "Salir de la conversación",
+      "leaveLead": "Al salir se borra la conversación con {nickname} para los dos.",
+      "leaveConfirm": "Salir y borrarla",
+      "leaving": "Saliendo…",
+      "block": "Bloquear",
+      "blockLead": "Si bloqueas a {nickname}, se borra la conversación y dejáis de veros en todas partes.",
+      "blockConfirm": "Bloquear a este miembro",
+      "blocking": "Bloqueando…"
     }
   },
   "AdminCruising": {
@@ -5189,7 +5324,9 @@
       "liveSpots": "Lugares publicados",
       "members": "Miembros",
       "reviews": "Opiniones",
-      "suspended": "Suspendidos"
+      "suspended": "Suspendidos",
+      "activeCheckIns": "Registros de presencia ahora",
+      "conversations": "Conversaciones"
     },
     "tabs": {
       "queue": "Por revisar",
@@ -5202,13 +5339,14 @@
       "title": "Lugares por revisar",
       "lead": "Los más antiguos primero. La persona recibe un correo cuando publicas o rechazas, sin el nombre del lugar.",
       "reason": "Motivo si lo rechazas",
-      "reasonHint": "Obligatorio para rechazar (de 5 a 500 caracteres). La persona lo recibe por correo."
+      "reasonHint": "Obligatorio para rechazar (de 5 a 500 caracteres). La persona lo recibe por correo: no nombres el lugar, la zona ni a nadie."
     },
     "status": {
       "PENDING": "en revisión",
       "LIVE": "publicado",
       "REJECTED": "rechazado",
-      "HIDDEN": "oculto"
+      "HIDDEN": "oculto",
+      "REMOVED": "retirado"
     },
     "noProposer": "Sin proponente (cuenta borrada)",
     "sent": "Enviado el {date}",
@@ -5243,7 +5381,7 @@
     "reports": {
       "remove": "Retirarlo (el lugar se rechaza, la opinión se borra)",
       "reason": "Motivo (se envía a quien propuso el lugar si lo retiras)",
-      "reasonHint": "Opcional, hasta 500 caracteres.",
+      "reasonHint": "Opcional, hasta 500 caracteres. Va en el correo a la persona: no nombres el lugar, la zona ni a nadie.",
       "suspend": "Suspender a la persona",
       "act": "Aplicar",
       "dismiss": "Descartar (lo que estaba oculto vuelve a publicarse)"
@@ -5254,16 +5392,17 @@
       "unmatched": "Ningún lugar coincide (enlace: {link}). Búscalo a partir de la descripción.",
       "response": "Respuesta (se envía por correo)",
       "remove": "Retirar el lugar",
-      "close": "Cerrar sin retirar (vuelve a publicarse)",
-      "defaultRemoved": "Hemos retirado el lugar. Gracias por avisarnos.",
-      "defaultClosed": "Hemos revisado tu solicitud y hemos decidido mantener el lugar. Si no estás de acuerdo, responde a este correo."
+      "close": "Cerrar sin retirar (vuelve a publicarse)"
     },
     "live": {
       "filter": "Estado",
       "search": "Buscar por nombre o ciudad",
       "searchButton": "Buscar"
     },
-    "reasonNeeded": "Escribe el motivo (al menos 5 caracteres)."
+    "reasonNeeded": "Escribe el motivo (al menos 5 caracteres).",
+    "reportedProfile": "Perfil",
+    "transcript": "Chat guardado",
+    "noTranscript": "No hay mensajes guardados."
   },
   "MenuKit": {
     "title": "QR de tu carta",
