@@ -5192,8 +5192,7 @@
       "leadNew": "Choose a nickname to check in at spots and to message other members. Nobody sees your name or email.",
       "profileTitle": "Profile",
       "nickname": "Nickname",
-      "nicknameHint": "3 to 20 characters: lower-case letters, numbers and underscores. You choose it once and it can't be removed.",
-      "nicknameFixed": "Your nickname is fixed. It can't be changed or removed.",
+      "nicknameHint": "3 to 20 characters: lower-case letters, numbers and underscores. You can change it later.",
       "bio": "About you",
       "bioHint": "Up to 160 characters. Text only: no photos, phone numbers, emails or links.",
       "optional": "optional",
@@ -5230,7 +5229,8 @@
       "countryInvalid": "Choose a country from the list.",
       "notAllowed": "You need to enter Cruising and not be suspended to change your profile.",
       "error": "We couldn't save it. Try again.",
-      "bioContact": "No phone numbers, emails, links or social handles in your bio."
+      "bioContact": "No phone numbers, emails, links or social handles in your bio.",
+      "nicknameChange": "You can change it whenever you like. The one you leave stays yours for 14 days: nobody else can take it and you can go back to it."
     },
     "presence": {
       "title": "Here now",

@@ -170,6 +170,7 @@ model User {
   cruisingTakedownsReviewed  CruisingTakedown[]
   cruisingCheckIns           CruisingCheckIn[]
   cruisingConversationStarts CruisingConversationStart[]
+  cruisingNicknameChanges    CruisingNicknameChange[]
   cruisingConversationsA     CruisingConversation[]      @relation("CruisingConversationA")
   cruisingConversationsB     CruisingConversation[]      @relation("CruisingConversationB")
   cruisingMessages           CruisingMessage[]
@@ -3212,6 +3213,21 @@ model CruisingCheckIn {
 }
 
 /// Two members talking. `userAId` < `userBId`. It starts from a profile, a check-in or a review.
+/// A nickname a member left (decision 83): for 14 days it stays theirs (nobody else can take it,
+/// they can go back to it). Changes have no limit. Older rows: deleted hourly.
+model CruisingNicknameChange {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  oldNickname String   @map("old_nickname") @db.VarChar(20)
+  changedAt   DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, changedAt])
+  @@index([oldNickname, changedAt])
+  @@map("cruising_nickname_changes")
+}
+
 /// Each conversation a member opened, kept apart from the conversation (which leaving or blocking
 /// deletes) so the 10 new conversations a day can't be got round. Older than a day: deleted hourly.
 model CruisingConversationStart {
