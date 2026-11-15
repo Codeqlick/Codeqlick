@@ -5745,6 +5745,38 @@
         "gitDropped": "The Git connection was removed: connect it again in the Git tab."
       }
     },
+    "productionChecks": {
+      "title": "Weekly website check",
+      "lead": "Check the live site once a week and tell the team's admins when its score drops.",
+      "label": "Check the live site every week and tell the admins when the score drops",
+      "on": "On",
+      "off": "Off",
+      "next": "Next check: {when} (Madrid time)",
+      "address": "Address checked:",
+      "alerts": "Alerts go to the team's admins by email and to the project's channels with monitor alerts on.",
+      "protected": "Projects whose password protection covers production are skipped: the check would score the password page.",
+      "adminsOnly": "Only team admins can change this.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "loadError": "The weekly check couldn't be loaded.",
+      "summaryTitle": "Website check",
+      "last": "Last weekly check: {when}",
+      "report": "See the report",
+      "first": "The first check runs on {when} (Madrid time).",
+      "categories": {
+        "speed": "Speed",
+        "mobile": "Mobile",
+        "seo": "Google",
+        "security": "Security"
+      },
+      "historyCaption": "Weekly checks of the last 12 weeks",
+      "date": "Date",
+      "score": "Score",
+      "status": "Change",
+      "dropped": "Dropped",
+      "steady": "No drop"
+    },
     "protection": {
       "title": "Password protection",
       "lead": "Ask visitors for a password before they see this project, so you can show work in progress without making it public. Team members open protected addresses from here without typing it.",
@@ -6233,6 +6265,7 @@
       "recent": "Recent checks",
       "empty": "No checks yet.",
       "previewBadge": "Preview check",
+      "scheduledBadge": "Weekly check",
       "status": {
         "pass": "OK",
         "warn": "Improve",
@@ -6473,8 +6506,8 @@
       "formsLoadErrorNew": "The project's forms couldn't be loaded: a new channel gets all forms; edit it later to choose some.",
       "formsEmail": "Email notifications can't carry form submissions: forms already email their own recipients. Choose Slack, Discord or webhook.",
       "formsTooMany": "Choose up to 20 forms.",
-      "onMonitors": "Monitor alerts (down, back up, certificate)",
-      "onMonitorsNew": "Monitor alerts: down, back up, certificate (Slack, Discord or webhook)",
+      "onMonitors": "Monitor alerts and website-check drops",
+      "onMonitorsNew": "Monitor alerts and website-check drops (Slack, Discord or webhook)",
       "onMonitorsHint": "Only monitors tied to this project alert here. The people chosen on each monitor still get their email.",
       "monitorAlertsEmail": "Monitor alerts go to Slack, Discord or a webhook: monitors already email the people chosen on them.",
       "newTitle": "New notification",

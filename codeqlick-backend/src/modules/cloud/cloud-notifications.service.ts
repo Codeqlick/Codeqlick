@@ -16,6 +16,8 @@ import type { CloudCtx } from './cloud-caller.js';
 import { cloudBuildEmail, cloudChannelOffEmail } from './cloud-emails.js';
 import { CloudNotificationsRepository } from './cloud-notifications.repository.js';
 import {
+  auditDroppedEvent,
+  auditDroppedPayload,
   channelUrlProblem,
   monitorEvent,
   monitorPayload,
@@ -31,6 +33,7 @@ import {
   type FormEvent,
   type NotifyEvent,
 } from './cloud-notify.js';
+import type { Drop } from './cloud-production-checks.js';
 import { CLOUD_PLANS } from './cloud-plans.js';
 import { CloudProjectsService } from './cloud-projects.service.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
@@ -60,6 +63,8 @@ export interface ChannelView {
   lastError: string | null;
   createdAt: string;
 }
+
+type AuditDroppedCategories = Record<'speed' | 'mobile' | 'seo' | 'security', number>;
 
 /** Failed deliveries in a row that switch a channel off. */
 const MAX_FAILURES = 10;
@@ -500,6 +505,62 @@ export class CloudNotificationsService {
       }
     } catch (failure) {
       this.logger.error(`Monitor ${monitor.id}: notifications failed: ${String(failure)}`);
+    }
+  }
+
+  /**
+   * Tells a project's Slack, Discord and webhook channels with monitor alerts that its weekly
+   * website check of production dropped (decision 81). Called in the background by the production
+   * checks service; never throws. Email channels never get it.
+   */
+  async auditDropped(
+    projectId: string,
+    audits: {
+      audit: { id: string; url: string; score: number; result: unknown; createdAt: Date };
+      previous: { id: string; score: number; result: unknown; createdAt: Date };
+      drop: Drop;
+    },
+  ): Promise<void> {
+    try {
+      const project = await this.repository.project(projectId);
+      if (!project) return;
+      const channels = (await this.repository.list(project.id)).filter(
+        (c) => c.enabled && c.monitorAlerts,
+      );
+      const categories = (row: { result: unknown }) =>
+        (row.result as { categories: AuditDroppedCategories }).categories;
+      for (const channel of channels) {
+        if (channel.kind === 'EMAIL') continue;
+        const locale: ApiLocale = channel.locale === 'es' ? 'es' : 'en';
+        const event = auditDroppedEvent({
+          project,
+          audit: {
+            id: audits.audit.id,
+            url: audits.audit.url,
+            score: audits.audit.score,
+            categories: categories(audits.audit),
+            createdAt: audits.audit.createdAt.toISOString(),
+          },
+          previous: {
+            id: audits.previous.id,
+            score: audits.previous.score,
+            categories: categories(audits.previous),
+            createdAt: audits.previous.createdAt.toISOString(),
+          },
+          drop: audits.drop,
+          consoleUrl: `${this.config.cloudUrl}/${locale}/console/${project.team.slug}/audits/${audits.audit.id}`,
+        });
+        const { error } = await this.post(
+          channel,
+          event.event,
+          auditDroppedPayload(channel.kind, event, locale),
+        );
+        await this.recordDelivery(channel, error, project);
+      }
+    } catch (failure) {
+      this.logger.error(
+        `Project ${projectId}: website-check notifications failed: ${String(failure)}`,
+      );
     }
   }
 

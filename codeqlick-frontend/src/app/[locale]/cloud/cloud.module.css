@@ -797,6 +797,24 @@
   text-decoration: underline;
 }
 
+.history {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.history th,
+.history td {
+  text-align: left;
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: middle;
+}
+
+.history tbody th {
+  font-weight: 500;
+}
+
 .stack {
   display: grid;
   gap: var(--space-2);

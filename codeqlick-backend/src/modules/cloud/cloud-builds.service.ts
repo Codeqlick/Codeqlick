@@ -1290,6 +1290,7 @@ export class CloudBuildsService implements OnApplicationBootstrap, OnApplication
         teamId: project.teamId,
         plan: project.team.plan,
         url: deploymentUrl,
+        projectId: project.id,
       });
       if (outcome.state === 'done') {
         await this.repository.update(build.id, { auditId: outcome.auditId });

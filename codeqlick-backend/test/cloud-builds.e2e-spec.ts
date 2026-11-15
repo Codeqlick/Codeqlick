@@ -611,7 +611,7 @@ describe('Codeqlick Cloud builds from Git (e2e)', () => {
       .get(`/v1/cloud/teams/${team}/audits`)
       .set(auth)
       .expect(200);
-    expect(auditList.body.items[0]).toMatchObject({ id: audit.id, preview: true });
+    expect(auditList.body.items[0]).toMatchObject({ id: audit.id, kind: 'preview' });
 
     // A preview that can't be opened says why, and the build is still a success.
     audits.gatherInputs = () => Promise.reject(new Error('getaddrinfo ENOTFOUND'));

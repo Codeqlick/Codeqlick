@@ -111,6 +111,11 @@ describe('Codeqlick Cloud: moving a project to another team (e2e)', () => {
       .expect(201);
     const projectId = project.body.id as string;
     const url = `/v1/cloud/projects/${projectId}/transfer`;
+    // The weekly website check is the source team's choice: it is switched off by the move.
+    await prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { productionChecks: true, productionCheckNextAt: new Date(Date.now() + 86_400_000) },
+    });
 
     // What moves with it: a form and a monitor whose people are partly outside the target.
     const form = await prisma.cloudForm.create({
@@ -231,6 +236,10 @@ describe('Codeqlick Cloud: moving a project to another team (e2e)', () => {
     });
     await request(server).get(`/v1/cloud/projects/${projectId}`).set(graceAuth).expect(200);
     await request(server).get(`/v1/cloud/projects/${projectId}`).set(luisAuth).expect(404);
+
+    expect(moved.body.productionChecks).toBe(false);
+    const movedProject = await prisma.cloudProject.findUniqueOrThrow({ where: { id: projectId } });
+    expect(movedProject).toMatchObject({ productionChecks: false, productionCheckNextAt: null });
 
     // The monitor moved with it, Luis (not in the client team) left its lists.
     const movedMonitor = await prisma.cloudMonitor.findUniqueOrThrow({ where: { id: monitor.id } });
