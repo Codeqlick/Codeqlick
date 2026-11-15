@@ -78,9 +78,9 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
     mapRef.current = map;
     layerRef.current = layer;
 
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    // The request in flight, aborted by the next one (a property: the async loader can't reassign a variable).
-    const inflight: { controller?: AbortController } = {};
+    // The pending reload after a move and the request in flight (aborted by the next one). Kept as
+    // properties: the handlers run after render, where reassigning a variable isn't allowed.
+    const pending: { timer?: ReturnType<typeof setTimeout>; controller?: AbortController } = {};
 
     const fetchView = async () => {
       const bounds = map.getBounds();
@@ -90,9 +90,9 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
         bounds.getEast(),
         bounds.getNorth(),
       );
-      inflight.controller?.abort();
+      pending.controller?.abort();
       const current = new AbortController();
-      inflight.controller = current;
+      pending.controller = current;
       setLoad((state) => ({ ...state, status: 'loading' }));
       try {
         const results = await Promise.all(
@@ -116,13 +116,13 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
       }
     };
     reload.current = () => {
-      clearTimeout(timer);
+      clearTimeout(pending.timer);
       void fetchView();
     };
 
     const onMoveEnd = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => void fetchView(), MOVE_DELAY_MS);
+      clearTimeout(pending.timer);
+      pending.timer = setTimeout(() => void fetchView(), MOVE_DELAY_MS);
     };
     const onClick = (event: L.LeafletMouseEvent) => {
       const point = event.latlng.wrap();
@@ -144,8 +144,8 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
     void fetchView();
 
     return () => {
-      clearTimeout(timer);
-      inflight.controller?.abort();
+      clearTimeout(pending.timer);
+      pending.controller?.abort();
       map.off('moveend', onMoveEnd);
       map.off('click', onClick);
       map.remove();

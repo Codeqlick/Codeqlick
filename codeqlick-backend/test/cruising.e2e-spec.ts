@@ -438,7 +438,7 @@ describe('Cruising (e2e)', () => {
         .post('/v1/cruising/spots')
         .set(eva.auth)
         .send(spotBody('Bad', 9, over));
-      expect(res.status, JSON.stringify(over)).toBe(400);
+      expect({ over, status: res.status }).toEqual({ over, status: 400 });
     }
   });
 
