@@ -343,6 +343,10 @@ describe('Cruising social (e2e)', () => {
     const conv = await open(luis, mario.nick);
     expect(conv.status).toBe(201);
     expect((await say(luis, conv.body.id, 'Hello Mario')).status).toBe(201);
+    // The export has the messages sent (before the block below deletes the conversation).
+    const early = await request(server()).get('/v1/auth/me/export').set(luis.auth);
+    expect(early.status).toBe(200);
+    expect(JSON.stringify(early.body.cruising.messagesSent)).toContain('Hello Mario');
 
     const profileReport = await request(server())
       .post('/v1/cruising/reports')
@@ -368,7 +372,8 @@ describe('Cruising social (e2e)', () => {
     const cruising = exported.body.cruising;
     expect(cruising.profile.nickname).toBe(luis.nick);
     expect(cruising.checkIns.length).toBe(1);
-    expect(JSON.stringify(cruising.messagesSent)).toContain('Hello Mario');
+    // Blocking deleted the conversation, and its messages with it.
+    expect(cruising.messagesSent).toEqual([]);
 
     const deleted = await request(server()).delete('/v1/auth/me').set(luis.auth).send({ password });
     expect(deleted.status).toBe(204);
