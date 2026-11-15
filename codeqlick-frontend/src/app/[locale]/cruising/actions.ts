@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
-import type { AppLocale } from '@/i18n/routing';
+import { routing, type AppLocale } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import {
   createCruisingSpot,
@@ -34,8 +34,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Everything of Cruising that shows the person's state (their entry, their spots, a spot's page). */
-function refreshAll(locale: AppLocale): void {
-  revalidatePath(`/${locale}/cruising`, 'layout');
+function refreshAll(_locale: AppLocale): void {
+  // Both languages: a spot hidden by a report or a removal request disappears from every page at once.
+  for (const each of routing.locales) revalidatePath(`/${each}/cruising`, 'layout');
 }
 
 /** Confirms 18+, the rules and the consent to special category data (PUT /cruising/me). */

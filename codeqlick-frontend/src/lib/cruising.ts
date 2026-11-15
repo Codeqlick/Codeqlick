@@ -92,6 +92,29 @@ export function formatBbox(box: Bbox): string {
     .join(',');
 }
 
+/** The grid the map's requests are snapped to, in degrees (about 28 km of latitude). */
+export const BBOX_GRID = 0.25;
+
+/**
+ * A box grown outwards to the whole cells of a coarse grid. What the map asks the API for then
+ * says nothing about where the view (or a device that "located me") is inside the box: the
+ * device's position never reaches the API, not even as the centre of a request (section 4.15).
+ */
+export function snapBbox(box: Bbox, step = BBOX_GRID): Bbox {
+  const down = (value: number) => Math.floor(value / step) * step;
+  const up = (value: number) => Math.ceil(value / step) * step;
+  const minLng = clamp(down(box.minLng), -180, 180);
+  const minLat = clamp(down(box.minLat), -90, 90);
+  const maxLng = clamp(up(box.maxLng), -180, 180);
+  const maxLat = clamp(up(box.maxLat), -90, 90);
+  return {
+    minLng: maxLng > minLng ? minLng : Math.max(-180, maxLng - step),
+    minLat: maxLat > minLat ? minLat : Math.max(-90, maxLat - step),
+    maxLng: maxLng > minLng ? maxLng : Math.min(180, minLng + step),
+    maxLat: maxLat > minLat ? maxLat : Math.min(90, minLat + step),
+  };
+}
+
 function wrapLongitude(lng: number): number {
   return ((((lng + 180) % 360) + 360) % 360) - 180;
 }
@@ -374,13 +397,16 @@ export function toSpotInput(data: Partial<SpotInput>): SpotInput | null {
  * slug itself); null when it is neither.
  */
 export function spotLinkSlug(value: string): string | null {
-  const text = value
-    .trim()
-    .replace(/[?#].*$/, '')
-    .replace(/\/+$/, '');
+  const text = value.trim().toLowerCase();
   if (!text) return null;
-  const last = text.split('/').pop() ?? '';
-  return SLUG.test(last) ? last : null;
+  if (SLUG.test(text)) return text;
+  const segments = text
+    .replace(/[?#].*$/, '')
+    .split('/')
+    .filter(Boolean);
+  const at = segments.lastIndexOf('spots');
+  const slug = at >= 0 ? segments[at + 1] : undefined;
+  return slug && SLUG.test(slug) ? slug : null;
 }
 
 // ---- Admin reports -----------------------------------------------------------------------------

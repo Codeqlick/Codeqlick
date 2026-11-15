@@ -416,7 +416,7 @@ export async function listAdminCruisingTakedowns(
   ).items;
 }
 
-export function decideCruisingTakedown(id: string, remove: boolean, response: string) {
+export function decideCruisingTakedown(id: string, remove: boolean, response?: string) {
   return apiFetch<void>(`/admin/cruising/takedowns/${encodeURIComponent(id)}`, {
     method: 'POST',
     body: { remove, response },

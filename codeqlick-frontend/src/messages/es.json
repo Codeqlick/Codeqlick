@@ -5202,7 +5202,7 @@
       "title": "Lugares por revisar",
       "lead": "Los más antiguos primero. La persona recibe un correo cuando publicas o rechazas, sin el nombre del lugar.",
       "reason": "Motivo si lo rechazas",
-      "reasonHint": "Obligatorio para rechazar (de 5 a 500 caracteres). La persona lo recibe por correo."
+      "reasonHint": "Obligatorio para rechazar (de 5 a 500 caracteres). La persona lo recibe por correo: no nombres el lugar, la zona ni a nadie."
     },
     "status": {
       "PENDING": "en revisión",
@@ -5243,7 +5243,7 @@
     "reports": {
       "remove": "Retirarlo (el lugar se rechaza, la opinión se borra)",
       "reason": "Motivo (se envía a quien propuso el lugar si lo retiras)",
-      "reasonHint": "Opcional, hasta 500 caracteres.",
+      "reasonHint": "Opcional, hasta 500 caracteres. Va en el correo a la persona: no nombres el lugar, la zona ni a nadie.",
       "suspend": "Suspender a la persona",
       "act": "Aplicar",
       "dismiss": "Descartar (lo que estaba oculto vuelve a publicarse)"
@@ -5254,9 +5254,7 @@
       "unmatched": "Ningún lugar coincide (enlace: {link}). Búscalo a partir de la descripción.",
       "response": "Respuesta (se envía por correo)",
       "remove": "Retirar el lugar",
-      "close": "Cerrar sin retirar (vuelve a publicarse)",
-      "defaultRemoved": "Hemos retirado el lugar. Gracias por avisarnos.",
-      "defaultClosed": "Hemos revisado tu solicitud y hemos decidido mantener el lugar. Si no estás de acuerdo, responde a este correo."
+      "close": "Cerrar sin retirar (vuelve a publicarse)"
     },
     "live": {
       "filter": "Estado",

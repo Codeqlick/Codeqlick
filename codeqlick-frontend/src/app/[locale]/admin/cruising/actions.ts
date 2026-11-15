@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
-import type { AppLocale } from '@/i18n/routing';
+import { routing, type AppLocale } from '@/i18n/routing';
 import { failedState } from '@/lib/actions';
 import {
   actOnCruisingReport,
@@ -28,8 +28,8 @@ async function run(
     return failedState(error, locale, formData);
   }
   revalidatePath(`/${locale}/admin/cruising`);
-  // A published, hidden or removed spot changes what the public pages show.
-  revalidatePath(`/${locale}/cruising`, 'layout');
+  // A published, hidden or removed spot changes what the public pages show, in both languages.
+  for (const each of routing.locales) revalidatePath(`/${each}/cruising`, 'layout');
   const t = await getTranslations({ locale, namespace: 'AdminCruising' });
   return { status: 'success', message: t('done') };
 }
@@ -115,8 +115,8 @@ export async function takedownAction(
   formData: FormData,
 ): Promise<FormState> {
   const remove = formData.get('decision') === 'remove';
-  const t = await getTranslations({ locale, namespace: 'AdminCruising.takedowns' });
-  const response = text(formData, 'response') ?? t(remove ? 'defaultRemoved' : 'defaultClosed');
+  // Left empty, the email to the person says the decision in their own language.
+  const response = text(formData, 'response');
   return run(locale, formData, () => decideCruisingTakedown(takedownId, remove, response));
 }
 

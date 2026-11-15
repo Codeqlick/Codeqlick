@@ -6,6 +6,7 @@ import type { CruisingSpotSummary } from '@/lib/api/cruising';
 import {
   boundsToBboxes,
   formatBbox,
+  snapBbox,
   formatRating,
   mergeSpots,
   roundCoordinate,
@@ -90,13 +91,15 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
         bounds.getEast(),
         bounds.getNorth(),
       );
+      // Whole grid cells only: a request never reveals where the view is centred.
+      const cells = boxes.map((box) => snapBbox(box));
       pending.controller?.abort();
       const current = new AbortController();
       pending.controller = current;
       setLoad((state) => ({ ...state, status: 'loading' }));
       try {
         const results = await Promise.all(
-          boxes.map(async (box) => {
+          cells.map(async (box) => {
             const params = new URLSearchParams({ bbox: formatBbox(box) });
             if (typeRef.current) params.set('type', typeRef.current);
             const response = await fetch(`${endpoint}?${params}`, { signal: current.signal });
