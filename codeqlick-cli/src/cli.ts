@@ -28,6 +28,7 @@ import {
   type Monitor,
   type Project,
   type Protection,
+  type ProtectionBypass,
   type ProtectionDays,
   type ProtectionMode,
   formatApiError,
@@ -147,6 +148,11 @@ Password protection:
                               (the password is asked without echo, or read from stdin;
                               empty keeps the current one)
   protect off               Every address is public again
+  protect bypass            Make (or replace) the project's bypass token for automation
+                              (CI tests, link checkers): the token goes to standard output
+                              once, the rest to standard error; send it as
+                              X-Codeqlick-Bypass: <token>
+      --revoke                remove the bypass token
       --json                  (protect) print the API's answer
 
 Redirects, rewrites and headers: add them to ${PROJECT_FILE} (cleanUrls, trailingSlash,
@@ -168,6 +174,7 @@ interface Options {
   'min-score'?: string;
   'fail-on'?: string;
   json?: boolean;
+  revoke?: boolean;
   branch?: string;
   'no-cache'?: boolean;
   root?: string;
@@ -1576,10 +1583,21 @@ function warnProtected(
   if (note) console.error(note);
 }
 
+/** One line about the bypass token: its prefix and last use, or that none is set. */
+export function bypassSummary(bypass: ProtectionBypass | null): string {
+  if (!bypass) return 'none (create one with: codeqlick protect bypass)';
+  const used = bypass.lastUsedAt
+    ? `last used ${new Date(bypass.lastUsedAt).toLocaleString()}`
+    : 'never used';
+  return `${bypass.prefix}… (${used})`;
+}
+
 function showProtection(project: Project, protection: Protection): void {
   if (protection.mode === 'OFF') {
     console.log(`${bold(project.slug)}  ${dim('no password: every address is public')}`);
     console.log(dim('  Turn it on with: codeqlick protect previews|all'));
+    if (protection.bypass)
+      console.log(`  ${dim('bypass'.padEnd(9))}${bypassSummary(protection.bypass)}`);
     return;
   }
   const where =
@@ -1590,6 +1608,7 @@ function showProtection(project: Project, protection: Protection): void {
   const rows: Array<[string, string]> = [
     ['access', `${protection.days} ${protection.days === 1 ? 'day' : 'days'} once entered`],
     ['password', protection.hasPassword ? 'set' : 'none'],
+    ['bypass', bypassSummary(protection.bypass)],
   ];
   if (protection.updatedAt) rows.push(['changed', new Date(protection.updatedAt).toLocaleString()]);
   for (const [name, value] of rows) console.log(`  ${dim(name.padEnd(9))}${value}`);
@@ -1615,7 +1634,43 @@ async function newPassword(hasPassword: boolean): Promise<string | undefined> {
   return password;
 }
 
+/**
+ * `protect bypass`: makes or replaces the bypass token. Only the token goes to standard output
+ * (so it pipes into a CI secret); everything else goes to standard error. `--revoke` removes it.
+ */
+async function protectBypass(options: Options): Promise<void> {
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (options.revoke) {
+    await api.revokeBypass(project.id);
+    if (options.json) return console.log(JSON.stringify({}, null, 2));
+    console.error(`${green('✓')} The bypass token of ${bold(project.slug)} is revoked.`);
+    return;
+  }
+  const created = await api.createBypass(project.id);
+  if (options.json) {
+    return console.log(
+      JSON.stringify(
+        { token: created.token, prefix: created.prefix, createdAt: created.createdAt },
+        null,
+        2,
+      ),
+    );
+  }
+  console.log(created.token);
+  console.error(
+    [
+      `${green('✓')} New bypass token for ${bold(project.slug)} (${created.prefix}…). It is shown only now; any previous token stopped working.`,
+      dim('  Send it as a header to reach protected addresses without the password:'),
+      dim('    X-Codeqlick-Bypass: <token>'),
+      dim('  Store it as a secret: codeqlick protect bypass | gh secret set CQ_BYPASS'),
+    ].join('\n'),
+  );
+}
+
 async function protect(action: string | undefined, options: Options): Promise<void> {
+  if (action?.toLowerCase() === 'bypass') return protectBypass(options);
+  if (options.revoke) throw new UsageError('--revoke goes with "protect bypass".');
   const mode = action === undefined ? undefined : parseProtectMode(action);
   if (mode === null) throw new UsageError(`Unknown action "${action}": previews, all or off.`);
   const days = parseProtectDays(options.days);
@@ -1655,6 +1710,7 @@ export async function main(argv: string[]): Promise<number> {
       'min-score': { type: 'string' },
       'fail-on': { type: 'string' },
       json: { type: 'boolean' },
+      revoke: { type: 'boolean' },
       branch: { type: 'string' },
       'no-cache': { type: 'boolean' },
       root: { type: 'string' },

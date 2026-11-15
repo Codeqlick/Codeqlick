@@ -264,6 +264,32 @@ export class TryLimiter {
   }
 }
 
+// ── The bypass token for automation (architecture 4.13, decision 80) ────────────────────────
+
+/** The longest `X-Cq-Bypass` value looked at; anything longer is ignored. */
+export const BYPASS_HEADER_MAX = 200;
+/** The stored last use is refreshed at most this often. */
+export const BYPASS_TOUCH_MS = 60_000;
+
+/** `cqb_` + 32 random bytes in base64url, and what is stored and shown of it. */
+export function generateBypassToken(): { token: string; hash: string; prefix: string } {
+  const token = `cqb_${randomBytes(32).toString('base64url')}`;
+  return { token, hash: hashBypassToken(token), prefix: token.slice(0, 12) };
+}
+
+/** SHA-256 hex: a random 256-bit secret needs no slow hash. */
+export function hashBypassToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+/** Constant-time comparison of a presented token with the stored SHA-256 hex. */
+export function bypassMatches(storedHash: string | null | undefined, token: string): boolean {
+  if (!storedHash) return false;
+  const stored = Buffer.from(storedHash, 'hex');
+  const given = Buffer.from(hashBypassToken(token), 'hex');
+  return stored.length === given.length && timingSafeEqual(stored, given);
+}
+
 // ── `next` and the language ───────────────────────────────────────────────────────────────────
 
 /**

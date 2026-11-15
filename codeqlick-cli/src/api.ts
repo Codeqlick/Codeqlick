@@ -132,6 +132,22 @@ export interface Protection {
   days: ProtectionDays;
   hasPassword: boolean;
   updatedAt: string | null;
+  /** The bypass token for automation (never the token itself); null when none is set. */
+  bypass: ProtectionBypass | null;
+}
+
+export interface ProtectionBypass {
+  prefix: string;
+  createdAt: string;
+  createdBy: { id: string; name: string } | null;
+  lastUsedAt: string | null;
+}
+
+/** What creating a bypass token answers: the only time the token itself is returned. */
+export interface BypassCreated {
+  token: string;
+  prefix: string;
+  createdAt: string;
 }
 
 export interface ProtectionInput {
@@ -496,6 +512,10 @@ export class Api {
     this.request<Protection>('GET', `/cloud/projects/${project}/protection`);
   setProtection = (project: string, settings: ProtectionInput) =>
     this.request<Protection>('PUT', `/cloud/projects/${project}/protection`, settings);
+  createBypass = (project: string) =>
+    this.request<BypassCreated>('POST', `/cloud/projects/${project}/protection/bypass`);
+  revokeBypass = (project: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/protection/bypass`);
   audit = (teamSlug: string, url: string, locale: string) =>
     this.request<AuditReport>('POST', '/cloud/audits', { teamSlug, url, locale });
   teamGithub = (team: string) =>

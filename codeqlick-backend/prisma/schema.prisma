@@ -180,7 +180,8 @@ model User {
   cloudTokens                CloudToken[]
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
-  cloudProductionLocks       CloudProject[]
+  cloudProductionLocks       CloudProject[]             @relation("CloudProductionLockedBy")
+  cloudBypassTokens          CloudProject[]             @relation("CloudBypassCreator")
   cloudEvents                CloudEvent[]
   cloudDeployHooks           CloudDeployHook[]
   cloudStatusNotices         CloudStatusNotice[]
@@ -2250,6 +2251,13 @@ model CloudProject {
   protectionDays         Int       @default(7) @map("protection_days")
   protectionVersion      Int       @default(0) @map("protection_version")
   protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
+  /// The bypass token for automation (architecture 4.13, decision 80): SHA-256 hex of the token,
+  /// its first 12 characters, who made it and when, and when it last let a request through.
+  protectionBypassHash        String?   @unique @map("protection_bypass_hash")
+  protectionBypassPrefix      String?   @map("protection_bypass_prefix")
+  protectionBypassCreatedAt   DateTime? @map("protection_bypass_created_at") @db.Timestamptz(3)
+  protectionBypassCreatedById String?   @map("protection_bypass_created_by_id") @db.Uuid
+  protectionBypassLastUsedAt  DateTime? @map("protection_bypass_last_used_at") @db.Timestamptz(3)
   /// Scheduled rebuilds of the production branch, Madrid time (architecture 4.13, decision 65).
   rebuildFrequency       CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
   rebuildMinute          Int?      @map("rebuild_minute")
@@ -2264,7 +2272,8 @@ model CloudProject {
 
   team               CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
   production         CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  productionLockedBy User?                 @relation(fields: [productionLockedById], references: [id], onDelete: SetNull)
+  productionLockedBy User?                 @relation("CloudProductionLockedBy", fields: [productionLockedById], references: [id], onDelete: SetNull)
+  protectionBypassCreatedBy User?          @relation("CloudBypassCreator", fields: [protectionBypassCreatedById], references: [id], onDelete: SetNull)
   deployments        CloudDeployment[]     @relation("CloudDeployments")
   domains            CloudDomain[]
   reports            CloudReport[]
