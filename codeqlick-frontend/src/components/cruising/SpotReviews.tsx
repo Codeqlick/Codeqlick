@@ -14,7 +14,7 @@ import {
 } from '@/lib/api/cruising';
 import { isApiError } from '@/lib/api/errors';
 import { formatDate } from '@/lib/format';
-import { LIMITS } from '@/lib/cruising';
+import { LIMITS, memberHref } from '@/lib/cruising';
 import styles from './Cruising.module.css';
 import { ReportDetails } from './ReportDetails';
 
@@ -132,7 +132,20 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
               <p className={styles.reviewHead}>
                 <Stars rating={review.rating} label={t('stars', { count: review.rating })} />
                 <span>
-                  {review.mine ? t('you') : review.author ? review.author.nickname : t('member')}
+                  {review.mine ? (
+                    t('you')
+                  ) : review.author ? (
+                    // A profile needs a nickname of my own: without one the name is only text.
+                    status.profile ? (
+                      <Link href={memberHref(review.author.nickname)} className={vc.inlineLink}>
+                        {review.author.nickname}
+                      </Link>
+                    ) : (
+                      review.author.nickname
+                    )
+                  ) : (
+                    t('member')
+                  )}
                 </span>
                 <time dateTime={review.createdAt} className={styles.muted}>
                   {formatDate(review.createdAt, locale)}

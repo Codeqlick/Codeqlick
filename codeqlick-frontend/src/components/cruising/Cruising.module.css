@@ -351,6 +351,248 @@
   margin-top: var(--space-3);
 }
 
+/* Phase 2: profiles, presence and messages */
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.profileFacts {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-4);
+}
+
+.profileActions {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 36rem;
+}
+
+.presence {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 36rem;
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.presence p {
+  margin: 0;
+}
+
+.presenceCount {
+  font-weight: 600;
+}
+
+.hereList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.convList {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conv {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.convUnread {
+  border-color: var(--color-fuchsia);
+}
+
+.convHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.convName {
+  font-family: var(--font-family-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.convName:hover {
+  color: var(--color-fuchsia-dark);
+}
+
+.convName:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.convLast {
+  margin: 0;
+  color: var(--color-slate);
+  overflow-wrap: anywhere;
+}
+
+.chat {
+  max-width: 40rem;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.chatMessages {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  list-style: none;
+  min-height: 16rem;
+  max-height: 60dvh;
+  overflow-y: auto;
+  background: var(--color-white);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+}
+
+.mine,
+.theirs {
+  display: grid;
+  gap: 0.1rem;
+  max-width: 80%;
+}
+
+.mine {
+  justify-self: end;
+  justify-items: end;
+}
+
+.theirs {
+  justify-self: start;
+}
+
+.bubble {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mine .bubble {
+  background: var(--color-fuchsia-dark);
+  color: var(--color-white);
+}
+
+.theirs .bubble {
+  background: var(--color-surface-app);
+}
+
+.time {
+  font-size: 0.75rem;
+  color: var(--color-slate);
+}
+
+.compose {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.compose input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  font: inherit;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+}
+
+.compose input:focus-visible,
+.sendButton:focus-visible {
+  outline: 2px solid var(--color-fuchsia);
+  outline-offset: 2px;
+}
+
+.sendButton {
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia-dark);
+  color: var(--color-white);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sendButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.notice {
+  margin: 0;
+  text-align: center;
+  color: var(--color-slate);
+}
+
+.chatTools {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 40rem;
+  margin-top: var(--space-6);
+}
+
+.blockList {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blockItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  max-width: 36rem;
+}
+
 @media (max-width: 40rem) {
   .map {
     height: 60dvh;
