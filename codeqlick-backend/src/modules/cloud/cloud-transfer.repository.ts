@@ -136,7 +136,8 @@ export class CloudTransferRepository {
           where: { id: input.projectId },
           data: {
             teamId: input.toTeamId,
-            // Decision 80: the weekly check of production starts again in the target team.
+            // Decision 80: the weekly check of production is switched off; the target team turns it
+            // on again if it wants it.
             productionChecks: false,
             productionCheckNextAt: null,
             ...(input.git === 'drop'
