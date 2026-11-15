@@ -222,7 +222,12 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
       false,
     );
 
-    await request(server).patch(url).set(auth).send({ productionChecks: true }).expect(200);
+    const enabled = await request(server)
+      .patch(url)
+      .set(auth)
+      .send({ productionChecks: true })
+      .expect(200);
+    expect(enabled.body.productionChecks).toBe(true);
     const on = await prisma.cloudProject.findUniqueOrThrow({ where: { id } });
     expect(on.productionChecks).toBe(true);
     expect(on.productionCheckNextAt!.getTime()).toBe(nextProductionCheck(id, new Date()).getTime());
@@ -297,7 +302,7 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
     expect(fresh).toMatchObject({ teamId, userId: null, kind: 'SCHEDULED', projectId: id });
     expect(fresh.url).toMatch(new RegExp(`^https://apw-${tag}\\.`));
     expect(fresh.score).toBeLessThan(90);
-    expect(await events('audit.run')).toBe(0);
+    expect(await prisma.cloudEvent.count({ where: { teamId, action: 'audit.run' } })).toBe(0);
     const dropEmails = sent.mock.calls.filter(([message]) =>
       message.subject.startsWith('Website score dropped'),
     );

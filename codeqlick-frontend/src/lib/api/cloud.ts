@@ -130,6 +130,8 @@ export type CloudProject = {
   productionLock: { at: string; by: { id: string; name: string } | null } | null;
   /** Scheduled rebuilds of the production branch. */
   rebuild: CloudRebuild;
+  /** The weekly website check of production (decision 80). */
+  productionChecks: boolean;
   createdAt: string;
 };
 

@@ -67,8 +67,8 @@ function setup(
   const send = vi.fn((_message: unknown) => Promise.resolve());
   const admins = vi.fn(() =>
     Promise.resolve([
-      { email: 'ada@test.dev', locale: 'en' },
-      { email: 'eva@test.dev', locale: 'es' },
+      { email: 'ada@test.dev', locale: 'EN' },
+      { email: 'eva@test.dev', locale: 'ES' },
     ]),
   );
   const service = new CloudProductionChecksService(

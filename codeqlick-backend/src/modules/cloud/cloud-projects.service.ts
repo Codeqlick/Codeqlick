@@ -92,6 +92,8 @@ export interface ProjectView {
   productionLock: { at: string; by: { id: string; name: string } | null } | null;
   /** Scheduled rebuilds (architecture 4.13, decision 65). */
   rebuild: RebuildView;
+  /** The weekly website check of production (architecture 4.13, decision 80). */
+  productionChecks: boolean;
   createdAt: string;
 }
 
@@ -849,6 +851,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
         ? { at: project.productionLockedAt.toISOString(), by: project.productionLockedBy }
         : null,
       rebuild: rebuildView(project),
+      productionChecks: project.productionChecks,
       createdAt: project.createdAt.toISOString(),
     };
   }

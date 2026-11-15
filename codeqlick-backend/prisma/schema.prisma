@@ -2602,19 +2602,19 @@ model CloudStatusNoticeUpdate {
 
 /// A website check run through Cloud's API (architecture 4.13, Website check API); kept 30 days.
 model CloudAudit {
-  id        String   @id @default(uuid()) @db.Uuid
-  teamId    String   @map("team_id") @db.Uuid
-  userId    String?  @map("user_id") @db.Uuid
+  id        String         @id @default(uuid()) @db.Uuid
+  teamId    String         @map("team_id") @db.Uuid
+  userId    String?        @map("user_id") @db.Uuid
   /// The project a preview or scheduled check was made for (decision 80); null for a member's.
-  projectId String?  @map("project_id") @db.Uuid
+  projectId String?        @map("project_id") @db.Uuid
   /// Who asked for it (decision 80): a member (`MANUAL`), a pull request's preview (`PREVIEW`)
   /// or the weekly check of production (`SCHEDULED`, kept 90 days instead of 30).
   kind      CloudAuditKind @default(MANUAL)
-  url       String   @db.VarChar(2048)
+  url       String         @db.VarChar(2048)
   score     Int
   /// The checks' result as the free website check stores it (final URL, categories, checks).
   result    Json
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
 
   team    CloudTeam     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   project CloudProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
