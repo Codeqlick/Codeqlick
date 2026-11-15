@@ -116,8 +116,6 @@ See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-stor
 | `protect bypass --revoke`                 | Remove the bypass token.                                                          |
 | `--json`                                  | Print the API's answer (`{ token, prefix, createdAt }`, or `{}` with `--revoke`). |
 
-See [password protection](/en/password-protection/).
-
 ## Environment variables
 
 | Variable                              | What it does                                                    |

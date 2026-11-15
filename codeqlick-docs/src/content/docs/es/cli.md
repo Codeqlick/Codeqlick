@@ -116,8 +116,6 @@ Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-va
 | `protect bypass --revoke`                 | Elimina el token de acceso automático.                                                     |
 | `--json`                                  | Imprime la respuesta de la API (`{ token, prefix, createdAt }`, o `{}` con `--revoke`).    |
 
-Consulta [protección con contraseña](/es/password-protection/).
-
 ## Variables de entorno
 
 | Variable                              | Qué hace                                                             |

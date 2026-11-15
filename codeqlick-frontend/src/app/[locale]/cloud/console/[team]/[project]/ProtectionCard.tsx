@@ -164,7 +164,7 @@ function BypassRow({
   suspended,
 }: BypassRowProps) {
   return (
-    <div className={styles.bypass} role="group" aria-labelledby="bypass-title">
+    <section className={styles.bypass} aria-labelledby="bypass-title">
       <h3 id="bypass-title" className={styles.rowTitle}>
         {t('protection.bypass.title')}
       </h3>
@@ -240,6 +240,6 @@ function BypassRow({
           ) : null}
         </>
       ) : null}
-    </div>
+    </section>
   );
 }
