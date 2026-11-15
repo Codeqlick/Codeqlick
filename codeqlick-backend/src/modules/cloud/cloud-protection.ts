@@ -264,7 +264,7 @@ export class TryLimiter {
   }
 }
 
-// ── The bypass token for automation (architecture 4.13, decision 78) ────────────────────────
+// ── The bypass token for automation (architecture 4.13, decision 80) ────────────────────────
 
 /** The longest `X-Cq-Bypass` value looked at; anything longer is ignored. */
 export const BYPASS_HEADER_MAX = 200;

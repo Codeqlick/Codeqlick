@@ -70,7 +70,7 @@ export interface ProxyHeaders {
   deployment?: string;
   uri?: string;
   args?: string;
-  /** The visitor's `X-Codeqlick-Bypass` (decision 78), when sent. */
+  /** The visitor's `X-Codeqlick-Bypass` (decision 80), when sent. */
   bypass?: string;
 }
 
@@ -332,7 +332,7 @@ export class CloudProtectionService {
   }
 
   /**
-   * The bypass token for automation (decision 78), tried only when the cookie didn't pass. It is
+   * The bypass token for automation (decision 80), tried only when the cookie didn't pass. It is
    * always compared (a SHA-256 and a constant-time compare, cheap). A wrong token counts as no
    * token; there is no per-IP limit on wrong ones (a 256-bit token can't be guessed).
    */

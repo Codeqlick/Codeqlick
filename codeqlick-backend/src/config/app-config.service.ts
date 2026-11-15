@@ -288,6 +288,11 @@ export class AppConfigService {
     return this.get('SWIPE_UPLOADS_DIR');
   }
 
+  /** Version of Cruising's rules and terms (architecture 4.15). */
+  get cruisingTermsVersion(): string {
+    return this.get('CRUISING_TERMS_VERSION');
+  }
+
   /** Origins allowed to open the video chat's WebSocket. */
   get videochatOrigins(): string[] {
     return this.get('VIDEOCHAT_ORIGINS');

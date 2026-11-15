@@ -727,7 +727,7 @@ done, the API answers 503 when someone tries to turn it on. Once, as a user with
 
 #### Bypass for automation
 
-Architecture 4.13 "Bypass for automation" and 8.3, decision 78. The same check carries the
+Architecture 4.13 "Bypass for automation" and 8.3, decision 80. The same check carries the
 `X-Codeqlick-Bypass` header to the API (`X-Cq-Bypass`, from the `$cq_bypass` map in the hosting site)
 and both cache keys include it, so a bypassed answer is never reused for a request without it. No new
 key or variable, no change to `cq-site`. After the release that ships it, once, as a user with sudo,

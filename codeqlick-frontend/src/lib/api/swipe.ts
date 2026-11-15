@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { ACCESS_COOKIE } from '@/lib/auth/constants';
 import { env } from '@/lib/env';
+import type { SwipeCountry } from '../countries';
 import type { Interest } from '../videochat-interests';
 import { apiFetch } from './client';
 
@@ -29,51 +30,8 @@ export type SwipeSuspension = (typeof SWIPE_SUSPENSIONS)[number];
 export type PhotoStatus = 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN';
 export type VerificationStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
-/** Countries a profile can name (the API's COUNTRIES). */
-export const SWIPE_COUNTRIES = [
-  'ES',
-  'MX',
-  'AR',
-  'CO',
-  'CL',
-  'PE',
-  'VE',
-  'EC',
-  'GT',
-  'CU',
-  'BO',
-  'DO',
-  'HN',
-  'PY',
-  'SV',
-  'NI',
-  'CR',
-  'PA',
-  'UY',
-  'PR',
-  'US',
-  'CA',
-  'GB',
-  'IE',
-  'FR',
-  'PT',
-  'IT',
-  'DE',
-  'NL',
-  'BE',
-  'CH',
-  'AT',
-  'SE',
-  'NO',
-  'DK',
-  'FI',
-  'PL',
-  'RO',
-  'GR',
-  'AD',
-  'AU',
-] as const;
-export type SwipeCountry = (typeof SWIPE_COUNTRIES)[number];
+export { SWIPE_COUNTRIES } from '../countries';
+export type { SwipeCountry };
 export const MIN_AGE_FILTER = 18;
 export const MAX_AGE_FILTER = 99;
 

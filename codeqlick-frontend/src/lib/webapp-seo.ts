@@ -39,6 +39,8 @@ export function webappAlternates(
 export const WEBAPP_PUBLIC_PATHS: Partial<Record<Webapp, string[]>> = {
   videochat: ['', '/rules'],
   swipe: ['', '/rules', '/takedown'],
+  // Spots and place pages are added from the API's sitemap (app/sitemap.ts).
+  cruising: ['', '/map', '/places', '/rules', '/takedown', '/terms-of-use', '/privacy-policy'],
   // With the public documentation site set up, /docs only redirects: not listed.
   cloud: env.CLOUD_DOCS_URL ? ['', '/terms-of-use'] : ['', '/docs', '/terms-of-use'],
 };

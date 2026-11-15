@@ -33,7 +33,7 @@ map $http_cookie $cq_access {
     default "";
 }
 
-# Bypass token for automation (architecture 4.13 "Bypass for automation", decision 78): the value of
+# Bypass token for automation (architecture 4.13 "Bypass for automation", decision 80): the value of
 # the visitor's X-Codeqlick-Bypass header, empty when absent or longer than 200 characters (the API
 # ignores those anyway). It goes to the check as X-Cq-Bypass and into both cache keys; never log it.
 map $http_x_codeqlick_bypass $cq_bypass {

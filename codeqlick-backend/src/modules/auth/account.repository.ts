@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Locale, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
 
 export type EmailChangeResult =
   { status: 'done'; user: User; oldEmail: string } | { status: 'invalid' } | { status: 'taken' };
@@ -90,7 +91,7 @@ export class AccountRepository {
 
   /** Sessions, tokens, proposals, support requests and video chat data go with it (cascade). */
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await deleteUserRecomputingRatings(this.prisma, id);
   }
 
   /**
@@ -121,6 +122,12 @@ export class AccountRepository {
       swipeLikesGiven,
       swipeMessages,
       swipeReportsMade,
+      cruising,
+      cruisingSpots,
+      cruisingReviews,
+      cruisingReportsMade,
+      cruisingCheckIns,
+      cruisingMessages,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -329,6 +336,75 @@ export class AccountRepository {
         orderBy: { createdAt: 'asc' },
         select: { reason: true, details: true, status: true, createdAt: true },
       }),
+      p.cruisingProfile.findUnique({
+        where: { userId },
+        select: {
+          birthYear: true,
+          termsVersion: true,
+          acceptedAt: true,
+          emailAlerts: true,
+          nickname: true,
+          bio: true,
+          country: true,
+          lookingFor: true,
+          showAge: true,
+          suspendedUntil: true,
+          suspensionReason: true,
+          createdAt: true,
+        },
+      }),
+      // The spots stay in the directory when the account is deleted; here they are the person's.
+      p.cruisingSpot.findMany({
+        where: { createdById: userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          slug: true,
+          name: true,
+          type: true,
+          lat: true,
+          lng: true,
+          countryCode: true,
+          city: true,
+          description: true,
+          bestTimes: true,
+          status: true,
+          rejectReason: true,
+          createdAt: true,
+        },
+      }),
+      p.cruisingReview.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          rating: true,
+          text: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          spot: { select: { slug: true } },
+        },
+      }),
+      p.cruisingReport.findMany({
+        where: { reporterId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { targetType: true, reason: true, details: true, status: true, createdAt: true },
+      }),
+      // The spot and nothing else: a check-in never holds a position.
+      p.cruisingCheckIn.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          anonymous: true,
+          expiresAt: true,
+          createdAt: true,
+          spot: { select: { slug: true } },
+        },
+      }),
+      p.cruisingMessage.findMany({
+        where: { senderId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { text: true, createdAt: true },
+      }),
       p.cloudMember.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
@@ -387,6 +463,16 @@ export class AccountRepository {
             likesGiven: swipeLikesGiven,
             messagesSent: swipeMessages,
             reportsMade: swipeReportsMade,
+          }
+        : null,
+      cruising: cruising
+        ? {
+            profile: cruising,
+            spotsProposed: cruisingSpots,
+            reviews: cruisingReviews,
+            reportsMade: cruisingReportsMade,
+            checkIns: cruisingCheckIns,
+            messagesSent: cruisingMessages,
           }
         : null,
       cloud:
