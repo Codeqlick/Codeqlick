@@ -168,6 +168,13 @@ model User {
   cruisingReportsGot         CruisingReport[]            @relation("CruisingReported")
   cruisingReportsReviewed    CruisingReport[]            @relation("CruisingReportReviewer")
   cruisingTakedownsReviewed  CruisingTakedown[]
+  cruisingCheckIns           CruisingCheckIn[]
+  cruisingConversationStarts CruisingConversationStart[]
+  cruisingConversationsA     CruisingConversation[]      @relation("CruisingConversationA")
+  cruisingConversationsB     CruisingConversation[]      @relation("CruisingConversationB")
+  cruisingMessages           CruisingMessage[]
+  cruisingBlocksMade         CruisingBlock[]             @relation("CruisingBlocker")
+  cruisingBlocksGot          CruisingBlock[]             @relation("CruisingBlocked")
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
@@ -2942,7 +2949,7 @@ enum NewsletterStatus {
   UNSUBSCRIBED
 }
 
-// ---- Cruising (architecture 4.15), phase 1: the directory ------------------------------------------
+// ---- Cruising (architecture 4.15): phase 1 the directory, phase 2 the social network ---------------
 
 enum CruisingSpotType {
   BEACH
@@ -2972,10 +2979,17 @@ enum CruisingReviewStatus {
 enum CruisingReportTarget {
   SPOT
   REVIEW
-  /// Phase 2.
   PROFILE
-  /// Phase 2.
   CONVERSATION
+}
+
+/// What a member says they are looking for (phase 2).
+enum CruisingLookingFor {
+  CHAT
+  FRIENDS
+  DATES
+  FUN
+  GROUP
 }
 
 enum CruisingReportReason {
@@ -3005,19 +3019,27 @@ enum CruisingTakedownStatus {
 /// A person in Cruising: 18+ declared (the date of birth is checked, not stored), the rules and the
 /// special category data consent accepted. Phase 2 adds the nickname, bio, country, lookingFor, showAge.
 model CruisingProfile {
-  userId           String    @id @map("user_id") @db.Uuid
+  userId           String               @id @map("user_id") @db.Uuid
   /// Only the year of birth; the full date is never stored.
-  birthYear        Int       @map("birth_year")
-  termsVersion     String    @map("terms_version")
-  acceptedAt       DateTime  @map("accepted_at") @db.Timestamptz(3)
-  /// Emails about published spots (and, in phase 2, unread messages); the team's decisions are always mailed.
-  emailAlerts      Boolean   @default(true) @map("email_alerts")
-  suspendedAt      DateTime? @map("suspended_at") @db.Timestamptz(3)
+  birthYear        Int                  @map("birth_year")
+  termsVersion     String               @map("terms_version")
+  acceptedAt       DateTime             @map("accepted_at") @db.Timestamptz(3)
+  /// Emails about published spots and unread messages; the team's decisions are always mailed.
+  emailAlerts      Boolean              @default(true) @map("email_alerts")
+  suspendedAt      DateTime?            @map("suspended_at") @db.Timestamptz(3)
   /// Null with suspendedAt set: until lifted.
-  suspendedUntil   DateTime? @map("suspended_until") @db.Timestamptz(3)
-  suspensionReason String?   @map("suspension_reason") @db.VarChar(500)
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  suspendedUntil   DateTime?            @map("suspended_until") @db.Timestamptz(3)
+  suspensionReason String?              @map("suspension_reason") @db.VarChar(500)
+  /// Phase 2: unique, 3-20 of a-z, 0-9 and _, lower case; needed for check-ins and messages.
+  nickname         String?              @unique @db.VarChar(20)
+  bio              String               @default("") @db.VarChar(160)
+  /// ISO 3166-1 alpha-2, optional.
+  country          String?              @db.VarChar(2)
+  lookingFor       CruisingLookingFor[] @default([]) @map("looking_for")
+  /// The age shown is the current year minus birthYear.
+  showAge          Boolean              @default(true) @map("show_age")
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -3055,6 +3077,7 @@ model CruisingSpot {
   reviews   CruisingReview[]
   reports   CruisingReport[]
   takedowns CruisingTakedown[]
+  checkIns  CruisingCheckIn[]
 
   @@index([status, lat])
   @@index([countryCode, citySlug, status])
@@ -3137,4 +3160,95 @@ model CruisingTakedown {
   @@index([status, createdAt])
   @@index([spotId])
   @@map("cruising_takedowns")
+}
+
+/// "I'm here" at a LIVE spot for 1 to 3 hours. The spot and nothing else: the person's position is
+/// never stored. Active while expiresAt is in the future; ending one sets expiresAt to now, and a
+/// background task deletes the ones that expired more than 24 hours ago.
+model CruisingCheckIn {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  spotId    String   @map("spot_id") @db.Uuid
+  /// Counted in "N here now" but without the nickname.
+  anonymous Boolean  @default(false)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot CruisingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@index([spotId, expiresAt])
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+  @@map("cruising_check_ins")
+}
+
+/// Two members talking. `userAId` < `userBId`. It starts from a profile, a check-in or a review.
+/// Each conversation a member opened, kept apart from the conversation (which leaving or blocking
+/// deletes) so the 10 new conversations a day can't be got round. Older than a day: deleted hourly.
+model CruisingConversationStart {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("cruising_conversation_starts")
+}
+
+model CruisingConversation {
+  id            String    @id @default(uuid()) @db.Uuid
+  userAId       String    @map("user_a_id") @db.Uuid
+  userBId       String    @map("user_b_id") @db.Uuid
+  /// Who opened it (counts toward their 10 new conversations a day). Not a relation: the
+  /// conversation is deleted with either person, so it never outlives them.
+  starterId     String    @map("starter_id") @db.Uuid
+  lastMessageAt DateTime? @map("last_message_at") @db.Timestamptz(3)
+  readAAt       DateTime? @map("read_a_at") @db.Timestamptz(3)
+  readBAt       DateTime? @map("read_b_at") @db.Timestamptz(3)
+  /// When each was last emailed about unread messages (again only after reading).
+  notifiedAAt   DateTime? @map("notified_a_at") @db.Timestamptz(3)
+  notifiedBAt   DateTime? @map("notified_b_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  userA    User              @relation("CruisingConversationA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB    User              @relation("CruisingConversationB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages CruisingMessage[]
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+  @@index([lastMessageAt])
+  @@index([starterId, createdAt])
+  @@map("cruising_conversations")
+}
+
+/// A text message (no images, nothing to moderate before).
+model CruisingMessage {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  senderId       String   @map("sender_id") @db.Uuid
+  text           String   @db.VarChar(1000)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  conversation CruisingConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User                 @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("cruising_messages")
+}
+
+/// Either direction: they never see each other again (check-ins, reviews, profiles, conversations).
+model CruisingBlock {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  blocker User @relation("CruisingBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("CruisingBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("cruising_blocks")
 }

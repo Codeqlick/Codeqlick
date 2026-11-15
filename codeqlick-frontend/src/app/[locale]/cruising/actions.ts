@@ -7,24 +7,40 @@ import { localeOrDefault } from '@/i18n/locale';
 import { routing, type AppLocale } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import {
+  blockCruisingConversation,
+  blockCruisingMember,
+  createCruisingCheckIn,
   createCruisingSpot,
   deleteCruisingReview,
   deleteCruisingSpot,
+  endCruisingCheckIn,
+  leaveCruisingConversation,
   onboardCruising,
+  openCruisingConversation,
   reportCruising,
   requestCruisingTakedown,
   saveCruisingReview,
+  sendCruisingMessage,
+  unblockCruisingMember,
   updateCruisingProfile,
   updateCruisingSpot,
+  type CruisingMessage,
 } from '@/lib/api/cruising';
 import {
+  CRUISING_COUNTRIES,
+  isLookingFor,
+  isNickname,
   LIMITS,
+  normalizeNickname,
+  parseCheckInHours,
   parseSpotForm,
+  PERSON_REPORT_REASONS,
   REPORT_REASONS,
   REVIEW_REPORT_REASONS,
   spotLinkSlug,
   TAKEDOWN_REASONS,
   toSpotInput,
+  type CruisingLookingFor,
   type CruisingReportReason,
 } from '@/lib/cruising';
 import type { FormState } from '@/lib/forms';
@@ -239,7 +255,7 @@ export async function deleteReviewAction(
  */
 export async function reportAction(
   locale: AppLocale,
-  target: { kind: 'spot' | 'review' | 'correction'; id: string },
+  target: { kind: 'spot' | 'review' | 'correction' | 'profile' | 'conversation'; id: string },
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -248,20 +264,31 @@ export async function reportAction(
     .trim()
     .slice(0, LIMITS.details);
   const allowed: readonly CruisingReportReason[] =
-    target.kind === 'review' ? REVIEW_REPORT_REASONS : REPORT_REASONS;
+    target.kind === 'review'
+      ? REVIEW_REPORT_REASONS
+      : target.kind === 'profile' || target.kind === 'conversation'
+        ? PERSON_REPORT_REASONS
+        : REPORT_REASONS;
   const reason: CruisingReportReason | undefined =
     target.kind === 'correction'
       ? 'WRONG_INFO'
       : allowed.find((value) => value === formData.get('reason'));
   const values = { reason: reason ?? '', details };
-  if (!UUID.test(target.id)) return { status: 'error', message: t('error'), values };
+  const validTarget = target.kind === 'profile' ? isNickname(target.id) : UUID.test(target.id);
+  if (!validTarget) return { status: 'error', message: t('error'), values };
   if (!reason) return { status: 'error', fieldErrors: { reason: t('reasonNeeded') }, values };
   if (reason === 'WRONG_INFO' && details.length < 10) {
     return { status: 'error', fieldErrors: { details: t('detailsNeeded') }, values };
   }
   try {
     await reportCruising({
-      ...(target.kind === 'review' ? { reviewId: target.id } : { spotId: target.id }),
+      ...(target.kind === 'review'
+        ? { reviewId: target.id }
+        : target.kind === 'profile'
+          ? { nickname: target.id }
+          : target.kind === 'conversation'
+            ? { conversationId: target.id }
+            : { spotId: target.id }),
       reason,
       details: details || undefined,
     });
@@ -311,4 +338,226 @@ export async function takedownAction(_previous: FormState, formData: FormData): 
     return { status: 'error', message: t('error'), values };
   }
   return { status: 'success', message: t('sent') };
+}
+
+// ---- Phase 2: profile, check-ins, blocks and messages ------------------------------------------
+
+/** Saves my profile (PATCH /cruising/profile). The nickname is sent only while I have none. */
+export async function profileAction(
+  locale: AppLocale,
+  hasNickname: boolean,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.me' });
+  const nickname = normalizeNickname(String(formData.get('nickname') ?? ''));
+  const bio = String(formData.get('bio') ?? '').trim();
+  const countryValue = String(formData.get('country') ?? '');
+  const lookingFor: CruisingLookingFor[] = formData.getAll('lookingFor').filter(isLookingFor);
+  const showAge = formData.get('showAge') === 'on';
+  const values: Record<string, string> = {
+    nickname,
+    bio,
+    country: countryValue,
+    lookingFor: lookingFor.join('\n'),
+    ...(showAge ? { showAge: 'on' } : {}),
+  };
+
+  if (!hasNickname && !isNickname(nickname)) {
+    return { status: 'error', fieldErrors: { nickname: t('nicknameInvalid') }, values };
+  }
+  if (bio.length > LIMITS.bio) {
+    return { status: 'error', fieldErrors: { bio: t('bioLong') }, values };
+  }
+  const country = CRUISING_COUNTRIES.find((code) => code === countryValue) ?? null;
+  if (countryValue && !country) {
+    return { status: 'error', fieldErrors: { country: t('countryInvalid') }, values };
+  }
+  try {
+    await updateCruisingProfile({
+      ...(hasNickname ? {} : { nickname }),
+      bio,
+      country,
+      lookingFor,
+      showAge,
+    });
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameTaken') }, values };
+    }
+    // A refused bio (contact details) is a 400 too: the API's message says which.
+    if (status === 400 && (hasNickname || /bio/i.test(isApiError(error) ? error.message : ''))) {
+      return { status: 'error', fieldErrors: { bio: t('bioContact') }, values };
+    }
+    if (status === 400) {
+      return { status: 'error', fieldErrors: { nickname: t('nicknameRefused') }, values };
+    }
+    if (status === 403) return { status: 'error', message: t('notAllowed'), values };
+    return { status: 'error', message: t('error'), values };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: t('saved') };
+}
+
+/** "I'm here" at a spot (POST /cruising/check-ins): it ends my previous check-in. */
+export async function checkInAction(
+  locale: AppLocale,
+  spotId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.presence' });
+  const hours = parseCheckInHours(formData.get('hours'));
+  if (!UUID.test(spotId) || !hours) return { status: 'error', message: t('error') };
+  try {
+    await createCruisingCheckIn({ spotId, hours, anonymous: formData.get('anonymous') === 'on' });
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) return { status: 'error', message: t('needNickname') };
+    if (status === 404) return { status: 'error', message: t('gone') };
+    if (status === 429) return { status: 'error', message: t('tooManyToday') };
+    if (status === 403) return { status: 'error', message: t('notAllowed') };
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: t('checkedIn') };
+}
+
+/** Ends my check-in (DELETE /cruising/check-in). */
+export async function endCheckInAction(
+  locale: AppLocale,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.presence' });
+  try {
+    await endCruisingCheckIn();
+  } catch {
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: t('ended') };
+}
+
+/** Opens (or returns) the conversation with a member and goes to it. */
+export async function startConversationAction(
+  locale: AppLocale,
+  nickname: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.members' });
+  if (!isNickname(nickname)) return { status: 'error', message: t('error') };
+  const opened = await openCruisingConversation(nickname).then(
+    (conversation) => ({ id: conversation.id }) as const,
+    (error: unknown) => ({ status: isApiError(error) ? error.status : 0 }) as const,
+  );
+  if ('status' in opened) {
+    if (opened.status === 409) redirect(await appPath(`/${locale}/cruising/me`, locale));
+    if (opened.status === 404) return { status: 'error', message: t('notFound') };
+    if (opened.status === 429) return { status: 'error', message: t('tooManyConversations') };
+    if (opened.status === 403) return { status: 'error', message: t('notAllowed') };
+    return { status: 'error', message: t('error') };
+  }
+  redirect(await appPath(`/${locale}/cruising/messages/${opened.id}`, locale));
+}
+
+/** Blocks a member both ways and deletes the conversation with them. */
+export async function blockMemberAction(
+  locale: AppLocale,
+  nickname: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.members' });
+  if (!isNickname(nickname)) return { status: 'error', message: t('error') };
+  try {
+    await blockCruisingMember(nickname);
+  } catch {
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  redirect(await appPath(`/${locale}/cruising/me?blocked=1`, locale));
+}
+
+/** Lifts one of my blocks. */
+export async function unblockAction(
+  locale: AppLocale,
+  nickname: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.me' });
+  if (!isNickname(nickname)) return { status: 'error', message: t('error') };
+  try {
+    await unblockCruisingMember(nickname);
+  } catch {
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: t('unblocked') };
+}
+
+export type SendMessageResult =
+  | { ok: true; message: CruisingMessage }
+  | { ok: false; reason: 'contact' | 'rate' | 'gone' | 'error' };
+
+/** Sends a message in a conversation (POST /cruising/conversations/:id/messages). */
+export async function sendMessageAction(
+  conversationId: string,
+  text: string,
+): Promise<SendMessageResult> {
+  const clean = String(text ?? '').trim();
+  if (!UUID.test(conversationId) || !clean || clean.length > LIMITS.message) {
+    return { ok: false, reason: 'error' };
+  }
+  try {
+    return { ok: true, message: await sendCruisingMessage(conversationId, clean) };
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 400) return { ok: false, reason: 'contact' };
+    if (status === 429) return { ok: false, reason: 'rate' };
+    if (status === 404) return { ok: false, reason: 'gone' };
+    return { ok: false, reason: 'error' };
+  }
+}
+
+/** Leaves a conversation (it is deleted for both) or blocks the person (also deleting it). */
+async function endConversation(
+  locale: AppLocale,
+  conversationId: string,
+  block: boolean,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.messages' });
+  if (!UUID.test(conversationId)) return { status: 'error', message: t('error') };
+  try {
+    await (block
+      ? blockCruisingConversation(conversationId)
+      : leaveCruisingConversation(conversationId));
+  } catch (error) {
+    if (!(isApiError(error) && error.status === 404)) {
+      return { status: 'error', message: t('error') };
+    }
+  }
+  refreshAll(locale);
+  redirect(await appPath(`/${locale}/cruising/messages?${block ? 'blocked' : 'left'}=1`, locale));
+}
+
+export async function leaveConversationAction(
+  locale: AppLocale,
+  conversationId: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  return endConversation(locale, conversationId, false);
+}
+
+export async function blockConversationAction(
+  locale: AppLocale,
+  conversationId: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  return endConversation(locale, conversationId, true);
 }

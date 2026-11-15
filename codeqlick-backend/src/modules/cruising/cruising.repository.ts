@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  CruisingConversation,
   CruisingProfile,
   CruisingReportStatus,
   CruisingReviewStatus,
@@ -9,8 +10,8 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { roundRating, type Bbox } from './cruising.rules.js';
-import { ADMIN_LIST_LIMIT } from './cruising.schemas.js';
+import { conversationPair, roundRating, type Bbox } from './cruising.rules.js';
+import { ADMIN_LIST_LIMIT, MAX_LIST_ROWS, MESSAGES_PAGE } from './cruising.schemas.js';
 
 const personSelect = { id: true, name: true, email: true } as const;
 
@@ -21,6 +22,12 @@ const recipientSelect = {
   locale: true,
   cruisingProfile: { select: { emailAlerts: true, suspendedAt: true, suspendedUntil: true } },
 } as const;
+
+/** Where a check-in points: enough to name the spot and link to it. */
+const spotRefSelect = { id: true, slug: true, name: true } as const;
+
+/** The most check-ins the presence of one spot lists (a spot is rarely this busy). */
+const MAX_PRESENCE_ROWS = 500;
 
 const spotSummarySelect = {
   id: true,
@@ -97,6 +104,10 @@ export class CruisingRepository {
 
   updateProfile(userId: string, data: Prisma.CruisingProfileUpdateInput): Promise<CruisingProfile> {
     return this.prisma.cruisingProfile.update({ where: { userId }, data });
+  }
+
+  findProfileByNickname(nickname: string): Promise<CruisingProfile | null> {
+    return this.prisma.cruisingProfile.findUnique({ where: { nickname } });
   }
 
   /** Who to tell about something, with their language and Cruising switches. */
@@ -227,17 +238,30 @@ export class CruisingRepository {
     });
   }
 
-  async reviewsOfSpot(spotId: string, skip: number, take: number) {
-    const where = { spotId, status: 'LIVE' } as const;
-    const [items, total] = await Promise.all([
+  /**
+   * The LIVE reviews of a spot, newest first, without those of people hidden from the viewer (a
+   * block either way), each with its author's nickname.
+   */
+  async reviewsOfSpot(spotId: string, skip: number, take: number, hiddenIds: string[] = []) {
+    const where: Prisma.CruisingReviewWhereInput = {
+      spotId,
+      status: 'LIVE',
+      ...(hiddenIds.length ? { userId: { notIn: hiddenIds } } : {}),
+    };
+    const [rows, total] = await Promise.all([
       this.prisma.cruisingReview.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip,
         take,
+        include: { user: { select: { cruisingProfile: { select: { nickname: true } } } } },
       }),
       this.prisma.cruisingReview.count({ where }),
     ]);
+    const items = rows.map(({ user, ...review }) => ({
+      ...review,
+      nickname: user.cruisingProfile?.nickname ?? null,
+    }));
     return { items, total };
   }
 
@@ -303,7 +327,7 @@ export class CruisingRepository {
       orderBy: { createdAt: status === 'OPEN' ? 'asc' : 'desc' },
       take: ADMIN_LIST_LIMIT,
       include: {
-        reporter: { select: personSelect },
+        reporter: { select: { ...personSelect, cruisingProfile: { select: { nickname: true } } } },
         reported: { select: { ...personSelect, cruisingProfile: true } },
         reviewedBy: { select: { id: true, name: true } },
         spot: { select: { id: true, slug: true, name: true, type: true, status: true } },
@@ -453,21 +477,315 @@ export class CruisingRepository {
   }
 
   async overview(now: Date) {
-    const [members, pendingSpots, liveSpots, openReports, openTakedowns, reviews, suspended] =
-      await Promise.all([
-        this.prisma.cruisingProfile.count(),
-        this.prisma.cruisingSpot.count({ where: { status: 'PENDING' } }),
-        this.prisma.cruisingSpot.count({ where: { status: 'LIVE' } }),
-        this.prisma.cruisingReport.count({ where: { status: 'OPEN' } }),
-        this.prisma.cruisingTakedown.count({ where: { status: 'OPEN' } }),
-        this.prisma.cruisingReview.count(),
-        this.prisma.cruisingProfile.count({
-          where: {
-            suspendedAt: { not: null },
-            OR: [{ suspendedUntil: null }, { suspendedUntil: { gt: now } }],
+    const [
+      members,
+      pendingSpots,
+      liveSpots,
+      openReports,
+      openTakedowns,
+      reviews,
+      suspended,
+      activeCheckIns,
+      conversations,
+    ] = await Promise.all([
+      this.prisma.cruisingProfile.count(),
+      this.prisma.cruisingSpot.count({ where: { status: 'PENDING' } }),
+      this.prisma.cruisingSpot.count({ where: { status: 'LIVE' } }),
+      this.prisma.cruisingReport.count({ where: { status: 'OPEN' } }),
+      this.prisma.cruisingTakedown.count({ where: { status: 'OPEN' } }),
+      this.prisma.cruisingReview.count(),
+      this.prisma.cruisingProfile.count({
+        where: {
+          suspendedAt: { not: null },
+          OR: [{ suspendedUntil: null }, { suspendedUntil: { gt: now } }],
+        },
+      }),
+      this.prisma.cruisingCheckIn.count({ where: { expiresAt: { gt: now } } }),
+      this.prisma.cruisingConversation.count(),
+    ]);
+    return {
+      members,
+      pendingSpots,
+      liveSpots,
+      openReports,
+      openTakedowns,
+      reviews,
+      suspended,
+      activeCheckIns,
+      conversations,
+    };
+  }
+
+  // ---- Blocks (phase 2) --------------------------------------------------------------------------
+
+  /** The people hidden from `userId`: those they blocked and those who blocked them. */
+  async hiddenIds(userId: string): Promise<string[]> {
+    const blocks = await this.prisma.cruisingBlock.findMany({
+      where: { OR: [{ blockerId: userId }, { blockedId: userId }] },
+      select: { blockerId: true, blockedId: true },
+    });
+    return [
+      ...new Set(blocks.map((row) => (row.blockerId === userId ? row.blockedId : row.blockerId))),
+    ];
+  }
+
+  /** My blocks, newest first, with the nickname of each person blocked. */
+  blocksMade(userId: string) {
+    return this.prisma.cruisingBlock.findMany({
+      where: { blockerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: MAX_LIST_ROWS,
+      select: {
+        createdAt: true,
+        blocked: { select: { cruisingProfile: { select: { nickname: true } } } },
+      },
+    });
+  }
+
+  /** Blocks `blockedId` for `blockerId` and deletes the conversation between them, together. */
+  async block(blockerId: string, blockedId: string): Promise<void> {
+    const [userAId, userBId] = conversationPair(blockerId, blockedId);
+    await this.prisma.$transaction([
+      this.prisma.cruisingBlock.upsert({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+        create: { blockerId, blockedId },
+        update: {},
+      }),
+      this.prisma.cruisingConversation.deleteMany({ where: { userAId, userBId } }),
+    ]);
+  }
+
+  /** Lifts my block; false when there was none. */
+  async unblock(blockerId: string, blockedId: string): Promise<boolean> {
+    const { count } = await this.prisma.cruisingBlock.deleteMany({
+      where: { blockerId, blockedId },
+    });
+    return count > 0;
+  }
+
+  // ---- Check-ins (phase 2) -----------------------------------------------------------------------
+
+  /** Ends the person's active check-in, if any (it expires now). */
+  async endCheckIns(userId: string, now: Date): Promise<void> {
+    await this.prisma.cruisingCheckIn.updateMany({
+      where: { userId, expiresAt: { gt: now } },
+      data: { expiresAt: now },
+    });
+  }
+
+  /** Ends the previous check-in and creates the new one, together. */
+  async createCheckIn(
+    userId: string,
+    spotId: string,
+    anonymous: boolean,
+    expiresAt: Date,
+    now: Date,
+  ) {
+    const [, checkIn] = await this.prisma.$transaction([
+      this.prisma.cruisingCheckIn.updateMany({
+        where: { userId, expiresAt: { gt: now } },
+        data: { expiresAt: now },
+      }),
+      this.prisma.cruisingCheckIn.create({
+        data: { userId, spotId, anonymous, expiresAt, createdAt: now },
+        include: { spot: { select: spotRefSelect } },
+      }),
+    ]);
+    return checkIn;
+  }
+
+  activeCheckIn(userId: string, now: Date) {
+    return this.prisma.cruisingCheckIn.findFirst({
+      where: { userId, expiresAt: { gt: now } },
+      orderBy: { createdAt: 'desc' },
+      include: { spot: { select: spotRefSelect } },
+    });
+  }
+
+  countCheckInsSince(userId: string, since: Date): Promise<number> {
+    return this.prisma.cruisingCheckIn.count({ where: { userId, createdAt: { gte: since } } });
+  }
+
+  /**
+   * The active check-ins at a spot, oldest first, without the people hidden from the viewer and
+   * without suspended ones; each with the nickname.
+   */
+  presence(spotId: string, now: Date, hiddenIds: string[]) {
+    return this.prisma.cruisingCheckIn.findMany({
+      where: {
+        spotId,
+        expiresAt: { gt: now },
+        ...(hiddenIds.length ? { userId: { notIn: hiddenIds } } : {}),
+        user: {
+          cruisingProfile: {
+            is: { OR: [{ suspendedAt: null }, { suspendedUntil: { lte: now } }] },
           },
-        }),
-      ]);
-    return { members, pendingSpots, liveSpots, openReports, openTakedowns, reviews, suspended };
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: MAX_PRESENCE_ROWS,
+      select: {
+        id: true,
+        anonymous: true,
+        createdAt: true,
+        user: { select: { cruisingProfile: { select: { nickname: true } } } },
+      },
+    });
+  }
+
+  /** Deletes the check-ins that expired before `before`; how many. */
+  async deleteCheckInsExpiredBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.cruisingCheckIn.deleteMany({
+      where: { expiresAt: { lt: before } },
+    });
+    return count;
+  }
+
+  // ---- Conversations and messages (phase 2) ------------------------------------------------------
+
+  findConversation(id: string): Promise<CruisingConversation | null> {
+    return this.prisma.cruisingConversation.findUnique({ where: { id } });
+  }
+
+  findConversationBetween(first: string, second: string): Promise<CruisingConversation | null> {
+    const [userAId, userBId] = conversationPair(first, second);
+    return this.prisma.cruisingConversation.findUnique({
+      where: { userAId_userBId: { userAId, userBId } },
+    });
+  }
+
+  /** Opens a conversation and records the start (which outlives the conversation), together. */
+  async createConversation(starterId: string, partnerId: string): Promise<CruisingConversation> {
+    const [userAId, userBId] = conversationPair(starterId, partnerId);
+    const [conversation] = await this.prisma.$transaction([
+      this.prisma.cruisingConversation.create({ data: { userAId, userBId, starterId } }),
+      this.prisma.cruisingConversationStart.create({ data: { userId: starterId } }),
+    ]);
+    return conversation;
+  }
+
+  /** Conversations I opened since `since`, even those deleted since (leaving doesn't refund). */
+  countConversationsStartedSince(userId: string, since: Date): Promise<number> {
+    return this.prisma.cruisingConversationStart.count({
+      where: { userId, createdAt: { gte: since } },
+    });
+  }
+
+  /** Starts older than `before` no longer count toward any day's limit. */
+  async deleteConversationStartsBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.cruisingConversationStart.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
+  }
+
+  /** My conversations, latest first, each with the partner and the last message. */
+  conversationsOf(userId: string) {
+    return this.prisma.cruisingConversation.findMany({
+      where: { OR: [{ userAId: userId }, { userBId: userId }] },
+      orderBy: [{ lastMessageAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+      take: MAX_LIST_ROWS,
+      include: {
+        userA: { select: { cruisingProfile: { select: { nickname: true } } } },
+        userB: { select: { cruisingProfile: { select: { nickname: true } } } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { text: true, senderId: true, createdAt: true },
+        },
+      },
+    });
+  }
+
+  deleteConversation(id: string): Promise<CruisingConversation> {
+    return this.prisma.cruisingConversation.delete({ where: { id } });
+  }
+
+  /** Messages from `senderId` in a conversation after `since` (the unread ones). */
+  countMessagesFrom(conversationId: string, senderId: string, since: Date | null): Promise<number> {
+    return this.prisma.cruisingMessage.count({
+      where: { conversationId, senderId, ...(since ? { createdAt: { gt: since } } : {}) },
+    });
+  }
+
+  /** The last 100 messages, or those after `after`, oldest first. */
+  async messages(conversationId: string, after: Date | undefined) {
+    if (after) {
+      return this.prisma.cruisingMessage.findMany({
+        where: { conversationId, createdAt: { gt: after } },
+        orderBy: { createdAt: 'asc' },
+        take: MESSAGES_PAGE,
+      });
+    }
+    const last = await this.prisma.cruisingMessage.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      take: MESSAGES_PAGE,
+    });
+    return last.toReversed();
+  }
+
+  async lastMessages(conversationId: string, take: number) {
+    const last = await this.prisma.cruisingMessage.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+    return last.toReversed();
+  }
+
+  /** Adds a message; the sender has read the conversation up to it. */
+  async addMessage(conversation: CruisingConversation, senderId: string, text: string, now: Date) {
+    const readField = conversation.userAId === senderId ? { readAAt: now } : { readBAt: now };
+    const [message] = await this.prisma.$transaction([
+      this.prisma.cruisingMessage.create({
+        data: { conversationId: conversation.id, senderId, text, createdAt: now },
+      }),
+      this.prisma.cruisingConversation.update({
+        where: { id: conversation.id },
+        data: { lastMessageAt: now, ...readField },
+      }),
+    ]);
+    return message;
+  }
+
+  /** Messages each person has sent in a conversation. */
+  async messageCounts(conversationId: string): Promise<Map<string, number>> {
+    const rows = await this.prisma.cruisingMessage.groupBy({
+      by: ['senderId'],
+      where: { conversationId },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((row) => [row.senderId, row._count._all]));
+  }
+
+  markRead(conversation: CruisingConversation, userId: string, now: Date) {
+    return this.prisma.cruisingConversation.update({
+      where: { id: conversation.id },
+      data: conversation.userAId === userId ? { readAAt: now } : { readBAt: now },
+    });
+  }
+
+  /**
+   * Conversations whose last message is between `from` and `to` old, with that message's sender: a
+   * page of `take` in a stable order, after the conversation `cursor` (the last of the previous page).
+   */
+  recentlyActiveConversations(from: Date, to: Date, cursor?: string, take = 500) {
+    return this.prisma.cruisingConversation.findMany({
+      where: { lastMessageAt: { gte: from, lte: to } },
+      orderBy: { id: 'asc' },
+      take,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { senderId: true } },
+      },
+    });
+  }
+
+  markNotified(conversation: CruisingConversation, userId: string, now: Date) {
+    return this.prisma.cruisingConversation.update({
+      where: { id: conversation.id },
+      data: conversation.userAId === userId ? { notifiedAAt: now } : { notifiedBAt: now },
+    });
   }
 }

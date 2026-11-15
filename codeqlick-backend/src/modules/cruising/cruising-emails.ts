@@ -98,7 +98,8 @@ export function cruisingTakedownEmail(
 }
 
 /** Things a person is told about. The emails never carry a spot name, a nickname or a message. */
-export type CruisingNotice = 'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended';
+export type CruisingNotice =
+  'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended' | 'unread';
 
 const NOTICE_COPY: Record<
   ApiLocale,
@@ -130,9 +131,15 @@ const NOTICE_COPY: Record<
     },
     suspended: {
       subject: 'Tu cuenta de Cruising está suspendida',
-      body: 'Hemos suspendido tu cuenta de Cruising. Puedes seguir consultando el mapa, pero no proponer lugares, escribir opiniones ni enviar denuncias.',
+      body: 'Hemos suspendido tu cuenta de Cruising. Puedes seguir consultando el mapa, pero no proponer lugares, escribir opiniones, enviar denuncias, marcar que estás en un lugar ni enviar mensajes.',
       button: 'Leer las normas',
       path: '/rules',
+    },
+    unread: {
+      subject: 'Tienes un mensaje sin leer',
+      body: 'Alguien te ha escrito en Cruising y aún no lo has leído.',
+      button: 'Leer el mensaje',
+      path: '/messages',
     },
     reasonTitle: 'Motivo',
     until: 'Hasta',
@@ -160,9 +167,15 @@ const NOTICE_COPY: Record<
     },
     suspended: {
       subject: 'Your Cruising account is suspended',
-      body: 'We suspended your Cruising account. You can still browse the map, but not propose spots, write reviews or send reports.',
+      body: 'We suspended your Cruising account. You can still browse the map, but not propose spots, write reviews, send reports, check in or send messages.',
       button: 'Read the rules',
       path: '/rules',
+    },
+    unread: {
+      subject: 'You have an unread message',
+      body: "Someone wrote to you in Cruising and you haven't read it yet.",
+      button: 'Read the message',
+      path: '/messages',
     },
     reasonTitle: 'Reason',
     until: 'Until',
@@ -205,7 +218,7 @@ export function cruisingNoticeEmail(
             ? [[copy.until, until ? formatDay(until, locale) : copy.permanent]]
             : undefined,
         button: { label: text.button, url: `${cruisingUrl}/${locale}${text.path}` },
-        note: notice === 'spot-live' ? copy.settings : undefined,
+        note: notice === 'spot-live' || notice === 'unread' ? copy.settings : undefined,
         signoff: [],
       },
       siteUrl,

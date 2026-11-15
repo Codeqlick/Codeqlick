@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
+import { SpotPresence } from '@/components/cruising/SpotPresence';
 import { SpotLocationMap } from '@/components/cruising/SpotLocationMap';
 import { SpotReviews } from '@/components/cruising/SpotReviews';
 import cruising from '@/components/cruising/Cruising.module.css';
@@ -136,6 +137,8 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
           </p>
         </div>
       </div>
+
+      {status?.allowed ? <SpotPresence locale={locale} spot={spot} status={status} /> : null}
 
       <SpotReviews
         locale={locale}

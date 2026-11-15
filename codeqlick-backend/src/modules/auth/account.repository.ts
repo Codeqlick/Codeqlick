@@ -126,6 +126,8 @@ export class AccountRepository {
       cruisingSpots,
       cruisingReviews,
       cruisingReportsMade,
+      cruisingCheckIns,
+      cruisingMessages,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -341,6 +343,11 @@ export class AccountRepository {
           termsVersion: true,
           acceptedAt: true,
           emailAlerts: true,
+          nickname: true,
+          bio: true,
+          country: true,
+          lookingFor: true,
+          showAge: true,
           suspendedUntil: true,
           suspensionReason: true,
           createdAt: true,
@@ -381,6 +388,22 @@ export class AccountRepository {
         where: { reporterId: userId },
         orderBy: { createdAt: 'asc' },
         select: { targetType: true, reason: true, details: true, status: true, createdAt: true },
+      }),
+      // The spot and nothing else: a check-in never holds a position.
+      p.cruisingCheckIn.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          anonymous: true,
+          expiresAt: true,
+          createdAt: true,
+          spot: { select: { slug: true } },
+        },
+      }),
+      p.cruisingMessage.findMany({
+        where: { senderId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { text: true, createdAt: true },
       }),
       p.cloudMember.findMany({
         where: { userId },
@@ -448,6 +471,8 @@ export class AccountRepository {
             spotsProposed: cruisingSpots,
             reviews: cruisingReviews,
             reportsMade: cruisingReportsMade,
+            checkIns: cruisingCheckIns,
+            messagesSent: cruisingMessages,
           }
         : null,
       cloud:

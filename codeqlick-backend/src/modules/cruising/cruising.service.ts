@@ -29,11 +29,13 @@ import {
   citySlugOf,
   extractSpotSlug,
   isSuspended,
+  isUniqueViolation,
   memberCanChange,
   nextSpotStatus,
   roundCoordinate,
   spotSlugBase,
   takedownHidesAtOnce,
+  toTranscript,
   uniqueSlug,
   type Bbox,
 } from './cruising.rules.js';
@@ -48,6 +50,8 @@ import {
   REVIEWS_PER_DAY,
   SPOTS_PER_DAY,
   suspensionEnd,
+  TRANSCRIPT_LINES,
+  type LookingFor,
   type OnboardingInput,
   type ProfileInput,
   type ReportActionInput,
@@ -75,12 +79,12 @@ export interface CruisingStatus {
   /** Entered, current terms, not suspended. */
   allowed: boolean;
   emailAlerts: boolean;
-  /** Phase 2: null until a nickname is set. */
+  /** Null until a nickname is set. */
   profile: {
     nickname: string;
     bio: string;
     country: string | null;
-    lookingFor: ('CHAT' | 'FRIENDS' | 'DATES' | 'FUN' | 'GROUP')[];
+    lookingFor: LookingFor[];
     showAge: boolean;
   } | null;
 }
@@ -110,7 +114,7 @@ export interface CruisingReviewView {
   rating: number;
   text: string | null;
   mine: boolean;
-  /** Null: "Member" (phase 1). */
+  /** Null: "Member" (an author without a nickname). */
   author: { nickname: string } | null;
   createdAt: string;
   updatedAt: string;
@@ -160,11 +164,14 @@ export function newSpotFields(input: SpotInput) {
   };
 }
 
-/** A write refused because the value is taken (Prisma's P2002). */
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002'
-  );
+/** What a profile update changes: only the fields the member sent. */
+interface ProfileChanges {
+  emailAlerts?: boolean;
+  nickname?: string;
+  bio?: string;
+  country?: string | null;
+  lookingFor?: LookingFor[];
+  showAge?: boolean;
 }
 
 @Injectable()
@@ -289,7 +296,15 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         : null,
       allowed: onboarded && !suspended,
       emailAlerts: profile?.emailAlerts ?? true,
-      profile: null,
+      profile: profile?.nickname
+        ? {
+            nickname: profile.nickname,
+            bio: profile.bio,
+            country: profile.country,
+            lookingFor: profile.lookingFor,
+            showAge: profile.showAge,
+          }
+        : null,
     };
   }
 
@@ -313,12 +328,36 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     input: ProfileInput,
     now = new Date(),
   ): Promise<CruisingStatus> {
-    await this.enteredProfile(userId);
-    const profile = await this.repository.updateProfile(
-      userId,
-      input.emailAlerts === undefined ? {} : { emailAlerts: input.emailAlerts },
-    );
-    return this.statusOf(profile, now);
+    const current = await this.enteredProfile(userId);
+    const data: ProfileChanges = {};
+    if (input.emailAlerts !== undefined) data.emailAlerts = input.emailAlerts;
+    if (input.bio !== undefined) {
+      if (sharesContact(input.bio)) {
+        throw new BadRequestException(
+          'Your bio cannot share contact details: no phone numbers, emails, links or social handles',
+        );
+      }
+      data.bio = input.bio;
+    }
+    if (input.country !== undefined) data.country = input.country;
+    if (input.lookingFor !== undefined) data.lookingFor = input.lookingFor;
+    if (input.showAge !== undefined) data.showAge = input.showAge;
+    // A nickname is set once: changing it would let someone else take the old one.
+    if (input.nickname !== undefined && current.nickname && input.nickname !== current.nickname) {
+      throw new ConflictException('Your nickname cannot be changed');
+    }
+    if (input.nickname !== undefined && !current.nickname) {
+      const owner = await this.repository.findProfileByNickname(input.nickname);
+      if (owner && owner.userId !== userId) throw new ConflictException('This nickname is taken');
+      data.nickname = input.nickname;
+    }
+    try {
+      return this.statusOf(await this.repository.updateProfile(userId, data), now);
+    } catch (error) {
+      // Two people saving the same nickname together: the unique index settles it.
+      if (isUniqueViolation(error)) throw new ConflictException('This nickname is taken');
+      throw error;
+    }
   }
 
   /** A member who has entered with the current rules (a suspended one can still read). */
@@ -557,19 +596,20 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       updatedAt: Date;
     },
     viewerId: string,
+    nickname: string | null,
   ): CruisingReviewView {
     return {
       id: review.id,
       rating: review.rating,
       text: review.text,
       mine: review.userId === viewerId,
-      author: null,
+      author: nickname ? { nickname } : null,
       createdAt: review.createdAt.toISOString(),
       updatedAt: review.updatedAt.toISOString(),
     };
   }
 
-  /** The reviews of a LIVE spot: only for a member who has entered. */
+  /** The reviews of a LIVE spot: only for a member who has entered; never those of people blocked either way. */
   async reviews(
     userId: string,
     spotId: string,
@@ -579,9 +619,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     await this.enteredProfile(userId);
     await this.liveSpot(spotId);
     const { skip, take } = pageToSkipTake(page, pageSize);
-    const { items, total } = await this.repository.reviewsOfSpot(spotId, skip, take);
+    const hidden = await this.repository.hiddenIds(userId);
+    const { items, total } = await this.repository.reviewsOfSpot(spotId, skip, take, hidden);
     return paginate(
-      items.map((review) => this.reviewView(review, userId)),
+      items.map((review) => this.reviewView(review, userId, review.nickname)),
       total,
       page,
       pageSize,
@@ -595,7 +636,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     input: ReviewInput,
     now = new Date(),
   ): Promise<CruisingReviewView> {
-    await this.allowedProfile(userId, now);
+    const me = await this.allowedProfile(userId, now);
     await this.liveSpot(spotId);
     if (input.text && sharesContact(input.text)) {
       throw new BadRequestException(
@@ -618,7 +659,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       input.rating,
       input.text ?? null,
     );
-    return this.reviewView(review, userId);
+    return this.reviewView(review, userId, me.nickname);
   }
 
   async deleteReview(userId: string, spotId: string): Promise<void> {
@@ -629,7 +670,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   // ---- Reports and removal requests --------------------------------------------------------------
 
-  /** A member reports a spot or a review. MINOR and ILLEGAL hide it at once. */
+  /**
+   * A member reports a spot, a review, a profile or a conversation. MINOR and ILLEGAL hide a spot
+   * or review at once; a conversation's last messages are saved with the report.
+   */
   async report(userId: string, input: ReportInput, now = new Date()): Promise<void> {
     await this.allowedProfile(userId, now);
     if (input.reason === 'WRONG_INFO' && !input.spotId) {
@@ -640,22 +684,21 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       throw new HttpException('Too many reports today', HttpStatus.TOO_MANY_REQUESTS);
     }
     const hide = HIDE_AT_ONCE.includes(input.reason);
+    const common = { reporterId: userId, reason: input.reason, details: input.details || null };
     let reportId: string;
     if (input.spotId) {
       const spot = await this.liveSpot(input.spotId);
       const report = await this.repository.createReport({
-        reporterId: userId,
+        ...common,
         targetType: 'SPOT',
         spotId: spot.id,
         reportedId: spot.createdById,
-        reason: input.reason,
-        details: input.details || null,
         createdAt: now,
       });
       reportId = report.id;
       if (hide) await this.repository.updateSpot(spot.id, { status: 'HIDDEN' });
-    } else {
-      const review = await this.repository.findReviewById(input.reviewId as string);
+    } else if (input.reviewId) {
+      const review = await this.repository.findReviewById(input.reviewId);
       if (
         !review ||
         review.userId === userId ||
@@ -665,16 +708,41 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         throw new NotFoundException('Review not found');
       }
       const report = await this.repository.createReport({
-        reporterId: userId,
+        ...common,
         targetType: 'REVIEW',
         reviewId: review.id,
         reportedId: review.userId,
-        reason: input.reason,
-        details: input.details || null,
         createdAt: now,
       });
       reportId = report.id;
       if (hide) await this.repository.setReviewStatus(review.id, 'HIDDEN');
+    } else if (input.nickname) {
+      // A person I blocked can still be reported, so blocks and suspensions don't hide them here.
+      const target = await this.repository.findProfileByNickname(input.nickname);
+      if (!target || target.userId === userId) throw new NotFoundException('Member not found');
+      const report = await this.repository.createReport({
+        ...common,
+        targetType: 'PROFILE',
+        reportedId: target.userId,
+        createdAt: now,
+      });
+      reportId = report.id;
+    } else {
+      const conversation = await this.repository.findConversation(input.conversationId as string);
+      if (!conversation || (conversation.userAId !== userId && conversation.userBId !== userId)) {
+        throw new NotFoundException('Conversation not found');
+      }
+      const partnerId =
+        conversation.userAId === userId ? conversation.userBId : conversation.userAId;
+      const messages = await this.repository.lastMessages(conversation.id, TRANSCRIPT_LINES);
+      const report = await this.repository.createReport({
+        ...common,
+        targetType: 'CONVERSATION',
+        reportedId: partnerId,
+        transcript: toTranscript(messages, userId),
+        createdAt: now,
+      });
+      reportId = report.id;
     }
     if (input.reason === 'MINOR') this.alert('minor-report', reportId);
   }
@@ -870,18 +938,26 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
           ? { type: 'SPOT' as const, spot: report.spot }
           : report.targetType === 'REVIEW' && report.review
             ? { type: 'REVIEW' as const, review: report.review }
-            : null,
+            : report.targetType === 'PROFILE'
+              ? {
+                  type: 'PROFILE' as const,
+                  nickname: report.reported?.cruisingProfile?.nickname ?? null,
+                }
+              : report.targetType === 'CONVERSATION'
+                ? { type: 'CONVERSATION' as const }
+                : null,
       reporter: {
         userId: report.reporter.id,
         name: report.reporter.name,
         email: report.reporter.email,
+        nickname: report.reporter.cruisingProfile?.nickname ?? null,
       },
       reported: report.reported
         ? {
             userId: report.reported.id,
             name: report.reported.name,
             email: report.reported.email,
-            nickname: null,
+            nickname: report.reported.cruisingProfile?.nickname ?? null,
             suspended: isSuspended(report.reported.cruisingProfile),
             reports: counts.get(report.reported.id) ?? 0,
           }
@@ -1051,6 +1127,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       suspendedUntil: until,
       suspensionReason: input.reason || null,
     });
+    // A suspended member can't be "here": the check-in ends with the suspension.
+    await this.repository.endCheckIns(userId, now);
     const user = await this.repository.findUser(userId);
     await this.activity.record(actor, {
       action: 'cruising.suspended',
@@ -1082,7 +1160,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       userId: profile.user.id,
       name: profile.user.name,
       email: profile.user.email,
-      nickname: null,
+      nickname: profile.nickname,
       reason: profile.suspensionReason,
       until: profile.suspendedUntil?.toISOString() ?? null,
       suspendedAt: profile.suspendedAt?.toISOString() ?? null,

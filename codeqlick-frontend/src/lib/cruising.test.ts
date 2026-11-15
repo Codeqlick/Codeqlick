@@ -4,6 +4,21 @@ import es from '@/messages/es.json';
 import { OPTIONAL_SESSION_PATH, PROTECTED_PATH } from './auth/constants';
 import {
   boundsToBboxes,
+  CHECK_IN_HOURS,
+  conversationHref,
+  isLookingFor,
+  isNickname,
+  isUnread,
+  LOOKING_FOR,
+  memberHref,
+  mergeMessages,
+  messagesEndpoint,
+  normalizeNickname,
+  parseCheckInHours,
+  PERSON_REPORT_REASONS,
+  previewMessage,
+  reportedNickname,
+  reportTranscript,
   countryFromParam,
   countryName,
   cruisingPath,
@@ -71,6 +86,39 @@ describe('Cruising as a web app', () => {
     expect(routeWebapp('/es/login', host, 'https:')).toEqual({ action: 'pass' });
   });
 
+  it('serves the social pages at short addresses too, and sends the long ones there', () => {
+    const host = 'cruising.codeqlick.com';
+    expect(routeWebapp('/es/me', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/cruising/me',
+    });
+    expect(routeWebapp('/en/members/pepe_88', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/en/cruising/members/pepe_88',
+    });
+    expect(routeWebapp('/es/messages', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/cruising/messages',
+    });
+    expect(routeWebapp('/es/messages/abc', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/cruising/messages/abc',
+    });
+    // The chat's polling route (a BFF) answers on the same host.
+    expect(routeWebapp('/es/api/conversations/abc/messages', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/es/cruising/api/conversations/abc/messages',
+    });
+    expect(routeWebapp('/es/cruising/messages/abc', host, 'https:')).toEqual({
+      action: 'redirect',
+      to: '/es/messages/abc',
+    });
+    expect(routeWebapp('/es/cruising/me', 'codeqlick.com', 'https:')).toEqual({
+      action: 'redirect',
+      to: 'https://cruising.codeqlick.com/es/me',
+    });
+  });
+
   it('sends its old addresses, and the main host, to the short ones', () => {
     expect(routeWebapp('/es/cruising/map', 'cruising.codeqlick.com', 'https:')).toEqual({
       action: 'redirect',
@@ -95,6 +143,10 @@ describe('Cruising as a web app', () => {
       '/es/cruising/new',
       '/es/cruising/my-spots',
       '/en/cruising/my-spots/3f1a2b4c',
+      '/es/cruising/me',
+      '/en/cruising/members/pepe_88',
+      '/es/cruising/messages',
+      '/es/cruising/messages/3f1a2b4c-0000-4000-8000-000000000000',
     ]) {
       expect(PROTECTED_PATH.test(path), path).toBe(true);
     }
@@ -107,6 +159,8 @@ describe('Cruising as a web app', () => {
       '/es/cruising/takedown',
       '/es/cruising/newsletter',
       '/es/cruising/api/spots',
+      '/es/cruising/membership',
+      '/es/cruising/mexico',
     ]) {
       expect(PROTECTED_PATH.test(path), path).toBe(false);
       expect(OPTIONAL_SESSION_PATH.test(path), path).toBe(true);
@@ -450,6 +504,94 @@ function paths(value: unknown, prefix = ''): string[] {
   );
 }
 
+describe('profiles, check-ins and messages', () => {
+  it('accepts nicknames of 3 to 20 lower-case letters, digits and underscores', () => {
+    for (const value of ['abc', 'pepe_88', 'a'.repeat(20), '_x_', '123']) {
+      expect(isNickname(value), value).toBe(true);
+    }
+    for (const value of ['ab', 'a'.repeat(21), 'Pepe', 'pe pe', 'pepe-88', 'pepé', '', 'a/b']) {
+      expect(isNickname(value), value).toBe(false);
+    }
+  });
+
+  it('lower-cases and trims a typed nickname', () => {
+    expect(normalizeNickname('  Pepe_88 ')).toBe('pepe_88');
+    expect(normalizeNickname(null)).toBe('');
+    expect(isNickname(normalizeNickname(' PEPE '))).toBe(true);
+  });
+
+  it('knows what a member can look for and how long a check-in lasts', () => {
+    expect(LOOKING_FOR).toEqual(['CHAT', 'FRIENDS', 'DATES', 'FUN', 'GROUP']);
+    expect(isLookingFor('FUN')).toBe(true);
+    expect(isLookingFor('fun')).toBe(false);
+    expect(CHECK_IN_HOURS).toEqual([1, 2, 3]);
+    expect(parseCheckInHours('2')).toBe(2);
+    for (const value of ['0', '4', '1.5', 'x', '', null, undefined]) {
+      expect(parseCheckInHours(value), String(value)).toBeNull();
+    }
+  });
+
+  it('writes the addresses of the social pages', () => {
+    expect(memberHref('pepe_88')).toBe('/cruising/members/pepe_88');
+    expect(conversationHref('abc')).toBe('/cruising/messages/abc');
+    expect(messagesEndpoint('es', true, 'abc')).toBe('/es/api/conversations/abc/messages');
+    expect(messagesEndpoint('en', false, 'abc')).toBe(
+      '/en/cruising/api/conversations/abc/messages',
+    );
+  });
+
+  it('merges messages without repeating one, in time order', () => {
+    const a = { id: 'a', mine: true, text: 'hi', createdAt: '2026-11-15T10:00:00.000Z' };
+    const b = { id: 'b', mine: false, text: 'hello', createdAt: '2026-11-15T10:00:05.000Z' };
+    const c = { id: 'c', mine: true, text: 'how are you', createdAt: '2026-11-15T10:01:00.000Z' };
+    expect(mergeMessages([a, c], [b, c])).toEqual([a, b, c]);
+    expect(mergeMessages([], [])).toEqual([]);
+  });
+
+  it('shortens a last message for the list and reads the unread flag or count', () => {
+    expect(previewMessage('Hello there')).toBe('Hello there');
+    expect(previewMessage('word '.repeat(40), 30).endsWith('…')).toBe(true);
+    expect(isUnread(true)).toBe(true);
+    expect(isUnread(2)).toBe(true);
+    expect(isUnread(0)).toBe(false);
+    expect(isUnread(false)).toBe(false);
+    expect(isUnread(undefined)).toBe(false);
+  });
+
+  it('reports a person or a conversation for the reasons of a review, never wrong information', () => {
+    expect(PERSON_REPORT_REASONS).not.toContain('WRONG_INFO');
+    expect(PERSON_REPORT_REASONS).toContain('MINOR');
+    expect(PERSON_REPORT_REASONS).toContain('HARASSMENT');
+  });
+
+  it("reads a reported profile's nickname, whatever shape the API gave it", () => {
+    expect(reportedNickname({ nickname: 'pepe_88' })).toBe('pepe_88');
+    expect(reportedNickname({ profile: { nickname: 'ana' } })).toBe('ana');
+    expect(reportedNickname(null)).toBeNull();
+    expect(reportedNickname({ nickname: 3 })).toBeNull();
+  });
+
+  it("reads a conversation report's saved chat", () => {
+    const lines = [
+      { from: 'reporter', text: 'hi', at: '2026-11-15T10:00:00.000Z' },
+      { mine: false, text: 'send me money', createdAt: '2026-11-15T10:01:00.000Z' },
+      { text: 'no sender' },
+      { from: 'reporter' },
+      'junk',
+    ];
+    const expected = [
+      { from: 'reporter', text: 'hi', at: '2026-11-15T10:00:00.000Z' },
+      { from: 'reported', text: 'send me money', at: '2026-11-15T10:01:00.000Z' },
+      { from: 'unknown', text: 'no sender', at: null },
+    ];
+    expect(reportTranscript(lines)).toEqual(expected);
+    expect(reportTranscript({ transcript: lines })).toEqual(expected);
+    expect(reportTranscript({ messages: lines })).toEqual(expected);
+    expect(reportTranscript(undefined)).toEqual([]);
+    expect(reportTranscript({ nickname: 'ana' })).toEqual([]);
+  });
+});
+
 describe('translations', () => {
   it('have the same keys in English and Spanish', () => {
     for (const namespace of ['Cruising', 'AdminCruising'] as const) {
@@ -461,6 +603,16 @@ describe('translations', () => {
     );
     expect(en.Admin.nav.cruising).toBeTruthy();
     expect(es.Admin.nav.cruising).toBeTruthy();
+  });
+
+  it('name every profile choice and the social navigation', () => {
+    for (const messages of [en, es]) {
+      for (const value of LOOKING_FOR) {
+        expect(messages.Cruising.lookingFor[value], value).toBeTruthy();
+      }
+      expect(messages.Cruising.nav.messages).toBeTruthy();
+      expect(messages.Cruising.nav.profile).toBeTruthy();
+    }
   });
 
   it('name every spot type, report reason and takedown reason', () => {

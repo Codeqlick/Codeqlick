@@ -33,6 +33,12 @@ const profile = (over: Record<string, unknown> = {}) => ({
   suspendedAt: null,
   suspendedUntil: null,
   suspensionReason: null,
+  nickname: null,
+  bio: '',
+  country: null,
+  lookingFor: [],
+  showAge: true,
+  createdAt: NOW,
   ...over,
 });
 
@@ -83,6 +89,11 @@ function build() {
       locale: 'ES',
       cruisingProfile: { emailAlerts: true },
     }),
+    findProfileByNickname: vi.fn().mockResolvedValue(null),
+    hiddenIds: vi.fn().mockResolvedValue([]),
+    endCheckIns: vi.fn().mockResolvedValue(undefined),
+    findConversation: vi.fn().mockResolvedValue(null),
+    lastMessages: vi.fn().mockResolvedValue([]),
     findUser: vi.fn().mockResolvedValue({ id: OTHER, name: 'Pro', email: 'proposer@example.com' }),
     findSpot: vi.fn().mockResolvedValue(spotRow()),
     findSpotBySlug: vi.fn().mockResolvedValue(null),
@@ -1060,6 +1071,278 @@ describe('CruisingService', () => {
         suspendedUntil: null,
         suspensionReason: null,
       });
+    });
+  });
+
+  describe('the profile (phase 2)', () => {
+    const everything = {
+      nickname: 'pier_fan',
+      bio: 'Quiet evenings',
+      country: 'ES' as const,
+      lookingFor: ['CHAT', 'FRIENDS'] as ('CHAT' | 'FRIENDS')[],
+      showAge: false,
+    };
+
+    it('saves only what the member sent and shows the profile once there is a nickname', async () => {
+      const status = await t.service.updateProfile(ME, everything, NOW);
+      expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, everything);
+      expect(status.profile).toEqual(everything);
+    });
+
+    it('has no profile in the status until a nickname is set', async () => {
+      const status = await t.service.updateProfile(ME, { bio: 'Hi' }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { bio: 'Hi' });
+      expect(status.profile).toBeNull();
+    });
+
+    it('refuses a nickname somebody else has with 409, but not my own', async () => {
+      t.repo.findProfileByNickname.mockResolvedValue({ userId: OTHER });
+      await expect(
+        t.service.updateProfile(ME, { nickname: 'pier_fan' }, NOW),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(t.repo.updateProfile).not.toHaveBeenCalled();
+      t.repo.findProfileByNickname.mockResolvedValue({ userId: ME });
+      await t.service.updateProfile(ME, { nickname: 'pier_fan' }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { nickname: 'pier_fan' });
+    });
+
+    it('never changes a nickname once set (409), and accepts the same one again', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
+      await expect(
+        t.service.updateProfile(ME, { nickname: 'someone_else' }, NOW),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(t.repo.updateProfile).not.toHaveBeenCalled();
+      await t.service.updateProfile(ME, { nickname: 'pier_fan', bio: 'Hi' }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { bio: 'Hi' });
+    });
+
+    it('answers 409 when the unique index settles two people saving the same nickname', async () => {
+      t.repo.updateProfile.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
+      await expect(
+        t.service.updateProfile(ME, { nickname: 'pier_fan' }, NOW),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('lets any other error through', async () => {
+      t.repo.updateProfile.mockRejectedValue(new Error('db down'));
+      await expect(t.service.updateProfile(ME, { bio: 'Hi' }, NOW)).rejects.toThrow('db down');
+    });
+
+    it('refuses a bio that shares contact details', async () => {
+      await expect(
+        t.service.updateProfile(ME, { bio: 'write me on telegram' }, NOW),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(t.repo.updateProfile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reviews and blocks (phase 2)', () => {
+    it('leave out the reviews of people blocked either way and name the authors', async () => {
+      t.repo.hiddenIds.mockResolvedValue([OTHER]);
+      t.repo.reviewsOfSpot.mockResolvedValue({
+        items: [
+          {
+            id: 'r1',
+            rating: 4,
+            text: null,
+            userId: ME,
+            nickname: 'pier_fan',
+            createdAt: NOW,
+            updatedAt: NOW,
+          },
+          {
+            id: 'r2',
+            rating: 2,
+            text: null,
+            userId: '9',
+            nickname: null,
+            createdAt: NOW,
+            updatedAt: NOW,
+          },
+        ],
+        total: 2,
+      });
+      const page = await t.service.reviews(ME, SPOT, 1, 20);
+      expect(t.repo.reviewsOfSpot).toHaveBeenCalledWith(SPOT, 0, 20, [OTHER]);
+      expect(page.items.map((item) => item.author)).toEqual([{ nickname: 'pier_fan' }, null]);
+    });
+
+    it('show my own nickname on the review I save', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
+      const view = await t.service.saveReview(ME, SPOT, { rating: 5, text: null }, NOW);
+      expect(view.author).toEqual({ nickname: 'pier_fan' });
+    });
+  });
+
+  describe('reports on profiles and conversations (phase 2)', () => {
+    const CONVERSATION = '55555555-5555-4555-8555-555555555555';
+    const conversation = { id: CONVERSATION, userAId: ME, userBId: OTHER };
+
+    it('reports a profile by nickname', async () => {
+      t.repo.findProfileByNickname.mockResolvedValue({ userId: OTHER });
+      await t.service.report(ME, { nickname: 'pier_fan', reason: 'HARASSMENT' }, NOW);
+      expect(t.repo.findProfileByNickname).toHaveBeenCalledWith('pier_fan');
+      expect(t.repo.createReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reporterId: ME,
+          targetType: 'PROFILE',
+          reportedId: OTHER,
+          reason: 'HARASSMENT',
+        }),
+      );
+      expect(t.repo.updateSpot).not.toHaveBeenCalled();
+    });
+
+    it('answers 404 for an unknown nickname and for my own', async () => {
+      await expect(
+        t.service.report(ME, { nickname: 'nobody', reason: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      t.repo.findProfileByNickname.mockResolvedValue({ userId: ME });
+      await expect(
+        t.service.report(ME, { nickname: 'me_myself', reason: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(t.repo.createReport).not.toHaveBeenCalled();
+    });
+
+    it('emails the team at once for a MINOR report on a profile', async () => {
+      t.repo.findProfileByNickname.mockResolvedValue({ userId: OTHER });
+      await t.service.report(ME, { nickname: 'pier_fan', reason: 'MINOR' }, NOW);
+      await settle();
+      expect(t.sent.map((mail) => mail.to)).toEqual(['team@codeqlick.com']);
+    });
+
+    it('saves the last 30 messages of a conversation with the report', async () => {
+      t.repo.findConversation.mockResolvedValue(conversation);
+      t.repo.lastMessages.mockResolvedValue([
+        { senderId: OTHER, text: 'Hey', createdAt: NOW },
+        { senderId: ME, text: 'Stop', createdAt: new Date(NOW.getTime() + 1000) },
+      ]);
+      await t.service.report(ME, { conversationId: CONVERSATION, reason: 'HARASSMENT' }, NOW);
+      expect(t.repo.lastMessages).toHaveBeenCalledWith(CONVERSATION, 30);
+      expect(t.repo.createReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetType: 'CONVERSATION',
+          reportedId: OTHER,
+          transcript: [
+            { from: 'reported', text: 'Hey', at: NOW.toISOString() },
+            { from: 'reporter', text: 'Stop', at: new Date(NOW.getTime() + 1000).toISOString() },
+          ],
+        }),
+      );
+    });
+
+    it('reports the other person whichever side I am', async () => {
+      t.repo.findConversation.mockResolvedValue({ id: CONVERSATION, userAId: OTHER, userBId: ME });
+      await t.service.report(ME, { conversationId: CONVERSATION, reason: 'SPAM' }, NOW);
+      expect(t.repo.createReport).toHaveBeenCalledWith(
+        expect.objectContaining({ reportedId: OTHER }),
+      );
+    });
+
+    it('answers 404 for a conversation that is not mine or does not exist', async () => {
+      await expect(
+        t.service.report(ME, { conversationId: CONVERSATION, reason: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      t.repo.findConversation.mockResolvedValue({ id: CONVERSATION, userAId: '8', userBId: '9' });
+      await expect(
+        t.service.report(ME, { conversationId: CONVERSATION, reason: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(t.repo.createReport).not.toHaveBeenCalled();
+    });
+
+    it('lists a profile report for the team with the nicknames and the saved transcript', async () => {
+      const person = (id: string, nickname: string | null) => ({
+        id,
+        name: id,
+        email: `${id}@example.com`,
+        cruisingProfile: { nickname, suspendedAt: null, suspendedUntil: null },
+      });
+      (t.repo as Record<string, unknown>).reports = vi.fn().mockResolvedValue([
+        {
+          id: 'report-1',
+          targetType: 'PROFILE',
+          reason: 'HARASSMENT',
+          details: null,
+          transcript: [],
+          status: 'OPEN',
+          createdAt: NOW,
+          reviewedAt: null,
+          reviewedBy: null,
+          reportedId: OTHER,
+          spot: null,
+          review: null,
+          reporter: person(ME, 'me_myself'),
+          reported: person(OTHER, 'pier_fan'),
+        },
+        {
+          id: 'report-2',
+          targetType: 'CONVERSATION',
+          reason: 'SPAM',
+          details: null,
+          transcript: [{ from: 'reported', text: 'Hey', at: NOW.toISOString() }],
+          status: 'OPEN',
+          createdAt: NOW,
+          reviewedAt: null,
+          reviewedBy: null,
+          reportedId: OTHER,
+          spot: null,
+          review: null,
+          reporter: person(ME, null),
+          reported: person(OTHER, 'pier_fan'),
+        },
+      ]);
+      (t.repo as Record<string, unknown>).reportCounts = vi
+        .fn()
+        .mockResolvedValue(new Map([[OTHER, 2]]));
+      const [profileReport, conversationReport] = await t.service.reports('OPEN');
+      expect(profileReport?.target).toEqual({ type: 'PROFILE', nickname: 'pier_fan' });
+      expect(profileReport?.reporter.nickname).toBe('me_myself');
+      expect(profileReport?.reported).toMatchObject({ nickname: 'pier_fan', reports: 2 });
+      expect(conversationReport?.target).toEqual({ type: 'CONVERSATION' });
+      expect(conversationReport?.transcript).toEqual([
+        { from: 'reported', text: 'Hey', at: NOW.toISOString() },
+      ]);
+    });
+
+    it('suspends the person behind a profile report, and their check-in ends', async () => {
+      t.repo.findReport.mockResolvedValue({
+        id: 'report-1',
+        status: 'OPEN',
+        targetType: 'PROFILE',
+        reason: 'HARASSMENT',
+        reportedId: OTHER,
+        spot: null,
+        review: null,
+      });
+      await t.service.actOnReport(admin, 'report-1', { remove: true, suspend: '7d' }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenCalledWith(
+        OTHER,
+        expect.objectContaining({ suspendedAt: NOW }),
+      );
+      expect(t.repo.endCheckIns).toHaveBeenCalledWith(OTHER, NOW);
+      expect(t.repo.deleteReview).not.toHaveBeenCalled();
+      expect(t.repo.closeReport).toHaveBeenCalledWith('report-1', 'ACTIONED', admin.id, NOW);
+    });
+  });
+
+  describe('suspensions (phase 2)', () => {
+    it('end the check-in of the person suspended', async () => {
+      await t.service.suspend(admin, OTHER, { duration: '30d' }, NOW);
+      expect(t.repo.endCheckIns).toHaveBeenCalledWith(OTHER, NOW);
+    });
+
+    it('list the nickname', async () => {
+      (t.repo as Record<string, unknown>).suspendedProfiles = vi.fn().mockResolvedValue([
+        {
+          nickname: 'pier_fan',
+          suspensionReason: 'Spam',
+          suspendedUntil: null,
+          suspendedAt: NOW,
+          user: { id: OTHER, name: 'Pro', email: 'proposer@example.com' },
+        },
+      ]);
+      const [row] = await t.service.suspensions(NOW);
+      expect(row).toMatchObject({ userId: OTHER, nickname: 'pier_fan', until: null });
     });
   });
 
