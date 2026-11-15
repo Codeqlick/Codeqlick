@@ -75,20 +75,27 @@ export function summarizeRatings(ratings: readonly number[]): { avg: number; cou
   return { avg: roundRating(sum / ratings.length), count: ratings.length };
 }
 
-export type SpotStatusValue = 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN';
-export type SpotAction = 'approve' | 'hide' | 'reject';
+export type SpotStatusValue = 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN' | 'REMOVED';
+export type SpotAction = 'approve' | 'hide' | 'reject' | 'remove';
 
 /**
  * Where the team can take a spot: publish (approve) any spot that is not live, hide a live one,
- * reject any that is not rejected. Null: not allowed from there.
+ * reject one in review or published (not a removed one), and remove any not removed yet (after a
+ * report or a removal request: final for the proposer). Null: not allowed from there.
  */
 export function nextSpotStatus(from: SpotStatusValue, action: SpotAction): SpotStatusValue | null {
   if (action === 'approve') return from === 'LIVE' ? null : 'LIVE';
   if (action === 'hide') return from === 'LIVE' ? 'HIDDEN' : null;
-  return from === 'REJECTED' ? null : 'REJECTED';
+  if (action === 'remove') return from === 'REMOVED' ? null : 'REMOVED';
+  return from === 'REJECTED' || from === 'REMOVED' ? null : 'REJECTED';
 }
 
-/** The proposer can change or delete a spot only while it is pending or rejected. */
+/** Reasons that hide a spot at once when they come from the anonymous removal form. */
+export function takedownHidesAtOnce(reason: string): boolean {
+  return reason === 'MINOR' || reason === 'ILLEGAL';
+}
+
+/** The proposer can change or delete a spot only while it is pending or rejected (never removed). */
 export function memberCanChange(status: SpotStatusValue): boolean {
   return status === 'PENDING' || status === 'REJECTED';
 }

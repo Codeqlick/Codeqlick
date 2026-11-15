@@ -36,7 +36,7 @@ export const REVIEW_REPORT_REASONS = REPORT_REASONS.filter((reason) => reason !=
 export const TAKEDOWN_REASONS = ['MINOR', 'ILLEGAL', 'DANGER', 'OTHER'] as const;
 export type CruisingTakedownReason = (typeof TAKEDOWN_REASONS)[number];
 
-export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN'] as const;
+export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN', 'REMOVED'] as const;
 export type CruisingSpotStatus = (typeof SPOT_STATUSES)[number];
 
 export const SUSPENSIONS = ['24h', '7d', '30d', 'permanent'] as const;

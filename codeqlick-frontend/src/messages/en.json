@@ -5101,13 +5101,15 @@
         "PENDING": "In review",
         "LIVE": "Published",
         "REJECTED": "Rejected",
-        "HIDDEN": "Hidden"
+        "HIDDEN": "Hidden",
+        "REMOVED": "Removed"
       },
       "explain": {
         "PENDING": "The team hasn't reviewed it yet. You can still edit or delete it.",
         "LIVE": "It is on the map. To correct it, open its page and suggest a correction.",
         "REJECTED": "It was not published. You can edit it and send it again, or delete it.",
-        "HIDDEN": "The team is checking it after a report. It is not visible for now."
+        "HIDDEN": "The team is checking it after a report. It is not visible for now.",
+        "REMOVED": "The team removed it after a report or a removal request. The removal is final: it can't be edited or sent again."
       },
       "proposedOn": "Proposed on {date}",
       "rejectReason": "Reason",
@@ -5156,11 +5158,11 @@
     },
     "takedown": {
       "title": "Ask us to remove a spot",
-      "lead": "Anyone, with or without an account, can ask us to remove a spot (EU Digital Services Act). If you give the link, we hide the spot at once and answer within 24 hours.",
+      "lead": "Anyone, with or without an account, can ask us to remove a spot (EU Digital Services Act). If it involves a minor or something illegal and you give the link, we hide the spot at once. We answer every request within 24 hours.",
       "email": "Your email",
       "emailHint": "We reply here. We don't use it for anything else.",
       "spotLink": "Link to the spot",
-      "spotLinkHint": "The address of its page, or the end of it (for example el-parque-norte). We hide it at once if we find it.",
+      "spotLinkHint": "The address of its page, or the end of it (for example el-parque-norte). For a minor or something illegal, we hide it at once if we find it.",
       "optional": "optional",
       "reason": "Reason",
       "reasonPlaceholder": "Choose a reason",
@@ -5208,7 +5210,8 @@
       "PENDING": "in review",
       "LIVE": "live",
       "REJECTED": "rejected",
-      "HIDDEN": "hidden"
+      "HIDDEN": "hidden",
+      "REMOVED": "removed"
     },
     "noProposer": "No proposer (account deleted)",
     "sent": "Sent {date}",

@@ -107,7 +107,7 @@ export async function reportAction(
   );
 }
 
-/** Answers a removal request: removes the spot (it becomes REJECTED) or closes it (restores). */
+/** Answers a removal request: removes the spot (it becomes REMOVED, final) or closes it (restores). */
 export async function takedownAction(
   locale: AppLocale,
   takedownId: string,

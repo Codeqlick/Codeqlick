@@ -747,6 +747,16 @@ describe('CruisingService', () => {
       }
     });
 
+    it('leave the spot visible for the team when the reason is not a minor or illegal', async () => {
+      t.repo.findSpotBySlug.mockResolvedValue(spotRow());
+      await t.service.takedown(
+        { ...body, reason: 'OTHER', spotLink: 'secret-cove-of-dreams' },
+        NOW,
+      );
+      expect(t.repo.createTakedown).toHaveBeenCalledWith(expect.objectContaining({ spotId: SPOT }));
+      expect(t.repo.updateSpot).not.toHaveBeenCalled();
+    });
+
     it('do not touch a spot that is not live', async () => {
       t.repo.findSpotBySlug.mockResolvedValue(spotRow({ status: 'PENDING' }));
       await t.service.takedown({ ...body, spotLink: 'secret-cove-of-dreams' }, NOW);
