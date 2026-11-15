@@ -34,6 +34,7 @@ This repo holds the whole platform:
 - Lint with oxlint, format with Prettier (`singleQuote`, `trailingComma: all`, `printWidth: 100`).
 - **Document before implementing:** a feature's spec goes into `docs/architecture.md` and its row into the Notion roadmap before its code.
 - Commits: Conventional Commits. Work on branches, open PRs to `main`.
+- **No AI attribution** (decision 82): no `Co-Authored-By: Claude…` or `Claude-Session:` trailers, no "Generated with/by Claude Code" footers or session links in commits, pull requests or comments, and no `claude/…` branch names. Commit as the owner: `git config user.name EasyFeliu` and `git config user.email 216972881+EasyFeliu@users.noreply.github.com`. `.claude/settings.json` turns the footers off and the **Attribution** CI check blocks the merge otherwise.
 
 ## Agent team
 
