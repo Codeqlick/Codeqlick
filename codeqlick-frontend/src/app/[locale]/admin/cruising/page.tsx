@@ -418,20 +418,22 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
               </Link>
             ))}
           </nav>
-          <form method="get" className={admin.filters} role="search">
-            <input type="hidden" name="tab" value="live" />
-            <input type="hidden" name="status" value={liveFilter} />
-            <FormInput
-              id="cruising-search"
-              name="q"
-              type="search"
-              label={t('live.search')}
-              defaultValue={search}
-            />
-            <SubmitButton size="sm" variant="outline">
-              {t('live.searchButton')}
-            </SubmitButton>
-          </form>
+          <search>
+            <form method="get" className={admin.filters}>
+              <input type="hidden" name="tab" value="live" />
+              <input type="hidden" name="status" value={liveFilter} />
+              <FormInput
+                id="cruising-search"
+                name="q"
+                type="search"
+                label={t('live.search')}
+                defaultValue={search}
+              />
+              <SubmitButton size="sm" variant="outline">
+                {t('live.searchButton')}
+              </SubmitButton>
+            </form>
+          </search>
           {(await listAdminCruisingSpots(liveFilter, search || undefined)).map((spot) => (
             <article key={spot.id} className={admin.item}>
               <div className={admin.body}>

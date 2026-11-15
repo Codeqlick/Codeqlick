@@ -8,9 +8,7 @@ import styles from './Cruising.module.css';
 function MapLoading() {
   const t = useTranslations('Cruising.map');
   return (
-    <p className={styles.mapStatus} role="status">
-      {t('loading')}
-    </p>
+    <output className={styles.mapStatus}>{t('loading')}</output>
   );
 }
 

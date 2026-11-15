@@ -39,7 +39,7 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
   const t = useTranslations('Cruising.map');
   const tt = useTranslations('Cruising.types');
   const filterId = useId();
-  const container = useRef<HTMLDivElement>(null);
+  const container = useRef<HTMLElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
   const reload = useRef<() => void>(() => undefined);
@@ -79,7 +79,8 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
     layerRef.current = layer;
 
     let timer: ReturnType<typeof setTimeout> | undefined;
-    let controller: AbortController | undefined;
+    // The request in flight, aborted by the next one (a property: the async loader can't reassign a variable).
+    const inflight: { controller?: AbortController } = {};
 
     const fetchView = async () => {
       const bounds = map.getBounds();
@@ -89,9 +90,9 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
         bounds.getEast(),
         bounds.getNorth(),
       );
-      controller?.abort();
+      inflight.controller?.abort();
       const current = new AbortController();
-      controller = current;
+      inflight.controller = current;
       setLoad((state) => ({ ...state, status: 'loading' }));
       try {
         const results = await Promise.all(
@@ -144,7 +145,7 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
 
     return () => {
       clearTimeout(timer);
-      controller?.abort();
+      inflight.controller?.abort();
       map.off('moveend', onMoveEnd);
       map.off('click', onClick);
       map.remove();
@@ -238,12 +239,12 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
         >
           {locate === 'busy' ? t('locating') : t('locate')}
         </button>
-        <p className={styles.mapStatus} role="status">
+        <output className={styles.mapStatus}>
           {load.status === 'loading' ? t('loading') : null}
           {load.status === 'error' ? t('loadError') : null}
           {load.status === 'ready' && load.truncated ? t('truncated') : null}
           {load.status === 'ready' && !load.truncated ? t('count', { count: spots.length }) : null}
-        </p>
+        </output>
       </div>
       {locate === 'denied' || locate === 'unsupported' ? (
         <p className={styles.mapNotice} role="alert">
@@ -251,7 +252,7 @@ export default function LeafletMap({ endpoint, spotBase, proposeBase, initial }:
         </p>
       ) : null}
       <p className={styles.mapHint}>{t('locateNote')}</p>
-      <div ref={container} className={styles.map} role="region" aria-label={t('mapLabel')} />
+      <section ref={container} className={styles.map} aria-label={t('mapLabel')} />
       <ul className={styles.legend} aria-label={t('legend')}>
         {SPOT_TYPES.map((value) => (
           <li key={value}>

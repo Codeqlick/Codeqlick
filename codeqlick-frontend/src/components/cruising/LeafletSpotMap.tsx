@@ -15,7 +15,7 @@ type LeafletSpotMapProps = {
 
 /** A spot's small location map: one marker, the same tiles and attribution. */
 export default function LeafletSpotMap({ lat, lng, name, type, label }: LeafletSpotMapProps) {
-  const container = useRef<HTMLDivElement>(null);
+  const container = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const element = container.current;
@@ -31,5 +31,5 @@ export default function LeafletSpotMap({ lat, lng, name, type, label }: LeafletS
     };
   }, [lat, lng, name, type]);
 
-  return <div ref={container} className={styles.miniMap} role="region" aria-label={label} />;
+  return <section ref={container} className={styles.miniMap} aria-label={label} />;
 }

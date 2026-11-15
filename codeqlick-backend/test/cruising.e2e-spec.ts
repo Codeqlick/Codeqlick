@@ -434,22 +434,22 @@ describe('Cruising (e2e)', () => {
       { bestTimes: 'x'.repeat(201) },
     ];
     for (const over of bad) {
-      await request(server())
+      const res = await request(server())
         .post('/v1/cruising/spots')
         .set(eva.auth)
-        .send(spotBody('Bad', 9, over))
-        .expect(400);
+        .send(spotBody('Bad', 9, over));
+      expect(res.status, JSON.stringify(over)).toBe(400);
     }
   });
 
   it('allows 5 proposals a day', async () => {
     const frank = await member('Frank');
     for (let n = 0; n < 5; n += 1) await propose(frank, `Many ${n}`, 20 + n);
-    await request(server())
+    const sixth = await request(server())
       .post('/v1/cruising/spots')
       .set(frank.auth)
-      .send(spotBody('Many 5', 30))
-      .expect(429);
+      .send(spotBody('Many 5', 30));
+    expect(sixth.status).toBe(429);
   });
 
   it('keeps one review per member, recomputes the rating and filters contact details', async () => {
@@ -538,11 +538,11 @@ describe('Cruising (e2e)', () => {
       .set(gina.auth)
       .send({ rating: 4 })
       .expect(200);
-    await request(server())
+    const eleventh = await request(server())
       .put(`/v1/cruising/spots/${spots[10]?.id}/review`)
       .set(gina.auth)
-      .send({ rating: 3 })
-      .expect(429);
+      .send({ rating: 3 });
+    expect(eleventh.status).toBe(429);
   });
 
   it('hides a spot reported as MINOR at once, emails the team and restores it when dismissed', async () => {

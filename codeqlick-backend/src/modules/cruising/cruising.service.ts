@@ -313,9 +313,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     now = new Date(),
   ): Promise<CruisingStatus> {
     await this.enteredProfile(userId);
-    const profile = await this.repository.updateProfile(userId, {
-      ...(input.emailAlerts !== undefined ? { emailAlerts: input.emailAlerts } : {}),
-    });
+    const profile = await this.repository.updateProfile(
+      userId,
+      input.emailAlerts === undefined ? {} : { emailAlerts: input.emailAlerts },
+    );
     return this.statusOf(profile, now);
   }
 

@@ -97,6 +97,7 @@
 }
 
 .mapStatus {
+  display: block;
   margin: 0;
   color: var(--color-slate);
   font-size: 0.9rem;
