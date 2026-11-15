@@ -926,7 +926,7 @@ describe('CruisingService', () => {
       expect(t.repo.updateSpot).not.toHaveBeenCalled();
     });
 
-    it('acting with remove rejects the spot with the reason, and suspends', async () => {
+    it('acting with remove removes the spot for good with the reason, and suspends', async () => {
       t.repo.findReport.mockResolvedValue(report());
       await t.service.actOnReport(
         admin,
@@ -936,7 +936,7 @@ describe('CruisingService', () => {
       );
       expect(t.repo.updateSpot).toHaveBeenCalledWith(
         SPOT,
-        expect.objectContaining({ status: 'REJECTED', rejectReason: 'Minors involved' }),
+        expect.objectContaining({ status: 'REMOVED', rejectReason: 'Minors involved' }),
       );
       expect(t.repo.updateProfile).toHaveBeenCalledWith(OTHER, {
         suspendedAt: NOW,
@@ -974,12 +974,12 @@ describe('CruisingService', () => {
       ...over,
     });
 
-    it('removing rejects the spot and emails the person', async () => {
+    it('removing removes the spot for good and emails the person', async () => {
       t.repo.findTakedown.mockResolvedValue(request());
       await t.service.decideTakedown(admin, 'takedown-1', { remove: true, response: 'Done.' }, NOW);
       expect(t.repo.updateSpot).toHaveBeenCalledWith(
         SPOT,
-        expect.objectContaining({ status: 'REJECTED' }),
+        expect.objectContaining({ status: 'REMOVED' }),
       );
       expect(t.repo.closeTakedown).toHaveBeenCalledWith(
         'takedown-1',
