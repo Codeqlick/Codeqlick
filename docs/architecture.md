@@ -2183,7 +2183,7 @@ Each app has its own workflow, triggered by changes in its folder:
 - **Deploy:** after all of a commit's CI on `main` has passed, runs `deploy/ci-deploy.sh` on the server.
 - **Attribution** (`.github/workflows/attribution.yml`, on every pull request and push to `main`): fails when a commit is authored or committed as an AI assistant (`noreply@anthropic.com`, name `Claude`), when a commit message carries an AI trailer (`Co-Authored-By: Claude…`, `Claude-Session:`, a `claude.ai/code` session link, "Generated with/by Claude Code"), or when the pull request's description has one of those footers (decision 82). It doesn't gate the deploy; it blocks the merge.
 
-Changes that touch neither app (only `deploy/` or docs) run no CI and aren't deployed on their own.
+Changes that touch neither app (only `deploy/` or docs) run no app CI (only Attribution) and aren't deployed on their own.
 
 **Dependencies (weekly).** Versions stay exact, so nothing updates on its own:
 

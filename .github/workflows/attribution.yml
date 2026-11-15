@@ -1,0 +1,67 @@
+name: Attribution
+
+# No AI attribution anywhere in the repository (architecture 9, decision 82): commits authored or
+# committed as an AI assistant, assistant trailers in commit messages and generated-by footers in
+# the pull request's description all fail this check.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+concurrency:
+  group: attribution-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  attribution:
+    name: No AI attribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the commits
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.after }}
+        run: |
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            range="$HEAD -n 1"
+          else
+            range="$BASE..$HEAD"
+          fi
+          identity='(^|\t)Claude <|noreply@anthropic\.com'
+          message='^[[:space:]]*(Co-Authored-By:[[:space:]]*Claude|Claude-Session:)|claude\.ai/code/session_|Generated (with|by) \[?Claude Code'
+          failed=0
+          for sha in $(git rev-list $range); do
+            who=$(git log -1 --format='%an <%ae>%x09%cn <%ce>' "$sha")
+            if printf '%s\n' "$who" | grep -Eiq "$identity"; then
+              echo "::error::$sha is authored or committed as an AI assistant ($who)"
+              failed=1
+            fi
+            if git log -1 --format=%B "$sha" | grep -Eiq "$message"; then
+              echo "::error::$sha has an AI attribution trailer in its message"
+              failed=1
+            fi
+          done
+          if [ "$failed" = 1 ]; then
+            echo "Rewrite these commits as the repository's owner and without the trailers (CLAUDE.md, \"No AI attribution\")."
+            exit 1
+          fi
+          echo "No AI attribution in $(git rev-list $range | wc -l) commit(s)."
+
+      - name: Check the pull request's description
+        if: github.event_name == 'pull_request'
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if printf '%s' "$BODY" | grep -Eiq 'Generated (with|by) \[?Claude Code|claude\.ai/code|Co-Authored-By:[[:space:]]*Claude'; then
+            echo "::error::The pull request's description has an AI attribution footer: remove it and the check reruns."
+            exit 1
+          fi
+          echo "The description is clean."
