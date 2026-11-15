@@ -19,7 +19,7 @@ export function cruisingAlertEmail(
         locale: 'en',
         preheader: minor
           ? 'Review it first: a spot or review was reported for involving someone who may be under 18.'
-          : 'Someone asked to remove a spot. A matching spot is hidden until you review it.',
+          : 'Someone asked to remove a spot. For a minor or something illegal, it is hidden until you review it.',
         title,
         intro: minor
           ? [
@@ -27,7 +27,7 @@ export function cruisingAlertEmail(
               'Review the report, remove it and suspend the account if it is confirmed.',
             ]
           : [
-              'Someone asked to remove a spot from Cruising. When the link matched a live spot, it is hidden already.',
+              'Someone asked to remove a spot from Cruising. When the reason is a minor or something illegal and the link matched a live spot, it is hidden already.',
               'Answer within 24 hours.',
             ],
         details: [[minor ? 'Report id' : 'Request id', id]],
@@ -44,7 +44,7 @@ const TAKEDOWN_COPY = {
     receivedSubject: 'Hemos recibido tu solicitud de retirada',
     receivedTitle: 'Solicitud recibida',
     received:
-      'Hemos recibido tu solicitud para retirar un lugar de Cruising. Si el enlace coincide con un lugar publicado, ya está oculto. La revisamos y te respondemos en 24 horas como máximo.',
+      'Hemos recibido tu solicitud para retirar un lugar de Cruising. Si se trata de un menor o de algo ilegal y el enlace coincide con un lugar publicado, ya está oculto. La revisamos y te respondemos en 24 horas como máximo.',
     removedSubject: 'Hemos retirado el lugar',
     removedTitle: 'Lugar retirado',
     removed: 'Hemos revisado tu solicitud y retirado el lugar del directorio.',
@@ -58,7 +58,7 @@ const TAKEDOWN_COPY = {
     receivedSubject: 'We received your removal request',
     receivedTitle: 'Request received',
     received:
-      'We received your request to remove a spot from Cruising. If the link matched a published spot, it is hidden already. We review it and answer within 24 hours.',
+      'We received your request to remove a spot from Cruising. If it is about a minor or something illegal and the link matched a published spot, it is hidden already. We review it and answer within 24 hours.',
     removedSubject: 'We removed the spot',
     removedTitle: 'Spot removed',
     removed: 'We reviewed your request and removed the spot from the directory.',
@@ -98,7 +98,7 @@ export function cruisingTakedownEmail(
 }
 
 /** Things a person is told about. The emails never carry a spot name, a nickname or a message. */
-export type CruisingNotice = 'spot-live' | 'spot-rejected' | 'suspended';
+export type CruisingNotice = 'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended';
 
 const NOTICE_COPY: Record<
   ApiLocale,
@@ -119,6 +119,12 @@ const NOTICE_COPY: Record<
     'spot-rejected': {
       subject: 'No hemos publicado uno de tus lugares',
       body: 'Hemos revisado uno de los lugares que propusiste y no lo hemos publicado. Este es el motivo:',
+      button: 'Ver mis lugares',
+      path: '/my-spots',
+    },
+    'spot-removed': {
+      subject: 'Hemos retirado uno de tus lugares',
+      body: 'Tras una denuncia, hemos retirado uno de los lugares que propusiste. La retirada es definitiva. Este es el motivo:',
       button: 'Ver mis lugares',
       path: '/my-spots',
     },
@@ -143,6 +149,12 @@ const NOTICE_COPY: Record<
     'spot-rejected': {
       subject: "We didn't publish one of your spots",
       body: "We reviewed one of the spots you proposed and didn't publish it. This is why:",
+      button: 'See my spots',
+      path: '/my-spots',
+    },
+    'spot-removed': {
+      subject: 'We removed one of your spots',
+      body: 'After a report, we removed one of the spots you proposed. The removal is final. This is why:',
       button: 'See my spots',
       path: '/my-spots',
     },

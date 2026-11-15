@@ -2960,6 +2960,8 @@ enum CruisingSpotStatus {
   LIVE
   REJECTED
   HIDDEN
+  /// Removed by moderation (a report or a removal request): final, the proposer can't resend it.
+  REMOVED
 }
 
 enum CruisingReviewStatus {

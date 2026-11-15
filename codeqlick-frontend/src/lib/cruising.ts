@@ -36,7 +36,7 @@ export const REVIEW_REPORT_REASONS = REPORT_REASONS.filter((reason) => reason !=
 export const TAKEDOWN_REASONS = ['MINOR', 'ILLEGAL', 'DANGER', 'OTHER'] as const;
 export type CruisingTakedownReason = (typeof TAKEDOWN_REASONS)[number];
 
-export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN'] as const;
+export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN', 'REMOVED'] as const;
 export type CruisingSpotStatus = (typeof SPOT_STATUSES)[number];
 
 /** Reasons for reporting a person or a conversation: like a review's, a wrong detail is about a place. */

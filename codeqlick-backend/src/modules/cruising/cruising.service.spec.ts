@@ -747,6 +747,16 @@ describe('CruisingService', () => {
       }
     });
 
+    it('leave the spot visible for the team when the reason is not a minor or illegal', async () => {
+      t.repo.findSpotBySlug.mockResolvedValue(spotRow());
+      await t.service.takedown(
+        { ...body, reason: 'OTHER', spotLink: 'secret-cove-of-dreams' },
+        NOW,
+      );
+      expect(t.repo.createTakedown).toHaveBeenCalledWith(expect.objectContaining({ spotId: SPOT }));
+      expect(t.repo.updateSpot).not.toHaveBeenCalled();
+    });
+
     it('do not touch a spot that is not live', async () => {
       t.repo.findSpotBySlug.mockResolvedValue(spotRow({ status: 'PENDING' }));
       await t.service.takedown({ ...body, spotLink: 'secret-cove-of-dreams' }, NOW);
@@ -916,7 +926,7 @@ describe('CruisingService', () => {
       expect(t.repo.updateSpot).not.toHaveBeenCalled();
     });
 
-    it('acting with remove rejects the spot with the reason, and suspends', async () => {
+    it('acting with remove removes the spot for good with the reason, and suspends', async () => {
       t.repo.findReport.mockResolvedValue(report());
       await t.service.actOnReport(
         admin,
@@ -926,7 +936,7 @@ describe('CruisingService', () => {
       );
       expect(t.repo.updateSpot).toHaveBeenCalledWith(
         SPOT,
-        expect.objectContaining({ status: 'REJECTED', rejectReason: 'Minors involved' }),
+        expect.objectContaining({ status: 'REMOVED', rejectReason: 'Minors involved' }),
       );
       expect(t.repo.updateProfile).toHaveBeenCalledWith(OTHER, {
         suspendedAt: NOW,
@@ -964,12 +974,12 @@ describe('CruisingService', () => {
       ...over,
     });
 
-    it('removing rejects the spot and emails the person', async () => {
+    it('removing removes the spot for good and emails the person', async () => {
       t.repo.findTakedown.mockResolvedValue(request());
       await t.service.decideTakedown(admin, 'takedown-1', { remove: true, response: 'Done.' }, NOW);
       expect(t.repo.updateSpot).toHaveBeenCalledWith(
         SPOT,
-        expect.objectContaining({ status: 'REJECTED' }),
+        expect.objectContaining({ status: 'REMOVED' }),
       );
       expect(t.repo.closeTakedown).toHaveBeenCalledWith(
         'takedown-1',

@@ -153,6 +153,7 @@ export const ACTIVITY_ACTIONS = [
   'swipe.unsuspended',
   'cruising.spot_approved',
   'cruising.spot_rejected',
+  'cruising.spot_removed',
   'cruising.spot_hidden',
   'cruising.spot_edited',
   'cruising.report_dismissed',

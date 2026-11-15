@@ -52,14 +52,15 @@ type PageProps = {
 
 const TABS = ['queue', 'reports', 'takedowns', 'live', 'suspended'] as const;
 type Tab = (typeof TABS)[number];
-/** The live tab's filter: what is published, what is hidden, what was rejected. */
-const LIVE_FILTERS = ['LIVE', 'HIDDEN', 'REJECTED'] as const;
+/** The live tab's filter: what is published, hidden, rejected in review, or removed by moderation. */
+const LIVE_FILTERS = ['LIVE', 'HIDDEN', 'REJECTED', 'REMOVED'] as const;
 
 const TONES: Record<CruisingSpotStatus, BadgeTone> = {
   PENDING: 'warning',
   LIVE: 'success',
   REJECTED: 'danger',
   HIDDEN: 'neutral',
+  REMOVED: 'danger',
 };
 
 /** Cruising's moderation: every spot waits here before it goes live. */

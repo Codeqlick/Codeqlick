@@ -5103,13 +5103,15 @@
         "PENDING": "En revisión",
         "LIVE": "Publicado",
         "REJECTED": "Rechazado",
-        "HIDDEN": "Oculto"
+        "HIDDEN": "Oculto",
+        "REMOVED": "Retirado"
       },
       "explain": {
         "PENDING": "El equipo aún no lo ha revisado. Todavía puedes editarlo o borrarlo.",
         "LIVE": "Está en el mapa. Para corregirlo, abre su página y sugiere una corrección.",
         "REJECTED": "No se publicó. Puedes editarlo y enviarlo de nuevo, o borrarlo.",
-        "HIDDEN": "El equipo lo está comprobando tras una denuncia. Por ahora no se ve."
+        "HIDDEN": "El equipo lo está comprobando tras una denuncia. Por ahora no se ve.",
+        "REMOVED": "El equipo lo retiró tras una denuncia o una solicitud de retirada. La retirada es definitiva: no se puede editar ni volver a enviar."
       },
       "proposedOn": "Propuesto el {date}",
       "rejectReason": "Motivo",
@@ -5158,11 +5160,11 @@
     },
     "takedown": {
       "title": "Pídenos que retiremos un lugar",
-      "lead": "Cualquiera, con o sin cuenta, puede pedirnos que retiremos un lugar (Reglamento de Servicios Digitales de la UE). Si nos das el enlace, lo ocultamos al momento y respondemos en 24 horas.",
+      "lead": "Cualquiera, con o sin cuenta, puede pedirnos que retiremos un lugar (Reglamento de Servicios Digitales de la UE). Si se trata de un menor o de algo ilegal y nos das el enlace, lo ocultamos al momento. Respondemos a todas las solicitudes en 24 horas.",
       "email": "Tu correo",
       "emailHint": "Te respondemos aquí. No lo usamos para nada más.",
       "spotLink": "Enlace al lugar",
-      "spotLinkHint": "La dirección de su página, o el final de ella (por ejemplo el-parque-norte). Si lo encontramos, lo ocultamos al momento.",
+      "spotLinkHint": "La dirección de su página, o el final de ella (por ejemplo el-parque-norte). Si se trata de un menor o de algo ilegal y lo encontramos, lo ocultamos al momento.",
       "optional": "opcional",
       "reason": "Motivo",
       "reasonPlaceholder": "Elige un motivo",
@@ -5343,7 +5345,8 @@
       "PENDING": "en revisión",
       "LIVE": "publicado",
       "REJECTED": "rechazado",
-      "HIDDEN": "oculto"
+      "HIDDEN": "oculto",
+      "REMOVED": "retirado"
     },
     "noProposer": "Sin proponente (cuenta borrada)",
     "sent": "Enviado el {date}",

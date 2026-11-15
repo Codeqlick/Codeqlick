@@ -5,6 +5,7 @@ import {
   isSuspended,
   memberCanChange,
   nextSpotStatus,
+  takedownHidesAtOnce,
   parseBbox,
   roundCoordinate,
   roundRating,
@@ -121,6 +122,15 @@ describe('status transitions', () => {
     expect(nextSpotStatus('LIVE', 'reject')).toBe('REJECTED');
     expect(nextSpotStatus('HIDDEN', 'reject')).toBe('REJECTED');
     expect(nextSpotStatus('REJECTED', 'reject')).toBeNull();
+    expect(nextSpotStatus('REMOVED', 'reject')).toBeNull();
+  });
+
+  it('removes any spot not removed yet, and only the team brings a removed one back', () => {
+    expect(nextSpotStatus('LIVE', 'remove')).toBe('REMOVED');
+    expect(nextSpotStatus('HIDDEN', 'remove')).toBe('REMOVED');
+    expect(nextSpotStatus('REJECTED', 'remove')).toBe('REMOVED');
+    expect(nextSpotStatus('REMOVED', 'remove')).toBeNull();
+    expect(nextSpotStatus('REMOVED', 'approve')).toBe('LIVE');
   });
 
   it('lets the proposer change only a pending or rejected spot', () => {
@@ -128,6 +138,15 @@ describe('status transitions', () => {
     expect(memberCanChange('REJECTED')).toBe(true);
     expect(memberCanChange('LIVE')).toBe(false);
     expect(memberCanChange('HIDDEN')).toBe(false);
+    expect(memberCanChange('REMOVED')).toBe(false);
+  });
+
+  it('hides a spot at once only for a minor or something illegal in a removal request', () => {
+    expect(takedownHidesAtOnce('MINOR')).toBe(true);
+    expect(takedownHidesAtOnce('ILLEGAL')).toBe(true);
+    for (const reason of ['DANGER', 'WRONG_INFO', 'HARASSMENT', 'SPAM', 'OTHER']) {
+      expect(takedownHidesAtOnce(reason)).toBe(false);
+    }
   });
 });
 

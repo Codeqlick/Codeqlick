@@ -667,7 +667,7 @@ describe('Cruising (e2e)', () => {
       .send({ remove: true, suspend: '7d', reason: 'Dangerous place' })
       .expect(204);
     expect((await prisma.cruisingSpot.findUnique({ where: { id: spot.id } }))?.status).toBe(
-      'REJECTED',
+      'REMOVED',
     );
     await request(server()).get(`/v1/cruising/spots/${spot.slug}`).expect(404);
     const done = await request(server())
@@ -677,7 +677,7 @@ describe('Cruising (e2e)', () => {
     expect(done.body.items.some((i: { id: string }) => i.id === report.id)).toBe(true);
     expect(sent.map((mail) => mail.subject)).toEqual(
       expect.arrayContaining([
-        expect.stringContaining('We didn'),
+        'We removed one of your spots — Cruising',
         'Your Cruising account is suspended — Cruising',
       ]),
     );
@@ -784,7 +784,7 @@ describe('Cruising (e2e)', () => {
       .send({ remove: true, response: 'Removed.' })
       .expect(204);
     expect((await prisma.cruisingSpot.findUnique({ where: { id: spot.id } }))?.status).toBe(
-      'REJECTED',
+      'REMOVED',
     );
     expect(sent.map((mail) => mail.subject)).toContain('Hemos retirado el lugar — Cruising');
     await request(server())
@@ -804,7 +804,9 @@ describe('Cruising (e2e)', () => {
         details: 'I would like this removed.',
       })
       .expect(200);
-    await request(server()).get(`/v1/cruising/spots/${second.slug}`).expect(404);
+    // Not a minor or illegal: it stays visible until the team decides.
+    const stillLive = await request(server()).get(`/v1/cruising/spots/${second.slug}`);
+    expect(stillLive.status).toBe(200);
     await request(server())
       .post(`/v1/admin/cruising/takedowns/${closed.body.id}`)
       .set(admin.auth)
