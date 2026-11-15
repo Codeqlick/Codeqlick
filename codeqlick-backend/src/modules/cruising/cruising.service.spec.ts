@@ -91,7 +91,9 @@ function build() {
     updateSpot: vi.fn().mockImplementation((id, data) => Promise.resolve(spotRow({ id, ...data }))),
     updateOwnSpot: vi
       .fn()
-      .mockImplementation((id, _user, data) => Promise.resolve(spotRow({ id, ...data }))),
+      .mockImplementation((id, _user, data) =>
+        Promise.resolve(spotRow({ id, status: 'PENDING', ...data })),
+      ),
     deleteOwnSpot: vi.fn().mockResolvedValue(true),
     countSpotsSince: vi.fn().mockResolvedValue(0),
     spotsInBox: vi.fn().mockResolvedValue([]),
