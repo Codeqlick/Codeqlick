@@ -5,6 +5,11 @@
   "license": "MIT",
   "type": "module",
   "homepage": "https://docs.codeqlick.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Codeqlick/Codeqlick.git",
+    "directory": "codeqlick-cli"
+  },
   "keywords": [
     "codeqlick",
     "deploy",
