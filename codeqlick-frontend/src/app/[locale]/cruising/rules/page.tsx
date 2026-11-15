@@ -1,0 +1,61 @@
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
+import { resolveLocale } from '@/i18n/locale';
+import { webappAlternates, webappPath } from '@/lib/webapp-seo';
+import vc from '../../videochat/videochat.module.css';
+
+type PageProps = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'Cruising.rules' });
+  const title = t('title');
+  const description = t('lead');
+  return {
+    title,
+    description,
+    alternates: webappAlternates('cruising', locale, '/rules'),
+    openGraph: { title, description, url: webappPath('cruising', locale, '/rules') },
+  };
+}
+
+const RULES = ['1', '2', '3', '4', '5', '6', '7'] as const;
+
+/** Cruising's rules, accepted on entry (Cruising.rules; version CRUISING_TERMS_VERSION in the API). */
+export default async function CruisingRulesPage({ params }: PageProps) {
+  const locale = resolveLocale((await params).locale);
+  const t = await getTranslations({ locale, namespace: 'Cruising.rules' });
+  const tl = await getTranslations({ locale, namespace: 'Cruising.legal' });
+  return (
+    <article className={vc.rules}>
+      <h1 className={vc.pageTitle}>{t('title')}</h1>
+      <p className={vc.muted}>{t('lead')}</p>
+      <ol>
+        {RULES.map((n) => (
+          <li key={n}>
+            <strong>{t(`rule${n}Title`)}.</strong> {t(`rule${n}`)}
+          </li>
+        ))}
+      </ol>
+      <h2 className={vc.sectionTitle}>{t('privacyTitle')}</h2>
+      <p>{t('privacy')}</p>
+      <p>
+        <Link href="/cruising/terms-of-use" className={vc.inlineLink}>
+          {tl('terms')}
+        </Link>
+        {' · '}
+        <Link href="/cruising/privacy-policy" className={vc.inlineLink}>
+          {tl('privacy')}
+        </Link>
+      </p>
+      <h2 className={vc.sectionTitle}>{t('takedownTitle')}</h2>
+      <p>
+        {t('takedown')}{' '}
+        <Link href="/cruising/takedown" className={vc.inlineLink}>
+          {t('takedownLink')}
+        </Link>
+      </p>
+    </article>
+  );
+}

@@ -361,7 +361,7 @@ export async function renameProjectAction(
   return { status: 'success', message: t('saved') };
 }
 
-/** Switches the weekly website check of production on or off (admins; decision 80). */
+/** Switches the weekly website check of production on or off (admins; decision 81). */
 export async function saveProductionChecksAction(
   locale: string,
   path: string,

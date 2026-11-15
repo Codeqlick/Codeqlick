@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Webapp } from '../../common/webapps.js';
 import type { Prisma, Role, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
 import {
   USAGE_INCLUDE,
   appWhere,
@@ -68,7 +69,7 @@ export class UsersRepository {
 
   /** Sessions, its company's people, proposals and support requests go with it (cascade). */
   async delete(id: string): Promise<void> {
-    await this.prisma.user.delete({ where: { id } });
+    await deleteUserRecomputingRatings(this.prisma, id);
   }
 
   findById(id: string): Promise<User | null> {

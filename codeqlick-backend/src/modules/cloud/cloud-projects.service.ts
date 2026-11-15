@@ -92,7 +92,7 @@ export interface ProjectView {
   productionLock: { at: string; by: { id: string; name: string } | null } | null;
   /** Scheduled rebuilds (architecture 4.13, decision 65). */
   rebuild: RebuildView;
-  /** The weekly website check of production (architecture 4.13, decision 80). */
+  /** The weekly website check of production (architecture 4.13, decision 81). */
   productionChecks: boolean;
   createdAt: string;
 }
@@ -195,7 +195,7 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
         name: input.name,
       });
     }
-    // The weekly check of production (decision 80): on sets the next slot, off clears it.
+    // The weekly check of production (decision 81): on sets the next slot, off clears it.
     if (
       input.productionChecks !== undefined &&
       input.productionChecks !== project.productionChecks

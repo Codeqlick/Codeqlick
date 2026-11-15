@@ -510,7 +510,7 @@ export class CloudNotificationsService {
 
   /**
    * Tells a project's Slack, Discord and webhook channels with monitor alerts that its weekly
-   * website check of production dropped (decision 80). Called in the background by the production
+   * website check of production dropped (decision 81). Called in the background by the production
    * checks service; never throws. Email channels never get it.
    */
   async auditDropped(

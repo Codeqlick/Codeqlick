@@ -11,7 +11,7 @@ import { CATEGORY_NAMES, CHECK_TEXTS } from '../site-audits/site-audit-texts.js'
 import type { StoredResult } from '../site-audits/site-audits.service.js';
 import { nextRebuild } from './cloud-rebuild-schedule.js';
 
-/** The weekly website check of production (architecture 4.13 "Production checks", decision 80). */
+/** The weekly website check of production (architecture 4.13 "Production checks", decision 81). */
 
 /** Projects checked per tick. */
 export const PRODUCTION_CHECKS_PER_RUN = 5;
@@ -87,7 +87,7 @@ export interface Drop {
 }
 
 /**
- * Whether `next` dropped from `previous` (decision 80): the score or a category 10 or more points
+ * Whether `next` dropped from `previous` (decision 81): the score or a category 10 or more points
  * lower, or a check of both going from pass to fail (the volatile ones apart). Null when not.
  */
 export function compareAudits(previous: ComparableAudit, next: ComparableAudit): Drop | null {

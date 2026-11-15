@@ -18,7 +18,7 @@ type SettingsProps = {
 };
 
 /**
- * The weekly website check of production (architecture 4.13, decision 80), in the Settings tab.
+ * The weekly website check of production (architecture 4.13, decision 81), in the Settings tab.
  * Admins switch it on or off; members see the state.
  */
 export async function ProductionChecksCard(props: SettingsProps) {

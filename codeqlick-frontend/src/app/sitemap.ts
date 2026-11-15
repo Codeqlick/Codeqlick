@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { connection } from 'next/server';
 import { SERVICE_SLUGS } from '@/components/content/services';
 import { routing } from '@/i18n/routing';
+import { listCruisingSitemap } from '@/lib/api/cruising';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
 import { getCalculator } from '@/lib/api/calculator';
@@ -50,6 +51,25 @@ async function contentPaths(): Promise<{ path: string; lastModified?: string }[]
   }
 }
 
+/** Cruising's spots, and the country and city pages that list them (short addresses on its host). */
+async function cruisingPaths(): Promise<{ path: string; lastModified?: string }[]> {
+  try {
+    const items = await listCruisingSitemap();
+    const places = new Map<string, string>();
+    for (const item of items) {
+      const country = `/places/${item.countryCode.toLowerCase()}`;
+      places.set(country, item.updatedAt);
+      places.set(`${country}/${item.citySlug}`, item.updatedAt);
+    }
+    return [
+      ...items.map((item) => ({ path: `/spots/${item.slug}`, lastModified: item.updatedAt })),
+      ...[...places].map(([path, lastModified]) => ({ path, lastModified })),
+    ];
+  } catch {
+    return [];
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
@@ -57,9 +77,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const appPaths = app ? WEBAPP_PUBLIC_PATHS[app] : undefined;
   // A web app's host that is meant for search lists only its own public pages.
   if (app && appPaths) {
-    return appPaths.flatMap((path) =>
+    const entries: { path: string; lastModified?: string }[] = [
+      ...appPaths.map((path) => ({ path })),
+      ...(app === 'cruising' ? await cruisingPaths() : []),
+    ];
+    return entries.flatMap(({ path, lastModified }) =>
       routing.locales.map((locale) => ({
         url: webappUrl(app, locale, path),
+        lastModified,
         changeFrequency: 'weekly' as const,
         priority: path === '' ? 1 : 0.5,
         alternates: {

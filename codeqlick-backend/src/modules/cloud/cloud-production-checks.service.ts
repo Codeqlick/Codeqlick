@@ -41,7 +41,7 @@ export interface ProductionChecksView {
   }>;
 }
 
-/** The weekly website check of production and its alerts (architecture 4.13, decision 80). */
+/** The weekly website check of production and its alerts (architecture 4.13, decision 81). */
 @Injectable()
 export class CloudProductionChecksService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(CloudProductionChecksService.name);

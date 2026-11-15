@@ -422,7 +422,7 @@ describe('Cloud build notifications', () => {
   });
 });
 
-describe('website-check drops (decision 80)', () => {
+describe('website-check drops (decision 81)', () => {
   const consoleUrl = 'https://cloud.test/en/console/acme/audits/a2';
   const categories = { speed: 90, mobile: 90, seo: 95, security: 90 };
   const dropped = auditDroppedEvent({

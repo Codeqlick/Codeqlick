@@ -64,7 +64,7 @@ export class CloudAuditsController {
     return this.audits.get(ctx, params.id, query.locale);
   }
 
-  /** The weekly check of a project's production and its last 12 results (decision 80). */
+  /** The weekly check of a project's production and its last 12 results (decision 81). */
   @Get('projects/:id/production-checks')
   productionChecksOf(
     @Caller() ctx: CloudCtx,

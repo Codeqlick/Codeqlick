@@ -130,7 +130,7 @@ export type CloudProject = {
   productionLock: { at: string; by: { id: string; name: string } | null } | null;
   /** Scheduled rebuilds of the production branch. */
   rebuild: CloudRebuild;
-  /** The weekly website check of production (decision 80). */
+  /** The weekly website check of production (decision 81). */
   productionChecks: boolean;
   createdAt: string;
 };
@@ -1119,7 +1119,7 @@ export const listCloudAudits = (team: string, page = 1) =>
     query: { page, pageSize: 20 },
   });
 
-/** The weekly website check of a project's production (architecture 4.13, decision 80). */
+/** The weekly website check of a project's production (architecture 4.13, decision 81). */
 export type CloudProductionChecks = {
   enabled: boolean;
   /** The next run; null when the check is off. */

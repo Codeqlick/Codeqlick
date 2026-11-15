@@ -44,7 +44,7 @@ export class CloudAuditsRepository {
     });
   }
 
-  /** The newest scheduled audit of the project before `audit` (decision 80); null when none. */
+  /** The newest scheduled audit of the project before `audit` (decision 81); null when none. */
   previousScheduled(audit: CloudAudit): Promise<CloudAudit | null> {
     return this.prisma.cloudAudit.findFirst({
       where: {
@@ -67,7 +67,7 @@ export class CloudAuditsRepository {
     });
   }
 
-  /** Projects whose weekly check is due, oldest first (decision 80). */
+  /** Projects whose weekly check is due, oldest first (decision 81). */
   dueProductionChecks(now: Date, take: number) {
     return this.prisma.cloudProject.findMany({
       where: {
