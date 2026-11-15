@@ -48,11 +48,7 @@ export type CloudLimits = {
 };
 
 export type CloudUsageMeterKey =
-  | 'builds'
-  | 'formSubmissions'
-  | 'analyticsEvents'
-  | 'storage'
-  | 'deploymentsPerHour';
+  'builds' | 'formSubmissions' | 'analyticsEvents' | 'storage' | 'deploymentsPerHour';
 
 /** One limit of the plan; `percent` is `floor(used / limit × 100)` and can pass 100. */
 export type CloudUsageMeter = {
@@ -242,13 +238,7 @@ export type CloudDevice = {
 };
 
 export type CloudReportReason =
-  | 'PHISHING'
-  | 'MALWARE'
-  | 'ILLEGAL'
-  | 'COPYRIGHT'
-  | 'SEXUAL'
-  | 'SPAM'
-  | 'OTHER';
+  'PHISHING' | 'MALWARE' | 'ILLEGAL' | 'COPYRIGHT' | 'SEXUAL' | 'SPAM' | 'OTHER';
 
 const auth = { auth: 'required' } as const;
 const write = { auth: 'required', forwardClientIp: true } as const;
