@@ -90,6 +90,10 @@ function build() {
       cruisingProfile: { emailAlerts: true },
     }),
     findProfileByNickname: vi.fn().mockResolvedValue(null),
+    nicknameReservedFor: vi.fn().mockResolvedValue(null),
+    updateProfileChangingNickname: vi
+      .fn()
+      .mockImplementation((_id, data) => Promise.resolve(profile(data))),
     hiddenIds: vi.fn().mockResolvedValue([]),
     endCheckIns: vi.fn().mockResolvedValue(undefined),
     findConversation: vi.fn().mockResolvedValue(null),
@@ -1106,14 +1110,47 @@ describe('CruisingService', () => {
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { nickname: 'pier_fan' });
     });
 
-    it('never changes a nickname once set (409), and accepts the same one again', async () => {
+    it('changes a nickname and keeps the old one reserved for its owner (decision 82)', async () => {
       t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
-      await expect(
-        t.service.updateProfile(ME, { nickname: 'someone_else' }, NOW),
-      ).rejects.toBeInstanceOf(ConflictException);
+      await t.service.updateProfile(ME, { nickname: 'dune_walker' }, NOW);
+      expect(t.repo.updateProfileChangingNickname).toHaveBeenCalledWith(
+        ME,
+        { nickname: 'dune_walker' },
+        'pier_fan',
+        NOW,
+      );
       expect(t.repo.updateProfile).not.toHaveBeenCalled();
+    });
+
+    it('changes it as often as the member wants: no waiting between changes', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
+      for (const nickname of ['one_name', 'two_name', 'three_name']) {
+        await t.service.updateProfile(ME, { nickname }, NOW);
+      }
+      expect(t.repo.updateProfileChangingNickname).toHaveBeenCalledTimes(3);
+    });
+
+    it('refuses a nickname someone left less than 14 days ago, but lets its owner go back to it', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: 'dune_walker' }));
+      t.repo.nicknameReservedFor.mockResolvedValue(OTHER);
+      await expect(
+        t.service.updateProfile(ME, { nickname: 'pier_fan' }, NOW),
+      ).rejects.toBeInstanceOf(ConflictException);
+      t.repo.nicknameReservedFor.mockResolvedValue(ME);
+      await t.service.updateProfile(ME, { nickname: 'pier_fan' }, NOW);
+      expect(t.repo.updateProfileChangingNickname).toHaveBeenCalledWith(
+        ME,
+        { nickname: 'pier_fan' },
+        'dune_walker',
+        NOW,
+      );
+    });
+
+    it('saves the same nickname again without counting a change', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
       await t.service.updateProfile(ME, { nickname: 'pier_fan', bio: 'Hi' }, NOW);
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { bio: 'Hi' });
+      expect(t.repo.updateProfileChangingNickname).not.toHaveBeenCalled();
     });
 
     it('answers 409 when the unique index settles two people saving the same nickname', async () => {

@@ -345,7 +345,6 @@ export async function takedownAction(_previous: FormState, formData: FormData): 
 /** Saves my profile (PATCH /cruising/profile). The nickname is sent only while I have none. */
 export async function profileAction(
   locale: AppLocale,
-  hasNickname: boolean,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -363,7 +362,7 @@ export async function profileAction(
     ...(showAge ? { showAge: 'on' } : {}),
   };
 
-  if (!hasNickname && !isNickname(nickname)) {
+  if (!isNickname(nickname)) {
     return { status: 'error', fieldErrors: { nickname: t('nicknameInvalid') }, values };
   }
   if (bio.length > LIMITS.bio) {
@@ -375,7 +374,8 @@ export async function profileAction(
   }
   try {
     await updateCruisingProfile({
-      ...(hasNickname ? {} : { nickname }),
+      // Unchanged, the API leaves it as it is; changed, the old one stays mine for 14 days.
+      nickname,
       bio,
       country,
       lookingFor,
@@ -387,7 +387,7 @@ export async function profileAction(
       return { status: 'error', fieldErrors: { nickname: t('nicknameTaken') }, values };
     }
     // A refused bio (contact details) is a 400 too: the API's message says which.
-    if (status === 400 && (hasNickname || /bio/i.test(isApiError(error) ? error.message : ''))) {
+    if (status === 400 && /bio/i.test(isApiError(error) ? error.message : '')) {
       return { status: 'error', fieldErrors: { bio: t('bioContact') }, values };
     }
     if (status === 400) {

@@ -67,14 +67,13 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         <h2 id="me-profile" className={vc.sectionTitle}>
           {t('profileTitle')}
         </h2>
-        <ActionForm action={profileAction.bind(null, locale, profile !== null)} className={vc.form}>
+        <ActionForm action={profileAction.bind(null, locale)} className={vc.form}>
           <FormInput
             id="me-nickname"
             name="nickname"
             label={t('nickname')}
-            hint={profile ? t('nicknameFixed') : t('nicknameHint')}
+            hint={profile ? t('nicknameChange') : t('nicknameHint')}
             defaultValue={profile?.nickname ?? ''}
-            disabled={profile !== null}
             minLength={3}
             maxLength={20}
             autoCapitalize="none"

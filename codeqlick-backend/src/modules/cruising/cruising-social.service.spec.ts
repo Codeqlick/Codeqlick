@@ -77,6 +77,7 @@ function build() {
     presence: vi.fn().mockResolvedValue([]),
     deleteCheckInsExpiredBefore: vi.fn().mockResolvedValue(3),
     deleteConversationStartsBefore: vi.fn().mockResolvedValue(0),
+    deleteNicknameChangesBefore: vi.fn().mockResolvedValue(0),
     findConversation: vi.fn().mockResolvedValue(conversation()),
     findConversationBetween: vi.fn().mockResolvedValue(null),
     createConversation: vi.fn().mockResolvedValue({ id: CONVERSATION }),

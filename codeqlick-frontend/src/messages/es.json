@@ -5192,8 +5192,7 @@
       "leadNew": "Elige un apodo para marcar que estás en un lugar y para escribir a otros miembros. Nadie ve tu nombre ni tu correo.",
       "profileTitle": "Perfil",
       "nickname": "Apodo",
-      "nicknameHint": "De 3 a 20 caracteres: letras minúsculas, números y guiones bajos. Lo eliges una sola vez y no se puede quitar.",
-      "nicknameFixed": "Tu apodo es fijo. No se puede cambiar ni quitar.",
+      "nicknameHint": "De 3 a 20 caracteres: letras minúsculas, números y guiones bajos. Puedes cambiarlo más adelante.",
       "bio": "Sobre ti",
       "bioHint": "Hasta 160 caracteres. Solo texto: sin fotos, teléfonos, correos ni enlaces.",
       "optional": "opcional",
@@ -5230,7 +5229,8 @@
       "countryInvalid": "Elige un país de la lista.",
       "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para cambiar tu perfil.",
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
-      "bioContact": "Sin teléfonos, correos, enlaces ni usuarios de redes en tu bio."
+      "bioContact": "Sin teléfonos, correos, enlaces ni usuarios de redes en tu bio.",
+      "nicknameChange": "Puedes cambiarlo cuando quieras. El que dejas sigue siendo tuyo durante 14 días: nadie más puede cogerlo y puedes volver a él."
     },
     "presence": {
       "title": "Aquí ahora",

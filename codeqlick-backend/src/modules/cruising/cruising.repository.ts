@@ -106,6 +106,41 @@ export class CruisingRepository {
     return this.prisma.cruisingProfile.update({ where: { userId }, data });
   }
 
+  /**
+   * Saves the profile with a new nickname and records the old one, together (decision 82): the old
+   * one stays reserved for this member for 14 days.
+   */
+  async updateProfileChangingNickname(
+    userId: string,
+    data: Prisma.CruisingProfileUpdateInput,
+    oldNickname: string,
+    now: Date,
+  ): Promise<CruisingProfile> {
+    const [profile] = await this.prisma.$transaction([
+      this.prisma.cruisingProfile.update({ where: { userId }, data }),
+      this.prisma.cruisingNicknameChange.create({ data: { userId, oldNickname, changedAt: now } }),
+    ]);
+    return profile;
+  }
+
+  /** Who left `nickname` since `since` (it is still theirs), or null. */
+  async nicknameReservedFor(nickname: string, since: Date): Promise<string | null> {
+    const row = await this.prisma.cruisingNicknameChange.findFirst({
+      where: { oldNickname: nickname, changedAt: { gte: since } },
+      orderBy: { changedAt: 'desc' },
+      select: { userId: true },
+    });
+    return row?.userId ?? null;
+  }
+
+  /** Nickname changes older than `before` no longer reserve the name they left. */
+  async deleteNicknameChangesBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.cruisingNicknameChange.deleteMany({
+      where: { changedAt: { lt: before } },
+    });
+    return count;
+  }
+
   findProfileByNickname(nickname: string): Promise<CruisingProfile | null> {
     return this.prisma.cruisingProfile.findUnique({ where: { nickname } });
   }

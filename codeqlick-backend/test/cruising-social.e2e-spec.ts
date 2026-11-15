@@ -138,12 +138,33 @@ describe('Cruising social (e2e)', () => {
       .set(bea.auth)
       .send({ nickname: 'No spaces!' });
     expect(invalid.status).toBe(400);
-    // A nickname is set once: no renaming, so nobody can take the old one.
+    // Nicknames can change (decision 82); the old one stays Ana's for 14 days.
+    const oldNick = ana.nick;
+    const newNick = `new_${tag}`;
     const rename = await request(server())
       .patch('/v1/cruising/profile')
       .set(ana.auth)
-      .send({ nickname: `new_${tag}` });
-    expect(rename.status).toBe(409);
+      .send({ nickname: newNick });
+    expect(rename.status).toBe(200);
+    expect(rename.body.profile.nickname).toBe(newNick);
+    ana.nick = newNick;
+    const grab = await request(server())
+      .patch('/v1/cruising/profile')
+      .set(bea.auth)
+      .send({ nickname: oldNick });
+    expect(grab.status).toBe(409);
+    // No waiting: another change at once, then back to the old one.
+    const third = await request(server())
+      .patch('/v1/cruising/profile')
+      .set(ana.auth)
+      .send({ nickname: `third_${tag}` });
+    expect(third.status).toBe(200);
+    const back = await request(server())
+      .patch('/v1/cruising/profile')
+      .set(ana.auth)
+      .send({ nickname: oldNick });
+    expect(back.status).toBe(200);
+    ana.nick = oldNick;
 
     // Without a nickname, profiles stay closed.
     const closed = await request(server()).get(`/v1/cruising/members/${ana.nick}`).set(bea.auth);

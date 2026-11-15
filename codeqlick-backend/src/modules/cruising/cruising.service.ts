@@ -66,6 +66,9 @@ import {
 } from './cruising.schemas.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A nickname someone left stays theirs this long (decision 82). */
+const NICKNAME_HOLD_MS = 14 * 24 * 60 * 60 * 1000;
 /** The team's digest: checked this often, sent at most once in DIGEST_MIN_GAP_MS. */
 const DIGEST_EVERY_MS = 30 * 60 * 1000;
 const DIGEST_MIN_GAP_MS = 60 * 60 * 1000;
@@ -342,17 +345,27 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (input.country !== undefined) data.country = input.country;
     if (input.lookingFor !== undefined) data.lookingFor = input.lookingFor;
     if (input.showAge !== undefined) data.showAge = input.showAge;
-    // A nickname is set once: changing it would let someone else take the old one.
-    if (input.nickname !== undefined && current.nickname && input.nickname !== current.nickname) {
-      throw new ConflictException('Your nickname cannot be changed');
-    }
-    if (input.nickname !== undefined && !current.nickname) {
+    // A nickname can be changed whenever the member wants, like on Instagram (decision 82). The one
+    // left stays its owner's for 14 days, so nobody can pose as them right after a change.
+    const changing =
+      input.nickname !== undefined &&
+      current.nickname !== null &&
+      input.nickname !== current.nickname;
+    if (input.nickname !== undefined && input.nickname !== current.nickname) {
+      const since = new Date(now.getTime() - NICKNAME_HOLD_MS);
       const owner = await this.repository.findProfileByNickname(input.nickname);
-      if (owner && owner.userId !== userId) throw new ConflictException('This nickname is taken');
+      const reservedFor = await this.repository.nicknameReservedFor(input.nickname, since);
+      if ((owner && owner.userId !== userId) || (reservedFor !== null && reservedFor !== userId)) {
+        throw new ConflictException('This nickname is taken');
+      }
       data.nickname = input.nickname;
     }
     try {
-      return this.statusOf(await this.repository.updateProfile(userId, data), now);
+      const saved =
+        changing && current.nickname
+          ? await this.repository.updateProfileChangingNickname(userId, data, current.nickname, now)
+          : await this.repository.updateProfile(userId, data);
+      return this.statusOf(saved, now);
     } catch (error) {
       // Two people saving the same nickname together: the unique index settles it.
       if (isUniqueViolation(error)) throw new ConflictException('This nickname is taken');
