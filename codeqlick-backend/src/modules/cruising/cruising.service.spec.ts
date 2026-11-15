@@ -1078,7 +1078,7 @@ describe('CruisingService', () => {
     const everything = {
       nickname: 'pier_fan',
       bio: 'Quiet evenings',
-      country: 'ES',
+      country: 'ES' as const,
       lookingFor: ['CHAT', 'FRIENDS'] as ('CHAT' | 'FRIENDS')[],
       showAge: false,
     };
