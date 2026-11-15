@@ -3213,7 +3213,7 @@ model CruisingCheckIn {
 }
 
 /// Two members talking. `userAId` < `userBId`. It starts from a profile, a check-in or a review.
-/// A nickname a member left (decision 82): for 14 days it stays theirs (nobody else can take it,
+/// A nickname a member left (decision 83): for 14 days it stays theirs (nobody else can take it,
 /// they can go back to it). Changes have no limit. Older rows: deleted hourly.
 model CruisingNicknameChange {
   id          String   @id @default(uuid()) @db.Uuid

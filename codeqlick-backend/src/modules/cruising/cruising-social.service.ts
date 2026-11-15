@@ -181,7 +181,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     try {
       // Conversation starts older than a day no longer count toward the daily limit.
       await this.repository.deleteConversationStartsBefore(new Date(now.getTime() - DAY_MS));
-      // Nicknames left more than 14 days ago are free again and no longer count (decision 82).
+      // Nicknames left more than 14 days ago are free again and no longer count (decision 83).
       await this.repository.deleteNicknameChangesBefore(new Date(now.getTime() - 14 * DAY_MS));
       return await this.repository.deleteCheckInsExpiredBefore(
         new Date(now.getTime() - CHECK_IN_KEEP_MS),

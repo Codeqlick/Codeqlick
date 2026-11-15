@@ -67,7 +67,7 @@ import {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** A nickname someone left stays theirs this long (decision 82). */
+/** A nickname someone left stays theirs this long (decision 83). */
 const NICKNAME_HOLD_MS = 14 * 24 * 60 * 60 * 1000;
 /** The team's digest: checked this often, sent at most once in DIGEST_MIN_GAP_MS. */
 const DIGEST_EVERY_MS = 30 * 60 * 1000;
@@ -345,7 +345,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (input.country !== undefined) data.country = input.country;
     if (input.lookingFor !== undefined) data.lookingFor = input.lookingFor;
     if (input.showAge !== undefined) data.showAge = input.showAge;
-    // A nickname can be changed whenever the member wants, like on Instagram (decision 82). The one
+    // A nickname can be changed whenever the member wants, like on Instagram (decision 83). The one
     // left stays its owner's for 14 days, so nobody can pose as them right after a change.
     const changing =
       input.nickname !== undefined &&

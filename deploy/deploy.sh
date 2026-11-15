@@ -47,7 +47,21 @@ verify() {
 
 if [ "${1:-}" != "--no-pull" ]; then
   log "Pulling main"
-  git pull --ff-only
+  git fetch origin main
+  if ! git merge --ff-only FETCH_HEAD; then
+    # main's history was rewritten (only commit messages changed): find the new main's commit with
+    # exactly the files checked out, move onto it and fast-forward from there. Refuse anything else.
+    tree="$(git rev-parse 'HEAD^{tree}')"
+    same="$(git log --format='%H %T' FETCH_HEAD | awk -v t="$tree" '$2 == t { print $1; exit }')"
+    if [ -n "$same" ]; then
+      log "main's history was rewritten: following it from $(git log --oneline -1 "$same")"
+      git reset --hard "$same"
+      git merge --ff-only FETCH_HEAD
+    else
+      log "main can't be fast-forwarded and no commit of it has these files: not releasing"
+      exit 1
+    fi
+  fi
 fi
 log "Releasing $(git log --oneline -1)"
 

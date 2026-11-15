@@ -138,7 +138,7 @@ describe('Cruising social (e2e)', () => {
       .set(bea.auth)
       .send({ nickname: 'No spaces!' });
     expect(invalid.status).toBe(400);
-    // Nicknames can change (decision 82); the old one stays Ana's for 14 days.
+    // Nicknames can change (decision 83); the old one stays Ana's for 14 days.
     const oldNick = ana.nick;
     const newNick = `new_${tag}`;
     const rename = await request(server())

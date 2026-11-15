@@ -1,4 +1,4 @@
--- Cruising: nicknames can be changed whenever the member wants (decision 82). Each old nickname
+-- Cruising: nicknames can be changed whenever the member wants (decision 83). Each old nickname
 -- stays reserved for its owner for 14 days.
 CREATE TABLE "cruising_nickname_changes" (
     "id" UUID NOT NULL,

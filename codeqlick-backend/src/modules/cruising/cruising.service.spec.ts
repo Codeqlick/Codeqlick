@@ -1110,7 +1110,7 @@ describe('CruisingService', () => {
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { nickname: 'pier_fan' });
     });
 
-    it('changes a nickname and keeps the old one reserved for its owner (decision 82)', async () => {
+    it('changes a nickname and keeps the old one reserved for its owner (decision 83)', async () => {
       t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
       await t.service.updateProfile(ME, { nickname: 'dune_walker' }, NOW);
       expect(t.repo.updateProfileChangingNickname).toHaveBeenCalledWith(

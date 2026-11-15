@@ -107,7 +107,7 @@ export class CruisingRepository {
   }
 
   /**
-   * Saves the profile with a new nickname and records the old one, together (decision 82): the old
+   * Saves the profile with a new nickname and records the old one, together (decision 83): the old
    * one stays reserved for this member for 14 days.
    */
   async updateProfileChangingNickname(
