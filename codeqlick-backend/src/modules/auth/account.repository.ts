@@ -4,9 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
 
 export type EmailChangeResult =
-  | { status: 'done'; user: User; oldEmail: string }
-  | { status: 'invalid' }
-  | { status: 'taken' };
+  { status: 'done'; user: User; oldEmail: string } | { status: 'invalid' } | { status: 'taken' };
 
 /** Persistence for what people do with their own account: profile, email, export, deletion. */
 @Injectable()
