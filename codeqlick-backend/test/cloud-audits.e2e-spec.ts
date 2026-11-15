@@ -176,6 +176,9 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
       Authorization: `Bearer ${(await request(server).post('/v1/auth/login').send(user).expect(200)).body.accessToken as string}`,
     });
     const auth = await bearer(owner);
+    // Signed in before any request is built: a request made while another one is being built
+    // closes the server that one is about to use.
+    const memberAuth = await bearer(member);
     const team = `ap-${tag}`;
     const created = await request(server)
       .post('/v1/cloud/teams')
@@ -213,11 +216,7 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
       .set({ Authorization: `Bearer ${reader.body.token as string}` })
       .send({ productionChecks: true })
       .expect(403);
-    await request(server)
-      .patch(url)
-      .set(await bearer(member))
-      .send({ productionChecks: true })
-      .expect(403);
+    await request(server).patch(url).set(memberAuth).send({ productionChecks: true }).expect(403);
     expect((await prisma.cloudProject.findUniqueOrThrow({ where: { id } })).productionChecks).toBe(
       false,
     );
@@ -244,10 +243,7 @@ describe('Codeqlick Cloud website check API (e2e)', () => {
     expect(empty.body).toMatchObject({ enabled: true, items: [] });
     expect(empty.body.nextAt).toBe(on.productionCheckNextAt!.toISOString());
     expect(empty.body.url).toMatch(new RegExp(`^https://apw-${tag}\\.`));
-    await request(server)
-      .get(`${url}/production-checks`)
-      .set(await bearer(member))
-      .expect(200);
+    await request(server).get(`${url}/production-checks`).set(memberAuth).expect(200);
     const renamed = await request(server).patch(url).set(auth).send({ name: 'Store' }).expect(200);
     expect(renamed.body.name).toBe('Store');
     expect(await events('project.production_checks_enabled')).toBe(1);
