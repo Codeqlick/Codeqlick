@@ -5,7 +5,7 @@ import { BypassReveal } from './BypassReveal';
 
 // ActionForm pulls in the app's navigation (next/navigation), which doesn't load under Vitest;
 // only the form state matters here.
-const formState: { values?: Record<string, string> } = {};
+const formState = vi.hoisted((): { values?: Record<string, string> } => ({}));
 vi.mock('@/components/app/ActionForm', () => ({ useFormState: () => formState }));
 vi.mock('@/components/app/CopyLink', () => ({
   CopyLink: ({ url }: { url: string }) => <code>{url}</code>,
