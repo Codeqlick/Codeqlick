@@ -386,6 +386,10 @@ export async function profileAction(
     if (status === 409) {
       return { status: 'error', fieldErrors: { nickname: t('nicknameTaken') }, values };
     }
+    // A refused bio (contact details) is a 400 too: the API's message says which.
+    if (status === 400 && (hasNickname || /bio/i.test(isApiError(error) ? error.message : ''))) {
+      return { status: 'error', fieldErrors: { bio: t('bioContact') }, values };
+    }
     if (status === 400) {
       return { status: 'error', fieldErrors: { nickname: t('nicknameRefused') }, values };
     }

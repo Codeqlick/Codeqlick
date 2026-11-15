@@ -109,7 +109,7 @@ export class CruisingSocialController {
   }
 
   @Get('conversations/:id/messages')
-  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Throttle({ default: { limit: 300, ttl: 60_000 } })
   async messages(
     @CurrentUser() user: AuthUser,
     @Param({ schema: idParamSchema }) params: IdParam,

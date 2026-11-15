@@ -38,6 +38,9 @@ const UNREAD_AFTER_MS = 15 * 60 * 1000;
 /** …checked this often, for conversations active in the last week. */
 const UNREAD_EVERY_MS = 10 * 60 * 1000;
 const UNREAD_LOOKBACK_MS = 7 * DAY_MS;
+/** The unread scan reads candidates in pages of this size, up to this many pages a run. */
+const UNREAD_PAGE = 500;
+const UNREAD_MAX_PAGES = 200;
 /** Check-ins are deleted once they expired this long ago, checked every hour. */
 const CHECK_IN_KEEP_MS = DAY_MS;
 const CLEANUP_EVERY_MS = 60 * 60 * 1000;
@@ -113,10 +116,19 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
   async emailUnread(now = new Date()): Promise<number> {
     let sent = 0;
     try {
-      const conversations = await this.repository.recentlyActiveConversations(
-        new Date(now.getTime() - UNREAD_LOOKBACK_MS),
-        new Date(now.getTime() - UNREAD_AFTER_MS),
-      );
+      // Page through every candidate: with many conversations, none may be left out.
+      const conversations = [];
+      for (let cursor: string | undefined, page = 0; page < UNREAD_MAX_PAGES; page += 1) {
+        const batch = await this.repository.recentlyActiveConversations(
+          new Date(now.getTime() - UNREAD_LOOKBACK_MS),
+          new Date(now.getTime() - UNREAD_AFTER_MS),
+          cursor,
+          UNREAD_PAGE,
+        );
+        conversations.push(...batch);
+        if (batch.length < UNREAD_PAGE) break;
+        cursor = batch.at(-1)?.id;
+      }
       for (const conversation of conversations) {
         const sender = conversation.messages[0]?.senderId;
         if (!sender || !conversation.lastMessageAt) continue;
@@ -167,6 +179,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
   /** Deletes the check-ins that expired more than 24 hours ago. */
   async cleanupCheckIns(now = new Date()): Promise<number> {
     try {
+      // Conversation starts older than a day no longer count toward the daily limit.
+      await this.repository.deleteConversationStartsBefore(new Date(now.getTime() - DAY_MS));
       return await this.repository.deleteCheckInsExpiredBefore(
         new Date(now.getTime() - CHECK_IN_KEEP_MS),
       );

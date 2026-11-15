@@ -1106,6 +1106,16 @@ describe('CruisingService', () => {
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { nickname: 'pier_fan' });
     });
 
+    it('never changes a nickname once set (409), and accepts the same one again', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
+      await expect(
+        t.service.updateProfile(ME, { nickname: 'someone_else' }, NOW),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(t.repo.updateProfile).not.toHaveBeenCalled();
+      await t.service.updateProfile(ME, { nickname: 'pier_fan', bio: 'Hi' }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { bio: 'Hi' });
+    });
+
     it('answers 409 when the unique index settles two people saving the same nickname', async () => {
       t.repo.updateProfile.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }));
       await expect(

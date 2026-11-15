@@ -5229,7 +5229,8 @@
       "bioLong": "Use 160 characters or fewer.",
       "countryInvalid": "Choose a country from the list.",
       "notAllowed": "You need to enter Cruising and not be suspended to change your profile.",
-      "error": "We couldn't save it. Try again."
+      "error": "We couldn't save it. Try again.",
+      "bioContact": "No phone numbers, emails, links or social handles in your bio."
     },
     "presence": {
       "title": "Here now",

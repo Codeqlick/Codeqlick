@@ -112,3 +112,16 @@ ALTER TABLE "cruising_blocks" ADD CONSTRAINT "cruising_blocks_blocker_id_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "cruising_blocks" ADD CONSTRAINT "cruising_blocks_blocked_id_fkey" FOREIGN KEY ("blocked_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- Conversation starts, counted for the 10 a day even after the conversation is deleted.
+CREATE TABLE "cruising_conversation_starts" (
+    "id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "cruising_conversation_starts_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "cruising_conversation_starts_user_id_created_at_idx" ON "cruising_conversation_starts"("user_id", "created_at");
+
+ALTER TABLE "cruising_conversation_starts" ADD CONSTRAINT "cruising_conversation_starts_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

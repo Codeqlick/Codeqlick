@@ -76,6 +76,7 @@ function build() {
     endCheckIns: vi.fn().mockResolvedValue(undefined),
     presence: vi.fn().mockResolvedValue([]),
     deleteCheckInsExpiredBefore: vi.fn().mockResolvedValue(3),
+    deleteConversationStartsBefore: vi.fn().mockResolvedValue(0),
     findConversation: vi.fn().mockResolvedValue(conversation()),
     findConversationBetween: vi.fn().mockResolvedValue(null),
     createConversation: vi.fn().mockResolvedValue({ id: CONVERSATION }),
@@ -614,6 +615,38 @@ describe('CruisingSocialService', () => {
       expect(t.repo.recentlyActiveConversations).toHaveBeenCalledWith(
         new Date(NOW.getTime() - 7 * 24 * 3600_000),
         new Date(NOW.getTime() - 15 * MINUTE),
+        undefined,
+        500,
+      );
+    });
+
+    it('pages through every candidate, not just the first 500', async () => {
+      const page = Array.from({ length: 500 }, (_, n) => ({
+        id: `c-${String(n).padStart(4, '0')}`,
+        userAId: ME,
+        userBId: OTHER,
+        lastMessageAt: new Date(NOW.getTime() - 20 * MINUTE),
+        readAAt: new Date(NOW.getTime()),
+        readBAt: new Date(NOW.getTime()),
+        notifiedAAt: null,
+        notifiedBAt: null,
+        messages: [{ senderId: OTHER }],
+      }));
+      t.repo.recentlyActiveConversations.mockResolvedValueOnce(page).mockResolvedValueOnce([]);
+      await t.service.emailUnread(NOW);
+      expect(t.repo.recentlyActiveConversations).toHaveBeenCalledTimes(2);
+      expect(t.repo.recentlyActiveConversations).toHaveBeenLastCalledWith(
+        expect.any(Date),
+        expect.any(Date),
+        'c-0499',
+        500,
+      );
+    });
+
+    it('drops conversation starts older than a day in the hourly cleanup', async () => {
+      await t.service.cleanupCheckIns(NOW);
+      expect(t.repo.deleteConversationStartsBefore).toHaveBeenCalledWith(
+        new Date(NOW.getTime() - 24 * 3600_000),
       );
     });
 

@@ -328,7 +328,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     input: ProfileInput,
     now = new Date(),
   ): Promise<CruisingStatus> {
-    await this.enteredProfile(userId);
+    const current = await this.enteredProfile(userId);
     const data: ProfileChanges = {};
     if (input.emailAlerts !== undefined) data.emailAlerts = input.emailAlerts;
     if (input.bio !== undefined) {
@@ -342,7 +342,11 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (input.country !== undefined) data.country = input.country;
     if (input.lookingFor !== undefined) data.lookingFor = input.lookingFor;
     if (input.showAge !== undefined) data.showAge = input.showAge;
-    if (input.nickname !== undefined) {
+    // A nickname is set once: changing it would let someone else take the old one.
+    if (input.nickname !== undefined && current.nickname && input.nickname !== current.nickname) {
+      throw new ConflictException('Your nickname cannot be changed');
+    }
+    if (input.nickname !== undefined && !current.nickname) {
       const owner = await this.repository.findProfileByNickname(input.nickname);
       if (owner && owner.userId !== userId) throw new ConflictException('This nickname is taken');
       data.nickname = input.nickname;

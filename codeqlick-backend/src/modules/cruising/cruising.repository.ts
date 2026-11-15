@@ -654,15 +654,29 @@ export class CruisingRepository {
     });
   }
 
-  createConversation(starterId: string, partnerId: string): Promise<CruisingConversation> {
+  /** Opens a conversation and records the start (which outlives the conversation), together. */
+  async createConversation(starterId: string, partnerId: string): Promise<CruisingConversation> {
     const [userAId, userBId] = conversationPair(starterId, partnerId);
-    return this.prisma.cruisingConversation.create({ data: { userAId, userBId, starterId } });
+    const [conversation] = await this.prisma.$transaction([
+      this.prisma.cruisingConversation.create({ data: { userAId, userBId, starterId } }),
+      this.prisma.cruisingConversationStart.create({ data: { userId: starterId } }),
+    ]);
+    return conversation;
   }
 
+  /** Conversations I opened since `since`, even those deleted since (leaving doesn't refund). */
   countConversationsStartedSince(userId: string, since: Date): Promise<number> {
-    return this.prisma.cruisingConversation.count({
-      where: { starterId: userId, createdAt: { gte: since } },
+    return this.prisma.cruisingConversationStart.count({
+      where: { userId, createdAt: { gte: since } },
     });
+  }
+
+  /** Starts older than `before` no longer count toward any day's limit. */
+  async deleteConversationStartsBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.cruisingConversationStart.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
   }
 
   /** My conversations, latest first, each with the partner and the last message. */
@@ -752,11 +766,16 @@ export class CruisingRepository {
     });
   }
 
-  /** Conversations whose last message is between `from` and `to` old, with that message's sender. */
-  recentlyActiveConversations(from: Date, to: Date) {
+  /**
+   * Conversations whose last message is between `from` and `to` old, with that message's sender: a
+   * page of `take` in a stable order, after the conversation `cursor` (the last of the previous page).
+   */
+  recentlyActiveConversations(from: Date, to: Date, cursor?: string, take = 500) {
     return this.prisma.cruisingConversation.findMany({
       where: { lastMessageAt: { gte: from, lte: to } },
-      take: 500,
+      orderBy: { id: 'asc' },
+      take,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
         messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { senderId: true } },
       },

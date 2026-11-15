@@ -5229,7 +5229,8 @@
       "bioLong": "Usa 160 caracteres o menos.",
       "countryInvalid": "Elige un país de la lista.",
       "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para cambiar tu perfil.",
-      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
+      "bioContact": "Sin teléfonos, correos, enlaces ni usuarios de redes en tu bio."
     },
     "presence": {
       "title": "Aquí ahora",

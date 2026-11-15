@@ -138,6 +138,12 @@ describe('Cruising social (e2e)', () => {
       .set(bea.auth)
       .send({ nickname: 'No spaces!' });
     expect(invalid.status).toBe(400);
+    // A nickname is set once: no renaming, so nobody can take the old one.
+    const rename = await request(server())
+      .patch('/v1/cruising/profile')
+      .set(ana.auth)
+      .send({ nickname: `new_${tag}` });
+    expect(rename.status).toBe(409);
 
     // Without a nickname, profiles stay closed.
     const closed = await request(server()).get(`/v1/cruising/members/${ana.nick}`).set(bea.auth);
@@ -296,6 +302,16 @@ describe('Cruising social (e2e)', () => {
       .get(`/v1/cruising/conversations/${id}/messages`)
       .set(stranger.auth);
     expect(peek.status).toBe(404);
+    const intrusions = [
+      await say(stranger, id, 'Hello?'),
+      await request(server()).delete(`/v1/cruising/conversations/${id}`).set(stranger.auth),
+      await request(server()).post(`/v1/cruising/conversations/${id}/block`).set(stranger.auth),
+      await request(server())
+        .post('/v1/cruising/reports')
+        .set(stranger.auth)
+        .send({ conversationId: id, reason: 'SPAM' }),
+    ];
+    expect(intrusions.map((res) => res.status)).toEqual([404, 404, 404, 404]);
 
     // After 5 messages each, contact details are allowed.
     for (let n = 0; n < 4; n += 1) {
@@ -324,6 +340,8 @@ describe('Cruising social (e2e)', () => {
 
     const left = await request(server()).delete(`/v1/cruising/conversations/${id}`).set(jose.auth);
     expect(left.status).toBe(204);
+    // The start still counts toward Ivan's 10 a day after the conversation is gone.
+    expect(await prisma.cruisingConversationStart.count({ where: { userId: ivan.id } })).toBe(1);
     const gone = await request(server())
       .get(`/v1/cruising/conversations/${id}/messages`)
       .set(ivan.auth);
