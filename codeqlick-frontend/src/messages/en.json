@@ -5122,7 +5122,14 @@
       "editTitle": "Edit a spot",
       "editLead": "Your changes are reviewed with the spot.",
       "editLeadRejected": "When you save, the spot goes back to review.",
-      "back": "Back to my spots"
+      "back": "Back to my spots",
+      "alertsTitle": "Emails",
+      "alertsLabel": "Email me when one of my spots is published",
+      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot.",
+      "alertsSave": "Save",
+      "alertsSaving": "Saving…",
+      "alertsSaved": "Saved.",
+      "alertsError": "We couldn't save it. Try again."
     },
     "rules": {
       "title": "Rules",

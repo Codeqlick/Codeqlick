@@ -5122,7 +5122,14 @@
       "editTitle": "Editar un lugar",
       "editLead": "Tus cambios se revisan junto con el lugar.",
       "editLeadRejected": "Al guardar, el lugar vuelve a revisión.",
-      "back": "Volver a mis lugares"
+      "back": "Volver a mis lugares",
+      "alertsTitle": "Correos",
+      "alertsLabel": "Avísame por correo cuando se publique uno de mis lugares",
+      "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) se envían siempre. Los correos nunca nombran un lugar.",
+      "alertsSave": "Guardar",
+      "alertsSaving": "Guardando…",
+      "alertsSaved": "Guardado.",
+      "alertsError": "No hemos podido guardarlo. Inténtalo de nuevo."
     },
     "rules": {
       "title": "Normas",

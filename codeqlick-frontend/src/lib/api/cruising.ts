@@ -187,6 +187,15 @@ export function onboardCruising(input: {
   return apiFetch<CruisingStatus>('/cruising/me', { method: 'PUT', body: input, auth: 'required' });
 }
 
+/** My Cruising settings (PATCH /cruising/profile): email alerts now, the profile in phase 2. */
+export function updateCruisingProfile(input: { emailAlerts?: boolean }) {
+  return apiFetch<CruisingStatus>('/cruising/profile', {
+    method: 'PATCH',
+    body: input,
+    auth: 'required',
+  });
+}
+
 export async function listMyCruisingSpots(): Promise<MyCruisingSpot[]> {
   return (await apiFetch<{ items: MyCruisingSpot[] }>('/cruising/me/spots', { auth: 'required' }))
     .items;

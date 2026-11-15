@@ -14,6 +14,7 @@ import {
   reportCruising,
   requestCruisingTakedown,
   saveCruisingReview,
+  updateCruisingProfile,
   updateCruisingSpot,
 } from '@/lib/api/cruising';
 import {
@@ -94,6 +95,22 @@ function spotApiMessage(t: SpotFormT, error: unknown): string {
   if (status === 429) return t('tooManyToday');
   if (status === 409) return t('notEditable');
   return t('error');
+}
+
+/** Turns the optional emails on or off: spot published and, in phase 2, unread messages. */
+export async function emailAlertsAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.mySpots' });
+  try {
+    await updateCruisingProfile({ emailAlerts: formData.get('emailAlerts') === 'on' });
+  } catch {
+    return { status: 'error', message: t('alertsError') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: t('alertsSaved') };
 }
 
 /** Proposes a spot (POST /cruising/spots): it waits for the team's review. */

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { ActionForm } from '@/components/app/ActionForm';
+import { ActionForm, FormCheckbox } from '@/components/app/ActionForm';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +13,7 @@ import { requireUser } from '@/lib/auth/session';
 import { countryName, spotHref, type CruisingSpotStatus } from '@/lib/cruising';
 import { firstParam, formatDate } from '@/lib/format';
 import vc from '../../videochat/videochat.module.css';
-import { deleteSpotAction } from '../actions';
+import { deleteSpotAction, emailAlertsAction } from '../actions';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -100,6 +100,22 @@ export default async function CruisingMySpotsPage({ params, searchParams }: Page
           })}
         </ul>
       )}
+      <section className={vc.panel} aria-labelledby="cruising-alerts">
+        <h2 id="cruising-alerts" className={vc.sectionTitle}>
+          {t('alertsTitle')}
+        </h2>
+        <ActionForm action={emailAlertsAction.bind(null, locale)}>
+          <FormCheckbox
+            name="emailAlerts"
+            label={t('alertsLabel')}
+            hint={t('alertsHint')}
+            defaultChecked={status.emailAlerts}
+          />
+          <SubmitButton variant="outline" size="sm" pendingLabel={t('alertsSaving')}>
+            {t('alertsSave')}
+          </SubmitButton>
+        </ActionForm>
+      </section>
     </>
   );
 }
