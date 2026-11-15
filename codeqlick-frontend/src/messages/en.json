@@ -5337,7 +5337,7 @@
       "title": "Spots to review",
       "lead": "Oldest first. The person is emailed when you publish or reject, without the spot's name.",
       "reason": "Reason if you reject it",
-      "reasonHint": "Required to reject (5 to 500 characters). The person gets it by email."
+      "reasonHint": "Required to reject (5 to 500 characters). The person gets it by email: don't name the spot, the place or anyone in it."
     },
     "status": {
       "PENDING": "in review",
@@ -5378,7 +5378,7 @@
     "reports": {
       "remove": "Remove it (the spot is rejected, the review is deleted)",
       "reason": "Reason (sent to the proposer if you remove a spot)",
-      "reasonHint": "Optional, up to 500 characters.",
+      "reasonHint": "Optional, up to 500 characters. It goes in the email to the person: don't name the spot, the place or anyone in it.",
       "suspend": "Suspend the person",
       "act": "Apply",
       "dismiss": "Dismiss (what was hidden goes live again)"
@@ -5389,9 +5389,7 @@
       "unmatched": "No spot matches (link: {link}). Find it from the description.",
       "response": "Answer (sent by email)",
       "remove": "Remove the spot",
-      "close": "Close without removing (it goes live again)",
-      "defaultRemoved": "We have removed the spot. Thank you for telling us.",
-      "defaultClosed": "We reviewed your request and decided to keep the spot. If you disagree, reply to this email."
+      "close": "Close without removing (it goes live again)"
     },
     "live": {
       "filter": "Status",

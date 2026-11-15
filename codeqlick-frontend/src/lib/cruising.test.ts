@@ -36,6 +36,7 @@ import {
   proposeHref,
   REPORT_REASONS,
   SPOT_TYPES,
+  snapBbox,
   spotLinkSlug,
   spotsEndpoint,
   spotTypeFilter,
@@ -372,6 +373,8 @@ describe('small helpers', () => {
     expect(spotLinkSlug('el-parque-norte')).toBe('el-parque-norte');
     expect(spotLinkSlug('/en/spots/el-parque-norte/?utm=1#x')).toBe('el-parque-norte');
     expect(spotLinkSlug('')).toBeNull();
+    // Like the API: only a /spots/ link (or a bare slug) names a spot.
+    expect(spotLinkSlug('https://cruising.codeqlick.com/es/places/es/madrid')).toBeNull();
     expect(spotLinkSlug('https://example.com/Not A Slug')).toBeNull();
   });
 });
@@ -634,6 +637,42 @@ describe('translations', () => {
           .filter((word) => word !== 'Codeqlick');
         expect(wrong).toEqual([]);
       }
+    }
+  });
+});
+
+describe('snapBbox', () => {
+  it('grows a box to whole grid cells, whatever point it was centred on', () => {
+    const device = { lat: 40.416775, lng: -3.70379 };
+    const around = {
+      minLng: device.lng - 0.01,
+      minLat: device.lat - 0.01,
+      maxLng: device.lng + 0.01,
+      maxLat: device.lat + 0.01,
+    };
+    expect(snapBbox(around)).toEqual({ minLng: -3.75, minLat: 40.25, maxLng: -3.5, maxLat: 40.5 });
+    const elsewhere = { minLng: -3.74, minLat: 40.26, maxLng: -3.51, maxLat: 40.49 };
+    expect(snapBbox(elsewhere)).toEqual(snapBbox(around));
+  });
+
+  it('stays inside the world and never returns an empty box', () => {
+    expect(snapBbox({ minLng: 179.9, minLat: 89.9, maxLng: 180, maxLat: 90 })).toEqual({
+      minLng: 179.75,
+      minLat: 89.75,
+      maxLng: 180,
+      maxLat: 90,
+    });
+    expect(snapBbox({ minLng: -180, minLat: -90, maxLng: 180, maxLat: 90 })).toEqual({
+      minLng: -180,
+      minLat: -90,
+      maxLng: 180,
+      maxLat: 90,
+    });
+    for (const box of [
+      snapBbox({ minLng: 1, minLat: 1, maxLng: 1.0001, maxLat: 1.0001 }),
+      snapBbox({ minLng: -0.3, minLat: 5, maxLng: 0.3, maxLat: 5.1 }),
+    ]) {
+      expect(parseBbox(formatBbox(box))).not.toBeNull();
     }
   });
 });
