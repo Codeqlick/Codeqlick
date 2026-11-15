@@ -101,6 +101,25 @@ export default defineConfig({
 });
 ```
 
+Sending the header with `extraHTTPHeaders` adds it to **every** request the page makes, including those to other origins (CDNs, analytics, third-party scripts), so the token would leak to them. To send it only to your project's host, add it with a route instead:
+
+```ts
+import { test as base } from '@playwright/test';
+
+export const test = base.extend({
+  context: async ({ context }, use) => {
+    await context.route('https://web--a1b2c3d4.codeqlick.app/**', (route) =>
+      route.continue({
+        headers: { ...route.request().headers(), 'x-codeqlick-bypass': process.env.CQ_BYPASS ?? '' },
+      }),
+    );
+    await use(context);
+  },
+});
+```
+
+Requests to any other host are not touched. Use the same host for every address of the project that you test (add one route per host).
+
 The token works on every address that asks for the password, for every path and method: the deployments' addresses, and with `all` production and your custom domains. It is a header only: never put it in a URL or a cookie. It skips the password only, so the redirects, rewrites and headers of your `codeqlick.json` still apply. While protection is off it does nothing; turning protection off keeps the token, and it works again when you turn protection on.
 
 To remove it:

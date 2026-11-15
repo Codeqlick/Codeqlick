@@ -101,6 +101,25 @@ export default defineConfig({
 });
 ```
 
+Enviar la cabecera con `extraHTTPHeaders` la añade a **todas** las peticiones de la página, también las que van a otros orígenes (CDN, analítica, scripts de terceros), así que el token se filtraría a ellos. Para enviarla solo al host de tu proyecto, añádela con una ruta:
+
+```ts
+import { test as base } from '@playwright/test';
+
+export const test = base.extend({
+  context: async ({ context }, use) => {
+    await context.route('https://web--a1b2c3d4.codeqlick.app/**', (route) =>
+      route.continue({
+        headers: { ...route.request().headers(), 'x-codeqlick-bypass': process.env.CQ_BYPASS ?? '' },
+      }),
+    );
+    await use(context);
+  },
+});
+```
+
+Las peticiones a cualquier otro host no se tocan. Usa el mismo host para cada dirección del proyecto que pruebes (añade una ruta por host).
+
 El token funciona en todas las direcciones que piden la contraseña, para cualquier ruta y método: las direcciones de despliegue y, con `all`, producción y tus dominios propios. Es solo una cabecera: nunca lo pongas en una URL ni en una cookie. Solo se salta la contraseña, así que las redirecciones, reescrituras y cabeceras de tu `codeqlick.json` se siguen aplicando. Mientras la protección está desactivada no hace nada; al desactivar la protección el token se conserva y vuelve a funcionar cuando la activas de nuevo.
 
 Para eliminarlo:

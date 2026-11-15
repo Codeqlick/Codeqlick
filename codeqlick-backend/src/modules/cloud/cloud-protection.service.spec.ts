@@ -100,13 +100,15 @@ describe('CloudProtectionService bypass', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('ignores the header of an IP after 10 wrong tokens, and only that IP', async () => {
+  it('refuses wrong tokens after 10 from an IP, yet the right token still passes', async () => {
     for (let i = 0; i < 10; i += 1) {
       expect(await service.check(headers({ bypass: `cqb_wrong${i}` }), now)).toBe(false);
     }
-    expect(await service.check(headers({ bypass: TOKEN }), now)).toBe(false);
+    expect(await service.check(headers({ bypass: 'cqb_wrong-again' }), now)).toBe(false);
+    // A correct token from the limited IP passes (and so from any other IP).
+    expect(await service.check(headers({ bypass: TOKEN }), now)).toBe(true);
     expect(await service.check(headers({ bypass: TOKEN, ip: '203.0.113.6' }), now)).toBe(true);
-    // The minute is over: it works again.
+    // The minute is over: wrong tokens count again, the right one still works.
     expect(await service.check(headers({ bypass: TOKEN }), now + 60_000)).toBe(true);
   });
 

@@ -334,8 +334,10 @@ export class CloudProtectionService {
   }
 
   /**
-   * The bypass token for automation (decision 73), tried only when the cookie didn't pass. A
-   * wrong token counts as no token; after too many from one IP its header is ignored.
+   * The bypass token for automation (decision 73), tried only when the cookie didn't pass. The
+   * token is always compared (a constant-time hash compare, cheap), so a right one passes even
+   * from an IP over the limit (Nginx caches the answer without the IP). A wrong token counts as
+   * no token; after too many from one IP, wrong ones are refused without further work.
    */
   private async validBypass(
     project: ProtectedProject,
@@ -344,9 +346,10 @@ export class CloudProtectionService {
   ): Promise<boolean> {
     const token = headers.bypass;
     if (!token || token.length > BYPASS_HEADER_MAX) return false;
-    if (this.wrongTokens.blocked(headers.ip, project.id, now)) return false;
     if (!bypassMatches(project.protectionBypassHash, token)) {
-      this.wrongTokens.fail(headers.ip, project.id, now);
+      if (!this.wrongTokens.blocked(headers.ip, project.id, now)) {
+        this.wrongTokens.fail(headers.ip, project.id, now);
+      }
       return false;
     }
     await this.touchBypass(project, now);

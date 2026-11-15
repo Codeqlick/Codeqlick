@@ -1,5 +1,8 @@
+import { Writable } from 'node:stream';
+import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
-import { redactUrlTokens, serializeRequest } from './logger.js';
+import type { AppConfigService } from './app-config.service.js';
+import { buildLoggerParams, redactUrlTokens, serializeRequest } from './logger.js';
 
 const token = 'cqd_AbCdEfGh1234567890abcdefghijklmnopqrstuvw';
 
@@ -60,5 +63,37 @@ describe('redactUrlTokens', () => {
     expect(redactUrlTokens('/v1/posts?page=2')).toBe('/v1/posts?page=2');
     expect(redactUrlTokens('/v1/x?challengeToken=abc')).toBe('/v1/x?challengeToken=abc');
     expect(redactUrlTokens('/v1/token=abc')).toBe('/v1/token=abc');
+  });
+});
+
+describe('log redaction', () => {
+  it('never writes the protection headers (bypass token, shared key, access cookie)', () => {
+    const config = { logLevel: 'info', isDevelopment: false } as AppConfigService;
+    const params = buildLoggerParams(config);
+    const { pinoHttp } = params as { pinoHttp: { redact: { paths: string[]; censor: string } } };
+    let output = '';
+    const stream = new Writable({
+      write(chunk, _encoding, done) {
+        output += String(chunk);
+        done();
+      },
+    });
+    const logger = pino({ redact: pinoHttp.redact }, stream);
+    const secrets = ['cqb_secret-bypass', 'shared-key-secret', 'access-secret', 'cqb_legacy'];
+    logger.info({
+      req: serializeRequest({
+        ...request('/v1/cloud/edge/check'),
+        headers: {
+          host: 'api.codeqlick.com',
+          'x-cq-bypass': secrets[0],
+          'x-cq-protection-key': secrets[1],
+          'x-cq-access': secrets[2],
+          'x-codeqlick-bypass': secrets[3],
+        } as never,
+      }),
+    });
+    for (const secret of secrets) expect(output).not.toContain(secret);
+    expect(output).toContain('[redacted]');
+    expect(output).toContain('api.codeqlick.com');
   });
 });
