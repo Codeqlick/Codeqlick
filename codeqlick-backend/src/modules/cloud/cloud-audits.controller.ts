@@ -19,6 +19,10 @@ import {
   type TeamParam,
 } from './cloud.schemas.js';
 import { CloudAuditsService, type CloudAuditReport } from './cloud-audits.service.js';
+import {
+  CloudProductionChecksService,
+  type ProductionChecksView,
+} from './cloud-production-checks.service.js';
 
 /** The website check for developers (architecture 4.13, Website check API). */
 @ApiTags('cloud')
@@ -27,7 +31,10 @@ import { CloudAuditsService, type CloudAuditReport } from './cloud-audits.servic
 @CloudApi()
 @Controller('cloud')
 export class CloudAuditsController {
-  constructor(private readonly audits: CloudAuditsService) {}
+  constructor(
+    private readonly audits: CloudAuditsService,
+    private readonly productionChecks: CloudProductionChecksService,
+  ) {}
 
   @Post('audits')
   @HttpCode(HttpStatus.OK)
@@ -55,5 +62,14 @@ export class CloudAuditsController {
     @Query({ schema: localeQuerySchema }) query: LocaleQuery,
   ): Promise<CloudAuditReport> {
     return this.audits.get(ctx, params.id, query.locale);
+  }
+
+  /** The weekly check of a project's production and its last 12 results (decision 80). */
+  @Get('projects/:id/production-checks')
+  productionChecksOf(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: idParamSchema }) params: IdParam,
+  ): Promise<ProductionChecksView> {
+    return this.productionChecks.history(ctx, params.id);
   }
 }

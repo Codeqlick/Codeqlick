@@ -2245,6 +2245,9 @@ model CloudProject {
   rebuildNextAt          DateTime? @map("rebuild_next_at") @db.Timestamptz(3)
   /// Scheduled builds failed in a row; five switch the schedule off.
   rebuildFailures        Int       @default(0) @map("rebuild_failures")
+  /// The weekly website check of production (architecture 4.13, decision 80) and its next run.
+  productionChecks       Boolean   @default(false) @map("production_checks")
+  productionCheckNextAt  DateTime? @map("production_check_next_at") @db.Timestamptz(3)
   createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -2264,9 +2267,11 @@ model CloudProject {
   kvEntries          CloudKvEntry[]
   cloudDatabases     CloudDatabase[]
   buckets            CloudBucket[]
+  audits             CloudAudit[]
 
   @@index([teamId, createdAt])
   @@index([rebuildNextAt])
+  @@index([productionCheckNextAt])
   @@map("cloud_projects")
 }
 
@@ -2600,18 +2605,32 @@ model CloudAudit {
   id        String   @id @default(uuid()) @db.Uuid
   teamId    String   @map("team_id") @db.Uuid
   userId    String?  @map("user_id") @db.Uuid
+  /// The project a preview or scheduled check was made for (decision 80); null for a member's.
+  projectId String?  @map("project_id") @db.Uuid
+  /// Who asked for it (decision 80): a member (`MANUAL`), a pull request's preview (`PREVIEW`)
+  /// or the weekly check of production (`SCHEDULED`, kept 90 days instead of 30).
+  kind      CloudAuditKind @default(MANUAL)
   url       String   @db.VarChar(2048)
   score     Int
   /// The checks' result as the free website check stores it (final URL, categories, checks).
   result    Json
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  team   CloudTeam    @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  builds CloudBuild[]
+  team    CloudTeam     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project CloudProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  builds  CloudBuild[]
 
   @@index([teamId, createdAt])
   @@index([createdAt])
+  @@index([kind, createdAt])
+  @@index([projectId, kind, createdAt])
   @@map("cloud_audits")
+}
+
+enum CloudAuditKind {
+  MANUAL
+  PREVIEW
+  SCHEDULED
 }
 
 /// A GitHub App installation linked to a team (architecture 4.13, Builds from Git; decision 40).

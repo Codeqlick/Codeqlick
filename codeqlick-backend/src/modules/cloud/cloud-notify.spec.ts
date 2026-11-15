@@ -1,6 +1,8 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
+  auditDroppedEvent,
+  auditDroppedPayload,
   channelUrlProblem,
   formLines,
   monitorEvent,
@@ -416,6 +418,81 @@ describe('Cloud build notifications', () => {
     it('posts the whole alert to a webhook', () => {
       expect(JSON.parse(monitorPayload('WEBHOOK', up, 'en'))).toEqual(up);
       expect(JSON.parse(monitorPayload('WEBHOOK', slow, 'en'))).toEqual(slow);
+    });
+  });
+});
+
+describe('website-check drops (decision 80)', () => {
+  const consoleUrl = 'https://cloud.test/en/console/acme/audits/a2';
+  const categories = { speed: 90, mobile: 90, seo: 95, security: 90 };
+  const dropped = auditDroppedEvent({
+    project: { slug: 'web', name: 'Web <1> & co' },
+    audit: {
+      id: 'a2',
+      url: 'https://web.cloud.test/',
+      score: 78,
+      categories: { ...categories, seo: 70 },
+      createdAt: '2026-11-16T02:00:00.000Z',
+    },
+    previous: { id: 'a1', score: 92, categories, createdAt: '2026-11-09T02:00:00.000Z' },
+    drop: {
+      score: { from: 92, to: 78 },
+      categories: [{ key: 'seo', from: 95, to: 70 }],
+      checks: [
+        { id: 'hsts', category: 'security' },
+        { id: 'h1', category: 'seo' },
+      ],
+    },
+    consoleUrl,
+    now: new Date('2026-11-16T02:01:00Z'),
+  });
+
+  it('gives the webhook exactly the documented body, the checks titled in English', () => {
+    expect(JSON.parse(auditDroppedPayload('WEBHOOK', dropped, 'es'))).toEqual({
+      event: 'audit.dropped',
+      project: { slug: 'web', name: 'Web <1> & co' },
+      audit: {
+        id: 'a2',
+        url: 'https://web.cloud.test/',
+        score: 78,
+        categories: { ...categories, seo: 70 },
+        createdAt: '2026-11-16T02:00:00.000Z',
+      },
+      previous: { id: 'a1', score: 92, categories, createdAt: '2026-11-09T02:00:00.000Z' },
+      dropped: {
+        score: { from: 92, to: 78 },
+        categories: [{ key: 'seo', from: 95, to: 70 }],
+        checks: [
+          { id: 'hsts', category: 'security', title: expect.any(String) },
+          { id: 'h1', category: 'seo', title: expect.any(String) },
+        ],
+      },
+      consoleUrl,
+      sentAt: '2026-11-16T02:01:00.000Z',
+    });
+  });
+
+  it('writes the Slack line in the channel’s language, escaping the names', () => {
+    const en = JSON.parse(auditDroppedPayload('SLACK', dropped, 'en')) as { text: string };
+    expect(en.text).toContain(
+      '📉 *Web &lt;1&gt; &amp; co* · website score dropped from 92 to 78 (Google 95 → 70, 2 checks failed)',
+    );
+    expect(en.text).toContain(`<${consoleUrl}|See the report>`);
+    const es = JSON.parse(auditDroppedPayload('SLACK', dropped, 'es')) as { text: string };
+    expect(es.text).toContain('la nota de la web ha bajado de 92 a 78');
+    expect(es.text).toContain('2 comprobaciones fallan');
+  });
+
+  it('sends Discord an orange embed that pings no one', () => {
+    const body = JSON.parse(auditDroppedPayload('DISCORD', dropped, 'en')) as {
+      allowed_mentions: { parse: string[] };
+      embeds: Array<{ url: string; color: number; title: string }>;
+    };
+    expect(body.allowed_mentions.parse).toEqual([]);
+    expect(body.embeds[0]).toMatchObject({
+      url: consoleUrl,
+      color: 0xf79009,
+      title: '📉 Web <1> & co · Website check',
     });
   });
 });

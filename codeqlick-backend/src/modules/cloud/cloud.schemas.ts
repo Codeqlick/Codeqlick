@@ -134,7 +134,11 @@ export type DeviceDecisionInput = z.infer<typeof deviceDecisionSchema>;
 export const createProjectSchema = z.object({ name, slug: projectSlugSchema });
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 
-export const updateProjectSchema = z.object({ name });
+export const updateProjectSchema = z
+  .object({ name: name.optional(), productionChecks: z.boolean().optional() })
+  .refine((v) => v.name !== undefined || v.productionChecks !== undefined, {
+    message: 'Send a name or productionChecks',
+  });
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
 
 /** Moving a project to another team (architecture 4.13, decision 58): the target's slug. */

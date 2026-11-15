@@ -46,6 +46,7 @@ import {
   deploymentLabel,
   productionLabel,
 } from './cloud.storage.js';
+import { nextProductionCheck } from './cloud-production-checks.js';
 import { rebuildView, type RebuildView } from './cloud-rebuild-schedule.js';
 import { CloudDiskService } from './cloud-disk.service.js';
 import { lockChange, type LockChange } from './cloud-production-lock.js';
@@ -185,10 +186,33 @@ export class CloudProjectsService implements OnApplicationBootstrap, OnApplicati
 
   async update(ctx: CloudCtx, id: string, input: UpdateProjectInput): Promise<ProjectView> {
     const { project } = await this.project(ctx, id, 'ADMIN');
-    const updated = await this.repository.updateProject(project.id, { name: input.name });
-    await this.teams.record(ctx, project.teamId, 'project.renamed', project.slug, {
-      name: input.name,
-    });
+    let updated = project;
+    if (input.name !== undefined) {
+      updated = await this.repository.updateProject(project.id, { name: input.name });
+      await this.teams.record(ctx, project.teamId, 'project.renamed', project.slug, {
+        name: input.name,
+      });
+    }
+    // The weekly check of production (decision 80): on sets the next slot, off clears it.
+    if (
+      input.productionChecks !== undefined &&
+      input.productionChecks !== project.productionChecks
+    ) {
+      updated = await this.repository.updateProject(project.id, {
+        productionChecks: input.productionChecks,
+        productionCheckNextAt: input.productionChecks
+          ? nextProductionCheck(project.id, new Date())
+          : null,
+      });
+      await this.teams.record(
+        ctx,
+        project.teamId,
+        input.productionChecks
+          ? 'project.production_checks_enabled'
+          : 'project.production_checks_disabled',
+        project.slug,
+      );
+    }
     return this.view(updated);
   }
 
