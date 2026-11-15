@@ -130,7 +130,7 @@ codeqlick protect bypass --revoke
 
 `codeqlick protect` muestra si hay un token, sus primeros caracteres y cuándo se usó por última vez. Todos los miembros del equipo lo ven; solo los propietarios y administradores lo crean o lo revocan. Un token de API de solo lectura no puede.
 
-Trátalo como una contraseña: guárdalo en los secretos de tu CI y no lo imprimas en los registros. Los tokens incorrectos se limitan por visitante, así que nadie puede bloquear tus pruebas adivinando. Los [monitores](/es/monitors-and-status-pages/) y la [revisión web](/es/website-check/) no lo envían, así que siguen viendo la página de la contraseña; una herramienta que pueda enviar cabeceras personalizadas puede usarlo.
+Trátalo como una contraseña: guárdalo en los secretos de tu CI y no lo imprimas en los registros. Un token incorrecto simplemente se rechaza y nunca bloquea a nadie, así que nadie puede detener tus pruebas enviando tokens incorrectos. El token tiene 256 bits aleatorios, por lo que no se puede adivinar. Los [monitores](/es/monitors-and-status-pages/) y la [revisión web](/es/website-check/) no lo envían, así que siguen viendo la página de la contraseña; una herramienta que pueda enviar cabeceras personalizadas puede usarlo.
 
 ## Qué no cubre
 

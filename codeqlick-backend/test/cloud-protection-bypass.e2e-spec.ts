@@ -107,12 +107,7 @@ describe('Codeqlick Cloud protection bypass for automation (e2e)', () => {
     const base = `/v1/cloud/projects/${projectId}/protection`;
     const previewHost = `${slug}--${SHORT_ID}.cloud.test`;
     const productionHost = `${slug}.cloud.test`;
-    const check = (
-      host: string,
-      kind: 'previews' | 'production',
-      bypass?: string,
-      ip = '198.51.100.7',
-    ) =>
+    const check = (host: string, kind: 'previews' | 'production', bypass?: string) =>
       request(server)
         .get('/v1/cloud/edge/check')
         .set({
@@ -120,7 +115,6 @@ describe('Codeqlick Cloud protection bypass for automation (e2e)', () => {
           'X-Cq-Host': host,
           'X-Cq-Project': slug,
           'X-Cq-Kind': kind,
-          'X-Real-IP': ip,
           ...(bypass === undefined ? {} : { 'X-Cq-Bypass': bypass }),
         });
     const events = (action: string) =>
@@ -206,14 +200,11 @@ describe('Codeqlick Cloud protection bypass for automation (e2e)', () => {
       { lastUsedAt: new Date(first).toISOString() },
     );
 
-    // ── Wrong tokens: 10 a minute per IP, then that IP's header is ignored ──────────────────
-    for (let i = 0; i < 10; i += 1) {
-      await check(previewHost, 'previews', `cqb_wrong${i}`, '198.51.100.50').expect(401);
+    // ── Wrong tokens: refused each time, no lockout, and the right one still passes ────────
+    for (let i = 0; i < 12; i += 1) {
+      await check(previewHost, 'previews', `cqb_wrong${i}`).expect(401);
     }
-    await check(previewHost, 'previews', token, '198.51.100.50').expect(401);
-    // Other addresses are not affected.
-    await check(previewHost, 'previews', token, '198.51.100.51').expect(204);
-    await check(previewHost, 'previews', token, '198.51.100.7').expect(204);
+    await check(previewHost, 'previews', token).expect(204);
 
     // ── Changing the password or the mode doesn't touch it ─────────────────────────────────
     await request(server)

@@ -51,7 +51,6 @@ function proxyHeaders(request: Request): ProxyHeaders {
     uri: wire(one('x-cq-uri')),
     args: wire(one('x-cq-args')),
     bypass: one('x-cq-bypass'),
-    ip: one('x-real-ip'),
   };
 }
 

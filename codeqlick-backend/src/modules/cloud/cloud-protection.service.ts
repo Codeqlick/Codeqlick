@@ -18,7 +18,6 @@ import {
   TICKET_TTL_SECONDS,
   TicketBook,
   TryLimiter,
-  WrongTokenLimiter,
   bypassMatches,
   generateBypassToken,
   protectionKey,
@@ -73,8 +72,6 @@ export interface ProxyHeaders {
   args?: string;
   /** The visitor's `X-Codeqlick-Bypass` (decision 73), when sent. */
   bypass?: string;
-  /** The visitor's address (Nginx's `X-Real-IP`), for the wrong-token limit. */
-  ip?: string;
 }
 
 /** What the edge check answers Nginx (`GET /cloud/edge/check`). */
@@ -122,7 +119,6 @@ export class CloudProtectionService {
   private readonly ticketKey: Buffer;
   private readonly tickets = new TicketBook();
   private readonly tries = new TryLimiter(5, 60, 60_000);
-  private readonly wrongTokens = new WrongTokenLimiter();
   /** When each project's bypass last use was written, so a busy run is one write a minute. */
   private readonly touched = new Map<string, number>();
 
@@ -334,10 +330,9 @@ export class CloudProtectionService {
   }
 
   /**
-   * The bypass token for automation (decision 73), tried only when the cookie didn't pass. The
-   * token is always compared (a constant-time hash compare, cheap), so a right one passes even
-   * from an IP over the limit (Nginx caches the answer without the IP). A wrong token counts as
-   * no token; after too many from one IP, wrong ones are refused without further work.
+   * The bypass token for automation (decision 73), tried only when the cookie didn't pass. It is
+   * always compared (a SHA-256 and a constant-time compare, cheap). A wrong token counts as no
+   * token; there is no per-IP limit on wrong ones (a 256-bit token can't be guessed).
    */
   private async validBypass(
     project: ProtectedProject,
@@ -346,12 +341,7 @@ export class CloudProtectionService {
   ): Promise<boolean> {
     const token = headers.bypass;
     if (!token || token.length > BYPASS_HEADER_MAX) return false;
-    if (!bypassMatches(project.protectionBypassHash, token)) {
-      if (!this.wrongTokens.blocked(headers.ip, project.id, now)) {
-        this.wrongTokens.fail(headers.ip, project.id, now);
-      }
-      return false;
-    }
+    if (!bypassMatches(project.protectionBypassHash, token)) return false;
     await this.touchBypass(project, now);
     return true;
   }

@@ -130,7 +130,7 @@ codeqlick protect bypass --revoke
 
 `codeqlick protect` shows whether a token is set, its first characters and when it was last used. Every team member sees that; only owners and admins create or revoke it. An API token that is read only can't.
 
-Treat it like a password: keep it in your CI's secrets and don't print it in logs. Wrong tokens are limited per visitor, so nobody can lock your tests out by guessing. [Monitors](/en/monitors-and-status-pages/) and the [website check](/en/website-check/) don't send it, so they still see the password page; a tool that can send custom headers can use it.
+Treat it like a password: keep it in your CI's secrets and don't print it in logs. A wrong token is simply refused, and it never locks anyone out, so nobody can block your tests by sending wrong ones. The token is 256 random bits, so it can't be guessed. [Monitors](/en/monitors-and-status-pages/) and the [website check](/en/website-check/) don't send it, so they still see the password page; a tool that can send custom headers can use it.
 
 ## What it doesn't cover
 

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   TicketBook,
   TryLimiter,
-  WrongTokenLimiter,
   bypassMatches,
   generateBypassToken,
   hashBypassToken,
@@ -278,30 +277,5 @@ describe('bypass token', () => {
     expect(bypassMatches(undefined, token)).toBe(false);
     // Not a SHA-256 hex at all: never throws, never matches.
     expect(bypassMatches('zz', token)).toBe(false);
-  });
-});
-
-describe('wrong bypass tokens', () => {
-  it('ignores an IP after 10 wrong ones in a minute, without touching other IPs or projects', () => {
-    const limiter = new WrongTokenLimiter();
-    for (let i = 0; i < 9; i += 1) limiter.fail('1.2.3.4', 'p', now);
-    expect(limiter.blocked('1.2.3.4', 'p', now)).toBe(false);
-    limiter.fail('1.2.3.4', 'p', now);
-    expect(limiter.blocked('1.2.3.4', 'p', now)).toBe(true);
-    expect(limiter.blocked('::ffff:1.2.3.4', 'p', now)).toBe(true);
-    expect(limiter.blocked('1.2.3.4', 'q', now)).toBe(false);
-    expect(limiter.blocked('5.6.7.8', 'p', now)).toBe(false);
-    expect(limiter.blocked('1.2.3.4', 'p', now + 60_000)).toBe(false);
-  });
-
-  it('counts an IPv6 address by its /64 and remembers a bounded number of keys', () => {
-    const limiter = new WrongTokenLimiter(2, 60_000, 50);
-    limiter.fail('2001:db8:1:2::1', 'p', now);
-    limiter.fail('2001:db8:1:2::2', 'p', now);
-    expect(limiter.blocked('2001:db8:1:2::ffff', 'p', now)).toBe(true);
-    expect(limiter.blocked('2001:db8:1:3::1', 'p', now)).toBe(false);
-    for (let i = 0; i < 200; i += 1)
-      limiter.fail(`10.0.${Math.floor(i / 250)}.${i % 250}`, 'p', now);
-    expect(limiter.size).toBeLessThanOrEqual(50);
   });
 });

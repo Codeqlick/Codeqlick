@@ -268,8 +268,6 @@ export class TryLimiter {
 
 /** The longest `X-Cq-Bypass` value looked at; anything longer is ignored. */
 export const BYPASS_HEADER_MAX = 200;
-/** Wrong tokens an IP (and project) may send in a minute before its header is ignored. */
-export const BYPASS_WRONG_PER_MINUTE = 10;
 /** The stored last use is refreshed at most this often. */
 export const BYPASS_TOUCH_MS = 60_000;
 
@@ -290,40 +288,6 @@ export function bypassMatches(storedHash: string | null | undefined, token: stri
   const stored = Buffer.from(storedHash, 'hex');
   const given = Buffer.from(hashBypassToken(token), 'hex');
   return stored.length === given.length && timingSafeEqual(stored, given);
-}
-
-/**
- * Wrong bypass tokens, in memory: after `limit` in a minute from one IP (IPv6 by /64) for one
- * project, that IP's header is ignored until the minute is over. Never blocks other IPs.
- */
-export class WrongTokenLimiter {
-  private readonly wrong: WindowCounter;
-
-  constructor(
-    private readonly limit = BYPASS_WRONG_PER_MINUTE,
-    windowMs = 60_000,
-    maxKeys = 10_000,
-  ) {
-    this.wrong = new WindowCounter(windowMs, maxKeys);
-  }
-
-  private key(ip: string | null | undefined, projectId: string): string {
-    return `${ipBucket(ip)}|${projectId}`;
-  }
-
-  /** True while the IP has used up its wrong tokens: the header is not even compared. */
-  blocked(ip: string | null | undefined, projectId: string, now: number = Date.now()): boolean {
-    return this.wrong.count(this.key(ip, projectId), now) >= this.limit;
-  }
-
-  /** Counts a wrong token. */
-  fail(ip: string | null | undefined, projectId: string, now: number = Date.now()): void {
-    this.wrong.add(this.key(ip, projectId), now);
-  }
-
-  get size(): number {
-    return this.wrong.size;
-  }
 }
 
 // ── `next` and the language ───────────────────────────────────────────────────────────────────

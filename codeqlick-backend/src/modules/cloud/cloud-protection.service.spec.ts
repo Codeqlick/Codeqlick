@@ -41,7 +41,6 @@ const headers = (overrides: Partial<ProxyHeaders> = {}): ProxyHeaders => ({
   host: 'docs.cloud.test',
   slug: 'docs',
   kind: 'production',
-  ip: '203.0.113.5',
   ...overrides,
 });
 
@@ -100,16 +99,11 @@ describe('CloudProtectionService bypass', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('refuses wrong tokens after 10 from an IP, yet the right token still passes', async () => {
-    for (let i = 0; i < 10; i += 1) {
+  it('has no limit on wrong tokens: each is refused and the right one still passes', async () => {
+    for (let i = 0; i < 25; i += 1) {
       expect(await service.check(headers({ bypass: `cqb_wrong${i}` }), now)).toBe(false);
     }
-    expect(await service.check(headers({ bypass: 'cqb_wrong-again' }), now)).toBe(false);
-    // A correct token from the limited IP passes (and so from any other IP).
     expect(await service.check(headers({ bypass: TOKEN }), now)).toBe(true);
-    expect(await service.check(headers({ bypass: TOKEN, ip: '203.0.113.6' }), now)).toBe(true);
-    // The minute is over: wrong tokens count again, the right one still works.
-    expect(await service.check(headers({ bypass: TOKEN }), now + 60_000)).toBe(true);
   });
 
   it('writes the last use at most once a minute', async () => {
@@ -123,7 +117,7 @@ describe('CloudProtectionService bypass', () => {
     vi.clearAllMocks();
     found = project({ protectionBypassLastUsedAt: new Date(now + 100_000 - 10_000) });
     const fresh = new Date(now + 100_000);
-    await service.check(headers({ bypass: TOKEN, ip: '203.0.113.9' }), fresh.getTime());
+    await service.check(headers({ bypass: TOKEN }), fresh.getTime());
     expect(repository.touchBypass).not.toHaveBeenCalled();
   });
 
