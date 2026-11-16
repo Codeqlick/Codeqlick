@@ -2,13 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
-import { Logo } from '@/components/brand/Logo';
-import { AppSwitcher } from '@/components/layout/AppSwitcher';
-import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
-import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link, WebappProvider } from '@/i18n/navigation';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { videochatMenu } from '@/lib/app-menus';
+import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { logoutAction } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
@@ -64,7 +61,6 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 export default async function VideochatLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'Videochat' });
   const user = await getCurrentUser();
 
   const webapp = (await requestWebapp()) === 'videochat' ? 'videochat' : null;
@@ -73,38 +69,13 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
     <ClientMessages extra={APP_NAMESPACES.videochat}>
       <WebappProvider app={webapp}>
         <div className={styles.frame}>
-          <header className={styles.header}>
-            <div className={styles.brand}>
-              <Logo href="/videochat" size="sm" label={t('homeLabel')} />
-              <span className={styles.brandApp}>{t('brand')}</span>
-              <span className={styles.adultBadge}>{t('adultBadge')}</span>
-            </div>
-            <nav className={styles.headerNav}>
-              <Link href="/videochat/rules" className={styles.headerLink}>
-                {t('rulesLink')}
-              </Link>
-              {user ? (
-                <Link href="/videochat/contacts" className={styles.headerLink}>
-                  {t('contactsLink')}
-                </Link>
-              ) : null}
-              {user ? (
-                <Link href="/videochat/settings" className={styles.headerLink}>
-                  {t('settingsLink')}
-                </Link>
-              ) : null}
-              <AppSwitcher current="videochat" locale={locale} />
-              <LocaleSwitcher className={styles.locale} />
-              {user ? (
-                <form action={logoutAction}>
-                  <input type="hidden" name="locale" value={locale} />
-                  <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
-                    {t('signOut')}
-                  </SubmitButton>
-                </form>
-              ) : null}
-            </nav>
-          </header>
+          <AppHeader
+            app="videochat"
+            locale={locale}
+            config={videochatMenu(locale, { signedIn: Boolean(user) })}
+            signedIn={Boolean(user)}
+            adult
+          />
           <main className={styles.main}>{children}</main>
         </div>
       </WebappProvider>
