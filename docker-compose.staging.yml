@@ -79,6 +79,9 @@ services:
       LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
       LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
       LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
+      # Staging tries the strict Content Security Policy enforced before production does
+      # (architecture 6.4).
+      CSP_ENFORCE: ${CSP_ENFORCE:-true}
     ports:
       - "127.0.0.1:${WEB_PORT:-3011}:3000"
 

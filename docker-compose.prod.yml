@@ -185,6 +185,9 @@ services:
       LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
       # Cloudflare Turnstile's public site key: the sign-in and sign-up widget; off while empty.
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      # The strict Content Security Policy: report-only while false, enforced when true
+      # (architecture 6.4, decision 109; deploy/README.md, "Security headers").
+      CSP_ENFORCE: ${CSP_ENFORCE:-false}
     ports:
       - "127.0.0.1:${WEB_PORT:-3010}:3000"
 

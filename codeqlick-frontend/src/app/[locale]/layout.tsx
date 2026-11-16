@@ -1,5 +1,6 @@
 import '@/styles/globals.css';
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { ErrorReporter } from '@/components/layout/ErrorReporter';
@@ -49,6 +50,9 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 }
 
 export default async function LocaleLayout({ children, params }: LayoutProps) {
+  // Every page renders per request: its scripts carry the response's CSP nonce, which the proxy
+  // makes for each one (architecture 6.4). A prerendered page would have none.
+  await connection();
   const locale = resolveCruisingLocale((await params).locale);
   setRequestLocale(locale);
 

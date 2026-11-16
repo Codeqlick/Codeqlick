@@ -9,15 +9,20 @@ import type { ErrorGroup, ErrorSource } from '../../generated/prisma/client.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { renderEmail } from '../mail/email-layout.js';
 import { MailService } from '../mail/mail.service.js';
+import { cspViolations } from './csp-report.js';
 import { errorFingerprint } from './error-fingerprint.js';
 import { ErrorsRepository } from './errors.repository.js';
-import type { ReportErrorInput } from './errors.schemas.js';
+import type { CspReportInput, ReportErrorInput } from './errors.schemas.js';
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 
 /** New groups stop being created past this many open ones (a flood of junk reports, a loop). */
 export const MAX_OPEN_GROUPS = 300;
+/** CSP groups have their own cap, so reports can never use up the room of real errors. */
+export const MAX_OPEN_CSP_GROUPS = 100;
+/** CSP violations recorded per minute from everyone; the rest of the minute is dropped. */
+export const MAX_CSP_PER_MINUTE = 600;
 /** At most this many alert emails per hour, whatever happens. */
 export const MAX_ALERTS_PER_HOUR = 10;
 /** Resolved groups that haven't come back for this long are deleted. */
@@ -47,12 +52,15 @@ export interface ErrorInput {
   path?: string;
   reference?: string;
   userAgent?: string;
+  /** Set by the caller when it groups by something else than the message (CSP reports). */
+  fingerprint?: string;
 }
 
 const SOURCE_LABEL: Record<ErrorSource, string> = {
   API: 'API',
   WEB_SERVER: 'Website (server)',
   WEB_BROWSER: 'Website (browser)',
+  CSP: 'Content Security Policy',
 };
 
 /**
@@ -65,6 +73,8 @@ export class ErrorsService implements OnApplicationBootstrap, OnApplicationShutd
   private timer: NodeJS.Timeout | undefined;
   private alertWindowStart = 0;
   private alertsInWindow = 0;
+  private cspWindowStart = 0;
+  private cspInWindow = 0;
 
   constructor(
     private readonly repository: ErrorsRepository,
@@ -94,13 +104,43 @@ export class ErrorsService implements OnApplicationBootstrap, OnApplicationShutd
     });
   }
 
+  /**
+   * What a browser reported about the website's Content Security Policy (architecture 4.11):
+   * each violation counts in its group; no IP is kept, and CSP groups never email.
+   */
+  async reportCsp(input: CspReportInput, userAgent?: string, now = new Date()): Promise<void> {
+    for (const violation of cspViolations(input, userAgent)) {
+      if (now.getTime() - this.cspWindowStart >= 60_000) {
+        this.cspWindowStart = now.getTime();
+        this.cspInWindow = 0;
+      }
+      if (this.cspInWindow >= MAX_CSP_PER_MINUTE) return;
+      this.cspInWindow += 1;
+      await this.record(
+        {
+          source: 'CSP',
+          fingerprint: violation.fingerprint,
+          message: violation.message,
+          stack: violation.sample,
+          path: violation.path ?? undefined,
+          userAgent: violation.userAgent ?? undefined,
+        },
+        now,
+      );
+    }
+  }
+
   async record(input: ErrorInput, now = new Date()): Promise<void> {
     try {
       const message = input.message.trim().slice(0, 1000) || 'Error';
-      const fingerprint = errorFingerprint(input.source, message, input.stack);
+      const csp = input.source === 'CSP';
+      const fingerprint = input.fingerprint ?? errorFingerprint(input.source, message, input.stack);
       const existing = await this.repository.findByFingerprint(fingerprint);
-      if (!existing && (await this.repository.countOpen()) >= MAX_OPEN_GROUPS) {
-        this.logger.warn(`Error not recorded: ${MAX_OPEN_GROUPS} open groups already`);
+      const cap = csp ? MAX_OPEN_CSP_GROUPS : MAX_OPEN_GROUPS;
+      if (!existing && (await this.repository.countOpen(csp)) >= cap) {
+        this.logger.warn(
+          `${csp ? 'CSP report' : 'Error'} not recorded: ${cap} open groups already`,
+        );
         return;
       }
       const group = await this.repository.record(
@@ -117,7 +157,8 @@ export class ErrorsService implements OnApplicationBootstrap, OnApplicationShutd
         now,
       );
       const reopened = existing?.resolvedAt != null;
-      if (!existing || reopened) this.alert(group, reopened, now);
+      // CSP reports never email: extensions and old open tabs can make many (decision 109).
+      if (!csp && (!existing || reopened)) this.alert(group, reopened, now);
     } catch (failure) {
       this.logger.error('Could not record an error', failure);
     }

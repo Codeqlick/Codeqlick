@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
-import { MailService } from './mail.service.js';
+import { MailService, mailDomain } from './mail.service.js';
 
 const { sendMail } = vi.hoisted(() => ({ sendMail: vi.fn(async (_options: unknown) => ({})) }));
 
@@ -38,5 +38,11 @@ describe('MailService', () => {
   it('sends transactional emails without them', async () => {
     await new MailService(config).send({ to: 'ada@example.com', subject: 'Reset', text: 'Hi' });
     expect(sendMail).toHaveBeenCalledWith(expect.objectContaining({ headers: undefined }));
+  });
+
+  it('greets the SMTP server with the sending domain', () => {
+    expect(mailDomain('Codeqlick <hello@codeqlick.com>')).toBe('codeqlick.com');
+    expect(mailDomain('hello@Codeqlick.com')).toBe('codeqlick.com');
+    expect(mailDomain('no address')).toBeUndefined();
   });
 });

@@ -2027,6 +2027,8 @@ enum ErrorSource {
   API
   WEB_SERVER
   WEB_BROWSER
+  /// What browsers report about the website's Content Security Policy (decision 109).
+  CSP
 }
 
 /// The same unexpected error, grouped by its fingerprint (Admin → Errors, architecture 4.11).
