@@ -17,6 +17,7 @@ import { CHECK_IN_HOURS, memberHref } from '@/lib/cruising';
 import { formatDateTime } from '@/lib/format';
 import styles from './Cruising.module.css';
 import { MemberName } from './MemberName';
+import { TimerPanel } from './TimerPanel';
 
 type SpotPresenceProps = { locale: AppLocale; spot: CruisingSpotPublic; status: CruisingStatus };
 
@@ -27,6 +28,7 @@ type SpotPresenceProps = { locale: AppLocale; spot: CruisingSpotPublic; status: 
  */
 export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) {
   const t = await getTranslations({ locale, namespace: 'Cruising.presence' });
+  const tt = await getTranslations({ locale, namespace: 'CruisingSafety.timer' });
   const hasNickname = status.profile !== null;
 
   let presence: CruisingPresence | null = null;
@@ -108,6 +110,12 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
               </SubmitButton>
             </ActionForm>
             <p className={vc.muted}>{t('privacy')}</p>
+            <h3 className={styles.subTitle}>{tt('title')}</h3>
+            <TimerPanel
+              locale={locale}
+              spot={{ id: spot.id, name: spot.name }}
+              idPrefix="spot-timer"
+            />
           </>
         ) : (
           <p className={vc.muted}>

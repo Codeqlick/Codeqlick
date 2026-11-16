@@ -27,6 +27,7 @@ import {
   type SpotImportResult,
   type SpotInput,
 } from '@/lib/cruising';
+import type { MemberHealth as MemberHealthView } from '@/lib/cruising-safety';
 import { apiFetch } from './client';
 import { isApiError } from './errors';
 import type { Paginated } from './types';
@@ -352,6 +353,8 @@ export type CruisingMember = {
   memberSince: string;
   verified: boolean;
   coverId: string | null;
+  /** Phase 5 (decision 94): only when the member shows it. */
+  health?: MemberHealthView | null;
 };
 
 export type CruisingCheckIn = {

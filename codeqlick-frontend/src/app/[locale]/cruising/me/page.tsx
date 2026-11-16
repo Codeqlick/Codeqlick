@@ -10,6 +10,7 @@ import {
 } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
 import { MediaManager } from '@/components/cruising/MediaManager';
+import { SafetyPanels } from '@/components/cruising/SafetyPanels';
 import { VerificationUpload } from '@/components/cruising/VerificationUpload';
 import { VerifiedBadge } from '@/components/cruising/VerifiedBadge';
 import { PushToggle } from '@/components/videochat/PushToggle';
@@ -242,6 +243,11 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
           )}
         </section>
       ) : null}
+
+      <SafetyPanels
+        locale={locale}
+        checkInSpot={checkIn ? { id: checkIn.spot.id, name: checkIn.spot.name } : null}
+      />
 
       <section className={vc.panel} aria-labelledby="me-alerts">
         <h2 id="me-alerts" className={vc.sectionTitle}>

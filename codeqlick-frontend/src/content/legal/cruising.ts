@@ -138,6 +138,8 @@ Usar Cruising puede revelar aspectos de tu **vida sexual u orientación sexual**
 - **Opiniones y denuncias:** las que escribes y las que haces.
 - **Fotos y vídeos (datos de categoría especial):** los que subes a tu perfil, con tu **consentimiento explícito** en cada subida (artículo 9.2.a). Les quitamos los metadatos (ubicación, cámara). Se guardan en servidores de la Unión Europea (OVHcloud), **fuera de las copias de seguridad**, y los ven solo los miembros que han entrado, nunca los buscadores.
 - **Foto de verificación:** la que nos envías con tu apodo; solo la ve el equipo y se **borra en cuanto se revisa**: solo conservamos la decisión.
+- **Salud sexual (datos de salud, categoría especial):** solo si la activas, con su **propio consentimiento explícito** (artículo 9.2.a), distinto del de la entrada: si tomas PrEP, el mes de tu última prueba y cada cuánto quieres que te recordemos la revisión. Por defecto solo los ves tú; si eliges mostrarlos, los ven los miembros que han entrado en tu perfil. Al desactivarla se **borran** en el momento. Los recordatorios solo dicen «Es hora de tu revisión».
+- **Contactos de confianza y temporizador de seguridad:** el correo y el nombre con el que te presentas a hasta 2 personas que eliges, y si han aceptado (interés legítimo en tu seguridad, artículo 6.1.f; cada contacto da su propio consentimiento al aceptar por correo y puede dejarlo cuando quiera). Del temporizador guardamos la hora de fin, tu mensaje y, solo si eliges compartirlo, el lugar. Si no lo terminas a tiempo, enviamos a tus contactos que aceptaron un único correo con ese nombre, tu mensaje, la hora y el lugar compartido; nunca tu apodo ni qué es Cruising.
 - **Seguridad:** la dirección IP y el navegador de cada sesión (interés legítimo, artículo 6.1.f).
 - **Tu posición:** si pulsas «Localizarme», el navegador centra el mapa en tu posición. **Esa posición nunca sale de tu dispositivo: no se envía ni se guarda.**
 
@@ -155,7 +157,7 @@ Los lugares publicados los ve cualquiera, sin tu nombre. Las opiniones solo las 
 
 ## Cuánto tiempo los guardamos
 
-Mientras tengas la cuenta. Tus fotos y vídeos, hasta que los borres tú o borres la cuenta; los archivos desaparecen del servidor en un máximo de 6 horas. La foto de verificación se borra al revisarla. Al borrar la cuenta se borran tu perfil, tus opiniones y tus denuncias; los lugares que propusiste siguen publicados sin tu nombre. Las copias de seguridad se eliminan a los 14 días.
+Mientras tengas la cuenta. Tus fotos y vídeos, hasta que los borres tú o borres la cuenta; los archivos desaparecen del servidor en un máximo de 6 horas. La foto de verificación se borra al revisarla. Los temporizadores, 7 días después de terminar. Al borrar la cuenta se borran tu perfil, tus opiniones, tus denuncias, tus datos de salud, tus contactos de confianza y tus temporizadores; los lugares que propusiste siguen publicados sin tu nombre. Las copias de seguridad se eliminan a los 14 días.
 
 ## Tus derechos
 
@@ -182,6 +184,8 @@ Using Cruising can reveal aspects of your **sex life or sexual orientation**, sp
 - **Reviews and reports:** the ones you write and make.
 - **Photos and videos (special category data):** the ones you upload to your profile, with your **explicit consent** at each upload (article 9.2.a). We strip their metadata (location, camera). They are stored on servers in the European Union (OVHcloud), **out of backups**, and only members who have entered can see them, never search engines.
 - **Verification photo:** the one you send us with your nickname; only the team sees it and it is **deleted as soon as it is reviewed**: we only keep the decision.
+- **Sexual health (health data, special category):** only if you turn it on, with its **own explicit consent** (article 9.2.a), separate from entry's: whether you take PrEP, the month of your last test and how often to remind you of your check-up. By default only you see them; if you choose to show them, members who have entered see them on your profile. Turning it off **deletes** them at once. Reminders only say "Time for your check-up".
+- **Trusted contacts and the safety timer:** the email of up to 2 people you choose, the name you give yourself for them, and whether they accepted (legitimate interest in your safety, article 6.1.f; each contact gives their own consent by accepting by email and can stop at any time). Of a timer we keep its end time, your message and, only if you choose to share it, the place. If you don't end it in time, your contacts who accepted get a single email with that name, your message, the time and the shared place; never your nickname or what Cruising is.
 - **Security:** the IP address and browser of each session (legitimate interest, article 6.1.f).
 - **Your position:** if you press "Locate me", your browser centres the map on your position. **That position never leaves your device: it is not sent or stored.**
 
@@ -199,7 +203,7 @@ Published places are seen by anyone, without your name. Reviews are seen only by
 
 ## How long we keep it
 
-As long as you have the account. Your photos and videos, until you delete them or the account; the files are gone from the server within 6 hours. The verification photo is deleted once reviewed. When you delete the account, your profile, reviews and reports are deleted; the places you proposed stay published without your name. Backups are removed after 14 days.
+As long as you have the account. Your photos and videos, until you delete them or the account; the files are gone from the server within 6 hours. The verification photo is deleted once reviewed. Timers, 7 days after they end. When you delete the account, your profile, reviews, reports, health data, trusted contacts and timers are deleted; the places you proposed stay published without your name. Backups are removed after 14 days.
 
 ## Your rights
 

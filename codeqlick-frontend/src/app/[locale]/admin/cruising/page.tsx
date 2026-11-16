@@ -278,7 +278,18 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
 
   return (
     <div className={styles.stack}>
-      <PageHeader title={t('title')} lead={t('lead')} />
+      <PageHeader
+        title={t('title')}
+        lead={t('lead')}
+        actions={
+          <Link
+            href="/admin/cruising/health"
+            className={buttonClassName({ variant: 'outline', size: 'sm' })}
+          >
+            {t('healthLink')}
+          </Link>
+        }
+      />
 
       <ul className={styles.stats}>
         {cards.map((card) => (
