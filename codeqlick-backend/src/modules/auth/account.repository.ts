@@ -131,6 +131,10 @@ export class AccountRepository {
       cruisingMedia,
       cruisingFavorites,
       cruisingAlerts,
+      cruisingMeetups,
+      cruisingMeetupsJoined,
+      cruisingTrips,
+      cruisingSafetyAlerts,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -429,6 +433,53 @@ export class AccountRepository {
         orderBy: { createdAt: 'asc' },
         select: { channel: true, createdAt: true, spot: { select: { slug: true } } },
       }),
+      // Phase 5: meetups planned and joined, trips, and the safety alerts posted.
+      p.cruisingMeetup.findMany({
+        where: { hostId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          title: true,
+          description: true,
+          startsAt: true,
+          endsAt: true,
+          capacity: true,
+          status: true,
+          createdAt: true,
+          spot: { select: { slug: true } },
+        },
+      }),
+      p.cruisingMeetupAttendee.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          anonymous: true,
+          createdAt: true,
+          meetup: { select: { title: true, startsAt: true, spot: { select: { slug: true } } } },
+        },
+      }),
+      p.cruisingTrip.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          countryCode: true,
+          city: true,
+          startsOn: true,
+          endsOn: true,
+          listed: true,
+          createdAt: true,
+        },
+      }),
+      p.cruisingSafetyAlert.findMany({
+        where: { posterId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          kind: true,
+          note: true,
+          expiresAt: true,
+          createdAt: true,
+          spot: { select: { slug: true } },
+        },
+      }),
       p.cloudMember.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
@@ -500,6 +551,10 @@ export class AccountRepository {
             media: cruisingMedia,
             favorites: cruisingFavorites,
             alerts: cruisingAlerts,
+            meetupsPlanned: cruisingMeetups,
+            meetupsJoined: cruisingMeetupsJoined,
+            trips: cruisingTrips,
+            safetyAlerts: cruisingSafetyAlerts,
           }
         : null,
       cloud:

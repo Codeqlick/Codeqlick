@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { CruisingAdminController } from './cruising-admin.controller.js';
+import { CruisingCommunityController } from './cruising-community.controller.js';
+import { CruisingCommunityRepository } from './cruising-community.repository.js';
+import { CruisingCommunityService } from './cruising-community.service.js';
 import { CruisingFfmpeg } from './cruising-ffmpeg.js';
 import {
   CruisingMediaAdminController,
@@ -33,6 +36,7 @@ import { CruisingService } from './cruising.service.js';
     CruisingPublicController,
     CruisingController,
     CruisingSocialController,
+    CruisingCommunityController,
     CruisingMediaController,
     CruisingAdminController,
     CruisingMediaAdminController,
@@ -40,9 +44,11 @@ import { CruisingService } from './cruising.service.js';
   providers: [
     CruisingService,
     CruisingSocialService,
+    CruisingCommunityService,
     CruisingMediaService,
     CruisingPushService,
     CruisingRepository,
+    CruisingCommunityRepository,
     CruisingMediaRepository,
     CruisingMediaStorage,
     CruisingFfmpeg,

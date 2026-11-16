@@ -181,6 +181,11 @@ model User {
   cruisingFavorites          CruisingFavorite[]
   cruisingAlerts             CruisingAlert[]
   cruisingPushSubscriptions  CruisingPushSubscription[]
+  cruisingMeetupsHosted      CruisingMeetup[]
+  cruisingMeetupsAttended    CruisingMeetupAttendee[]
+  cruisingTrips              CruisingTrip[]
+  cruisingSafetyAlerts       CruisingSafetyAlert[]
+  cruisingSafetyVotes        CruisingSafetyVote[]
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
@@ -3017,6 +3022,10 @@ enum CruisingReportTarget {
   CONVERSATION
   /// Phase 4: a photo or video of a profile.
   MEDIA
+  /// Phase 5 (decision 88): a meetup.
+  MEETUP
+  /// Phase 5 (decision 91): a safety alert.
+  ALERT
 }
 
 /// What a member says they are looking for (phase 2).
@@ -3155,13 +3164,15 @@ model CruisingSpot {
   createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  createdBy User?              @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  reviews   CruisingReview[]
-  reports   CruisingReport[]
-  takedowns CruisingTakedown[]
-  checkIns  CruisingCheckIn[]
-  favorites CruisingFavorite[]
-  alerts    CruisingAlert[]
+  createdBy    User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  reviews      CruisingReview[]
+  reports      CruisingReport[]
+  takedowns    CruisingTakedown[]
+  checkIns     CruisingCheckIn[]
+  favorites    CruisingFavorite[]
+  alerts       CruisingAlert[]
+  meetups      CruisingMeetup[]
+  safetyAlerts CruisingSafetyAlert[]
 
   @@index([status, lat])
   @@index([countryCode, citySlug, status])
@@ -3191,30 +3202,35 @@ model CruisingReview {
 }
 
 model CruisingReport {
-  id           String               @id @default(uuid()) @db.Uuid
-  reporterId   String               @map("reporter_id") @db.Uuid
-  targetType   CruisingReportTarget @map("target_type")
-  spotId       String?              @map("spot_id") @db.Uuid
-  reviewId     String?              @map("review_id") @db.Uuid
+  id            String               @id @default(uuid()) @db.Uuid
+  reporterId    String               @map("reporter_id") @db.Uuid
+  targetType    CruisingReportTarget @map("target_type")
+  spotId        String?              @map("spot_id") @db.Uuid
+  reviewId      String?              @map("review_id") @db.Uuid
   /// Phase 4: a photo or video.
-  mediaId      String?              @map("media_id") @db.Uuid
+  mediaId       String?              @map("media_id") @db.Uuid
+  /// Phase 5: a meetup (decision 88) or a safety alert (decision 91).
+  meetupId      String?              @map("meetup_id") @db.Uuid
+  safetyAlertId String?              @map("safety_alert_id") @db.Uuid
   /// The person behind the target (the spot's proposer, the review's author); null when unknown.
-  reportedId   String?              @map("reported_id") @db.Uuid
-  reason       CruisingReportReason
-  details      String?              @db.VarChar(1000)
+  reportedId    String?              @map("reported_id") @db.Uuid
+  reason        CruisingReportReason
+  details       String?              @db.VarChar(1000)
   /// Phase 2, a conversation's last messages: [{ from: 'reporter' | 'reported', text, at }].
-  transcript   Json                 @default("[]")
-  status       CruisingReportStatus @default(OPEN)
-  reviewedById String?              @map("reviewed_by_id") @db.Uuid
-  reviewedAt   DateTime?            @map("reviewed_at") @db.Timestamptz(3)
-  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  transcript    Json                 @default("[]")
+  status        CruisingReportStatus @default(OPEN)
+  reviewedById  String?              @map("reviewed_by_id") @db.Uuid
+  reviewedAt    DateTime?            @map("reviewed_at") @db.Timestamptz(3)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  reporter   User            @relation("CruisingReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reported   User?           @relation("CruisingReported", fields: [reportedId], references: [id], onDelete: SetNull)
-  reviewedBy User?           @relation("CruisingReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  spot       CruisingSpot?   @relation(fields: [spotId], references: [id], onDelete: SetNull)
-  review     CruisingReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
-  media      CruisingMedia?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  reporter    User                 @relation("CruisingReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported    User?                @relation("CruisingReported", fields: [reportedId], references: [id], onDelete: SetNull)
+  reviewedBy  User?                @relation("CruisingReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  spot        CruisingSpot?        @relation(fields: [spotId], references: [id], onDelete: SetNull)
+  review      CruisingReview?      @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  media       CruisingMedia?       @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  meetup      CruisingMeetup?      @relation(fields: [meetupId], references: [id], onDelete: SetNull)
+  safetyAlert CruisingSafetyAlert? @relation(fields: [safetyAlertId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
@@ -3222,6 +3238,8 @@ model CruisingReport {
   @@index([spotId])
   @@index([reviewId])
   @@index([mediaId])
+  @@index([meetupId])
+  @@index([safetyAlertId])
   @@map("cruising_reports")
 }
 
@@ -3467,4 +3485,130 @@ model CruisingPushSubscription {
 
   @@index([userId, createdAt])
   @@map("cruising_push_subscriptions")
+}
+
+// ---- Cruising phase 5: meetups, trips and safety alerts (decisions 88, 90, 91) -------------------
+
+enum CruisingMeetupStatus {
+  LIVE
+  /// Hidden at once by a serious report, until the team reviews it.
+  HIDDEN
+  /// The host cancelled it; the attendees were told.
+  CANCELLED
+}
+
+/// A time at a LIVE spot a member plans (decision 88): 30 minutes to 30 days ahead, 1 to 4 hours.
+/// Deleted 7 days after it ends.
+model CruisingMeetup {
+  id          String               @id @default(uuid()) @db.Uuid
+  spotId      String               @map("spot_id") @db.Uuid
+  hostId      String               @map("host_id") @db.Uuid
+  title       String               @db.VarChar(80)
+  description String               @default("") @db.VarChar(500)
+  startsAt    DateTime             @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime             @map("ends_at") @db.Timestamptz(3)
+  /// 2 to 50 attendees (the host not counted); null: no limit.
+  capacity    Int?
+  status      CruisingMeetupStatus @default(LIVE)
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  spot      CruisingSpot             @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  host      User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  attendees CruisingMeetupAttendee[]
+  reports   CruisingReport[]
+
+  @@index([spotId, status, startsAt])
+  @@index([hostId, createdAt])
+  @@index([endsAt])
+  @@map("cruising_meetups")
+}
+
+/// "I'm going": counted, and named unless anonymous (like a check-in).
+model CruisingMeetupAttendee {
+  meetupId  String   @map("meetup_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  anonymous Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  meetup CruisingMeetup @relation(fields: [meetupId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([meetupId, userId])
+  @@index([userId])
+  @@map("cruising_meetup_attendees")
+}
+
+/// A member's trip to a city with LIVE spots (decision 90): up to 60 days ahead, at most 14 days,
+/// 3 upcoming. `listed` shows it to the city's members. Deleted the day after it ends.
+model CruisingTrip {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  countryCode String   @map("country_code") @db.VarChar(2)
+  citySlug    String   @map("city_slug") @db.VarChar(100)
+  city        String   @db.VarChar(80)
+  startsOn    DateTime @map("starts_on") @db.Date
+  endsOn      DateTime @map("ends_on") @db.Date
+  listed      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([countryCode, citySlug, endsOn])
+  @@index([userId, endsOn])
+  @@index([endsOn])
+  @@map("cruising_trips")
+}
+
+enum CruisingSafetyKind {
+  POLICE
+  THEFT
+  AGGRESSION
+  SURVEILLANCE
+  CLOSED
+  OTHER
+}
+
+/// A safety alert on a LIVE spot (decision 91): 6 hours (CLOSED: 7 days), each confirmation adds 3
+/// hours up to 24 hours from its creation, three "gone" end it. The poster is never shown; the
+/// alert stays when their account goes. Deleted a day after it expires.
+model CruisingSafetyAlert {
+  id        String             @id @default(uuid()) @db.Uuid
+  spotId    String             @map("spot_id") @db.Uuid
+  posterId  String?            @map("poster_id") @db.Uuid
+  kind      CruisingSafetyKind
+  note      String?            @db.VarChar(200)
+  expiresAt DateTime           @map("expires_at") @db.Timestamptz(3)
+  /// Hidden at once by a serious report, until the team reviews it.
+  hidden    Boolean            @default(false)
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  spot    CruisingSpot         @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  poster  User?                @relation(fields: [posterId], references: [id], onDelete: SetNull)
+  votes   CruisingSafetyVote[]
+  reports CruisingReport[]
+
+  @@index([spotId, expiresAt])
+  @@index([posterId, createdAt])
+  @@index([expiresAt])
+  @@map("cruising_safety_alerts")
+}
+
+enum CruisingSafetyVoteKind {
+  CONFIRM
+  GONE
+}
+
+/// A member's one say on an alert: still there (confirm) or gone.
+model CruisingSafetyVote {
+  alertId   String                 @map("alert_id") @db.Uuid
+  userId    String                 @map("user_id") @db.Uuid
+  kind      CruisingSafetyVoteKind
+  createdAt DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  alert CruisingSafetyAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([alertId, userId])
+  @@index([userId])
+  @@map("cruising_safety_votes")
 }
