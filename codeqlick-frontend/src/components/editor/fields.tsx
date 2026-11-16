@@ -2,7 +2,15 @@
 
 import { createContext, useContext, useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
-import { contrast, getAt, type Content, type Json } from './content';
+import {
+  contrast,
+  followTwins,
+  getAt,
+  isTranslatable,
+  twinPath,
+  type Content,
+  type Json,
+} from './content';
 import styles from './SiteEditor.module.css';
 
 /** What every field of the editor works on: the content, by path. */
@@ -13,6 +21,11 @@ export type EditorContextValue = {
   /** The preset whose photos the content may name. */
   preset: string;
   upload: (file: File) => Promise<string | null>;
+  /**
+   * The language being edited (decision 106): in English, text fields edit their English twin
+   * and everything else is only shown.
+   */
+  lang: 'es' | 'en';
 };
 
 export const EditorContext = createContext<EditorContextValue | null>(null);
@@ -94,35 +107,44 @@ export function TextField({
   required?: boolean;
   placeholder?: string;
 }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
+  const t = useTranslations('SiteEditor');
   const id = useId();
-  const error = useError(path);
-  const value = getAt(content, path);
+  // In English, a translatable text edits its twin; the Spanish one is its placeholder and hint.
+  const twin = lang === 'en' && isTranslatable(path);
+  const target = twin ? twinPath(path) : path;
+  const error = useError(target);
+  const value = getAt(content, target);
   const text = typeof value === 'string' ? value : '';
-  const change = (next: string) => set(path, next === '' && !required ? undefined : next);
+  const spanish = getAt(content, path);
+  const original = typeof spanish === 'string' ? spanish : '';
+  // Only texts are translated; an English text with no Spanish one would show nowhere.
+  const disabled = lang === 'en' && (!twin || !original.trim());
+  const change = (next: string) =>
+    twin
+      ? // Empty: the English page shows the Spanish text (a list of texts keeps its place).
+        set(target, next.trim() ? next : /\.\d+$/.test(path) ? '' : undefined)
+      : set(path, next === '' && !required ? undefined : next);
+  const props = {
+    id,
+    className: styles.input,
+    maxLength: max,
+    value: text,
+    disabled,
+    placeholder: twin ? original || placeholder : placeholder,
+    'aria-invalid': error ? true : undefined,
+  };
   return (
-    <Field id={id} label={label} hint={hint} error={error}>
+    <Field
+      id={id}
+      label={twin ? t('english.fieldLabel', { label }) : label}
+      hint={twin ? (original ? t('english.spanishHint', { text: original }) : undefined) : hint}
+      error={error}
+    >
       {rows ? (
-        <textarea
-          id={id}
-          className={styles.input}
-          rows={rows}
-          maxLength={max}
-          value={text}
-          placeholder={placeholder}
-          aria-invalid={error ? true : undefined}
-          onChange={(event) => change(event.target.value)}
-        />
+        <textarea {...props} rows={rows} onChange={(event) => change(event.target.value)} />
       ) : (
-        <input
-          id={id}
-          className={styles.input}
-          maxLength={max}
-          value={text}
-          placeholder={placeholder}
-          aria-invalid={error ? true : undefined}
-          onChange={(event) => change(event.target.value)}
-        />
+        <input {...props} onChange={(event) => change(event.target.value)} />
       )}
     </Field>
   );
@@ -142,7 +164,7 @@ export function SelectField({
   /** Adds an empty choice, which removes the value. */
   optional?: string;
 }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
   const id = useId();
   const value = getAt(content, path);
   return (
@@ -150,6 +172,7 @@ export function SelectField({
       <select
         id={id}
         className={styles.input}
+        disabled={lang === 'en'}
         value={typeof value === 'string' ? value : ''}
         onChange={(event) => set(path, event.target.value || undefined)}
       >
@@ -166,7 +189,7 @@ export function SelectField({
 
 /** A day at `path` (`YYYY-MM-DD`); left empty, it is removed from the content. */
 export function DateField({ path, label, hint }: { path: string; label: string; hint?: string }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
   const id = useId();
   const error = useError(path);
   const value = getAt(content, path);
@@ -175,6 +198,7 @@ export function DateField({ path, label, hint }: { path: string; label: string; 
       <input
         id={id}
         type="date"
+        disabled={lang === 'en'}
         className={styles.input}
         value={typeof value === 'string' ? value : ''}
         aria-invalid={error ? true : undefined}
@@ -194,7 +218,7 @@ export function ColorField({
   label: string;
   against?: { path: string; label: string };
 }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
   const t = useTranslations('SiteEditor');
   const id = useId();
   const value = getAt(content, path);
@@ -207,6 +231,7 @@ export function ColorField({
         <input
           type="color"
           aria-label={label}
+          disabled={lang === 'en'}
           value={/^#[0-9a-f]{6}$/i.test(color) ? color : '#000000'}
           onChange={(event) => set(path, event.target.value.toUpperCase())}
         />
@@ -214,6 +239,7 @@ export function ColorField({
           id={id}
           className={`${styles.input} ${styles.mono}`}
           value={color}
+          disabled={lang === 'en'}
           maxLength={7}
           onChange={(event) => set(path, event.target.value)}
         />
@@ -238,7 +264,7 @@ export function ImageField({
   /** Optional photos can be taken out. */
   removable?: boolean;
 }) {
-  const { content, set, preset, upload } = useEditor();
+  const { content, set, preset, upload, lang } = useEditor();
   const t = useTranslations('SiteEditor');
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -277,12 +303,12 @@ export function ImageField({
           <button
             type="button"
             className={styles.small}
-            disabled={busy}
+            disabled={busy || lang === 'en'}
             onClick={() => input.current?.click()}
           >
             {busy ? t('uploading') : image?.file ? t('replacePhoto') : t('addPhoto')}
           </button>
-          {removable && image?.file ? (
+          {removable && image?.file && lang === 'es' ? (
             <button type="button" className={styles.link} onClick={() => set(path, undefined)}>
               {t('removePhoto')}
             </button>
@@ -328,15 +354,22 @@ export function ListField({
   max: number;
   min?: number;
 }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
   const t = useTranslations('SiteEditor');
   const value = getAt(content, path);
   const items = Array.isArray(value) ? value : [];
+  // Items are added, moved and removed in Spanish; their English twins follow.
+  const locked = lang === 'en';
+  const follow = (change: { removed: number } | { from: number; to: number }) => {
+    const twins = followTwins(content, path, items.length, change);
+    if (twins) set(twinPath(path), twins);
+  };
   const move = (from: number, to: number) => {
     const next = [...items];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item!);
     set(path, next);
+    follow({ from, to });
   };
   return (
     <fieldset className={styles.list}>
@@ -350,7 +383,7 @@ export function ListField({
                 type="button"
                 className={styles.icon}
                 aria-label={t('moveUp')}
-                disabled={index === 0}
+                disabled={locked || index === 0}
                 onClick={() => move(index, index - 1)}
               >
                 ↑
@@ -359,7 +392,7 @@ export function ListField({
                 type="button"
                 className={styles.icon}
                 aria-label={t('moveDown')}
-                disabled={index === items.length - 1}
+                disabled={locked || index === items.length - 1}
                 onClick={() => move(index, index + 1)}
               >
                 ↓
@@ -368,10 +401,11 @@ export function ListField({
                 type="button"
                 className={styles.icon}
                 aria-label={t('removeItem', { n: index + 1 })}
-                disabled={items.length <= min}
+                disabled={locked || items.length <= min}
                 onClick={() => {
                   const next = items.filter((__, i) => i !== index);
                   set(path, next.length === 0 && min === 0 ? undefined : next);
+                  follow({ removed: index });
                 }}
               >
                 ×
@@ -381,7 +415,7 @@ export function ListField({
           {render(`${path}.${index}`, index)}
         </div>
       ))}
-      {items.length < max ? (
+      {items.length < max && !locked ? (
         <button type="button" className={styles.small} onClick={() => set(path, [...items, blank])}>
           + {addLabel}
         </button>
@@ -410,7 +444,7 @@ export const ALLERGENS = [
 
 /** A dish's allergens: one checkbox each; none checked removes the list. */
 export function AllergensField({ path, label }: { path: string; label: string }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
   const t = useTranslations('SiteEditor.allergenNames');
   const value = getAt(content, path);
   const chosen = Array.isArray(value) ? (value as string[]) : [];
@@ -422,6 +456,7 @@ export function AllergensField({ path, label }: { path: string; label: string })
           <input
             type="checkbox"
             checked={chosen.includes(allergen)}
+            disabled={lang === 'en'}
             onChange={(event) => {
               const next = event.target.checked
                 ? ALLERGENS.filter((a) => a === allergen || chosen.includes(a))
@@ -448,7 +483,7 @@ export function Toggle({
   blank: () => Json;
   children: ReactNode;
 }) {
-  const { content, set } = useEditor();
+  const { content, set, lang } = useEditor();
   const on = getAt(content, path) !== undefined;
   return (
     <div className={styles.stack}>
@@ -456,6 +491,7 @@ export function Toggle({
         <input
           type="checkbox"
           checked={on}
+          disabled={lang === 'en'}
           onChange={(event) => set(path, event.target.checked ? blank() : undefined)}
         />
         {label}

@@ -177,6 +177,9 @@ describe('A basic website in Spanish and English (e2e, decision 106)', () => {
     expect(firstPost()).not.toHaveProperty('en');
 
     await request(server).post(`${editor}/publish`).set(clientAuth).expect(200);
+    expect((await request(server).get(project).set(clientAuth).expect(200)).body.english).toBe(
+      true,
+    );
     const published = builds.at(-1)!.content;
     expect(published).toMatchObject({ english: true, en });
     expect((published.news as { posts: unknown[] }).posts[0]).toMatchObject({

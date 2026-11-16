@@ -3035,6 +3035,13 @@
       "unavailable": "Your website cannot be updated right now. Nothing has changed; try again in a few minutes.",
       "notFound": "This post or website no longer exists. Reload the page.",
       "failed": "It could not be done. Try again."
+    },
+    "english": {
+      "title": "In English (optional)",
+      "hint": "For the English version of your website. Anything left empty shows in Spanish.",
+      "fieldTitle": "Title in English",
+      "fieldSummary": "Summary in English",
+      "fieldBody": "Text in English"
     }
   },
   "SiteEditor": {
@@ -3095,7 +3102,8 @@
       "legal": "Legal data",
       "notices": "Notices (closures and special hours)",
       "booking": "Online appointments (\"Book\" button)",
-      "menu": "Menu or catalogue (with QR)"
+      "menu": "Menu or catalogue (with QR)",
+      "languages": "Languages (English version)"
     },
     "style": "Starting style",
     "styleHint": "Changes the colours, fonts, order and sample photos. Your texts and photos stay.",
@@ -3307,6 +3315,16 @@
       "sulphites": "Sulphites",
       "lupin": "Lupin",
       "molluscs": "Molluscs"
+    },
+    "english": {
+      "switch": "English version",
+      "hint": "Your website in English too, at <your address>/en, with a button to change language. You write the English texts: switch to “English” above the form. Anything left untranslated shows in Spanish.",
+      "missing": "{count, plural, =0 {Every text is in English.} one {# text is missing in English: it shows in Spanish.} other {# texts are missing in English: they show in Spanish.}}",
+      "translate": "Translate now",
+      "editing": "Language you are editing",
+      "editingEnglish": "You are editing the English: each text shows the Spanish below it. Photos, links and colours are changed in “Español”.",
+      "fieldLabel": "{label} (English)",
+      "spanishHint": "In Spanish: {text}"
     }
   },
   "Videochat": {
@@ -6377,7 +6395,14 @@
     "posterBody": "A5 size. Press \"Print the poster\" and choose your printer, or \"Save as PDF\" to take it to a print shop.",
     "posterKicker": "Nuestra carta",
     "posterHeadline": "Escanea para ver la carta",
-    "posterHint": "Apunta con la cámara de tu móvil al código"
+    "posterHint": "Apunta con la cámara de tu móvil al código",
+    "english": {
+      "title": "Menu in English",
+      "lead": "Your website has an English version: this QR opens the menu in English. Put it next to the Spanish one for those who prefer to read it in English.",
+      "poster": "Scan to see the menu",
+      "posterKicker": "Our menu",
+      "posterHint": "Point your phone's camera at the code"
+    }
   },
   "WebsiteCheck": {
     "metaTitle": "Free website check",

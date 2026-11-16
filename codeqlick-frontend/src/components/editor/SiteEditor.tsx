@@ -24,6 +24,7 @@ import type { SiteEditorView } from '@/lib/api/types';
 import {
   dayOf,
   liveTexts,
+  missingEnglish,
   noticeState,
   setAt,
   structureOf,
@@ -118,6 +119,10 @@ export function SiteEditor({
   const [published, setPublished] = useState(false);
   /** The page the preview shows: the home page, or the menu's own page while editing it. */
   const [page, setPage] = useState<'' | 'carta'>('');
+  /** The language the forms edit and the preview shows (decision 106). */
+  const [chosenLang, setLang] = useState<'es' | 'en'>('es');
+  const english = content.english === true;
+  const lang = english ? chosenLang : 'es';
 
   const latest = useRef(content);
   const preset = useRef(initial.preset);
@@ -300,8 +305,8 @@ export function SiteEditor({
   };
 
   const context = useMemo(
-    () => ({ content, set, errors, preset: presetKey, upload }),
-    [content, set, errors, presetKey, upload],
+    () => ({ content, set, errors, preset: presetKey, upload, lang }),
+    [content, set, errors, presetKey, upload, lang],
   );
   const busy = status === 'pending' || status === 'saving' || status === 'building';
   // Something to publish: the draft differs from what is online.
@@ -313,6 +318,9 @@ export function SiteEditor({
     const order = Array.isArray(content.sections) ? (content.sections as string[]) : [];
     return [...new Set([...order, ...SECTION_KEYS])];
   }, [content.sections]);
+  const missing = english ? missingEnglish(content, { menu: view.menuEnabled }).length : 0;
+  // The preview shows the page being edited, in the language being edited.
+  const previewPage = lang === 'en' ? (page ? `en/${page}` : 'en') : page;
   // The legal notice needs these: an empty one is pointed out on its part of the form.
   const legalMissing = (['legal.taxId', 'legal.address'] as const).some(
     (path) => !String(getAt(content, path) ?? '').trim(),
@@ -412,6 +420,34 @@ export function SiteEditor({
 
       <div className={styles.layout} data-tab={tab}>
         <div className={styles.forms} data-editor-forms>
+          {english ? (
+            <div className={styles.langBar}>
+              <fieldset className={styles.tabs}>
+                <legend className="visually-hidden">{t('english.editing')}</legend>
+                <button
+                  type="button"
+                  aria-pressed={lang === 'es'}
+                  lang="es"
+                  onClick={() => setLang('es')}
+                >
+                  Español
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={lang === 'en'}
+                  lang="en"
+                  onClick={() => setLang('en')}
+                >
+                  English
+                </button>
+              </fieldset>
+              <span className={styles.hint}>
+                {lang === 'en'
+                  ? t('english.editingEnglish')
+                  : t('english.missing', { count: missing })}
+              </span>
+            </div>
+          ) : null}
           <Part paths={['theme']} summary={t('parts.design')} open>
             <div className={styles.stack}>
               <div>
@@ -480,6 +516,34 @@ export function SiteEditor({
                   }))}
                 />
               </div>
+            </div>
+          </Part>
+
+          <Part paths={['english', 'en']} summary={t('parts.languages')}>
+            <div className={styles.stack}>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={english}
+                  onChange={(event) => {
+                    // Off keeps the English texts, so turning it back on restores them.
+                    set('english', event.target.checked ? true : undefined);
+                    if (!event.target.checked) setLang('es');
+                  }}
+                />
+                {t('english.switch')}
+              </label>
+              <p className={styles.hint}>{t('english.hint')}</p>
+              {english ? (
+                <p className={styles.hint}>
+                  {t('english.missing', { count: missing })}{' '}
+                  {missing > 0 ? (
+                    <button type="button" className={styles.link} onClick={() => setLang('en')}>
+                      {t('english.translate')}
+                    </button>
+                  ) : null}
+                </p>
+              ) : null}
             </div>
           </Part>
 
@@ -1131,7 +1195,7 @@ export function SiteEditor({
               <iframe
                 key={frame}
                 ref={iframe}
-                src={`${view.draft.previewUrl}${page}?v=${frame}`}
+                src={`${view.draft.previewUrl}${previewPage}?v=${frame}`}
                 title={t('previewTitle')}
                 sandbox="allow-scripts"
                 className={styles.frame}

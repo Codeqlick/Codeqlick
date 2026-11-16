@@ -624,3 +624,26 @@ textarea.input {
     display: none;
   }
 }
+
+/* The language the forms edit, while the English version is on (decision 106). */
+.langBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.langBar .tabs {
+  display: inline-flex;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+}
+
+.langBar .hint {
+  margin: 0;
+}

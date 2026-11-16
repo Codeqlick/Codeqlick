@@ -43,6 +43,8 @@ export interface PortalSiteView {
    * has it, so its QR poster can be printed.
    */
   menu: { enabled: boolean; published: boolean };
+  /** The online site has its English version (decision 106): the menu's QR has an English twin. */
+  english: boolean;
 }
 
 /** Photos a site can use: the template optimises these. */
@@ -177,6 +179,7 @@ export class PortalSitesService {
           : null,
       legalMissing: (['taxId', 'address'] as const).filter((key) => !content.legal[key]?.trim()),
       menu: { enabled: site.menuEnabled, published: site.menuEnabled && !!content.menu },
+      english: content.english === true,
     };
   }
 }

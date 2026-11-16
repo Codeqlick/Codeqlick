@@ -47,6 +47,10 @@ export function SiteEditorShell({
           scope="portal"
           projectId={editor.projectId}
           initial={news}
+          english={
+            editor.initial.content.english === true ||
+            editor.initial.published.content.english === true
+          }
         />
       ) : null}
       <div hidden={Boolean(news) && section === 'news'} className={styles.siteSection}>

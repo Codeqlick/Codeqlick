@@ -15,6 +15,9 @@ const form: NewsForm = {
   title: 'Winter offer',
   summary: 'Two for one',
   body: 'Come in.',
+  titleEn: '',
+  summaryEn: '',
+  bodyEn: '',
   photo: '',
   expiresAt: '',
 };
@@ -77,6 +80,9 @@ describe('the news section’s helpers', () => {
       title: 'Winter offer',
       summary: 'Two for one',
       body: 'Come in.',
+      titleEn: null,
+      summaryEn: null,
+      bodyEn: null,
       photo: null,
       expiresAt: null,
     });
@@ -84,6 +90,18 @@ describe('the news section’s helpers', () => {
       photo: 'media/a.jpg',
       expiresAt: '2026-12-01',
     });
+  });
+
+  it('sends the English texts written, trimmed, and null for the empty ones', () => {
+    expect(newsPayload({ ...form, titleEn: ' Winter deal ', bodyEn: '  ' })).toMatchObject({
+      titleEn: 'Winter deal',
+      summaryEn: null,
+      bodyEn: null,
+    });
+    expect(
+      newsProblems({ ...form, titleEn: 'x'.repeat(NEWS_LIMITS.titleEn + 1) }, '2026-11-14'),
+    ).toEqual({ titleEn: 'tooLong' });
+    expect(newsChanged(form, { ...form, summaryEn: 'Two for one' })).toBe(true);
   });
 
   it('notices a changed form', () => {
@@ -94,6 +112,8 @@ describe('the news section’s helpers', () => {
 
   it('finds the field an API issue is about', () => {
     expect(newsFieldOf('title')).toBe('title');
+    expect(newsFieldOf('titleEn')).toBe('titleEn');
+    expect(newsFieldOf('bodyEn', 'Links must start with http')).toBe('bodyEn');
     expect(newsFieldOf('expiresAt')).toBe('expiresAt');
     expect(newsFieldOf('_form', 'photo must be one of the site’s uploads')).toBe('photo');
     expect(newsFieldOf('_form', 'Something else')).toBeNull();
