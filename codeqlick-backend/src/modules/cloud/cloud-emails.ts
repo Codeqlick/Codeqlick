@@ -1047,3 +1047,39 @@ export function cloudStatusEmail(input: {
     listUnsubscribe: input.unsubscribe.oneClickUrl,
   };
 }
+
+/** To a team member mentioned in a preview comment (architecture 4.13 "Preview comments"). */
+export function cloudCommentMentionEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  author: string;
+  project: string;
+  deployment: string;
+  path: string;
+  body: string;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  return {
+    to: input.to,
+    subject: es
+      ? `${input.author} te ha mencionado en ${input.project}`
+      : `${input.author} mentioned you on ${input.project}`,
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: input.body.slice(0, 120),
+        title: es ? 'Te han mencionado en un comentario' : 'You were mentioned in a comment',
+        intro: [
+          es
+            ? `${input.author} te ha mencionado en la vista previa ${input.deployment} de ${input.project}, en la página ${input.path}.`
+            : `${input.author} mentioned you on preview ${input.deployment} of ${input.project}, on the page ${input.path}.`,
+        ],
+        quote: { title: input.author, body: input.body },
+        button: { label: es ? 'Ver los comentarios' : 'See the comments', url: input.url },
+      },
+      input.siteUrl,
+    ),
+  };
+}

@@ -5,7 +5,7 @@ group: reference
 order: 18
 ---
 
-El comando `codeqlick` despliega webs y gestiona proyectos, compilaciones, analítica y el almacén clave-valor. No tiene dependencias y necesita Node 20 o posterior.
+El comando `codeqlick` despliega webs y gestiona proyectos, compilaciones, analítica, el almacén clave-valor, bases de datos y buckets. No tiene dependencias y necesita Node 20 o posterior.
 
 ```sh
 npx @codeqlick/cli <command>       # ejecútalo sin instalar
@@ -104,6 +104,61 @@ Consulta [compilaciones desde Git](/es/builds-from-git/).
 | `--json`                                       | Imprime la respuesta de la API, para `analytics` y `kv`.                      |
 
 Consulta [analítica web](/es/analytics/) y el [almacén clave-valor](/es/key-value-store/).
+
+## Bases de datos
+
+Los comandos `db` necesitan la versión 0.6 o posterior.
+
+| Comando                  | Qué hace                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `db [ls]`                | Lista las bases de datos del proyecto: tamaño frente a su límite, solo lectura, cadena de conexión sin la contraseña.     |
+| `db create <name>`       | Crea una base de datos e imprime su URL de conexión completa. Solo se muestra una vez.                                    |
+| `db url <name>`          | Genera una contraseña nueva e imprime la URL una vez. Las apps con la anterior dejan de conectarse. Pregunta antes.       |
+| `db rm <name>`           | Borra la base de datos y todos sus datos. Pregunta antes.                                                                 |
+| `db psql <name>`         | Ejecuta tu `psql` local en la base de datos. `psql` te pide la contraseña.                                                |
+| `db psql <name> --reset` | Genera antes una contraseña nueva (pregunta antes) y se la pasa a `psql` con `PGPASSWORD`, nunca en la línea de comandos. |
+| `--json`                 | Imprime la respuesta de la API.                                                                                           |
+
+Consulta [bases de datos](/es/databases/).
+
+## Buckets
+
+Los comandos `buckets` necesitan la versión 0.6 o posterior.
+
+| Comando                                       | Qué hace                                                                                                       |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `buckets [ls]`                                | Lista los buckets: tamaño y objetos frente a la cuota, dirección pública, orígenes CORS, claves.               |
+| `buckets create <name>`                       | Crea un bucket.                                                                                                |
+| `buckets rm <name>`                           | Borra un bucket vacío y sus claves. Pregunta antes.                                                            |
+| `buckets keys <bucket>`                       | Lista las claves de acceso del bucket.                                                                         |
+| `buckets key create <bucket> [--name <name>]` | Crea una clave de solo lectura (llamada `cli` por defecto). Imprime el secreto una vez, con endpoint y región. |
+| `buckets key create … --write`                | Crea una clave de lectura y escritura.                                                                         |
+| `buckets key rm <bucket> <key>`               | Borra una clave por su ID, su ID de clave de acceso o su nombre. Pregunta antes.                               |
+| `buckets public <bucket> on\|off`             | Hace el bucket público o privado. `on` pregunta antes e imprime la dirección pública.                          |
+| `buckets cors <bucket>`                       | Muestra la regla CORS del bucket.                                                                              |
+| `buckets cors <bucket> set <origin...>`       | Sustituye la regla con estos orígenes.                                                                         |
+| `buckets cors … set --methods <list>`         | Métodos permitidos, separados por comas, como `GET,HEAD,PUT`. Por defecto `GET,HEAD`.                          |
+| `buckets cors … set --headers <list>`         | Cabeceras de petición permitidas, separadas por comas. Por defecto `*`.                                        |
+| `buckets cors … set --max-age <seconds>`      | Cuánto guardan los navegadores la respuesta previa (preflight). Por defecto 3600.                              |
+| `buckets cors <bucket> clear`                 | Elimina la regla.                                                                                              |
+| `--json`                                      | Imprime la respuesta de la API.                                                                                |
+
+Consulta [almacenamiento de objetos](/es/object-storage/).
+
+### Nombres y confirmaciones
+
+Un `<name>` o `<bucket>` se busca primero como ID y después exactamente (distinguiendo mayúsculas) como nombre en el proyecto. Las bases de datos pueden compartir nombre: entonces usa el ID que muestra el error.
+
+Los comandos que borran datos, cambian una contraseña o hacen públicos archivos preguntan antes `[y/N]`. Solo `y` o `yes` continúa.
+
+| Opción        | Qué hace                                                                                     |
+| ------------- | -------------------------------------------------------------------------------------------- |
+| `--yes`, `-y` | Se salta la pregunta. Sin terminal, como en CI, estos comandos se niegan salvo que la pases. |
+
+```sh
+export CODEQLICK_TOKEN=cqk_…
+codeqlick db rm staging --project web --yes
+```
 
 ## Protección con contraseña
 

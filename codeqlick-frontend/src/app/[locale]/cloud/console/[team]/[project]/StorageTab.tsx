@@ -13,6 +13,7 @@ import {
   deleteBucketKeyAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { BucketAccess } from './BucketAccess';
 
 type Props = {
   locale: AppLocale;
@@ -69,6 +70,15 @@ export async function StorageTab(props: Props) {
                       maxObjects: number.format(bucket.maxObjects),
                     })}
               </p>
+              <BucketAccess
+                locale={props.locale}
+                path={props.path}
+                projectId={props.projectId}
+                bucket={bucket}
+                admin={props.admin}
+                publicCount={data.publicCount}
+                publicLimit={data.publicLimit}
+              />
               <ul className={styles.list}>
                 {bucket.keys.map((key) => (
                   <li key={key.id} className={styles.row}>

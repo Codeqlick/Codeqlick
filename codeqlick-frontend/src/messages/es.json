@@ -6706,7 +6706,9 @@
         "kv": "KV",
         "databases": "Bases de datos",
         "storage": "Almacenamiento",
-        "builds": "Compilaciones"
+        "builds": "Compilaciones",
+        "comments": "Comentarios",
+        "commentsCount": "Comentarios ({count})"
       },
       "production": "Publicado",
       "deployHelp": "Despliega desde la carpeta de este proyecto:",
@@ -7744,7 +7746,49 @@
       "nameInvalid": "3–63 letras minúsculas, dígitos y guiones; sin guion al principio ni al final.",
       "howTo": "Úsalo desde tu código",
       "settings": "Endpoint {endpoint}, región {region}, direcciones path-style. Guarda las claves en las variables de entorno de tu servidor; los navegadores reciben los archivos con URLs prefirmadas que firma tu servidor.",
-      "privacy": "De momento en el servidor de Codeqlick y aún sin copias de seguridad de los archivos: guarda una copia de lo que no puedas perder."
+      "privacy": "De momento en el servidor de Codeqlick y aún sin copias de seguridad de los archivos: guarda una copia de lo que no puedas perder.",
+      "public": {
+        "badge": "Público",
+        "warning": "Cualquiera con la dirección puede leer todos los archivos.",
+        "label": "Lectura pública",
+        "on": "Activada",
+        "off": "Desactivada",
+        "turnOn": "Activar lectura pública",
+        "turnOff": "Desactivar lectura pública",
+        "confirm": "¿Hacer público {name}? Cualquiera con la dirección podrá leer todos sus archivos, sin clave.",
+        "count": "{count} de {limit} buckets públicos en este plan",
+        "enabled": "Lectura pública activada: los archivos se leen en la dirección pública.",
+        "disabled": "Lectura pública desactivada: los archivos vuelven a necesitar una clave o una URL firmada."
+      },
+      "cors": {
+        "title": "CORS",
+        "none": "sin regla",
+        "summary": "{origins}",
+        "lead": "Una regla para las peticiones del navegador, para subidas con URL firmadas y para la lectura pública.",
+        "origins": "Orígenes permitidos",
+        "originsHint": "Uno por línea: * o https://ejemplo.com (con :puerto si hace falta). Hasta 10.",
+        "methods": "Métodos",
+        "headers": "Cabeceras permitidas",
+        "headersHint": "Separadas por comas. Vacío: cualquiera (*).",
+        "exposeHeaders": "Cabeceras expuestas",
+        "exposeHeadersHint": "Separadas por comas. Vacío: ETag.",
+        "maxAge": "Duración máxima (segundos)",
+        "maxAgeHint": "0–86.400. Vacío: 3.600.",
+        "seconds": "{count, plural, one {# segundo} other {# segundos}}",
+        "save": "Guardar regla CORS",
+        "clear": "Quitar regla",
+        "saved": "Regla CORS guardada.",
+        "cleared": "Regla CORS quitada.",
+        "errors": {
+          "originsRequired": "Añade al menos un origen.",
+          "originsTooMany": "Como máximo 10 orígenes.",
+          "originInvalid": "Cada origen es * o http(s)://host con un :puerto opcional, sin ruta.",
+          "methodsRequired": "Marca al menos un método.",
+          "headersInvalid": "Los nombres de cabecera llevan letras, dígitos y guiones, o *.",
+          "headersTooMany": "Como máximo 20 cabeceras.",
+          "maxAgeRange": "Un número entero de segundos entre 0 y 86.400."
+        }
+      }
     },
     "subscribe": {
       "title": "Recibe los avisos por correo",
@@ -7816,6 +7860,43 @@
       "required": "Marca la casilla para aceptar.",
       "submit": "Aceptar y continuar",
       "accepting": "Guardando…"
+    },
+    "comments": {
+      "title": "Comentarios",
+      "lead": "Lo que el equipo ha dejado en las vistas previas de este proyecto. Abre la vista previa de un despliegue con «Comentar» para fijar nuevos.",
+      "filter": "Mostrar",
+      "status": {
+        "open": "Abiertos",
+        "resolved": "Resueltos",
+        "all": "Todos"
+      },
+      "empty": {
+        "open": "No hay comentarios abiertos.",
+        "resolved": "No hay comentarios resueltos.",
+        "all": "Aún no hay comentarios."
+      },
+      "loadError": "No se han podido cargar los comentarios. Inténtalo de nuevo.",
+      "threadLabel": "Comentarios en {path}",
+      "device": {
+        "desktop": "Escritorio",
+        "mobile": "Móvil"
+      },
+      "openBadge": "Abierto",
+      "resolvedBadge": "Resuelto",
+      "resolvedBy": "Resuelto por {name} · {when}",
+      "resolvedAt": "Resuelto · {when}",
+      "deploymentGone": "Su despliegue se ha eliminado, así que sus marcas ya no se pueden abrir.",
+      "delete": "Eliminar",
+      "deleteConfirm": "¿Eliminar este comentario? Eliminar el último elimina el hilo.",
+      "reply": "Responder",
+      "mention": "Mencionar a miembros",
+      "send": "Responder",
+      "sending": "Enviando…",
+      "bodyInvalid": "Entre 1 y 2.000 caracteres.",
+      "resolve": "Resolver",
+      "reopen": "Reabrir",
+      "openOnPreview": "Abrir en la vista previa",
+      "comment": "Comentar"
     }
   },
   "AdminCloud": {

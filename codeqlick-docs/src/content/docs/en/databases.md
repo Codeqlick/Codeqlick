@@ -15,7 +15,7 @@ In the project's **Databases** tab, press **Create** and give it a name. Project
 postgresql://cq_0123456789abcdef:YOUR_PASSWORD@pg.codeqlick.app:5432/cq_0123456789abcdef?sslmode=require
 ```
 
-The user and the database share the same name. Codeqlick doesn't keep the password, so copy it when it is shown. If you lose it, reset it in the console. A reset replaces the password, so update your app's configuration.
+The user and the database share the same name. Codeqlick doesn't keep the password, so copy it when it is shown. If you lose it, reset it in the console or with `codeqlick db url`. A reset replaces the password, so update your app's configuration.
 
 You can also use the API:
 
@@ -27,6 +27,28 @@ curl -X POST "https://api.codeqlick.com/v1/cloud/projects/<project-id>/databases
 ```
 
 The answer includes `password` and the full `connectionUrl` once.
+
+## From the command line
+
+The [CLI](/en/cli/) manages the databases of the project linked in your folder, or of `--project <slug>`. Each command takes `--json`.
+
+```sh
+codeqlick db ls              # name, size against its limit, read-only, connection string
+codeqlick db create main     # prints the full connection URL once
+codeqlick db url main        # resets the password and prints the new URL once
+codeqlick db psql main       # opens psql; it asks for the password
+codeqlick db psql main --reset
+codeqlick db rm main
+```
+
+- `db create` prints the connection URL with its password **once**. Copy it then.
+- `db url` **resets** the password, because Codeqlick doesn't keep it. Apps using the old password stop connecting, so it asks first.
+- `db psql` runs your local `psql`, which must be installed. Without `--reset`, `psql` asks for the password. With `--reset`, the CLI resets the password first, asking as `db url` does, and hands it to `psql` through the `PGPASSWORD` environment variable, never on the command line.
+- `db rm` asks before it deletes the database and all its data.
+
+To skip a question, pass `--yes` (`-y`). Without a terminal, such as in CI, these commands refuse unless you pass `--yes`, so a script never hangs or deletes by accident.
+
+A database name is matched first as an ID, then exactly as a name. When two databases share a name, use the ID that the error lists.
 
 ## Connect
 

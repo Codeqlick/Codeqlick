@@ -20,7 +20,13 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import { Caller, type CloudCtx } from './cloud-caller.js';
 import { PROTECTION_PAGE_HEADERS, renderProtectionPage } from './cloud-protection-page.js';
-import { ACCESS_COOKIE, accessCookieOptions, nextFromUrl, pageLocale } from './cloud-protection.js';
+import {
+  ACCESS_COOKIE,
+  accessCookieOptions,
+  nextFromUrl,
+  pageLocale,
+  safeNext,
+} from './cloud-protection.js';
 import {
   CloudProtectionService,
   type BypassCreated,
@@ -145,7 +151,13 @@ export class CloudProtectionPublicController {
   async enter(@Req() request: Request, @Res() res: Response): Promise<void> {
     const ticket = request.query.ticket;
     const value = typeof ticket === 'string' ? ticket : undefined;
-    answer(request, res, await this.protection.enter(proxyHeaders(request), value));
+    // Where to go afterwards (the comments page, decision 111): a path on the same address.
+    const next = safeNext(request.query.next);
+    answer(
+      request,
+      res,
+      await this.protection.enter(proxyHeaders(request), value, Date.now(), next),
+    );
   }
 }
 

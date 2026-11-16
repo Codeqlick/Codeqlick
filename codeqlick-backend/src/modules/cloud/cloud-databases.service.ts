@@ -105,6 +105,14 @@ export class CloudDatabasesService implements OnApplicationBootstrap, OnApplicat
     return { configured: true, items: rows.map((db) => this.view(db, project.team.plan)) };
   }
 
+  /** One database, without its password (decision 111: the CLI's `db` commands). */
+  async get(ctx: CloudCtx, projectId: string, id: string): Promise<DatabaseView> {
+    const { project } = await this.projects.project(ctx, projectId);
+    const db = await this.databases.find(project.id, id);
+    if (!db) throw new NotFoundException('Database not found');
+    return this.view(db, project.team.plan);
+  }
+
   async create(
     ctx: CloudCtx,
     projectId: string,

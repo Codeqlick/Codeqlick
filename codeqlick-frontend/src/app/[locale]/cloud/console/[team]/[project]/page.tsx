@@ -7,6 +7,7 @@ import { ProductionLockBanner } from '@/components/cloud/ProductionLockBanner';
 import { Alert } from '@/components/ui/Alert';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { buttonClassName } from '@/components/ui/buttonStyles';
 import { Pagination } from '@/components/ui/Pagination';
 import { ConfirmForm } from '@/components/cloud/ConfirmForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -15,6 +16,7 @@ import { resolveLocale } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
 import {
   getCloudTeam,
+  listCloudComments,
   listCloudDeployments,
   listCloudDomains,
   listCloudProjects,
@@ -23,6 +25,7 @@ import {
 import { isApiError } from '@/lib/api/errors';
 import {
   addressHref,
+  commentStatus,
   formatBytes,
   formatWhen,
   isProtected,
@@ -48,6 +51,7 @@ import { env } from '@/lib/env';
 import { AnalyticsTab } from './AnalyticsTab';
 import { ANALYTICS_PERIODS } from './AnalyticsReport';
 import { BuildsTab } from './BuildsTab';
+import { CommentsTab } from './CommentsTab';
 import { DatabasesTab } from './DatabasesTab';
 import { FormsTab } from './FormsTab';
 import { GitTab } from './GitTab';
@@ -60,6 +64,7 @@ import { ProtectionCard, ProtectionLock } from './ProtectionCard';
 
 const TABS = [
   'deployments',
+  'comments',
   'builds',
   'git',
   'notifications',
@@ -87,6 +92,7 @@ type PageProps = {
     key?: string;
     moved?: string;
     git?: string;
+    status?: string;
   }>;
 };
 
@@ -133,6 +139,12 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
   const path = `/${team.slug}/${project.slug}`;
   const admin = team.role !== 'MEMBER';
   const open = await appPath(`/${locale}/cloud/console${path}/open`, locale);
+  const commentRoute = await appPath(`/${locale}/cloud/console${path}/comment`, locale);
+  const status = commentStatus(query.status);
+  // The inbox's threads on its tab; elsewhere the open ones, for the tab's count.
+  const comments = await listCloudComments(project.id, {
+    status: tab === 'comments' ? status : 'open',
+  }).catch(() => null);
   const lock = project.productionLock
     ? productionLockValues(project.productionLock, project.production?.shortId ?? null, locale)
     : null;
@@ -161,7 +173,9 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
               className={styles.tab}
               aria-current={tab === key ? 'page' : undefined}
             >
-              {t(`project.tabs.${key}`)}
+              {key === 'comments' && comments && comments.open > 0
+                ? t('project.tabs.commentsCount', { count: comments.open })
+                : t(`project.tabs.${key}`)}
             </Link>
           ))}
         </nav>
@@ -207,6 +221,20 @@ export default async function CloudProjectPage({ params, searchParams }: PagePro
           base={base}
           protection={project.protection}
           open={open}
+          commentRoute={commentRoute}
+        />
+      ) : null}
+      {tab === 'comments' ? (
+        <CommentsTab
+          locale={locale}
+          teamSlug={team.slug}
+          projectId={project.id}
+          path={path}
+          base={base}
+          admin={admin}
+          status={status}
+          threads={comments?.items ?? null}
+          commentRoute={commentRoute}
         />
       ) : null}
       {tab === 'domains' ? (
@@ -386,6 +414,7 @@ async function Deployments({
   base,
   protection,
   open,
+  commentRoute,
 }: {
   locale: AppLocale;
   projectId: string;
@@ -397,6 +426,8 @@ async function Deployments({
   protection: ProtectionMode;
   /** The console's route that opens a protected address with a ticket. */
   open: string;
+  /** The console's route that opens a deployment's comments page (a new tab). */
+  commentRoute: string;
 }) {
   const t = await getTranslations({ locale, namespace: 'Cloud' });
   const list = await listCloudDeployments(projectId, page).catch(() => null);
@@ -490,6 +521,15 @@ async function Deployments({
                     {t('deployment.tabs.files')}
                     <span className="visually-hidden"> — {deployment.shortId}</span>
                   </Button>
+                  <a
+                    href={`${commentRoute}?deployment=${encodeURIComponent(deployment.id)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={buttonClassName({ variant: 'ghost', size: 'sm' })}
+                  >
+                    {t('comments.comment')}
+                    <span className="visually-hidden"> — {deployment.shortId}</span>
+                  </a>
                   {deployment.isProduction ? null : (
                     <form action={promoteAction}>
                       <input type="hidden" name="locale" value={locale} />

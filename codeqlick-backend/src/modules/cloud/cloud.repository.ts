@@ -546,6 +546,8 @@ export class CloudRepository {
       this.prisma.cloudDomain.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudForm.deleteMany({ where: { projectId: id } }),
       this.prisma.cloudDeployHook.deleteMany({ where: { projectId: id } }),
+      // Preview comments go with the project (decision 111).
+      this.prisma.cloudCommentThread.deleteMany({ where: { projectId: id } }),
     ]);
   }
 

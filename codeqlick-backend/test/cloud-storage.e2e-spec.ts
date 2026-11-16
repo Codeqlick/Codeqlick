@@ -10,7 +10,12 @@ import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
 import { CLOUD_TERMS_VERSION } from '../src/modules/cloud/cloud-plans.js';
-import { GarageClient, GarageError } from '../src/modules/cloud/garage.client.js';
+import { CloudStorageService } from '../src/modules/cloud/cloud-storage.service.js';
+import {
+  GarageClient,
+  GarageError,
+  type GarageCorsRule,
+} from '../src/modules/cloud/garage.client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 // A real Garage when CLOUD_STORAGE_TEST_ADMIN_URL is set (its token in
@@ -26,7 +31,16 @@ describe('Codeqlick Cloud object storage (e2e)', () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
   /** The fake Garage's buckets: objects and quota. */
-  const buckets = new Map<string, { name: string; objects: number; maxSize: number }>();
+  const buckets = new Map<
+    string,
+    {
+      name: string;
+      objects: number;
+      maxSize: number;
+      website: boolean;
+      cors: GarageCorsRule | null;
+    }
+  >();
   const keys = new Map<string, { bucketId: string; write: boolean }>();
 
   beforeAll(async () => {
@@ -49,14 +63,33 @@ describe('Codeqlick Cloud object storage (e2e)', () => {
           return Promise.reject(new GarageError(409, 'exists'));
         }
         const id = randomUUID().replaceAll('-', '');
-        buckets.set(id, { name, objects: 0, maxSize });
+        buckets.set(id, { name, objects: 0, maxSize, website: false, cors: null });
         return Promise.resolve(id);
       });
       vi.spyOn(garage, 'bucket').mockImplementation((id) => {
         const b = buckets.get(id);
         return b
-          ? Promise.resolve({ id, bytes: b.objects * 10, objects: b.objects, maxSize: b.maxSize })
+          ? Promise.resolve({
+              id,
+              bytes: b.objects * 10,
+              objects: b.objects,
+              maxSize: b.maxSize,
+              website: b.website,
+              cors: b.cors,
+            })
           : Promise.reject(new GarageError(404, 'no bucket'));
+      });
+      vi.spyOn(garage, 'setWebsite').mockImplementation((id, enabled) => {
+        const b = buckets.get(id);
+        if (!b) return Promise.reject(new GarageError(404, 'no bucket'));
+        b.website = enabled;
+        return Promise.resolve();
+      });
+      vi.spyOn(garage, 'setCors').mockImplementation((id, rule) => {
+        const b = buckets.get(id);
+        if (!b) return Promise.reject(new GarageError(404, 'no bucket'));
+        b.cors = rule;
+        return Promise.resolve();
       });
       vi.spyOn(garage, 'deleteBucket').mockImplementation((id) => {
         buckets.delete(id);
@@ -177,5 +210,170 @@ describe('Codeqlick Cloud object storage (e2e)', () => {
       .expect(204);
     // The fake saw every key deleted (a real Garage was checked by the API's answers).
     expect(realGarage ? 0 : keys.size).toBe(0);
+  });
+
+  it('makes a bucket public read and sets its CORS rule in Garage, within the plan', async () => {
+    const server = app.getHttpServer();
+    const login = await request(server).post('/v1/auth/login').send(owner).expect(200);
+    const auth = { Authorization: `Bearer ${login.body.accessToken as string}` };
+    const team = await prisma.cloudTeam.findUniqueOrThrow({ where: { slug: `s-${tag}` } });
+    const projectId = (
+      await request(server)
+        .post(`/v1/cloud/teams/s-${tag}/projects`)
+        .set(auth)
+        .send({ name: 'Assets', slug: `sq-${tag}` })
+        .expect(201)
+    ).body.id as string;
+    const base = `/v1/cloud/projects/${projectId}/buckets`;
+    const one = (
+      await request(server)
+        .post(base)
+        .set(auth)
+        .send({ name: `pub-${tag}` })
+        .expect(201)
+    ).body as { id: string; public: boolean; publicUrl: string | null; cors: unknown };
+    expect(one).toMatchObject({ public: false, publicUrl: null, cors: null });
+    const two = (
+      await request(server)
+        .post(base)
+        .set(auth)
+        .send({ name: `pub2-${tag}` })
+        .expect(201)
+    ).body as { id: string };
+    const garageOf = async (id: string) => {
+      const row = await prisma.cloudBucket.findUniqueOrThrow({ where: { id } });
+      return realGarage ? app.get(GarageClient).bucket(row.garageId) : buckets.get(row.garageId)!;
+    };
+
+    // Nothing to change, or a bad rule: 400.
+    await request(server).patch(`${base}/${one.id}`).set(auth).send({}).expect(400);
+    await request(server)
+      .patch(`${base}/${one.id}`)
+      .set(auth)
+      .send({ cors: { origins: ['ftp://example.com'] } })
+      .expect(400);
+    await request(server)
+      .patch(`${base}/${one.id}`)
+      .set(auth)
+      .send({ cors: { origins: Array.from({ length: 11 }, (_, i) => `https://s${i}.test`) } })
+      .expect(400);
+    await request(server)
+      .patch(`${base}/${one.id}`)
+      .set(auth)
+      .send({ cors: { origins: ['https://a.test'], methods: ['PATCH'] } })
+      .expect(400);
+
+    const opened = await request(server)
+      .patch(`${base}/${one.id}`)
+      .set(auth)
+      .send({ public: true })
+      .expect(200);
+    expect(opened.body).toMatchObject({
+      public: true,
+      publicUrl: `https://s3.cloud.test/_public/pub-${tag}/`,
+    });
+    expect((await garageOf(one.id)).website).toBe(true);
+    // The free plan has one public bucket per project.
+    const refused = await request(server)
+      .patch(`${base}/${two.id}`)
+      .set(auth)
+      .send({ public: true })
+      .expect(409);
+    expect(refused.body.detail).toBe('A project has at most 1 public bucket on this plan');
+    expect((await garageOf(two.id)).website).toBe(false);
+    // On PRO, more.
+    await prisma.cloudTeam.update({ where: { id: team.id }, data: { plan: 'PRO' } });
+    await request(server).patch(`${base}/${two.id}`).set(auth).send({ public: true }).expect(200);
+    const listed = await request(server).get(base).set(auth).expect(200);
+    expect(listed.body).toMatchObject({ publicLimit: 10, publicCount: 2 });
+    await request(server).patch(`${base}/${two.id}`).set(auth).send({ public: false }).expect(200);
+    expect((await garageOf(two.id)).website).toBe(false);
+    await prisma.cloudTeam.update({ where: { id: team.id }, data: { plan: 'FREE' } });
+
+    const rule = {
+      origins: ['https://Example.com', 'http://localhost:4321'],
+      methods: ['PUT', 'GET'],
+    };
+    const cors = await request(server)
+      .patch(`${base}/${one.id}`)
+      .set(auth)
+      .send({ cors: rule })
+      .expect(200);
+    expect(cors.body.cors).toEqual({
+      origins: ['https://example.com', 'http://localhost:4321'],
+      methods: ['GET', 'PUT'],
+      headers: ['*'],
+      exposeHeaders: ['ETag'],
+      maxAge: 3600,
+    });
+    expect((await garageOf(one.id)).cors).toEqual(cors.body.cors);
+    const actions = (
+      await prisma.cloudEvent.findMany({
+        where: { teamId: team.id, action: { startsWith: 'bucket.' } },
+      })
+    ).map((event) => event.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        'bucket.public_enabled',
+        'bucket.public_disabled',
+        'bucket.cors_updated',
+      ]),
+    );
+    // The same rule again changes nothing and records nothing.
+    const before = await prisma.cloudEvent.count({ where: { teamId: team.id } });
+    await request(server).patch(`${base}/${one.id}`).set(auth).send({ cors: rule }).expect(200);
+    expect(await prisma.cloudEvent.count({ where: { teamId: team.id } })).toBe(before);
+
+    await request(server).patch(`${base}/${one.id}`).set(auth).send({ cors: null }).expect(200);
+    expect((await garageOf(one.id)).cors).toBeNull();
+
+    // A member reads but can't change it.
+    const member = { email: `e2e-cs-member-${tag}@codeqlick.test`, password };
+    const memberUser = await prisma.user.create({
+      data: {
+        email: member.email,
+        name: 'Bo',
+        role: Role.CLIENT,
+        passwordHash: await argon2.hash(password, { type: argon2.argon2id }),
+        registeredAt: new Date(),
+      },
+    });
+    await prisma.cloudMember.create({
+      data: {
+        teamId: team.id,
+        userId: memberUser.id,
+        role: 'MEMBER',
+        termsVersion: CLOUD_TERMS_VERSION,
+        termsAcceptedAt: new Date(),
+      },
+    });
+    const memberLogin = await request(server).post('/v1/auth/login').send(member).expect(200);
+    const memberAuth = { Authorization: `Bearer ${memberLogin.body.accessToken as string}` };
+    await request(server).get(base).set(memberAuth).expect(200);
+    await request(server)
+      .patch(`${base}/${one.id}`)
+      .set(memberAuth)
+      .send({ public: false })
+      .expect(403);
+
+    // A suspended project: no new public bucket, and the sweep turns public read off.
+    await prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { suspendedAt: new Date(), suspendedReason: 'test' },
+    });
+    await request(server).patch(`${base}/${two.id}`).set(auth).send({ public: true }).expect(403);
+    await app.get(CloudStorageService).sync();
+    expect((await garageOf(one.id)).website).toBe(false);
+    await prisma.cloudProject.update({
+      where: { id: projectId },
+      data: { suspendedAt: null, suspendedReason: null },
+    });
+    await app.get(CloudStorageService).sync();
+    expect((await garageOf(one.id)).website).toBe(true);
+
+    await request(server).patch(`${base}/${one.id}`).set(auth).send({ public: false }).expect(200);
+    for (const id of [one.id, two.id]) {
+      await request(server).delete(`${base}/${id}`).set(auth).expect(204);
+    }
   });
 });
