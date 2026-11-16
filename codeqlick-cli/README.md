@@ -106,6 +106,33 @@ into a CI secret (`codeqlick protect bypass | gh secret set CQ_BYPASS`). Making 
 the old, which stops working at once. `protect` shows whether one is set; `--json` prints the API's
 answer (`{ token, prefix, createdAt }`, or `{}` with `--revoke`).
 
+Databases (PostgreSQL) and storage (S3-compatible buckets):
+
+| Command                                                     | What it does                                                      |
+| ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| `db` / `db create <name>`                                   | The project's databases / make one (its URL is shown once)        |
+| `db url <name>`                                             | Reset the password and print the new URL                          |
+| `db rm <name>`                                              | Delete it and all its data                                        |
+| `db psql <name> [--reset]`                                  | Open your local `psql` on it                                      |
+| `buckets` / `buckets create <name>` / `buckets rm <bucket>` | The project's buckets / make one / delete an empty one            |
+| `buckets keys <bucket>`                                     | Its access keys                                                   |
+| `buckets key create <bucket> [--name <name>] [--write]`     | Make a key (read-only unless `--write`); the secret is shown once |
+| `buckets key rm <bucket> <key>`                             | Delete a key (its id, access key id or name)                      |
+| `buckets public <bucket> on\|off`                           | Let anyone read its files, or make it private again               |
+| `buckets cors <bucket> [set <origin...> \| clear]`          | Show, replace or remove its CORS rule                             |
+
+A database or bucket is named by its id or its exact name. `db url`, `db rm`, `db psql --reset`,
+`buckets rm`, `buckets key rm` and `buckets public … on` ask `[y/N]` first; `--yes` (`-y`) skips
+the question, and without a terminal (CI) they refuse unless you pass it. The password of a
+database isn't kept, so `db url` resets it. `db psql` needs `psql` in your `PATH`: it passes the
+URL without the password, so `psql` asks for it, or with `--reset` hands the new password through
+the `PGPASSWORD` environment variable, never on the command line.
+
+`buckets cors <bucket> set` takes up to 10 origins (`*` or `https://host[:port]`) and
+`--methods GET,HEAD,PUT,POST,DELETE`, `--headers a,b` and `--max-age <seconds>`; what you leave
+out takes the defaults (`GET,HEAD`, every header, 3600 s). Every command takes `--json` to print
+the API's answer.
+
 Redirects, rewrites and headers go in the same `codeqlick.json` as the project link:
 
 ```json
