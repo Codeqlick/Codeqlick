@@ -622,6 +622,7 @@ export class CruisingRepository {
         },
         meetup: { select: { id: true, status: true } },
         safetyAlert: { select: { id: true, hidden: true } },
+        roomMessage: { select: { id: true, hidden: true } },
       },
     });
   }
@@ -666,6 +667,7 @@ export class CruisingRepository {
             spot: { select: { id: true, slug: true, name: true, status: true } },
           },
         },
+        roomMessage: { select: { id: true, countryCode: true, citySlug: true, hidden: true } },
       },
     });
   }
@@ -943,7 +945,10 @@ export class CruisingRepository {
     });
   }
 
-  /** Blocks `blockedId` for `blockerId` and deletes the conversation between them, together. */
+  /**
+   * Blocks `blockedId` for `blockerId` and deletes the conversation between them and the private
+   * albums they shared with each other (decision 99), together.
+   */
   async block(blockerId: string, blockedId: string): Promise<void> {
     const [userAId, userBId] = conversationPair(blockerId, blockedId);
     await this.prisma.$transaction([
@@ -953,6 +958,9 @@ export class CruisingRepository {
         update: {},
       }),
       this.prisma.cruisingConversation.deleteMany({ where: { userAId, userBId } }),
+      this.prisma.cruisingAlbumGrant.deleteMany({
+        where: { ownerId: { in: [userAId, userBId] }, granteeId: { in: [userAId, userBId] } },
+      }),
     ]);
   }
 
@@ -1139,8 +1147,17 @@ export class CruisingRepository {
     });
   }
 
-  deleteConversation(id: string): Promise<CruisingConversation> {
-    return this.prisma.cruisingConversation.delete({ where: { id } });
+  /** Deletes a conversation for both; the private albums they shared go with it (decision 99). */
+  async deleteConversation(id: string): Promise<CruisingConversation> {
+    const found = await this.prisma.cruisingConversation.findUniqueOrThrow({ where: { id } });
+    const pair = [found.userAId, found.userBId];
+    const [conversation] = await this.prisma.$transaction([
+      this.prisma.cruisingConversation.delete({ where: { id } }),
+      this.prisma.cruisingAlbumGrant.deleteMany({
+        where: { ownerId: { in: pair }, granteeId: { in: pair } },
+      }),
+    ]);
+    return conversation;
   }
 
   /** Messages from `senderId` in a conversation after `since` (the unread ones). */

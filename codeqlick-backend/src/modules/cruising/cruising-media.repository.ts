@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type {
   CruisingMedia,
+  CruisingMediaAlbum,
   CruisingMediaKind,
   CruisingMediaStatus,
   Prisma,
@@ -42,10 +43,14 @@ export class CruisingMediaRepository {
 
   // ---- A member's media --------------------------------------------------------------------------
 
-  async countActive(ownerId: string): Promise<{ photos: number; videos: number }> {
+  /** The active items of one album (each album has its own limits, decision 99). */
+  async countActive(
+    ownerId: string,
+    album: CruisingMediaAlbum = 'PUBLIC',
+  ): Promise<{ photos: number; videos: number }> {
     const rows = await this.prisma.cruisingMedia.groupBy({
       by: ['kind'],
-      where: { ownerId, status: { in: ACTIVE } },
+      where: { ownerId, album, status: { in: ACTIVE } },
       _count: { _all: true },
     });
     const count = (kind: CruisingMediaKind) =>
@@ -89,10 +94,10 @@ export class CruisingMediaRepository {
     });
   }
 
-  /** A member's LIVE media in their order. */
-  liveMediaOf(ownerId: string): Promise<CruisingMedia[]> {
+  /** A member's LIVE media in their order: the public ones, and the private album's when asked. */
+  liveMediaOf(ownerId: string, withPrivate = false): Promise<CruisingMedia[]> {
     return this.prisma.cruisingMedia.findMany({
-      where: { ownerId, status: 'LIVE' },
+      where: { ownerId, status: 'LIVE', ...(withPrivate ? {} : { album: 'PUBLIC' }) },
       orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
     });
   }
@@ -191,7 +196,7 @@ export class CruisingMediaRepository {
         },
       }),
       this.prisma.cruisingMedia.findMany({
-        where: { ownerId: { in: ids }, kind: 'PHOTO', status: 'LIVE' },
+        where: { ownerId: { in: ids }, kind: 'PHOTO', status: 'LIVE', album: 'PUBLIC' },
         orderBy: [{ cover: 'desc' }, { position: 'asc' }, { createdAt: 'asc' }],
         select: { id: true, ownerId: true },
       }),
@@ -207,6 +212,50 @@ export class CruisingMediaRepository {
         },
       ]),
     );
+  }
+
+  // ---- Private album grants (phase 6, decision 99) -----------------------------------------------
+
+  async isGranted(ownerId: string, granteeId: string): Promise<boolean> {
+    return (await this.prisma.cruisingAlbumGrant.count({ where: { ownerId, granteeId } })) > 0;
+  }
+
+  /** Shares the owner's private album; true when it is new (not shared already). */
+  async grant(ownerId: string, granteeId: string, now: Date): Promise<boolean> {
+    const { count } = await this.prisma.cruisingAlbumGrant.createMany({
+      data: [{ ownerId, granteeId, createdAt: now }],
+      skipDuplicates: true,
+    });
+    return count > 0;
+  }
+
+  async revoke(ownerId: string, granteeId: string): Promise<void> {
+    await this.prisma.cruisingAlbumGrant.deleteMany({ where: { ownerId, granteeId } });
+  }
+
+  /** The grants I gave and received, newest first, with the other person's profile. */
+  grantsOf(userId: string) {
+    const profile = {
+      select: {
+        cruisingProfile: {
+          select: { nickname: true, suspendedAt: true, suspendedUntil: true },
+        },
+      },
+    } as const;
+    return Promise.all([
+      this.prisma.cruisingAlbumGrant.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        select: { granteeId: true, createdAt: true, grantee: profile },
+      }),
+      this.prisma.cruisingAlbumGrant.findMany({
+        where: { granteeId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        select: { ownerId: true, createdAt: true, owner: profile },
+      }),
+    ]);
   }
 
   // ---- Blocked images ----------------------------------------------------------------------------

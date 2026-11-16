@@ -316,3 +316,65 @@
 .send:hover:not(:disabled) {
   background: var(--color-fuchsia-dark);
 }
+
+/* Phase 6: the private album (decision 99) */
+
+.galleryTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.15rem;
+  margin: var(--space-4) 0 0;
+}
+
+.albumChoice {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+
+.albumChoice legend {
+  padding: 0 var(--space-2);
+}
+
+.albumOption {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  line-height: 1.4;
+}
+
+.albumOption input {
+  margin-top: 0.25rem;
+}
+
+.albumGroup {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--color-line);
+}
+
+.albumTitle {
+  font-family: var(--font-family-display);
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.grantList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.grantItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}

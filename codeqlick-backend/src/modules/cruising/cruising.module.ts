@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { CruisingAdminController } from './cruising-admin.controller.js';
+import { CruisingAlbumService } from './cruising-album.service.js';
 import { CruisingCommunityController } from './cruising-community.controller.js';
 import { CruisingCommunityRepository } from './cruising-community.repository.js';
 import { CruisingCommunityService } from './cruising-community.service.js';
@@ -20,6 +21,12 @@ import { CruisingNotificationsRepository } from './cruising-notifications.reposi
 import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import { CruisingOnboardingService } from './cruising-onboarding.service.js';
 import { CruisingPushService } from './cruising-push.service.js';
+import {
+  CruisingRoomsAdminController,
+  CruisingRoomsController,
+} from './cruising-rooms.controller.js';
+import { CruisingRoomsRepository } from './cruising-rooms.repository.js';
+import { CruisingRoomsService } from './cruising-rooms.service.js';
 import {
   CruisingSafetyAdminController,
   CruisingSafetyController,
@@ -64,6 +71,8 @@ import { CruisingService } from './cruising.service.js';
     CruisingSafetyPublicController,
     CruisingSafetyController,
     CruisingSafetyAdminController,
+    CruisingRoomsController,
+    CruisingRoomsAdminController,
     CruisingNotificationsController,
     CruisingOnboardingController,
     CruisingStatsAdminController,
@@ -82,6 +91,9 @@ import { CruisingService } from './cruising.service.js';
     CruisingMediaRepository,
     CruisingMediaStorage,
     CruisingFfmpeg,
+    CruisingAlbumService,
+    CruisingRoomsService,
+    CruisingRoomsRepository,
     CruisingNotificationsService,
     CruisingNotificationsRepository,
     CruisingWinksService,

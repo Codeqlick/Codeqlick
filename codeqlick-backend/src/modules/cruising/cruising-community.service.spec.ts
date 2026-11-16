@@ -139,6 +139,7 @@ function build() {
     deleteMeetupsEndedBefore: vi.fn().mockResolvedValue(0),
     deleteTripsEndedBefore: vi.fn().mockResolvedValue(0),
     deleteSafetyAlertsExpiredBefore: vi.fn().mockResolvedValue(0),
+    deleteRoomMessagesBefore: vi.fn().mockResolvedValue(0),
   };
   const social = { alertFavorites: vi.fn().mockResolvedValue(2) };
   const push = { enabled: true, notify: vi.fn().mockResolvedValue(1) };
@@ -507,5 +508,6 @@ describe('CruisingCommunityService: safety alerts', () => {
     expect(community.deleteMeetupsEndedBefore).toHaveBeenCalledWith(hours(-7 * 24));
     expect(community.deleteTripsEndedBefore).toHaveBeenCalledWith(new Date('2026-11-16T00:00:00Z'));
     expect(community.deleteSafetyAlertsExpiredBefore).toHaveBeenCalledWith(hours(-24));
+    expect(community.deleteRoomMessagesBefore).toHaveBeenCalledWith(hours(-7 * 24));
   });
 });

@@ -19,7 +19,9 @@ import {
   mediaKindOf,
   mediaPosterEndpoint,
   mediaUploadEndpoint,
+  MEDIA_ALBUMS,
   movedPosition,
+  type MediaAlbum,
   type MediaLimits,
   type MyMedia,
 } from '@/lib/cruising-media';
@@ -35,8 +37,10 @@ type MediaManagerProps = {
 };
 
 /**
- * My photos and videos: upload (with the consent each time and a progress bar), status, order,
- * cover and delete. While something is processing the page asks again every few seconds.
+ * My photos and videos in their two albums (the public profile and the private one shared from a
+ * conversation): upload to one (with the consent each time and a progress bar), status, order,
+ * cover, move to the other album and delete. The limits are per album. While something is
+ * processing the page asks again every few seconds.
  */
 export function MediaManager({ locale, onHost, items, limits }: MediaManagerProps) {
   const t = useTranslations('Cruising.media');
@@ -45,12 +49,13 @@ export function MediaManager({ locale, onHost, items, limits }: MediaManagerProp
   const input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [consent, setConsent] = useState(false);
+  const [album, setAlbum] = useState<MediaAlbum>('PUBLIC');
   const [progress, setProgress] = useState<number | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const counts = mediaCounts(items);
+  const counts = mediaCounts(items, album);
   const processing = hasProcessing(items);
   const uploading = progress !== null;
   const kind = file ? mediaKindOf(file) : null;
@@ -100,6 +105,7 @@ export function MediaManager({ locale, onHost, items, limits }: MediaManagerProp
       }
       const form = new FormData();
       form.set('consent', 'true');
+      form.set('album', album);
       form.set('file', toSend, toSend.name);
       const { status } = await uploadWithProgress(mediaUploadEndpoint(locale), form, setProgress);
       if (status >= 200 && status < 300) {
@@ -130,12 +136,29 @@ export function MediaManager({ locale, onHost, items, limits }: MediaManagerProp
   return (
     <div className={styles.state}>
       <p className={styles.counts}>
-        <span>{t('photosCount', { count: counts.photos, max: limits.photos })}</span>
-        <span>{t('videosCount', { count: counts.videos, max: limits.videos })}</span>
         <span>{t('perDay', { max: limits.perDay })}</span>
+        <span>{t('perAlbum')}</span>
       </p>
 
       <div className={styles.upload}>
+        <fieldset className={styles.albumChoice}>
+          <legend className={styles.fieldLabel}>{t('albumLabel')}</legend>
+          {MEDIA_ALBUMS.map((value) => (
+            <label key={value} className={styles.albumOption}>
+              <input
+                type="radio"
+                name={`${fileId}-album`}
+                value={value}
+                checked={album === value}
+                onChange={() => setAlbum(value)}
+                disabled={uploading}
+              />
+              <span>
+                <strong>{t(`album.${value}`)}</strong> {t(`albumHint.${value}`)}
+              </span>
+            </label>
+          ))}
+        </fieldset>
         <label htmlFor={fileId} className={styles.fieldLabel}>
           {t('fileLabel')}
         </label>
@@ -187,130 +210,167 @@ export function MediaManager({ locale, onHost, items, limits }: MediaManagerProp
       </div>
 
       {items.length === 0 ? <p className={styles.empty}>{t('empty')}</p> : null}
-      <ul className={styles.items} aria-label={t('listLabel')}>
-        {items.map((item, index) => {
-          const up = movedPosition(items, item.id, -1);
-          const down = movedPosition(items, item.id, 1);
-          const thumb =
-            item.status === 'LIVE' || item.status === 'HIDDEN'
-              ? item.kind === 'VIDEO'
-                ? mediaPosterEndpoint(locale, onHost, item.id)
-                : mediaFileEndpoint(locale, onHost, item.id)
-              : null;
-          return (
-            <li key={item.id} className={styles.item}>
-              <div className={styles.thumb}>
-                {thumb ? (
-                  // A private image through the BFF route: next/image can't optimise it.
-                  // oxlint-disable-next-line nextjs/no-img-element
-                  <img src={thumb} alt="" loading="lazy" draggable={false} />
-                ) : (
-                  <span>{t(`kind.${item.kind}`)}</span>
-                )}
-              </div>
-              <div className={styles.itemBody}>
-                <p>
-                  <strong>{t(`kind.${item.kind}`)}</strong> ·{' '}
-                  <span
-                    className={
-                      item.status === 'LIVE'
-                        ? `${styles.status} ${styles.statusLive}`
-                        : styles.status
-                    }
-                  >
-                    {t(`status.${item.status}`)}
-                  </span>
-                  {item.cover ? ` · ${t('cover')}` : ''}
-                </p>
-                <p className={styles.counts}>
-                  <span>{t('ref', { ref: item.ref })}</span>
-                  {item.durationSeconds !== null ? (
-                    <span>{t('duration', { seconds: Math.round(item.durationSeconds) })}</span>
-                  ) : null}
-                </p>
-                <p className={styles.counts}>{t(`explain.${item.status}`)}</p>
-                {item.status === 'FAILED' ? (
-                  <p className={styles.error}>{t(`failures.${mediaFailureKey(item.failure)}`)}</p>
-                ) : null}
-                <div className={styles.row}>
-                  <button
-                    type="button"
-                    className={styles.small}
-                    disabled={pending || up === null}
-                    onClick={() =>
-                      up !== null &&
-                      change(() => updateMediaAction(locale, item.id, { position: up }))
-                    }
-                    aria-label={t('moveUpFor', { number: index + 1 })}
-                  >
-                    {t('moveUp')}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.small}
-                    disabled={pending || down === null}
-                    onClick={() =>
-                      down !== null &&
-                      change(() => updateMediaAction(locale, item.id, { position: down }))
-                    }
-                    aria-label={t('moveDownFor', { number: index + 1 })}
-                  >
-                    {t('moveDown')}
-                  </button>
-                  {item.kind === 'PHOTO' && item.status === 'LIVE' && !item.cover ? (
-                    <button
-                      type="button"
-                      className={styles.small}
-                      disabled={pending}
-                      onClick={() =>
-                        change(() => updateMediaAction(locale, item.id, { cover: true }))
-                      }
-                    >
-                      {t('makeCover')}
-                    </button>
-                  ) : null}
-                  {confirming === item.id ? (
-                    <>
-                      <button
-                        type="button"
-                        className={styles.small}
-                        disabled={pending}
-                        onClick={() => {
-                          setConfirming(null);
-                          change(() => deleteMediaAction(locale, item.id));
-                        }}
-                      >
-                        {t('deleteConfirm')}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.small}
-                        onClick={() => setConfirming(null)}
-                      >
-                        {t('cancel')}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      className={styles.small}
-                      disabled={pending}
-                      onClick={() => setConfirming(item.id)}
-                    >
-                      {t('delete')}
-                    </button>
-                  )}
-                </div>
-                {confirming === item.id ? (
-                  <p className={styles.counts} role="alert">
-                    {t('deleteLead')}
-                  </p>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      {MEDIA_ALBUMS.map((each) => {
+        const albumItems = items.filter((item) => item.album === each);
+        const albumCounts = mediaCounts(items, each);
+        return (
+          <section key={each} className={styles.albumGroup} aria-labelledby={`${fileId}-${each}`}>
+            <h3 id={`${fileId}-${each}`} className={styles.albumTitle}>
+              {t(`album.${each}`)}
+            </h3>
+            <p className={styles.counts}>
+              <span>{t('photosCount', { count: albumCounts.photos, max: limits.photos })}</span>
+              <span>{t('videosCount', { count: albumCounts.videos, max: limits.videos })}</span>
+            </p>
+            {albumItems.length === 0 ? <p className={styles.empty}>{t('albumEmpty')}</p> : null}
+            <ul className={styles.items} aria-label={t(`listLabel.${each}`)}>
+              {albumItems.map((item, index) => {
+                const up = movedPosition(items, item.id, -1);
+                const down = movedPosition(items, item.id, 1);
+                const thumb =
+                  item.status === 'LIVE' || item.status === 'HIDDEN'
+                    ? item.kind === 'VIDEO'
+                      ? mediaPosterEndpoint(locale, onHost, item.id)
+                      : mediaFileEndpoint(locale, onHost, item.id)
+                    : null;
+                return (
+                  <li key={item.id} className={styles.item}>
+                    <div className={styles.thumb}>
+                      {thumb ? (
+                        // A private image through the BFF route: next/image can't optimise it.
+                        // oxlint-disable-next-line nextjs/no-img-element
+                        <img src={thumb} alt="" loading="lazy" draggable={false} />
+                      ) : (
+                        <span>{t(`kind.${item.kind}`)}</span>
+                      )}
+                    </div>
+                    <div className={styles.itemBody}>
+                      <p>
+                        <strong>{t(`kind.${item.kind}`)}</strong> ·{' '}
+                        <span
+                          className={
+                            item.status === 'LIVE'
+                              ? `${styles.status} ${styles.statusLive}`
+                              : styles.status
+                          }
+                        >
+                          {t(`status.${item.status}`)}
+                        </span>
+                        {item.cover ? ` · ${t('cover')}` : ''}
+                      </p>
+                      <p className={styles.counts}>
+                        <span>{t('ref', { ref: item.ref })}</span>
+                        {item.durationSeconds !== null ? (
+                          <span>
+                            {t('duration', { seconds: Math.round(item.durationSeconds) })}
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className={styles.counts}>{t(`explain.${item.status}`)}</p>
+                      {item.status === 'FAILED' ? (
+                        <p className={styles.error}>
+                          {t(`failures.${mediaFailureKey(item.failure)}`)}
+                        </p>
+                      ) : null}
+                      <div className={styles.row}>
+                        <button
+                          type="button"
+                          className={styles.small}
+                          disabled={pending || up === null}
+                          onClick={() =>
+                            up !== null &&
+                            change(() => updateMediaAction(locale, item.id, { position: up }))
+                          }
+                          aria-label={t('moveUpFor', { number: index + 1 })}
+                        >
+                          {t('moveUp')}
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.small}
+                          disabled={pending || down === null}
+                          onClick={() =>
+                            down !== null &&
+                            change(() => updateMediaAction(locale, item.id, { position: down }))
+                          }
+                          aria-label={t('moveDownFor', { number: index + 1 })}
+                        >
+                          {t('moveDown')}
+                        </button>
+                        {item.album === 'PUBLIC' &&
+                        item.kind === 'PHOTO' &&
+                        item.status === 'LIVE' &&
+                        !item.cover ? (
+                          <button
+                            type="button"
+                            className={styles.small}
+                            disabled={pending}
+                            onClick={() =>
+                              change(() => updateMediaAction(locale, item.id, { cover: true }))
+                            }
+                          >
+                            {t('makeCover')}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          className={styles.small}
+                          disabled={pending}
+                          onClick={() =>
+                            change(() =>
+                              updateMediaAction(locale, item.id, {
+                                album: item.album === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC',
+                              }),
+                            )
+                          }
+                        >
+                          {t(item.album === 'PUBLIC' ? 'moveToPrivate' : 'moveToPublic')}
+                        </button>
+                        {confirming === item.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.small}
+                              disabled={pending}
+                              onClick={() => {
+                                setConfirming(null);
+                                change(() => deleteMediaAction(locale, item.id));
+                              }}
+                            >
+                              {t('deleteConfirm')}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.small}
+                              onClick={() => setConfirming(null)}
+                            >
+                              {t('cancel')}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className={styles.small}
+                            disabled={pending}
+                            onClick={() => setConfirming(item.id)}
+                          >
+                            {t('delete')}
+                          </button>
+                        )}
+                      </div>
+                      {confirming === item.id ? (
+                        <p className={styles.counts} role="alert">
+                          {t('deleteLead')}
+                        </p>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }

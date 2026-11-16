@@ -8,8 +8,15 @@ import { cruisingPath } from './cruising';
 export type MediaKind = 'PHOTO' | 'VIDEO';
 export type MediaStatus = 'PROCESSING' | 'LIVE' | 'HIDDEN' | 'FAILED';
 export type VerificationStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+/** The profile's album, or the private one shared from a conversation (decision 99). */
+export type MediaAlbum = 'PUBLIC' | 'PRIVATE';
+export const MEDIA_ALBUMS: readonly MediaAlbum[] = ['PUBLIC', 'PRIVATE'];
 
-/** The API's limits (they come back in `GET /cruising/media`; these are the fallback). */
+export function isMediaAlbum(value: unknown): value is MediaAlbum {
+  return value === 'PUBLIC' || value === 'PRIVATE';
+}
+
+/** The API's limits per album (they come back in `GET /cruising/media`; these are the fallback). */
 export const MEDIA_LIMITS = { photos: 12, videos: 4, perDay: 20 } as const;
 export type MediaLimits = { photos: number; videos: number; perDay: number };
 
@@ -30,6 +37,7 @@ export type MyMedia = {
   ref: string;
   kind: MediaKind;
   status: MediaStatus;
+  album: MediaAlbum;
   cover: boolean;
   position: number;
   width: number | null;
@@ -48,12 +56,19 @@ export function mediaKindOf(file: { type: string }): MediaKind | null {
 
 export type MediaCounts = { photos: number; videos: number };
 
-/** What holds a place against the limits, as the API counts it: a FAILED item doesn't. */
-export function mediaCounts(items: readonly Pick<MyMedia, 'kind' | 'status'>[]): MediaCounts {
+/**
+ * What holds a place against the limits, as the API counts it: a FAILED item doesn't. The limits
+ * are per album: pass `album` to count one of them (items without an album count as PUBLIC).
+ */
+export function mediaCounts(
+  items: readonly (Pick<MyMedia, 'kind' | 'status'> & { album?: MediaAlbum })[],
+  album?: MediaAlbum,
+): MediaCounts {
   let photos = 0;
   let videos = 0;
   for (const item of items) {
     if (item.status === 'FAILED') continue;
+    if (album && (item.album ?? 'PUBLIC') !== album) continue;
     if (item.kind === 'PHOTO') photos += 1;
     else videos += 1;
   }
@@ -75,18 +90,22 @@ export function hasProcessing(items: readonly Pick<MyMedia, 'status'>[]): boolea
 }
 
 /**
- * The 0-based place an item takes when moved one step up (-1) or down (+1), or null when it is
- * already at that end. The API's `position` is an index in my list.
+ * The 0-based place an item takes when moved one step up (-1) or down (+1) among the items of its
+ * own album, or null when it is already at that end. The API's `position` is an index in my whole
+ * list, so this is the index of the neighbour of the same album in that list.
  */
 export function movedPosition(
-  items: readonly Pick<MyMedia, 'id'>[],
+  items: readonly (Pick<MyMedia, 'id'> & { album?: MediaAlbum })[],
   id: string,
   step: -1 | 1,
 ): number | null {
   const at = items.findIndex((item) => item.id === id);
   if (at < 0) return null;
-  const next = at + step;
-  return next < 0 || next >= items.length ? null : next;
+  const album = items[at]?.album ?? 'PUBLIC';
+  for (let next = at + step; next >= 0 && next < items.length; next += step) {
+    if ((items[next]?.album ?? 'PUBLIC') === album) return next;
+  }
+  return null;
 }
 
 /** Keys of `Cruising.media.errors`: what a refused upload or change says. */

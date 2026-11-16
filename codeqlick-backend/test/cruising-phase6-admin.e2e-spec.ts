@@ -159,10 +159,12 @@ describe('Cruising phase 6: statistics and onboarding (e2e)', () => {
     expect(before.weeks.at(-1)!.start).toBe(madridWeekStart(new Date()));
     const base = weekOf(before, weekStart);
 
-    // Three members entered that week; Ana and Bea did things, Carla didn't.
+    // Four members entered that week; Ana and Bea did things, Carla only wrote in a city room,
+    // Dora did nothing.
     const ana = await member('Ana', { createdAt: t });
     const bea = await member('Bea', { createdAt: t });
-    await member('Carla', { createdAt: t });
+    const carla = await member('Carla', { createdAt: t });
+    await member('Dora', { createdAt: t });
     const place = await spot({ createdById: ana.id, createdAt: t });
     await spot({ createdById: ana.id, createdAt: t });
     await spot({ status: 'PENDING', createdById: ana.id, createdAt: t });
@@ -185,6 +187,15 @@ describe('Cruising phase 6: statistics and onboarding (e2e)', () => {
         conversationId: conversation.id,
         senderId: who.id,
         text: 'Hello',
+        createdAt: t,
+      })),
+    });
+    await prisma.cruisingRoomMessage.createMany({
+      data: [carla, carla].map((who) => ({
+        countryCode: COUNTRY,
+        citySlug: `phase-six-${tag}`,
+        userId: who.id,
+        text: 'Hello room',
         createdAt: t,
       })),
     });
@@ -241,8 +252,8 @@ describe('Cruising phase 6: statistics and onboarding (e2e)', () => {
     const after = await getStats(admin);
     expect(after.generatedAt).not.toBe(before.generatedAt);
     const week = weekOf(after, weekStart);
-    expect(week.members - base.members).toBe(3);
-    expect(week.active - base.active).toBe(2);
+    expect(week.members - base.members).toBe(4);
+    expect(week.active - base.active).toBe(3);
     expect(week.spots.live - base.spots.live).toBe(2);
     expect(week.spots.pending - base.spots.pending).toBe(1);
     expect(week.spots.rejected - base.spots.rejected).toBe(2);
@@ -255,7 +266,7 @@ describe('Cruising phase 6: statistics and onboarding (e2e)', () => {
     expect(base.reportsDecided).toBe(0);
     expect(week.medianDecisionHours).toBe(4);
     expect(week.takedowns - base.takedowns).toBe(1);
-    expect(week.roomMessages).toBe(0);
+    expect(week.roomMessages - base.roomMessages).toBe(2);
 
     // The country's two LIVE spots (the pending and rejected ones don't count), and its check-in.
     expect(after.topCountries.spots).toContainEqual({ countryCode: COUNTRY, count: 2 });

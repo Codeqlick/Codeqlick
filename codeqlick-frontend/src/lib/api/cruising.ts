@@ -7,6 +7,7 @@ import {
   forwardableRange,
   mediaResponseHeaders,
   proxiedStatus,
+  type MediaAlbum,
   type MediaKind,
   type MediaLimits,
   type MediaStatus,
@@ -365,6 +366,7 @@ export function deleteCruisingReview(spotId: string) {
 export function reportCruising(input: {
   spotId?: string;
   mediaId?: string;
+  roomMessageId?: string;
   meetupId?: string;
   alertId?: string;
   reviewId?: string;
@@ -640,7 +642,8 @@ export type AdminCruisingSpot = {
  */
 export type AdminCruisingReport = {
   id: string;
-  targetType: 'SPOT' | 'REVIEW' | 'PROFILE' | 'CONVERSATION' | 'MEDIA' | 'MEETUP' | 'ALERT';
+  targetType:
+    'SPOT' | 'REVIEW' | 'PROFILE' | 'CONVERSATION' | 'MEDIA' | 'MEETUP' | 'ALERT' | 'ROOM_MESSAGE';
   reason: CruisingReportReason;
   details: string | null;
   status: 'OPEN' | 'DISMISSED' | 'ACTIONED';
@@ -649,7 +652,15 @@ export type AdminCruisingReport = {
   /** A conversation report's saved chat, when the API gives it beside `target`. */
   transcript?: unknown;
   reporter?: (Partial<Person> & { userId?: string; reports?: number }) | null;
-  reported?: (Partial<Person> & { userId?: string; reports?: number; verified?: boolean }) | null;
+  reported?:
+    | (Partial<Person> & {
+        userId?: string;
+        reports?: number;
+        verified?: boolean;
+        /** Phase 6: when the person's mute from the city rooms ends (null: not muted or for good). */
+        roomMutedUntil?: string | null;
+      })
+    | null;
 };
 
 /** A photo or video as a report or a removal request names it. */
@@ -884,7 +895,10 @@ export function uploadCruisingPhoto(file: File) {
   });
 }
 
-export function updateCruisingMedia(id: string, input: { cover?: true; position?: number }) {
+export function updateCruisingMedia(
+  id: string,
+  input: { cover?: true; position?: number; album?: MediaAlbum },
+) {
   return apiFetch<void>(`/cruising/media/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: input,
@@ -907,6 +921,8 @@ export type CruisingMemberMedia = {
   height: number | null;
   durationSeconds: number | null;
   cover: boolean;
+  /** Phase 6: PRIVATE items only come back to the person they were shared with. */
+  album?: MediaAlbum;
 };
 
 /** The LIVE photos and videos of a member, or [] when the profile isn't there (404). */

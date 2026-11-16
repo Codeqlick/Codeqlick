@@ -4855,7 +4855,8 @@
       "messages": "Mensajes",
       "profile": "Perfil",
       "favorites": "Favoritos",
-      "meetups": "Quedadas"
+      "meetups": "Quedadas",
+      "rooms": "Chats de ciudad"
     },
     "legal": {
       "terms": "Condiciones de uso",
@@ -5086,7 +5087,8 @@
       "activeTitle": "Activos ahora",
       "activeNone": "Ahora mismo no hay nadie en estos lugares.",
       "hereNow": "{count, plural, one {# aquí ahora} other {# aquí ahora}}",
-      "spotsTitle": "Lugares"
+      "spotsTitle": "Lugares",
+      "roomLink": "Abrir el chat de {city}"
     },
     "new": {
       "title": "Proponer un lugar",
@@ -5421,7 +5423,10 @@
       "sentPhoto": "Foto subida.",
       "sentVideo": "Vídeo subido. Se está procesando: estará publicado en un momento.",
       "empty": "Todavía no has añadido nada.",
-      "listLabel": "Tus fotos y vídeos",
+      "listLabel": {
+        "PUBLIC": "Fotos y vídeos de tu álbum público",
+        "PRIVATE": "Fotos y vídeos de tu álbum privado"
+      },
       "kind": {
         "PHOTO": "Foto",
         "VIDEO": "Vídeo"
@@ -5468,14 +5473,29 @@
         "tooManyToday": "Has llegado al límite de subidas de hoy. Inténtalo mañana.",
         "diskFull": "Ahora mismo vamos cortos de espacio. Inténtalo más tarde.",
         "coverNotLive": "Solo una foto publicada puede ser la portada.",
-        "error": "Algo ha salido mal. Inténtalo de nuevo."
-      }
+        "error": "Algo ha salido mal. Inténtalo de nuevo.",
+        "albumFull": "El otro álbum está lleno. Borra algo de allí primero."
+      },
+      "perAlbum": "Los límites de fotos y vídeos son por álbum",
+      "albumLabel": "Álbum al que subir",
+      "album": {
+        "PUBLIC": "Álbum público",
+        "PRIVATE": "Álbum privado"
+      },
+      "albumHint": {
+        "PUBLIC": "En tu perfil, para todos los miembros que han entrado.",
+        "PRIVATE": "Solo para los miembros con quienes lo compartes desde una conversación."
+      },
+      "albumEmpty": "Todavía no hay nada en este álbum.",
+      "moveToPrivate": "Mover al álbum privado",
+      "moveToPublic": "Mover al álbum público"
     },
     "gallery": {
       "title": "Fotos y vídeos",
       "photoAlt": "Foto {number} de {nickname}",
       "videoAlt": "Vídeo {number} de {nickname}",
-      "ref": "Ref. {ref}"
+      "ref": "Ref. {ref}",
+      "privateTitle": "Álbum privado de {nickname}"
     },
     "favorites": {
       "title": "Mis lugares favoritos",
@@ -5719,6 +5739,70 @@
       "iosSteps": "En iPhone o iPad: abre esta página en Safari, toca Compartir y luego «Añadir a pantalla de inicio».",
       "installed": "App instalada."
     },
+    "album": {
+      "title": "Álbum privado",
+      "lead": "Tu álbum privado solo lo ven los miembros con quienes lo compartes, desde una conversación con ellos. Puedes retirarlo cuando quieras, y bloquear a alguien o salir de la conversación también lo retira.",
+      "givenTitle": "Álbum privado compartido con",
+      "givenEmpty": "No has compartido tu álbum privado con nadie.",
+      "receivedTitle": "Compartido conmigo",
+      "since": "desde el {date}",
+      "revoke": "Retirar",
+      "revoking": "Retirando…",
+      "share": "Compartir mi álbum privado",
+      "sharing": "Compartiendo…",
+      "shareOpen": "Compartir mi álbum privado",
+      "revokeOpen": "Retirar mi álbum privado",
+      "shareLead": "{nickname} podrá ver tu álbum privado, en tu perfil y aquí, hasta que lo retires. Le llegará un aviso.",
+      "revokeLead": "{nickname} puede ver tu álbum privado. Al retirarlo, deja de verlo.",
+      "shared": "Tu álbum privado ya está compartido con {nickname}.",
+      "revoked": "{nickname} ya no puede ver tu álbum privado.",
+      "error": "Algo salió mal. Inténtalo de nuevo.",
+      "gone": "Solo puedes compartirlo con un miembro con quien tengas una conversación.",
+      "needNickname": "Elige primero tu apodo en tu perfil.",
+      "theirsOpen": "Álbum privado de {nickname} ({count})"
+    },
+    "rooms": {
+      "breadcrumb": "Dónde estás",
+      "title": "Chats de ciudad",
+      "cityLink": "{city}, {country}",
+      "roomTitle": "Chat de {city}, {country}",
+      "roomLead": "Los miembros que han entrado hablan aquí de la ciudad. Sé amable: sin datos de contacto, enlaces ni fotos, y nada sobre quien no está aquí.",
+      "chooseNickname": "Elige un apodo en tu perfil para escribir aquí.",
+      "listLabel": "Mensajes en {city}",
+      "empty": "Todavía nadie ha escrito en {city}. Saluda.",
+      "you": "Tú",
+      "label": "Mensaje",
+      "placeholder": "Escribe a todos en {city}…",
+      "send": "Enviar",
+      "counter": "{count}/{max}",
+      "rules": "Solo texto, hasta 500 caracteres. Aquí nunca se permiten teléfonos, correos, enlaces ni otras apps. Los mensajes se guardan 7 días. Puedes denunciar cualquier mensaje.",
+      "gone": "Este chat ya no está disponible.",
+      "refusal": {
+        "nickname": "Elige un apodo en tu perfil para escribir aquí.",
+        "newAccount": "Podrás escribir cuando tu cuenta tenga 24 horas. Mientras tanto puedes leer el chat.",
+        "muted": "El equipo te ha silenciado en los chats de ciudad.",
+        "mutedUntil": "El equipo te ha silenciado en los chats de ciudad hasta el {date}.",
+        "suspended": "Tu cuenta está suspendida, así que no puedes escribir."
+      },
+      "errors": {
+        "contact": "En los chats de ciudad no se pueden compartir teléfonos, correos, enlaces ni otras apps.",
+        "refused": "Ahora no puedes escribir: tu cuenta es nueva, está silenciada o suspendida.",
+        "nickname": "Elige primero un apodo en tu perfil.",
+        "rate": "Estás escribiendo demasiado rápido. Espera un momento.",
+        "gone": "Este chat ya no está disponible.",
+        "session": "Tu sesión ha caducado. Recarga la página e inicia sesión de nuevo.",
+        "error": "No se envió. Inténtalo de nuevo."
+      },
+      "pageTitle": "Chats de ciudad",
+      "pageLead": "Los chats de las ciudades de tus favoritos y viajes, y los más activos de tu país.",
+      "placesLink": "Todos los lugares",
+      "none": "Todavía no hay chats que mostrar. Guarda un lugar favorito o planifica un viaje para ver aquí su ciudad.",
+      "listTitle": "Tus chats de ciudad",
+      "count24h": "{count, plural, one {# mensaje hoy} other {# mensajes hoy}}",
+      "lastAt": "Último mensaje {date}",
+      "noMessages": "Aún no hay mensajes",
+      "spotsLink": "Lugares"
+    },
     "tour": {
       "title": "Te damos la bienvenida a Cruising",
       "progress": "Paso {step} de {total}",
@@ -5883,7 +5967,8 @@
       "CONVERSATION": "Conversación",
       "MEDIA": "Foto o vídeo",
       "MEETUP": "Quedada",
-      "ALERT": "Alerta de seguridad"
+      "ALERT": "Alerta de seguridad",
+      "ROOM_MESSAGE": "Mensaje de un chat de ciudad"
     },
     "reportedSpot": "Lugar",
     "reporter": "Quien denuncia",
@@ -5895,7 +5980,8 @@
       "reasonHint": "Opcional, hasta 500 caracteres. Va en el correo a la persona: no nombres el lugar, la zona ni a nadie.",
       "suspend": "Suspender a la persona",
       "act": "Aplicar",
-      "dismiss": "Descartar (lo que estaba oculto vuelve a publicarse)"
+      "dismiss": "Descartar (lo que estaba oculto vuelve a publicarse)",
+      "muteNeeded": "Elige durante cuánto tiempo silenciar."
     },
     "takedowns": {
       "lead": "Responde en 24 horas. La persona recibe tu respuesta por correo.",
@@ -5977,6 +6063,17 @@
     },
     "communityGone": "La quedada o la alerta ya no existe.",
     "healthLink": "Centros de pruebas",
+    "rooms": {
+      "city": "Ciudad",
+      "hidden": "oculto",
+      "gone": "El mensaje ya está borrado.",
+      "mutedUntil": "Silenciado en los chats de ciudad hasta el {date}.",
+      "muteEnded": "El silencio en los chats de ciudad ha terminado.",
+      "delete": "Borrar mensaje",
+      "muteFor": "Silenciar en los chats de ciudad",
+      "mute": "Silenciar en chats",
+      "unmute": "Quitar silencio"
+    },
     "statsLink": "Estadísticas"
   },
   "CruisingSpotImport": {

@@ -22,7 +22,7 @@ export interface CruisingStatsWeek {
   checkIns: number;
   meetups: number;
   messages: number;
-  /** City chat messages (decision 100); 0 until the rooms exist. */
+  /** City chat messages (decision 100), kept 7 days: older weeks count only those left. */
   roomMessages: number;
   media: number;
   reportsOpened: number;

@@ -42,15 +42,18 @@ import {
   type CruisingSpotStatus,
   type CruisingSpotType,
 } from '@/lib/cruising';
+import { isMuteActive, reportedRoomMessage, roomHref } from '@/lib/cruising-rooms';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { webappUrl } from '@/lib/webapp-seo';
 import {
   createSpotAction,
+  deleteRoomMessageAction,
   editSpotAction,
   importSpotsAction,
   liftAction,
   mediaAction,
   reportAction,
+  roomMuteAction,
   spotAction,
   takedownAction,
   verificationAction,
@@ -114,6 +117,7 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
     { value: '', label: t('noSuspension') },
     ...SUSPENSIONS.map((value) => ({ value, label: t(`durations.${value}`) })),
   ];
+  const muteDurations = SUSPENSIONS.map((value) => ({ value, label: t(`durations.${value}`) }));
   const countries = SWIPE_COUNTRIES.map((code) => ({
     value: code,
     label: countryName(code, locale),
@@ -547,6 +551,9 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
             const savedChat = reportTranscript(report.transcript);
             const media = report.targetType === 'MEDIA' ? reportedMedia(report.target) : null;
             const transcript = savedChat.length > 0 ? savedChat : reportTranscript(report.target);
+            const roomMessage =
+              report.targetType === 'ROOM_MESSAGE' ? reportedRoomMessage(report.target) : null;
+            const roomText = savedChat.filter((line) => line.from !== 'reporter');
             const community =
               report.targetType === 'MEETUP' || report.targetType === 'ALERT'
                 ? reportedCommunityTarget(report.target)
@@ -625,6 +632,37 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                       <p className={styles.muted}>{t('media.gone')}</p>
                     )
                   ) : null}
+                  {report.targetType === 'ROOM_MESSAGE' ? (
+                    <>
+                      {roomText.length > 0 ? (
+                        <blockquote className={admin.quote}>
+                          {roomText.map((line) => (
+                            <p key={`${line.at ?? ''}-${line.text}`}>{line.text}</p>
+                          ))}
+                        </blockquote>
+                      ) : null}
+                      {roomMessage ? (
+                        <p>
+                          {t('rooms.city')}:{' '}
+                          <a
+                            href={webappUrl(
+                              'cruising',
+                              locale,
+                              roomHref(roomMessage.countryCode, roomMessage.citySlug).replace(
+                                '/cruising',
+                                '',
+                              ),
+                            )}
+                          >
+                            {roomMessage.citySlug} ({roomMessage.countryCode})
+                          </a>
+                          {roomMessage.hidden ? ` · ${t('rooms.hidden')}` : ''}
+                        </p>
+                      ) : (
+                        <p className={styles.muted}>{t('rooms.gone')}</p>
+                      )}
+                    </>
+                  ) : null}
                   {profileNickname ? (
                     <p>
                       {t('reportedProfile')}: <strong>{profileNickname}</strong>
@@ -666,6 +704,47 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                         ? ''
                         : ` · ${t('reportsAgainst', { count: report.reported.reports })}`}
                     </p>
+                  ) : null}
+                  {report.reported?.roomMutedUntil ? (
+                    <p className={styles.muted}>
+                      {isMuteActive(report.reported.roomMutedUntil)
+                        ? t('rooms.mutedUntil', {
+                            date: formatDateTime(report.reported.roomMutedUntil, locale),
+                          })
+                        : t('rooms.muteEnded')}
+                    </p>
+                  ) : null}
+                  {roomMessage ? (
+                    <ActionForm
+                      action={deleteRoomMessageAction.bind(null, locale, roomMessage.id)}
+                      className={styles.form}
+                    >
+                      <SubmitButton size="sm" variant="outline">
+                        {t('rooms.delete')}
+                      </SubmitButton>
+                    </ActionForm>
+                  ) : null}
+                  {report.targetType === 'ROOM_MESSAGE' && report.reported?.userId ? (
+                    <ActionForm
+                      action={roomMuteAction.bind(null, locale, report.reported.userId)}
+                      className={styles.form}
+                    >
+                      <FormSelect
+                        id={`mute-${report.id}`}
+                        name="suspend"
+                        label={t('rooms.muteFor')}
+                        options={muteDurations}
+                        defaultValue="24h"
+                      />
+                      <div className={styles.actions}>
+                        <SubmitButton size="sm" variant="outline" name="decision" value="mute">
+                          {t('rooms.mute')}
+                        </SubmitButton>
+                        <SubmitButton size="sm" variant="outline" name="decision" value="unmute">
+                          {t('rooms.unmute')}
+                        </SubmitButton>
+                      </div>
+                    </ActionForm>
                   ) : null}
                   <ActionForm
                     action={reportAction.bind(null, locale, report.id)}

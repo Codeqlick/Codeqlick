@@ -64,6 +64,7 @@ export class CruisingStatsRepository {
             UNION ALL SELECT 'checkIns', created_at FROM cruising_check_ins
             UNION ALL SELECT 'meetups', created_at FROM cruising_meetups
             UNION ALL SELECT 'messages', created_at FROM cruising_messages
+            UNION ALL SELECT 'roomMessages', created_at FROM cruising_room_messages
             UNION ALL SELECT 'media', created_at FROM cruising_media
             UNION ALL SELECT 'reportsOpened', created_at FROM cruising_reports
             UNION ALL SELECT 'takedowns', created_at FROM cruising_takedowns
@@ -93,6 +94,7 @@ export class CruisingStatsRepository {
             UNION ALL SELECT owner_id, created_at FROM cruising_media
             UNION ALL SELECT host_id, created_at FROM cruising_meetups
             UNION ALL SELECT user_id, created_at FROM cruising_meetup_attendees
+            UNION ALL SELECT user_id, created_at FROM cruising_room_messages
           )
           SELECT to_char(date_trunc('week', created_at AT TIME ZONE ${tz}), 'YYYY-MM-DD') AS week,
                  count(DISTINCT user_id)::int AS total

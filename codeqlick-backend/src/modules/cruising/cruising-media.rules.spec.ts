@@ -146,6 +146,25 @@ describe('Cruising media rules', () => {
       expect(canSeeMedia(access({ ownerSuspended: true }))).toBe(false);
       expect(canSeeMedia(access({ blocked: true }))).toBe(false);
     });
+
+    it('shows a private album item only to members the owner shared it with (decision 99)', () => {
+      expect(canSeeMedia(access({ album: 'PRIVATE' }))).toBe(false);
+      expect(canSeeMedia(access({ album: 'PRIVATE', granted: true }))).toBe(true);
+      expect(canSeeMedia(access({ album: 'PUBLIC', granted: false }))).toBe(true);
+      // The owner and the team always; a grant never beats a block, a suspension or a hidden item.
+      expect(canSeeMedia(access({ album: 'PRIVATE', viewerId: 'owner' }))).toBe(true);
+      expect(canSeeMedia(access({ album: 'PRIVATE', viewerIsAdmin: true }))).toBe(true);
+      expect(canSeeMedia(access({ album: 'PRIVATE', granted: true, blocked: true }))).toBe(false);
+      expect(canSeeMedia(access({ album: 'PRIVATE', granted: true, ownerSuspended: true }))).toBe(
+        false,
+      );
+      expect(canSeeMedia(access({ album: 'PRIVATE', granted: true, status: 'HIDDEN' }))).toBe(
+        false,
+      );
+      expect(canSeeMedia(access({ album: 'PRIVATE', granted: true, viewerEntered: false }))).toBe(
+        false,
+      );
+    });
   });
 
   describe('reports', () => {
@@ -163,6 +182,9 @@ describe('Cruising media rules', () => {
       expect(reasonAllowedOn('profile', 'NON_CONSENSUAL')).toBe(true);
       expect(reasonAllowedOn('spot', 'STOLEN')).toBe(false);
       expect(reasonAllowedOn('review', 'NON_CONSENSUAL')).toBe(false);
+      expect(reasonAllowedOn('room_message', 'HARASSMENT')).toBe(true);
+      expect(reasonAllowedOn('room_message', 'STOLEN')).toBe(false);
+      expect(reasonAllowedOn('room_message', 'WRONG_INFO')).toBe(false);
       expect(reasonAllowedOn('media', 'DANGER')).toBe(false);
       expect(reasonAllowedOn('media', 'WRONG_INFO')).toBe(false);
       expect(reasonAllowedOn('spot', 'WRONG_INFO')).toBe(true);
@@ -187,6 +209,12 @@ describe('Cruising media rules', () => {
       );
       expect(coverOf([item('a', 'PHOTO', 'HIDDEN', true), item('b', 'PHOTO')])).toBe('b');
       expect(coverOf([item('v', 'VIDEO')])).toBeNull();
+    });
+
+    it('never takes a private album photo as the cover', () => {
+      const secret = { ...item('p', 'PHOTO', 'LIVE', true), album: 'PRIVATE' as const };
+      expect(coverOf([secret, item('a', 'PHOTO')])).toBe('a');
+      expect(coverOf([secret])).toBeNull();
     });
 
     it('moves one item to its new index', () => {

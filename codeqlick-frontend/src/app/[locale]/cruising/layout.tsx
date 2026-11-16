@@ -130,6 +130,9 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
                   <Link href="/cruising/meetups" className={vc.headerLink}>
                     {t('nav.meetups')}
                   </Link>
+                  <Link href="/cruising/rooms" className={vc.headerLink}>
+                    {t('nav.rooms')}
+                  </Link>
                   <Link href="/cruising/messages" className={vc.headerLink}>
                     {t('nav.messages')}
                   </Link>

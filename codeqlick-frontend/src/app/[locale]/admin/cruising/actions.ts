@@ -31,6 +31,7 @@ import {
   type SpotImportResult,
   type SpotImportState,
 } from '@/lib/cruising';
+import { deleteAdminCruisingRoomMessage, setAdminCruisingRoomMute } from '@/lib/api/cruising-rooms';
 import type { FormState } from '@/lib/forms';
 
 async function run(
@@ -283,4 +284,35 @@ export async function withdrawVerificationByIdAction(
     };
   }
   return run(locale, formData, () => withdrawCruisingVerification(userId));
+}
+
+/** Deletes a room message the team reviewed (DELETE /admin/cruising/room-messages/:id). */
+export async function deleteRoomMessageAction(
+  locale: AppLocale,
+  messageId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return run(locale, formData, () => deleteAdminCruisingRoomMessage(messageId));
+}
+
+/**
+ * Mutes a member from the city rooms for 24 h, 7 d, 30 d or for good, or lifts it (POST · DELETE
+ * /admin/cruising/users/:userId/room-mute). `decision=unmute` lifts it.
+ */
+export async function roomMuteAction(
+  locale: AppLocale,
+  userId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  if (formData.get('decision') === 'unmute') {
+    return run(locale, formData, () => setAdminCruisingRoomMute(userId, null));
+  }
+  const duration = suspension(formData);
+  if (!duration) {
+    const t = await getTranslations({ locale, namespace: 'AdminCruising' });
+    return { status: 'error', message: t('reports.muteNeeded') };
+  }
+  return run(locale, formData, () => setAdminCruisingRoomMute(userId, duration));
 }

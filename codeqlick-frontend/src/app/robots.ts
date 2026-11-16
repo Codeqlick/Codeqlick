@@ -26,6 +26,7 @@ const APP_PRIVATE_PAGES = {
     '/*/messages',
     '/*/meetups',
     '/*/trips',
+    '/*/rooms',
     '/*/api/',
     '/*/media/',
     '/*/cruising/',

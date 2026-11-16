@@ -3,6 +3,8 @@ import { localeSchema, paginationSchema, slugSchema } from '../../common/schemas
 import { COUNTRIES, SAFE_CHAT_MESSAGES, TRANSCRIPT_LINES } from '../swipe/swipe.schemas.js';
 import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
 import { SPOT_TAGS } from './cruising-insights.rules.js';
+import { MEDIA_ALBUMS } from './cruising-media.rules.js';
+import { ROOM_MESSAGE_MAX } from './cruising-rooms.rules.js';
 import { isReservedNickname, parseBbox } from './cruising.rules.js';
 
 export { ageOn, COUNTRIES, SAFE_CHAT_MESSAGES, SUSPENSION_DURATIONS, TRANSCRIPT_LINES };
@@ -258,6 +260,8 @@ export const reportSchema = z
     /** Phase 5: a meetup (decision 88) or a safety alert (decision 91). */
     meetupId: z.uuid().optional(),
     alertId: z.uuid().optional(),
+    /** Phase 6: a city room's message (decision 100); its text is saved with the report. */
+    roomMessageId: z.uuid().optional(),
     reason: reportReasonSchema,
     details: z.string().trim().max(1000).optional(),
   })
@@ -271,10 +275,11 @@ export const reportSchema = z
         value.mediaId,
         value.meetupId,
         value.alertId,
+        value.roomMessageId,
       ].filter(Boolean).length === 1,
     {
       message:
-        'Report a spot, a review, a profile, a conversation, a photo or video, a meetup or an alert, one of them',
+        'Report a spot, a review, a profile, a conversation, a photo or video, a meetup, an alert or a room message, one of them',
     },
   )
   .refine((value) => value.reason !== 'WRONG_INFO' || !!value.details, {
@@ -417,7 +422,11 @@ export type UserIdParam = z.infer<typeof userIdParamSchema>;
 
 /** The text fields of an upload: `consent` must be "true" (checked by the service, which also
  * deletes the received file whatever happens). */
-export const mediaUploadFieldsSchema = z.object({ consent: z.string().max(10).optional() });
+export const mediaUploadFieldsSchema = z.object({
+  consent: z.string().max(10).optional(),
+  /** Phase 6 (decision 99): the private album instead of the profile. */
+  album: z.enum(MEDIA_ALBUMS).default('PUBLIC'),
+});
 export type MediaUploadFields = z.infer<typeof mediaUploadFieldsSchema>;
 
 export const mediaPatchSchema = z
@@ -425,10 +434,14 @@ export const mediaPatchSchema = z
     cover: z.literal(true).optional(),
     /** The item's new index in my list (0 = first). */
     position: z.number().int().min(0).max(100).optional(),
+    /** Phase 6: moves the item into the other album. */
+    album: z.enum(MEDIA_ALBUMS).optional(),
   })
-  .refine((value) => value.cover !== undefined || value.position !== undefined, {
-    message: 'Nothing to change',
-  });
+  .refine(
+    (value) =>
+      value.cover !== undefined || value.position !== undefined || value.album !== undefined,
+    { message: 'Nothing to change' },
+  );
 export type MediaPatch = z.infer<typeof mediaPatchSchema>;
 
 export const adminMediaQuerySchema = z.object({
@@ -452,3 +465,13 @@ export const verificationDecisionSchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 export type VerificationDecision = z.infer<typeof verificationDecisionSchema>;
+
+// ---- City chat rooms (phase 6, decision 100) -----------------------------------------------------
+
+export const roomMessageSchema = z.object({
+  text: z.string().trim().min(1).max(ROOM_MESSAGE_MAX),
+});
+export type RoomMessageInput = z.infer<typeof roomMessageSchema>;
+
+export const roomMuteSchema = z.object({ duration: z.enum(SUSPENSION_DURATIONS) });
+export type RoomMuteInput = z.infer<typeof roomMuteSchema>;

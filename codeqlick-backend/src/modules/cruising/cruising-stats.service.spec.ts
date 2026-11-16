@@ -60,6 +60,7 @@ describe('CruisingStatsService (decision 101)', () => {
         { metric: 'spotsPending', week: '2026-11-16', total: 1 },
         { metric: 'spotsRejected', week: '2026-11-09', total: 4 },
         { metric: 'messages', week: '2026-11-09', total: 9 },
+        { metric: 'roomMessages', week: '2026-11-09', total: 7 },
         { metric: 'takedowns', week: '2026-08-31', total: 1 },
         // Outside the 12 weeks or unknown: ignored.
         { metric: 'members', week: '2026-08-24', total: 50 },
@@ -77,6 +78,7 @@ describe('CruisingStatsService (decision 101)', () => {
     });
     expect(week('2026-11-09')).toMatchObject({
       messages: 9,
+      roomMessages: 7,
       spots: { rejected: 4 },
       reportsDecided: 2,
       medianDecisionHours: 12.3,

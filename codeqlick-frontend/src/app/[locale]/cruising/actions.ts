@@ -53,7 +53,14 @@ import {
   type CruisingLookingFor,
   type CruisingReportReason,
 } from '@/lib/cruising';
-import { isMediaId, isMediaRef, mediaErrorKey } from '@/lib/cruising-media';
+import {
+  isMediaAlbum,
+  isMediaId,
+  isMediaRef,
+  mediaErrorKey,
+  type MediaAlbum,
+} from '@/lib/cruising-media';
+import { isRoomMessageId, ROOM_REPORT_REASONS } from '@/lib/cruising-rooms';
 import type { FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -268,7 +275,15 @@ export async function reportAction(
   locale: AppLocale,
   target: {
     kind:
-      'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert';
+      | 'spot'
+      | 'review'
+      | 'correction'
+      | 'profile'
+      | 'conversation'
+      | 'media'
+      | 'meetup'
+      | 'alert'
+      | 'roomMessage';
     id: string;
   },
   _previous: FormState,
@@ -289,7 +304,9 @@ export async function reportAction(
             ? PERSON_REPORT_REASONS
             : target.kind === 'meetup' || target.kind === 'alert'
               ? COMMUNITY_REPORT_REASONS
-              : REPORT_REASONS;
+              : target.kind === 'roomMessage'
+                ? ROOM_REPORT_REASONS
+                : REPORT_REASONS;
   const reason: CruisingReportReason | undefined =
     target.kind === 'correction'
       ? 'WRONG_INFO'
@@ -300,7 +317,9 @@ export async function reportAction(
       ? isNickname(target.id)
       : target.kind === 'media'
         ? isMediaId(target.id)
-        : UUID.test(target.id);
+        : target.kind === 'roomMessage'
+          ? isRoomMessageId(target.id)
+          : UUID.test(target.id);
   if (!validTarget) return { status: 'error', message: t('error'), values };
   if (!reason) return { status: 'error', fieldErrors: { reason: t('reasonNeeded') }, values };
   if (reason === 'WRONG_INFO' && details.length < 10) {
@@ -320,7 +339,9 @@ export async function reportAction(
                 ? { meetupId: target.id }
                 : target.kind === 'alert'
                   ? { alertId: target.id }
-                  : { spotId: target.id }),
+                  : target.kind === 'roomMessage'
+                    ? { roomMessageId: target.id }
+                    : { spotId: target.id }),
       reason,
       details: details || undefined,
     });
@@ -630,25 +651,34 @@ export async function uploadVerificationAction(
   return { ok: true };
 }
 
-/** Makes a photo my cover, or moves an item to a place of my list (PATCH /cruising/media/:id). */
+/**
+ * Makes a photo my cover, moves an item to a place of my list, or to the other album
+ * (PATCH /cruising/media/:id).
+ */
 export async function updateMediaAction(
   locale: AppLocale,
   id: string,
-  input: { cover?: true; position?: number },
+  input: { cover?: true; position?: number; album?: MediaAlbum },
 ): Promise<MediaActionResult> {
   const t = await getTranslations({ locale, namespace: 'Cruising.media' });
   const position = input.position;
   if (
     !isMediaId(id) ||
+    (input.album !== undefined && !isMediaAlbum(input.album)) ||
     (position !== undefined && (!Number.isInteger(position) || position < 0 || position > 100))
   ) {
     return { ok: false, message: t('errors.error') };
   }
   try {
-    await updateCruisingMedia(id, input.cover ? { cover: true } : { position });
+    await updateCruisingMedia(
+      id,
+      input.album ? { album: input.album } : input.cover ? { cover: true } : { position },
+    );
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
-    if (status === 409) return { ok: false, message: t('errors.coverNotLive') };
+    if (status === 409) {
+      return { ok: false, message: t(input.album ? 'errors.albumFull' : 'errors.coverNotLive') };
+    }
     return { ok: false, message: t(`errors.${mediaErrorKey(status === 409 ? 0 : status)}`) };
   }
   refreshAll(locale);

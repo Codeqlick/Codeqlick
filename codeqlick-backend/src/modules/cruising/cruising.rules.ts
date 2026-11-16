@@ -324,9 +324,11 @@ export function alertChannel(
 
 /**
  * What a notification is about: someone at a favourite spot, a new message, and in phase 5 a
- * meetup planned or a safety alert at a favourite spot, or a meetup the member joined cancelled.
+ * meetup planned or a safety alert at a favourite spot, or a meetup the member joined cancelled;
+ * in phase 6 a private album shared with the member (decision 99).
  */
-export type PushKind = 'favorite' | 'message' | 'meetup' | 'safety' | 'meetup-cancelled' | 'wink';
+export type PushKind =
+  'favorite' | 'message' | 'meetup' | 'safety' | 'meetup-cancelled' | 'album' | 'wink';
 
 /** The kinds that tell the members who saved a spot (decision 85's channels and caps). */
 export type FavoriteAlertKind = 'favorite' | 'meetup' | 'safety';
@@ -338,6 +340,7 @@ const PUSH_TEXT: Record<'en' | 'es', Record<PushKind, string>> = {
     meetup: 'A meetup was planned at one of your favourite spots',
     safety: 'Safety alert at one of your favourite spots',
     'meetup-cancelled': 'A meetup you joined was cancelled',
+    album: 'Someone shared their private album with you',
     wink: 'Someone winked at you',
   },
   es: {
@@ -346,6 +349,7 @@ const PUSH_TEXT: Record<'en' | 'es', Record<PushKind, string>> = {
     meetup: 'Se ha organizado una quedada en uno de tus lugares favoritos',
     safety: 'Alerta de seguridad en uno de tus lugares favoritos',
     'meetup-cancelled': 'Se ha cancelado una quedada a la que ibas',
+    album: 'Alguien ha compartido contigo su álbum privado',
     wink: 'Alguien te ha guiñado un ojo',
   },
 };
@@ -356,6 +360,7 @@ const PUSH_PATH: Record<PushKind, string> = {
   meetup: '/meetups',
   safety: '/favorites',
   'meetup-cancelled': '/meetups',
+  album: '/messages',
   wink: '/notifications?view=winks',
 };
 

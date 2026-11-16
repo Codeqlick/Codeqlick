@@ -56,6 +56,8 @@ import {
 } from './cruising-insights.rules.js';
 import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
 import { mediaHidesAtOnce, normalizeMediaRef, reasonAllowedOn } from './cruising-media.rules.js';
+import { CruisingRoomsRepository } from './cruising-rooms.repository.js';
+import { roomHidesAtOnce } from './cruising-rooms.rules.js';
 import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import {
   CruisingMediaService,
@@ -358,6 +360,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly notifications: CruisingNotificationsService,
+    private readonly rooms: CruisingRoomsRepository,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -958,7 +961,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
               ? 'meetup'
               : input.alertId
                 ? 'alert'
-                : 'conversation';
+                : input.roomMessageId
+                  ? 'room_message'
+                  : 'conversation';
     if (input.reason === 'WRONG_INFO' && !input.spotId) {
       throw new BadRequestException('Wrong information can only be reported on a spot');
     }
@@ -1074,6 +1079,23 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       });
       reportId = report.id;
       if (hide) await this.repository.setSafetyAlertHidden(alert.id, true);
+    } else if (input.roomMessageId) {
+      // Phase 6 (decision 100): someone else's message that is up; its text goes with the report,
+      // since messages are deleted after 7 days.
+      const message = await this.rooms.findMessage(input.roomMessageId);
+      if (!message || message.userId === userId || message.hidden) {
+        throw new NotFoundException('Message not found');
+      }
+      const report = await this.repository.createReport({
+        ...common,
+        targetType: 'ROOM_MESSAGE',
+        roomMessageId: message.id,
+        reportedId: message.userId,
+        transcript: toTranscript([{ ...message, senderId: message.userId }], userId),
+        createdAt: now,
+      });
+      reportId = report.id;
+      if (roomHidesAtOnce(input.reason)) await this.rooms.setHidden(message.id, true);
     } else {
       const conversation = await this.repository.findConversation(input.conversationId as string);
       if (!conversation || (conversation.userAId !== userId && conversation.userBId !== userId)) {
@@ -1452,7 +1474,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
                             expiresAt: report.safetyAlert.expiresAt.toISOString(),
                           },
                         }
-                      : null,
+                      : report.targetType === 'ROOM_MESSAGE'
+                        ? { type: 'ROOM_MESSAGE' as const, roomMessage: report.roomMessage }
+                        : null,
       reporter: {
         userId: report.reporter.id,
         name: report.reporter.name,
@@ -1468,6 +1492,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             verified: report.reported.cruisingProfile?.verificationStatus === 'APPROVED',
             suspended: isSuspended(report.reported.cruisingProfile),
             reports: counts.get(report.reported.id) ?? 0,
+            roomMutedUntil: report.reported.cruisingProfile?.roomMutedUntil?.toISOString() ?? null,
           }
         : null,
     }));
@@ -1517,6 +1542,13 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     ) {
       await this.repository.setSafetyAlertHidden(report.safetyAlert.id, false);
     }
+    // Phase 6: a room message hidden by reports goes back up once none is open.
+    if (
+      report.roomMessage?.hidden &&
+      (await this.rooms.countOpenReportsOnRoomMessage(report.roomMessage.id)) === 0
+    ) {
+      await this.rooms.setHidden(report.roomMessage.id, false);
+    }
     await this.activity.record(actor, {
       action: 'cruising.report_dismissed',
       targetId: report.id,
@@ -1562,6 +1594,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         await this.repository.deleteMeetup(report.meetup.id);
       } else if (report.safetyAlert) {
         await this.repository.deleteSafetyAlert(report.safetyAlert.id);
+      } else if (report.roomMessage) {
+        await this.rooms.closeOpenReportsOnRoomMessage(report.roomMessage.id, actor.id, now);
+        await this.rooms.deleteMessage(report.roomMessage.id);
       }
     }
     if (input.withdrawVerification && report.reportedId) {

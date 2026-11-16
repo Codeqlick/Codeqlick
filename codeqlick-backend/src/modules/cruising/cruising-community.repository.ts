@@ -387,4 +387,12 @@ export class CruisingCommunityRepository {
     });
     return count;
   }
+
+  /** Phase 6 (decision 100): city room messages are kept 7 days. */
+  async deleteRoomMessagesBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.cruisingRoomMessage.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
+  }
 }

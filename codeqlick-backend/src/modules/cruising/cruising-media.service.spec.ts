@@ -92,12 +92,17 @@ async function setup() {
     deleteMedia: vi.fn().mockResolvedValue(undefined),
     processingIds: vi.fn().mockResolvedValue([]),
     storageKeys: vi.fn().mockResolvedValue(new Set()),
+    updateMedia: vi.fn().mockResolvedValue(undefined),
+    setCover: vi.fn().mockResolvedValue(undefined),
+    isGranted: vi.fn().mockResolvedValue(false),
+    liveMediaOf: vi.fn().mockResolvedValue([]),
   };
   const repo = {
     findProfile: vi.fn().mockResolvedValue(profile()),
     updateProfile: vi.fn().mockResolvedValue(undefined),
     recipient: vi.fn().mockResolvedValue({ email: 'me@example.com', locale: 'EN' }),
     hiddenIds: vi.fn().mockResolvedValue([]),
+    findProfileByNickname: vi.fn(),
   };
   const ffmpeg = {
     probe: vi.fn().mockResolvedValue({
@@ -228,6 +233,24 @@ describe('CruisingMediaService', () => {
       const stored = await readdir(t.dir);
       expect(stored.filter((name) => name.endsWith('.webp'))).toHaveLength(1);
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { uploads: 1, uploadsSince: NOW });
+    });
+
+    it('go into the private album with its own limits (decision 99)', async () => {
+      const view = await t.service.upload(
+        ME,
+        await t.received(await png('#a00')),
+        'true',
+        NOW,
+        'PRIVATE',
+      );
+      expect(view).toMatchObject({ album: 'PRIVATE', cover: false });
+      expect(t.media.countActive).toHaveBeenCalledWith(ME, 'PRIVATE');
+      t.media.countActive.mockResolvedValueOnce({ photos: 12, videos: 0 });
+      expect(
+        await status(
+          t.service.upload(ME, await t.received(await png('#a00')), 'true', NOW, 'PRIVATE'),
+        ),
+      ).toBe(409);
     });
 
     it('refuse an image removed before (blocked hash)', async () => {
@@ -375,5 +398,61 @@ describe('CruisingMediaService', () => {
     expect(await t.service.cleanupFiles(new Date(Date.now() + 2 * 60 * 60 * 1000))).toBe(1);
     expect(await t.storage.size(kept)).toBe(4);
     expect(await t.storage.size(orphan)).toBeUndefined();
+  });
+
+  describe('the private album (decision 99)', () => {
+    const owner = { cruisingProfile: { suspendedAt: null, suspendedUntil: null } };
+    const item = (album: 'PUBLIC' | 'PRIVATE') => ({
+      id: MEDIA_ID,
+      ownerId: 'owner',
+      kind: 'PHOTO' as const,
+      album,
+      status: 'LIVE' as const,
+      cover: true,
+      owner,
+    });
+
+    it('moves an item into the other album when it has room; the cover stays public', async () => {
+      t.media.findMedia.mockResolvedValue({ ...item('PUBLIC'), ownerId: ME });
+      await t.service.updateMedia(ME, MEDIA_ID, { album: 'PRIVATE' });
+      expect(t.media.updateMedia).toHaveBeenCalledWith(MEDIA_ID, {
+        album: 'PRIVATE',
+        cover: false,
+      });
+      await expect(
+        t.service.updateMedia(ME, MEDIA_ID, { album: 'PRIVATE', cover: true }),
+      ).rejects.toMatchObject({ status: 409 });
+      t.media.countActive.mockResolvedValueOnce({ photos: 12, videos: 0 });
+      expect(await status(t.service.updateMedia(ME, MEDIA_ID, { album: 'PRIVATE' }))).toBe(409);
+    });
+
+    it('lets only grantees, the owner and the team see a private item', async () => {
+      const viewer = { id: ME, isAdmin: false };
+      expect(await t.service.visibleTo(viewer, item('PRIVATE'), NOW)).toBe(false);
+      expect(await t.service.visibleTo(viewer, item('PUBLIC'), NOW)).toBe(true);
+      t.media.isGranted.mockResolvedValueOnce(true);
+      expect(await t.service.visibleTo(viewer, item('PRIVATE'), NOW)).toBe(true);
+      expect(t.media.isGranted).toHaveBeenCalledWith('owner', ME);
+      t.media.isGranted.mockResolvedValueOnce(true);
+      t.repo.hiddenIds.mockResolvedValueOnce(['owner']);
+      expect(await t.service.visibleTo(viewer, item('PRIVATE'), NOW)).toBe(false);
+      expect(await t.service.visibleTo({ id: 'admin', isAdmin: true }, item('PRIVATE'), NOW)).toBe(
+        true,
+      );
+    });
+
+    it('lists a member’s private items only for grantees', async () => {
+      t.repo.findProfileByNickname.mockResolvedValue({
+        userId: 'owner',
+        nickname: 'beach_guy',
+        suspendedAt: null,
+        suspendedUntil: null,
+      });
+      await t.service.memberMedia(ME, 'beach_guy', NOW);
+      expect(t.media.liveMediaOf).toHaveBeenLastCalledWith('owner', false);
+      t.media.isGranted.mockResolvedValueOnce(true);
+      await t.service.memberMedia(ME, 'beach_guy', NOW);
+      expect(t.media.liveMediaOf).toHaveBeenLastCalledWith('owner', true);
+    });
   });
 });
