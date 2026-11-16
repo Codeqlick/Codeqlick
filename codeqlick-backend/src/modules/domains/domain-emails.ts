@@ -2,7 +2,14 @@ import type { ApiLocale } from '../../common/schemas/common.schemas.js';
 import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
-type Domain = { name: string; project: string; expiresAt: string; days: number };
+type Domain = {
+  name: string;
+  project: string;
+  expiresAt: string;
+  days: number;
+  /** The project has the maintenance plan (decision 110): the renewal is the team's to follow. */
+  plan?: boolean;
+};
 
 const longDate = (day: string, locale: ApiLocale) =>
   new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
@@ -18,15 +25,17 @@ export function domainTeamEmail(
   siteUrl: string,
 ): MailMessage {
   const intro = `${domain.name} (${domain.project}) expires on ${longDate(domain.expiresAt, 'en')}, in ${domain.days} days. Make sure it renews: if it lapses, the site and its email stop working.`;
+  const plan =
+    'The project has the maintenance plan: following the renewal is on us. Check it with the client (and at OVH when we are its technical contact).';
   return {
     to,
-    subject: `[codeqlick] Domain expires in ${domain.days} days: ${domain.name}`,
+    subject: `[codeqlick] ${domain.plan ? '[Plan] ' : ''}Domain expires in ${domain.days} days: ${domain.name}`,
     ...renderEmail(
       {
         locale: 'en',
         preheader: intro.slice(0, 120),
         title: 'A domain expires soon',
-        intro: [intro],
+        intro: domain.plan ? [intro, plan] : [intro],
         button: { label: 'Open the project', url: adminUrl },
         signoff: [],
       },

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ManagedSite, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { maintenanceOn } from './site-maintenance.js';
 
 const KEEP_REVISIONS = 20;
 
@@ -93,6 +94,23 @@ export class ManagedSitesRepository {
     return this.prisma.siteCheck.findMany({
       where: { monitor: { projectId }, checkedAt: { gte: from, lt: to } },
       select: { ok: true },
+    });
+  }
+
+  /**
+   * The maintenance plan's included change requests opened between two instants (decision 110);
+   * null when the project's plan isn't on.
+   */
+  async maintenanceUsage(projectId: string, from: Date, to: Date): Promise<number | null> {
+    const project = await this.prisma.clientProject.findUnique({
+      where: { id: projectId },
+      select: { maintenanceStatus: true, maintenanceIncludedReason: true },
+    });
+    if (!project || !maintenanceOn(project.maintenanceStatus, project.maintenanceIncludedReason)) {
+      return null;
+    }
+    return this.prisma.supportTicket.count({
+      where: { projectId, maintenanceIncluded: true, createdAt: { gte: from, lt: to } },
     });
   }
 

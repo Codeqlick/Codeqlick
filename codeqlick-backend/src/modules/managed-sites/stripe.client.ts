@@ -8,6 +8,19 @@ export type CheckoutParams = Stripe.Checkout.SessionCreateParams;
 export type StripeSubscription = Stripe.Subscription;
 export type StripeInvoice = Stripe.Invoice;
 
+/** An invoice as the portal lists it. */
+export interface CustomerInvoice {
+  id: string;
+  number: string | null;
+  /** Unix seconds. */
+  created: number;
+  /** Cents, VAT included. */
+  total: number;
+  currency: string;
+  status: string | null;
+  hostedUrl: string | null;
+}
+
 /**
  * Stripe, for buying a preview online (architecture 8.2, decision 20): Checkout Sessions, the
  * webhook's signature and the invoices' PDFs. Off while STRIPE_SECRET_KEY or
@@ -101,6 +114,20 @@ export class StripeClient {
       return_url: returnUrl,
     });
     return session.url;
+  }
+
+  /** A customer's latest invoices (the maintenance plan's card, decision 110). */
+  async invoices(customer: string, limit = 12): Promise<CustomerInvoice[]> {
+    const list = await this.stripe().invoices.list({ customer, limit });
+    return list.data.map((invoice) => ({
+      id: invoice.id ?? '',
+      number: invoice.number ?? null,
+      created: invoice.created,
+      total: invoice.total,
+      currency: invoice.currency,
+      status: invoice.status ?? null,
+      hostedUrl: invoice.hosted_invoice_url ?? null,
+    }));
   }
 
   subscription(id: string): Promise<StripeSubscription> {
