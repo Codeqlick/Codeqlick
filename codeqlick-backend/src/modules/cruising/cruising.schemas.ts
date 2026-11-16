@@ -60,6 +60,10 @@ export const REPORT_REASONS = [
   'HARASSMENT',
   'SPAM',
   'OTHER',
+  /** Phase 4: someone who appears didn't agree (media and profiles only). */
+  'NON_CONSENSUAL',
+  /** Phase 4: not the member's own photo or video (media and profiles only). */
+  'STOLEN',
 ] as const;
 export const reportReasonSchema = z.enum(REPORT_REASONS);
 export type ReportReason = z.infer<typeof reportReasonSchema>;
@@ -67,7 +71,14 @@ export type ReportReason = z.infer<typeof reportReasonSchema>;
 export const HIDE_AT_ONCE: readonly ReportReason[] = ['MINOR', 'ILLEGAL'];
 
 /** Reasons a removal request can give (anyone, without an account). */
-export const TAKEDOWN_REASONS = ['MINOR', 'ILLEGAL', 'DANGER', 'OTHER'] as const;
+export const TAKEDOWN_REASONS = [
+  'MINOR',
+  'ILLEGAL',
+  'NON_CONSENSUAL',
+  'STOLEN',
+  'DANGER',
+  'OTHER',
+] as const;
 
 export const onboardingSchema = z.object({
   /** YYYY-MM-DD. Checked (18+) and not stored. */
@@ -201,14 +212,20 @@ export const reportSchema = z
     nickname: nicknameLookupSchema.optional(),
     /** Phase 2: a conversation I am in; its last messages are saved with the report. */
     conversationId: z.uuid().optional(),
+    /** Phase 4: a photo or video. */
+    mediaId: z.uuid().optional(),
     reason: reportReasonSchema,
     details: z.string().trim().max(1000).optional(),
   })
   .refine(
     (value) =>
-      [value.spotId, value.reviewId, value.nickname, value.conversationId].filter(Boolean)
-        .length === 1,
-    { message: 'Report a spot, a review, a profile or a conversation, one of them' },
+      [value.spotId, value.reviewId, value.nickname, value.conversationId, value.mediaId].filter(
+        Boolean,
+      ).length === 1,
+    {
+      message:
+        'Report a spot, a review, a profile, a conversation or a photo or video, one of them',
+    },
   )
   .refine((value) => value.reason !== 'WRONG_INFO' || !!value.details, {
     message: 'Say what is wrong',
@@ -220,6 +237,8 @@ export const takedownSchema = z.object({
   email: z.email().max(254),
   /** A link ending in `/spots/<slug>`, or the slug. */
   spotLink: z.string().trim().max(300).optional(),
+  /** Phase 4: the reference shown on a photo or video (8 characters). */
+  mediaRef: z.string().trim().max(20).optional(),
   reason: z.enum(TAKEDOWN_REASONS),
   details: z.string().trim().min(10).max(2000),
   locale: localeSchema.default('en'),
@@ -274,6 +293,8 @@ export const reportActionSchema = z.object({
   suspend: z.enum(SUSPENSION_DURATIONS).nullable().default(null),
   /** Shown to the proposer when a spot is removed. */
   reason: z.string().trim().max(500).optional(),
+  /** Phase 4: also takes the reported person's "Verified" badge away. */
+  withdrawVerification: z.boolean().optional(),
 });
 export type ReportActionInput = z.infer<typeof reportActionSchema>;
 
@@ -292,8 +313,50 @@ export type TakedownDecision = z.infer<typeof takedownDecisionSchema>;
 export const suspendUserSchema = z.object({
   duration: z.enum(SUSPENSION_DURATIONS),
   reason: z.string().trim().max(500).optional(),
+  /** Phase 4: also takes the person's "Verified" badge away. */
+  withdrawVerification: z.boolean().optional(),
 });
 export type SuspendUserInput = z.infer<typeof suspendUserSchema>;
 
 export const userIdParamSchema = z.object({ userId: z.uuid() });
 export type UserIdParam = z.infer<typeof userIdParamSchema>;
+
+// ---- Photos, videos and verification (phase 4) ---------------------------------------------------
+
+/** The text fields of an upload: `consent` must be "true" (checked by the service, which also
+ * deletes the received file whatever happens). */
+export const mediaUploadFieldsSchema = z.object({ consent: z.string().max(10).optional() });
+export type MediaUploadFields = z.infer<typeof mediaUploadFieldsSchema>;
+
+export const mediaPatchSchema = z
+  .object({
+    cover: z.literal(true).optional(),
+    /** The item's new index in my list (0 = first). */
+    position: z.number().int().min(0).max(100).optional(),
+  })
+  .refine((value) => value.cover !== undefined || value.position !== undefined, {
+    message: 'Nothing to change',
+  });
+export type MediaPatch = z.infer<typeof mediaPatchSchema>;
+
+export const adminMediaQuerySchema = z.object({
+  queue: z.enum(['new', 'hidden', 'all']).default('new'),
+});
+export type AdminMediaQuery = z.infer<typeof adminMediaQuerySchema>;
+
+export const removeMediaSchema = z.object({
+  /** Told to the owner. */
+  reason: z.string().trim().min(3).max(500),
+  /** Blocks the image (the photo, or the video's poster) so it can't be uploaded again. */
+  blockHash: z.boolean().default(true),
+  suspend: z.enum(SUSPENSION_DURATIONS).nullable().default(null),
+  withdrawVerification: z.boolean().default(false),
+});
+export type RemoveMediaInput = z.infer<typeof removeMediaSchema>;
+
+export const verificationDecisionSchema = z.object({
+  approve: z.boolean(),
+  /** Told to the member (the reason of a rejection). */
+  note: z.string().trim().max(500).optional(),
+});
+export type VerificationDecision = z.infer<typeof verificationDecisionSchema>;

@@ -176,13 +176,15 @@ model User {
   cruisingMessages           CruisingMessage[]
   cruisingBlocksMade         CruisingBlock[]             @relation("CruisingBlocker")
   cruisingBlocksGot          CruisingBlock[]             @relation("CruisingBlocked")
+  cruisingMedia              CruisingMedia[]             @relation("CruisingMediaOwner")
+  cruisingMediaReviewed      CruisingMedia[]             @relation("CruisingMediaReviewer")
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
-  cloudProductionLocks       CloudProject[]             @relation("CloudProductionLockedBy")
-  cloudBypassTokens          CloudProject[]             @relation("CloudBypassCreator")
+  cloudProductionLocks       CloudProject[]              @relation("CloudProductionLockedBy")
+  cloudBypassTokens          CloudProject[]              @relation("CloudBypassCreator")
   cloudEvents                CloudEvent[]
   cloudDeployHooks           CloudDeployHook[]
   cloudStatusNotices         CloudStatusNotice[]
@@ -345,7 +347,7 @@ model Post {
   translations  PostTranslation[]
   tags          PostTag[]
   slugRedirects PostSlugRedirect[]
-  revisions    PostRevision[]
+  revisions     PostRevision[]
 
   @@index([status, publishedAt])
   @@map("posts")
@@ -443,7 +445,7 @@ model PortfolioItem {
 
   translations  PortfolioTranslation[]
   slugRedirects PortfolioSlugRedirect[]
-  revisions    PortfolioRevision[]
+  revisions     PortfolioRevision[]
 
   @@index([status, sortOrder])
   @@map("portfolio_items")
@@ -2210,88 +2212,88 @@ model CloudDeviceCode {
 }
 
 model CloudProject {
-  id                     String    @id @default(uuid()) @db.Uuid
-  teamId                 String    @map("team_id") @db.Uuid
+  id                          String                @id @default(uuid()) @db.Uuid
+  teamId                      String                @map("team_id") @db.Uuid
   /// Its address `<slug>.<CLOUD_HOSTING_DOMAIN>`: unique across Cloud, kept 30 days after deletion.
-  slug                   String    @unique @db.VarChar(40)
-  name                   String    @db.VarChar(60)
-  productionDeploymentId String?   @unique @map("production_deployment_id") @db.Uuid
+  slug                        String                @unique @db.VarChar(40)
+  name                        String                @db.VarChar(60)
+  productionDeploymentId      String?               @unique @map("production_deployment_id") @db.Uuid
   /// Production lock after a rollback (architecture 4.13): builds from Git don't move production.
-  productionLockedAt     DateTime? @map("production_locked_at") @db.Timestamptz(3)
+  productionLockedAt          DateTime?             @map("production_locked_at") @db.Timestamptz(3)
   /// Who locked it (kept as `null` when they leave).
-  productionLockedById   String?   @map("production_locked_by_id") @db.Uuid
-  suspendedAt            DateTime? @map("suspended_at") @db.Timestamptz(3)
-  suspendedReason        String?   @map("suspended_reason") @db.VarChar(500)
-  deletedAt              DateTime? @map("deleted_at") @db.Timestamptz(3)
+  productionLockedById        String?               @map("production_locked_by_id") @db.Uuid
+  suspendedAt                 DateTime?             @map("suspended_at") @db.Timestamptz(3)
+  suspendedReason             String?               @map("suspended_reason") @db.VarChar(500)
+  deletedAt                   DateTime?             @map("deleted_at") @db.Timestamptz(3)
   /// Builds from Git (architecture 4.13): the linked installation and repository, and settings.
-  gitInstallationId      BigInt?   @map("git_installation_id")
-  gitRepoId              BigInt?   @map("git_repo_id")
-  gitRepo                String?   @map("git_repo") @db.VarChar(200)
-  gitBranch              String    @default("main") @map("git_branch") @db.VarChar(200)
-  rootDir                String    @default("") @map("root_dir") @db.VarChar(200)
-  installCommand         String    @default("npm ci") @map("install_command") @db.VarChar(300)
-  buildCommand           String    @default("npm run build") @map("build_command") @db.VarChar(300)
-  outputDir              String    @default("dist") @map("output_dir") @db.VarChar(200)
-  nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
-  buildBranches          Boolean   @default(true) @map("build_branches")
-  buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
+  gitInstallationId           BigInt?               @map("git_installation_id")
+  gitRepoId                   BigInt?               @map("git_repo_id")
+  gitRepo                     String?               @map("git_repo") @db.VarChar(200)
+  gitBranch                   String                @default("main") @map("git_branch") @db.VarChar(200)
+  rootDir                     String                @default("") @map("root_dir") @db.VarChar(200)
+  installCommand              String                @default("npm ci") @map("install_command") @db.VarChar(300)
+  buildCommand                String                @default("npm run build") @map("build_command") @db.VarChar(300)
+  outputDir                   String                @default("dist") @map("output_dir") @db.VarChar(200)
+  nodeVersion                 String                @default("24") @map("node_version") @db.VarChar(4)
+  buildBranches               Boolean               @default(true) @map("build_branches")
+  buildPullRequests           Boolean               @default(true) @map("build_pull_requests")
   /// Runs the website check on each pull request's preview (architecture 4.13; decision 69).
-  previewChecks          Boolean   @default(false) @map("preview_checks")
+  previewChecks               Boolean               @default(false) @map("preview_checks")
   /// Skip pushes and pull requests that change nothing under `rootDir` (architecture 4.13).
-  onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
+  onlyRootChanges             Boolean               @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
-  analytics              Boolean   @default(false)
+  analytics                   Boolean               @default(false)
   /// The shared analytics link: its SHA-256 (the lookup) and the link itself, sealed
   /// (purpose cloud-analytics-share-v1), so admins can copy it again.
-  analyticsShareHash     String?   @unique @map("analytics_share_hash") @db.VarChar(64)
-  analyticsShareSealed   String?   @map("analytics_share_sealed")
+  analyticsShareHash          String?               @unique @map("analytics_share_hash") @db.VarChar(64)
+  analyticsShareSealed        String?               @map("analytics_share_sealed")
   /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
   /// hash, how many days access lasts, and a version raised on every change that ends access.
-  protection             CloudProtection @default(OFF)
-  protectionHash         String?   @map("protection_hash")
-  protectionDays         Int       @default(7) @map("protection_days")
-  protectionVersion      Int       @default(0) @map("protection_version")
-  protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
+  protection                  CloudProtection       @default(OFF)
+  protectionHash              String?               @map("protection_hash")
+  protectionDays              Int                   @default(7) @map("protection_days")
+  protectionVersion           Int                   @default(0) @map("protection_version")
+  protectionUpdatedAt         DateTime?             @map("protection_updated_at") @db.Timestamptz(3)
   /// The bypass token for automation (architecture 4.13, decision 80): SHA-256 hex of the token,
   /// its first 12 characters, who made it and when, and when it last let a request through.
-  protectionBypassHash        String?   @unique @map("protection_bypass_hash")
-  protectionBypassPrefix      String?   @map("protection_bypass_prefix")
-  protectionBypassCreatedAt   DateTime? @map("protection_bypass_created_at") @db.Timestamptz(3)
-  protectionBypassCreatedById String?   @map("protection_bypass_created_by_id") @db.Uuid
-  protectionBypassLastUsedAt  DateTime? @map("protection_bypass_last_used_at") @db.Timestamptz(3)
+  protectionBypassHash        String?               @unique @map("protection_bypass_hash")
+  protectionBypassPrefix      String?               @map("protection_bypass_prefix")
+  protectionBypassCreatedAt   DateTime?             @map("protection_bypass_created_at") @db.Timestamptz(3)
+  protectionBypassCreatedById String?               @map("protection_bypass_created_by_id") @db.Uuid
+  protectionBypassLastUsedAt  DateTime?             @map("protection_bypass_last_used_at") @db.Timestamptz(3)
   /// Scheduled rebuilds of the production branch, Madrid time (architecture 4.13, decision 65).
-  rebuildFrequency       CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
-  rebuildMinute          Int?      @map("rebuild_minute")
-  rebuildHour            Int?      @map("rebuild_hour")
+  rebuildFrequency            CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
+  rebuildMinute               Int?                  @map("rebuild_minute")
+  rebuildHour                 Int?                  @map("rebuild_hour")
   /// 1–7, Monday first.
-  rebuildWeekday         Int?      @map("rebuild_weekday")
-  rebuildNextAt          DateTime? @map("rebuild_next_at") @db.Timestamptz(3)
+  rebuildWeekday              Int?                  @map("rebuild_weekday")
+  rebuildNextAt               DateTime?             @map("rebuild_next_at") @db.Timestamptz(3)
   /// Scheduled builds failed in a row; five switch the schedule off.
-  rebuildFailures        Int       @default(0) @map("rebuild_failures")
+  rebuildFailures             Int                   @default(0) @map("rebuild_failures")
   /// The weekly website check of production (architecture 4.13, decision 81) and its next run.
-  productionChecks       Boolean   @default(false) @map("production_checks")
-  productionCheckNextAt  DateTime? @map("production_check_next_at") @db.Timestamptz(3)
-  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  productionChecks            Boolean               @default(false) @map("production_checks")
+  productionCheckNextAt       DateTime?             @map("production_check_next_at") @db.Timestamptz(3)
+  createdAt                   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team               CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production         CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  productionLockedBy User?                 @relation("CloudProductionLockedBy", fields: [productionLockedById], references: [id], onDelete: SetNull)
-  protectionBypassCreatedBy User?          @relation("CloudBypassCreator", fields: [protectionBypassCreatedById], references: [id], onDelete: SetNull)
-  deployments        CloudDeployment[]     @relation("CloudDeployments")
-  domains            CloudDomain[]
-  reports            CloudReport[]
-  forms              CloudForm[]
-  envVars            CloudEnvVar[]
-  builds             CloudBuild[]
-  prComments         CloudPullComment[]
-  notifyChannels     CloudNotifyChannel[]
-  deployHooks     CloudDeployHook[]
-  analyticsEvents    CloudAnalyticsEvent[]
-  kvEntries          CloudKvEntry[]
-  cloudDatabases     CloudDatabase[]
-  buckets            CloudBucket[]
-  audits             CloudAudit[]
+  team                      CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production                CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  productionLockedBy        User?                 @relation("CloudProductionLockedBy", fields: [productionLockedById], references: [id], onDelete: SetNull)
+  protectionBypassCreatedBy User?                 @relation("CloudBypassCreator", fields: [protectionBypassCreatedById], references: [id], onDelete: SetNull)
+  deployments               CloudDeployment[]     @relation("CloudDeployments")
+  domains                   CloudDomain[]
+  reports                   CloudReport[]
+  forms                     CloudForm[]
+  envVars                   CloudEnvVar[]
+  builds                    CloudBuild[]
+  prComments                CloudPullComment[]
+  notifyChannels            CloudNotifyChannel[]
+  deployHooks               CloudDeployHook[]
+  analyticsEvents           CloudAnalyticsEvent[]
+  kvEntries                 CloudKvEntry[]
+  cloudDatabases            CloudDatabase[]
+  buckets                   CloudBucket[]
+  audits                    CloudAudit[]
 
   @@index([teamId, createdAt])
   @@index([rebuildNextAt])
@@ -2950,23 +2952,23 @@ model CloudBucketKey {
 
 /// A blog reader who signed up for new posts by email (architecture 4.14). Not a `User`.
 model NewsletterSubscriber {
-  id               String                 @id @default(uuid()) @db.Uuid
+  id               String           @id @default(uuid()) @db.Uuid
   /// Lower-cased.
-  email            String                 @unique
+  email            String           @unique
   /// The language of the emails.
   locale           Locale
-  status           NewsletterStatus       @default(PENDING)
+  status           NewsletterStatus @default(PENDING)
   /// SHA-256 of the confirmation token, cleared once confirmed.
-  confirmTokenHash String?                @unique @map("confirm_token_hash")
-  confirmExpiresAt DateTime?              @map("confirm_expires_at") @db.Timestamptz(3)
+  confirmTokenHash String?          @unique @map("confirm_token_hash")
+  confirmExpiresAt DateTime?        @map("confirm_expires_at") @db.Timestamptz(3)
   /// The last confirmation email (at most one every 10 minutes).
-  confirmSentAt    DateTime?              @map("confirm_sent_at") @db.Timestamptz(3)
+  confirmSentAt    DateTime?        @map("confirm_sent_at") @db.Timestamptz(3)
   /// With the stored language, the proof of consent.
-  confirmedAt      DateTime?              @map("confirmed_at") @db.Timestamptz(3)
+  confirmedAt      DateTime?        @map("confirmed_at") @db.Timestamptz(3)
   /// In every email's unsubscribe link; it can only unsubscribe.
-  unsubscribeToken String                 @unique @map("unsubscribe_token")
-  unsubscribedAt   DateTime?              @map("unsubscribed_at") @db.Timestamptz(3)
-  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  unsubscribeToken String           @unique @map("unsubscribe_token")
+  unsubscribedAt   DateTime?        @map("unsubscribed_at") @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([status, createdAt])
   @@map("newsletter_subscribers")
@@ -3010,6 +3012,8 @@ enum CruisingReportTarget {
   REVIEW
   PROFILE
   CONVERSATION
+  /// Phase 4: a photo or video of a profile.
+  MEDIA
 }
 
 /// What a member says they are looking for (phase 2).
@@ -3029,6 +3033,33 @@ enum CruisingReportReason {
   HARASSMENT
   SPAM
   OTHER
+  /// Phase 4: someone who appears didn't agree to it (media and profiles).
+  NON_CONSENSUAL
+  /// Phase 4: the photo or video isn't the member's own (media and profiles).
+  STOLEN
+}
+
+/// Phase 4: the one-time check of the person (a photo holding the nickname), reviewed by the team.
+enum CruisingVerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CruisingMediaKind {
+  PHOTO
+  VIDEO
+}
+
+enum CruisingMediaStatus {
+  /// A video waiting for or in the transcoding queue.
+  PROCESSING
+  LIVE
+  /// Hidden at once by a serious report or removal request, until the team reviews it.
+  HIDDEN
+  /// The video couldn't be read or transcoded (`failure` says why); its file is deleted.
+  FAILED
 }
 
 enum CruisingReportStatus {
@@ -3048,30 +3079,45 @@ enum CruisingTakedownStatus {
 /// A person in Cruising: 18+ declared (the date of birth is checked, not stored), the rules and the
 /// special category data consent accepted. Phase 2 adds the nickname, bio, country, lookingFor, showAge.
 model CruisingProfile {
-  userId           String               @id @map("user_id") @db.Uuid
+  userId                 String                     @id @map("user_id") @db.Uuid
   /// Only the year of birth; the full date is never stored.
-  birthYear        Int                  @map("birth_year")
-  termsVersion     String               @map("terms_version")
-  acceptedAt       DateTime             @map("accepted_at") @db.Timestamptz(3)
+  birthYear              Int                        @map("birth_year")
+  termsVersion           String                     @map("terms_version")
+  acceptedAt             DateTime                   @map("accepted_at") @db.Timestamptz(3)
   /// Emails about published spots and unread messages; the team's decisions are always mailed.
-  emailAlerts      Boolean              @default(true) @map("email_alerts")
-  suspendedAt      DateTime?            @map("suspended_at") @db.Timestamptz(3)
+  emailAlerts            Boolean                    @default(true) @map("email_alerts")
+  suspendedAt            DateTime?                  @map("suspended_at") @db.Timestamptz(3)
   /// Null with suspendedAt set: until lifted.
-  suspendedUntil   DateTime?            @map("suspended_until") @db.Timestamptz(3)
-  suspensionReason String?              @map("suspension_reason") @db.VarChar(500)
+  suspendedUntil         DateTime?                  @map("suspended_until") @db.Timestamptz(3)
+  suspensionReason       String?                    @map("suspension_reason") @db.VarChar(500)
   /// Phase 2: unique, 3-20 of a-z, 0-9 and _, lower case; needed for check-ins and messages.
-  nickname         String?              @unique @db.VarChar(20)
-  bio              String               @default("") @db.VarChar(160)
+  nickname               String?                    @unique @db.VarChar(20)
+  bio                    String                     @default("") @db.VarChar(160)
   /// ISO 3166-1 alpha-2, optional.
-  country          String?              @db.VarChar(2)
-  lookingFor       CruisingLookingFor[] @default([]) @map("looking_for")
+  country                String?                    @db.VarChar(2)
+  lookingFor             CruisingLookingFor[]       @default([]) @map("looking_for")
   /// The age shown is the current year minus birthYear.
-  showAge          Boolean              @default(true) @map("show_age")
-  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  showAge                Boolean                    @default(true) @map("show_age")
+  /// Phase 4 (decision 87): APPROVED carries the "Verified" badge and allows uploading media. A
+  /// nickname change sets it back to NONE.
+  verificationStatus     CruisingVerificationStatus @default(NONE) @map("verification_status")
+  /// File of the verification photo (private storage) while it waits; deleted once reviewed.
+  verificationKey        String?                    @map("verification_key")
+  verificationNote       String?                    @map("verification_note") @db.VarChar(500)
+  verificationSentAt     DateTime?                  @map("verification_sent_at") @db.Timestamptz(3)
+  verifiedAt             DateTime?                  @map("verified_at") @db.Timestamptz(3)
+  /// Verification photos sent in the day that began at verificationTriesSince (5 a day).
+  verificationTries      Int                        @default(0) @map("verification_tries")
+  verificationTriesSince DateTime?                  @map("verification_tries_since") @db.Timestamptz(3)
+  /// Media uploads in the day that began at uploadsSince (20 a day; deleting one doesn't refund it).
+  uploads                Int                        @default(0)
+  uploadsSince           DateTime?                  @map("uploads_since") @db.Timestamptz(3)
+  createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([verificationStatus, verificationSentAt])
   @@map("cruising_profiles")
 }
 
@@ -3141,6 +3187,8 @@ model CruisingReport {
   targetType   CruisingReportTarget @map("target_type")
   spotId       String?              @map("spot_id") @db.Uuid
   reviewId     String?              @map("review_id") @db.Uuid
+  /// Phase 4: a photo or video.
+  mediaId      String?              @map("media_id") @db.Uuid
   /// The person behind the target (the spot's proposer, the review's author); null when unknown.
   reportedId   String?              @map("reported_id") @db.Uuid
   reason       CruisingReportReason
@@ -3157,12 +3205,14 @@ model CruisingReport {
   reviewedBy User?           @relation("CruisingReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   spot       CruisingSpot?   @relation(fields: [spotId], references: [id], onDelete: SetNull)
   review     CruisingReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  media      CruisingMedia?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
   @@index([reportedId])
   @@index([spotId])
   @@index([reviewId])
+  @@index([mediaId])
   @@map("cruising_reports")
 }
 
@@ -3173,6 +3223,9 @@ model CruisingTakedown {
   /// What they gave: the link to the spot, or its slug.
   spotLink     String?                @map("spot_link") @db.VarChar(300)
   spotId       String?                @map("spot_id") @db.Uuid
+  /// Phase 4: the media reference they gave, and the item it matched.
+  mediaRef     String?                @map("media_ref") @db.VarChar(12)
+  mediaId      String?                @map("media_id") @db.Uuid
   reason       CruisingReportReason
   details      String                 @db.VarChar(2000)
   /// Language of the emails sent to them.
@@ -3183,12 +3236,64 @@ model CruisingTakedown {
   reviewedAt   DateTime?              @map("reviewed_at") @db.Timestamptz(3)
   createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  spot       CruisingSpot? @relation(fields: [spotId], references: [id], onDelete: SetNull)
-  reviewedBy User?         @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+  spot       CruisingSpot?  @relation(fields: [spotId], references: [id], onDelete: SetNull)
+  media      CruisingMedia? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  reviewedBy User?          @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([spotId])
+  @@index([mediaId])
   @@map("cruising_takedowns")
+}
+
+/// Phase 4 (decision 87): a photo or video on a verified member's profile. LIVE as soon as it is
+/// processed (post-moderation); `reviewedAt` null keeps it in the team's "New media" queue. Files
+/// live in CRUISING_UPLOADS_DIR (`<uuid>.webp` / `<uuid>.mp4`), never served by name.
+model CruisingMedia {
+  id              String              @id @default(uuid()) @db.Uuid
+  /// Short reference shown on the item, for reports and the removal form.
+  ref             String              @unique @db.VarChar(12)
+  ownerId         String              @map("owner_id") @db.Uuid
+  kind            CruisingMediaKind
+  status          CruisingMediaStatus @default(PROCESSING)
+  /// The photo (WebP, watermarked) or the transcoded video (MP4); null until processed or when FAILED.
+  storageKey      String?             @unique @map("storage_key")
+  /// A video's poster frame (WebP, watermarked).
+  posterKey       String?             @unique @map("poster_key")
+  width           Int?
+  height          Int?
+  durationSeconds Int?                @map("duration_seconds")
+  /// dHash of the photo or of the video's poster (16 hex digits): checked against the blocked hashes.
+  hash            String?             @db.VarChar(16)
+  /// Why a video FAILED.
+  failure         String?             @db.VarChar(300)
+  /// The cover photo the member chose (none: the first LIVE photo).
+  cover           Boolean             @default(false)
+  position        Int                 @default(0)
+  reviewedById    String?             @map("reviewed_by_id") @db.Uuid
+  reviewedAt      DateTime?           @map("reviewed_at") @db.Timestamptz(3)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  owner      User               @relation("CruisingMediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  reviewedBy User?              @relation("CruisingMediaReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reports    CruisingReport[]
+  takedowns  CruisingTakedown[]
+
+  @@index([ownerId, position])
+  @@index([ownerId, createdAt])
+  @@index([reviewedAt, createdAt])
+  @@index([status])
+  @@map("cruising_media")
+}
+
+/// Phase 4: perceptual hashes of removed Cruising images; an upload that looks the same is refused.
+model CruisingBlockedHash {
+  hash      String   @id @db.VarChar(16)
+  reason    String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("cruising_blocked_hashes")
 }
 
 /// "I'm here" at a LIVE spot for 1 to 3 hours. The spot and nothing else: the person's position is

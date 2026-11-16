@@ -128,6 +128,7 @@ export class AccountRepository {
       cruisingReportsMade,
       cruisingCheckIns,
       cruisingMessages,
+      cruisingMedia,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -348,6 +349,8 @@ export class AccountRepository {
           country: true,
           lookingFor: true,
           showAge: true,
+          verificationStatus: true,
+          verifiedAt: true,
           suspendedUntil: true,
           suspensionReason: true,
           createdAt: true,
@@ -404,6 +407,12 @@ export class AccountRepository {
         where: { senderId: userId },
         orderBy: { createdAt: 'asc' },
         select: { text: true, createdAt: true },
+      }),
+      // The list of photos and videos (refs, kinds, statuses, dates); the files stay private.
+      p.cruisingMedia.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { ref: true, kind: true, status: true, durationSeconds: true, createdAt: true },
       }),
       p.cloudMember.findMany({
         where: { userId },
@@ -473,6 +482,7 @@ export class AccountRepository {
             reportsMade: cruisingReportsMade,
             checkIns: cruisingCheckIns,
             messagesSent: cruisingMessages,
+            media: cruisingMedia,
           }
         : null,
       cloud:

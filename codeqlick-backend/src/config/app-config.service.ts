@@ -288,6 +288,11 @@ export class AppConfigService {
     return this.get('SWIPE_UPLOADS_DIR');
   }
 
+  /** Cruising's photos and videos (architecture 4.15, phase 4). */
+  get cruisingUploadsDir(): string {
+    return this.get('CRUISING_UPLOADS_DIR');
+  }
+
   /** Version of Cruising's rules and terms (architecture 4.15). */
   get cruisingTermsVersion(): string {
     return this.get('CRUISING_TERMS_VERSION');

@@ -11,6 +11,8 @@ import type { AppConfigService } from '../../config/app-config.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
 import type { MailMessage, MailService } from '../mail/mail.service.js';
 import { deleteUserRecomputingRatings, recomputeSpotRating } from './cruising.repository.js';
+import type { CruisingMediaRepository } from './cruising-media.repository.js';
+import type { CruisingMediaService } from './cruising-media.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingService, newSpotFields, spotChanges } from './cruising.service.js';
 import type { SpotInput } from './cruising.schemas.js';
@@ -142,7 +144,13 @@ function build() {
     findTakedown: vi.fn(),
     closeTakedown: vi.fn().mockResolvedValue(undefined),
     newestPendingAt: vi.fn().mockResolvedValue(null),
-    overview: vi.fn().mockResolvedValue({ pendingSpots: 2, openReports: 1, openTakedowns: 0 }),
+    overview: vi.fn().mockResolvedValue({
+      pendingSpots: 2,
+      openReports: 1,
+      openTakedowns: 0,
+      newMedia: 0,
+      pendingVerifications: 0,
+    }),
   };
   const sent: MailMessage[] = [];
   const mail = {
@@ -159,13 +167,27 @@ function build() {
     siteUrl: 'https://codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
+  const mediaRepo = {
+    badges: vi.fn().mockResolvedValue(new Map()),
+    findMedia: vi.fn().mockResolvedValue(null),
+    findByRef: vi.fn().mockResolvedValue(null),
+  };
+  const media = {
+    hide: vi.fn().mockResolvedValue(undefined),
+    restoreIfClear: vi.fn().mockResolvedValue(undefined),
+    remove: vi.fn().mockResolvedValue({ ownerId: 'owner' }),
+    withdrawVerification: vi.fn().mockResolvedValue(undefined),
+    visibleTo: vi.fn().mockResolvedValue(true),
+  };
   const service = new CruisingService(
     repo as unknown as CruisingRepository,
+    mediaRepo as unknown as CruisingMediaRepository,
+    media as unknown as CruisingMediaService,
     activity as unknown as ActivityService,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
   );
-  return { service, repo, sent, activity, config };
+  return { service, repo, sent, activity, config, media, mediaRepo };
 }
 
 /** Lets the emails sent without waiting (fire and forget) settle. */
@@ -1070,7 +1092,7 @@ describe('CruisingService', () => {
         NOW,
       );
       await settle();
-      expect(t.sent[0]?.subject).toBe('We removed the spot — Cruising');
+      expect(t.sent[0]?.subject).toBe('We removed the content — Cruising');
       expect(t.sent[0]?.text).not.toContain(SECRET_NAME);
     });
 
@@ -1156,7 +1178,7 @@ describe('CruisingService', () => {
     it('saves only what the member sent and shows the profile once there is a nickname', async () => {
       const status = await t.service.updateProfile(ME, everything, NOW);
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, everything);
-      expect(status.profile).toEqual(everything);
+      expect(status.profile).toEqual({ ...everything, verified: false });
     });
 
     it('has no profile in the status until a nickname is set', async () => {
@@ -1267,13 +1289,16 @@ describe('CruisingService', () => {
       });
       const page = await t.service.reviews(ME, SPOT, 1, 20);
       expect(t.repo.reviewsOfSpot).toHaveBeenCalledWith(SPOT, 0, 20, [OTHER]);
-      expect(page.items.map((item) => item.author)).toEqual([{ nickname: 'pier_fan' }, null]);
+      expect(page.items.map((item) => item.author)).toEqual([
+        { nickname: 'pier_fan', verified: false, coverId: null },
+        null,
+      ]);
     });
 
     it('show my own nickname on the review I save', async () => {
       t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
       const view = await t.service.saveReview(ME, SPOT, { rating: 5, text: null }, NOW);
-      expect(view.author).toEqual({ nickname: 'pier_fan' });
+      expect(view.author).toEqual({ nickname: 'pier_fan', verified: false, coverId: null });
     });
   });
 
