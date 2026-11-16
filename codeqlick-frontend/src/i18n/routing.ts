@@ -9,6 +9,9 @@ export const routing = defineRouting({
   locales: ['en', 'es', 'fr', 'de', 'it', 'pt'],
   defaultLocale: 'en',
   localePrefix: 'always',
+  // The pages' own hreflang links (metadata) are the only ones: on app hosts the proxy rewrites
+  // paths, so next-intl's `Link` header named internal URLs such as /en/cruising/places.
+  alternateLinks: false,
 });
 
 export type AppLocale = (typeof routing.locales)[number];
