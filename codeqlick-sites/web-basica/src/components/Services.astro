@@ -1,13 +1,14 @@
 ---
-import { edit, sectionLabel, site } from '../lib/site';
+import { pageOf, sectionLabel } from '../lib/site';
 
+const { lang, site, edit } = pageOf(Astro.url);
 const services = site.services!;
 ---
 
 <section class="section section--alt" id="servicios" aria-labelledby="servicios-title">
   <div class="container">
     <div class="section-head">
-      <p class="eyebrow">{sectionLabel('services')}</p>
+      <p class="eyebrow">{sectionLabel('services', lang)}</p>
       <h2 id="servicios-title" data-edit={edit('services.title')}>
         {services.title}
       </h2>

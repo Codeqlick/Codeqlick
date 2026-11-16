@@ -1,0 +1,50 @@
+---
+import Legal from '../../layouts/Legal.astro';
+import { site } from '../../lib/site';
+
+/** The legal notice in English (`/en/aviso-legal`); the Spanish one is the binding text. */
+const { legal } = site;
+const domain = new URL(site.url).host;
+---
+
+<Legal title="Legal notice">
+  <p>
+    In compliance with article 10 of Spanish Law 34/2002 on information society services and
+    electronic commerce (LSSI-CE), these are the details of the owner of {domain}:
+  </p>
+  <ul>
+    <li>Owner: {legal.owner}</li>
+    <li>Tax ID (NIF): {legal.taxId}</li>
+    <li>Address: {legal.address}</li>
+    <li>
+      Email: <a href={`mailto:${legal.email}`}>{legal.email}</a>
+    </li>
+    {legal.registry ? <li>{legal.registry}</li> : null}
+  </ul>
+
+  <h2>Use of the website</h2>
+  <p>
+    Visitors agree to use this website lawfully and not to harm how it works or the devices of other
+    people. Its information is a guide: prices and opening hours may change, and what we confirm by
+    phone or in writing is what counts.
+  </p>
+
+  <h2>Intellectual property</h2>
+  <p>
+    The texts, photos, logos and design of this website belong to {legal.owner} or are used with
+    their authors' permission. They may not be copied or reused without authorisation, except for
+    personal use.
+  </p>
+
+  <h2>Links</h2>
+  <p>
+    This website links to third-party services (maps, social networks, WhatsApp). We are not
+    responsible for their content or for how they handle your data: please read their own terms.
+  </p>
+
+  <h2>Applicable law</h2>
+  <p>
+    This notice is governed by Spanish law. Any dispute will be settled by the courts that the law
+    determines. This translation is provided for convenience; the Spanish version prevails.
+  </p>
+</Legal>

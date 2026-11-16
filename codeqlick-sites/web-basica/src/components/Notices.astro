@@ -1,5 +1,7 @@
 ---
-import { edit, site } from '../lib/site';
+import { pageOf } from '../lib/site';
+
+const { site, edit } = pageOf(Astro.url);
 
 const notices = site.notices ?? [];
 /**

@@ -1,0 +1,9 @@
+---
+import Home from '../index.astro';
+import { englishPaths } from '../../lib/site';
+
+/** `/en`: the home page in English, built only for sites with an English version. */
+export const getStaticPaths = englishPaths;
+---
+
+<Home />

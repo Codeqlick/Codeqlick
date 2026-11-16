@@ -1,0 +1,25 @@
+---
+import Legal from '../../layouts/Legal.astro';
+import { site } from '../../lib/site';
+
+/** The cookie policy in English (`/en/cookies`). */
+---
+
+<Legal title="Cookie policy">
+  <p>
+    This website <strong>uses no cookies</strong> or other ways of storing data in your browser: no
+    analytics, advertising or social network cookies. That is why we do not ask you to accept them.
+  </p>
+  <p>
+    Nor does it include maps, videos or social network buttons that could set third-party cookies.
+    Links to maps, social networks or WhatsApp open those services on their own website, which has
+    its own cookie policy.
+  </p>
+  {site.analytics ? (
+    <p>
+      To know how many people visit the website we use a statistics tool that uses no cookies, keeps
+      no data that identifies you and respects your browser's "Do Not Track" setting.
+    </p>
+  ) : null}
+  <p>If we ever start using cookies, we will say so here and ask for your permission first.</p>
+</Legal>

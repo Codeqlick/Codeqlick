@@ -1,0 +1,17 @@
+---
+import News from '../../noticias/[...slug].astro';
+import { newsPaths } from '../../../lib/news';
+import { english } from '../../../lib/site';
+import type { NewsPost } from '../../../types';
+
+/** `/en/noticias…`: the news pages in English, with the posts' English texts. */
+export function getStaticPaths() {
+  if (!english) return [];
+  return newsPaths('en').map((path) => ({ ...path, params: { ...path.params, lang: 'en' } }));
+}
+
+const props = Astro.props as
+  { page: number; post?: undefined } | { post: NewsPost; page?: undefined };
+---
+
+<News {...props} />

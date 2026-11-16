@@ -46,13 +46,50 @@ export default async function MenuKitPage({
   }
 
   const menuUrl = `${site.url}/carta`;
-  const qr = await QRCode.toString(menuUrl, {
-    type: 'svg',
-    margin: 0,
-    errorCorrectionLevel: 'M',
-    color: { dark: '#14101F', light: '#FFFFFF' },
-  });
+  // The English version's menu (decision 106) gets its own QR and poster.
+  const englishUrl = site.english ? `${site.url}/en/carta` : null;
+  const qrOf = (url: string) =>
+    QRCode.toString(url, {
+      type: 'svg',
+      margin: 0,
+      errorCorrectionLevel: 'M',
+      color: { dark: '#14101F', light: '#FFFFFF' },
+    });
+  const [qr, englishQr] = await Promise.all([
+    qrOf(menuUrl),
+    englishUrl ? qrOf(englishUrl) : Promise.resolve(null),
+  ]);
   const address = site.editable.contact.address;
+  const posterStyle = {
+    '--poster-primary': site.colors.primary,
+    '--poster-on-primary': site.colors.primaryText,
+  } as React.CSSProperties;
+  const poster = (
+    url: string,
+    code: string,
+    words: { kicker: string; headline: string; hint: string },
+  ) => (
+    <article className={kit.poster} aria-label={t('posterTitle')} style={posterStyle}>
+      <header className={kit.band}>
+        <p className={kit.kicker}>{words.kicker}</p>
+        <p className={kit.headline}>{words.headline}</p>
+      </header>
+      <div className={kit.body}>
+        <p className={kit.business}>{site.businessName}</p>
+        <div className={kit.qr} dangerouslySetInnerHTML={{ __html: code }} />
+        <p className={kit.thanks}>{words.hint}</p>
+        <p className={kit.address}>
+          {url.replace(/^https?:\/\//, '')}
+          {address ? (
+            <>
+              <br />
+              {address.street}, {address.city}
+            </>
+          ) : null}
+        </p>
+      </div>
+    </article>
+  );
 
   return (
     <div className={styles.stack}>
@@ -81,35 +118,26 @@ export default async function MenuKitPage({
         <p className={styles.muted}>{t('posterBody')}</p>
       </section>
 
-      <article
-        className={kit.poster}
-        aria-label={t('posterTitle')}
-        style={
-          {
-            '--poster-primary': site.colors.primary,
-            '--poster-on-primary': site.colors.primaryText,
-          } as React.CSSProperties
-        }
-      >
-        <header className={kit.band}>
-          <p className={kit.kicker}>{t('posterKicker')}</p>
-          <p className={kit.headline}>{t('posterHeadline')}</p>
-        </header>
-        <div className={kit.body}>
-          <p className={kit.business}>{site.businessName}</p>
-          <div className={kit.qr} dangerouslySetInnerHTML={{ __html: qr }} />
-          <p className={kit.thanks}>{t('posterHint')}</p>
-          <p className={kit.address}>
-            {menuUrl.replace(/^https?:\/\//, '')}
-            {address ? (
-              <>
-                <br />
-                {address.street}, {address.city}
-              </>
-            ) : null}
-          </p>
-        </div>
-      </article>
+      {poster(menuUrl, qr, {
+        kicker: t('posterKicker'),
+        headline: t('posterHeadline'),
+        hint: t('posterHint'),
+      })}
+
+      {englishUrl && englishQr ? (
+        <>
+          <section className={styles.panel} data-print="hide">
+            <h2 className={styles.panelTitle}>{t('english.title')}</h2>
+            <p className={styles.muted}>{t('english.lead')}</p>
+            <CopyLink url={englishUrl} labels={{ copy: t('copy'), copied: t('copied') }} />
+          </section>
+          {poster(englishUrl, englishQr, {
+            kicker: t('english.posterKicker'),
+            headline: t('english.poster'),
+            hint: t('english.posterHint'),
+          })}
+        </>
+      ) : null}
     </div>
   );
 }

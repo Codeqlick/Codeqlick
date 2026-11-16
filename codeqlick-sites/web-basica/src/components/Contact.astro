@@ -1,16 +1,21 @@
 ---
-import { addressLine, edit, site, telHref, whatsappHref } from '../lib/site';
+import { addressLine, pageOf, telHref, whatsappHref } from '../lib/site';
+
+const { lang, site, t, edit, href } = pageOf(Astro.url);
+/** The status messages of an English page (the script has the Spanish ones). */
+const messages =
+  lang === 'en' ? { 'data-ok': t.formOk, 'data-error': t.formError, 'data-demo': t.formDemo } : {};
 
 const { contact, hours, form, contactSection } = site;
 const action =
   form && 'key' in form ? `${form.api ?? 'https://api.codeqlick.com/v1'}/forms/${form.key}` : null;
-const redirect = new URL('/#contacto', Astro.site).toString();
+const redirect = new URL(href('/#contacto'), Astro.site).toString();
 ---
 
 <section class="section section--alt" id="contacto" aria-labelledby="contacto-title">
   <div class="container">
     <div class="section-head">
-      <p class="eyebrow">Contacto</p>
+      <p class="eyebrow">{t.contact}</p>
       <h2 id="contacto-title" data-edit={edit('contactSection.title')}>
         {contactSection.title}
       </h2>
@@ -25,8 +30,8 @@ const redirect = new URL('/#contacto', Astro.site).toString();
         {site.booking ? (
           <div class="book">
             <p>
-              <strong>Reserva online</strong>
-              <span>Elige día y hora; te llega la confirmación por email.</span>
+              <strong>{t.bookOnline}</strong>
+              <span>{t.bookOnlineText}</span>
             </p>
             <a class="button" href={site.booking.url} data-edit={edit('booking.label')}>
               {site.booking.label}
@@ -36,12 +41,12 @@ const redirect = new URL('/#contacto', Astro.site).toString();
         <dl>
           {contact.address ? (
             <div>
-              <dt>Dirección</dt>
+              <dt>{t.address}</dt>
               <dd>
                 {addressLine(contact.address)}
                 {contact.mapsUrl ? (
                   <a class="link" href={contact.mapsUrl} rel="noopener" target="_blank">
-                    Cómo llegar
+                    {t.directions}
                   </a>
                 ) : null}
               </dd>
@@ -49,7 +54,7 @@ const redirect = new URL('/#contacto', Astro.site).toString();
           ) : null}
           {contact.phone ? (
             <div>
-              <dt>Teléfono</dt>
+              <dt>{t.phone}</dt>
               <dd>
                 <a href={telHref(contact.phone)}>{contact.phone}</a>
               </dd>
@@ -59,13 +64,13 @@ const redirect = new URL('/#contacto', Astro.site).toString();
             <div>
               <dt>WhatsApp</dt>
               <dd>
-                <a href={whatsappHref(contact.whatsapp)}>Escríbenos</a>
+                <a href={whatsappHref(contact.whatsapp)}>{t.writeUs}</a>
               </dd>
             </div>
           ) : null}
           {contact.email ? (
             <div>
-              <dt>Email</dt>
+              <dt>{t.email}</dt>
               <dd>
                 <a href={`mailto:${contact.email}`}>{contact.email}</a>
               </dd>
@@ -74,7 +79,7 @@ const redirect = new URL('/#contacto', Astro.site).toString();
         </dl>
         {hours ? (
           <div class="hours">
-            <h3>Horario</h3>
+            <h3>{t.hours}</h3>
             <table>
               <tbody>
                 {hours.map((row, i) => (
@@ -98,38 +103,38 @@ const redirect = new URL('/#contacto', Astro.site).toString();
           method="post"
           data-demo={action ? undefined : 'true'}
         >
-          <div class="status" role="status" aria-live="polite" hidden />
+          <div class="status" role="status" aria-live="polite" hidden {...messages} />
           <div class="row">
             <label>
-              <span>Nombre</span>
+              <span>{t.formName}</span>
               <input name="name" autocomplete="name" required maxlength="120" />
             </label>
             <label>
-              <span>Teléfono (opcional)</span>
+              <span>{t.formPhone}</span>
               <input name="phone" type="tel" autocomplete="tel" maxlength="40" />
             </label>
           </div>
           <label>
-            <span>Email</span>
+            <span>{t.formEmail}</span>
             <input name="email" type="email" autocomplete="email" required maxlength="254" />
           </label>
           <label>
-            <span>Mensaje</span>
+            <span>{t.formMessage}</span>
             <textarea name="message" rows="5" required maxlength="5000" />
           </label>
           <label class="hp" aria-hidden="true">
-            <span>No rellenes este campo</span>
+            <span>{t.formHoneypot}</span>
             <input name="website" tabindex="-1" autocomplete="off" />
           </label>
           <input type="hidden" name="redirect" value={redirect} />
           <label class="check">
             <input type="checkbox" name="privacy" required />
             <span>
-              He leído y acepto la <a href="/privacidad">política de privacidad</a>.
+              {t.formPrivacyBefore} <a href={href('/privacidad')}>{t.formPrivacyLink}</a>.
             </span>
           </label>
           <button class="button" type="submit">
-            Enviar mensaje
+            {t.formSend}
           </button>
         </form>
       ) : null}
@@ -144,11 +149,14 @@ const redirect = new URL('/#contacto', Astro.site).toString();
     if (!status) return;
     status.hidden = false;
     status.dataset.kind = kind;
-    status.textContent = {
-      ok: 'Gracias, hemos recibido tu mensaje. Te responderemos lo antes posible.',
-      error: 'No se ha podido enviar. Revisa los campos y vuelve a intentarlo.',
-      demo: 'Esta web es una demostración: el formulario no envía mensajes.',
-    }[kind];
+    // An English page carries its own messages on the status element.
+    status.textContent =
+      status.dataset[kind] ??
+      {
+        ok: 'Gracias, hemos recibido tu mensaje. Te responderemos lo antes posible.',
+        error: 'No se ha podido enviar. Revisa los campos y vuelve a intentarlo.',
+        demo: 'Esta web es una demostración: el formulario no envía mensajes.',
+      }[kind];
   };
   // After sending, the form service sends the visitor back here with ?form=ok|error.
   const result = new URLSearchParams(location.search).get('form');

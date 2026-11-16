@@ -5,6 +5,7 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
 import {
+  englishOn,
   presetContent,
   siteContentSchema,
   sitePresetSchema,
@@ -161,7 +162,7 @@ export class SiteEditorService {
 
   private async buildPreview(site: SiteRow): Promise<SiteEditorView> {
     // The preview shows the published posts too (the menu link and the home section).
-    const news = await this.sites.newsToBuild(site);
+    const news = await this.sites.newsToBuild(site, new Date(), englishOn(site.draftContent));
     const result = await this.builder.buildDraft({
       slug: site.slug,
       preset: site.draftPreset ?? site.preset,

@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   contrast,
   dayOf,
+  followTwins,
   getAt,
+  isTranslatable,
   liveTexts,
+  missingEnglish,
   noticeState,
   setAt,
   structureOf,
@@ -77,5 +80,79 @@ describe('the site notices in the editor', () => {
     expect(
       liveTexts({ ...site, notices: [{ text: 'Cerrado', until: '2026-08-20' }] }),
     ).toMatchObject({ 'notices.0.text': 'Cerrado' });
+  });
+});
+
+describe('the English version in the editor (decision 106)', () => {
+  const bilingual: Content = {
+    ...site,
+    about: { title: 'Nosotras', paragraphs: ['Uno', 'Dos'] },
+    menu: { title: 'Carta', categories: [{ name: 'Postres', items: [{ name: 'Flan' }] }] },
+    english: true,
+    en: { hero: { title: 'Hello' }, services: { items: [{ name: 'Cut' }] } },
+  };
+
+  it('knows which texts have an English twin', () => {
+    expect(isTranslatable('hero.title')).toBe(true);
+    expect(isTranslatable('services.items.3.description')).toBe(true);
+    expect(isTranslatable('about.paragraphs.1')).toBe(true);
+    expect(isTranslatable('gallery.images.0.alt')).toBe(true);
+    expect(isTranslatable('business.name')).toBe(false);
+    expect(isTranslatable('hero.primary.href')).toBe(false);
+    expect(isTranslatable('contact.phone')).toBe(false);
+    expect(isTranslatable('legal.owner')).toBe(false);
+  });
+
+  it('counts the Spanish texts whose English is still empty, prices and an off menu aside', () => {
+    expect(missingEnglish(bilingual)).toEqual([
+      'business.description',
+      'hero.image.alt',
+      'services.title',
+      'about.title',
+      'about.paragraphs.0',
+      'about.paragraphs.1',
+      'menu.title',
+      'menu.categories.0.name',
+      'menu.categories.0.items.0.name',
+    ]);
+    expect(missingEnglish(bilingual, { menu: false })).not.toContain('menu.title');
+    const blank = setAt(bilingual, 'en.services.title', '   ');
+    expect(missingEnglish(blank)).toContain('services.title');
+  });
+
+  it('writes a later item’s twin with blank items before it, never holes', () => {
+    const next = setAt(bilingual, 'en.about.paragraphs.1', 'Two');
+    expect(getAt(next, 'en.about.paragraphs')).toEqual(['', 'Two']);
+    const item = setAt(bilingual, 'en.services.items.2.name', 'Dye');
+    expect(getAt(item, 'en.services.items')).toEqual([{ name: 'Cut' }, {}, { name: 'Dye' }]);
+    expect(JSON.stringify(item)).not.toContain('null');
+  });
+
+  it('moves and removes the twins with their Spanish items', () => {
+    const list: Content = {
+      services: { items: [{ name: 'Corte' }, { name: 'Color' }, { name: 'Peinado' }] },
+      en: { services: { items: [{ name: 'Cut' }, { name: 'Colour' }] } },
+    };
+    expect(followTwins(list, 'services.items', 3, { removed: 0 })).toEqual([
+      { name: 'Colour' },
+      {},
+    ]);
+    expect(followTwins(list, 'services.items', 3, { from: 0, to: 2 })).toEqual([
+      { name: 'Colour' },
+      {},
+      { name: 'Cut' },
+    ]);
+    expect(followTwins(site, 'services.items', 1, { removed: 0 })).toBeUndefined();
+  });
+
+  it('patches the English page live, with the Spanish text where the English is empty', () => {
+    const texts = liveTexts(bilingual);
+    expect(texts['en.hero.title']).toBe('Hello');
+    expect(texts['en.services.items.0.name']).toBe('Cut');
+    expect(texts['en.services.title']).toBe('Servicios');
+    expect(liveTexts(site)).not.toHaveProperty('en.hero.title');
+    // Typing English never rebuilds; switching it on does.
+    expect(structureOf(setAt(bilingual, 'en.hero.text', 'Hi'))).toBe(structureOf(bilingual));
+    expect(structureOf(bilingual)).not.toBe(structureOf(setAt(bilingual, 'english', undefined)));
   });
 });

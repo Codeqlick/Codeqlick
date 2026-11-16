@@ -123,6 +123,90 @@ const menu = z
   })
   .strict();
 
+/** An English twin of a text (decision 106): optional, and empty shows the Spanish text. */
+const twin = (max: number) => z.string().trim().max(max).optional();
+const twins = <T extends z.ZodRawShape>(shape: T) => z.object(shape).strict().optional();
+const twinList = <T extends z.ZodType>(item: T, max: number) => z.array(item).max(max).optional();
+
+/**
+ * The English version's texts (architecture 8.2, decision 106): the content's translatable
+ * texts at the same paths, each with its Spanish field's limit. List items line up with the
+ * Spanish ones by position.
+ */
+export const siteEnglishSchema = z
+  .object({
+    business: twins({ tagline: twin(80), description: twin(300) }),
+    hero: twins({
+      eyebrow: twin(80),
+      title: twin(120),
+      text: twin(400),
+      image: twins({ alt: twin(200) }),
+      primary: twins({ label: twin(60) }),
+      secondary: twins({ label: twin(60) }),
+      facts: twinList(z.object({ value: twin(20), label: twin(40) }).strict(), 3),
+    }),
+    navLabels: twins({
+      services: twin(30),
+      about: twin(30),
+      gallery: twin(30),
+      testimonials: twin(30),
+    }),
+    services: twins({
+      title: twin(80),
+      intro: twin(300),
+      items: twinList(
+        z.object({ name: twin(80), description: twin(200), price: twin(30) }).strict(),
+        24,
+      ),
+      note: twin(300),
+    }),
+    about: twins({
+      title: twin(120),
+      paragraphs: twinList(z.string().trim().max(1200), 6),
+      image: twins({ alt: twin(200) }),
+      highlights: twinList(z.string().trim().max(120), 6),
+    }),
+    gallery: twins({
+      title: twin(80),
+      intro: twin(300),
+      images: twinList(z.object({ alt: twin(200) }).strict(), 12),
+    }),
+    testimonials: twins({
+      title: twin(80),
+      items: twinList(z.object({ quote: twin(600), detail: twin(80) }).strict(), 9),
+    }),
+    banner: twins({ title: twin(120), text: twin(300), link: twins({ label: twin(60) }) }),
+    menu: twins({
+      title: twin(80),
+      intro: twin(300),
+      categories: twinList(
+        z
+          .object({
+            name: twin(80),
+            items: twinList(
+              z.object({ name: twin(120), description: twin(300), price: twin(30) }).strict(),
+              60,
+            ),
+          })
+          .strict(),
+        20,
+      ),
+      note: twin(300),
+    }),
+    booking: twins({ label: twin(40) }),
+    notices: twinList(z.object({ text: twin(200) }).strict(), 5),
+    contactSection: twins({ title: twin(80), intro: twin(300) }),
+    hours: twinList(z.object({ days: twin(60), hours: twin(60) }).strict(), 10),
+  })
+  .strict();
+export type SiteEnglish = z.infer<typeof siteEnglishSchema>;
+
+/** Whether a content has its English version on (decision 106). */
+export const englishOn = (content: unknown): boolean =>
+  typeof content === 'object' &&
+  content !== null &&
+  (content as { english?: unknown }).english === true;
+
 /**
  * A managed site's content: the template's `Site` type (codeqlick-sites/web-basica/src/types.ts)
  * without `url`, `form` and `demo`, which are set when it is built. Keep both in step.
@@ -292,6 +376,10 @@ export const siteContentSchema = z
       })
       .strict(),
     footerNote: optionalText(300),
+    /** The English version is on (architecture 8.2, decision 106). */
+    english: z.boolean().optional(),
+    /** Its texts; kept while it is off, so switching it back on restores them. */
+    en: siteEnglishSchema.optional(),
   })
   .strict();
 export type SiteContent = z.infer<typeof siteContentSchema>;
@@ -322,7 +410,17 @@ export type UpdateSiteInput = z.infer<typeof updateSiteSchema>;
  * `demo`) and the ones only a demo has (`footerNote`, `news`, the sample posts).
  */
 export function presetContent(content: Record<string, unknown>): Record<string, unknown> {
-  const { url: _url, form: _form, demo: _demo, footerNote: _note, news: _news, ...rest } = content;
+  const {
+    url: _url,
+    form: _form,
+    demo: _demo,
+    footerNote: _note,
+    news: _news,
+    // A style's English texts would not match the client's own.
+    english: _english,
+    en: _en,
+    ...rest
+  } = content;
   return rest;
 }
 
