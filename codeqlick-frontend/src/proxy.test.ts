@@ -64,6 +64,17 @@ describe('proxy: single sign-on through the account host (decision 108)', () => 
     expect(cookie).not.toMatch(/Domain=/i);
   });
 
+  it('answers a Link’s prefetch of the sign-in page with nothing, so it never loops', async () => {
+    const response = await proxy(
+      new NextRequest('http://videochat.codeqlick.com/en/login?next=%2Fen%2Froom', {
+        headers: { host: 'videochat.codeqlick.com', rsc: '1', 'next-router-prefetch': '1' },
+      }),
+    );
+    expect(response.status).toBe(204);
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('sends the pages reached from emails to the account host, query kept', async () => {
     const response = await visit('codeqlick.com', '/es/reset-password?token=abc');
     expect(response.headers.get('location')).toBe(

@@ -142,6 +142,15 @@ function withCsp(
   return response;
 }
 
+/** Whether a request is the router prefetching a page (`Link` in view), not someone opening it. */
+function isPrefetch(headers: Headers): boolean {
+  return (
+    headers.has('next-router-prefetch') ||
+    headers.get('sec-purpose')?.includes('prefetch') === true ||
+    headers.get('purpose') === 'prefetch'
+  );
+}
+
 const OVERRIDE_HEADERS = 'x-middleware-override-headers';
 const REQUEST_HEADER_PREFIX = 'x-middleware-request-';
 
@@ -169,6 +178,12 @@ async function route(request: NextRequest): Promise<NextResponse> {
   const sso = process.env.ACCOUNT_SSO !== 'false' && !isIpHost(host);
   if (sso && request.method === 'GET') {
     const signIn = routeSignIn(pathname, request.nextUrl.searchParams, host, protocol);
+    // A `Link`'s prefetch of a sign-in address: nothing to prefetch (the page lives on the
+    // account host), and a cross-origin redirect would only make the router try again and again.
+    // Clicking it is a real navigation, which starts the flow.
+    if (signIn.action !== 'pass' && isPrefetch(request.headers)) {
+      return new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
+    }
     if (signIn.action === 'redirect') return NextResponse.redirect(signIn.to);
     const client = ssoClientForHost(host);
     if (signIn.action === 'start' && client) {
