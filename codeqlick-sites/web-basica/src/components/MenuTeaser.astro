@@ -1,6 +1,8 @@
 ---
 import { MENU_PATH } from '../lib/menu';
-import { edit, site } from '../lib/site';
+import { pageOf } from '../lib/site';
+
+const { site, t, edit, href } = pageOf(Astro.url);
 
 const menu = site.menu!;
 ---
@@ -13,8 +15,8 @@ const menu = site.menu!;
       </h2>
       <p>{menu.categories.map((category) => category.name).join(' · ')}</p>
     </div>
-    <a class="button" href={MENU_PATH}>
-      Ver la carta
+    <a class="button" href={href(MENU_PATH)}>
+      {t.seeMenu}
     </a>
   </div>
 </section>

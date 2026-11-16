@@ -1,6 +1,7 @@
 ---
-import { edit, sectionLabel, site } from '../lib/site';
+import { pageOf, sectionLabel } from '../lib/site';
 
+const { lang, site, t, edit } = pageOf(Astro.url);
 const testimonials = site.testimonials!;
 const reviewUrl = site.contact.reviewUrl;
 ---
@@ -8,7 +9,7 @@ const reviewUrl = site.contact.reviewUrl;
 <section class="section" id="opiniones" aria-labelledby="opiniones-title">
   <div class="container">
     <div class="section-head">
-      <p class="eyebrow">{sectionLabel('testimonials')}</p>
+      <p class="eyebrow">{sectionLabel('testimonials', lang)}</p>
       <h2 id="opiniones-title" data-edit={edit('testimonials.title')}>
         {testimonials.title}
       </h2>
@@ -36,7 +37,7 @@ const reviewUrl = site.contact.reviewUrl;
     {reviewUrl ? (
       <p class="review">
         <a class="button button--ghost" href={reviewUrl} rel="noopener" target="_blank">
-          Déjanos tu opinión en Google
+          {t.reviewOnGoogle}
         </a>
       </p>
     ) : null}

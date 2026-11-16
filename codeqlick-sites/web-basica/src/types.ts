@@ -68,6 +68,55 @@ export interface NewsPost {
   updatedAt?: string;
   /** End of the last day it is shown; the platform stops sending expired posts. */
   expiresAt?: string;
+  /** English texts of the post (sites with `english`); an empty one shows the Spanish text. */
+  en?: { title?: string; summary?: string; body?: string };
+}
+
+/**
+ * The English twins of the site's texts (`Site.en`): the same paths as the Spanish content, only
+ * the texts a visitor reads. List items line up with the Spanish ones by position. Anything left
+ * out or empty shows the Spanish text on the English pages.
+ */
+export interface SiteTranslation {
+  business?: { tagline?: string; description?: string };
+  hero?: {
+    eyebrow?: string;
+    title?: string;
+    text?: string;
+    image?: { alt?: string };
+    primary?: { label?: string };
+    secondary?: { label?: string };
+    facts?: Array<{ value?: string; label?: string }>;
+  };
+  navLabels?: Partial<Record<SectionKey, string>>;
+  services?: {
+    title?: string;
+    intro?: string;
+    items?: Array<{ name?: string; description?: string; price?: string }>;
+    note?: string;
+  };
+  about?: {
+    title?: string;
+    paragraphs?: string[];
+    image?: { alt?: string };
+    highlights?: string[];
+  };
+  gallery?: { title?: string; intro?: string; images?: Array<{ alt?: string }> };
+  testimonials?: { title?: string; items?: Array<{ quote?: string; detail?: string }> };
+  banner?: { title?: string; text?: string; link?: { label?: string } };
+  menu?: {
+    title?: string;
+    intro?: string;
+    note?: string;
+    categories?: Array<{
+      name?: string;
+      items?: Array<{ name?: string; description?: string; price?: string }>;
+    }>;
+  };
+  booking?: { label?: string };
+  notices?: Array<{ text?: string }>;
+  contactSection?: { title?: string; intro?: string };
+  hours?: Array<{ days?: string; hours?: string }>;
 }
 
 export interface Site {
@@ -203,6 +252,13 @@ export interface Site {
     /** Companies: "Inscrita en el Registro Mercantil de …". */
     registry?: string;
   };
+  /**
+   * The English version (architecture 8.2): its pages are built under `/en` with `hreflang` links
+   * and a language switcher. Spanish stays the main language.
+   */
+  english?: boolean;
+  /** The English texts, used only with `english`. */
+  en?: SiteTranslation;
   /** Shown in the footer, e.g. photo credits of a demo. */
   footerNote?: string;
   /**

@@ -1,7 +1,8 @@
 ---
 import { Image } from 'astro:assets';
-import { edit, imageOf, sectionLabel, site } from '../lib/site';
+import { imageOf, pageOf, sectionLabel } from '../lib/site';
 
+const { lang, site, edit } = pageOf(Astro.url);
 const about = site.about!;
 ---
 
@@ -17,7 +18,7 @@ const about = site.about!;
       />
     ) : null}
     <div class="copy">
-      <p class="eyebrow">{sectionLabel('about')}</p>
+      <p class="eyebrow">{sectionLabel('about', lang)}</p>
       <h2 id="nosotros-title" data-edit={edit('about.title')}>
         {about.title}
       </h2>

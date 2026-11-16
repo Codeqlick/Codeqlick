@@ -52,3 +52,4 @@ jobs:
           node builder/smoke-test.mjs http://127.0.0.1:4100 ci-token
           test -f "$RUNNER_TEMP/sites/ci-demo/current/index.html"
           grep -qx ci-demo.demo.codeqlick.com "$RUNNER_TEMP/sites/ci-demo/domains"
+          node builder/english-test.mjs http://127.0.0.1:4100 ci-token "$RUNNER_TEMP/sites"

@@ -1,22 +1,27 @@
 ---
-import { HOME_COUNT, NEWS_PATH, posts } from '../lib/news';
+import { HOME_COUNT, NEWS_PATH, postsIn } from '../lib/news';
+import { pageOf } from '../lib/site';
 import NewsCard from './NewsCard.astro';
+
+const { lang, t, href } = pageOf(Astro.url);
 ---
 
 <section class="section section--alt" id="novedades" aria-labelledby="novedades-title">
   <div class="container">
     <div class="section-head">
-      <p class="eyebrow">Noticias</p>
-      <h2 id="novedades-title">Novedades</h2>
+      <p class="eyebrow">{t.news}</p>
+      <h2 id="novedades-title">{t.latestNews}</h2>
     </div>
     <div class="grid">
-      {posts.slice(0, HOME_COUNT).map((post) => (
-        <NewsCard post={post} level={3} />
-      ))}
+      {postsIn(lang)
+        .slice(0, HOME_COUNT)
+        .map((post) => (
+          <NewsCard post={post} level={3} />
+        ))}
     </div>
     <p class="more">
-      <a class="button button--ghost" href={NEWS_PATH}>
-        Ver todas las noticias
+      <a class="button button--ghost" href={href(NEWS_PATH)}>
+        {t.allNewsHome}
       </a>
     </p>
   </div>

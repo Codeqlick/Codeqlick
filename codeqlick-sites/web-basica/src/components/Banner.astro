@@ -1,6 +1,7 @@
 ---
-import { edit, site } from '../lib/site';
+import { pageOf } from '../lib/site';
 
+const { site, edit, href } = pageOf(Astro.url);
 const banner = site.banner!;
 ---
 
@@ -12,7 +13,7 @@ const banner = site.banner!;
       </h2>
       {banner.text ? <p data-edit={edit('banner.text')}>{banner.text}</p> : null}
     </div>
-    <a class="button light" href={banner.link.href} data-edit={edit('banner.link.label')}>
+    <a class="button light" href={href(banner.link.href)} data-edit={edit('banner.link.label')}>
       {banner.link.label}
     </a>
   </div>

@@ -1,14 +1,15 @@
 ---
 import { Image } from 'astro:assets';
-import { edit, imageOf, sectionLabel, site } from '../lib/site';
+import { imageOf, pageOf, sectionLabel } from '../lib/site';
 
+const { lang, site, edit } = pageOf(Astro.url);
 const gallery = site.gallery!;
 ---
 
 <section class="section section--alt" id="galeria" aria-labelledby="galeria-title">
   <div class="container">
     <div class="section-head">
-      <p class="eyebrow">{sectionLabel('gallery')}</p>
+      <p class="eyebrow">{sectionLabel('gallery', lang)}</p>
       <h2 id="galeria-title" data-edit={edit('gallery.title')}>
         {gallery.title}
       </h2>
