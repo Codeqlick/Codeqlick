@@ -51,6 +51,7 @@ import {
 } from '../actions';
 import { CruisingGate } from '../Gate';
 import { visitsSettingsAction } from '../notifications-actions';
+import { reopenTourAction } from '../onboarding-actions';
 
 /** Behind the account: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -175,6 +176,18 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
       </section>
 
       <InstallApp className={vc.panel} namespace="Cruising.install" />
+
+      <section className={vc.panel} aria-labelledby="me-tour">
+        <h2 id="me-tour" className={vc.sectionTitle}>
+          {t('tourTitle')}
+        </h2>
+        <p className={vc.muted}>{t('tourLead')}</p>
+        <ActionForm action={reopenTourAction.bind(null, locale)}>
+          <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
+            {t('tourReopen')}
+          </SubmitButton>
+        </ActionForm>
+      </section>
 
       {profile ? (
         <section className={vc.panel} aria-labelledby="me-verification">

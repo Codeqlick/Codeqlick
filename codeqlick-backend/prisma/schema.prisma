@@ -3174,6 +3174,9 @@ model CruisingProfile {
   /// it on are recorded when they open a profile and see who opened theirs; turning it off deletes
   /// their visits both ways.
   showVisits             Boolean                    @default(false) @map("show_visits")
+  /// Phase 6 (decision 102): when the member finished or skipped the onboarding tour; null shows it
+  /// on the map after entering. Reopening it from /me sets it back to null.
+  onboardingDoneAt       DateTime?                  @map("onboarding_done_at") @db.Timestamptz(3)
   createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -3301,6 +3304,8 @@ model CruisingReport {
   @@index([mediaId])
   @@index([meetupId])
   @@index([safetyAlertId])
+  /// Phase 6 (decision 101): reports decided per week.
+  @@index([reviewedAt])
   @@map("cruising_reports")
 }
 
@@ -3473,6 +3478,8 @@ model CruisingMessage {
 
   @@index([conversationId, createdAt])
   @@index([senderId, createdAt])
+  /// Phase 6 (decision 101): the admin statistics count messages by week.
+  @@index([createdAt])
   @@map("cruising_messages")
 }
 

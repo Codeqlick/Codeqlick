@@ -18,6 +18,7 @@ import { CruisingMediaStorage } from './cruising-media.storage.js';
 import { CruisingNotificationsController } from './cruising-notifications.controller.js';
 import { CruisingNotificationsRepository } from './cruising-notifications.repository.js';
 import { CruisingNotificationsService } from './cruising-notifications.service.js';
+import { CruisingOnboardingService } from './cruising-onboarding.service.js';
 import { CruisingPushService } from './cruising-push.service.js';
 import {
   CruisingSafetyAdminController,
@@ -26,6 +27,12 @@ import {
 } from './cruising-safety.controller.js';
 import { CruisingSafetyRepository } from './cruising-safety.repository.js';
 import { CruisingSafetyService } from './cruising-safety.service.js';
+import {
+  CruisingOnboardingController,
+  CruisingStatsAdminController,
+} from './cruising-stats.controller.js';
+import { CruisingStatsRepository } from './cruising-stats.repository.js';
+import { CruisingStatsService } from './cruising-stats.service.js';
 import { CruisingSocialController } from './cruising-social.controller.js';
 import { CruisingSocialService } from './cruising-social.service.js';
 import { CruisingWinksService } from './cruising-winks.service.js';
@@ -58,6 +65,8 @@ import { CruisingService } from './cruising.service.js';
     CruisingSafetyController,
     CruisingSafetyAdminController,
     CruisingNotificationsController,
+    CruisingOnboardingController,
+    CruisingStatsAdminController,
   ],
   providers: [
     CruisingService,
@@ -76,6 +85,9 @@ import { CruisingService } from './cruising.service.js';
     CruisingNotificationsService,
     CruisingNotificationsRepository,
     CruisingWinksService,
+    CruisingStatsRepository,
+    CruisingStatsService,
+    CruisingOnboardingService,
   ],
 })
 export class CruisingModule {}

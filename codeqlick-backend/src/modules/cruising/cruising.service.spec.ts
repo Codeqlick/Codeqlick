@@ -285,6 +285,22 @@ describe('CruisingService', () => {
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { emailAlerts: false });
     });
 
+    it('ends the onboarding tour once, and reopens it (decision 102)', async () => {
+      t.repo.findProfile.mockResolvedValue(profile());
+      expect((await t.service.status(ME, NOW)).onboardingDone).toBe(false);
+      const done = await t.service.updateProfile(ME, { onboardingDone: true }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenLastCalledWith(ME, { onboardingDoneAt: NOW });
+      expect(done.onboardingDone).toBe(true);
+      // Done again: the first time stays.
+      const before = new Date(NOW.getTime() - 3600_000);
+      t.repo.findProfile.mockResolvedValue(profile({ onboardingDoneAt: before }));
+      await t.service.updateProfile(ME, { onboardingDone: true }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenLastCalledWith(ME, { onboardingDoneAt: before });
+      const reopened = await t.service.updateProfile(ME, { onboardingDone: false }, NOW);
+      expect(t.repo.updateProfile).toHaveBeenLastCalledWith(ME, { onboardingDoneAt: null });
+      expect(reopened.onboardingDone).toBe(false);
+    });
+
     it('shows a suspension in the status until it ends', async () => {
       const until = new Date(NOW.getTime() + 3600_000);
       t.repo.findProfile.mockResolvedValue(
