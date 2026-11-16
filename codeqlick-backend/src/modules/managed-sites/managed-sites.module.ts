@@ -28,6 +28,13 @@ import { PortalSitesService } from './portal-sites.service.js';
 import { SiteRequestsController } from './site-requests.controller.js';
 import { SiteVisitsController } from './site-visits.controller.js';
 import { SiteDraftsController } from './site-drafts.controller.js';
+import {
+  AdminMaintenanceController,
+  PortalMaintenanceController,
+  SiteMaintenanceOfferController,
+} from './site-maintenance.controller.js';
+import { SiteMaintenanceRepository } from './site-maintenance.repository.js';
+import { SiteMaintenanceService } from './site-maintenance.service.js';
 import { SiteEditorService } from './site-editor.service.js';
 import { SiteVisitsService } from './site-visits.service.js';
 import { SitePurchasesRepository } from './site-purchases.repository.js';
@@ -60,6 +67,9 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
     SiteNewsController,
     AdminSiteNewsController,
     StripeWebhookController,
+    SiteMaintenanceOfferController,
+    PortalMaintenanceController,
+    AdminMaintenanceController,
   ],
   providers: [
     ManagedSitesService,
@@ -77,6 +87,8 @@ import { StripeWebhookController } from './stripe-webhook.controller.js';
     SiteNewsService,
     SitePurchasesService,
     SitePurchasesRepository,
+    SiteMaintenanceService,
+    SiteMaintenanceRepository,
   ],
   exports: [ManagedSitesService],
 })

@@ -16,6 +16,9 @@ import {
   type Build,
   type ConfigCheck,
   type BuildStatus,
+  type CloudBucket,
+  type CloudBuckets,
+  type CloudDatabase,
   type DeployHook,
   type DetectNote,
   type DetectedSettings,
@@ -50,6 +53,20 @@ import {
 } from './config.ts';
 import { archivePath, downloadFailure, exists, logPath, saveArchive } from './download.ts';
 import { collect, pack } from './pack.ts';
+import {
+  CommandError,
+  bucketTable,
+  columns,
+  confirm,
+  corsLines,
+  databaseTable,
+  findExecutable,
+  keyTable,
+  parseCors,
+  pickByRef,
+  pickKey,
+  psqlInvocation,
+} from './storage.ts';
 import { VERSION } from './version.ts';
 
 const run = promisify(execFile);
@@ -155,6 +172,29 @@ Password protection:
       --revoke                remove the bypass token
       --json                  (protect) print the API's answer
 
+Databases (PostgreSQL) and storage (S3 buckets), by id or exact name:
+  db                        The project's databases: size, read-only, connection string
+  db create <name>          Make one; its URL with the password is shown once
+  db url <name>             Reset the password and print the new URL (asks first)
+  db rm <name>              Delete it and all its data (asks first)
+  db psql <name>            Open the local psql on it (psql asks for the password)
+      --reset                 reset the password first and hand it to psql (asks first)
+  buckets                   The project's buckets: usage, public address, CORS, keys
+  buckets create <name>     Make one (3-63 lowercase letters, digits and dashes)
+  buckets rm <bucket>       Delete an empty bucket and its keys (asks first)
+  buckets keys <bucket>     Its access keys
+  buckets key create <bucket> [--name <name>] [--write]
+                            Make a key (read-only unless --write; named "cli" by default);
+                            the secret is shown once
+  buckets key rm <bucket> <key>   Delete a key: its id, access key id or name (asks first)
+  buckets public <bucket> on|off  Anyone can read its files (on asks first) / private again
+  buckets cors <bucket>     Its CORS rule
+  buckets cors <bucket> set <origin...> [--methods GET,HEAD,PUT] [--headers a,b]
+                            [--max-age <seconds>]   Replace the CORS rule
+  buckets cors <bucket> clear     Remove the CORS rule
+      -y, --yes               don't ask (needed without a terminal, as in CI)
+      --json                  (db, buckets) print the API's answer
+
 Redirects, rewrites and headers: add them to ${PROJECT_FILE} (cleanUrls, trailingSlash,
 redirects, rewrites, headers); \`deploy\` sends them, \`config check\` validates them.
 
@@ -191,6 +231,13 @@ interface Options {
   days?: string;
   out?: string;
   force?: boolean;
+  yes?: boolean;
+  reset?: boolean;
+  name?: string;
+  write?: boolean;
+  methods?: string;
+  headers?: string;
+  'max-age'?: string;
 }
 
 async function context() {
@@ -1696,6 +1743,280 @@ async function protect(action: string | undefined, options: Options): Promise<vo
   showProtection(project, saved);
 }
 
+// ── Databases and storage ─────────────────────────────────────────────────────────────────────
+
+const json = (value: unknown) => console.log(JSON.stringify(value, null, 2));
+
+/** The project's databases; an error when databases aren't set up on this server. */
+async function configuredDatabases(api: Api, project: Project): Promise<CloudDatabase[]> {
+  const list = await api.databases(project.id);
+  if (!list.configured) throw new CommandError("Databases aren't set up on this server.");
+  return list.items;
+}
+
+/** Runs a command with the terminal's input and output; its exit code. */
+function runInherited(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<number> {
+  return new Promise((done, fail) => {
+    const child = spawn(command, args, { stdio: 'inherit', env });
+    child.on('error', fail);
+    child.on('exit', (code, signal) => done(code ?? (signal ? 1 : 0)));
+  });
+}
+
+const RESET_QUESTION = (name: string) =>
+  `Reset the password of ${name}? Apps using the old one stop connecting.`;
+
+async function db(
+  action: string | undefined,
+  name: string | undefined,
+  options: Options,
+): Promise<number> {
+  const list = !action || action === 'ls' || action === 'list';
+  if (!list && !['create', 'url', 'rm', 'remove', 'psql'].includes(action))
+    throw new UsageError(`Unknown action "${action}": ls, create, url, rm or psql.`);
+  if (!list && !name) throw new UsageError(`Which database? codeqlick db ${action} <name>`);
+  if (options.reset && action !== 'psql') throw new UsageError('--reset goes with "db psql".');
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (list) {
+    const answer = await api.databases(project.id);
+    if (options.json) return (json(answer), 0);
+    if (!answer.configured) return (console.log(dim("Databases aren't set up on this server.")), 0);
+    if (answer.items.length === 0) {
+      console.log(dim('No databases yet: codeqlick db create <name>'));
+      return 0;
+    }
+    for (const line of databaseTable(answer.items)) console.log(line);
+    return 0;
+  }
+  if (action === 'create') {
+    const created = await api.createDatabase(project.id, name!);
+    if (options.json) return (json(created), 0);
+    console.log(`${green('✓')} Database ${bold(created.name)} created.`);
+    console.log(`\n  ${created.connectionUrl}\n`);
+    console.log(
+      "This URL holds the password: it won't be shown again. Keep it secret (`codeqlick db url` resets it).",
+    );
+    return 0;
+  }
+  const found = pickByRef(await configuredDatabases(api, project), name!, 'database', project.slug);
+  if (action === 'url') {
+    await confirm(RESET_QUESTION(found.name), options.yes);
+    const reset = await api.resetDatabasePassword(project.id, found.id);
+    if (options.json) return (json(reset), 0);
+    console.log(reset.connectionUrl);
+    console.error(dim("  A new password: it won't be shown again."));
+    return 0;
+  }
+  if (action === 'rm' || action === 'remove') {
+    await confirm(`Delete the database ${found.name} and all its data?`, options.yes);
+    await api.deleteDatabase(project.id, found.id);
+    if (options.json) return (json({}), 0);
+    console.log(`${green('✓')} Deleted the database ${found.name}.`);
+    return 0;
+  }
+  // psql: the URL without the password (psql asks for it), or the new one through PGPASSWORD.
+  const psql = await findExecutable('psql');
+  if (!psql) throw new CommandError("psql isn't installed (or isn't in PATH).");
+  let password: string | undefined;
+  let url = found.connectionUrl;
+  if (options.reset) {
+    await confirm(RESET_QUESTION(found.name), options.yes);
+    const reset = await api.resetDatabasePassword(project.id, found.id);
+    password = reset.password;
+    url = reset.connectionUrl;
+  }
+  const call = psqlInvocation(psql, url, password);
+  return runInherited(call.command, call.args, call.env);
+}
+
+/** The project's buckets; an error when storage isn't set up on this server. */
+async function configuredBuckets(api: Api, project: Project): Promise<CloudBuckets> {
+  const list = await api.buckets(project.id);
+  if (!list.configured) throw new CommandError("Storage isn't set up on this server.");
+  return list;
+}
+
+const BUCKET_ACTIONS = ['create', 'rm', 'remove', 'keys', 'key', 'public', 'cors'];
+
+async function buckets(args: string[], options: Options): Promise<number> {
+  const [action, name, ...more] = args;
+  const list = !action || action === 'ls' || action === 'list';
+  if (!list && !BUCKET_ACTIONS.includes(action)) {
+    throw new UsageError(`Unknown action "${action}": ls, create, rm, keys, key, public or cors.`);
+  }
+  // `key create|rm <bucket> …`: the bucket comes after the key's action.
+  const keyAction = action === 'key' ? name : undefined;
+  if (action === 'key' && keyAction !== 'create' && keyAction !== 'rm' && keyAction !== 'remove')
+    throw new UsageError('codeqlick buckets key create <bucket> | key rm <bucket> <key>');
+  const bucketRef = action === 'key' ? more.shift() : name;
+  if (!list && !bucketRef) {
+    throw new UsageError(
+      `Which bucket? codeqlick buckets ${action}${keyAction ? ` ${keyAction}` : ''} <bucket>`,
+    );
+  }
+  const { api } = await signedIn();
+  const project = await target(api, options);
+  if (list) {
+    const answer = await api.buckets(project.id);
+    if (options.json) return (json(answer), 0);
+    if (!answer.configured) return (console.log(dim("Storage isn't set up on this server.")), 0);
+    console.log(
+      dim(
+        `Endpoint ${answer.endpoint} · region ${answer.region} · ${answer.publicCount} of ${answer.publicLimit} public`,
+      ),
+    );
+    if (answer.items.length === 0) {
+      console.log(dim('No buckets yet: codeqlick buckets create <name>'));
+      return 0;
+    }
+    for (const line of bucketTable(answer.items)) console.log(line);
+    return 0;
+  }
+  if (action === 'create') {
+    const created = await api.createBucket(project.id, bucketRef!);
+    if (options.json) return (json(created), 0);
+    console.log(`${green('✓')} Bucket ${bold(created.name)} created.`);
+    console.log(dim(`  Make a key for it: codeqlick buckets key create ${created.name}`));
+    return 0;
+  }
+  const bucket = pickByRef(
+    (await configuredBuckets(api, project)).items,
+    bucketRef!,
+    'bucket',
+    project.slug,
+  );
+  switch (action) {
+    case 'rm':
+    case 'remove':
+      await confirm(`Delete the bucket ${bucket.name} and its keys?`, options.yes);
+      await api.deleteBucket(project.id, bucket.id);
+      if (options.json) return (json({}), 0);
+      console.log(`${green('✓')} Deleted the bucket ${bucket.name}.`);
+      return 0;
+    case 'keys':
+      if (options.json) return (json(bucket.keys), 0);
+      if (bucket.keys.length === 0)
+        console.log(dim(`No keys yet: codeqlick buckets key create ${bucket.name}`));
+      else for (const line of keyTable(bucket.keys)) console.log(line);
+      return 0;
+    case 'key':
+      return keyAction === 'create'
+        ? createKey(api, project, bucket, options)
+        : removeKey(api, project, bucket, more[0], options);
+    case 'public':
+      return setPublic(api, project, bucket, more[0], options);
+    default:
+      return cors(api, project, bucket, more, options);
+  }
+}
+
+async function createKey(
+  api: Api,
+  project: Project,
+  bucket: CloudBucket,
+  options: Options,
+): Promise<number> {
+  const created = await api.createBucketKey(
+    project.id,
+    bucket.id,
+    options.name ?? 'cli',
+    options.write === true,
+  );
+  if (options.json) return (json(created), 0);
+  console.log(
+    `${green('✓')} ${created.write ? 'Read-write' : 'Read-only'} key ${bold(created.name)} for ${bucket.name}:`,
+  );
+  const lines = columns([
+    ['  endpoint', bucket.endpoint],
+    ['  region', bucket.region],
+    ['  bucket', bucket.name],
+    ['  access key id', created.accessKeyId],
+    ['  secret access key', created.secretAccessKey],
+  ]);
+  for (const line of lines) console.log(line);
+  console.log(
+    "The secret won't be shown again: keep it secret. S3 clients need path-style addresses (forcePathStyle).",
+  );
+  return 0;
+}
+
+async function removeKey(
+  api: Api,
+  project: Project,
+  bucket: CloudBucket,
+  ref: string | undefined,
+  options: Options,
+): Promise<number> {
+  if (!ref) throw new UsageError('Which key? codeqlick buckets key rm <bucket> <key>');
+  const key = pickKey(bucket.keys, ref, bucket.name);
+  await confirm(
+    `Delete the key ${key.name} (${key.accessKeyId}) of ${bucket.name}? Apps using it lose access.`,
+    options.yes,
+  );
+  await api.deleteBucketKey(project.id, bucket.id, key.id);
+  if (options.json) return (json({}), 0);
+  console.log(`${green('✓')} Deleted the key ${key.name} (${key.accessKeyId}).`);
+  return 0;
+}
+
+async function setPublic(
+  api: Api,
+  project: Project,
+  bucket: CloudBucket,
+  state: string | undefined,
+  options: Options,
+): Promise<number> {
+  const value = state?.toLowerCase();
+  if (value !== 'on' && value !== 'off')
+    throw new UsageError(`On or off? codeqlick buckets public ${bucket.name} on|off`);
+  if (value === 'on') {
+    await confirm(
+      `Anyone with the address will be able to read every file in ${bucket.name}.`,
+      options.yes,
+    );
+  }
+  const changed = await api.updateBucket(project.id, bucket.id, { public: value === 'on' });
+  if (options.json) return (json(changed), 0);
+  if (changed.public) {
+    console.log(`${green('✓')} ${bold(changed.name)} is public. Its files are at:`);
+    console.log(changed.publicUrl ?? '');
+  } else console.log(`${green('✓')} ${bold(changed.name)} is private.`);
+  return 0;
+}
+
+async function cors(
+  api: Api,
+  project: Project,
+  bucket: CloudBucket,
+  args: string[],
+  options: Options,
+): Promise<number> {
+  const [sub, ...origins] = args;
+  if (sub === undefined) {
+    if (options.json) return (json(bucket.cors), 0);
+    for (const line of corsLines(bucket.cors)) console.log(line);
+    return 0;
+  }
+  if (sub !== 'set' && sub !== 'clear')
+    throw new UsageError(`Unknown action "${sub}": codeqlick buckets cors <bucket> set|clear`);
+  const rule =
+    sub === 'clear'
+      ? null
+      : parseCors(origins, {
+          methods: options.methods,
+          headers: options.headers,
+          'max-age': options['max-age'],
+        });
+  const changed = await api.updateBucket(project.id, bucket.id, { cors: rule });
+  if (options.json) return (json(changed), 0);
+  console.log(
+    `${green('✓')} ${rule ? 'Saved the CORS rule of' : 'Cleared the CORS rule of'} ${bold(changed.name)}.`,
+  );
+  if (rule) for (const line of corsLines(changed.cors)) console.log(line);
+  return 0;
+}
+
 export async function main(argv: string[]): Promise<number> {
   const { values, positionals } = parseArgs({
     args: argv,
@@ -1727,6 +2048,13 @@ export async function main(argv: string[]): Promise<number> {
       days: { type: 'string' },
       out: { type: 'string', short: 'o' },
       force: { type: 'boolean' },
+      yes: { type: 'boolean', short: 'y' },
+      reset: { type: 'boolean' },
+      name: { type: 'string' },
+      write: { type: 'boolean' },
+      methods: { type: 'string' },
+      headers: { type: 'string' },
+      'max-age': { type: 'string' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -1814,12 +2142,20 @@ export async function main(argv: string[]): Promise<number> {
       case 'protect':
         await protect(rest[0], options);
         break;
+      case 'db':
+        return await db(rest[0], rest[1], options);
+      case 'buckets':
+        return await buckets(rest, options);
       default:
         throw new UsageError(`Unknown command "${command}". Run codeqlick --help.`);
     }
     return 0;
   } catch (error) {
-    if (error instanceof UsageError || error instanceof ProjectFileError)
+    if (
+      error instanceof UsageError ||
+      error instanceof CommandError ||
+      error instanceof ProjectFileError
+    )
       console.error(error.message);
     else if (error instanceof ApiError) {
       console.error(

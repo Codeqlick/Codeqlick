@@ -11,6 +11,7 @@ import { AccountsService } from '../accounts/accounts.service.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { availableFromRdap, candidatesOf } from './availability.js';
 import { MailService } from '../mail/mail.service.js';
+import { maintenanceOn } from '../managed-sites/site-maintenance.js';
 import { domainClientEmail, domainTeamEmail } from './domain-emails.js';
 import { DomainsRepository, type DomainRow } from './domains.repository.js';
 import type { DomainSettingsInput } from './domains.schemas.js';
@@ -286,6 +287,7 @@ export class DomainsService implements OnApplicationBootstrap, OnApplicationShut
       project: row.name,
       expiresAt: day,
       days: daysUntil(day, now),
+      plan: maintenanceOn(row.maintenanceStatus, row.maintenanceIncludedReason),
     };
     const site = this.config.siteUrl;
     await this.mail.send(

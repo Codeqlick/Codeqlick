@@ -395,6 +395,89 @@ export interface Monitor {
   createdAt: string;
 }
 
+/** A project's PostgreSQL database (`connectionUrl` without the password). */
+export interface CloudDatabase {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  sizeBytes: number;
+  maxBytes: number;
+  readOnly: boolean;
+  connectionUrl: string;
+  createdAt: string;
+}
+
+/** What creating a database or resetting its password answers: the password, once. */
+export interface CloudDatabaseSecret extends CloudDatabase {
+  password: string;
+}
+
+export interface CloudDatabases {
+  configured: boolean;
+  items: CloudDatabase[];
+}
+
+export type CorsMethod = 'GET' | 'HEAD' | 'PUT' | 'POST' | 'DELETE';
+
+/** A bucket's CORS rule. */
+export interface CorsRule {
+  origins: string[];
+  methods: CorsMethod[];
+  headers: string[];
+  exposeHeaders: string[];
+  maxAge: number;
+}
+
+/** A CORS rule as sent: the API fills in the defaults of what is left out. */
+export interface CorsInput {
+  origins: string[];
+  methods?: CorsMethod[];
+  headers?: string[];
+  exposeHeaders?: string[];
+  maxAge?: number;
+}
+
+export interface CloudBucketKey {
+  id: string;
+  name: string;
+  accessKeyId: string;
+  write: boolean;
+  createdAt: string;
+}
+
+/** What creating an access key answers: the secret, once. */
+export interface CloudBucketKeySecret extends CloudBucketKey {
+  secretAccessKey: string;
+}
+
+export interface CloudBucket {
+  id: string;
+  name: string;
+  endpoint: string;
+  region: string;
+  sizeBytes: number;
+  objects: number;
+  maxBytes: number;
+  maxObjects: number;
+  public: boolean;
+  publicUrl: string | null;
+  cors: CorsRule | null;
+  keys: CloudBucketKey[];
+  createdAt: string;
+}
+
+export interface CloudBuckets {
+  configured: boolean;
+  endpoint: string;
+  region: string;
+  publicLimit: number;
+  publicCount: number;
+  items: CloudBucket[];
+}
+
 export class Api {
   private readonly base: string;
   private readonly token: string | undefined;
@@ -617,6 +700,49 @@ export class Api {
       'POST',
       `/cloud/projects/${project}/kv/${encodeURIComponent(key)}/incr`,
       { by },
+    );
+  databases = (project: string) =>
+    this.request<CloudDatabases>('GET', `/cloud/projects/${project}/databases`);
+  database = (project: string, id: string) =>
+    this.request<CloudDatabase>(
+      'GET',
+      `/cloud/projects/${project}/databases/${encodeURIComponent(id)}`,
+    );
+  createDatabase = (project: string, name: string) =>
+    this.request<CloudDatabaseSecret>('POST', `/cloud/projects/${project}/databases`, { name });
+  resetDatabasePassword = (project: string, id: string) =>
+    this.request<CloudDatabaseSecret>(
+      'POST',
+      `/cloud/projects/${project}/databases/${encodeURIComponent(id)}/password`,
+    );
+  deleteDatabase = (project: string, id: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/databases/${encodeURIComponent(id)}`);
+  buckets = (project: string) =>
+    this.request<CloudBuckets>('GET', `/cloud/projects/${project}/buckets`);
+  createBucket = (project: string, name: string) =>
+    this.request<CloudBucket>('POST', `/cloud/projects/${project}/buckets`, { name });
+  updateBucket = (
+    project: string,
+    id: string,
+    change: { public?: boolean; cors?: CorsInput | null },
+  ) =>
+    this.request<CloudBucket>(
+      'PATCH',
+      `/cloud/projects/${project}/buckets/${encodeURIComponent(id)}`,
+      change,
+    );
+  deleteBucket = (project: string, id: string) =>
+    this.request<void>('DELETE', `/cloud/projects/${project}/buckets/${encodeURIComponent(id)}`);
+  createBucketKey = (project: string, bucket: string, name: string, write: boolean) =>
+    this.request<CloudBucketKeySecret>(
+      'POST',
+      `/cloud/projects/${project}/buckets/${encodeURIComponent(bucket)}/keys`,
+      { name, write },
+    );
+  deleteBucketKey = (project: string, bucket: string, key: string) =>
+    this.request<void>(
+      'DELETE',
+      `/cloud/projects/${project}/buckets/${encodeURIComponent(bucket)}/keys/${encodeURIComponent(key)}`,
     );
   monitors = (team: string) =>
     this.request<{ items: Monitor[] }>('GET', `/cloud/teams/${encodeURIComponent(team)}/monitors`);

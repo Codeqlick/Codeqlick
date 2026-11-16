@@ -767,6 +767,8 @@ export type Ticket = {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  /** A change request under the site maintenance plan: one of the month's 3 or past them. */
+  maintenanceIncluded?: boolean | null;
 };
 
 export type TicketMessage = {

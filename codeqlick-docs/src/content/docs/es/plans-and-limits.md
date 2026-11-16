@@ -24,6 +24,8 @@ Codeqlick Cloud tiene un plan gratuito y un plan PRO. Cada equipo tiene un plan.
 | Tamaño de la subida                 | 50 MB    | 50 MB     |
 | Despliegues por hora                | 30       | 120       |
 | Dominios propios por proyecto       | 5        | 20        |
+| Hilos de comentarios por proyecto   | 2.000    | 2.000     |
+| Comentarios por hilo                | 100      | 100       |
 | **Compilaciones**                   |          |           |
 | Compilaciones al mes                | 200      | 3.000     |
 | Minutos por compilación             | 15       | 30        |
@@ -43,6 +45,7 @@ Codeqlick Cloud tiene un plan gratuito y un plan PRO. Cada equipo tiene un plan.
 | Buckets por proyecto                | 2        | 10        |
 | Tamaño de un bucket                 | 1 GB     | 50 GB     |
 | Objetos por bucket                  | 100.000  | 1.000.000 |
+| Buckets públicos por proyecto       | 1        | 10        |
 
 Los límites mensuales se cuentan por mes natural, en hora de Madrid. Codeqlick guarda los últimos 20 despliegues de cada proyecto más su despliegue de producción.
 

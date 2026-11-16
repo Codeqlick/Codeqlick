@@ -10,6 +10,12 @@ import type {
   User,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  allowanceFor,
+  maintenanceOn,
+  priorityWithPlan,
+  type MaintenanceStatus,
+} from '../managed-sites/site-maintenance.js';
 
 type Person = Pick<User, 'id' | 'name' | 'email' | 'role' | 'locale' | 'isActive'>;
 export type MessageWithAuthor = TicketMessage & { author: Pick<User, 'name' | 'role'> | null };
@@ -92,20 +98,58 @@ export class SupportRepository {
     });
   }
 
-  /** Opens a request with its description as the first message, by `authorId`. */
-  create(data: {
-    clientId: string;
-    authorId: string;
-    projectId: string | null;
-    type: TicketType;
-    priority: TicketPriority;
-    title: string;
-    body: string;
-  }): Promise<TicketDetailRow> {
+  /**
+   * Opens a request with its description as the first message, by `authorId`. On a project whose
+   * maintenance plan is on (decision 110) it starts at `HIGH` priority and a `CHANGE` is counted
+   * against the month's allowance (from `monthStart`), the project's row locked so two requests
+   * opened at once are counted one after the other.
+   */
+  create(
+    data: {
+      clientId: string;
+      authorId: string;
+      projectId: string | null;
+      type: TicketType;
+      priority: TicketPriority;
+      title: string;
+      body: string;
+    },
+    monthStart: Date,
+  ): Promise<{ row: TicketDetailRow; plan: boolean }> {
     const { body, authorId, ...ticket } = data;
-    return this.prisma.supportTicket.create({
-      data: { ...ticket, messages: { create: { authorId, body } } },
-      include: detailInclude,
+    return this.prisma.$transaction(async (tx) => {
+      let priority = ticket.priority;
+      let maintenanceIncluded: boolean | null = null;
+      let plan = false;
+      if (ticket.projectId) {
+        const [project] = await tx.$queryRaw<
+          Array<{ status: MaintenanceStatus; included: string | null }>
+        >`SELECT maintenance_status::text AS status, maintenance_included_reason AS included
+          FROM client_projects WHERE id = ${ticket.projectId}::uuid FOR UPDATE`;
+        const on = project !== undefined && maintenanceOn(project.status, project.included);
+        if (on) {
+          plan = true;
+          priority = priorityWithPlan(on, priority);
+          const used = await tx.supportTicket.count({
+            where: {
+              projectId: ticket.projectId,
+              maintenanceIncluded: true,
+              createdAt: { gte: monthStart },
+            },
+          });
+          maintenanceIncluded = allowanceFor(on, ticket.type, used);
+        }
+      }
+      const row = await tx.supportTicket.create({
+        data: {
+          ...ticket,
+          priority,
+          maintenanceIncluded,
+          messages: { create: { authorId, body } },
+        },
+        include: detailInclude,
+      });
+      return { row, plan };
     });
   }
 

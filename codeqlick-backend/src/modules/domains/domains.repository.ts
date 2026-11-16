@@ -11,6 +11,8 @@ const select = {
   domainExpiresAt: true,
   domainCheckedAt: true,
   domainWarnedFor: true,
+  maintenanceStatus: true,
+  maintenanceIncludedReason: true,
 } as const;
 
 export type DomainRow = Prisma.ClientProjectGetPayload<{ select: typeof select }>;

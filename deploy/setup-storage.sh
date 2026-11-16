@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Publishes Codeqlick Cloud's object storage at https://s3.<hosting domain> (architecture 4.13
 # "Object storage", decision 48): installs the Nginx site in front of Garage (the cloud-storage
-# service, which listens on 127.0.0.1:3900) and reloads Nginx. Idempotent.
+# service, which listens on 127.0.0.1:3900, and its website endpoint for public buckets on
+# 127.0.0.1:3902, decision 111) and reloads Nginx. Idempotent: run it again after a change.
 # Usage: sudo ./deploy/setup-storage.sh [hosting domain, default CLOUD_HOSTING_DOMAIN in .env]
 set -Eeuo pipefail
 trap 'printf "\nError: the step on line %s failed\n" "$LINENO" >&2' ERR
@@ -26,4 +27,4 @@ sed "s/__DOMAIN__/$DOMAIN/g" deploy/nginx/cloud-storage.conf.template >"$SITE"
 ln -sf "$SITE" /etc/nginx/sites-enabled/cloud-storage.conf
 nginx -t
 systemctl reload nginx
-echo "https://s3.$DOMAIN -> Garage (127.0.0.1:3900)."
+echo "https://s3.$DOMAIN -> Garage (127.0.0.1:3900); /_public/ -> its website endpoint (127.0.0.1:3902)."

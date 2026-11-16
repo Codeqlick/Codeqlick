@@ -860,6 +860,24 @@ with the same account and keys as above. It is off until `STRIPE_CLOUD_PRO_PRICE
 3. The webhook endpoint of step 3 above also gets `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted` and `invoice.payment_failed`.
 4. `STRIPE_CLOUD_PRO_PRICE_ID=price_…` in `/srv/codeqlick/.env`, then recreate the API.
+
+### Maintenance plan for managed sites (Stripe)
+
+Clients subscribe to the maintenance plan of their website from the portal (architecture 8.2,
+decision 110), with the same account, keys and webhook endpoint as above. It is off, and hidden
+everywhere, until `STRIPE_MAINTENANCE_PRICE_ID` is set. The code never creates live Stripe objects;
+the one manual step, in **live mode** of Codeqlick's account:
+
+1. Product catalogue → Add product **"Mantenimiento web"** with a **recurring monthly** price of
+   **19,00 EUR**, tax behaviour **exclusive** (the API adds the "IVA" tax rate). Copy the price's
+   id (`price_…`).
+2. The customer portal of the Cloud steps above (Settings → Billing → Customer portal) is the one
+   it opens: card, invoices and cancelling **at the end of the period**. If it isn't active yet,
+   activate it with those options. Don't allow switching to other products.
+3. Webhook: no new events. The endpoint already sends `checkout.session.completed`,
+   `customer.subscription.created`, `customer.subscription.updated`,
+   `customer.subscription.deleted` and `invoice.payment_failed` (check they are all ticked).
+4. `STRIPE_MAINTENANCE_PRICE_ID=price_…` in `/srv/codeqlick/.env`, then recreate the API.
 ### Codeqlick Cloud's databases (cloud-pg)
 
 Managed PostgreSQL for projects (architecture 4.13 "Databases", decision 47) runs, for now, on
@@ -910,6 +928,22 @@ service (one node; data in the `cloud-storage-data` volume). Its S3 API is publi
 
 Buckets have Garage quotas from the team's plan; keys reach one bucket each. Objects aren't
 backed up yet: the console says so.
+
+**Public read buckets** (architecture 4.13, decision 111) are served by Garage's website endpoint
+(`[s3_web]` in `deploy/cloud-storage/garage.toml`, published on `127.0.0.1:3902`) at
+`https://s3.codeqlick.app/_public/<bucket>/<key>`: same host and certificate, no DNS change. Once,
+after the deploy that brings it:
+
+1. The deploy recreates `cloud-storage` (its ports changed). If it didn't, as `cqadmin`:
+   `docker compose -f docker-compose.prod.yml up -d cloud-storage`. Check:
+   `curl -sI http://127.0.0.1:3902` answers from Garage.
+2. `sudo ./deploy/setup-storage.sh` again (idempotent): it renders the S3 site with the new
+   `/_public/` location and reloads Nginx.
+3. Check: `curl -sI https://s3.codeqlick.app/_public/no-such-bucket/x` answers `404` from Garage,
+   with `Content-Security-Policy: sandbox`.
+
+Until step 2, turning a bucket public in the console works but its address answers S3's `403`.
+CORS rules need nothing on the server: the API sets them through Garage's admin API.
 
 ### Publishing
 

@@ -12,6 +12,7 @@ Codeqlick Cloud is a set of developer tools for web projects. You build your sit
 - **[Static hosting](/en/static-hosting/):** every deployment gets its own address, you publish one of them, and you roll back in a second.
 - **[Custom domains](/en/custom-domains/):** serve your site on your own domain with an automatic HTTPS certificate.
 - **[Builds from Git](/en/builds-from-git/):** connect a GitHub repository and every push is built and published. Pull requests get preview addresses.
+- **[Preview comments](/en/preview-comments/):** your team pins comments on a deployment's preview and follows them from one inbox.
 - **[Forms](/en/forms/):** post an HTML form to Codeqlick and get each submission by email and in the console.
 - **[Monitors and status pages](/en/monitors-and-status-pages/):** uptime checks, cron heartbeats and a public status page.
 - **[Web analytics](/en/analytics/):** count visits without cookies.

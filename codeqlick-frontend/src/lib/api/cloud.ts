@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { clientHeaders } from '@/lib/auth/refresh';
-import { type CloudEventFilters, cloudEventFiltersQuery } from '@/lib/cloud';
+import { type CloudEventFilters, type CorsRuleInput, cloudEventFiltersQuery } from '@/lib/cloud';
 import { env } from '@/lib/env';
 import { apiFetch } from './client';
 import { authHeader } from './projects';
@@ -1676,8 +1676,24 @@ export type CloudBucket = {
   objects: number | null;
   maxBytes: number;
   maxObjects: number;
+  /** Public read (decision 111): anyone with `publicUrl` + a file's key can download it. */
+  public: boolean;
+  /** `https://s3.<domain>/_public/<bucket>/` while public, else null. */
+  publicUrl: string | null;
+  cors: CloudBucketCors | null;
   keys: CloudBucketKey[];
   createdAt: string;
+};
+
+export type CloudCorsMethod = 'GET' | 'HEAD' | 'PUT' | 'POST' | 'DELETE';
+
+/** A bucket's one CORS rule (architecture 4.13 "Object storage", decision 111). */
+export type CloudBucketCors = {
+  origins: string[];
+  methods: CloudCorsMethod[];
+  headers: string[];
+  exposeHeaders: string[];
+  maxAge: number;
 };
 
 export const listCloudBuckets = (projectId: string) =>
@@ -1685,8 +1701,23 @@ export const listCloudBuckets = (projectId: string) =>
     configured: boolean;
     endpoint: string | null;
     region: string | null;
+    /** Public buckets this project may have on its plan, and how many it has. */
+    publicLimit: number;
+    publicCount: number;
     items: CloudBucket[];
   }>(`/cloud/projects/${projectId}/buckets`, auth);
+
+/** Public read on or off, or the CORS rule (null clears it); ADMIN. 409 past the plan. */
+export const updateCloudBucket = (
+  projectId: string,
+  bucketId: string,
+  input: { public?: boolean; cors?: CorsRuleInput | null },
+) =>
+  apiFetch<CloudBucket>(`/cloud/projects/${projectId}/buckets/${bucketId}`, {
+    ...write,
+    method: 'PATCH',
+    body: input,
+  });
 
 export const createCloudBucket = (projectId: string, name: string) =>
   apiFetch<CloudBucket>(`/cloud/projects/${projectId}/buckets`, {
@@ -1715,6 +1746,80 @@ export const deleteCloudBucketKey = (projectId: string, bucketId: string, keyId:
   apiFetch<void>(`/cloud/projects/${projectId}/buckets/${bucketId}/keys/${keyId}`, {
     ...write,
     method: 'DELETE',
+  });
+
+// ── Preview comments (architecture 4.13 "Preview comments", decision 111) ─────────────────
+
+export type CloudComment = {
+  id: string;
+  /** Plain text: never rendered as HTML. */
+  body: string;
+  author: { id: string | null; name: string };
+  mentions: { id: string; name: string }[];
+  createdAt: string;
+};
+
+export type CloudCommentThread = {
+  id: string;
+  /** Null once the hourly cleanup deleted the deployment (its pins can't be opened then). */
+  deploymentId: string | null;
+  deploymentShort: string;
+  path: string;
+  x: number;
+  y: number;
+  selector: string | null;
+  viewportWidth: number | null;
+  resolvedAt: string | null;
+  resolvedBy: { id: string | null; name: string } | null;
+  createdAt: string;
+  lastCommentAt: string;
+  comments: CloudComment[];
+};
+
+export type CloudCommentStatus = 'open' | 'resolved' | 'all';
+
+export const listCloudComments = (
+  projectId: string,
+  filters: { status?: CloudCommentStatus; deploymentId?: string; path?: string } = {},
+) =>
+  apiFetch<{ open: number; items: CloudCommentThread[] }>(`/cloud/projects/${projectId}/comments`, {
+    ...auth,
+    query: filters,
+  });
+
+export const replyCloudComment = (
+  projectId: string,
+  threadId: string,
+  input: { body: string; mentions?: string[] },
+) =>
+  apiFetch<CloudComment>(`/cloud/projects/${projectId}/comments/${threadId}/comments`, {
+    ...write,
+    method: 'POST',
+    body: input,
+  });
+
+export const resolveCloudCommentThread = (projectId: string, threadId: string, resolved: boolean) =>
+  apiFetch<CloudCommentThread>(`/cloud/projects/${projectId}/comments/${threadId}`, {
+    ...write,
+    method: 'PATCH',
+    body: { resolved },
+  });
+
+export const deleteCloudComment = (projectId: string, threadId: string, commentId: string) =>
+  apiFetch<void>(`/cloud/projects/${projectId}/comments/${threadId}/comments/${commentId}`, {
+    ...write,
+    method: 'DELETE',
+  });
+
+/** The deployment's comments page with a 2-hour token in its fragment (session only). */
+export const createCloudCommentSession = (
+  projectId: string,
+  input: { deploymentId: string; path?: string },
+) =>
+  apiFetch<{ url: string; expiresAt: string }>(`/cloud/projects/${projectId}/comments/session`, {
+    ...write,
+    method: 'POST',
+    body: input,
   });
 
 // ── Disk guard (architecture 4.13 "Disk guard (one server)", decision 49) ─────────────────

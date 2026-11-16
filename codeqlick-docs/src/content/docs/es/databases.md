@@ -15,7 +15,7 @@ En la pestaña **Bases de datos** del proyecto, pulsa **Crear** y ponle un nombr
 postgresql://cq_0123456789abcdef:YOUR_PASSWORD@pg.codeqlick.app:5432/cq_0123456789abcdef?sslmode=require
 ```
 
-El usuario y la base de datos tienen el mismo nombre. Codeqlick no guarda la contraseña, así que cópiala cuando se muestre. Si la pierdes, genera una nueva en la consola. Al hacerlo se sustituye la contraseña, así que actualiza la configuración de tu app.
+El usuario y la base de datos tienen el mismo nombre. Codeqlick no guarda la contraseña, así que cópiala cuando se muestre. Si la pierdes, genera una nueva en la consola o con `codeqlick db url`. Al hacerlo se sustituye la contraseña, así que actualiza la configuración de tu app.
 
 También puedes usar la API:
 
@@ -27,6 +27,28 @@ curl -X POST "https://api.codeqlick.com/v1/cloud/projects/<project-id>/databases
 ```
 
 La respuesta incluye una sola vez `password` y la `connectionUrl` completa.
+
+## Desde la línea de comandos
+
+La [CLI](/es/cli/) gestiona las bases de datos del proyecto enlazado en tu carpeta, o de `--project <slug>`. Cada comando acepta `--json`.
+
+```sh
+codeqlick db ls              # nombre, tamaño frente al límite, solo lectura, cadena de conexión
+codeqlick db create main     # imprime una sola vez la URL de conexión completa
+codeqlick db url main        # genera una contraseña nueva e imprime la URL una sola vez
+codeqlick db psql main       # abre psql; te pide la contraseña
+codeqlick db psql main --reset
+codeqlick db rm main
+```
+
+- `db create` imprime la URL de conexión con su contraseña **una sola vez**. Cópiala en ese momento.
+- `db url` **sustituye** la contraseña, porque Codeqlick no la guarda. Las apps que usan la contraseña anterior dejan de conectarse, así que pregunta antes.
+- `db psql` ejecuta tu `psql` local, que debe estar instalado. Sin `--reset`, `psql` te pide la contraseña. Con `--reset`, la CLI genera antes una contraseña nueva, preguntando como `db url`, y se la pasa a `psql` con la variable de entorno `PGPASSWORD`, nunca en la línea de comandos.
+- `db rm` pregunta antes de borrar la base de datos y todos sus datos.
+
+Para saltarte la pregunta, pasa `--yes` (`-y`). Sin terminal, por ejemplo en CI, estos comandos se niegan salvo que pases `--yes`, para que un script nunca se quede esperando ni borre nada por accidente.
+
+El nombre de una base de datos se busca primero como ID y después exactamente como nombre. Si dos bases de datos tienen el mismo nombre, usa el ID que muestra el error.
 
 ## Conéctate
 

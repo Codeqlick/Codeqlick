@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CloudApi } from '../../common/decorators/cloud-api.decorator.js';
@@ -15,10 +25,12 @@ import {
   bucketParamSchema,
   createBucketKeySchema,
   createBucketSchema,
+  updateBucketSchema,
   type BucketKeyParam,
   type BucketParam,
   type CreateBucketInput,
   type CreateBucketKeyInput,
+  type UpdateBucketInput,
 } from './cloud.schemas.js';
 
 /** A project's buckets and their keys (architecture 4.13 "Object storage", decision 48). */
@@ -38,6 +50,8 @@ export class CloudStorageController {
     configured: boolean;
     endpoint: string | null;
     region: string | null;
+    publicLimit: number;
+    publicCount: number;
     items: BucketView[];
   }> {
     return this.storage.list(ctx, params.id);
@@ -51,6 +65,17 @@ export class CloudStorageController {
     @Body({ schema: createBucketSchema }) body: CreateBucketInput,
   ): Promise<BucketView> {
     return this.storage.create(ctx, params.id, body.name);
+  }
+
+  /** Public read and the CORS rule (decision 111). */
+  @Patch(':bucketId')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  update(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: bucketParamSchema }) params: BucketParam,
+    @Body({ schema: updateBucketSchema }) body: UpdateBucketInput,
+  ): Promise<BucketView> {
+    return this.storage.update(ctx, params.id, params.bucketId, body);
   }
 
   @Delete(':bucketId')

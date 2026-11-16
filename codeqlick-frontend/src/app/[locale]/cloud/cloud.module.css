@@ -757,3 +757,10 @@
   padding-top: var(--space-4);
   border-top: 1px solid var(--color-line);
 }
+
+/* A preview comment: plain text, its line breaks kept. */
+.commentBody {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
