@@ -51,6 +51,11 @@ export class AppConfigService {
     return this.get('SITE_URL');
   }
 
+  /** The account host (decision 108), without a trailing slash: account.<SITE_URL's host>. */
+  get accountUrl(): string {
+    return this.get('ACCOUNT_URL') ?? this.siteUrl.replace('://', '://account.');
+  }
+
   get jwtAccessSecret(): string {
     return this.get('JWT_ACCESS_SECRET');
   }
@@ -280,7 +285,9 @@ export class AppConfigService {
       .map((origin) => origin.trim().replace(/\/+$/, ''))
       .filter((origin) => origin.length > 0);
     if (configured.length > 0) return configured;
-    return [...new Set([this.siteUrl, ...WEBAPPS.map((app) => this.webappUrl(app))])];
+    return [
+      ...new Set([this.siteUrl, this.accountUrl, ...WEBAPPS.map((app) => this.webappUrl(app))]),
+    ];
   }
 
   get adminTwoFactorRequired(): boolean {

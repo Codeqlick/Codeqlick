@@ -117,10 +117,10 @@ describe('Cruising in more languages (decision 103, e2e)', () => {
     const mail = mine().at(-1);
     expect(mail?.subject).toBe('New sign-in to your account — Codeqlick');
     expect(mail?.html).toContain('lang="en"');
-    expect(mail?.text).toContain('/en/portal/account');
+    expect(mail?.text).toContain('account.localhost:3000/en/security');
   });
 
-  it('signs up from Cruising in French: account in French, email in English, link to Cruising', async () => {
+  it('signs up from Cruising in French: account in French, email in English, link back to Cruising', async () => {
     sent.length = 0;
     const newcomer = `e2e-lang-new-${tag}@codeqlick.test`;
     await request(server())
@@ -137,7 +137,9 @@ describe('Cruising in more languages (decision 103, e2e)', () => {
       .expect(202);
     const mail = sent.find((message) => message.to === newcomer);
     expect(mail?.html).toContain('lang="en"');
-    expect(mail?.text).toMatch(/cruising\.[^/\s]+\/fr\/register\/confirm\?token=/);
+    expect(mail?.text).toMatch(
+      /account\.[^/\s]+\/fr\/register\/confirm\?token=[\w-]+&app=cruising/,
+    );
     const pending = await prisma.signupToken.findFirstOrThrow({ where: { email: newcomer } });
     expect(pending.locale).toBe('FR');
   });

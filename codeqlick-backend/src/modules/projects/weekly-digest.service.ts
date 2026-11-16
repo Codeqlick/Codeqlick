@@ -124,7 +124,7 @@ export class WeeklyDigestService implements OnApplicationBootstrap, OnApplicatio
             p.nextMilestone,
         ),
         `${site}/${locale}/portal`,
-        `${site}/${locale}/portal/account`,
+        `${this.config.accountUrl}/${locale}/notifications`,
         locale,
         site,
         unsubscribeLinks({ userId: client.id, kind: 'digest' }, locale, {

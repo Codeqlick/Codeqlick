@@ -2,16 +2,19 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { AuthRepository } from './auth.repository.js';
 import type { PasskeyRepository } from './passkeys.repository.js';
+import type { SsoRepository } from './sso.repository.js';
 import { EXPIRED_RETENTION_DAYS, TokenCleanupService } from './token-cleanup.service.js';
 
 function setup(
   deleteExpired: ReturnType<typeof vi.fn>,
   deleteExpiredChallenges: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(0),
+  deleteExpiredCodes: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue(0),
 ) {
   const repository = { deleteExpired } as unknown as AuthRepository;
   const passkeys = { deleteExpiredChallenges } as unknown as PasskeyRepository;
   const config = { nodeEnv: 'test' } as AppConfigService;
-  return new TokenCleanupService(repository, config, passkeys);
+  const sso = { deleteExpired: deleteExpiredCodes } as unknown as SsoRepository;
+  return new TokenCleanupService(repository, config, passkeys, sso);
 }
 
 describe('TokenCleanupService', () => {
@@ -33,6 +36,16 @@ describe('TokenCleanupService', () => {
     await setup(deleteExpired, deleteExpiredChallenges).run(now);
 
     expect(deleteExpiredChallenges).toHaveBeenCalledWith(now);
+  });
+
+  it('deletes single sign-on codes a day after they expire', async () => {
+    const deleteExpired = vi.fn().mockResolvedValue({ sessions: 0, resetTokens: 0 });
+    const deleteExpiredCodes = vi.fn().mockResolvedValue(4);
+    const now = new Date('2026-11-17T08:00:00Z');
+
+    await setup(deleteExpired, undefined, deleteExpiredCodes).run(now);
+
+    expect(deleteExpiredCodes).toHaveBeenCalledWith(new Date('2026-11-16T08:00:00Z'));
   });
 
   it('logs a failed run instead of throwing', async () => {

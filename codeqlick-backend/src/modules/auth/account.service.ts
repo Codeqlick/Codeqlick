@@ -35,6 +35,20 @@ import { PasswordService } from './password.service.js';
 export const EMAIL_CHANGE_TTL_HOURS = 24;
 
 /** What people do with their own account: name, email, a copy of their data, deleting it. */
+/** How many account activity entries the account site shows. */
+const ACTIVITY_SHOWN = 30;
+
+export interface AccountActivity {
+  action: string;
+  at: string;
+  details: Record<string, unknown> | null;
+}
+
+export interface AccountApp {
+  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas' | 'videochat' | 'swipe' | 'cruising';
+  count: number;
+}
+
 @Injectable()
 export class AccountService {
   private readonly logger = new Logger(AccountService.name);
@@ -128,7 +142,7 @@ export class AccountService {
       hashRefreshToken(token),
       new Date(Date.now() + EMAIL_CHANGE_TTL_HOURS * 3_600_000),
     );
-    const link = `${this.config.siteUrl}/${input.locale}/confirm-email?token=${token}`;
+    const link = `${this.config.accountUrl}/${input.locale}/confirm-email?token=${token}`;
     this.send(
       emailChangeConfirmEmail(
         user,
@@ -205,6 +219,33 @@ export class AccountService {
     if (user.registeredAt) {
       this.send(accountDeletedEmail(user, toApiLocale(user.locale), this.config.siteUrl));
     }
+  }
+
+  /** The last entries of the caller's own account activity, for the account site (decision 108). */
+  async ownActivity(userId: string): Promise<{ items: AccountActivity[] }> {
+    const rows = await this.repository.ownActivity(userId, ACTIVITY_SHOWN);
+    return {
+      items: rows.map((row) => ({
+        action: row.action,
+        at: row.createdAt.toISOString(),
+        details: (row.details ?? null) as Record<string, unknown> | null,
+      })),
+    };
+  }
+
+  /** The parts of the platform the caller uses, with a count where it means something. */
+  async apps(caller: AuthUser): Promise<{ items: AccountApp[] }> {
+    const usage = await this.repository.appsUsage(caller.id, accountOf(caller));
+    const items: AccountApp[] = [];
+    if (caller.role === 'ADMIN') items.push({ app: 'admin', count: 0 });
+    if (caller.role === 'CLIENT') items.push({ app: 'portal', count: usage.projects });
+    if (usage.teams > 0) items.push({ app: 'cloud', count: usage.teams });
+    if (usage.rooms > 0) items.push({ app: 'meetings', count: usage.rooms });
+    if (usage.pages > 0) items.push({ app: 'citas', count: usage.pages });
+    if (usage.videochat > 0) items.push({ app: 'videochat', count: 0 });
+    if (usage.swipe > 0) items.push({ app: 'swipe', count: 0 });
+    if (usage.cruising > 0) items.push({ app: 'cruising', count: 0 });
+    return { items };
   }
 
   private async activeUser(userId: string): Promise<User> {

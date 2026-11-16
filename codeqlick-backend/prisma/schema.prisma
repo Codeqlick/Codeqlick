@@ -108,6 +108,7 @@ model User {
   sessions                   Session[]
   passkeys                   Passkey[]
   webauthnChallenges         WebAuthnChallenge[]
+  ssoCodes                   SsoCode[]
   passwordResets             PasswordResetToken[]
   emailChanges               EmailChangeToken[]
   clientProjects             ClientProject[]
@@ -220,23 +221,53 @@ model User {
 }
 
 model Session {
-  id           String    @id @default(uuid()) @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  tokenHash    String    @unique @map("token_hash")
-  familyId     String    @map("family_id") @db.Uuid
-  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
-  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
-  replacedById String?   @map("replaced_by_id") @db.Uuid
-  userAgent    String?   @map("user_agent")
-  ip           String?
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  tokenHash      String    @unique @map("token_hash")
+  familyId       String    @map("family_id") @db.Uuid
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedById   String?   @map("replaced_by_id") @db.Uuid
+  userAgent      String?   @map("user_agent")
+  ip             String?
+  /// Single sign-on (decision 108): the host this session belongs to (`site` or a web app); null
+  /// for a sign-in on the account host itself.
+  client         String?
+  /// The account host's session (its family) whose code made this one; revoked with it.
+  parentFamilyId String?   @map("parent_family_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([familyId])
+  @@index([parentFamilyId])
   @@map("sessions")
+}
+
+/// A one-time single sign-on code (architecture 4.3, decision 108): only its SHA-256 is kept, for
+/// 60 seconds, bound to the user, the client host, the PKCE challenge and the account session.
+model SsoCode {
+  id             String    @id @default(uuid()) @db.Uuid
+  codeHash       String    @unique @map("code_hash")
+  userId         String    @map("user_id") @db.Uuid
+  client         String
+  /// base64url(SHA-256(code_verifier)): PKCE S256.
+  codeChallenge  String    @map("code_challenge")
+  /// The account host's session family that asked for the code.
+  parentFamilyId String    @map("parent_family_id") @db.Uuid
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt         DateTime? @map("used_at") @db.Timestamptz(3)
+  /// The session family the code was exchanged for: revoked if the code comes back.
+  familyId       String?   @map("family_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sso_codes")
 }
 
 /// A passkey (WebAuthn credential) of an account (architecture 4.3, decision 104). Only the public

@@ -29,6 +29,14 @@ export const envSchema = z.object({
     .url()
     .default('http://localhost:3000')
     .transform((value) => value.replace(/\/+$/, '')),
+  /**
+   * The account host (single sign-on, decision 108), for links in emails. Unset: SITE_URL with
+   * `account.` before its host.
+   */
+  ACCOUNT_URL: z
+    .url()
+    .optional()
+    .transform((value) => value?.replace(/\/+$/, '')),
   JWT_ACCESS_SECRET: z.string().min(32),
   /** Encrypts the access clients share (project credentials). Unset: derived from JWT_ACCESS_SECRET. */
   CREDENTIALS_SECRET: z.string().min(32).optional(),
@@ -62,8 +70,8 @@ export const envSchema = z.object({
    */
   WEBAUTHN_RP_ID: optionalString,
   /**
-   * Pages passkeys may be used from, comma-separated. Unset: the website (SITE_URL) and the hosts
-   * of Codeqlick's web apps (see `AppConfigService.webauthnOrigins`).
+   * Pages passkeys may be used from, comma-separated. Unset: the website (SITE_URL), the account
+   * host (ACCOUNT_URL) and the hosts of Codeqlick's web apps (see `AppConfigService.webauthnOrigins`).
    */
   WEBAUTHN_ORIGINS: optionalString,
   /** New passwords are refused when Have I Been Pwned lists them (production: true). */

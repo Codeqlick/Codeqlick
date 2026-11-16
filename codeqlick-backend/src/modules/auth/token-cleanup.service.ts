@@ -7,6 +7,7 @@ import {
 import { AppConfigService } from '../../config/app-config.service.js';
 import { AuthRepository } from './auth.repository.js';
 import { PasskeyRepository } from './passkeys.repository.js';
+import { SsoRepository } from './sso.repository.js';
 
 const DAY_MS = 86_400_000;
 
@@ -33,6 +34,7 @@ export class TokenCleanupService implements OnApplicationBootstrap, OnApplicatio
     private readonly repository: AuthRepository,
     private readonly config: AppConfigService,
     private readonly passkeys: PasskeyRepository,
+    private readonly sso: SsoRepository,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -61,6 +63,9 @@ export class TokenCleanupService implements OnApplicationBootstrap, OnApplicatio
       // Passkey challenges are useless once expired: no retention.
       const challenges = await this.passkeys.deleteExpiredChallenges(now);
       if (challenges > 0) this.logger.log(`Deleted ${challenges} expired passkey challenges`);
+      // Single sign-on codes live 60 seconds; a day later they are of no use, even as evidence.
+      const codes = await this.sso.deleteExpired(new Date(now.getTime() - DAY_MS));
+      if (codes > 0) this.logger.log(`Deleted ${codes} expired single sign-on codes`);
     } catch (error) {
       this.logger.error(
         'Expired token cleanup failed',
