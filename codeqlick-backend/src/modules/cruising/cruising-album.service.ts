@@ -7,7 +7,7 @@ import {
   NotFoundException,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { toAccountLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { CruisingMediaRepository } from './cruising-media.repository.js';
@@ -126,7 +126,7 @@ export class CruisingAlbumService implements OnApplicationShutdown {
     if (!user || isSuspended(user.cruisingProfile, now)) return;
     await this.notifications.notify(granteeId, 'ALBUM_SHARED', { conversationId }, now);
     if (!this.push.enabled) return;
-    await this.push.notify('album', [{ userId: granteeId, locale: toApiLocale(user.locale) }]);
+    await this.push.notify('album', [{ userId: granteeId, locale: toAccountLocale(user.locale) }]);
   }
 
   private later(work: () => Promise<unknown>): void {

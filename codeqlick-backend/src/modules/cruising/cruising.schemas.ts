@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { localeSchema, paginationSchema, slugSchema } from '../../common/schemas/common.schemas.js';
+import {
+  accountLocaleSchema,
+  paginationSchema,
+  slugSchema,
+} from '../../common/schemas/common.schemas.js';
 import { COUNTRIES, SAFE_CHAT_MESSAGES, TRANSCRIPT_LINES } from '../swipe/swipe.schemas.js';
 import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
 import { SPOT_TAGS } from './cruising-insights.rules.js';
@@ -296,7 +300,7 @@ export const takedownSchema = z.object({
   mediaRef: z.string().trim().max(20).optional(),
   reason: z.enum(TAKEDOWN_REASONS),
   details: z.string().trim().min(10).max(2000),
-  locale: localeSchema.default('en'),
+  locale: accountLocaleSchema.default('en'),
   /** Honeypot: people never fill it in. */
   website: z.string().max(200).optional(),
 });

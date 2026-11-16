@@ -8,9 +8,17 @@ export const paginationSchema = z.object({
 });
 export type PaginationQuery = z.infer<typeof paginationSchema>;
 
-/** Locale as used on the HTTP API (lowercase). */
+/** Locale as used on the HTTP API (lowercase): the website's languages. */
 export const localeSchema = z.enum(['en', 'es']);
 export type ApiLocale = z.infer<typeof localeSchema>;
+
+/**
+ * An account's language (decision 103): the website's two plus the four more Cruising speaks.
+ * Only Cruising writes in the extra ones; everything else falls back to English (`siteLocale`).
+ */
+export const ACCOUNT_LOCALES = ['en', 'es', 'fr', 'de', 'it', 'pt'] as const;
+export const accountLocaleSchema = z.enum(ACCOUNT_LOCALES);
+export type AccountLocale = z.infer<typeof accountLocaleSchema>;
 
 /** `?locale=` query param, defaulting to English. */
 export const localeQuerySchema = z.object({
@@ -40,12 +48,37 @@ export const nullableUrlSchema = z.url().max(2048).nullable().optional();
 /** Publication date with its offset; in the future it schedules the item. `null` means now. */
 export const publishedAtSchema = z.iso.datetime({ offset: true }).nullable().optional();
 
-export function toDbLocale(locale: ApiLocale): Locale {
-  return locale === 'es' ? Locale.ES : Locale.EN;
+const DB_LOCALES: Record<AccountLocale, Locale> = {
+  en: Locale.EN,
+  es: Locale.ES,
+  fr: Locale.FR,
+  de: Locale.DE,
+  it: Locale.IT,
+  pt: Locale.PT,
+};
+
+export function toDbLocale(locale: AccountLocale): Locale {
+  return DB_LOCALES[locale];
 }
 
+/** An account's language as the API spells it, all six (Cruising's emails and push texts). */
+export function toAccountLocale(locale: Locale): AccountLocale {
+  return (
+    (Object.keys(DB_LOCALES) as AccountLocale[]).find((key) => DB_LOCALES[key] === locale) ?? 'en'
+  );
+}
+
+/**
+ * The website's language for an account language (decision 103): English and Spanish as they are,
+ * Cruising's extra languages fall back to English. Every email and link outside Cruising uses it.
+ */
+export function siteLocale(locale: AccountLocale): ApiLocale {
+  return locale === 'es' ? 'es' : 'en';
+}
+
+/** A stored language as the website's (FR, DE, IT and PT fall back to English). */
 export function toApiLocale(locale: Locale): ApiLocale {
-  return locale === Locale.ES ? 'es' : 'en';
+  return siteLocale(toAccountLocale(locale));
 }
 
 /** Validates a translations array: at least one 'en', no duplicate locales. */

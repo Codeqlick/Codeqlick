@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import webpush from 'web-push';
+import type { AccountLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { pushPayload, type PushKind } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
@@ -39,7 +40,7 @@ export class CruisingPushService {
    */
   async notify(
     kind: PushKind,
-    members: { userId: string; locale: 'en' | 'es' }[],
+    members: { userId: string; locale: AccountLocale }[],
   ): Promise<number> {
     // A check-in lasts hours, a safety alert a few more; the rest is worth telling for a day.
     return this.notifyWith((locale) => pushPayload(kind, locale), members, {
@@ -52,8 +53,8 @@ export class CruisingPushService {
    * language (phase 5's own notifications); returns how many the push services accepted.
    */
   async notifyWith(
-    payloadFor: (locale: 'en' | 'es') => object,
-    members: { userId: string; locale: 'en' | 'es' }[],
+    payloadFor: (locale: AccountLocale) => object,
+    members: { userId: string; locale: AccountLocale }[],
     { ttl, urgency = 'normal' }: { ttl: number; urgency?: 'normal' | 'high' },
   ): Promise<number> {
     const vapid = this.config.vapid;

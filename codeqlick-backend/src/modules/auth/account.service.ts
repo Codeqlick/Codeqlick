@@ -7,7 +7,12 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import {
+  toApiLocale,
+  toDbLocale,
+  type AccountLocale,
+  type ApiLocale,
+} from '../../common/schemas/common.schemas.js';
 import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
@@ -73,7 +78,10 @@ export class AccountService {
     return toAuthUser(updated);
   }
 
-  async updateMe(userId: string, input: { name?: string; locale?: ApiLocale }): Promise<AuthUser> {
+  async updateMe(
+    userId: string,
+    input: { name?: string; locale?: AccountLocale },
+  ): Promise<AuthUser> {
     await this.activeUser(userId);
     const user = await this.repository.updateProfile(userId, {
       name: input.name,

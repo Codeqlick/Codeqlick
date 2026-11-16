@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { accountLocaleSchema, localeSchema } from '../../common/schemas/common.schemas.js';
 import { WEBAPPS } from '../../common/webapps.js';
 
 export const loginSchema = z
@@ -35,8 +35,8 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 const signupFields = {
   name: z.string().trim().min(1).max(120),
   password: z.string().min(12).max(256),
-  /** Language of their emails. */
-  locale: localeSchema,
+  /** Language of their account (Cruising's six; the rest of the platform writes in EN or ES). */
+  locale: accountLocaleSchema,
   /** They read and accept the privacy policy. */
   acceptPrivacy: z.literal(true),
 };
@@ -125,7 +125,10 @@ export const emailPreferenceSchema = z
 export type EmailPreferenceInput = z.infer<typeof emailPreferenceSchema>;
 
 export const updateMeSchema = z
-  .object({ name: z.string().trim().min(1).max(120).optional(), locale: localeSchema.optional() })
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    locale: accountLocaleSchema.optional(),
+  })
   .strict();
 export type UpdateMeInput = z.infer<typeof updateMeSchema>;
 

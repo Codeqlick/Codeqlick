@@ -81,6 +81,7 @@ const input: SpotInput = {
 function build() {
   const repo = {
     findProfile: vi.fn().mockResolvedValue(profile()),
+    accountLocale: vi.fn().mockResolvedValue('EN'),
     saveOnboarding: vi
       .fn()
       .mockImplementation((userId, termsVersion, birthYear, now) =>

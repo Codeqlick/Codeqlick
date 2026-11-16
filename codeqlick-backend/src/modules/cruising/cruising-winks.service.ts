@@ -8,7 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { toAccountLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { CruisingMediaRepository } from './cruising-media.repository.js';
@@ -121,7 +121,9 @@ export class CruisingWinksService {
     try {
       const user = await this.repository.recipient(recipientId);
       if (!user) return;
-      await this.push.notify('wink', [{ userId: recipientId, locale: toApiLocale(user.locale) }]);
+      await this.push.notify('wink', [
+        { userId: recipientId, locale: toAccountLocale(user.locale) },
+      ]);
     } catch (error) {
       this.logger.error(`Cruising wink push failed: ${String(error)}`);
     }

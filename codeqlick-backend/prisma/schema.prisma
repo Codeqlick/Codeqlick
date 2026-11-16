@@ -20,6 +20,11 @@ enum Role {
 enum Locale {
   EN
   ES
+  // Cruising only (decision 103): everything else writes to them in English.
+  FR
+  DE
+  IT
+  PT
 }
 
 /// The sales process (wiki: Client Engagement): first contact, talking, discovery call, proposal,

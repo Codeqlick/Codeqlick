@@ -11,6 +11,7 @@ import type {
   CloudReportStatus,
   CloudRole,
   CloudTeam,
+  Locale,
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -165,7 +166,7 @@ export class CloudRepository {
 
   async ownerEmails(
     teamId: string,
-  ): Promise<Array<{ id: string; email: string; name: string; locale: 'EN' | 'ES' }>> {
+  ): Promise<Array<{ id: string; email: string; name: string; locale: Locale }>> {
     const rows = await this.prisma.cloudMember.findMany({
       where: { teamId, role: 'OWNER' },
       select: { user: { select: { id: true, email: true, name: true, locale: true } } },

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Appointment, BookingPage, Prisma } from '../../generated/prisma/client.js';
+import type { Appointment, BookingPage, Locale, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export type PageWithRoom = BookingPage & { meetingRoom: { code: string } | null };
@@ -7,7 +7,7 @@ export type PublicPageRow = PageWithRoom & {
   owner: { name: string; email: string; avatarKey: string | null };
 };
 export type AppointmentRow = Appointment & {
-  page: PageWithRoom & { owner: { name: string; email: string; locale: 'EN' | 'ES' } };
+  page: PageWithRoom & { owner: { name: string; email: string; locale: Locale } };
 };
 
 const withRoom = { meetingRoom: { select: { code: true } } } as const;

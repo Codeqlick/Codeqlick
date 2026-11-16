@@ -1,6 +1,7 @@
-import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import type { AccountLocale } from '../../common/schemas/common.schemas.js';
 import { renderEmail } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
+import { CRUISING_COPY, cruisingDateLocale } from './copy/index.js';
 
 /** Alert for the team: a report or removal request that needs a look first. No personal data. */
 export function cruisingAlertEmail(
@@ -39,47 +40,16 @@ export function cruisingAlertEmail(
   };
 }
 
-const TAKEDOWN_COPY = {
-  es: {
-    receivedSubject: 'Hemos recibido tu solicitud de retirada',
-    receivedTitle: 'Solicitud recibida',
-    received:
-      'Hemos recibido tu solicitud de retirada de Cruising. Si se trata de un menor o de algo ilegal (o, para una foto o un vídeo, de falta de consentimiento o de una imagen robada) y coincide con algo publicado, ya está oculto. La revisamos y te respondemos en 24 horas como máximo.',
-    removedSubject: 'Hemos retirado el contenido',
-    removedTitle: 'Contenido retirado',
-    removed: 'Hemos revisado tu solicitud y retirado lo que pedías.',
-    closedSubject: 'Hemos revisado tu solicitud de retirada',
-    closedTitle: 'Solicitud revisada',
-    closed: 'Hemos revisado tu solicitud y no hemos retirado nada.',
-    answer: 'Respuesta del equipo',
-    reference: 'Referencia de la solicitud',
-  },
-  en: {
-    receivedSubject: 'We received your removal request',
-    receivedTitle: 'Request received',
-    received:
-      'We received your removal request for Cruising. If it is about a minor or something illegal (or, for a photo or video, missing consent or a stolen image) and it matched something published, it is hidden already. We review it and answer within 24 hours.',
-    removedSubject: 'We removed the content',
-    removedTitle: 'Content removed',
-    removed: 'We reviewed your request and removed what you asked about.',
-    closedSubject: 'We reviewed your removal request',
-    closedTitle: 'Request reviewed',
-    closed: 'We reviewed your request and did not remove anything.',
-    answer: "The team's answer",
-    reference: 'Request reference',
-  },
-} as const;
-
 /** To whoever asked for a removal: received, removed, or reviewed without removing. */
 export function cruisingTakedownEmail(
   to: string,
-  locale: ApiLocale,
+  locale: AccountLocale,
   stage: 'received' | 'removed' | 'closed',
   requestId: string,
   response: string | null,
   siteUrl: string,
 ): MailMessage {
-  const copy = TAKEDOWN_COPY[locale];
+  const copy = CRUISING_COPY[locale].takedown;
   return {
     to,
     subject: `${copy[`${stage}Subject`]} — Cruising`,
@@ -111,163 +81,23 @@ export type CruisingNotice =
   | 'favorites'
   | 'meetup-cancelled';
 
-const NOTICE_COPY: Record<
-  ApiLocale,
-  Record<CruisingNotice, { subject: string; body: string; button: string; path: string }> & {
-    reasonTitle: string;
-    until: string;
-    permanent: string;
-    settings: string;
-  }
-> = {
-  es: {
-    'spot-live': {
-      subject: 'Tu lugar ya está publicado',
-      body: 'Hemos revisado uno de los lugares que propusiste y ya está publicado en el mapa.',
-      button: 'Ver mis lugares',
-      path: '/my-spots',
-    },
-    'spot-rejected': {
-      subject: 'No hemos publicado uno de tus lugares',
-      body: 'Hemos revisado uno de los lugares que propusiste y no lo hemos publicado. Este es el motivo:',
-      button: 'Ver mis lugares',
-      path: '/my-spots',
-    },
-    'spot-removed': {
-      subject: 'Hemos retirado uno de tus lugares',
-      body: 'Tras una denuncia, hemos retirado uno de los lugares que propusiste. La retirada es definitiva. Este es el motivo:',
-      button: 'Ver mis lugares',
-      path: '/my-spots',
-    },
-    suspended: {
-      subject: 'Tu cuenta de Cruising está suspendida',
-      body: 'Hemos suspendido tu cuenta de Cruising. Puedes seguir consultando el mapa, pero no proponer lugares, escribir opiniones, enviar denuncias, marcar que estás en un lugar ni enviar mensajes.',
-      button: 'Leer las normas',
-      path: '/rules',
-    },
-    unread: {
-      subject: 'Tienes un mensaje sin leer',
-      body: 'Alguien te ha escrito en Cruising y aún no lo has leído.',
-      button: 'Leer el mensaje',
-      path: '/messages',
-    },
-    'verification-approved': {
-      subject: 'Tu perfil está verificado',
-      body: 'Hemos revisado tu foto de verificación: tu perfil lleva la insignia «Verificado» y ya puedes subir fotos y vídeos.',
-      button: 'Ir a mi perfil',
-      path: '/me',
-    },
-    'verification-rejected': {
-      subject: 'No hemos podido verificar tu perfil',
-      body: 'Hemos revisado tu foto de verificación y no la hemos aprobado. Hemos borrado la foto. Puedes enviar otra. Este es el motivo:',
-      button: 'Ir a mi perfil',
-      path: '/me',
-    },
-    'verification-withdrawn': {
-      subject: 'Tu perfil ya no está verificado',
-      body: 'El equipo ha retirado la verificación de tu perfil: ya no lleva la insignia «Verificado» ni puedes subir fotos o vídeos.',
-      button: 'Leer las normas',
-      path: '/rules',
-    },
-    'media-removed': {
-      subject: 'Hemos retirado una de tus fotos o vídeos',
-      body: 'Tras revisarla, hemos retirado una foto o un vídeo de tu perfil y no se puede volver a subir. Este es el motivo:',
-      button: 'Ir a mi perfil',
-      path: '/me',
-    },
-    favorites: {
-      subject: 'Hay actividad en tus lugares favoritos',
-      body: 'Hay actividad en tus lugares favoritos.',
-      button: 'Ver mis favoritos',
-      path: '/favorites',
-    },
-    'meetup-cancelled': {
-      subject: 'Se ha cancelado una quedada',
-      body: 'Se ha cancelado una quedada de Cruising a la que ibas.',
-      button: 'Ver las quedadas',
-      path: '/meetups',
-    },
-    reasonTitle: 'Motivo',
-    until: 'Hasta',
-    permanent: 'Hasta que el equipo la levante',
-    settings: 'Puedes dejar de recibir este aviso en tu perfil de Cruising.',
-  },
-  en: {
-    'spot-live': {
-      subject: 'Your spot is live',
-      body: 'We reviewed one of the spots you proposed and it is live on the map.',
-      button: 'See my spots',
-      path: '/my-spots',
-    },
-    'spot-rejected': {
-      subject: "We didn't publish one of your spots",
-      body: "We reviewed one of the spots you proposed and didn't publish it. This is why:",
-      button: 'See my spots',
-      path: '/my-spots',
-    },
-    'spot-removed': {
-      subject: 'We removed one of your spots',
-      body: 'After a report, we removed one of the spots you proposed. The removal is final. This is why:',
-      button: 'See my spots',
-      path: '/my-spots',
-    },
-    suspended: {
-      subject: 'Your Cruising account is suspended',
-      body: 'We suspended your Cruising account. You can still browse the map, but not propose spots, write reviews, send reports, check in or send messages.',
-      button: 'Read the rules',
-      path: '/rules',
-    },
-    unread: {
-      subject: 'You have an unread message',
-      body: "Someone wrote to you in Cruising and you haven't read it yet.",
-      button: 'Read the message',
-      path: '/messages',
-    },
-    'verification-approved': {
-      subject: 'Your profile is verified',
-      body: 'We reviewed your verification photo: your profile carries the "Verified" badge and you can upload photos and videos.',
-      button: 'Go to my profile',
-      path: '/me',
-    },
-    'verification-rejected': {
-      subject: "We couldn't verify your profile",
-      body: "We reviewed your verification photo and didn't approve it. We deleted the photo. You can send another one. This is why:",
-      button: 'Go to my profile',
-      path: '/me',
-    },
-    'verification-withdrawn': {
-      subject: 'Your profile is no longer verified',
-      body: 'The team withdrew the verification of your profile: it no longer carries the "Verified" badge and you can no longer upload photos or videos.',
-      button: 'Read the rules',
-      path: '/rules',
-    },
-    'media-removed': {
-      subject: 'We removed one of your photos or videos',
-      body: "After reviewing it, we removed a photo or video from your profile, and it can't be uploaded again. This is why:",
-      button: 'Go to my profile',
-      path: '/me',
-    },
-    favorites: {
-      subject: "There's activity at your favourite spots",
-      body: "There's activity at your favourite spots.",
-      button: 'See my favourites',
-      path: '/favorites',
-    },
-    'meetup-cancelled': {
-      subject: 'A meetup was cancelled',
-      body: 'A Cruising meetup you said you were going to was cancelled.',
-      button: 'See the meetups',
-      path: '/meetups',
-    },
-    reasonTitle: 'Reason',
-    until: 'Until',
-    permanent: 'Until the team lifts it',
-    settings: 'You can stop this email in your Cruising profile.',
-  },
+/** Where each notice's button opens, on Cruising's host. */
+const NOTICE_PATH: Record<CruisingNotice, string> = {
+  'spot-live': '/my-spots',
+  'spot-rejected': '/my-spots',
+  'spot-removed': '/my-spots',
+  suspended: '/rules',
+  unread: '/messages',
+  'verification-approved': '/me',
+  'verification-rejected': '/me',
+  'verification-withdrawn': '/rules',
+  'media-removed': '/me',
+  favorites: '/favorites',
+  'meetup-cancelled': '/meetups',
 };
 
-function formatDay(date: Date, locale: ApiLocale): string {
-  return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+function formatDay(date: Date, locale: AccountLocale): string {
+  return new Intl.DateTimeFormat(cruisingDateLocale(locale), {
     dateStyle: 'long',
     timeZone: 'UTC',
   }).format(date);
@@ -276,14 +106,14 @@ function formatDay(date: Date, locale: ApiLocale): string {
 /** An email to a member about `notice`; `note` is the team's reason, if any. */
 export function cruisingNoticeEmail(
   to: string,
-  locale: ApiLocale,
+  locale: AccountLocale,
   notice: CruisingNotice,
   note: string | null,
   cruisingUrl: string,
   siteUrl: string,
   until: Date | null = null,
 ): MailMessage {
-  const copy = NOTICE_COPY[locale];
+  const copy = CRUISING_COPY[locale].notice;
   const text = copy[notice];
   return {
     to,
@@ -299,7 +129,7 @@ export function cruisingNoticeEmail(
           notice === 'suspended'
             ? [[copy.until, until ? formatDay(until, locale) : copy.permanent]]
             : undefined,
-        button: { label: text.button, url: `${cruisingUrl}/${locale}${text.path}` },
+        button: { label: text.button, url: `${cruisingUrl}/${locale}${NOTICE_PATH[notice]}` },
         note:
           notice === 'spot-live' ||
           notice === 'unread' ||
