@@ -24,6 +24,7 @@ import type {
   StatusNoticeUpdateInput,
   UpdateStatusNoticeInput,
 } from './cloud.schemas.js';
+import { updateDispatchKind } from './cloud-status-subscribers.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 
 export interface StatusNoticeView {
@@ -186,6 +187,8 @@ export class CloudStatusNoticesService {
         startsAt,
         endsAt,
         resolvedAt,
+        // Created already in progress: subscribers get the notice, not a "started" email too.
+        startNotifiedAt: startsAt && startsAt.getTime() <= now.getTime() ? now : null,
         createdById: ctx.user.id,
       },
       { state: input.kind === 'INCIDENT' ? state : null, body: input.body },
@@ -225,6 +228,8 @@ export class CloudStatusNoticesService {
       });
       data.startsAt = startsAt;
       data.endsAt = endsAt;
+      // A start moved into the future: its new start is told to subscribers (decision 105).
+      if (moved && startsAt.getTime() > now.getTime()) data.startNotifiedAt = null;
     }
     if (input.title !== undefined) data.title = input.title;
     if (input.monitorIds) {
@@ -296,6 +301,7 @@ export class CloudStatusNoticesService {
       { state, body: input.body, createdById: ctx.user.id },
       data,
       { maxUpdates: MAX_UPDATES, maxOpen: MAX_OPEN, reopens, now },
+      updateDispatchKind(state),
     );
     if (updated === 'updates') {
       throw new ConflictException(`A notice has at most ${MAX_UPDATES} updates`);

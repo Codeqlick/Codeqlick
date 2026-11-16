@@ -206,6 +206,17 @@ export class CloudController {
     return this.teams.me(ctx);
   }
 
+  /** The current Cloud terms, for all the caller's teams (session only: the console asks). */
+  @Post('terms/accept')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  acceptTerms(
+    @Caller() ctx: CloudCtx,
+    @Body({ schema: termsSchema }) body: TermsInput,
+  ): Promise<void> {
+    return this.teams.acceptTerms(ctx, body);
+  }
+
   @Get('tokens')
   async listTokens(@Caller() ctx: CloudCtx): Promise<{ items: TokenView[] }> {
     return { items: await this.tokens.list(ctx.user) };

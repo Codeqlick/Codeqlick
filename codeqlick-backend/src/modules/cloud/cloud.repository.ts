@@ -84,6 +84,14 @@ export class CloudRepository {
 
   // ── Teams and members ──────────────────────────────────────────────────────────────────────
 
+  /** Every membership of the person now has `termsVersion` (decision 105). */
+  async acceptTerms(userId: string, termsVersion: string, now: Date): Promise<void> {
+    await this.prisma.cloudMember.updateMany({
+      where: { userId, termsVersion: { not: termsVersion } },
+      data: { termsVersion, termsAcceptedAt: now },
+    });
+  }
+
   memberships(userId: string): Promise<MembershipRow[]> {
     return this.prisma.cloudMember.findMany({
       where: { userId },

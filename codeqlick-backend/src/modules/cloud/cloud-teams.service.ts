@@ -68,6 +68,8 @@ export interface MeView {
   token: { id: string; name: string; teamId: string | null } | null;
   teams: Array<Omit<TeamView, 'createdAt'>>;
   termsVersion: string;
+  /** False while any of the caller's memberships has older Cloud terms (decision 105). */
+  termsAccepted: boolean;
 }
 
 export interface MembersView {
@@ -248,7 +250,14 @@ export class CloudTeamsService {
           twoFactorBlocked: twoFactorBlocked(m),
         })),
       termsVersion: CLOUD_TERMS_VERSION,
+      termsAccepted: memberships.every((m) => m.termsVersion === CLOUD_TERMS_VERSION),
     };
+  }
+
+  /** Accepts the current Cloud terms for every team of the caller (4.13 Terms; session only). */
+  async acceptTerms(ctx: CloudCtx, input: TermsInput): Promise<void> {
+    this.checkTerms(input);
+    await this.repository.acceptTerms(ctx.user.id, input.termsVersion, new Date());
   }
 
   private checkTerms(input: TermsInput): void {

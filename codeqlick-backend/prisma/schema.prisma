@@ -2111,19 +2111,21 @@ model CloudTeam {
   monitors                CloudMonitor[]
   statusPage              CloudStatusPage?
   statusNotices           CloudStatusNotice[]
+  statusSubscribers       CloudStatusSubscriber[]
+  statusDispatches        CloudStatusDispatch[]
   cloudAudits             CloudAudit[]
   usageAlerts             CloudUsageAlert[]
   gitInstallations        CloudGitInstallation[]
   /// The PRO subscription (architecture 4.13 "Plans and billing", decision 46).
-  stripeCustomerId        String?                @unique @map("stripe_customer_id") @db.VarChar(100)
-  stripeSubscriptionId    String?                @unique @map("stripe_subscription_id") @db.VarChar(100)
-  subscriptionStatus      String?                @map("subscription_status") @db.VarChar(30)
-  currentPeriodEnd        DateTime?              @map("current_period_end") @db.Timestamptz(3)
-  cancelAtPeriodEnd       Boolean                @default(false) @map("cancel_at_period_end")
+  stripeCustomerId        String?                 @unique @map("stripe_customer_id") @db.VarChar(100)
+  stripeSubscriptionId    String?                 @unique @map("stripe_subscription_id") @db.VarChar(100)
+  subscriptionStatus      String?                 @map("subscription_status") @db.VarChar(30)
+  currentPeriodEnd        DateTime?               @map("current_period_end") @db.Timestamptz(3)
+  cancelAtPeriodEnd       Boolean                 @default(false) @map("cancel_at_period_end")
   /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
-  analyticsOverLimitMonth String?                @map("analytics_over_limit_month") @db.VarChar(7)
+  analyticsOverLimitMonth String?                 @map("analytics_over_limit_month") @db.VarChar(7)
   /// Every member needs two-step verification to use the team (architecture 4.13, decision 57).
-  requireTwoFactor        Boolean                @default(false) @map("require_two_factor")
+  requireTwoFactor        Boolean                 @default(false) @map("require_two_factor")
 
   @@map("cloud_teams")
 }
@@ -2577,13 +2579,18 @@ model CloudMonitorEvent {
 
 /// A team's public status page (cloud.codeqlick.com/<locale>/status/<team>).
 model CloudStatusPage {
-  teamId    String   @id @map("team_id") @db.Uuid
-  enabled   Boolean  @default(false)
-  title     String   @db.VarChar(80)
-  intro     String?  @db.VarChar(500)
+  teamId           String    @id @map("team_id") @db.Uuid
+  enabled          Boolean   @default(false)
+  title            String    @db.VarChar(80)
+  intro            String?   @db.VarChar(500)
   /// `[{ monitorId, label }]` in the order shown.
-  items     Json     @default("[]")
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  items            Json      @default("[]")
+  /// Email subscriptions to its notices (decision 105); only while the page is enabled.
+  subscriptions    Boolean   @default(false)
+  /// The hour's send counter of subscriber emails: starts at the first send, lasts an hour.
+  emailWindowStart DateTime? @map("email_window_start") @db.Timestamptz(3)
+  emailsInWindow   Int       @default(0) @map("emails_in_window")
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
@@ -2607,26 +2614,29 @@ enum CloudStatusNoticeState {
 
 /// An incident note or a scheduled maintenance on a team's status page (architecture 4.13, Notices).
 model CloudStatusNotice {
-  id          String                 @id @default(uuid()) @db.Uuid
-  teamId      String                 @map("team_id") @db.Uuid
-  kind        CloudStatusNoticeKind
-  title       String                 @db.VarChar(120)
+  id              String                 @id @default(uuid()) @db.Uuid
+  teamId          String                 @map("team_id") @db.Uuid
+  kind            CloudStatusNoticeKind
+  title           String                 @db.VarChar(120)
   /// Incidents: the latest update's state. Maintenance: SCHEDULED, or COMPLETED when ended early
   /// (its phase is derived from the time).
-  state       CloudStatusNoticeState
+  state           CloudStatusNoticeState
   /// The team's monitors it affects (1–20; a deleted monitor is removed).
-  monitorIds  String[]               @map("monitor_ids") @db.Uuid
-  startsAt    DateTime?              @map("starts_at") @db.Timestamptz(3)
-  endsAt      DateTime?              @map("ends_at") @db.Timestamptz(3)
+  monitorIds      String[]               @map("monitor_ids") @db.Uuid
+  startsAt        DateTime?              @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime?              @map("ends_at") @db.Timestamptz(3)
   /// An incident resolved, or a maintenance ended early.
-  resolvedAt  DateTime?              @map("resolved_at") @db.Timestamptz(3)
-  createdById String?                @map("created_by_id") @db.Uuid
-  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  resolvedAt      DateTime?              @map("resolved_at") @db.Timestamptz(3)
+  /// A maintenance whose start was handled (subscribers told, decision 105), or created started.
+  startNotifiedAt DateTime?              @map("start_notified_at") @db.Timestamptz(3)
+  createdById     String?                @map("created_by_id") @db.Uuid
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team      CloudTeam                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  createdBy User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  updates   CloudStatusNoticeUpdate[]
+  team       CloudTeam                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy  User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  updates    CloudStatusNoticeUpdate[]
+  dispatches CloudStatusDispatch[]
 
   @@index([teamId, resolvedAt])
   @@index([teamId, createdAt])
@@ -2643,11 +2653,77 @@ model CloudStatusNoticeUpdate {
   createdById String?                 @map("created_by_id") @db.Uuid
   createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  notice    CloudStatusNotice @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-  createdBy User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  notice     CloudStatusNotice     @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  createdBy  User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  dispatches CloudStatusDispatch[]
 
   @@index([noticeId, createdAt])
   @@map("cloud_status_notice_updates")
+}
+
+enum CloudStatusSubscriberStatus {
+  PENDING
+  ACTIVE
+  UNSUBSCRIBED
+}
+
+/// Someone who gets a team's status page notices by email (architecture 4.13, decision 105). The
+/// team is the controller; Codeqlick keeps it as processor. No IP is kept.
+model CloudStatusSubscriber {
+  id               String                      @id @default(uuid()) @db.Uuid
+  teamId           String                      @map("team_id") @db.Uuid
+  /// Lower-cased.
+  email            String
+  /// The page's language at sign-up: the language of every email.
+  locale           Locale
+  status           CloudStatusSubscriberStatus @default(PENDING)
+  /// SHA-256 hex of the confirmation token, cleared once confirmed.
+  confirmTokenHash String?                     @unique @map("confirm_token_hash")
+  confirmExpiresAt DateTime?                   @map("confirm_expires_at") @db.Timestamptz(3)
+  /// The last confirmation email (one per address and team every 10 minutes, 5 a day per address).
+  confirmSentAt    DateTime?                   @map("confirm_sent_at") @db.Timestamptz(3)
+  /// With the stored language, the proof of consent.
+  confirmedAt      DateTime?                   @map("confirmed_at") @db.Timestamptz(3)
+  /// In every email's unsubscribe link; it can only unsubscribe.
+  unsubscribeToken String                      @unique @map("unsubscribe_token")
+  unsubscribedAt   DateTime?                   @map("unsubscribed_at") @db.Timestamptz(3)
+  createdAt        DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team CloudTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, email])
+  @@index([teamId, status])
+  @@index([email, confirmSentAt])
+  @@map("cloud_status_subscribers")
+}
+
+enum CloudStatusDispatchKind {
+  NOTICE
+  UPDATE
+  RESOLVED
+  MAINTENANCE_STARTED
+}
+
+/// The outbox of notice emails to a team's subscribers (decision 105): written with the notice or
+/// update, sent in batches by CloudStatusSubscribersService.
+model CloudStatusDispatch {
+  id          String                  @id @default(uuid()) @db.Uuid
+  teamId      String                  @map("team_id") @db.Uuid
+  noticeId    String                  @map("notice_id") @db.Uuid
+  updateId    String?                 @map("update_id") @db.Uuid
+  kind        CloudStatusDispatchKind
+  /// The id of the last subscriber handled (subscribers go in id order).
+  cursor      String?                 @db.Uuid
+  sent        Int                     @default(0)
+  completedAt DateTime?               @map("completed_at") @db.Timestamptz(3)
+  createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  team   CloudTeam                @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  notice CloudStatusNotice        @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  update CloudStatusNoticeUpdate? @relation(fields: [updateId], references: [id], onDelete: Cascade)
+
+  @@index([completedAt, createdAt])
+  @@map("cloud_status_dispatches")
 }
 
 /// A website check run through Cloud's API (architecture 4.13, Website check API); kept 30 days.

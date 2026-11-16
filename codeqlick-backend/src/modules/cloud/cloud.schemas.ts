@@ -369,10 +369,39 @@ export const statusPageSchema = z.object({
   items: z
     .array(z.object({ monitorId: z.uuid(), label: z.string().trim().min(1).max(60) }))
     .max(20),
+  /** Email subscriptions (decision 105); omitted keeps them as they are. */
+  subscriptions: z.boolean().optional(),
 });
 export type StatusPageInput = z.infer<typeof statusPageSchema>;
 
 export const statusTeamParamSchema = z.object({ team: teamSlugSchema });
+
+// ── Status page email subscriptions (architecture 4.13, decision 105) ──
+
+export const statusSubscribeSchema = z
+  .object({
+    email: z.email().max(254),
+    locale: localeSchema,
+    acceptPrivacy: z.literal(true),
+    /** Honeypot: humans never see this field, bots fill it in. */
+    website: z.string().max(500).optional(),
+  })
+  .strict();
+export type StatusSubscribeInput = z.infer<typeof statusSubscribeSchema>;
+
+/** A confirmation or unsubscribe token; an unknown one is answered by the service. */
+const subscriberToken = z.string().trim().min(1).max(200);
+export const statusSubscriberTokenSchema = z.object({ token: subscriberToken }).strict();
+export type StatusSubscriberTokenInput = z.infer<typeof statusSubscriberTokenSchema>;
+export const statusSubscriberTokenParamSchema = z.object({ token: subscriberToken });
+
+export const statusSubscribersQuerySchema = paginationSchema.extend({
+  status: z.enum(['PENDING', 'ACTIVE', 'UNSUBSCRIBED']).optional(),
+});
+export type StatusSubscribersQuery = z.infer<typeof statusSubscribersQuerySchema>;
+
+export const teamSubscriberParamSchema = z.object({ team: teamSlugSchema, id: z.uuid() });
+export type TeamSubscriberParam = z.infer<typeof teamSubscriberParamSchema>;
 /** `<project slug>.svg`, the README badge's file name. */
 export const badgeFileParamSchema = z.object({
   file: z

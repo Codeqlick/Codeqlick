@@ -6,6 +6,7 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type { DispatchKind } from './cloud-status-subscribers.js';
 
 const noticeInclude = {
   team: { select: { slug: true } },
@@ -72,6 +73,25 @@ export class CloudStatusNoticesRepository {
     return this.prisma.cloudMonitor.count({ where: { teamId, id: { in: ids } } });
   }
 
+  /**
+   * The outbox row of the subscribers' emails (decision 105), in the transaction that posts the
+   * notice or update: only while the page is enabled with subscriptions on.
+   */
+  private async dispatch(
+    tx: Prisma.TransactionClient,
+    teamId: string,
+    noticeId: string,
+    updateId: string | null,
+    kind: DispatchKind,
+  ): Promise<void> {
+    const page = await tx.cloudStatusPage.findUnique({
+      where: { teamId },
+      select: { enabled: true, subscriptions: true },
+    });
+    if (!page?.enabled || !page.subscriptions) return;
+    await tx.cloudStatusDispatch.create({ data: { teamId, noticeId, updateId, kind } });
+  }
+
   /** Serialises the team's notice changes until the transaction ends, so limits hold. */
   private async lockTeam(tx: Prisma.TransactionClient, teamId: string): Promise<void> {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`cloud-notices:${teamId}`}))`;
@@ -96,7 +116,7 @@ export class CloudStatusNoticesRepository {
       ) {
         return 'open';
       }
-      return tx.cloudStatusNotice.create({
+      const notice = await tx.cloudStatusNotice.create({
         data: {
           ...data,
           updates: {
@@ -105,6 +125,8 @@ export class CloudStatusNoticesRepository {
         },
         include: noticeInclude,
       });
+      await this.dispatch(tx, notice.teamId, notice.id, notice.updates[0]?.id ?? null, 'NOTICE');
+      return notice;
     });
   }
 
@@ -122,6 +144,7 @@ export class CloudStatusNoticesRepository {
     update: { state: CloudStatusNoticeState | null; body: string; createdById: string },
     data: Prisma.CloudStatusNoticeUncheckedUpdateInput,
     limit: { maxUpdates: number; maxOpen: number; reopens: boolean; now: Date },
+    dispatchKind: DispatchKind,
   ): Promise<NoticeRow | 'updates' | 'open'> {
     return this.prisma.$transaction(async (tx) => {
       await this.lockTeam(tx, notice.teamId);
@@ -139,7 +162,10 @@ export class CloudStatusNoticesRepository {
       ) {
         return 'open';
       }
-      await tx.cloudStatusNoticeUpdate.create({ data: { noticeId: notice.id, ...update } });
+      const created = await tx.cloudStatusNoticeUpdate.create({
+        data: { noticeId: notice.id, ...update },
+      });
+      await this.dispatch(tx, notice.teamId, notice.id, created.id, dispatchKind);
       return tx.cloudStatusNotice.update({
         where: { id: notice.id },
         data,
