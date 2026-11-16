@@ -1210,6 +1210,10 @@ model SiteNewsPost {
   summary     String    @db.VarChar(300)
   /// Plain text, a Markdown subset rendered by the template at build time.
   body        String
+  /// English twins (decision 106); null shows the Spanish text on the English pages.
+  titleEn     String?   @map("title_en") @db.VarChar(120)
+  summaryEn   String?   @map("summary_en") @db.VarChar(300)
+  bodyEn      String?   @map("body_en")
   /// `media/<file>`, from the site's photo uploads.
   photo       String?
   /// Null = draft; kept when a published post is edited.

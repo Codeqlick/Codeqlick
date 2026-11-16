@@ -86,6 +86,29 @@ const body = z
     (value) => disallowedLinks(value).length === 0,
     'Links must start with http://, https://, mailto: or tel:',
   );
+/** An English twin (decision 106): empty is stored as null and shows the Spanish text. */
+const englishOf = (schema: z.ZodType<string>) =>
+  z
+    .preprocess(
+      (value) => (typeof value === 'string' && !value.trim() ? null : value),
+      schema.nullable(),
+    )
+    .optional();
+const englishTexts = {
+  titleEn: englishOf(z.string().trim().max(120)),
+  summaryEn: englishOf(z.string().trim().max(300)),
+  bodyEn: englishOf(
+    z
+      .string()
+      .trim()
+      .max(10_000)
+      .refine(
+        (value) => disallowedLinks(value).length === 0,
+        'Links must start with http://, https://, mailto: or tel:',
+      ),
+  ),
+};
+
 /** A photo from the site's uploads: `media/<uuid>.<ext>`. */
 const photo = z
   .string()
@@ -96,6 +119,7 @@ export const createNewsSchema = z
     title,
     summary,
     body,
+    ...englishTexts,
     photo: photo.nullable().optional(),
     expiresAt: z.iso.date().nullable().optional(),
   })
@@ -107,6 +131,7 @@ export const updateNewsSchema = z
     title: title.optional(),
     summary: summary.optional(),
     body: body.optional(),
+    ...englishTexts,
     photo: photo.nullable().optional(),
     expiresAt: z.iso.date().nullable().optional(),
   })
@@ -133,6 +158,10 @@ export interface SiteNewsPostView {
   title: string;
   summary: string;
   body: string;
+  /** English twins (decision 106); null shows the Spanish text. */
+  titleEn: string | null;
+  summaryEn: string | null;
+  bodyEn: string | null;
   photo: { file: string; url: string } | null;
   status: NewsStatus;
   publishedAt: string | null;
@@ -155,10 +184,18 @@ export interface BuildNewsPost {
   publishedAt: string;
   updatedAt: string;
   expiresAt?: string;
+  /** The English texts written, for a site with its English version on. */
+  en?: { title?: string; summary?: string; body?: string };
 }
 
-export function toBuildPost(post: SiteNewsPost): BuildNewsPost | undefined {
+/** A published post as a build gets it; with `english`, its English texts too. */
+export function toBuildPost(post: SiteNewsPost, english = false): BuildNewsPost | undefined {
   if (!post.publishedAt) return undefined;
+  const en = {
+    ...(post.titleEn ? { title: post.titleEn } : {}),
+    ...(post.summaryEn ? { summary: post.summaryEn } : {}),
+    ...(post.bodyEn ? { body: post.bodyEn } : {}),
+  };
   return {
     slug: post.slug,
     title: post.title,
@@ -168,5 +205,6 @@ export function toBuildPost(post: SiteNewsPost): BuildNewsPost | undefined {
     publishedAt: post.publishedAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     ...(post.expiresAt ? { expiresAt: post.expiresAt.toISOString() } : {}),
+    ...(english && Object.keys(en).length > 0 ? { en } : {}),
   };
 }

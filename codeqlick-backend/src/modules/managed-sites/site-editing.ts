@@ -80,6 +80,8 @@ export function changedSections(before: SiteContent, after: SiteContent): string
     contactSection: 'Contact section',
     legal: 'Legal data',
     footerNote: 'Footer note',
+    english: 'English version',
+    en: 'English texts',
   };
   return (Object.keys(labels) as Array<keyof SiteContent>)
     .filter((key) => JSON.stringify(before[key] ?? null) !== JSON.stringify(after[key] ?? null))
