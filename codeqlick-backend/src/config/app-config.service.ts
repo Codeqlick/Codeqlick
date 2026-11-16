@@ -108,6 +108,11 @@ export class AppConfigService {
     return this.stripe ? this.get('STRIPE_CLOUD_PRO_PRICE_ID') || undefined : undefined;
   }
 
+  /** The Stripe price of the maintenance plan; undefined while the plan is off (decision 110). */
+  get maintenancePriceId(): string | undefined {
+    return this.stripe ? this.get('STRIPE_MAINTENANCE_PRICE_ID') || undefined : undefined;
+  }
+
   /** Price of a website bought online, before VAT. */
   get sitePriceCents(): number {
     return this.get('SITE_PRICE_CENTS');

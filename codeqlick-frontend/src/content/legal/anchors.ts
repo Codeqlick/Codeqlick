@@ -7,3 +7,9 @@ export const STATUS_SUBSCRIBERS_ANCHOR = {
   es: 'suscriptores-de-paginas-de-estado',
   en: 'status-page-subscribers',
 } as const;
+
+/** The terms of sale's section on the managed sites' maintenance plan (decision 110). */
+export const MAINTENANCE_TERMS_ANCHOR = {
+  es: 'plan-de-mantenimiento',
+  en: 'maintenance-plan',
+} as const;

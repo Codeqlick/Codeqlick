@@ -58,6 +58,8 @@ export interface SiteReport {
   messages: number;
   /** 0–1, or null without checks. */
   uptime: number | null;
+  /** The maintenance plan's change requests used that month (decision 110); null without it. */
+  maintenance?: { used: number; limit: number } | null;
 }
 
 const monthName = (month: string, locale: ApiLocale) =>
@@ -119,6 +121,13 @@ export function siteReportEmail(
     details.push([
       es ? 'De dónde llegaron' : 'Where they came from',
       visits.sources.map((item) => `${item.source} (${number(item.visitors, locale)})`).join(', '),
+    ]);
+  }
+  if (report.maintenance) {
+    const { used, limit } = report.maintenance;
+    details.push([
+      es ? 'Plan de mantenimiento' : 'Maintenance plan',
+      es ? `${used} de ${limit} cambios usados` : `${used} of ${limit} changes used`,
     ]);
   }
 

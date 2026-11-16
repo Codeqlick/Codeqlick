@@ -12,8 +12,11 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { isNotFound } from '@/lib/api/errors';
 import { getMySite, listSiteMessages } from '@/lib/api/portal-site';
-import { formatDateTime } from '@/lib/format';
-import { setSiteDomainAction, applyDomainEmailAction } from './actions';
+import { firstParam, formatDateTime } from '@/lib/format';
+import { getMyMaintenance } from '@/lib/api/maintenance';
+import { showMaintenanceCard } from '@/lib/maintenance';
+import { MaintenanceCard } from '@/components/app/MaintenanceCard';
+import { maintenanceBillingAction, setSiteDomainAction, applyDomainEmailAction } from './actions';
 import siteStyles from './site.module.css';
 
 const TONES = { NONE: 'neutral', BUILDING: 'warning', LIVE: 'success', FAILED: 'danger' } as const;
@@ -22,22 +25,27 @@ const DOMAIN_TONES = { UNREGISTERED: 'neutral', ELSEWHERE: 'warning', LIVE: 'suc
 /** The client edits their managed website (architecture 8.2): saving publishes it. */
 export default async function PortalSitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale: raw, id } = await params;
   const locale = resolveLocale(raw);
   const t = await getTranslations({ locale, namespace: 'PortalSite' });
   const tm = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tk = (key: string) => tm(key as never);
-  const [site, messages] = await Promise.all([
+  const [site, messages, maintenance] = await Promise.all([
     getMySite(id).catch((error: unknown) => {
       if (isNotFound(error)) notFound();
       throw error;
     }),
     // Only the count: the page shows them.
     listSiteMessages(id, { pageSize: 1 }).catch(() => null),
+    // Optional: the rest of the page works without it (decision 110).
+    getMyMaintenance(id).catch(() => null),
   ]);
+  const maintenanceNotice = firstParam((await searchParams).maintenance);
   const tmsg = await getTranslations({ locale, namespace: 'SiteMessages' });
   const { editable, domain } = site;
   const td = await getTranslations({ locale, namespace: 'SiteRequest' });
@@ -107,6 +115,16 @@ export default async function PortalSitePage({
           ) : null}
         </div>
       </section>
+
+      {maintenance && showMaintenanceCard(maintenance) ? (
+        <MaintenanceCard
+          locale={locale}
+          projectId={id}
+          plan={maintenance}
+          action={maintenanceBillingAction}
+          notice={maintenanceNotice}
+        />
+      ) : null}
 
       {messages ? (
         <section className={styles.panel} id="messages">
