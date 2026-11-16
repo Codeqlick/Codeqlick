@@ -13,11 +13,11 @@ export const TWO_FACTOR_MAX_AGE = 5 * 60;
 /**
  * Paths that need a session: /en/portal, /es/admin/leads, /es/videochat/room, /es/citas/editar/…,
  * Swipe's own pages (its landing, rules and removal form are public), Cruising's proposal,
- * "my spots", profile, members and messages pages (the map, spots, places and legal pages are public) and Cloud's console, CLI
+ * "my spots", profile, members, messages, favourites, meetups and trips pages (the map, spots, places and legal pages are public) and Cloud's console, CLI
  * sign-in and invitations.
  */
 export const PROTECTED_PATH =
-  /^\/(en|es)\/(portal|admin|videochat\/room|citas\/editar|swipe\/(?:deck|photos|matches|img)|cruising\/(?:new|my-spots|me|members|messages|favorites)|cloud\/(?:console|cli|invite|github))(\/|$)/;
+  /^\/(en|es)\/(portal|admin|videochat\/room|citas\/editar|swipe\/(?:deck|photos|matches|img)|cruising\/(?:new|my-spots|me|members|messages|favorites|meetups|trips)|cloud\/(?:console|cli|invite|github))(\/|$)/;
 
 /**
  * Paths open to everyone that still show the signed-in person when there is one: the proxy

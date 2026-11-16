@@ -2,6 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { CruisingSpotType } from '@/lib/cruising';
 import styles from './Cruising.module.css';
+import community from './CruisingCommunity.module.css';
 
 /**
  * What the two Leaflet maps (the big one and a spot's small one) share. Only ever loaded in the
@@ -50,6 +51,30 @@ export function activeSpotIcon(type: CruisingSpotType, here: number): L.DivIcon 
   return L.divIcon({
     className: `${styles.marker} ${styles[`marker${type}`] ?? ''} ${styles.markerActive ?? ''}`,
     html: `${TYPE_GLYPH[type]}<span class="${styles.activeCount ?? ''}">${count}</span>`,
+    iconSize: [MARKER_SIZE, MARKER_SIZE],
+    iconAnchor: [MARKER_SIZE / 2, MARKER_SIZE / 2],
+    popupAnchor: [0, -MARKER_SIZE / 2],
+  });
+}
+
+/**
+ * The marker of a spot with active safety alerts (decision 91): the spot's marker (with the active
+ * ring when someone is there) and a warning badge with the count. Only built for entered members.
+ */
+export function alertSpotIcon(type: CruisingSpotType, here: number, alerts: number): L.DivIcon {
+  const count = alerts > 9 ? '9+' : String(Math.max(1, Math.floor(alerts)));
+  const active = here > 0;
+  const hereCount = here > 99 ? '99+' : String(Math.max(0, Math.floor(here)));
+  return L.divIcon({
+    className: [
+      styles.marker,
+      styles[`marker${type}`] ?? '',
+      active ? (styles.markerActive ?? '') : '',
+      community.markerAlert ?? '',
+    ].join(' '),
+    html: `${TYPE_GLYPH[type]}${
+      active ? `<span class="${styles.activeCount ?? ''}">${hereCount}</span>` : ''
+    }<span class="${community.alertBadge ?? ''}">!${count === '1' ? '' : count}</span>`,
     iconSize: [MARKER_SIZE, MARKER_SIZE],
     iconAnchor: [MARKER_SIZE / 2, MARKER_SIZE / 2],
     popupAnchor: [0, -MARKER_SIZE / 2],

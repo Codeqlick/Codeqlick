@@ -271,16 +271,43 @@ export function alertChannel(
   return today.some((alert) => alert.channel === 'EMAIL') ? null : 'EMAIL';
 }
 
-export type PushKind = 'favorite' | 'message';
+/**
+ * What a notification is about: someone at a favourite spot, a new message, and in phase 5 a
+ * meetup planned or a safety alert at a favourite spot, or a meetup the member joined cancelled.
+ */
+export type PushKind = 'favorite' | 'message' | 'meetup' | 'safety' | 'meetup-cancelled';
 
-const PUSH_TEXT = {
-  en: { favorite: 'Someone is at one of your favourite spots', message: 'New message' },
-  es: { favorite: 'Hay alguien en uno de tus lugares favoritos', message: 'Mensaje nuevo' },
-} as const;
+/** The kinds that tell the members who saved a spot (decision 85's channels and caps). */
+export type FavoriteAlertKind = 'favorite' | 'meetup' | 'safety';
+
+const PUSH_TEXT: Record<'en' | 'es', Record<PushKind, string>> = {
+  en: {
+    favorite: 'Someone is at one of your favourite spots',
+    message: 'New message',
+    meetup: 'A meetup was planned at one of your favourite spots',
+    safety: 'Safety alert at one of your favourite spots',
+    'meetup-cancelled': 'A meetup you joined was cancelled',
+  },
+  es: {
+    favorite: 'Hay alguien en uno de tus lugares favoritos',
+    message: 'Mensaje nuevo',
+    meetup: 'Se ha organizado una quedada en uno de tus lugares favoritos',
+    safety: 'Alerta de seguridad en uno de tus lugares favoritos',
+    'meetup-cancelled': 'Se ha cancelado una quedada a la que ibas',
+  },
+};
+
+const PUSH_PATH: Record<PushKind, string> = {
+  favorite: '/favorites',
+  message: '/messages',
+  meetup: '/meetups',
+  safety: '/favorites',
+  'meetup-cancelled': '/meetups',
+};
 
 /**
- * A notification's payload: it names neither the spot nor a person, and opens the favourites or
- * the messages in the account's language.
+ * A notification's payload: it names neither the spot nor a person, and opens the favourites, the
+ * messages or the meetups in the account's language.
  */
 export function pushPayload(
   kind: PushKind,
@@ -289,8 +316,8 @@ export function pushPayload(
   return {
     title: 'Cruising',
     body: PUSH_TEXT[locale][kind],
-    url: `/${locale}${kind === 'favorite' ? '/favorites' : '/messages'}`,
-    tag: kind === 'favorite' ? 'cruising-favorite' : 'cruising-message',
+    url: `/${locale}${PUSH_PATH[kind]}`,
+    tag: `cruising-${kind}`,
   };
 }
 

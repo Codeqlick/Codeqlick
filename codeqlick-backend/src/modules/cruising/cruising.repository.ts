@@ -455,6 +455,8 @@ export class CruisingRepository {
         review: {
           include: { spot: { select: { id: true, slug: true, name: true, status: true } } },
         },
+        meetup: { select: { id: true, status: true } },
+        safetyAlert: { select: { id: true, hidden: true } },
       },
     });
   }
@@ -470,6 +472,26 @@ export class CruisingRepository {
         reviewedBy: { select: { id: true, name: true } },
         spot: { select: { id: true, slug: true, name: true, type: true, status: true } },
         media: { select: { id: true, ref: true, kind: true, status: true } },
+        meetup: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            startsAt: true,
+            status: true,
+            spot: { select: { id: true, slug: true, name: true } },
+          },
+        },
+        safetyAlert: {
+          select: {
+            id: true,
+            kind: true,
+            note: true,
+            hidden: true,
+            expiresAt: true,
+            spot: { select: { id: true, slug: true, name: true } },
+          },
+        },
         review: {
           select: {
             id: true,
@@ -513,6 +535,55 @@ export class CruisingRepository {
     return this.prisma.cruisingReport.count({
       where: { reviewId, status: 'OPEN', ...(exceptId ? { id: { not: exceptId } } : {}) },
     });
+  }
+
+  countOpenReportsOnMeetup(meetupId: string): Promise<number> {
+    return this.prisma.cruisingReport.count({ where: { meetupId, status: 'OPEN' } });
+  }
+
+  countOpenReportsOnSafetyAlert(safetyAlertId: string): Promise<number> {
+    return this.prisma.cruisingReport.count({ where: { safetyAlertId, status: 'OPEN' } });
+  }
+
+  // ---- Reported meetups and safety alerts (phase 5) ----------------------------------------------
+
+  findMeetupForReport(id: string) {
+    return this.prisma.cruisingMeetup.findUnique({
+      where: { id },
+      select: { id: true, hostId: true, status: true, spot: { select: { status: true } } },
+    });
+  }
+
+  async setMeetupStatus(id: string, status: 'LIVE' | 'HIDDEN'): Promise<void> {
+    await this.prisma.cruisingMeetup.updateMany({
+      where: { id, status: { not: 'CANCELLED' } },
+      data: { status },
+    });
+  }
+
+  async deleteMeetup(id: string): Promise<void> {
+    await this.prisma.cruisingMeetup.deleteMany({ where: { id } });
+  }
+
+  findSafetyAlertForReport(id: string) {
+    return this.prisma.cruisingSafetyAlert.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        posterId: true,
+        hidden: true,
+        expiresAt: true,
+        spot: { select: { status: true } },
+      },
+    });
+  }
+
+  async setSafetyAlertHidden(id: string, hidden: boolean): Promise<void> {
+    await this.prisma.cruisingSafetyAlert.updateMany({ where: { id }, data: { hidden } });
+  }
+
+  async deleteSafetyAlert(id: string): Promise<void> {
+    await this.prisma.cruisingSafetyAlert.deleteMany({ where: { id } });
   }
 
   countOpenTakedownsOnSpot(spotId: string, exceptId?: string): Promise<number> {
