@@ -31,6 +31,8 @@ export type CloudMe = {
   via: 'session' | 'token';
   teams: CloudTeamSummary[];
   termsVersion: string;
+  /** False while any of my teams has older Cloud terms: the console asks first (decision 105). */
+  termsAccepted: boolean;
 };
 
 export type CloudLimits = {
@@ -913,6 +915,8 @@ export type CloudStatusPageSettings = {
   title: string;
   intro: string | null;
   items: Array<{ monitorId: string; label: string }>;
+  /** Email subscriptions to the page's notices (decision 105). */
+  subscriptions: boolean;
 };
 
 /** On the public page a monitor under a maintenance in progress shows MAINTENANCE. */
@@ -975,6 +979,10 @@ export type CloudPublicNotice = {
 export type CloudPublicStatus = {
   title: string;
   intro: string | null;
+  /** The team: the controller of its subscribers' addresses. */
+  teamName: string;
+  /** The email sign-up is offered (subscriptions on, room under the plan's cap). */
+  subscribe: boolean;
   overall: CloudPublicOverall;
   updatedAt: string;
   monitors: Array<{
@@ -1103,6 +1111,87 @@ export const addCloudStatusNoticeUpdate = (
 /** A team's public status (no session; the API caches it 60 s). */
 export const getCloudPublicStatus = (team: string) =>
   apiFetch<CloudPublicStatus>(`/cloud/status/${encodeURIComponent(team)}`, { revalidate: 60 });
+
+// ── Email subscriptions to a status page (architecture 4.13, decision 105) ──────────────────
+
+export type CloudStatusSubscriberStatus = 'PENDING' | 'ACTIVE' | 'UNSUBSCRIBED';
+
+export type CloudStatusSubscriber = {
+  id: string;
+  /** Masked: j***@e***.com. */
+  email: string;
+  locale: 'en' | 'es';
+  status: CloudStatusSubscriberStatus;
+  createdAt: string;
+  confirmedAt: string | null;
+  unsubscribedAt: string | null;
+};
+
+export type CloudStatusSubscriberList = {
+  counts: { active: number; pending: number; unsubscribed: number };
+  limit: number;
+  items: Paginated<CloudStatusSubscriber>;
+};
+
+export const listCloudStatusSubscribers = (
+  team: string,
+  status?: CloudStatusSubscriberStatus,
+  page = 1,
+  pageSize = 20,
+) =>
+  apiFetch<CloudStatusSubscriberList>(
+    `/cloud/teams/${encodeURIComponent(team)}/status-subscribers`,
+    { ...auth, query: { status, page, pageSize } },
+  );
+
+export const deleteCloudStatusSubscriber = (team: string, id: string) =>
+  apiFetch<void>(
+    `/cloud/teams/${encodeURIComponent(team)}/status-subscribers/${encodeURIComponent(id)}`,
+    { ...write, method: 'DELETE' },
+  );
+
+export const deleteAllCloudStatusSubscribers = (team: string) =>
+  apiFetch<{ deleted: number }>(`/cloud/teams/${encodeURIComponent(team)}/status-subscribers`, {
+    ...write,
+    method: 'DELETE',
+  });
+
+type SubscriberResult = { teamName: string; teamSlug: string; locale: 'en' | 'es' };
+
+/** Public sign-up: always 202 for an address, so it never reveals who is subscribed. */
+export const subscribeToCloudStatus = (
+  team: string,
+  input: { email: string; locale: 'en' | 'es' },
+) =>
+  apiFetch<void>(`/cloud/status/${encodeURIComponent(team)}/subscribers`, {
+    method: 'POST',
+    body: { ...input, acceptPrivacy: true },
+    forwardClientIp: true,
+  });
+
+/** The emailed link's token: the subscriber becomes active. 400 when unknown or expired. */
+export const confirmCloudStatusSubscription = (token: string) =>
+  apiFetch<SubscriberResult>('/cloud/status-subscribers/confirm', {
+    method: 'POST',
+    body: { token },
+    forwardClientIp: true,
+  });
+
+/** One step, no sign-in; also when already unsubscribed. 404 for an unknown token. */
+export const unsubscribeFromCloudStatus = (token: string) =>
+  apiFetch<SubscriberResult>('/cloud/status-subscribers/unsubscribe', {
+    method: 'POST',
+    body: { token },
+    forwardClientIp: true,
+  });
+
+/** The current Cloud terms for all my teams (session only). */
+export const acceptCloudTerms = (termsVersion: string) =>
+  apiFetch<void>('/cloud/terms/accept', {
+    ...write,
+    method: 'POST',
+    body: { acceptTerms: true, termsVersion },
+  });
 
 // ── Website check API (phase 1b) ────────────────────────────────────────────────────────────
 

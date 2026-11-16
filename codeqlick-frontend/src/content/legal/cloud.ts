@@ -6,7 +6,7 @@ import { type LegalDocument, type LegalOwner, ownerLines } from './index';
  * Codeqlick Cloud's terms (architecture 4.13). Their version is the API's CLOUD_TERMS_VERSION:
  * changing what they say means a new version there, so people accept them again.
  */
-const UPDATED = { es: '13 de noviembre de 2026', en: '13 November 2026' } as const;
+const UPDATED = { es: '17 de noviembre de 2026', en: '17 November 2026' } as const;
 const MAIL = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
 
 function terms(owner: LegalOwner, locale: SiteLocale, hostingDomain: string): string {
@@ -51,6 +51,20 @@ Hacemos lo posible por mantener el servicio en marcha, pero el plan gratuito no 
 Tratamos los datos de tu cuenta como explica la [política de privacidad](/es/privacy) de Codeqlick. Para los sitios que alojas, Nginx guarda un registro de cada visita (IP, dirección y navegador) durante 14 días por seguridad y para atender abusos; respecto a esos datos actuamos como **encargado del tratamiento** por cuenta de tu equipo. Lo que tus páginas hagan con los datos de sus visitantes es responsabilidad tuya.
 
 Si usas los **formularios** de Cloud, guardamos lo que envían tus visitantes durante 180 días y lo mandamos por email a los miembros que elijas; también ahí actuamos como encargado del tratamiento por cuenta de tu equipo, que decide qué datos pide y debe informar a sus visitantes. No guardamos su IP.
+
+## Suscriptores de tus páginas de estado
+
+Si activas las **suscripciones por correo** de tu página de estado, tu equipo es el **responsable del tratamiento** de los correos de sus suscriptores y Codeqlick su **encargado del tratamiento** (artículo 28 del RGPD). Con estas condiciones nos encargas ese tratamiento:
+
+- **Objeto y finalidad:** guardar el correo, el idioma, el estado y las fechas de cada suscriptor, confirmar su alta, enviarle los avisos que publica tu equipo y atender sus bajas. Nada más: no usamos esas direcciones para nada propio, no las cedemos ni las vendemos.
+- **Instrucciones:** solo tratamos los datos siguiendo tus instrucciones, que das con los ajustes de la consola (activar o desactivar las suscripciones, publicar avisos, borrar suscriptores). Si una instrucción nos pareciera contraria a la ley, te lo diremos.
+- **Confidencialidad:** solo acceden a los datos las personas de Codeqlick que lo necesitan para prestar el servicio, obligadas a guardar secreto.
+- **Seguridad:** los datos viajan cifrados y se guardan en servidores de la Unión Europea con acceso restringido; las direcciones se muestran ocultas en parte en la consola y en los registros de eventos del equipo no aparecen. Si sufrimos una brecha que les afecte, te avisaremos sin dilación indebida.
+- **Subencargado:** **OVHcloud**, que aloja el servicio, la base de datos y el correo en la Unión Europea. Te avisaremos antes de añadir otro, y podrás oponerte.
+- **Supresión:** las suscripciones sin confirmar se borran a los nueve días, y las bajas a los 12 meses. Todo se borra cuando borras a los suscriptores, cuando borras el equipo o cuando te vas de Cloud.
+- **Ayuda:** te ayudamos a atender los derechos de tus suscriptores (cada uno puede darse de baja con un clic, y tú puedes borrarlo desde la consola) y a cumplir tus obligaciones de seguridad; tienes a tu disposición la información necesaria para demostrarlo.
+
+Tu equipo debe usar esta función solo para avisar del estado de su servicio y es quien responde ante sus suscriptores; la página muestra su nombre como responsable y enlaza nuestra [política de privacidad](/es/privacy).
 
 ## Baja
 
@@ -100,6 +114,20 @@ We do our best to keep the service running, but the free plan has no availabilit
 We handle your account's data as Codeqlick's [privacy policy](/en/privacy) explains. For the sites you host, Nginx keeps a log of each visit (IP, address and browser) for 14 days for security and to handle abuse; for those data we act as **processor** on behalf of your team. What your pages do with their visitors' data is your responsibility.
 
 If you use Cloud's **forms**, we keep what your visitors send for 180 days and email it to the members you choose; there too we act as processor on behalf of your team, which decides what data it asks for and must inform its visitors. We don't keep their IP.
+
+## Your status pages' subscribers
+
+If you turn on **email subscriptions** on your status page, your team is the **controller** of its subscribers' email addresses and Codeqlick is its **processor** (article 28 GDPR). With these terms you entrust that processing to us:
+
+- **Subject and purpose:** keeping each subscriber's email, language, status and dates, confirming the sign-up, sending the notices your team posts and handling unsubscribes. Nothing else: we don't use those addresses for anything of our own, and we never hand them over or sell them.
+- **Instructions:** we process the data only on your instructions, which you give through the console's settings (turning subscriptions on or off, posting notices, deleting subscribers). If an instruction seemed unlawful to us, we would tell you.
+- **Confidentiality:** only the people at Codeqlick who need the data to provide the service can access it, and they are bound to secrecy.
+- **Security:** the data travels encrypted and is kept on servers in the European Union with restricted access; addresses are partly hidden in the console and never appear in the team's events. If a breach affects them, we will tell you without undue delay.
+- **Sub-processor:** **OVHcloud**, which hosts the service, the database and the email in the European Union. We will tell you before adding another, and you may object.
+- **Deletion:** unconfirmed sign-ups are deleted after nine days and unsubscribed ones after 12 months. Everything is deleted when you delete the subscribers, when you delete the team or when you leave Cloud.
+- **Assistance:** we help you answer your subscribers' rights (each can unsubscribe in one click, and you can delete them from the console) and meet your security obligations; the information needed to show it is available to you.
+
+Your team must use this feature only to tell people about the state of its service, and it answers to its subscribers; the page shows its name as the controller and links our [privacy policy](/en/privacy).
 
 ## Leaving
 
