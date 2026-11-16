@@ -420,4 +420,83 @@ describe('Cruising social (e2e)', () => {
     expect(await prisma.cruisingMessage.count({ where: { senderId: luis.id } })).toBe(0);
     expect(await prisma.cruisingProfile.count({ where: { userId: luis.id } })).toBe(0);
   });
+
+  it('shows the active spots of a box only to entered members, counted like presence', async () => {
+    // The 0.25° grid cell around the social spots (lat 11.5…, lng -148.5).
+    const box = '-148.75,11.25,-148.25,11.75';
+    const active = await liveSpot();
+    const hiddenLater = await liveSpot();
+    const elsewhere = await prisma.cruisingSpot.create({
+      data: {
+        slug: `social-far-${tag}`,
+        name: `Social far ${tag}`,
+        type: 'BEACH',
+        lat: 20.5,
+        lng: -140.5,
+        countryCode: 'ES',
+        city: `Social ${tag}`,
+        citySlug: `social-${tag}`,
+        description: 'Outside the box.',
+        status: 'LIVE',
+      },
+    });
+    const viewer = await member('Viewer', false);
+    const [anon, named, blockedByMe, blockingMe, suspended, far, hidden] = await Promise.all(
+      ['Anon', 'Named', 'Mine', 'Theirs', 'Susp', 'Far', 'Hid'].map((name) => member(name)),
+    );
+    const checkIn = (who: Person, spotId: string, anonymous = false) =>
+      request(server())
+        .post('/v1/cruising/check-ins')
+        .set(who.auth)
+        .send({ spotId, hours: 1, anonymous })
+        .expect(201);
+    await checkIn(anon, active.id, true);
+    await checkIn(named, active.id);
+    await checkIn(blockedByMe, active.id);
+    await checkIn(blockingMe, active.id);
+    await checkIn(suspended, active.id);
+    await checkIn(far, elsewhere.id);
+    await checkIn(hidden, hiddenLater.id);
+
+    // Blocks both ways need a nickname to name the person: set straight in the database.
+    await prisma.cruisingBlock.createMany({
+      data: [
+        { blockerId: viewer.id, blockedId: blockedByMe.id },
+        { blockerId: blockingMe.id, blockedId: viewer.id },
+      ],
+    });
+    // Suspended without ending the check-in, so only the filter can leave them out.
+    await prisma.cruisingProfile.update({
+      where: { userId: suspended.id },
+      data: { suspendedAt: new Date(), suspendedUntil: null },
+    });
+    await prisma.cruisingSpot.update({ where: { id: hiddenLater.id }, data: { status: 'HIDDEN' } });
+
+    const res = await request(server()).get(`/v1/cruising/active?bbox=${box}`).set(viewer.auth);
+    expect(res.status).toBe(200);
+    const mine = (res.body.items as { spotId: string; here: number }[]).filter((item) =>
+      [active.id, hiddenLater.id, elsewhere.id].includes(item.spotId),
+    );
+    // The anonymous one counts; the blocked (both ways) and the suspended don't.
+    expect(mine).toEqual([{ spotId: active.id, here: 2 }]);
+
+    // Someone they blocked sees the person who blocked them as absent too.
+    const fromBlocked = await request(server())
+      .get(`/v1/cruising/active?bbox=${box}`)
+      .set(blockedByMe.auth);
+    expect(
+      (fromBlocked.body.items as { spotId: string; here: number }[]).find(
+        (item) => item.spotId === active.id,
+      ),
+    ).toEqual({ spotId: active.id, here: 4 });
+
+    // Only for entered members; the box is checked like the map's.
+    await request(server()).get(`/v1/cruising/active?bbox=${box}`).expect(401);
+    const outsider = await person('Outsider');
+    await request(server()).get(`/v1/cruising/active?bbox=${box}`).set(outsider.auth).expect(403);
+    for (const bad of ['', '1,2,3', '-148,11,-149,12', 'a,b,c,d']) {
+      await request(server()).get(`/v1/cruising/active?bbox=${bad}`).set(viewer.auth).expect(400);
+    }
+    await request(server()).get('/v1/cruising/active').set(viewer.auth).expect(400);
+  });
 });

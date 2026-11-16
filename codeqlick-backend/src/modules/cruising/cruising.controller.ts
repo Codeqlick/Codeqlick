@@ -33,6 +33,7 @@ import {
   reportSchema,
   reviewSchema,
   reviewsQuerySchema,
+  searchQuerySchema,
   spotPatchSchema,
   spotSchema,
   takedownSchema,
@@ -43,12 +44,14 @@ import {
   type ReportInput,
   type ReviewInput,
   type ReviewsQuery,
+  type SearchQuery,
   type SpotInput,
   type SpotPatch,
   type TakedownInput,
 } from './cruising.schemas.js';
 import {
   CruisingService,
+  type CruisingPlaceMatch,
   type CruisingReviewView,
   type CruisingSpotPublic,
   type CruisingSpotSummary,
@@ -69,7 +72,17 @@ export class CruisingPublicController {
   spots(
     @Query({ schema: bboxQuerySchema }) query: BboxQuery,
   ): Promise<{ items: CruisingSpotSummary[]; truncated: boolean }> {
-    return this.cruising.spotsInBox(query.bbox, query.type);
+    return this.cruising.spotsInBox(query.bbox, query.type, query.minRating);
+  }
+
+  /** Cities and spots by text (phase 3, decision 86), up to 8 of each. */
+  @Get('search')
+  @Header('Cache-Control', 'public, max-age=60')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  search(
+    @Query({ schema: searchQuerySchema }) query: SearchQuery,
+  ): Promise<{ places: CruisingPlaceMatch[]; spots: CruisingSpotSummary[] }> {
+    return this.cruising.search(query.q);
   }
 
   @Get('spots/:slug')

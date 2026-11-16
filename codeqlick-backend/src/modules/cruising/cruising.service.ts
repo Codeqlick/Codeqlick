@@ -32,7 +32,9 @@ import {
   isUniqueViolation,
   memberCanChange,
   nextSpotStatus,
+  placeBbox,
   roundCoordinate,
+  searchPatterns,
   spotSlugBase,
   takedownHidesAtOnce,
   toTranscript,
@@ -46,6 +48,7 @@ import {
   HIDE_AT_ONCE,
   MAX_SPOTS_IN_BOX,
   MAX_SPOTS_IN_CITY,
+  SEARCH_LIMIT,
   REPORTS_PER_DAY,
   REVIEWS_PER_DAY,
   SPOTS_PER_DAY,
@@ -101,6 +104,16 @@ export interface CruisingSpotSummary {
   lng: number;
   ratingAvg: number;
   ratingCount: number;
+}
+
+/** A city a search found (decision 86): the map fits itself to `bbox`. */
+export interface CruisingPlaceMatch {
+  countryCode: string;
+  city: string;
+  citySlug: string;
+  count: number;
+  /** `[minLng, minLat, maxLng, maxLat]`, the box around the city's LIVE spots. */
+  bbox: [number, number, number, number];
 }
 
 export interface CruisingSpotPublic extends CruisingSpotSummary {
@@ -417,11 +430,47 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   async spotsInBox(
     box: Bbox,
     type?: SpotType,
+    minRating?: number,
   ): Promise<{ items: CruisingSpotSummary[]; truncated: boolean }> {
-    const spots = await this.repository.spotsInBox(box, type, MAX_SPOTS_IN_BOX + 1);
+    const spots = await this.repository.spotsInBox(box, { type, minRating }, MAX_SPOTS_IN_BOX + 1);
     return {
       items: spots.slice(0, MAX_SPOTS_IN_BOX).map((spot) => this.summary(spot)),
       truncated: spots.length > MAX_SPOTS_IN_BOX,
+    };
+  }
+
+  /**
+   * Cities and spots by text (decision 86), LIVE only, up to 8 of each: accents and case are
+   * ignored, matches at the start come first. Nothing about the searcher's position is involved.
+   */
+  async search(
+    text: string,
+  ): Promise<{ places: CruisingPlaceMatch[]; spots: CruisingSpotSummary[] }> {
+    const { contains, prefix } = searchPatterns(text);
+    const [cities, spots] = await Promise.all([
+      this.repository.searchCities(contains, prefix, SEARCH_LIMIT),
+      this.repository.searchSpots(contains, prefix, SEARCH_LIMIT),
+    ]);
+    return {
+      places: cities.map((row) => ({
+        countryCode: row.country_code,
+        city: row.city,
+        citySlug: row.city_slug,
+        count: Number(row.count),
+        bbox: placeBbox({
+          minLng: row.min_lng,
+          minLat: row.min_lat,
+          maxLng: row.max_lng,
+          maxLat: row.max_lat,
+        }),
+      })),
+      spots: spots.map((row) =>
+        this.summary({
+          ...row,
+          ratingAvg: row.rating_avg,
+          ratingCount: Number(row.rating_count),
+        }),
+      ),
     };
   }
 

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activeQuerySchema,
   bboxQuerySchema,
   onboardingSchema,
   placeParamsSchema,
   reportSchema,
   reviewSchema,
+  searchQuerySchema,
   spotPatchSchema,
   spotSchema,
   takedownSchema,
@@ -34,6 +36,37 @@ describe('bboxQuerySchema', () => {
     expect(bboxQuerySchema.safeParse({ bbox: '3,40,-3,41' }).success).toBe(false);
     expect(bboxQuerySchema.safeParse({ bbox: '170,0,190,10' }).success).toBe(false);
     expect(bboxQuerySchema.safeParse({ bbox: '0,0,1,1', type: 'MOON' }).success).toBe(false);
+  });
+
+  it('takes a minimum rating of 1 to 5', () => {
+    expect(bboxQuerySchema.parse({ bbox: '0,0,1,1', minRating: '4' }).minRating).toBe(4);
+    expect(bboxQuerySchema.parse({ bbox: '0,0,1,1' }).minRating).toBeUndefined();
+    for (const minRating of ['0', '6', '3.5', 'a', '']) {
+      expect(bboxQuerySchema.safeParse({ bbox: '0,0,1,1', minRating }).success).toBe(false);
+    }
+  });
+});
+
+describe('activeQuerySchema', () => {
+  it('needs a valid box', () => {
+    expect(activeQuerySchema.parse({ bbox: '0,0,0.25,0.25' }).bbox).toEqual({
+      minLng: 0,
+      minLat: 0,
+      maxLng: 0.25,
+      maxLat: 0.25,
+    });
+    expect(activeQuerySchema.safeParse({}).success).toBe(false);
+    expect(activeQuerySchema.safeParse({ bbox: '1,0,0,1' }).success).toBe(false);
+  });
+});
+
+describe('searchQuerySchema', () => {
+  it('takes 2 to 60 characters, trimmed', () => {
+    expect(searchQuerySchema.parse({ q: '  Málaga ' }).q).toBe('Málaga');
+    expect(searchQuerySchema.safeParse({ q: 'ab' }).success).toBe(true);
+    expect(searchQuerySchema.safeParse({ q: ' a ' }).success).toBe(false);
+    expect(searchQuerySchema.safeParse({ q: 'x'.repeat(61) }).success).toBe(false);
+    expect(searchQuerySchema.safeParse({}).success).toBe(false);
   });
 });
 

@@ -17,6 +17,7 @@ const ME = '11111111-1111-4111-8111-111111111111';
 const OTHER = '22222222-2222-4222-8222-222222222222';
 const SPOT = '33333333-3333-4333-8333-333333333333';
 const CONVERSATION = '55555555-5555-4555-8555-555555555555';
+const BOX = { minLng: -3.75, minLat: 40.25, maxLng: -3.5, maxLat: 40.5 };
 const SECRET_NAME = 'Secret Cove Of Dreams';
 const SECRET_NICKNAME = 'pier_fan';
 const SECRET_TEXT = 'meet me at the cove';
@@ -75,6 +76,7 @@ function build() {
     activeCheckIn: vi.fn().mockResolvedValue(null),
     endCheckIns: vi.fn().mockResolvedValue(undefined),
     presence: vi.fn().mockResolvedValue([]),
+    activeInBox: vi.fn().mockResolvedValue([]),
     deleteCheckInsExpiredBefore: vi.fn().mockResolvedValue(3),
     deleteConversationStartsBefore: vi.fn().mockResolvedValue(0),
     deleteNicknameChangesBefore: vi.fn().mockResolvedValue(0),
@@ -144,6 +146,7 @@ describe('CruisingSocialService', () => {
         () => t.service.checkIn(ME, { spotId: SPOT, hours: 1, anonymous: false }),
         () => t.service.endCheckIn(ME),
         () => t.service.presence(ME, SPOT),
+        () => t.service.active(ME, BOX),
         () => t.service.conversations(ME),
         () => t.service.openConversation(ME, 'x'),
         () => t.service.messages(ME, CONVERSATION, undefined),
@@ -332,6 +335,20 @@ describe('CruisingSocialService', () => {
         ],
       });
       expect(JSON.stringify(presence)).not.toContain('shy_guy');
+    });
+
+    it('show the active spots of a box without the people hidden from me', async () => {
+      t.repo.hiddenIds.mockResolvedValue(['blocked']);
+      t.repo.activeInBox.mockResolvedValue([{ spotId: SPOT, here: 2 }]);
+      await expect(t.service.active(ME, BOX, NOW)).resolves.toEqual({
+        items: [{ spotId: SPOT, here: 2 }],
+      });
+      expect(t.repo.activeInBox).toHaveBeenCalledWith(BOX, NOW, ['blocked'], 500);
+    });
+
+    it('show the active spots to a suspended member too (reading is allowed)', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ suspendedAt: NOW }));
+      await expect(t.service.active(ME, BOX, NOW)).resolves.toEqual({ items: [] });
     });
 
     it('answer 404 for presence at a spot that is not LIVE', async () => {

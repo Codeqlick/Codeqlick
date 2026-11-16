@@ -112,6 +112,8 @@ function build() {
     deleteOwnSpot: vi.fn().mockResolvedValue(true),
     countSpotsSince: vi.fn().mockResolvedValue(0),
     spotsInBox: vi.fn().mockResolvedValue([]),
+    searchCities: vi.fn().mockResolvedValue([]),
+    searchSpots: vi.fn().mockResolvedValue([]),
     reviewsOfSpot: vi.fn().mockResolvedValue({ items: [], total: 0 }),
     findReview: vi.fn().mockResolvedValue(null),
     findReviewById: vi.fn(),
@@ -286,7 +288,11 @@ describe('CruisingService', () => {
     it('returns at most 500 spots and flags truncation', async () => {
       t.repo.spotsInBox.mockResolvedValue(Array.from({ length: 501 }, (_, n) => row(n)));
       const result = await t.service.spotsInBox(box, 'PARK');
-      expect(t.repo.spotsInBox).toHaveBeenCalledWith(box, 'PARK', 501);
+      expect(t.repo.spotsInBox).toHaveBeenCalledWith(
+        box,
+        { type: 'PARK', minRating: undefined },
+        501,
+      );
       expect(result.items).toHaveLength(500);
       expect(result.truncated).toBe(true);
       expect(result.items[0]).toEqual({
@@ -306,6 +312,66 @@ describe('CruisingService', () => {
       const result = await t.service.spotsInBox(box);
       expect(result.items).toHaveLength(500);
       expect(result.truncated).toBe(false);
+    });
+
+    it('passes the minimum rating on', async () => {
+      await t.service.spotsInBox(box, undefined, 4);
+      expect(t.repo.spotsInBox).toHaveBeenCalledWith(box, { type: undefined, minRating: 4 }, 501);
+    });
+  });
+
+  describe('search', () => {
+    it('searches cities and spots by text, 8 of each, with literal wildcards', async () => {
+      t.repo.searchCities.mockResolvedValue([
+        {
+          country_code: 'ES',
+          city_slug: 'malaga',
+          city: 'Málaga',
+          count: 3,
+          min_lng: '-4.5',
+          min_lat: '36.6',
+          max_lng: '-4.3',
+          max_lat: '36.75',
+        },
+      ]);
+      t.repo.searchSpots.mockResolvedValue([
+        {
+          id: '1',
+          slug: 'playa-x',
+          name: 'Playa X',
+          type: 'BEACH',
+          lat: '36.7',
+          lng: '-4.4',
+          rating_avg: '4.25',
+          rating_count: 4,
+        },
+      ]);
+      const result = await t.service.search('mal_a');
+      expect(t.repo.searchCities).toHaveBeenCalledWith('%mal\\_a%', 'mal\\_a%', 8);
+      expect(t.repo.searchSpots).toHaveBeenCalledWith('%mal\\_a%', 'mal\\_a%', 8);
+      expect(result).toEqual({
+        places: [
+          {
+            countryCode: 'ES',
+            city: 'Málaga',
+            citySlug: 'malaga',
+            count: 3,
+            bbox: [-4.5, 36.6, -4.3, 36.75],
+          },
+        ],
+        spots: [
+          {
+            id: '1',
+            slug: 'playa-x',
+            name: 'Playa X',
+            type: 'BEACH',
+            lat: 36.7,
+            lng: -4.4,
+            ratingAvg: 4.25,
+            ratingCount: 4,
+          },
+        ],
+      });
     });
   });
 

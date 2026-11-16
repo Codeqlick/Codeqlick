@@ -113,12 +113,48 @@ export type MyCruisingSpot = {
 
 // ---- Public ------------------------------------------------------------------------------------
 
-/** The LIVE spots in a box (up to 500). The visitor's address is forwarded for the API's limit. */
-export function listCruisingSpots(box: Bbox, type?: CruisingSpotType | null) {
+/**
+ * The LIVE spots in a box (up to 500), of a type and rated at least `minRating` when given. The
+ * visitor's address is forwarded for the API's limit.
+ */
+export function listCruisingSpots(
+  box: Bbox,
+  type?: CruisingSpotType | null,
+  minRating?: number | null,
+) {
   return apiFetch<{ items: CruisingSpotSummary[]; truncated: boolean }>('/cruising/spots', {
-    query: { bbox: formatBbox(box), type },
+    query: { bbox: formatBbox(box), type, minRating },
     forwardClientIp: true,
   });
+}
+
+/** A city a search found; the map fits itself to `bbox` (`[minLng, minLat, maxLng, maxLat]`). */
+export type CruisingPlaceMatch = {
+  countryCode: string;
+  city: string;
+  citySlug: string;
+  count: number;
+  bbox: [number, number, number, number];
+};
+
+export type CruisingSearch = { places: CruisingPlaceMatch[]; spots: CruisingSpotSummary[] };
+
+/** Cities and spots by text (2-60 characters), up to 8 of each. Public; the address is forwarded. */
+export function searchCruising(text: string) {
+  return apiFetch<CruisingSearch>('/cruising/search', {
+    query: { q: text },
+    forwardClientIp: true,
+  });
+}
+
+/** The spots of a grid box with someone there now; only for a member who has entered. */
+export async function listCruisingActive(box: Bbox): Promise<{ spotId: string; here: number }[]> {
+  return (
+    await apiFetch<{ items: { spotId: string; here: number }[] }>('/cruising/active', {
+      query: { bbox: formatBbox(box) },
+      auth: 'required',
+    })
+  ).items;
 }
 
 /** A LIVE spot by its slug, or null (404). */
