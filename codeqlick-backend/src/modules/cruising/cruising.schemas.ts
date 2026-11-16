@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { localeSchema, paginationSchema, slugSchema } from '../../common/schemas/common.schemas.js';
 import { COUNTRIES, SAFE_CHAT_MESSAGES, TRANSCRIPT_LINES } from '../swipe/swipe.schemas.js';
 import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
+import { SPOT_TAGS } from './cruising-insights.rules.js';
 import { isReservedNickname, parseBbox } from './cruising.rules.js';
 
 export { ageOn, COUNTRIES, SAFE_CHAT_MESSAGES, SUSPENSION_DURATIONS, TRANSCRIPT_LINES };
@@ -142,12 +143,35 @@ const spotShape = {
 };
 const bestTimesField = z.string().trim().max(200).nullable();
 
-export const spotSchema = z.object({ ...spotShape, bestTimes: bestTimesField.optional() });
+/** Phase 5 (decision 92): what a spot offers or is like. */
+export const spotTagSchema = z.enum(SPOT_TAGS);
+export type SpotTagValue = z.infer<typeof spotTagSchema>;
+/** Any of the tags, each once (in the list's order). */
+export const spotTagsField = z
+  .array(spotTagSchema)
+  .max(SPOT_TAGS.length * 2)
+  .transform((list) => SPOT_TAGS.filter((tag) => list.includes(tag)));
+const openingHoursField = z.string().trim().max(200).nullable();
+const tipsField = z.string().trim().max(500).nullable();
+
+export const spotSchema = z.object({
+  ...spotShape,
+  bestTimes: bestTimesField.optional(),
+  tags: spotTagsField.optional(),
+  openingHours: openingHoursField.optional(),
+  tips: tipsField.optional(),
+});
 export type SpotInput = z.infer<typeof spotSchema>;
 
 /** Any of the fields of a spot (the proposer's edit and the team's correction). */
 export const spotPatchSchema = z
-  .object({ ...spotShape, bestTimes: bestTimesField })
+  .object({
+    ...spotShape,
+    bestTimes: bestTimesField,
+    tags: spotTagsField,
+    openingHours: openingHoursField,
+    tips: tipsField,
+  })
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: 'Nothing to change' });
 export type SpotPatch = z.infer<typeof spotPatchSchema>;
@@ -171,6 +195,18 @@ export const bboxQuerySchema = z.object({
   type: spotTypeSchema.optional(),
   /** Phase 3: only spots rated at least this (spots with no rating are left out). */
   minRating: z.coerce.number().int().min(1).max(5).optional(),
+  /** Phase 5 (decision 92): `NUDIST,PARKING`: only spots with all of them. */
+  tags: z
+    .string()
+    .max(300)
+    .transform((value) =>
+      value
+        .split(',')
+        .map((tag) => tag.trim().toUpperCase())
+        .filter((tag) => tag !== ''),
+    )
+    .pipe(spotTagsField)
+    .optional(),
 });
 export type BboxQuery = z.infer<typeof bboxQuerySchema>;
 

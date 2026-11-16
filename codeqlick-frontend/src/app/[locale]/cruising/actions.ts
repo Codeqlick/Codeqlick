@@ -23,6 +23,7 @@ import {
   saveCruisingReview,
   sendCruisingMessage,
   setCruisingFavorite,
+  setCruisingReviewHelpful,
   subscribeCruisingPush,
   unblockCruisingMember,
   updateCruisingMedia,
@@ -692,6 +693,29 @@ export async function favoriteAction(
   }
   refreshAll(locale);
   return { status: 'success', message: on ? t('added') : t('removed') };
+}
+
+/** Marks a review helpful or takes it back (PUT · DELETE /cruising/reviews/:id/helpful). */
+export async function helpfulAction(
+  locale: AppLocale,
+  reviewId: string,
+  on: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.reviews' });
+  if (!UUID.test(reviewId)) return { status: 'error', message: t('error') };
+  try {
+    await setCruisingReviewHelpful(reviewId, on);
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 400) return { status: 'error', message: t('helpfulOwn') };
+    if (status === 403) return { status: 'error', message: t('notAllowed') };
+    if (status === 404) return { status: 'error', message: t('helpfulGone') };
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: on ? t('helpfulAdded') : t('helpfulRemoved') };
 }
 
 /** Alerts for favourite spots: push on (default) and the daily email (default off). */

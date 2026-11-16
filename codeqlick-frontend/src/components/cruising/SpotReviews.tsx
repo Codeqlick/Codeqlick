@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { CruisingGate } from '@/app/[locale]/cruising/Gate';
-import { deleteReviewAction, reviewAction } from '@/app/[locale]/cruising/actions';
+import { deleteReviewAction, helpfulAction, reviewAction } from '@/app/[locale]/cruising/actions';
 import vc from '@/app/[locale]/videochat/videochat.module.css';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { Pagination } from '@/components/ui/Pagination';
@@ -14,7 +14,7 @@ import {
 } from '@/lib/api/cruising';
 import { isApiError } from '@/lib/api/errors';
 import { formatDate } from '@/lib/format';
-import { LIMITS, memberHref } from '@/lib/cruising';
+import { cleanBadges, LIMITS, memberHref } from '@/lib/cruising';
 import styles from './Cruising.module.css';
 import { MemberName } from './MemberName';
 import { ReportDetails } from './ReportDetails';
@@ -137,7 +137,11 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
                     t('you')
                   ) : review.author ? (
                     // A profile needs a nickname of my own: without one the name is only text.
-                    <MemberName locale={locale} member={review.author}>
+                    <MemberName
+                      locale={locale}
+                      member={review.author}
+                      badges={cleanBadges(review.author.badges)}
+                    >
                       {status.profile ? (
                         <Link href={memberHref(review.author.nickname)} className={vc.inlineLink}>
                           {review.author.nickname}
@@ -155,6 +159,26 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
                 </time>
               </p>
               {review.text ? <p className={styles.reviewText}>{review.text}</p> : null}
+              {review.helpful ? (
+                <div className={styles.helpfulRow}>
+                  <span className={styles.muted}>
+                    {t('helpfulCount', { count: review.helpful.count })}
+                  </span>
+                  {review.mine || !status.allowed ? null : (
+                    <ActionForm
+                      action={helpfulAction.bind(null, locale, review.id, !review.helpful.mine)}
+                    >
+                      <SubmitButton
+                        variant={review.helpful.mine ? 'primary' : 'outline'}
+                        size="sm"
+                        pendingLabel={t('saving')}
+                      >
+                        {review.helpful.mine ? t('helpfulUndo') : t('helpfulMark')}
+                      </SubmitButton>
+                    </ActionForm>
+                  )}
+                </div>
+              ) : null}
               {review.mine ? null : <ReportDetails locale={locale} kind="review" id={review.id} />}
             </li>
           ))}

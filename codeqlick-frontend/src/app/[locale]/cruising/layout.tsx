@@ -5,6 +5,7 @@ import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { Logo } from '@/components/brand/Logo';
 import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
+import { CruisingServiceWorker } from '@/components/cruising/CruisingServiceWorker';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link, WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -48,7 +49,16 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     robots: { index: true, follow: true, 'max-image-preview': 'large' },
     // Content for adults: Google's label, so SafeSearch filters it as it must.
     other: { rating: 'adult' },
-    // No `icons`: the site's Codeqlick favicons, like Swipe and the video chat.
+    // The site's Codeqlick favicons, like Swipe and the video chat; the home screen icon is the
+    // installed app's own (decision 96), like its manifest's.
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/favicon.svg', type: 'image/svg+xml' },
+      ],
+      apple: '/cruising-apple-touch-icon.png',
+    },
+    applicationName: 'Cruising',
     appleWebApp: { capable: true, title: 'Cruising', statusBarStyle: 'default' },
   };
 }
@@ -76,6 +86,8 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
   return (
     <ClientMessages extra={APP_NAMESPACES.cruising}>
       <WebappProvider app={webapp}>
+        {/* The offline page and the app shell (decision 96), on Cruising's own host only. */}
+        {webapp ? <CruisingServiceWorker /> : null}
         <div className={vc.frame}>
           <header className={vc.header}>
             <div className={vc.brand}>

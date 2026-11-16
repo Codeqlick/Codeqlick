@@ -1087,7 +1087,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/citas/cancel/preview` | `{ token }` → that appointment; `404` for an unknown token |
 | POST | `/citas/cancel` | `{ token }` → the cancelled appointment (again if already cancelled); `409` once it has started |
 | POST | `/swipe/takedown` | `{ email, photoRef?, reason, details, locale, website? }` → `{ id }`: a removal request (section 4.10); a matching `photoRef` hides that photo at once. Limited to 5/min/IP |
-| GET | `/cruising/spots` | `?bbox=minLng,minLat,maxLng,maxLat&type=` (`bbox` required, `minLng` < `maxLng`, `minLat` < `maxLat`, longitudes −180..180, latitudes −90..90, else `400`; `type` optional, one of the types) → `{ items: CruisingSpotSummary[], truncated }`: up to 500 LIVE spots, best rated first. `Cache-Control: public, max-age=60`. 120/min/IP (section 4.15) |
+| GET | `/cruising/spots` | `?bbox=minLng,minLat,maxLng,maxLat&type=` (`bbox` required, `minLng` < `maxLng`, `minLat` < `maxLat`, longitudes −180..180, latitudes −90..90, else `400`; `type` optional, one of the types; phase 5: `tags=NUDIST,LIT`, only spots with all of them) → `{ items: CruisingSpotSummary[], truncated }`: up to 500 LIVE spots, best rated first. `Cache-Control: public, max-age=60`. 120/min/IP (section 4.15) |
 | GET | `/cruising/spots/:slug` | `CruisingSpotPublic`; `404` unless LIVE |
 | GET | `/cruising/places` | `{ countries: [{ countryCode, count, cities: [{ city, citySlug, count }] }] }`: LIVE spots only, most spots first |
 | GET | `/cruising/places/:countryCode/:citySlug` | `{ countryCode, city, citySlug, items: CruisingSpotSummary[] }` (up to 200, best rated first); `404` when the city has no LIVE spot |
@@ -1220,13 +1220,13 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET · POST | `/cruising/meetups` | Phase 5. GET `?spotId=&countryCode=&citySlug=` → upcoming meetups `{ id, spot, startsAt, endsAt, title, description, capacity, going, mine, host: { nickname, verified } }`; POST `{ spotId, startsAt, hours, title, description?, capacity? }` → `201` the meetup; `429` past 3 a week |
 | PUT · DELETE | `/cruising/meetups/:id/attendance` | Phase 5. PUT `{ anonymous }` → `204` (`409` when full or past); DELETE → `204` |
 | DELETE | `/cruising/meetups/:id` | Phase 5. The host cancels: `204`, attendees told |
-| GET | `/cruising/spots/:id/hours` | Phase 5. `{ ready, days: number[7][24] }` (weights scaled 0–100), `ready` false under 10 check-ins; needs entry |
+| GET | `/cruising/spots/:id/hours` | Phase 5. `{ ready, days: number[7][24] }` (`days[0]` is Monday, hours in the spot's local time `timeZone`; weights scaled 0–100), `ready` false under 10 check-ins (and `days` all zeros); needs entry |
 | GET · POST · DELETE | `/cruising/trips` · `/cruising/trips/:id` | Phase 5. My trips; POST `{ countryCode, citySlug, from, to, listed }`; `409` past 3 |
 | GET | `/cruising/places/:countryCode/:citySlug/visitors` | Phase 5. `{ items: [{ nickname, verified, from, to }] }` listed trips overlapping the next 60 days; needs entry |
 | GET · POST | `/cruising/spots/:id/alerts` | Phase 5. Active alerts `{ id, kind, note, createdAt, expiresAt, confirmations, mine }`; POST `{ kind, note? }` → `201`; needs entry, 5 a day |
 | POST | `/cruising/alerts/:id/confirm` · `/gone` | Phase 5. `204`; once per member per alert (`409` again, or on my own); `404` once it ended |
 | GET | `/cruising/alerts` | Phase 5. `?bbox=` (as `/cruising/active`, on the map's 0.25° grid) → `{ items: [{ spotId, alerts }] }`: LIVE spots in the box with active safety alerts, for the map's warning markers; needs entry |
-| PUT · DELETE | `/cruising/reviews/:id/helpful` | Phase 5. `204`; not on my own review |
+| PUT · DELETE | `/cruising/reviews/:id/helpful` | Phase 5. `204` (both idempotent); `400` on my own review, `404` for a review that isn't LIVE or whose author is blocked either way. Reviews then carry `helpful: { count, mine }` and their `author` its `badges` (EXPLORER · GUIDE · HELPFUL · LOCAL); `/cruising/members/:nickname` and `/cruising/me`'s profile add `badges` and `contributions: { spotsLive, helpfulReceived, reviewsWritten }`. Guide replaces Explorer |
 | GET · PUT | `/cruising/health` | Phase 5. `{ enabled, prepStatus, lastTestedMonth, visible, reminderMonths }` / PUT the same with `consent: true` to enable; `{ enabled: false }` deletes them |
 | GET | `/cruising/health-centers` | Phase 5, public. `?countryCode=&citySlug=` or `?bbox=` → centres; `/cruising/health-centers/places` → countries and cities with counts |
 | GET · POST · DELETE | `/cruising/trusted-contacts` · `/:id` | Phase 5. Up to 2 `{ id, email (masked), displayName, status: PENDING \| ACCEPTED \| REFUSED }`; POST `{ email, displayName }` sends the invitation |

@@ -72,7 +72,7 @@ export class CruisingPublicController {
   spots(
     @Query({ schema: bboxQuerySchema }) query: BboxQuery,
   ): Promise<{ items: CruisingSpotSummary[]; truncated: boolean }> {
-    return this.cruising.spotsInBox(query.bbox, query.type, query.minRating);
+    return this.cruising.spotsInBox(query.bbox, query.type, query.minRating, query.tags);
   }
 
   /** Cities and spots by text (phase 3, decision 86), up to 8 of each. */

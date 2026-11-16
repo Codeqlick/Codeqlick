@@ -11,6 +11,7 @@ import type {
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { conversationPair, roundRating, type Bbox } from './cruising.rules.js';
+import type { SpotTag } from './cruising-insights.rules.js';
 import { ADMIN_LIST_LIMIT, MAX_LIST_ROWS, MESSAGES_PAGE } from './cruising.schemas.js';
 
 const personSelect = { id: true, name: true, email: true } as const;
@@ -70,6 +71,14 @@ type SpotSearchRow = {
   rating_count: number;
 };
 
+/** A review's author: the nickname and the counters their badges come from (decision 93). */
+const reviewAuthorSelect = {
+  nickname: true,
+  spotsLive: true,
+  helpfulReceived: true,
+  reviewsWritten: true,
+} as const;
+
 const spotSummarySelect = {
   id: true,
   slug: true,
@@ -101,8 +110,39 @@ export async function recomputeSpotRating(
 }
 
 /**
+ * Recomputes the review counters of members' profiles (decision 93): their LIVE reviews and the
+ * helpful votes those received. Called inside the transaction of every change to them.
+ */
+export async function recomputeReviewCounters(
+  tx: Pick<Prisma.TransactionClient, 'cruisingReview' | 'cruisingReviewVote' | 'cruisingProfile'>,
+  userIds: Iterable<string>,
+): Promise<void> {
+  for (const userId of new Set(userIds)) {
+    const [reviewsWritten, helpfulReceived] = await Promise.all([
+      tx.cruisingReview.count({ where: { userId, status: 'LIVE' } }),
+      tx.cruisingReviewVote.count({ where: { review: { userId, status: 'LIVE' } } }),
+    ]);
+    // updateMany: a member without a profile (none yet, or being deleted) is fine.
+    await tx.cruisingProfile.updateMany({
+      where: { userId },
+      data: { reviewsWritten, helpfulReceived },
+    });
+  }
+}
+
+/** Recomputes how many of a member's proposed spots are LIVE (decision 93's Explorer and Guide). */
+export async function recomputeSpotsLive(
+  tx: Pick<Prisma.TransactionClient, 'cruisingSpot' | 'cruisingProfile'>,
+  userId: string,
+): Promise<void> {
+  const spotsLive = await tx.cruisingSpot.count({ where: { createdById: userId, status: 'LIVE' } });
+  await tx.cruisingProfile.updateMany({ where: { userId }, data: { spotsLive } });
+}
+
+/**
  * Deletes an account. Its Cruising reviews go with it (cascade), so the ratings of the spots it
- * reviewed are worked out again in the same transaction.
+ * reviewed are worked out again in the same transaction; so are the counters of the members whose
+ * reviews it found helpful (its votes go too).
  */
 export async function deleteUserRecomputingRatings(
   prisma: Pick<PrismaService, '$transaction'>,
@@ -113,10 +153,16 @@ export async function deleteUserRecomputingRatings(
       where: { userId: id },
       select: { spotId: true },
     });
+    const voted = await tx.cruisingReviewVote.findMany({
+      where: { userId: id },
+      select: { review: { select: { userId: true } } },
+    });
     await tx.user.delete({ where: { id } });
     for (const spotId of new Set(reviewed.map((review) => review.spotId))) {
       await recomputeSpotRating(tx, spotId);
     }
+    const authors = voted.map((vote) => vote.review.userId).filter((author) => author !== id);
+    if (authors.length > 0) await recomputeReviewCounters(tx, authors);
   });
 }
 
@@ -239,8 +285,17 @@ export class CruisingRepository {
     return rows.map((row) => ({ ...row, lat: Number(row.lat), lng: Number(row.lng) }));
   }
 
+  /**
+   * The team's change to a spot. A change of status recomputes its proposer's count of LIVE spots
+   * in the same transaction (decision 93).
+   */
   updateSpot(id: string, data: Prisma.CruisingSpotUncheckedUpdateInput) {
-    return this.prisma.cruisingSpot.update({ where: { id }, data });
+    if (data.status === undefined) return this.prisma.cruisingSpot.update({ where: { id }, data });
+    return this.prisma.$transaction(async (tx) => {
+      const spot = await tx.cruisingSpot.update({ where: { id }, data });
+      if (spot.createdById) await recomputeSpotsLive(tx, spot.createdById);
+      return spot;
+    });
   }
 
   /**
@@ -256,12 +311,27 @@ export class CruisingRepository {
     return count === 0 ? null : this.prisma.cruisingSpot.findUnique({ where: { id } });
   }
 
-  /** Deletes the proposer's PENDING or REJECTED spot; false when it can no longer be deleted. */
+  /**
+   * Deletes the proposer's PENDING or REJECTED spot; false when it can no longer be deleted. A spot
+   * that was LIVE once may have reviews: their authors' counters are worked out again.
+   */
   async deleteOwnSpot(id: string, userId: string): Promise<boolean> {
-    const { count } = await this.prisma.cruisingSpot.deleteMany({
-      where: { id, createdById: userId, status: { in: ['PENDING', 'REJECTED'] } },
+    return this.prisma.$transaction(async (tx) => {
+      const reviewers = await tx.cruisingReview.findMany({
+        where: { spotId: id },
+        select: { userId: true },
+      });
+      const { count } = await tx.cruisingSpot.deleteMany({
+        where: { id, createdById: userId, status: { in: ['PENDING', 'REJECTED'] } },
+      });
+      if (count > 0 && reviewers.length > 0) {
+        await recomputeReviewCounters(
+          tx,
+          reviewers.map((review) => review.userId),
+        );
+      }
+      return count > 0;
     });
-    return count > 0;
   }
 
   countSpotsSince(userId: string, since: Date): Promise<number> {
@@ -281,7 +351,11 @@ export class CruisingRepository {
    * LIVE spots in the box, best rated first, of a type and rated at least `minRating` when given
    * (a spot with no rating is then left out). The caller asks for one more than it shows.
    */
-  spotsInBox(box: Bbox, filters: { type?: CruisingSpotType; minRating?: number }, take: number) {
+  spotsInBox(
+    box: Bbox,
+    filters: { type?: CruisingSpotType; minRating?: number; tags?: SpotTag[] },
+    take: number,
+  ) {
     return this.prisma.cruisingSpot.findMany({
       where: {
         status: 'LIVE',
@@ -291,6 +365,7 @@ export class CruisingRepository {
         ...(filters.minRating
           ? { ratingCount: { gt: 0 }, ratingAvg: { gte: filters.minRating } }
           : {}),
+        ...(filters.tags?.length ? { tags: { hasEvery: filters.tags } } : {}),
       },
       orderBy: [{ ratingAvg: 'desc' }, { ratingCount: 'desc' }, { id: 'asc' }],
       take,
@@ -377,10 +452,17 @@ export class CruisingRepository {
   }
 
   /**
-   * The LIVE reviews of a spot, newest first, without those of people hidden from the viewer (a
-   * block either way), each with its author's nickname.
+   * The LIVE reviews of a spot, most helpful first and then newest (decision 93), without those of
+   * people hidden from the viewer (a block either way); each with its author's nickname and badge
+   * counters, its helpful votes and whether the viewer gave one.
    */
-  async reviewsOfSpot(spotId: string, skip: number, take: number, hiddenIds: string[] = []) {
+  async reviewsOfSpot(
+    spotId: string,
+    skip: number,
+    take: number,
+    hiddenIds: string[] = [],
+    viewerId = '',
+  ) {
     const where: Prisma.CruisingReviewWhereInput = {
       spotId,
       status: 'LIVE',
@@ -389,16 +471,23 @@ export class CruisingRepository {
     const [rows, total] = await Promise.all([
       this.prisma.cruisingReview.findMany({
         where,
-        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        orderBy: [{ votes: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'asc' }],
         skip,
         take,
-        include: { user: { select: { cruisingProfile: { select: { nickname: true } } } } },
+        include: {
+          user: { select: { cruisingProfile: { select: reviewAuthorSelect } } },
+          _count: { select: { votes: true } },
+          votes: { where: { userId: viewerId }, select: { userId: true }, take: 1 },
+        },
       }),
       this.prisma.cruisingReview.count({ where }),
     ]);
-    const items = rows.map(({ user, ...review }) => ({
+    const items = rows.map(({ user, _count, votes, ...review }) => ({
       ...review,
       nickname: user.cruisingProfile?.nickname ?? null,
+      counters: user.cruisingProfile ?? null,
+      helpful: _count.votes,
+      helpfulMine: votes.length > 0,
     }));
     return { items, total };
   }
@@ -417,6 +506,7 @@ export class CruisingRepository {
         update: { rating, text },
       });
       await recomputeSpotRating(tx, spotId);
+      await recomputeReviewCounters(tx, [userId]);
       return review;
     });
   }
@@ -425,6 +515,7 @@ export class CruisingRepository {
     await this.prisma.$transaction(async (tx) => {
       const review = await tx.cruisingReview.delete({ where: { id } });
       await recomputeSpotRating(tx, review.spotId);
+      await recomputeReviewCounters(tx, [review.userId]);
     });
   }
 
@@ -432,7 +523,81 @@ export class CruisingRepository {
     await this.prisma.$transaction(async (tx) => {
       const review = await tx.cruisingReview.update({ where: { id }, data: { status } });
       await recomputeSpotRating(tx, review.spotId);
+      await recomputeReviewCounters(tx, [review.userId]);
     });
+  }
+
+  // ---- Helpful votes (phase 5, decision 93) ------------------------------------------------------
+
+  countHelpfulVotes(reviewId: string): Promise<number> {
+    return this.prisma.cruisingReviewVote.count({ where: { reviewId } });
+  }
+
+  /** Marks a review helpful for a member (again is fine) and updates its author's counters. */
+  async addHelpfulVote(reviewId: string, userId: string, authorId: string, now: Date) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.cruisingReviewVote.createMany({
+        data: [{ reviewId, userId, createdAt: now }],
+        skipDuplicates: true,
+      });
+      await recomputeReviewCounters(tx, [authorId]);
+    });
+  }
+
+  /** Takes a member's helpful vote back (none is fine) and updates the author's counters. */
+  async removeHelpfulVote(reviewId: string, userId: string, authorId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.cruisingReviewVote.deleteMany({ where: { reviewId, userId } });
+      await recomputeReviewCounters(tx, [authorId]);
+    });
+  }
+
+  // ---- Busiest hours (phase 5, decision 89) ------------------------------------------------------
+
+  /** A spot's hour counters and how many check-ins were ever counted. */
+  async spotHours(spotId: string) {
+    const [rows, spot] = await Promise.all([
+      this.prisma.cruisingSpotHour.findMany({
+        where: { spotId },
+        select: { day: true, hour: true, weight: true },
+      }),
+      this.prisma.cruisingSpot.findUnique({
+        where: { id: spotId },
+        select: { hourCheckIns: true },
+      }),
+    ]);
+    return { rows, checkIns: spot?.hourCheckIns ?? 0 };
+  }
+
+  /**
+   * The nightly decay: the hours of every spot whose last decay is older than `before` are
+   * multiplied by `factor`, and the spot's decay time moves a day on (a spot behind, the API having
+   * been down, catches up a day per run). One statement, so a spot is never decayed twice for one
+   * day, whichever API instance runs it.
+   */
+  async decaySpotHours(before: Date, factor: number): Promise<number> {
+    return this.prisma.$executeRaw`
+      WITH due AS (
+        UPDATE cruising_spots SET hours_decayed_at = hours_decayed_at + interval '1 day'
+        WHERE hours_decayed_at IS NOT NULL AND hours_decayed_at <= ${before}
+        RETURNING id
+      )
+      UPDATE cruising_spot_hours SET weight = weight * ${factor}
+      WHERE spot_id IN (SELECT id FROM due)`;
+  }
+
+  /** Spots without a time zone yet (created before phase 5), a batch at a time. */
+  spotsWithoutTimeZone(take: number) {
+    return this.prisma.cruisingSpot.findMany({
+      where: { timeZone: null },
+      select: { id: true, lat: true, lng: true },
+      orderBy: { id: 'asc' },
+      take,
+    });
+  }
+
+  async setSpotTimeZone(id: string, timeZone: string): Promise<void> {
+    await this.prisma.cruisingSpot.update({ where: { id }, data: { timeZone } });
   }
 
   // ---- Reports, removal requests -----------------------------------------------------------------
@@ -809,25 +974,48 @@ export class CruisingRepository {
     });
   }
 
-  /** Ends the previous check-in and creates the new one, together. */
+  /**
+   * Ends the previous check-in and creates the new one, together; in the same transaction the
+   * spot's busiest hours count it (decision 89): one more in each of `slots` (local hours), one
+   * more check-in counted, and the spot's time zone stored.
+   */
   async createCheckIn(
     userId: string,
     spotId: string,
     anonymous: boolean,
     expiresAt: Date,
     now: Date,
+    hours?: { slots: { day: number; hour: number }[]; timeZone: string },
   ) {
-    const [, checkIn] = await this.prisma.$transaction([
-      this.prisma.cruisingCheckIn.updateMany({
+    return this.prisma.$transaction(async (tx) => {
+      await tx.cruisingCheckIn.updateMany({
         where: { userId, expiresAt: { gt: now } },
         data: { expiresAt: now },
-      }),
-      this.prisma.cruisingCheckIn.create({
+      });
+      const checkIn = await tx.cruisingCheckIn.create({
         data: { userId, spotId, anonymous, expiresAt, createdAt: now },
         include: { spot: { select: spotRefSelect } },
-      }),
-    ]);
-    return checkIn;
+      });
+      if (hours && hours.slots.length > 0) {
+        for (const { day, hour } of hours.slots) {
+          await tx.cruisingSpotHour.upsert({
+            where: { spotId_day_hour: { spotId, day, hour } },
+            create: { spotId, day, hour, weight: 1 },
+            update: { weight: { increment: 1 } },
+          });
+        }
+        await tx.cruisingSpot.update({
+          where: { id: spotId },
+          data: { hourCheckIns: { increment: 1 }, timeZone: hours.timeZone },
+        });
+        // The nightly decay starts from the first check-in counted.
+        await tx.cruisingSpot.updateMany({
+          where: { id: spotId, hoursDecayedAt: null },
+          data: { hoursDecayedAt: now },
+        });
+      }
+      return checkIn;
+    });
   }
 
   activeCheckIn(userId: string, now: Date) {

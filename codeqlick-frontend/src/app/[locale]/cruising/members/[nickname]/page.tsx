@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
+import { MemberContributions } from '@/components/cruising/MemberContributions';
 import { MemberGallery } from '@/components/cruising/MemberGallery';
 import { MemberHealth } from '@/components/cruising/MemberHealth';
 import { MemberName } from '@/components/cruising/MemberName';
@@ -71,6 +72,12 @@ export default async function CruisingMemberPage({ params }: PageProps) {
         </div>
       </dl>
       {member.bio ? <p className={styles.prewrap}>{member.bio}</p> : null}
+      <MemberContributions
+        locale={locale}
+        badges={member.badges}
+        contributions={member.contributions}
+        title={t('contributions')}
+      />
       <MemberGallery locale={locale} nickname={member.nickname} items={media} own={own} />
       {looking.length > 0 ? (
         <>

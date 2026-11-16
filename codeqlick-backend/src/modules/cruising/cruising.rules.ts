@@ -1,5 +1,6 @@
 /** Pure rules of Cruising (architecture 4.15): slugs, coordinates, the map's box, ratings, statuses. */
 import { RESERVED_USERNAMES } from '../auth/auth.schemas.js';
+import { importedTags } from './cruising-insights.rules.js';
 
 /** Lower-case ASCII words joined by hyphens: "Playa del Inglés" becomes "playa-del-ingles". */
 export function slugify(value: string, max = 60): string {
@@ -407,6 +408,10 @@ export interface ImportedFields {
   city: unknown;
   description: unknown;
   bestTimes: unknown;
+  /** Phase 5 (decision 92). */
+  tags: unknown;
+  openingHours: unknown;
+  tips: unknown;
 }
 
 /** One row of an import: its line (CSV, header = 1) or index (GeoJSON) and its fields. */
@@ -618,12 +623,20 @@ const SPOT_COLUMNS = [
   'city',
   'description',
   'bestTimes',
+  'tags',
+  'openingHours',
+  'tips',
 ] as const;
+type SpotColumn = (typeof SPOT_COLUMNS)[number];
+const OPTIONAL_SPOT_COLUMNS: readonly SpotColumn[] = ['bestTimes', 'tags', 'openingHours', 'tips'];
 
-/** The spots' import: type labels, upper-case country, `bestTimes` optional. */
-const SPOT_IMPORT: ImportSpec<(typeof SPOT_COLUMNS)[number], ImportedFields> = {
+/**
+ * The spots' import: type labels, upper-case country; `bestTimes`, `tags` (`|`-separated, the enum
+ * or a label), `openingHours` and `tips` optional.
+ */
+const SPOT_IMPORT: ImportSpec<SpotColumn, ImportedFields> = {
   columns: SPOT_COLUMNS,
-  required: SPOT_COLUMNS.filter((column) => column !== 'bestTimes'),
+  required: SPOT_COLUMNS.filter((column) => !OPTIONAL_SPOT_COLUMNS.includes(column)),
   fields: (get) => {
     const type = trimmed(get('type'));
     return {
@@ -635,11 +648,14 @@ const SPOT_IMPORT: ImportSpec<(typeof SPOT_COLUMNS)[number], ImportedFields> = {
       city: trimmed(get('city')),
       description: trimmed(get('description')),
       bestTimes: optionalText(get('bestTimes')),
+      tags: importedTags(get('tags')),
+      openingHours: optionalText(get('openingHours')),
+      tips: optionalText(get('tips')),
     };
   },
 };
 
-/** The rows of a CSV import of spots (`bestTimes` optional). */
+/** The rows of a CSV import of spots (the optional columns may be left out). */
 export function parseSpotsCsv(text: string): ImportParse {
   return parseImportCsv(text, SPOT_IMPORT);
 }
