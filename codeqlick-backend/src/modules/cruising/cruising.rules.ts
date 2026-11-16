@@ -88,6 +88,47 @@ export function placeBbox(row: {
   return [Number(row.minLng), Number(row.minLat), Number(row.maxLng), Number(row.maxLat)];
 }
 
+export interface PlaceCountry {
+  countryCode: string;
+  count: number;
+  cities: { city: string; citySlug: string; count: number }[];
+}
+
+/**
+ * Countries with their cities from per-spelling counts, most first (the spots' places and, from
+ * phase 5, the testing centres'). A city is named as most of its rows spell it.
+ */
+export function groupPlaces(
+  rows: readonly { countryCode: string; citySlug: string; city: string; count: number }[],
+): PlaceCountry[] {
+  const countries = new Map<
+    string,
+    { count: number; cities: Map<string, { names: Map<string, number>; count: number }> }
+  >();
+  for (const row of rows) {
+    const country = countries.get(row.countryCode) ?? { count: 0, cities: new Map() };
+    country.count += row.count;
+    const city = country.cities.get(row.citySlug) ?? { names: new Map(), count: 0 };
+    city.count += row.count;
+    city.names.set(row.city, (city.names.get(row.city) ?? 0) + row.count);
+    country.cities.set(row.citySlug, city);
+    countries.set(row.countryCode, country);
+  }
+  return [...countries.entries()]
+    .map(([countryCode, country]) => ({
+      countryCode,
+      count: country.count,
+      cities: [...country.cities.entries()]
+        .map(([citySlug, city]) => ({
+          city: [...city.names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? citySlug,
+          citySlug,
+          count: city.count,
+        }))
+        .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city)),
+    }))
+    .sort((a, b) => b.count - a.count || a.countryCode.localeCompare(b.countryCode));
+}
+
 /** The average rating with 2 decimals. */
 export function roundRating(average: number | null | undefined): number {
   return average ? Math.round(average * 100) / 100 : 0;
@@ -342,42 +383,37 @@ export interface ImportedFields {
 }
 
 /** One row of an import: its line (CSV, header = 1) or index (GeoJSON) and its fields. */
-export interface ImportedRow {
+export interface ImportedRowOf<F> {
   row: number;
   /** Null when the row can't even be read (a GeoJSON feature that isn't a point): see `error`. */
-  fields: ImportedFields | null;
+  fields: F | null;
   error?: string;
 }
 
-export type ImportParse = { ok: true; rows: ImportedRow[] } | { ok: false; error: string };
+export type ImportParseOf<F> =
+  { ok: true; rows: ImportedRowOf<F>[] } | { ok: false; error: string };
 
-const IMPORT_COLUMNS = [
-  'name',
-  'type',
-  'lat',
-  'lng',
-  'countryCode',
-  'city',
-  'description',
-  'bestTimes',
-] as const;
-type ImportColumn = (typeof IMPORT_COLUMNS)[number];
-const REQUIRED_COLUMNS = IMPORT_COLUMNS.filter((column) => column !== 'bestTimes');
+export type ImportedRow = ImportedRowOf<ImportedFields>;
+export type ImportParse = ImportParseOf<ImportedFields>;
 
-const COLUMN_BY_NAME = new Map<string, ImportColumn>(
-  IMPORT_COLUMNS.map((column) => [column.toLowerCase(), column]),
-);
+/**
+ * What a kind of import reads (decision 84; phase 5 adds the testing centres): its columns (two of
+ * them `lat` and `lng`, from the geometry in GeoJSON), the ones a CSV header must name, and how a
+ * row's values become fields, alike for CSV and GeoJSON.
+ */
+export interface ImportSpec<C extends string, F> {
+  columns: readonly C[];
+  required: readonly C[];
+  fields: (get: (column: C | 'lat' | 'lng') => unknown) => F;
+}
 
 /** A header cell or property name as a column: any case; spaces, hyphens and underscores ignored. */
-function columnOf(name: string): ImportColumn | null {
-  return (
-    COLUMN_BY_NAME.get(
-      name
-        .trim()
-        .toLowerCase()
-        .replace(/[\s_-]+/g, ''),
-    ) ?? null
-  );
+function columnOf<C extends string>(columns: readonly C[], name: string): C | null {
+  const key = name
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, '');
+  return columns.find((column) => column.toLowerCase() === key) ?? null;
 }
 
 /** The separator of a CSV: comma or semicolon, whichever its first line has more of outside quotes. */
@@ -451,47 +487,47 @@ function csvNumber(value: string): number {
   return text === '' ? Number.NaN : Number(text);
 }
 
-/** The fields of a row, mapped alike for CSV and GeoJSON (type labels, upper-case country). */
-function importedFields(get: (column: ImportColumn) => unknown): ImportedFields {
-  const text = (column: ImportColumn) => {
-    const value = get(column);
-    return typeof value === 'string' ? value.trim() : value;
-  };
-  const type = text('type');
-  const country = text('countryCode');
-  const bestTimes = text('bestTimes');
-  return {
-    name: text('name'),
-    type: typeof type === 'string' ? (spotTypeFromLabel(type) ?? type) : type,
-    lat: get('lat'),
-    lng: get('lng'),
-    countryCode: typeof country === 'string' ? country.toUpperCase() : country,
-    city: text('city'),
-    description: text('description'),
-    bestTimes: bestTimes === '' || bestTimes === undefined ? null : bestTimes,
-  };
+/** A cell's text trimmed; anything else (GeoJSON numbers, booleans) as it is. */
+function trimmed(value: unknown): unknown {
+  return typeof value === 'string' ? value.trim() : value;
+}
+
+/** An optional text: empty or missing becomes null. */
+function optionalText(value: unknown): unknown {
+  const text = trimmed(value);
+  return text === '' || text === undefined ? null : text;
+}
+
+/** An ISO country code in upper case. */
+function countryOf(value: unknown): unknown {
+  const text = trimmed(value);
+  return typeof text === 'string' ? text.toUpperCase() : text;
 }
 
 /**
- * The rows of a CSV import: a header row naming the columns in any order (`bestTimes` optional),
- * comma or semicolon separated, UTF-8 with or without BOM. Rows are numbered by line (header = 1).
+ * The rows of a CSV import: a header row naming the columns in any order (the optional ones may be
+ * left out), comma or semicolon separated, UTF-8 with or without BOM. Rows are numbered by line
+ * (header = 1).
  */
-export function parseSpotsCsv(text: string): ImportParse {
+export function parseImportCsv<C extends string, F>(
+  text: string,
+  spec: ImportSpec<C, F>,
+): ImportParseOf<F> {
   const records = splitCsv(text);
   if (!records) return { ok: false, error: 'A quoted field is never closed' };
   const [header, ...data] = records;
   if (!header) return { ok: false, error: 'The file is empty' };
-  const columns = header.cells.map((cell) => columnOf(cell));
-  const missing = REQUIRED_COLUMNS.filter((column) => !columns.includes(column));
+  const columns = header.cells.map((cell) => columnOf(spec.columns, cell));
+  const missing = spec.required.filter((column) => !columns.includes(column));
   if (missing.length > 0) {
     return { ok: false, error: `The header row lacks the columns ${missing.join(', ')}` };
   }
-  const rows = data.map(({ line, cells }): ImportedRow => {
-    const cellOf = (column: ImportColumn) => {
-      const at = columns.indexOf(column);
+  const rows = data.map(({ line, cells }): ImportedRowOf<F> => {
+    const cellOf = (column: string) => {
+      const at = columns.indexOf(column as C);
       return at < 0 ? undefined : (cells[at] ?? '');
     };
-    const fields = importedFields((column) =>
+    const fields = spec.fields((column) =>
       column === 'lat' || column === 'lng' ? csvNumber(cellOf(column) ?? '') : cellOf(column),
     );
     return { row: line, fields };
@@ -508,7 +544,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * the fields (coordinates from the geometry, `[lng, lat]`). Rows are numbered by their index in
  * `features` (from 0); a feature that isn't a point is a row with an error.
  */
-export function parseSpotsGeojson(text: string): ImportParse {
+export function parseImportGeojson<C extends string, F>(
+  text: string,
+  spec: ImportSpec<C, F>,
+): ImportParseOf<F> {
   let data: unknown;
   try {
     data = JSON.parse(text.replace(/^﻿/, ''));
@@ -518,7 +557,7 @@ export function parseSpotsGeojson(text: string): ImportParse {
   if (!isRecord(data) || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
     return { ok: false, error: 'The file is not a GeoJSON FeatureCollection' };
   }
-  const rows = (data.features as unknown[]).map((feature, row): ImportedRow => {
+  const rows = (data.features as unknown[]).map((feature, row): ImportedRowOf<F> => {
     const geometry = isRecord(feature) ? feature.geometry : undefined;
     const coordinates = isRecord(geometry) ? geometry.coordinates : undefined;
     if (
@@ -532,15 +571,125 @@ export function parseSpotsGeojson(text: string): ImportParse {
     }
     const properties = isRecord(feature.properties) ? feature.properties : {};
     const [lng, lat] = coordinates as unknown[];
-    const fields = importedFields((column) => {
+    const fields = spec.fields((column) => {
       if (column === 'lat') return lat;
       if (column === 'lng') return lng;
-      const key = Object.keys(properties).find((name) => columnOf(name) === column);
+      const key = Object.keys(properties).find((name) => columnOf(spec.columns, name) === column);
       return key === undefined ? undefined : properties[key];
     });
     return { row, fields };
   });
   return { ok: true, rows };
+}
+
+const SPOT_COLUMNS = [
+  'name',
+  'type',
+  'lat',
+  'lng',
+  'countryCode',
+  'city',
+  'description',
+  'bestTimes',
+] as const;
+
+/** The spots' import: type labels, upper-case country, `bestTimes` optional. */
+const SPOT_IMPORT: ImportSpec<(typeof SPOT_COLUMNS)[number], ImportedFields> = {
+  columns: SPOT_COLUMNS,
+  required: SPOT_COLUMNS.filter((column) => column !== 'bestTimes'),
+  fields: (get) => {
+    const type = trimmed(get('type'));
+    return {
+      name: trimmed(get('name')),
+      type: typeof type === 'string' ? (spotTypeFromLabel(type) ?? type) : type,
+      lat: get('lat'),
+      lng: get('lng'),
+      countryCode: countryOf(get('countryCode')),
+      city: trimmed(get('city')),
+      description: trimmed(get('description')),
+      bestTimes: optionalText(get('bestTimes')),
+    };
+  },
+};
+
+/** The rows of a CSV import of spots (`bestTimes` optional). */
+export function parseSpotsCsv(text: string): ImportParse {
+  return parseImportCsv(text, SPOT_IMPORT);
+}
+
+/** The rows of a GeoJSON import of spots. */
+export function parseSpotsGeojson(text: string): ImportParse {
+  return parseImportGeojson(text, SPOT_IMPORT);
+}
+
+/** A testing centre's fields as a file gives them (phase 5, decision 94). */
+export interface ImportedHealthFields {
+  name: unknown;
+  address: unknown;
+  lat: unknown;
+  lng: unknown;
+  countryCode: unknown;
+  city: unknown;
+  url: unknown;
+  phone: unknown;
+  free: unknown;
+  anonymous: unknown;
+  rapid: unknown;
+}
+
+const YES = new Set(['true', 'yes', 'y', 'si', 'sí', 's', '1', 'x']);
+const NO = new Set(['false', 'no', 'n', '0', '']);
+
+/** A yes/no cell: true, yes, sí, 1 or x; false, no, 0 or empty; anything else is left to refuse. */
+export function importFlag(value: unknown): unknown {
+  if (value === undefined || value === null) return false;
+  if (typeof value !== 'string') return value;
+  const text = value.trim().toLowerCase();
+  if (YES.has(text)) return true;
+  if (NO.has(text)) return false;
+  return text;
+}
+
+const HEALTH_COLUMNS = [
+  'name',
+  'address',
+  'lat',
+  'lng',
+  'countryCode',
+  'city',
+  'url',
+  'phone',
+  'free',
+  'anonymous',
+  'rapid',
+] as const;
+
+const HEALTH_IMPORT: ImportSpec<(typeof HEALTH_COLUMNS)[number], ImportedHealthFields> = {
+  columns: HEALTH_COLUMNS,
+  required: ['name', 'address', 'lat', 'lng', 'countryCode', 'city'],
+  fields: (get) => ({
+    name: trimmed(get('name')),
+    address: trimmed(get('address')),
+    lat: get('lat'),
+    lng: get('lng'),
+    countryCode: countryOf(get('countryCode')),
+    city: trimmed(get('city')),
+    url: optionalText(get('url')),
+    phone: optionalText(get('phone')),
+    free: importFlag(get('free')),
+    anonymous: importFlag(get('anonymous')),
+    rapid: importFlag(get('rapid')),
+  }),
+};
+
+/** The rows of a CSV import of testing centres (`url`, `phone` and the yes/no columns optional). */
+export function parseHealthCentersCsv(text: string): ImportParseOf<ImportedHealthFields> {
+  return parseImportCsv(text, HEALTH_IMPORT);
+}
+
+/** The rows of a GeoJSON import of testing centres. */
+export function parseHealthCentersGeojson(text: string): ImportParseOf<ImportedHealthFields> {
+  return parseImportGeojson(text, HEALTH_IMPORT);
 }
 
 export interface GeoPoint {
