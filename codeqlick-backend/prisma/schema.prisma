@@ -176,13 +176,16 @@ model User {
   cruisingMessages           CruisingMessage[]
   cruisingBlocksMade         CruisingBlock[]             @relation("CruisingBlocker")
   cruisingBlocksGot          CruisingBlock[]             @relation("CruisingBlocked")
+  cruisingFavorites          CruisingFavorite[]
+  cruisingAlerts             CruisingAlert[]
+  cruisingPushSubscriptions  CruisingPushSubscription[]
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
-  cloudProductionLocks       CloudProject[]             @relation("CloudProductionLockedBy")
-  cloudBypassTokens          CloudProject[]             @relation("CloudBypassCreator")
+  cloudProductionLocks       CloudProject[]              @relation("CloudProductionLockedBy")
+  cloudBypassTokens          CloudProject[]              @relation("CloudBypassCreator")
   cloudEvents                CloudEvent[]
   cloudDeployHooks           CloudDeployHook[]
   cloudStatusNotices         CloudStatusNotice[]
@@ -345,7 +348,7 @@ model Post {
   translations  PostTranslation[]
   tags          PostTag[]
   slugRedirects PostSlugRedirect[]
-  revisions    PostRevision[]
+  revisions     PostRevision[]
 
   @@index([status, publishedAt])
   @@map("posts")
@@ -443,7 +446,7 @@ model PortfolioItem {
 
   translations  PortfolioTranslation[]
   slugRedirects PortfolioSlugRedirect[]
-  revisions    PortfolioRevision[]
+  revisions     PortfolioRevision[]
 
   @@index([status, sortOrder])
   @@map("portfolio_items")
@@ -2210,88 +2213,88 @@ model CloudDeviceCode {
 }
 
 model CloudProject {
-  id                     String    @id @default(uuid()) @db.Uuid
-  teamId                 String    @map("team_id") @db.Uuid
+  id                          String                @id @default(uuid()) @db.Uuid
+  teamId                      String                @map("team_id") @db.Uuid
   /// Its address `<slug>.<CLOUD_HOSTING_DOMAIN>`: unique across Cloud, kept 30 days after deletion.
-  slug                   String    @unique @db.VarChar(40)
-  name                   String    @db.VarChar(60)
-  productionDeploymentId String?   @unique @map("production_deployment_id") @db.Uuid
+  slug                        String                @unique @db.VarChar(40)
+  name                        String                @db.VarChar(60)
+  productionDeploymentId      String?               @unique @map("production_deployment_id") @db.Uuid
   /// Production lock after a rollback (architecture 4.13): builds from Git don't move production.
-  productionLockedAt     DateTime? @map("production_locked_at") @db.Timestamptz(3)
+  productionLockedAt          DateTime?             @map("production_locked_at") @db.Timestamptz(3)
   /// Who locked it (kept as `null` when they leave).
-  productionLockedById   String?   @map("production_locked_by_id") @db.Uuid
-  suspendedAt            DateTime? @map("suspended_at") @db.Timestamptz(3)
-  suspendedReason        String?   @map("suspended_reason") @db.VarChar(500)
-  deletedAt              DateTime? @map("deleted_at") @db.Timestamptz(3)
+  productionLockedById        String?               @map("production_locked_by_id") @db.Uuid
+  suspendedAt                 DateTime?             @map("suspended_at") @db.Timestamptz(3)
+  suspendedReason             String?               @map("suspended_reason") @db.VarChar(500)
+  deletedAt                   DateTime?             @map("deleted_at") @db.Timestamptz(3)
   /// Builds from Git (architecture 4.13): the linked installation and repository, and settings.
-  gitInstallationId      BigInt?   @map("git_installation_id")
-  gitRepoId              BigInt?   @map("git_repo_id")
-  gitRepo                String?   @map("git_repo") @db.VarChar(200)
-  gitBranch              String    @default("main") @map("git_branch") @db.VarChar(200)
-  rootDir                String    @default("") @map("root_dir") @db.VarChar(200)
-  installCommand         String    @default("npm ci") @map("install_command") @db.VarChar(300)
-  buildCommand           String    @default("npm run build") @map("build_command") @db.VarChar(300)
-  outputDir              String    @default("dist") @map("output_dir") @db.VarChar(200)
-  nodeVersion            String    @default("24") @map("node_version") @db.VarChar(4)
-  buildBranches          Boolean   @default(true) @map("build_branches")
-  buildPullRequests      Boolean   @default(true) @map("build_pull_requests")
+  gitInstallationId           BigInt?               @map("git_installation_id")
+  gitRepoId                   BigInt?               @map("git_repo_id")
+  gitRepo                     String?               @map("git_repo") @db.VarChar(200)
+  gitBranch                   String                @default("main") @map("git_branch") @db.VarChar(200)
+  rootDir                     String                @default("") @map("root_dir") @db.VarChar(200)
+  installCommand              String                @default("npm ci") @map("install_command") @db.VarChar(300)
+  buildCommand                String                @default("npm run build") @map("build_command") @db.VarChar(300)
+  outputDir                   String                @default("dist") @map("output_dir") @db.VarChar(200)
+  nodeVersion                 String                @default("24") @map("node_version") @db.VarChar(4)
+  buildBranches               Boolean               @default(true) @map("build_branches")
+  buildPullRequests           Boolean               @default(true) @map("build_pull_requests")
   /// Runs the website check on each pull request's preview (architecture 4.13; decision 69).
-  previewChecks          Boolean   @default(false) @map("preview_checks")
+  previewChecks               Boolean               @default(false) @map("preview_checks")
   /// Skip pushes and pull requests that change nothing under `rootDir` (architecture 4.13).
-  onlyRootChanges        Boolean   @default(false) @map("only_root_changes")
+  onlyRootChanges             Boolean               @default(false) @map("only_root_changes")
   /// Web analytics switched on (architecture 4.13 "Web analytics", decision 44).
-  analytics              Boolean   @default(false)
+  analytics                   Boolean               @default(false)
   /// The shared analytics link: its SHA-256 (the lookup) and the link itself, sealed
   /// (purpose cloud-analytics-share-v1), so admins can copy it again.
-  analyticsShareHash     String?   @unique @map("analytics_share_hash") @db.VarChar(64)
-  analyticsShareSealed   String?   @map("analytics_share_sealed")
+  analyticsShareHash          String?               @unique @map("analytics_share_hash") @db.VarChar(64)
+  analyticsShareSealed        String?               @map("analytics_share_sealed")
   /// Password protection (architecture 4.13, decision 50): the mode, the password's Argon2id
   /// hash, how many days access lasts, and a version raised on every change that ends access.
-  protection             CloudProtection @default(OFF)
-  protectionHash         String?   @map("protection_hash")
-  protectionDays         Int       @default(7) @map("protection_days")
-  protectionVersion      Int       @default(0) @map("protection_version")
-  protectionUpdatedAt    DateTime? @map("protection_updated_at") @db.Timestamptz(3)
+  protection                  CloudProtection       @default(OFF)
+  protectionHash              String?               @map("protection_hash")
+  protectionDays              Int                   @default(7) @map("protection_days")
+  protectionVersion           Int                   @default(0) @map("protection_version")
+  protectionUpdatedAt         DateTime?             @map("protection_updated_at") @db.Timestamptz(3)
   /// The bypass token for automation (architecture 4.13, decision 80): SHA-256 hex of the token,
   /// its first 12 characters, who made it and when, and when it last let a request through.
-  protectionBypassHash        String?   @unique @map("protection_bypass_hash")
-  protectionBypassPrefix      String?   @map("protection_bypass_prefix")
-  protectionBypassCreatedAt   DateTime? @map("protection_bypass_created_at") @db.Timestamptz(3)
-  protectionBypassCreatedById String?   @map("protection_bypass_created_by_id") @db.Uuid
-  protectionBypassLastUsedAt  DateTime? @map("protection_bypass_last_used_at") @db.Timestamptz(3)
+  protectionBypassHash        String?               @unique @map("protection_bypass_hash")
+  protectionBypassPrefix      String?               @map("protection_bypass_prefix")
+  protectionBypassCreatedAt   DateTime?             @map("protection_bypass_created_at") @db.Timestamptz(3)
+  protectionBypassCreatedById String?               @map("protection_bypass_created_by_id") @db.Uuid
+  protectionBypassLastUsedAt  DateTime?             @map("protection_bypass_last_used_at") @db.Timestamptz(3)
   /// Scheduled rebuilds of the production branch, Madrid time (architecture 4.13, decision 65).
-  rebuildFrequency       CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
-  rebuildMinute          Int?      @map("rebuild_minute")
-  rebuildHour            Int?      @map("rebuild_hour")
+  rebuildFrequency            CloudRebuildFrequency @default(OFF) @map("rebuild_frequency")
+  rebuildMinute               Int?                  @map("rebuild_minute")
+  rebuildHour                 Int?                  @map("rebuild_hour")
   /// 1–7, Monday first.
-  rebuildWeekday         Int?      @map("rebuild_weekday")
-  rebuildNextAt          DateTime? @map("rebuild_next_at") @db.Timestamptz(3)
+  rebuildWeekday              Int?                  @map("rebuild_weekday")
+  rebuildNextAt               DateTime?             @map("rebuild_next_at") @db.Timestamptz(3)
   /// Scheduled builds failed in a row; five switch the schedule off.
-  rebuildFailures        Int       @default(0) @map("rebuild_failures")
+  rebuildFailures             Int                   @default(0) @map("rebuild_failures")
   /// The weekly website check of production (architecture 4.13, decision 81) and its next run.
-  productionChecks       Boolean   @default(false) @map("production_checks")
-  productionCheckNextAt  DateTime? @map("production_check_next_at") @db.Timestamptz(3)
-  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  productionChecks            Boolean               @default(false) @map("production_checks")
+  productionCheckNextAt       DateTime?             @map("production_check_next_at") @db.Timestamptz(3)
+  createdAt                   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  team               CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  production         CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
-  productionLockedBy User?                 @relation("CloudProductionLockedBy", fields: [productionLockedById], references: [id], onDelete: SetNull)
-  protectionBypassCreatedBy User?          @relation("CloudBypassCreator", fields: [protectionBypassCreatedById], references: [id], onDelete: SetNull)
-  deployments        CloudDeployment[]     @relation("CloudDeployments")
-  domains            CloudDomain[]
-  reports            CloudReport[]
-  forms              CloudForm[]
-  envVars            CloudEnvVar[]
-  builds             CloudBuild[]
-  prComments         CloudPullComment[]
-  notifyChannels     CloudNotifyChannel[]
-  deployHooks     CloudDeployHook[]
-  analyticsEvents    CloudAnalyticsEvent[]
-  kvEntries          CloudKvEntry[]
-  cloudDatabases     CloudDatabase[]
-  buckets            CloudBucket[]
-  audits             CloudAudit[]
+  team                      CloudTeam             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  production                CloudDeployment?      @relation("CloudProduction", fields: [productionDeploymentId], references: [id], onDelete: SetNull)
+  productionLockedBy        User?                 @relation("CloudProductionLockedBy", fields: [productionLockedById], references: [id], onDelete: SetNull)
+  protectionBypassCreatedBy User?                 @relation("CloudBypassCreator", fields: [protectionBypassCreatedById], references: [id], onDelete: SetNull)
+  deployments               CloudDeployment[]     @relation("CloudDeployments")
+  domains                   CloudDomain[]
+  reports                   CloudReport[]
+  forms                     CloudForm[]
+  envVars                   CloudEnvVar[]
+  builds                    CloudBuild[]
+  prComments                CloudPullComment[]
+  notifyChannels            CloudNotifyChannel[]
+  deployHooks               CloudDeployHook[]
+  analyticsEvents           CloudAnalyticsEvent[]
+  kvEntries                 CloudKvEntry[]
+  cloudDatabases            CloudDatabase[]
+  buckets                   CloudBucket[]
+  audits                    CloudAudit[]
 
   @@index([teamId, createdAt])
   @@index([rebuildNextAt])
@@ -2950,23 +2953,23 @@ model CloudBucketKey {
 
 /// A blog reader who signed up for new posts by email (architecture 4.14). Not a `User`.
 model NewsletterSubscriber {
-  id               String                 @id @default(uuid()) @db.Uuid
+  id               String           @id @default(uuid()) @db.Uuid
   /// Lower-cased.
-  email            String                 @unique
+  email            String           @unique
   /// The language of the emails.
   locale           Locale
-  status           NewsletterStatus       @default(PENDING)
+  status           NewsletterStatus @default(PENDING)
   /// SHA-256 of the confirmation token, cleared once confirmed.
-  confirmTokenHash String?                @unique @map("confirm_token_hash")
-  confirmExpiresAt DateTime?              @map("confirm_expires_at") @db.Timestamptz(3)
+  confirmTokenHash String?          @unique @map("confirm_token_hash")
+  confirmExpiresAt DateTime?        @map("confirm_expires_at") @db.Timestamptz(3)
   /// The last confirmation email (at most one every 10 minutes).
-  confirmSentAt    DateTime?              @map("confirm_sent_at") @db.Timestamptz(3)
+  confirmSentAt    DateTime?        @map("confirm_sent_at") @db.Timestamptz(3)
   /// With the stored language, the proof of consent.
-  confirmedAt      DateTime?              @map("confirmed_at") @db.Timestamptz(3)
+  confirmedAt      DateTime?        @map("confirmed_at") @db.Timestamptz(3)
   /// In every email's unsubscribe link; it can only unsubscribe.
-  unsubscribeToken String                 @unique @map("unsubscribe_token")
-  unsubscribedAt   DateTime?              @map("unsubscribed_at") @db.Timestamptz(3)
-  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  unsubscribeToken String           @unique @map("unsubscribe_token")
+  unsubscribedAt   DateTime?        @map("unsubscribed_at") @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
 
   @@index([status, createdAt])
   @@map("newsletter_subscribers")
@@ -3067,6 +3070,10 @@ model CruisingProfile {
   lookingFor       CruisingLookingFor[] @default([]) @map("looking_for")
   /// The age shown is the current year minus birthYear.
   showAge          Boolean              @default(true) @map("show_age")
+  /// Phase 3 (decision 85): push alerts when someone checks in at a favourite spot.
+  favoriteAlerts   Boolean              @default(true) @map("favorite_alerts")
+  /// Phase 3: the daily email about favourites, for members with no push subscription.
+  favoriteEmails   Boolean              @default(false) @map("favorite_emails")
   createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -3107,6 +3114,8 @@ model CruisingSpot {
   reports   CruisingReport[]
   takedowns CruisingTakedown[]
   checkIns  CruisingCheckIn[]
+  favorites CruisingFavorite[]
+  alerts    CruisingAlert[]
 
   @@index([status, lat])
   @@index([countryCode, citySlug, status])
@@ -3295,4 +3304,62 @@ model CruisingBlock {
   @@id([blockerId, blockedId])
   @@index([blockedId])
   @@map("cruising_blocks")
+}
+
+// ---- Cruising phase 3: favourites and alerts (decision 85) --------------------------------------
+
+enum CruisingAlertChannel {
+  PUSH
+  EMAIL
+}
+
+/// A spot a member saved (up to 100). Only LIVE spots are listed; the row stays while a spot is not
+/// LIVE, so it comes back with it.
+model CruisingFavorite {
+  userId    String   @map("user_id") @db.Uuid
+  spotId    String   @map("spot_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot CruisingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@id([userId, spotId])
+  @@index([spotId])
+  @@index([userId, createdAt])
+  @@map("cruising_favorites")
+}
+
+/// An alert a member got because someone checked in at one of their favourites: at most one per
+/// member and spot every 3 hours and 10 a day (the email, one a day). Never says who. Older than 2
+/// days: deleted hourly.
+model CruisingAlert {
+  id        String               @id @default(uuid()) @db.Uuid
+  userId    String               @map("user_id") @db.Uuid
+  spotId    String               @map("spot_id") @db.Uuid
+  channel   CruisingAlertChannel
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot CruisingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([spotId])
+  @@index([createdAt])
+  @@map("cruising_alerts")
+}
+
+/// A device's Web Push subscription (up to 5 per member; the oldest goes). Deleted when the push
+/// service answers 404 or 410. Notifications use the account's language.
+model CruisingPushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("cruising_push_subscriptions")
 }

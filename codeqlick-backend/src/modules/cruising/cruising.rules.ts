@@ -215,3 +215,81 @@ export function isUniqueViolation(error: unknown): boolean {
     typeof error === 'object' && error !== null && (error as { code?: unknown }).code === 'P2002'
   );
 }
+
+// ---- Favourites and alerts (phase 3, decision 85) ----------------------------------------------
+
+/** Favourites a member can save. */
+export const MAX_FAVORITES = 100;
+/** A member hears about the same favourite spot at most once in this time… */
+export const ALERT_SPOT_GAP_MS = 3 * 60 * 60 * 1000;
+/** …at most this many times a day in all… */
+export const ALERTS_PER_DAY = 10;
+/** …and gets at most one email about favourites a day. */
+export const ALERT_DAY_MS = 24 * 60 * 60 * 1000;
+/** Alerts are kept this long (the caps only look one day back). */
+export const ALERT_KEEP_MS = 2 * ALERT_DAY_MS;
+/** Devices with notifications on, per member: a new one drops the oldest. */
+export const MAX_PUSH_SUBSCRIPTIONS = 5;
+
+export type AlertChannel = 'PUSH' | 'EMAIL';
+
+/** What decides how (and whether) a member who saved a spot hears that someone checked in. */
+export interface AlertCandidate {
+  /** Push for favourites (default on). */
+  favoriteAlerts: boolean;
+  /** The daily email about favourites (default off). */
+  favoriteEmails: boolean;
+  /** Cruising's email switch: off turns every optional email off. */
+  emailAlerts: boolean;
+  /** Push works (VAPID keys set) and the member has a device subscribed. */
+  hasPush: boolean;
+}
+
+/** One of the member's recent alerts: the spot, the channel and when. */
+export type RecentAlert = { spotId: string; channel: AlertChannel; createdAt: Date };
+
+/**
+ * How a member is alerted that someone is at `spotId` (decision 85), or null: never twice for the
+ * same spot within 3 hours, never more than 10 a day; by push when they have a device subscribed
+ * (and favourite alerts on), else by email when they asked for it, at most one email a day.
+ */
+export function alertChannel(
+  candidate: AlertCandidate,
+  spotId: string,
+  recent: readonly RecentAlert[],
+  now: Date,
+): AlertChannel | null {
+  const dayAgo = now.getTime() - ALERT_DAY_MS;
+  const today = recent.filter((alert) => alert.createdAt.getTime() > dayAgo);
+  if (today.length >= ALERTS_PER_DAY) return null;
+  const spotGap = now.getTime() - ALERT_SPOT_GAP_MS;
+  if (today.some((alert) => alert.spotId === spotId && alert.createdAt.getTime() > spotGap)) {
+    return null;
+  }
+  if (candidate.hasPush) return candidate.favoriteAlerts ? 'PUSH' : null;
+  if (!candidate.favoriteEmails || !candidate.emailAlerts) return null;
+  return today.some((alert) => alert.channel === 'EMAIL') ? null : 'EMAIL';
+}
+
+export type PushKind = 'favorite' | 'message';
+
+const PUSH_TEXT = {
+  en: { favorite: 'Someone is at one of your favourite spots', message: 'New message' },
+  es: { favorite: 'Hay alguien en uno de tus lugares favoritos', message: 'Mensaje nuevo' },
+} as const;
+
+/**
+ * A notification's payload: it names neither the spot nor a person, and opens the favourites or
+ * the messages in the account's language.
+ */
+export function pushPayload(
+  kind: PushKind,
+  locale: 'en' | 'es',
+): { title: string; body: string; url: string; tag: string } {
+  return {
+    title: 'Cruising',
+    body: PUSH_TEXT[locale][kind],
+    url: `/${locale}${kind === 'favorite' ? '/favorites' : '/messages'}`,
+    tag: kind === 'favorite' ? 'cruising-favorite' : 'cruising-message',
+  };
+}

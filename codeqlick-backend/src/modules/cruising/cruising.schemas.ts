@@ -112,6 +112,9 @@ export const profileSchema = z.object({
     .transform((list) => [...new Set(list)])
     .optional(),
   showAge: z.boolean().optional(),
+  /** Phase 3 (decision 85): push alerts for favourites, and the daily email about them. */
+  favoriteAlerts: z.boolean().optional(),
+  favoriteEmails: z.boolean().optional(),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
@@ -250,6 +253,24 @@ export type MessagesQuery = z.infer<typeof messagesQuerySchema>;
 
 export const blockSchema = z.object({ nickname: nicknameLookupSchema });
 export type BlockInput = z.infer<typeof blockSchema>;
+
+// ---- Favourites and notifications (phase 3, decision 85) -----------------------------------------
+
+export const spotIdParamSchema = z.object({ spotId: z.uuid() });
+export type SpotIdParam = z.infer<typeof spotIdParamSchema>;
+
+/** A device's Web Push subscription (`PushSubscription.toJSON()`); the language is the account's. */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/ }).max(2_000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+
+export const pushUnsubscribeSchema = z.object({ endpoint: z.string().min(1).max(2_000) });
+export type PushUnsubscribeInput = z.infer<typeof pushUnsubscribeSchema>;
 
 // ---- Admin ---------------------------------------------------------------------------------------
 

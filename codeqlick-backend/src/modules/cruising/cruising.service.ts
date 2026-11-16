@@ -85,6 +85,12 @@ export interface CruisingStatus {
   /** Entered, current terms, not suspended. */
   allowed: boolean;
   emailAlerts: boolean;
+  /** Phase 3 (decision 85): push alerts for favourites (default on). */
+  favoriteAlerts: boolean;
+  /** Phase 3: the daily email about favourites for members without push (default off). */
+  favoriteEmails: boolean;
+  /** The VAPID key browsers subscribe with; null while notifications are off. */
+  pushPublicKey: string | null;
   /** Null until a nickname is set. */
   profile: {
     nickname: string;
@@ -104,6 +110,29 @@ export interface CruisingSpotSummary {
   lng: number;
   ratingAvg: number;
   ratingCount: number;
+}
+
+/** The map's summary of a spot. */
+export function spotSummary(spot: {
+  id: string;
+  slug: string;
+  name: string;
+  type: SpotType;
+  lat: unknown;
+  lng: unknown;
+  ratingAvg: unknown;
+  ratingCount: number;
+}): CruisingSpotSummary {
+  return {
+    id: spot.id,
+    slug: spot.slug,
+    name: spot.name,
+    type: spot.type,
+    lat: Number(spot.lat),
+    lng: Number(spot.lng),
+    ratingAvg: Number(spot.ratingAvg),
+    ratingCount: spot.ratingCount,
+  };
 }
 
 /** A city a search found (decision 86): the map fits itself to `bbox`. */
@@ -183,6 +212,8 @@ export function newSpotFields(input: SpotInput) {
 /** What a profile update changes: only the fields the member sent. */
 interface ProfileChanges {
   emailAlerts?: boolean;
+  favoriteAlerts?: boolean;
+  favoriteEmails?: boolean;
   nickname?: string;
   bio?: string;
   country?: string | null;
@@ -312,6 +343,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         : null,
       allowed: onboarded && !suspended,
       emailAlerts: profile?.emailAlerts ?? true,
+      favoriteAlerts: profile?.favoriteAlerts ?? true,
+      favoriteEmails: profile?.favoriteEmails ?? false,
+      pushPublicKey: this.config.vapid?.publicKey ?? null,
       profile: profile?.nickname
         ? {
             nickname: profile.nickname,
@@ -347,6 +381,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     const current = await this.enteredProfile(userId);
     const data: ProfileChanges = {};
     if (input.emailAlerts !== undefined) data.emailAlerts = input.emailAlerts;
+    if (input.favoriteAlerts !== undefined) data.favoriteAlerts = input.favoriteAlerts;
+    if (input.favoriteEmails !== undefined) data.favoriteEmails = input.favoriteEmails;
     if (input.bio !== undefined) {
       if (sharesContact(input.bio)) {
         throw new BadRequestException(
@@ -404,26 +440,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   // ---- Public: the map, places and spot pages ----------------------------------------------------
 
-  private summary(spot: {
-    id: string;
-    slug: string;
-    name: string;
-    type: SpotType;
-    lat: unknown;
-    lng: unknown;
-    ratingAvg: unknown;
-    ratingCount: number;
-  }): CruisingSpotSummary {
-    return {
-      id: spot.id,
-      slug: spot.slug,
-      name: spot.name,
-      type: spot.type,
-      lat: Number(spot.lat),
-      lng: Number(spot.lng),
-      ratingAvg: Number(spot.ratingAvg),
-      ratingCount: spot.ratingCount,
-    };
+  private summary(spot: Parameters<typeof spotSummary>[0]): CruisingSpotSummary {
+    return spotSummary(spot);
   }
 
   /** Up to 500 LIVE spots in the box; `truncated` when there were more. */

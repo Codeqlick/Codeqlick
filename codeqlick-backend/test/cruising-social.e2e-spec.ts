@@ -5,11 +5,16 @@ import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import * as argon2 from 'argon2';
 import request from 'supertest';
+import webpush from 'web-push';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppModule } from '../src/app.module.js';
 import { configureApp } from '../src/app.setup.js';
 import { AppConfigService } from '../src/config/app-config.service.js';
 import { Role } from '../src/generated/prisma/client.js';
+import {
+  CruisingPushService,
+  type PushTarget,
+} from '../src/modules/cruising/cruising-push.service.js';
 import { CruisingSocialService } from '../src/modules/cruising/cruising-social.service.js';
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
@@ -26,6 +31,9 @@ describe('Cruising social (e2e)', () => {
   let version: string;
   let admin: Person;
   const sent: MailMessage[] = [];
+  /** The notifications the push services would have received: no network in tests. */
+  const pushed: { endpoint: string; payload: { body: string; url: string } }[] = [];
+  let pushFails: number | null = null;
   let made = 0;
   let spotCount = 0;
 
@@ -87,6 +95,10 @@ describe('Cruising social (e2e)', () => {
       .send({ text });
 
   beforeAll(async () => {
+    // Notifications on, with keys made for this run.
+    const keys = webpush.generateVAPIDKeys();
+    process.env.VAPID_PUBLIC_KEY = keys.publicKey;
+    process.env.VAPID_PRIVATE_KEY = keys.privateKey;
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
     configureApp(app);
@@ -97,11 +109,22 @@ describe('Cruising social (e2e)', () => {
       sent.push(message);
       return Promise.resolve();
     });
+    vi.spyOn(app.get(CruisingPushService), 'send').mockImplementation(
+      (target: PushTarget, payload: string) => {
+        if (pushFails !== null) {
+          return Promise.reject(Object.assign(new Error('gone'), { statusCode: pushFails }));
+        }
+        pushed.push({ endpoint: target.endpoint, payload: JSON.parse(payload) });
+        return Promise.resolve({});
+      },
+    );
     admin = await person('Admin', Role.ADMIN);
   });
 
   beforeEach(() => {
     sent.length = 0;
+    pushed.length = 0;
+    pushFails = null;
   });
 
   afterAll(async () => {
@@ -498,5 +521,333 @@ describe('Cruising social (e2e)', () => {
       await request(server()).get(`/v1/cruising/active?bbox=${bad}`).set(viewer.auth).expect(400);
     }
     await request(server()).get('/v1/cruising/active').set(viewer.auth).expect(400);
+  });
+
+  // ---- Favourites and alerts (phase 3, decision 85) ----------------------------------------------
+
+  const social = () => app.get(CruisingSocialService);
+
+  const checkInAt = (who: Person, spotId: string, anonymous = false) =>
+    request(server())
+      .post('/v1/cruising/check-ins')
+      .set(who.auth)
+      .send({ spotId, hours: 1, anonymous })
+      .expect(201);
+
+  const subscribe = (who: Person, id: string) =>
+    request(server())
+      .put('/v1/cruising/push')
+      .set(who.auth)
+      .send({
+        endpoint: `https://push.example.test/${tag}/${id}`,
+        keys: { p256dh: `p256dh-${id}`, auth: `auth-${id}` },
+      });
+
+  it('saves and removes favourites: LIVE spots only, idempotent, up to 100, with "here"', async () => {
+    const owner = await member('Fav', false);
+    const first = await liveSpot();
+    const second = await liveSpot();
+    const there = await member('There');
+
+    await request(server()).put(`/v1/cruising/favorites/${first.id}`).set(owner.auth).expect(204);
+    await request(server()).put(`/v1/cruising/favorites/${first.id}`).set(owner.auth).expect(204);
+    await request(server()).put(`/v1/cruising/favorites/${second.id}`).set(owner.auth).expect(204);
+    expect(await prisma.cruisingFavorite.count({ where: { userId: owner.id } })).toBe(2);
+    await checkInAt(there, first.id, true);
+    await social().idle();
+
+    const list = await request(server()).get('/v1/cruising/favorites').set(owner.auth);
+    expect(list.status).toBe(200);
+    // Newest first; the anonymous check-in counts in "here".
+    expect(
+      list.body.items.map((item: { spot: { id: string }; here: number }) => [
+        item.spot.id,
+        item.here,
+      ]),
+    ).toEqual([
+      [second.id, 0],
+      [first.id, 1],
+    ]);
+    expect(list.body.items[0].spot).toMatchObject({ slug: second.slug, type: 'PARK' });
+    expect(typeof list.body.items[0].savedAt).toBe('string');
+
+    // A spot leaving LIVE drops out of the list but the row stays; it can't be saved meanwhile.
+    await prisma.cruisingSpot.update({ where: { id: second.id }, data: { status: 'HIDDEN' } });
+    const hidden = await request(server()).get('/v1/cruising/favorites').set(owner.auth);
+    expect(hidden.body.items.map((item: { spot: { id: string } }) => item.spot.id)).toEqual([
+      first.id,
+    ]);
+    expect(await prisma.cruisingFavorite.count({ where: { userId: owner.id } })).toBe(2);
+    const other = await member('Other', false);
+    await request(server()).put(`/v1/cruising/favorites/${second.id}`).set(other.auth).expect(404);
+    await request(server())
+      .put(`/v1/cruising/favorites/${randomUUID()}`)
+      .set(owner.auth)
+      .expect(404);
+    await request(server()).put('/v1/cruising/favorites/not-a-uuid').set(owner.auth).expect(400);
+
+    // Removing is idempotent too.
+    await request(server())
+      .delete(`/v1/cruising/favorites/${first.id}`)
+      .set(owner.auth)
+      .expect(204);
+    await request(server())
+      .delete(`/v1/cruising/favorites/${first.id}`)
+      .set(owner.auth)
+      .expect(204);
+    expect(await prisma.cruisingFavorite.count({ where: { userId: owner.id } })).toBe(1);
+
+    // 100 at most (filled straight in the database).
+    const bulk = await Promise.all(
+      Array.from({ length: 99 }, (_, i) =>
+        prisma.cruisingSpot.create({
+          data: {
+            slug: `fav-bulk-${i}-${tag}`,
+            name: `Fav bulk ${i} ${tag}`,
+            type: 'PARK',
+            lat: 12,
+            lng: -147,
+            countryCode: 'ES',
+            city: `Social ${tag}`,
+            citySlug: `social-${tag}`,
+            description: 'Filling the favourites.',
+            status: 'LIVE',
+          },
+        }),
+      ),
+    );
+    await prisma.cruisingFavorite.createMany({
+      data: bulk.map((spot) => ({ userId: owner.id, spotId: spot.id })),
+    });
+    const third = await liveSpot();
+    await request(server()).put(`/v1/cruising/favorites/${third.id}`).set(owner.auth).expect(409);
+    // One already saved is still fine at the cap.
+    await request(server())
+      .put(`/v1/cruising/favorites/${bulk[0]!.id}`)
+      .set(owner.auth)
+      .expect(204);
+
+    // Members only.
+    await request(server()).get('/v1/cruising/favorites').expect(401);
+    const outsider = await person('FavOut');
+    await request(server()).get('/v1/cruising/favorites').set(outsider.auth).expect(403);
+    await request(server())
+      .put(`/v1/cruising/favorites/${third.id}`)
+      .set(outsider.auth)
+      .expect(403);
+
+    // The export has them, and deleting the account deletes them.
+    const exported = await request(server()).get('/v1/auth/me/export').set(owner.auth);
+    expect(exported.body.cruising.favorites).toHaveLength(100);
+    await request(server()).delete('/v1/auth/me').set(owner.auth).send({ password }).expect(204);
+    expect(await prisma.cruisingFavorite.count({ where: { userId: owner.id } })).toBe(0);
+  });
+
+  it('stores push subscriptions (5 a device each), and answers 409 without VAPID keys', async () => {
+    const ines = await member('Ines', false);
+    const me = await request(server()).get('/v1/cruising/me').set(ines.auth);
+    expect(me.body).toMatchObject({
+      favoriteAlerts: true,
+      favoriteEmails: false,
+      pushPublicKey: process.env.VAPID_PUBLIC_KEY,
+    });
+
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f']) {
+      expect((await subscribe(ines, id)).status).toBe(204);
+    }
+    const kept = await prisma.cruisingPushSubscription.findMany({
+      where: { userId: ines.id },
+      select: { endpoint: true },
+    });
+    // Up to 5: the oldest went.
+    expect(kept.map((row) => row.endpoint.split('/').at(-1)).toSorted()).toEqual([
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+    ]);
+    // Again is fine; plain http is refused.
+    expect((await subscribe(ines, 'f')).status).toBe(204);
+    await request(server())
+      .put('/v1/cruising/push')
+      .set(ines.auth)
+      .send({ endpoint: 'http://push.example.test/x', keys: { p256dh: 'p', auth: 'a' } })
+      .expect(400);
+
+    await request(server())
+      .delete('/v1/cruising/push')
+      .set(ines.auth)
+      .send({ endpoint: `https://push.example.test/${tag}/f` })
+      .expect(204);
+    await request(server())
+      .delete('/v1/cruising/push')
+      .set(ines.auth)
+      .send({ endpoint: 'https://push.example.test/unknown' })
+      .expect(204);
+    expect(await prisma.cruisingPushSubscription.count({ where: { userId: ines.id } })).toBe(4);
+
+    // Not entered: 403.
+    const outsider = await person('PushOut');
+    expect((await subscribe(outsider, 'z')).status).toBe(403);
+
+    // Without VAPID keys notifications are off.
+    const vapid = vi.spyOn(app.get(AppConfigService), 'vapid', 'get').mockReturnValue(undefined);
+    try {
+      expect((await subscribe(ines, 'g')).status).toBe(409);
+      const off = await request(server()).get('/v1/cruising/me').set(ines.auth);
+      expect(off.body.pushPublicKey).toBeNull();
+    } finally {
+      vapid.mockRestore();
+    }
+
+    // The settings are saved with the profile.
+    const saved = await request(server())
+      .patch('/v1/cruising/profile')
+      .set(ines.auth)
+      .send({ favoriteAlerts: false, favoriteEmails: true });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toMatchObject({ favoriteAlerts: false, favoriteEmails: true });
+  });
+
+  it('alerts the savers of a spot by push, never the checker, blocked or suspended', async () => {
+    const spot = await liveSpot();
+    const [checker, saver, blocked, blocking, suspended, quiet, outdated] = await Promise.all(
+      ['AChk', 'ASaver', 'ABlkd', 'ABlkg', 'ASusp', 'AQuiet', 'AOld'].map((name) => member(name)),
+    );
+    for (const who of [checker, saver, blocked, blocking, suspended, quiet, outdated]) {
+      await request(server()).put(`/v1/cruising/favorites/${spot.id}`).set(who.auth).expect(204);
+      expect((await subscribe(who, `alert-${who.id}`)).status).toBe(204);
+    }
+    await prisma.cruisingBlock.createMany({
+      data: [
+        { blockerId: checker.id, blockedId: blocked.id },
+        { blockerId: blocking.id, blockedId: checker.id },
+      ],
+    });
+    await prisma.cruisingProfile.update({
+      where: { userId: suspended.id },
+      data: { suspendedAt: new Date(), suspendedUntil: null },
+    });
+    await prisma.cruisingProfile.update({
+      where: { userId: quiet.id },
+      data: { favoriteAlerts: false },
+    });
+    await prisma.cruisingProfile.update({
+      where: { userId: outdated.id },
+      data: { termsVersion: 'old-rules' },
+    });
+    await prisma.user.update({ where: { id: saver.id }, data: { locale: 'ES' } });
+
+    // Anonymous check-ins alert too, and never say who.
+    await checkInAt(checker, spot.id, true);
+    await social().idle();
+    const alerts = await prisma.cruisingAlert.findMany({ where: { spotId: spot.id } });
+    expect(alerts.map((row) => [row.userId, row.channel])).toEqual([[saver.id, 'PUSH']]);
+    expect(pushed).toEqual([
+      {
+        endpoint: `https://push.example.test/${tag}/alert-${saver.id}`,
+        payload: expect.objectContaining({
+          title: 'Cruising',
+          body: 'Hay alguien en uno de tus lugares favoritos',
+          url: '/es/favorites',
+        }),
+      },
+    ]);
+    expect(JSON.stringify(pushed)).not.toContain(checker.nick);
+    expect(JSON.stringify(pushed)).not.toContain(spot.slug);
+    expect(sent).toHaveLength(0);
+
+    // Within 3 hours, another check-in at the same spot doesn't alert the saver again (the
+    // blocks were the first checker's: this one alerts those two and that checker, once).
+    pushed.length = 0;
+    const another = await member('Again');
+    await checkInAt(another, spot.id);
+    await social().idle();
+    expect(pushed.map((item) => item.endpoint).toSorted()).toEqual(
+      [checker, blocked, blocking]
+        .map((who) => `https://push.example.test/${tag}/alert-${who.id}`)
+        .toSorted(),
+    );
+    expect(await prisma.cruisingAlert.count({ where: { userId: saver.id } })).toBe(1);
+
+    // A device the push service says is gone is deleted.
+    await prisma.cruisingAlert.deleteMany({ where: { userId: saver.id } });
+    pushFails = 410;
+    await checkInAt(another, spot.id);
+    await social().idle();
+    expect(await prisma.cruisingPushSubscription.count({ where: { userId: saver.id } })).toBe(0);
+  });
+
+  it('caps alerts at 10 a day and emails members without push once a day, if they asked', async () => {
+    const [first, second, third] = [await liveSpot(), await liveSpot(), await liveSpot()];
+    const capped = await member('Capped');
+    const emailed = await member('Mailed');
+    const noEmail = await member('NoMail');
+    const checker = await member('Chk2');
+    for (const who of [capped, emailed, noEmail]) {
+      for (const spot of [first, second, third]) {
+        await request(server()).put(`/v1/cruising/favorites/${spot.id}`).set(who.auth).expect(204);
+      }
+    }
+    expect((await subscribe(capped, 'capped')).status).toBe(204);
+    await prisma.cruisingProfile.update({
+      where: { userId: emailed.id },
+      data: { favoriteEmails: true },
+    });
+    // Ten alerts already today (about other spots).
+    await prisma.cruisingAlert.createMany({
+      data: Array.from({ length: 10 }, (_, i) => ({
+        userId: capped.id,
+        spotId: i % 2 === 0 ? second.id : third.id,
+        channel: 'PUSH' as const,
+        createdAt: new Date(Date.now() - (5 + i) * 3600_000),
+      })),
+    });
+
+    await checkInAt(checker, first.id);
+    await social().idle();
+    expect(pushed).toHaveLength(0);
+    expect(await prisma.cruisingAlert.count({ where: { userId: capped.id } })).toBe(10);
+    // The one who asked for emails gets one, saying nothing more than that.
+    expect(sent.map((mail) => mail.to)).toEqual([emailed.email]);
+    expect(sent[0]!.subject).toBe("There's activity at your favourite spots — Cruising");
+    expect(JSON.stringify(sent[0])).not.toContain(first.slug);
+    expect(JSON.stringify(sent[0])).not.toContain(checker.nick);
+
+    // Another favourite spot the same day: no second email.
+    sent.length = 0;
+    await checkInAt(checker, second.id);
+    await social().idle();
+    expect(sent).toHaveLength(0);
+    expect(
+      await prisma.cruisingAlert.count({ where: { userId: emailed.id, channel: 'EMAIL' } }),
+    ).toBe(1);
+    expect(await prisma.cruisingAlert.count({ where: { userId: noEmail.id } })).toBe(0);
+
+    // Alerts older than two days go with the hourly cleanup.
+    await prisma.cruisingAlert.updateMany({
+      where: { userId: capped.id },
+      data: { createdAt: new Date(Date.now() - 3 * 24 * 3600_000) },
+    });
+    await social().cleanupCheckIns();
+    expect(await prisma.cruisingAlert.count({ where: { userId: capped.id } })).toBe(0);
+  });
+
+  it('pushes "new message" to the recipient at once and keeps the unread email', async () => {
+    const [writer, reader] = [await member('Writer'), await member('Reader')];
+    expect((await subscribe(reader, 'reader')).status).toBe(204);
+    const conv = await open(writer, reader.nick);
+    expect(conv.status).toBe(201);
+    expect((await say(writer, conv.body.id, 'Hi there')).status).toBe(201);
+    await social().idle();
+    expect(pushed).toEqual([
+      {
+        endpoint: `https://push.example.test/${tag}/reader`,
+        payload: expect.objectContaining({ body: 'New message', url: '/en/messages' }),
+      },
+    ]);
+    expect(JSON.stringify(pushed)).not.toContain('Hi there');
+    expect(JSON.stringify(pushed)).not.toContain(writer.nick);
   });
 });
