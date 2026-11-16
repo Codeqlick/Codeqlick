@@ -15,6 +15,7 @@ import {
 import { CruisingMediaRepository } from './cruising-media.repository.js';
 import { CruisingMediaService } from './cruising-media.service.js';
 import { CruisingMediaStorage } from './cruising-media.storage.js';
+import { CruisingOnboardingService } from './cruising-onboarding.service.js';
 import { CruisingPushService } from './cruising-push.service.js';
 import {
   CruisingSafetyAdminController,
@@ -23,6 +24,12 @@ import {
 } from './cruising-safety.controller.js';
 import { CruisingSafetyRepository } from './cruising-safety.repository.js';
 import { CruisingSafetyService } from './cruising-safety.service.js';
+import {
+  CruisingOnboardingController,
+  CruisingStatsAdminController,
+} from './cruising-stats.controller.js';
+import { CruisingStatsRepository } from './cruising-stats.repository.js';
+import { CruisingStatsService } from './cruising-stats.service.js';
 import { CruisingSocialController } from './cruising-social.controller.js';
 import { CruisingSocialService } from './cruising-social.service.js';
 import { CruisingController, CruisingPublicController } from './cruising.controller.js';
@@ -53,6 +60,8 @@ import { CruisingService } from './cruising.service.js';
     CruisingSafetyPublicController,
     CruisingSafetyController,
     CruisingSafetyAdminController,
+    CruisingOnboardingController,
+    CruisingStatsAdminController,
   ],
   providers: [
     CruisingService,
@@ -68,6 +77,9 @@ import { CruisingService } from './cruising.service.js';
     CruisingMediaRepository,
     CruisingMediaStorage,
     CruisingFfmpeg,
+    CruisingStatsRepository,
+    CruisingStatsService,
+    CruisingOnboardingService,
   ],
 })
 export class CruisingModule {}

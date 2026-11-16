@@ -3,9 +3,11 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { CruisingMap } from '@/components/cruising/CruisingMap';
-import { getCruisingStatus } from '@/lib/api/cruising';
+import { OnboardingTour } from '@/components/cruising/OnboardingTour';
+import { getCruisingStatus, type CruisingStatus } from '@/lib/api/cruising';
 import { getCurrentUser } from '@/lib/auth/session';
 import { alertsEndpoint } from '@/lib/cruising-community';
+import { suggestionsBbox } from '@/lib/cruising-stats';
 import {
   activeEndpoint,
   cruisingPath,
@@ -55,9 +57,11 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
   // "Active now" is only for members who have entered (decision 86); signed out, nothing about
   // presence is asked for.
   let entered = false;
+  let status: CruisingStatus | null = null;
   if (await getCurrentUser()) {
     try {
-      entered = (await getCruisingStatus()).onboarded;
+      status = await getCruisingStatus();
+      entered = status.onboarded;
     } catch {
       // The map is public: it still works without Cruising's state.
     }
@@ -72,6 +76,10 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
           {t('rulesLink')}
         </Link>
       </p>
+      {/* Phase 6 (decision 102): the tour, until it is finished or skipped. */}
+      {status?.onboarded && status.onboardingDone === false ? (
+        <OnboardingTour locale={locale} status={status} near={suggestionsBbox(initial)} />
+      ) : null}
       <CruisingMap
         endpoint={spotsEndpoint(locale, onHost)}
         searchEndpoint={searchEndpoint(locale, onHost)}
