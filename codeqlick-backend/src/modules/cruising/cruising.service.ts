@@ -26,12 +26,17 @@ import {
   type CruisingNotice,
 } from './cruising-emails.js';
 import {
+  boxAround,
   citySlugOf,
+  DUPLICATE_METERS,
   extractSpotSlug,
+  findDuplicate,
   isSuspended,
   isUniqueViolation,
   memberCanChange,
   nextSpotStatus,
+  parseSpotsCsv,
+  parseSpotsGeojson,
   roundCoordinate,
   spotSlugBase,
   takedownHidesAtOnce,
@@ -44,13 +49,17 @@ import {
   ageOn,
   CRUISING_MIN_AGE,
   HIDE_AT_ONCE,
+  IMPORT_MAX_ROWS,
   MAX_SPOTS_IN_BOX,
   MAX_SPOTS_IN_CITY,
   REPORTS_PER_DAY,
   REVIEWS_PER_DAY,
+  spotSchema,
   SPOTS_PER_DAY,
   suspensionEnd,
   TRANSCRIPT_LINES,
+  type AdminSpotInput,
+  type ImportSpotsInput,
   type LookingFor,
   type OnboardingInput,
   type ProfileInput,
@@ -165,6 +174,20 @@ export function newSpotFields(input: SpotInput) {
     description: input.description,
     bestTimes: input.bestTimes?.trim() || null,
   };
+}
+
+/** What an import answers (decision 84): `items` were created, or would be on a dry run. */
+export interface ImportResult {
+  created: number;
+  skipped: { row: number; reason: string }[];
+  items: { row: number; name: string; city: string; countryCode: string; type: SpotType }[];
+}
+
+/** Why a row was refused, from the first problem the proposal's checks found. */
+export function issueReason(issue: { path: PropertyKey[]; message: string } | undefined): string {
+  if (!issue) return 'Invalid row';
+  const field = issue.path.map(String).join('.');
+  return field ? `${field}: ${issue.message}` : issue.message;
 }
 
 /** What a profile update changes: only the fields the member sent. */
@@ -534,18 +557,21 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (today >= SPOTS_PER_DAY) {
       throw new HttpException('You can propose 5 spots a day', HttpStatus.TOO_MANY_REQUESTS);
     }
+    const spot = await this.createWithSlug(input, { status: 'PENDING', createdById: userId });
+    return { id: spot.id, slug: spot.slug, status: 'PENDING' };
+  }
+
+  /** A new spot with its own slug, looked for again when someone takes it meanwhile. */
+  private async createWithSlug(
+    input: SpotInput,
+    extra: { status: 'PENDING' | 'LIVE'; createdById: string | null; reviewedAt?: Date },
+  ) {
     const fields = newSpotFields(input);
     const base = spotSlugBase(input.name);
     for (let attempt = 1; ; attempt += 1) {
       const slug = await uniqueSlug(base, (candidate) => this.repository.slugTaken(candidate));
       try {
-        const spot = await this.repository.createSpot({
-          ...fields,
-          slug,
-          status: 'PENDING',
-          createdById: userId,
-        });
-        return { id: spot.id, slug: spot.slug, status: 'PENDING' };
+        return await this.repository.createSpot({ ...fields, slug, ...extra });
       } catch (error) {
         // Someone took the slug between the check and the write: look again.
         if (!isUniqueViolation(error) || attempt >= 3) throw error;
@@ -828,6 +854,132 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     const spot = await this.repository.findSpot(spotId);
     if (!spot) throw new NotFoundException('Spot not found');
     return spot;
+  }
+
+  /**
+   * The team adds a spot itself (decision 84): a proposal's checks, LIVE at once (PENDING when
+   * `publish` is false) and no proposer, so nobody is emailed.
+   */
+  async createTeamSpot(
+    actor: AuthUser,
+    input: AdminSpotInput,
+    now = new Date(),
+  ): Promise<{ id: string; slug: string; status: 'LIVE' | 'PENDING' }> {
+    const { publish, ...spot } = input;
+    const status = publish ? 'LIVE' : 'PENDING';
+    const created = await this.createWithSlug(spot, {
+      status,
+      createdById: null,
+      ...(publish ? { reviewedAt: now } : {}),
+    });
+    await this.activity.record(actor, {
+      action: 'cruising.spot_created',
+      targetId: created.id,
+      targetLabel: created.slug,
+      details: { status },
+    });
+    return { id: created.id, slug: created.slug, status };
+  }
+
+  /**
+   * Imports spots from a CSV or GeoJSON file (decision 84). Each row is checked like a proposal and
+   * skipped, with its reason, when invalid or a duplicate (same type within 100 m of a spot that
+   * isn't REJECTED or REMOVED, or of an earlier row). A dry run creates nothing; the real run
+   * creates the valid rows in one transaction and records one activity entry.
+   */
+  async importSpots(
+    actor: AuthUser,
+    input: ImportSpotsInput,
+    now = new Date(),
+  ): Promise<ImportResult> {
+    const parsed =
+      input.format === 'csv' ? parseSpotsCsv(input.content) : parseSpotsGeojson(input.content);
+    if (!parsed.ok) throw new BadRequestException(parsed.error);
+    if (parsed.rows.length === 0) throw new BadRequestException('The file has no rows');
+    if (parsed.rows.length > IMPORT_MAX_ROWS) {
+      throw new BadRequestException(`A file can hold up to ${IMPORT_MAX_ROWS} rows`);
+    }
+
+    const skipped: ImportResult['skipped'] = [];
+    const accepted: { row: number; input: SpotInput; fields: ReturnType<typeof newSpotFields> }[] =
+      [];
+    for (const { row, fields, error } of parsed.rows) {
+      if (!fields) {
+        skipped.push({ row, reason: error ?? 'Unreadable row' });
+        continue;
+      }
+      const checked = spotSchema.safeParse(fields);
+      if (!checked.success) {
+        skipped.push({ row, reason: issueReason(checked.error.issues[0]) });
+        continue;
+      }
+      const spot = newSpotFields(checked.data);
+      const earlier = findDuplicate(
+        spot,
+        accepted.map((each) => ({ ...each.fields, row: each.row })),
+      );
+      if (earlier) {
+        skipped.push({ row, reason: `Duplicate of row ${earlier.row} (within 100 m)` });
+        continue;
+      }
+      const existing = findDuplicate(
+        spot,
+        await this.repository.possibleDuplicates(boxAround(spot, DUPLICATE_METERS), spot.type),
+      );
+      if (existing) {
+        skipped.push({ row, reason: `Duplicate of "${existing.name}" (within 100 m)` });
+        continue;
+      }
+      accepted.push({ row, input: checked.data, fields: spot });
+    }
+
+    const items = accepted.map(({ row, fields }) => ({
+      row,
+      name: fields.name,
+      city: fields.city,
+      countryCode: fields.countryCode,
+      type: fields.type,
+    }));
+    if (input.dryRun || accepted.length === 0) return { created: 0, skipped, items };
+
+    const status: 'LIVE' | 'PENDING' = input.publish ? 'LIVE' : 'PENDING';
+    for (let attempt = 1; ; attempt += 1) {
+      // Each row its own slug: free in the database and not given to an earlier row.
+      const taken = new Set<string>();
+      const rows = [];
+      for (const { fields } of accepted) {
+        const slug = await uniqueSlug(
+          spotSlugBase(fields.name),
+          async (candidate) => taken.has(candidate) || (await this.repository.slugTaken(candidate)),
+        );
+        taken.add(slug);
+        rows.push({
+          ...fields,
+          slug,
+          status,
+          createdById: null,
+          ...(input.publish ? { reviewedAt: now } : {}),
+        });
+      }
+      try {
+        await this.repository.createSpots(rows);
+        break;
+      } catch (error) {
+        // Someone took a slug between the check and the write: look again.
+        if (!isUniqueViolation(error) || attempt >= 3) throw error;
+      }
+    }
+    await this.activity.record(actor, {
+      action: 'cruising.spots_imported',
+      targetLabel: `${accepted.length} spots`,
+      details: {
+        created: accepted.length,
+        skipped: skipped.length,
+        format: input.format,
+        status,
+      },
+    });
+    return { created: accepted.length, skipped, items };
   }
 
   /** The team corrects a spot's fields. The slug stays. */

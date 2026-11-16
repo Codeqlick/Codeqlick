@@ -16,7 +16,9 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import {
+  adminSpotSchema,
   adminSpotsQuerySchema,
+  importSpotsSchema,
   rejectSpotSchema,
   reportActionSchema,
   reportsQuerySchema,
@@ -25,7 +27,9 @@ import {
   takedownDecisionSchema,
   takedownsQuerySchema,
   userIdParamSchema,
+  type AdminSpotInput,
   type AdminSpotsQuery,
+  type ImportSpotsInput,
   type RejectSpotInput,
   type ReportActionInput,
   type ReportsQuery,
@@ -35,7 +39,7 @@ import {
   type TakedownsQuery,
   type UserIdParam,
 } from './cruising.schemas.js';
-import { CruisingService } from './cruising.service.js';
+import { CruisingService, type ImportResult } from './cruising.service.js';
 
 /** Cruising's moderation: spots to review, reports, removal requests and suspensions. */
 @ApiTags('admin: cruising')
@@ -53,6 +57,25 @@ export class CruisingAdminController {
   @Get('spots')
   async spots(@Query({ schema: adminSpotsQuerySchema }) query: AdminSpotsQuery) {
     return { items: await this.cruising.adminSpots(query.status, query.q) };
+  }
+
+  /** A team spot (decision 84): LIVE at once, or PENDING with `publish: false`. */
+  @Post('spots')
+  create(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: adminSpotSchema }) body: AdminSpotInput,
+  ): Promise<{ id: string; slug: string; status: 'LIVE' | 'PENDING' }> {
+    return this.cruising.createTeamSpot(user, body);
+  }
+
+  /** A CSV or GeoJSON file of spots (decision 84), or its dry run. */
+  @Post('spots/import')
+  @HttpCode(HttpStatus.OK)
+  import(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: importSpotsSchema }) body: ImportSpotsInput,
+  ): Promise<ImportResult> {
+    return this.cruising.importSpots(user, body);
   }
 
   @Patch('spots/:id')
