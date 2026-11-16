@@ -1782,7 +1782,7 @@
     "delay": "A device you sign out may stay in for up to 15 minutes, until its current access expires."
   },
   "Legal": {
-    "updated": "Última actualización: {date}"
+    "updated": "Last updated: {date}"
   },
   "Markdown": {
     "anchorLink": "Link to this section",

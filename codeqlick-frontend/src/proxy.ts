@@ -30,7 +30,12 @@ import { routeWebapp, webappForHost } from './lib/webapps';
 // routing, so a visitor's browser language or cookie never sends the website to /fr.
 const cruisingI18nRouting = createMiddleware(routing);
 const siteI18nRouting = createMiddleware(
-  defineRouting({ locales: SITE_LOCALES, defaultLocale: 'en', localePrefix: 'always' }),
+  defineRouting({
+    locales: SITE_LOCALES,
+    defaultLocale: 'en',
+    localePrefix: 'always',
+    alternateLinks: false,
+  }),
 );
 
 /** next-intl's routing for a request, by the languages its host and path speak. */
