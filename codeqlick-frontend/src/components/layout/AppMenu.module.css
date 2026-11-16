@@ -1,0 +1,258 @@
+/* The web apps' header and menu drawer (architecture 6.3, decision 107). */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--gutter);
+  min-height: 3.75rem;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.brandApp {
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  color: var(--color-fuchsia-dark);
+}
+
+.adultBadge {
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+@media (max-width: 40rem) {
+  .action {
+    display: none;
+  }
+}
+
+@media (max-width: 22rem) {
+  .brandApp {
+    display: none;
+  }
+}
+
+.trigger,
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.trigger:hover,
+.close:hover,
+.trigger[aria-expanded='true'] {
+  color: var(--color-fuchsia-dark);
+  border-color: var(--color-fuchsia-light);
+}
+
+/* The drawer: a modal <dialog> on the right, full height, at most 360px wide. */
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(22.5rem, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--color-white);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-md);
+}
+
+.drawer[open] {
+  animation-name: slide-in;
+  animation-duration: 0.22s;
+  animation-timing-function: ease-out;
+}
+
+.drawer::backdrop {
+  background: rgb(20 16 31 / 45%);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer[open] {
+    animation-name: none;
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.panelHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-5);
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.body {
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-3);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.heading {
+  margin: 0;
+  /* Lined up with the links' text, after their 3px current-page bar. */
+  padding: 0 var(--space-3) 0 calc(var(--space-3) + 3px);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-slate);
+}
+
+.list {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item,
+.signIn {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.item:hover,
+.appItem:hover {
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+}
+
+.item[aria-current='page'] {
+  border-left-color: var(--color-fuchsia);
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+  font-weight: 600;
+}
+
+.appItem {
+  display: grid;
+  gap: 0.1rem;
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.appHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.appName {
+  font-weight: 600;
+}
+
+.adult {
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-ink);
+  color: var(--color-white);
+}
+
+.appBody {
+  font-size: 0.85rem;
+  color: var(--color-slate);
+}
+
+.footer {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-3) var(--space-6);
+  border-top: 1px solid var(--color-line);
+}
+
+.signIn {
+  justify-content: center;
+  border: 1.5px solid var(--color-ink);
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+
+.signIn:hover {
+  background: var(--color-ink);
+  color: var(--color-white);
+}

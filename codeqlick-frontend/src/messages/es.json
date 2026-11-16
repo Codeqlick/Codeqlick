@@ -4137,6 +4137,18 @@
       }
     }
   },
+  "AppMenu": {
+    "open": "Menú",
+    "close": "Cerrar el menú",
+    "title": "Menú",
+    "home": "Inicio",
+    "signIn": "Iniciar sesión",
+    "sections": {
+      "discover": "Descubrir",
+      "community": "Comunidad",
+      "me": "Yo"
+    }
+  },
   "AdminErrors": {
     "title": "Errores",
     "lead": "Los fallos inesperados del servidor y de la web, agrupados. Te llega un email la primera vez que pasa cada uno.",
@@ -4913,7 +4925,9 @@
       "profile": "Perfil",
       "favorites": "Favoritos",
       "meetups": "Quedadas",
-      "rooms": "Chats de ciudad"
+      "rooms": "Chats de ciudad",
+      "trips": "Viajes",
+      "notifications": "Notificaciones"
     },
     "legal": {
       "terms": "Condiciones de uso",
