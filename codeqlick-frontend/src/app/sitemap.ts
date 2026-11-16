@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { connection } from 'next/server';
 import { SERVICE_SLUGS } from '@/components/content/services';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { listCruisingSitemap } from '@/lib/api/cruising';
 import { listPortfolio } from '@/lib/api/portfolio';
 import { listPosts } from '@/lib/api/posts';
@@ -10,6 +10,7 @@ import { getCalculator } from '@/lib/api/calculator';
 import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
+import { appLocales } from '@/lib/locales';
 import { webappForHost } from '@/lib/webapps';
 import { WEBAPP_PUBLIC_PATHS, webappUrl } from '@/lib/webapp-seo';
 
@@ -33,8 +34,8 @@ const STATIC_PATHS = [
 async function contentPaths(): Promise<{ path: string; lastModified?: string }[]> {
   try {
     const [posts, portfolio] = await Promise.all([
-      listPosts({ locale: routing.defaultLocale, pageSize: 100 }),
-      listPortfolio({ locale: routing.defaultLocale, pageSize: 100 }),
+      listPosts({ locale: 'en', pageSize: 100 }),
+      listPortfolio({ locale: 'en', pageSize: 100 }),
     ]);
     return [
       ...posts.items.map((post) => ({
@@ -81,14 +82,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...appPaths.map((path) => ({ path })),
       ...(app === 'cruising' ? await cruisingPaths() : []),
     ];
+    // Cruising's host lists its six languages, the others English and Spanish (decision 103).
+    const locales = appLocales(app);
     return entries.flatMap(({ path, lastModified }) =>
-      routing.locales.map((locale) => ({
+      locales.map((locale) => ({
         url: webappUrl(app, locale, path),
         lastModified,
         changeFrequency: 'weekly' as const,
         priority: path === '' ? 1 : 0.5,
         alternates: {
-          languages: Object.fromEntries(routing.locales.map((l) => [l, webappUrl(app, l, path)])),
+          languages: Object.fromEntries(locales.map((l) => [l, webappUrl(app, l, path)])),
         },
       })),
     );
@@ -103,11 +106,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   return entries.flatMap(({ path, lastModified }: { path: string; lastModified?: string }) =>
-    routing.locales.map((locale) => ({
+    SITE_LOCALES.map((locale) => ({
       url: absoluteUrl(`/${locale}${path}`),
       lastModified,
       alternates: {
-        languages: Object.fromEntries(routing.locales.map((l) => [l, absoluteUrl(`/${l}${path}`)])),
+        languages: Object.fromEntries(SITE_LOCALES.map((l) => [l, absoluteUrl(`/${l}${path}`)])),
       },
     })),
   );

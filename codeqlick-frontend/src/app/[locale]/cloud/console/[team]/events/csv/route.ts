@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { exportCloudEvents } from '@/lib/api/cloud';
 import { cloudEventFilters } from '@/lib/cloud';
 import { redirectTo } from '@/lib/redirect';
@@ -12,7 +12,7 @@ type Params = { locale: string; team: string };
  */
 export async function GET(request: Request, { params }: { params: Promise<Params> }) {
   const { locale, team } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
 
   const filters = cloudEventFilters(Object.fromEntries(new URL(request.url).searchParams));
   const signIn = () =>

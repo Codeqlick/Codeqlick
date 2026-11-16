@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { RoomChat } from '@/components/cruising/RoomChat';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingCity, getCruisingStatus } from '@/lib/api/cruising';
 import { getCruisingRoom } from '@/lib/api/cruising-rooms';
 import { isApiError } from '@/lib/api/errors';
@@ -23,7 +23,7 @@ type PageProps = { params: Promise<{ locale: string; country: string; city: stri
 /** A city's chat room (decision 100): it polls every 5 seconds through a route handler. */
 export default async function CruisingRoomPage({ params }: PageProps) {
   const { locale: rawLocale, country: countryParam, city: citySlug } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   await requireUser(locale, `/${locale}/cruising/rooms/${countryParam}/${citySlug}`);
   const code = countryFromParam(countryParam);
   if (!code || !SLUG.test(citySlug)) notFound();

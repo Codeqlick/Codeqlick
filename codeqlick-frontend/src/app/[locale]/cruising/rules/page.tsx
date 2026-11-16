@@ -1,14 +1,14 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import vc from '../../videochat/videochat.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.rules' });
   const title = t('title');
   const description = t('lead');
@@ -24,7 +24,7 @@ const RULES = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
 
 /** Cruising's rules, accepted on entry (Cruising.rules; version CRUISING_TERMS_VERSION in the API). */
 export default async function CruisingRulesPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.rules' });
   const tl = await getTranslations({ locale, namespace: 'Cruising.legal' });
   return (

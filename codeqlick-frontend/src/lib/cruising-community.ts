@@ -3,6 +3,7 @@
  * and safety alerts (decision 91). Pure helpers, shared by the pages, the actions and the tests.
  */
 import { cruisingPath, REVIEW_REPORT_REASONS, type CruisingReportReason } from '@/lib/cruising';
+import { intlLocale } from '@/lib/locales';
 
 /** What a meetup or a safety alert can be reported for: like a review, a wrong detail is a place's. */
 export const COMMUNITY_REPORT_REASONS: readonly CruisingReportReason[] = REVIEW_REPORT_REASONS;
@@ -133,7 +134,7 @@ export function tripDatesError(
 export function formatTripDay(day: string, locale: string): string {
   const date = new Date(`${day}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return day;
-  return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     day: 'numeric',
     month: 'short',
     timeZone: 'UTC',

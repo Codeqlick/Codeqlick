@@ -7,7 +7,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { resetPasswordAction } from './actions';
@@ -18,7 +18,7 @@ type PageProps = {
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'ResetPassword' });
   return pageMetadata({ locale, path: '/reset-password', title: t('metaTitle'), noindex: true });
 }
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * the form is sent.
  */
 export default async function ResetPasswordPage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'ResetPassword' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
   const query = await searchParams;

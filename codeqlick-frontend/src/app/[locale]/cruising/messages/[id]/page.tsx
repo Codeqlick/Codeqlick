@@ -10,7 +10,7 @@ import { MemberName } from '@/components/cruising/MemberName';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { isApiError } from '@/lib/api/errors';
 import {
   getCruisingStatus,
@@ -38,7 +38,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** The chat with one member: it polls every 4 seconds through a route handler. */
 export default async function CruisingChatPage({ params }: PageProps) {
   const { locale: rawLocale, id } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   await requireUser(locale, `/${locale}/cruising/messages/${id}`);
   if (!UUID.test(id)) notFound();
   const status = await getCruisingStatus();

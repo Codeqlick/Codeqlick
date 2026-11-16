@@ -10,7 +10,7 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { toAccountLocale, type AccountLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { MailService } from '../mail/mail.service.js';
@@ -427,14 +427,14 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
    */
   async notifyCancelled(meetupId: string, now = new Date()): Promise<number> {
     const recipients = await this.community.attendeeRecipients(meetupId);
-    const pushTo: { userId: string; locale: 'en' | 'es' }[] = [];
+    const pushTo: { userId: string; locale: AccountLocale }[] = [];
     const centre: string[] = [];
     let told = 0;
     for (const user of recipients) {
       const profile = user.cruisingProfile;
       if (!profile || isSuspended(profile, now)) continue;
       centre.push(user.id);
-      const locale = toApiLocale(user.locale);
+      const locale = toAccountLocale(user.locale);
       if (this.push.enabled && user._count.cruisingPushSubscriptions > 0) {
         pushTo.push({ userId: user.id, locale });
         told += 1;

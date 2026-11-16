@@ -5,7 +5,7 @@ import styles from '@/components/cruising/Cruising.module.css';
 import { MemberName } from '@/components/cruising/MemberName';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import {
@@ -44,7 +44,7 @@ type PageProps = {
  * I received and my visitors (decision 97) in their own views.
  */
 export default async function CruisingNotificationsPage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const view = notificationView(firstParam((await searchParams).view));
   await requireUser(locale, `/${locale}/cruising/notifications`);
   const status = await getCruisingStatus();

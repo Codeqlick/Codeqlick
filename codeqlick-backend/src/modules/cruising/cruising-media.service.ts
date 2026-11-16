@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { open, readFile } from 'node:fs/promises';
 import type { ReadStream } from 'node:fs';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { toAccountLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingMedia, CruisingProfile } from '../../generated/prisma/client.js';
@@ -312,7 +312,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       this.sendMail(
         cruisingNoticeEmail(
           user.email,
-          toApiLocale(user.locale),
+          toAccountLocale(user.locale),
           notice,
           note,
           this.config.webappUrl('cruising'),

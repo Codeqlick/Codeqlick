@@ -9,7 +9,7 @@ import { UsernameField } from '@/components/app/UsernameField';
 import { Avatar } from '@/components/ui/Avatar';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { buttonClassName } from '@/components/ui/buttonStyles';
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import { getPreferences, getTwoFactorStatus } from '@/lib/api/auth';
 import {
   changePasswordAction,
@@ -30,7 +30,7 @@ import {
 import { requireUser } from '@/lib/auth/session';
 
 /** "Your account" page, shared by the client portal and the admin panel. */
-export async function AccountPage({ locale }: { locale: AppLocale }) {
+export async function AccountPage({ locale }: { locale: SiteLocale }) {
   const user = await requireUser(locale);
   const t = await getTranslations({ locale, namespace: 'Account' });
   const tc = await getTranslations({ locale, namespace: 'Common' });

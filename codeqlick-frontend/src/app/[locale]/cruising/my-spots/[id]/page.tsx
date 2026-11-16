@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { SpotForm } from '@/components/cruising/SpotForm';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listMyCruisingSpots } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import vc from '../../../videochat/videochat.module.css';
@@ -18,7 +18,7 @@ type PageProps = { params: Promise<{ locale: string; id: string }> };
 /** Edit a spot of mine that is waiting or was rejected (a rejected one goes back to review). */
 export default async function CruisingEditSpotPage({ params }: PageProps) {
   const { locale: rawLocale, id } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   await requireUser(locale, `/${locale}/cruising/my-spots/${id}`);
   const status = await getCruisingStatus();
   const gate = await CruisingGate({ locale, status });

@@ -2,7 +2,8 @@
 
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault } from '@/i18n/locale';
+import type { AppLocale } from '@/i18n/routing';
 import { acceptInvitation, confirmSignup, register } from '@/lib/api/auth';
 import {
   isApiError,
@@ -21,11 +22,7 @@ function kept(formData: FormData) {
   return { name: formString(formData, 'name'), email: formString(formData, 'email') };
 }
 
-async function failure(
-  locale: 'en' | 'es',
-  error: unknown,
-  formData: FormData,
-): Promise<FormState> {
+async function failure(locale: AppLocale, error: unknown, formData: FormData): Promise<FormState> {
   const t = await getTranslations({ locale, namespace: 'Register' });
   if (isCaptchaError(error))
     return { status: 'error', message: t('captcha'), values: kept(formData) };
@@ -55,7 +52,7 @@ async function failure(
  * they are signed in at once; otherwise the API emails the link that confirms it.
  */
 export async function registerAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const invitation = formString(formData, 'invitation');
   const parsed = registerSchema.safeParse({
     name: formString(formData, 'name'),
@@ -113,7 +110,7 @@ export async function confirmSignupAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   let tokens: AuthTokens;
   try {
     tokens = await confirmSignup(formString(formData, 'token'));

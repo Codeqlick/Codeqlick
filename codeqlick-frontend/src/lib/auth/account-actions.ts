@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import {
   checkUsername,
   confirmEmailChange,
@@ -24,7 +24,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Changes the signed-in person's name. */
 export async function updateNameAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -46,7 +46,7 @@ export async function updateNameAction(
 
 /** Sends a new profile photo (already shrunk in the browser). */
 export async function uploadAvatarAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const t = await getTranslations({ locale, namespace: 'Account.avatar' });
@@ -66,7 +66,7 @@ export async function uploadAvatarAction(
 }
 
 export async function removeAvatarAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   _previous: FormState,
   _formData: FormData,
 ): Promise<FormState> {
@@ -97,7 +97,7 @@ export async function checkUsernameAction(raw: string): Promise<UsernameCheck | 
 
 /** Chooses, changes or (empty) removes the username. */
 export async function updateUsernameAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -129,7 +129,7 @@ export async function updateUsernameAction(
 
 /** Sends the confirmation link to the new address. The password is never echoed back. */
 export async function changeEmailAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -191,7 +191,7 @@ export async function confirmEmailAction(
 
 /** Deletes the signed-in person's own account, then signs this browser out. */
 export async function deleteAccountAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {

@@ -6,7 +6,7 @@ import { MemberName } from '@/components/cruising/MemberName';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listCruisingConversations } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { conversationHref, isUnread, previewMessage } from '@/lib/cruising';
@@ -25,7 +25,7 @@ type PageProps = {
 
 /** My conversations, the latest first. */
 export default async function CruisingMessagesPage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const query = await searchParams;
   await requireUser(locale, `/${locale}/cruising/messages`);
   const status = await getCruisingStatus();

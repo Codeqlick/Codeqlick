@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault } from '@/i18n/locale';
 import { verifyTwoFactor } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import type { AuthTokens } from '@/lib/api/types';
@@ -17,7 +17,7 @@ export async function verifyTwoFactorAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'TwoFactorLogin' });
   const store = await cookies();
   const challengeToken = store.get(TWO_FACTOR_COOKIE)?.value;

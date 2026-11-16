@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { downloadCloudBuildLog, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { redirectTo } from '@/lib/redirect';
@@ -13,7 +13,7 @@ type Params = { locale: string; team: string; project: string; number: string };
 export async function GET(_request: Request, { params }: { params: Promise<Params> }) {
   const { locale, team, project: slug, number: rawNumber } = await params;
   const number = Number(rawNumber);
-  if (!hasLocale(routing.locales, locale) || !Number.isInteger(number) || number < 1) {
+  if (!hasLocale(SITE_LOCALES, locale) || !Number.isInteger(number) || number < 1) {
     return new Response('Not found', { status: 404 });
   }
   const signIn = () => redirectTo(`/${locale}/login`);

@@ -9,7 +9,7 @@ import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { PushToggle } from '@/components/videochat/PushToggle';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import type { AppLocale } from '@/i18n/routing';
+import { siteLocale, type AppLocale } from '@/i18n/routing';
 import { listCruisingFavorites, type CruisingStatus } from '@/lib/api/cruising';
 import { listCruisingSuggestions } from '@/lib/api/cruising-stats';
 import { CRUISING_COUNTRIES, countryName, formatRating, spotHref, type Bbox } from '@/lib/cruising';
@@ -137,7 +137,7 @@ export async function OnboardingTour({
           {status.pushPublicKey ? (
             <PushToggle
               publicKey={status.pushPublicKey}
-              locale={locale}
+              locale={siteLocale(locale)}
               serviceWorker="/cruising-sw.js"
               namespace="Cruising.push"
               subscribe={cruisingPushSubscribeAction}

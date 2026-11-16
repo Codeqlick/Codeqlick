@@ -9,7 +9,12 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { createHash, hkdfSync, randomBytes, randomUUID } from 'node:crypto';
 import { AppConfigService } from '../../config/app-config.service.js';
-import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import {
+  siteLocale,
+  toApiLocale,
+  toDbLocale,
+  type ApiLocale,
+} from '../../common/schemas/common.schemas.js';
 import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
 import { describeUserAgent, deviceKey } from '../../common/user-agent.js';
@@ -411,16 +416,20 @@ export class AuthService {
     const site = this.config.siteUrl;
     // From a web app (architecture 6.3), the links open on its host so the person ends up there.
     const linkBase = input.app ? this.config.webappUrl(input.app) : site;
+    // Only Cruising speaks FR, DE, IT and PT (decision 103): its links keep them, the emails and
+    // every other page fall back to English.
+    const mailLocale = siteLocale(input.locale);
+    const linkLocale = input.app === 'cruising' ? input.locale : mailLocale;
     let message;
     if (existing?.registeredAt) {
       if (!existing.isActive) return;
       message = alreadyRegisteredEmail(
         existing,
         {
-          login: `${linkBase}/${input.locale}/login`,
-          reset: `${linkBase}/${input.locale}/forgot-password`,
+          login: `${linkBase}/${linkLocale}/login`,
+          reset: `${linkBase}/${linkLocale}/forgot-password`,
         },
-        input.locale,
+        mailLocale,
         site,
       );
     } else {
@@ -437,8 +446,8 @@ export class AuthService {
       });
       message = signupConfirmEmail(
         { name: input.name, email },
-        `${linkBase}/${input.locale}/register/confirm?token=${token}`,
-        input.locale,
+        `${linkBase}/${linkLocale}/register/confirm?token=${token}`,
+        mailLocale,
         SIGNUP_TTL_HOURS,
         site,
       );

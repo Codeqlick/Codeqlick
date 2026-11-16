@@ -1,7 +1,7 @@
 import { hasLocale } from 'next-intl';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { adminUploadProjectFile, MAX_PROJECT_FILE_BYTES } from '@/lib/api/projects';
 import { redirectTo } from '@/lib/redirect';
 
@@ -23,7 +23,7 @@ export async function POST(
   { params }: { params: Promise<{ locale: string; id: string }> },
 ) {
   const { locale, id } = await params;
-  if (!hasLocale(routing.locales, locale) || !UUID.test(id)) {
+  if (!hasLocale(SITE_LOCALES, locale) || !UUID.test(id)) {
     return new Response('Not found', { status: 404 });
   }
 

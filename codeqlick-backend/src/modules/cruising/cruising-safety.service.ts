@@ -8,10 +8,14 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { toApiLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
+import {
+  siteLocale,
+  toAccountLocale,
+  type AccountLocale,
+} from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
-import type { CruisingProfile } from '../../generated/prisma/client.js';
+import type { CruisingProfile, Locale } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { maskEmail } from '../auth/unsubscribe-token.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
@@ -220,13 +224,13 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
   }
 
   /** The website's page where a contact answers or stops (no session: the token is the proof). */
-  private contactPage(locale: ApiLocale, token: string): string {
-    return `${this.config.siteUrl}/${locale}/safety-contact?token=${encodeURIComponent(token)}`;
+  private contactPage(locale: AccountLocale, token: string): string {
+    return `${this.config.siteUrl}/${siteLocale(locale)}/safety-contact?token=${encodeURIComponent(token)}`;
   }
 
-  private stopUrl(contact: { id: string; locale: 'EN' | 'ES' }): string {
+  private stopUrl(contact: { id: string; locale: Locale }): string {
     return this.contactPage(
-      toApiLocale(contact.locale),
+      toAccountLocale(contact.locale),
       makeStopToken(contact.id, this.config.jwtAccessSecret),
     );
   }
@@ -292,7 +296,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
       inviteTokenHash: hashToken(token),
       createdAt: now,
     });
-    const locale = toApiLocale(account.locale);
+    const locale = toAccountLocale(account.locale);
     await this.sendMail(
       contactInviteEmail(
         contact.email,
@@ -444,7 +448,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
       for (const timer of due) {
         const action = timerAction(timer, now);
         if (action === 'warn' && (await this.repository.claimWarning(timer.id, now))) {
-          await this.warn(timer.userId, timer.user.email, toApiLocale(timer.user.locale));
+          await this.warn(timer.userId, timer.user.email, toAccountLocale(timer.user.locale));
           warned += 1;
         } else if (action === 'fire' && (await this.repository.claimFiring(timer.id, now))) {
           await this.fire(timer);
@@ -458,7 +462,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
   }
 
   /** The member's reminder: on their devices, or by email without one. */
-  private async warn(userId: string, email: string, locale: ApiLocale): Promise<void> {
+  private async warn(userId: string, email: string, locale: AccountLocale): Promise<void> {
     if (await this.push.hasDevice(userId)) {
       const sent = await this.push.notifyWith(
         (each) => safetyPushPayload('timer', each),
@@ -487,7 +491,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
   }): Promise<void> {
     const contacts = await this.repository.acceptedContacts(timer.userId);
     for (const contact of contacts) {
-      const locale = toApiLocale(contact.locale);
+      const locale = toAccountLocale(contact.locale);
       await this.sendMail(
         contactAlertEmail(
           contact.email,
@@ -582,7 +586,7 @@ export class CruisingSafetyService implements OnApplicationBootstrap, OnApplicat
           if (profile.termsVersion !== this.config.cruisingTermsVersion) continue;
           if (isSuspended(profile, now)) continue;
           await this.repository.markHealthReminded(profile.userId, now);
-          const locale = toApiLocale(profile.user.locale);
+          const locale = toAccountLocale(profile.user.locale);
           const pushed = (await this.push.hasDevice(profile.userId))
             ? await this.push.notifyWith(
                 (each) => safetyPushPayload('health', each),

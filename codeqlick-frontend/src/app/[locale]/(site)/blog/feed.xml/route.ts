@@ -1,6 +1,6 @@
 import { hasLocale } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { listPosts, PUBLIC_REVALIDATE } from '@/lib/api/posts';
 import { absoluteUrl } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
@@ -18,7 +18,7 @@ function escapeXml(value: string): string {
 /** RSS 2.0 feed of the latest posts in one language: /en/blog/feed.xml, /es/blog/feed.xml. */
 export async function GET(_request: Request, { params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
 
   const t = await getTranslations({ locale, namespace: 'Blog' });
   let posts;

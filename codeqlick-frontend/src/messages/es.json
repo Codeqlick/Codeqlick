@@ -5294,7 +5294,11 @@
       "contributions": "Tus aportaciones",
       "tourTitle": "Primeros pasos",
       "tourLead": "El recorrido corto que viste al entrar: tu apodo, tus sitios favoritos, las notificaciones y tus fotos.",
-      "tourReopen": "Ver el recorrido otra vez"
+      "tourReopen": "Ver el recorrido otra vez",
+      "languageTitle": "Idioma",
+      "languageLead": "El idioma de los correos de Cruising y de las notificaciones en tus dispositivos. Los correos del resto de Codeqlick llegan en inglés si no eliges español.",
+      "languageLabel": "Idioma de los correos y las notificaciones",
+      "languageInvalid": "Elige un idioma de la lista."
     },
     "presence": {
       "title": "Aquí ahora",

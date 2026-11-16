@@ -10,7 +10,7 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { toApiLocale } from '../../common/schemas/common.schemas.js';
+import { toAccountLocale, type AccountLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { MailService } from '../mail/mail.service.js';
@@ -233,7 +233,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
         .send(
           cruisingNoticeEmail(
             user.email,
-            toApiLocale(user.locale),
+            toAccountLocale(user.locale),
             'unread',
             null,
             this.config.webappUrl('cruising'),
@@ -424,8 +424,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     const alerts: { userId: string; spotId: string; channel: AlertChannel; createdAt: Date }[] = [];
     // The notification centre hears of it within the same caps, whatever the channel (decision 98).
     const centre: string[] = [];
-    const pushTo: { userId: string; locale: 'en' | 'es' }[] = [];
-    const emailTo: { email: string; locale: 'en' | 'es' }[] = [];
+    const pushTo: { userId: string; locale: AccountLocale }[] = [];
+    const emailTo: { email: string; locale: AccountLocale }[] = [];
     for (const row of candidates) {
       const profile = row.user.cruisingProfile;
       if (!profile) continue;
@@ -442,7 +442,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
         now,
       );
       if (!channel) continue;
-      const locale = toApiLocale(row.user.locale);
+      const locale = toAccountLocale(row.user.locale);
       alerts.push({ userId: row.userId, spotId, channel, createdAt: now });
       if (channel === 'PUSH') pushTo.push({ userId: row.userId, locale });
       else emailTo.push({ email: row.user.email, locale });
@@ -662,7 +662,9 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     if ((await this.repository.hiddenIds(senderId)).includes(recipientId)) return;
     await this.notifications.notify(recipientId, 'MESSAGE', { conversationId }, now);
     if (!this.push.enabled) return;
-    await this.push.notify('message', [{ userId: recipientId, locale: toApiLocale(user.locale) }]);
+    await this.push.notify('message', [
+      { userId: recipientId, locale: toAccountLocale(user.locale) },
+    ]);
   }
 
   /** Leaving a conversation deletes it for both. */

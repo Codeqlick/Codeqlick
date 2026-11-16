@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import styles from '@/components/cruising/Cruising.module.css';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listMyCruisingSpots } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { countryName, spotHref, type CruisingSpotStatus } from '@/lib/cruising';
@@ -34,7 +34,7 @@ const TONES: Record<CruisingSpotStatus, BadgeTone> = {
 
 /** The spots I proposed: where each stands, why one was rejected, and what I can still change. */
 export default async function CruisingMySpotsPage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const query = await searchParams;
   await requireUser(locale, `/${locale}/cruising/my-spots`);
   const status = await getCruisingStatus();

@@ -13,7 +13,7 @@ import { SpotReviews } from '@/components/cruising/SpotReviews';
 import cruising from '@/components/cruising/Cruising.module.css';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingSpot, getCruisingStatus, type CruisingStatus } from '@/lib/api/cruising';
 import { getCurrentUser } from '@/lib/auth/session';
 import {
@@ -39,7 +39,7 @@ const loadSpot = cache(async (slug: string) => (SLUG.test(slug) ? getCruisingSpo
 
 export async function generateMetadata({ params }: Pick<PageProps, 'params'>): Promise<Metadata> {
   const { locale: rawLocale, slug } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const spot = await loadSpot(slug);
   if (!spot) return {};
   const t = await getTranslations({ locale, namespace: 'Cruising.spot' });
@@ -57,7 +57,7 @@ export async function generateMetadata({ params }: Pick<PageProps, 'params'>): P
 /** One spot: public information with a small map; reviews and reports for members who entered. */
 export default async function CruisingSpotPage({ params, searchParams }: PageProps) {
   const { locale: rawLocale, slug } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const spot = await loadSpot(slug);
   if (!spot) notFound();
 

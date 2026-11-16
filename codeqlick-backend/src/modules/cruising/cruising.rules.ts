@@ -1,5 +1,7 @@
 /** Pure rules of Cruising (architecture 4.15): slugs, coordinates, the map's box, ratings, statuses. */
+import type { AccountLocale } from '../../common/schemas/common.schemas.js';
 import { RESERVED_USERNAMES } from '../auth/auth.schemas.js';
+import { CRUISING_COPY } from './copy/index.js';
 import { importedTags } from './cruising-insights.rules.js';
 
 /** Lower-case ASCII words joined by hyphens: "Playa del Inglés" becomes "playa-del-ingles". */
@@ -333,27 +335,6 @@ export type PushKind =
 /** The kinds that tell the members who saved a spot (decision 85's channels and caps). */
 export type FavoriteAlertKind = 'favorite' | 'meetup' | 'safety';
 
-const PUSH_TEXT: Record<'en' | 'es', Record<PushKind, string>> = {
-  en: {
-    favorite: 'Someone is at one of your favourite spots',
-    message: 'New message',
-    meetup: 'A meetup was planned at one of your favourite spots',
-    safety: 'Safety alert at one of your favourite spots',
-    'meetup-cancelled': 'A meetup you joined was cancelled',
-    album: 'Someone shared their private album with you',
-    wink: 'Someone winked at you',
-  },
-  es: {
-    favorite: 'Hay alguien en uno de tus lugares favoritos',
-    message: 'Mensaje nuevo',
-    meetup: 'Se ha organizado una quedada en uno de tus lugares favoritos',
-    safety: 'Alerta de seguridad en uno de tus lugares favoritos',
-    'meetup-cancelled': 'Se ha cancelado una quedada a la que ibas',
-    album: 'Alguien ha compartido contigo su álbum privado',
-    wink: 'Alguien te ha guiñado un ojo',
-  },
-};
-
 const PUSH_PATH: Record<PushKind, string> = {
   favorite: '/favorites',
   message: '/messages',
@@ -370,11 +351,11 @@ const PUSH_PATH: Record<PushKind, string> = {
  */
 export function pushPayload(
   kind: PushKind,
-  locale: 'en' | 'es',
+  locale: AccountLocale,
 ): { title: string; body: string; url: string; tag: string } {
   return {
     title: 'Cruising',
-    body: PUSH_TEXT[locale][kind],
+    body: CRUISING_COPY[locale].push[kind],
     url: `/${locale}${PUSH_PATH[kind]}`,
     tag: `cruising-${kind}`,
   };

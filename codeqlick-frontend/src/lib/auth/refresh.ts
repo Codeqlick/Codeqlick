@@ -21,6 +21,7 @@
  *    - if there is no refresh token or the refresh fails → redirect to /{locale}/login?next=<path>.
  * 3. Role checks are NOT done here; they live in the portal/admin layouts (`requireRole`).
  */
+import type { AppLocale } from '@/i18n/routing';
 import { NextResponse } from 'next/server';
 import {
   ACCESS_COOKIE,
@@ -70,10 +71,10 @@ export function apiBaseUrl(): string {
 }
 
 /** Returns the locale of a protected path (`/es/admin/leads` → `es`), or null. */
-export function protectedPathLocale(pathname: string): 'en' | 'es' | null {
+export function protectedPathLocale(pathname: string): AppLocale | null {
   const match = PROTECTED_PATH.exec(pathname);
   if (!match) return null;
-  return match[1] === 'es' ? 'es' : 'en';
+  return match[1] as AppLocale;
 }
 
 /** Whether a path shows the signed-in person if there is one, without requiring it (meetings). */

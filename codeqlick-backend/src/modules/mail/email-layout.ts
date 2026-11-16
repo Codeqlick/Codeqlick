@@ -1,11 +1,12 @@
-import type { ApiLocale } from '../../common/schemas/common.schemas.js';
+import { siteLocale, type AccountLocale } from '../../common/schemas/common.schemas.js';
 
 /**
  * The parts of an email; `renderEmail` turns them into the plain-text body and the branded HTML
  * one. Every string is plain text: the HTML side escapes it.
  */
 export interface EmailContent {
-  locale: ApiLocale;
+  /** Only Cruising's emails use the languages beyond English and Spanish (decision 103). */
+  locale: AccountLocale;
   /** Preview line shown by inboxes next to the subject; hidden in the body. */
   preheader: string;
   /** Headline at the top of the card. Left out for personal letters (replies to leads). */
@@ -63,7 +64,7 @@ const FONT_DISPLAY = "'Space Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-
 const FONT_BODY = "'IBM Plex Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 
 const COPY: Record<
-  ApiLocale,
+  AccountLocale,
   {
     signoff: string[];
     buttonFallback: string;
@@ -85,6 +86,34 @@ const COPY: Record<
     replyable: '¿Dudas? Responde a este correo y te contestamos.',
     unsubscribePrompt: '¿No quieres recibir estos correos?',
     unsubscribe: 'Darse de baja',
+  },
+  fr: {
+    signoff: ['Bien cordialement,', 'L’équipe Codeqlick'],
+    buttonFallback: 'Si le bouton ne fonctionne pas, copie ce lien dans ton navigateur :',
+    replyable: 'Des questions ? Réponds simplement à cet e-mail.',
+    unsubscribePrompt: 'Tu ne veux plus recevoir ces e-mails ?',
+    unsubscribe: 'Se désabonner',
+  },
+  de: {
+    signoff: ['Viele Grüße', 'Dein Codeqlick-Team'],
+    buttonFallback: 'Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:',
+    replyable: 'Fragen? Antworte einfach auf diese E-Mail.',
+    unsubscribePrompt: 'Du möchtest diese E-Mails nicht mehr erhalten?',
+    unsubscribe: 'Abmelden',
+  },
+  it: {
+    signoff: ['Un saluto,', 'Il team di Codeqlick'],
+    buttonFallback: 'Se il pulsante non funziona, copia questo link nel tuo browser:',
+    replyable: 'Domande? Rispondi pure a questa email.',
+    unsubscribePrompt: 'Non vuoi più ricevere queste email?',
+    unsubscribe: 'Annulla l’iscrizione',
+  },
+  pt: {
+    signoff: ['Com os melhores cumprimentos,', 'A equipa Codeqlick'],
+    buttonFallback: 'Se o botão não funcionar, copia este link para o teu navegador:',
+    replyable: 'Dúvidas? Basta responder a este email.',
+    unsubscribePrompt: 'Não queres receber estes emails?',
+    unsubscribe: 'Cancelar subscrição',
   },
 };
 
@@ -233,7 +262,8 @@ function renderHtml(content: EmailContent, siteUrl: string): string {
   }
 
   const site = escapeHtml(siteUrl);
-  const home = `${site}/${content.locale}`;
+  // The website speaks English and Spanish only: Cruising's other languages link its English.
+  const home = `${site}/${siteLocale(content.locale)}`;
   const host = escapeHtml(siteUrl.replace(/^https?:\/\//, ''));
   const year = new Date().getFullYear();
   const unsubscribe = content.unsubscribeUrl

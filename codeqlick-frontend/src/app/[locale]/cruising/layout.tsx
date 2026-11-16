@@ -9,7 +9,8 @@ import { CruisingServiceWorker } from '@/components/cruising/CruisingServiceWork
 import { NotificationBell } from '@/components/cruising/NotificationBell';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link, WebappProvider } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
+import { CRUISING_LOCALES, OG_LOCALES } from '@/i18n/routing';
 import { logoutAction } from '@/lib/auth/actions';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import { listCruisingNotifications } from '@/lib/api/cruising-notifications';
@@ -22,7 +23,7 @@ import vc from '../videochat/videochat.module.css';
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising' });
   const title = t('metaTitle');
   const description = t('metaDescription');
@@ -44,7 +45,8 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
       title,
       description,
       url: webappPath('cruising', locale),
-      locale: locale === 'es' ? 'es_ES' : 'en_US',
+      locale: OG_LOCALES[locale],
+      alternateLocale: CRUISING_LOCALES.filter((l) => l !== locale).map((l) => OG_LOCALES[l]),
       images: [image],
     },
     twitter: { card: 'summary_large_image', title, description, images: [image] },
@@ -70,7 +72,7 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 
 /** Cruising's own frame (cruising.codeqlick.com): light colours and the Codeqlick logo. */
 export default async function CruisingLayout({ children, params }: LayoutProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Cruising' });
   const user = await getCurrentUser();
@@ -149,7 +151,7 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
                 {t('nav.rules')}
               </Link>
               <AppSwitcher current="cruising" locale={locale} />
-              <LocaleSwitcher className={vc.locale} />
+              <LocaleSwitcher className={vc.locale} locales={CRUISING_LOCALES} />
               {user ? (
                 <form action={logoutAction}>
                   <input type="hidden" name="locale" value={locale} />

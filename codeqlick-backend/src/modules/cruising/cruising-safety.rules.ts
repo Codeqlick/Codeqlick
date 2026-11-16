@@ -3,6 +3,8 @@
  * me" timer and its trusted contacts (decision 95), and sexual health (decision 94).
  */
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import type { AccountLocale } from '../../common/schemas/common.schemas.js';
+import { cruisingDateLocale } from './copy/index.js';
 
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -106,8 +108,8 @@ export function verifyStopToken(token: string, secret: string): string | null {
 }
 
 /** The time of an alert as the email prints it: day and time in UTC, in the contact's language. */
-export function formatAlertTime(date: Date, locale: 'en' | 'es'): string {
-  const text = new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+export function formatAlertTime(date: Date, locale: AccountLocale): string {
+  const text = new Intl.DateTimeFormat(cruisingDateLocale(locale), {
     dateStyle: 'long',
     timeStyle: 'short',
     timeZone: 'UTC',

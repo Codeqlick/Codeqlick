@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { CruisingMap } from '@/components/cruising/CruisingMap';
 import { OnboardingTour } from '@/components/cruising/OnboardingTour';
 import { getCruisingStatus, type CruisingStatus } from '@/lib/api/cruising';
@@ -30,7 +30,7 @@ type PageProps = {
 };
 
 export async function generateMetadata({ params }: Pick<PageProps, 'params'>): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.map' });
   const title = t('metaTitle');
   const description = t('metaDescription');
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Pick<PageProps, 'params'>): P
 
 /** The world map of spots (Leaflet, loaded in the browser): spots in view, popups, proposals. */
 export default async function CruisingMapPage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const query = await searchParams;
   const t = await getTranslations({ locale, namespace: 'Cruising.map' });
   const onHost = (await requestWebapp()) === 'cruising';

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { TAKEDOWN_REASONS } from '@/lib/cruising';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import vc from '../../videochat/videochat.module.css';
@@ -11,7 +11,7 @@ import { takedownAction } from '../actions';
 type PageProps = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.takedown' });
   const title = t('title');
   const description = t('lead');
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 /** Removal requests from anyone, with or without an account (EU Digital Services Act). */
 export default async function CruisingTakedownPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.takedown' });
   const tr = await getTranslations({ locale, namespace: 'Cruising.report.reasons' });
   return (

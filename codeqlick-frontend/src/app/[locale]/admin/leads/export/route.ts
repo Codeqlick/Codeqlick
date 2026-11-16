@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import { adminExportLeadsCsv } from '@/lib/api/leads';
 import { LEAD_STATUSES, type LeadStatus } from '@/lib/api/types';
@@ -11,7 +11,7 @@ import { redirectTo } from '@/lib/redirect';
  */
 export async function GET(request: Request, { params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
 
   const search = new URL(request.url).searchParams;
   const rawStatus = search.get('status');

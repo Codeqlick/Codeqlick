@@ -1,14 +1,14 @@
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import vc from '../videochat/videochat.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
 /** cruising.codeqlick.com: what it is, the adults-only warning, how it stays safe, the way in. */
 export default async function CruisingLandingPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.landing' });
 
   return (

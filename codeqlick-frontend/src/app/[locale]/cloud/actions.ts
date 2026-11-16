@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
-import { routing, type AppLocale } from '@/i18n/routing';
+import { SITE_LOCALES, type SiteLocale } from '@/i18n/routing';
 import {
   acceptCloudInvite,
   addCloudDomain,
@@ -119,7 +119,7 @@ const refresh = (locale: string, path = '') => revalidatePath(`/${locale}/cloud/
 
 /** A failed API call as the form's message: permission, limits, not found, or generic. */
 async function failure(
-  locale: AppLocale,
+  locale: SiteLocale,
   error: unknown,
   values?: Record<string, string>,
 ): Promise<FormState> {
@@ -1020,7 +1020,7 @@ export async function saveStatusPageAction(
 
 /** After a notice changes: the console's tab and the public page, in every language. */
 function refreshNotices(team: string) {
-  for (const locale of routing.locales) {
+  for (const locale of SITE_LOCALES) {
     refresh(locale, `/${team}/status-page`);
     revalidatePath(`/${locale}/cloud/status/${team}`);
   }
@@ -1502,7 +1502,7 @@ function notifyFormIds(formData: FormData): string[] {
 }
 
 /** The events a channel is told about; form submissions only for Slack, Discord and webhooks. */
-function notifyEvents(formData: FormData, locale: AppLocale, kind: CloudNotifyKind) {
+function notifyEvents(formData: FormData, locale: SiteLocale, kind: CloudNotifyKind) {
   return {
     buildFailed: formBoolean(formData, 'buildFailed'),
     buildSucceeded: formBoolean(formData, 'buildSucceeded'),

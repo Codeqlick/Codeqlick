@@ -6,6 +6,9 @@ import type { Webapp } from '@/lib/webapps';
 
 export type Locale = 'en' | 'es';
 
+/** An account's language (decision 103): the website's two plus Cruising's four. */
+export type AccountLocale = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt';
+
 export type Role = 'ADMIN' | 'CLIENT';
 
 export type AuthUser = {

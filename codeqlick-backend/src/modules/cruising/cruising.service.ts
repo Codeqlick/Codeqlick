@@ -10,7 +10,11 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { toApiLocale, toDbLocale } from '../../common/schemas/common.schemas.js';
+import {
+  toAccountLocale,
+  toDbLocale,
+  type AccountLocale,
+} from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { pageToSkipTake, paginate, type Paginated } from '../../common/types/paginated.js';
 import { AppConfigService } from '../../config/app-config.service.js';
@@ -127,6 +131,8 @@ export interface CruisingStatus {
   pushPublicKey: string | null;
   /** Phase 6 (decision 102): the onboarding tour was finished or skipped (false: show it). */
   onboardingDone: boolean;
+  /** Decision 103: the account's language, Cruising's emails and push texts (GET /cruising/me). */
+  locale?: AccountLocale;
   /** Null until a nickname is set. */
   profile: {
     nickname: string;
@@ -464,7 +470,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       this.sendMail(
         cruisingNoticeEmail(
           user.email,
-          toApiLocale(user.locale),
+          toAccountLocale(user.locale),
           notice,
           note,
           this.cruisingUrl,
@@ -480,7 +486,11 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   // ---- Status and entry --------------------------------------------------------------------------
 
   async status(userId: string, now = new Date()): Promise<CruisingStatus> {
-    return this.statusOf(await this.repository.findProfile(userId), now);
+    const [profile, locale] = await Promise.all([
+      this.repository.findProfile(userId),
+      this.repository.accountLocale(userId),
+    ]);
+    return { ...this.statusOf(profile, now), locale: toAccountLocale(locale) };
   }
 
   private statusOf(profile: CruisingProfile | null, now: Date): CruisingStatus {
@@ -1653,7 +1663,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       spotLink: request.spotLink,
       reason: request.reason,
       details: request.details,
-      locale: toApiLocale(request.locale),
+      locale: toAccountLocale(request.locale),
       status: request.status,
       response: request.response,
       createdAt: request.createdAt.toISOString(),
@@ -1718,7 +1728,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     this.sendMail(
       cruisingTakedownEmail(
         request.email,
-        toApiLocale(request.locale),
+        toAccountLocale(request.locale),
         input.remove ? 'removed' : 'closed',
         request.id,
         input.response || null,

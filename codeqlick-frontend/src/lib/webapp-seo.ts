@@ -1,6 +1,7 @@
 import 'server-only';
 import type { Metadata } from 'next';
 import { routing } from '@/i18n/routing';
+import { appLocales } from '@/lib/locales';
 import { env } from '@/lib/env';
 import { webappHost, type Webapp } from '@/lib/webapps';
 
@@ -30,7 +31,8 @@ export function webappAlternates(
   path = '',
 ): NonNullable<Metadata['alternates']> {
   const languages: Record<string, string> = {};
-  for (const l of routing.locales) languages[l] = webappUrl(app, l, path);
+  // Cruising lists its six languages, the other apps English and Spanish (decision 103).
+  for (const l of appLocales(app)) languages[l] = webappUrl(app, l, path);
   languages['x-default'] = webappUrl(app, routing.defaultLocale, path);
   return { canonical: webappUrl(app, locale, path), languages };
 }

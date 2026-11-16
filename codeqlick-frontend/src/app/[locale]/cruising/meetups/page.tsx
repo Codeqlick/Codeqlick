@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import styles from '@/components/cruising/CruisingCommunity.module.css';
 import { MeetupCard } from '@/components/cruising/MeetupCard';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import { listCruisingMeetups } from '@/lib/api/cruising-community';
 import { requireUser } from '@/lib/auth/session';
@@ -21,7 +21,7 @@ type PageProps = { params: Promise<{ locale: string }> };
  * and the ones I host or go to.
  */
 export default async function CruisingMeetupsPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   await requireUser(locale, `/${locale}/cruising/meetups`);
   const status = await getCruisingStatus();
   const gate = await CruisingGate({ locale, status });

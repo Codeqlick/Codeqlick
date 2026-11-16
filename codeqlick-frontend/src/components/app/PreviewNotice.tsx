@@ -1,15 +1,15 @@
 import { getTranslations } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
 import { Link } from '@/i18n/navigation';
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import { routing } from '@/i18n/routing';
 import styles from './app.module.css';
 
 /** Which translation a preview shows: the requested one when it exists, otherwise English. */
-export function previewLanguage<T extends { locale: AppLocale }>(
+export function previewLanguage<T extends { locale: SiteLocale }>(
   translations: T[],
   requested: string | string[] | undefined,
-  fallback: AppLocale,
+  fallback: SiteLocale,
 ): T | undefined {
   const wanted = typeof requested === 'string' ? requested : fallback;
   return (
@@ -26,11 +26,11 @@ export async function PreviewNotice({
   available,
   published,
 }: {
-  locale: AppLocale;
+  locale: SiteLocale;
   /** Locale-less path of the preview page, e.g. `/admin/posts/<id>/preview`. */
   basePath: string;
-  shown: AppLocale;
-  available: AppLocale[];
+  shown: SiteLocale;
+  available: SiteLocale[];
   published: boolean;
 }) {
   const t = await getTranslations({ locale, namespace: 'Admin.preview' });

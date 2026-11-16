@@ -5,6 +5,7 @@ import type {
   ActiveSession,
   AuthTokens,
   AuthUser,
+  AccountLocale,
   Locale,
   LoginResult,
   TwoFactorSetup,
@@ -139,7 +140,7 @@ export function register(input: {
   name: string;
   email: string;
   password: string;
-  locale: Locale;
+  locale: AccountLocale;
   acceptPrivacy: true;
   website?: string;
   app?: Webapp;
@@ -170,7 +171,7 @@ export function acceptInvitation(input: {
   token: string;
   name: string;
   password: string;
-  locale: Locale;
+  locale: AccountLocale;
   acceptPrivacy: true;
 }) {
   return apiFetch<AuthTokens>('/auth/register/invitation', {
@@ -181,7 +182,7 @@ export function acceptInvitation(input: {
 }
 
 /** The caller's own name (and email language). */
-export function updateMe(input: { name?: string; locale?: Locale }) {
+export function updateMe(input: { name?: string; locale?: AccountLocale }) {
   return apiFetch<AuthUser>('/auth/me', { method: 'PATCH', body: input, auth: 'required' });
 }
 

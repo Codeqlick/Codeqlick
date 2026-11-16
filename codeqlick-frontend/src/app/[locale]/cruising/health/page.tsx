@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import cruising from '@/components/cruising/Cruising.module.css';
 import styles from '@/components/cruising/CruisingSafety.module.css';
 import { HealthCentersMap } from '@/components/cruising/HealthCentersMap';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getHealthCenterPlaces, listHealthCenters } from '@/lib/api/cruising-safety';
 import { countryName } from '@/lib/cruising';
 import { groupCenters, healthAnchor, type HealthCenter } from '@/lib/cruising-safety';
@@ -13,7 +13,7 @@ import vc from '../../videochat/videochat.module.css';
 type PageProps = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'CruisingHealthCenters' });
   const title = t('metaTitle');
   const description = t('metaDescription');
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * city. Public and indexed: no personal data is involved.
  */
 export default async function CruisingHealthPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'CruisingHealthCenters' });
   let centers: HealthCenter[] = [];
   let groups: ReturnType<typeof groupCenters> = [];

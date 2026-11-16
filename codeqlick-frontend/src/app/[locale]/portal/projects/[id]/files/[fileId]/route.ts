@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { downloadProjectFile } from '@/lib/api/projects';
 import { redirectTo } from '@/lib/redirect';
 
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ locale: string; id: string; fileId: string }> },
 ) {
   const { locale, id, fileId } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
 
   const signIn = () =>
     redirectTo(`/${locale}/login?next=${encodeURIComponent(`/${locale}/portal/projects/${id}`)}`);

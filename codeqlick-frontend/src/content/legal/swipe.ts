@@ -1,4 +1,4 @@
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import { CONTACT_EMAIL } from '@/lib/site';
 import { type LegalDocument, type LegalOwner, ownerLines } from './index';
 
@@ -8,7 +8,7 @@ export type SwipeLegalPage = 'swipe-terms' | 'swipe-privacy';
 const UPDATED = { es: '8 de noviembre de 2026', en: '8 November 2026' } as const;
 const MAIL = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
 
-function terms(owner: LegalOwner, locale: AppLocale): string {
+function terms(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `## Quién presta el servicio
 
@@ -93,7 +93,7 @@ We may change these terms; for an important change we will ask you to accept the
 These terms are governed by Spanish law. For any question or complaint, write to us at ${MAIL}.`;
 }
 
-function privacy(owner: LegalOwner, locale: AppLocale): string {
+function privacy(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `## Responsable del tratamiento
 
@@ -177,7 +177,7 @@ Technical cookies only: \`NEXT_LOCALE\` (language) and \`cq_at\` / \`cq_rt\` (si
 export function swipeLegalDocument(
   page: SwipeLegalPage,
   owner: LegalOwner,
-  locale: AppLocale,
+  locale: SiteLocale,
 ): LegalDocument {
   const es = locale === 'es';
   return page === 'swipe-terms'

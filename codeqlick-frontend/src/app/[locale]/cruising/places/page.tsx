@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import styles from '@/components/cruising/Cruising.module.css';
 import { getCruisingPlaces } from '@/lib/api/cruising';
 import { countryName, placeHref } from '@/lib/cruising';
@@ -11,7 +11,7 @@ import vc from '../../videochat/videochat.module.css';
 type PageProps = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.places' });
   const title = t('metaTitle');
   const description = t('metaDescription');
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 /** Countries with spots, and their cities (architecture 4.15: public, LIVE spots only). */
 export default async function CruisingPlacesPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'Cruising.places' });
   const { countries } = await getCruisingPlaces();
 

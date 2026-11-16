@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import {
   exportCloudAnalytics,
   listCloudProjects,
@@ -15,7 +15,7 @@ const PERIODS: readonly CloudAnalyticsPeriod[] = ['24h', '7d', '30d', '90d', '36
 /** A project's web analytics as CSV (architecture 4.13, Web analytics), through the BFF. */
 export async function GET(request: Request, { params }: { params: Promise<Params> }) {
   const { locale, team, project: slug } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
   const requested = new URL(request.url).searchParams.get('period');
   const period = PERIODS.find((item) => item === requested) ?? '7d';
   let csv: string;

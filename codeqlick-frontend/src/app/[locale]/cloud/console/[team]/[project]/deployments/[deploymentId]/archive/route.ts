@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { downloadCloudDeployment, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { redirectTo } from '@/lib/redirect';
@@ -14,7 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function GET(_request: Request, { params }: { params: Promise<Params> }) {
   const { locale, team, project: slug, deploymentId } = await params;
-  if (!hasLocale(routing.locales, locale) || !UUID.test(deploymentId)) {
+  if (!hasLocale(SITE_LOCALES, locale) || !UUID.test(deploymentId)) {
     return new Response('Not found', { status: 404 });
   }
   const signIn = () => redirectTo(`/${locale}/login`);

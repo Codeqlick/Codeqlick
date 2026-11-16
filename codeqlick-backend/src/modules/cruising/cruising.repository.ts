@@ -7,6 +7,7 @@ import type {
   CruisingSpotStatus,
   CruisingSpotType,
   CruisingTakedownStatus,
+  Locale,
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -174,6 +175,15 @@ export class CruisingRepository {
 
   findProfile(userId: string): Promise<CruisingProfile | null> {
     return this.prisma.cruisingProfile.findUnique({ where: { userId } });
+  }
+
+  /** The account's language (English when the account is gone). */
+  async accountLocale(userId: string): Promise<Locale> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { locale: true },
+    });
+    return user?.locale ?? 'EN';
   }
 
   saveOnboarding(

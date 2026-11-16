@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { exportCloudSubmissions, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { redirectTo } from '@/lib/redirect';
@@ -9,7 +9,7 @@ type Params = { locale: string; team: string; project: string; formId: string };
 /** A form's submissions as CSV (architecture 4.13, Forms), through the BFF. */
 export async function GET(_request: Request, { params }: { params: Promise<Params> }) {
   const { locale, team, project: slug, formId } = await params;
-  if (!hasLocale(routing.locales, locale) || !/^[0-9a-f-]{36}$/.test(formId)) {
+  if (!hasLocale(SITE_LOCALES, locale) || !/^[0-9a-f-]{36}$/.test(formId)) {
     return new Response('Not found', { status: 404 });
   }
   let csv: string;
