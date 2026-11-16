@@ -7,14 +7,18 @@ import { failedState } from '@/lib/actions';
 import {
   actOnCruisingReport,
   approveCruisingSpot,
+  decideCruisingVerification,
   createAdminCruisingSpot,
   decideCruisingTakedown,
   dismissCruisingReport,
   hideCruisingSpot,
   importAdminCruisingSpots,
   liftCruisingSuspension,
+  markCruisingMediaReviewed,
   patchAdminCruisingSpot,
   rejectCruisingSpot,
+  removeCruisingMedia,
+  withdrawCruisingVerification,
 } from '@/lib/api/cruising';
 import {
   LIMITS,
@@ -115,6 +119,7 @@ export async function reportAction(
       remove: formData.get('remove') === 'on',
       suspend: suspension(formData),
       reason: text(formData, 'reason')?.slice(0, LIMITS.rejectReason),
+      withdrawVerification: formData.get('withdrawVerification') === 'on',
     }),
   );
 }
@@ -206,4 +211,76 @@ export async function liftAction(
   formData: FormData,
 ): Promise<FormState> {
   return run(locale, formData, () => liftCruisingSuspension(userId));
+}
+
+// ---- Phase 4: photos, videos and verification ----------------------------------------------------
+
+/** Marks a photo or video reviewed, or removes it (deleted, its image blocked, the owner emailed). */
+export async function mediaAction(
+  locale: AppLocale,
+  mediaId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  if (formData.get('decision') === 'reviewed') {
+    return run(locale, formData, () => markCruisingMediaReviewed(mediaId));
+  }
+  const t = await getTranslations({ locale, namespace: 'AdminCruising' });
+  const reason = text(formData, 'reason') ?? '';
+  if (reason.length < 3) {
+    return {
+      status: 'error',
+      fieldErrors: { reason: t('media.reasonNeeded') },
+      values: { reason },
+    };
+  }
+  return run(locale, formData, () =>
+    removeCruisingMedia(mediaId, {
+      reason: reason.slice(0, LIMITS.rejectReason),
+      // The form's box is ticked by default, so only an untick turns the block off.
+      blockHash: formData.get('blockHash') === 'on',
+      suspend: suspension(formData),
+      withdrawVerification: formData.get('withdrawVerification') === 'on',
+    }),
+  );
+}
+
+/** Approves or rejects a verification photo (it is deleted either way; the member is emailed). */
+export async function verificationAction(
+  locale: AppLocale,
+  userId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const approve = formData.get('decision') === 'approve';
+  const note = text(formData, 'note')?.slice(0, LIMITS.rejectReason);
+  return run(locale, formData, () => decideCruisingVerification(userId, approve, note));
+}
+
+/** Withdraws a member's verified badge (the member is emailed). */
+export async function withdrawVerificationAction(
+  locale: AppLocale,
+  userId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return run(locale, formData, () => withdrawCruisingVerification(userId));
+}
+
+/** The same for a user id the team copied from a report. */
+export async function withdrawVerificationByIdAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = text(formData, 'userId') ?? '';
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) {
+    const t = await getTranslations({ locale, namespace: 'AdminCruising' });
+    return {
+      status: 'error',
+      fieldErrors: { userId: t('verifications.userIdInvalid') },
+      values: { userId },
+    };
+  }
+  return run(locale, formData, () => withdrawCruisingVerification(userId));
 }

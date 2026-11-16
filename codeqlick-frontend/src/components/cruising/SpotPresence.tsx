@@ -16,6 +16,7 @@ import {
 import { CHECK_IN_HOURS, memberHref } from '@/lib/cruising';
 import { formatDateTime } from '@/lib/format';
 import styles from './Cruising.module.css';
+import { MemberName } from './MemberName';
 
 type SpotPresenceProps = { locale: AppLocale; spot: CruisingSpotPublic; status: CruisingStatus };
 
@@ -56,9 +57,11 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
               <ul className={styles.hereList} aria-label={t('membersLabel')}>
                 {presence.members.map((member) => (
                   <li key={member.nickname}>
-                    <Link href={memberHref(member.nickname)} className={vc.inlineLink}>
-                      {member.nickname}
-                    </Link>
+                    <MemberName locale={locale} member={member}>
+                      <Link href={memberHref(member.nickname)} className={vc.inlineLink}>
+                        {member.nickname}
+                      </Link>
+                    </MemberName>
                   </li>
                 ))}
               </ul>

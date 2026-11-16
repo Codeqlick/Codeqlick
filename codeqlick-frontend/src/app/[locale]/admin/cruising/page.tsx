@@ -16,19 +16,22 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
   getAdminCruisingOverview,
+  listAdminCruisingMedia,
   listAdminCruisingReports,
   listAdminCruisingSpots,
   listAdminCruisingSuspensions,
   listAdminCruisingTakedowns,
+  listAdminCruisingVerifications,
   type AdminCruisingSpot,
 } from '@/lib/api/cruising';
+import { reportedMedia, type MediaSummary } from '@/lib/cruising-media';
 import { SWIPE_COUNTRIES } from '@/lib/countries';
 import {
+  ALL_REPORT_REASONS,
   countryName,
   formatRating,
   LIMITS,
   osmLink,
-  REPORT_REASONS,
   reportedNickname,
   reportTranscript,
   SPOT_TYPES,
@@ -45,9 +48,13 @@ import {
   editSpotAction,
   importSpotsAction,
   liftAction,
+  mediaAction,
   reportAction,
   spotAction,
   takedownAction,
+  verificationAction,
+  withdrawVerificationAction,
+  withdrawVerificationByIdAction,
 } from './actions';
 import admin from './cruising-admin.module.css';
 import { SpotImport } from './SpotImport';
@@ -58,12 +65,24 @@ type PageProps = {
     tab?: string | string[];
     status?: string | string[];
     q?: string | string[];
+    queue?: string | string[];
   }>;
 };
 
-const TABS = ['queue', 'reports', 'takedowns', 'live', 'suspended', 'add'] as const;
+const TABS = [
+  'queue',
+  'media',
+  'verifications',
+  'reports',
+  'takedowns',
+  'live',
+  'suspended',
+  'add',
+] as const;
 type Tab = (typeof TABS)[number];
 /** The live tab's filter: what is published, hidden, rejected in review, or removed by moderation. */
+/** The new-media tab's filter: not reviewed yet, hidden while a report is open, or everything. */
+const MEDIA_QUEUES = ['new', 'hidden', 'all'] as const;
 const LIVE_FILTERS = ['LIVE', 'HIDDEN', 'REJECTED', 'REMOVED'] as const;
 
 const TONES: Record<CruisingSpotStatus, BadgeTone> = {
@@ -86,6 +105,7 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
   const tab: Tab = TABS.find((value) => value === requested) ?? 'queue';
   const liveFilter = LIVE_FILTERS.find((value) => value === firstParam(query.status)) ?? 'LIVE';
   const search = (firstParam(query.q) ?? '').trim();
+  const mediaQueue = MEDIA_QUEUES.find((value) => value === firstParam(query.queue)) ?? 'new';
   const overview = await getAdminCruisingOverview();
   const durations = [
     { value: '', label: t('noSuspension') },
@@ -97,20 +117,52 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
   })).toSorted((a, b) => a.label.localeCompare(b.label, locale));
   /** The reasons the report form offers; a removal request's reason may be another word. */
   const reasonLabel = (reason: string) =>
-    REPORT_REASONS.find((value) => value === reason) ? tr(reason as CruisingReportReason) : reason;
+    ALL_REPORT_REASONS.find((value) => value === reason)
+      ? tr(reason as CruisingReportReason)
+      : reason;
   const types = SPOT_TYPES.map((value) => ({ value, label: tt(value) }));
 
   const cards = [
     { label: t('stats.pendingSpots'), value: overview.pendingSpots },
+    { label: t('stats.newMedia'), value: overview.newMedia ?? 0 },
+    { label: t('stats.pendingVerifications'), value: overview.pendingVerifications ?? 0 },
     { label: t('stats.openReports'), value: overview.openReports },
     { label: t('stats.openTakedowns'), value: overview.openTakedowns },
     { label: t('stats.liveSpots'), value: overview.liveSpots },
+    { label: t('stats.liveMedia'), value: overview.liveMedia ?? 0 },
     { label: t('stats.members'), value: overview.members },
     { label: t('stats.reviews'), value: overview.reviews },
     { label: t('stats.suspended'), value: overview.suspended },
     { label: t('stats.activeCheckIns'), value: overview.activeCheckIns ?? 0 },
     { label: t('stats.conversations'), value: overview.conversations ?? 0 },
   ];
+
+  /** A photo or video as the team sees it: the file, or a video's poster with the player. */
+  const adminFile = (kind: 'file' | 'poster' | 'verification', id: string) =>
+    `/${locale}/admin/cruising/media/${kind}/${id}`;
+  const preview = (media: MediaSummary) =>
+    media.kind === 'VIDEO' ? (
+      // Members' own clips, no captions exist: the team only watches them to moderate.
+      // oxlint-disable-next-line jsx-a11y/media-has-caption
+      <video
+        className={admin.preview}
+        src={adminFile('file', media.id)}
+        poster={adminFile('poster', media.id)}
+        controls
+        preload="none"
+        playsInline
+        aria-label={t('media.videoAlt', { ref: media.ref })}
+      />
+    ) : (
+      // A private image through the BFF route: next/image can't optimise it.
+      // oxlint-disable-next-line nextjs/no-img-element
+      <img
+        className={admin.preview}
+        src={adminFile('file', media.id)}
+        alt={t('media.photoAlt', { ref: media.ref })}
+        loading="lazy"
+      />
+    );
 
   /** One spot's facts, as the team needs them to decide. */
   const facts = (spot: AdminCruisingSpot) => (
@@ -289,6 +341,160 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
         </section>
       ) : null}
 
+      {tab === 'media' ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('media.title')}</h2>
+          <p className={styles.muted}>{t('media.lead')}</p>
+          <nav className={styles.actions} aria-label={t('media.filter')}>
+            {MEDIA_QUEUES.map((value) => (
+              <Link
+                key={value}
+                href={`/admin/cruising?tab=media&queue=${value}`}
+                className={buttonClassName({
+                  variant: value === mediaQueue ? 'primary' : 'outline',
+                  size: 'sm',
+                })}
+                aria-current={value === mediaQueue ? 'page' : undefined}
+              >
+                {t(`media.queues.${value}`)}
+              </Link>
+            ))}
+          </nav>
+          {(await listAdminCruisingMedia(mediaQueue)).map((item) => (
+            <article key={item.id} className={admin.item}>
+              {preview(item)}
+              <div className={admin.body}>
+                <p>
+                  <strong>{item.owner.nickname ?? item.owner.name}</strong>{' '}
+                  {item.owner.verified ? <Badge tone="success">{t('media.verified')}</Badge> : null}{' '}
+                  {item.owner.suspended ? (
+                    <Badge tone="danger">{t('media.suspended')}</Badge>
+                  ) : null}{' '}
+                  · {item.owner.email}
+                </p>
+                <p className={styles.muted}>
+                  {t(`media.kind.${item.kind}`)} · <code>{item.ref}</code> ·{' '}
+                  <Badge tone={item.status === 'LIVE' ? 'success' : 'neutral'}>
+                    {t(`media.status.${item.status}`)}
+                  </Badge>{' '}
+                  · {t('sent', { date: formatDateTime(item.createdAt, locale) })} ·{' '}
+                  {t('openReports', { count: item.openReports })}
+                  {item.durationSeconds !== null
+                    ? ` · ${t('media.duration', { seconds: Math.round(item.durationSeconds) })}`
+                    : ''}
+                  {item.reviewedAt
+                    ? ` · ${t('media.reviewedOn', { date: formatDate(item.reviewedAt, locale) })}`
+                    : ''}
+                </p>
+                {item.failure ? (
+                  <p className={styles.muted}>
+                    {t('media.failure')}: {item.failure}
+                  </p>
+                ) : null}
+                <ActionForm
+                  action={mediaAction.bind(null, locale, item.id)}
+                  className={styles.form}
+                >
+                  <FormInput
+                    id={`media-reason-${item.id}`}
+                    name="reason"
+                    label={t('media.reason')}
+                    hint={t('media.reasonHint')}
+                    maxLength={LIMITS.rejectReason}
+                  />
+                  <FormCheckbox
+                    id={`media-block-${item.id}`}
+                    name="blockHash"
+                    label={t('media.blockHash')}
+                    defaultChecked
+                  />
+                  <FormSelect
+                    id={`media-suspend-${item.id}`}
+                    name="suspend"
+                    label={t('reports.suspend')}
+                    options={durations}
+                    defaultValue=""
+                  />
+                  <FormCheckbox
+                    id={`media-withdraw-${item.id}`}
+                    name="withdrawVerification"
+                    label={t('media.withdraw')}
+                  />
+                  <div className={styles.actions}>
+                    <SubmitButton size="sm" variant="outline" name="decision" value="reviewed">
+                      {t('media.reviewed')}
+                    </SubmitButton>
+                    <SubmitButton size="sm" variant="danger" name="decision" value="remove">
+                      {t('media.remove')}
+                    </SubmitButton>
+                  </div>
+                </ActionForm>
+              </div>
+            </article>
+          ))}
+        </section>
+      ) : null}
+
+      {tab === 'verifications' ? (
+        <section className={styles.panel}>
+          <h2 className={styles.panelTitle}>{t('verifications.title')}</h2>
+          <p className={styles.muted}>{t('verifications.lead')}</p>
+          {(await listAdminCruisingVerifications()).map((item) => (
+            <article key={item.userId} className={admin.item}>
+              {/* oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route */}
+              <img
+                className={admin.preview}
+                src={adminFile('verification', item.userId)}
+                alt={t('verifications.alt')}
+              />
+              <div className={admin.body}>
+                <p>
+                  <strong>{item.nickname ?? item.name}</strong> · {item.name} · {item.email}
+                </p>
+                <p className={styles.muted}>
+                  {t('verifications.memberSince', { date: formatDate(item.memberSince, locale) })} ·{' '}
+                  {t('sent', { date: formatDateTime(item.sentAt, locale) })}
+                </p>
+                <p className={styles.muted}>
+                  {t('verifications.check', { nickname: item.nickname ?? '' })}
+                </p>
+                <ActionForm
+                  action={verificationAction.bind(null, locale, item.userId)}
+                  className={styles.form}
+                >
+                  <FormInput
+                    id={`verification-note-${item.userId}`}
+                    name="note"
+                    label={t('verifications.note')}
+                    hint={t('verifications.noteHint')}
+                    maxLength={LIMITS.rejectReason}
+                  />
+                  <div className={styles.actions}>
+                    <SubmitButton size="sm" name="decision" value="approve">
+                      {t('verifications.approve')}
+                    </SubmitButton>
+                    <SubmitButton size="sm" variant="outline" name="decision" value="reject">
+                      {t('verifications.reject')}
+                    </SubmitButton>
+                  </div>
+                </ActionForm>
+              </div>
+            </article>
+          ))}
+          <h3 className={styles.panelTitle}>{t('verifications.withdrawTitle')}</h3>
+          <p className={styles.muted}>{t('verifications.withdrawLead')}</p>
+          <ActionForm
+            action={withdrawVerificationByIdAction.bind(null, locale)}
+            className={styles.form}
+          >
+            <FormInput id="withdraw-user-id" name="userId" label={t('verifications.userId')} />
+            <SubmitButton size="sm" variant="outline">
+              {t('verifications.withdraw')}
+            </SubmitButton>
+          </ActionForm>
+        </section>
+      ) : null}
+
       {tab === 'reports' ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('tabs.reports')}</h2>
@@ -297,6 +503,7 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
             const profileNickname =
               report.targetType === 'PROFILE' ? reportedNickname(report.target) : null;
             const savedChat = reportTranscript(report.transcript);
+            const media = report.targetType === 'MEDIA' ? reportedMedia(report.target) : null;
             const transcript = savedChat.length > 0 ? savedChat : reportTranscript(report.target);
             return (
               <article key={report.id} className={admin.item}>
@@ -323,6 +530,19 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                       {target.reviewRating ? `${'★'.repeat(target.reviewRating)} ` : ''}
                       {target.reviewText}
                     </blockquote>
+                  ) : null}
+                  {report.targetType === 'MEDIA' ? (
+                    media ? (
+                      <>
+                        {preview(media)}
+                        <p>
+                          {t('media.title')}: <code>{media.ref}</code> ·{' '}
+                          {t(`media.status.${media.status}`)}
+                        </p>
+                      </>
+                    ) : (
+                      <p className={styles.muted}>{t('media.gone')}</p>
+                    )
                   ) : null}
                   {profileNickname ? (
                     <p>
@@ -359,6 +579,8 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                   {report.reported ? (
                     <p className={styles.muted}>
                       {t('reported')}: {report.reported.name ?? '—'} · {report.reported.email ?? ''}
+                      {report.reported.verified ? ` · ${t('media.verified')}` : ''}
+                      {report.reported.userId ? ` · ${report.reported.userId}` : ''}
                       {report.reported.reports === undefined
                         ? ''
                         : ` · ${t('reportsAgainst', { count: report.reported.reports })}`}
@@ -379,6 +601,11 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                       label={t('reports.reason')}
                       hint={t('reports.reasonHint')}
                       maxLength={LIMITS.rejectReason}
+                    />
+                    <FormCheckbox
+                      id={`withdraw-${report.id}`}
+                      name="withdrawVerification"
+                      label={t('media.withdraw')}
                     />
                     <FormSelect
                       id={`suspend-${report.id}`}
@@ -414,11 +641,27 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                   <strong>{reasonLabel(request.reason)}</strong> ·{' '}
                   {formatDateTime(request.createdAt, locale)} · {request.email}
                 </p>
-                <p className={styles.muted}>
-                  {request.spot
-                    ? t('takedowns.matched', { name: request.spot.name })
-                    : t('takedowns.unmatched', { link: request.spotLink ?? '—' })}
-                </p>
+                {request.media ? (
+                  <>
+                    {preview(request.media)}
+                    <p className={styles.muted}>
+                      {t('takedowns.mediaMatched', {
+                        ref: request.media.ref,
+                        status: t(`media.status.${request.media.status}`),
+                      })}
+                    </p>
+                  </>
+                ) : request.mediaRef ? (
+                  <p className={styles.muted}>
+                    {t('takedowns.mediaUnmatched', { ref: request.mediaRef })}
+                  </p>
+                ) : (
+                  <p className={styles.muted}>
+                    {request.spot
+                      ? t('takedowns.matched', { name: request.spot.name })
+                      : t('takedowns.unmatched', { link: request.spotLink ?? '—' })}
+                  </p>
+                )}
                 <p className={styles.prewrap}>{request.details}</p>
                 <ActionForm
                   action={takedownAction.bind(null, locale, request.id)}
@@ -432,7 +675,12 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                     maxLength={2000}
                   />
                   <div className={styles.actions}>
-                    <SubmitButton size="sm" name="decision" value="remove" disabled={!request.spot}>
+                    <SubmitButton
+                      size="sm"
+                      name="decision"
+                      value="remove"
+                      disabled={!request.spot && !request.media}
+                    >
                       {t('takedowns.remove')}
                     </SubmitButton>
                     <SubmitButton size="sm" variant="outline" name="decision" value="close">
@@ -626,6 +874,13 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                     {t('lift')}
                   </SubmitButton>
                 </ActionForm>
+                {item.verified ? (
+                  <ActionForm action={withdrawVerificationAction.bind(null, locale, item.userId)}>
+                    <SubmitButton size="sm" variant="outline">
+                      {t('verifications.withdraw')}
+                    </SubmitButton>
+                  </ActionForm>
+                ) : null}
               </div>
             </article>
           ))}

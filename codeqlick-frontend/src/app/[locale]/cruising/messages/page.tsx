@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/cruising/Cruising.module.css';
+import { MemberName } from '@/components/cruising/MemberName';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Link } from '@/i18n/navigation';
@@ -54,10 +55,12 @@ export default async function CruisingMessagesPage({ params, searchParams }: Pag
                 className={`${styles.conv} ${unread ? styles.convUnread : ''}`}
               >
                 <div className={styles.convHead}>
-                  <Link href={conversationHref(conversation.id)} className={styles.convName}>
-                    {conversation.partner.nickname}
-                    {unread ? <span className={styles.srOnly}> ({t('unread')})</span> : null}
-                  </Link>
+                  <MemberName locale={locale} member={conversation.partner}>
+                    <Link href={conversationHref(conversation.id)} className={styles.convName}>
+                      {conversation.partner.nickname}
+                      {unread ? <span className={styles.srOnly}> ({t('unread')})</span> : null}
+                    </Link>
+                  </MemberName>
                   <span className={styles.muted}>
                     {unread ? <Badge tone="brand">{t('unread')}</Badge> : null}{' '}
                     <time dateTime={last?.at ?? conversation.createdAt}>

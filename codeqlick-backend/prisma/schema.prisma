@@ -176,6 +176,8 @@ model User {
   cruisingMessages           CruisingMessage[]
   cruisingBlocksMade         CruisingBlock[]             @relation("CruisingBlocker")
   cruisingBlocksGot          CruisingBlock[]             @relation("CruisingBlocked")
+  cruisingMedia              CruisingMedia[]             @relation("CruisingMediaOwner")
+  cruisingMediaReviewed      CruisingMedia[]             @relation("CruisingMediaReviewer")
   cruisingFavorites          CruisingFavorite[]
   cruisingAlerts             CruisingAlert[]
   cruisingPushSubscriptions  CruisingPushSubscription[]
@@ -3013,6 +3015,8 @@ enum CruisingReportTarget {
   REVIEW
   PROFILE
   CONVERSATION
+  /// Phase 4: a photo or video of a profile.
+  MEDIA
 }
 
 /// What a member says they are looking for (phase 2).
@@ -3032,6 +3036,33 @@ enum CruisingReportReason {
   HARASSMENT
   SPAM
   OTHER
+  /// Phase 4: someone who appears didn't agree to it (media and profiles).
+  NON_CONSENSUAL
+  /// Phase 4: the photo or video isn't the member's own (media and profiles).
+  STOLEN
+}
+
+/// Phase 4: the one-time check of the person (a photo holding the nickname), reviewed by the team.
+enum CruisingVerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CruisingMediaKind {
+  PHOTO
+  VIDEO
+}
+
+enum CruisingMediaStatus {
+  /// A video waiting for or in the transcoding queue.
+  PROCESSING
+  LIVE
+  /// Hidden at once by a serious report or removal request, until the team reviews it.
+  HIDDEN
+  /// The video couldn't be read or transcoded (`failure` says why); its file is deleted.
+  FAILED
 }
 
 enum CruisingReportStatus {
@@ -3051,34 +3082,49 @@ enum CruisingTakedownStatus {
 /// A person in Cruising: 18+ declared (the date of birth is checked, not stored), the rules and the
 /// special category data consent accepted. Phase 2 adds the nickname, bio, country, lookingFor, showAge.
 model CruisingProfile {
-  userId           String               @id @map("user_id") @db.Uuid
+  userId                 String                     @id @map("user_id") @db.Uuid
   /// Only the year of birth; the full date is never stored.
-  birthYear        Int                  @map("birth_year")
-  termsVersion     String               @map("terms_version")
-  acceptedAt       DateTime             @map("accepted_at") @db.Timestamptz(3)
+  birthYear              Int                        @map("birth_year")
+  termsVersion           String                     @map("terms_version")
+  acceptedAt             DateTime                   @map("accepted_at") @db.Timestamptz(3)
   /// Emails about published spots and unread messages; the team's decisions are always mailed.
-  emailAlerts      Boolean              @default(true) @map("email_alerts")
-  suspendedAt      DateTime?            @map("suspended_at") @db.Timestamptz(3)
+  emailAlerts            Boolean                    @default(true) @map("email_alerts")
+  suspendedAt            DateTime?                  @map("suspended_at") @db.Timestamptz(3)
   /// Null with suspendedAt set: until lifted.
-  suspendedUntil   DateTime?            @map("suspended_until") @db.Timestamptz(3)
-  suspensionReason String?              @map("suspension_reason") @db.VarChar(500)
+  suspendedUntil         DateTime?                  @map("suspended_until") @db.Timestamptz(3)
+  suspensionReason       String?                    @map("suspension_reason") @db.VarChar(500)
   /// Phase 2: unique, 3-20 of a-z, 0-9 and _, lower case; needed for check-ins and messages.
-  nickname         String?              @unique @db.VarChar(20)
-  bio              String               @default("") @db.VarChar(160)
+  nickname               String?                    @unique @db.VarChar(20)
+  bio                    String                     @default("") @db.VarChar(160)
   /// ISO 3166-1 alpha-2, optional.
-  country          String?              @db.VarChar(2)
-  lookingFor       CruisingLookingFor[] @default([]) @map("looking_for")
+  country                String?                    @db.VarChar(2)
+  lookingFor             CruisingLookingFor[]       @default([]) @map("looking_for")
   /// The age shown is the current year minus birthYear.
-  showAge          Boolean              @default(true) @map("show_age")
+  showAge                Boolean                    @default(true) @map("show_age")
+  /// Phase 4 (decision 87): APPROVED carries the "Verified" badge and allows uploading media. A
+  /// nickname change sets it back to NONE.
+  verificationStatus     CruisingVerificationStatus @default(NONE) @map("verification_status")
+  /// File of the verification photo (private storage) while it waits; deleted once reviewed.
+  verificationKey        String?                    @map("verification_key")
+  verificationNote       String?                    @map("verification_note") @db.VarChar(500)
+  verificationSentAt     DateTime?                  @map("verification_sent_at") @db.Timestamptz(3)
+  verifiedAt             DateTime?                  @map("verified_at") @db.Timestamptz(3)
+  /// Verification photos sent in the day that began at verificationTriesSince (5 a day).
+  verificationTries      Int                        @default(0) @map("verification_tries")
+  verificationTriesSince DateTime?                  @map("verification_tries_since") @db.Timestamptz(3)
+  /// Media uploads in the day that began at uploadsSince (20 a day; deleting one doesn't refund it).
+  uploads                Int                        @default(0)
+  uploadsSince           DateTime?                  @map("uploads_since") @db.Timestamptz(3)
   /// Phase 3 (decision 85): push alerts when someone checks in at a favourite spot.
-  favoriteAlerts   Boolean              @default(true) @map("favorite_alerts")
+  favoriteAlerts         Boolean                    @default(true) @map("favorite_alerts")
   /// Phase 3: the daily email about favourites, for members with no push subscription.
-  favoriteEmails   Boolean              @default(false) @map("favorite_emails")
-  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  favoriteEmails         Boolean                    @default(false) @map("favorite_emails")
+  createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([verificationStatus, verificationSentAt])
   @@map("cruising_profiles")
 }
 
@@ -3150,6 +3196,8 @@ model CruisingReport {
   targetType   CruisingReportTarget @map("target_type")
   spotId       String?              @map("spot_id") @db.Uuid
   reviewId     String?              @map("review_id") @db.Uuid
+  /// Phase 4: a photo or video.
+  mediaId      String?              @map("media_id") @db.Uuid
   /// The person behind the target (the spot's proposer, the review's author); null when unknown.
   reportedId   String?              @map("reported_id") @db.Uuid
   reason       CruisingReportReason
@@ -3166,12 +3214,14 @@ model CruisingReport {
   reviewedBy User?           @relation("CruisingReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   spot       CruisingSpot?   @relation(fields: [spotId], references: [id], onDelete: SetNull)
   review     CruisingReview? @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  media      CruisingMedia?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
   @@index([reportedId])
   @@index([spotId])
   @@index([reviewId])
+  @@index([mediaId])
   @@map("cruising_reports")
 }
 
@@ -3182,6 +3232,9 @@ model CruisingTakedown {
   /// What they gave: the link to the spot, or its slug.
   spotLink     String?                @map("spot_link") @db.VarChar(300)
   spotId       String?                @map("spot_id") @db.Uuid
+  /// Phase 4: the media reference they gave, and the item it matched.
+  mediaRef     String?                @map("media_ref") @db.VarChar(12)
+  mediaId      String?                @map("media_id") @db.Uuid
   reason       CruisingReportReason
   details      String                 @db.VarChar(2000)
   /// Language of the emails sent to them.
@@ -3192,12 +3245,64 @@ model CruisingTakedown {
   reviewedAt   DateTime?              @map("reviewed_at") @db.Timestamptz(3)
   createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  spot       CruisingSpot? @relation(fields: [spotId], references: [id], onDelete: SetNull)
-  reviewedBy User?         @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+  spot       CruisingSpot?  @relation(fields: [spotId], references: [id], onDelete: SetNull)
+  media      CruisingMedia? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  reviewedBy User?          @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([spotId])
+  @@index([mediaId])
   @@map("cruising_takedowns")
+}
+
+/// Phase 4 (decision 87): a photo or video on a verified member's profile. LIVE as soon as it is
+/// processed (post-moderation); `reviewedAt` null keeps it in the team's "New media" queue. Files
+/// live in CRUISING_UPLOADS_DIR (`<uuid>.webp` / `<uuid>.mp4`), never served by name.
+model CruisingMedia {
+  id              String              @id @default(uuid()) @db.Uuid
+  /// Short reference shown on the item, for reports and the removal form.
+  ref             String              @unique @db.VarChar(12)
+  ownerId         String              @map("owner_id") @db.Uuid
+  kind            CruisingMediaKind
+  status          CruisingMediaStatus @default(PROCESSING)
+  /// The photo (WebP, watermarked) or the transcoded video (MP4); null until processed or when FAILED.
+  storageKey      String?             @unique @map("storage_key")
+  /// A video's poster frame (WebP, watermarked).
+  posterKey       String?             @unique @map("poster_key")
+  width           Int?
+  height          Int?
+  durationSeconds Int?                @map("duration_seconds")
+  /// dHash of the photo or of the video's poster (16 hex digits): checked against the blocked hashes.
+  hash            String?             @db.VarChar(16)
+  /// Why a video FAILED.
+  failure         String?             @db.VarChar(300)
+  /// The cover photo the member chose (none: the first LIVE photo).
+  cover           Boolean             @default(false)
+  position        Int                 @default(0)
+  reviewedById    String?             @map("reviewed_by_id") @db.Uuid
+  reviewedAt      DateTime?           @map("reviewed_at") @db.Timestamptz(3)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  owner      User               @relation("CruisingMediaOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  reviewedBy User?              @relation("CruisingMediaReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reports    CruisingReport[]
+  takedowns  CruisingTakedown[]
+
+  @@index([ownerId, position])
+  @@index([ownerId, createdAt])
+  @@index([reviewedAt, createdAt])
+  @@index([status])
+  @@map("cruising_media")
+}
+
+/// Phase 4: perceptual hashes of removed Cruising images; an upload that looks the same is refused.
+model CruisingBlockedHash {
+  hash      String   @id @db.VarChar(16)
+  reason    String   @db.VarChar(500)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@map("cruising_blocked_hashes")
 }
 
 /// "I'm here" at a LIVE spot for 1 to 3 hours. The spot and nothing else: the person's position is

@@ -12,6 +12,8 @@ RUN npm ci
 # only provides Node and a first copy of the dependencies. See docker-compose.yml.
 FROM deps AS dev
 ENV NODE_ENV=development
+# ffmpeg/ffprobe for Cruising's videos and the font of the photos' watermark, as in production.
+RUN apk add --no-cache font-dejavu ffmpeg
 # Lets the start command detect a changed lockfile and reinstall into the node_modules volume.
 RUN cp package-lock.json node_modules/.installed-lock && chown -R node:node /app
 USER node
@@ -45,11 +47,13 @@ COPY --from=build --chown=node:node /app/prisma.config.ts ./prisma.config.ts
 # `prisma db seed` (first admin) runs prisma/seed.ts with tsx and imports the generated client.
 COPY --from=build --chown=node:node /app/src/generated ./src/generated
 
-# Uploaded images, and Swipe's private photos. Created here so the volumes mounted on them start
-# out owned by `node`.
-RUN mkdir uploads swipe-uploads && chown node:node uploads swipe-uploads
-# A font for the watermark Swipe burns into its photos (sharp renders it from SVG text).
-RUN apk add --no-cache font-dejavu
+# Uploaded images, Swipe's private photos and Cruising's private media. Created here so the volumes
+# mounted on them start out owned by `node`.
+RUN mkdir uploads swipe-uploads cruising-uploads \
+  && chown node:node uploads swipe-uploads cruising-uploads
+# A font for the watermark Swipe and Cruising burn into their photos (sharp renders it from SVG
+# text), and ffmpeg/ffprobe for Cruising's videos (architecture 4.15, phase 4).
+RUN apk add --no-cache font-dejavu ffmpeg
 
 USER node
 EXPOSE 4000

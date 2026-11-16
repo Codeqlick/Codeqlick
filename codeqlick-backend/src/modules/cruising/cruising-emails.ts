@@ -18,16 +18,16 @@ export function cruisingAlertEmail(
       {
         locale: 'en',
         preheader: minor
-          ? 'Review it first: a spot or review was reported for involving someone who may be under 18.'
-          : 'Someone asked to remove a spot. For a minor or something illegal, it is hidden until you review it.',
+          ? 'Review it first: something in Cruising was reported for involving someone who may be under 18.'
+          : 'Someone asked to remove a spot or a photo or video. For the serious reasons it is hidden until you review it.',
         title,
         intro: minor
           ? [
-              'A spot or review in Cruising was reported for involving someone who may be under 18. It is hidden already.',
+              'A spot, review, profile or photo or video in Cruising was reported for involving someone who may be under 18. A spot, review, photo or video is hidden already.',
               'Review the report, remove it and suspend the account if it is confirmed.',
             ]
           : [
-              'Someone asked to remove a spot from Cruising. When the reason is a minor or something illegal and the link matched a live spot, it is hidden already.',
+              'Someone asked to remove a spot or a photo or video from Cruising. A matched spot is hidden already when the reason is a minor or something illegal; a matched photo or video also when it is about consent or a stolen image.',
               'Answer within 24 hours.',
             ],
         details: [[minor ? 'Report id' : 'Request id', id]],
@@ -44,13 +44,13 @@ const TAKEDOWN_COPY = {
     receivedSubject: 'Hemos recibido tu solicitud de retirada',
     receivedTitle: 'Solicitud recibida',
     received:
-      'Hemos recibido tu solicitud para retirar un lugar de Cruising. Si se trata de un menor o de algo ilegal y el enlace coincide con un lugar publicado, ya está oculto. La revisamos y te respondemos en 24 horas como máximo.',
-    removedSubject: 'Hemos retirado el lugar',
-    removedTitle: 'Lugar retirado',
-    removed: 'Hemos revisado tu solicitud y retirado el lugar del directorio.',
+      'Hemos recibido tu solicitud de retirada de Cruising. Si se trata de un menor o de algo ilegal (o, para una foto o un vídeo, de falta de consentimiento o de una imagen robada) y coincide con algo publicado, ya está oculto. La revisamos y te respondemos en 24 horas como máximo.',
+    removedSubject: 'Hemos retirado el contenido',
+    removedTitle: 'Contenido retirado',
+    removed: 'Hemos revisado tu solicitud y retirado lo que pedías.',
     closedSubject: 'Hemos revisado tu solicitud de retirada',
     closedTitle: 'Solicitud revisada',
-    closed: 'Hemos revisado tu solicitud y no hemos retirado ningún lugar.',
+    closed: 'Hemos revisado tu solicitud y no hemos retirado nada.',
     answer: 'Respuesta del equipo',
     reference: 'Referencia de la solicitud',
   },
@@ -58,13 +58,13 @@ const TAKEDOWN_COPY = {
     receivedSubject: 'We received your removal request',
     receivedTitle: 'Request received',
     received:
-      'We received your request to remove a spot from Cruising. If it is about a minor or something illegal and the link matched a published spot, it is hidden already. We review it and answer within 24 hours.',
-    removedSubject: 'We removed the spot',
-    removedTitle: 'Spot removed',
-    removed: 'We reviewed your request and removed the spot from the directory.',
+      'We received your removal request for Cruising. If it is about a minor or something illegal (or, for a photo or video, missing consent or a stolen image) and it matched something published, it is hidden already. We review it and answer within 24 hours.',
+    removedSubject: 'We removed the content',
+    removedTitle: 'Content removed',
+    removed: 'We reviewed your request and removed what you asked about.',
     closedSubject: 'We reviewed your removal request',
     closedTitle: 'Request reviewed',
-    closed: 'We reviewed your request and did not remove any spot.',
+    closed: 'We reviewed your request and did not remove anything.',
     answer: "The team's answer",
     reference: 'Request reference',
   },
@@ -99,7 +99,16 @@ export function cruisingTakedownEmail(
 
 /** Things a person is told about. The emails never carry a spot name, a nickname or a message. */
 export type CruisingNotice =
-  'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended' | 'unread' | 'favorites';
+  | 'spot-live'
+  | 'spot-rejected'
+  | 'spot-removed'
+  | 'suspended'
+  | 'unread'
+  | 'verification-approved'
+  | 'verification-rejected'
+  | 'verification-withdrawn'
+  | 'media-removed'
+  | 'favorites';
 
 const NOTICE_COPY: Record<
   ApiLocale,
@@ -140,6 +149,30 @@ const NOTICE_COPY: Record<
       body: 'Alguien te ha escrito en Cruising y aún no lo has leído.',
       button: 'Leer el mensaje',
       path: '/messages',
+    },
+    'verification-approved': {
+      subject: 'Tu perfil está verificado',
+      body: 'Hemos revisado tu foto de verificación: tu perfil lleva la insignia «Verificado» y ya puedes subir fotos y vídeos.',
+      button: 'Ir a mi perfil',
+      path: '/me',
+    },
+    'verification-rejected': {
+      subject: 'No hemos podido verificar tu perfil',
+      body: 'Hemos revisado tu foto de verificación y no la hemos aprobado. Hemos borrado la foto. Puedes enviar otra. Este es el motivo:',
+      button: 'Ir a mi perfil',
+      path: '/me',
+    },
+    'verification-withdrawn': {
+      subject: 'Tu perfil ya no está verificado',
+      body: 'El equipo ha retirado la verificación de tu perfil: ya no lleva la insignia «Verificado» ni puedes subir fotos o vídeos.',
+      button: 'Leer las normas',
+      path: '/rules',
+    },
+    'media-removed': {
+      subject: 'Hemos retirado una de tus fotos o vídeos',
+      body: 'Tras revisarla, hemos retirado una foto o un vídeo de tu perfil y no se puede volver a subir. Este es el motivo:',
+      button: 'Ir a mi perfil',
+      path: '/me',
     },
     favorites: {
       subject: 'Hay actividad en tus lugares favoritos',
@@ -182,6 +215,30 @@ const NOTICE_COPY: Record<
       body: "Someone wrote to you in Cruising and you haven't read it yet.",
       button: 'Read the message',
       path: '/messages',
+    },
+    'verification-approved': {
+      subject: 'Your profile is verified',
+      body: 'We reviewed your verification photo: your profile carries the "Verified" badge and you can upload photos and videos.',
+      button: 'Go to my profile',
+      path: '/me',
+    },
+    'verification-rejected': {
+      subject: "We couldn't verify your profile",
+      body: "We reviewed your verification photo and didn't approve it. We deleted the photo. You can send another one. This is why:",
+      button: 'Go to my profile',
+      path: '/me',
+    },
+    'verification-withdrawn': {
+      subject: 'Your profile is no longer verified',
+      body: 'The team withdrew the verification of your profile: it no longer carries the "Verified" badge and you can no longer upload photos or videos.',
+      button: 'Read the rules',
+      path: '/rules',
+    },
+    'media-removed': {
+      subject: 'We removed one of your photos or videos',
+      body: "After reviewing it, we removed a photo or video from your profile, and it can't be uploaded again. This is why:",
+      button: 'Go to my profile',
+      path: '/me',
     },
     favorites: {
       subject: "There's activity at your favourite spots",
@@ -244,10 +301,17 @@ export function cruisingNoticeEmail(
 /** The team's digest: what is waiting in Cruising's moderation. */
 export function cruisingDigestEmail(
   to: string,
-  counts: { spots: number; reports: number; takedowns: number },
+  counts: {
+    spots: number;
+    reports: number;
+    takedowns: number;
+    media: number;
+    verifications: number;
+  },
   siteUrl: string,
 ): MailMessage {
-  const total = counts.spots + counts.reports + counts.takedowns;
+  const total =
+    counts.spots + counts.reports + counts.takedowns + counts.media + counts.verifications;
   return {
     to,
     subject: `Cruising: ${total} waiting for review`,
@@ -261,6 +325,8 @@ export function cruisingDigestEmail(
           ['Spots to review', String(counts.spots)],
           ['Reports', String(counts.reports)],
           ['Removal requests', String(counts.takedowns)],
+          ['New photos and videos', String(counts.media)],
+          ['Verification photos', String(counts.verifications)],
         ],
         button: { label: 'Open Cruising moderation', url: `${siteUrl}/es/admin/cruising` },
         signoff: [],

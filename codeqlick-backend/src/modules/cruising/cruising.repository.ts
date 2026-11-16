@@ -469,6 +469,7 @@ export class CruisingRepository {
         reported: { select: { ...personSelect, cruisingProfile: true } },
         reviewedBy: { select: { id: true, name: true } },
         spot: { select: { id: true, slug: true, name: true, type: true, status: true } },
+        media: { select: { id: true, ref: true, kind: true, status: true } },
         review: {
           select: {
             id: true,
@@ -535,6 +536,7 @@ export class CruisingRepository {
       take: ADMIN_LIST_LIMIT,
       include: {
         spot: { select: { id: true, slug: true, name: true, status: true } },
+        media: { select: { id: true, ref: true, kind: true, status: true } },
         reviewedBy: { select: { id: true, name: true } },
       },
     });
@@ -591,7 +593,7 @@ export class CruisingRepository {
 
   /** When the newest thing waiting for the team arrived (null: nothing waiting). */
   async newestPendingAt(): Promise<Date | null> {
-    const [spot, report, takedown] = await Promise.all([
+    const [spot, report, takedown, media, verification] = await Promise.all([
       this.prisma.cruisingSpot.findFirst({
         where: { status: 'PENDING' },
         orderBy: { updatedAt: 'desc' },
@@ -607,10 +609,24 @@ export class CruisingRepository {
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true },
       }),
+      this.prisma.cruisingMedia.findFirst({
+        where: { reviewedAt: null, status: { in: ['LIVE', 'HIDDEN', 'PROCESSING'] } },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+      this.prisma.cruisingProfile.findFirst({
+        where: { verificationStatus: 'PENDING' },
+        orderBy: { verificationSentAt: 'desc' },
+        select: { verificationSentAt: true },
+      }),
     ]);
-    const times = [spot?.updatedAt, report?.createdAt, takedown?.createdAt].filter(
-      (time): time is Date => !!time,
-    );
+    const times = [
+      spot?.updatedAt,
+      report?.createdAt,
+      takedown?.createdAt,
+      media?.createdAt,
+      verification?.verificationSentAt,
+    ].filter((time): time is Date => !!time);
     return times.length ? new Date(Math.max(...times.map((time) => time.getTime()))) : null;
   }
 
@@ -625,6 +641,9 @@ export class CruisingRepository {
       suspended,
       activeCheckIns,
       conversations,
+      newMedia,
+      liveMedia,
+      pendingVerifications,
     ] = await Promise.all([
       this.prisma.cruisingProfile.count(),
       this.prisma.cruisingSpot.count({ where: { status: 'PENDING' } }),
@@ -640,6 +659,11 @@ export class CruisingRepository {
       }),
       this.prisma.cruisingCheckIn.count({ where: { expiresAt: { gt: now } } }),
       this.prisma.cruisingConversation.count(),
+      this.prisma.cruisingMedia.count({
+        where: { reviewedAt: null, status: { in: ['LIVE', 'HIDDEN', 'PROCESSING'] } },
+      }),
+      this.prisma.cruisingMedia.count({ where: { status: 'LIVE' } }),
+      this.prisma.cruisingProfile.count({ where: { verificationStatus: 'PENDING' } }),
     ]);
     return {
       members,
@@ -651,6 +675,9 @@ export class CruisingRepository {
       suspended,
       activeCheckIns,
       conversations,
+      newMedia,
+      liveMedia,
+      pendingVerifications,
     };
   }
 
@@ -757,7 +784,7 @@ export class CruisingRepository {
         id: true,
         anonymous: true,
         createdAt: true,
-        user: { select: { cruisingProfile: { select: { nickname: true } } } },
+        user: { select: { id: true, cruisingProfile: { select: { nickname: true } } } },
       },
     });
   }

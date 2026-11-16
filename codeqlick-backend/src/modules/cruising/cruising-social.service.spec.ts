@@ -8,6 +8,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { MailMessage, MailService } from '../mail/mail.service.js';
+import type { CruisingMediaRepository } from './cruising-media.repository.js';
 import type { CruisingPushService } from './cruising-push.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingSocialService } from './cruising-social.service.js';
@@ -133,9 +134,11 @@ function build() {
     siteUrl: 'https://codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
+  const mediaRepo = { badges: vi.fn().mockResolvedValue(new Map()) };
   const push = { enabled: true, notify: vi.fn().mockResolvedValue(1) };
   const service = new CruisingSocialService(
     repo as unknown as CruisingRepository,
+    mediaRepo as unknown as CruisingMediaRepository,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
     push as unknown as CruisingPushService,
@@ -224,6 +227,8 @@ describe('CruisingSocialService', () => {
         lookingFor: ['CHAT'],
         age: 41,
         memberSince: '2026-01-02T03:04:05.000Z',
+        verified: false,
+        coverId: null,
       });
     });
 
@@ -345,8 +350,8 @@ describe('CruisingSocialService', () => {
       expect(presence).toEqual({
         count: 3,
         members: [
-          { nickname: SECRET_NICKNAME, since: NOW.toISOString() },
-          { nickname: 'me_myself', since: NOW.toISOString() },
+          { nickname: SECRET_NICKNAME, since: NOW.toISOString(), verified: false, coverId: null },
+          { nickname: 'me_myself', since: NOW.toISOString(), verified: false, coverId: null },
         ],
       });
       expect(JSON.stringify(presence)).not.toContain('shy_guy');
@@ -478,14 +483,14 @@ describe('CruisingSocialService', () => {
       expect(items).toEqual([
         {
           id: CONVERSATION,
-          partner: { nickname: SECRET_NICKNAME },
+          partner: { nickname: SECRET_NICKNAME, verified: false, coverId: null },
           lastMessage: { text: 'Hi', mine: false, at: NOW.toISOString() },
           unread: 2,
           createdAt: NOW.toISOString(),
         },
         {
           id: 'second',
-          partner: { nickname: 'third_one' },
+          partner: { nickname: 'third_one', verified: false, coverId: null },
           lastMessage: null,
           unread: 0,
           createdAt: NOW.toISOString(),

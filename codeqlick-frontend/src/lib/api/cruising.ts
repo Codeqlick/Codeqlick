@@ -1,4 +1,18 @@
 import 'server-only';
+import { cookies } from 'next/headers';
+import { ACCESS_COOKIE } from '@/lib/auth/constants';
+import { clientHeaders } from '@/lib/auth/refresh';
+import { env } from '@/lib/env';
+import {
+  forwardableRange,
+  mediaResponseHeaders,
+  proxiedStatus,
+  type MediaKind,
+  type MediaLimits,
+  type MediaStatus,
+  type MyMedia,
+  type VerificationStatus,
+} from '@/lib/cruising-media';
 import {
   formatBbox,
   type Bbox,
@@ -18,6 +32,11 @@ import { isApiError } from './errors';
 import type { Paginated } from './types';
 
 /** Cruising (architecture 4.15). Shapes mirror section 5's "Shapes" and the API's cruising module. */
+
+/** A member as named in a list or a chat: the badge and the cover photo (phase 4, decision 87). */
+export type CruisingMemberRef = { nickname: string; verified: boolean; coverId: string | null };
+
+export type CruisingVerification = { status: VerificationStatus; note: string | null };
 
 export type CruisingSpotSummary = {
   id: string;
@@ -45,7 +64,7 @@ export type CruisingReview = {
   text: string | null;
   mine: boolean;
   /** null: "Member" (phase 1, or a person without a nickname). */
-  author: { nickname: string } | null;
+  author: CruisingMemberRef | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -59,6 +78,9 @@ export type CruisingStatus = {
   /** Entered, current terms, not suspended. */
   allowed: boolean;
   emailAlerts: boolean;
+  /** Phase 4: the team approved my verification photo. */
+  verified: boolean;
+  verification: CruisingVerification;
   /** Phase 3 (decision 85): push alerts for favourites (default on). */
   favoriteAlerts: boolean;
   /** Phase 3: the daily email about favourites, without push (default off). */
@@ -72,6 +94,7 @@ export type CruisingStatus = {
     country: string | null;
     lookingFor: CruisingLookingFor[];
     showAge: boolean;
+    verified: boolean;
   } | null;
 };
 
@@ -206,6 +229,7 @@ export async function listCruisingSitemap(): Promise<CruisingSitemapItem[]> {
 export function requestCruisingTakedown(input: {
   email: string;
   spotLink?: string;
+  mediaRef?: string;
   reason: CruisingTakedownReason;
   details: string;
   locale: 'es' | 'en';
@@ -303,9 +327,10 @@ export function deleteCruisingReview(spotId: string) {
   });
 }
 
-/** Exactly one target: a spot, a review, a profile (`nickname`) or a conversation. */
+/** Exactly one target: a spot, a review, a profile (`nickname`), a conversation or a photo/video. */
 export function reportCruising(input: {
   spotId?: string;
+  mediaId?: string;
   reviewId?: string;
   nickname?: string;
   conversationId?: string;
@@ -325,6 +350,8 @@ export type CruisingMember = {
   /** null unless the member shows it. */
   age: number | null;
   memberSince: string;
+  verified: boolean;
+  coverId: string | null;
 };
 
 export type CruisingCheckIn = {
@@ -336,12 +363,12 @@ export type CruisingCheckIn = {
 export type CruisingPresence = {
   /** Includes anonymous check-ins and mine. */
   count: number;
-  members: { nickname: string; since: string }[];
+  members: { nickname: string; since: string; verified: boolean; coverId: string | null }[];
 };
 
 export type CruisingConversation = {
   id: string;
-  partner: { nickname: string };
+  partner: CruisingMemberRef;
   lastMessage: { text: string; mine: boolean; at: string } | null;
   /** A flag or a count of unread messages. */
   unread: boolean | number;
@@ -518,6 +545,10 @@ export type AdminCruisingOverview = {
   /** Phase 2. */
   activeCheckIns?: number;
   conversations?: number;
+  /** Phase 4. */
+  newMedia?: number;
+  liveMedia?: number;
+  pendingVerifications?: number;
 };
 
 export type AdminCruisingSpot = {
@@ -546,7 +577,7 @@ export type AdminCruisingSpot = {
  */
 export type AdminCruisingReport = {
   id: string;
-  targetType: 'SPOT' | 'REVIEW' | 'PROFILE' | 'CONVERSATION';
+  targetType: 'SPOT' | 'REVIEW' | 'PROFILE' | 'CONVERSATION' | 'MEDIA';
   reason: CruisingReportReason;
   details: string | null;
   status: 'OPEN' | 'DISMISSED' | 'ACTIONED';
@@ -555,13 +586,18 @@ export type AdminCruisingReport = {
   /** A conversation report's saved chat, when the API gives it beside `target`. */
   transcript?: unknown;
   reporter?: (Partial<Person> & { userId?: string; reports?: number }) | null;
-  reported?: (Partial<Person> & { userId?: string; reports?: number }) | null;
+  reported?: (Partial<Person> & { userId?: string; reports?: number; verified?: boolean }) | null;
 };
+
+/** A photo or video as a report or a removal request names it. */
+export type MediaTarget = { id: string; ref: string; kind: MediaKind; status: MediaStatus };
 
 export type AdminCruisingTakedown = {
   id: string;
   email: string;
   spotLink: string | null;
+  mediaRef?: string | null;
+  media?: MediaTarget | null;
   reason: string;
   details: string;
   locale: 'es' | 'en';
@@ -580,6 +616,36 @@ export type AdminCruisingSuspension = {
   /** null: for good. */
   until: string | null;
   suspendedAt: string | null;
+  verified?: boolean;
+};
+
+export type AdminMediaOwner = {
+  userId: string;
+  name: string;
+  email: string;
+  nickname: string | null;
+  verified: boolean;
+  suspended: boolean;
+};
+
+export type AdminMedia = MediaTarget & {
+  width: number | null;
+  height: number | null;
+  durationSeconds: number | null;
+  failure: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  openReports: number;
+  owner: AdminMediaOwner;
+};
+
+export type AdminVerification = {
+  userId: string;
+  nickname: string | null;
+  name: string;
+  email: string;
+  memberSince: string;
+  sentAt: string;
 };
 
 export function getAdminCruisingOverview() {
@@ -670,7 +736,12 @@ export function dismissCruisingReport(id: string) {
 
 export function actOnCruisingReport(
   id: string,
-  input: { remove: boolean; suspend: CruisingSuspension | null; reason?: string },
+  input: {
+    remove: boolean;
+    suspend: CruisingSuspension | null;
+    reason?: string;
+    withdrawVerification?: boolean;
+  },
 ) {
   return apiFetch<void>(`/admin/cruising/reports/${encodeURIComponent(id)}/action`, {
     method: 'POST',
@@ -708,6 +779,218 @@ export async function listAdminCruisingSuspensions(): Promise<AdminCruisingSuspe
 
 export function liftCruisingSuspension(userId: string) {
   return apiFetch<void>(`/admin/cruising/users/${encodeURIComponent(userId)}/suspension`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+// ---- Phase 4: verification and media -------------------------------------------------------------
+
+/** My verification photo (a JPEG/PNG/WebP of me with a paper showing my nickname and the date). */
+export function uploadCruisingVerification(file: File) {
+  const form = new FormData();
+  form.set('file', file, file.name || 'verification.jpg');
+  return apiFetch<{ status: 'PENDING' }>('/cruising/verification', {
+    method: 'POST',
+    body: form,
+    auth: 'required',
+    signal: AbortSignal.timeout(30_000),
+  });
+}
+
+export type MyMediaList = {
+  items: MyMedia[];
+  verification: CruisingVerification;
+  limits: MediaLimits;
+};
+
+export function getMyCruisingMedia() {
+  return apiFetch<MyMediaList>('/cruising/media', { auth: 'required' });
+}
+
+/** A photo (shrunk in the browser); videos go through the upload route handler instead. */
+export function uploadCruisingPhoto(file: File) {
+  const form = new FormData();
+  form.set('file', file, file.name || 'photo.jpg');
+  form.set('consent', 'true');
+  return apiFetch<MyMedia>('/cruising/media', {
+    method: 'POST',
+    body: form,
+    auth: 'required',
+    signal: AbortSignal.timeout(30_000),
+  });
+}
+
+export function updateCruisingMedia(id: string, input: { cover?: true; position?: number }) {
+  return apiFetch<void>(`/cruising/media/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: input,
+    auth: 'required',
+  });
+}
+
+export function deleteCruisingMedia(id: string) {
+  return apiFetch<void>(`/cruising/media/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    auth: 'required',
+  });
+}
+
+export type CruisingMemberMedia = {
+  id: string;
+  ref: string;
+  kind: MediaKind;
+  width: number | null;
+  height: number | null;
+  durationSeconds: number | null;
+  cover: boolean;
+};
+
+/** The LIVE photos and videos of a member, or [] when the profile isn't there (404). */
+export async function listCruisingMemberMedia(nickname: string): Promise<CruisingMemberMedia[]> {
+  try {
+    return (
+      await apiFetch<{ items: CruisingMemberMedia[] }>(
+        `/cruising/members/${encodeURIComponent(nickname)}/media`,
+        { auth: 'required' },
+      )
+    ).items;
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) return [];
+    throw error;
+  }
+}
+
+/**
+ * A file from the API (a photo, a video, a poster, a verification photo) for the browser, as the
+ * signed-in person. It is streamed, never buffered, and the browser's `Range` goes along so a
+ * video can seek (206). The browser never calls the API itself (BFF).
+ */
+export async function fetchCruisingFile(path: string, request: Request): Promise<Response> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!token) return new Response(null, { status: 401 });
+  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  const range = forwardableRange(request.headers.get('range'));
+  if (range) headers.Range = range;
+  // The wait is for the API's answer; the body then streams for as long as the person watches.
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  request.signal.addEventListener('abort', abort);
+  const timer = setTimeout(abort, 15_000);
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${env.API_URL}${path}`, {
+      headers,
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+  } catch {
+    return new Response(null, { status: 502 });
+  } finally {
+    clearTimeout(timer);
+  }
+  const status = proxiedStatus(upstream.status);
+  if (status !== upstream.status || !upstream.body) {
+    await upstream.body?.cancel().catch(() => undefined);
+    return new Response(null, { status, headers: { 'Cache-Control': 'private, no-store' } });
+  }
+  return new Response(upstream.body, { status, headers: mediaResponseHeaders(upstream.headers) });
+}
+
+/**
+ * Streams a video upload to the API: the browser's multipart body goes through as it arrives
+ * (`duplex: 'half'`), never held in memory. The `Content-Type` carries the multipart boundary.
+ */
+export async function streamCruisingUpload(request: Request): Promise<Response> {
+  const token = (await cookies()).get(ACCESS_COOKIE)?.value;
+  if (!token) return Response.json({ error: 'unauthorized' }, { status: 401 });
+  const headers: Record<string, string> = {
+    ...clientHeaders(request.headers),
+    Authorization: `Bearer ${token}`,
+    'Content-Type': request.headers.get('content-type') ?? 'multipart/form-data',
+  };
+  const length = request.headers.get('content-length');
+  if (length) headers['Content-Length'] = length;
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${env.API_URL}/cruising/media`, {
+      method: 'POST',
+      headers,
+      body: request.body,
+      // Node's fetch needs this to send a stream.
+      duplex: 'half',
+      cache: 'no-store',
+      // 100 MB on a slow connection, plus the video's processing on the API's side.
+      signal: AbortSignal.timeout(10 * 60_000),
+    } as RequestInit & { duplex: 'half' });
+  } catch {
+    return Response.json({ error: 'unavailable' }, { status: 502 });
+  }
+  const body = await upstream.text();
+  return new Response(body || null, {
+    status: upstream.status,
+    headers: {
+      'Content-Type': upstream.headers.get('content-type') ?? 'application/json',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+// ---- Phase 4: admin ------------------------------------------------------------------------------
+
+export async function listAdminCruisingMedia(
+  queue: 'new' | 'hidden' | 'all',
+): Promise<AdminMedia[]> {
+  return (
+    await apiFetch<{ items: AdminMedia[] }>('/admin/cruising/media', {
+      auth: 'required',
+      query: { queue },
+    })
+  ).items;
+}
+
+export function markCruisingMediaReviewed(id: string) {
+  return apiFetch<void>(`/admin/cruising/media/${encodeURIComponent(id)}/reviewed`, {
+    method: 'POST',
+    auth: 'required',
+  });
+}
+
+export function removeCruisingMedia(
+  id: string,
+  input: {
+    reason: string;
+    blockHash: boolean;
+    suspend: CruisingSuspension | null;
+    withdrawVerification: boolean;
+  },
+) {
+  return apiFetch<void>(`/admin/cruising/media/${encodeURIComponent(id)}/remove`, {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+  });
+}
+
+export async function listAdminCruisingVerifications(): Promise<AdminVerification[]> {
+  return (
+    await apiFetch<{ items: AdminVerification[] }>('/admin/cruising/verifications', {
+      auth: 'required',
+    })
+  ).items;
+}
+
+export function decideCruisingVerification(userId: string, approve: boolean, note?: string) {
+  return apiFetch<void>(`/admin/cruising/verifications/${encodeURIComponent(userId)}`, {
+    method: 'POST',
+    body: { approve, note },
+    auth: 'required',
+  });
+}
+
+/** Withdraws a member's badge (they are emailed). */
+export function withdrawCruisingVerification(userId: string) {
+  return apiFetch<void>(`/admin/cruising/users/${encodeURIComponent(userId)}/verification`, {
     method: 'DELETE',
     auth: 'required',
   });

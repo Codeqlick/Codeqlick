@@ -3,11 +3,13 @@ import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
+import { MemberGallery } from '@/components/cruising/MemberGallery';
+import { MemberName } from '@/components/cruising/MemberName';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
-import { getCruisingMember, getCruisingStatus } from '@/lib/api/cruising';
+import { getCruisingMember, getCruisingStatus, listCruisingMemberMedia } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { countryName, isLookingFor, isNickname, normalizeNickname } from '@/lib/cruising';
 import { formatDate } from '@/lib/format';
@@ -36,6 +38,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
   const member = await getCruisingMember(nickname);
   if (!member) notFound();
 
+  const media = await listCruisingMemberMedia(member.nickname).catch(() => []);
   const t = await getTranslations({ locale, namespace: 'Cruising.members' });
   const tl = await getTranslations({ locale, namespace: 'Cruising.lookingFor' });
   const own = status.profile.nickname === member.nickname;
@@ -43,7 +46,9 @@ export default async function CruisingMemberPage({ params }: PageProps) {
 
   return (
     <article>
-      <h1 className={vc.pageTitle}>{member.nickname}</h1>
+      <h1 className={vc.pageTitle}>
+        <MemberName locale={locale} member={member} />
+      </h1>
       <dl className={styles.profileFacts}>
         {member.age !== null ? (
           <div>
@@ -65,6 +70,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
         </div>
       </dl>
       {member.bio ? <p className={styles.prewrap}>{member.bio}</p> : null}
+      <MemberGallery locale={locale} nickname={member.nickname} items={media} own={own} />
       {looking.length > 0 ? (
         <>
           <h2 className={styles.subTitle}>{t('lookingFor')}</h2>

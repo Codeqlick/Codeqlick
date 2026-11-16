@@ -145,5 +145,9 @@ async function handle(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   // Everything except API routes, Next internals and files with an extension (favicon.ico, ...).
-  matcher: ['/((?!api|site-draft|_next|_vercel|.*\\..*).*)'],
+  // Also the video upload of Cruising (`/{locale}/cruising/api/media`): the proxy buffers a request
+  // body up to `experimental.proxyClientMaxBodySize` and cuts the rest, so a 100 MB video must
+  // reach its route handler without passing here (the handler streams it to the API). The route
+  // is called by its own address, so it needs no rewrite; it checks the session itself.
+  matcher: ['/((?!api|site-draft|_next|_vercel|(?:en|es)/cruising/api/media$|.*\\..*).*)'],
 };

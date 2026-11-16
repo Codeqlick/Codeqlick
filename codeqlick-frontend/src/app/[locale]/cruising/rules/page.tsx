@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const RULES = ['1', '2', '3', '4', '5', '6', '7'] as const;
+const RULES = ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as const;
 
 /** Cruising's rules, accepted on entry (Cruising.rules; version CRUISING_TERMS_VERSION in the API). */
 export default async function CruisingRulesPage({ params }: PageProps) {

@@ -786,7 +786,7 @@ describe('Cruising (e2e)', () => {
     expect((await prisma.cruisingSpot.findUnique({ where: { id: spot.id } }))?.status).toBe(
       'REMOVED',
     );
-    expect(sent.map((mail) => mail.subject)).toContain('Hemos retirado el lugar — Cruising');
+    expect(sent.map((mail) => mail.subject)).toContain('Hemos retirado el contenido — Cruising');
     await request(server())
       .post(`/v1/admin/cruising/takedowns/${res.body.id}`)
       .set(admin.auth)

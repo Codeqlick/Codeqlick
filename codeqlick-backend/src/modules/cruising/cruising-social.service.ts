@@ -32,7 +32,9 @@ import {
   type Bbox,
   type RecentAlert,
 } from './cruising.rules.js';
+import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
 import { CruisingRepository } from './cruising.repository.js';
+import { badgeFor } from './cruising.service.js';
 import {
   CHECK_INS_PER_DAY,
   CONVERSATIONS_PER_DAY,
@@ -67,7 +69,7 @@ export interface CruisingPresence {
   /** Everyone checked in now, anonymous ones and me included. */
   count: number;
   /** Only the non-anonymous ones. */
-  members: { nickname: string; since: string }[];
+  members: ({ nickname: string; since: string } & MemberBadge)[];
 }
 
 export interface CruisingMember {
@@ -78,11 +80,14 @@ export interface CruisingMember {
   /** Null unless the member shows it. */
   age: number | null;
   memberSince: string;
+  /** Phase 4: the "Verified" badge and the cover photo. */
+  verified: boolean;
+  coverId: string | null;
 }
 
 export interface CruisingConversationView {
   id: string;
-  partner: { nickname: string };
+  partner: { nickname: string } & MemberBadge;
   lastMessage: { text: string; mine: boolean; at: string } | null;
   unread: number;
   createdAt: string;
@@ -115,6 +120,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
 
   constructor(
     private readonly repository: CruisingRepository,
+    private readonly mediaRepository: CruisingMediaRepository,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly push: CruisingPushService,
@@ -273,7 +279,9 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
   async member(userId: string, nickname: string, now = new Date()): Promise<CruisingMember> {
     this.needNickname(await this.entered(userId));
     const target = await this.visible(userId, nickname, now);
+    const badges = await this.mediaRepository.badges([target.userId], now);
     return {
+      ...badgeFor(badges, target.userId, true),
       nickname: target.nickname as string,
       bio: target.bio,
       country: target.country,
@@ -409,17 +417,23 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
 
   /** Who is at a LIVE spot now: the count, and the nicknames of the non-anonymous. */
   async presence(userId: string, spotId: string, now = new Date()): Promise<CruisingPresence> {
-    await this.entered(userId);
+    const me = await this.entered(userId);
     const spot = await this.repository.findSpot(spotId);
     if (!spot || spot.status !== 'LIVE') throw new NotFoundException('Spot not found');
     const hidden = await this.repository.hiddenIds(userId);
     const rows = await this.repository.presence(spot.id, now, hidden);
+    const named = rows.filter((row) => !row.anonymous && row.user.cruisingProfile?.nickname);
+    const badges = await this.mediaRepository.badges(
+      named.map((row) => row.user.id),
+      now,
+    );
     return {
       count: rows.length,
-      members: rows.flatMap((row) => {
-        const nickname = row.user.cruisingProfile?.nickname;
-        return row.anonymous || !nickname ? [] : [{ nickname, since: row.createdAt.toISOString() }];
-      }),
+      members: named.map((row) => ({
+        nickname: row.user.cruisingProfile?.nickname as string,
+        since: row.createdAt.toISOString(),
+        ...badgeFor(badges, row.user.id, !!me.nickname),
+      })),
     };
   }
 
@@ -451,8 +465,11 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
 
   /** My conversations, latest first. */
   async conversations(userId: string): Promise<CruisingConversationView[]> {
-    await this.entered(userId);
+    const me = await this.entered(userId);
     const rows = await this.repository.conversationsOf(userId);
+    const badges = await this.mediaRepository.badges(
+      rows.map((row) => (row.userAId === userId ? row.userBId : row.userAId)),
+    );
     return Promise.all(
       rows.map(async (row): Promise<CruisingConversationView> => {
         const isA = row.userAId === userId;
@@ -461,7 +478,10 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
         const last = row.messages[0];
         return {
           id: row.id,
-          partner: { nickname: partner.cruisingProfile?.nickname ?? '—' },
+          partner: {
+            nickname: partner.cruisingProfile?.nickname ?? '—',
+            ...badgeFor(badges, partnerId, !!me.nickname),
+          },
           lastMessage: last
             ? { text: last.text, mine: last.senderId === userId, at: last.createdAt.toISOString() }
             : null,

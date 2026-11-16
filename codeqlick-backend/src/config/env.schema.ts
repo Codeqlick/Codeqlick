@@ -47,8 +47,10 @@ export const envSchema = z.object({
   UPLOADS_DIR: z.string().min(1).default('./uploads'),
   /** Swipe's photos (architecture 4.10): private, never served by name, apart from UPLOADS_DIR. */
   SWIPE_UPLOADS_DIR: z.string().min(1).default('./swipe-uploads'),
+  /** Cruising's photos and videos (architecture 4.15, phase 4): private, never served by name. */
+  CRUISING_UPLOADS_DIR: z.string().min(1).default('./cruising-uploads'),
   /** Version of Cruising's rules, terms and privacy policy (architecture 4.15); a new value asks every member to accept again. */
-  CRUISING_TERMS_VERSION: z.string().min(1).max(40).default('2026-11-15.1'),
+  CRUISING_TERMS_VERSION: z.string().min(1).max(40).default('2026-11-16.1'),
   SEED_ADMIN_EMAIL: optionalString,
   SEED_ADMIN_PASSWORD: optionalString,
   SEED_ADMIN_NAME: optionalString,

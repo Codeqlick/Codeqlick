@@ -37,6 +37,7 @@ export default defineConfig({
       LEADS_NOTIFY_TO: env('LEADS_NOTIFY_TO', 'hello@codeqlick.com'),
       UPLOADS_DIR: env('UPLOADS_DIR', join(tmpdir(), 'codeqlick-e2e-uploads')),
       SWIPE_UPLOADS_DIR: env('SWIPE_UPLOADS_DIR', join(tmpdir(), 'codeqlick-e2e-swipe')),
+      CRUISING_UPLOADS_DIR: env('CRUISING_UPLOADS_DIR', join(tmpdir(), 'codeqlick-e2e-cruising')),
       LOG_LEVEL: env('LOG_LEVEL', 'silent'),
     },
   },

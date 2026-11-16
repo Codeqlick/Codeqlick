@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { ActionForm } from '@/components/app/ActionForm';
 import { CruisingChat } from '@/components/cruising/CruisingChat';
 import styles from '@/components/cruising/Cruising.module.css';
+import { MemberName } from '@/components/cruising/MemberName';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -60,9 +61,11 @@ export default async function CruisingChatPage({ params }: PageProps) {
         </Link>
       </p>
       <h1 className={vc.pageTitle}>
-        <Link href={memberHref(partner)} className={styles.convName}>
-          {partner}
-        </Link>
+        <MemberName locale={locale} member={conversation.partner}>
+          <Link href={memberHref(partner)} className={styles.convName}>
+            {partner}
+          </Link>
+        </MemberName>
       </h1>
       <CruisingChat
         locale={locale}

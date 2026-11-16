@@ -5033,7 +5033,9 @@
         "WRONG_INFO": "Información errónea o desactualizada",
         "HARASSMENT": "Acoso o insultos",
         "SPAM": "Spam o publicidad",
-        "OTHER": "Otra cosa"
+        "OTHER": "Otra cosa",
+        "NON_CONSENSUAL": "Alguien aparece sin su consentimiento",
+        "STOLEN": "Imágenes robadas (no son suyas)"
       },
       "details": "Detalles",
       "optional": "opcional",
@@ -5170,15 +5172,19 @@
       "rule4": "Deja los lugares como los encontraste. Conoce la ley local, que cambia de un país a otro, y cúmplela.",
       "rule5Title": "Nada de venta de sexo o drogas",
       "rule5": "Ni ofertas, ni precios, ni contactos de trabajo sexual o drogas, ni publicidad de ningún tipo.",
-      "rule6Title": "Sin fotos de personas sin su consentimiento",
-      "rule6": "No publiques fotos, descripciones ni datos que identifiquen a una persona sin su consentimiento. Sin datos de contacto en las opiniones.",
+      "rule6Title": "Solo tú o personas adultas que consientan",
+      "rule6": "En fotos y vídeos solo apareces tú, o personas adultas que han aceptado estar ahí. No publiques nunca imágenes de alguien sin su consentimiento ni imágenes que no sean tuyas. Sin datos de contacto en las opiniones.",
       "rule7Title": "Denuncia el peligro",
-      "rule7": "Si un lugar es peligroso, ha cambiado o no es adecuado, denúncialo o sugiere una corrección. Si alguien está en peligro inmediato, llama al número de emergencias del lugar donde estés.",
+      "rule7": "Si un lugar es peligroso, ha cambiado o no es adecuado, denúncialo o sugiere una corrección. También puedes denunciar cualquier foto, vídeo o perfil. Si alguien está en peligro inmediato, llama al número de emergencias del lugar donde estés.",
       "privacyTitle": "Tu privacidad",
-      "privacy": "Solo guardamos tu año de nacimiento. Tu posición nunca sale de tu dispositivo. Las opiniones nunca muestran tu nombre ni tu correo. Tratamos datos sobre orientación sexual solo con tu consentimiento explícito.",
+      "privacy": "Solo guardamos tu año de nacimiento. Tu posición nunca sale de tu dispositivo. Las opiniones nunca muestran tu nombre ni tu correo. Tratamos datos sobre orientación sexual, y tus fotos y vídeos, solo con tu consentimiento explícito.",
       "takedownTitle": "Retirar un lugar",
       "takedown": "¿Aparece aquí un lugar tuyo, o crees que un lugar no debería estar? Cualquiera, con o sin cuenta, puede pedirnos que lo retiremos.",
-      "takedownLink": "Pídenos que retiremos un lugar"
+      "takedownLink": "Pídenos que retiremos un lugar",
+      "rule8Title": "Nunca menores",
+      "rule8": "Nadie menor de 18 años puede aparecer en nada de lo que hay aquí, ni siquiera al fondo. Lo retiramos al instante y lo ponemos en conocimiento de las autoridades.",
+      "rule9Title": "Nada ilegal",
+      "rule9": "Nada que infrinja la ley: nada sin consentimiento, nada robado o filtrado, nada de violencia. Las fotos y los vídeos se publican antes de que el equipo los revise, y el equipo retira lo que incumpla estas normas."
     },
     "takedown": {
       "title": "Pídenos que retiremos un lugar",
@@ -5199,7 +5205,11 @@
       "reasonNeeded": "Elige un motivo.",
       "detailsShort": "Cuéntanos un poco más (al menos 10 caracteres).",
       "error": "No hemos podido enviarlo. Inténtalo de nuevo.",
-      "sent": "Gracias. Hemos recibido tu solicitud y te responderemos por correo en 24 horas."
+      "sent": "Gracias. Hemos recibido tu solicitud y te responderemos por correo en 24 horas.",
+      "mediaRef": "Referencia de la foto o el vídeo",
+      "mediaRefHint": "Los 8 caracteres que aparecen bajo la foto o el vídeo. Usa esto o el enlace de un lugar, no los dos.",
+      "mediaRefInvalid": "Una referencia tiene 8 letras y números.",
+      "oneTarget": "Indica el enlace de un lugar o una referencia, no los dos."
     },
     "lookingFor": {
       "CHAT": "Charlar",
@@ -5252,7 +5262,8 @@
       "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para cambiar tu perfil.",
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
       "bioContact": "Sin teléfonos, correos, enlaces ni usuarios de redes en tu bio.",
-      "nicknameChange": "Puedes cambiarlo cuando quieras. El que dejas sigue siendo tuyo durante 14 días: nadie más puede cogerlo y puedes volver a él."
+      "nicknameChange": "Puedes cambiarlo cuando quieras. El que dejas sigue siendo tuyo durante 14 días: nadie más puede cogerlo y puedes volver a él.",
+      "nicknameVerifiedNote": "Si lo cambias, se retira tu insignia de Verificado hasta que te verifiques de nuevo."
     },
     "presence": {
       "title": "Aquí ahora",
@@ -5333,6 +5344,109 @@
       "blockConfirm": "Bloquear a este miembro",
       "blocking": "Bloqueando…"
     },
+    "verified": {
+      "label": "Verificado",
+      "help": "El equipo ha comprobado una foto de esta persona sujetando su apodo: el perfil es suyo y es mayor de edad"
+    },
+    "verification": {
+      "title": "Verificación",
+      "lead": "Consigue la insignia de Verificado y el derecho a añadir fotos y vídeos a tu perfil. Envías una sola foto tuya, una vez.",
+      "step1": "Un papel con tu apodo, «Cruising» y la fecha de hoy",
+      "step2": "Tú sujetándolo, con la cara visible",
+      "step3": "Con buena luz y nítida",
+      "privacy": "Solo el equipo ve esta foto. Se borra en cuanto se revisa; solo se conserva la decisión. No pedimos ningún documento de identidad, y la insignia no significa que se haya comprobado uno.",
+      "fileLabel": "Tu foto de verificación",
+      "preview": "Vista previa de tu foto de verificación",
+      "send": "Enviar para revisión",
+      "sendAgain": "Enviar una foto nueva",
+      "sending": "Enviando…",
+      "sent": "Enviada. El equipo la revisará y te escribiremos por correo.",
+      "pending": "Tu foto espera la revisión del equipo. Te escribiremos por correo cuando esté lista.",
+      "approved": "El equipo ha aprobado tu foto. Ya puedes añadir fotos y vídeos a tu perfil. Si cambias de apodo, se retira la insignia y tendrás que verificarte de nuevo.",
+      "rejected": "El equipo no ha podido aprobar tu foto.",
+      "rejectedNote": "Motivo: {note}",
+      "errors": {
+        "invalid": "Eso no parece una foto que podamos usar. Usa una imagen JPEG, PNG o WebP.",
+        "notAllowed": "Ahora mismo no puedes enviarla.",
+        "conflict": "Ya tienes una foto pendiente o aprobada, o aún no has elegido un apodo.",
+        "tooLarge": "La foto es demasiado grande.",
+        "tooManyToday": "Has enviado demasiadas fotos hoy. Inténtalo mañana.",
+        "error": "Algo ha salido mal. Inténtalo de nuevo."
+      }
+    },
+    "media": {
+      "title": "Mis fotos y vídeos",
+      "lead": "Solo los ven los miembros que han entrado, con una marca de agua, y nunca los buscadores. Se publican en cuanto están listos y el equipo los revisa después.",
+      "loadError": "No hemos podido cargar tus fotos y vídeos. Recarga la página.",
+      "photosCount": "Fotos: {count} de {max}",
+      "videosCount": "Vídeos: {count} de {max}",
+      "perDay": "Hasta {max} subidas al día",
+      "fileLabel": "Añade una foto o un vídeo",
+      "fileHint": "Fotos: JPEG, PNG o WebP de hasta 10 MB. Vídeos: MP4, MOV o WebM de hasta 100 MB y {seconds} segundos.",
+      "consent": "Solo aparezco yo, o todas las personas que aparecen son mayores de 18 años y han aceptado estar aquí; la he hecho yo o he dejado que me la hagan; y quiero que esté en mi perfil.",
+      "send": "Subir",
+      "sending": "Subiendo…",
+      "progress": "Progreso de la subida",
+      "percent": "{percent} %",
+      "sentPhoto": "Foto subida.",
+      "sentVideo": "Vídeo subido. Se está procesando: estará publicado en un momento.",
+      "empty": "Todavía no has añadido nada.",
+      "listLabel": "Tus fotos y vídeos",
+      "kind": {
+        "PHOTO": "Foto",
+        "VIDEO": "Vídeo"
+      },
+      "status": {
+        "PROCESSING": "Procesando",
+        "LIVE": "Publicado",
+        "HIDDEN": "Oculto",
+        "FAILED": "Fallido"
+      },
+      "explain": {
+        "PROCESSING": "Se está preparando. Esta página se actualiza sola.",
+        "LIVE": "Los miembros que han entrado pueden verlo.",
+        "HIDDEN": "Oculto mientras el equipo revisa una denuncia.",
+        "FAILED": "No se ha podido publicar. Bórralo y vuelve a intentarlo."
+      },
+      "failures": {
+        "unreadable": "No se ha podido leer ni convertir el vídeo. Prueba con otro archivo o formato.",
+        "tooLong": "El vídeo dura más de 60 segundos.",
+        "blocked": "Esta imagen se retiró de Cruising antes y no se puede volver a usar.",
+        "interrupted": "El servidor se reinició antes de procesarlo. Vuelve a subirlo.",
+        "unknown": "No se ha podido procesar."
+      },
+      "cover": "Portada",
+      "ref": "Referencia: {ref}",
+      "duration": "{seconds} s",
+      "moveUp": "Subir",
+      "moveDown": "Bajar",
+      "moveUpFor": "Subir el elemento {number}",
+      "moveDownFor": "Bajar el elemento {number}",
+      "makeCover": "Usar como portada",
+      "delete": "Borrar",
+      "deleteConfirm": "Sí, borrarlo",
+      "deleteLead": "Se borrará para siempre. No se puede deshacer.",
+      "cancel": "Cancelar",
+      "errors": {
+        "consent": "Marca la casilla de consentimiento para subirlo.",
+        "invalid": "Ese archivo no sirve: tiene que ser una foto o un vídeo, un vídeo de hasta 60 segundos, y no una imagen retirada antes de Cruising.",
+        "session": "Tu sesión ha caducado. Recarga la página e inicia sesión de nuevo.",
+        "notVerified": "Solo los miembros verificados pueden añadir fotos y vídeos.",
+        "limit": "Has llegado al límite de fotos o de vídeos.",
+        "tooLarge": "El archivo es demasiado grande.",
+        "tooLong": "El vídeo dura más de 60 segundos.",
+        "tooManyToday": "Has llegado al límite de subidas de hoy. Inténtalo mañana.",
+        "diskFull": "Ahora mismo vamos cortos de espacio. Inténtalo más tarde.",
+        "coverNotLive": "Solo una foto publicada puede ser la portada.",
+        "error": "Algo ha salido mal. Inténtalo de nuevo."
+      }
+    },
+    "gallery": {
+      "title": "Fotos y vídeos",
+      "photoAlt": "Foto {number} de {nickname}",
+      "videoAlt": "Vídeo {number} de {nickname}",
+      "ref": "Ref. {ref}"
+    },
     "favorites": {
       "title": "Mis lugares favoritos",
       "lead": "Los lugares que has guardado y cuánta gente hay ahora. Cuando alguien marque que está en uno, podemos avisarte sin decir quién.",
@@ -5390,7 +5504,10 @@
       "reviews": "Opiniones",
       "suspended": "Suspendidos",
       "activeCheckIns": "Registros de presencia ahora",
-      "conversations": "Conversaciones"
+      "conversations": "Conversaciones",
+      "newMedia": "Medios nuevos",
+      "pendingVerifications": "Verificaciones",
+      "liveMedia": "Medios publicados"
     },
     "tabs": {
       "queue": "Por revisar",
@@ -5398,6 +5515,8 @@
       "takedowns": "Retiradas",
       "live": "Lugares",
       "suspended": "Suspendidos",
+      "media": "Medios nuevos",
+      "verifications": "Verificaciones",
       "add": "Añadir lugares"
     },
     "queue": {
@@ -5437,7 +5556,8 @@
       "SPOT": "Lugar",
       "REVIEW": "Opinión",
       "PROFILE": "Perfil",
-      "CONVERSATION": "Conversación"
+      "CONVERSATION": "Conversación",
+      "MEDIA": "Foto o vídeo"
     },
     "reportedSpot": "Lugar",
     "reporter": "Quien denuncia",
@@ -5457,7 +5577,9 @@
       "unmatched": "Ningún lugar coincide (enlace: {link}). Búscalo a partir de la descripción.",
       "response": "Respuesta (se envía por correo)",
       "remove": "Retirar el lugar",
-      "close": "Cerrar sin retirar (vuelve a publicarse)"
+      "close": "Cerrar sin retirar (vuelve a publicarse)",
+      "mediaMatched": "Foto o vídeo {ref} ({status}): ya oculto.",
+      "mediaUnmatched": "Ninguna foto o vídeo tiene la referencia {ref}."
     },
     "live": {
       "filter": "Estado",
@@ -5468,6 +5590,57 @@
     "reportedProfile": "Perfil",
     "transcript": "Chat guardado",
     "noTranscript": "No hay mensajes guardados.",
+    "media": {
+      "title": "Fotos y vídeos",
+      "lead": "Se publican al momento, así que se revisan aquí. Los más antiguos primero. Ante la duda, retira.",
+      "filter": "Qué medios",
+      "queues": {
+        "new": "Sin revisar",
+        "hidden": "Ocultos",
+        "all": "Todos"
+      },
+      "photoAlt": "Foto {ref}",
+      "videoAlt": "Vídeo {ref}",
+      "kind": {
+        "PHOTO": "Foto",
+        "VIDEO": "Vídeo"
+      },
+      "status": {
+        "PROCESSING": "procesando",
+        "LIVE": "publicado",
+        "HIDDEN": "oculto",
+        "FAILED": "fallido"
+      },
+      "verified": "Verificado",
+      "suspended": "Suspendido",
+      "duration": "{seconds} s",
+      "reviewedOn": "revisado el {date}",
+      "failure": "Fallo",
+      "gone": "La foto o el vídeo ya no existe.",
+      "reason": "Motivo si lo retiras",
+      "reasonHint": "Obligatorio para retirar (de 3 a 500 caracteres). La persona lo recibe por correo.",
+      "reasonNeeded": "Escribe el motivo (al menos 3 caracteres).",
+      "blockHash": "Bloquear esta imagen (no se podrá volver a subir)",
+      "withdraw": "Retirar la insignia de Verificado a la persona",
+      "reviewed": "Marcar como revisado",
+      "remove": "Retirar"
+    },
+    "verifications": {
+      "title": "Fotos de verificación",
+      "lead": "Las más antiguas primero. La foto se borra cuando decides, y se avisa al miembro por correo. Rechaza a quien no parezca claramente adulto.",
+      "alt": "Foto de verificación",
+      "memberSince": "Miembro desde el {date}",
+      "check": "Comprueba: un papel con «{nickname}», «Cruising» y la fecha de hoy, sujeto por la persona, con la cara visible.",
+      "note": "Nota para el miembro",
+      "noteHint": "Opcional, hasta 500 caracteres. Va en el correo si rechazas.",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "withdrawTitle": "Retirar una insignia",
+      "withdrawLead": "Quita la insignia de Verificado a un miembro (se le avisa por correo). Pega su id de usuario, que aparece en una denuncia.",
+      "userId": "Id de usuario",
+      "userIdInvalid": "Eso no es un id de usuario.",
+      "withdraw": "Retirar la insignia"
+    },
     "add": {
       "oneTitle": "Añadir un lugar",
       "oneLead": "Un lugar que añade el equipo no pasa por la cola de revisión ni tiene proponente, así que no se envía ningún correo. Las mismas comprobaciones que una propuesta: nunca cerca de colegios, parques infantiles ni sitios con niños.",

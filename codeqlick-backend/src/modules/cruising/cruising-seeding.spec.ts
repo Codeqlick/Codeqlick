@@ -4,6 +4,8 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
 import type { MailService } from '../mail/mail.service.js';
+import type { CruisingMediaRepository } from './cruising-media.repository.js';
+import type { CruisingMediaService } from './cruising-media.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingService } from './cruising.service.js';
 import {
@@ -215,6 +217,8 @@ function build() {
   const activity = { record: vi.fn().mockResolvedValue(undefined) };
   const service = new CruisingService(
     repo as unknown as CruisingRepository,
+    {} as unknown as CruisingMediaRepository,
+    {} as unknown as CruisingMediaService,
     activity as unknown as ActivityService,
     { send: vi.fn() } as unknown as MailService,
     { isTest: true } as unknown as AppConfigService,

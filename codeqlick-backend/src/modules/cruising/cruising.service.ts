@@ -46,6 +46,13 @@ import {
   uniqueSlug,
   type Bbox,
 } from './cruising.rules.js';
+import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
+import { mediaHidesAtOnce, normalizeMediaRef, reasonAllowedOn } from './cruising-media.rules.js';
+import {
+  CruisingMediaService,
+  verificationState,
+  type VerificationState,
+} from './cruising-media.service.js';
 import { CruisingRepository } from './cruising.repository.js';
 import {
   ageOn,
@@ -66,6 +73,7 @@ import {
   type LookingFor,
   type OnboardingInput,
   type ProfileInput,
+  type RemoveMediaInput,
   type ReportActionInput,
   type ReportInput,
   type ReviewInput,
@@ -94,6 +102,10 @@ export interface CruisingStatus {
   /** Entered, current terms, not suspended. */
   allowed: boolean;
   emailAlerts: boolean;
+  /** Phase 4: the verification photo was approved (the "Verified" badge). */
+  verified: boolean;
+  /** Phase 4: the state of the verification, with the team's note. */
+  verification: VerificationState;
   /** Phase 3 (decision 85): push alerts for favourites (default on). */
   favoriteAlerts: boolean;
   /** Phase 3: the daily email about favourites for members without push (default off). */
@@ -107,7 +119,13 @@ export interface CruisingStatus {
     country: string | null;
     lookingFor: LookingFor[];
     showAge: boolean;
+    verified: boolean;
   } | null;
+}
+
+/** How a list names a member: the nickname with the badge and the cover photo (decision 87). */
+export interface CruisingMemberRef extends MemberBadge {
+  nickname: string;
 }
 
 export interface CruisingSpotSummary {
@@ -169,7 +187,7 @@ export interface CruisingReviewView {
   text: string | null;
   mine: boolean;
   /** Null: "Member" (an author without a nickname). */
-  author: { nickname: string } | null;
+  author: CruisingMemberRef | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -242,6 +260,23 @@ interface ProfileChanges {
   country?: string | null;
   lookingFor?: LookingFor[];
   showAge?: boolean;
+  verificationStatus?: 'NONE';
+  verificationKey?: null;
+  verificationNote?: null;
+  verifiedAt?: null;
+}
+
+/** The badge of a member for a viewer: no cover for a viewer who can't open profiles (no nickname). */
+export function badgeFor(
+  badges: Map<string, MemberBadge>,
+  userId: string,
+  viewerHasNickname: boolean,
+): MemberBadge {
+  const badge = badges.get(userId);
+  return {
+    verified: badge?.verified ?? false,
+    coverId: viewerHasNickname ? (badge?.coverId ?? null) : null,
+  };
 }
 
 @Injectable()
@@ -252,6 +287,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   constructor(
     private readonly repository: CruisingRepository,
+    private readonly mediaRepository: CruisingMediaRepository,
+    private readonly media: CruisingMediaService,
     private readonly activity: ActivityService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
@@ -292,6 +329,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             spots: overview.pendingSpots,
             reports: overview.openReports,
             takedowns: overview.openTakedowns,
+            media: overview.newMedia,
+            verifications: overview.pendingVerifications,
           },
           this.config.siteUrl,
         ),
@@ -366,6 +405,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         : null,
       allowed: onboarded && !suspended,
       emailAlerts: profile?.emailAlerts ?? true,
+      verified: profile?.verificationStatus === 'APPROVED',
+      verification: verificationState(profile),
       favoriteAlerts: profile?.favoriteAlerts ?? true,
       favoriteEmails: profile?.favoriteEmails ?? false,
       pushPublicKey: this.config.vapid?.publicKey ?? null,
@@ -376,6 +417,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             country: profile.country,
             lookingFor: profile.lookingFor,
             showAge: profile.showAge,
+            verified: profile.verificationStatus === 'APPROVED',
           }
         : null,
     };
@@ -431,6 +473,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         throw new ConflictException('This nickname is taken');
       }
       data.nickname = input.nickname;
+      // The badge (and a photo waiting for review) is about the old nickname: it goes, and the
+      // member sends a new photo with the new one (decision 87).
+      if (current.verificationStatus === 'APPROVED' || current.verificationStatus === 'PENDING') {
+        data.verificationStatus = 'NONE';
+        data.verificationKey = null;
+        data.verificationNote = null;
+        data.verifiedAt = null;
+      }
     }
     try {
       const saved =
@@ -703,13 +753,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     },
     viewerId: string,
     nickname: string | null,
+    badge: MemberBadge,
   ): CruisingReviewView {
     return {
       id: review.id,
       rating: review.rating,
       text: review.text,
       mine: review.userId === viewerId,
-      author: nickname ? { nickname } : null,
+      author: nickname ? { nickname, ...badge } : null,
       createdAt: review.createdAt.toISOString(),
       updatedAt: review.updatedAt.toISOString(),
     };
@@ -722,13 +773,21 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     page: number,
     pageSize: number,
   ): Promise<Paginated<CruisingReviewView>> {
-    await this.enteredProfile(userId);
+    const me = await this.enteredProfile(userId);
     await this.liveSpot(spotId);
     const { skip, take } = pageToSkipTake(page, pageSize);
     const hidden = await this.repository.hiddenIds(userId);
     const { items, total } = await this.repository.reviewsOfSpot(spotId, skip, take, hidden);
+    const badges = await this.mediaRepository.badges(items.map((review) => review.userId));
     return paginate(
-      items.map((review) => this.reviewView(review, userId, review.nickname)),
+      items.map((review) =>
+        this.reviewView(
+          review,
+          userId,
+          review.nickname,
+          badgeFor(badges, review.userId, !!me.nickname),
+        ),
+      ),
       total,
       page,
       pageSize,
@@ -765,7 +824,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       input.rating,
       input.text ?? null,
     );
-    return this.reviewView(review, userId, me.nickname);
+    const badges = await this.mediaRepository.badges([userId]);
+    return this.reviewView(review, userId, me.nickname, badgeFor(badges, userId, !!me.nickname));
   }
 
   async deleteReview(userId: string, spotId: string): Promise<void> {
@@ -782,8 +842,20 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
    */
   async report(userId: string, input: ReportInput, now = new Date()): Promise<void> {
     await this.allowedProfile(userId, now);
+    const target = input.spotId
+      ? 'spot'
+      : input.reviewId
+        ? 'review'
+        : input.nickname
+          ? 'profile'
+          : input.mediaId
+            ? 'media'
+            : 'conversation';
     if (input.reason === 'WRONG_INFO' && !input.spotId) {
       throw new BadRequestException('Wrong information can only be reported on a spot');
+    }
+    if (!reasonAllowedOn(target, input.reason)) {
+      throw new BadRequestException('This reason does not apply to what you are reporting');
     }
     const today = await this.repository.countReportsSince(userId, new Date(now.getTime() - DAY_MS));
     if (today >= REPORTS_PER_DAY) {
@@ -833,6 +905,25 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         createdAt: now,
       });
       reportId = report.id;
+    } else if (input.mediaId) {
+      // Only what the reporter can see: a LIVE item of someone else, not blocked, not suspended.
+      const item = await this.mediaRepository.findMedia(input.mediaId);
+      if (
+        !item ||
+        item.ownerId === userId ||
+        !(await this.media.visibleTo({ id: userId, isAdmin: false }, item, now))
+      ) {
+        throw new NotFoundException('Not found');
+      }
+      const report = await this.repository.createReport({
+        ...common,
+        targetType: 'MEDIA',
+        mediaId: item.id,
+        reportedId: item.ownerId,
+        createdAt: now,
+      });
+      reportId = report.id;
+      if (mediaHidesAtOnce(input.reason)) await this.media.hide(item.id);
     } else {
       const conversation = await this.repository.findConversation(input.conversationId as string);
       if (!conversation || (conversation.userAId !== userId && conversation.userBId !== userId)) {
@@ -859,10 +950,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (input.website) return { id: '00000000-0000-0000-0000-000000000000' };
     const slug = input.spotLink ? extractSpotSlug(input.spotLink) : null;
     const spot = slug ? await this.repository.findSpotBySlug(slug) : null;
+    const mediaRef = normalizeMediaRef(input.mediaRef);
+    const media = mediaRef ? await this.mediaRepository.findByRef(mediaRef) : null;
     const request = await this.repository.createTakedown({
       email: input.email,
       spotLink: input.spotLink || null,
       spotId: spot?.id ?? null,
+      mediaRef: mediaRef ?? (input.mediaRef?.slice(0, 12) || null),
+      mediaId: media?.id ?? null,
       reason: input.reason,
       details: input.details,
       locale: toDbLocale(input.locale),
@@ -872,6 +967,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (spot?.status === 'LIVE' && takedownHidesAtOnce(input.reason)) {
       await this.repository.updateSpot(spot.id, { status: 'HIDDEN' });
     }
+    // A photo or video: also for missing consent or a stolen image (decision 87).
+    if (media && mediaHidesAtOnce(input.reason)) await this.media.hide(media.id);
     this.alert('takedown', request.id);
     this.sendMail(
       cruisingTakedownEmail(
@@ -1177,7 +1274,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
                 }
               : report.targetType === 'CONVERSATION'
                 ? { type: 'CONVERSATION' as const }
-                : null,
+                : report.targetType === 'MEDIA'
+                  ? { type: 'MEDIA' as const, media: report.media }
+                  : null,
       reporter: {
         userId: report.reporter.id,
         name: report.reporter.name,
@@ -1190,6 +1289,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             name: report.reported.name,
             email: report.reported.email,
             nickname: report.reported.cruisingProfile?.nickname ?? null,
+            verified: report.reported.cruisingProfile?.verificationStatus === 'APPROVED',
             suspended: isSuspended(report.reported.cruisingProfile),
             reports: counts.get(report.reported.id) ?? 0,
           }
@@ -1225,6 +1325,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         await this.repository.setReviewStatus(review.id, 'LIVE');
       }
     }
+    if (report.targetType === 'MEDIA' && report.mediaId) {
+      await this.media.restoreIfClear(report.mediaId);
+    }
     await this.activity.record(actor, {
       action: 'cruising.report_dismissed',
       targetId: report.id,
@@ -1255,7 +1358,21 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         }
       } else if (report.review) {
         await this.repository.deleteReview(report.review.id);
+      } else if (report.targetType === 'MEDIA' && report.mediaId) {
+        await this.media.remove(
+          actor,
+          report.mediaId,
+          {
+            reason: input.reason || `Report: ${report.reason}`,
+            blockHash: true,
+            withdrawVerification: false,
+          },
+          now,
+        );
       }
+    }
+    if (input.withdrawVerification && report.reportedId) {
+      await this.withdrawIfVerified(actor, report.reportedId);
     }
     if (input.suspend && report.reportedId) {
       await this.suspend(
@@ -1270,8 +1387,33 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       action: 'cruising.report_actioned',
       targetId: report.id,
       targetLabel: report.reason,
-      details: { remove: input.remove, suspend: input.suspend },
+      details: {
+        remove: input.remove,
+        suspend: input.suspend,
+        withdrawVerification: input.withdrawVerification,
+      },
     });
+  }
+
+  /** Takes the badge away when the person has it (nothing to withdraw is fine here). */
+  private async withdrawIfVerified(actor: AuthUser, userId: string): Promise<void> {
+    const profile = await this.repository.findProfile(userId);
+    if (profile?.verificationStatus === 'APPROVED') {
+      await this.media.withdrawVerification(actor, userId);
+    }
+  }
+
+  /** The team removes a photo or video (blocked by hash) and may suspend its owner. */
+  async removeMedia(
+    actor: AuthUser,
+    mediaId: string,
+    input: RemoveMediaInput,
+    now = new Date(),
+  ): Promise<void> {
+    const { ownerId } = await this.media.remove(actor, mediaId, input, now);
+    if (input.suspend) {
+      await this.suspend(actor, ownerId, { duration: input.suspend, reason: input.reason }, now);
+    }
   }
 
   // ---- Admin: removal requests -------------------------------------------------------------------
@@ -1290,6 +1432,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       reviewedAt: request.reviewedAt?.toISOString() ?? null,
       reviewedBy: request.reviewedBy,
       spot: request.spot,
+      mediaRef: request.mediaRef,
+      media: request.media,
     }));
   }
 
@@ -1305,6 +1449,18 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       throw new NotFoundException('No open removal request');
     }
     const spot = request.spot;
+    if (request.mediaId) {
+      if (input.remove) {
+        await this.media.remove(
+          actor,
+          request.mediaId,
+          { reason: 'Removal request', blockHash: true, withdrawVerification: false },
+          now,
+        );
+      } else {
+        await this.media.restoreIfClear(request.mediaId, { takedownId: request.id });
+      }
+    }
     if (input.remove && spot && spot.status !== 'REMOVED') {
       await this.repository.updateSpot(spot.id, {
         status: 'REMOVED',
@@ -1329,7 +1485,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     await this.activity.record(actor, {
       action: input.remove ? 'cruising.takedown_removed' : 'cruising.takedown_closed',
       targetId: request.id,
-      targetLabel: spot?.slug ?? request.id.slice(0, 8),
+      targetLabel: spot?.slug ?? request.mediaRef ?? request.id.slice(0, 8),
     });
     this.sendMail(
       cruisingTakedownEmail(
@@ -1361,6 +1517,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     });
     // A suspended member can't be "here": the check-in ends with the suspension.
     await this.repository.endCheckIns(userId, now);
+    if (input.withdrawVerification) await this.withdrawIfVerified(actor, userId);
     const user = await this.repository.findUser(userId);
     await this.activity.record(actor, {
       action: 'cruising.suspended',
@@ -1393,6 +1550,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       name: profile.user.name,
       email: profile.user.email,
       nickname: profile.nickname,
+      verified: profile.verificationStatus === 'APPROVED',
       reason: profile.suspensionReason,
       until: profile.suspendedUntil?.toISOString() ?? null,
       suspendedAt: profile.suspendedAt?.toISOString() ?? null,

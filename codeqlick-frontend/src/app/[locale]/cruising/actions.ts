@@ -11,6 +11,7 @@ import {
   blockCruisingMember,
   createCruisingCheckIn,
   createCruisingSpot,
+  deleteCruisingMedia,
   deleteCruisingReview,
   deleteCruisingSpot,
   endCruisingCheckIn,
@@ -24,9 +25,11 @@ import {
   setCruisingFavorite,
   subscribeCruisingPush,
   unblockCruisingMember,
+  updateCruisingMedia,
   unsubscribeCruisingPush,
   updateCruisingProfile,
   updateCruisingSpot,
+  uploadCruisingVerification,
   type CruisingMessage,
 } from '@/lib/api/cruising';
 import {
@@ -37,7 +40,9 @@ import {
   normalizeNickname,
   parseCheckInHours,
   parseSpotForm,
+  MEDIA_REPORT_REASONS,
   PERSON_REPORT_REASONS,
+  PROFILE_REPORT_REASONS,
   REPORT_REASONS,
   REVIEW_REPORT_REASONS,
   spotLinkSlug,
@@ -46,6 +51,7 @@ import {
   type CruisingLookingFor,
   type CruisingReportReason,
 } from '@/lib/cruising';
+import { isMediaId, isMediaRef, mediaErrorKey } from '@/lib/cruising-media';
 import type { FormState } from '@/lib/forms';
 import { appPath } from '@/lib/webapp-request';
 
@@ -258,7 +264,10 @@ export async function deleteReviewAction(
  */
 export async function reportAction(
   locale: AppLocale,
-  target: { kind: 'spot' | 'review' | 'correction' | 'profile' | 'conversation'; id: string },
+  target: {
+    kind: 'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media';
+    id: string;
+  },
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -269,15 +278,24 @@ export async function reportAction(
   const allowed: readonly CruisingReportReason[] =
     target.kind === 'review'
       ? REVIEW_REPORT_REASONS
-      : target.kind === 'profile' || target.kind === 'conversation'
-        ? PERSON_REPORT_REASONS
-        : REPORT_REASONS;
+      : target.kind === 'media'
+        ? MEDIA_REPORT_REASONS
+        : target.kind === 'profile'
+          ? PROFILE_REPORT_REASONS
+          : target.kind === 'conversation'
+            ? PERSON_REPORT_REASONS
+            : REPORT_REASONS;
   const reason: CruisingReportReason | undefined =
     target.kind === 'correction'
       ? 'WRONG_INFO'
       : allowed.find((value) => value === formData.get('reason'));
   const values = { reason: reason ?? '', details };
-  const validTarget = target.kind === 'profile' ? isNickname(target.id) : UUID.test(target.id);
+  const validTarget =
+    target.kind === 'profile'
+      ? isNickname(target.id)
+      : target.kind === 'media'
+        ? isMediaId(target.id)
+        : UUID.test(target.id);
   if (!validTarget) return { status: 'error', message: t('error'), values };
   if (!reason) return { status: 'error', fieldErrors: { reason: t('reasonNeeded') }, values };
   if (reason === 'WRONG_INFO' && details.length < 10) {
@@ -291,7 +309,9 @@ export async function reportAction(
           ? { nickname: target.id }
           : target.kind === 'conversation'
             ? { conversationId: target.id }
-            : { spotId: target.id }),
+            : target.kind === 'media'
+              ? { mediaId: target.id }
+              : { spotId: target.id }),
       reason,
       details: details || undefined,
     });
@@ -314,15 +334,22 @@ export async function takedownAction(_previous: FormState, formData: FormData): 
   const t = await getTranslations({ locale, namespace: 'Cruising.takedown' });
   const email = String(formData.get('email') ?? '').trim();
   const spotLink = String(formData.get('spotLink') ?? '').trim();
+  const mediaRef = String(formData.get('mediaRef') ?? '').trim();
   const reason = TAKEDOWN_REASONS.find((value) => value === formData.get('reason'));
   const details = String(formData.get('details') ?? '').trim();
-  const values = { email, spotLink, reason: reason ?? '', details };
+  const values = { email, spotLink, mediaRef, reason: reason ?? '', details };
 
   if (!EMAIL.test(email) || email.length > 254) {
     return { status: 'error', fieldErrors: { email: t('emailInvalid') }, values };
   }
   if (spotLink && !spotLinkSlug(spotLink)) {
     return { status: 'error', fieldErrors: { spotLink: t('linkInvalid') }, values };
+  }
+  if (mediaRef && !isMediaRef(mediaRef)) {
+    return { status: 'error', fieldErrors: { mediaRef: t('mediaRefInvalid') }, values };
+  }
+  if (spotLink && mediaRef) {
+    return { status: 'error', fieldErrors: { mediaRef: t('oneTarget') }, values };
   }
   if (!reason) return { status: 'error', fieldErrors: { reason: t('reasonNeeded') }, values };
   if (details.length < 10) {
@@ -332,6 +359,7 @@ export async function takedownAction(_previous: FormState, formData: FormData): 
     await requestCruisingTakedown({
       email,
       spotLink: spotLink.slice(0, 300) || undefined,
+      mediaRef: mediaRef || undefined,
       reason,
       details: details.slice(0, 2000),
       locale,
@@ -563,6 +591,74 @@ export async function blockConversationAction(
   _formData: FormData,
 ): Promise<FormState> {
   return endConversation(locale, conversationId, true);
+}
+
+// ---- Phase 4: verification and my photos and videos --------------------------------------------
+
+export type MediaActionResult = { ok: true } | { ok: false; message: string };
+
+/** Sends my verification photo (POST /cruising/verification): the team reviews it, once. */
+export async function uploadVerificationAction(
+  locale: AppLocale,
+  formData: FormData,
+): Promise<MediaActionResult> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.verification' });
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0)
+    return { ok: false, message: t('errors.invalid') };
+  try {
+    await uploadCruisingVerification(file);
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 400) return { ok: false, message: t('errors.invalid') };
+    if (status === 403) return { ok: false, message: t('errors.notAllowed') };
+    if (status === 409) return { ok: false, message: t('errors.conflict') };
+    if (status === 413) return { ok: false, message: t('errors.tooLarge') };
+    if (status === 429) return { ok: false, message: t('errors.tooManyToday') };
+    return { ok: false, message: t('errors.error') };
+  }
+  refreshAll(locale);
+  return { ok: true };
+}
+
+/** Makes a photo my cover, or moves an item to a place of my list (PATCH /cruising/media/:id). */
+export async function updateMediaAction(
+  locale: AppLocale,
+  id: string,
+  input: { cover?: true; position?: number },
+): Promise<MediaActionResult> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.media' });
+  const position = input.position;
+  if (
+    !isMediaId(id) ||
+    (position !== undefined && (!Number.isInteger(position) || position < 0 || position > 100))
+  ) {
+    return { ok: false, message: t('errors.error') };
+  }
+  try {
+    await updateCruisingMedia(id, input.cover ? { cover: true } : { position });
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) return { ok: false, message: t('errors.coverNotLive') };
+    return { ok: false, message: t(`errors.${mediaErrorKey(status === 409 ? 0 : status)}`) };
+  }
+  refreshAll(locale);
+  return { ok: true };
+}
+
+/** Deletes one of my photos or videos (DELETE /cruising/media/:id). */
+export async function deleteMediaAction(locale: AppLocale, id: string): Promise<MediaActionResult> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.media' });
+  if (!isMediaId(id)) return { ok: false, message: t('errors.error') };
+  try {
+    await deleteCruisingMedia(id);
+  } catch (error) {
+    if (!(isApiError(error) && error.status === 404)) {
+      return { ok: false, message: t('errors.error') };
+    }
+  }
+  refreshAll(locale);
+  return { ok: true };
 }
 
 // ---- Favourites and notifications (phase 3, decision 85) ---------------------------------------
