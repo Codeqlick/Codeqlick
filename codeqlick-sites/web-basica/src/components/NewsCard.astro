@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets';
 import type { NewsPost } from '../types';
 import { formatDate, photoOf, postPath } from '../lib/news';
+import { langOf } from '../lib/site';
 
 interface Props {
   post: NewsPost;
@@ -10,20 +11,21 @@ interface Props {
 }
 
 const { post, level = 3 } = Astro.props;
+const lang = langOf(Astro.url);
 const photo = photoOf(post);
 const Heading = `h${level}` as 'h2' | 'h3';
 ---
 
 <article class="card">
   {photo ? (
-    <a class="photo" href={postPath(post)} tabindex="-1" aria-hidden="true">
+    <a class="photo" href={postPath(post, lang)} tabindex="-1" aria-hidden="true">
       <Image src={photo} alt="" widths={[400, 800]} sizes="(max-width: 760px) 100vw, 33vw" />
     </a>
   ) : null}
   <div class="body">
-    <time datetime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+    <time datetime={post.publishedAt}>{formatDate(post.publishedAt, lang)}</time>
     <Heading>
-      <a href={postPath(post)}>{post.title}</a>
+      <a href={postPath(post, lang)}>{post.title}</a>
     </Heading>
     <p>{post.summary}</p>
   </div>

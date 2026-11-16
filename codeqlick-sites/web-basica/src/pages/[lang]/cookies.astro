@@ -1,0 +1,9 @@
+---
+import CookiesEn from '../../components/legal/CookiesEn.astro';
+import { englishPaths } from '../../lib/site';
+
+/** `/en/cookies`: the cookie policy in English. */
+export const getStaticPaths = englishPaths;
+---
+
+<CookiesEn />

@@ -11,7 +11,10 @@ import Services from '../components/Services.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Base from '../layouts/Base.astro';
 import { posts } from '../lib/news';
-import { imageOf, sectionOrder, site } from '../lib/site';
+import { imageOf, pageOf, sectionOrder } from '../lib/site';
+
+/** The home page; `/en` renders it too (`[lang]/index.astro`), in English. */
+const { site } = pageOf(Astro.url);
 
 const image = await getImage({ src: imageOf(site.hero.image), width: 1200, format: 'jpg' });
 const { address } = site.contact;

@@ -7,12 +7,13 @@ import {
   NEWS_PATH,
   PAGE_SIZE,
   formatDate,
+  newsPaths,
   pageCount,
   pagePath,
   photoOf,
-  posts,
+  postsIn,
 } from '../../lib/news';
-import { site } from '../../lib/site';
+import { pageOf, pathOf } from '../../lib/site';
 import type { NewsPost } from '../../types';
 
 /**
@@ -20,16 +21,12 @@ import type { NewsPost } from '../../types';
  * only when the site has published posts.
  */
 export function getStaticPaths() {
-  if (!posts.length) return [];
-  return [
-    { params: { slug: undefined }, props: { page: 1 } },
-    ...Array.from({ length: pageCount - 1 }, (_, i) => ({
-      params: { slug: String(i + 2) },
-      props: { page: i + 2 },
-    })),
-    ...posts.map((post) => ({ params: { slug: post.slug }, props: { post } })),
-  ];
+  return newsPaths('es');
 }
+
+// The English pages (`[lang]/noticias/[...slug].astro`) render this one with English posts.
+const { lang, site, t, href } = pageOf(Astro.url);
+const posts = postsIn(lang);
 
 const { page = 1, post } = Astro.props as { page?: number; post?: NewsPost };
 const visible = post ? [] : posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -47,7 +44,7 @@ const schema = post
       datePublished: post.publishedAt,
       dateModified: post.updatedAt ?? post.publishedAt,
       ...(photoUrl ? { image: photoUrl } : {}),
-      mainEntityOfPage: new URL(Astro.url.pathname, Astro.site).toString(),
+      mainEntityOfPage: new URL(pathOf(Astro.url), Astro.site).toString(),
       author: business,
       publisher: business,
     }
@@ -66,11 +63,11 @@ const schema = post
     <article class="section post">
       <div class="container">
         <p class="eyebrow">
-          <a href={NEWS_PATH}>Noticias</a>
+          <a href={href(NEWS_PATH)}>{t.news}</a>
         </p>
         <h1>{post.title}</h1>
         <p class="date">
-          <time datetime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
+          <time datetime={post.publishedAt}>{formatDate(post.publishedAt, lang)}</time>
         </p>
         {photo ? (
           <Image
@@ -83,8 +80,8 @@ const schema = post
         ) : null}
         <div class="prose" set:html={renderMarkdown(post.body)} />
         <p class="back">
-          <a class="button button--ghost" href={NEWS_PATH}>
-            Todas las noticias
+          <a class="button button--ghost" href={href(NEWS_PATH)}>
+            {t.allNews}
           </a>
         </p>
       </div>
@@ -94,14 +91,14 @@ const schema = post
 
 {!post ? (
   <Base
-    title={page > 1 ? `Noticias, página ${page}` : 'Noticias'}
-    description={`Novedades y ofertas de ${site.business.name}.`}
+    title={page > 1 ? t.newsPage(page) : t.news}
+    description={t.newsDescription(site.business.name)}
   >
     <section class="section list" aria-labelledby="noticias-title">
       <div class="container">
         <div class="section-head">
           <p class="eyebrow">{site.business.name}</p>
-          <h1 id="noticias-title">Noticias</h1>
+          <h1 id="noticias-title">{t.news}</h1>
         </div>
         <div class="grid">
           {visible.map((item) => (
@@ -109,12 +106,10 @@ const schema = post
           ))}
         </div>
         {pageCount > 1 ? (
-          <nav class="pager" aria-label="Páginas de noticias">
-            {page > 1 ? <a href={pagePath(page - 1)}>Más recientes</a> : <span />}
-            <span>
-              Página {page} de {pageCount}
-            </span>
-            {page < pageCount ? <a href={pagePath(page + 1)}>Más antiguas</a> : <span />}
+          <nav class="pager" aria-label={t.newsPages}>
+            {page > 1 ? <a href={pagePath(page - 1, lang)}>{t.newer}</a> : <span />}
+            <span>{t.pageOf(page, pageCount)}</span>
+            {page < pageCount ? <a href={pagePath(page + 1, lang)}>{t.older}</a> : <span />}
           </nav>
         ) : null}
       </div>

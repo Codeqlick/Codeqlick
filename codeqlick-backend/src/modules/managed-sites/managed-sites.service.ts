@@ -15,6 +15,7 @@ import { SiteFormsService } from '../site-forms/site-forms.service.js';
 import { UmamiClient } from '../stats/umami.client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
 import {
+  englishOn,
   presetContent,
   siteContentSchema,
   type CreateSiteInput,
@@ -220,10 +221,17 @@ export class ManagedSitesService {
     return this.build(projectId);
   }
 
-  /** The content a build gets: extras the site doesn't have turned on are left out. */
+  /**
+   * The content a build gets: extras the site doesn't have turned on are left out, and so is the
+   * English version while it is off (its texts stay in the content), so those builds are as before.
+   */
   contentToBuild(site: SiteRow, content: unknown): Record<string, unknown> {
-    const { menu, ...rest } = content as Record<string, unknown>;
-    return site.menuEnabled && menu !== undefined ? { ...rest, menu } : rest;
+    const { menu, english, en, ...rest } = content as Record<string, unknown>;
+    return {
+      ...rest,
+      ...(site.menuEnabled && menu !== undefined ? { menu } : {}),
+      ...(english === true ? { english, ...(en !== undefined ? { en } : {}) } : {}),
+    };
   }
 
   /**
@@ -233,9 +241,12 @@ export class ManagedSitesService {
   async newsToBuild(
     site: Pick<SiteRow, 'id' | 'newsEnabled'>,
     now = new Date(),
+    english = false,
   ): Promise<{ posts: BuildNewsPost[] } | undefined> {
     if (!site.newsEnabled) return undefined;
-    const posts = (await this.news.live(site.id, now)).flatMap((post) => toBuildPost(post) ?? []);
+    const posts = (await this.news.live(site.id, now)).flatMap(
+      (post) => toBuildPost(post, english) ?? [],
+    );
     return posts.length > 0 ? { posts } : undefined;
   }
 
@@ -280,7 +291,7 @@ export class ManagedSitesService {
     const websiteId = await this.analyticsOf(site);
     // The posts it shows are those published and not expired from this moment on.
     const startedAt = new Date();
-    const news = await this.newsToBuild(site, startedAt);
+    const news = await this.newsToBuild(site, startedAt, englishOn(site.content));
     const result = await this.builder.build({
       slug: site.slug,
       preset: site.preset,

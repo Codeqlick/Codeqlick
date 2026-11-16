@@ -47,6 +47,9 @@ function formOf(post: SiteNewsPost): NewsForm {
     title: post.title,
     summary: post.summary,
     body: post.body,
+    titleEn: post.titleEn ?? '',
+    summaryEn: post.summaryEn ?? '',
+    bodyEn: post.bodyEn ?? '',
     photo: post.photo?.file ?? '',
     expiresAt: expiryDay(post.expiresAt),
   };
@@ -63,11 +66,14 @@ export function SiteNews({
   scope,
   projectId,
   initial,
+  english = false,
 }: {
   locale: AppLocale;
   scope: NewsScope;
   projectId: string;
   initial: SiteNewsList;
+  /** The site has its English version (decision 106): posts get their English texts too. */
+  english?: boolean;
 }) {
   const t = useTranslations('SiteNews');
   const ids = useId();
@@ -431,6 +437,55 @@ export function SiteNews({
                   </ul>
                 </details>
               </div>
+
+              {english ? (
+                <fieldset className={editor.list}>
+                  <legend className={editor.label}>{t('english.title')}</legend>
+                  <p className={editor.hint}>{t('english.hint')}</p>
+                  {(
+                    [
+                      ['titleEn', 'fieldTitle', 0, form.title],
+                      ['summaryEn', 'fieldSummary', 3, form.summary],
+                      ['bodyEn', 'fieldBody', 8, form.body],
+                    ] as const
+                  ).map(([name, label, rows, spanish]) => (
+                    <div key={name} className={editor.field}>
+                      <label htmlFor={field(name)} className={editor.label}>
+                        {t(`english.${label}`)}
+                      </label>
+                      {rows ? (
+                        <textarea
+                          id={field(name)}
+                          className={editor.input}
+                          rows={rows}
+                          lang="en"
+                          maxLength={NEWS_LIMITS[name]}
+                          value={form[name]}
+                          placeholder={spanish}
+                          aria-invalid={errors[name] ? true : undefined}
+                          onChange={(event) => set(name, event.target.value)}
+                        />
+                      ) : (
+                        <input
+                          id={field(name)}
+                          className={editor.input}
+                          lang="en"
+                          maxLength={NEWS_LIMITS[name]}
+                          value={form[name]}
+                          placeholder={spanish}
+                          aria-invalid={errors[name] ? true : undefined}
+                          onChange={(event) => set(name, event.target.value)}
+                        />
+                      )}
+                      {errors[name] ? (
+                        <p className={editor.error} role="alert">
+                          {errors[name]}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </fieldset>
+              ) : null}
 
               <div className={editor.photoField}>
                 <p className={editor.label}>{t('fieldPhoto')}</p>

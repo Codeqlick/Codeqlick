@@ -32,6 +32,10 @@ export function setAt<T extends Json>(content: T, path: string, value: Json | un
       else copy[index] = value;
     } else
       copy[index] = setAt(copy[index] ?? (/^\d+$/.test(rest[0]!) ? [] : {}), rest.join('.'), value);
+    // Writing past the end (an English twin of a later item): the items before it are blank.
+    const filler: Json =
+      rest.length > 0 ? (/^\d+$/.test(rest[0]!) ? [] : {}) : typeof value === 'string' ? '' : {};
+    for (let i = 0; i < copy.length; i++) if (copy[i] === undefined) copy[i] = filler;
     return copy as T;
   }
   const copy = { ...(node as { [key: string]: Json }) };
@@ -67,6 +71,74 @@ const LIVE = [
 ];
 const isLive = (path: string) => LIVE.some((pattern) => pattern.test(path));
 
+/** The texts with an English twin (decision 106; the API's `siteEnglishSchema`). */
+const TRANSLATABLE = [
+  /^business\.(tagline|description)$/,
+  /^hero\.(eyebrow|title|text|image\.alt|primary\.label|secondary\.label)$/,
+  /^hero\.facts\.\d+\.(value|label)$/,
+  /^navLabels\.(services|about|gallery|testimonials)$/,
+  /^services\.(title|intro|note)$/,
+  /^services\.items\.\d+\.(name|description|price)$/,
+  /^about\.(title|paragraphs\.\d+|highlights\.\d+|image\.alt)$/,
+  /^gallery\.(title|intro)$/,
+  /^gallery\.images\.\d+\.alt$/,
+  /^testimonials\.title$/,
+  /^testimonials\.items\.\d+\.(quote|detail)$/,
+  /^banner\.(title|text|link\.label)$/,
+  /^menu\.(title|intro|note)$/,
+  /^menu\.categories\.\d+\.name$/,
+  /^menu\.categories\.\d+\.items\.\d+\.(name|description|price)$/,
+  /^booking\.label$/,
+  /^notices\.\d+\.text$/,
+  /^contactSection\.(title|intro)$/,
+  /^hours\.\d+\.(days|hours)$/,
+];
+
+/** Whether the Spanish text at `path` has an English twin at `en.<path>`. */
+export const isTranslatable = (path: string) => TRANSLATABLE.some((pattern) => pattern.test(path));
+
+/** The English twin's path of a Spanish text. */
+export const twinPath = (path: string) => `en.${path}`;
+
+/**
+ * The Spanish texts whose English twin is still empty (the English page shows them in Spanish).
+ * Prices are left out: they are usually the same in both. So is the menu while it is off.
+ */
+export function missingEnglish(content: Content, { menu = true } = {}): string[] {
+  const { en, english: _english, ...spanish } = content;
+  const missing: string[] = [];
+  walk(spanish as Content, '', (path, value) => {
+    if (typeof value !== 'string' || !value.trim() || !isTranslatable(path)) return;
+    if (path.endsWith('.price') || (!menu && path.startsWith('menu.'))) return;
+    const twin = getAt(en ?? {}, path);
+    if (typeof twin !== 'string' || !twin.trim()) missing.push(path);
+  });
+  return missing;
+}
+
+/**
+ * The English twins of a list's items follow them when the Spanish list changes: `next` is the
+ * list after removing `removed` or moving `from` to `to`. Undefined when there are no twins.
+ */
+export function followTwins(
+  content: Content,
+  path: string,
+  length: number,
+  change: { removed: number } | { from: number; to: number },
+): Json[] | undefined {
+  const twins = getAt(content, twinPath(path));
+  if (!Array.isArray(twins)) return undefined;
+  const sample = getAt(content, `${path}.0`);
+  const blank: Json = typeof sample === 'string' ? '' : {};
+  const next = Array.from({ length }, (_, i) => twins[i] ?? blank);
+  if ('removed' in change) next.splice(change.removed, 1);
+  else {
+    const [item] = next.splice(change.from, 1);
+    next.splice(change.to, 0, item!);
+  }
+  return next;
+}
+
 function walk(node: Json, path: string, visit: (path: string, value: Json) => void): void {
   if (node !== null && typeof node === 'object') {
     const entries = Array.isArray(node)
@@ -76,11 +148,20 @@ function walk(node: Json, path: string, visit: (path: string, value: Json) => vo
   } else visit(path, node);
 }
 
-/** Every live text, for the preview to patch at once. */
+/**
+ * Every live text, for the preview to patch at once; with the English version on, the English
+ * page's texts too (`en.<path>`), the Spanish one where the English is empty.
+ */
 export function liveTexts(content: Content): Record<string, string> {
   const texts: Record<string, string> = {};
-  walk(content, '', (path, value) => {
-    if (typeof value === 'string' && isLive(path)) texts[path] = value;
+  const { en, ...spanish } = content;
+  walk(spanish as Content, '', (path, value) => {
+    if (typeof value !== 'string' || !isLive(path)) return;
+    texts[path] = value;
+    if (content.english === true) {
+      const twin = getAt(en ?? {}, path);
+      texts[twinPath(path)] = typeof twin === 'string' && twin.trim() ? twin : value;
+    }
   });
   return texts;
 }
@@ -92,6 +173,8 @@ export function liveTexts(content: Content): Record<string, string> {
 export function structureOf(content: Content): string {
   const parts: string[] = [];
   walk({ ...content, theme: null }, '', (path, value) => {
+    // An English text shows the Spanish one when empty, so only its value changes: live.
+    if (path.startsWith('en.') && isLive(path.slice(3))) return;
     parts.push(
       `${path}=${typeof value === 'string' && isLive(path) ? (value ? 1 : 0) : JSON.stringify(value)}`,
     );

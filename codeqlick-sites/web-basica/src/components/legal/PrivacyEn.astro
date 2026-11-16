@@ -1,0 +1,77 @@
+---
+import Legal from '../../layouts/Legal.astro';
+import { site } from '../../lib/site';
+
+/** The privacy policy in English (`/en/privacidad`). */
+const { legal } = site;
+---
+
+<Legal title="Privacy policy">
+  <p>
+    This policy explains what personal data we collect through this website and what we do with it,
+    under the General Data Protection Regulation (GDPR) and Spanish Organic Law 3/2018 (LOPDGDD).
+  </p>
+
+  <h2>Controller</h2>
+  <ul>
+    <li>
+      {legal.owner} (Tax ID {legal.taxId})
+    </li>
+    <li>{legal.address}</li>
+    <li>
+      <a href={`mailto:${legal.email}`}>{legal.email}</a>
+    </li>
+  </ul>
+
+  <h2>What data we collect and why</h2>
+  <p>
+    Only what you give us when you write to us (through the form, by email or by WhatsApp): your
+    name, your email, your phone if you add it and your message. We use it only to answer you and,
+    if we reach an agreement, to provide the service. We do not use it to send you advertising.
+  </p>
+
+  <h2>Legal basis</h2>
+  <p>
+    Your consent when you send us the message (article 6.1.a GDPR) and, when you ask us for a quote
+    or an appointment, steps taken at your request before a contract (article 6.1.b).
+  </p>
+
+  <h2>How long we keep it</h2>
+  <p>
+    As long as needed to deal with your enquiry. Messages sent through the form are kept for 12
+    months at most and then deleted. If you become a customer, for as long as the relationship lasts
+    and the periods the law requires (for example, tax rules).
+  </p>
+
+  <h2>Who else can access it</h2>
+  <p>
+    We do not share your data with anyone, unless the law requires it. Our website and form hosting
+    provider accesses it only to provide that service to us, as a processor: it sends us your
+    messages by email and keeps them in our private area so that we can read them, and uses them for
+    nothing else. If you write to us on WhatsApp, that service belongs to WhatsApp Ireland Limited
+    and follows its own policy.
+  </p>
+
+  {site.analytics ? (
+    <>
+      <h2>Visit statistics</h2>
+      <p>
+        We count visits to the website in aggregate (pages viewed, where visitors come from, the
+        type of device) with our own tool, which uses no cookies and does not keep your IP address.
+        It cannot identify you.
+      </p>
+    </>
+  ) : null}
+
+  <h2>Your rights</h2>
+  <p>
+    You can ask us to access, correct or delete your data, to object to or restrict its processing,
+    or to take it with you, by writing to <a href={`mailto:${legal.email}`}>{legal.email}</a>. If
+    you think we have not handled it properly, you can complain to the Spanish Data Protection
+    Agency (
+    <a href="https://www.aepd.es" rel="noopener" target="_blank">
+      www.aepd.es
+    </a>
+    ).
+  </p>
+</Legal>

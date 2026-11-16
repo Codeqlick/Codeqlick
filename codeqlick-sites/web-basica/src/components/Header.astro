@@ -1,11 +1,20 @@
 ---
-import { nav } from '../lib/nav';
-import { edit, site, telHref } from '../lib/site';
+import { ui } from '../lib/i18n';
+import { navIn } from '../lib/nav';
+import { english, pageOf, pathOf, telHref, twinOf } from '../lib/site';
+
+const { lang, site, t, edit, href } = pageOf(Astro.url);
+const nav = navIn(lang);
+/** The same page in the other language (sites with an English version). */
+const other = english ? (lang === 'en' ? 'es' : 'en') : undefined;
+const switchTo = other
+  ? { lang: other, label: ui[other].name, href: twinOf(pathOf(Astro.url), other) }
+  : undefined;
 ---
 
 <header class="header">
   <div class="container bar">
-    <a class="brand" href="/">
+    <a class="brand" href={href('/')}>
       <span class="name" data-edit={edit('business.name')}>
         {site.business.name}
       </span>
@@ -15,7 +24,7 @@ import { edit, site, telHref } from '../lib/site';
         </span>
       ) : null}
     </a>
-    <nav aria-label="Principal" class="desktop">
+    <nav aria-label={t.mainNav} class="desktop">
       <ul>
         {nav.map((link) => (
           <li>
@@ -26,12 +35,17 @@ import { edit, site, telHref } from '../lib/site';
         ))}
       </ul>
     </nav>
+    {switchTo ? (
+      <a class="lang" href={switchTo.href} hreflang={switchTo.lang} lang={switchTo.lang}>
+        {switchTo.label}
+      </a>
+    ) : null}
     {site.contact.phone ? (
       <a
         class={`button call ${site.booking ? 'button--ghost' : ''}`}
         href={telHref(site.contact.phone)}
       >
-        Llamar
+        {t.call}
       </a>
     ) : null}
     {site.booking ? (
@@ -40,10 +54,10 @@ import { edit, site, telHref } from '../lib/site';
       </a>
     ) : null}
     <details class="mobile">
-      <summary aria-label="Menú">
+      <summary aria-label={t.menuButton}>
         <span aria-hidden="true"></span>
       </summary>
-      <nav aria-label="Principal (móvil)">
+      <nav aria-label={t.mobileNav}>
         <ul>
           {site.booking ? (
             <li>
@@ -59,7 +73,16 @@ import { edit, site, telHref } from '../lib/site';
           ))}
           {site.contact.phone ? (
             <li>
-              <a href={telHref(site.contact.phone)}>Llamar · {site.contact.phone}</a>
+              <a href={telHref(site.contact.phone)}>
+                {t.call} · {site.contact.phone}
+              </a>
+            </li>
+          ) : null}
+          {switchTo ? (
+            <li>
+              <a href={switchTo.href} hreflang={switchTo.lang} lang={switchTo.lang}>
+                {switchTo.label}
+              </a>
             </li>
           ) : null}
         </ul>
@@ -128,6 +151,12 @@ import { edit, site, telHref } from '../lib/site';
     color: var(--primary-strong);
   }
 
+  .lang {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-underline-offset: 0.2em;
+  }
+
   .call,
   .book {
     min-height: 2.6rem;
@@ -145,6 +174,7 @@ import { edit, site, telHref } from '../lib/site';
 
   @media (max-width: 860px) {
     .desktop,
+    .lang,
     .call {
       display: none;
     }

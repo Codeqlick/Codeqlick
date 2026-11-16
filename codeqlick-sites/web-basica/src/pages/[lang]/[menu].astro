@@ -1,0 +1,11 @@
+---
+import Menu from '../[menu].astro';
+import { english, site } from '../../lib/site';
+
+/** `/en/carta`: the menu in English (the QR's English poster leads here). */
+export function getStaticPaths() {
+  return english && site.menu ? [{ params: { lang: 'en', menu: 'carta' } }] : [];
+}
+---
+
+<Menu />

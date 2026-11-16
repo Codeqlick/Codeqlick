@@ -3,13 +3,24 @@
 /** The list's page size: the page that renders it and the action that loads more use it. */
 export const NEWS_PAGE_SIZE = 20;
 
-export const NEWS_LIMITS = { title: 120, summary: 300, body: 10_000 } as const;
+export const NEWS_LIMITS = {
+  title: 120,
+  summary: 300,
+  body: 10_000,
+  titleEn: 120,
+  summaryEn: 300,
+  bodyEn: 10_000,
+} as const;
 
 /** What the client types for a post; `expiresAt` is a `YYYY-MM-DD` day or empty. */
 export type NewsForm = {
   title: string;
   summary: string;
   body: string;
+  /** English twins for a site with its English version (decision 106); empty shows the Spanish. */
+  titleEn: string;
+  summaryEn: string;
+  bodyEn: string;
   /** `media/<file>` or empty. */
   photo: string;
   expiresAt: string;
@@ -19,6 +30,9 @@ export const EMPTY_NEWS_FORM: NewsForm = {
   title: '',
   summary: '',
   body: '',
+  titleEn: '',
+  summaryEn: '',
+  bodyEn: '',
   photo: '',
   expiresAt: '',
 };
@@ -66,6 +80,9 @@ export function newsProblems(
   else if (summary.length > NEWS_LIMITS.summary) problems.summary = 'tooLong';
   if (!body) problems.body = 'required';
   else if (body.length > NEWS_LIMITS.body) problems.body = 'tooLong';
+  for (const field of ['titleEn', 'summaryEn', 'bodyEn'] as const) {
+    if (form[field].trim().length > NEWS_LIMITS[field]) problems[field] = 'tooLong';
+  }
   if (form.expiresAt) {
     if (!DAY.test(form.expiresAt)) problems.expiresAt = 'date';
     else if (publishing && form.expiresAt < today) problems.expiresAt = 'past';
@@ -79,6 +96,9 @@ export function newsPayload(form: NewsForm) {
     title: form.title.trim(),
     summary: form.summary.trim(),
     body: form.body.trim(),
+    titleEn: form.titleEn.trim() || null,
+    summaryEn: form.summaryEn.trim() || null,
+    bodyEn: form.bodyEn.trim() || null,
     photo: form.photo || null,
     expiresAt: form.expiresAt || null,
   };
@@ -90,6 +110,9 @@ export function newsChanged(a: NewsForm, b: NewsForm): boolean {
     a.title !== b.title ||
     a.summary !== b.summary ||
     a.body !== b.body ||
+    a.titleEn !== b.titleEn ||
+    a.summaryEn !== b.summaryEn ||
+    a.bodyEn !== b.bodyEn ||
     a.photo !== b.photo ||
     a.expiresAt !== b.expiresAt
   );
@@ -98,6 +121,9 @@ export function newsChanged(a: NewsForm, b: NewsForm): boolean {
 /** Maps an API field path or message to the form's field (the API names the field in either). */
 export function newsFieldOf(path: string, message = ''): keyof NewsForm | null {
   const text = `${path} ${message}`.toLowerCase();
+  for (const field of ['titleEn', 'summaryEn', 'bodyEn'] as const) {
+    if (text.includes(field.toLowerCase())) return field;
+  }
   for (const field of ['title', 'summary', 'body', 'photo'] as const) {
     if (text.includes(field)) return field;
   }

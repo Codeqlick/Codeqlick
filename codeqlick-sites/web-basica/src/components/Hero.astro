@@ -1,7 +1,8 @@
 ---
 import { Image } from 'astro:assets';
-import { edit, imageOf, site } from '../lib/site';
+import { imageOf, pageOf } from '../lib/site';
 
+const { site, edit, href } = pageOf(Astro.url);
 const { hero } = site;
 ---
 
@@ -18,13 +19,13 @@ const { hero } = site;
         {hero.text}
       </p>
       <div class="actions">
-        <a class="button" href={hero.primary.href} data-edit={edit('hero.primary.label')}>
+        <a class="button" href={href(hero.primary.href)} data-edit={edit('hero.primary.label')}>
           {hero.primary.label}
         </a>
         {hero.secondary ? (
           <a
             class="button button--ghost"
-            href={hero.secondary.href}
+            href={href(hero.secondary.href)}
             data-edit={edit('hero.secondary.label')}
           >
             {hero.secondary.label}
