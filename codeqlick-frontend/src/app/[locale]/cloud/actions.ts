@@ -88,6 +88,10 @@ import {
   setCloudRebuildSchedule,
   startCloudBuild,
   unlockCloudProduction,
+  updateCloudBucket,
+  replyCloudComment,
+  resolveCloudCommentThread,
+  deleteCloudComment,
 } from '@/lib/api/cloud';
 import {
   hookBranchValid,
@@ -102,6 +106,8 @@ import {
   monitorKeywordMode,
   parseRebuildForm,
   parseSlowMs,
+  parseCorsForm,
+  type CorsRuleInput,
 } from '@/lib/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { detectQuery } from '@/lib/cloud-detect';
@@ -1992,6 +1998,120 @@ export async function deleteBucketKeyAction(formData: FormData): Promise<void> {
   await deleteCloudBucketKey(
     formString(formData, 'project'),
     formString(formData, 'bucket'),
+    formString(formData, 'id'),
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+/** Public read on or off (decision 111); the console asks for confirmation before turning it on. */
+export async function setBucketPublicAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  bucketId: string,
+  enabled: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.storage.public' });
+  try {
+    await updateCloudBucket(projectId, bucketId, { public: enabled });
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: enabled ? t('enabled') : t('disabled') };
+}
+
+/** Saves the bucket's CORS rule, or clears it (the Clear button sends `intent=clear`). */
+export async function saveBucketCorsAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  bucketId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.storage.cors' });
+  const values = formValues(formData, ['intent']);
+  const clear = formString(formData, 'intent') === 'clear';
+  let cors: CorsRuleInput | null = null;
+  if (!clear) {
+    const parsed = parseCorsForm({
+      origins: formString(formData, 'origins'),
+      methods: formData.getAll('methods').filter((value) => typeof value === 'string'),
+      headers: formString(formData, 'headers'),
+      exposeHeaders: formString(formData, 'exposeHeaders'),
+      maxAge: formString(formData, 'maxAge'),
+    });
+    if (!parsed.ok) {
+      const fieldErrors: Record<string, string> = {};
+      for (const [field, key] of Object.entries(parsed.errors)) {
+        fieldErrors[field] = t(`errors.${key}`);
+      }
+      return { status: 'error', fieldErrors, values };
+    }
+    cors = parsed.value;
+  }
+  try {
+    await updateCloudBucket(projectId, bucketId, { cors });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success', message: clear ? t('cleared') : t('saved') };
+}
+
+// ── Preview comments (architecture 4.13 "Preview comments", decision 111) ─────────────────
+
+/** A reply to a thread, with the members ticked in the mention picker (up to 10). */
+export async function replyCommentAction(
+  locale: string,
+  path: string,
+  projectId: string,
+  threadId: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.comments' });
+  const values = formValues(formData);
+  const body = formString(formData, 'body');
+  if (body.length < 1 || body.length > 2000) {
+    return { status: 'error', fieldErrors: { body: t('bodyInvalid') }, values };
+  }
+  const mentions = [
+    ...new Set(formData.getAll('mentions').filter((value) => typeof value === 'string')),
+  ].slice(0, 10);
+  try {
+    await replyCloudComment(projectId, threadId, {
+      body,
+      ...(mentions.length > 0 ? { mentions } : {}),
+    });
+  } catch (error) {
+    return failure(lang, error, values);
+  }
+  refresh(lang, path);
+  return { status: 'success' };
+}
+
+export async function resolveCommentThreadAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await resolveCloudCommentThread(
+    formString(formData, 'project'),
+    formString(formData, 'id'),
+    formString(formData, 'resolved') === '1',
+  ).catch(() => undefined);
+  refresh(locale, formString(formData, 'path'));
+}
+
+export async function deleteCommentAction(formData: FormData): Promise<void> {
+  const locale = localeOrDefault(formData.get('locale'));
+  await deleteCloudComment(
+    formString(formData, 'project'),
+    formString(formData, 'thread'),
     formString(formData, 'id'),
   ).catch(() => undefined);
   refresh(locale, formString(formData, 'path'));
