@@ -64,9 +64,15 @@ function build() {
     findProfile: vi.fn().mockResolvedValue(profile()),
     findProfileByNickname: vi.fn().mockResolvedValue(other()),
     hiddenIds: vi.fn().mockResolvedValue([]),
-    findSpot: vi
-      .fn()
-      .mockResolvedValue({ id: SPOT, slug: 'cove', name: SECRET_NAME, status: 'LIVE' }),
+    findSpot: vi.fn().mockResolvedValue({
+      id: SPOT,
+      slug: 'cove',
+      name: SECRET_NAME,
+      status: 'LIVE',
+      lat: 40.4,
+      lng: -3.7,
+      timeZone: 'Europe/Madrid',
+    }),
     countCheckInsSince: vi.fn().mockResolvedValue(0),
     createCheckIn: vi.fn().mockImplementation((_user, _spot, anonymous: boolean, expiresAt: Date) =>
       Promise.resolve({
@@ -83,6 +89,7 @@ function build() {
     deleteConversationStartsBefore: vi.fn().mockResolvedValue(0),
     deleteNicknameChangesBefore: vi.fn().mockResolvedValue(0),
     deleteAlertsBefore: vi.fn().mockResolvedValue(0),
+    decaySpotHours: vi.fn().mockResolvedValue(0),
     favorites: vi.fn().mockResolvedValue([]),
     hereAt: vi.fn().mockResolvedValue(new Map()),
     isFavorite: vi.fn().mockResolvedValue(false),
@@ -229,6 +236,21 @@ describe('CruisingSocialService', () => {
         memberSince: '2026-01-02T03:04:05.000Z',
         verified: false,
         coverId: null,
+        badges: [],
+        contributions: { spotsLive: 0, helpfulReceived: 0, reviewsWritten: 0 },
+      });
+    });
+
+    it('shows the contributor badges its counters earn (decision 93)', async () => {
+      t.repo.findProfileByNickname.mockResolvedValue(
+        other({ spotsLive: 4, helpfulReceived: 10, reviewsWritten: 24 }),
+      );
+      const member = await t.service.member(ME, SECRET_NICKNAME, NOW);
+      expect(member.badges).toEqual(['EXPLORER', 'HELPFUL']);
+      expect(member.contributions).toEqual({
+        spotsLive: 4,
+        helpfulReceived: 10,
+        reviewsWritten: 24,
       });
     });
 
@@ -280,6 +302,14 @@ describe('CruisingSocialService', () => {
         true,
         new Date(NOW.getTime() + 2 * 3600_000),
         NOW,
+        // Sunday 13:00 in Madrid: the busiest hours count 13 and 14 o'clock (decision 89).
+        {
+          timeZone: 'Europe/Madrid',
+          slots: [
+            { day: 6, hour: 13 },
+            { day: 6, hour: 14 },
+          ],
+        },
       );
       expect(view).toEqual({
         spot: { id: SPOT, slug: 'cove', name: SECRET_NAME },
@@ -384,6 +414,11 @@ describe('CruisingSocialService', () => {
       // Favourite alerts are kept two days.
       expect(t.repo.deleteAlertsBefore).toHaveBeenCalledWith(
         new Date(NOW.getTime() - 48 * 3600_000),
+      );
+      // The busiest hours fade once a day (decision 89).
+      expect(t.repo.decaySpotHours).toHaveBeenCalledWith(
+        new Date(NOW.getTime() - 24 * 3600_000),
+        0.98,
       );
       t.repo.deleteCheckInsExpiredBefore.mockRejectedValue(new Error('db down'));
       expect(await t.service.cleanupCheckIns(NOW)).toBe(0);

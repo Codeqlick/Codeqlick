@@ -32,9 +32,18 @@ import {
   type Bbox,
   type RecentAlert,
 } from './cruising.rules.js';
+import {
+  checkInHourSlots,
+  contributorBadges,
+  HOURS_DECAY,
+  HOURS_DECAY_EVERY_MS,
+  spotTimeZone,
+  type ContributorBadge,
+  type ContributorCounters,
+} from './cruising-insights.rules.js';
 import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
 import { CruisingRepository } from './cruising.repository.js';
-import { badgeFor } from './cruising.service.js';
+import { badgeFor, countersOf } from './cruising.service.js';
 import {
   CHECK_INS_PER_DAY,
   CONVERSATIONS_PER_DAY,
@@ -83,6 +92,9 @@ export interface CruisingMember {
   /** Phase 4: the "Verified" badge and the cover photo. */
   verified: boolean;
   coverId: string | null;
+  /** Phase 5 (decision 93): the contributor badges and the counters they come from. */
+  badges: ContributorBadge[];
+  contributions: ContributorCounters;
 }
 
 export interface CruisingConversationView {
@@ -229,6 +241,11 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       await this.repository.deleteNicknameChangesBefore(new Date(now.getTime() - 14 * DAY_MS));
       // Alerts only count for a day; they are kept two (decision 85).
       await this.repository.deleteAlertsBefore(new Date(now.getTime() - ALERT_KEEP_MS));
+      // The busiest hours fade: each spot's weights × 0.98 once a day (decision 89).
+      await this.repository.decaySpotHours(
+        new Date(now.getTime() - HOURS_DECAY_EVERY_MS),
+        HOURS_DECAY,
+      );
       return await this.repository.deleteCheckInsExpiredBefore(
         new Date(now.getTime() - CHECK_IN_KEEP_MS),
       );
@@ -288,6 +305,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       lookingFor: target.lookingFor,
       age: target.showAge ? ageFromBirthYear(target.birthYear, now) : null,
       memberSince: target.createdAt.toISOString(),
+      badges: contributorBadges(countersOf(target)),
+      contributions: countersOf(target),
     };
   }
 
@@ -329,12 +348,16 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     if (today >= CHECK_INS_PER_DAY) {
       throw new HttpException('You can check in 10 times a day', HttpStatus.TOO_MANY_REQUESTS);
     }
+    const expiresAt = checkInEnd(input.hours, now);
+    // The busiest hours count it in the spot's local time (decision 89): only counters.
+    const timeZone = spot.timeZone ?? spotTimeZone(Number(spot.lat), Number(spot.lng));
     const checkIn = await this.repository.createCheckIn(
       userId,
       spot.id,
       input.anonymous,
-      checkInEnd(input.hours, now),
+      expiresAt,
       now,
+      { slots: checkInHourSlots(now, expiresAt, timeZone), timeZone },
     );
     // The members who saved the spot hear about it after the answer (an anonymous one too).
     this.later(() => this.alertFavorites(spot.id, userId, now), 'favourite alerts');

@@ -850,4 +850,194 @@ describe('Cruising social (e2e)', () => {
     expect(JSON.stringify(pushed)).not.toContain('Hi there');
     expect(JSON.stringify(pushed)).not.toContain(writer.nick);
   });
+
+  // ---- Phase 5: busiest hours, helpful reviews and badges (decisions 89, 93) --------------------
+
+  it('counts check-ins into the spot’s busiest hours, shown from 10 check-ins', async () => {
+    const spot = await liveSpot();
+    const [first, second, outsider] = [
+      await member('HoursA'),
+      await member('HoursB'),
+      await person('HoursOut'),
+    ];
+    const hours = (who: Person) =>
+      request(server()).get(`/v1/cruising/spots/${spot.id}/hours`).set(who.auth);
+
+    // Only entered members see them.
+    await request(server()).get(`/v1/cruising/spots/${spot.id}/hours`).expect(401);
+    expect((await hours(outsider)).status).toBe(403);
+    const empty = await hours(first).expect(200);
+    expect(empty.body.ready).toBe(false);
+    expect(empty.body.days).toHaveLength(7);
+    expect(empty.body.days[0]).toHaveLength(24);
+
+    await request(server())
+      .post('/v1/cruising/check-ins')
+      .set(first.auth)
+      .send({ spotId: spot.id, hours: 2, anonymous: true })
+      .expect(201);
+    const row = await prisma.cruisingSpot.findUniqueOrThrow({ where: { id: spot.id } });
+    // The spot's time zone, from its coordinates (decision 89): the Pacific, UTC-10.
+    expect(row.timeZone).toBe('Etc/GMT+10');
+    expect(row.hourCheckIns).toBe(1);
+    expect(row.hoursDecayedAt).not.toBeNull();
+    const counted = await prisma.cruisingSpotHour.findMany({ where: { spotId: spot.id } });
+    // Two hours from now cover two or three local hours, each counted once; nobody is kept.
+    expect(counted.length).toBeGreaterThanOrEqual(2);
+    expect(counted.length).toBeLessThanOrEqual(3);
+    expect(counted.every((hour) => hour.weight === 1)).toBe(true);
+    expect(Object.keys(counted[0]!).sort()).toEqual(['day', 'hour', 'spotId', 'weight']);
+    expect((await hours(first).expect(200)).body.ready).toBe(false);
+
+    // The tenth check-in makes the chart show.
+    await prisma.cruisingSpot.update({ where: { id: spot.id }, data: { hourCheckIns: 9 } });
+    await request(server())
+      .post('/v1/cruising/check-ins')
+      .set(second.auth)
+      .send({ spotId: spot.id, hours: 1, anonymous: false })
+      .expect(201);
+    const ready = await hours(first).expect(200);
+    expect(ready.body.ready).toBe(true);
+    expect(Math.max(...ready.body.days.flat())).toBe(100);
+
+    // The nightly decay: × 0.98 once the last one is a day old, once.
+    const busiest = await prisma.cruisingSpotHour.findFirstOrThrow({
+      where: { spotId: spot.id },
+      orderBy: { weight: 'desc' },
+    });
+    const dayAgo = new Date(Date.now() - 25 * 3600_000);
+    await prisma.cruisingSpot.update({ where: { id: spot.id }, data: { hoursDecayedAt: dayAgo } });
+    const social = app.get(CruisingSocialService);
+    await social.cleanupCheckIns();
+    await social.cleanupCheckIns();
+    const after = await prisma.cruisingSpotHour.findUniqueOrThrow({
+      where: { spotId_day_hour: { spotId: spot.id, day: busiest.day, hour: busiest.hour } },
+    });
+    expect(after.weight).toBeCloseTo(busiest.weight * 0.98);
+    const moved = await prisma.cruisingSpot.findUniqueOrThrow({ where: { id: spot.id } });
+    expect(moved.hoursDecayedAt!.getTime()).toBe(dayAgo.getTime() + 24 * 3600_000);
+  });
+
+  it('sorts reviews by helpful votes, counts them for the author and shows the badges', async () => {
+    const spot = await liveSpot();
+    const [author, newer, voter, stranger] = [
+      await member('Author'),
+      await member('Newer'),
+      await member('Voter'),
+      await member('Stranger'),
+    ];
+    const review = (who: Person, text: string) =>
+      request(server())
+        .put(`/v1/cruising/spots/${spot.id}/review`)
+        .set(who.auth)
+        .send({ rating: 4, text })
+        .expect(200);
+    const older = await review(author, 'Older and helpful');
+    await prisma.cruisingReview.update({
+      where: { id: older.body.id },
+      data: { createdAt: new Date(Date.now() - 3600_000) },
+    });
+    await review(newer, 'Newer one');
+    const helpful = (who: Person, id: string) =>
+      request(server()).put(`/v1/cruising/reviews/${id}/helpful`).set(who.auth);
+    const list = (who: Person) =>
+      request(server()).get(`/v1/cruising/spots/${spot.id}/reviews`).set(who.auth).expect(200);
+
+    // Newest first while nobody voted.
+    expect((await list(voter)).body.items.map((item: { text: string }) => item.text)).toEqual([
+      'Newer one',
+      'Older and helpful',
+    ]);
+
+    // Not on my own review; twice is fine.
+    expect((await helpful(author, older.body.id)).status).toBe(400);
+    expect((await helpful(voter, older.body.id)).status).toBe(204);
+    expect((await helpful(voter, older.body.id)).status).toBe(204);
+    expect((await helpful(stranger, older.body.id)).status).toBe(204);
+    expect((await helpful(voter, randomUUID())).status).toBe(404);
+
+    const page = await list(voter);
+    expect(page.body.items.map((item: { text: string }) => item.text)).toEqual([
+      'Older and helpful',
+      'Newer one',
+    ]);
+    expect(page.body.items[0].helpful).toEqual({ count: 2, mine: true });
+    expect(page.body.items[1].helpful).toEqual({ count: 0, mine: false });
+    expect((await list(author)).body.items[0].helpful).toEqual({ count: 2, mine: false });
+
+    // The author's counters follow, in the same transaction.
+    const counters = () =>
+      prisma.cruisingProfile.findUniqueOrThrow({ where: { userId: author.id } });
+    expect(await counters()).toMatchObject({ helpfulReceived: 2, reviewsWritten: 1 });
+    await request(server())
+      .delete(`/v1/cruising/reviews/${older.body.id}/helpful`)
+      .set(stranger.auth)
+      .expect(204);
+    expect((await counters()).helpfulReceived).toBe(1);
+
+    // A blocked author's review can't be voted on (it isn't shown either).
+    await prisma.cruisingBlock.create({ data: { blockerId: author.id, blockedId: stranger.id } });
+    expect((await helpful(stranger, older.body.id)).status).toBe(404);
+
+    // Badges: next to the nickname on reviews and on the profile.
+    await prisma.cruisingProfile.update({
+      where: { userId: author.id },
+      data: { spotsLive: 3, helpfulReceived: 10, reviewsWritten: 25 },
+    });
+    const badged = await list(voter);
+    expect(badged.body.items[0].author).toMatchObject({
+      nickname: author.nick,
+      badges: ['EXPLORER', 'HELPFUL', 'LOCAL'],
+    });
+    expect(badged.body.items[1].author.badges).toEqual([]);
+    const profile = await request(server())
+      .get(`/v1/cruising/members/${author.nick}`)
+      .set(voter.auth)
+      .expect(200);
+    expect(profile.body.badges).toEqual(['EXPLORER', 'HELPFUL', 'LOCAL']);
+    expect(profile.body.contributions).toEqual({
+      spotsLive: 3,
+      helpfulReceived: 10,
+      reviewsWritten: 25,
+    });
+
+    // Deleting the review takes its votes and counts with it.
+    await request(server())
+      .delete(`/v1/cruising/spots/${spot.id}/review`)
+      .set(author.auth)
+      .expect(204);
+    expect(await counters()).toMatchObject({ helpfulReceived: 0, reviewsWritten: 0 });
+  });
+
+  it('counts the proposer’s LIVE spots as the team publishes and hides them', async () => {
+    const proposer = await member('Proposer');
+    const spot = await prisma.cruisingSpot.create({
+      data: {
+        slug: `proposed-${tag}-${randomUUID().slice(0, 6)}`,
+        name: `Proposed ${tag}`,
+        type: 'BEACH',
+        lat: 12.5,
+        lng: -148.5,
+        countryCode: 'ES',
+        city: `Social ${tag}`,
+        citySlug: `social-${tag}`,
+        description: 'A proposed beach.',
+        status: 'PENDING',
+        createdById: proposer.id,
+      },
+    });
+    const spotsLive = async () =>
+      (await prisma.cruisingProfile.findUniqueOrThrow({ where: { userId: proposer.id } }))
+        .spotsLive;
+    await request(server())
+      .post(`/v1/admin/cruising/spots/${spot.id}/approve`)
+      .set(admin.auth)
+      .expect(204);
+    expect(await spotsLive()).toBe(1);
+    await request(server())
+      .post(`/v1/admin/cruising/spots/${spot.id}/hide`)
+      .set(admin.auth)
+      .expect(204);
+    expect(await spotsLive()).toBe(0);
+  });
 });

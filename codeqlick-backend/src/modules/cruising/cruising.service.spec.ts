@@ -133,6 +133,9 @@ function build() {
     ),
     deleteReview: vi.fn().mockResolvedValue(undefined),
     setReviewStatus: vi.fn().mockResolvedValue(undefined),
+    countHelpfulVotes: vi.fn().mockResolvedValue(0),
+    spotsWithoutTimeZone: vi.fn().mockResolvedValue([]),
+    setSpotTimeZone: vi.fn().mockResolvedValue(undefined),
     countReportsSince: vi.fn().mockResolvedValue(0),
     createReport: vi.fn().mockResolvedValue({ id: 'report-1' }),
     findReport: vi.fn(),
@@ -398,6 +401,41 @@ describe('CruisingService', () => {
   });
 
   describe('public pages', () => {
+    it('shows the structured information of a spot (decision 92)', async () => {
+      t.repo.findSpotBySlug.mockResolvedValue(
+        spotRow({ tags: ['NUDIST'], openingHours: 'Summer', tips: 'Go left' }),
+      );
+      expect(await t.service.spotBySlug('secret-cove-of-dreams')).toMatchObject({
+        tags: ['NUDIST'],
+        openingHours: 'Summer',
+        tips: 'Go left',
+      });
+    });
+
+    it('filters the map by tags, all of them', async () => {
+      await t.service.spotsInBox(
+        { minLng: 0, minLat: 0, maxLng: 1, maxLat: 1 },
+        undefined,
+        undefined,
+        ['NUDIST', 'LIT'],
+      );
+      expect(t.repo.spotsInBox).toHaveBeenCalledWith(
+        expect.anything(),
+        { type: undefined, minRating: undefined, tags: ['NUDIST', 'LIT'] },
+        501,
+      );
+    });
+
+    it('gives the spots from before phase 5 their time zone, in batches', async () => {
+      t.repo.spotsWithoutTimeZone.mockResolvedValueOnce([
+        { id: 'a', lat: '40.4', lng: '-3.7' },
+        { id: 'b', lat: '28.1', lng: '-15.4' },
+      ]);
+      expect(await t.service.backfillTimeZones()).toBe(2);
+      expect(t.repo.setSpotTimeZone).toHaveBeenCalledWith('a', 'Europe/Madrid');
+      expect(t.repo.setSpotTimeZone).toHaveBeenCalledWith('b', 'Atlantic/Canary');
+    });
+
     it('shows only LIVE spots by slug', async () => {
       t.repo.findSpotBySlug.mockResolvedValue(spotRow());
       expect(await t.service.spotBySlug('secret-cove-of-dreams')).toMatchObject({
@@ -426,6 +464,26 @@ describe('CruisingService', () => {
           status: 'PENDING',
           createdById: ME,
           bestTimes: null,
+          tags: [],
+          openingHours: null,
+          tips: null,
+          // The busiest hours count in the spot's local time (decision 89).
+          timeZone: 'Europe/Madrid',
+        }),
+      );
+    });
+
+    it('keeps its tags, opening hours and tips (decision 92)', async () => {
+      await t.service.proposeSpot(
+        ME,
+        { ...input, tags: ['NUDIST', 'PARKING'], openingHours: ' Summer ', tips: '' },
+        NOW,
+      );
+      expect(t.repo.createSpot).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: ['NUDIST', 'PARKING'],
+          openingHours: 'Summer',
+          tips: null,
         }),
       );
     });
@@ -699,10 +757,33 @@ describe('CruisingService', () => {
           }),
         },
         cruisingSpot: { update: vi.fn().mockResolvedValue(undefined) },
+        cruisingReviewVote: { findMany: vi.fn().mockResolvedValue([]) },
       };
       const prisma = { $transaction: (fn: (client: typeof tx) => Promise<void>) => fn(tx) };
       await deleteUserRecomputingRatings(prisma as never, ME);
       expect(order).toEqual(['delete user', 'recompute a', 'recompute b']);
+    });
+
+    it('updates the counters of the members whose reviews the account found helpful', async () => {
+      const tx = {
+        cruisingReview: {
+          findMany: vi.fn().mockResolvedValue([]),
+          count: vi.fn().mockResolvedValue(4),
+        },
+        user: { delete: vi.fn().mockResolvedValue(undefined) },
+        cruisingSpot: { update: vi.fn() },
+        cruisingReviewVote: {
+          findMany: vi.fn().mockResolvedValue([{ review: { userId: OTHER } }]),
+          count: vi.fn().mockResolvedValue(1),
+        },
+        cruisingProfile: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+      };
+      const prisma = { $transaction: (fn: (client: typeof tx) => Promise<void>) => fn(tx) };
+      await deleteUserRecomputingRatings(prisma as never, ME);
+      expect(tx.cruisingProfile.updateMany).toHaveBeenCalledWith({
+        where: { userId: OTHER },
+        data: { reviewsWritten: 4, helpfulReceived: 1 },
+      });
     });
   });
 
@@ -969,8 +1050,23 @@ describe('CruisingService', () => {
     });
 
     it('corrects fields without touching the slug', async () => {
-      await t.service.correctSpot(admin, SPOT, { name: 'Fixed', lat: 1.0000049 });
-      expect(t.repo.updateSpot).toHaveBeenCalledWith(SPOT, { name: 'Fixed', lat: 1 });
+      await t.service.correctSpot(admin, SPOT, { name: 'Fixed', tags: ['LIT'] });
+      expect(t.repo.updateSpot).toHaveBeenCalledWith(SPOT, { name: 'Fixed', tags: ['LIT'] });
+    });
+
+    it('works the time zone out again when a spot moves (decision 89)', async () => {
+      // Only the latitude changes: the spot's own longitude completes the point.
+      await t.service.correctSpot(admin, SPOT, { lat: 28.1000049, lng: -15.4 });
+      expect(t.repo.updateSpot).toHaveBeenCalledWith(SPOT, {
+        lat: 28.1,
+        lng: -15.4,
+        timeZone: 'Atlantic/Canary',
+      });
+      await t.service.correctSpot(admin, SPOT, { lat: 41.38 });
+      expect(t.repo.updateSpot).toHaveBeenLastCalledWith(SPOT, {
+        lat: 41.38,
+        timeZone: 'Europe/Madrid',
+      });
     });
   });
 
@@ -1178,7 +1274,12 @@ describe('CruisingService', () => {
     it('saves only what the member sent and shows the profile once there is a nickname', async () => {
       const status = await t.service.updateProfile(ME, everything, NOW);
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, everything);
-      expect(status.profile).toEqual({ ...everything, verified: false });
+      expect(status.profile).toEqual({
+        ...everything,
+        verified: false,
+        badges: [],
+        contributions: { spotsLive: 0, helpfulReceived: 0, reviewsWritten: 0 },
+      });
     });
 
     it('has no profile in the status until a nickname is set', async () => {
@@ -1272,6 +1373,9 @@ describe('CruisingService', () => {
             text: null,
             userId: ME,
             nickname: 'pier_fan',
+            counters: { spotsLive: 10, helpfulReceived: 2, reviewsWritten: 25 },
+            helpful: 3,
+            helpfulMine: false,
             createdAt: NOW,
             updatedAt: NOW,
           },
@@ -1281,6 +1385,9 @@ describe('CruisingService', () => {
             text: null,
             userId: '9',
             nickname: null,
+            counters: null,
+            helpful: 0,
+            helpfulMine: true,
             createdAt: NOW,
             updatedAt: NOW,
           },
@@ -1288,17 +1395,29 @@ describe('CruisingService', () => {
         total: 2,
       });
       const page = await t.service.reviews(ME, SPOT, 1, 20);
-      expect(t.repo.reviewsOfSpot).toHaveBeenCalledWith(SPOT, 0, 20, [OTHER]);
+      expect(t.repo.reviewsOfSpot).toHaveBeenCalledWith(SPOT, 0, 20, [OTHER], ME);
       expect(page.items.map((item) => item.author)).toEqual([
-        { nickname: 'pier_fan', verified: false, coverId: null },
+        { nickname: 'pier_fan', verified: false, coverId: null, badges: ['GUIDE', 'LOCAL'] },
         null,
+      ]);
+      // Helpful votes (decision 93): how many, and whether I gave one.
+      expect(page.items.map((item) => item.helpful)).toEqual([
+        { count: 3, mine: false },
+        { count: 0, mine: true },
       ]);
     });
 
     it('show my own nickname on the review I save', async () => {
       t.repo.findProfile.mockResolvedValue(profile({ nickname: 'pier_fan' }));
+      t.repo.countHelpfulVotes.mockResolvedValue(2);
       const view = await t.service.saveReview(ME, SPOT, { rating: 5, text: null }, NOW);
-      expect(view.author).toEqual({ nickname: 'pier_fan', verified: false, coverId: null });
+      expect(view.author).toEqual({
+        nickname: 'pier_fan',
+        verified: false,
+        coverId: null,
+        badges: [],
+      });
+      expect(view.helpful).toEqual({ count: 2, mine: false });
     });
   });
 
