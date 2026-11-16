@@ -279,3 +279,58 @@ export function newDeviceSignInEmail(
     ),
   };
 }
+
+/**
+ * To the account after a passkey was added to it (decision 104), so a passkey someone else added
+ * with a stolen password doesn't go unnoticed.
+ */
+export function passkeyAddedEmail(
+  user: { name: string; email: string },
+  passkey: { name: string; createdAt: Date },
+  accountUrl: string,
+  locale: ApiLocale,
+  siteUrl: string,
+): MailMessage {
+  const es = locale === 'es';
+  return {
+    to: user.email,
+    subject: es
+      ? 'Se ha añadido una llave de acceso a tu cuenta — Codeqlick'
+      : 'A passkey was added to your account — Codeqlick',
+    ...renderEmail(
+      {
+        locale,
+        preheader: es
+          ? `Tu cuenta de Codeqlick tiene una llave de acceso nueva: ${passkey.name}.`
+          : `Your Codeqlick account has a new passkey: ${passkey.name}.`,
+        title: es ? 'Llave de acceso añadida' : 'Passkey added',
+        greeting: es ? `Hola ${user.name}:` : `Hi ${user.name},`,
+        intro: [
+          es
+            ? 'Se ha añadido una llave de acceso a tu cuenta de Codeqlick. Con ella se entra sin contraseña:'
+            : 'A passkey was added to your Codeqlick account. It signs in without a password:',
+        ],
+        details: [
+          [es ? 'Nombre' : 'Name', passkey.name],
+          [
+            es ? 'Cuándo' : 'When',
+            `${formatMadridTime(passkey.createdAt, locale)} (${es ? 'hora de Madrid' : 'Madrid time'})`,
+          ],
+        ],
+        outro: [
+          es
+            ? 'Si has sido tú, no tienes que hacer nada.'
+            : 'If this was you, there’s nothing to do.',
+          es
+            ? 'Si no has sido tú, bórrala desde tu cuenta y cambia la contraseña cuanto antes.'
+            : 'If it wasn’t you, delete it from your account and change your password as soon as possible.',
+        ],
+        button: {
+          label: es ? 'Revisar mis llaves de acceso' : 'Review my passkeys',
+          url: accountUrl,
+        },
+      },
+      siteUrl,
+    ),
+  };
+}

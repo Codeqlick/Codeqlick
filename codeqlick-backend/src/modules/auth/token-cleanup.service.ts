@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { AuthRepository } from './auth.repository.js';
+import { PasskeyRepository } from './passkeys.repository.js';
 
 const DAY_MS = 86_400_000;
 
@@ -21,7 +22,7 @@ const INTERVAL_MS = 12 * 3_600_000;
 
 /**
  * Deletes expired refresh-token sessions and password reset tokens, which are otherwise never
- * removed. Runs in the API process: there is a single instance, and the deletes are idempotent.
+ * removed, and expired passkey challenges. Runs in the API process: there is a single instance, and the deletes are idempotent.
  */
 @Injectable()
 export class TokenCleanupService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -31,6 +32,7 @@ export class TokenCleanupService implements OnApplicationBootstrap, OnApplicatio
   constructor(
     private readonly repository: AuthRepository,
     private readonly config: AppConfigService,
+    private readonly passkeys: PasskeyRepository,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -56,6 +58,9 @@ export class TokenCleanupService implements OnApplicationBootstrap, OnApplicatio
           `Deleted ${sessions} expired sessions and ${resetTokens} expired reset tokens`,
         );
       }
+      // Passkey challenges are useless once expired: no retention.
+      const challenges = await this.passkeys.deleteExpiredChallenges(now);
+      if (challenges > 0) this.logger.log(`Deleted ${challenges} expired passkey challenges`);
     } catch (error) {
       this.logger.error(
         'Expired token cleanup failed',

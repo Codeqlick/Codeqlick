@@ -56,6 +56,16 @@ export const envSchema = z.object({
   SEED_ADMIN_NAME: optionalString,
   /** Admins must have two-step verification on to use the admin API (production: true). */
   ADMIN_TWO_FACTOR_REQUIRED: booleanString,
+  /**
+   * Passkeys' relying party (decision 104): a domain every host is under, so one passkey works on
+   * the website and every app. Unset: `codeqlick.com` in production, `localhost` elsewhere.
+   */
+  WEBAUTHN_RP_ID: optionalString,
+  /**
+   * Pages passkeys may be used from, comma-separated. Unset: the website (SITE_URL) and the hosts
+   * of Codeqlick's web apps (see `AppConfigService.webauthnOrigins`).
+   */
+  WEBAUTHN_ORIGINS: optionalString,
   /** New passwords are refused when Have I Been Pwned lists them (production: true). */
   PASSWORD_BREACH_CHECK: booleanString,
   /** Umami (analytics) for the admin dashboard's visit numbers; unset: no visit numbers. */

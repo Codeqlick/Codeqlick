@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from './env.schema.js';
-import type { Webapp } from '../common/webapps.js';
+import { WEBAPPS, type Webapp } from '../common/webapps.js';
 
 /** Typed, read-only accessors over the validated environment. */
 @Injectable()
@@ -266,6 +266,21 @@ export class AppConfigService {
       username: this.get('UMAMI_USERNAME'),
       password,
     };
+  }
+
+  /** Passkeys' relying party ID (decision 104): `codeqlick.com` in production. */
+  get webauthnRpId(): string {
+    return this.get('WEBAUTHN_RP_ID') ?? (this.isProduction ? 'codeqlick.com' : 'localhost');
+  }
+
+  /** Origins a passkey ceremony may come from: the website and every web app's host. */
+  get webauthnOrigins(): string[] {
+    const configured = (this.get('WEBAUTHN_ORIGINS') ?? '')
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/+$/, ''))
+      .filter((origin) => origin.length > 0);
+    if (configured.length > 0) return configured;
+    return [...new Set([this.siteUrl, ...WEBAPPS.map((app) => this.webappUrl(app))])];
   }
 
   get adminTwoFactorRequired(): boolean {

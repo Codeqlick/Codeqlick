@@ -104,6 +104,7 @@ export class AccountRepository {
     const [
       user,
       sessions,
+      passkeys,
       projects,
       proposals,
       tickets,
@@ -170,6 +171,18 @@ export class AccountRepository {
         where: { userId },
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true, expiresAt: true, revokedAt: true, userAgent: true, ip: true },
+      }),
+      // Never the key or the credential's ID (decision 104).
+      p.passkey.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          name: true,
+          deviceType: true,
+          backedUp: true,
+          createdAt: true,
+          lastUsedAt: true,
+        },
       }),
       accountId
         ? p.clientProject.findMany({
@@ -584,6 +597,7 @@ export class AccountRepository {
     return {
       user,
       sessions,
+      passkeys,
       projects,
       proposals,
       supportRequests: tickets,
