@@ -4,6 +4,7 @@ import vc from '@/app/[locale]/videochat/videochat.module.css';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
+import { COMMUNITY_REPORT_REASONS } from '@/lib/cruising-community';
 import {
   MEDIA_REPORT_REASONS,
   PERSON_REPORT_REASONS,
@@ -15,8 +16,12 @@ import styles from './Cruising.module.css';
 type ReportDetailsProps = {
   locale: AppLocale;
   /** What is reported; a `correction` is a report of a spot for wrong information. */
-  kind: 'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media';
-  /** The id of the spot, review, conversation or photo/video, or the nickname of a profile. */
+  kind:
+    'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert';
+  /**
+   * The id of the spot, review, conversation, photo/video, meetup or safety alert, or the nickname
+   * of a profile.
+   */
   id: string;
 };
 
@@ -33,7 +38,9 @@ export async function ReportDetails({ locale, kind, id }: ReportDetailsProps) {
         ? MEDIA_REPORT_REASONS
         : kind === 'profile'
           ? PROFILE_REPORT_REASONS
-          : PERSON_REPORT_REASONS;
+          : kind === 'meetup' || kind === 'alert'
+            ? COMMUNITY_REPORT_REASONS
+            : PERSON_REPORT_REASONS;
   const correction = kind === 'correction';
   // Several of these forms share a page: their controls need ids of their own.
   const prefix = `report-${kind}-${id}`;

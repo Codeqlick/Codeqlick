@@ -5,6 +5,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { CruisingMap } from '@/components/cruising/CruisingMap';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import { getCurrentUser } from '@/lib/auth/session';
+import { alertsEndpoint } from '@/lib/cruising-community';
 import {
   activeEndpoint,
   cruisingPath,
@@ -75,6 +76,7 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
         endpoint={spotsEndpoint(locale, onHost)}
         searchEndpoint={searchEndpoint(locale, onHost)}
         activeEndpoint={entered ? activeEndpoint(locale, onHost) : null}
+        alertsEndpoint={entered ? alertsEndpoint(locale, onHost) : null}
         spotBase={cruisingPath(locale, '/spots/', onHost)}
         proposeBase={cruisingPath(locale, '/new', onHost)}
         initial={initial}
