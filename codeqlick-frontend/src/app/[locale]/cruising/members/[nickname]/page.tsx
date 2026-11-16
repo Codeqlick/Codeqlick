@@ -19,6 +19,7 @@ import { appPath } from '@/lib/webapp-request';
 import vc from '../../../videochat/videochat.module.css';
 import { blockMemberAction, startConversationAction } from '../../actions';
 import { CruisingGate } from '../../Gate';
+import { winkAction } from '../../notifications-actions';
 
 /** Members only: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -42,6 +43,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
 
   const media = await listCruisingMemberMedia(member.nickname).catch(() => []);
   const t = await getTranslations({ locale, namespace: 'Cruising.members' });
+  const tw = await getTranslations({ locale, namespace: 'Cruising.winks' });
   const tl = await getTranslations({ locale, namespace: 'Cruising.lookingFor' });
   const own = status.profile.nickname === member.nickname;
   const looking = member.lookingFor.filter(isLookingFor);
@@ -112,6 +114,16 @@ export default async function CruisingMemberPage({ params }: PageProps) {
           <ActionForm action={startConversationAction.bind(null, locale, member.nickname)}>
             <SubmitButton pendingLabel={t('opening')}>{t('message')}</SubmitButton>
           </ActionForm>
+          {/* A wink (decision 97): one a day per member; the button says when it's done. */}
+          {member.winked ? (
+            <p className={styles.muted}>{tw('winkedToday')}</p>
+          ) : (
+            <ActionForm action={winkAction.bind(null, locale, member.nickname)}>
+              <SubmitButton variant="outline" pendingLabel={tw('sending')}>
+                {tw('wink')}
+              </SubmitButton>
+            </ActionForm>
+          )}
           <details className={styles.disclosure}>
             <summary>{t('block')}</summary>
             <ActionForm

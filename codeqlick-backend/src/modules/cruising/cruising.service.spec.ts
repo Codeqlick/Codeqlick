@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
@@ -183,6 +184,10 @@ function build() {
     withdrawVerification: vi.fn().mockResolvedValue(undefined),
     visibleTo: vi.fn().mockResolvedValue(true),
   };
+  const notifications = {
+    notify: vi.fn().mockResolvedValue(undefined),
+    notifyMany: vi.fn().mockResolvedValue(undefined),
+  };
   const rooms = {
     findMessage: vi.fn().mockResolvedValue(null),
     setHidden: vi.fn().mockResolvedValue(undefined),
@@ -197,9 +202,10 @@ function build() {
     activity as unknown as ActivityService,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
+    notifications as unknown as CruisingNotificationsService,
     rooms as unknown as CruisingRoomsRepository,
   );
-  return { service, repo, sent, activity, config, media, mediaRepo, rooms };
+  return { service, repo, sent, activity, config, media, mediaRepo, notifications, rooms };
 }
 
 /** Lets the emails sent without waiting (fire and forget) settle. */
@@ -1010,6 +1016,12 @@ describe('CruisingService', () => {
       expect(t.sent[0]?.subject).toBe('Tu lugar ya está publicado — Cruising');
       expect(t.sent[0]?.text).not.toContain(SECRET_NAME);
       expect(t.sent[0]?.html).not.toContain(SECRET_NAME);
+      expect(t.notifications.notify).toHaveBeenCalledWith(
+        OTHER,
+        'SPOT_PUBLISHED',
+        { spotId: SPOT },
+        NOW,
+      );
     });
 
     it('does not email when the proposer turned the alerts off', async () => {

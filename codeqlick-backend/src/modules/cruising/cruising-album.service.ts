@@ -11,6 +11,7 @@ import { toApiLocale } from '../../common/schemas/common.schemas.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { CruisingMediaRepository } from './cruising-media.repository.js';
+import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import { CruisingPushService } from './cruising-push.service.js';
 import { isSuspended } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
@@ -35,6 +36,7 @@ export class CruisingAlbumService implements OnApplicationShutdown {
     private readonly repository: CruisingRepository,
     private readonly push: CruisingPushService,
     private readonly config: AppConfigService,
+    private readonly notifications: CruisingNotificationsService,
   ) {}
 
   async onApplicationShutdown(): Promise<void> {
@@ -74,11 +76,12 @@ export class CruisingAlbumService implements OnApplicationShutdown {
     ) {
       throw new NotFoundException('Member not found');
     }
-    if (!(await this.repository.findConversationBetween(userId, target.userId))) {
+    const conversation = await this.repository.findConversationBetween(userId, target.userId);
+    if (!conversation) {
       throw new NotFoundException('Start a conversation with this member first');
     }
     if (await this.media.grant(userId, target.userId, now)) {
-      this.later(() => this.notifyGrantee(target.userId, now));
+      this.later(() => this.notifyGrantee(target.userId, conversation.id, now));
     }
   }
 
@@ -115,13 +118,14 @@ export class CruisingAlbumService implements OnApplicationShutdown {
   }
 
   /**
-   * "Someone shared their private album with you" on the grantee's devices (no name). This is the
-   * one place the album's grant is announced: the notification centre (decision 98) hooks in here.
+   * Tells the grantee: an entry in the notification centre (decision 98, opening the conversation)
+   * and "Someone shared their private album with you" on their devices (no name).
    */
-  private async notifyGrantee(granteeId: string, now: Date): Promise<void> {
-    if (!this.push.enabled) return;
+  private async notifyGrantee(granteeId: string, conversationId: string, now: Date): Promise<void> {
     const user = await this.repository.recipient(granteeId);
     if (!user || isSuspended(user.cruisingProfile, now)) return;
+    await this.notifications.notify(granteeId, 'ALBUM_SHARED', { conversationId }, now);
+    if (!this.push.enabled) return;
     await this.push.notify('album', [{ userId: granteeId, locale: toApiLocale(user.locale) }]);
   }
 

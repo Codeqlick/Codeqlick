@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import { CruisingAlbumService } from './cruising-album.service.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
+import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { CruisingPushService } from './cruising-push.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 
@@ -45,27 +46,46 @@ function build() {
     }),
   };
   const push = { enabled: true, notify: vi.fn().mockResolvedValue(1) };
+  const notifications = { notify: vi.fn().mockResolvedValue(undefined) };
   const service = new CruisingAlbumService(
     media as unknown as CruisingMediaRepository,
     repo as unknown as CruisingRepository,
     push as unknown as CruisingPushService,
     { cruisingTermsVersion: VERSION } as unknown as AppConfigService,
+    notifications as unknown as CruisingNotificationsService,
   );
-  return { service, media, repo, push };
+  return { service, media, repo, push, notifications };
 }
 
 describe('CruisingAlbumService (decision 99)', () => {
   it('shares my private album with someone I talk to and tells them once', async () => {
-    const { service, media, push } = build();
+    const { service, media, push, notifications } = build();
     await service.share(ME, 'beach_guy', NOW);
     await service.settled();
     expect(media.grant).toHaveBeenCalledWith(ME, THEM, NOW);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      THEM,
+      'ALBUM_SHARED',
+      { conversationId: 'conversation' },
+      NOW,
+    );
     expect(push.notify).toHaveBeenCalledWith('album', [{ userId: THEM, locale: 'es' }]);
 
     media.grant.mockResolvedValueOnce(false);
     push.notify.mockClear();
+    notifications.notify.mockClear();
     await service.share(ME, 'beach_guy', NOW);
     await service.settled();
+    expect(push.notify).not.toHaveBeenCalled();
+    expect(notifications.notify).not.toHaveBeenCalled();
+  });
+
+  it('writes the centre entry even without push', async () => {
+    const { service, push, notifications } = build();
+    push.enabled = false;
+    await service.share(ME, 'beach_guy', NOW);
+    await service.settled();
+    expect(notifications.notify).toHaveBeenCalledTimes(1);
     expect(push.notify).not.toHaveBeenCalled();
   });
 

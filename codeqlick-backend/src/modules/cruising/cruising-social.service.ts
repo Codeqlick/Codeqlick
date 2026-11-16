@@ -16,11 +16,15 @@ import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { MailService } from '../mail/mail.service.js';
 import { sharesContact } from '../swipe/swipe-chat-guard.js';
 import { cruisingNoticeEmail } from './cruising-emails.js';
+import type { NotificationKind } from './cruising-notifications.rules.js';
+import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import { CruisingPushService } from './cruising-push.service.js';
+import { CruisingWinksService } from './cruising-winks.service.js';
 import { visibleHealth } from './cruising-safety.rules.js';
 import {
   ageFromBirthYear,
   ALERT_DAY_MS,
+  alertAllowed,
   ALERT_KEEP_MS,
   alertChannel,
   checkInEnd,
@@ -69,6 +73,12 @@ const UNREAD_MAX_PAGES = 200;
 /** Check-ins are deleted once they expired this long ago, checked every hour. */
 const CHECK_IN_KEEP_MS = DAY_MS;
 const CLEANUP_EVERY_MS = 60 * 60 * 1000;
+/** What the notification centre calls each favourite alert (decision 98). */
+const CENTRE_KIND: Record<FavoriteAlertKind, NotificationKind> = {
+  favorite: 'FAVORITE_ACTIVITY',
+  meetup: 'MEETUP_PLANNED',
+  safety: 'SAFETY_ALERT',
+};
 
 export interface CruisingCheckInView {
   spot: { id: string; slug: string; name: string };
@@ -99,6 +109,8 @@ export interface CruisingMember {
   /** Phase 5 (decision 93): the contributor badges and the counters they come from. */
   badges: ContributorBadge[];
   contributions: ContributorCounters;
+  /** Phase 6 (decision 97): I winked at them in the last day. */
+  winked: boolean;
 }
 
 export interface CruisingConversationView {
@@ -140,6 +152,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly push: CruisingPushService,
+    private readonly notifications: CruisingNotificationsService,
+    private readonly winks: CruisingWinksService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -245,6 +259,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       await this.repository.deleteNicknameChangesBefore(new Date(now.getTime() - 14 * DAY_MS));
       // Alerts only count for a day; they are kept two (decision 85).
       await this.repository.deleteAlertsBefore(new Date(now.getTime() - ALERT_KEEP_MS));
+      // Notifications, winks and visits after 30 days; 200 notifications a member (decision 98).
+      await this.notifications.cleanup(now);
       // The busiest hours fade: each spot's weights × 0.98 once a day (decision 89).
       await this.repository.decaySpotHours(
         new Date(now.getTime() - HOURS_DECAY_EVERY_MS),
@@ -298,9 +314,12 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
   // ---- Profiles ----------------------------------------------------------------------------------
 
   async member(userId: string, nickname: string, now = new Date()): Promise<CruisingMember> {
-    this.needNickname(await this.entered(userId));
+    const me = await this.entered(userId);
+    this.needNickname(me);
     const target = await this.visible(userId, nickname, now);
     const badges = await this.mediaRepository.badges([target.userId], now);
+    // A visit, when both turned visits on (decision 97).
+    await this.winks.recordVisit(me, target, now);
     return {
       ...badgeFor(badges, target.userId, true),
       nickname: target.nickname as string,
@@ -312,6 +331,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       health: visibleHealth(target),
       badges: contributorBadges(countersOf(target)),
       contributions: countersOf(target),
+      winked:
+        target.userId !== userId && (await this.winks.winkedToday(userId, target.userId, now)),
     };
   }
 
@@ -401,11 +422,14 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     }
     const pushEnabled = this.push.enabled;
     const alerts: { userId: string; spotId: string; channel: AlertChannel; createdAt: Date }[] = [];
+    // The notification centre hears of it within the same caps, whatever the channel (decision 98).
+    const centre: string[] = [];
     const pushTo: { userId: string; locale: 'en' | 'es' }[] = [];
     const emailTo: { email: string; locale: 'en' | 'es' }[] = [];
     for (const row of candidates) {
       const profile = row.user.cruisingProfile;
       if (!profile) continue;
+      if (alertAllowed(spotId, recent.get(row.userId) ?? [], now)) centre.push(row.userId);
       const channel = alertChannel(
         {
           favoriteAlerts: profile.favoriteAlerts,
@@ -424,6 +448,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       else emailTo.push({ email: row.user.email, locale });
     }
     await this.repository.createAlerts(alerts);
+    await this.notifications.notifyMany(centre, CENTRE_KIND[kind], { spotId }, now);
     for (const to of emailTo) {
       this.mail
         .send(
@@ -579,6 +604,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       after ? new Date(after) : undefined,
     );
     await this.repository.markRead(conversation, userId, now);
+    await this.notifications.readConversation(userId, conversation.id, now);
     return items.map((message) => ({
       id: message.id,
       mine: message.senderId === userId,
@@ -612,7 +638,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     }
     const message = await this.repository.addMessage(conversation, userId, text, now);
     // The other person's devices hear about it at once; the unread email still follows later.
-    this.later(() => this.pushMessage(partnerId, userId, now), 'message push');
+    this.later(() => this.tellMessage(partnerId, userId, conversation.id, now), 'message push');
     return {
       id: message.id,
       mine: true,
@@ -621,12 +647,21 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     };
   }
 
-  /** "New message" on the recipient's devices, unless suspended or blocked either way. */
-  private async pushMessage(recipientId: string, senderId: string, now: Date): Promise<void> {
-    if (!this.push.enabled) return;
+  /**
+   * "New message" in the recipient's notification centre (one per conversation until read) and on
+   * their devices, unless suspended or blocked either way.
+   */
+  private async tellMessage(
+    recipientId: string,
+    senderId: string,
+    conversationId: string,
+    now: Date,
+  ): Promise<void> {
     const user = await this.repository.recipient(recipientId);
     if (!user || isSuspended(user.cruisingProfile, now)) return;
     if ((await this.repository.hiddenIds(senderId)).includes(recipientId)) return;
+    await this.notifications.notify(recipientId, 'MESSAGE', { conversationId }, now);
+    if (!this.push.enabled) return;
     await this.push.notify('message', [{ userId: recipientId, locale: toApiLocale(user.locale) }]);
   }
 

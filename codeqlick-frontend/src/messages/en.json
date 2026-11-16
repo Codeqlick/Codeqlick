@@ -5829,6 +5829,72 @@
       "verify": "Get verified",
       "verifiedAlready": "You are already verified.",
       "profileNeedsNickname": "Choose a nickname first (step 1) to add photos or get verified."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "lead": "What happened in the last 30 days. Push notifications and emails stay as you set them.",
+      "bell": "Notifications",
+      "bellUnread": "Notifications, {count, plural, one {# unread} other {# unread}}",
+      "viewsLabel": "Notification views",
+      "tabAll": "All",
+      "tabAllUnread": "All ({count} new)",
+      "tabWinks": "Winks",
+      "tabVisitors": "Visitors",
+      "markAllRead": "Mark all as read",
+      "marking": "Marking…",
+      "allRead": "All notifications are read.",
+      "unread": "New:",
+      "empty": "Nothing yet. Messages, winks and news about your favourite spots will show up here.",
+      "error": "Something went wrong. Try again.",
+      "kinds": {
+        "MESSAGE": "New messages in a conversation",
+        "WINK": "{count, plural, one {Someone winked at you} other {# members winked at you}}",
+        "VISITS": "{count, plural, one {Someone visited your profile today} other {# members visited your profile today}}",
+        "FAVORITE_ACTIVITY": "Someone is at one of your favourite spots",
+        "MEETUP_PLANNED": "A meetup was planned at one of your favourite spots",
+        "MEETUP_CANCELLED": "A meetup you joined was cancelled",
+        "SAFETY_ALERT": "Safety alert at one of your favourite spots",
+        "ALBUM_SHARED": "Someone shared their private album with you",
+        "SPOT_PUBLISHED": "Your spot was published",
+        "SPOT_REJECTED": "Your spot wasn't published",
+        "SPOT_REMOVED": "Your spot was removed",
+        "MEDIA_REMOVED": "One of your photos or videos was removed",
+        "VERIFICATION_DECIDED": "Your verification was reviewed"
+      },
+      "verification": {
+        "APPROVED": "You're verified",
+        "REJECTED": "Your verification photo wasn't accepted",
+        "WITHDRAWN": "Your Verified badge was withdrawn"
+      }
+    },
+    "winks": {
+      "title": "Winks received",
+      "lead": "Members who winked at you in the last 30 days. Wink back or send a message.",
+      "empty": "No winks yet.",
+      "wink": "Wink",
+      "winkBack": "Wink back",
+      "winkedToday": "You winked today.",
+      "mutual": "You winked back",
+      "sending": "Winking…",
+      "sent": "Wink sent.",
+      "tooMany": "You've reached today's limit of 30 winks. Try again tomorrow.",
+      "notFound": "This member isn't available.",
+      "needNickname": "Choose a nickname first.",
+      "notAllowed": "You need to enter Cruising and not be suspended to wink.",
+      "error": "Something went wrong. Try again."
+    },
+    "visits": {
+      "title": "Who visited your profile",
+      "lead": "The last 100 members who opened your profile in the last 30 days.",
+      "empty": "No visits yet.",
+      "off": "Profile visits are off: nobody is told when you open a profile, and you don't see who opened yours.",
+      "turnOn": "Turn them on in your profile",
+      "settingsTitle": "Profile visits",
+      "settingsLabel": "Show and record profile visits",
+      "settingsHint": "Off by default. When on, members who also turned it on see that you opened their profile, and you see who opened yours. Turning it off deletes your visits both ways.",
+      "savedOn": "Profile visits are on.",
+      "savedOff": "Profile visits are off and your visits were deleted.",
+      "error": "Something went wrong. Try again."
     }
   },
   "AdminCruising": {

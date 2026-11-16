@@ -395,6 +395,8 @@ export type CruisingMember = {
   /** Phase 5 (decision 93). */
   badges?: ContributorBadge[];
   contributions?: CruisingContributions;
+  /** Phase 6 (decision 97): I winked at them in the last day. */
+  winked?: boolean;
 };
 
 export type CruisingCheckIn = {

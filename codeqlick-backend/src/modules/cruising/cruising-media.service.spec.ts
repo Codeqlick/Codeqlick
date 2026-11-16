@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
 import type { MailService } from '../mail/mail.service.js';
@@ -123,6 +124,10 @@ async function setup() {
     send: vi.fn().mockImplementation((m: unknown) => (sent.push(m), Promise.resolve())),
   };
   const activity = { record: vi.fn().mockResolvedValue(undefined) };
+  const notifications = {
+    notify: vi.fn().mockResolvedValue(undefined),
+    notifyMany: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new CruisingMediaService(
     media as unknown as CruisingMediaRepository,
     repo as unknown as CruisingRepository,
@@ -131,6 +136,7 @@ async function setup() {
     activity as unknown as ActivityService,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
+    notifications as unknown as CruisingNotificationsService,
   );
   /** A file as multer leaves it in the work folder. */
   const received = async (data: Buffer) => {
@@ -139,7 +145,19 @@ async function setup() {
     return { path, size: data.length };
   };
   const workFiles = () => readdir(storage.incomingDir());
-  return { dir, storage, media, repo, ffmpeg, sent, activity, service, received, workFiles };
+  return {
+    dir,
+    storage,
+    media,
+    repo,
+    ffmpeg,
+    sent,
+    activity,
+    service,
+    received,
+    workFiles,
+    notifications,
+  };
 }
 
 const mp4Head = Buffer.concat([
@@ -356,6 +374,9 @@ describe('CruisingMediaService', () => {
       );
       const admin = { id: 'admin', email: 'a@x', name: 'A', role: 'ADMIN' as const };
       await t.service.decideVerification(admin, ME, { approve: true }, NOW);
+      expect(t.notifications.notify).toHaveBeenCalledWith(ME, 'VERIFICATION_DECIDED', {
+        status: 'APPROVED',
+      });
       expect(t.repo.updateProfile).toHaveBeenCalledWith(
         ME,
         expect.objectContaining({

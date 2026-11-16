@@ -192,6 +192,11 @@ model User {
   cruisingAlbumGrantsGiven   CruisingAlbumGrant[]        @relation("CruisingAlbumOwner")
   cruisingAlbumGrantsGot     CruisingAlbumGrant[]        @relation("CruisingAlbumGrantee")
   cruisingRoomMessages       CruisingRoomMessage[]
+  cruisingWinksSent          CruisingWink[]              @relation("CruisingWinkSender")
+  cruisingWinksGot           CruisingWink[]              @relation("CruisingWinkRecipient")
+  cruisingViewsMade          CruisingProfileView[]       @relation("CruisingProfileViewer")
+  cruisingViewsGot           CruisingProfileView[]       @relation("CruisingProfileViewed")
+  cruisingNotifications      CruisingNotification[]
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
@@ -3178,6 +3183,10 @@ model CruisingProfile {
   reviewsWritten         Int                        @default(0) @map("reviews_written")
   /// Phase 6 (decision 100): muted from the city chat rooms until then (year 9999: permanently).
   roomMutedUntil         DateTime?                  @map("room_muted_until") @db.Timestamptz(3)
+  /// Phase 6 (decision 97): profile visits, off by default (GDPR art. 25). Only members who turned
+  /// it on are recorded when they open a profile and see who opened theirs; turning it off deletes
+  /// their visits both ways.
+  showVisits             Boolean                    @default(false) @map("show_visits")
   /// Phase 6 (decision 102): when the member finished or skipped the onboarding tour; null shows it
   /// on the map after entering. Reopening it from /me sets it back to null.
   onboardingDoneAt       DateTime?                  @map("onboarding_done_at") @db.Timestamptz(3)
@@ -3842,4 +3851,76 @@ model CruisingRoomMessage {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("cruising_room_messages")
+}
+
+// ---- Cruising phase 6: winks, profile visits and the notification centre (decisions 97, 98) ------
+
+/// A wink: interest with no effort. One per pair a day and 30 a day per sender; kept 30 days.
+model CruisingWink {
+  id          String   @id @default(uuid()) @db.Uuid
+  senderId    String   @map("sender_id") @db.Uuid
+  recipientId String   @map("recipient_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  sender    User @relation("CruisingWinkSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("CruisingWinkRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([senderId, createdAt])
+  @@index([recipientId, createdAt])
+  @@index([createdAt])
+  @@map("cruising_winks")
+}
+
+/// One member opened another's profile on a day (UTC), both with visits on; kept 30 days. Seen
+/// again that day: `seenAt` moves.
+model CruisingProfileView {
+  viewerId String   @map("viewer_id") @db.Uuid
+  viewedId String   @map("viewed_id") @db.Uuid
+  day      DateTime @db.Date
+  seenAt   DateTime @default(now()) @map("seen_at") @db.Timestamptz(3)
+
+  viewer User @relation("CruisingProfileViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+  viewed User @relation("CruisingProfileViewed", fields: [viewedId], references: [id], onDelete: Cascade)
+
+  @@id([viewerId, viewedId, day])
+  @@index([viewedId, seenAt])
+  @@index([day])
+  @@map("cruising_profile_views")
+}
+
+/// What a notification in the centre is about (decision 98). Other phase 6 parts add their own.
+enum CruisingNotificationKind {
+  MESSAGE
+  WINK
+  VISITS
+  FAVORITE_ACTIVITY
+  MEETUP_PLANNED
+  MEETUP_CANCELLED
+  SAFETY_ALERT
+  ALBUM_SHARED
+  SPOT_PUBLISHED
+  SPOT_REJECTED
+  SPOT_REMOVED
+  MEDIA_REMOVED
+  VERIFICATION_DECIDED
+}
+
+/// The notification centre: ids and counts only in `data`, never a text or a person. Kept 30 days,
+/// at most 200 a member. An unread one with the same `groupKey` (a conversation, a spot, the day's
+/// visits, the winks) is updated instead of adding another.
+model CruisingNotification {
+  id        String                   @id @default(uuid()) @db.Uuid
+  userId    String                   @map("user_id") @db.Uuid
+  kind      CruisingNotificationKind
+  data      Json                     @default("{}")
+  groupKey  String?                  @map("group_key") @db.VarChar(80)
+  readAt    DateTime?                @map("read_at") @db.Timestamptz(3)
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, groupKey])
+  @@index([createdAt])
+  @@map("cruising_notifications")
 }

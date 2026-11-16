@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
@@ -249,6 +250,10 @@ function build() {
     activity as unknown as ActivityService,
     { send: vi.fn() } as unknown as MailService,
     { isTest: true } as unknown as AppConfigService,
+    {
+      notify: vi.fn().mockResolvedValue(undefined),
+      notifyMany: vi.fn().mockResolvedValue(undefined),
+    } as unknown as CruisingNotificationsService,
     {} as unknown as CruisingRoomsRepository,
   );
   return { service, repo, activity };

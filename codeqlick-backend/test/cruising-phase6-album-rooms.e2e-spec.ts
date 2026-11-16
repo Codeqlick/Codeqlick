@@ -210,11 +210,20 @@ describe('Cruising phase 6: private album and city rooms (e2e)', () => {
 
       // Sharing needs a conversation.
       expect((await share(owner, friend)).status).toBe(404);
-      await talk(friend, owner);
+      const conversationId = await talk(friend, owner);
       expect((await share(owner, friend)).status).toBe(204);
       await app.get(CruisingAlbumService).settled();
       expect(pushed).toHaveLength(1);
       expect(pushed[0]?.payload.body).toBe('Someone shared their private album with you');
+      // The notification centre has it too, pointing at the conversation.
+      const centre = await request(server())
+        .get('/v1/cruising/notifications')
+        .set(friend.auth)
+        .expect(200);
+      const albumNote = centre.body.items.find(
+        (item: { kind: string }) => item.kind === 'ALBUM_SHARED',
+      );
+      expect(albumNote).toMatchObject({ data: { conversationId } });
       // Sharing again tells nobody.
       expect((await share(owner, friend)).status).toBe(204);
       await app.get(CruisingAlbumService).settled();
