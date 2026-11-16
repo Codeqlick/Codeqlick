@@ -59,6 +59,12 @@ export type CruisingStatus = {
   /** Entered, current terms, not suspended. */
   allowed: boolean;
   emailAlerts: boolean;
+  /** Phase 3 (decision 85): push alerts for favourites (default on). */
+  favoriteAlerts: boolean;
+  /** Phase 3: the daily email about favourites, without push (default off). */
+  favoriteEmails: boolean;
+  /** The VAPID key browsers subscribe with; null while notifications are off. */
+  pushPublicKey: string | null;
   /** Phase 2; null until a nickname is set. */
   profile: {
     nickname: string;
@@ -230,6 +236,9 @@ export function onboardCruising(input: {
 /** My Cruising settings (PATCH /cruising/profile): email alerts now, the profile in phase 2. */
 export function updateCruisingProfile(input: {
   emailAlerts?: boolean;
+  /** Phase 3: push alerts for favourites and the daily email about them. */
+  favoriteAlerts?: boolean;
+  favoriteEmails?: boolean;
   /** Phase 2. Once set it can't be removed; `409` when taken, `400` when not allowed. */
   nickname?: string;
   bio?: string;
@@ -374,6 +383,41 @@ export function createCruisingCheckIn(input: {
 
 export function endCruisingCheckIn() {
   return apiFetch<void>('/cruising/check-in', { method: 'DELETE', auth: 'required' });
+}
+
+// ---- Favourites and notifications (phase 3, decision 85) ---------------------------------------
+
+export type CruisingFavorite = { spot: CruisingSpotSummary; here: number; savedAt: string };
+
+/** My favourites whose spot is LIVE, newest first, with "N here now". */
+export async function listCruisingFavorites(): Promise<CruisingFavorite[]> {
+  return (
+    await apiFetch<{ items: CruisingFavorite[] }>('/cruising/favorites', { auth: 'required' })
+  ).items;
+}
+
+/** Saves a LIVE spot (`409` past 100) or removes it; both idempotent. */
+export function setCruisingFavorite(spotId: string, on: boolean) {
+  return apiFetch<void>(`/cruising/favorites/${encodeURIComponent(spotId)}`, {
+    method: on ? 'PUT' : 'DELETE',
+    auth: 'required',
+  });
+}
+
+/** This device's push subscription (`409` while notifications are off). */
+export function subscribeCruisingPush(input: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}) {
+  return apiFetch<void>('/cruising/push', { method: 'PUT', body: input, auth: 'required' });
+}
+
+export function unsubscribeCruisingPush(endpoint: string) {
+  return apiFetch<void>('/cruising/push', {
+    method: 'DELETE',
+    body: { endpoint },
+    auth: 'required',
+  });
 }
 
 /** Who is at a spot now; only for a member who has entered. */

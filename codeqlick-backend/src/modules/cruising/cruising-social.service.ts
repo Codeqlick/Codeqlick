@@ -16,13 +16,21 @@ import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { MailService } from '../mail/mail.service.js';
 import { sharesContact } from '../swipe/swipe-chat-guard.js';
 import { cruisingNoticeEmail } from './cruising-emails.js';
+import { CruisingPushService } from './cruising-push.service.js';
 import {
   ageFromBirthYear,
+  ALERT_DAY_MS,
+  ALERT_KEEP_MS,
+  alertChannel,
   checkInEnd,
   contactStillBlocked,
   isSuspended,
   isUniqueViolation,
+  MAX_FAVORITES,
+  MAX_PUSH_SUBSCRIPTIONS,
+  type AlertChannel,
   type Bbox,
+  type RecentAlert,
 } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
 import {
@@ -32,7 +40,9 @@ import {
   SAFE_CHAT_MESSAGES,
   type CheckInInput,
   type LookingFor,
+  type PushSubscriptionInput,
 } from './cruising.schemas.js';
+import { spotSummary, type CruisingSpotSummary } from './cruising.service.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Unread messages are emailed once they have waited this long… */
@@ -78,6 +88,13 @@ export interface CruisingConversationView {
   createdAt: string;
 }
 
+export interface CruisingFavoriteView {
+  spot: CruisingSpotSummary;
+  /** How many are there now, counted like the spot's presence. */
+  here: number;
+  savedAt: string;
+}
+
 export interface CruisingMessageView {
   id: string;
   mine: boolean;
@@ -93,11 +110,14 @@ export interface CruisingMessageView {
 export class CruisingSocialService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(CruisingSocialService.name);
   private timers: NodeJS.Timeout[] = [];
+  /** Alerts and pushes still being sent after their request answered. */
+  private readonly pending = new Set<Promise<unknown>>();
 
   constructor(
     private readonly repository: CruisingRepository,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly push: CruisingPushService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -110,6 +130,22 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
 
   onApplicationShutdown(): void {
     for (const timer of this.timers) clearInterval(timer);
+  }
+
+  /** Runs `work` after the request has answered: its errors are logged, never thrown. */
+  private later(work: () => Promise<unknown>, what: string): void {
+    const task: Promise<unknown> = Promise.resolve()
+      .then(work)
+      .catch((error: unknown) => {
+        this.logger.error(`Cruising ${what} failed: ${String(error)}`);
+      })
+      .finally(() => this.pending.delete(task));
+    this.pending.add(task);
+  }
+
+  /** Waits for the alerts and pushes still being sent (for tests). */
+  async idle(): Promise<void> {
+    while (this.pending.size > 0) await Promise.all(this.pending);
   }
 
   // ---- Background --------------------------------------------------------------------------------
@@ -185,6 +221,8 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       await this.repository.deleteConversationStartsBefore(new Date(now.getTime() - DAY_MS));
       // Nicknames left more than 14 days ago are free again and no longer count (decision 83).
       await this.repository.deleteNicknameChangesBefore(new Date(now.getTime() - 14 * DAY_MS));
+      // Alerts only count for a day; they are kept two (decision 85).
+      await this.repository.deleteAlertsBefore(new Date(now.getTime() - ALERT_KEEP_MS));
       return await this.repository.deleteCheckInsExpiredBefore(
         new Date(now.getTime() - CHECK_IN_KEEP_MS),
       );
@@ -290,7 +328,77 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       checkInEnd(input.hours, now),
       now,
     );
+    // The members who saved the spot hear about it after the answer (an anonymous one too).
+    this.later(() => this.alertFavorites(spot.id, userId, now), 'favourite alerts');
     return this.checkInView(checkIn);
+  }
+
+  /**
+   * Tells the members who saved `spotId` that someone is there, never who (decision 85): not the
+   * person checking in, nobody blocked either way, no suspended member; at most once per member
+   * and spot every 3 hours and 10 times a day, by push or, without a device, the daily email.
+   * Returns how many were alerted.
+   */
+  async alertFavorites(spotId: string, checkerId: string, now = new Date()): Promise<number> {
+    const hidden = await this.repository.hiddenIds(checkerId);
+    const candidates = await this.repository.favoriteAlertCandidates(
+      spotId,
+      [checkerId, ...hidden],
+      this.config.cruisingTermsVersion,
+      now,
+    );
+    if (candidates.length === 0) return 0;
+    const recent = new Map<string, RecentAlert[]>();
+    const since = new Date(now.getTime() - ALERT_DAY_MS);
+    for (const alert of await this.repository.recentAlerts(
+      candidates.map((row) => row.userId),
+      since,
+    )) {
+      recent.set(alert.userId, [...(recent.get(alert.userId) ?? []), alert]);
+    }
+    const pushEnabled = this.push.enabled;
+    const alerts: { userId: string; spotId: string; channel: AlertChannel; createdAt: Date }[] = [];
+    const pushTo: { userId: string; locale: 'en' | 'es' }[] = [];
+    const emailTo: { email: string; locale: 'en' | 'es' }[] = [];
+    for (const row of candidates) {
+      const profile = row.user.cruisingProfile;
+      if (!profile) continue;
+      const channel = alertChannel(
+        {
+          favoriteAlerts: profile.favoriteAlerts,
+          favoriteEmails: profile.favoriteEmails,
+          emailAlerts: profile.emailAlerts,
+          hasPush: pushEnabled && row.user._count.cruisingPushSubscriptions > 0,
+        },
+        spotId,
+        recent.get(row.userId) ?? [],
+        now,
+      );
+      if (!channel) continue;
+      const locale = toApiLocale(row.user.locale);
+      alerts.push({ userId: row.userId, spotId, channel, createdAt: now });
+      if (channel === 'PUSH') pushTo.push({ userId: row.userId, locale });
+      else emailTo.push({ email: row.user.email, locale });
+    }
+    await this.repository.createAlerts(alerts);
+    for (const to of emailTo) {
+      this.mail
+        .send(
+          cruisingNoticeEmail(
+            to.email,
+            to.locale,
+            'favorites',
+            null,
+            this.config.webappUrl('cruising'),
+            this.config.siteUrl,
+          ),
+        )
+        .catch((error: unknown) => {
+          this.logger.error(`Cruising email not sent: ${String(error)}`);
+        });
+    }
+    await this.push.notify('favorite', pushTo);
+    return alerts.length;
   }
 
   /** Ends my check-in (nothing to end is fine). */
@@ -448,12 +556,23 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       }
     }
     const message = await this.repository.addMessage(conversation, userId, text, now);
+    // The other person's devices hear about it at once; the unread email still follows later.
+    this.later(() => this.pushMessage(partnerId, userId, now), 'message push');
     return {
       id: message.id,
       mine: true,
       text: message.text,
       createdAt: message.createdAt.toISOString(),
     };
+  }
+
+  /** "New message" on the recipient's devices, unless suspended or blocked either way. */
+  private async pushMessage(recipientId: string, senderId: string, now: Date): Promise<void> {
+    if (!this.push.enabled) return;
+    const user = await this.repository.recipient(recipientId);
+    if (!user || isSuspended(user.cruisingProfile, now)) return;
+    if ((await this.repository.hiddenIds(senderId)).includes(recipientId)) return;
+    await this.push.notify('message', [{ userId: recipientId, locale: toApiLocale(user.locale) }]);
   }
 
   /** Leaving a conversation deletes it for both. */
@@ -500,5 +619,67 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     if (!target || !(await this.repository.unblock(userId, target.userId))) {
       throw new NotFoundException('No such block');
     }
+  }
+
+  // ---- Favourites (phase 3, decision 85) ---------------------------------------------------------
+
+  /** My favourites whose spot is LIVE, newest first, with how many are there now. */
+  async favorites(userId: string, now = new Date()): Promise<{ items: CruisingFavoriteView[] }> {
+    await this.entered(userId);
+    const rows = await this.repository.favorites(userId, MAX_FAVORITES);
+    const hidden = await this.repository.hiddenIds(userId);
+    const here = await this.repository.hereAt(
+      rows.map((row) => row.spot.id),
+      now,
+      hidden,
+    );
+    return {
+      items: rows.map((row) => ({
+        spot: spotSummary(row.spot),
+        here: here.get(row.spot.id) ?? 0,
+        savedAt: row.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  /** Saves a LIVE spot (up to 100); saving one already saved changes nothing. */
+  async saveFavorite(userId: string, spotId: string, now = new Date()): Promise<void> {
+    await this.entered(userId);
+    const spot = await this.repository.findSpot(spotId);
+    if (!spot || spot.status !== 'LIVE') throw new NotFoundException('Spot not found');
+    if (await this.repository.isFavorite(userId, spot.id)) return;
+    if ((await this.repository.countFavorites(userId)) >= MAX_FAVORITES) {
+      throw new ConflictException(`You can save up to ${MAX_FAVORITES} favourite spots`);
+    }
+    await this.repository.addFavorite(userId, spot.id, now);
+  }
+
+  /** Removes a favourite (one that isn't saved is fine). */
+  async removeFavorite(userId: string, spotId: string): Promise<void> {
+    await this.entered(userId);
+    await this.repository.removeFavorite(userId, spotId);
+  }
+
+  // ---- Notifications on this device (phase 3, decision 85) ---------------------------------------
+
+  /** Stores this device's push subscription (up to 5 a member; the oldest goes). */
+  async subscribePush(
+    userId: string,
+    input: PushSubscriptionInput,
+    now = new Date(),
+  ): Promise<void> {
+    if (!this.push.enabled) throw new ConflictException('Notifications are not available');
+    await this.entered(userId);
+    await this.repository.savePushSubscription(
+      userId,
+      { endpoint: input.endpoint, p256dh: input.keys.p256dh, auth: input.keys.auth },
+      MAX_PUSH_SUBSCRIPTIONS,
+      now,
+    );
+  }
+
+  /** Forgets this device's subscription (an unknown one is fine). */
+  async unsubscribePush(userId: string, endpoint: string): Promise<void> {
+    await this.repository.deletePushSubscription(endpoint, userId);
   }
 }

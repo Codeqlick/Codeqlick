@@ -944,4 +944,158 @@ export class CruisingRepository {
       data: conversation.userAId === userId ? { notifiedAAt: now } : { notifiedBAt: now },
     });
   }
+
+  // ---- Favourites (phase 3, decision 85) ---------------------------------------------------------
+
+  /** My favourites whose spot is LIVE, newest first, each with the spot's summary. */
+  favorites(userId: string, take: number) {
+    return this.prisma.cruisingFavorite.findMany({
+      where: { userId, spot: { status: 'LIVE' } },
+      orderBy: [{ createdAt: 'desc' }, { spotId: 'asc' }],
+      take,
+      select: { createdAt: true, spot: { select: spotSummarySelect } },
+    });
+  }
+
+  /** How many are at each of `spotIds` now, for a viewer: counted like a spot's presence. */
+  async hereAt(spotIds: string[], now: Date, hiddenIds: string[]): Promise<Map<string, number>> {
+    if (spotIds.length === 0) return new Map();
+    const rows = await this.prisma.cruisingCheckIn.groupBy({
+      by: ['spotId'],
+      where: { spotId: { in: spotIds }, ...activeCheckInWhere(now, hiddenIds) },
+      _count: { _all: true },
+      orderBy: { spotId: 'asc' },
+    });
+    return new Map(rows.map((row) => [row.spotId, row._count._all]));
+  }
+
+  async isFavorite(userId: string, spotId: string): Promise<boolean> {
+    const row = await this.prisma.cruisingFavorite.findUnique({
+      where: { userId_spotId: { userId, spotId } },
+      select: { spotId: true },
+    });
+    return row !== null;
+  }
+
+  countFavorites(userId: string): Promise<number> {
+    return this.prisma.cruisingFavorite.count({ where: { userId } });
+  }
+
+  /** Saves a favourite; saving it again changes nothing. */
+  async addFavorite(userId: string, spotId: string, now: Date): Promise<void> {
+    await this.prisma.cruisingFavorite.upsert({
+      where: { userId_spotId: { userId, spotId } },
+      create: { userId, spotId, createdAt: now },
+      update: {},
+    });
+  }
+
+  async removeFavorite(userId: string, spotId: string): Promise<void> {
+    await this.prisma.cruisingFavorite.deleteMany({ where: { userId, spotId } });
+  }
+
+  // ---- Alerts (phase 3, decision 85) -------------------------------------------------------------
+
+  /**
+   * The members who saved `spotId` and may be alerted about it: entered with the current rules,
+   * not suspended, not in `excludeIds` (the person checking in and anyone blocked either way).
+   */
+  favoriteAlertCandidates(spotId: string, excludeIds: string[], termsVersion: string, now: Date) {
+    return this.prisma.cruisingFavorite.findMany({
+      where: {
+        spotId,
+        userId: { notIn: excludeIds },
+        user: {
+          cruisingProfile: {
+            is: {
+              termsVersion,
+              OR: [{ suspendedAt: null }, { suspendedUntil: { lte: now } }],
+            },
+          },
+        },
+      },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            email: true,
+            locale: true,
+            cruisingProfile: {
+              select: { favoriteAlerts: true, favoriteEmails: true, emailAlerts: true },
+            },
+            _count: { select: { cruisingPushSubscriptions: true } },
+          },
+        },
+      },
+    });
+  }
+
+  /** The alerts of `userIds` since `since` (a member has at most 10 a day). */
+  recentAlerts(userIds: string[], since: Date) {
+    if (userIds.length === 0) return Promise.resolve([]);
+    return this.prisma.cruisingAlert.findMany({
+      where: { userId: { in: userIds }, createdAt: { gt: since } },
+      select: { userId: true, spotId: true, channel: true, createdAt: true },
+    });
+  }
+
+  async createAlerts(
+    rows: { userId: string; spotId: string; channel: 'PUSH' | 'EMAIL'; createdAt: Date }[],
+  ): Promise<void> {
+    if (rows.length === 0) return;
+    await this.prisma.cruisingAlert.createMany({ data: rows });
+  }
+
+  /** Deletes the alerts older than `before`; how many. */
+  async deleteAlertsBefore(before: Date): Promise<number> {
+    const { count } = await this.prisma.cruisingAlert.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
+  }
+
+  // ---- Push subscriptions (phase 3, decision 85) -------------------------------------------------
+
+  /**
+   * Saves a device's subscription for the member (a device another account used moves over) and
+   * keeps only their `keep` newest.
+   */
+  async savePushSubscription(
+    userId: string,
+    data: { endpoint: string; p256dh: string; auth: string },
+    keep: number,
+    now: Date,
+  ): Promise<void> {
+    await this.prisma.cruisingPushSubscription.upsert({
+      where: { endpoint: data.endpoint },
+      create: { userId, ...data, createdAt: now },
+      update: { userId, p256dh: data.p256dh, auth: data.auth, createdAt: now },
+    });
+    const extra = await this.prisma.cruisingPushSubscription.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      skip: keep,
+      select: { id: true },
+    });
+    if (extra.length > 0) {
+      await this.prisma.cruisingPushSubscription.deleteMany({
+        where: { id: { in: extra.map((row) => row.id) } },
+      });
+    }
+  }
+
+  async deletePushSubscription(endpoint: string, userId?: string): Promise<void> {
+    await this.prisma.cruisingPushSubscription.deleteMany({
+      where: userId ? { endpoint, userId } : { endpoint },
+    });
+  }
+
+  /** The devices of `userIds` with notifications on. */
+  pushSubscriptions(userIds: string[]) {
+    if (userIds.length === 0) return Promise.resolve([]);
+    return this.prisma.cruisingPushSubscription.findMany({
+      where: { userId: { in: userIds } },
+      select: { userId: true, endpoint: true, p256dh: true, auth: true },
+    });
+  }
 }

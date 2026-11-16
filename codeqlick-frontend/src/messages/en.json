@@ -4852,7 +4852,8 @@
       "mySpots": "My spots",
       "rules": "Rules",
       "messages": "Messages",
-      "profile": "Profile"
+      "profile": "Profile",
+      "favorites": "Favourites"
     },
     "legal": {
       "terms": "Terms of use",
@@ -5331,6 +5332,47 @@
       "blockLead": "Blocking {nickname} deletes the conversation and hides you from each other everywhere.",
       "blockConfirm": "Block this member",
       "blocking": "Blocking…"
+    },
+    "favorites": {
+      "title": "My favourite spots",
+      "lead": "The spots you saved, and how many people are there now. When someone checks in at one, we can let you know without saying who.",
+      "empty": "You haven't saved any spot yet. Open a spot and tap the star.",
+      "here": "{count, plural, =0 {Nobody here now} one {# person here now} other {# people here now}}",
+      "savedOn": "Saved on {date}",
+      "alertsLink": "Choose how we let you know",
+      "save": "Save as favourite",
+      "remove": "Saved as favourite",
+      "removeHint": "Tap to remove it from your favourites.",
+      "saving": "Saving…",
+      "added": "Saved. We let you know when someone checks in here.",
+      "removed": "Removed from your favourites.",
+      "full": "You can save up to 100 favourite spots. Remove one first.",
+      "gone": "This spot isn't available any more.",
+      "notAllowed": "You need to enter Cruising to save favourite spots.",
+      "error": "We couldn't do it. Try again.",
+      "removeButton": "Remove from favourites"
+    },
+    "push": {
+      "title": "Notifications",
+      "lead": "We let you know on this device when someone is at one of your favourite spots and when you get a message. The text never names a spot or a person.",
+      "enable": "Turn on notifications",
+      "disable": "Turn off on this device",
+      "working": "One moment…",
+      "on": "Notifications are on for this device.",
+      "denied": "You have blocked notifications for this site. Allow them in your browser settings and try again.",
+      "unsupported": "This browser doesn't support notifications.",
+      "iosInstall": "On iPhone, first add Cruising to your Home Screen (Share → \"Add to Home Screen\") and turn them on from there.",
+      "error": "They couldn't be turned on. Try again.",
+      "unavailable": "Notifications aren't available right now."
+    },
+    "meFavorites": {
+      "title": "Favourite spots",
+      "alertsLabel": "Let me know when someone checks in at one of my favourite spots",
+      "alertsHint": "On the devices where notifications are on. At most once per spot every 3 hours and 10 times a day; never who it is.",
+      "emailsLabel": "Email me instead when I have no device with notifications on",
+      "emailsHint": "At most one email a day, and only when \"Emails\" above is on. It never names a spot or a person.",
+      "saved": "Saved.",
+      "error": "We couldn't save it. Try again."
     }
   },
   "AdminCruising": {

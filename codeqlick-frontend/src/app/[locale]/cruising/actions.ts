@@ -21,7 +21,10 @@ import {
   requestCruisingTakedown,
   saveCruisingReview,
   sendCruisingMessage,
+  setCruisingFavorite,
+  subscribeCruisingPush,
   unblockCruisingMember,
+  unsubscribeCruisingPush,
   updateCruisingProfile,
   updateCruisingSpot,
   type CruisingMessage,
@@ -560,4 +563,75 @@ export async function blockConversationAction(
   _formData: FormData,
 ): Promise<FormState> {
   return endConversation(locale, conversationId, true);
+}
+
+// ---- Favourites and notifications (phase 3, decision 85) ---------------------------------------
+
+/** Saves a spot as a favourite or removes it (PUT · DELETE /cruising/favorites/:spotId). */
+export async function favoriteAction(
+  locale: AppLocale,
+  spotId: string,
+  on: boolean,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.favorites' });
+  if (!UUID.test(spotId)) return { status: 'error', message: t('error') };
+  try {
+    await setCruisingFavorite(spotId, on);
+  } catch (error) {
+    const status = isApiError(error) ? error.status : 0;
+    if (status === 409) return { status: 'error', message: t('full') };
+    if (status === 404) return { status: 'error', message: t('gone') };
+    if (status === 403) return { status: 'error', message: t('notAllowed') };
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: on ? t('added') : t('removed') };
+}
+
+/** Alerts for favourite spots: push on (default) and the daily email (default off). */
+export async function favoriteSettingsAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.meFavorites' });
+  try {
+    await updateCruisingProfile({
+      favoriteAlerts: formData.get('favoriteAlerts') === 'on',
+      favoriteEmails: formData.get('favoriteEmails') === 'on',
+    });
+  } catch {
+    return { status: 'error', message: t('error') };
+  }
+  refreshAll(locale);
+  return { status: 'success', message: t('saved') };
+}
+
+/** Stores this device's push subscription (PUT /cruising/push); the language is the account's. */
+export async function cruisingPushSubscribeAction(input: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+  locale: 'en' | 'es';
+}): Promise<{ ok: boolean }> {
+  try {
+    await subscribeCruisingPush({
+      endpoint: String(input.endpoint),
+      keys: { p256dh: String(input.keys?.p256dh), auth: String(input.keys?.auth) },
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** Forgets this device's push subscription (DELETE /cruising/push). */
+export async function cruisingPushUnsubscribeAction(endpoint: string): Promise<{ ok: boolean }> {
+  try {
+    await unsubscribeCruisingPush(String(endpoint));
+    return { ok: true };
+  } catch {
+    return { ok: false };
+  }
 }

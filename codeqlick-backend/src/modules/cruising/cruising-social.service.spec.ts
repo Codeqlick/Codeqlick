@@ -8,6 +8,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { MailMessage, MailService } from '../mail/mail.service.js';
+import type { CruisingPushService } from './cruising-push.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingSocialService } from './cruising-social.service.js';
 
@@ -80,6 +81,18 @@ function build() {
     deleteCheckInsExpiredBefore: vi.fn().mockResolvedValue(3),
     deleteConversationStartsBefore: vi.fn().mockResolvedValue(0),
     deleteNicknameChangesBefore: vi.fn().mockResolvedValue(0),
+    deleteAlertsBefore: vi.fn().mockResolvedValue(0),
+    favorites: vi.fn().mockResolvedValue([]),
+    hereAt: vi.fn().mockResolvedValue(new Map()),
+    isFavorite: vi.fn().mockResolvedValue(false),
+    countFavorites: vi.fn().mockResolvedValue(0),
+    addFavorite: vi.fn().mockResolvedValue(undefined),
+    removeFavorite: vi.fn().mockResolvedValue(undefined),
+    favoriteAlertCandidates: vi.fn().mockResolvedValue([]),
+    recentAlerts: vi.fn().mockResolvedValue([]),
+    createAlerts: vi.fn().mockResolvedValue(undefined),
+    savePushSubscription: vi.fn().mockResolvedValue(undefined),
+    deletePushSubscription: vi.fn().mockResolvedValue(undefined),
     findConversation: vi.fn().mockResolvedValue(conversation()),
     findConversationBetween: vi.fn().mockResolvedValue(null),
     createConversation: vi.fn().mockResolvedValue({ id: CONVERSATION }),
@@ -120,12 +133,14 @@ function build() {
     siteUrl: 'https://codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
+  const push = { enabled: true, notify: vi.fn().mockResolvedValue(1) };
   const service = new CruisingSocialService(
     repo as unknown as CruisingRepository,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
+    push as unknown as CruisingPushService,
   );
-  return { service, repo, sent };
+  return { service, repo, sent, push };
 }
 
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -360,6 +375,10 @@ describe('CruisingSocialService', () => {
       expect(await t.service.cleanupCheckIns(NOW)).toBe(3);
       expect(t.repo.deleteCheckInsExpiredBefore).toHaveBeenCalledWith(
         new Date(NOW.getTime() - 24 * 3600_000),
+      );
+      // Favourite alerts are kept two days.
+      expect(t.repo.deleteAlertsBefore).toHaveBeenCalledWith(
+        new Date(NOW.getTime() - 48 * 3600_000),
       );
       t.repo.deleteCheckInsExpiredBefore.mockRejectedValue(new Error('db down'));
       expect(await t.service.cleanupCheckIns(NOW)).toBe(0);
@@ -750,6 +769,245 @@ describe('CruisingSocialService', () => {
     it('survives a failing query', async () => {
       t.repo.recentlyActiveConversations.mockRejectedValue(new Error('db down'));
       expect(await t.service.emailUnread(NOW)).toBe(0);
+    });
+  });
+
+  describe('favourites', () => {
+    const spotRow = {
+      id: SPOT,
+      slug: 'cove',
+      name: SECRET_NAME,
+      type: 'BEACH',
+      lat: '36.5',
+      lng: '-6.25',
+      ratingAvg: '4.5',
+      ratingCount: 2,
+    };
+
+    it('lists the LIVE ones with how many are there now', async () => {
+      t.repo.favorites.mockResolvedValue([{ createdAt: NOW, spot: spotRow }]);
+      t.repo.hereAt.mockResolvedValue(new Map([[SPOT, 3]]));
+      t.repo.hiddenIds.mockResolvedValue([OTHER]);
+      expect(await t.service.favorites(ME, NOW)).toEqual({
+        items: [
+          {
+            spot: {
+              id: SPOT,
+              slug: 'cove',
+              name: SECRET_NAME,
+              type: 'BEACH',
+              lat: 36.5,
+              lng: -6.25,
+              ratingAvg: 4.5,
+              ratingCount: 2,
+            },
+            here: 3,
+            savedAt: NOW.toISOString(),
+          },
+        ],
+      });
+      expect(t.repo.hereAt).toHaveBeenCalledWith([SPOT], NOW, [OTHER]);
+    });
+
+    it('saves LIVE spots only, up to 100, and saving again is fine', async () => {
+      await t.service.saveFavorite(ME, SPOT, NOW);
+      expect(t.repo.addFavorite).toHaveBeenCalledWith(ME, SPOT, NOW);
+
+      t.repo.findSpot.mockResolvedValue({ id: SPOT, status: 'PENDING' });
+      await expect(t.service.saveFavorite(ME, SPOT, NOW)).rejects.toBeInstanceOf(NotFoundException);
+
+      t.repo.findSpot.mockResolvedValue({ id: SPOT, status: 'LIVE' });
+      t.repo.countFavorites.mockResolvedValue(100);
+      await expect(t.service.saveFavorite(ME, SPOT, NOW)).rejects.toBeInstanceOf(ConflictException);
+      // One already saved is not a new one: no 409 at the cap.
+      t.repo.isFavorite.mockResolvedValue(true);
+      await expect(t.service.saveFavorite(ME, SPOT, NOW)).resolves.toBeUndefined();
+    });
+
+    it('need entry', async () => {
+      t.repo.findProfile.mockResolvedValue(null);
+      await expect(t.service.favorites(ME, NOW)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(t.service.saveFavorite(ME, SPOT, NOW)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      await expect(t.service.removeFavorite(ME, SPOT)).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('favourite alerts', () => {
+    const saver = (over: Record<string, unknown> = {}, pushDevices = 1) => ({
+      userId: OTHER,
+      user: {
+        email: 'saver@example.com',
+        locale: 'ES',
+        cruisingProfile: {
+          favoriteAlerts: true,
+          favoriteEmails: false,
+          emailAlerts: true,
+          ...over,
+        },
+        _count: { cruisingPushSubscriptions: pushDevices },
+      },
+    });
+
+    it('leaves out the person checking in and anyone blocked either way', async () => {
+      t.repo.hiddenIds.mockResolvedValue(['blocked-id']);
+      await t.service.alertFavorites(SPOT, ME, NOW);
+      expect(t.repo.favoriteAlertCandidates).toHaveBeenCalledWith(
+        SPOT,
+        [ME, 'blocked-id'],
+        VERSION,
+        NOW,
+      );
+    });
+
+    it('pushes to savers with a device, in their language, and records the alert', async () => {
+      t.repo.favoriteAlertCandidates.mockResolvedValue([saver()]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(1);
+      expect(t.repo.createAlerts).toHaveBeenCalledWith([
+        { userId: OTHER, spotId: SPOT, channel: 'PUSH', createdAt: NOW },
+      ]);
+      expect(t.push.notify).toHaveBeenCalledWith('favorite', [{ userId: OTHER, locale: 'es' }]);
+      expect(t.sent).toHaveLength(0);
+    });
+
+    it('respects the 3 hour and 10 a day caps', async () => {
+      t.repo.favoriteAlertCandidates.mockResolvedValue([saver()]);
+      t.repo.recentAlerts.mockResolvedValue([
+        {
+          userId: OTHER,
+          spotId: SPOT,
+          channel: 'PUSH',
+          createdAt: new Date(NOW.getTime() - 2 * 3600_000),
+        },
+      ]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(0);
+      t.repo.recentAlerts.mockResolvedValue(
+        Array.from({ length: 10 }, (_, i) => ({
+          userId: OTHER,
+          spotId: `spot-${i}`,
+          channel: 'PUSH',
+          createdAt: new Date(NOW.getTime() - (i + 1) * 60_000),
+        })),
+      );
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(0);
+      expect(t.repo.createAlerts).toHaveBeenLastCalledWith([]);
+    });
+
+    it('emails once a day, only to members without push who asked for it', async () => {
+      t.repo.favoriteAlertCandidates.mockResolvedValue([saver({ favoriteEmails: true }, 0)]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(1);
+      await settle();
+      expect(t.sent).toHaveLength(1);
+      const email = t.sent[0]!;
+      expect(email.to).toBe('saver@example.com');
+      expect(email.subject).toBe('Hay actividad en tus lugares favoritos — Cruising');
+      // Nothing gives the spot or the person away.
+      expect(JSON.stringify(email)).not.toContain(SECRET_NAME);
+      expect(JSON.stringify(email)).not.toContain('cove');
+
+      t.repo.recentAlerts.mockResolvedValue([
+        {
+          userId: OTHER,
+          spotId: 'another-spot',
+          channel: 'EMAIL',
+          createdAt: new Date(NOW.getTime() - 3600_000),
+        },
+      ]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(0);
+
+      t.repo.recentAlerts.mockResolvedValue([]);
+      t.repo.favoriteAlertCandidates.mockResolvedValue([saver({ favoriteEmails: false }, 0)]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(0);
+      t.repo.favoriteAlertCandidates.mockResolvedValue([
+        saver({ favoriteEmails: true, emailAlerts: false }, 0),
+      ]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(0);
+    });
+
+    it('treats devices as absent while push is off', async () => {
+      t.push.enabled = false;
+      t.repo.favoriteAlertCandidates.mockResolvedValue([saver({ favoriteEmails: true }, 2)]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW)).toBe(1);
+      expect(t.repo.createAlerts).toHaveBeenCalledWith([
+        { userId: OTHER, spotId: SPOT, channel: 'EMAIL', createdAt: NOW },
+      ]);
+    });
+
+    it('run after a check-in answers, and a failure there never fails the check-in', async () => {
+      t.repo.favoriteAlertCandidates.mockRejectedValue(new Error('db down'));
+      await expect(
+        t.service.checkIn(ME, { spotId: SPOT, hours: 1, anonymous: true }, NOW),
+      ).resolves.toMatchObject({ anonymous: true });
+      await t.service.idle();
+      expect(t.repo.favoriteAlertCandidates).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('message pushes', () => {
+    it('tell the recipient "new message" on their devices', async () => {
+      await t.service.sendMessage(ME, CONVERSATION, 'Hello there', NOW);
+      await t.service.idle();
+      expect(t.push.notify).toHaveBeenCalledWith('message', [{ userId: OTHER, locale: 'es' }]);
+    });
+
+    it('skip a suspended or blocked recipient, and do nothing while push is off', async () => {
+      t.repo.recipient.mockResolvedValue({
+        id: OTHER,
+        email: 'reader@example.com',
+        locale: 'EN',
+        cruisingProfile: { emailAlerts: true, suspendedAt: NOW, suspendedUntil: null },
+      });
+      await t.service.sendMessage(ME, CONVERSATION, 'Hello', NOW);
+      await t.service.idle();
+      expect(t.push.notify).not.toHaveBeenCalled();
+
+      t.repo.recipient.mockResolvedValue({
+        id: OTHER,
+        email: 'reader@example.com',
+        locale: 'EN',
+        cruisingProfile: { emailAlerts: true, suspendedAt: null, suspendedUntil: null },
+      });
+      t.repo.hiddenIds.mockResolvedValue([OTHER]);
+      await t.service.sendMessage(ME, CONVERSATION, 'Hello', NOW);
+      await t.service.idle();
+      expect(t.push.notify).not.toHaveBeenCalled();
+
+      t.repo.hiddenIds.mockResolvedValue([]);
+      t.push.enabled = false;
+      await t.service.sendMessage(ME, CONVERSATION, 'Hello', NOW);
+      await t.service.idle();
+      expect(t.push.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('push subscriptions', () => {
+    const input = {
+      endpoint: 'https://push.example.test/abc',
+      keys: { p256dh: 'p256dh-key', auth: 'auth-key' },
+    };
+
+    it('are kept up to 5 per member', async () => {
+      await t.service.subscribePush(ME, input, NOW);
+      expect(t.repo.savePushSubscription).toHaveBeenCalledWith(
+        ME,
+        { endpoint: input.endpoint, p256dh: 'p256dh-key', auth: 'auth-key' },
+        5,
+        NOW,
+      );
+    });
+
+    it('answer 409 while notifications are off', async () => {
+      t.push.enabled = false;
+      await expect(t.service.subscribePush(ME, input, NOW)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(t.repo.savePushSubscription).not.toHaveBeenCalled();
+    });
+
+    it('are removed for the member only', async () => {
+      await t.service.unsubscribePush(ME, input.endpoint);
+      expect(t.repo.deletePushSubscription).toHaveBeenCalledWith(input.endpoint, ME);
     });
   });
 });

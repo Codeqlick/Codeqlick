@@ -99,7 +99,7 @@ export function cruisingTakedownEmail(
 
 /** Things a person is told about. The emails never carry a spot name, a nickname or a message. */
 export type CruisingNotice =
-  'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended' | 'unread';
+  'spot-live' | 'spot-rejected' | 'spot-removed' | 'suspended' | 'unread' | 'favorites';
 
 const NOTICE_COPY: Record<
   ApiLocale,
@@ -141,6 +141,12 @@ const NOTICE_COPY: Record<
       button: 'Leer el mensaje',
       path: '/messages',
     },
+    favorites: {
+      subject: 'Hay actividad en tus lugares favoritos',
+      body: 'Hay actividad en tus lugares favoritos.',
+      button: 'Ver mis favoritos',
+      path: '/favorites',
+    },
     reasonTitle: 'Motivo',
     until: 'Hasta',
     permanent: 'Hasta que el equipo la levante',
@@ -176,6 +182,12 @@ const NOTICE_COPY: Record<
       body: "Someone wrote to you in Cruising and you haven't read it yet.",
       button: 'Read the message',
       path: '/messages',
+    },
+    favorites: {
+      subject: "There's activity at your favourite spots",
+      body: "There's activity at your favourite spots.",
+      button: 'See my favourites',
+      path: '/favorites',
     },
     reasonTitle: 'Reason',
     until: 'Until',
@@ -218,7 +230,10 @@ export function cruisingNoticeEmail(
             ? [[copy.until, until ? formatDay(until, locale) : copy.permanent]]
             : undefined,
         button: { label: text.button, url: `${cruisingUrl}/${locale}${text.path}` },
-        note: notice === 'spot-live' || notice === 'unread' ? copy.settings : undefined,
+        note:
+          notice === 'spot-live' || notice === 'unread' || notice === 'favorites'
+            ? copy.settings
+            : undefined,
         signoff: [],
       },
       siteUrl,

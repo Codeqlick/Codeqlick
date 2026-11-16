@@ -14,6 +14,7 @@ import {
   searchText,
   CHECK_IN_HOURS,
   conversationHref,
+  isFavorite,
   isLookingFor,
   isNickname,
   isUnread,
@@ -104,6 +105,10 @@ describe('Cruising as a web app', () => {
       action: 'rewrite',
       to: '/en/cruising/members/pepe_88',
     });
+    expect(routeWebapp('/en/favorites', host, 'https:')).toEqual({
+      action: 'rewrite',
+      to: '/en/cruising/favorites',
+    });
     expect(routeWebapp('/es/messages', host, 'https:')).toEqual({
       action: 'rewrite',
       to: '/es/cruising/messages',
@@ -155,6 +160,7 @@ describe('Cruising as a web app', () => {
       '/en/cruising/members/pepe_88',
       '/es/cruising/messages',
       '/es/cruising/messages/3f1a2b4c-0000-4000-8000-000000000000',
+      '/en/cruising/favorites',
     ]) {
       expect(PROTECTED_PATH.test(path), path).toBe(true);
     }
@@ -620,6 +626,7 @@ describe('translations', () => {
       }
       expect(messages.Cruising.nav.messages).toBeTruthy();
       expect(messages.Cruising.nav.profile).toBeTruthy();
+      expect(messages.Cruising.nav.favorites).toBeTruthy();
     }
   });
 
@@ -743,5 +750,19 @@ describe('search, the rating filter and active now (decision 86)', () => {
       { id: 'b', here: 3 },
       { id: 'a', here: 2 },
     ]);
+  });
+});
+
+describe('favourites', () => {
+  it('tells whether a spot is saved', () => {
+    const saved = [{ spot: { id: 'a' } }, { spot: { id: 'b' } }];
+    expect(isFavorite(saved, 'b')).toBe(true);
+    expect(isFavorite(saved, 'c')).toBe(false);
+    expect(isFavorite([], 'a')).toBe(false);
+  });
+
+  it('count who is here in both languages', () => {
+    expect(en.Cruising.favorites.here).toContain('{count, plural,');
+    expect(es.Cruising.favorites.here).toContain('{count, plural,');
   });
 });

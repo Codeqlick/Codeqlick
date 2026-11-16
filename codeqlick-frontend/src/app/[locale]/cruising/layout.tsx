@@ -100,6 +100,9 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
               ) : null}
               {entered ? (
                 <>
+                  <Link href="/cruising/favorites" className={vc.headerLink}>
+                    {t('nav.favorites')}
+                  </Link>
                   <Link href="/cruising/messages" className={vc.headerLink}>
                     {t('nav.messages')}
                   </Link>

@@ -128,6 +128,8 @@ export class AccountRepository {
       cruisingReportsMade,
       cruisingCheckIns,
       cruisingMessages,
+      cruisingFavorites,
+      cruisingAlerts,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -348,6 +350,8 @@ export class AccountRepository {
           country: true,
           lookingFor: true,
           showAge: true,
+          favoriteAlerts: true,
+          favoriteEmails: true,
           suspendedUntil: true,
           suspensionReason: true,
           createdAt: true,
@@ -404,6 +408,17 @@ export class AccountRepository {
         where: { senderId: userId },
         orderBy: { createdAt: 'asc' },
         select: { text: true, createdAt: true },
+      }),
+      p.cruisingFavorite.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true, spot: { select: { slug: true } } },
+      }),
+      // The alerts of the last two days: the spot and the channel, never who checked in.
+      p.cruisingAlert.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { channel: true, createdAt: true, spot: { select: { slug: true } } },
       }),
       p.cloudMember.findMany({
         where: { userId },
@@ -473,6 +488,8 @@ export class AccountRepository {
             reportsMade: cruisingReportsMade,
             checkIns: cruisingCheckIns,
             messagesSent: cruisingMessages,
+            favorites: cruisingFavorites,
+            alerts: cruisingAlerts,
           }
         : null,
       cloud:
