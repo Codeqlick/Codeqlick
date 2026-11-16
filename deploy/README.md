@@ -313,6 +313,57 @@ sudo nginx -t && sudo systemctl reload nginx
 curl -sI https://codeqlick.com/en | grep -i '^server'   # server: nginx
 ```
 
+### Security headers and the Content Security Policy
+
+The website and the API send every protective header themselves (architecture 6.4, decision
+109), so no Nginx site needs a change and the installed (certbot-edited) sites stay as they are.
+Check them on every host:
+
+```bash
+for h in codeqlick.com videochat.codeqlick.com meetings.codeqlick.com citas.codeqlick.com \
+  swipe.codeqlick.com cruising.codeqlick.com cloud.codeqlick.com api.codeqlick.com; do
+  echo "== $h"; curl -sI "https://$h/en" | grep -iE '^(content-security|strict-transport|permissions|x-frame|cross-origin-opener|referrer)'
+done
+```
+
+The website's strict policy (a nonce per response, no inline scripts) starts **report-only**:
+`CSP_ENFORCE=false` in `/srv/codeqlick/.env` sends it as `Content-Security-Policy-Report-Only`
+next to the previous policy, and browsers report what it would block. Reports land in
+Admin → Errors as "CSP" groups (no email; extensions' reports are dropped). Staging enforces it
+by default (`docker-compose.staging.yml`). To enforce it in production:
+
+1. After a week of traffic, read Admin → Errors, "CSP": anything from our own pages
+   (`script-src-elem blocked inline` on a page of ours, a host we use) must be fixed first.
+2. Check by hand with the policy enforced on staging: the map's tiles on Cruising, Turnstile on
+   sign-in and sign-up, a video call and a meeting (camera, screen sharing), Stripe Checkout from
+   a preview, a passkey sign-in, a photo upload (Swipe, Cruising) and the service workers.
+3. Set `CSP_ENFORCE=true` in `/srv/codeqlick/.env`, then
+   `docker compose -f docker-compose.prod.yml up -d web` (no rebuild needed). Back to `false` the
+   same way if something breaks.
+
+`/.well-known/security.txt` is answered by the website on every host, with `Expires` made per
+request (364 days ahead), so it never needs a yearly update.
+
+### Email authentication (SPF, DKIM, DMARC)
+
+Outgoing email goes through OVH's SMTP as `hello@codeqlick.com`. Receivers trust it only if the
+domain's DNS says OVH may send for it (SPF), OVH signs it (DKIM) and the domain publishes a policy
+(DMARC). `deploy/check-email-dns.sh` reads the public records with `dig` and prints what is
+there, what is missing and the exact records to add; it changes nothing (the zone is edited in
+OVH's manager, Web Cloud → Domains → codeqlick.com → DNS zone):
+
+```bash
+./deploy/check-email-dns.sh                       # codeqlick.com, OVH's DKIM selectors
+./deploy/check-email-dns.sh example.org sel1 sel2 # another domain and its selectors
+```
+
+What it expects: one SPF record with `include:mx.ovh.com` ending in `~all` or `-all` and at most
+10 DNS lookups; a DKIM key on `ovhmo-selector-1._domainkey` and `ovhmo-selector-2._domainkey`
+(OVH adds both CNAMEs when DKIM is turned on for the domain, Web Cloud → Emails → DKIM); and a
+DMARC record on `_dmarc` at `p=quarantine` (or `p=reject`) with `rua=` for the daily reports.
+Raise DMARC from `p=none` to `p=quarantine` only after the reports show OVH's mail passing.
+It exits 1 while something needs a look, so it can run from a cron job or CI.
+
 ### Monitoring
 
 `deploy/monitor/monitor.sh` runs from the deploy user's crontab every 5 minutes. It checks:
