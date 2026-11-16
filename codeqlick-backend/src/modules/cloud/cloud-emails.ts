@@ -862,3 +862,188 @@ export function cloudProductionCheckEmail(input: {
     ),
   };
 }
+
+/** "Confirm your subscription to <page>": the double opt-in link of a status page (decision 105). */
+export function cloudStatusConfirmEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  pageTitle: string;
+  team: string;
+  url: string;
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  return {
+    to: input.to,
+    subject: collapse(
+      es
+        ? `Confirma tu suscripción a ${input.pageTitle}`
+        : `Confirm your subscription to ${input.pageTitle}`,
+    ),
+    ...renderEmail(
+      {
+        locale: input.locale,
+        preheader: es
+          ? 'Abre el enlace para recibir por correo los avisos de esta página de estado.'
+          : "Open the link to get this status page's notices by email.",
+        title: es ? 'Confirma tu suscripción' : 'Confirm your subscription',
+        intro: [
+          es
+            ? `Alguien (esperamos que tú) ha pedido recibir por correo los avisos de la página de estado «${input.pageTitle}», de ${input.team}. Confirma tu correo para empezar a recibirlos:`
+            : `Someone (we hope you) asked to get the notices of the status page "${input.pageTitle}", of ${input.team}, by email. Confirm your address to start receiving them:`,
+        ],
+        button: { label: es ? 'Confirmar suscripción' : 'Confirm subscription', url: input.url },
+        note: es
+          ? `El enlace caduca en 48 horas. Si no lo has pedido tú, ignora este correo y no recibirás nada. ${input.team} es responsable de tu dirección y Codeqlick la trata en su nombre.`
+          : `The link expires in 48 hours. If you didn't ask for it, ignore this email and you won't receive anything. ${input.team} is responsible for your address and Codeqlick processes it on its behalf.`,
+        signoff: [],
+      },
+      input.siteUrl,
+    ),
+  };
+}
+
+export type StatusEmailKind = 'NOTICE' | 'UPDATE' | 'RESOLVED' | 'MAINTENANCE_STARTED';
+export type StatusEmailState =
+  | 'INVESTIGATING'
+  | 'IDENTIFIED'
+  | 'MONITORING'
+  | 'RESOLVED'
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED';
+
+const STATE_LABELS: Record<ApiLocale, Record<StatusEmailState, string>> = {
+  en: {
+    INVESTIGATING: 'Investigating',
+    IDENTIFIED: 'Identified',
+    MONITORING: 'Monitoring',
+    RESOLVED: 'Resolved',
+    SCHEDULED: 'Scheduled',
+    IN_PROGRESS: 'In progress',
+    COMPLETED: 'Completed',
+  },
+  es: {
+    INVESTIGATING: 'Investigando',
+    IDENTIFIED: 'Identificado',
+    MONITORING: 'En observación',
+    RESOLVED: 'Resuelto',
+    SCHEDULED: 'Programado',
+    IN_PROGRESS: 'En curso',
+    COMPLETED: 'Completado',
+  },
+};
+
+/** Whitespace collapsed to single spaces, at most `max` characters. */
+function collapse(text: string, max = 150): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+/** The subject of a notice email: `[<page>] <Kind>: <notice title>`. */
+export function cloudStatusSubject(
+  locale: ApiLocale,
+  kind: StatusEmailKind,
+  noticeKind: 'INCIDENT' | 'MAINTENANCE',
+  pageTitle: string,
+  noticeTitle: string,
+): string {
+  const es = locale === 'es';
+  const incident = noticeKind === 'INCIDENT';
+  const label = {
+    NOTICE: incident
+      ? es
+        ? 'Incidencia'
+        : 'Incident'
+      : es
+        ? 'Mantenimiento programado'
+        : 'Scheduled maintenance',
+    UPDATE: es ? 'Actualización' : 'Update',
+    RESOLVED: es ? 'Resuelto' : 'Resolved',
+    MAINTENANCE_STARTED: es ? 'Mantenimiento iniciado' : 'Maintenance started',
+  }[kind];
+  return collapse(`[${pageTitle}] ${label}: ${noticeTitle}`);
+}
+
+/**
+ * A notice of a status page, to one subscriber (decision 105): with the one-click unsubscribe
+ * headers (RFC 8058, decision 70). The title and text are the team's own words.
+ */
+export function cloudStatusEmail(input: {
+  to: string;
+  locale: ApiLocale;
+  kind: StatusEmailKind;
+  pageTitle: string;
+  team: string;
+  notice: {
+    kind: 'INCIDENT' | 'MAINTENANCE';
+    title: string;
+    state: StatusEmailState;
+    /** A maintenance's window, already written in Madrid time. */
+    window?: string;
+    monitors: string[];
+  };
+  /** The update's text (for a maintenance start, the latest one). */
+  body: string | null;
+  pageUrl: string;
+  unsubscribe: { pageUrl: string; oneClickUrl: string };
+  siteUrl: string;
+}): MailMessage {
+  const es = input.locale === 'es';
+  const incident = input.notice.kind === 'INCIDENT';
+  const state = STATE_LABELS[input.locale][input.notice.state];
+  const intro = {
+    NOTICE: incident
+      ? es
+        ? `${input.team} ha publicado una incidencia en su página de estado.`
+        : `${input.team} posted an incident on its status page.`
+      : es
+        ? `${input.team} ha programado un mantenimiento.`
+        : `${input.team} scheduled a maintenance.`,
+    UPDATE: es ? 'Hay una actualización de este aviso.' : 'There is an update on this notice.',
+    RESOLVED: incident
+      ? es
+        ? 'Esta incidencia se ha resuelto.'
+        : 'This incident has been resolved.'
+      : es
+        ? 'Este mantenimiento ha terminado.'
+        : 'This maintenance is completed.',
+    MAINTENANCE_STARTED: es
+      ? 'El mantenimiento programado ha empezado.'
+      : 'The scheduled maintenance has started.',
+  }[input.kind];
+  const details: Array<[string, string]> = [[es ? 'Estado' : 'Status', state]];
+  if (input.notice.window) details.push([es ? 'Ventana' : 'Window', input.notice.window]);
+  if (input.notice.monitors.length > 0) {
+    details.push([es ? 'Afecta a' : 'Affects', input.notice.monitors.join(', ')]);
+  }
+  const rendered = renderEmail(
+    {
+      locale: input.locale,
+      preheader: collapse(input.body ?? intro, 120),
+      title: input.notice.title,
+      intro: [intro],
+      ...(input.body ? { quote: { body: input.body } } : {}),
+      details,
+      button: { label: es ? 'Ver la página de estado' : 'View status page', url: input.pageUrl },
+      note: es
+        ? `Te suscribiste a los avisos de ${input.pageTitle}; Codeqlick te los envía en nombre de ${input.team}.`
+        : `You subscribed to updates from ${input.pageTitle}, sent by Codeqlick for ${input.team}.`,
+      signoff: [],
+      unsubscribeUrl: input.unsubscribe.pageUrl,
+    },
+    input.siteUrl,
+  );
+  return {
+    to: input.to,
+    subject: cloudStatusSubject(
+      input.locale,
+      input.kind,
+      input.notice.kind,
+      input.pageTitle,
+      input.notice.title,
+    ),
+    ...rendered,
+    listUnsubscribe: input.unsubscribe.oneClickUrl,
+  };
+}

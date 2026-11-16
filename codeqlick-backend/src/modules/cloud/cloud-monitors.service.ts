@@ -37,6 +37,7 @@ import {
 } from './cloud-status-notices.js';
 import type { CreateMonitorInput, StatusPageInput, UpdateMonitorInput } from './cloud.schemas.js';
 import { slowStep } from './cloud-slow.js';
+import { canSubscribe } from './cloud-status-subscribers.js';
 import { CloudTeamsService } from './cloud-teams.service.js';
 import {
   dailyUptime,
@@ -124,11 +125,17 @@ export interface StatusPageSettings {
   title: string;
   intro: string | null;
   items: Array<{ monitorId: string; label: string }>;
+  /** Email subscriptions to the page's notices (decision 105). */
+  subscriptions: boolean;
 }
 
 export interface PublicStatus {
   title: string;
   intro: string | null;
+  /** The team: the controller of its subscribers' addresses (decision 105). */
+  teamName: string;
+  /** Whether the page offers the email sign-up: subscriptions on and room under the cap. */
+  subscribe: boolean;
   overall: 'operational' | 'partial' | 'major' | 'maintenance' | 'unknown';
   updatedAt: string;
   monitors: Array<{
@@ -695,8 +702,15 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
           title: page.title,
           intro: page.intro,
           items: page.items as StatusPageSettings['items'],
+          subscriptions: page.subscriptions,
         }
-      : { enabled: false, title: membership.team.name, intro: null, items: [] };
+      : {
+          enabled: false,
+          title: membership.team.name,
+          intro: null,
+          items: [],
+          subscriptions: false,
+        };
   }
 
   async saveStatusPage(
@@ -713,17 +727,33 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       monitorId: id,
       label: input.items.find((i) => i.monitorId === id)!.label,
     }));
+    const before = await this.repository.statusPage(membership.teamId);
     const page = await this.repository.saveStatusPage(membership.teamId, {
       enabled: input.enabled,
       title: input.title,
       intro: input.intro || null,
       items,
+      ...(input.subscriptions === undefined ? {} : { subscriptions: input.subscriptions }),
     });
     this.forgetStatus(teamSlug);
     await this.teams.record(ctx, membership.teamId, 'status_page.saved', page.title, {
       enabled: page.enabled,
     });
-    return { enabled: page.enabled, title: page.title, intro: page.intro, items };
+    if (page.subscriptions !== (before?.subscriptions ?? false)) {
+      await this.teams.record(
+        ctx,
+        membership.teamId,
+        page.subscriptions ? 'status_subscribers.enabled' : 'status_subscribers.disabled',
+        page.title,
+      );
+    }
+    return {
+      enabled: page.enabled,
+      title: page.title,
+      intro: page.intro,
+      items,
+      subscriptions: page.subscriptions,
+    };
   }
 
   /** The public status of a team (cached 60 s); 404 without an enabled page. */
@@ -738,13 +768,14 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
       items.map((i) => i.monitorId),
     );
     const since = new Date(now.getTime() - 90 * DAY);
-    const [events, maintenance, notices] = await Promise.all([
+    const [events, maintenance, notices, subscribers] = await Promise.all([
       this.repository.eventsSince(
         monitors.map((m) => m.id),
         since,
       ),
       this.notices.maintenanceSince(page.team.id, since, now),
       this.notices.publicNotices(page.team.id, now, new Date(now.getTime() - 14 * DAY)),
+      page.subscriptions ? this.repository.countSubscribers(page.team.id) : Promise.resolve(0),
     ]);
     const inMaintenance = monitorsInMaintenance(maintenance, now);
     // Maintenance time is left out of uptime and incidents, like UNKNOWN and PAUSED (decision 62).
@@ -774,6 +805,12 @@ export class CloudMonitorsService implements OnApplicationBootstrap, OnApplicati
     const value: PublicStatus = {
       title: page.title,
       intro: page.intro,
+      teamName: page.team.name,
+      subscribe: canSubscribe(
+        page.subscriptions,
+        subscribers,
+        CLOUD_PLANS[page.team.plan].statusSubscribers,
+      ),
       overall: overall(rows.map((r) => r.status)),
       updatedAt: now.toISOString(),
       monitors: rows,
