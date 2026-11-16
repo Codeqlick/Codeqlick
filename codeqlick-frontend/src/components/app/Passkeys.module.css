@@ -1,0 +1,29 @@
+.add {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 34rem;
+  margin-top: var(--space-6);
+}
+
+.muted {
+  color: var(--color-slate);
+}
+
+.manage {
+  flex: 1 1 100%;
+}
+
+.manage > summary {
+  cursor: pointer;
+  color: var(--color-fuchsia-dark);
+  font-size: 0.875rem;
+}
+
+.manageForms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 34rem;
+  padding-top: var(--space-4);
+}

@@ -8,10 +8,70 @@ import type {
   AccountLocale,
   Locale,
   LoginResult,
+  Passkey,
+  PasskeyLoginOptions,
   TwoFactorSetup,
   Preferences,
   TwoFactorStatus,
+  WebAuthnJson,
 } from './types';
+
+/** A sign-in with a passkey, first step: a challenge for any passkey the browser has. */
+export function passkeyLoginOptions() {
+  return apiFetch<PasskeyLoginOptions>('/auth/passkeys/login/options', {
+    method: 'POST',
+    forwardClientIp: true,
+  });
+}
+
+/** Second step: the browser's assertion. Tokens like a password sign-in, no code asked. */
+export function passkeyLogin(input: { challengeId: string; response: WebAuthnJson }) {
+  return apiFetch<AuthTokens>('/auth/passkeys/login/verify', {
+    method: 'POST',
+    body: input,
+    forwardClientIp: true,
+  });
+}
+
+export function listPasskeys() {
+  return apiFetch<{ items: Passkey[] }>('/auth/passkeys', { auth: 'required' });
+}
+
+/** Adding a passkey, first step: the password again, then the browser's creation options. */
+export function passkeyRegistrationOptions(password: string) {
+  return apiFetch<WebAuthnJson>('/auth/passkeys/register/options', {
+    method: 'POST',
+    body: { password },
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
+export function registerPasskey(input: { response: WebAuthnJson; name?: string }) {
+  return apiFetch<Passkey>('/auth/passkeys/register/verify', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
+
+export function renamePasskey(id: string, name: string) {
+  return apiFetch<Passkey>(`/auth/passkeys/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: { name },
+    auth: 'required',
+  });
+}
+
+export function deletePasskey(id: string, password: string) {
+  return apiFetch<void>(`/auth/passkeys/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    body: { password },
+    auth: 'required',
+    forwardClientIp: true,
+  });
+}
 
 export function login(input: { email: string; password: string; captcha?: string }) {
   return apiFetch<LoginResult>('/auth/login', {

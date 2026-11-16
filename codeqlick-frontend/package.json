@@ -19,6 +19,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@simplewebauthn/browser": "14.0.0",
     "leaflet": "1.9.4",
     "mdast-util-from-markdown": "2.1.0",
     "next": "16.4.5",

@@ -148,7 +148,11 @@
     "passwordCreated": "Palavra-passe criada. Já podes iniciar sessão com o teu email e a palavra-passe que escolheste.",
     "emailChanged": "Email alterado. Inicia sessão agora com {email}.",
     "accountDeleted": "A tua conta foi eliminada. Obrigado por teres estado connosco.",
-    "captcha": "Não conseguimos verificar que és uma pessoa. Espera que a verificação termine e tenta novamente."
+    "captcha": "Não conseguimos verificar que és uma pessoa. Espera que a verificação termine e tenta novamente.",
+    "passkeyOr": "ou",
+    "passkey": "Iniciar sessão com uma chave de acesso",
+    "passkeyPending": "À espera da tua chave de acesso…",
+    "passkeyFailed": "Não foi possível iniciar sessão com essa chave de acesso. Tenta novamente ou usa a tua palavra-passe."
   },
   "TwoFactorLogin": {
     "title": "Verificação em dois passos",

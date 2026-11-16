@@ -641,6 +641,23 @@ export type ActiveSession = {
   current: boolean;
 };
 
+/** One of the account's passkeys (`GET /auth/passkeys`, decision 104). Never the key. */
+export type Passkey = {
+  id: string;
+  name: string;
+  /** `multiDevice`: synced by a password manager; `singleDevice`: only on that device. */
+  deviceType: string;
+  backedUp: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
+/** WebAuthn options and responses as JSON: passed through between the browser and the API. */
+export type WebAuthnJson = Record<string, unknown>;
+
+/** `POST /auth/passkeys/login/options`. */
+export type PasskeyLoginOptions = { options: WebAuthnJson; challengeId: string };
+
 export type TwoFactorSetup = { secret: string; otpauthUrl: string };
 
 /** What an activity log entry can be about (`GET /admin/activity?targetType=`). */

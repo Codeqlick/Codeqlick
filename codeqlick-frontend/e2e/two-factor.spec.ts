@@ -31,7 +31,7 @@ test('an admin turns on two-step verification and then needs a code to sign in',
   await page.goto('/es/login');
   await page.getByLabel('Correo electrónico').fill(admin.email);
   await page.getByLabel('Contraseña', { exact: true }).fill(admin.password);
-  await page.getByRole('button', { name: 'Entrar' }).click();
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Verificación en dos pasos' })).toBeVisible();
   await page.getByLabel('Código').fill(totp(secret, Date.now() + 30_000));
   await page.getByRole('button', { name: 'Verificar' }).click();

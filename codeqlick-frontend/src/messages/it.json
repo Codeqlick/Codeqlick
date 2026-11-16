@@ -148,7 +148,11 @@
     "passwordCreated": "Password creata. Ora puoi accedere con la tua email e la password che hai scelto.",
     "emailChanged": "Email cambiata. Ora accedi con {email}.",
     "accountDeleted": "Il tuo account è stato eliminato. Grazie per essere stato con noi.",
-    "captcha": "Non siamo riusciti a verificare che sei una persona. Aspetta che il controllo finisca e riprova."
+    "captcha": "Non siamo riusciti a verificare che sei una persona. Aspetta che il controllo finisca e riprova.",
+    "passkeyOr": "oppure",
+    "passkey": "Accedi con una passkey",
+    "passkeyPending": "In attesa della tua passkey…",
+    "passkeyFailed": "Non è stato possibile accedere con questa passkey. Riprova o usa la password."
   },
   "TwoFactorLogin": {
     "title": "Verifica in due passaggi",

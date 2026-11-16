@@ -39,7 +39,7 @@ export async function signIn(page: Page, user: { email: string; password: string
     await page.goto(`/es/login${next ? `?next=${encodeURIComponent(next)}` : ''}`);
     await page.getByLabel('Correo electrónico').fill(user.email);
     await page.getByLabel('Contraseña', { exact: true }).fill(user.password);
-    await page.getByRole('button', { name: 'Entrar' }).click();
+    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     const signedIn = page.waitForURL((url) => !url.pathname.endsWith('/login'));
     const toldToWait = rateLimited.waitFor();
     // Whichever comes second is dropped: keep its later failure from going unhandled.
