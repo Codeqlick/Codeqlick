@@ -1006,6 +1006,7 @@ Owner's request, 2026-11-16: production had no LIVE spot, so the directory gives
   - **Web Push**, the first channel: the member turns on notifications in `/me` (the browser's permission, a `CruisingPushSubscription` per device, up to 5, deleted when the push service answers 404 or 410). The Cruising host gets its own service worker (`/cruising-sw.js`, scope the app). The notification's text names neither the spot nor a person ("Someone is at one of your favourite spots", "New message"); opening it goes to `/favorites` or `/messages`. New messages also push at once (the unread email after 15 minutes stays). Off without the VAPID keys, as the video chat's.
   - **Email**, when the member has no push subscription: at most **one a day** ("There's activity at your favourite spots", nothing more), and only with `favoriteEmails` on (default **off**; `emailAlerts` off turns it off too).
   - Settings in `/me`: notifications on this device, `favoriteAlerts` (default on: push for favourites), `favoriteEmails`.
+  - **Built as:** `CruisingFavorite` (`userId` + `spotId` primary key), `CruisingAlert` (`userId`, `spotId`, `channel` PUSH | EMAIL, `createdAt`; deleted after 2 days by the hourly cleanup) and `CruisingPushSubscription` (`endpoint` unique, `p256dh`, `auth`); the profile gains `favoriteAlerts` and `favoriteEmails`. The alerts go out after the check-in has answered (`CruisingSocialService.alertFavorites`; errors are logged), and only to members entered with the current rules. `CruisingPushService` sends with `web-push` and the video chat's VAPID keys; the notification's language is the account's. Favourites and the last 2 days of alerts are in the account export. A member with a device subscribed and `favoriteAlerts` off gets no favourite alerts (no email either: the email is only for members without push).
 - **Search and active now (decision 86).**
   - `GET /cruising/search?q=` (public, 2–60 characters, accents and case ignored): up to 8 **places** (cities with LIVE spots: `{ countryCode, city, citySlug, count, bbox }`, the box around their spots) and up to 8 **spots** (`CruisingSpotSummary`, by name). The map gets a search box: choosing a city fits the map to its box, a spot opens it.
   - The map's filters: type (as now) and minimum rating (`minRating` 1–5 on `GET /cruising/spots`, spots with no rating are left out when set).
@@ -1177,7 +1178,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/swipe/reports` | `{ photoId \| matchId, reason, details? }` → `204`; MINOR, NON_CONSENSUAL and STOLEN hide the photo at once. 20 a day |
 | GET | `/cruising/me` | `CruisingStatus` (section 4.15) |
 | PUT | `/cruising/me` | `{ birthDate, acceptTerms: true, consentSpecialData: true, termsVersion }` → `CruisingStatus`; `403` under 18 (nothing stored), `409` for an old `termsVersion`. 10/min |
-| PATCH | `/cruising/profile` | Any of `{ emailAlerts }` and, phase 2, `{ nickname, bio, country, lookingFor, showAge }` → `CruisingStatus`; `409` when the nickname is taken or another member left it less than 14 days ago. Needs entry |
+| PATCH | `/cruising/profile` | Any of `{ emailAlerts }`, phase 2 `{ nickname, bio, country, lookingFor, showAge }` and phase 3 `{ favoriteAlerts, favoriteEmails }` → `CruisingStatus`; `409` when the nickname is taken or another member left it less than 14 days ago. Needs entry |
 | GET | `/cruising/me/spots` | `{ items: [{ id, slug, name, type, status, rejectReason, countryCode, city, ratingAvg, ratingCount, createdAt }] }`: the spots I proposed, newest first |
 | POST | `/cruising/spots` | `{ name, type, lat, lng, countryCode, city, description, bestTimes? }` → `{ id, slug, status: 'PENDING' }`; `403` without entry, `429` past 5 a day |
 | PATCH | `/cruising/spots/:id` | Any of the fields of `POST` → `{ id, slug, status }`; only my PENDING or REJECTED spot (a REJECTED one goes back to PENDING), else `409`; `404` when not mine |
@@ -1744,6 +1745,8 @@ type CruisingStatus = {
   suspension: { reason: string | null; until: string | null } | null; // until null = permanent
   allowed: boolean; // entered, current terms, not suspended
   emailAlerts: boolean;
+  favoriteAlerts: boolean; favoriteEmails: boolean; // phase 3 (decision 85): push for favourites (default on), the daily email (default off)
+  pushPublicKey: string | null; // the VAPID key; null while notifications are off
   profile: { nickname: string; bio: string; country: string | null; lookingFor: ('CHAT' | 'FRIENDS' | 'DATES' | 'FUN' | 'GROUP')[]; showAge: boolean } | null; // phase 2; null until a nickname is set
 };
 ```
