@@ -818,6 +818,65 @@ export const createBucketKeySchema = z.object({
 });
 export type CreateBucketKeyInput = z.infer<typeof createBucketKeySchema>;
 
+// ── Public buckets and CORS rules (architecture 4.13 "Object storage", decision 111) ────────
+
+export const CORS_METHODS = ['GET', 'HEAD', 'PUT', 'POST', 'DELETE'] as const;
+export type CorsMethod = (typeof CORS_METHODS)[number];
+
+/** `*` or an origin `http(s)://host[:port]`, lowercased, without a path. */
+const corsOriginSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(200)
+  .regex(
+    /^(?:\*|https?:\/\/(?:\*\.)?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*(?::\d{1,5})?)$/,
+    'An origin such as https://example.com, or *',
+  );
+
+const corsHeaderSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(100)
+  .regex(/^(?:\*|[A-Za-z0-9-]+)$/, 'A header name, or *');
+
+export const corsRuleSchema = z.object({
+  origins: z
+    .array(corsOriginSchema)
+    .min(1)
+    .max(10)
+    .transform((list) => [...new Set(list)]),
+  methods: z
+    .array(z.enum(CORS_METHODS))
+    .min(1)
+    .max(5)
+    .default(['GET', 'HEAD'])
+    .transform((list) => CORS_METHODS.filter((method) => list.includes(method))),
+  headers: z
+    .array(corsHeaderSchema)
+    .max(20)
+    .default(['*'])
+    .transform((list) => [...new Set(list)]),
+  exposeHeaders: z
+    .array(corsHeaderSchema)
+    .max(20)
+    .default(['ETag'])
+    .transform((list) => [...new Set(list)]),
+  maxAge: z.number().int().min(0).max(86_400).default(3600),
+});
+export type CorsRule = z.output<typeof corsRuleSchema>;
+
+export const updateBucketSchema = z
+  .object({
+    public: z.boolean().optional(),
+    cors: corsRuleSchema.nullable().optional(),
+  })
+  .refine((input) => input.public !== undefined || input.cors !== undefined, {
+    message: 'Nothing to change',
+  });
+export type UpdateBucketInput = z.infer<typeof updateBucketSchema>;
+
 /** A shared link's token; a malformed one is answered like an unknown one (404), not as a 400. */
 export const analyticsShareTokenSchema = z.string().regex(/^cqa_[A-Za-z0-9_-]{32}$/);
 
@@ -851,3 +910,66 @@ export const configCheckSchema = z.object({
   config: z.string().max(1024 * 1024),
 });
 export type ConfigCheckInput = z.infer<typeof configCheckSchema>;
+
+// ── Preview comments (architecture 4.13 "Preview comments", decision 111) ───────────────────
+
+/** A path on the same address: `/`, no `//` or `/\` start, no control characters or spaces. */
+export const commentPathSchema = z
+  .string()
+  .min(1)
+  .max(1000)
+  .refine(
+    (path) =>
+      path.startsWith('/') &&
+      !path.startsWith('//') &&
+      !path.startsWith('/\\') &&
+      ![...path].some((char) => char.charCodeAt(0) <= 0x20 || char.charCodeAt(0) === 0x7f),
+    'A path on the preview, starting with /',
+  );
+
+const commentBodySchema = z.string().trim().min(1).max(2000);
+const mentionsSchema = z
+  .array(z.uuid())
+  .max(10)
+  .default([])
+  .transform((list) => [...new Set(list)]);
+
+export const commentInputSchema = z.object({ body: commentBodySchema, mentions: mentionsSchema });
+export type CommentInput = z.output<typeof commentInputSchema>;
+
+export const createThreadSchema = commentInputSchema.extend({
+  path: commentPathSchema,
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  selector: z.string().trim().min(1).max(500).nullable().optional(),
+  viewportWidth: z.number().int().min(200).max(10_000).nullable().optional(),
+});
+export type CreateThreadInput = z.output<typeof createThreadSchema>;
+
+export const resolveThreadSchema = z.object({ resolved: z.boolean() });
+export type ResolveThreadInput = z.infer<typeof resolveThreadSchema>;
+
+export const commentsQuerySchema = z.object({
+  status: z.enum(['open', 'resolved', 'all']).default('open'),
+  deploymentId: z.uuid().optional(),
+  path: commentPathSchema.optional(),
+});
+export type CommentsQuery = z.infer<typeof commentsQuerySchema>;
+
+export const commentSessionSchema = z.object({
+  deploymentId: z.uuid(),
+  path: commentPathSchema.default('/'),
+});
+export type CommentSessionInput = z.output<typeof commentSessionSchema>;
+
+export const threadParamSchema = z.object({ id: z.uuid(), threadId: z.uuid() });
+export type ThreadParam = z.infer<typeof threadParamSchema>;
+
+export const commentParamSchema = threadParamSchema.extend({ commentId: z.uuid() });
+export type CommentParam = z.infer<typeof commentParamSchema>;
+
+export const overlayThreadParamSchema = z.object({ threadId: z.uuid() });
+export type OverlayThreadParam = z.infer<typeof overlayThreadParamSchema>;
+
+export const overlayCommentParamSchema = overlayThreadParamSchema.extend({ commentId: z.uuid() });
+export type OverlayCommentParam = z.infer<typeof overlayCommentParamSchema>;

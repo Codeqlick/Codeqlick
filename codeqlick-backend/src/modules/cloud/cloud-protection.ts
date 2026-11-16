@@ -16,7 +16,7 @@ export type ProtectionKind = 'previews' | 'production';
 /** A key derived from the master secret with HKDF-SHA256, as `SecretBox` derives its own. */
 export function protectionKey(
   masterSecret: string,
-  purpose: 'cloud-protection-v1' | 'cloud-protection-ticket-v1',
+  purpose: 'cloud-protection-v1' | 'cloud-protection-ticket-v1' | 'cloud-comments-v1',
 ): Buffer {
   return Buffer.from(hkdfSync('sha256', masterSecret, 'codeqlick', purpose, 32));
 }

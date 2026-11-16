@@ -24,6 +24,8 @@ Codeqlick Cloud has a free plan and a PRO plan. Each team has one plan. All limi
 | Upload size                       | 50 MB   | 50 MB     |
 | Deployments per hour              | 30      | 120       |
 | Custom domains per project        | 5       | 20        |
+| Comment threads per project       | 2,000   | 2,000     |
+| Comments per thread               | 100     | 100       |
 | **Builds**                        |         |           |
 | Builds per month                  | 200     | 3,000     |
 | Minutes per build                 | 15      | 30        |
@@ -43,6 +45,7 @@ Codeqlick Cloud has a free plan and a PRO plan. Each team has one plan. All limi
 | Buckets per project               | 2       | 10        |
 | Size of a bucket                  | 1 GB    | 50 GB     |
 | Objects per bucket                | 100,000 | 1,000,000 |
+| Public buckets per project        | 1       | 10        |
 
 Monthly limits are counted per calendar month in Madrid time. Codeqlick keeps the last 20 deployments of each project plus its production deployment.
 

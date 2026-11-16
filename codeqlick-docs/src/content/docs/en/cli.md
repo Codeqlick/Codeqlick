@@ -5,7 +5,7 @@ group: reference
 order: 18
 ---
 
-The `codeqlick` command deploys sites and manages projects, builds, analytics and the key-value store. It has no dependencies and needs Node 20 or later.
+The `codeqlick` command deploys sites and manages projects, builds, analytics, the key-value store, databases and buckets. It has no dependencies and needs Node 20 or later.
 
 ```sh
 npx @codeqlick/cli <command>       # run it without installing
@@ -104,6 +104,61 @@ See [builds from Git](/en/builds-from-git/).
 | `--json`                                       | Print the API's answer, for `analytics` and `kv`.                       |
 
 See [web analytics](/en/analytics/) and the [key-value store](/en/key-value-store/).
+
+## Databases
+
+The `db` commands need version 0.6 or later.
+
+| Command                  | What it does                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `db [ls]`                | List the project's databases: size against its limit, read-only, the connection string without the password. |
+| `db create <name>`       | Create a database and print its full connection URL. It is shown only once.                                  |
+| `db url <name>`          | Reset the password and print the new URL once. Apps using the old password stop connecting. Asks first.      |
+| `db rm <name>`           | Delete the database and all its data. Asks first.                                                            |
+| `db psql <name>`         | Run your local `psql` on the database. `psql` asks for the password.                                         |
+| `db psql <name> --reset` | Reset the password first (asks first) and pass it to `psql` through `PGPASSWORD`, never on the command line. |
+| `--json`                 | Print the API's answer.                                                                                      |
+
+See [databases](/en/databases/).
+
+## Buckets
+
+The `buckets` commands need version 0.6 or later.
+
+| Command                                       | What it does                                                                                         |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `buckets [ls]`                                | List the buckets: size and objects against the quota, public address, CORS origins, keys.            |
+| `buckets create <name>`                       | Create a bucket.                                                                                     |
+| `buckets rm <name>`                           | Delete an empty bucket and its keys. Asks first.                                                     |
+| `buckets keys <bucket>`                       | List the bucket's access keys.                                                                       |
+| `buckets key create <bucket> [--name <name>]` | Make a read-only key (named `cli` by default). Prints the secret once, with the endpoint and region. |
+| `buckets key create … --write`                | Make a read-write key instead.                                                                       |
+| `buckets key rm <bucket> <key>`               | Delete a key by its ID, access key ID or name. Asks first.                                           |
+| `buckets public <bucket> on\|off`             | Make the bucket public or private. `on` asks first and prints the public address.                    |
+| `buckets cors <bucket>`                       | Print the bucket's CORS rule.                                                                        |
+| `buckets cors <bucket> set <origin...>`       | Replace the rule with these origins.                                                                 |
+| `buckets cors … set --methods <list>`         | Allowed methods, comma-separated, such as `GET,HEAD,PUT`. Default `GET,HEAD`.                        |
+| `buckets cors … set --headers <list>`         | Allowed request headers, comma-separated. Default `*`.                                               |
+| `buckets cors … set --max-age <seconds>`      | How long browsers cache the preflight answer. Default 3600.                                          |
+| `buckets cors <bucket> clear`                 | Remove the rule.                                                                                     |
+| `--json`                                      | Print the API's answer.                                                                              |
+
+See [object storage](/en/object-storage/).
+
+### Names and confirmations
+
+A `<name>` or `<bucket>` is matched first as an ID, then exactly (case-sensitive) as a name in the project. Databases can share a name: then use the ID the error lists.
+
+Commands that delete data, reset a password or make files public ask `[y/N]` first. Only `y` or `yes` goes on.
+
+| Option        | What it does                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| `--yes`, `-y` | Skip the question. Without a terminal, as in CI, these commands refuse unless you pass it. |
+
+```sh
+export CODEQLICK_TOKEN=cqk_…
+codeqlick db rm staging --project web --yes
+```
 
 ## Password protection
 

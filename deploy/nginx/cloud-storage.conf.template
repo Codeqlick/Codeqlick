@@ -1,6 +1,6 @@
 # Codeqlick Cloud's object storage (architecture 4.13 "Object storage", decision 48):
 # https://s3.__DOMAIN__ is Garage's S3 API (path-style), with the hosting domain's wildcard
-# certificate. An exact server_name wins over cloud-hosting.conf's regular expression.
+# certificate, and /_public/<bucket>/ its website endpoint for public read buckets (decision 111). An exact server_name wins over cloud-hosting.conf's regular expression.
 # Rendered and installed by deploy/setup-storage.sh as /etc/nginx/sites-available/cloud-storage.conf.
 
 server {
@@ -22,6 +22,28 @@ server {
     proxy_http_version 1.1;
     proxy_read_timeout 300s;
     proxy_send_timeout 300s;
+
+    # Public read buckets (architecture 4.13 "Object storage", decision 111): /_public/<bucket>/<key>
+    # goes to Garage's website endpoint (127.0.0.1:3902) with the bucket's name as Host. `_` never
+    # starts a bucket name, so this can't clash with path-style S3. Anonymous reads only: no
+    # credentials pass, and every answer is sandboxed so an uploaded HTML file runs no scripts.
+    location ~ "^/_public/(?<cq_bucket>[a-z0-9][a-z0-9-]{1,61}[a-z0-9])/" {
+        limit_except GET HEAD OPTIONS {
+            deny all;
+        }
+        rewrite ^/_public/[^/]+(/.*)$ $1 break;
+        proxy_set_header Host $cq_bucket;
+        proxy_set_header Authorization "";
+        proxy_set_header Cookie "";
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_buffering on;
+        proxy_pass http://127.0.0.1:3902;
+
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Content-Security-Policy "sandbox" always;
+        add_header X-Content-Type-Options nosniff always;
+    }
 
     location / {
         # S3 signatures cover the Host header: it must reach Garage as the client sent it.

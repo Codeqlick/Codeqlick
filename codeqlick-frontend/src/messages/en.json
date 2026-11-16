@@ -6705,7 +6705,9 @@
         "kv": "KV",
         "databases": "Databases",
         "storage": "Storage",
-        "builds": "Builds"
+        "builds": "Builds",
+        "comments": "Comments",
+        "commentsCount": "Comments ({count})"
       },
       "production": "Published",
       "deployHelp": "Deploy from this project's folder:",
@@ -7743,7 +7745,49 @@
       "nameInvalid": "3–63 lowercase letters, digits and dashes; not starting or ending with a dash.",
       "howTo": "Use it from your code",
       "settings": "Endpoint {endpoint}, region {region}, path-style addresses. Keep keys in your server's environment variables; browsers get files through presigned URLs your server signs.",
-      "privacy": "For now on Codeqlick's server, with no backups of the files yet: keep a copy of anything you can't lose."
+      "privacy": "For now on Codeqlick's server, with no backups of the files yet: keep a copy of anything you can't lose.",
+      "public": {
+        "badge": "Public",
+        "warning": "Anyone with the address can read every file.",
+        "label": "Public read",
+        "on": "On",
+        "off": "Off",
+        "turnOn": "Turn on public read",
+        "turnOff": "Turn off public read",
+        "confirm": "Make {name} public? Anyone with the address will be able to read every file in it, without a key.",
+        "count": "{count} of {limit} public buckets on this plan",
+        "enabled": "Public read is on: files can be read at the public address.",
+        "disabled": "Public read is off: files need a key or a presigned URL again."
+      },
+      "cors": {
+        "title": "CORS",
+        "none": "no rule",
+        "summary": "{origins}",
+        "lead": "One rule for browser requests, used by uploads with presigned URLs and by public reads.",
+        "origins": "Allowed origins",
+        "originsHint": "One per line: * or https://example.com (with :port if needed). Up to 10.",
+        "methods": "Methods",
+        "headers": "Allowed headers",
+        "headersHint": "Comma-separated. Empty: any (*).",
+        "exposeHeaders": "Exposed headers",
+        "exposeHeadersHint": "Comma-separated. Empty: ETag.",
+        "maxAge": "Max age (seconds)",
+        "maxAgeHint": "0–86,400. Empty: 3,600.",
+        "seconds": "{count, plural, one {# second} other {# seconds}}",
+        "save": "Save CORS rule",
+        "clear": "Clear rule",
+        "saved": "CORS rule saved.",
+        "cleared": "CORS rule cleared.",
+        "errors": {
+          "originsRequired": "Add at least one origin.",
+          "originsTooMany": "At most 10 origins.",
+          "originInvalid": "Each origin is * or http(s)://host with an optional :port, no path.",
+          "methodsRequired": "Tick at least one method.",
+          "headersInvalid": "Header names use letters, digits and dashes, or *.",
+          "headersTooMany": "At most 20 headers.",
+          "maxAgeRange": "A whole number of seconds from 0 to 86,400."
+        }
+      }
     },
     "subscribe": {
       "title": "Get updates by email",
@@ -7815,6 +7859,43 @@
       "required": "Tick the box to accept.",
       "submit": "Accept and continue",
       "accepting": "Saving…"
+    },
+    "comments": {
+      "title": "Comments",
+      "lead": "What the team left on this project's previews. Open a deployment's preview with “Comment” to pin new ones.",
+      "filter": "Show",
+      "status": {
+        "open": "Open",
+        "resolved": "Resolved",
+        "all": "All"
+      },
+      "empty": {
+        "open": "No open comments.",
+        "resolved": "No resolved comments.",
+        "all": "No comments yet."
+      },
+      "loadError": "The comments couldn't be loaded. Please try again.",
+      "threadLabel": "Comments on {path}",
+      "device": {
+        "desktop": "Desktop",
+        "mobile": "Mobile"
+      },
+      "openBadge": "Open",
+      "resolvedBadge": "Resolved",
+      "resolvedBy": "Resolved by {name} · {when}",
+      "resolvedAt": "Resolved · {when}",
+      "deploymentGone": "Its deployment has been deleted, so its pins can't be opened any more.",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this comment? Deleting the last one deletes the thread.",
+      "reply": "Reply",
+      "mention": "Mention members",
+      "send": "Reply",
+      "sending": "Sending…",
+      "bodyInvalid": "Between 1 and 2,000 characters.",
+      "resolve": "Resolve",
+      "reopen": "Reopen",
+      "openOnPreview": "Open on the preview",
+      "comment": "Comment"
     }
   },
   "AdminCloud": {

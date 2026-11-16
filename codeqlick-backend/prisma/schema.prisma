@@ -209,6 +209,9 @@ model User {
   cloudTokens                CloudToken[]
   cloudDeviceCodes           CloudDeviceCode[]
   cloudDeployments           CloudDeployment[]
+  cloudCommentThreads        CloudCommentThread[]        @relation("CloudCommentThreadCreator")
+  cloudCommentsResolved      CloudCommentThread[]        @relation("CloudCommentThreadResolver")
+  cloudComments              CloudComment[]
   cloudProductionLocks       CloudProject[]              @relation("CloudProductionLockedBy")
   cloudBypassTokens          CloudProject[]              @relation("CloudBypassCreator")
   cloudEvents                CloudEvent[]
@@ -2401,6 +2404,7 @@ model CloudProject {
   cloudDatabases            CloudDatabase[]
   buckets                   CloudBucket[]
   audits                    CloudAudit[]
+  commentThreads            CloudCommentThread[]
 
   @@index([teamId, createdAt])
   @@index([rebuildNextAt])
@@ -2435,10 +2439,11 @@ model CloudDeployment {
   /// Set when a member keeps it by hand: hourly cleanup never deletes it (at most 5 per project).
   keptAt      DateTime?   @map("kept_at") @db.Timestamptz(3)
 
-  project      CloudProject  @relation("CloudDeployments", fields: [projectId], references: [id], onDelete: Cascade)
-  productionOf CloudProject? @relation("CloudProduction")
-  createdBy    User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  token        CloudToken?   @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+  project        CloudProject         @relation("CloudDeployments", fields: [projectId], references: [id], onDelete: Cascade)
+  productionOf   CloudProject?        @relation("CloudProduction")
+  createdBy      User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  token          CloudToken?          @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+  commentThreads CloudCommentThread[]
 
   @@unique([projectId, shortId])
   @@index([projectId, createdAt])
@@ -3101,13 +3106,17 @@ model CloudDatabase {
 
 /// An S3-compatible bucket of a project, in Garage (architecture 4.13 "Object storage", decision 48).
 model CloudBucket {
-  id        String   @id @default(uuid()) @db.Uuid
-  projectId String   @map("project_id") @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
+  projectId String    @map("project_id") @db.Uuid
   /// Unique across Cloud; also its name in Garage.
-  name      String   @unique @db.VarChar(63)
+  name      String    @unique @db.VarChar(63)
   /// Garage's id of the bucket.
-  garageId  String   @unique @map("garage_id") @db.VarChar(64)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  garageId  String    @unique @map("garage_id") @db.VarChar(64)
+  /// Set while the bucket is public read (Garage's website access; decision 111).
+  publicAt  DateTime? @map("public_at") @db.Timestamptz(3)
+  /// Its one CORS rule `{ origins, methods, headers, exposeHeaders, maxAge }`; null: none.
+  cors      Json?
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
 
   project CloudProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   keys    CloudBucketKey[]
@@ -4085,4 +4094,55 @@ model CruisingNotification {
   @@index([userId, groupKey])
   @@index([createdAt])
   @@map("cruising_notifications")
+}
+
+/// A comment thread pinned to a place on a deployment's preview (architecture 4.13 "Preview
+/// comments", decision 111).
+model CloudCommentThread {
+  id              String    @id @default(uuid()) @db.Uuid
+  projectId       String    @map("project_id") @db.Uuid
+  /// Null once the hourly cleanup deletes the deployment; `deploymentShort` stays.
+  deploymentId    String?   @map("deployment_id") @db.Uuid
+  deploymentShort String    @map("deployment_short") @db.VarChar(8)
+  /// The page's path and query.
+  path            String    @db.VarChar(1000)
+  /// Percent of the page's width and height (0-100).
+  x               Float
+  y               Float
+  selector        String?   @db.VarChar(500)
+  viewportWidth   Int?      @map("viewport_width")
+  createdById     String?   @map("created_by_id") @db.Uuid
+  resolvedAt      DateTime? @map("resolved_at") @db.Timestamptz(3)
+  resolvedById    String?   @map("resolved_by_id") @db.Uuid
+  resolvedByName  String?   @map("resolved_by_name") @db.VarChar(100)
+  lastCommentAt   DateTime  @default(now()) @map("last_comment_at") @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  project    CloudProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deployment CloudDeployment? @relation(fields: [deploymentId], references: [id], onDelete: SetNull)
+  createdBy  User?            @relation("CloudCommentThreadCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  resolvedBy User?            @relation("CloudCommentThreadResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+  comments   CloudComment[]
+
+  @@index([projectId, lastCommentAt])
+  @@index([deploymentId])
+  @@map("cloud_comment_threads")
+}
+
+/// One comment of a thread: plain text, never rendered as HTML.
+model CloudComment {
+  id         String   @id @default(uuid()) @db.Uuid
+  threadId   String   @map("thread_id") @db.Uuid
+  authorId   String?  @map("author_id") @db.Uuid
+  authorName String   @map("author_name") @db.VarChar(100)
+  body       String   @db.VarChar(2000)
+  /// The team members it mentions (emailed once).
+  mentionIds String[] @map("mention_ids") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  thread CloudCommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+  @@map("cloud_comments")
 }

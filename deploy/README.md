@@ -907,6 +907,22 @@ service (one node; data in the `cloud-storage-data` volume). Its S3 API is publi
 Buckets have Garage quotas from the team's plan; keys reach one bucket each. Objects aren't
 backed up yet: the console says so.
 
+**Public read buckets** (architecture 4.13, decision 111) are served by Garage's website endpoint
+(`[s3_web]` in `deploy/cloud-storage/garage.toml`, published on `127.0.0.1:3902`) at
+`https://s3.codeqlick.app/_public/<bucket>/<key>`: same host and certificate, no DNS change. Once,
+after the deploy that brings it:
+
+1. The deploy recreates `cloud-storage` (its ports changed). If it didn't, as `cqadmin`:
+   `docker compose -f docker-compose.prod.yml up -d cloud-storage`. Check:
+   `curl -sI http://127.0.0.1:3902` answers from Garage.
+2. `sudo ./deploy/setup-storage.sh` again (idempotent): it renders the S3 site with the new
+   `/_public/` location and reloads Nginx.
+3. Check: `curl -sI https://s3.codeqlick.app/_public/no-such-bucket/x` answers `404` from Garage,
+   with `Content-Security-Policy: sandbox`.
+
+Until step 2, turning a bucket public in the console works but its address answers S3's `403`.
+CORS rules need nothing on the server: the API sets them through Garage's admin API.
+
 ### Publishing
 
 ```bash

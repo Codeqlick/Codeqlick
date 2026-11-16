@@ -15,5 +15,12 @@ rpc_public_addr = "127.0.0.1:3901"
 s3_region = "garage"
 api_bind_addr = "[::]:3900"
 
+# Public read buckets (architecture 4.13 "Object storage", decision 111): the website endpoint,
+# reached only through Nginx at https://s3.<domain>/_public/<bucket>/, which sends the bucket's name
+# as Host. A host that isn't under root_domain is taken as the bucket's global name.
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = ".web.garage.internal"
+
 [admin]
 api_bind_addr = "[::]:3903"

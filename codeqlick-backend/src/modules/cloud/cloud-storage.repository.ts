@@ -28,6 +28,14 @@ export class CloudStorageRepository {
     });
   }
 
+  countPublic(projectId: string): Promise<number> {
+    return this.prisma.cloudBucket.count({ where: { projectId, publicAt: { not: null } } });
+  }
+
+  update(id: string, data: Prisma.CloudBucketUpdateInput): Promise<CloudBucket> {
+    return this.prisma.cloudBucket.update({ where: { id }, data });
+  }
+
   nameTaken(name: string): Promise<boolean> {
     return this.prisma.cloudBucket.count({ where: { name } }).then((n) => n > 0);
   }
@@ -57,7 +65,9 @@ export class CloudStorageRepository {
     return this.prisma.cloudBucket.findMany({
       include: {
         keys: true,
-        project: { select: { deletedAt: true, team: { select: { plan: true } } } },
+        project: {
+          select: { deletedAt: true, suspendedAt: true, team: { select: { plan: true } } },
+        },
       },
     });
   }

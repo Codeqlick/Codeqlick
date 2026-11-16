@@ -322,7 +322,8 @@ services:
     entrypoint: ["/usr/local/bin/cloud-pg-backup.sh"]
 
   # Codeqlick Cloud's object storage (architecture 4.13 "Object storage", decision 48): Garage,
-  # its S3 API on 127.0.0.1:3900 behind Nginx at s3.<hosting domain> (deploy/setup-storage.sh);
+  # its S3 API on 127.0.0.1:3900 and its website endpoint (public buckets) on 127.0.0.1:3902, behind
+  # Nginx at s3.<hosting domain> (deploy/setup-storage.sh);
   # its admin API only inside Docker. Started with the `cloud-data` profile.
   cloud-storage:
     image: dxflrs/garage:v2.5.0
@@ -333,6 +334,8 @@ services:
       GARAGE_ADMIN_TOKEN: ${CLOUD_STORAGE_ADMIN_TOKEN:-}
     ports:
       - "127.0.0.1:3900:3900"
+      # Public read buckets: Garage's website endpoint, behind Nginx at s3.<domain>/_public/ (decision 111).
+      - "127.0.0.1:3902:3902"
     volumes:
       - ./deploy/cloud-storage/garage.toml:/etc/garage.toml:ro
       - cloud-storage-meta:/var/lib/garage/meta

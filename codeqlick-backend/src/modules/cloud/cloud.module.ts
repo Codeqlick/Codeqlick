@@ -27,6 +27,14 @@ import {
 import { CloudProtectionRepository } from './cloud-protection.repository.js';
 import { CloudProtectionService } from './cloud-protection.service.js';
 import { CloudRulesService } from './cloud-rules.service.js';
+import {
+  CloudCommentsController,
+  CloudCommentsOverlayController,
+  CloudCommentsScriptController,
+  CloudCommentsSessionController,
+} from './cloud-comments.controller.js';
+import { CloudCommentsRepository } from './cloud-comments.repository.js';
+import { CloudCommentsService } from './cloud-comments.service.js';
 import { CloudStorageController } from './cloud-storage.controller.js';
 import { CloudStorageRepository } from './cloud-storage.repository.js';
 import { CloudStorageService } from './cloud-storage.service.js';
@@ -115,6 +123,10 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudBillingController,
     CloudDatabasesController,
     CloudStorageController,
+    CloudCommentsController,
+    CloudCommentsSessionController,
+    CloudCommentsOverlayController,
+    CloudCommentsScriptController,
     CloudProtectionController,
     CloudAdminController,
   ],
@@ -160,6 +172,8 @@ import { CloudTransferService } from './cloud-transfer.service.js';
     CloudDatabasesService,
     GarageClient,
     CloudStorageRepository,
+    CloudCommentsRepository,
+    CloudCommentsService,
     CloudStorageService,
     CloudProtectionRepository,
     CloudProtectionService,

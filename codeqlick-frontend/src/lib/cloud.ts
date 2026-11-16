@@ -492,3 +492,141 @@ export function isGitBranchName(name: string): boolean {
   }
   return name.split('/').every((part) => !part.startsWith('.') && !part.endsWith('.lock'));
 }
+
+// ── Object storage: public buckets and CORS (architecture 4.13 "Object storage", decision 111) ─
+
+export const CORS_METHODS = ['GET', 'HEAD', 'PUT', 'POST', 'DELETE'] as const;
+export type CorsMethod = (typeof CORS_METHODS)[number];
+
+export type CorsRuleInput = {
+  origins: string[];
+  methods: CorsMethod[];
+  headers?: string[];
+  exposeHeaders?: string[];
+  maxAge?: number;
+};
+
+export type CorsField = 'origins' | 'methods' | 'headers' | 'exposeHeaders' | 'maxAge';
+export type CorsFieldError =
+  | 'originsRequired'
+  | 'originsTooMany'
+  | 'originInvalid'
+  | 'methodsRequired'
+  | 'headersInvalid'
+  | 'headersTooMany'
+  | 'maxAgeRange';
+
+const CORS_LABEL = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?';
+const CORS_ORIGIN = new RegExp(
+  `^https?://(?:\\*\\.)?(?:${CORS_LABEL}\\.)*${CORS_LABEL}(?::\\d{1,5})?$`,
+);
+const CORS_HEADER = /^(?:\*|[A-Za-z0-9-]+)$/;
+
+/** "a, b\nc" → ["a", "b", "c"]: trimmed, empty ones dropped, duplicates once. */
+function splitList(text: string, separator: RegExp): string[] {
+  return [
+    ...new Set(
+      text
+        .split(separator)
+        .map((part) => part.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+/**
+ * The Storage tab's CORS form as the API's rule: origins one per line (`*` or
+ * `http(s)://host[:port]`, lowercased, 1–10), the ticked methods (1–5), headers and exposed
+ * headers comma-separated (up to 20; empty: the API's defaults) and max age (0–86,400 s; empty:
+ * the API's default).
+ */
+export function parseCorsForm(form: {
+  origins: string;
+  methods: readonly string[];
+  headers: string;
+  exposeHeaders: string;
+  maxAge: string;
+}):
+  | { ok: true; value: CorsRuleInput }
+  | { ok: false; errors: Partial<Record<CorsField, CorsFieldError>> } {
+  const errors: Partial<Record<CorsField, CorsFieldError>> = {};
+  const origins = splitList(form.origins.toLowerCase(), /[\n,]+/);
+  if (origins.length === 0) errors.origins = 'originsRequired';
+  else if (origins.length > 10) errors.origins = 'originsTooMany';
+  else if (
+    origins.some((origin) => origin !== '*' && (origin.length > 200 || !CORS_ORIGIN.test(origin)))
+  ) {
+    errors.origins = 'originInvalid';
+  }
+  const methods = CORS_METHODS.filter((method) => form.methods.includes(method));
+  if (methods.length === 0) errors.methods = 'methodsRequired';
+  const headerList = (text: string, field: 'headers' | 'exposeHeaders') => {
+    const list = splitList(text, /,+/);
+    if (list.length > 20) errors[field] = 'headersTooMany';
+    else if (list.some((header) => header.length > 100 || !CORS_HEADER.test(header))) {
+      errors[field] = 'headersInvalid';
+    }
+    return list;
+  };
+  const headers = headerList(form.headers, 'headers');
+  const exposeHeaders = headerList(form.exposeHeaders, 'exposeHeaders');
+  const rawAge = form.maxAge.trim();
+  const maxAge = rawAge === '' ? undefined : Number(rawAge);
+  if (maxAge !== undefined && (!Number.isInteger(maxAge) || maxAge < 0 || maxAge > 86_400)) {
+    errors.maxAge = 'maxAgeRange';
+  }
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return {
+    ok: true,
+    value: {
+      origins,
+      methods,
+      ...(headers.length > 0 ? { headers } : {}),
+      ...(exposeHeaders.length > 0 ? { exposeHeaders } : {}),
+      ...(maxAge !== undefined ? { maxAge } : {}),
+    },
+  };
+}
+
+// ── Preview comments (architecture 4.13 "Preview comments", decision 111) ─────────────────
+
+export const COMMENT_STATUSES = ['open', 'resolved', 'all'] as const;
+export type CommentStatus = (typeof COMMENT_STATUSES)[number];
+
+/** The Comments tab's `?status=`, open by default. */
+export function commentStatus(raw: string | undefined): CommentStatus {
+  return COMMENT_STATUSES.find((status) => status === raw) ?? 'open';
+}
+
+/** Narrower than 768 px: the comment was left on a phone-sized preview. */
+export const MOBILE_VIEWPORT = 768;
+
+/** The device a thread was pinned on, from the frame's width; null when it wasn't sent. */
+export function viewportHint(width: number | null): 'desktop' | 'mobile' | null {
+  if (width === null) return null;
+  return width < MOBILE_VIEWPORT ? 'mobile' : 'desktop';
+}
+
+/** Its author or a team admin (ADMIN or OWNER) deletes a comment. */
+export function canDeleteComment(
+  authorId: string | null,
+  meId: string | null,
+  admin: boolean,
+): boolean {
+  return admin || (authorId !== null && authorId === meId);
+}
+
+/** A page path the comments page takes: same-host, one leading `/`, at most 1,000 characters. */
+export function isCommentPath(path: string): boolean {
+  return (
+    path.length <= 1000 && path.startsWith('/') && !path.startsWith('//') && !/[\s\\]/.test(path)
+  );
+}
+
+/** The body with `@Name` added once (the mention picker), after a space. */
+export function withMention(body: string, name: string): string {
+  const tag = `@${name}`;
+  if (body.includes(tag)) return body;
+  if (body === '' || /\s$/.test(body)) return `${body}${tag} `;
+  return `${body} ${tag} `;
+}
