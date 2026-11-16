@@ -4946,7 +4946,25 @@
       "proposeHere": "Proponer un lugar aquí",
       "proposeNote": "Necesitas una cuenta. Revisamos cada lugar antes de publicarlo.",
       "reviewsCount": "{count, plural, one {# opinión} other {# opiniones}}",
-      "noReviews": "Sin valoraciones todavía"
+      "noReviews": "Sin valoraciones todavía",
+      "minRating": "Valoración mínima",
+      "anyRating": "Cualquier valoración",
+      "ratingAtLeast": "{rating, plural, one {# estrella o más} other {# estrellas o más}}",
+      "activeOnly": "Activos ahora",
+      "activeCount": "{count, plural, =0 {Ningún lugar a la vista está activo ahora} one {# lugar activo ahora} other {# lugares activos ahora}}",
+      "activeLegend": "Hay alguien ahora",
+      "hereNow": "{count, plural, one {# aquí ahora} other {# aquí ahora}}"
+    },
+    "search": {
+      "label": "Busca una ciudad o un lugar",
+      "placeholder": "Ciudad o nombre del lugar",
+      "hint": "Escribe al menos 2 letras. Solo se envía el texto, nunca dónde estás.",
+      "searching": "Buscando…",
+      "error": "No hemos podido buscar. Inténtalo de nuevo en un momento.",
+      "empty": "No hay nada para «{text}».",
+      "places": "Ciudades",
+      "spots": "Lugares",
+      "placeCount": "{count, plural, one {# lugar} other {# lugares}}"
     },
     "spot": {
       "metaTitle": "{name}, {city}",
@@ -5044,7 +5062,10 @@
       "countryTitle": "Cruising en {country}",
       "cityMetaTitle": "Lugares de cruising en {city}, {country}",
       "cityMetaDescription": "{count, plural, one {# lugar de cruising} other {# lugares de cruising}} en {city}, {country}, con valoraciones de otras personas adultas.",
-      "cityTitle": "Cruising en {city}, {country}"
+      "cityTitle": "Cruising en {city}, {country}",
+      "activeTitle": "Activos ahora",
+      "activeNone": "Ahora mismo no hay nadie en estos lugares.",
+      "hereNow": "{count, plural, one {# aquí ahora} other {# aquí ahora}}"
     },
     "new": {
       "title": "Proponer un lugar",

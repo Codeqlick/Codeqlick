@@ -64,6 +64,30 @@ export function parseBbox(value: string): Bbox | null {
   return { minLng, minLat, maxLng, maxLat };
 }
 
+/** What a search's text becomes in a `LIKE`: `%`, `_` and `\\` typed are literal characters. */
+function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+/**
+ * The `ILIKE` patterns of a search (decision 86): `contains` finds the text anywhere, `prefix` only
+ * at the start (those come first). Spaces inside are collapsed to one.
+ */
+export function searchPatterns(text: string): { contains: string; prefix: string } {
+  const words = escapeLike(text.trim().replace(/\s+/g, ' '));
+  return { contains: `%${words}%`, prefix: `${words}%` };
+}
+
+/** The box around a city's spots, as the map takes it: `[minLng, minLat, maxLng, maxLat]`. */
+export function placeBbox(row: {
+  minLng: unknown;
+  minLat: unknown;
+  maxLng: unknown;
+  maxLat: unknown;
+}): [number, number, number, number] {
+  return [Number(row.minLng), Number(row.minLat), Number(row.maxLng), Number(row.maxLat)];
+}
+
 /** The average rating with 2 decimals. */
 export function roundRating(average: number | null | undefined): number {
   return average ? Math.round(average * 100) / 100 : 0;

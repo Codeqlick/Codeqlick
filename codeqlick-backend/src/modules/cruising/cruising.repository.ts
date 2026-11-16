@@ -29,6 +29,47 @@ const spotRefSelect = { id: true, slug: true, name: true } as const;
 /** The most check-ins the presence of one spot lists (a spot is rarely this busy). */
 const MAX_PRESENCE_ROWS = 500;
 
+/**
+ * The check-ins that count as someone being there now, for a viewer: unexpired, not by people
+ * hidden from them (a block either way), not by suspended members. Shared by a spot's presence and
+ * the map's "active now", so both count the same people.
+ */
+function activeCheckInWhere(now: Date, hiddenIds: string[]): Prisma.CruisingCheckInWhereInput {
+  return {
+    expiresAt: { gt: now },
+    ...(hiddenIds.length ? { userId: { notIn: hiddenIds } } : {}),
+    user: {
+      cruisingProfile: {
+        is: { OR: [{ suspendedAt: null }, { suspendedUntil: { lte: now } }] },
+      },
+    },
+  };
+}
+
+/** A city a search found: its spots' count and corners (raw SQL, so snake case). */
+type CitySearchRow = {
+  country_code: string;
+  city_slug: string;
+  city: string;
+  count: number;
+  min_lng: unknown;
+  min_lat: unknown;
+  max_lng: unknown;
+  max_lat: unknown;
+};
+
+/** A spot a search found, as the map's summary needs it. */
+type SpotSearchRow = {
+  id: string;
+  slug: string;
+  name: string;
+  type: CruisingSpotType;
+  lat: unknown;
+  lng: unknown;
+  rating_avg: unknown;
+  rating_count: number;
+};
+
 const spotSummarySelect = {
   id: true,
   slug: true,
@@ -236,19 +277,55 @@ export class CruisingRepository {
     });
   }
 
-  /** LIVE spots in the box, best rated first. The caller asks for one more than it shows. */
-  spotsInBox(box: Bbox, type: CruisingSpotType | undefined, take: number) {
+  /**
+   * LIVE spots in the box, best rated first, of a type and rated at least `minRating` when given
+   * (a spot with no rating is then left out). The caller asks for one more than it shows.
+   */
+  spotsInBox(box: Bbox, filters: { type?: CruisingSpotType; minRating?: number }, take: number) {
     return this.prisma.cruisingSpot.findMany({
       where: {
         status: 'LIVE',
         lng: { gte: box.minLng, lte: box.maxLng },
         lat: { gte: box.minLat, lte: box.maxLat },
-        ...(type ? { type } : {}),
+        ...(filters.type ? { type: filters.type } : {}),
+        ...(filters.minRating
+          ? { ratingCount: { gt: 0 }, ratingAvg: { gte: filters.minRating } }
+          : {}),
       },
       orderBy: [{ ratingAvg: 'desc' }, { ratingCount: 'desc' }, { id: 'asc' }],
       take,
       select: spotSummarySelect,
     });
+  }
+
+  /**
+   * Cities with LIVE spots whose name matches `contains` (accents and case ignored, Postgres
+   * `unaccent`), those starting with it first, then the busiest. Each with the box around its spots
+   * and the spelling most of them use.
+   */
+  searchCities(contains: string, prefix: string, take: number): Promise<CitySearchRow[]> {
+    return this.prisma.$queryRaw<CitySearchRow[]>`
+      SELECT country_code, city_slug,
+        mode() WITHIN GROUP (ORDER BY city) AS city,
+        count(*)::int AS count,
+        min(lng) AS min_lng, min(lat) AS min_lat, max(lng) AS max_lng, max(lat) AS max_lat
+      FROM cruising_spots
+      WHERE status = 'LIVE' AND unaccent(city) ILIKE unaccent(${contains})
+      GROUP BY country_code, city_slug
+      ORDER BY bool_or(unaccent(city) ILIKE unaccent(${prefix})) DESC, count(*) DESC,
+        city_slug ASC, country_code ASC
+      LIMIT ${take}`;
+  }
+
+  /** LIVE spots whose name matches, like `searchCities`: those starting with it, then best rated. */
+  searchSpots(contains: string, prefix: string, take: number): Promise<SpotSearchRow[]> {
+    return this.prisma.$queryRaw<SpotSearchRow[]>`
+      SELECT id, slug, name, type::text AS type, lat, lng, rating_avg, rating_count
+      FROM cruising_spots
+      WHERE status = 'LIVE' AND unaccent(name) ILIKE unaccent(${contains})
+      ORDER BY (unaccent(name) ILIKE unaccent(${prefix})) DESC, rating_avg DESC,
+        rating_count DESC, id ASC
+      LIMIT ${take}`;
   }
 
   /** LIVE spots by country and city, for the place lists. */
@@ -673,16 +750,7 @@ export class CruisingRepository {
    */
   presence(spotId: string, now: Date, hiddenIds: string[]) {
     return this.prisma.cruisingCheckIn.findMany({
-      where: {
-        spotId,
-        expiresAt: { gt: now },
-        ...(hiddenIds.length ? { userId: { notIn: hiddenIds } } : {}),
-        user: {
-          cruisingProfile: {
-            is: { OR: [{ suspendedAt: null }, { suspendedUntil: { lte: now } }] },
-          },
-        },
-      },
+      where: { spotId, ...activeCheckInWhere(now, hiddenIds) },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       take: MAX_PRESENCE_ROWS,
       select: {
@@ -692,6 +760,33 @@ export class CruisingRepository {
         user: { select: { cruisingProfile: { select: { nickname: true } } } },
       },
     });
+  }
+
+  /**
+   * The LIVE spots in the box with someone there now, for a viewer, and how many: counted like a
+   * spot's presence (anonymous check-ins too; never the hidden or the suspended).
+   */
+  async activeInBox(
+    box: Bbox,
+    now: Date,
+    hiddenIds: string[],
+    take: number,
+  ): Promise<{ spotId: string; here: number }[]> {
+    const rows = await this.prisma.cruisingCheckIn.groupBy({
+      by: ['spotId'],
+      where: {
+        ...activeCheckInWhere(now, hiddenIds),
+        spot: {
+          status: 'LIVE',
+          lng: { gte: box.minLng, lte: box.maxLng },
+          lat: { gte: box.minLat, lte: box.maxLat },
+        },
+      },
+      _count: { _all: true },
+      orderBy: { spotId: 'asc' },
+      take,
+    });
+    return rows.map((row) => ({ spotId: row.spotId, here: row._count._all }));
   }
 
   /** Deletes the check-ins that expired before `before`; how many. */

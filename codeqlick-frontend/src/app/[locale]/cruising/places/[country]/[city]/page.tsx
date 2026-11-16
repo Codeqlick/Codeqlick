@@ -5,11 +5,20 @@ import { cache } from 'react';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import styles from '@/components/cruising/Cruising.module.css';
-import { getCruisingCity } from '@/lib/api/cruising';
 import {
+  getCruisingCity,
+  getCruisingStatus,
+  listCruisingActive,
+  type CruisingCity,
+} from '@/lib/api/cruising';
+import { getCurrentUser } from '@/lib/auth/session';
+import {
+  activeCounts,
+  activeSpots,
   countryFromParam,
   countryName,
   formatRating,
+  gridBboxAround,
   placeHref,
   SLUG,
   spotHref,
@@ -47,7 +56,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-/** The spots of a city, best rated first. */
+/**
+ * Who is at the city's spots now, for a member who has entered; null for anyone else, and then
+ * nothing about presence is asked for (decision 86). Asked for the grid box around the city.
+ */
+async function cityPresence(city: CruisingCity): Promise<Map<string, number> | null> {
+  if (!(await getCurrentUser())) return null;
+  try {
+    if (!(await getCruisingStatus()).onboarded) return null;
+    const box = gridBboxAround(city.items);
+    if (!box) return new Map();
+    const ids = new Set(city.items.map((spot) => spot.id));
+    const items = (await listCruisingActive(box)).filter((item) => ids.has(item.spotId));
+    return activeCounts([{ items }]);
+  } catch {
+    // The page is public: it still works when presence can't be read.
+    return null;
+  }
+}
+
+/** The spots of a city, best rated first; for entered members, who is there now. */
 export default async function CruisingCityPage({ params }: PageProps) {
   const { locale: rawLocale, country: countryParam, city: citySlug } = await params;
   const locale = resolveLocale(rawLocale);
@@ -57,6 +85,8 @@ export default async function CruisingCityPage({ params }: PageProps) {
   const tt = await getTranslations({ locale, namespace: 'Cruising.types' });
   const tm = await getTranslations({ locale, namespace: 'Cruising.spot' });
   const country = countryName(city.countryCode, locale);
+  const presence = await cityPresence(city);
+  const active = presence ? activeSpots(city.items, presence) : [];
 
   return (
     <>
@@ -71,6 +101,27 @@ export default async function CruisingCityPage({ params }: PageProps) {
       </nav>
       <h1 className={vc.pageTitle}>{t('cityTitle', { city: city.city, country })}</h1>
       <p className={vc.muted}>{t('spots', { count: city.items.length })}</p>
+      {presence ? (
+        <section className={styles.activeSection} aria-labelledby="active-now-title">
+          <h2 id="active-now-title" className={vc.sectionTitle}>
+            {t('activeTitle')}
+          </h2>
+          {active.length > 0 ? (
+            <ul className={styles.activeList}>
+              {active.map((spot) => (
+                <li key={spot.id}>
+                  <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
+                    {spot.name}
+                  </Link>{' '}
+                  <span className={styles.hereBadge}>{t('hereNow', { count: spot.here })}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className={vc.muted}>{t('activeNone')}</p>
+          )}
+        </section>
+      ) : null}
       <ul className={styles.spotList}>
         {city.items.map((spot) => (
           <li key={spot.id} className={styles.spotCard}>
@@ -86,6 +137,11 @@ export default async function CruisingCityPage({ params }: PageProps) {
                   ? tm('rating', { rating: formatRating(spot.ratingAvg), count: spot.ratingCount })
                   : tm('noRatings')}
               </span>
+              {(presence?.get(spot.id) ?? 0) > 0 ? (
+                <span className={styles.hereBadge}>
+                  {t('hereNow', { count: presence?.get(spot.id) ?? 0 })}
+                </span>
+              ) : null}
             </p>
           </li>
         ))}

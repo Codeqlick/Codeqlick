@@ -22,11 +22,13 @@ import {
   contactStillBlocked,
   isSuspended,
   isUniqueViolation,
+  type Bbox,
 } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
 import {
   CHECK_INS_PER_DAY,
   CONVERSATIONS_PER_DAY,
+  MAX_ACTIVE_IN_BOX,
   SAFE_CHAT_MESSAGES,
   type CheckInInput,
   type LookingFor,
@@ -311,6 +313,20 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
         return row.anonymous || !nickname ? [] : [{ nickname, since: row.createdAt.toISOString() }];
       }),
     };
+  }
+
+  /**
+   * The LIVE spots of a box of the map with someone there now (phase 3, decision 86), counted like
+   * a spot's presence. Only for entered members: presence never leaves the members' area.
+   */
+  async active(
+    userId: string,
+    box: Bbox,
+    now = new Date(),
+  ): Promise<{ items: { spotId: string; here: number }[] }> {
+    await this.entered(userId);
+    const hidden = await this.repository.hiddenIds(userId);
+    return { items: await this.repository.activeInBox(box, now, hidden, MAX_ACTIVE_IN_BOX) };
   }
 
   // ---- Conversations -----------------------------------------------------------------------------

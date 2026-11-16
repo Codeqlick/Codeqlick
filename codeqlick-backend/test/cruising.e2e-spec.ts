@@ -1192,4 +1192,109 @@ describe('Cruising (e2e)', () => {
       ).toBe(0);
     });
   });
+
+  it('searches cities and spots by text, ignoring accents and case, LIVE spots only', async () => {
+    let made = 0;
+    const place = async (name: string, city: string, status: 'LIVE' | 'PENDING' = 'LIVE') => {
+      made += 1;
+      const full = `${name} ${tag}`;
+      return prisma.cruisingSpot.create({
+        data: {
+          slug: `search-${made}-${tag}`,
+          name: full,
+          type: 'PARK',
+          // Away from BOX, so the map's tests don't see them.
+          lat: 13.5 + made / 100,
+          lng: -146.5 - made / 100,
+          countryCode: 'ES',
+          city: `${city} ${tag}`,
+          citySlug: `${city
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()}-${tag}`,
+          description: 'A place for the search tests.',
+          status,
+        },
+      });
+    };
+    const faro = await place('Faro Ñandú', 'Málaga');
+    await place('Pinar del Norte', 'Málaga');
+    await place('Bosque escondido', 'Oculta', 'PENDING');
+
+    const search = (q: string) =>
+      request(server()).get('/v1/cruising/search').query({ q }).expect(200);
+
+    const city = await search(`MALAGA ${tag}`);
+    expect(city.headers['cache-control']).toBe('public, max-age=60');
+    expect(city.body.places).toEqual([
+      {
+        countryCode: 'ES',
+        city: `Málaga ${tag}`,
+        citySlug: `malaga-${tag}`,
+        count: 2,
+        bbox: [-146.52, 13.51, -146.51, 13.52],
+      },
+    ]);
+    expect(city.body.spots).toEqual([]);
+
+    const spot = await search(`nandu ${tag}`);
+    expect(spot.body.places).toEqual([]);
+    expect(spot.body.spots).toEqual([
+      {
+        id: faro.id,
+        slug: faro.slug,
+        name: `Faro Ñandú ${tag}`,
+        type: 'PARK',
+        lat: 13.51,
+        lng: -146.51,
+        ratingAvg: 0,
+        ratingCount: 0,
+      },
+    ]);
+
+    // Spots that aren't LIVE are never found, nor their cities.
+    const hidden = await search(`escondido ${tag}`);
+    expect(hidden.body).toEqual({ places: [], spots: [] });
+    expect((await search(`oculta ${tag}`)).body.places).toEqual([]);
+
+    // Wildcards typed are literal.
+    expect((await search(`%${tag}`)).body).toEqual({ places: [], spots: [] });
+
+    for (const q of ['a', ' b ', 'x'.repeat(61)]) {
+      await request(server()).get('/v1/cruising/search').query({ q }).expect(400);
+    }
+    await request(server()).get('/v1/cruising/search').expect(400);
+  });
+
+  it('filters the map by a minimum rating, leaving out spots with no rating', async () => {
+    const good = await liveSpot('Rated good', 401);
+    const poor = await liveSpot('Rated poor', 402);
+    const unrated = await liveSpot('Unrated', 403);
+    await prisma.cruisingSpot.update({
+      where: { id: good.id },
+      data: { ratingAvg: 4.5, ratingCount: 2 },
+    });
+    await prisma.cruisingSpot.update({
+      where: { id: poor.id },
+      data: { ratingAvg: 2, ratingCount: 1 },
+    });
+    const slugsWith = async (minRating: number) => {
+      const res = await request(server())
+        .get(`/v1/cruising/spots?bbox=${BOX}&minRating=${minRating}`)
+        .expect(200);
+      return (res.body.items as { slug: string }[]).map((item) => item.slug);
+    };
+    const four = await slugsWith(4);
+    expect(four).toContain(good.slug);
+    expect(four).not.toContain(poor.slug);
+    expect(four).not.toContain(unrated.slug);
+    const one = await slugsWith(1);
+    expect(one).toEqual(expect.arrayContaining([good.slug, poor.slug]));
+    expect(one).not.toContain(unrated.slug);
+    const all = (await inBox()).items.map((item) => item.slug);
+    expect(all).toEqual(expect.arrayContaining([good.slug, poor.slug, unrated.slug]));
+    for (const bad of ['0', '6', '2.5', 'x']) {
+      await request(server()).get(`/v1/cruising/spots?bbox=${BOX}&minRating=${bad}`).expect(400);
+    }
+  });
 });

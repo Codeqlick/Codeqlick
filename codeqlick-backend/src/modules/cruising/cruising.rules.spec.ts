@@ -7,8 +7,10 @@ import {
   nextSpotStatus,
   takedownHidesAtOnce,
   parseBbox,
+  placeBbox,
   roundCoordinate,
   roundRating,
+  searchPatterns,
   slugify,
   spotSlugBase,
   summarizeRatings,
@@ -194,5 +196,27 @@ describe('isSuspended', () => {
     expect(
       isSuspended({ suspendedAt, suspendedUntil: new Date('2026-11-15T11:00:00Z') }, now),
     ).toBe(false);
+  });
+});
+
+describe('search', () => {
+  it('finds the text anywhere, or at the start, with spaces collapsed', () => {
+    expect(searchPatterns('  Gran   Canaria ')).toEqual({
+      contains: '%Gran Canaria%',
+      prefix: 'Gran Canaria%',
+    });
+  });
+
+  it('keeps the wildcards someone types literal', () => {
+    expect(searchPatterns('50%_off\\')).toEqual({
+      contains: '%50\\%\\_off\\\\%',
+      prefix: '50\\%\\_off\\\\%',
+    });
+  });
+
+  it('turns the corners of a city into the map box', () => {
+    expect(placeBbox({ minLng: '-3.71', minLat: '40.4', maxLng: -3.6, maxLat: 40.45 })).toEqual([
+      -3.71, 40.4, -3.6, 40.45,
+    ]);
   });
 });

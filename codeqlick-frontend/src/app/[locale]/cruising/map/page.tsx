@@ -3,7 +3,15 @@ import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { CruisingMap } from '@/components/cruising/CruisingMap';
-import { cruisingPath, parseMapView, spotsEndpoint } from '@/lib/cruising';
+import { getCruisingStatus } from '@/lib/api/cruising';
+import { getCurrentUser } from '@/lib/auth/session';
+import {
+  activeEndpoint,
+  cruisingPath,
+  parseMapView,
+  searchEndpoint,
+  spotsEndpoint,
+} from '@/lib/cruising';
 import { firstParam } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
@@ -43,6 +51,16 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
     lng: firstParam(query.lng),
     zoom: firstParam(query.zoom),
   });
+  // "Active now" is only for members who have entered (decision 86); signed out, nothing about
+  // presence is asked for.
+  let entered = false;
+  if (await getCurrentUser()) {
+    try {
+      entered = (await getCruisingStatus()).onboarded;
+    } catch {
+      // The map is public: it still works without Cruising's state.
+    }
+  }
 
   return (
     <>
@@ -55,6 +73,8 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
       </p>
       <CruisingMap
         endpoint={spotsEndpoint(locale, onHost)}
+        searchEndpoint={searchEndpoint(locale, onHost)}
+        activeEndpoint={entered ? activeEndpoint(locale, onHost) : null}
         spotBase={cruisingPath(locale, '/spots/', onHost)}
         proposeBase={cruisingPath(locale, '/new', onHost)}
         initial={initial}
