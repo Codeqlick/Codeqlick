@@ -42,6 +42,7 @@ import {
   VERIFICATIONS_PER_DAY,
   videoLengthAllowed,
   type ByteRange,
+  type MediaAlbum,
   type MediaFailure,
   type MediaKind,
   type MediaStatus,
@@ -74,6 +75,8 @@ export interface MyMediaView {
   id: string;
   ref: string;
   kind: MediaKind;
+  /** Phase 6: the public profile or the private album. */
+  album: MediaAlbum;
   status: MediaStatus;
   /** The effective cover: the chosen photo, else the first LIVE photo. */
   cover: boolean;
@@ -89,6 +92,8 @@ export interface MemberMediaView {
   id: string;
   ref: string;
   kind: MediaKind;
+  /** PRIVATE items reach only the members the owner shared the album with. */
+  album: MediaAlbum;
   width: number | null;
   height: number | null;
   durationSeconds: number | null;
@@ -461,6 +466,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       id: item.id,
       ref: item.ref,
       kind: item.kind,
+      album: item.album,
       status: item.status,
       cover: item.id === coverId,
       position: item.position,
@@ -491,15 +497,17 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
   }
 
   /**
-   * An upload (a photo or a video), with the member's explicit consent. Photos are re-encoded and
-   * LIVE at once; videos wait for the transcoder (PROCESSING). The received file is always deleted
-   * or moved into the queue.
+   * An upload (a photo or a video), with the member's explicit consent, into the public profile or
+   * the private album (each with its own limits). Photos are re-encoded and LIVE at once; videos
+   * wait for the transcoder (PROCESSING). The received file is always deleted or moved into the
+   * queue.
    */
   async upload(
     userId: string,
     file: ReceivedFile | undefined,
     consent: string | undefined,
     now = new Date(),
+    album: MediaAlbum = 'PUBLIC',
   ): Promise<MyMediaView> {
     try {
       const profile = await this.allowed(userId, now);
@@ -527,14 +535,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       if (kind === 'PHOTO' && file.size > MAX_PHOTO_BYTES) {
         throw new PayloadTooLargeException('Photos up to 10 MB');
       }
-      const active = await this.media.countActive(userId);
-      if (!hasRoom(kind, active.photos, active.videos)) {
-        throw new ConflictException(
-          kind === 'PHOTO'
-            ? `You can have up to ${MAX_PHOTOS} photos: delete one first`
-            : `You can have up to ${MAX_VIDEOS} videos: delete one first`,
-        );
-      }
+      await this.needRoom(userId, kind, album);
       const allowance = useDailyAllowance(
         profile.uploads,
         profile.uploadsSince,
@@ -549,8 +550,8 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       }
       const item =
         kind === 'PHOTO'
-          ? await this.savePhoto(userId, profile.nickname, file, now)
-          : await this.queueVideo(userId, file, now);
+          ? await this.savePhoto(userId, profile.nickname, file, now, album)
+          : await this.queueVideo(userId, file, now, album);
       await this.repository.updateProfile(userId, {
         uploads: allowance.count,
         uploadsSince: allowance.since,
@@ -563,11 +564,25 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     }
   }
 
+  /** 409 when the album has no room for another item of `kind`. */
+  private async needRoom(userId: string, kind: MediaKind, album: MediaAlbum): Promise<void> {
+    const active = await this.media.countActive(userId, album);
+    if (!hasRoom(kind, active.photos, active.videos)) {
+      const where = album === 'PRIVATE' ? ' in your private album' : '';
+      throw new ConflictException(
+        kind === 'PHOTO'
+          ? `You can have up to ${MAX_PHOTOS} photos${where}: delete one first`
+          : `You can have up to ${MAX_VIDEOS} videos${where}: delete one first`,
+      );
+    }
+  }
+
   private async savePhoto(
     userId: string,
     nickname: string,
     file: ReceivedFile,
     now: Date,
+    album: MediaAlbum,
   ): Promise<CruisingMedia> {
     const image = await processImage(await readFile(file.path));
     if (!image) throw new BadRequestException('Only PNG, JPEG and WebP photos are accepted');
@@ -583,6 +598,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
         ref: await this.uniqueRef(),
         ownerId: userId,
         kind: 'PHOTO',
+        album,
         status: 'LIVE',
         storageKey,
         width: image.width,
@@ -597,7 +613,12 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     }
   }
 
-  private async queueVideo(userId: string, file: ReceivedFile, now: Date): Promise<CruisingMedia> {
+  private async queueVideo(
+    userId: string,
+    file: ReceivedFile,
+    now: Date,
+    album: MediaAlbum,
+  ): Promise<CruisingMedia> {
     const probe = await this.ffmpeg.probe(file.path);
     if (!probe) throw new BadRequestException('This video cannot be read');
     if (!videoLengthAllowed(probe.duration)) {
@@ -607,6 +628,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       ref: await this.uniqueRef(),
       ownerId: userId,
       kind: 'VIDEO',
+      album,
       status: 'PROCESSING',
       durationSeconds: probe.durationSeconds,
       position: await this.media.nextPosition(userId),
@@ -628,16 +650,25 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     return item;
   }
 
-  /** Chooses the cover photo and/or moves an item in my order. */
+  /**
+   * Moves an item into the other album (phase 6: no new review; the cover leaves for the private
+   * album as an ordinary photo), chooses the cover photo and/or moves an item in my order.
+   */
   async updateMedia(userId: string, mediaId: string, patch: MediaPatch): Promise<void> {
     await this.entered(userId);
     const item = await this.mine(userId, mediaId);
-    if (patch.cover) {
-      if (item.kind !== 'PHOTO' || item.status !== 'LIVE') {
-        throw new ConflictException('Only a live photo can be the cover');
-      }
-      await this.media.setCover(userId, item.id);
+    const album = patch.album ?? item.album;
+    if (patch.cover && (item.kind !== 'PHOTO' || item.status !== 'LIVE' || album !== 'PUBLIC')) {
+      throw new ConflictException('Only a live photo of your profile can be the cover');
     }
+    if (album !== item.album) {
+      await this.needRoom(userId, item.kind, album);
+      await this.media.updateMedia(item.id, {
+        album,
+        ...(album === 'PRIVATE' ? { cover: false } : {}),
+      });
+    }
+    if (patch.cover) await this.media.setCover(userId, item.id);
     if (patch.position !== undefined) {
       const ids = (await this.media.mediaOf(userId)).map((other) => other.id);
       await this.media.setPositions(userId, reorder(ids, item.id, patch.position));
@@ -654,7 +685,10 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
 
   // ---- Seeing media ------------------------------------------------------------------------------
 
-  /** A member's LIVE media, for their profile page (seen like the profile). */
+  /**
+   * A member's LIVE media, for their profile page (seen like the profile); their private album's
+   * too when they shared it with me (decision 99), or when it is mine.
+   */
   async memberMedia(
     viewerId: string,
     nickname: string,
@@ -670,13 +704,16 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     ) {
       throw new NotFoundException('Member not found');
     }
-    const items = await this.media.liveMediaOf(target.userId);
+    const withPrivate =
+      target.userId === viewerId || (await this.media.isGranted(target.userId, viewerId));
+    const items = await this.media.liveMediaOf(target.userId, withPrivate);
     const coverId = coverOf(items);
     return {
       items: items.map((item) => ({
         id: item.id,
         ref: item.ref,
         kind: item.kind,
+        album: item.album,
         width: item.width,
         height: item.height,
         durationSeconds: item.durationSeconds,
@@ -691,12 +728,17 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     item: {
       ownerId: string;
       status: MediaStatus;
+      album?: MediaAlbum;
       owner: { cruisingProfile: { suspendedAt: Date | null; suspendedUntil: Date | null } | null };
     },
     now = new Date(),
   ): Promise<boolean> {
     if (viewer.id === item.ownerId || viewer.isAdmin) return true;
     if (item.status !== 'LIVE') return false;
+    // A private album's item needs the owner's grant (decision 99).
+    const granted =
+      item.album === 'PRIVATE' && (await this.media.isGranted(item.ownerId, viewer.id));
+    if (item.album === 'PRIVATE' && !granted) return false;
     const profile = await this.repository.findProfile(viewer.id);
     return canSeeMedia({
       viewerId: viewer.id,
@@ -707,12 +749,15 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       status: item.status,
       ownerSuspended: isSuspended(item.owner.cruisingProfile, now),
       blocked: (await this.repository.hiddenIds(viewer.id)).includes(item.ownerId),
+      album: item.album,
+      granted,
     });
   }
 
   /**
    * A media file (or a video's poster) for its owner, the team, or an entered member with a
-   * nickname who can see the profile; 404 for anyone else. `rangeHeader` asks for part of it.
+   * nickname who can see the profile (and, for the private album, was granted it); 404 for anyone
+   * else. `rangeHeader` asks for part of it.
    */
   async file(
     viewer: AuthUser,

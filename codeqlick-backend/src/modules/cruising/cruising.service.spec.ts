@@ -13,6 +13,7 @@ import type { MailMessage, MailService } from '../mail/mail.service.js';
 import { deleteUserRecomputingRatings, recomputeSpotRating } from './cruising.repository.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
 import type { CruisingMediaService } from './cruising-media.service.js';
+import type { CruisingRoomsRepository } from './cruising-rooms.repository.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingService, newSpotFields, spotChanges } from './cruising.service.js';
 import type { SpotInput } from './cruising.schemas.js';
@@ -182,6 +183,13 @@ function build() {
     withdrawVerification: vi.fn().mockResolvedValue(undefined),
     visibleTo: vi.fn().mockResolvedValue(true),
   };
+  const rooms = {
+    findMessage: vi.fn().mockResolvedValue(null),
+    setHidden: vi.fn().mockResolvedValue(undefined),
+    deleteMessage: vi.fn().mockResolvedValue(true),
+    countOpenReportsOnRoomMessage: vi.fn().mockResolvedValue(0),
+    closeOpenReportsOnRoomMessage: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new CruisingService(
     repo as unknown as CruisingRepository,
     mediaRepo as unknown as CruisingMediaRepository,
@@ -189,8 +197,9 @@ function build() {
     activity as unknown as ActivityService,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
+    rooms as unknown as CruisingRoomsRepository,
   );
-  return { service, repo, sent, activity, config, media, mediaRepo };
+  return { service, repo, sent, activity, config, media, mediaRepo, rooms };
 }
 
 /** Lets the emails sent without waiting (fire and forget) settle. */
@@ -1418,6 +1427,67 @@ describe('CruisingService', () => {
         badges: [],
       });
       expect(view.helpful).toEqual({ count: 2, mine: false });
+    });
+  });
+
+  describe('reports on room messages (phase 6, decision 100)', () => {
+    const message = (over: Record<string, unknown> = {}) => ({
+      id: 'room-msg',
+      userId: OTHER,
+      countryCode: 'ES',
+      citySlug: 'madrid',
+      text: 'Something nasty',
+      hidden: false,
+      createdAt: NOW,
+      ...over,
+    });
+
+    it('saves the text with the report and hides it at once for HARASSMENT', async () => {
+      t.rooms.findMessage.mockResolvedValue(message());
+      await t.service.report(ME, { roomMessageId: 'room-msg', reason: 'HARASSMENT' }, NOW);
+      expect(t.repo.createReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetType: 'ROOM_MESSAGE',
+          roomMessageId: 'room-msg',
+          reportedId: OTHER,
+          transcript: [{ from: 'reported', text: 'Something nasty', at: NOW.toISOString() }],
+        }),
+      );
+      expect(t.rooms.setHidden).toHaveBeenCalledWith('room-msg', true);
+    });
+
+    it('does not hide it for SPAM, and refuses my own or a hidden message', async () => {
+      t.rooms.findMessage.mockResolvedValue(message());
+      await t.service.report(ME, { roomMessageId: 'room-msg', reason: 'SPAM' }, NOW);
+      expect(t.rooms.setHidden).not.toHaveBeenCalled();
+      t.rooms.findMessage.mockResolvedValue(message({ userId: ME }));
+      await expect(
+        t.service.report(ME, { roomMessageId: 'room-msg', reason: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      t.rooms.findMessage.mockResolvedValue(message({ hidden: true }));
+      await expect(
+        t.service.report(ME, { roomMessageId: 'room-msg', reason: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('dismissing restores it when nothing else is open; removing deletes it', async () => {
+      const report = {
+        id: 'report-1',
+        status: 'OPEN',
+        targetType: 'ROOM_MESSAGE',
+        reason: 'HARASSMENT',
+        reportedId: OTHER,
+        spot: null,
+        review: null,
+        meetup: null,
+        safetyAlert: null,
+        roomMessage: { id: 'room-msg', hidden: true },
+      };
+      t.repo.findReport.mockResolvedValue(report);
+      await t.service.dismissReport(admin, 'report-1', NOW);
+      expect(t.rooms.setHidden).toHaveBeenCalledWith('room-msg', false);
+      await t.service.actOnReport(admin, 'report-1', { remove: true, suspend: null }, NOW);
+      expect(t.rooms.deleteMessage).toHaveBeenCalledWith('room-msg');
     });
   });
 

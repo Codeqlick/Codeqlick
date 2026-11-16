@@ -138,6 +138,8 @@ export class AccountRepository {
       cruisingMeetupsJoined,
       cruisingTrips,
       cruisingSafetyAlerts,
+      cruisingAlbumGrants,
+      cruisingRoomMessages,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -428,7 +430,14 @@ export class AccountRepository {
       p.cruisingMedia.findMany({
         where: { ownerId: userId },
         orderBy: { createdAt: 'asc' },
-        select: { ref: true, kind: true, status: true, durationSeconds: true, createdAt: true },
+        select: {
+          ref: true,
+          kind: true,
+          album: true,
+          status: true,
+          durationSeconds: true,
+          createdAt: true,
+        },
       }),
       p.cruisingFavorite.findMany({
         where: { userId },
@@ -506,6 +515,20 @@ export class AccountRepository {
           createdAt: true,
           spot: { select: { slug: true } },
         },
+      }),
+      // Phase 6: who I shared my private album with, and what I wrote in city rooms (7 days).
+      p.cruisingAlbumGrant.findMany({
+        where: { ownerId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          createdAt: true,
+          grantee: { select: { cruisingProfile: { select: { nickname: true } } } },
+        },
+      }),
+      p.cruisingRoomMessage.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { countryCode: true, citySlug: true, text: true, createdAt: true },
       }),
       p.cloudMember.findMany({
         where: { userId },
@@ -587,6 +610,11 @@ export class AccountRepository {
             meetupsJoined: cruisingMeetupsJoined,
             trips: cruisingTrips,
             safetyAlerts: cruisingSafetyAlerts,
+            albumSharedWith: cruisingAlbumGrants.map((grant) => ({
+              nickname: grant.grantee.cruisingProfile?.nickname ?? null,
+              createdAt: grant.createdAt,
+            })),
+            roomMessages: cruisingRoomMessages,
           }
         : null,
       cloud:

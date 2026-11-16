@@ -36,7 +36,7 @@ describe('the account export (Cruising)', () => {
     expect(data.cruising).toBeNull();
   });
 
-  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts, media, meetups, trips, safety alerts, contacts and timers', async () => {
+  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts, media, meetups, trips, safety alerts, contacts, timers, album grants and room messages', async () => {
     const profile = {
       birthYear: 1990,
       termsVersion: 'v1',
@@ -78,6 +78,15 @@ describe('the account export (Cruising)', () => {
     const joined = [{ anonymous: true, meetup: { title: 'Picnic', spot: { slug: 'the-pier' } } }];
     const trips = [{ countryCode: 'ES', city: 'Madrid', listed: true }];
     const safety = [{ kind: 'THEFT', note: null, spot: { slug: 'the-pier' } }];
+    const grants = [
+      {
+        createdAt: new Date('2026-11-16T13:00:00Z'),
+        grantee: { cruisingProfile: { nickname: 'beach_guy' } },
+      },
+    ];
+    const roomMessages = [
+      { countryCode: 'ES', citySlug: 'madrid', text: 'Hi all', createdAt: new Date() },
+    ];
     const prisma = fakePrisma({
       cruisingTrustedContact: { findMany: vi.fn().mockResolvedValue(contacts) },
       cruisingTimer: { findMany: vi.fn().mockResolvedValue(timers) },
@@ -94,6 +103,8 @@ describe('the account export (Cruising)', () => {
       cruisingMeetupAttendee: { findMany: vi.fn().mockResolvedValue(joined) },
       cruisingTrip: { findMany: vi.fn().mockResolvedValue(trips) },
       cruisingSafetyAlert: { findMany: vi.fn().mockResolvedValue(safety) },
+      cruisingAlbumGrant: { findMany: vi.fn().mockResolvedValue(grants) },
+      cruisingRoomMessage: { findMany: vi.fn().mockResolvedValue(roomMessages) },
     });
     const data = await new AccountRepository(prisma).export(USER, null);
     expect(data.cruising).toEqual({
@@ -113,6 +124,8 @@ describe('the account export (Cruising)', () => {
       meetupsJoined: joined,
       trips,
       safetyAlerts: safety,
+      albumSharedWith: [{ nickname: 'beach_guy', createdAt: grants[0]?.createdAt }],
+      roomMessages,
     });
     // The date of birth is never kept, so it cannot be exported: only the year is selected.
     expect(Object.keys(data.cruising?.profile ?? {})).not.toContain('birthDate');

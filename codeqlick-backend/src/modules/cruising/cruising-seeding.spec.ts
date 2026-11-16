@@ -6,6 +6,7 @@ import type { ActivityService } from '../activity/activity.service.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
 import type { CruisingMediaService } from './cruising-media.service.js';
+import type { CruisingRoomsRepository } from './cruising-rooms.repository.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingService } from './cruising.service.js';
 import {
@@ -248,6 +249,7 @@ function build() {
     activity as unknown as ActivityService,
     { send: vi.fn() } as unknown as MailService,
     { isTest: true } as unknown as AppConfigService,
+    {} as unknown as CruisingRoomsRepository,
   );
   return { service, repo, activity };
 }

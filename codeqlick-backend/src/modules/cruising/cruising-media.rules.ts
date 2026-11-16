@@ -1,6 +1,9 @@
 /** Pure rules of Cruising's profile photos and videos (architecture 4.15, phase 4, decision 87). */
 
-/** Photos and videos a member can have at once (PROCESSING, LIVE and HIDDEN count; FAILED doesn't). */
+/**
+ * Photos and videos a member can have at once in each album (PROCESSING, LIVE and HIDDEN count;
+ * FAILED doesn't): the public profile and, since phase 6 (decision 99), the private album.
+ */
 export const MAX_PHOTOS = 12;
 export const MAX_VIDEOS = 4;
 /** Uploads a member can make a day (deleting one doesn't give it back). */
@@ -15,6 +18,8 @@ export const MAX_VIDEO_SECONDS = 60;
 const DURATION_TOLERANCE = 0.5;
 
 export type MediaKind = 'PHOTO' | 'VIDEO';
+export const MEDIA_ALBUMS = ['PUBLIC', 'PRIVATE'] as const;
+export type MediaAlbum = (typeof MEDIA_ALBUMS)[number];
 export type MediaStatus = 'PROCESSING' | 'LIVE' | 'HIDDEN' | 'FAILED';
 export type VideoContainer = 'mp4' | 'mov' | 'webm';
 /** Why a video FAILED: codes the web turns into words. */
@@ -214,17 +219,23 @@ export interface MediaAccess {
   ownerSuspended: boolean;
   /** A block between the two, either way. */
   blocked: boolean;
+  /** Phase 6: the item's album (none: PUBLIC). */
+  album?: MediaAlbum;
+  /** Phase 6: the owner shared their private album with the viewer. */
+  granted?: boolean;
 }
 
 /**
  * Who sees a photo or video (decision 87): its owner and the team always; anyone else only a LIVE
  * item of a member who isn't suspended, when they entered Cruising with a nickname (as profiles
- * ask) and no block stands between them. Never signed-out visitors.
+ * ask) and no block stands between them. A private album's item (decision 99) also needs the
+ * owner's grant. Never signed-out visitors.
  */
 export function canSeeMedia(access: MediaAccess): boolean {
   if (access.viewerId === access.ownerId || access.viewerIsAdmin) return true;
   return (
     access.status === 'LIVE' &&
+    (access.album !== 'PRIVATE' || !!access.granted) &&
     access.viewerEntered &&
     access.viewerHasNickname &&
     !access.ownerSuspended &&
@@ -240,7 +251,7 @@ export function mediaHidesAtOnce(reason: string): boolean {
 }
 
 export type ReportTargetKind =
-  'spot' | 'review' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert';
+  'spot' | 'review' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert' | 'room_message';
 
 /**
  * The reasons each target takes: WRONG_INFO only on a spot; NON_CONSENSUAL and STOLEN only on media
@@ -256,13 +267,21 @@ export function reasonAllowedOn(target: ReportTargetKind, reason: string): boole
 }
 
 /**
- * The cover of a member: the LIVE photo they chose, else their first LIVE photo (by position).
- * Items come in position order.
+ * The cover of a member: the public LIVE photo they chose, else their first public LIVE photo (by
+ * position); a private album's photo never is. Items come in position order.
  */
 export function coverOf<
-  T extends { id: string; kind: MediaKind; status: MediaStatus; cover: boolean },
+  T extends {
+    id: string;
+    kind: MediaKind;
+    status: MediaStatus;
+    cover: boolean;
+    album?: MediaAlbum;
+  },
 >(items: readonly T[]): string | null {
-  const photos = items.filter((item) => item.kind === 'PHOTO' && item.status === 'LIVE');
+  const photos = items.filter(
+    (item) => item.kind === 'PHOTO' && item.status === 'LIVE' && item.album !== 'PRIVATE',
+  );
   return (photos.find((item) => item.cover) ?? photos[0])?.id ?? null;
 }
 
@@ -290,7 +309,7 @@ export function useDailyAllowance(
   return { count: count + 1, since };
 }
 
-/** Whether there is room for another item of `kind`, given the active ones. */
+/** Whether there is room for another item of `kind`, given the active ones of the same album. */
 export function hasRoom(kind: MediaKind, activePhotos: number, activeVideos: number): boolean {
   return kind === 'PHOTO' ? activePhotos < MAX_PHOTOS : activeVideos < MAX_VIDEOS;
 }

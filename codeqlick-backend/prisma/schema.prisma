@@ -189,6 +189,9 @@ model User {
   cruisingTrips              CruisingTrip[]
   cruisingSafetyAlerts       CruisingSafetyAlert[]
   cruisingSafetyVotes        CruisingSafetyVote[]
+  cruisingAlbumGrantsGiven   CruisingAlbumGrant[]        @relation("CruisingAlbumOwner")
+  cruisingAlbumGrantsGot     CruisingAlbumGrant[]        @relation("CruisingAlbumGrantee")
+  cruisingRoomMessages       CruisingRoomMessage[]
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
@@ -3045,6 +3048,8 @@ enum CruisingReportTarget {
   MEETUP
   /// Phase 5 (decision 91): a safety alert.
   ALERT
+  /// Phase 6 (decision 100): a message in a city's chat room.
+  ROOM_MESSAGE
 }
 
 /// What a member says they are looking for (phase 2).
@@ -3081,6 +3086,12 @@ enum CruisingVerificationStatus {
 enum CruisingMediaKind {
   PHOTO
   VIDEO
+}
+
+/// Phase 6 (decision 99): the profile's photos and videos, or the private album shared per person.
+enum CruisingMediaAlbum {
+  PUBLIC
+  PRIVATE
 }
 
 enum CruisingMediaStatus {
@@ -3165,6 +3176,8 @@ model CruisingProfile {
   /// …the helpful votes their LIVE reviews received, and their LIVE reviews.
   helpfulReceived        Int                        @default(0) @map("helpful_received")
   reviewsWritten         Int                        @default(0) @map("reviews_written")
+  /// Phase 6 (decision 100): muted from the city chat rooms until then (year 9999: permanently).
+  roomMutedUntil         DateTime?                  @map("room_muted_until") @db.Timestamptz(3)
   createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -3264,6 +3277,8 @@ model CruisingReport {
   /// Phase 5: a meetup (decision 88) or a safety alert (decision 91).
   meetupId      String?              @map("meetup_id") @db.Uuid
   safetyAlertId String?              @map("safety_alert_id") @db.Uuid
+  /// Phase 6: a room message (its text is kept in the transcript once it is purged).
+  roomMessageId String?              @map("room_message_id") @db.Uuid
   /// The person behind the target (the spot's proposer, the review's author); null when unknown.
   reportedId    String?              @map("reported_id") @db.Uuid
   reason        CruisingReportReason
@@ -3283,6 +3298,7 @@ model CruisingReport {
   media       CruisingMedia?       @relation(fields: [mediaId], references: [id], onDelete: SetNull)
   meetup      CruisingMeetup?      @relation(fields: [meetupId], references: [id], onDelete: SetNull)
   safetyAlert CruisingSafetyAlert? @relation(fields: [safetyAlertId], references: [id], onDelete: SetNull)
+  roomMessage CruisingRoomMessage? @relation(fields: [roomMessageId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
@@ -3292,6 +3308,7 @@ model CruisingReport {
   @@index([mediaId])
   @@index([meetupId])
   @@index([safetyAlertId])
+  @@index([roomMessageId])
   @@map("cruising_reports")
 }
 
@@ -3334,6 +3351,8 @@ model CruisingMedia {
   ref             String              @unique @db.VarChar(12)
   ownerId         String              @map("owner_id") @db.Uuid
   kind            CruisingMediaKind
+  /// Phase 6 (decision 99): PRIVATE items are seen only by the members the owner shared them with.
+  album           CruisingMediaAlbum  @default(PUBLIC)
   status          CruisingMediaStatus @default(PROCESSING)
   /// The photo (WebP, watermarked) or the transcoded video (MP4); null until processed or when FAILED.
   storageKey      String?             @unique @map("storage_key")
@@ -3779,4 +3798,41 @@ model CruisingSafetyVote {
   @@id([alertId, userId])
   @@index([userId])
   @@map("cruising_safety_votes")
+}
+
+// ---- Cruising phase 6: private album and city chat (decisions 99, 100) -------------------------
+
+/// The owner shared their private album with the grantee (decision 99). Revoked by the owner, by a
+/// block either way or by leaving the conversation.
+model CruisingAlbumGrant {
+  ownerId   String   @map("owner_id") @db.Uuid
+  granteeId String   @map("grantee_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  owner   User @relation("CruisingAlbumOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  grantee User @relation("CruisingAlbumGrantee", fields: [granteeId], references: [id], onDelete: Cascade)
+
+  @@id([ownerId, granteeId])
+  @@index([granteeId])
+  @@map("cruising_album_grants")
+}
+
+/// A message in a city's chat room (decision 100): the room is the city (`countryCode` +
+/// `citySlug`), no row of its own. Kept 7 days; `hidden` by a serious report.
+model CruisingRoomMessage {
+  id          String   @id @default(uuid()) @db.Uuid
+  countryCode String   @map("country_code") @db.VarChar(2)
+  citySlug    String   @map("city_slug") @db.VarChar(100)
+  userId      String   @map("user_id") @db.Uuid
+  text        String   @db.VarChar(500)
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports CruisingReport[]
+
+  @@index([countryCode, citySlug, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("cruising_room_messages")
 }

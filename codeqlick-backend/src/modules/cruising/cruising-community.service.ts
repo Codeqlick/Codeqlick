@@ -58,6 +58,7 @@ import { CruisingRepository } from './cruising.repository.js';
 import { MAX_ACTIVE_IN_BOX, MAX_SPOTS_IN_CITY } from './cruising.schemas.js';
 import { spotSummary, type CruisingSpotSummary } from './cruising.service.js';
 import { CruisingSocialService } from './cruising-social.service.js';
+import { ROOM_KEEP_MS } from './cruising-rooms.rules.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Meetups, trips and alerts that are over are deleted by a check this often. */
@@ -195,8 +196,8 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
   }
 
   /**
-   * Deletes meetups 7 days after they end, trips the day after their last day and safety alerts a
-   * day after they expire.
+   * Deletes meetups 7 days after they end, trips the day after their last day, safety alerts a
+   * day after they expire and city room messages after 7 days.
    */
   async cleanup(now = new Date()): Promise<void> {
     try {
@@ -205,6 +206,8 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
       await this.community.deleteSafetyAlertsExpiredBefore(
         new Date(now.getTime() - SAFETY_KEEP_MS),
       );
+      // Phase 6 (decision 100): city room messages go after 7 days.
+      await this.community.deleteRoomMessagesBefore(new Date(now.getTime() - ROOM_KEEP_MS));
     } catch (error) {
       this.logger.error(`Cruising phase 5 cleanup failed: ${String(error)}`);
     }

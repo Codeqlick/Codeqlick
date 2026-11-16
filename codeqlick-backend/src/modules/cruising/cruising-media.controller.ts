@@ -133,7 +133,7 @@ export class CruisingMediaController {
     @UploadedFile() file: ReceivedFile | undefined,
     @Body({ schema: mediaUploadFieldsSchema }) fields: MediaUploadFields,
   ): Promise<MyMediaView> {
-    return this.media.upload(user.id, file, fields.consent);
+    return this.media.upload(user.id, file, fields.consent, new Date(), fields.album);
   }
 
   @Patch('media/:id')
