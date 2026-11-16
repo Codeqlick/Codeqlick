@@ -1,6 +1,6 @@
 import { StandardSchemaValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import helmet from 'helmet';
+import helmet, { type HelmetOptions } from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js';
 import { largeJsonBody } from './common/large-json-body.js';
@@ -12,6 +12,35 @@ import { ErrorsService } from './modules/errors/errors.service.js';
 export const PUBLIC_CORS_PATH = /^\/v1\/cloud\/(forms|heartbeats|status|analytics|kv|schema)\//;
 
 /**
+ * The API's protective headers (architecture 6.4, decision 109). It answers JSON, so its policy
+ * allows nothing; the few routes that serve a page or a file other sites load set their own
+ * (Cloud's password page, the drafts' sandbox, `Cross-Origin-Resource-Policy: cross-origin` on
+ * the analytics script and badges). Outside production no CSP, for Swagger UI.
+ */
+export function securityHeaders(production: boolean): HelmetOptions {
+  return {
+    contentSecurityPolicy: production
+      ? {
+          useDefaults: false,
+          directives: {
+            defaultSrc: ["'none'"],
+            // The small result pages of the form endpoints style themselves inline.
+            styleSrc: ["'unsafe-inline'"],
+            baseUri: ["'none'"],
+            formAction: ["'none'"],
+            frameAncestors: ["'none'"],
+          },
+        }
+      : false,
+    strictTransportSecurity: { maxAge: 31_536_000, includeSubDomains: true, preload: false },
+    xFrameOptions: { action: 'deny' },
+    referrerPolicy: { policy: 'no-referrer' },
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+  };
+}
+
+/**
  * Cross-cutting HTTP setup shared by main.ts and the e2e tests, so tests exercise exactly
  * the same pipeline as production.
  */
@@ -21,7 +50,7 @@ export function configureApp(app: NestExpressApplication): void {
   app.useLogger(app.get(Logger));
   // Behind Nginx: trust the first proxy hop so req.ip (rate limiting, sessions) is the client's.
   app.set('trust proxy', 1);
-  app.use(helmet({ contentSecurityPolicy: config.isProduction ? undefined : false }));
+  app.use(helmet(securityHeaders(config.isProduction)));
   app.enableCors((request, callback) => {
     // Cloud's public endpoints (forms, heartbeats, status) are called from anyone's pages: any
     // origin may ask, and each route checks the origins it accepts (no credentials anywhere).
