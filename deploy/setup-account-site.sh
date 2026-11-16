@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publishes the account site, account.codeqlick.com (architecture 6.4, decision 108): where people
+# Publishes the account site, account.codeqlick.com (architecture 6.5, decision 108): where people
 # sign in, sign up and change their account, and where every other host gets its session from by
 # single sign-on. Run it once from /srv/codeqlick, as a user with sudo, after pulling the release
 # that brings it (deploy/README.md, "Account site"):

@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
 }
 
 /**
- * The account site (account.codeqlick.com, architecture 6.4, decision 108): one account for every
+ * The account site (account.codeqlick.com, architecture 6.5, decision 108): one account for every
  * app, in all six languages. The proxy has already asked for a session (PROTECTED_PATH).
  */
 export default async function AccountLayout({ children, params }: LayoutProps) {

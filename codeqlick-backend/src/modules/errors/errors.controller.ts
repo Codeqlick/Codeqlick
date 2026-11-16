@@ -1,12 +1,24 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import {
+  cspReportSchema,
   errorsQuerySchema,
   reportErrorSchema,
+  type CspReportInput,
   type ErrorsQuery,
   type ReportErrorInput,
 } from './errors.schemas.js';
@@ -24,6 +36,21 @@ export class ErrorsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async report(@Body({ schema: reportErrorSchema }) body: ReportErrorInput): Promise<void> {
     await this.errors.report(body);
+  }
+
+  /**
+   * What browsers report about the website's Content Security Policy, forwarded by its
+   * `/api/csp-report` (architecture 4.11, 6.4). The IP is used for this limit only, never kept.
+   */
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('csp-reports')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async reportCsp(
+    @Body({ schema: cspReportSchema }) body: CspReportInput,
+    @Headers('user-agent') userAgent?: string,
+  ): Promise<void> {
+    await this.errors.reportCsp(body, userAgent);
   }
 
   @ApiBearerAuth()

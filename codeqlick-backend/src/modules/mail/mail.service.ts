@@ -37,6 +37,12 @@ interface MailTransport {
   }): Promise<unknown>;
 }
 
+/** The domain of a From address (`Codeqlick <hello@codeqlick.com>` → codeqlick.com). */
+export function mailDomain(from: string): string | undefined {
+  const domain = /@([a-z0-9.-]+\.[a-z]{2,})>?\s*$/i.exec(from)?.[1];
+  return domain?.toLowerCase();
+}
+
 /** Thin abstraction over Nodemailer. In NODE_ENV=test nothing leaves the process. */
 @Injectable()
 export class MailService {
@@ -53,6 +59,9 @@ export class MailService {
     } else {
       const smtp = config.smtp;
       this.transporter = createTransport({
+        // EHLO with the sending domain, not the container's random hostname (spam filters score
+        // a name that isn't a domain); Message-IDs already end in the From address's domain.
+        name: mailDomain(this.from),
         host: smtp.host,
         port: smtp.port,
         secure: smtp.secure,

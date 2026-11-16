@@ -126,6 +126,8 @@ export class CloudCommentsOverlayController {
   }
 
   @Post('api/threads')
+  // Per IP on top of the 30 comments a minute per person (decision 109: every public mutation).
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   create(
     @Req() request: Request,
     @Body({ schema: createThreadSchema }) body: CreateThreadInput,
@@ -134,6 +136,8 @@ export class CloudCommentsOverlayController {
   }
 
   @Post('api/threads/:threadId/comments')
+  // Per IP on top of the 30 comments a minute per person (decision 109: every public mutation).
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   reply(
     @Req() request: Request,
     @Param({ schema: overlayThreadParamSchema }) params: OverlayThreadParam,
@@ -143,6 +147,8 @@ export class CloudCommentsOverlayController {
   }
 
   @Patch('api/threads/:threadId')
+  // Per IP on top of the 30 comments a minute per person (decision 109: every public mutation).
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   resolve(
     @Req() request: Request,
     @Param({ schema: overlayThreadParamSchema }) params: OverlayThreadParam,
@@ -157,6 +163,8 @@ export class CloudCommentsOverlayController {
   }
 
   @Delete('api/threads/:threadId/comments/:commentId')
+  // Per IP on top of the 30 comments a minute per person (decision 109: every public mutation).
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(
     @Req() request: Request,

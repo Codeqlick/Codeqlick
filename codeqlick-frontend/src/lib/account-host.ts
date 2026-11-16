@@ -1,5 +1,5 @@
 /**
- * The account host, account.codeqlick.com (architecture 6.4, decision 108): where people sign in,
+ * The account host, account.codeqlick.com (architecture 6.5, decision 108): where people sign in,
  * sign up, recover their account and change its settings. Every other host gets its session from
  * it by single sign-on (`lib/sso.ts`). Pure functions: the proxy, route handlers and links use
  * them, so no `server-only` and no env module here (the proxy reads `ACCOUNT_SSO` itself).

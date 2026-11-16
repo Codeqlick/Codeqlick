@@ -21,8 +21,11 @@ export class ErrorsRepository {
     return this.prisma.errorGroup.findUnique({ where: { fingerprint } });
   }
 
-  countOpen(): Promise<number> {
-    return this.prisma.errorGroup.count({ where: { resolvedAt: null } });
+  /** Open groups of CSP reports (`csp`), or of every other source. */
+  countOpen(csp: boolean): Promise<number> {
+    return this.prisma.errorGroup.count({
+      where: { resolvedAt: null, source: csp ? 'CSP' : { not: 'CSP' } },
+    });
   }
 
   /** One more occurrence: creates the group or counts it, reopening it when it was resolved. */

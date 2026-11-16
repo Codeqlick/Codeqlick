@@ -1,74 +1,21 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-import { EXOCLICK_HOSTS } from './src/lib/videochat-ads';
+import { CALL_APPS, LOCATING_APPS, securityHeaders } from './src/lib/security-headers';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-/**
- * Production only: `next dev` needs eval and a websocket for hot reload. Next.js inlines its
- * bootstrap scripts, so scripts need 'unsafe-inline' (a nonce would make every page dynamic); the
- * policy still blocks scripts, styles, fonts and connections from any other origin. Images may be
- * remote because Markdown content can reference them.
- */
-/**
- * The web apps' WebSockets when they aren't on the page's own host (VIDEOCHAT_WS_URL and
- * MEETINGS_WS_URL, read at build time; in production they are wss://<host>/ws, which 'self'
- * covers).
- */
-const appSockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL]
-  .map((url) => {
-    try {
-      return url ? new URL(url).origin : '';
-    } catch {
-      return '';
-    }
-  })
-  .filter((origin, index, all) => origin && all.indexOf(origin) === index);
-
-/** Cloudflare Turnstile on sign-in and sign-up (architecture 4.3): its script, frame and checks. */
-const TURNSTILE = 'https://challenges.cloudflare.com';
-
-/** OpenStreetMap's tile server: Cruising's map pictures (architecture 4.15). */
-const OSM_TILES = 'https://tile.openstreetmap.org';
+const production = process.env.NODE_ENV === 'production';
 
 /**
- * `extra` adds third-party hosts to scripts, frames and connections (the video chat's ads);
- * `images` replaces the images' sources (Cruising's host takes its own and the map tiles only).
+ * Every path but the drafts' previews (/site-draft): sandboxed, their origin is opaque and they
+ * keep their own headers. The Content Security Policy is the proxy's (it needs a nonce per
+ * response, architecture 6.4); these are the rest, the same on every host but the
+ * Permissions-Policy of the apps that make calls or locate the device.
  */
-const policy = (extra: string[] = [], images = "'self' data: blob: https:") =>
-  [
-    "default-src 'self'",
-    ['script-src', "'self'", "'unsafe-inline'", TURNSTILE, ...extra].join(' '),
-    "style-src 'self' 'unsafe-inline'",
-    `img-src ${images}`,
-    "font-src 'self'",
-    ['connect-src', "'self'", ...appSockets, TURNSTILE, ...extra].join(' '),
-    ['frame-src', "'self'", TURNSTILE, ...extra].join(' '),
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'self'",
-  ].join('; ');
-
-const contentSecurityPolicy = policy();
-/** The video chat's and Swipe's hosts also load ExoClick's ad zones (4.7, 4.10); no other host does. */
-const adsSecurityPolicy = policy(EXOCLICK_HOSTS);
-/** Cruising's host: images from itself and the map's tiles, nothing else (no Markdown content). */
-const cruisingSecurityPolicy = policy([], `'self' data: blob: ${OSM_TILES}`);
-
-/** Hosts of the web apps that make calls: videochat.codeqlick.com, meetings.localhost… (6.3). */
-const CALL_HOSTS = '(videochat|meetings)\\..+';
-/** Cruising's host (cruising.codeqlick.com, cruising.localhost): the only one that may locate. */
-const CRUISING_HOST = 'cruising\\..+';
-
-const productionHeaders =
-  process.env.NODE_ENV === 'production'
-    ? [
-        { key: 'Content-Security-Policy', value: contentSecurityPolicy },
-        // Browsers ignore it over plain HTTP, so local production builds are unaffected.
-        { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
-      ]
-    : [];
+const PAGES = '/:path((?!site-draft/).*)';
+/** Apps whose host gets its own Permissions-Policy: videochat.codeqlick.com, cruising.localhost… */
+const OWN_POLICY_APPS = [...CALL_APPS, ...LOCATING_APPS];
+const appHost = (app: string) => `${app}\\..+`;
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -98,67 +45,17 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Not the drafts' previews (/site-draft): sandboxed, their origin is opaque, and a
-        // same-origin frame rule would keep them out of the editor's iframe. Not the hosts of the
-        // apps that make calls either: they get the same headers below, with the camera, the
-        // microphone and screen sharing allowed.
-        source: '/:path((?!site-draft/).*)',
-        missing: [
-          { type: 'host', value: CALL_HOSTS },
-          { type: 'host', value: CRUISING_HOST },
-        ],
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          ...productionHeaders,
-        ],
+        source: PAGES,
+        missing: OWN_POLICY_APPS.map((app) => ({ type: 'host' as const, value: appHost(app) })),
+        headers: securityHeaders(null, production),
       },
-      {
-        // Every page of a calling app's host may use the camera: navigating inside the app keeps
-        // the policy of the first page loaded (the landing or the sign-in), not the room's.
-        source: '/:path((?!site-draft/).*)',
-        has: [{ type: 'host', value: CALL_HOSTS }],
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'DENY' },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(self), microphone=(self), display-capture=(self), geolocation=()',
-          },
-          ...productionHeaders,
-        ],
-      },
-      {
-        // Cruising's map centres on the device when asked: only this host allows geolocation, and
-        // only for itself (the position never leaves the browser).
-        source: '/:path((?!site-draft/).*)',
-        has: [{ type: 'host', value: CRUISING_HOST }],
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
-          ...(process.env.NODE_ENV === 'production'
-            ? [
-                { key: 'Content-Security-Policy', value: cruisingSecurityPolicy },
-                { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
-              ]
-            : []),
-        ],
-      },
-      ...(process.env.NODE_ENV === 'production'
-        ? [
-            {
-              // Last match wins: the hosts with ads swap in the policy that allows them.
-              source: '/:path((?!site-draft/).*)',
-              has: [{ type: 'host' as const, value: '(videochat|swipe)\\..+' }],
-              headers: [{ key: 'Content-Security-Policy', value: adsSecurityPolicy }],
-            },
-          ]
-        : []),
+      // Every page of a calling app's host may use the camera (navigating inside the app keeps the
+      // policy of the first page loaded), and only Cruising's may locate the device.
+      ...OWN_POLICY_APPS.map((app) => ({
+        source: PAGES,
+        has: [{ type: 'host' as const, value: appHost(app) }],
+        headers: securityHeaders(app, production),
+      })),
       {
         source: '/site-draft/:path*',
         headers: [

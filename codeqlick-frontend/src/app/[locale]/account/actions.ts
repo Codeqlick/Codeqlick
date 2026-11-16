@@ -13,7 +13,7 @@ import { setVideochatPeakAlerts } from '@/lib/api/videochat';
 import { formBoolean, type FormState } from '@/lib/forms';
 
 /**
- * The account site's own actions (architecture 6.4, decision 108): the language of the emails
+ * The account site's own actions (architecture 6.5, decision 108): the language of the emails
  * and every app's optional emails and alerts, each through that app's own endpoint.
  */
 

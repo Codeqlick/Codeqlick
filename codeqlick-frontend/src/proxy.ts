@@ -23,10 +23,17 @@ import {
   setTokenCookies,
   withForwardedRequestHeaders,
 } from './lib/auth/refresh';
-import { isAccountHost, isIpHost, routeAccount } from './lib/account-host';
+import {
+  accountHostFor,
+  isAccountHost,
+  isIpHost,
+  mainHostOf,
+  routeAccount,
+} from './lib/account-host';
 import { hostApp, localeRedirect, requestLocales } from './lib/locales';
+import { cspHeaders, makeNonce, type CspContext } from './lib/security-headers';
 import { SSO_COOKIE_MAX_AGE, routeSignIn, ssoClientForHost, startSso } from './lib/sso';
-import { routeWebapp } from './lib/webapps';
+import { WEBAPPS, routeWebapp, webappForHost, webappHost } from './lib/webapps';
 
 // Cruising speaks six languages, every other host two (decision 103): each has its own locale
 // routing, so a visitor's browser language or cookie never sends the website to /fr.
@@ -48,18 +55,100 @@ function handleI18nRouting(request: NextRequest): NextResponse {
   return (all ? cruisingI18nRouting : siteI18nRouting)(request);
 }
 
-export default async function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
-
-  // Behind Nginx the request URL says http://localhost; the Host header is the visitor's. When a
-  // Server Action redirects, Next.js fetches the new page from itself with the visitor's host only
-  // in X-Forwarded-Host (Nginx sets it, so visitors can't choose it).
+/** The visitor's host and protocol (behind Nginx the request URL says http://localhost). */
+function visitorAddress(request: NextRequest): { host: string; protocol: string } {
+  // When a Server Action redirects, Next.js fetches the new page from itself with the visitor's
+  // host only in X-Forwarded-Host (Nginx sets it, so visitors can't choose it).
   const host =
     request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() ||
     request.headers.get('host') ||
     request.nextUrl.host;
   const protocol =
     request.headers.get('x-forwarded-proto') === 'https' ? 'https:' : request.nextUrl.protocol;
+  return { host, protocol };
+}
+
+export default async function proxy(request: NextRequest) {
+  // The Content Security Policy needs a fresh nonce per response (architecture 6.4); `next dev`
+  // runs without one (it needs eval and its own socket).
+  if (process.env.NODE_ENV !== 'production') return route(request);
+  const nonce = makeNonce();
+  const context = cspContext(request);
+  const response = await route(request);
+  return withCsp(response, request.headers, context, nonce);
+}
+
+/** Where this request's page may send forms and open sockets, by its host. */
+function cspContext(request: NextRequest): CspContext {
+  const { host, protocol } = visitorAddress(request);
+  // The account host (decision 108) is its own kind: named `account` like an app's first label.
+  const app = isAccountHost(host) ? 'account' : webappForHost(host);
+  const mainHost = mainHostOf(host);
+  const sockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL].flatMap((url) => {
+    try {
+      return url ? [new URL(url).origin] : [];
+    } catch {
+      return [];
+    }
+  });
+  return {
+    app,
+    origin: `${protocol}//${host}`,
+    // Single sign-on sends forms on between the account host and every client host.
+    siteOrigins: [
+      mainHost,
+      accountHostFor(host),
+      ...WEBAPPS.map((name) => webappHost(name, mainHost)),
+    ].map((name) => `${protocol}//${name}`),
+    sockets,
+  };
+}
+
+/**
+ * Adds the policy to the response and hands the nonce to the render: Next.js reads it from the
+ * request's `Content-Security-Policy` (its own scripts) and the layouts from `x-nonce`. Request
+ * headers reach the render only through the override list, so the nonce joins the list the
+ * response already has (a refreshed session's cookie, a rewrite) or one made of every header.
+ */
+function withCsp(
+  response: NextResponse,
+  incoming: Headers,
+  context: CspContext,
+  nonce: string,
+): NextResponse {
+  const enforce = process.env.CSP_ENFORCE === 'true';
+  const headers = cspHeaders(context, nonce, enforce);
+  for (const [name, value] of Object.entries(headers)) response.headers.set(name, value);
+  if (response.headers.has('location')) return response;
+
+  const listed = response.headers.get(OVERRIDE_HEADERS);
+  const names = listed ? listed.split(',').map((name) => name.trim().toLowerCase()) : [];
+  if (!listed) {
+    incoming.forEach((value, name) => {
+      names.push(name);
+      response.headers.set(`${REQUEST_HEADER_PREFIX}${name}`, value);
+    });
+  }
+  const forwarded: Record<string, string> = {
+    'content-security-policy':
+      headers['Content-Security-Policy-Report-Only'] ?? headers['Content-Security-Policy']!,
+    'x-nonce': nonce,
+  };
+  for (const [name, value] of Object.entries(forwarded)) {
+    response.headers.set(`${REQUEST_HEADER_PREFIX}${name}`, value);
+    if (!names.includes(name)) names.push(name);
+  }
+  response.headers.set(OVERRIDE_HEADERS, names.filter(Boolean).join(','));
+  return response;
+}
+
+const OVERRIDE_HEADERS = 'x-middleware-override-headers';
+const REQUEST_HEADER_PREFIX = 'x-middleware-request-';
+
+/** Web apps' hosts, locale redirects, then locale routing and the session (`handle`). */
+async function route(request: NextRequest): Promise<NextResponse> {
+  const { pathname, search } = request.nextUrl;
+  const { host, protocol } = visitorAddress(request);
   // Old addresses are redirected only on navigations; images and form posts are just served. So
   // is a request Next.js sends itself (Host is the server's own): when it can't tell its address
   // is this one's, Next.js serves a rewrite by fetching the route from itself.

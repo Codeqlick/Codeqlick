@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/Badge';
 import type { AppLocale } from '@/i18n/routing';
 import type { ErrorSource } from '@/lib/api/error-reports';
 
-const TONE = { API: 'ink', WEB_SERVER: 'brand', WEB_BROWSER: 'neutral' } as const;
+const TONE = { API: 'ink', WEB_SERVER: 'brand', WEB_BROWSER: 'neutral', CSP: 'neutral' } as const;
 
 export async function ErrorSourceBadge({
   source,

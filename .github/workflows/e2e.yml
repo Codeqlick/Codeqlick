@@ -118,6 +118,9 @@ jobs:
           VIDEOCHAT_WS_URL: ws://localhost:4000/v1/videochat/ws
           # Same for the meetings, at http://meetings.localhost:3000.
           MEETINGS_WS_URL: ws://localhost:4000/v1/meetings/ws
+          # The strict Content Security Policy enforced, so every flow below runs under it and a
+          # script without the nonce fails the build (architecture 6.4; e2e/csp.spec.ts).
+          CSP_ENFORCE: 'true'
         run: |
           npm ci
           npm run build

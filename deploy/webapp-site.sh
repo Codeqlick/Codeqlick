@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Publishes <app>.codeqlick.com for one of Codeqlick's own web apps (architecture 6.3), or the
-# account site account.codeqlick.com (`account`, architecture 6.4, decision 108): the DNS record,
+# account site account.codeqlick.com (`account`, architecture 6.5, decision 108): the DNS record,
 # the Nginx site and its Let's Encrypt certificate. Safe to run again: each step checks
 # first, and it never changes a DNS record or an Nginx site that already exists.
 #

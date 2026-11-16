@@ -27,7 +27,7 @@ import {
 } from '@/lib/auth/account-actions';
 
 /**
- * The account site's sections (architecture 6.4, decision 108), one component per panel so each
+ * The account site's sections (architecture 6.5, decision 108), one component per panel so each
  * page shows its own: what used to be the portal's and the admin's "My account".
  */
 
