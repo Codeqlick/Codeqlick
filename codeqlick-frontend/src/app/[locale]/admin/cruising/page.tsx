@@ -309,12 +309,20 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
         title={t('title')}
         lead={t('lead')}
         actions={
-          <Link
-            href="/admin/cruising/health"
-            className={buttonClassName({ variant: 'outline', size: 'sm' })}
-          >
-            {t('healthLink')}
-          </Link>
+          <>
+            <Link
+              href="/admin/cruising/stats"
+              className={buttonClassName({ variant: 'outline', size: 'sm' })}
+            >
+              {t('statsLink')}
+            </Link>
+            <Link
+              href="/admin/cruising/health"
+              className={buttonClassName({ variant: 'outline', size: 'sm' })}
+            >
+              {t('healthLink')}
+            </Link>
+          </>
         }
       />
 

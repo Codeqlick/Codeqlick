@@ -5291,7 +5291,10 @@
       "bioContact": "No phone numbers, emails, links or social handles in your bio.",
       "nicknameChange": "You can change it whenever you like. The one you leave stays yours for 14 days: nobody else can take it and you can go back to it.",
       "nicknameVerifiedNote": "If you change it, your Verified badge is removed until you verify again.",
-      "contributions": "Your contributions"
+      "contributions": "Your contributions",
+      "tourTitle": "Getting started",
+      "tourLead": "The short tour you saw after entering: your nickname, favourite spots, notifications and your photos.",
+      "tourReopen": "Show the tour again"
     },
     "presence": {
       "title": "Here now",
@@ -5799,6 +5802,33 @@
       "lastAt": "Last message {date}",
       "noMessages": "No messages yet",
       "spotsLink": "Spots"
+    },
+    "tour": {
+      "title": "Welcome to Cruising",
+      "progress": "Step {step} of {total}",
+      "back": "Back",
+      "next": "Next",
+      "skip": "Skip the tour",
+      "done": "Done",
+      "saving": "One moment…",
+      "error": "That didn't work. Try again.",
+      "nicknameTitle": "Choose a nickname",
+      "nicknameLead": "Your nickname is how others see you. You need one to check in, review spots and send messages. Never use your real name.",
+      "nicknameDone": "You are {nickname}. You can change it whenever you want.",
+      "countryHint": "We suggest spots in your country.",
+      "favoritesTitle": "Save your favourite spots",
+      "favoritesLead": "The best-rated and busiest spots in your country. Save the ones you like: we let you know when someone is there, without saying who.",
+      "favoritesLeadNear": "The best-rated and busiest spots near the map. Save the ones you like: we let you know when someone is there, without saying who.",
+      "suggestionsEmpty": "No spots to suggest here yet.",
+      "suggestionsError": "The suggestions couldn't be loaded. You can save spots from the map later.",
+      "browsePlaces": "Browse places",
+      "notificationsTitle": "Turn on notifications",
+      "profileTitle": "Add a photo or get verified",
+      "profileLead": "Both are optional. Members trust profiles with a photo, and the \"Verified\" badge shows you are who your photos show.",
+      "addPhoto": "Add a photo",
+      "verify": "Get verified",
+      "verifiedAlready": "You are already verified.",
+      "profileNeedsNickname": "Choose a nickname first (step 1) to add photos or get verified."
     }
   },
   "AdminCruising": {
@@ -5977,7 +6007,8 @@
       "muteFor": "Mute from the city chats",
       "mute": "Mute from rooms",
       "unmute": "Unmute"
-    }
+    },
+    "statsLink": "Statistics"
   },
   "CruisingSpotImport": {
     "importLead": "A CSV with a header row naming the columns name, type, lat, lng, countryCode, city, description and, optionally, bestTimes, tags, openingHours and tips (any order, comma or semicolon separated), or a GeoJSON FeatureCollection of points whose properties carry the same fields. The type can be its English or Spanish name; tags are separated by | and can be their English or Spanish names too. Up to 500 rows and 2 MB. A row is skipped when it is invalid or when a spot of the same type lies within 100 m.",
@@ -6215,6 +6246,49 @@
       "city": "Write the city (up to 80 characters).",
       "url": "A web address starting with https://."
     }
+  },
+  "AdminCruisingStats": {
+    "title": "Cruising statistics",
+    "lead": "The last 12 weeks (Monday to Sunday, Madrid time) and the top places. Aggregates only: no person is listed.",
+    "back": "Back to Cruising",
+    "totals": "Last 12 weeks",
+    "generated": "Computed at {time}; refreshed every 10 minutes.",
+    "retention": "Check-ins are deleted a day after they end and meetups a week after, so their figures only count what is still kept.",
+    "week": "Week",
+    "members": "New members",
+    "active": "Active members",
+    "activeThisWeek": "Active this week",
+    "spots": "New spots",
+    "spotsLive": "Live",
+    "spotsPending": "In review",
+    "spotsRejected": "Rejected or removed",
+    "checkIns": "Check-ins",
+    "meetups": "Meetups",
+    "messages": "Messages",
+    "roomMessages": "City chat messages",
+    "media": "Photos and videos",
+    "reportsOpened": "Reports",
+    "reportsDecided": "Reports decided",
+    "takedowns": "Removal requests",
+    "membersChart": "New members per week",
+    "activeChart": "Active members per week",
+    "spotsChart": "New spots per week, by status now",
+    "activityChart": "Check-ins, meetups and media per week",
+    "messagesChart": "Messages per week",
+    "moderationChart": "Reports and removal requests per week",
+    "decisionsTitle": "Time to a decision",
+    "decisionsLead": "Reports decided each week and the median time from the report to the decision.",
+    "medianHours": "Median",
+    "hours": "{hours} h",
+    "none": "Nothing yet.",
+    "placesTitle": "Top places",
+    "topCountriesSpots": "Countries by live spots",
+    "topCitiesSpots": "Cities by live spots",
+    "topCountriesCheckIns": "Countries by check-ins (30 days)",
+    "topCitiesCheckIns": "Cities by check-ins (30 days)",
+    "country": "Country",
+    "city": "City",
+    "liveSpots": "Live spots"
   },
   "MenuKit": {
     "title": "Your menu QR",

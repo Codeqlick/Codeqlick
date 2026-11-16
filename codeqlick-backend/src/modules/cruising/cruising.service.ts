@@ -124,6 +124,8 @@ export interface CruisingStatus {
   favoriteEmails: boolean;
   /** The VAPID key browsers subscribe with; null while notifications are off. */
   pushPublicKey: string | null;
+  /** Phase 6 (decision 102): the onboarding tour was finished or skipped (false: show it). */
+  onboardingDone: boolean;
   /** Null until a nickname is set. */
   profile: {
     nickname: string;
@@ -323,6 +325,7 @@ interface ProfileChanges {
   country?: string | null;
   lookingFor?: LookingFor[];
   showAge?: boolean;
+  onboardingDoneAt?: Date | null;
   verificationStatus?: 'NONE';
   verificationKey?: null;
   verificationNote?: null;
@@ -499,6 +502,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       favoriteAlerts: profile?.favoriteAlerts ?? true,
       favoriteEmails: profile?.favoriteEmails ?? false,
       pushPublicKey: this.config.vapid?.publicKey ?? null,
+      onboardingDone: !!profile?.onboardingDoneAt,
       profile: profile?.nickname
         ? {
             nickname: profile.nickname,
@@ -550,6 +554,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (input.country !== undefined) data.country = input.country;
     if (input.lookingFor !== undefined) data.lookingFor = input.lookingFor;
     if (input.showAge !== undefined) data.showAge = input.showAge;
+    // Phase 6 (decision 102): "Done" or "Skip" ends the tour; false reopens it (from /me).
+    if (input.onboardingDone !== undefined) {
+      data.onboardingDoneAt = input.onboardingDone ? (current.onboardingDoneAt ?? now) : null;
+    }
     // A nickname can be changed whenever the member wants, like on Instagram (decision 83). The one
     // left stays its owner's for 14 days, so nobody can pose as them right after a change.
     const changing =

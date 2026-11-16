@@ -108,6 +108,8 @@ export type CruisingStatus = {
   favoriteEmails: boolean;
   /** The VAPID key browsers subscribe with; null while notifications are off. */
   pushPublicKey: string | null;
+  /** Phase 6 (decision 102): the onboarding tour was finished or skipped. */
+  onboardingDone?: boolean;
   /** Phase 2; null until a nickname is set. */
   profile: {
     nickname: string;
@@ -297,6 +299,8 @@ export function updateCruisingProfile(input: {
   country?: string | null;
   lookingFor?: CruisingLookingFor[];
   showAge?: boolean;
+  /** Phase 6 (decision 102): the tour finished or skipped (true) or reopened (false). */
+  onboardingDone?: boolean;
 }) {
   return apiFetch<CruisingStatus>('/cruising/profile', {
     method: 'PATCH',
