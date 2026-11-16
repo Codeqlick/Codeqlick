@@ -31,6 +31,7 @@ import {
   MAX_PUSH_SUBSCRIPTIONS,
   type AlertChannel,
   type Bbox,
+  type FavoriteAlertKind,
   type RecentAlert,
 } from './cruising.rules.js';
 import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
@@ -349,9 +350,16 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
    * Tells the members who saved `spotId` that someone is there, never who (decision 85): not the
    * person checking in, nobody blocked either way, no suspended member; at most once per member
    * and spot every 3 hours and 10 times a day, by push or, without a device, the daily email.
+   * Phase 5 tells them the same way about a meetup planned (`meetup`, decision 88) or a safety
+   * alert (`safety`, decision 91) there; `checkerId` is then the host or the poster.
    * Returns how many were alerted.
    */
-  async alertFavorites(spotId: string, checkerId: string, now = new Date()): Promise<number> {
+  async alertFavorites(
+    spotId: string,
+    checkerId: string,
+    now = new Date(),
+    kind: FavoriteAlertKind = 'favorite',
+  ): Promise<number> {
     const hidden = await this.repository.hiddenIds(checkerId);
     const candidates = await this.repository.favoriteAlertCandidates(
       spotId,
@@ -409,7 +417,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
           this.logger.error(`Cruising email not sent: ${String(error)}`);
         });
     }
-    await this.push.notify('favorite', pushTo);
+    await this.push.notify(kind, pushTo);
     return alerts.length;
   }
 

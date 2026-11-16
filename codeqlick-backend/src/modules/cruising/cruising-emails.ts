@@ -108,7 +108,8 @@ export type CruisingNotice =
   | 'verification-rejected'
   | 'verification-withdrawn'
   | 'media-removed'
-  | 'favorites';
+  | 'favorites'
+  | 'meetup-cancelled';
 
 const NOTICE_COPY: Record<
   ApiLocale,
@@ -180,6 +181,12 @@ const NOTICE_COPY: Record<
       button: 'Ver mis favoritos',
       path: '/favorites',
     },
+    'meetup-cancelled': {
+      subject: 'Se ha cancelado una quedada',
+      body: 'Se ha cancelado una quedada de Cruising a la que ibas.',
+      button: 'Ver las quedadas',
+      path: '/meetups',
+    },
     reasonTitle: 'Motivo',
     until: 'Hasta',
     permanent: 'Hasta que el equipo la levante',
@@ -246,6 +253,12 @@ const NOTICE_COPY: Record<
       button: 'See my favourites',
       path: '/favorites',
     },
+    'meetup-cancelled': {
+      subject: 'A meetup was cancelled',
+      body: 'A Cruising meetup you said you were going to was cancelled.',
+      button: 'See the meetups',
+      path: '/meetups',
+    },
     reasonTitle: 'Reason',
     until: 'Until',
     permanent: 'Until the team lifts it',
@@ -288,7 +301,10 @@ export function cruisingNoticeEmail(
             : undefined,
         button: { label: text.button, url: `${cruisingUrl}/${locale}${text.path}` },
         note:
-          notice === 'spot-live' || notice === 'unread' || notice === 'favorites'
+          notice === 'spot-live' ||
+          notice === 'unread' ||
+          notice === 'favorites' ||
+          notice === 'meetup-cancelled'
             ? copy.settings
             : undefined,
         signoff: [],

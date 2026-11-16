@@ -217,17 +217,26 @@ export const reportSchema = z
     conversationId: z.uuid().optional(),
     /** Phase 4: a photo or video. */
     mediaId: z.uuid().optional(),
+    /** Phase 5: a meetup (decision 88) or a safety alert (decision 91). */
+    meetupId: z.uuid().optional(),
+    alertId: z.uuid().optional(),
     reason: reportReasonSchema,
     details: z.string().trim().max(1000).optional(),
   })
   .refine(
     (value) =>
-      [value.spotId, value.reviewId, value.nickname, value.conversationId, value.mediaId].filter(
-        Boolean,
-      ).length === 1,
+      [
+        value.spotId,
+        value.reviewId,
+        value.nickname,
+        value.conversationId,
+        value.mediaId,
+        value.meetupId,
+        value.alertId,
+      ].filter(Boolean).length === 1,
     {
       message:
-        'Report a spot, a review, a profile, a conversation or a photo or video, one of them',
+        'Report a spot, a review, a profile, a conversation, a photo or video, a meetup or an alert, one of them',
     },
   )
   .refine((value) => value.reason !== 'WRONG_INFO' || !!value.details, {

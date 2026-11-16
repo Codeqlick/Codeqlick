@@ -32,6 +32,7 @@ import {
   uploadCruisingVerification,
   type CruisingMessage,
 } from '@/lib/api/cruising';
+import { COMMUNITY_REPORT_REASONS } from '@/lib/cruising-community';
 import {
   CRUISING_COUNTRIES,
   isLookingFor,
@@ -265,7 +266,8 @@ export async function deleteReviewAction(
 export async function reportAction(
   locale: AppLocale,
   target: {
-    kind: 'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media';
+    kind:
+      'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert';
     id: string;
   },
   _previous: FormState,
@@ -284,7 +286,9 @@ export async function reportAction(
           ? PROFILE_REPORT_REASONS
           : target.kind === 'conversation'
             ? PERSON_REPORT_REASONS
-            : REPORT_REASONS;
+            : target.kind === 'meetup' || target.kind === 'alert'
+              ? COMMUNITY_REPORT_REASONS
+              : REPORT_REASONS;
   const reason: CruisingReportReason | undefined =
     target.kind === 'correction'
       ? 'WRONG_INFO'
@@ -311,7 +315,11 @@ export async function reportAction(
             ? { conversationId: target.id }
             : target.kind === 'media'
               ? { mediaId: target.id }
-              : { spotId: target.id }),
+              : target.kind === 'meetup'
+                ? { meetupId: target.id }
+                : target.kind === 'alert'
+                  ? { alertId: target.id }
+                  : { spotId: target.id }),
       reason,
       details: details || undefined,
     });

@@ -36,7 +36,7 @@ describe('the account export (Cruising)', () => {
     expect(data.cruising).toBeNull();
   });
 
-  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts, media, contacts and timers', async () => {
+  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts, media, meetups, trips, safety alerts, contacts and timers', async () => {
     const profile = {
       birthYear: 1990,
       termsVersion: 'v1',
@@ -74,6 +74,10 @@ describe('the account export (Cruising)', () => {
         spot: null,
       },
     ];
+    const meetups = [{ title: 'Sunset walk', status: 'LIVE', spot: { slug: 'the-pier' } }];
+    const joined = [{ anonymous: true, meetup: { title: 'Picnic', spot: { slug: 'the-pier' } } }];
+    const trips = [{ countryCode: 'ES', city: 'Madrid', listed: true }];
+    const safety = [{ kind: 'THEFT', note: null, spot: { slug: 'the-pier' } }];
     const prisma = fakePrisma({
       cruisingTrustedContact: { findMany: vi.fn().mockResolvedValue(contacts) },
       cruisingTimer: { findMany: vi.fn().mockResolvedValue(timers) },
@@ -86,6 +90,10 @@ describe('the account export (Cruising)', () => {
       cruisingMedia: { findMany: vi.fn().mockResolvedValue(media) },
       cruisingFavorite: { findMany: vi.fn().mockResolvedValue(favorites) },
       cruisingAlert: { findMany: vi.fn().mockResolvedValue(alerts) },
+      cruisingMeetup: { findMany: vi.fn().mockResolvedValue(meetups) },
+      cruisingMeetupAttendee: { findMany: vi.fn().mockResolvedValue(joined) },
+      cruisingTrip: { findMany: vi.fn().mockResolvedValue(trips) },
+      cruisingSafetyAlert: { findMany: vi.fn().mockResolvedValue(safety) },
     });
     const data = await new AccountRepository(prisma).export(USER, null);
     expect(data.cruising).toEqual({
@@ -101,6 +109,10 @@ describe('the account export (Cruising)', () => {
       // Someone else's address is masked.
       trustedContacts: [{ ...contacts[0], email: 'f***@example.com' }],
       timers,
+      meetupsPlanned: meetups,
+      meetupsJoined: joined,
+      trips,
+      safetyAlerts: safety,
     });
     // The date of birth is never kept, so it cannot be exported: only the year is selected.
     expect(Object.keys(data.cruising?.profile ?? {})).not.toContain('birthDate');

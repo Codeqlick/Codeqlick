@@ -822,7 +822,11 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
           ? 'profile'
           : input.mediaId
             ? 'media'
-            : 'conversation';
+            : input.meetupId
+              ? 'meetup'
+              : input.alertId
+                ? 'alert'
+                : 'conversation';
     if (input.reason === 'WRONG_INFO' && !input.spotId) {
       throw new BadRequestException('Wrong information can only be reported on a spot');
     }
@@ -896,6 +900,48 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       });
       reportId = report.id;
       if (mediaHidesAtOnce(input.reason)) await this.media.hide(item.id);
+    } else if (input.meetupId) {
+      // Phase 5 (decision 88): someone else's meetup that is up.
+      const meetup = await this.repository.findMeetupForReport(input.meetupId);
+      if (
+        !meetup ||
+        meetup.hostId === userId ||
+        meetup.status !== 'LIVE' ||
+        meetup.spot.status !== 'LIVE'
+      ) {
+        throw new NotFoundException('Meetup not found');
+      }
+      const report = await this.repository.createReport({
+        ...common,
+        targetType: 'MEETUP',
+        meetupId: meetup.id,
+        reportedId: meetup.hostId,
+        createdAt: now,
+      });
+      reportId = report.id;
+      if (hide) await this.repository.setMeetupStatus(meetup.id, 'HIDDEN');
+    } else if (input.alertId) {
+      // Phase 5 (decision 91): an active alert someone else posted. The poster is kept for the
+      // team only.
+      const alert = await this.repository.findSafetyAlertForReport(input.alertId);
+      if (
+        !alert ||
+        alert.posterId === userId ||
+        alert.hidden ||
+        alert.expiresAt <= now ||
+        alert.spot.status !== 'LIVE'
+      ) {
+        throw new NotFoundException('Alert not found');
+      }
+      const report = await this.repository.createReport({
+        ...common,
+        targetType: 'ALERT',
+        safetyAlertId: alert.id,
+        reportedId: alert.posterId,
+        createdAt: now,
+      });
+      reportId = report.id;
+      if (hide) await this.repository.setSafetyAlertHidden(alert.id, true);
     } else {
       const conversation = await this.repository.findConversation(input.conversationId as string);
       if (!conversation || (conversation.userAId !== userId && conversation.userBId !== userId)) {
@@ -1248,7 +1294,23 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
                 ? { type: 'CONVERSATION' as const }
                 : report.targetType === 'MEDIA'
                   ? { type: 'MEDIA' as const, media: report.media }
-                  : null,
+                  : report.targetType === 'MEETUP' && report.meetup
+                    ? {
+                        type: 'MEETUP' as const,
+                        meetup: {
+                          ...report.meetup,
+                          startsAt: report.meetup.startsAt.toISOString(),
+                        },
+                      }
+                    : report.targetType === 'ALERT' && report.safetyAlert
+                      ? {
+                          type: 'ALERT' as const,
+                          alert: {
+                            ...report.safetyAlert,
+                            expiresAt: report.safetyAlert.expiresAt.toISOString(),
+                          },
+                        }
+                      : null,
       reporter: {
         userId: report.reporter.id,
         name: report.reporter.name,
@@ -1300,6 +1362,19 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     if (report.targetType === 'MEDIA' && report.mediaId) {
       await this.media.restoreIfClear(report.mediaId);
     }
+    // Phase 5: a meetup or alert hidden by reports goes back up once none is open.
+    if (
+      report.meetup?.status === 'HIDDEN' &&
+      (await this.repository.countOpenReportsOnMeetup(report.meetup.id)) === 0
+    ) {
+      await this.repository.setMeetupStatus(report.meetup.id, 'LIVE');
+    }
+    if (
+      report.safetyAlert?.hidden &&
+      (await this.repository.countOpenReportsOnSafetyAlert(report.safetyAlert.id)) === 0
+    ) {
+      await this.repository.setSafetyAlertHidden(report.safetyAlert.id, false);
+    }
     await this.activity.record(actor, {
       action: 'cruising.report_dismissed',
       targetId: report.id,
@@ -1341,6 +1416,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
           },
           now,
         );
+      } else if (report.meetup) {
+        await this.repository.deleteMeetup(report.meetup.id);
+      } else if (report.safetyAlert) {
+        await this.repository.deleteSafetyAlert(report.safetyAlert.id);
       }
     }
     if (input.withdrawVerification && report.reportedId) {

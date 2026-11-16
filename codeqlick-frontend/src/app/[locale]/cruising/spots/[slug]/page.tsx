@@ -4,7 +4,9 @@ import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import { FavoriteStar } from '@/components/cruising/FavoriteStar';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
+import { SpotMeetups } from '@/components/cruising/SpotMeetups';
 import { SpotPresence } from '@/components/cruising/SpotPresence';
+import { SpotSafetyAlerts } from '@/components/cruising/SpotSafetyAlerts';
 import { SpotLocationMap } from '@/components/cruising/SpotLocationMap';
 import { SpotReviews } from '@/components/cruising/SpotReviews';
 import cruising from '@/components/cruising/Cruising.module.css';
@@ -140,7 +142,13 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
         </div>
       </div>
 
-      {status?.allowed ? <SpotPresence locale={locale} spot={spot} status={status} /> : null}
+      {status?.allowed ? (
+        <>
+          <SpotSafetyAlerts locale={locale} spot={spot} status={status} />
+          <SpotPresence locale={locale} spot={spot} status={status} />
+          <SpotMeetups locale={locale} spot={spot} status={status} />
+        </>
+      ) : null}
 
       <SpotReviews
         locale={locale}

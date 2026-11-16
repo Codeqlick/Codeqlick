@@ -239,7 +239,8 @@ export function mediaHidesAtOnce(reason: string): boolean {
   return (MEDIA_HIDE_AT_ONCE as readonly string[]).includes(reason);
 }
 
-export type ReportTargetKind = 'spot' | 'review' | 'profile' | 'conversation' | 'media';
+export type ReportTargetKind =
+  'spot' | 'review' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert';
 
 /**
  * The reasons each target takes: WRONG_INFO only on a spot; NON_CONSENSUAL and STOLEN only on media

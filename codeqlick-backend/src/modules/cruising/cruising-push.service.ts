@@ -41,9 +41,9 @@ export class CruisingPushService {
     kind: PushKind,
     members: { userId: string; locale: 'en' | 'es' }[],
   ): Promise<number> {
-    // A check-in lasts hours; a message is worth telling about for a day.
+    // A check-in lasts hours, a safety alert a few more; the rest is worth telling for a day.
     return this.notifyWith((locale) => pushPayload(kind, locale), members, {
-      ttl: kind === 'favorite' ? 60 * 60 : 24 * 60 * 60,
+      ttl: kind === 'favorite' ? 60 * 60 : kind === 'safety' ? 6 * 60 * 60 : 24 * 60 * 60,
     });
   }
 

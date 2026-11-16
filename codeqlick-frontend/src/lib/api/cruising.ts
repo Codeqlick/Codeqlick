@@ -328,10 +328,15 @@ export function deleteCruisingReview(spotId: string) {
   });
 }
 
-/** Exactly one target: a spot, a review, a profile (`nickname`), a conversation or a photo/video. */
+/**
+ * Exactly one target: a spot, a review, a profile (`nickname`), a conversation, a photo/video or,
+ * in phase 5, a meetup or a safety alert.
+ */
 export function reportCruising(input: {
   spotId?: string;
   mediaId?: string;
+  meetupId?: string;
+  alertId?: string;
   reviewId?: string;
   nickname?: string;
   conversationId?: string;
@@ -580,7 +585,7 @@ export type AdminCruisingSpot = {
  */
 export type AdminCruisingReport = {
   id: string;
-  targetType: 'SPOT' | 'REVIEW' | 'PROFILE' | 'CONVERSATION' | 'MEDIA';
+  targetType: 'SPOT' | 'REVIEW' | 'PROFILE' | 'CONVERSATION' | 'MEDIA' | 'MEETUP' | 'ALERT';
   reason: CruisingReportReason;
   details: string | null;
   status: 'OPEN' | 'DISMISSED' | 'ACTIONED';
