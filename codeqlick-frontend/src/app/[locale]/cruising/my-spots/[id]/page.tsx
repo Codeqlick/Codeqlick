@@ -52,6 +52,7 @@ export default async function CruisingEditSpotPage({ params }: PageProps) {
           description: spot.description,
           bestTimes: spot.bestTimes ?? undefined,
         }}
+        extras={{ tags: spot.tags, openingHours: spot.openingHours, tips: spot.tips }}
       />
       <p className={vc.backLink}>
         <Link href="/cruising/my-spots" className={vc.inlineLink}>

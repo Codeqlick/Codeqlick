@@ -2712,10 +2712,10 @@
     "author": "Nombre",
     "detail": "Detalle (opcional)",
     "addReview": "Añadir opinión",
-    "reviewUrl": "Tu enlace para pedir reseñas en Google",
-    "reviewUrlHint": "Con él, tu web muestra «Déjanos tu opinión en Google». Lo copias en tu Perfil de Empresa de Google, en «Pedir reseñas».",
-    "reviewUrlInvalid": "Pega el enlace de reseñas que te da Google, como https://g.page/r/…/review.",
-    "reviewKitLink": "Ver tu kit de reseñas: código QR y cartel para imprimir →",
+    "reviewUrl": "Tu enlace para pedir opiniones en Google",
+    "reviewUrlHint": "Con él, tu web muestra «Déjanos tu opinión en Google». Lo copias en tu Perfil de Empresa de Google, en «Pedir opiniones».",
+    "reviewUrlInvalid": "Pega el enlace de opiniones que te da Google, como https://g.page/r/…/review.",
+    "reviewKitLink": "Ver tu kit de opiniones: código QR y cartel para imprimir →",
     "removeRow": "Quitar la fila {n}",
     "row": "fila {n}",
     "save": "Guardar y publicar",
@@ -2729,7 +2729,7 @@
     "cardTitle": "Tu web",
     "cardBody": "Cambia horario, precios, textos y fotos tú mismo; se publica al momento.",
     "cardLink": "Editar mi web",
-    "cardReviews": "Kit de reseñas de Google",
+    "cardReviews": "Kit de opiniones de Google",
     "domainTitle": "Tu dominio",
     "domainStates": {
       "UNCHECKED": "Comprobando",
@@ -2765,7 +2765,7 @@
     "editorTitle": "Editar tu web",
     "editorBody": "Cambia todo: diseño, colores, textos, fotos, secciones, horario, redes sociales y datos legales. Ves la web mientras la editas y nada se publica hasta que pulsas «Publicar».",
     "editorOpen": "Abrir el editor",
-    "reviewKit": "Kit de reseñas de Google",
+    "reviewKit": "Kit de opiniones de Google",
     "unpublishedTitle": "Tienes cambios sin publicar",
     "unpublishedBody": "Los guardaste en el editor el {date}, pero aún no se ven en tu web.",
     "unpublishedOpen": "Revisar y publicar",
@@ -2855,7 +2855,7 @@
       "site": "La web completa, publicada y con su formulario de contacto funcionando: los mensajes te llegan por email.",
       "editor": "El editor para cambiarlo todo cuando quieras: textos, fotos, colores, tipografías, secciones y datos legales.",
       "hosting": "Alojamiento con HTTPS y estadísticas de visitas sin cookies.",
-      "extras": "Avisos de cierre o de horario especial y el kit para pedir reseñas en Google.",
+      "extras": "Avisos de cierre o de horario especial y el kit para pedir opiniones en Google.",
       "domain": "Tu dominio cuando quieras: lo eliges desde tu área de cliente. El dominio lo pagas aparte, a quien lo registres."
     },
     "buyPreview": "Ver la vista previa otra vez",
@@ -2919,18 +2919,18 @@
     "portalExpires": "{name} · caduca el {date}"
   },
   "ReviewKit": {
-    "title": "Kit de reseñas de Google",
-    "lead": "Más reseñas en Google te ayudan a salir antes en Google Maps. Pídelas con este código QR y este enlace.",
+    "title": "Kit de opiniones de Google",
+    "lead": "Más opiniones en Google te ayudan a salir antes en Google Maps. Pídelas con este código QR y este enlace.",
     "back": "Volver a tu web",
-    "howTitle": "Primero, consigue tu enlace de reseñas",
+    "howTitle": "Primero, consigue tu enlace de opiniones",
     "how1": "Entra en tu <link>Perfil de Empresa de Google</link> con la cuenta de tu negocio.",
-    "how2": "Pulsa «Pedir reseñas» y copia el enlace que aparece.",
+    "how2": "Pulsa «Pedir opiniones» y copia el enlace que aparece.",
     "how3": "Pégalo en «Tu web», en la sección Opiniones, y guarda.",
     "noProfile": "¿Tu negocio aún no sale en Google Maps? Responde a cualquiera de nuestros emails y te ayudamos a darlo de alta.",
     "addLink": "Añadir mi enlace",
     "print": "Imprimir el cartel",
     "shareTitle": "Tu enlace",
-    "shareBody": "Envíalo a tus clientes después de atenderles: es cuando más dispuestos están a dejar una reseña.",
+    "shareBody": "Envíalo a tus clientes después de atenderles: es cuando más dispuestos están a dejar una opinión.",
     "copy": "Copiar",
     "copied": "Copiado",
     "whatsapp": "Enviar por WhatsApp",
@@ -3204,7 +3204,7 @@
     "quoteHint": "Solo opiniones reales, con permiso de quien las escribió.",
     "author": "Nombre",
     "detail": "Detalle (opcional)",
-    "reviewUrl": "Tu enlace para pedir reseñas en Google",
+    "reviewUrl": "Tu enlace para pedir opiniones en Google",
     "reviewUrlHint": "Con él, la sección de opiniones muestra «Déjanos tu opinión en Google».",
     "showBanner": "Mostrar un banner antes del contacto",
     "bannerTitle": "Título",
@@ -4954,7 +4954,10 @@
       "activeOnly": "Activos ahora",
       "activeCount": "{count, plural, =0 {Ningún lugar a la vista está activo ahora} one {# lugar activo ahora} other {# lugares activos ahora}}",
       "activeLegend": "Hay alguien ahora",
-      "hereNow": "{count, plural, one {# aquí ahora} other {# aquí ahora}}"
+      "hereNow": "{count, plural, one {# aquí ahora} other {# aquí ahora}}",
+      "tagsFilter": "Cómo es",
+      "tagsChosen": "{count, plural, one {Cómo es · # elegida} other {Cómo es · # elegidas}}",
+      "tagsLegend": "Mostrar solo los sitios con todas estas"
     },
     "search": {
       "label": "Busca una ciudad o un lugar",
@@ -4980,7 +4983,10 @@
       "rulesLink": "Lee las normas",
       "mapLabel": "Mapa que muestra dónde está {name}",
       "openMap": "Verlo en el mapa grande",
-      "reportTitle": "¿Algo no está bien?"
+      "reportTitle": "¿Algo no está bien?",
+      "tags": "Cómo es",
+      "openingHours": "Horario",
+      "tips": "Consejos"
     },
     "reviews": {
       "title": "Opiniones",
@@ -5017,7 +5023,14 @@
       "contactBlocked": "Las opiniones no pueden incluir teléfonos, correos, enlaces ni otras apps. Quítalos e inténtalo de nuevo.",
       "notAllowed": "Para opinar tienes que haber entrado en Cruising y no estar suspendido.",
       "gone": "Este lugar ya no está disponible.",
-      "tooManyToday": "Has llegado al límite de opiniones de hoy. Inténtalo mañana."
+      "tooManyToday": "Has llegado al límite de opiniones de hoy. Inténtalo mañana.",
+      "helpfulCount": "{count, plural, =0 {Nadie la ha marcado como útil aún} one {A # persona le ha sido útil} other {A # personas les ha sido útil}}",
+      "helpfulMark": "Útil",
+      "helpfulUndo": "Marcada como útil · deshacer",
+      "helpfulOwn": "No puedes marcar tu propia opinión como útil.",
+      "helpfulGone": "Esta opinión ya no está disponible.",
+      "helpfulAdded": "Marcada como útil.",
+      "helpfulRemoved": "Voto de útil retirado."
     },
     "report": {
       "open": "Denunciar",
@@ -5108,13 +5121,20 @@
         "countryRequired": "Elige un país.",
         "cityRequired": "Escribe la ciudad o el pueblo.",
         "descriptionShort": "Escribe entre 10 y 1000 caracteres.",
-        "bestTimesLong": "Usa 200 caracteres o menos."
+        "bestTimesLong": "Usa 200 caracteres o menos.",
+        "openingHoursLong": "Usa 200 caracteres o menos.",
+        "tipsLong": "Usa 500 caracteres o menos."
       },
       "notAllowed": "Para proponer un lugar tienes que haber entrado en Cruising y no estar suspendido.",
       "tooManyToday": "Has llegado al límite de propuestas de hoy. Inténtalo mañana.",
       "notEditable": "Este lugar ya no se puede editar.",
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
-      "nothingToSave": "No hay nada que guardar."
+      "nothingToSave": "No hay nada que guardar.",
+      "tags": "Cómo es",
+      "openingHours": "Horario",
+      "openingHoursHint": "Cuándo está abierto o se puede llegar, si importa. Hasta 200 caracteres.",
+      "tips": "Consejos",
+      "tipsHint": "Cómo llegar, adónde ir una vez allí, qué llevar. Hasta 500 caracteres; nada que identifique a una persona."
     },
     "mySpots": {
       "title": "Mis lugares",
@@ -5263,7 +5283,8 @@
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
       "bioContact": "Sin teléfonos, correos, enlaces ni usuarios de redes en tu bio.",
       "nicknameChange": "Puedes cambiarlo cuando quieras. El que dejas sigue siendo tuyo durante 14 días: nadie más puede cogerlo y puedes volver a él.",
-      "nicknameVerifiedNote": "Si lo cambias, se retira tu insignia de Verificado hasta que te verifiques de nuevo."
+      "nicknameVerifiedNote": "Si lo cambias, se retira tu insignia de Verificado hasta que te verifiques de nuevo.",
+      "contributions": "Tus aportaciones"
     },
     "presence": {
       "title": "Aquí ahora",
@@ -5309,7 +5330,8 @@
       "error": "Algo ha fallado. Inténtalo de nuevo.",
       "notFound": "Este miembro no está disponible.",
       "tooManyConversations": "Has llegado al límite de conversaciones nuevas de hoy. Inténtalo mañana.",
-      "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para enviar mensajes."
+      "notAllowed": "Necesitas haber entrado en Cruising y no estar suspendido para enviar mensajes.",
+      "contributions": "Aportaciones"
     },
     "messages": {
       "title": "Mensajes",
@@ -5487,6 +5509,57 @@
       "emailsHint": "Como mucho un correo al día, y solo si «Correos» está activado. Nunca nombra un lugar ni a una persona.",
       "saved": "Guardado.",
       "error": "No se ha podido guardar. Inténtalo de nuevo."
+    },
+    "tags": {
+      "NUDIST": "Nudista",
+      "DAY": "De día",
+      "NIGHT": "De noche",
+      "PARKING": "Aparcamiento",
+      "PUBLIC_TRANSPORT": "Transporte público",
+      "HARD_ACCESS": "Acceso difícil",
+      "LIT": "Iluminado",
+      "SECLUDED": "Apartado",
+      "INDOOR": "Interior",
+      "ACCESSIBLE": "Accesible",
+      "GLORY_HOLES": "Glory holes",
+      "DARKROOM": "Cuarto oscuro"
+    },
+    "badges": {
+      "EXPLORER": {
+        "label": "Explorador",
+        "help": "Tiene 3 o más sitios publicados"
+      },
+      "GUIDE": {
+        "label": "Guía",
+        "help": "Tiene 10 o más sitios publicados"
+      },
+      "HELPFUL": {
+        "label": "Útil",
+        "help": "Sus opiniones se marcaron como útiles 10 o más veces"
+      },
+      "LOCAL": {
+        "label": "Local",
+        "help": "Ha escrito 25 o más opiniones"
+      },
+      "spotsLive": "{count, plural, =0 {Aún sin sitios publicados} one {# sitio publicado} other {# sitios publicados}}",
+      "reviewsWritten": "{count, plural, =0 {Aún sin opiniones} one {# opinión} other {# opiniones}}",
+      "helpfulReceived": "{count, plural, =0 {Aún sin votos de útil} one {Marcado como útil # vez} other {Marcado como útil # veces}}",
+      "howTo": "Las insignias salen de lo que aportas al directorio: Explorador con 3 sitios publicados, Guía con 10, Útil cuando tus opiniones se marcan como útiles 10 veces y Local con 25 opiniones."
+    },
+    "hours": {
+      "title": "Horas con más gente",
+      "notReady": "Aún no hay suficientes registros de presencia aquí para mostrar cuándo hay más gente.",
+      "summary": "Suele haber más gente: {slots} (hora local).",
+      "dayQuiet": "{day}: sin registros de presencia.",
+      "dayBusiest": "{day}: más gente {time}.",
+      "note": "Sale de los registros de presencia («Estoy aquí») de los miembros de los últimos meses, en la hora local del sitio. No se guarda la visita de nadie: solo los recuentos."
+    },
+    "install": {
+      "title": "Instala la app",
+      "lead": "Pon Cruising en tu pantalla de inicio: abre el mapa a pantalla completa, como una app.",
+      "button": "Instalar la app",
+      "iosSteps": "En iPhone o iPad: abre esta página en Safari, toca Compartir y luego «Añadir a pantalla de inicio».",
+      "installed": "App instalada."
     }
   },
   "AdminCruising": {
@@ -5651,7 +5724,7 @@
     }
   },
   "CruisingSpotImport": {
-    "importLead": "Un CSV con una fila de cabecera con las columnas name, type, lat, lng, countryCode, city, description y, si quieres, bestTimes (en cualquier orden, separadas por comas o por punto y coma), o un FeatureCollection GeoJSON de puntos cuyas properties llevan los mismos campos. El tipo puede ir con su nombre en inglés o en español. Hasta 500 filas y 2 MB. Se omite una fila no válida o con un lugar del mismo tipo a menos de 100 m.",
+    "importLead": "Un CSV con una fila de cabecera con las columnas name, type, lat, lng, countryCode, city, description y, si quieres, bestTimes, tags, openingHours y tips (en cualquier orden, separadas por comas o por punto y coma), o un FeatureCollection GeoJSON de puntos cuyas properties llevan los mismos campos. El tipo puede ir con su nombre en inglés o en español; las etiquetas (tags) van separadas por | y también pueden ir con su nombre en inglés o en español. Hasta 500 filas y 2 MB. Se omite una fila no válida o con un lugar del mismo tipo a menos de 100 m.",
     "file": "Archivo",
     "fileHint": ".csv, .geojson o .json, hasta 2 MB.",
     "format": "Formato",

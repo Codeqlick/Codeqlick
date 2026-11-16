@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { listCruisingSpots } from '@/lib/api/cruising';
 import { isApiError } from '@/lib/api/errors';
-import { parseBbox, parseMinRating, spotTypeFilter } from '@/lib/cruising';
+import { parseBbox, parseMinRating, parseTagsFilter, spotTypeFilter } from '@/lib/cruising';
 
 /**
  * The spots in the map's view, for the map (a BFF: the browser never calls the API). Public, no
@@ -17,6 +17,8 @@ export async function GET(request: Request) {
       box,
       spotTypeFilter(searchParams.get('type')),
       parseMinRating(searchParams.get('minRating')),
+      // Phase 5 (decision 92): only spots with all the chosen tags.
+      parseTagsFilter(searchParams.get('tags')),
     );
     return NextResponse.json(result, { headers: { 'Cache-Control': 'public, max-age=60' } });
   } catch (error) {

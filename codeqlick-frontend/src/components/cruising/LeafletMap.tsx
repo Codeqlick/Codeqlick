@@ -12,8 +12,10 @@ import {
   mergeSpots,
   MIN_RATINGS,
   roundCoordinate,
+  SPOT_TAGS,
   SPOT_TYPES,
   type Bbox,
+  type CruisingSpotTag,
   type MapView,
 } from '@/lib/cruising';
 import styles from './Cruising.module.css';
@@ -61,7 +63,9 @@ export default function LeafletMap({
 }: LeafletMapProps) {
   const t = useTranslations('Cruising.map');
   const tt = useTranslations('Cruising.types');
+  const tg = useTranslations('Cruising.tags');
   const filterId = useId();
+  const tagsId = useId();
   const ratingId = useId();
   const activeId = useId();
   const container = useRef<HTMLElement>(null);
@@ -72,6 +76,9 @@ export default function LeafletMap({
   const typeRef = useRef('');
   const [minRating, setMinRating] = useState('');
   const minRatingRef = useRef('');
+  /** Phase 5 (decision 92): only spots with all of these tags. */
+  const [tags, setTags] = useState<CruisingSpotTag[]>([]);
+  const tagsRef = useRef<CruisingSpotTag[]>([]);
   const [activeOnly, setActiveOnly] = useState(false);
   /** Spot id → people there now, for entered members only. */
   const [active, setActive] = useState<Map<string, number>>(() => new Map());
@@ -165,6 +172,7 @@ export default function LeafletMap({
             const params = new URLSearchParams({ bbox: formatBbox(box) });
             if (typeRef.current) params.set('type', typeRef.current);
             if (minRatingRef.current) params.set('minRating', minRatingRef.current);
+            if (tagsRef.current.length > 0) params.set('tags', tagsRef.current.join(','));
             const response = await fetch(`${endpoint}?${params}`, { signal: current.signal });
             if (!response.ok) throw new Error(String(response.status));
             return (await response.json()) as {
@@ -283,6 +291,13 @@ export default function LeafletMap({
     reload.current();
   }
 
+  function toggleTag(tag: CruisingSpotTag, on: boolean) {
+    const next = SPOT_TAGS.filter((each) => (each === tag ? on : tagsRef.current.includes(each)));
+    setTags(next);
+    tagsRef.current = next;
+    reload.current();
+  }
+
   /** A city chosen in the search: the map shows the box around its spots. */
   function showPlace([minLng, minLat, maxLng, maxLat]: [number, number, number, number]) {
     mapRef.current?.fitBounds(
@@ -350,6 +365,25 @@ export default function LeafletMap({
             ))}
           </select>
         </div>
+        <details className={styles.tagFilter}>
+          <summary>
+            {tags.length > 0 ? t('tagsChosen', { count: tags.length }) : t('tagsFilter')}
+          </summary>
+          <fieldset className={styles.tagFilterList}>
+            <legend className={styles.srOnly}>{t('tagsLegend')}</legend>
+            {SPOT_TAGS.map((tag) => (
+              <div key={tag} className={styles.activeToggle}>
+                <input
+                  id={`${tagsId}-${tag}`}
+                  type="checkbox"
+                  checked={tags.includes(tag)}
+                  onChange={(event) => toggleTag(tag, event.target.checked)}
+                />
+                <label htmlFor={`${tagsId}-${tag}`}>{tg(tag)}</label>
+              </div>
+            ))}
+          </fieldset>
+        </details>
         {activeEndpoint ? (
           <div className={styles.activeToggle}>
             <input

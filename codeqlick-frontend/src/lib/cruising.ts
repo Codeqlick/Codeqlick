@@ -18,6 +18,118 @@ export const SPOT_TYPES = [
 ] as const;
 export type CruisingSpotType = (typeof SPOT_TYPES)[number];
 
+/** Phase 5 (decision 92): what a spot offers or is like (`Cruising.tags` names them). */
+export const SPOT_TAGS = [
+  'NUDIST',
+  'DAY',
+  'NIGHT',
+  'PARKING',
+  'PUBLIC_TRANSPORT',
+  'HARD_ACCESS',
+  'LIT',
+  'SECLUDED',
+  'INDOOR',
+  'ACCESSIBLE',
+  'GLORY_HOLES',
+  'DARKROOM',
+] as const;
+export type CruisingSpotTag = (typeof SPOT_TAGS)[number];
+
+export function isSpotTag(value: unknown): value is CruisingSpotTag {
+  return typeof value === 'string' && (SPOT_TAGS as readonly string[]).includes(value);
+}
+
+/** The known tags of a list, each once, in the catalogue's order. */
+export function cleanTags(values: readonly unknown[]): CruisingSpotTag[] {
+  return SPOT_TAGS.filter((tag) => values.includes(tag));
+}
+
+/** The map's tags filter from a query (`NUDIST,LIT`): the known ones, in order; [] for none. */
+export function parseTagsFilter(value: string | null | undefined): CruisingSpotTag[] {
+  return cleanTags((value ?? '').split(',').map((tag) => tag.trim().toUpperCase()));
+}
+
+/**
+ * The tags as schema.org `amenityFeature` (decision 92): English names, the same for both
+ * languages (they describe the place, not the page).
+ */
+export const TAG_AMENITY: Record<CruisingSpotTag, string> = {
+  NUDIST: 'Nudist',
+  DAY: 'Daytime',
+  NIGHT: 'Night-time',
+  PARKING: 'Parking',
+  PUBLIC_TRANSPORT: 'Public transport',
+  HARD_ACCESS: 'Hard to reach',
+  LIT: 'Lit at night',
+  SECLUDED: 'Secluded',
+  INDOOR: 'Indoors',
+  ACCESSIBLE: 'Wheelchair accessible',
+  GLORY_HOLES: 'Glory holes',
+  DARKROOM: 'Darkroom',
+};
+
+export function spotAmenities(
+  tags: readonly CruisingSpotTag[],
+): { '@type': 'LocationFeatureSpecification'; name: string; value: true }[] {
+  return tags.map((tag) => ({
+    '@type': 'LocationFeatureSpecification',
+    name: TAG_AMENITY[tag],
+    value: true,
+  }));
+}
+
+/** Phase 5 (decision 93): the contributor badges (`Cruising.badges` names them). */
+export const CONTRIBUTOR_BADGES = ['EXPLORER', 'GUIDE', 'HELPFUL', 'LOCAL'] as const;
+export type ContributorBadge = (typeof CONTRIBUTOR_BADGES)[number];
+
+/** The known badges of a payload, in the catalogue's order (an older API sends none). */
+export function cleanBadges(values: readonly unknown[] | null | undefined): ContributorBadge[] {
+  return CONTRIBUTOR_BADGES.filter((badge) => (values ?? []).includes(badge));
+}
+
+// ---- Busiest hours (phase 5, decision 89) -------------------------------------------------------
+
+/** `days[day][hour]`, 0 = Monday, weights 0-100 against the busiest hour. */
+export type WeekHours = number[][];
+
+/** The busiest hours of the week, highest first (ties: earlier in the week), up to `count`. */
+export function busiestHours(
+  days: WeekHours,
+  count = 3,
+): { day: number; hour: number; value: number }[] {
+  const slots: { day: number; hour: number; value: number }[] = [];
+  days.forEach((hours, day) =>
+    hours.forEach((value, hour) => {
+      if (value > 0) slots.push({ day, hour, value });
+    }),
+  );
+  return slots
+    .toSorted((a, b) => b.value - a.value || a.day - b.day || a.hour - b.hour)
+    .slice(0, count);
+}
+
+/** Each day's busiest hour, or null for a day with nothing counted. */
+export function busiestHourOfDay(hours: readonly number[]): number | null {
+  let best: number | null = null;
+  hours.forEach((value, hour) => {
+    if (value > 0 && (best === null || value > (hours[best] ?? 0))) best = hour;
+  });
+  return best;
+}
+
+/** `21:00–22:00`: an hour of the day as a span. */
+export function hourSpan(hour: number): string {
+  const pad = (value: number) => String(value % 24).padStart(2, '0');
+  return `${pad(hour)}:00–${pad(hour + 1)}:00`;
+}
+
+/** The weekday's name, Monday = 0, in `locale`. */
+export function weekdayName(day: number, locale: string, width: 'long' | 'short' = 'long'): string {
+  // 2026-11-16 is a Monday.
+  const date = new Date(Date.UTC(2026, 10, 16 + day, 12));
+  return new Intl.DateTimeFormat(locale, { weekday: width, timeZone: 'UTC' }).format(date);
+}
+
 /** Reasons for reporting a spot or a review (WRONG_INFO only on a spot, and with details). */
 export const REPORT_REASONS = [
   'MINOR',
@@ -87,6 +199,9 @@ export const LIMITS = {
   city: 80,
   description: 1000,
   bestTimes: 200,
+  /** Phase 5 (decision 92). */
+  openingHours: 200,
+  tips: 500,
   review: 1000,
   details: 1000,
   rejectReason: 500,
@@ -406,6 +521,10 @@ export type SpotInput = {
   city: string;
   description: string;
   bestTimes?: string;
+  /** Phase 5 (decision 92); null clears them in an edit. */
+  tags?: CruisingSpotTag[];
+  openingHours?: string | null;
+  tips?: string | null;
 };
 
 /** Keys of `Cruising.spotForm.errors`. */
@@ -417,7 +536,12 @@ export type SpotErrorKey =
   | 'countryRequired'
   | 'cityRequired'
   | 'descriptionShort'
-  | 'bestTimesLong';
+  | 'bestTimesLong'
+  | 'openingHoursLong'
+  | 'tipsLong';
+
+/** A hidden field of the forms that show the tags: without it, the tags are left alone. */
+export const TAGS_FIELD = 'tagsShown';
 
 function field(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -447,6 +571,13 @@ export function parseSpotForm(
     city: field(formData, 'city'),
     description: field(formData, 'description'),
     bestTimes: field(formData, 'bestTimes'),
+    openingHours: field(formData, 'openingHours'),
+    tips: field(formData, 'tips'),
+    // The ticked boxes, one per line (how the checkbox group reads them back).
+    tags: formData
+      .getAll('tags')
+      .filter((value): value is string => typeof value === 'string')
+      .join('\n'),
   };
   const errors: Partial<Record<string, SpotErrorKey>> = {};
   const data: Partial<SpotInput> = {};
@@ -486,12 +617,22 @@ export function parseSpotForm(
   }
   if (values.bestTimes.length > LIMITS.bestTimes) errors.bestTimes = 'bestTimesLong';
   else if (values.bestTimes) data.bestTimes = values.bestTimes;
+  // Phase 5: an emptied field clears it in an edit, and is left out of a new spot.
+  for (const name of ['openingHours', 'tips'] as const) {
+    if (!formData.has(name)) continue;
+    const limit = name === 'openingHours' ? LIMITS.openingHours : LIMITS.tips;
+    if (values[name].length > limit) errors[name] = `${name}Long`;
+    else if (values[name]) data[name] = values[name];
+    else if (partial) data[name] = null;
+  }
+  if (formData.has(TAGS_FIELD)) data.tags = cleanTags(formData.getAll('tags'));
   return { values, errors, data };
 }
 
 /** The API body of a proposal, or null when a required field is missing (a partial edit). */
 export function toSpotInput(data: Partial<SpotInput>): SpotInput | null {
-  const { name, type, lat, lng, countryCode, city, description, bestTimes } = data;
+  const { name, type, lat, lng, countryCode, city, description, bestTimes, tags } = data;
+  const { openingHours, tips } = data;
   if (
     name === undefined ||
     type === undefined ||
@@ -512,6 +653,9 @@ export function toSpotInput(data: Partial<SpotInput>): SpotInput | null {
     city,
     description,
     ...(bestTimes ? { bestTimes } : {}),
+    ...(tags?.length ? { tags } : {}),
+    ...(openingHours ? { openingHours } : {}),
+    ...(tips ? { tips } : {}),
   };
 }
 

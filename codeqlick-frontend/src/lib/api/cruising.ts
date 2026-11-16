@@ -16,6 +16,9 @@ import {
 import {
   formatBbox,
   type Bbox,
+  type ContributorBadge,
+  type CruisingSpotTag,
+  type WeekHours,
   type CruisingLookingFor,
   type CruisingMessage,
   type CruisingReportReason,
@@ -55,7 +58,18 @@ export type CruisingSpotPublic = CruisingSpotSummary & {
   citySlug: string;
   description: string;
   bestTimes: string | null;
+  /** Phase 5 (decision 92); an older API leaves them out. */
+  tags?: CruisingSpotTag[];
+  openingHours?: string | null;
+  tips?: string | null;
   createdAt: string;
+};
+
+/** Phase 5 (decision 93): a member's badges and the counters they come from. */
+export type CruisingContributions = {
+  spotsLive: number;
+  helpfulReceived: number;
+  reviewsWritten: number;
 };
 
 export type CruisingReview = {
@@ -64,10 +78,15 @@ export type CruisingReview = {
   text: string | null;
   mine: boolean;
   /** null: "Member" (phase 1, or a person without a nickname). */
-  author: CruisingMemberRef | null;
+  author: (CruisingMemberRef & { badges?: ContributorBadge[] }) | null;
+  /** Phase 5 (decision 93): helpful votes, and whether I gave one. */
+  helpful?: { count: number; mine: boolean };
   createdAt: string;
   updatedAt: string;
 };
+
+/** Phase 5 (decision 89): a spot's busiest hours, once 10 check-ins were counted there. */
+export type CruisingSpotHours = { ready: boolean; days: WeekHours };
 
 export type CruisingStatus = {
   onboarded: boolean;
@@ -95,6 +114,9 @@ export type CruisingStatus = {
     lookingFor: CruisingLookingFor[];
     showAge: boolean;
     verified: boolean;
+    /** Phase 5 (decision 93). */
+    badges?: ContributorBadge[];
+    contributions?: CruisingContributions;
   } | null;
 };
 
@@ -140,6 +162,9 @@ export type MyCruisingSpot = {
   lng?: number;
   description?: string;
   bestTimes?: string | null;
+  tags?: CruisingSpotTag[];
+  openingHours?: string | null;
+  tips?: string | null;
 };
 
 // ---- Public ------------------------------------------------------------------------------------
@@ -152,9 +177,10 @@ export function listCruisingSpots(
   box: Bbox,
   type?: CruisingSpotType | null,
   minRating?: number | null,
+  tags: readonly CruisingSpotTag[] = [],
 ) {
   return apiFetch<{ items: CruisingSpotSummary[]; truncated: boolean }>('/cruising/spots', {
-    query: { bbox: formatBbox(box), type, minRating },
+    query: { bbox: formatBbox(box), type, minRating, tags: tags.length ? tags.join(',') : null },
     forwardClientIp: true,
   });
 }
@@ -352,6 +378,9 @@ export type CruisingMember = {
   memberSince: string;
   verified: boolean;
   coverId: string | null;
+  /** Phase 5 (decision 93). */
+  badges?: ContributorBadge[];
+  contributions?: CruisingContributions;
 };
 
 export type CruisingCheckIn = {
@@ -426,6 +455,23 @@ export async function listCruisingFavorites(): Promise<CruisingFavorite[]> {
 /** Saves a LIVE spot (`409` past 100) or removes it; both idempotent. */
 export function setCruisingFavorite(spotId: string, on: boolean) {
   return apiFetch<void>(`/cruising/favorites/${encodeURIComponent(spotId)}`, {
+    method: on ? 'PUT' : 'DELETE',
+    auth: 'required',
+  });
+}
+
+// ---- Phase 5: busiest hours and helpful reviews (decisions 89, 93) -----------------------------
+
+/** A LIVE spot's busiest hours; only for a member who has entered. */
+export function getCruisingSpotHours(spotId: string) {
+  return apiFetch<CruisingSpotHours>(`/cruising/spots/${encodeURIComponent(spotId)}/hours`, {
+    auth: 'required',
+  });
+}
+
+/** Marks a review helpful or takes it back (`400` on my own review); both idempotent. */
+export function setCruisingReviewHelpful(reviewId: string, on: boolean) {
+  return apiFetch<void>(`/cruising/reviews/${encodeURIComponent(reviewId)}/helpful`, {
     method: on ? 'PUT' : 'DELETE',
     auth: 'required',
   });
@@ -563,6 +609,9 @@ export type AdminCruisingSpot = {
   city: string;
   description: string;
   bestTimes: string | null;
+  tags?: CruisingSpotTag[];
+  openingHours?: string | null;
+  tips?: string | null;
   rejectReason: string | null;
   ratingAvg: number;
   ratingCount: number;

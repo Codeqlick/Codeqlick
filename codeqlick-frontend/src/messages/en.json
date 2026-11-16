@@ -4954,7 +4954,10 @@
       "activeOnly": "Active now",
       "activeCount": "{count, plural, =0 {No spots in view are active now} one {# spot active now} other {# spots active now}}",
       "activeLegend": "Someone is checked in now",
-      "hereNow": "{count, plural, one {# here now} other {# here now}}"
+      "hereNow": "{count, plural, one {# here now} other {# here now}}",
+      "tagsFilter": "What it’s like",
+      "tagsChosen": "{count, plural, one {What it’s like · # chosen} other {What it’s like · # chosen}}",
+      "tagsLegend": "Show only spots with all of these"
     },
     "search": {
       "label": "Search a city or a spot",
@@ -4980,7 +4983,10 @@
       "rulesLink": "Read the rules",
       "mapLabel": "Map showing where {name} is",
       "openMap": "See it on the big map",
-      "reportTitle": "Something wrong?"
+      "reportTitle": "Something wrong?",
+      "tags": "What it’s like",
+      "openingHours": "Opening hours",
+      "tips": "Tips"
     },
     "reviews": {
       "title": "Reviews",
@@ -5017,7 +5023,14 @@
       "contactBlocked": "Reviews can't include phone numbers, emails, links or other apps. Remove them and try again.",
       "notAllowed": "You need to enter Cruising and not be suspended to review.",
       "gone": "This spot isn't available any more.",
-      "tooManyToday": "You've reached today's limit of reviews. Try again tomorrow."
+      "tooManyToday": "You've reached today's limit of reviews. Try again tomorrow.",
+      "helpfulCount": "{count, plural, =0 {Nobody marked it helpful yet} one {# person found this helpful} other {# people found this helpful}}",
+      "helpfulMark": "Helpful",
+      "helpfulUndo": "Marked helpful · undo",
+      "helpfulOwn": "You can’t mark your own review as helpful.",
+      "helpfulGone": "This review isn’t available any more.",
+      "helpfulAdded": "Marked as helpful.",
+      "helpfulRemoved": "Helpful vote taken back."
     },
     "report": {
       "open": "Report",
@@ -5108,13 +5121,20 @@
         "countryRequired": "Choose a country.",
         "cityRequired": "Enter the city or town.",
         "descriptionShort": "Write between 10 and 1000 characters.",
-        "bestTimesLong": "Use 200 characters or fewer."
+        "bestTimesLong": "Use 200 characters or fewer.",
+        "openingHoursLong": "Use 200 characters or fewer.",
+        "tipsLong": "Use 500 characters or fewer."
       },
       "notAllowed": "You need to enter Cruising and not be suspended to propose a spot.",
       "tooManyToday": "You've reached today's limit of proposals. Try again tomorrow.",
       "notEditable": "This spot can't be edited any more.",
       "error": "We couldn't save it. Try again.",
-      "nothingToSave": "There is nothing to save."
+      "nothingToSave": "There is nothing to save.",
+      "tags": "What it’s like",
+      "openingHours": "Opening hours",
+      "openingHoursHint": "When it is open or reachable, if that matters. Up to 200 characters.",
+      "tips": "Tips",
+      "tipsHint": "How to get there, where to go once there, what to bring. Up to 500 characters; nothing that identifies a person."
     },
     "mySpots": {
       "title": "My spots",
@@ -5263,7 +5283,8 @@
       "error": "We couldn't save it. Try again.",
       "bioContact": "No phone numbers, emails, links or social handles in your bio.",
       "nicknameChange": "You can change it whenever you like. The one you leave stays yours for 14 days: nobody else can take it and you can go back to it.",
-      "nicknameVerifiedNote": "If you change it, your Verified badge is removed until you verify again."
+      "nicknameVerifiedNote": "If you change it, your Verified badge is removed until you verify again.",
+      "contributions": "Your contributions"
     },
     "presence": {
       "title": "Here now",
@@ -5309,7 +5330,8 @@
       "error": "Something went wrong. Try again.",
       "notFound": "This member isn't available.",
       "tooManyConversations": "You've reached today's limit of new conversations. Try again tomorrow.",
-      "notAllowed": "You need to enter Cruising and not be suspended to send messages."
+      "notAllowed": "You need to enter Cruising and not be suspended to send messages.",
+      "contributions": "Contributions"
     },
     "messages": {
       "title": "Messages",
@@ -5487,6 +5509,57 @@
       "emailsHint": "At most one email a day, and only when \"Emails\" above is on. It never names a spot or a person.",
       "saved": "Saved.",
       "error": "We couldn't save it. Try again."
+    },
+    "tags": {
+      "NUDIST": "Nudist",
+      "DAY": "Daytime",
+      "NIGHT": "Night-time",
+      "PARKING": "Parking",
+      "PUBLIC_TRANSPORT": "Public transport",
+      "HARD_ACCESS": "Hard to reach",
+      "LIT": "Lit at night",
+      "SECLUDED": "Secluded",
+      "INDOOR": "Indoors",
+      "ACCESSIBLE": "Wheelchair accessible",
+      "GLORY_HOLES": "Glory holes",
+      "DARKROOM": "Darkroom"
+    },
+    "badges": {
+      "EXPLORER": {
+        "label": "Explorer",
+        "help": "Has 3 or more published spots"
+      },
+      "GUIDE": {
+        "label": "Guide",
+        "help": "Has 10 or more published spots"
+      },
+      "HELPFUL": {
+        "label": "Helpful",
+        "help": "Their reviews were marked helpful 10 or more times"
+      },
+      "LOCAL": {
+        "label": "Local",
+        "help": "Has written 25 or more reviews"
+      },
+      "spotsLive": "{count, plural, =0 {No published spots yet} one {# published spot} other {# published spots}}",
+      "reviewsWritten": "{count, plural, =0 {No reviews yet} one {# review} other {# reviews}}",
+      "helpfulReceived": "{count, plural, =0 {No helpful votes yet} one {Marked helpful # time} other {Marked helpful # times}}",
+      "howTo": "Badges come from what you give the directory: Explorer with 3 published spots, Guide with 10, Helpful when your reviews are marked helpful 10 times, Local with 25 reviews."
+    },
+    "hours": {
+      "title": "Busiest hours",
+      "notReady": "Not enough check-ins here yet to show when it is busiest.",
+      "summary": "Usually busiest: {slots} (local time).",
+      "dayQuiet": "{day}: no check-ins counted.",
+      "dayBusiest": "{day}: busiest {time}.",
+      "note": "From members’ check-ins over the last months, in the spot’s local time. Nobody’s visit is kept: only the counts."
+    },
+    "install": {
+      "title": "Install the app",
+      "lead": "Put Cruising on your home screen: it opens the map full screen, like an app.",
+      "button": "Install the app",
+      "iosSteps": "On iPhone or iPad: open this page in Safari, tap Share, then “Add to Home Screen”.",
+      "installed": "App installed."
     }
   },
   "AdminCruising": {
@@ -5651,7 +5724,7 @@
     }
   },
   "CruisingSpotImport": {
-    "importLead": "A CSV with a header row naming the columns name, type, lat, lng, countryCode, city, description and, optionally, bestTimes (any order, comma or semicolon separated), or a GeoJSON FeatureCollection of points whose properties carry the same fields. The type can be its English or Spanish name. Up to 500 rows and 2 MB. A row is skipped when it is invalid or when a spot of the same type lies within 100 m.",
+    "importLead": "A CSV with a header row naming the columns name, type, lat, lng, countryCode, city, description and, optionally, bestTimes, tags, openingHours and tips (any order, comma or semicolon separated), or a GeoJSON FeatureCollection of points whose properties carry the same fields. The type can be its English or Spanish name; tags are separated by | and can be their English or Spanish names too. Up to 500 rows and 2 MB. A row is skipped when it is invalid or when a spot of the same type lies within 100 m.",
     "file": "File",
     "fileHint": ".csv, .geojson or .json, up to 2 MB.",
     "format": "Format",
