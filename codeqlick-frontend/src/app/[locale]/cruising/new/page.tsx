@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { SpotForm } from '@/components/cruising/SpotForm';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { parseCoordinate } from '@/lib/cruising';
@@ -20,7 +20,7 @@ type PageProps = {
 
 /** Propose a spot: the entry step first, then the form (`?lat=&lng=` from the map's click). */
 export default async function CruisingNewPage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const query = await searchParams;
   const lat = parseCoordinate(firstParam(query.lat), 'lat');
   const lng = parseCoordinate(firstParam(query.lng), 'lng');

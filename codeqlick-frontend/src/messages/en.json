@@ -5294,7 +5294,11 @@
       "contributions": "Your contributions",
       "tourTitle": "Getting started",
       "tourLead": "The short tour you saw after entering: your nickname, favourite spots, notifications and your photos.",
-      "tourReopen": "Show the tour again"
+      "tourReopen": "Show the tour again",
+      "languageTitle": "Language",
+      "languageLead": "The language of Cruising's emails and of the notifications on your devices. Emails from the rest of Codeqlick come in English when Spanish isn't chosen.",
+      "languageLabel": "Language of emails and notifications",
+      "languageInvalid": "Choose a language from the list."
     },
     "presence": {
       "title": "Here now",

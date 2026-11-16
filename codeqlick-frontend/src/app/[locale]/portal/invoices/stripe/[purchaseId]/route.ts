@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import { stripeInvoicePdf } from '@/lib/api/invoices';
 import { redirectTo } from '@/lib/redirect';
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ locale: string; purchaseId: string }> },
 ) {
   const { locale, purchaseId } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
   try {
     const { url } = await stripeInvoicePdf(purchaseId);
     // Only Stripe's own addresses: the API passes on what Stripe answered.

@@ -32,6 +32,7 @@ import {
   type SpotInput,
 } from '@/lib/cruising';
 import type { MemberHealth as MemberHealthView } from '@/lib/cruising-safety';
+import type { AppLocale } from '@/i18n/routing';
 import { apiFetch } from './client';
 import { isApiError } from './errors';
 import type { Paginated } from './types';
@@ -110,6 +111,8 @@ export type CruisingStatus = {
   pushPublicKey: string | null;
   /** Phase 6 (decision 102): the onboarding tour was finished or skipped. */
   onboardingDone?: boolean;
+  /** Decision 103: the account's language (Cruising's emails and push texts). */
+  locale?: AppLocale;
   /** Phase 2; null until a nickname is set. */
   profile: {
     nickname: string;
@@ -262,7 +265,8 @@ export function requestCruisingTakedown(input: {
   mediaRef?: string;
   reason: CruisingTakedownReason;
   details: string;
-  locale: 'es' | 'en';
+  /** Any of Cruising's six languages (decision 103): the language of its emails. */
+  locale: AppLocale;
   website?: string;
 }) {
   return apiFetch<{ id: string }>('/cruising/takedown', {
@@ -674,7 +678,8 @@ export type AdminCruisingTakedown = {
   media?: MediaTarget | null;
   reason: string;
   details: string;
-  locale: 'es' | 'en';
+  /** Any of Cruising's six languages (decision 103): the language of its emails. */
+  locale: AppLocale;
   status: 'OPEN' | 'REMOVED' | 'CLOSED';
   response: string | null;
   createdAt: string;

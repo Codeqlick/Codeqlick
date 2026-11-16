@@ -1,6 +1,6 @@
 import { hasLocale } from 'next-intl';
 import { NextResponse } from 'next/server';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { adminSearchQuery } from '@/lib/admin-search';
 import { isApiError } from '@/lib/api/errors';
 import { adminSearch } from '@/lib/api/search';
@@ -20,7 +20,7 @@ function failure(error: string, status: number) {
  */
 export async function GET(request: Request, { params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) return new Response('Not found', { status: 404 });
+  if (!hasLocale(SITE_LOCALES, locale)) return new Response('Not found', { status: 404 });
 
   const q = adminSearchQuery(new URL(request.url).searchParams.get('q'));
   if (q === null) return failure('invalid_query', 400);

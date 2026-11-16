@@ -11,7 +11,7 @@ import {
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { absoluteUrl, pageMetadata } from '@/lib/seo';
 import { SITE_NAME } from '@/lib/site';
 import site from '../../site.module.css';
@@ -23,7 +23,7 @@ type PageProps = { params: Promise<{ locale: string; slug: string }> };
 
 /** Static content: every service page is built ahead of time, in both languages. */
 export function generateStaticParams() {
-  return routing.locales.flatMap((locale) =>
+  return SITE_LOCALES.flatMap((locale) =>
     Object.values(SERVICE_SLUGS).map((slug) => ({ locale, slug })),
   );
 }

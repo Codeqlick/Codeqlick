@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES } from '@/i18n/routing';
 import { getCloudProtectionTicket, listCloudProjects } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { isAddressHost } from '@/lib/cloud';
@@ -17,7 +17,7 @@ const notFound = () => new Response('Not found', { status: 404 });
 export async function GET(request: Request, { params }: { params: Promise<Params> }) {
   const { locale, team, project: slug } = await params;
   const host = (new URL(request.url).searchParams.get('host') ?? '').toLowerCase();
-  if (!hasLocale(routing.locales, locale) || !isAddressHost(host)) return notFound();
+  if (!hasLocale(SITE_LOCALES, locale) || !isAddressHost(host)) return notFound();
   let url: string;
   try {
     const project = (await listCloudProjects(team)).items.find((item) => item.slug === slug);

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
 import QRCode from 'qrcode';
 import {
@@ -23,7 +23,7 @@ import { clearAuthCookies, getTokens } from './session';
 
 /** POST /auth/logout with the refresh token (best effort), clear cookies, go home. */
 export async function logoutAction(formData: FormData): Promise<void> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
 
   const { refreshToken } = await getTokens();
   if (refreshToken) {

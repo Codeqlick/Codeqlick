@@ -17,11 +17,12 @@ export const TWO_FACTOR_MAX_AGE = 5 * 60;
  * sign-in and invitations.
  */
 export const PROTECTED_PATH =
-  /^\/(en|es)\/(portal|admin|videochat\/room|citas\/editar|swipe\/(?:deck|photos|matches|img)|cruising\/(?:new|my-spots|me|members|messages|favorites|meetups|trips|rooms|notifications)|cloud\/(?:console|cli|invite|github))(\/|$)/;
+  /^\/(en|es|fr|de|it|pt)\/(portal|admin|videochat\/room|citas\/editar|swipe\/(?:deck|photos|matches|img)|cruising\/(?:new|my-spots|me|members|messages|favorites|meetups|trips|rooms|notifications)|cloud\/(?:console|cli|invite|github))(\/|$)/;
 
 /**
  * Paths open to everyone that still show the signed-in person when there is one: the proxy
  * refreshes an expiring session there, but never sends anyone to sign in (meetings take guests,
  * and anyone books on a Citas page).
  */
-export const OPTIONAL_SESSION_PATH = /^\/(en|es)\/(meetings|citas|swipe|cruising|cloud)(\/|$)/;
+export const OPTIONAL_SESSION_PATH =
+  /^\/(en|es|fr|de|it|pt)\/(meetings|citas|swipe|cruising|cloud)(\/|$)/;

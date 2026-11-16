@@ -1,4 +1,4 @@
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import { CONTACT_EMAIL } from '@/lib/site';
 import { type LegalDocument, type LegalOwner, ownerLines } from './index';
 
@@ -9,7 +9,7 @@ import { type LegalDocument, type LegalOwner, ownerLines } from './index';
 const UPDATED = { es: '13 de noviembre de 2026', en: '13 November 2026' } as const;
 const MAIL = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
 
-function terms(owner: LegalOwner, locale: AppLocale, hostingDomain: string): string {
+function terms(owner: LegalOwner, locale: SiteLocale, hostingDomain: string): string {
   if (locale === 'es') {
     return `## Quién presta el servicio
 
@@ -112,7 +112,7 @@ For any question, write to ${MAIL}.`;
 
 export function cloudTermsDocument(
   owner: LegalOwner,
-  locale: AppLocale,
+  locale: SiteLocale,
   hostingDomain: string,
 ): LegalDocument {
   const es = locale === 'es';

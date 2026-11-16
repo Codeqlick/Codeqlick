@@ -7,6 +7,9 @@
  * Adding an app: its name here and in the API's WEBAPPS, and its pages under `app/[locale]/<name>/`.
  * The release publishes <name>.codeqlick.com (DNS, Nginx, certificate) by itself.
  */
+import { routing } from '@/i18n/routing';
+import { isCruisingOnlyLocale, localeOf } from './locales';
+
 export const WEBAPPS = ['videochat', 'meetings', 'citas', 'swipe', 'cruising', 'cloud'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
@@ -96,9 +99,9 @@ export function routeWebapp(
   protocol: string,
   redirectOld = true,
 ): WebappRoute {
-  const match = /^\/(en|es)(?:\/([^/]*))?/.exec(pathname);
-  if (!match) return { action: 'pass' };
-  const [, locale, section = ''] = match;
+  const prefix = localeOf(pathname);
+  if (!prefix) return { action: 'pass' };
+  const { locale, section } = prefix;
   const rest = pathname.slice(locale.length + 1); // '', '/', '/room', '/videochat/room'…
   const app = webappForHost(host);
 
@@ -110,7 +113,12 @@ export function routeWebapp(
     }
     if (SITE_SECTIONS.includes(section) || WEBAPPS.some((name) => name === section)) {
       const mainHost = host.slice(app.length + 1);
-      return { action: 'redirect', to: `${protocol}//${mainHost}${pathname}` };
+      // Only Cruising speaks French, German, Italian and Portuguese: elsewhere they're English.
+      const path =
+        section !== 'cruising' && isCruisingOnlyLocale(locale)
+          ? `/${routing.defaultLocale}${rest}`
+          : pathname;
+      return { action: 'redirect', to: `${protocol}//${mainHost}${path}` };
     }
     return { action: 'rewrite', to: `/${locale}/${app}${rest === '/' ? '' : rest}` };
   }

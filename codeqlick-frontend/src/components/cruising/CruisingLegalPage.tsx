@@ -4,7 +4,7 @@ import vc from '@/app/[locale]/videochat/videochat.module.css';
 import { Markdown } from '@/components/markdown/Markdown';
 import { type LegalOwner } from '@/content/legal';
 import { cruisingLegalDocument, type CruisingLegalPage } from '@/content/legal/cruising';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { legalOwner } from '@/lib/env';
 import { SITE_NAME } from '@/lib/site';
 import { webappAlternates } from '@/lib/webapp-seo';
@@ -23,7 +23,7 @@ const PATHS: Record<CruisingLegalPage, string> = {
 
 export function legalMetadata(page: CruisingLegalPage) {
   return async ({ params }: PageProps): Promise<Metadata> => {
-    const locale = resolveLocale((await params).locale);
+    const locale = resolveCruisingLocale((await params).locale);
     const { title, description } = cruisingLegalDocument(page, owner(), locale);
     return {
       title: { absolute: title },
@@ -36,7 +36,7 @@ export function legalMetadata(page: CruisingLegalPage) {
 /** Cruising's terms of use or privacy policy (architecture 4.15), inside Cruising's own frame. */
 export function legalPage(page: CruisingLegalPage) {
   return async function CruisingLegal({ params }: PageProps) {
-    const locale = resolveLocale((await params).locale);
+    const locale = resolveCruisingLocale((await params).locale);
     setRequestLocale(locale);
     const t = await getTranslations({ locale, namespace: 'Legal' });
     const tm = await getTranslations({ locale, namespace: 'Markdown' });

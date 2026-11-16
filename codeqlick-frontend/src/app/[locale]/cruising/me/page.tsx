@@ -20,7 +20,9 @@ import { PushToggle } from '@/components/videochat/PushToggle';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
+import { CRUISING_LOCALES, siteLocale } from '@/i18n/routing';
+import { LOCALE_NAMES } from '@/lib/locales';
 import {
   getCruisingStatus,
   getMyCruisingCheckIn,
@@ -54,7 +56,7 @@ import {
 } from '../actions';
 import { CruisingGate } from '../Gate';
 import { visitsSettingsAction } from '../notifications-actions';
-import { reopenTourAction } from '../onboarding-actions';
+import { accountLanguageAction, reopenTourAction } from '../onboarding-actions';
 
 /** Behind the account: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -66,7 +68,7 @@ type PageProps = {
 
 /** My Cruising profile: nickname, bio, what I look for, check-in, emails and blocks. */
 export default async function CruisingMePage({ params, searchParams }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const query = await searchParams;
   await requireUser(locale, `/${locale}/cruising/me`);
   const status = await getCruisingStatus();
@@ -192,6 +194,25 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         <ActionForm action={reopenTourAction.bind(null, locale)}>
           <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
             {t('tourReopen')}
+          </SubmitButton>
+        </ActionForm>
+      </section>
+
+      <section className={vc.panel} aria-labelledby="me-language">
+        <h2 id="me-language" className={vc.sectionTitle}>
+          {t('languageTitle')}
+        </h2>
+        <p className={vc.muted}>{t('languageLead')}</p>
+        <ActionForm action={accountLanguageAction.bind(null, locale)} className={vc.form}>
+          <FormSelect
+            id="me-language-select"
+            name="language"
+            label={t('languageLabel')}
+            options={CRUISING_LOCALES.map((value) => ({ value, label: LOCALE_NAMES[value] }))}
+            defaultValue={status.locale ?? locale}
+          />
+          <SubmitButton size="sm" pendingLabel={t('saving')}>
+            {t('save')}
           </SubmitButton>
         </ActionForm>
       </section>
@@ -322,7 +343,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         {status.pushPublicKey ? (
           <PushToggle
             publicKey={status.pushPublicKey}
-            locale={locale}
+            locale={siteLocale(locale)}
             serviceWorker="/cruising-sw.js"
             namespace="Cruising.push"
             subscribe={cruisingPushSubscribeAction}

@@ -4,7 +4,7 @@ import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus, listCruisingFavorites } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { formatRating, spotHref } from '@/lib/cruising';
@@ -20,7 +20,7 @@ type PageProps = { params: Promise<{ locale: string }> };
 
 /** My favourite spots (decision 85): the LIVE ones, newest first, with "N here now". */
 export default async function CruisingFavoritesPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   await requireUser(locale, `/${locale}/cruising/favorites`);
   const status = await getCruisingStatus();
   const gate = await CruisingGate({ locale, status });

@@ -6,7 +6,7 @@ import cruising from '@/components/cruising/Cruising.module.css';
 import { MeetupCard } from '@/components/cruising/MeetupCard';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import { listCruisingTrips } from '@/lib/api/cruising-community';
 import { requireUser } from '@/lib/auth/session';
@@ -26,7 +26,7 @@ type PageProps = { params: Promise<{ locale: string }> };
  * trip. A trip is announced from its city's page.
  */
 export default async function CruisingTripsPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   await requireUser(locale, `/${locale}/cruising/trips`);
   const status = await getCruisingStatus();
   const gate = await CruisingGate({ locale, status });

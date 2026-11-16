@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import styles from '@/components/cruising/Cruising.module.css';
 import { getCruisingPlaces } from '@/lib/api/cruising';
 import { countryFromParam, countryName, placeHref } from '@/lib/cruising';
@@ -22,7 +22,7 @@ const loadCountry = cache(async (param: string) => {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, country: param } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const country = await loadCountry(param);
   if (!country) return {};
   const t = await getTranslations({ locale, namespace: 'Cruising.places' });
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /** The cities of a country that have spots. */
 export default async function CruisingCountryPage({ params }: PageProps) {
   const { locale: rawLocale, country: param } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const country = await loadCountry(param);
   if (!country) notFound();
   const t = await getTranslations({ locale, namespace: 'Cruising.places' });

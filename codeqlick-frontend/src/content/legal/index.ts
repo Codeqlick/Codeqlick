@@ -1,4 +1,4 @@
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import { CONTACT_EMAIL } from '@/lib/site';
 
 /** Who is responsible for the site (from the server's environment; see lib/env.ts). */
@@ -22,7 +22,7 @@ const UPDATED = { es: '28 de octubre de 2026', en: '28 October 2026' } as const;
 /** The privacy policy changed later (it now covers the newsletter). */
 const PRIVACY_UPDATED = { es: '14 de noviembre de 2026', en: '14 November 2026' } as const;
 
-export function ownerLines(owner: LegalOwner, locale: AppLocale): string {
+export function ownerLines(owner: LegalOwner, locale: SiteLocale): string {
   const es = locale === 'es';
   const lines = [`- **${es ? 'Titular' : 'Owner'}:** ${owner.name}`];
   if (owner.taxId) lines.push(`- **${es ? 'NIF' : 'Tax ID'}:** ${owner.taxId}`);
@@ -34,7 +34,7 @@ export function ownerLines(owner: LegalOwner, locale: AppLocale): string {
   return lines.join('\n');
 }
 
-function legalNotice(owner: LegalOwner, locale: AppLocale): string {
+function legalNotice(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `## Datos del titular
 
@@ -93,7 +93,7 @@ We take care that the information published is correct and up to date, but we ca
 These terms are governed by Spanish law. If you have any questions, write to [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}).`;
 }
 
-function privacyPolicy(owner: LegalOwner, locale: AppLocale): string {
+function privacyPolicy(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `## Responsable del tratamiento
 
@@ -184,7 +184,7 @@ We use no advertising or analytics cookies.`;
  * Terms of sale of a basic website bought online (architecture 8.2, decision 20). A draft for a
  * gestor to review before buying online is switched on.
  */
-function termsOfSale(owner: LegalOwner, locale: AppLocale): string {
+function termsOfSale(owner: LegalOwner, locale: SiteLocale): string {
   if (locale === 'es') {
     return `Estas condiciones se aplican cuando compras en codeqlick.com la web básica de tu negocio a partir de su vista previa.
 
@@ -268,7 +268,7 @@ These terms are governed by Spanish law. For any question or complaint, write to
 export function legalDocument(
   page: LegalPage,
   owner: LegalOwner,
-  locale: AppLocale,
+  locale: SiteLocale,
 ): LegalDocument {
   const es = locale === 'es';
   if (page === 'terms') {

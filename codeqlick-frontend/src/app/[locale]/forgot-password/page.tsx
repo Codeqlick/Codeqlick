@@ -6,20 +6,20 @@ import { Logo } from '@/components/brand/Logo';
 import { Card } from '@/components/ui/Card';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { pageMetadata } from '@/lib/seo';
 import { forgotPasswordAction } from './actions';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'ForgotPassword' });
   return pageMetadata({ locale, path: '/forgot-password', title: t('metaTitle'), noindex: true });
 }
 
 export default async function ForgotPasswordPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   const t = await getTranslations({ locale, namespace: 'ForgotPassword' });
   const tc = await getTranslations({ locale, namespace: 'Common' });
 

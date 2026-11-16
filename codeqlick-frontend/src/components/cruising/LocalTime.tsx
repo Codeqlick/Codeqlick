@@ -1,13 +1,14 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { intlLocale } from '@/lib/locales';
 
 type LocalTimeProps = { iso: string; locale: string };
 
 function format(iso: string, locale: string, timeZone?: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',

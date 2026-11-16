@@ -1,7 +1,8 @@
 'use server';
 
 import { getTranslations } from 'next-intl/server';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault } from '@/i18n/locale';
+import { siteLocale } from '@/i18n/routing';
 import { invalidState } from '@/lib/actions';
 import { requestPasswordReset } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
@@ -13,13 +14,14 @@ export async function forgotPasswordAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const parsed = forgotPasswordSchema.safeParse({ email: formString(formData, 'email') });
   if (!parsed.success) return invalidState(parsed.error, locale, formData);
 
   const t = await getTranslations({ locale, namespace: 'ForgotPassword' });
   try {
-    await requestPasswordReset({ email: parsed.data.email, locale });
+    // The email and its link are the website's, in English or Spanish (decision 103).
+    await requestPasswordReset({ email: parsed.data.email, locale: siteLocale(locale) });
   } catch (error) {
     const tc = await getTranslations({ locale, namespace: 'Common' });
     const rateLimited = isApiError(error) && error.status === 429;

@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault } from '@/i18n/locale';
 import { login } from '@/lib/api/auth';
 import { isApiError, isCaptchaError } from '@/lib/api/errors';
 import type { LoginResult } from '@/lib/api/types';
@@ -17,7 +17,7 @@ import { loginSchema } from '@/lib/schemas/auth';
 
 /** POST /auth/login, store the tokens in httpOnly cookies and go to `next` or the role's home. */
 export async function loginAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Login' });
   const email = formString(formData, 'email');
 

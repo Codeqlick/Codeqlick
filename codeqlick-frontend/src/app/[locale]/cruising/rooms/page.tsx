@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import styles from '@/components/cruising/CruisingRooms.module.css';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingStatus } from '@/lib/api/cruising';
 import { listCruisingRooms } from '@/lib/api/cruising-rooms';
 import { requireUser } from '@/lib/auth/session';
@@ -22,7 +22,7 @@ type PageProps = { params: Promise<{ locale: string }> };
  * each with when the last message was posted and how many came in the last day.
  */
 export default async function CruisingRoomsPage({ params }: PageProps) {
-  const locale = resolveLocale((await params).locale);
+  const locale = resolveCruisingLocale((await params).locale);
   await requireUser(locale, `/${locale}/cruising/rooms`);
   const status = await getCruisingStatus();
   const gate = await CruisingGate({ locale, status });

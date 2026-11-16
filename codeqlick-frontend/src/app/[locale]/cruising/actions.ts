@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { localeOrDefault } from '@/i18n/locale';
+import { cruisingLocaleOrDefault } from '@/i18n/locale';
 import { routing, type AppLocale } from '@/i18n/routing';
 import { isApiError } from '@/lib/api/errors';
 import {
@@ -75,7 +75,7 @@ function refreshAll(_locale: AppLocale): void {
 
 /** Confirms 18+, the rules and the consent to special category data (PUT /cruising/me). */
 export async function onboardAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Cruising.onboarding' });
   const birthDate = String(formData.get('birthDate') ?? '');
   const termsVersion = String(formData.get('termsVersion') ?? '');
@@ -153,7 +153,7 @@ export async function createSpotAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const t = await spotFormTranslations(locale);
   const { values, errors, data } = parseSpotForm(formData);
   if (Object.keys(errors).length > 0) {
@@ -360,7 +360,7 @@ export async function reportAction(
 
 /** A removal request from anyone, signed in or not (POST /cruising/takedown). */
 export async function takedownAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const locale = localeOrDefault(formData.get('locale'));
+  const locale = cruisingLocaleOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'Cruising.takedown' });
   const email = String(formData.get('email') ?? '').trim();
   const spotLink = String(formData.get('spotLink') ?? '').trim();

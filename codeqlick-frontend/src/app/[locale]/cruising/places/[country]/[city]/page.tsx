@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import { Link } from '@/i18n/navigation';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { CityCommunity } from '@/components/cruising/CityCommunity';
 import styles from '@/components/cruising/Cruising.module.css';
 import {
@@ -39,7 +39,7 @@ const loadCity = cache(async (countryParam: string, citySlug: string) => {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale: rawLocale, country: countryParam, city: citySlug } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const city = await loadCity(countryParam, citySlug);
   if (!city) return {};
   const t = await getTranslations({ locale, namespace: 'Cruising.places' });
@@ -93,7 +93,7 @@ async function cityPresence(
 /** The spots of a city, best rated first; for entered members, who is there now. */
 export default async function CruisingCityPage({ params }: PageProps) {
   const { locale: rawLocale, country: countryParam, city: citySlug } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const city = await loadCity(countryParam, citySlug);
   if (!city) notFound();
   const t = await getTranslations({ locale, namespace: 'Cruising.places' });

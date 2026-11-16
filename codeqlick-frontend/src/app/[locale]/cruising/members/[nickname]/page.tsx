@@ -10,7 +10,7 @@ import { MemberName } from '@/components/cruising/MemberName';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
 import { Button } from '@/components/ui/Button';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { resolveLocale } from '@/i18n/locale';
+import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCruisingMember, getCruisingStatus, listCruisingMemberMedia } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { countryName, isLookingFor, isNickname, normalizeNickname } from '@/lib/cruising';
@@ -29,7 +29,7 @@ type PageProps = { params: Promise<{ locale: string; nickname: string }> };
 /** A member's profile, for members who have entered and chosen a nickname themselves. */
 export default async function CruisingMemberPage({ params }: PageProps) {
   const { locale: rawLocale, nickname: rawNickname } = await params;
-  const locale = resolveLocale(rawLocale);
+  const locale = resolveCruisingLocale(rawLocale);
   const nickname = normalizeNickname(rawNickname);
   await requireUser(locale, `/${locale}/cruising/members/${nickname}`);
   if (!isNickname(nickname)) notFound();

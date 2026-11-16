@@ -6,8 +6,9 @@
  * documented and implemented in `src/lib/auth/refresh.ts`.
  */
 import createMiddleware from 'next-intl/middleware';
+import { defineRouting } from 'next-intl/routing';
 import { NextRequest, NextResponse } from 'next/server';
-import { routing } from './i18n/routing';
+import { SITE_LOCALES, routing } from './i18n/routing';
 import { ACCESS_COOKIE, REFRESH_COOKIE } from './lib/auth/constants';
 import {
   apiBaseUrl,
@@ -22,9 +23,24 @@ import {
   setTokenCookies,
   withForwardedRequestHeaders,
 } from './lib/auth/refresh';
-import { routeWebapp } from './lib/webapps';
+import { localeRedirect, requestLocales } from './lib/locales';
+import { routeWebapp, webappForHost } from './lib/webapps';
 
-const handleI18nRouting = createMiddleware(routing);
+// Cruising speaks six languages, every other host two (decision 103): each has its own locale
+// routing, so a visitor's browser language or cookie never sends the website to /fr.
+const cruisingI18nRouting = createMiddleware(routing);
+const siteI18nRouting = createMiddleware(
+  defineRouting({ locales: SITE_LOCALES, defaultLocale: 'en', localePrefix: 'always' }),
+);
+
+/** next-intl's routing for a request, by the languages its host and path speak. */
+function handleI18nRouting(request: NextRequest): NextResponse {
+  const host =
+    request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() || request.headers.get('host');
+  const all =
+    requestLocales(request.nextUrl.pathname, webappForHost(host)).length > SITE_LOCALES.length;
+  return (all ? cruisingI18nRouting : siteI18nRouting)(request);
+}
 
 export default async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -44,6 +60,13 @@ export default async function proxy(request: NextRequest) {
   const dest = request.headers.get('sec-fetch-dest');
   const navigation =
     request.method === 'GET' && dest !== 'image' && request.headers.get('host') === host;
+  // A language this host doesn't speak (/fr on the website): the same page in English.
+  const english = localeRedirect(pathname, webappForHost(host));
+  if (english) {
+    const target = new URL(english, `${protocol}//${host}`);
+    target.search = search;
+    return NextResponse.redirect(target, 308);
+  }
   const webapp = routeWebapp(pathname, host, protocol, navigation);
   if (webapp.action === 'redirect') {
     const target = new URL(webapp.to, `${protocol}//${host}`);
@@ -149,5 +172,7 @@ export const config = {
   // body up to `experimental.proxyClientMaxBodySize` and cuts the rest, so a 100 MB video must
   // reach its route handler without passing here (the handler streams it to the API). The route
   // is called by its own address, so it needs no rewrite; it checks the session itself.
-  matcher: ['/((?!api|site-draft|_next|_vercel|(?:en|es)/cruising/api/media$|.*\\..*).*)'],
+  matcher: [
+    '/((?!api|site-draft|_next|_vercel|(?:en|es|fr|de|it|pt)/cruising/api/media$|.*\\..*).*)',
+  ],
 };

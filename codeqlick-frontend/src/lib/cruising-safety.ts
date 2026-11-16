@@ -3,6 +3,7 @@
  * trusted contacts (decision 95), sexual health and the testing centres (decision 94). Shapes
  * mirror the API's; the helpers are pure (server and browser).
  */
+import { intlLocale } from '@/lib/locales';
 
 export type TrustedContactStatus = 'PENDING' | 'ACCEPTED' | 'REFUSED';
 
@@ -188,7 +189,7 @@ export function contactLinkKind(token: string): 'stop' | 'invite' | null {
 export function formatMonth(month: string, locale: string): string {
   const match = MONTH.exec(month);
   if (!match) return month;
-  return new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : 'en-GB', {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',

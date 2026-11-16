@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
-import type { AppLocale } from '@/i18n/routing';
+import type { SiteLocale } from '@/i18n/routing';
 import { failedState, invalidState } from '@/lib/actions';
 import { submitReview } from '@/lib/api/reviews';
 import { formBoolean, formObject, type FormState } from '@/lib/forms';
@@ -16,7 +16,7 @@ const reviewSchema = z.object({
 });
 
 export async function submitReviewAction(
-  locale: AppLocale,
+  locale: SiteLocale,
   projectId: string,
   _previous: FormState,
   formData: FormData,

@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Metadata } from 'next';
-import { routing } from '@/i18n/routing';
+import { SITE_LOCALES, routing } from '@/i18n/routing';
 import { env } from '@/lib/env';
 
 export const DEFAULT_OG_IMAGE = {
@@ -36,7 +36,7 @@ export function absoluteUrl(path: string): string {
  */
 export function localeAlternates(locale: string, path = ''): NonNullable<Metadata['alternates']> {
   const languages: Record<string, string> = {};
-  for (const l of routing.locales) languages[l] = `/${l}${path}`;
+  for (const l of SITE_LOCALES) languages[l] = `/${l}${path}`;
   languages['x-default'] = `/${routing.defaultLocale}${path}`;
   return { canonical: `/${locale}${path}`, languages };
 }
