@@ -313,7 +313,13 @@ export class CloudMonitorsRepository {
 
   saveStatusPage(
     teamId: string,
-    data: { enabled: boolean; title: string; intro: string | null; items: Prisma.InputJsonValue },
+    data: {
+      enabled: boolean;
+      title: string;
+      intro: string | null;
+      items: Prisma.InputJsonValue;
+      subscriptions?: boolean;
+    },
   ) {
     return this.prisma.cloudStatusPage.upsert({
       where: { teamId },
@@ -325,7 +331,14 @@ export class CloudMonitorsRepository {
   publicPage(teamSlug: string) {
     return this.prisma.cloudStatusPage.findFirst({
       where: { enabled: true, team: { slug: teamSlug } },
-      include: { team: { select: { id: true, name: true, slug: true } } },
+      include: { team: { select: { id: true, name: true, slug: true, plan: true } } },
+    });
+  }
+
+  /** The team's pending and active status page subscribers (the plan's cap counts them). */
+  countSubscribers(teamId: string): Promise<number> {
+    return this.prisma.cloudStatusSubscriber.count({
+      where: { teamId, status: { in: ['PENDING', 'ACTIVE'] } },
     });
   }
 

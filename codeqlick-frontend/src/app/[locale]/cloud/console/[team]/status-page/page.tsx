@@ -11,17 +11,20 @@ import {
   getCloudTeam,
   listCloudMonitors,
   listCloudStatusNotices,
+  listCloudStatusSubscribers,
 } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
+import { subscriberFilter, subscriberPage } from '@/lib/cloud-subscribers';
 import { env } from '@/lib/env';
 import { webappUrl } from '@/lib/webapp-seo';
 import { saveStatusPageAction } from '../../../actions';
 import styles from '../../../cloud.module.css';
 import { NoticesSection } from './NoticesSection';
+import { SubscribersSection } from './SubscribersSection';
 
 type PageProps = {
   params: Promise<{ locale: string; team: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; subscribers?: string; subscribersPage?: string }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -57,6 +60,16 @@ export default async function CloudStatusPageSettings({ params, searchParams }: 
   }
   const [team, page, { items: monitors }, open, past] = data;
   const admin = team.role !== 'MEMBER';
+  // Subscribers' addresses are for ADMINs and OWNERs only (decision 105).
+  const subscribersStatus = subscriberFilter(query.subscribers);
+  const subscribers = admin
+    ? await listCloudStatusSubscribers(
+        slug,
+        subscribersStatus,
+        subscriberPage(query.subscribersPage),
+        20,
+      )
+    : null;
   const publicUrl = webappUrl('cloud', locale, `/status/${team.slug}`);
   const badge = `${env.PUBLIC_API_URL}/cloud/status/${team.slug}/badge.svg`;
 
@@ -115,6 +128,12 @@ export default async function CloudStatusPageSettings({ params, searchParams }: 
               rows={3}
               maxLength={500}
             />
+            <FormCheckbox
+              name="subscriptions"
+              label={t('subscribers.enabled')}
+              hint={t('subscribers.enabledHint')}
+              defaultChecked={page.subscriptions}
+            />
             <fieldset className={styles.fieldset}>
               <legend>{t('statusPage.items')}</legend>
               {monitors.length === 0 ? <p className={styles.small}>{t('monitors.empty')}</p> : null}
@@ -142,6 +161,15 @@ export default async function CloudStatusPageSettings({ params, searchParams }: 
             </div>
           </ActionForm>
         </section>
+      ) : null}
+      {subscribers ? (
+        <SubscribersSection
+          locale={locale}
+          team={team.slug}
+          enabled={page.enabled && page.subscriptions}
+          list={subscribers}
+          status={subscribersStatus}
+        />
       ) : null}
       <NoticesSection
         locale={locale}

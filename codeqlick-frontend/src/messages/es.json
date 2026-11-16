@@ -3074,6 +3074,13 @@
       "unavailable": "Ahora no se puede actualizar tu web. No ha cambiado nada; inténtalo de nuevo en unos minutos.",
       "notFound": "Esta publicación o web ya no existe. Recarga la página.",
       "failed": "No se pudo hacer. Inténtalo de nuevo."
+    },
+    "english": {
+      "title": "En inglés (opcional)",
+      "hint": "Para la versión en inglés de tu web. Lo que dejes vacío se muestra en español.",
+      "fieldTitle": "Título en inglés",
+      "fieldSummary": "Resumen en inglés",
+      "fieldBody": "Texto en inglés"
     }
   },
   "SiteEditor": {
@@ -3134,7 +3141,8 @@
       "legal": "Datos legales",
       "notices": "Avisos (cierres y horarios especiales)",
       "booking": "Citas online (botón «Pedir cita»)",
-      "menu": "Carta o catálogo (con QR)"
+      "menu": "Carta o catálogo (con QR)",
+      "languages": "Idiomas (versión en inglés)"
     },
     "style": "Estilo de partida",
     "styleHint": "Cambia los colores, las tipografías, el orden y las fotos de ejemplo. Tus textos y tus fotos se quedan.",
@@ -3346,6 +3354,16 @@
       "sulphites": "Sulfitos",
       "lupin": "Altramuces",
       "molluscs": "Moluscos"
+    },
+    "english": {
+      "switch": "Versión en inglés",
+      "hint": "Tu web también en inglés, en <tu dirección>/en, con un botón para cambiar de idioma. Escribes tú los textos en inglés: cambia a «English» arriba del formulario. Lo que dejes sin traducir se muestra en español.",
+      "missing": "{count, plural, =0 {Todos los textos están en inglés.} one {Falta # texto en inglés: se muestra en español.} other {Faltan # textos en inglés: se muestran en español.}}",
+      "translate": "Traducir ahora",
+      "editing": "Idioma que editas",
+      "editingEnglish": "Editas el inglés: cada texto muestra debajo el español. Fotos, enlaces y colores se cambian en «Español».",
+      "fieldLabel": "{label} (inglés)",
+      "spanishHint": "En español: {text}"
     }
   },
   "Videochat": {
@@ -6416,7 +6434,14 @@
     "posterBody": "Tamaño A5. Pulsa «Imprimir el cartel» y elige tu impresora o «Guardar como PDF» para llevarlo a una imprenta.",
     "posterKicker": "Nuestra carta",
     "posterHeadline": "Escanea para ver la carta",
-    "posterHint": "Apunta con la cámara de tu móvil al código"
+    "posterHint": "Apunta con la cámara de tu móvil al código",
+    "english": {
+      "title": "Carta en inglés",
+      "lead": "Tu web tiene versión en inglés: este QR abre la carta en inglés. Ponlo junto al de español, para quien prefiera leerla en inglés.",
+      "poster": "Scan to see the menu",
+      "posterKicker": "Our menu",
+      "posterHint": "Point your phone's camera at the code"
+    }
   },
   "WebsiteCheck": {
     "metaTitle": "Revisión gratuita de tu web",
@@ -7702,6 +7727,77 @@
       "howTo": "Úsalo desde tu código",
       "settings": "Endpoint {endpoint}, región {region}, direcciones path-style. Guarda las claves en las variables de entorno de tu servidor; los navegadores reciben los archivos con URLs prefirmadas que firma tu servidor.",
       "privacy": "De momento en el servidor de Codeqlick y aún sin copias de seguridad de los archivos: guarda una copia de lo que no puedas perder."
+    },
+    "subscribe": {
+      "title": "Recibe los avisos por correo",
+      "lead": "Un correo cuando se publica, actualiza o resuelve una incidencia o un mantenimiento programado. Nada más.",
+      "email": "Tu correo",
+      "emailPlaceholder": "tu@ejemplo.com",
+      "accept": "Quiero recibir por correo los avisos de esta página.",
+      "honeypot": "Deja este campo vacío",
+      "submit": "Suscribirme",
+      "submitting": "Suscribiendo…",
+      "successTitle": "Revisa tu bandeja de entrada para confirmar.",
+      "successBody": "Si la dirección es válida, te hemos enviado un enlace para confirmar la suscripción. Caduca en 48 horas. ¿No lo ves? Mira en la carpeta de spam.",
+      "notice": "{team} es responsable de tu dirección y Codeqlick la trata en su nombre, como explica nuestra <link>política de privacidad</link>. Puedes darte de baja cuando quieras desde cualquier correo.",
+      "error": "Revisa el formulario.",
+      "disposable": "No aceptamos direcciones de correo temporales. Usa tu correo habitual.",
+      "full": "Esta página no admite más suscriptores por ahora.",
+      "closed": "Esta página ya no admite suscripciones por correo.",
+      "rateLimited": "Demasiados intentos seguidos. Espera un momento y vuelve a probar.",
+      "failed": "No hemos podido completarlo. Vuelve a probar en un momento."
+    },
+    "statusUpdates": {
+      "confirmTitle": "Confirma tu suscripción",
+      "confirmLead": "Pulsa el botón para recibir por correo los avisos de esta página de estado.",
+      "confirm": "Confirmar mi suscripción",
+      "confirming": "Confirmando…",
+      "confirmed": "Ya estás suscrito. {team} te avisará por correo de las incidencias y los mantenimientos programados.",
+      "confirmExpired": "Este enlace no es válido o ha caducado. Vuelve a suscribirte en la página de estado para recibir uno nuevo.",
+      "unsubscribeTitle": "Darse de baja de los avisos",
+      "unsubscribeLead": "Pulsa el botón y dejarás de recibir los avisos de esta página de estado.",
+      "unsubscribe": "Darme de baja",
+      "unsubscribing": "Dando de baja…",
+      "unsubscribed": "Hecho. No recibirás más avisos de {team}. Puedes volver a suscribirte en su página de estado cuando quieras.",
+      "unsubscribeNotFound": "Este enlace no es válido. Si sigues recibiendo estos correos, usa el enlace del final del último.",
+      "back": "Ir a la página de estado",
+      "failed": "No hemos podido completarlo. Vuelve a probar en un momento."
+    },
+    "subscribers": {
+      "title": "Suscripciones por correo",
+      "enabled": "Los visitantes pueden suscribirse por correo",
+      "enabledHint": "Tu página de estado muestra un formulario; los suscriptores confirman su dirección y reciben un correo cuando se publica, actualiza o resuelve un aviso, y cuando empieza un mantenimiento. Nunca por las alertas de los monitores.",
+      "on": "Activadas: la página pública muestra el formulario y los avisos se envían a los suscriptores activos.",
+      "off": "Desactivadas: la página no muestra el formulario y no se envía nada. Actívalas en los ajustes de arriba (la página debe ser pública).",
+      "counts": "{active} activos, {pending} pendientes de confirmar, {unsubscribed} dados de baja",
+      "ofCap": "{used} de {limit} en tu plan",
+      "filter": "Filtrar suscriptores",
+      "all": "Todos",
+      "statuses": {
+        "ACTIVE": "Activo",
+        "PENDING": "Pendiente",
+        "UNSUBSCRIBED": "De baja"
+      },
+      "empty": "Aún no hay suscriptores aquí.",
+      "delete": "Borrar",
+      "deleting": "Borrando…",
+      "deleteAll": "Borrar todos los suscriptores",
+      "deleteAllConfirm": "Sí, borrar todos los suscriptores de esta página. No se puede deshacer.",
+      "confirmRequired": "Marca la casilla para confirmar.",
+      "deletedAll": "{count, plural, =0 {No había suscriptores que borrar.} one {# suscriptor borrado.} other {# suscriptores borrados.}}",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "page": "Página {page} de {totalPages}",
+      "responsibility": "Tu equipo es responsable de estas direcciones (el responsable del tratamiento) y Codeqlick las trata en su nombre, como dicen las condiciones de Cloud. Las direcciones se muestran ocultas en parte; borra una cuando su titular te lo pida."
+    },
+    "termsGate": {
+      "title": "Las condiciones de Cloud han cambiado",
+      "lead": "Hemos actualizado las condiciones de Codeqlick Cloud: ahora explican cómo tratamos, por cuenta de tu equipo, los correos de los suscriptores de tus páginas de estado. Léelas y acéptalas para seguir usando la consola. Mientras tanto, tus tokens de API y la CLI siguen funcionando.",
+      "read": "Leer las condiciones de Cloud",
+      "accept": "He leído y acepto las condiciones de Codeqlick Cloud.",
+      "required": "Marca la casilla para aceptar.",
+      "submit": "Aceptar y continuar",
+      "accepting": "Guardando…"
     }
   },
   "AdminCloud": {

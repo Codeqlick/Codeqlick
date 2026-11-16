@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { MonitorStatus } from '@/components/cloud/MonitorStatus';
+import { StatusSubscribe } from '@/components/cloud/StatusSubscribe';
 import { formatUptime, UptimeBars } from '@/components/cloud/UptimeBars';
 import { Badge } from '@/components/ui/Badge';
 import { resolveLocale } from '@/i18n/locale';
@@ -58,6 +59,7 @@ export default async function PublicStatusPage({ params }: PageProps) {
         <h1 className={styles.heroTitle}>{status.title}</h1>
         {status.intro ? <p className={styles.muted}>{status.intro}</p> : null}
       </div>
+      {status.subscribe ? <StatusSubscribe team={team} teamName={status.teamName} /> : null}
       <p className={`${styles.overall} ${styles[`overall_${status.overall}`]}`}>
         {t(`status.overall.${status.overall}`)}
       </p>

@@ -1,7 +1,7 @@
 import { WEBAPPS } from '../../common/webapps.js';
 
 /** The Cloud terms' current version: people accept it to create or join a team. */
-export const CLOUD_TERMS_VERSION = '2026-11-13';
+export const CLOUD_TERMS_VERSION = '2026-11-17';
 
 export interface CloudLimits {
   teamsOwned: number;
@@ -43,6 +43,10 @@ export interface CloudLimits {
   configRules: number;
   configHeaderRules: number;
   configBytes: number;
+  /** Status page email subscribers, pending and active (decision 105). */
+  statusSubscribers: number;
+  /** Emails to status page subscribers an hour (decision 105). */
+  statusEmailsPerHour: number;
 }
 
 const MB = 1024 * 1024;
@@ -82,6 +86,8 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     configRules: 100,
     configHeaderRules: 30,
     configBytes: 64 * 1024,
+    statusSubscribers: 500,
+    statusEmailsPerHour: 1000,
   },
   PRO: {
     teamsOwned: 3,
@@ -116,6 +122,8 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     configRules: 2000,
     configHeaderRules: 200,
     configBytes: 256 * 1024,
+    statusSubscribers: 5000,
+    statusEmailsPerHour: 10_000,
   },
 };
 

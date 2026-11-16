@@ -1,15 +1,13 @@
 ---
-import { site, whatsappHref } from '../lib/site';
+import { pageOf, whatsappHref } from '../lib/site';
+
+const { site, t } = pageOf(Astro.url);
 
 const number = site.contact.whatsapp;
 ---
 
 {number ? (
-  <a
-    class="whatsapp"
-    href={whatsappHref(number, 'Hola, os escribo desde vuestra web.')}
-    aria-label="Escríbenos por WhatsApp"
-  >
+  <a class="whatsapp" href={whatsappHref(number, t.whatsappText)} aria-label={t.whatsappLabel}>
     <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true">
       <path
         fill="currentColor"

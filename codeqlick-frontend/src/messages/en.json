@@ -3074,6 +3074,13 @@
       "unavailable": "Your website cannot be updated right now. Nothing has changed; try again in a few minutes.",
       "notFound": "This post or website no longer exists. Reload the page.",
       "failed": "It could not be done. Try again."
+    },
+    "english": {
+      "title": "In English (optional)",
+      "hint": "For the English version of your website. Anything left empty shows in Spanish.",
+      "fieldTitle": "Title in English",
+      "fieldSummary": "Summary in English",
+      "fieldBody": "Text in English"
     }
   },
   "SiteEditor": {
@@ -3134,7 +3141,8 @@
       "legal": "Legal data",
       "notices": "Notices (closures and special hours)",
       "booking": "Online appointments (\"Book\" button)",
-      "menu": "Menu or catalogue (with QR)"
+      "menu": "Menu or catalogue (with QR)",
+      "languages": "Languages (English version)"
     },
     "style": "Starting style",
     "styleHint": "Changes the colours, fonts, order and sample photos. Your texts and photos stay.",
@@ -3346,6 +3354,16 @@
       "sulphites": "Sulphites",
       "lupin": "Lupin",
       "molluscs": "Molluscs"
+    },
+    "english": {
+      "switch": "English version",
+      "hint": "Your website in English too, at <your address>/en, with a button to change language. You write the English texts: switch to “English” above the form. Anything left untranslated shows in Spanish.",
+      "missing": "{count, plural, =0 {Every text is in English.} one {# text is missing in English: it shows in Spanish.} other {# texts are missing in English: they show in Spanish.}}",
+      "translate": "Translate now",
+      "editing": "Language you are editing",
+      "editingEnglish": "You are editing the English: each text shows the Spanish below it. Photos, links and colours are changed in “Español”.",
+      "fieldLabel": "{label} (English)",
+      "spanishHint": "In Spanish: {text}"
     }
   },
   "Videochat": {
@@ -6416,7 +6434,14 @@
     "posterBody": "A5 size. Press \"Print the poster\" and choose your printer, or \"Save as PDF\" to take it to a print shop.",
     "posterKicker": "Nuestra carta",
     "posterHeadline": "Escanea para ver la carta",
-    "posterHint": "Apunta con la cámara de tu móvil al código"
+    "posterHint": "Apunta con la cámara de tu móvil al código",
+    "english": {
+      "title": "Menu in English",
+      "lead": "Your website has an English version: this QR opens the menu in English. Put it next to the Spanish one for those who prefer to read it in English.",
+      "poster": "Scan to see the menu",
+      "posterKicker": "Our menu",
+      "posterHint": "Point your phone's camera at the code"
+    }
   },
   "WebsiteCheck": {
     "metaTitle": "Free website check",
@@ -7702,6 +7727,77 @@
       "howTo": "Use it from your code",
       "settings": "Endpoint {endpoint}, region {region}, path-style addresses. Keep keys in your server's environment variables; browsers get files through presigned URLs your server signs.",
       "privacy": "For now on Codeqlick's server, with no backups of the files yet: keep a copy of anything you can't lose."
+    },
+    "subscribe": {
+      "title": "Get updates by email",
+      "lead": "An email when an incident or a planned maintenance is posted, updated or resolved. Nothing else.",
+      "email": "Your email",
+      "emailPlaceholder": "you@example.com",
+      "accept": "I agree to receive this page's updates by email.",
+      "honeypot": "Leave this field empty",
+      "submit": "Subscribe",
+      "submitting": "Subscribing…",
+      "successTitle": "Check your inbox to confirm.",
+      "successBody": "If the address is valid, we've sent you a link to confirm your subscription. It expires in 48 hours. Can't see it? Check your spam folder.",
+      "notice": "{team} is responsible for your address and Codeqlick processes it on its behalf, as our <link>privacy policy</link> explains. You can unsubscribe at any time from any email.",
+      "error": "Please check the form.",
+      "disposable": "Temporary email addresses aren't accepted. Please use your usual email.",
+      "full": "This page can't take more subscribers right now.",
+      "closed": "This page no longer takes email subscriptions.",
+      "rateLimited": "Too many attempts in a row. Wait a moment and try again.",
+      "failed": "We couldn't complete that. Please try again in a moment."
+    },
+    "statusUpdates": {
+      "confirmTitle": "Confirm your subscription",
+      "confirmLead": "Press the button to get this status page's updates by email.",
+      "confirm": "Confirm my subscription",
+      "confirming": "Confirming…",
+      "confirmed": "You're subscribed. {team} will let you know by email about incidents and planned maintenance.",
+      "confirmExpired": "This link is not valid or has expired. Sign up again on the status page to get a new one.",
+      "unsubscribeTitle": "Unsubscribe from status updates",
+      "unsubscribeLead": "Press the button and you won't get this status page's updates any more.",
+      "unsubscribe": "Unsubscribe",
+      "unsubscribing": "Unsubscribing…",
+      "unsubscribed": "Done. You won't get any more updates from {team}. You can subscribe again on its status page whenever you like.",
+      "unsubscribeNotFound": "This link is not valid. If you still get these emails, use the link at the bottom of the latest one.",
+      "back": "Go to the status page",
+      "failed": "We couldn't complete that. Please try again in a moment."
+    },
+    "subscribers": {
+      "title": "Email subscriptions",
+      "enabled": "Visitors can subscribe by email",
+      "enabledHint": "Your status page gets a form; subscribers confirm their address and get an email when a notice is posted, updated or resolved, and when a maintenance starts. Never for monitor alerts.",
+      "on": "On: the public page shows the form and notices are emailed to active subscribers.",
+      "off": "Off: the page shows no form and nothing is sent. Turn it on in the settings above (the page must be public).",
+      "counts": "{active} active, {pending} waiting for confirmation, {unsubscribed} unsubscribed",
+      "ofCap": "{used} of {limit} on your plan",
+      "filter": "Filter subscribers",
+      "all": "All",
+      "statuses": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending",
+        "UNSUBSCRIBED": "Unsubscribed"
+      },
+      "empty": "No subscribers here yet.",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "deleteAll": "Delete all subscribers",
+      "deleteAllConfirm": "Yes, delete every subscriber of this page. This can't be undone.",
+      "confirmRequired": "Tick the box to confirm.",
+      "deletedAll": "{count, plural, =0 {No subscribers to delete.} one {# subscriber deleted.} other {# subscribers deleted.}}",
+      "previous": "Previous",
+      "next": "Next",
+      "page": "Page {page} of {totalPages}",
+      "responsibility": "Your team is responsible for these addresses (the controller) and Codeqlick processes them on its behalf, as the Cloud terms say. Addresses are shown masked; delete one when its owner asks you to."
+    },
+    "termsGate": {
+      "title": "The Cloud terms changed",
+      "lead": "We updated the Codeqlick Cloud terms: they now say how we handle the email addresses of your status pages' subscribers on your team's behalf. Read them and accept to keep using the console. Your API tokens and the CLI keep working meanwhile.",
+      "read": "Read the Cloud terms",
+      "accept": "I have read and accept the Codeqlick Cloud terms.",
+      "required": "Tick the box to accept.",
+      "submit": "Accept and continue",
+      "accepting": "Saving…"
     }
   },
   "AdminCloud": {

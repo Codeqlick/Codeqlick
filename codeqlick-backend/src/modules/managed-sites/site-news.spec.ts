@@ -114,6 +114,9 @@ describe('the post a build gets', () => {
     title: 'Oferta',
     summary: 'Resumen',
     body: 'Texto',
+    titleEn: null as string | null,
+    summaryEn: null as string | null,
+    bodyEn: null as string | null,
     photo: 'media/0f8b2c1e-1234-4abc-8def-0123456789ab.jpg',
     publishedAt: new Date('2026-11-01T10:00:00Z'),
     expiresAt: new Date('2026-12-24T22:59:59.999Z'),
@@ -141,6 +144,13 @@ describe('the post a build gets', () => {
     expect(plain).not.toHaveProperty('expiresAt');
     expect(toBuildPost({ ...row, publishedAt: null })).toBeUndefined();
   });
+
+  it('adds the English texts written only for a site with its English version on', () => {
+    const translated = { ...row, titleEn: 'Offer', bodyEn: 'Text' };
+    expect(toBuildPost(translated)).not.toHaveProperty('en');
+    expect(toBuildPost(translated, true)?.en).toEqual({ title: 'Offer', body: 'Text' });
+    expect(toBuildPost(row, true)).not.toHaveProperty('en');
+  });
 });
 
 describe("a style's demo content", () => {
@@ -151,6 +161,8 @@ describe("a style's demo content", () => {
       demo: true,
       footerNote: 'Demo',
       news: { posts: [] },
+      english: true,
+      en: { hero: { title: 'Hello' } },
       hero: { title: 'Hola' },
     };
     expect(presetContent(demo)).toEqual({ hero: { title: 'Hola' } });

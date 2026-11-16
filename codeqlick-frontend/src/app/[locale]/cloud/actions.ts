@@ -7,6 +7,9 @@ import { localeOrDefault } from '@/i18n/locale';
 import { SITE_LOCALES, type SiteLocale } from '@/i18n/routing';
 import {
   acceptCloudInvite,
+  acceptCloudTerms,
+  deleteAllCloudStatusSubscribers,
+  deleteCloudStatusSubscriber,
   addCloudDomain,
   addCloudStatusNoticeUpdate,
   checkCloudDomain,
@@ -1007,6 +1010,7 @@ export async function saveStatusPageAction(
       title,
       intro: formString(formData, 'intro').slice(0, 500) || null,
       items,
+      subscriptions: formBoolean(formData, 'subscriptions'),
     });
   } catch (error) {
     return failure(lang, error, formValues(formData));
@@ -1014,6 +1018,69 @@ export async function saveStatusPageAction(
   refresh(lang, `/${team}/status-page`);
   revalidatePath(`/${lang}/cloud/status/${team}`);
   return { status: 'success', message: t('saved') };
+}
+
+// ── Status page subscribers (architecture 4.13, Email subscriptions; decision 105) ─────────────
+
+/** Erases one subscriber of the team (ADMIN); the person can sign up again. */
+export async function deleteSubscriberAction(
+  locale: string,
+  team: string,
+  id: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  try {
+    await deleteCloudStatusSubscriber(team, id);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refreshNotices(team);
+  return { status: 'success' };
+}
+
+/** Erases every subscriber of the team (ADMIN), after ticking the confirmation. */
+export async function deleteAllSubscribersAction(
+  locale: string,
+  team: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.subscribers' });
+  if (!formBoolean(formData, 'confirm')) {
+    return { status: 'error', fieldErrors: { confirm: t('confirmRequired') } };
+  }
+  let deleted: number;
+  try {
+    ({ deleted } = await deleteAllCloudStatusSubscribers(team));
+  } catch (error) {
+    return failure(lang, error);
+  }
+  refreshNotices(team);
+  return { status: 'success', message: t('deletedAll', { count: deleted }) };
+}
+
+/** "The Cloud terms changed": accepting them for all my teams (decision 105). */
+export async function acceptTermsAction(
+  locale: string,
+  termsVersion: string,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const lang = localeOrDefault(locale);
+  const t = await getTranslations({ locale: lang, namespace: 'Cloud.termsGate' });
+  if (!formBoolean(formData, 'accept')) {
+    return { status: 'error', fieldErrors: { accept: t('required') } };
+  }
+  try {
+    await acceptCloudTerms(termsVersion);
+  } catch (error) {
+    return failure(lang, error);
+  }
+  revalidatePath(`/${lang}/cloud/console`, 'layout');
+  return { status: 'success' };
 }
 
 // ── Status page notices (architecture 4.13, Notices; decision 62) ──────────────────────────────

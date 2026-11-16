@@ -1,12 +1,17 @@
 ---
 import Base from '../layouts/Base.astro';
-import { ALLERGENS } from '../lib/menu';
-import { edit, site } from '../lib/site';
+import { pageOf, site as spanish } from '../lib/site';
+
+/** No props: `/en/carta` renders this page as a component. */
+type Props = Record<string, never>;
 
 /** `/carta`, built only when the site has a menu (the QR poster on the table leads here). */
 export function getStaticPaths() {
-  return site.menu ? [{ params: { menu: 'carta' } }] : [];
+  return spanish.menu ? [{ params: { menu: 'carta' } }] : [];
 }
+
+// `/en/carta` renders this page too (`[lang]/[menu].astro`), in English.
+const { site, t, edit, href } = pageOf(Astro.url);
 
 const menu = site.menu!;
 const schema = {
@@ -40,7 +45,7 @@ const schema = {
       </div>
 
       {menu.categories.length > 1 ? (
-        <nav class="jump" aria-label="Categorías">
+        <nav class="jump" aria-label={t.categories}>
           <ul>
             {menu.categories.map((category, i) => (
               <li>
@@ -83,8 +88,8 @@ const schema = {
                 ) : null}
                 {item.allergens?.length ? (
                   <p class="allergens">
-                    <span>Alérgenos:</span>{' '}
-                    {item.allergens.map((allergen) => ALLERGENS[allergen]).join(', ')}
+                    <span>{t.allergens}</span>{' '}
+                    {item.allergens.map((allergen) => t.allergenNames[allergen]).join(', ')}
                   </p>
                 ) : null}
               </li>
@@ -95,10 +100,7 @@ const schema = {
 
       <div class="notes">
         {menu.note ? <p data-edit={edit('menu.note')}>{menu.note}</p> : null}
-        <p>
-          Si tienes alguna alergia o intolerancia, pregúntanos: te informamos de los alérgenos de
-          cada plato.
-        </p>
+        <p>{t.allergyNote}</p>
       </div>
 
       <p class="actions">
@@ -107,8 +109,8 @@ const schema = {
             {site.booking.label}
           </a>
         ) : null}
-        <a class="button button--ghost" href="/#contacto">
-          Contacto
+        <a class="button button--ghost" href={href('/#contacto')}>
+          {t.contact}
         </a>
       </p>
     </div>

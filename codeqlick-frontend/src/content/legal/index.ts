@@ -19,8 +19,8 @@ export type LegalDocument = {
 export type LegalPage = 'legal' | 'privacy' | 'terms';
 
 const UPDATED = { es: '28 de octubre de 2026', en: '28 October 2026' } as const;
-/** The privacy policy changed later (it now covers the newsletter). */
-const PRIVACY_UPDATED = { es: '14 de noviembre de 2026', en: '14 November 2026' } as const;
+/** The privacy policy changed later (newsletter; status page subscribers, decision 105). */
+const PRIVACY_UPDATED = { es: '17 de noviembre de 2026', en: '17 November 2026' } as const;
 
 export function ownerLines(owner: LegalOwner, locale: SiteLocale): string {
   const es = locale === 'es';
@@ -113,6 +113,18 @@ ${ownerLines(owner, locale)}
 
 **Estadísticas de visitas.** Medimos las visitas con Umami, una herramienta instalada en nuestro propio servidor que no usa cookies ni guarda datos que te identifiquen: solo cuenta páginas vistas, de dónde llegan las visitas, el país, el tipo de dispositivo, el navegador y acciones como enviar un formulario o pulsar un botón, de forma agregada. Si tu navegador tiene activada la opción «No rastrear», no se registra nada.
 
+## Suscriptores de páginas de estado
+
+Los equipos que usan Codeqlick Cloud pueden publicar una página de estado (en cloud.codeqlick.com) y dejar que sus visitantes se suscriban por correo a sus avisos. Si te suscribes a una de ellas, **el responsable del tratamiento es el equipo dueño de la página**, cuyo nombre aparece junto al formulario; Codeqlick trata tus datos **como encargado del tratamiento**, por cuenta de ese equipo y solo para esto.
+
+- **Qué guardamos:** tu correo electrónico, el idioma de la página en que te suscribiste, el estado de la suscripción (pendiente, activa o dada de baja) y las fechas en que te suscribiste, la confirmaste o te diste de baja. No guardamos tu dirección IP.
+- **Para qué:** para enviarte un correo cuando el equipo publica, actualiza o resuelve una incidencia o un mantenimiento programado, y cuando empieza un mantenimiento. Nada más: ni publicidad ni avisos automáticos de sus monitores.
+- **Base legal:** tu consentimiento (artículo 6.1.a del RGPD), que das al suscribirte y confirmar desde el enlace que te enviamos.
+- **Cuánto tiempo:** mientras sigas suscrito. Las suscripciones sin confirmar se borran a los nueve días, aproximadamente. Si te das de baja, solo conservamos tu dirección y la fecha de la baja, para respetarla, durante 12 meses. Todo se borra antes si el equipo te borra de su lista o deja de existir.
+- **Darte de baja:** cuando quieras, con el enlace que lleva cada correo (un clic).
+
+Para ejercer tus derechos sobre estos datos, dirígete al equipo de la página; también puedes escribirnos a [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}) y le ayudaremos a atenderte.
+
 ## Cuánto tiempo los guardamos
 
 Los mensajes del formulario, mientras sean necesarios para atender tu solicitud o hasta que nos pidas que los borremos. Los datos de clientes, mientras dure la relación y, después, durante los plazos que exija la ley. Las compras y sus facturas, seis años, como exige la normativa mercantil y fiscal. Los datos del boletín, mientras estés suscrito; si te das de baja, solo conservamos tu dirección y la fecha de la baja, para respetarla, durante 12 meses y luego las borramos. Las suscripciones sin confirmar se borran a los nueve días, aproximadamente, y si nos lo pides las borramos al momento. Las copias de seguridad se eliminan automáticamente a los 14 días.
@@ -154,6 +166,18 @@ ${ownerLines(owner, locale)}
 **Buying your website.** If you buy your website from its preview, Stripe processes the payment: you give it your card details, your name, your billing address and, if you like, your tax ID, and we never see or keep your card details. We keep your email, the amount, the date and the invoice Stripe issues. The legal basis is the contract (article 6.1.b GDPR) and our tax and accounting obligations (article 6.1.c).
 
 **Visit statistics.** We measure visits with Umami, a tool running on our own server that uses no cookies and stores nothing that identifies you: it only counts page views, where visits come from, the country, the type of device, the browser and actions such as sending a form or clicking a button, in aggregate. If your browser has "Do Not Track" on, nothing is recorded.
+
+## Status page subscribers
+
+Teams using Codeqlick Cloud can publish a status page (on cloud.codeqlick.com) and let their visitors subscribe to its notices by email. If you subscribe to one, **the controller is the team that owns the page**, whose name is shown next to the form; Codeqlick processes your data **as processor**, on that team's behalf and only for this.
+
+- **What we keep:** your email address, the language of the page you subscribed on, the state of the subscription (pending, active or unsubscribed) and the dates you subscribed, confirmed or unsubscribed. We don't keep your IP address.
+- **What for:** to email you when the team posts, updates or resolves an incident or a scheduled maintenance, and when a maintenance starts. Nothing else: no advertising and no automatic alerts from its monitors.
+- **Legal basis:** your consent (article 6.1.a GDPR), which you give by subscribing and confirming through the link we send you.
+- **How long:** while you stay subscribed. Unconfirmed sign-ups are deleted after about nine days. If you unsubscribe, we keep only your address and the date, to respect your choice, for 12 months. Everything goes sooner if the team removes you from its list or ceases to exist.
+- **Unsubscribing:** whenever you like, with the link in every email (one click).
+
+To exercise your rights over these data, contact the page's team; you can also write to us at [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}) and we will help it answer you.
 
 ## How long we keep it
 

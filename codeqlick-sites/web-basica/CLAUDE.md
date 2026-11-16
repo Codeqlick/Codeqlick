@@ -12,6 +12,11 @@ to the template affect every managed site.
   its component, so the other sites still build.
 - Site texts in Spanish (Spain), in a warm and concrete tone. No promises the client can't keep.
   Documentation and code comments are in English.
+- A site may also be in English (`english` and `en` in `Site`, architecture 8.2): its pages are
+  built under `/en` (`src/pages/[lang]/`), the English texts over the Spanish ones (an empty one
+  shows the Spanish). The template's own words live in `src/lib/i18n.ts`, in both languages:
+  components read the page's site, words and links with `pageOf(Astro.url)`, never `site` alone.
+  Check a change with English on through `builder/english-test.mjs` (the Sites workflow runs it).
 - Exact dependency versions (`.npmrc` `save-exact=true`), latest stable. TypeScript 6.0.3.
 - No cookies or third-party scripts (no embedded Google Maps, Analytics or pixels). If the client
   asks for them, a consent banner is needed and `src/pages/cookies.astro` must be updated.

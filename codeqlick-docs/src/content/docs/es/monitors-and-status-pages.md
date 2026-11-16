@@ -66,3 +66,17 @@ curl https://api.codeqlick.com/v1/cloud/status/<team>
 ```markdown
 ![Status](https://api.codeqlick.com/v1/cloud/status/<team>/badge.svg)
 ```
+
+## Suscripciones por correo
+
+Tus visitantes también pueden recibir tus avisos por correo. Un administrador o propietario activa **Los visitantes pueden suscribirse por correo** en los ajustes de la página de estado (desactivado por defecto; la página debe ser pública). La página muestra entonces un formulario:
+
+- **Doble confirmación:** cada dirección recibe un enlace de confirmación (válido 48 horas) y no recibe nada hasta confirmarla.
+- **Qué se envía:** un correo cuando publicas un aviso (una incidencia o un mantenimiento programado), publicas una actualización, resuelves una incidencia o terminas un mantenimiento, y cuando empieza un mantenimiento. Nunca por los cambios de los monitores: los avisos son tus propias palabras.
+- **Idioma:** el de la página cuando la persona se suscribió (inglés o español).
+- **Baja:** con un clic desde cualquier correo, también con la baja en un clic de las aplicaciones de correo.
+- **Límites:** 500 suscriptores en el plan gratuito y 5.000 en PRO (cuentan los pendientes y los activos); 1.000 correos por hora y equipo en el plan gratuito y 10.000 en PRO, el resto sale la hora siguiente. Los avisos de más de 24 horas ya no se envían.
+
+La consola lista tus suscriptores con las direcciones ocultas en parte (`j***@e***.com`), el total frente al límite de tu plan, y te deja borrar uno o todos.
+
+Tu equipo es el responsable del tratamiento de estas direcciones y Codeqlick las trata en su nombre, como explican las condiciones de Cloud. El formulario muestra el nombre de tu equipo y enlaza la política de privacidad de Codeqlick.

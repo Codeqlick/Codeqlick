@@ -1,5 +1,7 @@
 ---
-import { addressLine, edit, site, telHref } from '../lib/site';
+import { addressLine, pageOf, telHref } from '../lib/site';
+
+const { site, t, edit, href } = pageOf(Astro.url);
 
 const social = Object.entries(site.social ?? {}).filter(([, url]) => url) as Array<
   [string, string]
@@ -22,7 +24,7 @@ const year = new Date().getFullYear();
       <p data-edit={edit('business.description')}>{site.business.description}</p>
     </div>
     <div>
-      <p class="title">Contacto</p>
+      <p class="title">{t.contact}</p>
       <ul>
         {site.contact.address ? <li>{addressLine(site.contact.address)}</li> : null}
         {site.contact.phone ? (
@@ -39,7 +41,7 @@ const year = new Date().getFullYear();
     </div>
     {social.length > 0 ? (
       <div>
-        <p class="title">Síguenos</p>
+        <p class="title">{t.followUs}</p>
         <ul>
           {social.map(([key, url]) => (
             <li>
@@ -58,18 +60,18 @@ const year = new Date().getFullYear();
     </p>
     <ul class="legal">
       <li>
-        <a href="/aviso-legal">Aviso legal</a>
+        <a href={href('/aviso-legal')}>{t.legalNotice}</a>
       </li>
       <li>
-        <a href="/privacidad">Privacidad</a>
+        <a href={href('/privacidad')}>{t.privacy}</a>
       </li>
       <li>
-        <a href="/cookies">Cookies</a>
+        <a href={href('/cookies')}>{t.cookies}</a>
       </li>
     </ul>
     <p class="credit">
-      Web creada por{' '}
-      <a href="https://codeqlick.com/es" rel="noopener">
+      {t.madeBy}{' '}
+      <a href={t.codeqlick} rel="noopener">
         Codeqlick
       </a>
     </p>

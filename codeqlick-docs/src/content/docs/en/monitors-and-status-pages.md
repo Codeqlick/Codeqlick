@@ -66,3 +66,17 @@ curl https://api.codeqlick.com/v1/cloud/status/<team>
 ```markdown
 ![Status](https://api.codeqlick.com/v1/cloud/status/<team>/badge.svg)
 ```
+
+## Email subscriptions
+
+Your visitors can also get your notices by email. An admin or owner turns on **Visitors can subscribe by email** in the status page settings (off by default; the page must be public). The page then shows a sign-up form:
+
+- **Double opt-in:** each address gets a confirmation link (valid 48 hours) and receives nothing until it is confirmed.
+- **What is sent:** an email when you post a notice (an incident or a scheduled maintenance), post an update, resolve an incident or complete a maintenance, and when a maintenance window starts. Never for raw monitor changes: notices are your own words.
+- **Language:** the page's language when the person signed up (English or Spanish).
+- **Unsubscribing:** one click from any email, including the one-click unsubscribe of mail apps.
+- **Limits:** 500 subscribers on the free plan and 5,000 on PRO (pending and active ones count); 1,000 emails an hour per team on the free plan and 10,000 on PRO, the rest go out the next hour. Notices more than 24 hours old are no longer sent.
+
+The console lists your subscribers with masked addresses (`j***@e***.com`), the counts against your plan's limit, and lets you delete one or all of them.
+
+Your team is the controller of these addresses and Codeqlick processes them on its behalf, as the Cloud terms explain. The form shows your team's name and links Codeqlick's privacy policy.

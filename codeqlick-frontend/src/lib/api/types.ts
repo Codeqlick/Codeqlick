@@ -1065,6 +1065,8 @@ export type PortalSite = {
   legalMissing: ('taxId' | 'address')[];
   /** The menu extra: turned on by the team; published once the online site has it. */
   menu: { enabled: boolean; published: boolean };
+  /** The online site has its English version (decision 106). */
+  english: boolean;
 };
 
 /** Visits of a managed client site, with its form's messages (architecture 8.2). */
@@ -1132,6 +1134,10 @@ export type SiteNewsPost = {
   summary: string;
   /** Plain text in a Markdown subset (architecture 8.2). */
   body: string;
+  /** English twins (decision 106); null shows the Spanish text on the English pages. */
+  titleEn: string | null;
+  summaryEn: string | null;
+  bodyEn: string | null;
   /** `file` is `media/<name>`, from the site's photo uploads. */
   photo: { file: string; url: string } | null;
   status: SiteNewsStatus;

@@ -1,0 +1,9 @@
+---
+import PrivacyEn from '../../components/legal/PrivacyEn.astro';
+import { englishPaths } from '../../lib/site';
+
+/** `/en/privacidad`: the privacy policy in English. */
+export const getStaticPaths = englishPaths;
+---
+
+<PrivacyEn />

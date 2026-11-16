@@ -1,0 +1,9 @@
+---
+import LegalNoticeEn from '../../components/legal/LegalNoticeEn.astro';
+import { englishPaths } from '../../lib/site';
+
+/** `/en/aviso-legal`: the legal notice in English. */
+export const getStaticPaths = englishPaths;
+---
+
+<LegalNoticeEn />

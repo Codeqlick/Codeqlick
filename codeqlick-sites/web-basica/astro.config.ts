@@ -10,7 +10,7 @@ import { defineConfig } from 'astro/config';
 const siteDir =
   resolve(fileURLToPath(new URL('.', import.meta.url)), process.env.SITE_DIR ?? 'site') + '/';
 const { default: content } = (await import(pathToFileURL(`${siteDir}site.ts`).href)) as {
-  default: { url: string };
+  default: { url: string; english?: boolean };
 };
 
 export default defineConfig({
@@ -20,7 +20,15 @@ export default defineConfig({
   trailingSlash: 'never',
   build: { format: 'file' },
   // Legal pages are noindex: keep them out of the sitemap.
-  integrations: [sitemap({ filter: (page) => !/\/(aviso-legal|privacidad|cookies)$/.test(page) })],
+  integrations: [
+    sitemap({
+      filter: (page) => !/\/(aviso-legal|privacidad|cookies)$/.test(page),
+      // A site in two languages lists each page with its twin (`/en/…`) as `xhtml:link`.
+      ...(content.english
+        ? { i18n: { defaultLocale: 'es', locales: { es: 'es', en: 'en' } } }
+        : {}),
+    }),
+  ],
   vite: {
     resolve: { alias: { '@site': siteDir.replace(/\/$/, '') } },
   },
