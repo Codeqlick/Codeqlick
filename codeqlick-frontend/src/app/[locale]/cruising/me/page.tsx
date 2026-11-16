@@ -26,6 +26,7 @@ import {
   getMyCruisingMedia,
   listCruisingBlocks,
 } from '@/lib/api/cruising';
+import { getCruisingVisits } from '@/lib/api/cruising-notifications';
 import { requireUser } from '@/lib/auth/session';
 import {
   CRUISING_COUNTRIES,
@@ -49,6 +50,7 @@ import {
   uploadVerificationAction,
 } from '../actions';
 import { CruisingGate } from '../Gate';
+import { visitsSettingsAction } from '../notifications-actions';
 
 /** Behind the account: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -75,10 +77,12 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   const tm = await getTranslations({ locale, namespace: 'Cruising.media' });
   const tb = await getTranslations({ locale, namespace: 'Cruising.verified' });
   const onHost = (await requestWebapp()) === 'cruising';
-  const [checkIn, blocks, media] = await Promise.all([
+  const tvs = await getTranslations({ locale, namespace: 'Cruising.visits' });
+  const [checkIn, blocks, media, visits] = await Promise.all([
     profile ? getMyCruisingCheckIn().catch(() => null) : Promise.resolve(null),
     listCruisingBlocks().catch(() => []),
     profile?.nickname ? getMyCruisingMedia().catch(() => null) : Promise.resolve(null),
+    getCruisingVisits().catch(() => null),
   ]);
   const verification = status.verification;
 
@@ -298,6 +302,26 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
           <p>{tp('unavailable')}</p>
         )}
       </section>
+
+      {visits ? (
+        <section id="me-visits" className={vc.panel} aria-labelledby="me-visits-title">
+          <h2 id="me-visits-title" className={vc.sectionTitle}>
+            {tvs('settingsTitle')}
+          </h2>
+          <ActionForm action={visitsSettingsAction.bind(null, locale)}>
+            <FormCheckbox
+              id="me-show-visits"
+              name="showVisits"
+              label={tvs('settingsLabel')}
+              hint={tvs('settingsHint')}
+              defaultChecked={visits.showVisits}
+            />
+            <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
+              {t('save')}
+            </SubmitButton>
+          </ActionForm>
+        </section>
+      ) : null}
 
       <section id="me-favorites" className={vc.panel} aria-labelledby="me-favorites-title">
         <h2 id="me-favorites-title" className={vc.sectionTitle}>

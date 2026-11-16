@@ -291,6 +291,19 @@ export interface AlertCandidate {
 export type RecentAlert = { spotId: string; channel: AlertChannel; createdAt: Date };
 
 /**
+ * Whether the caps let a member hear about `spotId` now (decision 85): never twice for the same
+ * spot within 3 hours, never more than 10 a day. The notification centre (decision 98) follows
+ * them too, whatever the channel.
+ */
+export function alertAllowed(spotId: string, recent: readonly RecentAlert[], now: Date): boolean {
+  const dayAgo = now.getTime() - ALERT_DAY_MS;
+  const today = recent.filter((alert) => alert.createdAt.getTime() > dayAgo);
+  if (today.length >= ALERTS_PER_DAY) return false;
+  const spotGap = now.getTime() - ALERT_SPOT_GAP_MS;
+  return !today.some((alert) => alert.spotId === spotId && alert.createdAt.getTime() > spotGap);
+}
+
+/**
  * How a member is alerted that someone is at `spotId` (decision 85), or null: never twice for the
  * same spot within 3 hours, never more than 10 a day; by push when they have a device subscribed
  * (and favourite alerts on), else by email when they asked for it, at most one email a day.
@@ -301,13 +314,9 @@ export function alertChannel(
   recent: readonly RecentAlert[],
   now: Date,
 ): AlertChannel | null {
+  if (!alertAllowed(spotId, recent, now)) return null;
   const dayAgo = now.getTime() - ALERT_DAY_MS;
   const today = recent.filter((alert) => alert.createdAt.getTime() > dayAgo);
-  if (today.length >= ALERTS_PER_DAY) return null;
-  const spotGap = now.getTime() - ALERT_SPOT_GAP_MS;
-  if (today.some((alert) => alert.spotId === spotId && alert.createdAt.getTime() > spotGap)) {
-    return null;
-  }
   if (candidate.hasPush) return candidate.favoriteAlerts ? 'PUSH' : null;
   if (!candidate.favoriteEmails || !candidate.emailAlerts) return null;
   return today.some((alert) => alert.channel === 'EMAIL') ? null : 'EMAIL';
@@ -317,7 +326,7 @@ export function alertChannel(
  * What a notification is about: someone at a favourite spot, a new message, and in phase 5 a
  * meetup planned or a safety alert at a favourite spot, or a meetup the member joined cancelled.
  */
-export type PushKind = 'favorite' | 'message' | 'meetup' | 'safety' | 'meetup-cancelled';
+export type PushKind = 'favorite' | 'message' | 'meetup' | 'safety' | 'meetup-cancelled' | 'wink';
 
 /** The kinds that tell the members who saved a spot (decision 85's channels and caps). */
 export type FavoriteAlertKind = 'favorite' | 'meetup' | 'safety';
@@ -329,6 +338,7 @@ const PUSH_TEXT: Record<'en' | 'es', Record<PushKind, string>> = {
     meetup: 'A meetup was planned at one of your favourite spots',
     safety: 'Safety alert at one of your favourite spots',
     'meetup-cancelled': 'A meetup you joined was cancelled',
+    wink: 'Someone winked at you',
   },
   es: {
     favorite: 'Hay alguien en uno de tus lugares favoritos',
@@ -336,6 +346,7 @@ const PUSH_TEXT: Record<'en' | 'es', Record<PushKind, string>> = {
     meetup: 'Se ha organizado una quedada en uno de tus lugares favoritos',
     safety: 'Alerta de seguridad en uno de tus lugares favoritos',
     'meetup-cancelled': 'Se ha cancelado una quedada a la que ibas',
+    wink: 'Alguien te ha guiñado un ojo',
   },
 };
 
@@ -345,6 +356,7 @@ const PUSH_PATH: Record<PushKind, string> = {
   meetup: '/meetups',
   safety: '/favorites',
   'meetup-cancelled': '/meetups',
+  wink: '/notifications?view=winks',
 };
 
 /**

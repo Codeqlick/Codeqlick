@@ -6,11 +6,14 @@ import { Logo } from '@/components/brand/Logo';
 import { AppSwitcher } from '@/components/layout/AppSwitcher';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
 import { CruisingServiceWorker } from '@/components/cruising/CruisingServiceWorker';
+import { NotificationBell } from '@/components/cruising/NotificationBell';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link, WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { logoutAction } from '@/lib/auth/actions';
 import { getCruisingStatus } from '@/lib/api/cruising';
+import { listCruisingNotifications } from '@/lib/api/cruising-notifications';
+import { notificationsEndpoint } from '@/lib/cruising-notifications';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
@@ -82,6 +85,12 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
   }
 
   const webapp = (await requestWebapp()) === 'cruising' ? 'cruising' : null;
+  // The bell's first count is rendered here; it asks again every minute (decision 98).
+  const unread = entered
+    ? await listCruisingNotifications()
+        .then((centre) => centre.unread)
+        .catch(() => 0)
+    : 0;
 
   return (
     <ClientMessages extra={APP_NAMESPACES.cruising}>
@@ -127,6 +136,10 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
                   <Link href="/cruising/me" className={vc.headerLink}>
                     {t('nav.profile')}
                   </Link>
+                  <NotificationBell
+                    initial={unread}
+                    endpoint={notificationsEndpoint(locale, webapp === 'cruising')}
+                  />
                 </>
               ) : null}
               <Link href="/cruising/rules" className={vc.headerLink}>

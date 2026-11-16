@@ -161,6 +161,7 @@ describe('Cruising as a web app', () => {
       '/es/cruising/messages',
       '/es/cruising/messages/3f1a2b4c-0000-4000-8000-000000000000',
       '/en/cruising/favorites',
+      '/es/cruising/notifications',
     ]) {
       expect(PROTECTED_PATH.test(path), path).toBe(true);
     }

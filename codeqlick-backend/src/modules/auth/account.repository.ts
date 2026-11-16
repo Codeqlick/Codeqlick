@@ -138,6 +138,9 @@ export class AccountRepository {
       cruisingMeetupsJoined,
       cruisingTrips,
       cruisingSafetyAlerts,
+      cruisingWinks,
+      cruisingVisits,
+      cruisingNotifications,
       cloudTeams,
       cloudTokens,
       cloudEvents,
@@ -367,6 +370,7 @@ export class AccountRepository {
           lastTestedMonth: true,
           healthVisible: true,
           reminderMonths: true,
+          showVisits: true,
           suspendedUntil: true,
           suspensionReason: true,
           createdAt: true,
@@ -507,6 +511,23 @@ export class AccountRepository {
           spot: { select: { slug: true } },
         },
       }),
+      // Phase 6: the winks sent and the profiles visited (when, never whose: they are other
+      // people), and the notification centre (ids only).
+      p.cruisingWink.findMany({
+        where: { senderId: userId },
+        orderBy: { createdAt: 'asc' },
+        select: { createdAt: true },
+      }),
+      p.cruisingProfileView.findMany({
+        where: { viewerId: userId },
+        orderBy: { seenAt: 'asc' },
+        select: { day: true, seenAt: true },
+      }),
+      p.cruisingNotification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { kind: true, data: true, readAt: true, createdAt: true },
+      }),
       p.cloudMember.findMany({
         where: { userId },
         orderBy: { createdAt: 'asc' },
@@ -587,6 +608,9 @@ export class AccountRepository {
             meetupsJoined: cruisingMeetupsJoined,
             trips: cruisingTrips,
             safetyAlerts: cruisingSafetyAlerts,
+            winksSent: cruisingWinks,
+            profilesVisited: cruisingVisits,
+            notifications: cruisingNotifications,
           }
         : null,
       cloud:

@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { MailMessage, MailService } from '../mail/mail.service.js';
 import type { CruisingCommunityRepository } from './cruising-community.repository.js';
@@ -154,6 +155,10 @@ function build() {
     siteUrl: 'https://codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
+  const notifications = {
+    notify: vi.fn().mockResolvedValue(undefined),
+    notifyMany: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new CruisingCommunityService(
     community as unknown as CruisingCommunityRepository,
     repo as unknown as CruisingRepository,
@@ -161,8 +166,9 @@ function build() {
     push as unknown as CruisingPushService,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
+    notifications as unknown as CruisingNotificationsService,
   );
-  return { service, repo, community, social, push, sent };
+  return { service, repo, community, social, push, sent, notifications };
 }
 
 const newMeetup = (over: Record<string, unknown> = {}) => ({
@@ -277,7 +283,7 @@ describe('CruisingCommunityService: meetups', () => {
   });
 
   it('lets only the host cancel, and tells attendees without naming anything', async () => {
-    const { service, community, push, sent } = build();
+    const { service, community, push, sent, notifications } = build();
     await expect(service.cancelMeetup(ME, MEETUP, NOW)).rejects.toBeInstanceOf(NotFoundException);
     community.findMeetup.mockResolvedValue(meetupRow({ hostId: ME }));
     community.attendeeRecipients.mockResolvedValue([
@@ -308,6 +314,13 @@ describe('CruisingCommunityService: meetups', () => {
     await service.idle();
     expect(push.notify).toHaveBeenCalledWith('meetup-cancelled', [{ userId: 'p', locale: 'en' }]);
     expect(sent.map((message) => message.to)).toEqual(['mail@example.com']);
+    // The centre hears of it too, even with neither push nor email (decision 98).
+    expect(notifications.notifyMany).toHaveBeenCalledWith(
+      ['p', 'e', 'n'],
+      'MEETUP_CANCELLED',
+      { meetupId: MEETUP },
+      NOW,
+    );
     expect(JSON.stringify(sent)).not.toContain(SECRET_NAME);
     expect(JSON.stringify(sent)).not.toContain('Sunset walk');
   });

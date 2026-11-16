@@ -945,3 +945,93 @@
   font-family: var(--font-family-mono);
   font-size: 0.7rem;
 }
+
+/* ---- Phase 6: the notification bell, winks and visits (decisions 97, 98) ---- */
+
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--color-slate);
+  border-radius: var(--radius-pill);
+}
+
+.bell:hover {
+  color: var(--color-fuchsia-dark);
+}
+
+.bell:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.bellCount {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia-dark);
+  color: var(--color-white);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.notificationTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notificationTab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.notificationTab[aria-current='page'] {
+  border-color: var(--color-fuchsia);
+  background: var(--color-blush);
+  color: var(--color-fuchsia-dark);
+  font-weight: 600;
+}
+
+.notificationList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notificationItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.notificationUnread {
+  border-color: var(--color-fuchsia);
+  background: var(--color-blush);
+}

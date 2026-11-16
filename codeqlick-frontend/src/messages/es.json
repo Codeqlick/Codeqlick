@@ -5715,6 +5715,72 @@
       "button": "Instalar la app",
       "iosSteps": "En iPhone o iPad: abre esta página en Safari, toca Compartir y luego «Añadir a pantalla de inicio».",
       "installed": "App instalada."
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "lead": "Lo que ha pasado en los últimos 30 días. Las notificaciones push y los emails siguen como los tengas.",
+      "bell": "Notificaciones",
+      "bellUnread": "Notificaciones, {count, plural, one {# sin leer} other {# sin leer}}",
+      "viewsLabel": "Vistas de notificaciones",
+      "tabAll": "Todas",
+      "tabAllUnread": "Todas ({count} nuevas)",
+      "tabWinks": "Guiños",
+      "tabVisitors": "Visitas",
+      "markAllRead": "Marcar todas como leídas",
+      "marking": "Marcando…",
+      "allRead": "Todas las notificaciones están leídas.",
+      "unread": "Nueva:",
+      "empty": "Aún no hay nada. Aquí verás mensajes, guiños y novedades de tus lugares favoritos.",
+      "error": "Algo ha fallado. Inténtalo de nuevo.",
+      "kinds": {
+        "MESSAGE": "Mensajes nuevos en una conversación",
+        "WINK": "{count, plural, one {Alguien te ha guiñado un ojo} other {# miembros te han guiñado un ojo}}",
+        "VISITS": "{count, plural, one {Alguien ha visitado tu perfil hoy} other {# miembros han visitado tu perfil hoy}}",
+        "FAVORITE_ACTIVITY": "Hay alguien en uno de tus lugares favoritos",
+        "MEETUP_PLANNED": "Se ha organizado una quedada en uno de tus lugares favoritos",
+        "MEETUP_CANCELLED": "Se ha cancelado una quedada a la que ibas",
+        "SAFETY_ALERT": "Alerta de seguridad en uno de tus lugares favoritos",
+        "ALBUM_SHARED": "Alguien ha compartido contigo su álbum privado",
+        "SPOT_PUBLISHED": "Tu lugar se ha publicado",
+        "SPOT_REJECTED": "Tu lugar no se ha publicado",
+        "SPOT_REMOVED": "Tu lugar se ha retirado",
+        "MEDIA_REMOVED": "Se ha retirado una de tus fotos o vídeos",
+        "VERIFICATION_DECIDED": "Se ha revisado tu verificación"
+      },
+      "verification": {
+        "APPROVED": "Ya estás verificado",
+        "REJECTED": "No se ha aceptado tu foto de verificación",
+        "WITHDRAWN": "Se ha retirado tu insignia de verificado"
+      }
+    },
+    "winks": {
+      "title": "Guiños recibidos",
+      "lead": "Miembros que te han guiñado un ojo en los últimos 30 días. Devuélveselo o envía un mensaje.",
+      "empty": "Aún no hay guiños.",
+      "wink": "Guiñar un ojo",
+      "winkBack": "Devolver el guiño",
+      "winkedToday": "Hoy ya le has guiñado un ojo.",
+      "mutual": "Le has devuelto el guiño",
+      "sending": "Guiñando…",
+      "sent": "Guiño enviado.",
+      "tooMany": "Has llegado al límite de 30 guiños de hoy. Vuelve a intentarlo mañana.",
+      "notFound": "Este miembro no está disponible.",
+      "needNickname": "Elige antes un apodo.",
+      "notAllowed": "Para guiñar un ojo tienes que haber entrado en Cruising y no estar suspendido.",
+      "error": "Algo ha fallado. Inténtalo de nuevo."
+    },
+    "visits": {
+      "title": "Quién ha visitado tu perfil",
+      "lead": "Los últimos 100 miembros que han abierto tu perfil en los últimos 30 días.",
+      "empty": "Aún no hay visitas.",
+      "off": "Las visitas al perfil están desactivadas: nadie sabe cuándo abres un perfil y tú no ves quién abre el tuyo.",
+      "turnOn": "Actívalas en tu perfil",
+      "settingsTitle": "Visitas al perfil",
+      "settingsLabel": "Mostrar y registrar las visitas al perfil",
+      "settingsHint": "Desactivado por defecto. Si lo activas, los miembros que también lo tengan activado verán que has abierto su perfil, y tú verás quién ha abierto el tuyo. Al desactivarlo se borran tus visitas en los dos sentidos.",
+      "savedOn": "Las visitas al perfil están activadas.",
+      "savedOff": "Las visitas al perfil están desactivadas y se han borrado tus visitas.",
+      "error": "Algo ha fallado. Inténtalo de nuevo."
     }
   },
   "AdminCruising": {
