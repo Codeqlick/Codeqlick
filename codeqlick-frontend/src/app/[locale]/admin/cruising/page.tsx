@@ -24,6 +24,7 @@ import {
   listAdminCruisingVerifications,
   type AdminCruisingSpot,
 } from '@/lib/api/cruising';
+import { reportedCommunityTarget } from '@/lib/cruising-community';
 import { reportedMedia, type MediaSummary } from '@/lib/cruising-media';
 import { SWIPE_COUNTRIES } from '@/lib/countries';
 import {
@@ -527,6 +528,10 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
             const savedChat = reportTranscript(report.transcript);
             const media = report.targetType === 'MEDIA' ? reportedMedia(report.target) : null;
             const transcript = savedChat.length > 0 ? savedChat : reportTranscript(report.target);
+            const community =
+              report.targetType === 'MEETUP' || report.targetType === 'ALERT'
+                ? reportedCommunityTarget(report.target)
+                : null;
             return (
               <article key={report.id} className={admin.item}>
                 <div className={admin.body}>
@@ -552,6 +557,41 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                       {target.reviewRating ? `${'★'.repeat(target.reviewRating)} ` : ''}
                       {target.reviewText}
                     </blockquote>
+                  ) : null}
+                  {community ? (
+                    community.spotName || community.title || community.text ? (
+                      <>
+                        {community.spotName ? (
+                          <p>
+                            {t('reportedSpot')}: <strong>{community.spotName}</strong>
+                            {community.spotSlug ? (
+                              <>
+                                {' · '}
+                                <a
+                                  href={webappUrl(
+                                    'cruising',
+                                    locale,
+                                    `/spots/${community.spotSlug}`,
+                                  )}
+                                >
+                                  {t('viewPage')}
+                                </a>
+                              </>
+                            ) : null}
+                          </p>
+                        ) : null}
+                        {community.title || community.kind ? (
+                          <p>
+                            <strong>{community.title ?? community.kind}</strong>
+                          </p>
+                        ) : null}
+                        {community.text ? (
+                          <blockquote className={admin.quote}>{community.text}</blockquote>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p className={styles.muted}>{t('communityGone')}</p>
+                    )
                   ) : null}
                   {report.targetType === 'MEDIA' ? (
                     media ? (

@@ -4,12 +4,14 @@ import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { CityCommunity } from '@/components/cruising/CityCommunity';
 import styles from '@/components/cruising/Cruising.module.css';
 import {
   getCruisingCity,
   getCruisingStatus,
   listCruisingActive,
   type CruisingCity,
+  type CruisingStatus,
 } from '@/lib/api/cruising';
 import { getCurrentUser } from '@/lib/auth/session';
 import {
@@ -56,14 +58,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/** Cruising's state of the signed-in person, or null (signed out, or it can't be read). */
+async function entryStatus(): Promise<CruisingStatus | null> {
+  if (!(await getCurrentUser())) return null;
+  try {
+    return await getCruisingStatus();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Who is at the city's spots now, for a member who has entered; null for anyone else, and then
  * nothing about presence is asked for (decision 86). Asked for the grid box around the city.
  */
-async function cityPresence(city: CruisingCity): Promise<Map<string, number> | null> {
-  if (!(await getCurrentUser())) return null;
+async function cityPresence(
+  city: CruisingCity,
+  status: CruisingStatus | null,
+): Promise<Map<string, number> | null> {
+  if (!status?.onboarded) return null;
   try {
-    if (!(await getCruisingStatus()).onboarded) return null;
     const box = gridBboxAround(city.items);
     if (!box) return new Map();
     const ids = new Set(city.items.map((spot) => spot.id));
@@ -85,7 +99,8 @@ export default async function CruisingCityPage({ params }: PageProps) {
   const tt = await getTranslations({ locale, namespace: 'Cruising.types' });
   const tm = await getTranslations({ locale, namespace: 'Cruising.spot' });
   const country = countryName(city.countryCode, locale);
-  const presence = await cityPresence(city);
+  const status = await entryStatus();
+  const presence = await cityPresence(city, status);
   const active = presence ? activeSpots(city.items, presence) : [];
 
   return (
@@ -122,6 +137,16 @@ export default async function CruisingCityPage({ params }: PageProps) {
           )}
         </section>
       ) : null}
+      {status?.allowed ? (
+        <CityCommunity
+          locale={locale}
+          countryCode={city.countryCode}
+          citySlug={city.citySlug}
+          city={city.city}
+          status={status}
+        />
+      ) : null}
+      <h2 className={vc.sectionTitle}>{t('spotsTitle')}</h2>
       <ul className={styles.spotList}>
         {city.items.map((spot) => (
           <li key={spot.id} className={styles.spotCard}>

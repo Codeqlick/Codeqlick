@@ -19,6 +19,8 @@ export function CruisingMap(props: {
   searchEndpoint: string;
   /** Only for members who have entered: otherwise null and nothing about presence is asked. */
   activeEndpoint: string | null;
+  /** Phase 5 (decision 91): the safety alerts' route, for members who have entered; else null. */
+  alertsEndpoint: string | null;
   spotBase: string;
   proposeBase: string;
   initial: MapView;

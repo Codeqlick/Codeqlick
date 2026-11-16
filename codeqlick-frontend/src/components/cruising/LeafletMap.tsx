@@ -18,8 +18,17 @@ import {
   type CruisingSpotTag,
   type MapView,
 } from '@/lib/cruising';
+import { alertCounts } from '@/lib/cruising-community';
 import styles from './Cruising.module.css';
-import { activeSpotIcon, createMap, L, spotIcon, TYPE_GLYPH } from './leaflet-shared';
+import community from './CruisingCommunity.module.css';
+import {
+  activeSpotIcon,
+  alertSpotIcon,
+  createMap,
+  L,
+  spotIcon,
+  TYPE_GLYPH,
+} from './leaflet-shared';
 import { MapSearch } from './MapSearch';
 
 type LeafletMapProps = {
@@ -32,6 +41,11 @@ type LeafletMapProps = {
    * nothing about presence is asked for or shown (decision 86).
    */
   activeEndpoint: string | null;
+  /**
+   * The BFF route of the spots with active safety alerts (decision 91), only for members who have
+   * entered; null otherwise.
+   */
+  alertsEndpoint: string | null;
   /** `/es/spots/` (the spot's slug follows) and `/es/new` on this host. */
   spotBase: string;
   proposeBase: string;
@@ -57,6 +71,7 @@ export default function LeafletMap({
   endpoint,
   searchEndpoint,
   activeEndpoint,
+  alertsEndpoint,
   spotBase,
   proposeBase,
   initial,
@@ -82,6 +97,8 @@ export default function LeafletMap({
   const [activeOnly, setActiveOnly] = useState(false);
   /** Spot id → people there now, for entered members only. */
   const [active, setActive] = useState<Map<string, number>>(() => new Map());
+  /** Spot id → active safety alerts, for entered members only. */
+  const [alerts, setAlerts] = useState<Map<string, number>>(() => new Map());
   const [spots, setSpots] = useState<CruisingSpotSummary[]>([]);
   const [load, setLoad] = useState<Load>({ status: 'loading', truncated: false });
   const [locate, setLocate] = useState<Locate>('idle');
@@ -94,6 +111,7 @@ export default function LeafletMap({
     reviews: (count: number) => t('reviewsCount', { count }),
     noReviews: t('noReviews'),
     hereNow: (count: number) => t('hereNow', { count }),
+    alerts: (count: number) => t('safetyAlerts', { count }),
   };
   const labelsRef = useRef(labels);
   useEffect(() => {
@@ -122,6 +140,7 @@ export default function LeafletMap({
       timer?: ReturnType<typeof setTimeout>;
       controller?: AbortController;
       activeController?: AbortController;
+      alertsController?: AbortController;
       cells?: Bbox[];
     } = {};
 
@@ -150,6 +169,31 @@ export default function LeafletMap({
       }
     };
 
+    // The spots with active safety alerts, for the same grid cells: entered members only.
+    const fetchAlerts = async () => {
+      const cells = pending.cells;
+      if (!alertsEndpoint || !cells) return;
+      pending.alertsController?.abort();
+      const current = new AbortController();
+      pending.alertsController = current;
+      try {
+        const results = await Promise.all(
+          cells.map(async (box) => {
+            const params = new URLSearchParams({ bbox: formatBbox(box) });
+            const response = await fetch(`${alertsEndpoint}?${params}`, {
+              signal: current.signal,
+            });
+            if (!response.ok) throw new Error(String(response.status));
+            return (await response.json()) as { items: { spotId: string; alerts: number }[] };
+          }),
+        );
+        setAlerts(alertCounts(results));
+      } catch (error) {
+        if (current.signal.aborted) return;
+        console.warn('Cruising: the safety alerts could not be loaded', error);
+      }
+    };
+
     const fetchView = async () => {
       const bounds = map.getBounds();
       const boxes = boundsToBboxes(
@@ -162,6 +206,7 @@ export default function LeafletMap({
       const cells = boxes.map((box) => snapBbox(box));
       pending.cells = cells;
       void fetchActive();
+      void fetchAlerts();
       pending.controller?.abort();
       const current = new AbortController();
       pending.controller = current;
@@ -219,19 +264,24 @@ export default function LeafletMap({
     const activeTimer = activeEndpoint
       ? setInterval(() => void fetchActive(), ACTIVE_EVERY_MS)
       : undefined;
+    const alertsTimer = alertsEndpoint
+      ? setInterval(() => void fetchAlerts(), ACTIVE_EVERY_MS)
+      : undefined;
 
     return () => {
       clearTimeout(pending.timer);
       clearInterval(activeTimer);
+      clearInterval(alertsTimer);
       pending.controller?.abort();
       pending.activeController?.abort();
+      pending.alertsController?.abort();
       map.off('moveend', onMoveEnd);
       map.off('click', onClick);
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
     };
-  }, [endpoint, activeEndpoint, proposeBase, startLat, startLng, startZoom]);
+  }, [endpoint, activeEndpoint, alertsEndpoint, proposeBase, startLat, startLng, startZoom]);
 
   // The markers, whenever the spots in view change.
   useEffect(() => {
@@ -240,14 +290,21 @@ export default function LeafletMap({
     layer.clearLayers();
     for (const spot of spots) {
       const here = active.get(spot.id) ?? 0;
+      const warnings = alerts.get(spot.id) ?? 0;
       if (activeOnly && here === 0) continue;
       const hereText = here > 0 ? `, ${labelsRef.current.hereNow(here)}` : '';
+      const alertText = warnings > 0 ? `, ${labelsRef.current.alerts(warnings)}` : '';
       const marker = L.marker([spot.lat, spot.lng], {
-        icon: here > 0 ? activeSpotIcon(spot.type, here) : spotIcon(spot.type),
+        icon:
+          warnings > 0
+            ? alertSpotIcon(spot.type, here, warnings)
+            : here > 0
+              ? activeSpotIcon(spot.type, here)
+              : spotIcon(spot.type),
         title: spot.name,
-        alt: `${spot.name} (${typeNamesRef.current(spot.type)}${hereText})`,
+        alt: `${spot.name} (${typeNamesRef.current(spot.type)}${hereText}${alertText})`,
         keyboard: true,
-        zIndexOffset: here > 0 ? 1000 : 0,
+        zIndexOffset: warnings > 0 ? 2000 : here > 0 ? 1000 : 0,
       });
       marker.bindPopup(() => {
         const text = labelsRef.current;
@@ -272,12 +329,18 @@ export default function LeafletMap({
           now.textContent = text.hereNow(here);
           box.append(now);
         }
+        if (warnings > 0) {
+          const warning = document.createElement('p');
+          warning.className = community.popupAlert ?? '';
+          warning.textContent = `⚠ ${text.alerts(warnings)}`;
+          box.append(warning);
+        }
         box.append(link);
         return box;
       });
       layer.addLayer(marker);
     }
-  }, [spots, spotBase, active, activeOnly]);
+  }, [spots, spotBase, active, alerts, activeOnly]);
 
   function changeType(value: string) {
     setType(value);
@@ -437,6 +500,14 @@ export default function LeafletMap({
             {t('activeLegend')}
           </li>
         ) : null}
+        {alertsEndpoint ? (
+          <li>
+            <span className={community.legendAlert} aria-hidden="true">
+              !
+            </span>{' '}
+            {t('safetyLegend')}
+          </li>
+        ) : null}
       </ul>
       {shown.length > 0 ? (
         <details className={styles.inView}>
@@ -446,6 +517,9 @@ export default function LeafletMap({
               <li key={spot.id}>
                 <a href={`${spotBase}${spot.slug}`}>{spot.name}</a> · {tt(spot.type)}
                 {hereAt(spot.id) > 0 ? ` · ${t('hereNow', { count: hereAt(spot.id) })}` : null}
+                {(alerts.get(spot.id) ?? 0) > 0
+                  ? ` · ${t('safetyAlerts', { count: alerts.get(spot.id) ?? 0 })}`
+                  : null}
               </li>
             ))}
           </ul>
