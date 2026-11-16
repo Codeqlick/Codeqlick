@@ -269,33 +269,18 @@ uploads are refused (`507`) while the disk is under the disk guard's low mark (`
 #### Cruising media: the 100 MB upload route (manual step, once)
 
 Videos are uploaded through one route on each side, allowed 100 MB (101m with the multipart
-envelope); everything else keeps its limit. Certbot has edited the installed sites, so add the
-blocks by hand (don't copy the files over them):
+envelope); everything else keeps its limit. Certbot has edited the installed sites, so they can't be
+copied over; instead run, once:
 
-1. `/etc/nginx/sites-available/api.codeqlick.com.conf`, inside **each** `server` block (the HTTP one
-   and the TLS one certbot added), before `location / {`: the `location = /v1/cruising/media { … }`
-   block from `deploy/nginx/api.codeqlick.com.conf`.
-2. `/etc/nginx/sites-available/cruising.codeqlick.com.conf`, inside each `server` block, before
-   `location = /ws {`:
+```sh
+cd /srv/codeqlick && sudo ./deploy/add-cruising-upload-limits.sh
+```
 
-   ```nginx
-   location ~ ^/(en|es)/cruising/api/media$ {
-       client_max_body_size 101m;
-       proxy_request_buffering off;
-       proxy_read_timeout 300s;
-       proxy_send_timeout 300s;
-       proxy_pass http://127.0.0.1:3010; # WEB_PORT
-       proxy_http_version 1.1;
-       proxy_set_header Host $host;
-       proxy_set_header X-Forwarded-Host $host;
-       proxy_set_header X-Forwarded-Proto $scheme;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-   }
-   ```
-
-   (`deploy/webapp-site.sh` writes it for a new Cruising site; it never changes an existing one.)
-3. `sudo nginx -t && sudo systemctl reload nginx`.
+It adds the `location = /v1/cruising/media` block to `api.codeqlick.com.conf` and the
+`location ~ ^/(en|es)/cruising/api/media$` block to `cruising.codeqlick.com.conf`, before the TLS
+server's `location / {`, pointing at the same upstream as that block. Each file is backed up next to
+itself (`.bak-<date>`); when `nginx -t` fails the backups are restored and nothing is reloaded.
+Running it again changes nothing. (`deploy/webapp-site.sh` writes the block for a new Cruising site.)
 
 Until then, uploads over 1 MB (web) or 2 MB (API) fail with `413`; nothing else is affected.
 

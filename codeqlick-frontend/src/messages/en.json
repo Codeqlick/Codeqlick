@@ -5350,7 +5350,7 @@
     },
     "verification": {
       "title": "Verification",
-      "lead": "Get the Verified badge and the right to add photos and videos to your profile. You send one photo of yourself, once.",
+      "lead": "Optional: get the Verified badge, so other members know your profile is yours and that you are an adult. You send one photo of yourself, once.",
       "step1": "A paper with your nickname, \"Cruising\" and today's date",
       "step2": "You holding it, your face visible",
       "step3": "Well lit and sharp",
@@ -5362,7 +5362,7 @@
       "sending": "Sending…",
       "sent": "Sent. The team will review it and we will email you.",
       "pending": "Your photo is waiting for the team's review. We will email you when it is done.",
-      "approved": "The team approved your photo. You can now add photos and videos to your profile. If you change your nickname the badge is removed and you need to verify again.",
+      "approved": "The team approved your photo: your profile shows the Verified badge. If you change your nickname the badge is removed and you need to verify again.",
       "rejected": "The team couldn't approve your photo.",
       "rejectedNote": "Reason: {note}",
       "errors": {
@@ -5431,7 +5431,7 @@
         "consent": "Tick the consent box to upload.",
         "invalid": "That file can't be used: it must be a photo or a video, a video up to 60 seconds, and not an image removed from Cruising before.",
         "session": "Your session has expired. Reload the page and sign in again.",
-        "notVerified": "Only verified members can add photos and videos.",
+        "notVerified": "You can't add photos and videos right now: check that you accepted the current rules and that your account isn't suspended.",
         "limit": "You have reached the limit of photos or videos.",
         "tooLarge": "The file is too large.",
         "tooLong": "The video is longer than 60 seconds.",

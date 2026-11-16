@@ -5350,7 +5350,7 @@
     },
     "verification": {
       "title": "Verificación",
-      "lead": "Consigue la insignia de Verificado y el derecho a añadir fotos y vídeos a tu perfil. Envías una sola foto tuya, una vez.",
+      "lead": "Opcional: consigue la insignia de Verificado, para que los demás miembros sepan que tu perfil es tuyo y que eres adulto. Envías una sola foto tuya, una vez.",
       "step1": "Un papel con tu apodo, «Cruising» y la fecha de hoy",
       "step2": "Tú sujetándolo, con la cara visible",
       "step3": "Con buena luz y nítida",
@@ -5362,7 +5362,7 @@
       "sending": "Enviando…",
       "sent": "Enviada. El equipo la revisará y te escribiremos por correo.",
       "pending": "Tu foto espera la revisión del equipo. Te escribiremos por correo cuando esté lista.",
-      "approved": "El equipo ha aprobado tu foto. Ya puedes añadir fotos y vídeos a tu perfil. Si cambias de apodo, se retira la insignia y tendrás que verificarte de nuevo.",
+      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado. Si cambias de apodo, se retira la insignia y tendrás que verificarte de nuevo.",
       "rejected": "El equipo no ha podido aprobar tu foto.",
       "rejectedNote": "Motivo: {note}",
       "errors": {
@@ -5431,7 +5431,7 @@
         "consent": "Marca la casilla de consentimiento para subirlo.",
         "invalid": "Ese archivo no sirve: tiene que ser una foto o un vídeo, un vídeo de hasta 60 segundos, y no una imagen retirada antes de Cruising.",
         "session": "Tu sesión ha caducado. Recarga la página e inicia sesión de nuevo.",
-        "notVerified": "Solo los miembros verificados pueden añadir fotos y vídeos.",
+        "notVerified": "Ahora mismo no puedes añadir fotos ni vídeos: comprueba que aceptaste las normas actuales y que tu cuenta no está suspendida.",
         "limit": "Has llegado al límite de fotos o de vídeos.",
         "tooLarge": "El archivo es demasiado grande.",
         "tooLong": "El vídeo dura más de 60 segundos.",

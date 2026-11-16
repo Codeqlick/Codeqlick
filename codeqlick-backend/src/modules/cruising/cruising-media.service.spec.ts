@@ -166,11 +166,11 @@ describe('CruisingMediaService', () => {
   });
 
   describe('uploads', () => {
-    it('refuse members who are not verified (403) and uploads without consent (400)', async () => {
-      t.repo.findProfile.mockResolvedValue(profile({ verificationStatus: 'PENDING' }));
+    it('refuse members without a nickname (409) and uploads without consent (400)', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: null }));
       expect(
         await status(t.service.upload(ME, await t.received(await png('#a00')), 'true', NOW)),
-      ).toBe(403);
+      ).toBe(409);
       t.repo.findProfile.mockResolvedValue(profile());
       expect(
         await status(t.service.upload(ME, await t.received(await png('#a00')), undefined, NOW)),

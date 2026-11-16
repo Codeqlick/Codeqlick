@@ -203,9 +203,11 @@ describe('Cruising media (e2e)', () => {
     expect(JSON.stringify(sent[0])).not.toContain(ana.nick);
   });
 
-  it('lets only verified members upload, with consent, while the disk has room', async () => {
+  it('lets any member with a nickname upload (verification is optional), with consent, while the disk has room', async () => {
     const plain = await member('Plain');
-    await upload(plain, await photo(4)).expect(403);
+    await upload(plain, await photo(4)).expect(202);
+    const nameless = await member('Nameless', { nickname: false });
+    await upload(nameless, await photo(3)).expect(409);
     const vera = await member('Vera', { verified: true });
     await upload(vera, await photo(5), 'photo.jpg', null).expect(400);
     await upload(vera, Buffer.from('%PDF-1.7 not media'), 'x.pdf').expect(400);
@@ -380,7 +382,8 @@ describe('Cruising media (e2e)', () => {
       .expect(200);
     expect(saved.body.verified).toBe(false);
     expect(saved.body.verification.status).toBe('NONE');
-    await upload(nora, await photo(12)).expect(403);
+    // Without the badge they can still upload: verification is optional.
+    await upload(nora, await photo(12)).expect(202);
   });
 
   it('hides reported media at once for the serious reasons and lets the team decide', async () => {
