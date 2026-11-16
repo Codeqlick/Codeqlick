@@ -213,6 +213,32 @@ export class CruisingRepository {
     return this.prisma.cruisingSpot.create({ data });
   }
 
+  /** Many spots in one transaction (an import): all or none. */
+  createSpots(rows: Prisma.CruisingSpotUncheckedCreateInput[]) {
+    return this.prisma.$transaction(
+      rows.map((data) =>
+        this.prisma.cruisingSpot.create({ data, select: { id: true, slug: true } }),
+      ),
+    );
+  }
+
+  /**
+   * Spots of `type` in the box that a new one could duplicate: every status but REJECTED and
+   * REMOVED (decision 84). The caller measures the real distance.
+   */
+  async possibleDuplicates(box: Bbox, type: CruisingSpotType) {
+    const rows = await this.prisma.cruisingSpot.findMany({
+      where: {
+        type,
+        status: { notIn: ['REJECTED', 'REMOVED'] },
+        lat: { gte: box.minLat, lte: box.maxLat },
+        lng: { gte: box.minLng, lte: box.maxLng },
+      },
+      select: { id: true, slug: true, name: true, type: true, lat: true, lng: true },
+    });
+    return rows.map((row) => ({ ...row, lat: Number(row.lat), lng: Number(row.lng) }));
+  }
+
   updateSpot(id: string, data: Prisma.CruisingSpotUncheckedUpdateInput) {
     return this.prisma.cruisingSpot.update({ where: { id }, data });
   }

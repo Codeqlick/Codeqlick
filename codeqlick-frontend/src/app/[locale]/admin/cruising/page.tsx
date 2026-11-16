@@ -11,6 +11,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { buttonClassName } from '@/components/ui/buttonStyles';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import {
@@ -35,11 +36,21 @@ import {
   SUSPENSIONS,
   type CruisingReportReason,
   type CruisingSpotStatus,
+  type CruisingSpotType,
 } from '@/lib/cruising';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { webappUrl } from '@/lib/webapp-seo';
-import { editSpotAction, liftAction, reportAction, spotAction, takedownAction } from './actions';
+import {
+  createSpotAction,
+  editSpotAction,
+  importSpotsAction,
+  liftAction,
+  reportAction,
+  spotAction,
+  takedownAction,
+} from './actions';
 import admin from './cruising-admin.module.css';
+import { SpotImport } from './SpotImport';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -50,7 +61,7 @@ type PageProps = {
   }>;
 };
 
-const TABS = ['queue', 'reports', 'takedowns', 'live', 'suspended'] as const;
+const TABS = ['queue', 'reports', 'takedowns', 'live', 'suspended', 'add'] as const;
 type Tab = (typeof TABS)[number];
 /** The live tab's filter: what is published, hidden, rejected in review, or removed by moderation. */
 const LIVE_FILTERS = ['LIVE', 'HIDDEN', 'REJECTED', 'REMOVED'] as const;
@@ -489,6 +500,111 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
             </article>
           ))}
         </section>
+      ) : null}
+
+      {tab === 'add' ? (
+        <>
+          <section className={styles.panel} aria-labelledby="add-one-title">
+            <h2 id="add-one-title" className={styles.panelTitle}>
+              {t('add.oneTitle')}
+            </h2>
+            <p className={styles.muted}>{t('add.oneLead')}</p>
+            <ActionForm action={createSpotAction.bind(null, locale)} className={styles.form}>
+              <FormInput
+                id="add-name"
+                name="name"
+                label={ts('name')}
+                hint={ts('nameHint')}
+                maxLength={LIMITS.name}
+                required
+              />
+              <FormSelect
+                id="add-type"
+                name="type"
+                label={ts('type')}
+                placeholder={ts('typePlaceholder')}
+                options={types}
+                defaultValue=""
+                required
+              />
+              <FormInput
+                id="add-lat"
+                name="lat"
+                label={ts('lat')}
+                hint={ts('latHint')}
+                inputMode="decimal"
+                required
+              />
+              <FormInput
+                id="add-lng"
+                name="lng"
+                label={ts('lng')}
+                hint={ts('lngHint')}
+                inputMode="decimal"
+                required
+              />
+              <FormSelect
+                id="add-countryCode"
+                name="countryCode"
+                label={ts('country')}
+                placeholder={ts('countryPlaceholder')}
+                options={countries}
+                defaultValue=""
+                required
+              />
+              <FormInput
+                id="add-city"
+                name="city"
+                label={ts('city')}
+                maxLength={LIMITS.city}
+                required
+              />
+              <FormTextarea
+                id="add-description"
+                name="description"
+                label={ts('description')}
+                hint={ts('descriptionHint')}
+                rows={5}
+                maxLength={LIMITS.description}
+                required
+              />
+              <FormInput
+                id="add-bestTimes"
+                name="bestTimes"
+                label={ts('bestTimes')}
+                hint={ts('bestTimesHint')}
+                optionalLabel={ts('optional')}
+                maxLength={LIMITS.bestTimes}
+              />
+              <FormCheckbox
+                id="add-publish"
+                name="publish"
+                label={t('add.publish')}
+                hint={t('add.publishHint')}
+                defaultChecked
+              />
+              <SubmitButton size="sm" pendingLabel={ts('sending')}>
+                {t('add.create')}
+              </SubmitButton>
+            </ActionForm>
+          </section>
+          <section className={styles.panel} aria-labelledby="add-import-title">
+            <h2 id="add-import-title" className={styles.panelTitle}>
+              {t('add.importTitle')}
+            </h2>
+            <ClientMessages extra={APP_NAMESPACES.admin}>
+              <SpotImport
+                action={importSpotsAction.bind(null, locale)}
+                typeLabels={
+                  Object.fromEntries(types.map((type) => [type.value, type.label])) as Record<
+                    CruisingSpotType,
+                    string
+                  >
+                }
+              />
+            </ClientMessages>
+          </section>
+        </>
       ) : null}
 
       {tab === 'suspended' ? (
