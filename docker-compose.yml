@@ -57,6 +57,8 @@ services:
       VIDEOCHAT_ORIGINS: http://videochat.localhost:${WEB_PORT:-3000},http://localhost:${WEB_PORT:-3000}
       MEETINGS_ORIGINS: http://meetings.localhost:${WEB_PORT:-3000},http://localhost:${WEB_PORT:-3000}
       SITE_URL: http://localhost:${WEB_PORT:-3000}
+      # Passkeys work on the account host, http://account.localhost (decision 108).
+      WEBAUTHN_RP_ID: account.localhost
       # Development-only placeholder, same as .env.example. Production sets its own secret.
       JWT_ACCESS_SECRET: change-me-change-me-change-me-change-me-change-me-change-me
       SMTP_HOST: mailpit

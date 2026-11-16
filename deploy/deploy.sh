@@ -108,10 +108,11 @@ log "Serving"
 $COMPOSE ps --format 'table {{.Service}}\t{{.Status}}'
 docker image prune -f > /dev/null
 
-# Web apps whose subdomain isn't published yet (their Nginx site has no certificate): the helper
-# that deploy/setup-webapps.sh installs adds the DNS record, the site and the certificate. It never
-# fails the release; the next one tries again.
-for app in $(./deploy/webapps.sh); do
+# Web apps whose subdomain isn't published yet (their Nginx site has no certificate), and the
+# account site (account.codeqlick.com, decision 108): the helper that deploy/setup-webapps.sh
+# installs adds the DNS record, the site and the certificate. It never fails the release; the next
+# one tries again.
+for app in $(./deploy/webapps.sh) account; do
   grep -qs ssl_certificate "/etc/nginx/sites-enabled/$app.codeqlick.com.conf" && continue
   log "Publishing $app.codeqlick.com"
   sudo -n /usr/local/sbin/codeqlick-webapp-site "$app" ||

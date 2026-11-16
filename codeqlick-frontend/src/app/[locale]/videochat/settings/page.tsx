@@ -31,6 +31,7 @@ import { countryOptions, languageOptions } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
 import { settingsAction, uploadVerificationAction } from './actions';
 import { appPath } from '@/lib/webapp-request';
+import { AccountSettingsLink } from '@/components/account/AccountSettingsLink';
 
 /** Behind the account: nothing here for search engines. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -201,6 +202,7 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
           {t('backToRoom')}
         </Link>
       </p>
+      <AccountSettingsLink locale={locale} />
       <AdZone zone="pages" className={styles.subsection} />
     </section>
   );

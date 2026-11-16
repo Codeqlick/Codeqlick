@@ -23,8 +23,10 @@ import {
   setTokenCookies,
   withForwardedRequestHeaders,
 } from './lib/auth/refresh';
-import { localeRedirect, requestLocales } from './lib/locales';
-import { routeWebapp, webappForHost } from './lib/webapps';
+import { isAccountHost, isIpHost, routeAccount } from './lib/account-host';
+import { hostApp, localeRedirect, requestLocales } from './lib/locales';
+import { SSO_COOKIE_MAX_AGE, routeSignIn, ssoClientForHost, startSso } from './lib/sso';
+import { routeWebapp } from './lib/webapps';
 
 // Cruising speaks six languages, every other host two (decision 103): each has its own locale
 // routing, so a visitor's browser language or cookie never sends the website to /fr.
@@ -42,8 +44,7 @@ const siteI18nRouting = createMiddleware(
 function handleI18nRouting(request: NextRequest): NextResponse {
   const host =
     request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() || request.headers.get('host');
-  const all =
-    requestLocales(request.nextUrl.pathname, webappForHost(host)).length > SITE_LOCALES.length;
+  const all = requestLocales(request.nextUrl.pathname, hostApp(host)).length > SITE_LOCALES.length;
   return (all ? cruisingI18nRouting : siteI18nRouting)(request);
 }
 
@@ -66,20 +67,47 @@ export default async function proxy(request: NextRequest) {
   const navigation =
     request.method === 'GET' && dest !== 'image' && request.headers.get('host') === host;
   // A language this host doesn't speak (/fr on the website): the same page in English.
-  const english = localeRedirect(pathname, webappForHost(host));
+  const english = localeRedirect(pathname, hostApp(host));
   if (english) {
     const target = new URL(english, `${protocol}//${host}`);
     target.search = search;
     return NextResponse.redirect(target, 308);
   }
-  const webapp = routeWebapp(pathname, host, protocol, navigation);
+
+  // Single sign-on (decision 108): signing in, up and recovering an account happen on the
+  // account host; every other host starts the flow or sends the page there. Staging has no
+  // account host and turns it off (ACCOUNT_SSO=false).
+  const sso = process.env.ACCOUNT_SSO !== 'false' && !isIpHost(host);
+  if (sso && request.method === 'GET') {
+    const signIn = routeSignIn(pathname, request.nextUrl.searchParams, host, protocol);
+    if (signIn.action === 'redirect') return NextResponse.redirect(signIn.to);
+    const client = ssoClientForHost(host);
+    if (signIn.action === 'start' && client) {
+      const flow = await startSso({ client, host, protocol, ...signIn });
+      const response = NextResponse.redirect(flow.url);
+      response.cookies.set(flow.cookie.name, flow.cookie.value, {
+        httpOnly: true,
+        secure: isSecureCookieEnv(),
+        sameSite: 'lax',
+        path: '/',
+        maxAge: SSO_COOKIE_MAX_AGE,
+      });
+      return response;
+    }
+  }
+
+  const webapp =
+    sso && isAccountHost(host)
+      ? routeAccount(pathname, host, protocol, navigation)
+      : routeWebapp(pathname, host, protocol, navigation);
   if (webapp.action === 'redirect') {
     const target = new URL(webapp.to, `${protocol}//${host}`);
     target.search = search;
     return NextResponse.redirect(target);
   }
   if (webapp.action === 'rewrite') {
-    // On an app's host, /es/room is the route /es/videochat/room: the rest runs on the route.
+    // On an app's host, /es/room is the route /es/videochat/room (on the account host, /es/security
+    // is /es/account/security): the rest runs on the route.
     const url = request.nextUrl.clone();
     url.pathname = webapp.to;
     const routed = new NextRequest(url, request);

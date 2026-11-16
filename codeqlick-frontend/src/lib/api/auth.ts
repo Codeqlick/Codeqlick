@@ -1,7 +1,10 @@
 import 'server-only';
 import type { Webapp } from '../webapps';
 import { apiFetch } from './client';
+import type { SsoClient } from '../sso';
 import type {
+  AccountActivity,
+  AccountApp,
   ActiveSession,
   AuthTokens,
   AuthUser,
@@ -319,4 +322,46 @@ export function deleteMe(password: string) {
     auth: 'required',
     forwardClientIp: true,
   });
+}
+
+/** Single sign-on (decision 108): the account host asks for a one-time code for a client host. */
+export function createSsoCode(input: { client: SsoClient; codeChallenge: string }) {
+  return apiFetch<{ code: string; expiresIn: number }>('/auth/sso/codes', {
+    method: 'POST',
+    body: input,
+    auth: 'required',
+  });
+}
+
+/** The client host's callback exchanges the code and its verifier for a session of its own. */
+export function exchangeSsoCode(input: { client: SsoClient; code: string; codeVerifier: string }) {
+  return apiFetch<AuthTokens>('/auth/sso/exchange', {
+    method: 'POST',
+    body: input,
+    forwardClientIp: true,
+  });
+}
+
+/** "Sign out of this device everywhere": this browser's account session and its apps' sessions. */
+export function revokeDevice(refreshToken: string) {
+  return apiFetch<void>('/auth/sessions/revoke-device', {
+    method: 'POST',
+    body: { refreshToken },
+    auth: 'required',
+  });
+}
+
+/** "Sign out of all devices". */
+export function revokeAllSessions() {
+  return apiFetch<void>('/auth/sessions/revoke-all', { method: 'POST', auth: 'required' });
+}
+
+/** The caller's recent account activity. */
+export function accountActivity() {
+  return apiFetch<{ items: AccountActivity[] }>('/auth/activity', { auth: 'required' });
+}
+
+/** The parts of the platform the caller uses. */
+export function accountApps() {
+  return apiFetch<{ items: AccountApp[] }>('/auth/apps', { auth: 'required' });
 }

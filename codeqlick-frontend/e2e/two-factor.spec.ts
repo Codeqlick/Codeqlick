@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { adminHeaders, API_URL, runTag, signIn, totp } from './helpers';
+import { accountUrl, adminHeaders, API_URL, runTag, signIn, totp } from './helpers';
 
 test('an admin turns on two-step verification and then needs a code to sign in', async ({
   page,
@@ -13,8 +13,9 @@ test('an admin turns on two-step verification and then needs a code to sign in',
   });
   expect(created.ok()).toBeTruthy();
 
-  await signIn(page, admin, '/es/admin/account');
-  await page.goto('/es/admin/account');
+  // Signing in happens on the account host (decision 108), where two-step verification is set up.
+  await signIn(page, admin, '/es/admin');
+  await page.goto(accountUrl('/es/security'));
   await page.getByRole('button', { name: 'Configurar' }).click();
   const secret = (await page
     .locator('code')

@@ -10,7 +10,16 @@ import {
   routing,
   type AppLocale,
 } from '@/i18n/routing';
-import type { Webapp } from './webapps';
+import { webappForHost, type Webapp } from './webapps';
+
+/** What a host serves for its languages: a web app, the account host (decision 108) or the site. */
+export type HostApp = Webapp | 'account' | null;
+
+/** The app of a host, or `account` for the account host, or null for the website. */
+export function hostApp(host: string | null | undefined): HostApp {
+  if (host?.split(':')[0]?.split('.')[0]?.toLowerCase() === 'account') return 'account';
+  return webappForHost(host);
+}
 
 /** `en|es|fr|de|it|pt`, for the patterns that read a locale prefix. */
 export const LOCALE_PATTERN = routing.locales.join('|');
@@ -30,12 +39,14 @@ export function isCruisingOnlyLocale(locale: string): boolean {
 }
 
 /**
- * The languages a request may be served in: all six on Cruising's host and on Cruising's routes
- * (`/fr/cruising/…`, which the main host sends to Cruising's host and Next.js fetches from itself
- * by its IP address), English and Spanish everywhere else.
+ * The languages a request may be served in: all six on Cruising's and the account's hosts and on
+ * Cruising's and the account's routes (`/fr/cruising/…`, which the main host sends to Cruising's
+ * host and Next.js fetches from itself by its IP address), English and Spanish everywhere else.
  */
-export function requestLocales(pathname: string, app: Webapp | null): readonly AppLocale[] {
-  if (app === 'cruising' || localeOf(pathname)?.section === 'cruising') return CRUISING_LOCALES;
+export function requestLocales(pathname: string, app: HostApp): readonly AppLocale[] {
+  const section = localeOf(pathname)?.section;
+  if (app === 'cruising' || app === 'account') return CRUISING_LOCALES;
+  if (section === 'cruising' || section === 'account') return CRUISING_LOCALES;
   return SITE_LOCALES;
 }
 
@@ -43,15 +54,15 @@ export function requestLocales(pathname: string, app: Webapp | null): readonly A
  * Where a request in a language its host doesn't speak goes: the same path in English
  * (`/fr/about` on codeqlick.com → `/en/about`), or null when it is served as it is.
  */
-export function localeRedirect(pathname: string, app: Webapp | null): string | null {
+export function localeRedirect(pathname: string, app: HostApp): string | null {
   const prefix = localeOf(pathname);
   if (!prefix || requestLocales(pathname, app).includes(prefix.locale)) return null;
   return `/${routing.defaultLocale}${pathname.slice(prefix.locale.length + 1)}`;
 }
 
 /** The languages a host's language switcher, sitemap and hreflang list. */
-export function appLocales(app: Webapp | null): readonly AppLocale[] {
-  return app === 'cruising' ? CRUISING_LOCALES : SITE_LOCALES;
+export function appLocales(app: HostApp): readonly AppLocale[] {
+  return app === 'cruising' || app === 'account' ? CRUISING_LOCALES : SITE_LOCALES;
 }
 
 /** Each language by its own name, as Cruising's language switcher lists them. */

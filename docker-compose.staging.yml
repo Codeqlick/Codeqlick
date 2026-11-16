@@ -76,6 +76,8 @@ services:
       API_URL: http://api:4000/v1
       SITE_URL: ${SITE_URL}
       NEXT_PUBLIC_SITE_URL: ${SITE_URL}
+      # Staging has no account host: sign-in stays on its own host (decision 108).
+      ACCOUNT_SSO: 'false'
       LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
       LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
       LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}

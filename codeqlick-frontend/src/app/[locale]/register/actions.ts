@@ -12,7 +12,10 @@ import {
   isDisposableEmailError,
 } from '@/lib/api/errors';
 import type { AuthTokens } from '@/lib/api/types';
-import { setAuthCookies } from '@/lib/auth/session';
+import { safeNextPath, setAuthCookies } from '@/lib/auth/session';
+import { siteLocale } from '@/i18n/routing';
+import { webappUrl } from '@/lib/webapp-seo';
+import { WEBAPPS, type Webapp } from '@/lib/webapps';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { registerSchema } from '@/lib/schemas/auth';
@@ -85,7 +88,10 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       return failure(locale, error, formData);
     }
     await setAuthCookies(tokens);
-    redirect(await homeAfterSignIn(locale, tokens.user.role));
+    redirect(
+      safeNextPath(formData.get('next'), locale) ??
+        (await homeAfterSignIn(locale, tokens.user.role)),
+    );
   }
 
   try {
@@ -96,7 +102,8 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       locale,
       acceptPrivacy: true,
       website: formString(formData, 'website'),
-      app: (await requestWebapp()) ?? undefined,
+      // From an app's host, or on the account host the app the sign-up started from (decision 108).
+      app: (await requestWebapp()) ?? formApp(formData),
       captcha: formString(formData, 'captcha') || undefined,
     });
   } catch (error) {
@@ -105,7 +112,17 @@ export async function registerAction(_previous: FormState, formData: FormData): 
   redirect(`/${locale}/register?sent=${encodeURIComponent(email)}`);
 }
 
-/** The button on the confirmation page: spends the emailed token and signs in. */
+/** The app a form names (`app`), when it is one of ours. */
+function formApp(formData: FormData): Webapp | undefined {
+  const value = formString(formData, 'app');
+  return WEBAPPS.find((app) => app === value);
+}
+
+/**
+ * The button on the confirmation page: spends the emailed token and signs in. A sign-up that
+ * started in an app goes on to it: its sign-in, which the account host's new session passes
+ * through at once (single sign-on, decision 108).
+ */
 export async function confirmSignupAction(
   _previous: FormState,
   formData: FormData,
@@ -118,5 +135,7 @@ export async function confirmSignupAction(
     return failure(locale, error, formData);
   }
   await setAuthCookies(tokens);
+  const app = formApp(formData);
+  if (app) redirect(webappUrl(app, app === 'cruising' ? locale : siteLocale(locale), '/login'));
   redirect(await homeAfterSignIn(locale, tokens.user.role));
 }

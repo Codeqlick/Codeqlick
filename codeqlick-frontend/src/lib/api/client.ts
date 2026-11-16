@@ -129,7 +129,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (!response.ok) {
     const problem = await parseProblem(response);
     // An admin without two-step verification, where the server requires it: every admin page
-    // sends them to their account, which shows the setup (see the admin layout).
+    // sends them to the admin layout's notice, which links to the account site's setup.
     if (response.status === 403 && problem.detail === TWO_FACTOR_REQUIRED) {
       redirect(`/${await getLocale()}/admin/account`);
     }

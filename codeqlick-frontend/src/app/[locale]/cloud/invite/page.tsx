@@ -8,6 +8,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getCloudInvite, getCloudMe, type CloudInvite } from '@/lib/api/cloud';
 import { acceptInviteAction } from '../actions';
 import styles from '../cloud.module.css';
+import { accountUrl } from '@/lib/account-links';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -50,7 +51,7 @@ export default async function CloudInvitePage({ params, searchParams }: PageProp
           {invite.team.requireTwoFactor ? (
             <p className={styles.small}>
               {t('twoFactor.inviteNote')}{' '}
-              <Link href="/portal/account">{t('twoFactor.accountLink')}</Link>
+              <a href={accountUrl(locale, '/security')}>{t('twoFactor.accountLink')}</a>
             </p>
           ) : null}
           <ActionForm

@@ -43,6 +43,7 @@ import {
 } from '../actions';
 import { SwipeGate } from '../Gate';
 import { appPath } from '@/lib/webapp-request';
+import { AccountSettingsLink } from '@/components/account/AccountSettingsLink';
 
 /** Behind the account: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -347,6 +348,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
           photoList(albumPhotos)
         )}
       </section>
+      <AccountSettingsLink locale={locale} />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import { logoutAction } from '@/lib/auth/actions';
 import type { AppMenuConfig, AppMenuItem } from '@/lib/app-menus';
+import { accountUrl } from '@/lib/account-links';
 import { env } from '@/lib/env';
 import { webappUrl } from '@/lib/webapp-seo';
 import { switcherApps, type Webapp } from '@/lib/webapps';
@@ -32,7 +33,7 @@ type AppMenuProps = {
 
 /**
  * The ☰ button and the drawer of a web app (decision 107): the app's sections from `config`, the
- * other Codeqlick apps, then the rules, the language and the account.
+ * other Codeqlick apps, then the rules, the account site, the language and signing in or out.
  */
 export async function AppMenu({ app, locale, config, signedIn, locales }: AppMenuProps) {
   const intl = await getTranslations({ locale });
@@ -119,6 +120,10 @@ export async function AppMenu({ app, locale, config, signedIn, locales }: AppMen
             ))}
           </ul>
         ) : null}
+        {/* One account for every app (decision 108): its site, account.codeqlick.com. */}
+        <a href={accountUrl(locale)} className={styles.item} data-umami-event="app-menu-account">
+          {t('AppMenu.account')}
+        </a>
         <LocaleSwitcher variant="inline" locales={locales} />
         {signedIn ? (
           <form action={logoutAction}>

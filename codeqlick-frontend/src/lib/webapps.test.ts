@@ -12,7 +12,7 @@ import {
   webappHost,
 } from './webapps';
 
-const SHARED = ['login', 'register', 'forgot-password', 'reset-password'];
+const SHARED = ['login', 'register', 'forgot-password', 'reset-password', 'auth'];
 
 describe('web apps on subdomains', () => {
   it('finds the app of a host', () => {

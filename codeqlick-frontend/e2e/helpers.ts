@@ -9,6 +9,14 @@ export const ADMIN = {
   password: process.env.E2E_ADMIN_PASSWORD ?? 'change-me-please-123',
 };
 
+/**
+ * The account host next to the site under test (decision 108): http://localhost:3000 →
+ * http://account.localhost:3000 (browsers resolve *.localhost).
+ */
+export function accountUrl(path = '', base = process.env.E2E_BASE_URL ?? 'http://localhost:3001') {
+  return `${base.replace('://', '://account.')}${path}`;
+}
+
 /** A tag that keeps each run's data apart (emails, names). */
 export const runTag = () => Math.random().toString(36).slice(2, 8);
 

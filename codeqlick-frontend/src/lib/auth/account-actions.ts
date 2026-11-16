@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
-import type { SiteLocale } from '@/i18n/routing';
+import { siteLocale, type AppLocale } from '@/i18n/routing';
 import {
   checkUsername,
   confirmEmailChange,
@@ -24,7 +24,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Changes the signed-in person's name. */
 export async function updateNameAction(
-  locale: SiteLocale,
+  locale: AppLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -46,7 +46,7 @@ export async function updateNameAction(
 
 /** Sends a new profile photo (already shrunk in the browser). */
 export async function uploadAvatarAction(
-  locale: SiteLocale,
+  locale: AppLocale,
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const t = await getTranslations({ locale, namespace: 'Account.avatar' });
@@ -66,7 +66,7 @@ export async function uploadAvatarAction(
 }
 
 export async function removeAvatarAction(
-  locale: SiteLocale,
+  locale: AppLocale,
   _previous: FormState,
   _formData: FormData,
 ): Promise<FormState> {
@@ -97,7 +97,7 @@ export async function checkUsernameAction(raw: string): Promise<UsernameCheck | 
 
 /** Chooses, changes or (empty) removes the username. */
 export async function updateUsernameAction(
-  locale: SiteLocale,
+  locale: AppLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -129,7 +129,7 @@ export async function updateUsernameAction(
 
 /** Sends the confirmation link to the new address. The password is never echoed back. */
 export async function changeEmailAction(
-  locale: SiteLocale,
+  locale: AppLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -143,7 +143,7 @@ export async function changeEmailAction(
   }
   if (!password) return { status: 'error', fieldErrors: { password: t('passwordNeeded') }, values };
   try {
-    await requestEmailChange({ email, password, locale });
+    await requestEmailChange({ email, password, locale: siteLocale(locale) });
   } catch (error) {
     if (isApiError(error)) {
       if (error.status === 401) redirect(`/${locale}/login`);
@@ -191,7 +191,7 @@ export async function confirmEmailAction(
 
 /** Deletes the signed-in person's own account, then signs this browser out. */
 export async function deleteAccountAction(
-  locale: SiteLocale,
+  locale: AppLocale,
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {

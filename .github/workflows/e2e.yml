@@ -89,6 +89,9 @@ jobs:
           JWT_ACCESS_SECRET: ci-dummy-secret-0123456789abcdef0123456789abcdef0123456789abcdef
           CORS_ORIGINS: http://localhost:3000
           SITE_URL: http://localhost:3000
+          # Passkeys are used on the account host only (decision 108): its own name as relying
+          # party, since browsers don't take `localhost` for account.localhost.
+          WEBAUTHN_RP_ID: account.localhost
           SEED_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
           SITE_BUILDER_URL: http://127.0.0.1:4100

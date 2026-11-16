@@ -27,8 +27,11 @@ export function switcherApps(current: Webapp): { app: Webapp; adult: boolean }[]
     .sort((a, b) => Number(a.adult) - Number(b.adult));
 }
 
-/** Pages of the main site a web app's host also serves: signing in and creating the account. */
-const SHARED_PAGES = ['login', 'register', 'forgot-password', 'reset-password'];
+/**
+ * Pages of the main site a web app's host also serves: single sign-on's callback (`auth`,
+ * decision 108) and, while single sign-on is off (staging), signing in and creating the account.
+ */
+export const SHARED_PAGES = ['login', 'register', 'forgot-password', 'reset-password', 'auth'];
 
 /**
  * The main site's other sections (`app/[locale]/…`): on an app's host they go to the main host
@@ -37,6 +40,7 @@ const SHARED_PAGES = ['login', 'register', 'forgot-password', 'reset-password'];
  */
 export const SITE_SECTIONS = [
   'about',
+  'account',
   'admin',
   'apps',
   'basic-website',

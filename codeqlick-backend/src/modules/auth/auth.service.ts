@@ -58,6 +58,8 @@ export interface Preferences {
   weeklyDigest: boolean;
   /** The monthly report of their managed website (clients). */
   monthlyReport: boolean;
+  /** The language of their emails (read only here: `PATCH /auth/me` changes it). */
+  locale?: ApiLocale;
 }
 
 export interface TwoFactorStatus {
@@ -312,7 +314,11 @@ export class AuthService {
   /** The caller's own email preferences. */
   async preferences(userId: string): Promise<Preferences> {
     const user = await this.activeUser(userId);
-    return { weeklyDigest: user.weeklyDigest, monthlyReport: user.monthlyReport };
+    return {
+      weeklyDigest: user.weeklyDigest,
+      monthlyReport: user.monthlyReport,
+      locale: toApiLocale(user.locale),
+    };
   }
 
   async updatePreferences(userId: string, input: Partial<Preferences>): Promise<Preferences> {

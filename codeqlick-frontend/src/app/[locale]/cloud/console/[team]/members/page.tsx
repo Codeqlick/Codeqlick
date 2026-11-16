@@ -17,6 +17,7 @@ import {
   setTeamTwoFactorAction,
 } from '../../../actions';
 import styles from '../../../cloud.module.css';
+import { accountUrl } from '@/lib/account-links';
 
 type PageProps = { params: Promise<{ locale: string; team: string }> };
 
@@ -133,7 +134,7 @@ export default async function CloudMembersPage({ params }: PageProps) {
             {!team.requireTwoFactor && ownTwoFactor === false ? (
               <p className={styles.small}>
                 {t('twoFactor.ownHint')}{' '}
-                <Link href="/portal/account">{t('twoFactor.accountLink')}</Link>
+                <a href={accountUrl(locale, '/security')}>{t('twoFactor.accountLink')}</a>
               </p>
             ) : null}
             <ActionForm

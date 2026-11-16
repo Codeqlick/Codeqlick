@@ -57,6 +57,7 @@ import {
 import { CruisingGate } from '../Gate';
 import { visitsSettingsAction } from '../notifications-actions';
 import { accountLanguageAction, reopenTourAction } from '../onboarding-actions';
+import { AccountSettingsLink } from '@/components/account/AccountSettingsLink';
 
 /** Behind the account: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -430,6 +431,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
           )}
         </section>
       ) : null}
+      <AccountSettingsLink locale={locale} />
     </>
   );
 }
