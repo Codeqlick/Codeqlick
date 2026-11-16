@@ -503,8 +503,9 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
   ): Promise<MyMediaView> {
     try {
       const profile = await this.allowed(userId, now);
-      if (profile.verificationStatus !== 'APPROVED' || !profile.nickname) {
-        throw new ForbiddenException('Verify your profile before uploading photos and videos');
+      // Verification is optional (owner's decision, 2026-11-16): it only gives the badge.
+      if (!profile.nickname) {
+        throw new ConflictException('Choose a nickname before adding photos and videos');
       }
       if (consent !== 'true') {
         throw new BadRequestException('Confirm who appears and that you want it here');

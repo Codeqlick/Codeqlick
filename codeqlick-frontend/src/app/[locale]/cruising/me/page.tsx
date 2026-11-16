@@ -75,7 +75,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   const [checkIn, blocks, media] = await Promise.all([
     profile ? getMyCruisingCheckIn().catch(() => null) : Promise.resolve(null),
     listCruisingBlocks().catch(() => []),
-    status.verified ? getMyCruisingMedia().catch(() => null) : Promise.resolve(null),
+    profile?.nickname ? getMyCruisingMedia().catch(() => null) : Promise.resolve(null),
   ]);
   const verification = status.verification;
 
@@ -196,7 +196,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
         </section>
       ) : null}
 
-      {profile && status.verified ? (
+      {profile?.nickname ? (
         <section className={vc.panel} aria-labelledby="me-media">
           <h2 id="me-media" className={vc.sectionTitle}>
             {tm('title')}
