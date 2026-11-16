@@ -127,6 +127,8 @@ export const profileSchema = z.object({
   /** Phase 3 (decision 85): push alerts for favourites, and the daily email about them. */
   favoriteAlerts: z.boolean().optional(),
   favoriteEmails: z.boolean().optional(),
+  /** Phase 6 (decision 102): the onboarding tour finished or skipped (true) or reopened (false). */
+  onboardingDone: z.boolean().optional(),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
