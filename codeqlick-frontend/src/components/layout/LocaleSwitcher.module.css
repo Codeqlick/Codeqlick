@@ -103,3 +103,42 @@
   background: var(--color-ink);
   color: var(--color-white);
 }
+
+/* Cruising's languages inside an app's menu drawer (decision 107): every one at hand. */
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border: 1.5px solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  color: var(--color-ink);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.chip:hover {
+  color: var(--color-fuchsia-dark);
+  border-color: var(--color-fuchsia-light);
+}
+
+.chip.active,
+.chip.active:hover {
+  border-color: var(--color-ink);
+}
+
+/* EN | ES inside an app's menu drawer: touch-sized options. */
+.roomy {
+  justify-self: start;
+}
+
+.roomy .option {
+  min-width: 3rem;
+  min-height: 2.75rem;
+}

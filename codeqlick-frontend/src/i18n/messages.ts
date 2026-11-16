@@ -18,6 +18,7 @@ export const CRUISING_NAMESPACES = [
   'Metadata',
   'App',
   'AppSwitcher',
+  'AppMenu',
   'LocaleSwitcher',
   'Login',
   'TwoFactorLogin',

@@ -8,18 +8,44 @@ import styles from './LocaleSwitcher.module.css';
 
 /**
  * The language switcher, keeping the current path: an EN | ES toggle on the website and the other
- * apps, and on Cruising (decision 103) a menu of its six languages, each by its own name.
+ * apps, and on Cruising (decision 103) a menu of its six languages, each by its own name. Inside
+ * an app's menu drawer (`variant="inline"`, decision 107) Cruising's languages are a wrapped list.
  */
 export function LocaleSwitcher({
   className,
   locales = SITE_LOCALES,
+  variant = 'menu',
 }: {
   className?: string;
   locales?: readonly AppLocale[];
+  variant?: 'menu' | 'inline';
 }) {
   const t = useTranslations('LocaleSwitcher');
   const locale = useLocale();
   const pathname = usePathname();
+
+  if (locales.length > SITE_LOCALES.length && variant === 'inline') {
+    return (
+      <nav
+        aria-label={t('label')}
+        className={[styles.wrap, className ?? ''].filter(Boolean).join(' ')}
+      >
+        {locales.map((l) => (
+          <Link
+            key={l}
+            href={pathname}
+            locale={l}
+            hrefLang={l}
+            lang={l}
+            className={[styles.chip, l === locale ? styles.active : ''].filter(Boolean).join(' ')}
+            aria-current={l === locale ? 'true' : undefined}
+          >
+            {LOCALE_NAMES[l]}
+          </Link>
+        ))}
+      </nav>
+    );
+  }
 
   if (locales.length > SITE_LOCALES.length) {
     return (
@@ -52,7 +78,9 @@ export function LocaleSwitcher({
   return (
     <nav
       aria-label={t('label')}
-      className={[styles.switcher, className ?? ''].filter(Boolean).join(' ')}
+      className={[styles.switcher, variant === 'inline' ? styles.roomy : '', className ?? '']
+        .filter(Boolean)
+        .join(' ')}
     >
       {SITE_LOCALES.filter((l) => locales.includes(l)).map((l) => {
         const active = l === locale;
