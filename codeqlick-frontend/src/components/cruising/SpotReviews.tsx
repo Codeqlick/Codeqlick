@@ -16,6 +16,7 @@ import { isApiError } from '@/lib/api/errors';
 import { formatDate } from '@/lib/format';
 import { LIMITS, memberHref } from '@/lib/cruising';
 import styles from './Cruising.module.css';
+import { MemberName } from './MemberName';
 import { ReportDetails } from './ReportDetails';
 
 const PAGE_SIZE = 20;
@@ -136,13 +137,15 @@ export async function SpotReviews({ locale, spot, signedIn, status, page }: Spot
                     t('you')
                   ) : review.author ? (
                     // A profile needs a nickname of my own: without one the name is only text.
-                    status.profile ? (
-                      <Link href={memberHref(review.author.nickname)} className={vc.inlineLink}>
-                        {review.author.nickname}
-                      </Link>
-                    ) : (
-                      review.author.nickname
-                    )
+                    <MemberName locale={locale} member={review.author}>
+                      {status.profile ? (
+                        <Link href={memberHref(review.author.nickname)} className={vc.inlineLink}>
+                          {review.author.nickname}
+                        </Link>
+                      ) : (
+                        review.author.nickname
+                      )}
+                    </MemberName>
                   ) : (
                     t('member')
                   )}

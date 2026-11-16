@@ -5032,7 +5032,9 @@
         "WRONG_INFO": "Wrong or out-of-date information",
         "HARASSMENT": "Harassment or insults",
         "SPAM": "Spam or advertising",
-        "OTHER": "Something else"
+        "OTHER": "Something else",
+        "NON_CONSENSUAL": "Someone appears without their consent",
+        "STOLEN": "Stolen pictures (not theirs)"
       },
       "details": "Details",
       "optional": "optional",
@@ -5169,15 +5171,19 @@
       "rule4": "Leave places as you found them. Know the local law, which differs from country to country, and follow it.",
       "rule5Title": "No sale of sex or drugs",
       "rule5": "No offers, prices or contacts for sex work or drugs, and no advertising of any kind.",
-      "rule6Title": "No photos of people without consent",
-      "rule6": "Don't post photos, descriptions or details that identify a person without their consent. No contact details in reviews.",
+      "rule6Title": "Only yourself or consenting adults",
+      "rule6": "In photos and videos only you appear, or adults who agreed to be there. Never post pictures of someone without their consent, nor pictures that aren't yours. No contact details in reviews.",
       "rule7Title": "Report danger",
-      "rule7": "If a place is dangerous, has changed or is unsuitable, report it or suggest a correction. If someone is in immediate danger, call the emergency number of the place where you are.",
+      "rule7": "If a place is dangerous, has changed or is unsuitable, report it or suggest a correction. You can report any photo, video or profile too. If someone is in immediate danger, call the emergency number of the place where you are.",
       "privacyTitle": "Your privacy",
-      "privacy": "We only keep your birth year. Your position never leaves your device. Reviews never show your name or email. We handle data about sexual orientation only with your explicit consent.",
+      "privacy": "We only keep your birth year. Your position never leaves your device. Reviews never show your name or email. We handle data about sexual orientation, and your photos and videos, only with your explicit consent.",
       "takedownTitle": "Remove a place",
       "takedown": "Does a place of yours appear here, or do you think a spot shouldn't be listed? Anyone, with or without an account, can ask us to remove it.",
-      "takedownLink": "Ask us to remove a place"
+      "takedownLink": "Ask us to remove a place",
+      "rule8Title": "No minors, ever",
+      "rule8": "Nobody under 18 may appear in anything here, not even in the background. We remove it at once and report it to the authorities.",
+      "rule9Title": "Nothing illegal",
+      "rule9": "Nothing that breaks the law: nothing non-consensual, nothing stolen or leaked, no violence. Photos and videos are published before the team reviews them, and the team removes what breaks these rules."
     },
     "takedown": {
       "title": "Ask us to remove a spot",
@@ -5198,7 +5204,11 @@
       "reasonNeeded": "Choose a reason.",
       "detailsShort": "Tell us a little more (at least 10 characters).",
       "error": "We couldn't send it. Try again.",
-      "sent": "Thanks. We got your request and we'll answer by email within 24 hours."
+      "sent": "Thanks. We got your request and we'll answer by email within 24 hours.",
+      "mediaRef": "Photo or video reference",
+      "mediaRefHint": "The 8 characters shown under the photo or video. Use this or the link of a spot, not both.",
+      "mediaRefInvalid": "A reference has 8 letters and digits.",
+      "oneTarget": "Give either a spot link or a media reference, not both."
     },
     "lookingFor": {
       "CHAT": "Chat",
@@ -5251,7 +5261,8 @@
       "notAllowed": "You need to enter Cruising and not be suspended to change your profile.",
       "error": "We couldn't save it. Try again.",
       "bioContact": "No phone numbers, emails, links or social handles in your bio.",
-      "nicknameChange": "You can change it whenever you like. The one you leave stays yours for 14 days: nobody else can take it and you can go back to it."
+      "nicknameChange": "You can change it whenever you like. The one you leave stays yours for 14 days: nobody else can take it and you can go back to it.",
+      "nicknameVerifiedNote": "If you change it, your Verified badge is removed until you verify again."
     },
     "presence": {
       "title": "Here now",
@@ -5331,6 +5342,109 @@
       "blockLead": "Blocking {nickname} deletes the conversation and hides you from each other everywhere.",
       "blockConfirm": "Block this member",
       "blocking": "Blocking…"
+    },
+    "verified": {
+      "label": "Verified",
+      "help": "The team checked a photo of this person holding their nickname: the profile is theirs and they are an adult"
+    },
+    "verification": {
+      "title": "Verification",
+      "lead": "Get the Verified badge and the right to add photos and videos to your profile. You send one photo of yourself, once.",
+      "step1": "A paper with your nickname, \"Cruising\" and today's date",
+      "step2": "You holding it, your face visible",
+      "step3": "Well lit and sharp",
+      "privacy": "Only the team sees this photo. It is deleted as soon as it is reviewed; only the decision is kept. We don't ask for an identity document, and the badge doesn't mean one was checked.",
+      "fileLabel": "Your verification photo",
+      "preview": "Preview of your verification photo",
+      "send": "Send for review",
+      "sendAgain": "Send a new photo",
+      "sending": "Sending…",
+      "sent": "Sent. The team will review it and we will email you.",
+      "pending": "Your photo is waiting for the team's review. We will email you when it is done.",
+      "approved": "The team approved your photo. You can now add photos and videos to your profile. If you change your nickname the badge is removed and you need to verify again.",
+      "rejected": "The team couldn't approve your photo.",
+      "rejectedNote": "Reason: {note}",
+      "errors": {
+        "invalid": "That doesn't look like a photo we can use. Use a JPEG, PNG or WebP image.",
+        "notAllowed": "You can't send it right now.",
+        "conflict": "You already have a photo waiting or approved, or you haven't chosen a nickname yet.",
+        "tooLarge": "The photo is too large.",
+        "tooManyToday": "Too many photos sent today. Try again tomorrow.",
+        "error": "Something went wrong. Try again."
+      }
+    },
+    "media": {
+      "title": "My photos and videos",
+      "lead": "Shown only to members who have entered, with a watermark, and never to search engines. They are published as soon as they are ready and the team reviews them afterwards.",
+      "loadError": "We couldn't load your photos and videos. Reload the page.",
+      "photosCount": "Photos: {count} of {max}",
+      "videosCount": "Videos: {count} of {max}",
+      "perDay": "Up to {max} uploads a day",
+      "fileLabel": "Add a photo or a video",
+      "fileHint": "Photos: JPEG, PNG or WebP up to 10 MB. Videos: MP4, MOV or WebM up to 100 MB and {seconds} seconds.",
+      "consent": "Only I appear, or everyone who appears is 18+ and agreed to be here; I took it or let it be taken; and I want it on my profile.",
+      "send": "Upload",
+      "sending": "Uploading…",
+      "progress": "Upload progress",
+      "percent": "{percent}%",
+      "sentPhoto": "Photo uploaded.",
+      "sentVideo": "Video uploaded. It is being processed: it will be live in a moment.",
+      "empty": "You haven't added anything yet.",
+      "listLabel": "Your photos and videos",
+      "kind": {
+        "PHOTO": "Photo",
+        "VIDEO": "Video"
+      },
+      "status": {
+        "PROCESSING": "Processing",
+        "LIVE": "Live",
+        "HIDDEN": "Hidden",
+        "FAILED": "Failed"
+      },
+      "explain": {
+        "PROCESSING": "It is being prepared. This page refreshes by itself.",
+        "LIVE": "Members who have entered can see it.",
+        "HIDDEN": "Hidden while the team reviews a report.",
+        "FAILED": "It couldn't be published. Delete it and try again."
+      },
+      "failures": {
+        "unreadable": "The video couldn't be read or converted. Try another file or format.",
+        "tooLong": "The video is longer than 60 seconds.",
+        "blocked": "This image was removed from Cruising before and can't be used again.",
+        "interrupted": "The server restarted before it was processed. Upload it again.",
+        "unknown": "It couldn't be processed."
+      },
+      "cover": "Cover",
+      "ref": "Reference: {ref}",
+      "duration": "{seconds} s",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "moveUpFor": "Move item {number} up",
+      "moveDownFor": "Move item {number} down",
+      "makeCover": "Use as cover",
+      "delete": "Delete",
+      "deleteConfirm": "Yes, delete it",
+      "deleteLead": "It will be deleted for good. This can't be undone.",
+      "cancel": "Cancel",
+      "errors": {
+        "consent": "Tick the consent box to upload.",
+        "invalid": "That file can't be used: it must be a photo or a video, a video up to 60 seconds, and not an image removed from Cruising before.",
+        "session": "Your session has expired. Reload the page and sign in again.",
+        "notVerified": "Only verified members can add photos and videos.",
+        "limit": "You have reached the limit of photos or videos.",
+        "tooLarge": "The file is too large.",
+        "tooLong": "The video is longer than 60 seconds.",
+        "tooManyToday": "You have reached today's upload limit. Try again tomorrow.",
+        "diskFull": "We are short of space right now. Try again later.",
+        "coverNotLive": "Only a live photo can be the cover.",
+        "error": "Something went wrong. Try again."
+      }
+    },
+    "gallery": {
+      "title": "Photos and videos",
+      "photoAlt": "Photo {number} of {nickname}",
+      "videoAlt": "Video {number} of {nickname}",
+      "ref": "Ref. {ref}"
     }
   },
   "AdminCruising": {
@@ -5348,14 +5462,19 @@
       "reviews": "Reviews",
       "suspended": "Suspended",
       "activeCheckIns": "Check-ins now",
-      "conversations": "Conversations"
+      "conversations": "Conversations",
+      "newMedia": "New media",
+      "pendingVerifications": "Verifications",
+      "liveMedia": "Live media"
     },
     "tabs": {
       "queue": "To review",
       "reports": "Reports",
       "takedowns": "Removals",
       "live": "Spots",
-      "suspended": "Suspended"
+      "suspended": "Suspended",
+      "media": "New media",
+      "verifications": "Verifications"
     },
     "queue": {
       "title": "Spots to review",
@@ -5394,7 +5513,8 @@
       "SPOT": "Spot",
       "REVIEW": "Review",
       "PROFILE": "Profile",
-      "CONVERSATION": "Conversation"
+      "CONVERSATION": "Conversation",
+      "MEDIA": "Photo or video"
     },
     "reportedSpot": "Spot",
     "reporter": "Reporter",
@@ -5414,7 +5534,9 @@
       "unmatched": "No spot matches (link: {link}). Find it from the description.",
       "response": "Answer (sent by email)",
       "remove": "Remove the spot",
-      "close": "Close without removing (it goes live again)"
+      "close": "Close without removing (it goes live again)",
+      "mediaMatched": "Photo or video {ref} ({status}): hidden already.",
+      "mediaUnmatched": "No photo or video has the reference {ref}."
     },
     "live": {
       "filter": "Status",
@@ -5424,7 +5546,58 @@
     "reasonNeeded": "Write the reason (at least 5 characters).",
     "reportedProfile": "Profile",
     "transcript": "Saved chat",
-    "noTranscript": "No saved messages."
+    "noTranscript": "No saved messages.",
+    "media": {
+      "title": "Photos and videos",
+      "lead": "Published at once, so review them here. Oldest first. When in doubt, remove.",
+      "filter": "Which media",
+      "queues": {
+        "new": "Not reviewed",
+        "hidden": "Hidden",
+        "all": "All"
+      },
+      "photoAlt": "Photo {ref}",
+      "videoAlt": "Video {ref}",
+      "kind": {
+        "PHOTO": "Photo",
+        "VIDEO": "Video"
+      },
+      "status": {
+        "PROCESSING": "processing",
+        "LIVE": "live",
+        "HIDDEN": "hidden",
+        "FAILED": "failed"
+      },
+      "verified": "Verified",
+      "suspended": "Suspended",
+      "duration": "{seconds} s",
+      "reviewedOn": "reviewed {date}",
+      "failure": "Failure",
+      "gone": "The photo or video is already gone.",
+      "reason": "Reason if you remove it",
+      "reasonHint": "Required to remove (3 to 500 characters). The person gets it by email.",
+      "reasonNeeded": "Write the reason (at least 3 characters).",
+      "blockHash": "Block this image (it can't be uploaded again)",
+      "withdraw": "Withdraw the person's Verified badge",
+      "reviewed": "Mark reviewed",
+      "remove": "Remove"
+    },
+    "verifications": {
+      "title": "Verification photos",
+      "lead": "Oldest first. The photo is deleted when you decide, and the member is emailed. Reject anyone who doesn't clearly look adult.",
+      "alt": "Verification photo",
+      "memberSince": "Member since {date}",
+      "check": "Check: a paper with \"{nickname}\", \"Cruising\" and today's date, held by the person, face visible.",
+      "note": "Note to the member",
+      "noteHint": "Optional, up to 500 characters. It goes in the email if you reject.",
+      "approve": "Approve",
+      "reject": "Reject",
+      "withdrawTitle": "Withdraw a badge",
+      "withdrawLead": "Takes the Verified badge from a member (they are emailed). Paste their user id, shown in a report.",
+      "userId": "User id",
+      "userIdInvalid": "That isn't a user id.",
+      "withdraw": "Withdraw the badge"
+    }
   },
   "MenuKit": {
     "title": "Your menu QR",

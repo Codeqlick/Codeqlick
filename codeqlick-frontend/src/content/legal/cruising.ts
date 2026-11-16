@@ -5,7 +5,7 @@ import { type LegalDocument, type LegalOwner, ownerLines } from './index';
 /** Cruising's own terms of use and privacy policy (architecture 4.15). */
 export type CruisingLegalPage = 'cruising-terms' | 'cruising-privacy';
 
-const UPDATED = { es: '15 de noviembre de 2026', en: '15 November 2026' } as const;
+const UPDATED = { es: '16 de noviembre de 2026', en: '16 November 2026' } as const;
 const MAIL = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
 
 function terms(owner: LegalOwner, locale: AppLocale): string {
@@ -36,13 +36,21 @@ Necesitas una cuenta verificada por correo y entrar en Cruising con tu fecha de 
 - Cada lugar lo revisa el equipo antes de publicarse y puede corregirlo. Las opiniones se publican al momento y las moderamos después.
 - Sigues siendo autor de tus textos. Nos das permiso, no exclusivo y gratuito, para guardarlos y mostrarlos en Cruising mientras no los borres.
 
+## Fotos y vídeos
+
+- Los miembros que han entrado y están **verificados** pueden subir a su perfil fotos y vídeos **de sí mismos**. Se permite el contenido sexual propio entre personas adultas, que solo ven los miembros que han entrado.
+- **Nadie menor de 18 años** puede aparecer, y nada que sea ilegal. No puede aparecer nadie que no haya dado su consentimiento ni imágenes que no sean tuyas. Marcas una casilla de consentimiento en cada subida.
+- Las fotos y los vídeos se **publican antes de que el equipo los revise**; el equipo los revisa después y retira lo que incumpla estas condiciones, bloqueando la imagen para que no vuelva a subirse. Podemos suspender la cuenta.
+- La **verificación** es una foto tuya con tu apodo, que revisa el equipo y se borra después. La insignia «Verificado» solo significa que el equipo comprobó esa foto: no que se haya comprobado un documento de identidad.
+- Sigues siendo autor de lo que subes y nos das permiso, no exclusivo y gratuito, para guardarlo y mostrarlo en Cruising mientras no lo borres.
+
 ## Cómo te comportas
 
 Respeta a los demás, el lugar y la ley del sitio donde estás. Nada de venta de sexo o drogas, acoso, amenazas, chantaje ni discriminación. Si algo es peligroso o ilegal, denúncialo. Puedes ver las normas completas en [Normas](/${locale}/cruising/rules).
 
 ## Moderación, denuncias y retirada
 
-Puedes denunciar cualquier lugar u opinión. Una denuncia por un menor o por contenido ilegal oculta el contenido al momento hasta que lo revisemos. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos un lugar en [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); si se trata de un menor o de algo ilegal y da el enlace, lo ocultamos al momento, y siempre respondemos en 24 horas. Un lugar retirado por moderación no se puede volver a enviar. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
+Puedes denunciar cualquier lugar, opinión, perfil, foto o vídeo. Una denuncia por un menor, por falta de consentimiento, por imágenes robadas o por contenido ilegal oculta el contenido al momento hasta que lo revisemos. Cualquiera, aunque no tenga cuenta, puede pedir que retiremos un lugar en [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); si se trata de un menor o de algo ilegal y da el enlace, lo ocultamos al momento, y siempre respondemos en 24 horas. Un lugar retirado por moderación no se puede volver a enviar. Si retiramos algo tuyo o suspendemos tu cuenta, te decimos el motivo por correo y puedes contestarnos para pedir que lo revisemos (Reglamento de Servicios Digitales).
 
 ## Lo que no garantizamos
 
@@ -82,13 +90,21 @@ You need an account with a verified email, and to enter Cruising with your date 
 - The team reviews every place before it is published and may correct it. Reviews are published at once and we moderate them afterwards.
 - You still own what you write. You give us a free, non-exclusive permission to store it and show it in Cruising until you delete it.
 
+## Photos and videos
+
+- Members who have entered and are **verified** can upload photos and videos **of themselves** to their profile. Sexual content of oneself between adults is allowed, and only members who have entered can see it.
+- **Nobody under 18** may appear, and nothing may be illegal. Nobody who didn't consent may appear, and the pictures must be yours. You tick a consent box at each upload.
+- Photos and videos are **published before the team reviews them**; the team reviews them afterwards and removes what breaks these terms, blocking the image so it can't be uploaded again. We may suspend the account.
+- **Verification** is a photo of you with your nickname, reviewed by the team and deleted afterwards. The "Verified" badge only means the team checked that photo: not that an identity document was checked.
+- You still own what you upload and give us a free, non-exclusive permission to store it and show it in Cruising until you delete it.
+
 ## How you behave
 
 Respect others, the place and the law where you are. No selling sex or drugs, harassment, threats, blackmail or discrimination. If something is dangerous or illegal, report it. The full rules are in [Rules](/${locale}/cruising/rules).
 
 ## Moderation, reports and removal
 
-You can report any place or review. A report for a minor or illegal content hides it at once until we review it. Anyone, even without an account, can ask us to remove a place at [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); when it is about a minor or something illegal and they give the link, we hide it at once, and we always answer within 24 hours. A place removed by moderation can't be sent again. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
+You can report any place, review, profile, photo or video. A report for a minor, a missing consent, stolen pictures or illegal content hides it at once until we review it. Anyone, even without an account, can ask us to remove a place at [cruising.codeqlick.com/${locale}/takedown](/${locale}/cruising/takedown); when it is about a minor or something illegal and they give the link, we hide it at once, and we always answer within 24 hours. A place removed by moderation can't be sent again. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
 
 ## What we don't guarantee
 
@@ -120,6 +136,8 @@ Usar Cruising puede revelar aspectos de tu **vida sexual u orientación sexual**
 - **Entrada:** la versión de las normas que aceptaste y cuándo, y si has activado los avisos por correo.
 - **Lugares:** los que propones (nombre, tipo, ubicación, descripción, horas) con tu cuenta, para que puedas verlos y editarlos y para moderarlos.
 - **Opiniones y denuncias:** las que escribes y las que haces.
+- **Fotos y vídeos (datos de categoría especial):** los que subes a tu perfil, con tu **consentimiento explícito** en cada subida (artículo 9.2.a). Les quitamos los metadatos (ubicación, cámara). Se guardan en servidores de la Unión Europea (OVHcloud), **fuera de las copias de seguridad**, y los ven solo los miembros que han entrado, nunca los buscadores.
+- **Foto de verificación:** la que nos envías con tu apodo; solo la ve el equipo y se **borra en cuanto se revisa**: solo conservamos la decisión.
 - **Seguridad:** la dirección IP y el navegador de cada sesión (interés legítimo, artículo 6.1.f).
 - **Tu posición:** si pulsas «Localizarme», el navegador centra el mapa en tu posición. **Esa posición nunca sale de tu dispositivo: no se envía ni se guarda.**
 
@@ -137,7 +155,7 @@ Los lugares publicados los ve cualquiera, sin tu nombre. Las opiniones solo las 
 
 ## Cuánto tiempo los guardamos
 
-Mientras tengas la cuenta. Al borrarla se borran tu perfil, tus opiniones y tus denuncias; los lugares que propusiste siguen publicados sin tu nombre. Las copias de seguridad se eliminan a los 14 días.
+Mientras tengas la cuenta. Tus fotos y vídeos, hasta que los borres tú o borres la cuenta; los archivos desaparecen del servidor en un máximo de 6 horas. La foto de verificación se borra al revisarla. Al borrar la cuenta se borran tu perfil, tus opiniones y tus denuncias; los lugares que propusiste siguen publicados sin tu nombre. Las copias de seguridad se eliminan a los 14 días.
 
 ## Tus derechos
 
@@ -162,6 +180,8 @@ Using Cruising can reveal aspects of your **sex life or sexual orientation**, sp
 - **Entry:** the version of the rules you accepted and when, and whether you turned on email alerts.
 - **Places:** the ones you propose (name, type, location, description, times) with your account, so you can see and edit them and so we can moderate them.
 - **Reviews and reports:** the ones you write and make.
+- **Photos and videos (special category data):** the ones you upload to your profile, with your **explicit consent** at each upload (article 9.2.a). We strip their metadata (location, camera). They are stored on servers in the European Union (OVHcloud), **out of backups**, and only members who have entered can see them, never search engines.
+- **Verification photo:** the one you send us with your nickname; only the team sees it and it is **deleted as soon as it is reviewed**: we only keep the decision.
 - **Security:** the IP address and browser of each session (legitimate interest, article 6.1.f).
 - **Your position:** if you press "Locate me", your browser centres the map on your position. **That position never leaves your device: it is not sent or stored.**
 
@@ -179,7 +199,7 @@ Published places are seen by anyone, without your name. Reviews are seen only by
 
 ## How long we keep it
 
-As long as you have the account. When you delete it, your profile, reviews and reports are deleted; the places you proposed stay published without your name. Backups are removed after 14 days.
+As long as you have the account. Your photos and videos, until you delete them or the account; the files are gone from the server within 6 hours. The verification photo is deleted once reviewed. When you delete the account, your profile, reviews and reports are deleted; the places you proposed stay published without your name. Backups are removed after 14 days.
 
 ## Your rights
 

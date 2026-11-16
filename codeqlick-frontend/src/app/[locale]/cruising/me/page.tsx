@@ -9,11 +9,19 @@ import {
   FormTextarea,
 } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
+import { MediaManager } from '@/components/cruising/MediaManager';
+import { VerificationUpload } from '@/components/cruising/VerificationUpload';
+import { VerifiedBadge } from '@/components/cruising/VerifiedBadge';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { getCruisingStatus, getMyCruisingCheckIn, listCruisingBlocks } from '@/lib/api/cruising';
+import {
+  getCruisingStatus,
+  getMyCruisingCheckIn,
+  getMyCruisingMedia,
+  listCruisingBlocks,
+} from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import {
   CRUISING_COUNTRIES,
@@ -24,8 +32,15 @@ import {
   spotHref,
 } from '@/lib/cruising';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
+import { requestWebapp } from '@/lib/webapp-request';
 import vc from '../../videochat/videochat.module.css';
-import { emailAlertsAction, endCheckInAction, profileAction, unblockAction } from '../actions';
+import {
+  emailAlertsAction,
+  endCheckInAction,
+  profileAction,
+  unblockAction,
+  uploadVerificationAction,
+} from '../actions';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -47,10 +62,16 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   const t = await getTranslations({ locale, namespace: 'Cruising.me' });
   const tl = await getTranslations({ locale, namespace: 'Cruising.lookingFor' });
   const profile = status.profile;
-  const [checkIn, blocks] = await Promise.all([
+  const tv = await getTranslations({ locale, namespace: 'Cruising.verification' });
+  const tm = await getTranslations({ locale, namespace: 'Cruising.media' });
+  const tb = await getTranslations({ locale, namespace: 'Cruising.verified' });
+  const onHost = (await requestWebapp()) === 'cruising';
+  const [checkIn, blocks, media] = await Promise.all([
     profile ? getMyCruisingCheckIn().catch(() => null) : Promise.resolve(null),
     listCruisingBlocks().catch(() => []),
+    status.verified ? getMyCruisingMedia().catch(() => null) : Promise.resolve(null),
   ]);
+  const verification = status.verification;
 
   const countries = CRUISING_COUNTRIES.map((code) => ({
     value: code,
@@ -72,7 +93,13 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             id="me-nickname"
             name="nickname"
             label={t('nickname')}
-            hint={profile ? t('nicknameChange') : t('nicknameHint')}
+            hint={
+              profile
+                ? status.verified
+                  ? `${t('nicknameChange')} ${t('nicknameVerifiedNote')}`
+                  : t('nicknameChange')
+                : t('nicknameHint')
+            }
             defaultValue={profile?.nickname ?? ''}
             minLength={3}
             maxLength={20}
@@ -124,6 +151,63 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
           </p>
         ) : null}
       </section>
+
+      {profile ? (
+        <section className={vc.panel} aria-labelledby="me-verification">
+          <h2 id="me-verification" className={vc.sectionTitle}>
+            {tv('title')}
+          </h2>
+          {status.verified ? (
+            <>
+              <p>
+                <VerifiedBadge label={tb('label')} help={tb('help')} />
+              </p>
+              <p className={vc.muted}>{tv('approved')}</p>
+            </>
+          ) : verification.status === 'PENDING' ? (
+            <Alert tone="info">{tv('pending')}</Alert>
+          ) : (
+            <>
+              {verification.status === 'REJECTED' ? (
+                <Alert tone="warning">
+                  {tv('rejected')}
+                  {verification.note ? ` ${tv('rejectedNote', { note: verification.note })}` : ''}
+                </Alert>
+              ) : null}
+              <p className={vc.muted}>{tv('lead')}</p>
+              <ul className={styles.tags}>
+                <li className={styles.tag}>{tv('step1')}</li>
+                <li className={styles.tag}>{tv('step2')}</li>
+                <li className={styles.tag}>{tv('step3')}</li>
+              </ul>
+              <p className={vc.muted}>{tv('privacy')}</p>
+              <VerificationUpload
+                action={uploadVerificationAction.bind(null, locale)}
+                submitLabel={verification.status === 'REJECTED' ? tv('sendAgain') : tv('send')}
+              />
+            </>
+          )}
+        </section>
+      ) : null}
+
+      {profile && status.verified ? (
+        <section className={vc.panel} aria-labelledby="me-media">
+          <h2 id="me-media" className={vc.sectionTitle}>
+            {tm('title')}
+          </h2>
+          <p className={vc.muted}>{tm('lead')}</p>
+          {media ? (
+            <MediaManager
+              locale={locale}
+              onHost={onHost}
+              items={media.items}
+              limits={media.limits}
+            />
+          ) : (
+            <Alert tone="error">{tm('loadError')}</Alert>
+          )}
+        </section>
+      ) : null}
 
       {profile ? (
         <section className={vc.panel} aria-labelledby="me-checkin">

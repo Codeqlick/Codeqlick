@@ -48,6 +48,16 @@ export default async function CruisingTakedownPage({ params }: PageProps) {
           maxLength={300}
           optionalLabel={t('optional')}
         />
+        <FormInput
+          name="mediaRef"
+          label={t('mediaRef')}
+          hint={t('mediaRefHint')}
+          maxLength={8}
+          autoCapitalize="none"
+          autoComplete="off"
+          spellCheck={false}
+          optionalLabel={t('optional')}
+        />
         <FormSelect
           name="reason"
           label={t('reason')}

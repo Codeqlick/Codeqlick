@@ -28,12 +28,27 @@ export const REPORT_REASONS = [
   'SPAM',
   'OTHER',
 ] as const;
-export type CruisingReportReason = (typeof REPORT_REASONS)[number];
+/** Reasons only a profile or a photo/video can be reported for (phase 4, decision 87). */
+export const CONSENT_REPORT_REASONS = ['NON_CONSENSUAL', 'STOLEN'] as const;
+export type CruisingReportReason =
+  (typeof REPORT_REASONS)[number] | (typeof CONSENT_REPORT_REASONS)[number];
+/** Every reason there is, for the labels. */
+export const ALL_REPORT_REASONS: readonly CruisingReportReason[] = [
+  ...REPORT_REASONS,
+  ...CONSENT_REPORT_REASONS,
+];
 /** What a review can be reported for: a wrong detail is about the place, not the person's words. */
 export const REVIEW_REPORT_REASONS = REPORT_REASONS.filter((reason) => reason !== 'WRONG_INFO');
 
 /** Why someone asks for a spot to be removed (the public form). */
-export const TAKEDOWN_REASONS = ['MINOR', 'ILLEGAL', 'DANGER', 'OTHER'] as const;
+export const TAKEDOWN_REASONS = [
+  'MINOR',
+  'ILLEGAL',
+  'NON_CONSENSUAL',
+  'STOLEN',
+  'DANGER',
+  'OTHER',
+] as const;
 export type CruisingTakedownReason = (typeof TAKEDOWN_REASONS)[number];
 
 export const SPOT_STATUSES = ['PENDING', 'LIVE', 'REJECTED', 'HIDDEN', 'REMOVED'] as const;
@@ -41,6 +56,27 @@ export type CruisingSpotStatus = (typeof SPOT_STATUSES)[number];
 
 /** Reasons for reporting a person or a conversation: like a review's, a wrong detail is about a place. */
 export const PERSON_REPORT_REASONS = REVIEW_REPORT_REASONS;
+/** A profile can also be reported for a missing consent or stolen pictures. */
+export const PROFILE_REPORT_REASONS: readonly CruisingReportReason[] = [
+  'MINOR',
+  'NON_CONSENSUAL',
+  'STOLEN',
+  'ILLEGAL',
+  'DANGER',
+  'HARASSMENT',
+  'SPAM',
+  'OTHER',
+];
+/** A photo or video: no DANGER (about a place) and no WRONG_INFO. */
+export const MEDIA_REPORT_REASONS: readonly CruisingReportReason[] = [
+  'MINOR',
+  'NON_CONSENSUAL',
+  'STOLEN',
+  'ILLEGAL',
+  'HARASSMENT',
+  'SPAM',
+  'OTHER',
+];
 
 export const SUSPENSIONS = ['24h', '7d', '30d', 'permanent'] as const;
 export type CruisingSuspension = (typeof SUSPENSIONS)[number];
@@ -56,6 +92,8 @@ export const LIMITS = {
   rejectReason: 500,
   bio: 160,
   message: 1000,
+  /** A removal request's media reference (8 characters). */
+  mediaRef: 8,
 } as const;
 
 /** The countries a profile can name: the same fixed list as Swipe's and the spots'. */
