@@ -193,13 +193,13 @@ erDiagram
 - **PortfolioItem / PortfolioTranslation** — same publishing model (including `contentUpdatedAt?`) plus `clientName?`, `projectUrl?`, `technologies[]`, `services[]` (the website's service keys: web, custom, mobile, design, consulting, support), `sortOrder`, `testimonialAuthor?`; translation has `title`, `summary`, `content`, `testimonialQuote?`, `testimonialRole?`. A case study has a testimonial in a language when it has an author and a quote in that language; it is shown on the case study and on the home page.
 - **PostSlugRedirect / PortfolioSlugRedirect** — old addresses of a post or case study after a slug change (decision 71): `slug` (unique), `postId` (or `portfolioItemId`; cascade delete), `createdAt`. A slug is editable in the admin panel; when an item that has a publication date (`publishedAt` set before the save: published now or before, or scheduled) gets a new slug, its old slug is stored pointing to the item. A draft that was never published (no `publishedAt`) leaves nothing behind. A redirect points to the item, not to a slug, so renames never chain: after A → B → C, both A and B lead to C. In the same transaction as the save, giving any item (new or edited) a slug that is a stored redirect deletes that redirect (the new owner wins), and renaming an item back to one of its old slugs deletes that row. Nothing else changes: the activity log records the save as the usual update.
 - **PostRevision / PortfolioRevision** — revision history of posts and case studies (decision 72): `postId` / `portfolioItemId` (cascade), `authorId?` (who made the change that replaced it; null once the user is deleted), `createdAt` (when it was replaced), `snapshot` (JSON: the item's content as it was until then). A post's snapshot is `{ coverImageUrl, tagIds, translations: [{ locale, title, excerpt, content }] }`; a case study's is `{ coverImageUrl, clientName, projectUrl, technologies, services, testimonialAuthor, translations: [{ locale, title, summary, content, testimonialQuote, testimonialRole }] }`. Publishing fields (`status`, `publishedAt`), `slug` and the case study's `sortOrder` are not content and are never part of it. Every admin update (`PATCH`) whose snapshot differs from the current one stores the current one as a revision in the same transaction as the change (tag ids and translations compared without regard to order); creating an item stores nothing, nor does a PATCH that changes nothing or only those other fields. The last 20 per item are kept: older ones are deleted in the same transaction. Images used only by a revision don't count as used in the media library.
-- **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`, `showHours` (the client sees the hours logged on it; off by default), and its watched domain: `domainName?`, `domainSource` (`RDAP` | `MANUAL` | `OVH`), `domainExpiresAt?` (date), `domainCheckedAt?`, `domainWarnedFor?` (`<day>:<30|7>`, the last reminder). With `RDAP` the expiry is read from the registry's RDAP server (found in IANA's bootstrap, `data.iana.org/rdap/dns.json`); TLDs without RDAP (`.es`) take a date typed by the team. A domain the team's OVH account manages (the client made it the technical contact, decision 15) switches to `OVH` on its next check: the expiry is OVH's (`GET /domain/{name}/serviceInfos`), `.es` included; one OVH stops managing goes back to `RDAP`. 30 and 7 days before it, the team inbox and every person of the client account are emailed, once each per expiry date. A managed site's own domain becomes the project's watched domain when it has none.
+- **ClientProject** — `clientId`, `name`, `description?`, `phase` (`DISCOVERY` | `DESIGN` | `DEVELOPMENT` | `QA` | `LAUNCHED` | `SUPPORT` | `ON_HOLD`), `progress` (0–100), `startDate?`, `dueDate?`, `stagingUrl?`, `productionUrl?`, `showHours` (the client sees the hours logged on it; off by default), and its watched domain: `domainName?`, `domainSource` (`RDAP` | `MANUAL` | `OVH`), `domainExpiresAt?` (date), `domainCheckedAt?`, `domainWarnedFor?` (`<day>:<30|7>`, the last reminder). With `RDAP` the expiry is read from the registry's RDAP server (found in IANA's bootstrap, `data.iana.org/rdap/dns.json`); TLDs without RDAP (`.es`) take a date typed by the team. A domain the team's OVH account manages (the client made it the technical contact, decision 15) switches to `OVH` on its next check: the expiry is OVH's (`GET /domain/{name}/serviceInfos`), `.es` included; one OVH stops managing goes back to `RDAP`. 30 and 7 days before it, the team inbox and every person of the client account are emailed, once each per expiry date. A managed site's own domain becomes the project's watched domain when it has none. Its maintenance plan (section 8.2, decision 110): `maintenanceStatus` (`NONE` | `PENDING` | `ACTIVE` | `PAST_DUE` | `CANCELED`, default `NONE`, from the Stripe subscription), `maintenanceSubscriptionStatus?` (Stripe's own status), `maintenanceSubscriptionId?` and `maintenanceCustomerId?` (unique), `maintenancePeriodEnd?`, `maintenanceCancelAtPeriodEnd` (default false), `maintenanceSince?` (when it last turned on), `maintenanceIncludedReason?` and `maintenanceIncludedAt?` (given for free by the team). The plan is on while `ACTIVE`, `PAST_DUE` or included.
 - **ProjectUpdate** — `title`, `body` (Markdown), `authorId`, `createdAt`, `approvalRequested` (the team asks the client to approve it), `approvedAt?`, `approvedById?`. A **release** is an update with `version`, `environment` (`STAGING` | `PRODUCTION`) and `url?`: the version deployed, where, and where to try it; posting one also sets the project's `stagingUrl` or `productionUrl` to that URL. A project may have a release key (`releaseTokenHash`, SHA-256 of `cqr_…`, and `releaseTokenCreatedAt`) for its deploy pipeline.
 - **ProjectUpdateComment** — a comment on an update by the client or the team: `body` (plain text, max 5000), `authorId?`, `createdAt`. Comments by an ADMIN are shown as the team's.
 - **ProjectMilestone** — a step of the project shown to the client as a timeline: `title`, `description?` (plain text, max 2000), `dueDate?`, `completedAt?` (set when the admin marks it done; null while open), `position` (order set by the admin, 0-based). The first milestone not done is the "next" one.
 - **ProjectFile** — a file shared with the project's client: `name` (original name, cleaned), `contentType` (as sent by the uploader; informational), `size`, `uploadedById?`. The content is stored on disk at `UPLOADS_DIR/project-files/<id>`, never under a public URL.
 - **ProjectInvoice** — an invoice the team issued for a project (decision 23), as the PDF made by the team's invoicing tool: `number` (unique, the invoice's own number), `issuedOn`, `dueOn?` (dates), `amountCents` (the total, VAT included), `currency` (`eur`), `paidAt?` (set by the team), `fileName`, `size`, `uploadedById?`. The PDF is stored at `UPLOADS_DIR/invoices/<id>`, never under a public URL. Its status is derived: `PAID` with `paidAt`, `OVERDUE` once `dueOn` has passed, `DUE` otherwise.
-- **SupportTicket** — a request a client opens from the portal: `number` (sequential, shown as `#12`), `clientId`, `projectId?` (one of the client's projects), `type` (`BUG` | `CHANGE` | `QUESTION`), `priority` (`LOW` | `NORMAL` | `HIGH` | `URGENT`), `status` (`OPEN` | `IN_PROGRESS` | `WAITING_CLIENT` | `RESOLVED` | `CLOSED`), `title`, `resolvedAt?` (set when it becomes RESOLVED or CLOSED, cleared when it is reopened).
+- **SupportTicket** — a request a client opens from the portal: `number` (sequential, shown as `#12`), `clientId`, `projectId?` (one of the client's projects), `type` (`BUG` | `CHANGE` | `QUESTION`), `priority` (`LOW` | `NORMAL` | `HIGH` | `URGENT`), `status` (`OPEN` | `IN_PROGRESS` | `WAITING_CLIENT` | `RESOLVED` | `CLOSED`), `title`, `resolvedAt?` (set when it becomes RESOLVED or CLOSED, cleared when it is reopened), `maintenanceIncluded?` (a `CHANGE` request opened on a project whose maintenance plan is on: `true` when it was one of the month's 3 included changes, `false` past them; null otherwise; section 8.2).
 - **TicketMessage** — the request's conversation, oldest first: `body` (plain text, max 20 000), `authorId?`. The first message is the client's description; messages by an ADMIN are shown as the team's.
 - **TicketAttachment** — a file added to a support request by the client or the team: `name`, `contentType`, `size`, `uploadedById?`. Stored on disk at `UPLOADS_DIR/ticket-files/<id>`, like project files.
 - **Proposal** — a proposal or quote for a client: `number` (sequential, `#7`), `clientId`, `projectId?` (one of the client's projects), `createdById?`, `title`, `summary` (Markdown: scope), `terms?` (Markdown: payment, deadlines), `currency` (`EUR`), `validUntil?` (date; last day it can be accepted, Madrid time), `status` (`DRAFT` | `SENT` | `ACCEPTED` | `DECLINED` | `WITHDRAWN`), `sentAt?`, `respondedAt?`, `acceptedName?` (the full name the client typed to accept it), `declineReason?`. `expiryRemindedAt?`: when the reminder that it is about to expire went out (section 4.6). Only drafts can be edited or deleted; a sent one gets a new version by duplicating it. Nothing is charged: accepting is a recorded agreement.
@@ -308,6 +308,7 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | `sk_live_…` / `whsec_…` | Buying a preview online (section 8.2, decision 20); off without both. Test keys (`sk_test_…`) in development |
 | `SITE_PRICE_CENTS` | `20000` | Price of a basic website bought online, in euro cents before VAT (default 200 €) |
 | `SITE_VAT_PERCENT` | `21` | VAT added to it (Spain's general rate); Stripe shows and invoices it as a tax rate "IVA" the API creates once |
+| `STRIPE_MAINTENANCE_PRICE_ID` | `price_…` | The maintenance plan's recurring monthly price in Stripe (19 € before VAT, section 8.2, decision 110); the plan is off and hidden while it (or Stripe's keys) is unset |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | | Only used by `prisma db seed` |
 | `TURNSTILE_SECRET_KEY` | `0x4AAAA…` | Cloudflare Turnstile's secret key: with it, sign-up and sign-in require a valid Turnstile token (section 4.3); off when empty. The website gets the matching `TURNSTILE_SITE_KEY` |
 | `MEETINGS_ORIGINS` | `https://meetings.codeqlick.com` | Pages allowed to open the meetings' WebSocket (section 4.8); production sets it from `MEETINGS_URL` |
@@ -1129,6 +1130,7 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | POST | `/errors` | `{ source: server \| browser, message, stack?, method?, path?, digest?, userAgent? }` → 204: the website reports an error (section 4.11). Limited to 30/min/IP |
 | GET | `/videochat/online` | Public: `{ online }`, people connected to the video chat right now (cached 10 s). Limited to 60/min/IP |
 | GET | `/site-requests/previews/:slug` | Public: whether a request's preview is online → `{ status, url, business, purchase }`; `purchase` is `{ priceCents (before VAT), vatPercent, totalCents, currency, available }` while buying online is on (`available`: READY, not bought, not a client yet), else null. 404 when there is none. Limited to 30/min/IP |
+| GET | `/site-maintenance/offer` | Public: the maintenance plan for the landing (section 8.2) → `{ available, price: { amountCents, currency, interval, vatPercent } \| null, allowance: 3 }`; `available` false (and `price` null) while it is off |
 | POST | `/site-requests/previews/:slug/checkout` | Public: `{ locale, accept: true }` (the terms and starting at once) → `{ url }`, a Stripe Checkout Session to pay the website (section 8.2). 404 while buying online is off or without a preview; 409 when it isn't READY, was bought or its lead is a client. Limited to 5/min/IP |
 | GET | `/site-requests/purchases/:sessionId` | Public: how a purchase is going, for the page Stripe returns to → `{ status, business, siteUrl? }` (`siteUrl` once its site exists); 404 when unknown |
 | POST | `/payments/stripe` | Stripe's webhook (raw body, `Stripe-Signature` checked with `STRIPE_WEBHOOK_SECRET`, else 400): a paid `checkout.session.completed` or `checkout.session.async_payment_succeeded` marks the purchase PAID and makes the site; `checkout.session.expired` marks it EXPIRED. Answers 200 to anything else |
@@ -1318,6 +1320,9 @@ Query params for lists: `page` (default 1), `pageSize` (default 20, max 100).
 | GET | `/site-drafts/:key/*` | Public (the key is the secret): a file of the draft's preview, streamed from the builder; 404 when it doesn't exist or was discarded |
 | POST | `/portal/projects/:id/site/images` | Multipart `file` (JPEG, PNG or WebP, 5 MB) → `201 { file: 'media/<name>', url }`, stored with the uploaded images (an image a managed site uses counts as used in the media library). Limited to 20/hour |
 | GET | `/portal/projects/:id/visits` | `?days=7\|30\|90` (default 30) → `{ enabled, available, days, visitors, pageviews, messages, daily: [{ date, visitors, pageviews, messages }], referrers: [{ source, visitors }] (5) }`: the managed site's numbers from Umami and its form's messages; `enabled: false` until it has statistics. Also `GET /admin/projects/:id/visits`. 404 without a managed site of the caller's |
+| GET | `/portal/projects/:id/maintenance` | The project's maintenance plan (section 8.2, decision 110) → `MaintenanceView` (shape below). 404 unless the project is the caller's and has a managed site |
+| POST | `/portal/projects/:id/maintenance/checkout` | `{ locale }` → `{ url }`: a Stripe Checkout Session (subscription mode, metadata `kind=site-maintenance` and `projectId`). Role CLIENT only (403 for admins); 404 while the plan is off or without a managed site; 409 when the plan is already on. Limited to 10/min |
+| POST | `/portal/projects/:id/maintenance/portal` | `{ locale }` → `{ url }`: Stripe's customer portal for the project's customer, back to "Tu web". Role CLIENT only; 404 while Stripe is off; 409 when the project has no Stripe customer. Limited to 10/min |
 | GET | `/portal/projects/:id/site/messages` | `?page&pageSize` → `Paginated<{ id, name, email, phone, message, createdAt }>`: the messages the site's form kept (12 months), newest first. 404 without a managed site of the caller's |
 | DELETE | `/portal/projects/:id/site/messages/:messageId` | `204`: the client deletes a message (for example when the visitor asks); 404 if it isn't one of that site's |
 | GET / POST | `/portal/projects/:id/site/news` | News of the managed site (section 8.2): GET `?status=DRAFT\|PUBLISHED\|EXPIRED&page&pageSize` → `Paginated<SiteNewsPost>` (shape below), newest first, with `enabled` (the switch) beside it / `{ title, summary, body, titleEn?, summaryEn?, bodyEn?, photo?, expiresAt? (YYYY-MM-DD) }` → `201 SiteNewsPost` as a draft (400 with the field in the message, or past 200 posts; 400 when `photo` isn't a file of the media library, i.e. one uploaded through `/site/images`). Nothing is built. 404 unless the project is the caller's and has a managed site. Writes limited to 60/hour |
@@ -1511,6 +1516,9 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | DELETE | `/admin/projects/:id/site` | → `204`: takes the managed site down (section 8.2): the builder marks it for removal (the host unpublishes its domains and folder), the project's monitor is turned off, its preview and live addresses are cleared and the site and its revisions are deleted. Its photos stay in the media library and its form keeps working until removed. `project.site_deleted` in the activity log. Deleting a project does this first |
 | GET | `/admin/sites` | Every managed site (`SiteView`: `{ projectId, project, client, slug, preset, domain, previewUrl, url, status, lastBuildAt, lastBuildError, release, content, updatedAt }`), newest first |
 | GET / POST / PATCH | `/admin/projects/:id/site` | The site (or `{ exists: false }`) / `{ slug, preset: 'peluqueria' \| 'restaurante' \| 'fisioterapia' \| 'portfolio' \| 'despacho' \| 'comercio' \| 'reformas' \| 'general', domain? }` (a preset's name is reserved for its demo) → `201` site, built (409 when the project has one or the name or domain is taken) / `{ domain: string \| null }` → the site, rebuilt (a new domain starts unchecked and is checked right after). `SiteView` has `domainState`, `domainCheckedAt`, `menuEnabled` and `newsEnabled`. `503` when the builder isn't configured or doesn't answer |
+| GET | `/admin/projects/:id/maintenance` | `MaintenanceView` plus `admin: { customerId, subscriptionId, subscriptionStatus, includedAt }` (404 without a managed site) |
+| PUT | `/admin/projects/:id/maintenance/included` | `{ reason: string (3–300) \| null }` → the admin view: marks the plan included for free, or removes it. 409 when marking a project whose paid plan is `ACTIVE` or `PAST_DUE`. `project.maintenance_included` / `project.maintenance_removed` in the activity log |
+| GET | `/admin/maintenance` | Every project whose plan is or was on, newest first: `{ items: [{ projectId, projectName, client: { id, name }, status, included, includedReason, since, periodEnd, cancelAtPeriodEnd }], paidCount, includedCount, mrrCents }` (`mrrCents`: the paid plans on times the price before VAT; null when the price can't be read from Stripe) |
 | PUT | `/admin/projects/:id/site/menu` | `{ enabled }` → the site, rebuilt: turns the menu extra on or off (section 8.2); `project.site_menu` in the activity log |
 | GET / POST / GET / PATCH / DELETE | `/admin/projects/:id/site/news` · `/news/:postId` · `/news/:postId/publish` · `/news/:postId/unpublish` · `PUT /news-settings` | The admin's copy of the portal's news routes (same bodies and answers, section 8.2), for any managed site and without the rate limits' client scope; the activity log names the admin |
 | POST | `/admin/projects/:id/site/domain/check` | Checks the site's domain now (connecting it through OVH when it can) → the site |
@@ -1667,6 +1675,30 @@ interface Invoice {
   status: 'PAID' | 'DUE' | 'OVERDUE';
   paidAt: string | null;
   project: { id: string; name: string } | null;
+}
+
+interface MaintenanceView {
+  // The plan can be bought (Stripe's keys and STRIPE_MAINTENANCE_PRICE_ID set, price readable).
+  available: boolean;
+  price: { amountCents: number; currency: string; interval: string | null; vatPercent: number } | null;
+  status: 'NONE' | 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+  included: boolean; // given for free by the team
+  includedReason: string | null;
+  on: boolean; // ACTIVE, PAST_DUE or included
+  since: string | null;
+  periodEnd: string | null; // next renewal, or the end when cancelAtPeriodEnd
+  cancelAtPeriodEnd: boolean;
+  canManage: boolean; // has a Stripe customer: "Gestionar el plan"
+  allowance: { limit: number; used: number; month: string }; // month: yyyy-mm, Madrid
+  invoices: Array<{
+    id: string;
+    number: string | null;
+    createdAt: string;
+    totalCents: number; // VAT included
+    currency: string;
+    status: string | null; // Stripe's: paid, open, void, uncollectible
+    url: string | null; // Stripe's hosted invoice page
+  }>;
 }
 
 interface SiteNewsPost {
@@ -2287,6 +2319,95 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
   marks bought ones. Stripe numbers and emails the invoice (the owner's tax details and "email
   finalized invoices" are set in Stripe's dashboard); the purchase keeps its id and the total
   charged. The privacy policy names Stripe as the payment processor.
+- **Maintenance plan** (owner's request 2026-11-17, decision 110): a monthly subscription a client
+  can take for a project with a managed site, **19 € a month + IVA** (`STRIPE_MAINTENANCE_PRICE_ID`,
+  a recurring monthly price of 1 900 euro cents made in Stripe's dashboard, product "Mantenimiento
+  web"; its amount is read from Stripe, cached an hour, and the API adds the "IVA" tax rate of
+  decision 20). It is off, and the portal, the landing and Admin's list show nothing of it, while
+  that variable or Stripe's keys are unset (a project marked "included" still shows it as
+  included).
+  - **What it includes** (the same words on the portal's card, the landing and the terms):
+    1. **Hosting and SSL:** the site kept online with HTTPS on its domain (the certificate renewed
+       on its own), with its uptime monitor watched by the team.
+    2. **The domain's renewal:** the domain stays the client's and is paid by them to their
+       registrar (decision 15). The team watches its expiry (the reminders of `ClientProject`, 30
+       and 7 days before) and, with the plan, makes sure with the client that it is renewed (when
+       the team's OVH account is its technical contact it checks the renewal at OVH) and keeps its
+       DNS pointing at the site. The reminder to the team says the project has the plan.
+    3. **Updates and security fixes:** the site is rebuilt with every update of the template and its
+       dependencies, security fixes included.
+    4. **The monthly report** (the one above, decision 70's `monthlyReport`), which for a project
+       with the plan also says how many change requests were used that month.
+    5. **Small content changes on request:** up to **3 change requests a calendar month** (Madrid
+       time), each a small change the team makes for the client (a text, prices, hours, a photo,
+       a section shown or hidden; about 20 minutes each). Unused ones don't carry over; bigger work
+       is quoted apart. A change request is a support request of type `CHANGE` on the project (the
+       card's "Pedir un cambio" opens the support form with them filled in): while the plan is on,
+       each new one is counted when it is opened (`SupportTicket.maintenanceIncluded`: `true`
+       while the month's 3 aren't used, `false` after, so the team sees at once that it is outside
+       the plan and quotes it). The portal's card shows the counter ("1 de 3 cambios usados este
+       mes").
+    6. **Priority support:** every request a client opens on the project while the plan is on
+       starts at `HIGH` priority (an `URGENT` one stays `URGENT`), the team's email says "[Plan]",
+       and the team answers within one working day.
+  - **Without the plan** nothing changes for anyone: what a purchase includes (decision 20 and the
+    terms of sale: the website, its hosting with HTTPS and the fixes of the template's faults, the
+    editor, the form and the monthly report) has no time limit and stays as it is, for clients who
+    already paid and for new ones. The plan is optional on top: the client keeps editing the site
+    themselves, and changes asked of the team without the plan are quoted and answered at normal
+    priority. (Whether future sales should include hosting only for a first year and then require
+    the plan is open for the owner; it would need new terms of sale and is not built.)
+  - **Included for free:** Admin → project → website → "Plan de mantenimiento" marks a project
+    "included" with a reason (3–300 characters, e.g. "Incluido en el proyecto a medida"): it then
+    has everything of the plan without paying (`maintenanceIncludedReason`,
+    `maintenanceIncludedAt`), and the card says "Incluido por Codeqlick". It is refused (409) while
+    a paid subscription is `ACTIVE` or `PAST_DUE`; removing it ends it at once. Both are in the
+    activity log (`project.maintenance_included`, `project.maintenance_removed`).
+  - **Subscribing:** a person of the client account (role `CLIENT`; admins see the card but don't
+    pay for the client) presses "Contratar el plan" on the card: `POST
+    /portal/projects/:id/maintenance/checkout` makes the project's Stripe customer once (the
+    caller's email, the project's name, metadata `kind=site-maintenance` and `projectId`; kept as
+    `maintenanceCustomerId`) and a Checkout Session in subscription mode with that price and the
+    "IVA" tax rate, `client_reference_id` the project, metadata `kind=site-maintenance` and
+    `projectId` (also on the subscription, `subscription_data.metadata`), the billing address and
+    an optional tax ID collected, back to the project's "Tu web" page (`?maintenance=done` or
+    `?maintenance=canceled`). 409 when the plan is already on (paid or included).
+  - **Stripe's webhook** (`POST /v1/payments/stripe`, the same endpoint and events as decisions 20
+    and 46: no new event is needed) gives each event to the first handler whose `handles(event)`
+    claims it, in order: the maintenance plan (a Checkout Session, a subscription or an invoice
+    whose metadata — for an invoice, `parent.subscription_details.metadata` — has
+    `kind=site-maintenance`), Cloud billing, then the purchases of decision 20. As in decision 46
+    the subscription the event names is read again from Stripe and the project's state is set from
+    it: `maintenanceStatus` from the subscription's status (`active` and `trialing` → `ACTIVE`;
+    `past_due` → `PAST_DUE`, still on while Stripe retries; `incomplete` → `PENDING`; `canceled`,
+    `unpaid`, `incomplete_expired` and `paused` → `CANCELED`), `maintenanceSubscriptionStatus`
+    (Stripe's own word), `maintenanceSubscriptionId`, `maintenancePeriodEnd` (the latest
+    `items.data[].current_period_end`) and `maintenanceCancelAtPeriodEnd`; `maintenanceSince` is
+    set when it turns on. An event of an older subscription never touches a newer one that is on.
+  - **Emails** (plain text and the branded HTML): to the active people of the client account, each
+    in their language, and to the team inbox (in English): "your plan is active" when it turns on,
+    "we couldn't charge the plan" on `invoice.payment_failed` (with a button to the card, whose
+    "Gestionar el plan" updates the card in Stripe's portal), and "your plan has ended" when it
+    goes from on to `CANCELED`. Each change of state goes in the activity log
+    (`project.maintenance_changed`).
+  - **Managing it:** "Gestionar el plan" (`POST /portal/projects/:id/maintenance/portal`, a client
+    of the account) opens Stripe's customer portal for the project's customer, with the account's
+    default portal configuration, the one set up for Cloud's PRO (card, invoices, cancel at the end
+    of the period). Cancelling keeps the plan until `maintenancePeriodEnd`; the card says so.
+  - **Portal card** ("Plan de mantenimiento", on the project's "Tu web" page): what it includes
+    (the list above), the price before and with IVA, the state (not taken, pending, on — with the
+    next renewal, or the end date when cancelled —, payment failed, ended, or included), the button
+    (contract or manage), the month's counter of change requests with "Pedir un cambio", and the
+    plan's invoices: the last 12 Stripe issued to the project's customer (number, date, total,
+    status and a link to Stripe's hosted invoice page, which has the PDF), read from Stripe when
+    the card is shown. They are not copied to the portal's Invoices page (decision 23).
+  - **Admin:** the project's page shows the plan's state, the Stripe ids, the period end and the
+    month's counter, with "Marcar como incluido" / "Quitar incluido"; Admin → Webs →
+    "Mantenimiento" (`/admin/sites/maintenance`) lists every project whose plan is or was on
+    (state, client, since, renewal or end, included reason) with the MRR: the paid plans that are
+    on (`ACTIVE` or `PAST_DUE`) times the price before VAT; included ones are counted apart.
+  - **Landing:** `/basic-website` gets a section "Plan de mantenimiento" with the list and the
+    price, shown only while the plan is available (`GET /site-maintenance/offer`).
 - **English version** (roadmap CQP-99, decision 106; owner's choices 2026-11-17): for businesses
   in tourist areas a basic website can also be in English. It is included in every basic website
   (no extra, no switch for the team) and Spanish stays the main language; no other language.
@@ -2513,3 +2634,4 @@ Changes that touch neither app (only `deploy/` or docs) run no app CI (only Attr
 | 104 | Passkeys (WebAuthn) for every account, on `codeqlick.com` as relying party so one passkey works on every host; a passkey sign-in counts as both factors, but admins still need an authenticator app | Phishing-proof and faster than password plus code for clients, admins and app members alike; keeping TOTP mandatory for admins avoids weakening the rule that protects the panel |
 | 105 | Status page email subscriptions are double opt-in rows of their own, fed by an outbox of notices and sent in batches, capped per plan and per hour; Codeqlick is the team's processor and the Cloud terms move to `2026-11-17`, accepted again in the console | Owner's roadmap item and choice (2026-11-17) to update the legal texts with it. Notices are the team's own words, so only they are emailed, never raw monitor flaps. Own table because subscribers belong to a team (the controller), not to an account; double opt-in is the consent proof and, with the per-address daily limit, stops the feature being used to pester a third party. Turnstile is not added because the newsletter and the other public forms use the honeypot and the 3-second rule. An outbox row written with the notice, plus a batch cursor claimed before sending, gives at most one email per subscriber and survives restarts and two API processes (a crash loses a batch rather than doubling it, as decision 67); the per-team hourly counter and plan cap protect the shared SMTP account and the sender's reputation, and 24-hour-old dispatches are dropped. Maintenance start has no event of its own, so a minute loop claims it with `startNotifiedAt`. One-click unsubscribe follows decision 70. No IP is kept, a team's deletion cascades, and a downgrade only stops new sign-ups so nobody loses what they signed up for. Re-accepting the terms is asked in the console only: blocking API tokens would break deploys from CI over a clause that only adds protections |
 | 106 | A basic website can be in Spanish and English: the client writes the English twins of the texts in the editor, English pages live under `/en` on the same domain, and an empty English text shows the Spanish one | Owner's choices (2026-11-17, CQP-99): tourist-area businesses need English, and it is included in every basic website. The client knows their business and how they want to say it, and machine translation would put words nobody checked on their site, so we only add the fields. Keeping the twins in the site content means they follow the draft, publishing, revisions and discarding like any text; mirroring the content's paths keeps one template and one schema to maintain and lets the editor reuse its fields, and items line up by position so lists stay in step. Falling back to Spanish keeps the English pages whole while the client translates, and counting what is missing tells them what is left without blocking publishing. The same addresses under `/en` with `hreflang` (`x-default` Spanish) is what search engines expect of one site in two languages, needs no second domain or certificate, and lets the switcher find the twin by the prefix. Builds of sites with it off get nothing new, so they stay as they were |
+| 110 | An optional maintenance plan for managed sites, 19 € a month + IVA, as a Stripe subscription per project, with 3 included change requests a month counted on the support requests, and a free "included" mark for the team | Owner's request and price (2026-11-17). Clients want someone to look after their site and make small changes; a subscription gives the studio recurring revenue without changing what a purchase already includes (decision 20 promises hosting and fixes with no time limit, so the plan adds on top and nothing is taken from anyone who paid). Stripe Checkout, its customer portal and its invoices are reused as for Cloud's PRO plan (decision 46): no card data or invoicing of our own, and the state is re-read from the subscription on every event. The webhook gives each event to the first handler that claims it by the metadata `kind`, so one endpoint and one set of events serve the three kinds of payment. Counting change requests (not hours) keeps the allowance automatic, visible to the client as a counter and enforceable without the team logging time; marking each request in or out of the plan when it is opened tells the team at once what to quote. "Included" is a column with its reason, not a fake subscription, so it never collides with Stripe and leaves a trace of why. The price lives in Stripe and the plan stays hidden until it is set there: no live object is made by code |
