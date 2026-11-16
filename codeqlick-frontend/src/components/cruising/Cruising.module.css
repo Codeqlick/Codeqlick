@@ -598,3 +598,195 @@
     height: 60dvh;
   }
 }
+
+/* Search, the rating filter and "active now" (phase 3, decision 86) */
+
+.search {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 36rem;
+}
+
+.searchLabel {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.searchInput:focus-visible,
+.searchItem:focus-visible,
+.activeToggle input:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.searchResults {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+}
+
+.searchHeading {
+  margin: 0 0 var(--space-1);
+  color: var(--color-slate);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.searchList {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchItem {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-fuchsia-dark);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.searchItem:hover {
+  background: var(--color-blush);
+}
+
+.searchMeta {
+  color: var(--color-slate);
+  font-weight: 400;
+}
+
+.searchEmpty {
+  margin: 0;
+  color: var(--color-slate);
+  font-size: 0.9rem;
+}
+
+.activeToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.activeToggle input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--color-fuchsia);
+}
+
+/* An active spot's marker: a ring around it and the count of people there now. */
+.markerActive {
+  position: relative;
+  overflow: visible;
+}
+
+.markerActive::after,
+.legendActive {
+  border: 3px solid var(--color-fuchsia);
+  border-radius: 50%;
+}
+
+.markerActive::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  pointer-events: none;
+  animation: activePulse 1.8s ease-out infinite;
+}
+
+.legendActive {
+  background: var(--color-white);
+}
+
+.activeCount {
+  position: absolute;
+  top: -10px;
+  right: -12px;
+  min-width: 1.15rem;
+  padding: 0 0.25rem;
+  border: 2px solid var(--color-white);
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia-dark);
+  color: var(--color-white);
+  font-size: 0.7rem;
+  line-height: 1.05rem;
+  text-align: center;
+}
+
+@keyframes activePulse {
+  0% {
+    opacity: 1;
+    transform: scale(0.85);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markerActive::after {
+    animation: none;
+  }
+}
+
+.popupActive {
+  color: var(--color-fuchsia-dark);
+  font-weight: 600;
+}
+
+.activeSection {
+  margin: var(--space-6) 0;
+}
+
+.activeList {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hereBadge {
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-fuchsia);
+  color: var(--color-white);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}

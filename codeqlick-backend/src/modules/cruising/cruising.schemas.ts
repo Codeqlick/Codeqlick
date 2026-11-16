@@ -31,6 +31,10 @@ export const MAX_MESSAGE_LENGTH = 1000;
 export const MESSAGES_PAGE = 100;
 /** Cap on the blocks and conversations a list returns. */
 export const MAX_LIST_ROWS = 200;
+/** Places and spots a search answers, of each (decision 86). */
+export const SEARCH_LIMIT = 8;
+/** Active spots one box of the map answers (a box is rarely this busy). */
+export const MAX_ACTIVE_IN_BOX = 500;
 
 export const SPOT_TYPES = [
   'BEACH',
@@ -134,22 +138,35 @@ export const spotPatchSchema = z
   .refine((value) => Object.keys(value).length > 0, { message: 'Nothing to change' });
 export type SpotPatch = z.infer<typeof spotPatchSchema>;
 
+/** `minLng,minLat,maxLng,maxLat`, checked by `parseBbox`. */
+const bboxField = z.string().transform((value, ctx) => {
+  const box = parseBbox(value);
+  if (!box) {
+    ctx.addIssue({
+      code: 'custom',
+      message:
+        'bbox is minLng,minLat,maxLng,maxLat with minLng < maxLng, minLat < maxLat, longitudes -180..180 and latitudes -90..90',
+    });
+    return z.NEVER;
+  }
+  return box;
+});
+
 export const bboxQuerySchema = z.object({
-  bbox: z.string().transform((value, ctx) => {
-    const box = parseBbox(value);
-    if (!box) {
-      ctx.addIssue({
-        code: 'custom',
-        message:
-          'bbox is minLng,minLat,maxLng,maxLat with minLng < maxLng, minLat < maxLat, longitudes -180..180 and latitudes -90..90',
-      });
-      return z.NEVER;
-    }
-    return box;
-  }),
+  bbox: bboxField,
   type: spotTypeSchema.optional(),
+  /** Phase 3: only spots rated at least this (spots with no rating are left out). */
+  minRating: z.coerce.number().int().min(1).max(5).optional(),
 });
 export type BboxQuery = z.infer<typeof bboxQuerySchema>;
+
+/** Phase 3: the active spots of a box of the map (the same grid as `/cruising/spots`). */
+export const activeQuerySchema = z.object({ bbox: bboxField });
+export type ActiveQuery = z.infer<typeof activeQuerySchema>;
+
+/** Phase 3: a search by text, 2-60 characters (accents and case are ignored by the query). */
+export const searchQuerySchema = z.object({ q: z.string().trim().min(2).max(60) });
+export type SearchQuery = z.infer<typeof searchQuerySchema>;
 
 export const placeParamsSchema = z.object({
   countryCode: z

@@ -4946,7 +4946,25 @@
       "proposeHere": "Propose a spot here",
       "proposeNote": "You need an account. We review every spot before publishing it.",
       "reviewsCount": "{count, plural, one {# review} other {# reviews}}",
-      "noReviews": "No ratings yet"
+      "noReviews": "No ratings yet",
+      "minRating": "Minimum rating",
+      "anyRating": "Any rating",
+      "ratingAtLeast": "{rating, plural, one {# star or more} other {# stars or more}}",
+      "activeOnly": "Active now",
+      "activeCount": "{count, plural, =0 {No spots in view are active now} one {# spot active now} other {# spots active now}}",
+      "activeLegend": "Someone is checked in now",
+      "hereNow": "{count, plural, one {# here now} other {# here now}}"
+    },
+    "search": {
+      "label": "Search a city or a spot",
+      "placeholder": "City or spot name",
+      "hint": "Type at least 2 letters. Only the text is sent, never where you are.",
+      "searching": "Searching…",
+      "error": "We couldn't search. Try again in a moment.",
+      "empty": "Nothing found for “{text}”.",
+      "places": "Cities",
+      "spots": "Spots",
+      "placeCount": "{count, plural, one {# spot} other {# spots}}"
     },
     "spot": {
       "metaTitle": "{name}, {city}",
@@ -5044,7 +5062,10 @@
       "countryTitle": "Cruising in {country}",
       "cityMetaTitle": "Cruising spots in {city}, {country}",
       "cityMetaDescription": "{count, plural, one {# cruising spot} other {# cruising spots}} in {city}, {country}, with ratings from other adults.",
-      "cityTitle": "Cruising in {city}, {country}"
+      "cityTitle": "Cruising in {city}, {country}",
+      "activeTitle": "Active now",
+      "activeNone": "Nobody is checked in at these spots right now.",
+      "hereNow": "{count, plural, one {# here now} other {# here now}}"
     },
     "new": {
       "title": "Propose a spot",

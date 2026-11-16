@@ -3,7 +3,15 @@ import en from '@/messages/en.json';
 import es from '@/messages/es.json';
 import { OPTIONAL_SESSION_PATH, PROTECTED_PATH } from './auth/constants';
 import {
+  activeCounts,
+  activeEndpoint,
+  activeSpots,
   boundsToBboxes,
+  gridBboxAround,
+  isGridBbox,
+  parseMinRating,
+  searchEndpoint,
+  searchText,
   CHECK_IN_HOURS,
   conversationHref,
   isLookingFor,
@@ -674,5 +682,66 @@ describe('snapBbox', () => {
     ]) {
       expect(parseBbox(formatBbox(box))).not.toBeNull();
     }
+  });
+});
+
+describe('search, the rating filter and active now (decision 86)', () => {
+  it('searches 2 to 60 characters, trimmed', () => {
+    expect(searchText('  Gran   Canaria ')).toBe('Gran Canaria');
+    expect(searchText('ab')).toBe('ab');
+    expect(searchText(' a ')).toBeNull();
+    expect(searchText('x'.repeat(61))).toBeNull();
+    expect(searchText(null)).toBeNull();
+  });
+
+  it('takes a minimum rating of 1 to 5', () => {
+    expect(parseMinRating('4')).toBe(4);
+    for (const value of ['0', '6', '2.5', '', null, 'x']) expect(parseMinRating(value)).toBeNull();
+  });
+
+  it('asks the route handlers, never the API', () => {
+    expect(searchEndpoint('es', true)).toBe('/es/api/search');
+    expect(activeEndpoint('en', false)).toBe('/en/cruising/api/active');
+  });
+
+  it('accepts only boxes on the grid for active now', () => {
+    expect(isGridBbox({ minLng: -3.75, minLat: 40.25, maxLng: -3.5, maxLat: 40.5 })).toBe(true);
+    expect(isGridBbox({ minLng: -3.7, minLat: 40.25, maxLng: -3.5, maxLat: 40.5 })).toBe(false);
+    const view = snapBbox({ minLng: -3.71, minLat: 40.41, maxLng: -3.69, maxLat: 40.42 });
+    expect(isGridBbox(view)).toBe(true);
+  });
+
+  it('puts a grid box around a city', () => {
+    expect(gridBboxAround([])).toBeNull();
+    expect(
+      gridBboxAround([
+        { lat: 40.41, lng: -3.7 },
+        { lat: 40.3, lng: -3.6 },
+      ]),
+    ).toEqual({ minLng: -3.75, minLat: 40.25, maxLng: -3.5, maxLat: 40.5 });
+    const one = gridBboxAround([{ lat: 40.5, lng: -3.5 }]);
+    expect(one && one.minLng < one.maxLng && one.minLat < one.maxLat).toBe(true);
+  });
+
+  it('joins the answers of the boxes and lists the busiest first', () => {
+    const counts = activeCounts([
+      { items: [{ spotId: 'a', here: 1 }] },
+      {
+        items: [
+          { spotId: 'b', here: 3 },
+          { spotId: 'a', here: 2 },
+          { spotId: 'c', here: 0 },
+        ],
+      },
+    ]);
+    expect([...counts]).toEqual([
+      ['a', 2],
+      ['b', 3],
+    ]);
+    const spots = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    expect(activeSpots(spots, counts)).toEqual([
+      { id: 'b', here: 3 },
+      { id: 'a', here: 2 },
+    ]);
   });
 });

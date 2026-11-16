@@ -16,6 +16,9 @@ const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false, loading: 
 /** /map's map (architecture 6.3): the Leaflet map, loaded on demand. */
 export function CruisingMap(props: {
   endpoint: string;
+  searchEndpoint: string;
+  /** Only for members who have entered: otherwise null and nothing about presence is asked. */
+  activeEndpoint: string | null;
   spotBase: string;
   proposeBase: string;
   initial: MapView;

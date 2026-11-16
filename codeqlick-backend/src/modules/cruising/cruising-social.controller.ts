@@ -18,12 +18,14 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import {
+  activeQuerySchema,
   blockSchema,
   checkInSchema,
   messageSchema,
   messagesQuerySchema,
   nicknameParamSchema,
   openConversationSchema,
+  type ActiveQuery,
   type BlockInput,
   type CheckInInput,
   type MessageInput,
@@ -85,6 +87,16 @@ export class CruisingSocialController {
     @Param({ schema: idParamSchema }) params: IdParam,
   ): Promise<CruisingPresence> {
     return this.social.presence(user.id, params.id);
+  }
+
+  /** The spots of a box of the map with someone there now (phase 3); the web asks by grid cell. */
+  @Get('active')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  active(
+    @CurrentUser() user: AuthUser,
+    @Query({ schema: activeQuerySchema }) query: ActiveQuery,
+  ): Promise<{ items: { spotId: string; here: number }[] }> {
+    return this.social.active(user.id, query.bbox);
   }
 
   @Get('conversations')

@@ -152,6 +152,73 @@ export function boundsToBboxes(west: number, south: number, east: number, north:
   ].filter((box) => box.minLng < box.maxLng);
 }
 
+/** Whether every corner of a box lies on the grid: the only boxes "active now" is asked for. */
+export function isGridBbox(box: Bbox, step = BBOX_GRID): boolean {
+  return [box.minLng, box.minLat, box.maxLng, box.maxLat].every(
+    (value) => Math.abs(value / step - Math.round(value / step)) < 1e-9,
+  );
+}
+
+/** The grid box around some spots (a city's), or null when there are none. */
+export function gridBboxAround(spots: readonly { lat: number; lng: number }[]): Bbox | null {
+  if (spots.length === 0) return null;
+  const lngs = spots.map((spot) => spot.lng);
+  const lats = spots.map((spot) => spot.lat);
+  return snapBbox({
+    minLng: Math.min(...lngs),
+    minLat: Math.min(...lats),
+    maxLng: Math.max(...lngs),
+    maxLat: Math.max(...lats),
+  });
+}
+
+// ---- Search, the rating filter and "active now" (phase 3, decision 86) -------------------------
+
+/** What a search takes: 2 to 60 characters. */
+export const SEARCH_MIN_LENGTH = 2;
+export const SEARCH_MAX_LENGTH = 60;
+
+/** The text to search for (trimmed, spaces collapsed), or null when too short or too long. */
+export function searchText(value: string | null | undefined): string | null {
+  const text = (value ?? '').trim().replace(/\s+/g, ' ');
+  return text.length >= SEARCH_MIN_LENGTH && text.length <= SEARCH_MAX_LENGTH ? text : null;
+}
+
+/** The map's minimum rating filter. */
+export const MIN_RATINGS = [1, 2, 3, 4, 5] as const;
+export type MinRating = (typeof MIN_RATINGS)[number];
+
+export function parseMinRating(value: string | null | undefined): MinRating | null {
+  const number = Number(value);
+  return (MIN_RATINGS as readonly number[]).includes(number) ? (number as MinRating) : null;
+}
+
+/** "Active now" answers of the boxes of a view, as one map from spot to the people there. */
+export function activeCounts(
+  results: readonly { items: readonly { spotId: string; here: number }[] }[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const result of results) {
+    for (const item of result.items) {
+      if (item.here > 0) counts.set(item.spotId, Math.max(counts.get(item.spotId) ?? 0, item.here));
+    }
+  }
+  return counts;
+}
+
+/** The spots with someone there now, busiest first, each with how many. */
+export function activeSpots<T extends { id: string }>(
+  spots: readonly T[],
+  counts: ReadonlyMap<string, number>,
+): (T & { here: number })[] {
+  return spots
+    .flatMap((spot) => {
+      const here = counts.get(spot.id) ?? 0;
+      return here > 0 ? [{ ...spot, here }] : [];
+    })
+    .sort((a, b) => b.here - a.here);
+}
+
 /** Adds the spots not already listed (a view asked as two boxes, or panned back over itself). */
 export function mergeSpots<T extends { id: string }>(current: T[], incoming: T[]): T[] {
   const known = new Set(current.map((spot) => spot.id));
@@ -223,6 +290,16 @@ export function cruisingPath(locale: string, path: string, onHost: boolean): str
 /** What the map asks for the spots in view (the BFF route handler, never the API). */
 export function spotsEndpoint(locale: string, onHost: boolean): string {
   return cruisingPath(locale, '/api/spots', onHost);
+}
+
+/** What the map's search box asks (the BFF route handler, never the API). */
+export function searchEndpoint(locale: string, onHost: boolean): string {
+  return cruisingPath(locale, '/api/search', onHost);
+}
+
+/** What the map asks for the spots with someone there now (entered members only). */
+export function activeEndpoint(locale: string, onHost: boolean): string {
+  return cruisingPath(locale, '/api/active', onHost);
 }
 
 /** A spot's page, a link to propose one at a point, and the map centred somewhere. */
