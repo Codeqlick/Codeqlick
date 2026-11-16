@@ -24,7 +24,7 @@ export const registrationResponseSchema = z.object({
     authenticatorData: base64url(65_536).optional(),
     transports: z.array(z.string().max(32)).max(10).optional(),
     publicKeyAlgorithm: z.number().int().optional(),
-    publicKey: base64url(8192).optional(),
+    publicKey: base64url(16_384).optional(),
   }),
   authenticatorAttachment,
   clientExtensionResults,
@@ -38,7 +38,8 @@ export const authenticationResponseSchema = z.object({
   response: z.object({
     clientDataJSON: base64url(8192),
     authenticatorData: base64url(65_536),
-    signature: base64url(2048),
+    // Post-quantum keys (ML-DSA, which Chrome already offers) sign with up to ~4.6 KB.
+    signature: base64url(16_384),
     userHandle: base64url(512).optional(),
   }),
   authenticatorAttachment,
