@@ -616,6 +616,8 @@ model ClientProject {
   maintenanceCustomerId         String?           @unique @map("maintenance_customer_id")
   maintenancePeriodEnd          DateTime?         @map("maintenance_period_end") @db.Timestamptz(3)
   maintenanceCancelAtPeriodEnd  Boolean           @default(false) @map("maintenance_cancel_at_period_end")
+  /// What the plan bills a month before VAT, in cents, kept by the webhook (decision 122's MRR).
+  maintenanceAmountCents        Int?              @map("maintenance_amount_cents")
   /// When the plan last turned on.
   maintenanceSince              DateTime?         @map("maintenance_since") @db.Timestamptz(3)
   /// Given for free by the team, with why.
@@ -2208,6 +2210,8 @@ model CloudTeam {
   subscriptionStatus      String?                 @map("subscription_status") @db.VarChar(30)
   currentPeriodEnd        DateTime?               @map("current_period_end") @db.Timestamptz(3)
   cancelAtPeriodEnd       Boolean                 @default(false) @map("cancel_at_period_end")
+  /// What the PRO subscription bills a month before VAT, in cents, kept by the webhook (decision 122).
+  subscriptionAmountCents Int?                    @map("subscription_amount_cents")
   /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
   analyticsOverLimitMonth String?                 @map("analytics_over_limit_month") @db.VarChar(7)
   /// Every member needs two-step verification to use the team (architecture 4.13, decision 57).
