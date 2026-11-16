@@ -36,7 +36,7 @@ describe('the account export (Cruising)', () => {
     expect(data.cruising).toBeNull();
   });
 
-  it('includes the profile, spots, reviews, reports, check-ins, messages sent and media', async () => {
+  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts and media', async () => {
     const profile = {
       birthYear: 1990,
       termsVersion: 'v1',
@@ -51,6 +51,10 @@ describe('the account export (Cruising)', () => {
     const checkIns = [{ anonymous: true, spot: { slug: 'the-pier' } }];
     const messages = [{ text: 'Hello', createdAt: new Date('2026-11-15T12:00:00Z') }];
     const media = [{ ref: 'K7QM2XPA', kind: 'PHOTO', status: 'LIVE' }];
+    const favorites = [{ createdAt: new Date('2026-11-16T10:00:00Z'), spot: { slug: 'the-pier' } }];
+    const alerts = [
+      { channel: 'PUSH', createdAt: new Date('2026-11-16T11:00:00Z'), spot: { slug: 'the-pier' } },
+    ];
     const prisma = fakePrisma({
       cruisingProfile: { findUnique: vi.fn().mockResolvedValue(profile) },
       cruisingSpot: { findMany: vi.fn().mockResolvedValue(spots) },
@@ -59,6 +63,8 @@ describe('the account export (Cruising)', () => {
       cruisingCheckIn: { findMany: vi.fn().mockResolvedValue(checkIns) },
       cruisingMessage: { findMany: vi.fn().mockResolvedValue(messages) },
       cruisingMedia: { findMany: vi.fn().mockResolvedValue(media) },
+      cruisingFavorite: { findMany: vi.fn().mockResolvedValue(favorites) },
+      cruisingAlert: { findMany: vi.fn().mockResolvedValue(alerts) },
     });
     const data = await new AccountRepository(prisma).export(USER, null);
     expect(data.cruising).toEqual({
@@ -69,6 +75,8 @@ describe('the account export (Cruising)', () => {
       checkIns,
       messagesSent: messages,
       media,
+      favorites,
+      alerts,
     });
     // The date of birth is never kept, so it cannot be exported: only the year is selected.
     expect(Object.keys(data.cruising?.profile ?? {})).not.toContain('birthDate');

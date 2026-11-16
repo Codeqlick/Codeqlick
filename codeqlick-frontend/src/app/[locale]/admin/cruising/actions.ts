@@ -8,9 +8,11 @@ import {
   actOnCruisingReport,
   approveCruisingSpot,
   decideCruisingVerification,
+  createAdminCruisingSpot,
   decideCruisingTakedown,
   dismissCruisingReport,
   hideCruisingSpot,
+  importAdminCruisingSpots,
   liftCruisingSuspension,
   markCruisingMediaReviewed,
   patchAdminCruisingSpot,
@@ -18,7 +20,17 @@ import {
   removeCruisingMedia,
   withdrawCruisingVerification,
 } from '@/lib/api/cruising';
-import { LIMITS, parseSpotForm, SUSPENSIONS, type CruisingSuspension } from '@/lib/cruising';
+import {
+  LIMITS,
+  parseSpotForm,
+  SPOT_IMPORT_MAX_BYTES,
+  spotImportFormat,
+  SUSPENSIONS,
+  toSpotInput,
+  type CruisingSuspension,
+  type SpotImportResult,
+  type SpotImportState,
+} from '@/lib/cruising';
 import type { FormState } from '@/lib/forms';
 
 async function run(
@@ -123,6 +135,73 @@ export async function takedownAction(
   // Left empty, the email to the person says the decision in their own language.
   const response = text(formData, 'response');
   return run(locale, formData, () => decideCruisingTakedown(takedownId, remove, response));
+}
+
+/** A spot the team adds itself (decision 84): published at once unless "publish now" is off. */
+export async function createSpotAction(
+  locale: AppLocale,
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Cruising.spotForm' });
+  const { values, errors, data } = parseSpotForm(formData);
+  const input = toSpotInput(data);
+  const publish = formData.get('publish') === 'on';
+  if (Object.keys(errors).length > 0 || !input) {
+    return {
+      status: 'error',
+      fieldErrors: Object.fromEntries(
+        Object.entries(errors).map(([field, key]) => [field, t(`errors.${key!}`)]),
+      ),
+      // An unticked box is absent from FormData: echo "publish" only when it was ticked.
+      values: { ...values, ...(publish ? { publish: 'on' } : {}) },
+    };
+  }
+  return run(locale, formData, () => createAdminCruisingSpot({ ...input, publish }));
+}
+
+/**
+ * Checks (dry run) or imports a CSV or GeoJSON file of spots (decision 84). The file comes in the
+ * form and its text goes to the API; the button pressed (`intent`) says which of the two.
+ */
+export async function importSpotsAction(
+  locale: AppLocale,
+  _previous: SpotImportState,
+  formData: FormData,
+): Promise<SpotImportState> {
+  const t = await getTranslations({ locale, namespace: 'CruisingSpotImport' });
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { status: 'error', message: t('chooseFile') };
+  }
+  if (file.size > SPOT_IMPORT_MAX_BYTES) return { status: 'error', message: t('tooBig') };
+  const format = spotImportFormat(file.name, String(formData.get('format') ?? ''));
+  if (!format) return { status: 'error', message: t('chooseFormat') };
+  const dryRun = formData.get('intent') !== 'import';
+  let result: SpotImportResult;
+  try {
+    result = await importAdminCruisingSpots({
+      format,
+      content: await file.text(),
+      publish: formData.get('publish') === 'on',
+      dryRun,
+    });
+  } catch (error) {
+    const failed = await failedState(error, locale, new FormData());
+    return { status: 'error', message: failed.message };
+  }
+  if (!dryRun && result.created > 0) {
+    revalidatePath(`/${locale}/admin/cruising`);
+    for (const each of routing.locales) revalidatePath(`/${each}/cruising`, 'layout');
+  }
+  return {
+    status: 'success',
+    dryRun,
+    result,
+    message: dryRun
+      ? t('checked', { create: result.items.length, skip: result.skipped.length })
+      : t('imported', { count: result.created, skip: result.skipped.length }),
+  };
 }
 
 export async function liftAction(

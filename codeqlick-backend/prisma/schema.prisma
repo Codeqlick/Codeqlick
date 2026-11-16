@@ -178,6 +178,9 @@ model User {
   cruisingBlocksGot          CruisingBlock[]             @relation("CruisingBlocked")
   cruisingMedia              CruisingMedia[]             @relation("CruisingMediaOwner")
   cruisingMediaReviewed      CruisingMedia[]             @relation("CruisingMediaReviewer")
+  cruisingFavorites          CruisingFavorite[]
+  cruisingAlerts             CruisingAlert[]
+  cruisingPushSubscriptions  CruisingPushSubscription[]
   cloudMemberships           CloudMember[]
   cloudInvitesSent           CloudInvite[]
   cloudTokens                CloudToken[]
@@ -3112,6 +3115,10 @@ model CruisingProfile {
   /// Media uploads in the day that began at uploadsSince (20 a day; deleting one doesn't refund it).
   uploads                Int                        @default(0)
   uploadsSince           DateTime?                  @map("uploads_since") @db.Timestamptz(3)
+  /// Phase 3 (decision 85): push alerts when someone checks in at a favourite spot.
+  favoriteAlerts         Boolean                    @default(true) @map("favorite_alerts")
+  /// Phase 3: the daily email about favourites, for members with no push subscription.
+  favoriteEmails         Boolean                    @default(false) @map("favorite_emails")
   createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -3153,6 +3160,8 @@ model CruisingSpot {
   reports   CruisingReport[]
   takedowns CruisingTakedown[]
   checkIns  CruisingCheckIn[]
+  favorites CruisingFavorite[]
+  alerts    CruisingAlert[]
 
   @@index([status, lat])
   @@index([countryCode, citySlug, status])
@@ -3400,4 +3409,62 @@ model CruisingBlock {
   @@id([blockerId, blockedId])
   @@index([blockedId])
   @@map("cruising_blocks")
+}
+
+// ---- Cruising phase 3: favourites and alerts (decision 85) --------------------------------------
+
+enum CruisingAlertChannel {
+  PUSH
+  EMAIL
+}
+
+/// A spot a member saved (up to 100). Only LIVE spots are listed; the row stays while a spot is not
+/// LIVE, so it comes back with it.
+model CruisingFavorite {
+  userId    String   @map("user_id") @db.Uuid
+  spotId    String   @map("spot_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot CruisingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@id([userId, spotId])
+  @@index([spotId])
+  @@index([userId, createdAt])
+  @@map("cruising_favorites")
+}
+
+/// An alert a member got because someone checked in at one of their favourites: at most one per
+/// member and spot every 3 hours and 10 a day (the email, one a day). Never says who. Older than 2
+/// days: deleted hourly.
+model CruisingAlert {
+  id        String               @id @default(uuid()) @db.Uuid
+  userId    String               @map("user_id") @db.Uuid
+  spotId    String               @map("spot_id") @db.Uuid
+  channel   CruisingAlertChannel
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot CruisingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([spotId])
+  @@index([createdAt])
+  @@map("cruising_alerts")
+}
+
+/// A device's Web Push subscription (up to 5 per member; the oldest goes). Deleted when the push
+/// service answers 404 or 410. Notifications use the account's language.
+model CruisingPushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("cruising_push_subscriptions")
 }

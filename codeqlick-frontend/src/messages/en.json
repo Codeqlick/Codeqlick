@@ -4852,7 +4852,8 @@
       "mySpots": "My spots",
       "rules": "Rules",
       "messages": "Messages",
-      "profile": "Profile"
+      "profile": "Profile",
+      "favorites": "Favourites"
     },
     "legal": {
       "terms": "Terms of use",
@@ -5445,6 +5446,47 @@
       "photoAlt": "Photo {number} of {nickname}",
       "videoAlt": "Video {number} of {nickname}",
       "ref": "Ref. {ref}"
+    },
+    "favorites": {
+      "title": "My favourite spots",
+      "lead": "The spots you saved, and how many people are there now. When someone checks in at one, we can let you know without saying who.",
+      "empty": "You haven't saved any spot yet. Open a spot and tap the star.",
+      "here": "{count, plural, =0 {Nobody here now} one {# person here now} other {# people here now}}",
+      "savedOn": "Saved on {date}",
+      "alertsLink": "Choose how we let you know",
+      "save": "Save as favourite",
+      "remove": "Saved as favourite",
+      "removeHint": "Tap to remove it from your favourites.",
+      "saving": "Saving…",
+      "added": "Saved. We let you know when someone checks in here.",
+      "removed": "Removed from your favourites.",
+      "full": "You can save up to 100 favourite spots. Remove one first.",
+      "gone": "This spot isn't available any more.",
+      "notAllowed": "You need to enter Cruising to save favourite spots.",
+      "error": "We couldn't do it. Try again.",
+      "removeButton": "Remove from favourites"
+    },
+    "push": {
+      "title": "Notifications",
+      "lead": "We let you know on this device when someone is at one of your favourite spots and when you get a message. The text never names a spot or a person.",
+      "enable": "Turn on notifications",
+      "disable": "Turn off on this device",
+      "working": "One moment…",
+      "on": "Notifications are on for this device.",
+      "denied": "You have blocked notifications for this site. Allow them in your browser settings and try again.",
+      "unsupported": "This browser doesn't support notifications.",
+      "iosInstall": "On iPhone, first add Cruising to your Home Screen (Share → \"Add to Home Screen\") and turn them on from there.",
+      "error": "They couldn't be turned on. Try again.",
+      "unavailable": "Notifications aren't available right now."
+    },
+    "meFavorites": {
+      "title": "Favourite spots",
+      "alertsLabel": "Let me know when someone checks in at one of my favourite spots",
+      "alertsHint": "On the devices where notifications are on. At most once per spot every 3 hours and 10 times a day; never who it is.",
+      "emailsLabel": "Email me instead when I have no device with notifications on",
+      "emailsHint": "At most one email a day, and only when \"Emails\" above is on. It never names a spot or a person.",
+      "saved": "Saved.",
+      "error": "We couldn't save it. Try again."
     }
   },
   "AdminCruising": {
@@ -5474,7 +5516,8 @@
       "live": "Spots",
       "suspended": "Suspended",
       "media": "New media",
-      "verifications": "Verifications"
+      "verifications": "Verifications",
+      "add": "Add spots"
     },
     "queue": {
       "title": "Spots to review",
@@ -5597,7 +5640,47 @@
       "userId": "User id",
       "userIdInvalid": "That isn't a user id.",
       "withdraw": "Withdraw the badge"
+    },
+    "add": {
+      "oneTitle": "Add a spot",
+      "oneLead": "A spot the team adds itself skips the review queue and has no proposer, so nobody is emailed. Same checks as a proposal: never near schools, playgrounds or places for children.",
+      "publish": "Publish now",
+      "publishHint": "Leave it unticked to send it to the review queue instead.",
+      "create": "Add spot",
+      "importTitle": "Import a file"
     }
+  },
+  "CruisingSpotImport": {
+    "importLead": "A CSV with a header row naming the columns name, type, lat, lng, countryCode, city, description and, optionally, bestTimes (any order, comma or semicolon separated), or a GeoJSON FeatureCollection of points whose properties carry the same fields. The type can be its English or Spanish name. Up to 500 rows and 2 MB. A row is skipped when it is invalid or when a spot of the same type lies within 100 m.",
+    "file": "File",
+    "fileHint": ".csv, .geojson or .json, up to 2 MB.",
+    "format": "Format",
+    "formatAuto": "From the file name",
+    "formatHint": "Taken from the file name (.csv, .geojson or .json) unless you choose one.",
+    "formatDetected": "Read as {format}.",
+    "formats": {
+      "csv": "CSV",
+      "geojson": "GeoJSON"
+    },
+    "check": "Check",
+    "working": "Working…",
+    "import": "Import",
+    "importCount": "Import {count, plural, one {# spot} other {# spots}}",
+    "toCreate": "Spots to create",
+    "created": "Spots created",
+    "skipped": "Rows skipped",
+    "row": "Row",
+    "name": "Name",
+    "type": "Type",
+    "place": "Place",
+    "reason": "Reason",
+    "checked": "{create, plural, =0 {Nothing to create} one {# spot to create} other {# spots to create}}, {skip, plural, =0 {nothing skipped} one {# row skipped} other {# rows skipped}}. Nothing is saved until you import.",
+    "imported": "{count, plural, =0 {No spot created} one {# spot created} other {# spots created}}, {skip, plural, =0 {nothing skipped} one {# row skipped} other {# rows skipped}}.",
+    "chooseFile": "Choose a file first.",
+    "tooBig": "The file is bigger than 2 MB.",
+    "chooseFormat": "Choose the format: the file name says neither CSV nor GeoJSON.",
+    "publish": "Publish now",
+    "publishHint": "Leave it unticked to send it to the review queue instead."
   },
   "MenuKit": {
     "title": "Your menu QR",

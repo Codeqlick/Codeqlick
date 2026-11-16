@@ -10,6 +10,7 @@ import {
 import { CruisingMediaRepository } from './cruising-media.repository.js';
 import { CruisingMediaService } from './cruising-media.service.js';
 import { CruisingMediaStorage } from './cruising-media.storage.js';
+import { CruisingPushService } from './cruising-push.service.js';
 import { CruisingSocialController } from './cruising-social.controller.js';
 import { CruisingSocialService } from './cruising-social.service.js';
 import { CruisingController, CruisingPublicController } from './cruising.controller.js';
@@ -40,6 +41,7 @@ import { CruisingService } from './cruising.service.js';
     CruisingService,
     CruisingSocialService,
     CruisingMediaService,
+    CruisingPushService,
     CruisingRepository,
     CruisingMediaRepository,
     CruisingMediaStorage,

@@ -12,6 +12,7 @@ import styles from '@/components/cruising/Cruising.module.css';
 import { MediaManager } from '@/components/cruising/MediaManager';
 import { VerificationUpload } from '@/components/cruising/VerificationUpload';
 import { VerifiedBadge } from '@/components/cruising/VerifiedBadge';
+import { PushToggle } from '@/components/videochat/PushToggle';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -35,8 +36,11 @@ import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
 import vc from '../../videochat/videochat.module.css';
 import {
+  cruisingPushSubscribeAction,
+  cruisingPushUnsubscribeAction,
   emailAlertsAction,
   endCheckInAction,
+  favoriteSettingsAction,
   profileAction,
   unblockAction,
   uploadVerificationAction,
@@ -61,6 +65,8 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   if (gate) return gate;
   const t = await getTranslations({ locale, namespace: 'Cruising.me' });
   const tl = await getTranslations({ locale, namespace: 'Cruising.lookingFor' });
+  const tf = await getTranslations({ locale, namespace: 'Cruising.meFavorites' });
+  const tp = await getTranslations({ locale, namespace: 'Cruising.push' });
   const profile = status.profile;
   const tv = await getTranslations({ locale, namespace: 'Cruising.verification' });
   const tm = await getTranslations({ locale, namespace: 'Cruising.media' });
@@ -248,6 +254,50 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
             label={t('alertsLabel')}
             hint={t('alertsHint')}
             defaultChecked={status.emailAlerts}
+          />
+          <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
+            {t('save')}
+          </SubmitButton>
+        </ActionForm>
+      </section>
+
+      <section className={vc.panel} aria-labelledby="me-push">
+        <h2 id="me-push" className={vc.sectionTitle}>
+          {tp('title')}
+        </h2>
+        <p className={vc.muted}>{tp('lead')}</p>
+        {status.pushPublicKey ? (
+          <PushToggle
+            publicKey={status.pushPublicKey}
+            locale={locale}
+            serviceWorker="/cruising-sw.js"
+            namespace="Cruising.push"
+            subscribe={cruisingPushSubscribeAction}
+            unsubscribe={cruisingPushUnsubscribeAction}
+          />
+        ) : (
+          <p>{tp('unavailable')}</p>
+        )}
+      </section>
+
+      <section id="me-favorites" className={vc.panel} aria-labelledby="me-favorites-title">
+        <h2 id="me-favorites-title" className={vc.sectionTitle}>
+          {tf('title')}
+        </h2>
+        <ActionForm action={favoriteSettingsAction.bind(null, locale)}>
+          <FormCheckbox
+            id="me-favorite-alerts"
+            name="favoriteAlerts"
+            label={tf('alertsLabel')}
+            hint={tf('alertsHint')}
+            defaultChecked={status.favoriteAlerts}
+          />
+          <FormCheckbox
+            id="me-favorite-emails"
+            name="favoriteEmails"
+            label={tf('emailsLabel')}
+            hint={tf('emailsHint')}
+            defaultChecked={status.favoriteEmails}
           />
           <SubmitButton variant="outline" size="sm" pendingLabel={t('saving')}>
             {t('save')}

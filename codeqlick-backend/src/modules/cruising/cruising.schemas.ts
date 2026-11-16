@@ -123,6 +123,9 @@ export const profileSchema = z.object({
     .transform((list) => [...new Set(list)])
     .optional(),
   showAge: z.boolean().optional(),
+  /** Phase 3 (decision 85): push alerts for favourites, and the daily email about them. */
+  favoriteAlerts: z.boolean().optional(),
+  favoriteEmails: z.boolean().optional(),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
@@ -270,6 +273,24 @@ export type MessagesQuery = z.infer<typeof messagesQuerySchema>;
 export const blockSchema = z.object({ nickname: nicknameLookupSchema });
 export type BlockInput = z.infer<typeof blockSchema>;
 
+// ---- Favourites and notifications (phase 3, decision 85) -----------------------------------------
+
+export const spotIdParamSchema = z.object({ spotId: z.uuid() });
+export type SpotIdParam = z.infer<typeof spotIdParamSchema>;
+
+/** A device's Web Push subscription (`PushSubscription.toJSON()`); the language is the account's. */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/ }).max(2_000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;
+
+export const pushUnsubscribeSchema = z.object({ endpoint: z.string().min(1).max(2_000) });
+export type PushUnsubscribeInput = z.infer<typeof pushUnsubscribeSchema>;
+
 // ---- Admin ---------------------------------------------------------------------------------------
 
 export const adminSpotsQuerySchema = z.object({
@@ -277,6 +298,30 @@ export const adminSpotsQuerySchema = z.object({
   q: z.string().trim().max(100).optional(),
 });
 export type AdminSpotsQuery = z.infer<typeof adminSpotsQuerySchema>;
+
+/** A team spot (decision 84): a proposal's fields, LIVE at once unless `publish` is false. */
+export const adminSpotSchema = spotSchema.extend({ publish: z.boolean().default(true) });
+export type AdminSpotInput = z.infer<typeof adminSpotSchema>;
+
+/** The largest file an import takes, in bytes of UTF-8. */
+export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+/** The most rows an import takes. */
+export const IMPORT_MAX_ROWS = 500;
+/** The JSON body of an import: the file's text escaped in JSON, with room to spare. */
+export const IMPORT_BODY_LIMIT = 3 * IMPORT_MAX_BYTES;
+
+export const importSpotsSchema = z.object({
+  format: z.enum(['csv', 'geojson']),
+  content: z
+    .string()
+    .min(1)
+    .refine((value) => Buffer.byteLength(value, 'utf8') <= IMPORT_MAX_BYTES, {
+      message: 'The file can be up to 2 MB',
+    }),
+  publish: z.boolean().default(true),
+  dryRun: z.boolean().default(false),
+});
+export type ImportSpotsInput = z.infer<typeof importSpotsSchema>;
 
 export const rejectSpotSchema = z.object({ reason: z.string().trim().min(5).max(500) });
 export type RejectSpotInput = z.infer<typeof rejectSpotSchema>;

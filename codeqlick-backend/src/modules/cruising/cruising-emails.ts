@@ -107,7 +107,8 @@ export type CruisingNotice =
   | 'verification-approved'
   | 'verification-rejected'
   | 'verification-withdrawn'
-  | 'media-removed';
+  | 'media-removed'
+  | 'favorites';
 
 const NOTICE_COPY: Record<
   ApiLocale,
@@ -173,6 +174,12 @@ const NOTICE_COPY: Record<
       button: 'Ir a mi perfil',
       path: '/me',
     },
+    favorites: {
+      subject: 'Hay actividad en tus lugares favoritos',
+      body: 'Hay actividad en tus lugares favoritos.',
+      button: 'Ver mis favoritos',
+      path: '/favorites',
+    },
     reasonTitle: 'Motivo',
     until: 'Hasta',
     permanent: 'Hasta que el equipo la levante',
@@ -233,6 +240,12 @@ const NOTICE_COPY: Record<
       button: 'Go to my profile',
       path: '/me',
     },
+    favorites: {
+      subject: "There's activity at your favourite spots",
+      body: "There's activity at your favourite spots.",
+      button: 'See my favourites',
+      path: '/favorites',
+    },
     reasonTitle: 'Reason',
     until: 'Until',
     permanent: 'Until the team lifts it',
@@ -274,7 +287,10 @@ export function cruisingNoticeEmail(
             ? [[copy.until, until ? formatDay(until, locale) : copy.permanent]]
             : undefined,
         button: { label: text.button, url: `${cruisingUrl}/${locale}${text.path}` },
-        note: notice === 'spot-live' || notice === 'unread' ? copy.settings : undefined,
+        note:
+          notice === 'spot-live' || notice === 'unread' || notice === 'favorites'
+            ? copy.settings
+            : undefined,
         signoff: [],
       },
       siteUrl,

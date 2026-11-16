@@ -156,6 +156,8 @@ export const ACTIVITY_ACTIONS = [
   'cruising.spot_removed',
   'cruising.spot_hidden',
   'cruising.spot_edited',
+  'cruising.spot_created',
+  'cruising.spots_imported',
   'cruising.report_dismissed',
   'cruising.report_actioned',
   'cruising.takedown_removed',

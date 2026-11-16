@@ -34,10 +34,46 @@ function supported(): boolean {
   return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 }
 
+/** The video chat's peak time switch (its texts are only loaded where it shows). */
+function PeakSwitch({ initial }: { initial: boolean }) {
+  const tv = useTranslations('Videochat.push');
+  const [peak, setPeak] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function toggle(on: boolean) {
+    setBusy(true);
+    setError(false);
+    const result = await peakAlertsAction(on).catch(() => ({ ok: false }));
+    if (result.ok) setPeak(on);
+    else setError(true);
+    setBusy(false);
+  }
+
+  return (
+    <>
+      {error ? <Alert tone="error">{tv('error')}</Alert> : null}
+      <p>
+        <label>
+          <input
+            type="checkbox"
+            checked={peak}
+            disabled={busy}
+            onChange={(event) => void toggle(event.target.checked)}
+          />{' '}
+          {tv('peak')}
+        </label>
+        <br />
+        <small>{tv('peakHint')}</small>
+      </p>
+    </>
+  );
+}
+
 /**
  * Notifications on this device (Web Push): registers the app's service worker, subscribes with
  * the server's key and stores the subscription. The video chat's by default ("someone is there",
- * architecture 4.7); Swipe passes its own worker, actions and texts (4.10).
+ * architecture 4.7); Swipe (4.10) and Cruising (4.15) pass their own worker, actions and texts.
  */
 export function PushToggle({
   publicKey,
@@ -51,17 +87,14 @@ export function PushToggle({
   publicKey: string;
   locale: 'en' | 'es';
   serviceWorker?: string;
-  namespace?: 'Videochat.push' | 'Swipe.push';
+  namespace?: 'Videochat.push' | 'Swipe.push' | 'Cruising.push';
   subscribe?: (input: Subscription) => Promise<{ ok: boolean }>;
   unsubscribe?: (endpoint: string) => Promise<{ ok: boolean }>;
   /** Video chat only: the account asked for peak time alerts (the switch shows when given). */
   peakAlerts?: boolean;
 }) {
   const t = useTranslations(namespace);
-  const tv = useTranslations('Videochat.push');
   const [state, setState] = useState<State>('loading');
-  const [peak, setPeak] = useState(peakAlerts ?? false);
-  const [peakBusy, setPeakBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 
@@ -139,15 +172,6 @@ export function PushToggle({
     }
   }
 
-  async function togglePeak(on: boolean) {
-    setPeakBusy(true);
-    setError(false);
-    const result = await peakAlertsAction(on).catch(() => ({ ok: false }));
-    if (result.ok) setPeak(on);
-    else setError(true);
-    setPeakBusy(false);
-  }
-
   if (state === 'loading') return null;
   return (
     <div>
@@ -161,21 +185,7 @@ export function PushToggle({
           {busy ? t('working') : t('enable')}
         </Button>
       ) : null}
-      {state === 'on' && peakAlerts !== undefined ? (
-        <p>
-          <label>
-            <input
-              type="checkbox"
-              checked={peak}
-              disabled={peakBusy}
-              onChange={(event) => void togglePeak(event.target.checked)}
-            />{' '}
-            {tv('peak')}
-          </label>
-          <br />
-          <small>{tv('peakHint')}</small>
-        </p>
-      ) : null}
+      {state === 'on' && peakAlerts !== undefined ? <PeakSwitch initial={peakAlerts} /> : null}
       {state === 'on' ? (
         <Button type="button" variant="outline" onClick={disable} disabled={busy}>
           {busy ? t('working') : t('disable')}

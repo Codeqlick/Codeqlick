@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
+import { FavoriteStar } from '@/components/cruising/FavoriteStar';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
 import { SpotPresence } from '@/components/cruising/SpotPresence';
 import { SpotLocationMap } from '@/components/cruising/SpotLocationMap';
@@ -104,6 +105,7 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
             : t('noRatings')}
         </span>
       </p>
+      {status?.onboarded ? <FavoriteStar locale={locale} spotId={spot.id} /> : null}
 
       <div className={cruising.spotLayout}>
         <div>

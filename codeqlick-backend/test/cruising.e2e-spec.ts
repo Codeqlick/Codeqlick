@@ -905,6 +905,294 @@ describe('Cruising (e2e)', () => {
     expect(await rating()).toMatchObject({ ratingAvg: 5, ratingCount: 1 });
   });
 
+  describe('seeding the directory (decision 84)', () => {
+    // Somewhere in the Southern Ocean, a different place each run: nothing else lives there, so
+    // the duplicate check only ever sees this run's spots.
+    const base = { lat: -50 + Math.random() * 5, lng: -120 + Math.random() * 5 };
+    /** `n` hundredths of a degree north of the base (about 1.1 km each), plus `metres` more. */
+    const near = (n: number, metres = 0) => ({
+      lat: Number((base.lat + n / 100 + metres / 111_195).toFixed(5)),
+      lng: Number(base.lng.toFixed(5)),
+    });
+    const teamSpot = (name: string, n: number, over: Record<string, unknown> = {}) => ({
+      name: `${name} ${tag}`,
+      type: 'PARK',
+      ...near(n),
+      countryCode: 'ES',
+      city: `Seed ${tag}`,
+      description: 'Paths under the pines.',
+      ...over,
+    });
+    const importSpots = (body: Record<string, unknown>, who: Person = admin) =>
+      request(server()).post('/v1/admin/cruising/spots/import').set(who.auth).send(body);
+    const seededCount = () =>
+      prisma.cruisingSpot.count({ where: { city: `Seed ${tag}`, createdById: null } });
+    const lastActivity = (action: string) =>
+      prisma.activityLog.findFirst({
+        where: { action, actorId: admin.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+    it('creates a team spot, LIVE at once, with no proposer and in the activity log', async () => {
+      const res = await request(server())
+        .post('/v1/admin/cruising/spots')
+        .set(admin.auth)
+        .send(teamSpot('Pine Park', 0))
+        .expect(201);
+      expect(res.body).toEqual({
+        id: expect.any(String),
+        slug: `pine-park-${tag}`,
+        status: 'LIVE',
+      });
+      const row = await prisma.cruisingSpot.findUnique({ where: { id: res.body.id } });
+      expect(row).toMatchObject({ status: 'LIVE', createdById: null });
+      expect(row?.reviewedAt).toBeInstanceOf(Date);
+      await request(server()).get(`/v1/cruising/spots/${res.body.slug}`).expect(200);
+      expect(await lastActivity('cruising.spot_created')).toMatchObject({
+        targetType: 'cruising',
+        targetId: res.body.id,
+        details: { status: 'LIVE' },
+      });
+      expect(sent).toHaveLength(0);
+    });
+
+    it('leaves a team spot PENDING with publish false, and checks it like a proposal', async () => {
+      const res = await request(server())
+        .post('/v1/admin/cruising/spots')
+        .set(admin.auth)
+        .send(teamSpot('Quiet Corner', 3, { publish: false }))
+        .expect(201);
+      expect(res.body.status).toBe('PENDING');
+      await request(server()).get(`/v1/cruising/spots/${res.body.slug}`).expect(404);
+      for (const bad of [{ lat: 91 }, { type: 'POOL' }, { countryCode: 'XX' }, { name: 'A' }]) {
+        await request(server())
+          .post('/v1/admin/cruising/spots')
+          .set(admin.auth)
+          .send(teamSpot('Bad', 4, bad))
+          .expect(400);
+      }
+    });
+
+    it('is for the team only', async () => {
+      await request(server())
+        .post('/v1/admin/cruising/spots')
+        .set(ana.auth)
+        .send(teamSpot('Not mine', 5))
+        .expect(403);
+      await importSpots({ format: 'csv', content: 'name', dryRun: true }, ana).expect(403);
+      await request(server())
+        .post('/v1/admin/cruising/spots')
+        .send(teamSpot('Nobody', 5))
+        .expect(401);
+      expect(
+        await prisma.cruisingSpot.count({
+          where: { name: { in: [`Not mine ${tag}`, `Nobody ${tag}`] } },
+        }),
+      ).toBe(0);
+    });
+
+    const csvRow = (cells: (string | number)[]) => cells.join(';');
+    /** Columns in another order, semicolons, a BOM, a quoted field and Spanish labels. */
+    const csv = () =>
+      [
+        '﻿City;Type;Lat;Lng;Name;Description;countrycode;Best times',
+        // 2: near (40 m) the LIVE team spot "Pine Park", same type: a duplicate.
+        csvRow([
+          `Seed ${tag}`,
+          'Parque',
+          near(0, 40).lat,
+          near(0).lng,
+          `Twin ${tag}`,
+          'X',
+          'es',
+          '',
+        ]),
+        // 3: the same place but another type: fine.
+        csvRow([
+          `Seed ${tag}`,
+          'Playa',
+          near(0, 40).lat,
+          near(0).lng,
+          `Sand ${tag}`,
+          'Y',
+          'es',
+          '',
+        ]),
+        // 4: a quoted field holding the separator and quotes.
+        csvRow([
+          `Seed ${tag}`,
+          'Bosque o monte',
+          near(10).lat,
+          near(10).lng,
+          `Woods ${tag}`,
+          '"Left at the gate; then ""the oak"""',
+          'ES',
+          'weekday evenings',
+        ]),
+        // 5: within 100 m of row 4, same type: a duplicate of an earlier row.
+        csvRow([
+          `Seed ${tag}`,
+          'forest',
+          near(10, 60).lat,
+          near(10).lng,
+          `Woods2 ${tag}`,
+          'Z',
+          'ES',
+          '',
+        ]),
+        // 6: a latitude out of range.
+        csvRow([`Seed ${tag}`, 'PARK', 95, near(20).lng, `North ${tag}`, 'Z', 'ES', '']),
+        // 7: an unknown type.
+        csvRow([
+          `Seed ${tag}`,
+          'Piscina',
+          near(30).lat,
+          near(30).lng,
+          `Pool ${tag}`,
+          'Z',
+          'ES',
+          '',
+        ]),
+        // 8: the REJECTED one below is no duplicate.
+        csvRow([`Seed ${tag}`, 'Cine', near(40).lat, near(40).lng, `Cinema ${tag}`, 'Z', 'ES', '']),
+      ].join('\r\n');
+
+    it('imports a CSV: a dry run first, then the rows in one go and one activity entry', async () => {
+      // A rejected spot right where row 8 is: rejected spots don't count as duplicates.
+      await prisma.cruisingSpot.create({
+        data: {
+          slug: `rejected-cinema-${tag}`,
+          name: `Rejected cinema ${tag}`,
+          type: 'CINEMA',
+          ...near(40),
+          countryCode: 'ES',
+          city: `Elsewhere ${tag}`,
+          citySlug: `elsewhere-${tag}`,
+          description: 'Rejected.',
+          status: 'REJECTED',
+        },
+      });
+      const before = await seededCount();
+      const expected = {
+        items: [
+          { row: 3, name: `Sand ${tag}`, city: `Seed ${tag}`, countryCode: 'ES', type: 'BEACH' },
+          { row: 4, name: `Woods ${tag}`, city: `Seed ${tag}`, countryCode: 'ES', type: 'FOREST' },
+          { row: 8, name: `Cinema ${tag}`, city: `Seed ${tag}`, countryCode: 'ES', type: 'CINEMA' },
+        ],
+        skipped: [
+          { row: 2, reason: `Duplicate of "Pine Park ${tag}" (within 100 m)` },
+          { row: 5, reason: 'Duplicate of row 4 (within 100 m)' },
+          { row: 6, reason: expect.stringMatching(/^lat: /) },
+          { row: 7, reason: expect.stringMatching(/^type: /) },
+        ],
+      };
+
+      const dry = await importSpots({ format: 'csv', content: csv(), dryRun: true }).expect(200);
+      expect(dry.body).toEqual({ created: 0, ...expected });
+      expect(await seededCount()).toBe(before);
+
+      const real = await importSpots({ format: 'csv', content: csv(), dryRun: false }).expect(200);
+      expect(real.body).toEqual({ created: 3, ...expected });
+      expect(await seededCount()).toBe(before + 3);
+      const woods = await prisma.cruisingSpot.findFirst({ where: { name: `Woods ${tag}` } });
+      expect(woods).toMatchObject({
+        slug: `woods-${tag}`,
+        status: 'LIVE',
+        createdById: null,
+        description: 'Left at the gate; then "the oak"',
+        bestTimes: 'weekday evenings',
+        citySlug: `seed-${tag}`,
+      });
+      expect(await lastActivity('cruising.spots_imported')).toMatchObject({
+        targetType: 'cruising',
+        details: { created: 3, skipped: 4, format: 'csv', status: 'LIVE' },
+      });
+
+      // Again: every row is now a duplicate (or still invalid), so nothing is created.
+      const again = await importSpots({ format: 'csv', content: csv() }).expect(200);
+      expect(again.body.created).toBe(0);
+      expect(again.body.skipped).toHaveLength(7);
+    });
+
+    it('imports GeoJSON points, PENDING with publish false, numbered by index', async () => {
+      const feature = (name: string, n: number, type: string, geometryType = 'Point') => ({
+        type: 'Feature',
+        geometry: { type: geometryType, coordinates: [near(n).lng, near(n).lat] },
+        properties: {
+          name: `${name} ${tag}`,
+          type,
+          countryCode: 'pt',
+          city: `Seed ${tag}`,
+          description: 'By the dunes.',
+        },
+      });
+      const content = JSON.stringify({
+        type: 'FeatureCollection',
+        features: [
+          feature('Dunes', 50, 'Beach'),
+          feature('Line', 51, 'BEACH', 'LineString'),
+          feature('Rest stop', 52, 'Área de descanso'),
+        ],
+      });
+      const res = await importSpots({ format: 'geojson', content, publish: false }).expect(200);
+      expect(res.body).toEqual({
+        created: 2,
+        items: [
+          { row: 0, name: `Dunes ${tag}`, city: `Seed ${tag}`, countryCode: 'PT', type: 'BEACH' },
+          {
+            row: 2,
+            name: `Rest stop ${tag}`,
+            city: `Seed ${tag}`,
+            countryCode: 'PT',
+            type: 'REST_AREA',
+          },
+        ],
+        skipped: [{ row: 1, reason: 'Not a Point feature' }],
+      });
+      const dunes = await prisma.cruisingSpot.findFirst({ where: { name: `Dunes ${tag}` } });
+      expect(dunes).toMatchObject({ status: 'PENDING', createdById: null, reviewedAt: null });
+      expect(Number(dunes?.lat)).toBe(near(50).lat);
+    });
+
+    it('takes a large file but refuses one it cannot read, over 500 rows or over 2 MB', async () => {
+      const header = 'name,type,lat,lng,countryCode,city,description,notes';
+      const row = (n: number, notes = '') => [
+        `Big ${n} ${tag}`,
+        'PARK',
+        near(100 + n).lat,
+        near(100 + n).lng,
+        'ES',
+        'C',
+        'D',
+        notes,
+      ];
+      // About 1.5 MB in 300 rows: past the global 100 KB body limit.
+      const large = [
+        header,
+        ...Array.from({ length: 300 }, (_, n) => row(n, 'x'.repeat(5000)).join(',')),
+      ];
+      const dry = await importSpots({
+        format: 'csv',
+        content: large.join('\n'),
+        dryRun: true,
+      }).expect(200);
+      expect(dry.body.items).toHaveLength(300);
+
+      const many = [header, ...Array.from({ length: 501 }, (_, n) => row(n).join(','))];
+      const tooMany = await importSpots({ format: 'csv', content: many.join('\n'), dryRun: true });
+      expect(tooMany.status).toBe(400);
+      expect(tooMany.body.detail).toContain('500');
+
+      await importSpots({ format: 'csv', content: 'name,type\nA,PARK', dryRun: true }).expect(400);
+      await importSpots({ format: 'geojson', content: '{"type":"Feature"}' }).expect(400);
+      await importSpots({ format: 'kml', content: 'x' }).expect(400);
+      await importSpots({ format: 'csv', content: 'x'.repeat(2 * 1024 * 1024 + 1) }).expect(400);
+      expect(
+        await prisma.cruisingSpot.count({ where: { name: { startsWith: 'Big ', contains: tag } } }),
+      ).toBe(0);
+    });
+  });
+
   it('searches cities and spots by text, ignoring accents and case, LIVE spots only', async () => {
     let made = 0;
     const place = async (name: string, city: string, status: 'LIVE' | 'PENDING' = 'LIVE') => {

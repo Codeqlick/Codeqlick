@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Put,
   Query,
   Res,
 } from '@nestjs/common';
@@ -25,6 +26,9 @@ import {
   messagesQuerySchema,
   nicknameParamSchema,
   openConversationSchema,
+  pushSubscriptionSchema,
+  pushUnsubscribeSchema,
+  spotIdParamSchema,
   type ActiveQuery,
   type BlockInput,
   type CheckInInput,
@@ -32,11 +36,15 @@ import {
   type MessagesQuery,
   type NicknameParam,
   type OpenConversationInput,
+  type PushSubscriptionInput,
+  type PushUnsubscribeInput,
+  type SpotIdParam,
 } from './cruising.schemas.js';
 import {
   CruisingSocialService,
   type CruisingCheckInView,
   type CruisingConversationView,
+  type CruisingFavoriteView,
   type CruisingMember,
   type CruisingMessageView,
   type CruisingPresence,
@@ -180,5 +188,54 @@ export class CruisingSocialController {
     @Param({ schema: nicknameParamSchema }) params: NicknameParam,
   ): Promise<void> {
     return this.social.unblock(user.id, params.nickname);
+  }
+
+  // ---- Favourites and notifications (phase 3, decision 85) ---------------------------------------
+
+  @Get('favorites')
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  favorites(@CurrentUser() user: AuthUser): Promise<{ items: CruisingFavoriteView[] }> {
+    return this.social.favorites(user.id);
+  }
+
+  @Put('favorites/:spotId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  saveFavorite(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: spotIdParamSchema }) params: SpotIdParam,
+  ): Promise<void> {
+    return this.social.saveFavorite(user.id, params.spotId);
+  }
+
+  @Delete('favorites/:spotId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  removeFavorite(
+    @CurrentUser() user: AuthUser,
+    @Param({ schema: spotIdParamSchema }) params: SpotIdParam,
+  ): Promise<void> {
+    return this.social.removeFavorite(user.id, params.spotId);
+  }
+
+  /** This device's Web Push subscription; `409` while notifications are off (no VAPID keys). */
+  @Put('push')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  subscribePush(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: pushSubscriptionSchema }) body: PushSubscriptionInput,
+  ): Promise<void> {
+    return this.social.subscribePush(user.id, body);
+  }
+
+  @Delete('push')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  unsubscribePush(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: pushUnsubscribeSchema }) body: PushUnsubscribeInput,
+  ): Promise<void> {
+    return this.social.unsubscribePush(user.id, body.endpoint);
   }
 }
