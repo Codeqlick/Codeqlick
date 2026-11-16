@@ -9,7 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { MailMessage, MailService } from '../mail/mail.service.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
+import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { CruisingPushService } from './cruising-push.service.js';
+import type { CruisingWinksService } from './cruising-winks.service.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingSocialService } from './cruising-social.service.js';
 
@@ -143,14 +145,26 @@ function build() {
   };
   const mediaRepo = { badges: vi.fn().mockResolvedValue(new Map()) };
   const push = { enabled: true, notify: vi.fn().mockResolvedValue(1) };
+  const notifications = {
+    notify: vi.fn().mockResolvedValue(undefined),
+    notifyMany: vi.fn().mockResolvedValue(undefined),
+    readConversation: vi.fn().mockResolvedValue(undefined),
+    cleanup: vi.fn().mockResolvedValue(undefined),
+  };
+  const winks = {
+    recordVisit: vi.fn().mockResolvedValue(undefined),
+    winkedToday: vi.fn().mockResolvedValue(false),
+  };
   const service = new CruisingSocialService(
     repo as unknown as CruisingRepository,
     mediaRepo as unknown as CruisingMediaRepository,
     mail as unknown as MailService,
     config as unknown as AppConfigService,
     push as unknown as CruisingPushService,
+    notifications as unknown as CruisingNotificationsService,
+    winks as unknown as CruisingWinksService,
   );
-  return { service, repo, sent, push };
+  return { service, repo, sent, push, notifications, winks };
 }
 
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -239,7 +253,26 @@ describe('CruisingSocialService', () => {
         health: null,
         badges: [],
         contributions: { spotsLive: 0, helpfulReceived: 0, reviewsWritten: 0 },
+        winked: false,
       });
+    });
+
+    it('records the visit and says whether I winked today (decision 97)', async () => {
+      t.winks.winkedToday.mockResolvedValue(true);
+      expect((await t.service.member(ME, SECRET_NICKNAME, NOW)).winked).toBe(true);
+      expect(t.winks.recordVisit).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: ME }),
+        expect.objectContaining({ userId: OTHER }),
+        NOW,
+      );
+    });
+
+    it('records no visit of a blocked member, who stays hidden', async () => {
+      t.repo.hiddenIds.mockResolvedValue([OTHER]);
+      await expect(t.service.member(ME, SECRET_NICKNAME, NOW)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(t.winks.recordVisit).not.toHaveBeenCalled();
     });
 
     it('shows sexual health only when it is on and the member shows it (decision 94)', async () => {
@@ -926,6 +959,35 @@ describe('CruisingSocialService', () => {
       ]);
       expect(t.push.notify).toHaveBeenCalledWith('favorite', [{ userId: OTHER, locale: 'es' }]);
       expect(t.sent).toHaveLength(0);
+      expect(t.notifications.notifyMany).toHaveBeenCalledWith(
+        [OTHER],
+        'FAVORITE_ACTIVITY',
+        { spotId: SPOT },
+        NOW,
+      );
+    });
+
+    it('writes the centre within the caps even with neither push nor email (decision 98)', async () => {
+      t.repo.favoriteAlertCandidates.mockResolvedValue([
+        saver({ favoriteEmails: false, favoriteAlerts: false }, 0),
+      ]);
+      expect(await t.service.alertFavorites(SPOT, ME, NOW, 'safety')).toBe(0);
+      expect(t.notifications.notifyMany).toHaveBeenLastCalledWith(
+        [OTHER],
+        'SAFETY_ALERT',
+        { spotId: SPOT },
+        NOW,
+      );
+      t.repo.recentAlerts.mockResolvedValue([
+        { userId: OTHER, spotId: SPOT, channel: 'PUSH', createdAt: NOW },
+      ]);
+      await t.service.alertFavorites(SPOT, ME, NOW, 'meetup');
+      expect(t.notifications.notifyMany).toHaveBeenLastCalledWith(
+        [],
+        'MEETUP_PLANNED',
+        { spotId: SPOT },
+        NOW,
+      );
     });
 
     it('respects the 3 hour and 10 a day caps', async () => {
@@ -1006,6 +1068,21 @@ describe('CruisingSocialService', () => {
       await t.service.sendMessage(ME, CONVERSATION, 'Hello there', NOW);
       await t.service.idle();
       expect(t.push.notify).toHaveBeenCalledWith('message', [{ userId: OTHER, locale: 'es' }]);
+      expect(t.notifications.notify).toHaveBeenCalledWith(
+        OTHER,
+        'MESSAGE',
+        { conversationId: CONVERSATION },
+        NOW,
+      );
+    });
+
+    it('write the centre while push is off, and reading the conversation reads it', async () => {
+      t.push.enabled = false;
+      await t.service.sendMessage(ME, CONVERSATION, 'Hello there', NOW);
+      await t.service.idle();
+      expect(t.notifications.notify).toHaveBeenCalledTimes(1);
+      await t.service.messages(ME, CONVERSATION, undefined, NOW);
+      expect(t.notifications.readConversation).toHaveBeenCalledWith(ME, CONVERSATION, NOW);
     });
 
     it('skip a suspended or blocked recipient, and do nothing while push is off', async () => {
@@ -1029,6 +1106,7 @@ describe('CruisingSocialService', () => {
       await t.service.sendMessage(ME, CONVERSATION, 'Hello', NOW);
       await t.service.idle();
       expect(t.push.notify).not.toHaveBeenCalled();
+      expect(t.notifications.notify).not.toHaveBeenCalled();
 
       t.repo.hiddenIds.mockResolvedValue([]);
       t.push.enabled = false;

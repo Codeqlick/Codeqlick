@@ -47,6 +47,7 @@ import {
   type MediaStatus,
 } from './cruising-media.rules.js';
 import { CruisingMediaStorage } from './cruising-media.storage.js';
+import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import { isSuspended } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
 import type { MediaPatch, VerificationDecision } from './cruising.schemas.js';
@@ -137,6 +138,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     private readonly activity: ActivityService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly notifications: CruisingNotificationsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -433,6 +435,9 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       input.approve ? 'verification-approved' : 'verification-rejected',
       input.note || null,
     );
+    await this.notifications.notify(userId, 'VERIFICATION_DECIDED', {
+      status: input.approve ? 'APPROVED' : 'REJECTED',
+    });
   }
 
   /** Takes the "Verified" badge away (on a report or a suspension); the member is told. */
@@ -452,6 +457,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       targetLabel: profile.nickname ?? userId,
     });
     await this.notify(userId, 'verification-withdrawn');
+    await this.notifications.notify(userId, 'VERIFICATION_DECIDED', { status: 'WITHDRAWN' });
   }
 
   // ---- My media ----------------------------------------------------------------------------------
@@ -840,6 +846,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
       details: { reason: input.reason, blockHash: input.blockHash },
     });
     await this.notify(item.ownerId, 'media-removed', input.reason);
+    await this.notifications.notify(item.ownerId, 'MEDIA_REMOVED', {}, now);
     if (
       input.withdrawVerification &&
       item.owner.cruisingProfile?.verificationStatus === 'APPROVED'

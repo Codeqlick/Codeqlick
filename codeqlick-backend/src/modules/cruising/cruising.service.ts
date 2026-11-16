@@ -56,6 +56,7 @@ import {
 } from './cruising-insights.rules.js';
 import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
 import { mediaHidesAtOnce, normalizeMediaRef, reasonAllowedOn } from './cruising-media.rules.js';
+import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import {
   CruisingMediaService,
   verificationState,
@@ -356,6 +357,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     private readonly activity: ActivityService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly notifications: CruisingNotificationsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -1326,6 +1328,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     // Putting a hidden spot back is not news to the proposer.
     if (spot.createdById && spot.status !== 'HIDDEN') {
       await this.notifyMember(spot.createdById, 'spot-live');
+      await this.notifications.notify(spot.createdById, 'SPOT_PUBLISHED', { spotId: spot.id }, now);
     }
   }
 
@@ -1372,7 +1375,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       targetLabel: spot.slug,
       details: { reason },
     });
-    if (spot.createdById) await this.notifyMember(spot.createdById, 'spot-rejected', reason);
+    if (spot.createdById) {
+      await this.notifyMember(spot.createdById, 'spot-rejected', reason);
+      await this.notifications.notify(spot.createdById, 'SPOT_REJECTED', { spotId: spot.id }, now);
+    }
   }
 
   /** Removed by moderation after a report: final, the proposer sees it removed and can't resend it. */
@@ -1393,7 +1399,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       targetLabel: spot.slug,
       details: { reason },
     });
-    if (spot.createdById) await this.notifyMember(spot.createdById, 'spot-removed', reason);
+    if (spot.createdById) {
+      await this.notifyMember(spot.createdById, 'spot-removed', reason);
+      await this.notifications.notify(spot.createdById, 'SPOT_REMOVED', { spotId: spot.id }, now);
+    }
   }
 
   // ---- Admin: reports ----------------------------------------------------------------------------

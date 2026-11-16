@@ -52,6 +52,7 @@ import {
   type TripInput,
 } from './cruising-community.schemas.js';
 import { cruisingNoticeEmail } from './cruising-emails.js';
+import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import { CruisingPushService } from './cruising-push.service.js';
 import { isSuspended, type Bbox } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
@@ -167,6 +168,7 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
     private readonly push: CruisingPushService,
     private readonly mail: MailService,
     private readonly config: AppConfigService,
+    private readonly notifications: CruisingNotificationsService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -423,10 +425,12 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
   async notifyCancelled(meetupId: string, now = new Date()): Promise<number> {
     const recipients = await this.community.attendeeRecipients(meetupId);
     const pushTo: { userId: string; locale: 'en' | 'es' }[] = [];
+    const centre: string[] = [];
     let told = 0;
     for (const user of recipients) {
       const profile = user.cruisingProfile;
       if (!profile || isSuspended(profile, now)) continue;
+      centre.push(user.id);
       const locale = toApiLocale(user.locale);
       if (this.push.enabled && user._count.cruisingPushSubscriptions > 0) {
         pushTo.push({ userId: user.id, locale });
@@ -449,6 +453,7 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
           });
       }
     }
+    await this.notifications.notifyMany(centre, 'MEETUP_CANCELLED', { meetupId }, now);
     await this.push.notify('meetup-cancelled', pushTo);
     return told;
   }
