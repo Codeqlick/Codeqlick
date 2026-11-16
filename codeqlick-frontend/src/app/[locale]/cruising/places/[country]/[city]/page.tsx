@@ -25,6 +25,7 @@ import {
   SLUG,
   spotHref,
 } from '@/lib/cruising';
+import { roomHref } from '@/lib/cruising-rooms';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import vc from '../../../../videochat/videochat.module.css';
 
@@ -136,6 +137,13 @@ export default async function CruisingCityPage({ params }: PageProps) {
             <p className={vc.muted}>{t('activeNone')}</p>
           )}
         </section>
+      ) : null}
+      {status?.allowed ? (
+        <p>
+          <Link href={roomHref(city.countryCode, city.citySlug)} className={vc.inlineLink}>
+            {t('roomLink', { city: city.city })}
+          </Link>
+        </p>
       ) : null}
       {status?.allowed ? (
         <CityCommunity

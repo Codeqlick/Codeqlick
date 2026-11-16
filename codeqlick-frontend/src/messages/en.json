@@ -4855,7 +4855,8 @@
       "messages": "Messages",
       "profile": "Profile",
       "favorites": "Favourites",
-      "meetups": "Meetups"
+      "meetups": "Meetups",
+      "rooms": "City chats"
     },
     "legal": {
       "terms": "Terms of use",
@@ -5086,7 +5087,8 @@
       "activeTitle": "Active now",
       "activeNone": "Nobody is checked in at these spots right now.",
       "hereNow": "{count, plural, one {# here now} other {# here now}}",
-      "spotsTitle": "Spots"
+      "spotsTitle": "Spots",
+      "roomLink": "Open the chat of {city}"
     },
     "new": {
       "title": "Propose a spot",
@@ -5418,7 +5420,10 @@
       "sentPhoto": "Photo uploaded.",
       "sentVideo": "Video uploaded. It is being processed: it will be live in a moment.",
       "empty": "You haven't added anything yet.",
-      "listLabel": "Your photos and videos",
+      "listLabel": {
+        "PUBLIC": "Photos and videos of your public album",
+        "PRIVATE": "Photos and videos of your private album"
+      },
       "kind": {
         "PHOTO": "Photo",
         "VIDEO": "Video"
@@ -5465,14 +5470,29 @@
         "tooManyToday": "You have reached today's upload limit. Try again tomorrow.",
         "diskFull": "We are short of space right now. Try again later.",
         "coverNotLive": "Only a live photo can be the cover.",
-        "error": "Something went wrong. Try again."
-      }
+        "error": "Something went wrong. Try again.",
+        "albumFull": "The other album is full. Delete something there first."
+      },
+      "perAlbum": "The limits of photos and videos are per album",
+      "albumLabel": "Album to upload to",
+      "album": {
+        "PUBLIC": "Public album",
+        "PRIVATE": "Private album"
+      },
+      "albumHint": {
+        "PUBLIC": "On your profile, for every member who has entered.",
+        "PRIVATE": "Only for the members you share it with from a conversation."
+      },
+      "albumEmpty": "Nothing in this album yet.",
+      "moveToPrivate": "Move to private album",
+      "moveToPublic": "Move to public album"
     },
     "gallery": {
       "title": "Photos and videos",
       "photoAlt": "Photo {number} of {nickname}",
       "videoAlt": "Video {number} of {nickname}",
-      "ref": "Ref. {ref}"
+      "ref": "Ref. {ref}",
+      "privateTitle": "Private album of {nickname}"
     },
     "favorites": {
       "title": "My favourite spots",
@@ -5715,6 +5735,70 @@
       "button": "Install the app",
       "iosSteps": "On iPhone or iPad: open this page in Safari, tap Share, then “Add to Home Screen”.",
       "installed": "App installed."
+    },
+    "album": {
+      "title": "Private album",
+      "lead": "Your private album is only seen by the members you share it with, from a conversation with them. You can take it back at any time, and blocking someone or leaving the conversation does it too.",
+      "givenTitle": "Private album shared with",
+      "givenEmpty": "You haven't shared your private album with anyone.",
+      "receivedTitle": "Shared with me",
+      "since": "since {date}",
+      "revoke": "Revoke",
+      "revoking": "Revoking…",
+      "share": "Share my private album",
+      "sharing": "Sharing…",
+      "shareOpen": "Share my private album",
+      "revokeOpen": "Revoke my private album",
+      "shareLead": "{nickname} will be able to see your private album, on your profile and here, until you revoke it. They will be notified.",
+      "revokeLead": "{nickname} can see your private album. Revoking it hides it from them again.",
+      "shared": "Your private album is now shared with {nickname}.",
+      "revoked": "{nickname} can no longer see your private album.",
+      "error": "Something went wrong. Try again.",
+      "gone": "You can only share it with a member you have a conversation with.",
+      "needNickname": "Choose your nickname in your profile first.",
+      "theirsOpen": "Private album of {nickname} ({count})"
+    },
+    "rooms": {
+      "breadcrumb": "Where you are",
+      "title": "City chats",
+      "cityLink": "{city}, {country}",
+      "roomTitle": "Chat of {city}, {country}",
+      "roomLead": "Members who have entered talk here about the city. Be kind: no contact details, links or photos, and nothing about anyone who isn't here.",
+      "chooseNickname": "Choose a nickname in your profile to post here.",
+      "listLabel": "Messages in {city}",
+      "empty": "Nobody has written in {city} yet. Say hi.",
+      "you": "You",
+      "label": "Message",
+      "placeholder": "Write to everyone in {city}…",
+      "send": "Send",
+      "counter": "{count}/{max}",
+      "rules": "Text only, up to 500 characters. Phone numbers, emails, links and other apps are never allowed here. Messages are kept 7 days. You can report any message.",
+      "gone": "This chat is no longer available.",
+      "refusal": {
+        "nickname": "Choose a nickname in your profile to post here.",
+        "newAccount": "You can post once your account is 24 hours old. You can read the chat meanwhile.",
+        "muted": "The team has muted you from the city chats.",
+        "mutedUntil": "The team has muted you from the city chats until {date}.",
+        "suspended": "Your account is suspended, so you can't post."
+      },
+      "errors": {
+        "contact": "Phone numbers, emails, links and other apps can't be shared in the city chats.",
+        "refused": "You can't post right now: your account is new, muted or suspended.",
+        "nickname": "Choose a nickname in your profile first.",
+        "rate": "You are posting too fast. Wait a moment.",
+        "gone": "This chat is no longer available.",
+        "session": "Your session has expired. Reload the page and sign in again.",
+        "error": "Not sent. Try again."
+      },
+      "pageTitle": "City chats",
+      "pageLead": "The chats of the cities of your favourites and trips, and the busiest in your country.",
+      "placesLink": "All places",
+      "none": "There are no chats to show yet. Save a favourite spot or plan a trip to see its city here.",
+      "listTitle": "Your city chats",
+      "count24h": "{count, plural, one {# message today} other {# messages today}}",
+      "lastAt": "Last message {date}",
+      "noMessages": "No messages yet",
+      "spotsLink": "Spots"
     }
   },
   "AdminCruising": {
@@ -5787,7 +5871,8 @@
       "CONVERSATION": "Conversation",
       "MEDIA": "Photo or video",
       "MEETUP": "Meetup",
-      "ALERT": "Safety alert"
+      "ALERT": "Safety alert",
+      "ROOM_MESSAGE": "City chat message"
     },
     "reportedSpot": "Spot",
     "reporter": "Reporter",
@@ -5799,7 +5884,8 @@
       "reasonHint": "Optional, up to 500 characters. It goes in the email to the person: don't name the spot, the place or anyone in it.",
       "suspend": "Suspend the person",
       "act": "Apply",
-      "dismiss": "Dismiss (what was hidden goes live again)"
+      "dismiss": "Dismiss (what was hidden goes live again)",
+      "muteNeeded": "Choose how long to mute."
     },
     "takedowns": {
       "lead": "Answer within 24 hours. The person gets your answer by email.",
@@ -5880,7 +5966,18 @@
       "importTitle": "Import a file"
     },
     "communityGone": "The meetup or alert no longer exists.",
-    "healthLink": "Testing centres"
+    "healthLink": "Testing centres",
+    "rooms": {
+      "city": "City",
+      "hidden": "hidden",
+      "gone": "The message is already deleted.",
+      "mutedUntil": "Muted from the city chats until {date}.",
+      "muteEnded": "The mute from the city chats has ended.",
+      "delete": "Delete message",
+      "muteFor": "Mute from the city chats",
+      "mute": "Mute from rooms",
+      "unmute": "Unmute"
+    }
   },
   "CruisingSpotImport": {
     "importLead": "A CSV with a header row naming the columns name, type, lat, lng, countryCode, city, description and, optionally, bestTimes, tags, openingHours and tips (any order, comma or semicolon separated), or a GeoJSON FeatureCollection of points whose properties carry the same fields. The type can be its English or Spanish name; tags are separated by | and can be their English or Spanish names too. Up to 500 rows and 2 MB. A row is skipped when it is invalid or when a spot of the same type lies within 100 m.",

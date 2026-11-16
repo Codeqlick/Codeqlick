@@ -5,6 +5,7 @@ import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionFor
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
 import { COMMUNITY_REPORT_REASONS } from '@/lib/cruising-community';
+import { ROOM_REPORT_REASONS } from '@/lib/cruising-rooms';
 import {
   MEDIA_REPORT_REASONS,
   PERSON_REPORT_REASONS,
@@ -17,7 +18,15 @@ type ReportDetailsProps = {
   locale: AppLocale;
   /** What is reported; a `correction` is a report of a spot for wrong information. */
   kind:
-    'spot' | 'review' | 'correction' | 'profile' | 'conversation' | 'media' | 'meetup' | 'alert';
+    | 'spot'
+    | 'review'
+    | 'correction'
+    | 'profile'
+    | 'conversation'
+    | 'media'
+    | 'meetup'
+    | 'alert'
+    | 'roomMessage';
   /**
    * The id of the spot, review, conversation, photo/video, meetup or safety alert, or the nickname
    * of a profile.
@@ -40,7 +49,9 @@ export async function ReportDetails({ locale, kind, id }: ReportDetailsProps) {
           ? PROFILE_REPORT_REASONS
           : kind === 'meetup' || kind === 'alert'
             ? COMMUNITY_REPORT_REASONS
-            : PERSON_REPORT_REASONS;
+            : kind === 'roomMessage'
+              ? ROOM_REPORT_REASONS
+              : PERSON_REPORT_REASONS;
   const correction = kind === 'correction';
   // Several of these forms share a page: their controls need ids of their own.
   const prefix = `report-${kind}-${id}`;

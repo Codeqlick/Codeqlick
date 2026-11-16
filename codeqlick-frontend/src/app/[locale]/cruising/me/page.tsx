@@ -10,6 +10,7 @@ import {
 } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
 import { InstallApp } from '@/components/videochat/InstallApp';
+import { AlbumGrantsPanel } from '@/components/cruising/AlbumShare';
 import { MediaManager } from '@/components/cruising/MediaManager';
 import { SafetyPanels } from '@/components/cruising/SafetyPanels';
 import { MemberContributions } from '@/components/cruising/MemberContributions';
@@ -26,6 +27,7 @@ import {
   getMyCruisingMedia,
   listCruisingBlocks,
 } from '@/lib/api/cruising';
+import { getCruisingAlbumGrants } from '@/lib/api/cruising-rooms';
 import { requireUser } from '@/lib/auth/session';
 import {
   CRUISING_COUNTRIES,
@@ -35,6 +37,7 @@ import {
   memberHref,
   spotHref,
 } from '@/lib/cruising';
+import { NO_GRANTS } from '@/lib/cruising-rooms';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
 import vc from '../../videochat/videochat.module.css';
@@ -75,11 +78,15 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   const tm = await getTranslations({ locale, namespace: 'Cruising.media' });
   const tb = await getTranslations({ locale, namespace: 'Cruising.verified' });
   const onHost = (await requestWebapp()) === 'cruising';
-  const [checkIn, blocks, media] = await Promise.all([
+  const [checkIn, blocks, media, grants] = await Promise.all([
     profile ? getMyCruisingCheckIn().catch(() => null) : Promise.resolve(null),
     listCruisingBlocks().catch(() => []),
     profile?.nickname ? getMyCruisingMedia().catch(() => null) : Promise.resolve(null),
+    profile?.nickname
+      ? getCruisingAlbumGrants().catch(() => NO_GRANTS)
+      : Promise.resolve(NO_GRANTS),
   ]);
+  const ta = await getTranslations({ locale, namespace: 'Cruising.album' });
   const verification = status.verification;
 
   const countries = CRUISING_COUNTRIES.map((code) => ({
@@ -226,6 +233,16 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
           ) : (
             <Alert tone="error">{tm('loadError')}</Alert>
           )}
+        </section>
+      ) : null}
+
+      {profile?.nickname ? (
+        <section className={vc.panel} aria-labelledby="me-album">
+          <h2 id="me-album" className={vc.sectionTitle}>
+            {ta('title')}
+          </h2>
+          <p className={vc.muted}>{ta('lead')}</p>
+          <AlbumGrantsPanel locale={locale} grants={grants} />
         </section>
       ) : null}
 

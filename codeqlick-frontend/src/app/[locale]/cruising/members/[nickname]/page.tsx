@@ -79,6 +79,13 @@ export default async function CruisingMemberPage({ params }: PageProps) {
         title={t('contributions')}
       />
       <MemberGallery locale={locale} nickname={member.nickname} items={media} own={own} />
+      <MemberGallery
+        locale={locale}
+        nickname={member.nickname}
+        items={media}
+        own={own}
+        album="PRIVATE"
+      />
       {looking.length > 0 ? (
         <>
           <h2 className={styles.subTitle}>{t('lookingFor')}</h2>
