@@ -12,6 +12,7 @@ import { MailService } from '../mail/mail.service.js';
 import { uptimeRatio } from '../monitoring/uptime.js';
 import { UmamiClient } from '../stats/umami.client.js';
 import { ManagedSitesRepository, type SiteRow } from './managed-sites.repository.js';
+import { MAINTENANCE_ALLOWANCE } from './site-maintenance.js';
 import {
   REPORT_UMAMI_GRACE_DAY,
   reportPeriod,
@@ -95,12 +96,13 @@ export class SiteReportsService implements OnApplicationBootstrap, OnApplication
     period: ReportPeriod,
     anyway = false,
   ): Promise<SiteReport | null> {
-    const [visits, messages, checks] = await Promise.all([
+    const [visits, messages, checks, maintenance] = await Promise.all([
       site.umamiWebsiteId
         ? this.umami.visits(period.days, period.end.getTime(), site.umamiWebsiteId)
         : undefined,
       this.repository.formMessagesBetween(site.projectId, period.first, period.last),
       this.repository.checksBetween(site.projectId, period.start, period.end),
+      this.repository.maintenanceUsage(site.projectId, period.start, period.end),
     ]);
     if (visits?.enabled && !visits.available && !anyway) return null;
     return {
@@ -117,6 +119,8 @@ export class SiteReportsService implements OnApplicationBootstrap, OnApplication
         : null,
       messages,
       uptime: uptimeRatio(checks),
+      maintenance:
+        maintenance === null ? null : { used: maintenance, limit: MAINTENANCE_ALLOWANCE },
     };
   }
 

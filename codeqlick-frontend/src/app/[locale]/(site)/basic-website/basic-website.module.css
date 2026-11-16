@@ -160,3 +160,24 @@
 .check p {
   margin: 0;
 }
+
+/* The optional maintenance plan (decision 110), shown while it is on sale. */
+.maintenance {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: var(--space-6) 3rem;
+  align-items: start;
+}
+
+.maintenancePrice {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .maintenance {
+    grid-template-columns: 1fr;
+  }
+}

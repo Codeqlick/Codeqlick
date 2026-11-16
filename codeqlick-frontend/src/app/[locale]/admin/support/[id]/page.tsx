@@ -7,6 +7,7 @@ import { SavedReplyPicker } from '@/components/app/SavedReplyPicker';
 import { TicketPriorityBadge, TicketStatusBadge } from '@/components/app/StatusBadges';
 import { TicketFiles } from '@/components/app/TicketFiles';
 import { TicketThread } from '@/components/app/TicketThread';
+import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -46,6 +47,7 @@ export default async function AdminTicketPage({
     throw error;
   }
   const tt = await getTranslations({ locale, namespace: 'Tasks' });
+  const tmt = await getTranslations({ locale, namespace: 'Maintenance.admin' });
   const ts = await getTranslations({ locale, namespace: 'Tasks.statuses' });
   const clientProjects = (
     await adminListProjects({ clientId: ticket.client.id, pageSize: 100 }).catch(() => ({
@@ -81,7 +83,16 @@ export default async function AdminTicketPage({
           </div>
           <div>
             <dt>{t('type')}</dt>
-            <dd>{t(`types.${ticket.type}`)}</dd>
+            <dd>
+              {t(`types.${ticket.type}`)}
+              {ticket.maintenanceIncluded === true || ticket.maintenanceIncluded === false ? (
+                <span className={styles.sub}>
+                  <Badge tone={ticket.maintenanceIncluded ? 'success' : 'warning'}>
+                    {tmt(ticket.maintenanceIncluded ? 'ticketIncluded' : 'ticketOutside')}
+                  </Badge>
+                </span>
+              ) : null}
+            </dd>
           </div>
           <div>
             <dt>{t('priority')}</dt>

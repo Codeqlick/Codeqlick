@@ -25,6 +25,8 @@ export default async function NewTicketPage({ params, searchParams }: PageProps)
   // A link that asks for something (the website editor's "Pídela a Codeqlick") fills it in.
   const title = firstParam(query.title)?.slice(0, 200);
   const body = firstParam(query.body)?.slice(0, 5000);
+  // The maintenance plan's "Pedir un cambio" asks for a change request (decision 110).
+  const type = TICKET_TYPES.find((value) => value === firstParam(query.type));
   const projectId =
     projects.find((project) => project.id === requested)?.id ??
     (projects.length === 1 ? projects[0]?.id : undefined);
@@ -40,7 +42,7 @@ export default async function NewTicketPage({ params, searchParams }: PageProps)
               name="type"
               label={t('type')}
               options={TICKET_TYPES.map((value) => ({ value, label: t(`types.${value}`) }))}
-              defaultValue={title ? 'CHANGE' : 'QUESTION'}
+              defaultValue={type ?? (title ? 'CHANGE' : 'QUESTION')}
             />
             <FormSelect
               name="priority"
