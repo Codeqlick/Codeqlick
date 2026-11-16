@@ -92,6 +92,11 @@ kbd {
   border-radius: var(--radius-sm);
 }
 
+/* A web app's menu drawer is open (decision 107): the page behind doesn't scroll. */
+html[data-app-menu-open] {
+  overflow: hidden;
+}
+
 /* Public site: the footer stays at the bottom of short pages. */
 .site-shell {
   display: flex;
