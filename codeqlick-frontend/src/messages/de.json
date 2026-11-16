@@ -148,7 +148,11 @@
     "passwordCreated": "Passwort erstellt. Du kannst dich jetzt mit deiner E-Mail und dem gewählten Passwort anmelden.",
     "emailChanged": "E-Mail geändert. Melde dich jetzt mit {email} an.",
     "accountDeleted": "Dein Konto wurde gelöscht. Danke, dass du bei uns warst.",
-    "captcha": "Wir konnten nicht prüfen, ob du ein Mensch bist. Warte, bis die Prüfung abgeschlossen ist, und versuch es noch einmal."
+    "captcha": "Wir konnten nicht prüfen, ob du ein Mensch bist. Warte, bis die Prüfung abgeschlossen ist, und versuch es noch einmal.",
+    "passkeyOr": "oder",
+    "passkey": "Mit einem Passkey anmelden",
+    "passkeyPending": "Warte auf deinen Passkey…",
+    "passkeyFailed": "Mit diesem Passkey konnten wir dich nicht anmelden. Versuch es noch einmal oder nutze dein Passwort."
   },
   "TwoFactorLogin": {
     "title": "Zwei-Faktor-Authentifizierung",

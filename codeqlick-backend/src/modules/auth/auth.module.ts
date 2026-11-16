@@ -15,6 +15,9 @@ import { CaptchaService } from './captcha.service.js';
 import { PasswordBreachService } from './password-breach.service.js';
 import { EmailPreferencesController } from './email-preferences.controller.js';
 import { EmailPreferencesService } from './email-preferences.service.js';
+import { PasskeysController } from './passkeys.controller.js';
+import { PasskeyRepository } from './passkeys.repository.js';
+import { PasskeyService } from './passkeys.service.js';
 import { PasswordService } from './password.service.js';
 import { TokenCleanupService } from './token-cleanup.service.js';
 import { UsernameService } from './username.service.js';
@@ -31,10 +34,18 @@ import { UsernameService } from './username.service.js';
       }),
     }),
   ],
-  controllers: [AuthController, AccountController, AvatarsController, EmailPreferencesController],
+  controllers: [
+    AuthController,
+    PasskeysController,
+    AccountController,
+    AvatarsController,
+    EmailPreferencesController,
+  ],
   providers: [
     AuthService,
     AuthRepository,
+    PasskeyService,
+    PasskeyRepository,
     CaptchaService,
     AccountService,
     AccountRepository,

@@ -300,6 +300,8 @@ Unknown errors return 500 without leaking internals; the stack goes to the logs 
 | `OVH_ENDPOINT` / `OVH_APPLICATION_KEY` / `OVH_APPLICATION_SECRET` / `OVH_CONSUMER_KEY` | `https://eu.api.ovh.com/1.0` | OVH's API with the team's keys (rights in `deploy/README.md`), for availability and the domains whose technical contact is the team; off without the three keys. Requests are signed (`$1$` + SHA-1 of secret, consumer key, method, URL, body and OVH's time); no SDK |
 | `OVH_NIC_HANDLE` | `ab12345-ovh` | The team's OVH account ID, shown to clients as the technical contact to add |
 | `ADMIN_TWO_FACTOR_REQUIRED` | `true` | Admins must have two-step verification to use admin routes (true in production) |
+| `WEBAUTHN_RP_ID` | `codeqlick.com` | Passkeys' relying party (4.3, decision 104). Unset: `codeqlick.com` in production, `localhost` elsewhere |
+| `WEBAUTHN_ORIGINS` | `https://codeqlick.com,https://cruising.codeqlick.com` | Pages passkeys may be used from, comma-separated. Unset: `SITE_URL` plus each web app's host (`WEBAPPS`, as `webappUrl` builds it) |
 | `PASSWORD_BREACH_CHECK` | `true` | New passwords are checked against Have I Been Pwned's breached passwords (k-anonymity, 4.3); off by default (development, tests, CI) |
 | `UMAMI_URL` / `UMAMI_WEBSITE_ID` / `UMAMI_USERNAME` / `UMAMI_PASSWORD` | `http://umami:3000` | Umami's API inside the Docker network, for the dashboard's visits (`/admin/stats/visits`) and the managed sites' statistics (their websites are created with this account); off without them |
 | `UMAMI_SCRIPT_URL` | `https://stats.codeqlick.com/script.js` | The tracker managed client sites load |

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput } from '@/components/app/ActionForm';
+import { PasskeySignIn } from '@/components/app/PasskeySignIn';
 import { Turnstile } from '@/components/app/Turnstile';
 import styles from '@/components/app/app.module.css';
 import { Logo } from '@/components/brand/Logo';
@@ -15,7 +16,7 @@ import { homeAfterSignIn, shortNext } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
-import { loginAction } from './actions';
+import { loginAction, passkeyLoginAction, passkeyLoginOptionsAction } from './actions';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -77,7 +78,7 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
               name="email"
               type="email"
               label={t('email')}
-              autoComplete="username"
+              autoComplete="username webauthn"
               required
             />
             <FormInput
@@ -94,6 +95,16 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
               {t('submit')}
             </SubmitButton>
           </ActionForm>
+          <PasskeySignIn
+            getOptions={passkeyLoginOptionsAction}
+            signIn={passkeyLoginAction.bind(null, locale, firstParam(query.next) ?? '')}
+            labels={{
+              or: t('passkeyOr'),
+              button: t('passkey'),
+              pending: t('passkeyPending'),
+              failed: t('passkeyFailed'),
+            }}
+          />
           <p>
             <Link href="/forgot-password">{t('forgot')}</Link>
           </p>

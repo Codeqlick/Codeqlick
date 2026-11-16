@@ -3,6 +3,7 @@ import { ActionForm, FormCheckbox, FormInput } from '@/components/app/ActionForm
 import { ActiveSessions } from '@/components/app/ActiveSessions';
 import styles from '@/components/app/app.module.css';
 import { PageHeader } from '@/components/app/PageHeader';
+import { PasskeysPanel } from '@/components/app/PasskeysPanel';
 import { TwoFactorSetup } from '@/components/app/TwoFactorSetup';
 import { AvatarUpload } from '@/components/app/AvatarUpload';
 import { UsernameField } from '@/components/app/UsernameField';
@@ -207,6 +208,8 @@ export async function AccountPage({ locale }: { locale: SiteLocale }) {
           </>
         )}
       </section>
+
+      <PasskeysPanel locale={locale} />
 
       {user.role === 'CLIENT' ? (
         <section className={styles.panel}>

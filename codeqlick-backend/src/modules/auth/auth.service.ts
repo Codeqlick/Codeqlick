@@ -625,6 +625,17 @@ export class AuthService {
   }
 
   /**
+   * Finishes a sign-in whose factors were checked elsewhere: a passkey counts as both (decision
+   * 104), so no code is asked. Same session, new-device email and rules as a password sign-in.
+   */
+  async signInVerified(user: User, client: ClientInfo = {}): Promise<AuthTokens> {
+    if (!user.isActive || !user.registeredAt) {
+      throw new UnauthorizedException('This passkey cannot sign in');
+    }
+    return this.signIn(user, client);
+  }
+
+  /**
    * A completed sign-in to an existing account (password, or password and code): a new session,
    * and an email when it comes from a browser and system the account hasn't used lately.
    */

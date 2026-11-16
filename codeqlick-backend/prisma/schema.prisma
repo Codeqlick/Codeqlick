@@ -106,6 +106,8 @@ model User {
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   sessions                   Session[]
+  passkeys                   Passkey[]
+  webauthnChallenges         WebAuthnChallenge[]
   passwordResets             PasswordResetToken[]
   emailChanges               EmailChangeToken[]
   clientProjects             ClientProject[]
@@ -235,6 +237,55 @@ model Session {
   @@index([userId])
   @@index([familyId])
   @@map("sessions")
+}
+
+/// A passkey (WebAuthn credential) of an account (architecture 4.3, decision 104). Only the public
+/// key is stored: nothing here can sign in on its own.
+model Passkey {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  /// The credential's ID as the browser gives it (base64url).
+  credentialId String    @unique @map("credential_id")
+  /// COSE public key.
+  publicKey    Bytes     @map("public_key")
+  /// Signature counter: it only grows, unless the authenticator always reports 0.
+  counter      BigInt    @default(0)
+  transports   String[]  @default([])
+  /// `singleDevice` or `multiDevice` (synced, e.g. iCloud Keychain or Google Password Manager).
+  deviceType   String    @map("device_type")
+  backedUp     Boolean   @map("backed_up")
+  /// The person's name for it (≤ 40 characters).
+  name         String
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt   DateTime? @map("last_used_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkeys")
+}
+
+enum WebAuthnChallengePurpose {
+  REGISTER
+  LOGIN
+}
+
+/// A passkey ceremony's challenge: single use, 5 minutes, deleted on use and by the cleanup.
+model WebAuthnChallenge {
+  id        String                   @id @default(uuid()) @db.Uuid
+  purpose   WebAuthnChallengePurpose
+  /// base64url, as sent in the options.
+  challenge String
+  /// Who is adding a passkey (REGISTER); null for a sign-in, which doesn't know yet.
+  userId    String?                  @map("user_id") @db.Uuid
+  expiresAt DateTime                 @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("webauthn_challenges")
 }
 
 /// One row per "forgot my password" email. Only the SHA-256 of the emailed token is stored.

@@ -36,6 +36,7 @@
     "@photostructure/tz-lookup": "11.8.0",
     "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "7.10.1",
+    "@simplewebauthn/server": "14.1.0",
     "argon2": "0.45.2",
     "disposable-email-domains-js": "1.26.0",
     "dotenv": "18.0.9",
