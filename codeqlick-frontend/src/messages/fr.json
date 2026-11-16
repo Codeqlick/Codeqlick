@@ -123,6 +123,18 @@
       }
     }
   },
+  "AppMenu": {
+    "open": "Menu",
+    "close": "Fermer le menu",
+    "title": "Menu",
+    "home": "Accueil",
+    "signIn": "Se connecter",
+    "sections": {
+      "discover": "Découvrir",
+      "community": "Communauté",
+      "me": "Moi"
+    }
+  },
   "LocaleSwitcher": {
     "label": "Langue",
     "en": "English",
@@ -265,7 +277,9 @@
       "profile": "Profil",
       "favorites": "Favoris",
       "meetups": "Rencontres",
-      "rooms": "Chats des villes"
+      "rooms": "Chats des villes",
+      "trips": "Voyages",
+      "notifications": "Notifications"
     },
     "legal": {
       "terms": "Conditions d’utilisation",

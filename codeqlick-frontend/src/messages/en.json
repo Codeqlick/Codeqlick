@@ -4140,6 +4140,18 @@
       }
     }
   },
+  "AppMenu": {
+    "open": "Menu",
+    "close": "Close menu",
+    "title": "Menu",
+    "home": "Home",
+    "signIn": "Sign in",
+    "sections": {
+      "discover": "Discover",
+      "community": "Community",
+      "me": "Me"
+    }
+  },
   "AdminErrors": {
     "title": "Errors",
     "lead": "Unexpected errors of the server and the website, grouped. You get an email the first time each one happens.",
@@ -4916,7 +4928,9 @@
       "profile": "Profile",
       "favorites": "Favourites",
       "meetups": "Meetups",
-      "rooms": "City chats"
+      "rooms": "City chats",
+      "trips": "Trips",
+      "notifications": "Notifications"
     },
     "legal": {
       "terms": "Terms of use",

@@ -123,6 +123,18 @@
       }
     }
   },
+  "AppMenu": {
+    "open": "Menü",
+    "close": "Menü schließen",
+    "title": "Menü",
+    "home": "Start",
+    "signIn": "Anmelden",
+    "sections": {
+      "discover": "Entdecken",
+      "community": "Community",
+      "me": "Ich"
+    }
+  },
   "LocaleSwitcher": {
     "label": "Sprache",
     "en": "English",
@@ -265,7 +277,9 @@
       "profile": "Profil",
       "favorites": "Favoriten",
       "meetups": "Treffen",
-      "rooms": "Stadt-Chats"
+      "rooms": "Stadt-Chats",
+      "trips": "Reisen",
+      "notifications": "Benachrichtigungen"
     },
     "legal": {
       "terms": "Nutzungsbedingungen",

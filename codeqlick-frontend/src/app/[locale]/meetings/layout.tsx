@@ -2,13 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
-import { Logo } from '@/components/brand/Logo';
-import { AppSwitcher } from '@/components/layout/AppSwitcher';
-import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
-import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link, WebappProvider } from '@/i18n/navigation';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { meetingsMenu } from '@/lib/app-menus';
+import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
-import { logoutAction } from '@/lib/auth/actions';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import styles from './meetings.module.css';
@@ -31,7 +28,6 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 export default async function MeetingsLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'Meetings' });
   const user = await getCurrentUser();
 
   const webapp = (await requestWebapp()) === 'meetings' ? 'meetings' : null;
@@ -40,28 +36,12 @@ export default async function MeetingsLayout({ children, params }: LayoutProps) 
     <ClientMessages extra={APP_NAMESPACES.meetings}>
       <WebappProvider app={webapp}>
         <div className={styles.frame}>
-          <header className={styles.header}>
-            <div className={styles.brand}>
-              <Logo href="/meetings" size="sm" label={t('homeLabel')} />
-              <span className={styles.brandApp}>{t('brand')}</span>
-            </div>
-            <nav className={styles.headerNav}>
-              <AppSwitcher current="meetings" locale={locale} />
-              <LocaleSwitcher className={styles.locale} />
-              {user ? (
-                <form action={logoutAction}>
-                  <input type="hidden" name="locale" value={locale} />
-                  <SubmitButton variant="ghost" size="sm" className={styles.signOut}>
-                    {t('signOut')}
-                  </SubmitButton>
-                </form>
-              ) : (
-                <Link href="/login?next=/meetings" className={styles.headerLink}>
-                  {t('signIn')}
-                </Link>
-              )}
-            </nav>
-          </header>
+          <AppHeader
+            app="meetings"
+            locale={locale}
+            config={meetingsMenu()}
+            signedIn={Boolean(user)}
+          />
           <main className={styles.main}>{children}</main>
         </div>
       </WebappProvider>
