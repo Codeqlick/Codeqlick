@@ -1,7 +1,7 @@
 import 'server-only';
 import { apiFetch } from './client';
 
-export type ErrorSource = 'API' | 'WEB_SERVER' | 'WEB_BROWSER';
+export type ErrorSource = 'API' | 'WEB_SERVER' | 'WEB_BROWSER' | 'CSP';
 
 /** One unexpected error, grouped with its repeats (Admin → Errors, architecture 4.11). */
 export type ErrorGroup = {
@@ -33,6 +33,14 @@ export type ErrorReport = {
 /** A browser's error, from the Server Action (the visitor's IP is forwarded for the rate limit). */
 export function reportError(report: ErrorReport) {
   return apiFetch<void>('/errors', { method: 'POST', body: report, forwardClientIp: true });
+}
+
+/**
+ * What a browser reported about the Content Security Policy, as it sent it (architecture 4.11):
+ * the API validates and groups it. The visitor's IP is forwarded for the rate limit only.
+ */
+export function reportCspViolations(report: unknown) {
+  return apiFetch<void>('/csp-reports', { method: 'POST', body: report, forwardClientIp: true });
 }
 
 export function adminListErrors(status: 'open' | 'resolved') {

@@ -4169,7 +4169,8 @@
     "sources": {
       "API": "API",
       "WEB_SERVER": "Web (servidor)",
-      "WEB_BROWSER": "Web (navegador)"
+      "WEB_BROWSER": "Web (navegador)",
+      "CSP": "CSP"
     }
   },
   "AdminLinks": {
