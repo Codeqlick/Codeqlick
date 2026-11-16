@@ -39,6 +39,8 @@ export interface CloudLimits {
   bucketsPerProject: number;
   bucketBytes: number;
   bucketObjects: number;
+  /** Public read buckets per project (decision 111). */
+  publicBucketsPerProject: number;
   /** `codeqlick.json` (decision 52): redirects plus rewrites, header rules and the file's size. */
   configRules: number;
   configHeaderRules: number;
@@ -83,6 +85,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     bucketsPerProject: 2,
     bucketBytes: 1024 * MB,
     bucketObjects: 100_000,
+    publicBucketsPerProject: 1,
     configRules: 100,
     configHeaderRules: 30,
     configBytes: 64 * 1024,
@@ -119,6 +122,7 @@ export const CLOUD_PLANS: Record<'FREE' | 'PRO', CloudLimits> = {
     bucketsPerProject: 10,
     bucketBytes: 50 * 1024 * MB,
     bucketObjects: 1_000_000,
+    publicBucketsPerProject: 10,
     configRules: 2000,
     configHeaderRules: 200,
     configBytes: 256 * 1024,

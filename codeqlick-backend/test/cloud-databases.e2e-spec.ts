@@ -173,6 +173,12 @@ describe('Codeqlick Cloud databases (e2e)', () => {
       false,
     );
 
+    // One database reads without its password (the CLI's `db` commands, decision 111).
+    const one = await request(server).get(`${base}/${db.id}`).set(auth).expect(200);
+    expect(one.body).toMatchObject({ id: db.id, user: db.user });
+    expect(one.body.password).toBeUndefined();
+    await request(server).get(`${base}/${randomUUID()}`).set(auth).expect(404);
+
     // A new password replaces the old one.
     const reset = await request(server).post(`${base}/${db.id}/password`).set(auth).expect(200);
     expect(reset.body.password).not.toBe(db.password);

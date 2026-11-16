@@ -16,6 +16,45 @@ export interface GarageBucket {
   objects: number;
 }
 
+/** A bucket's CORS rule as the API keeps it (architecture 4.13 "Object storage", decision 111). */
+export interface GarageCorsRule {
+  origins: string[];
+  methods: string[];
+  headers: string[];
+  exposeHeaders: string[];
+  maxAge: number;
+}
+
+/** Garage's own shape of a CORS rule: S3's field names (admin API v2, `UpdateBucket`). */
+interface GarageCorsWire {
+  AllowedOrigin: string[];
+  AllowedMethod: string[];
+  AllowedHeader?: string[];
+  ExposeHeader?: string[];
+  MaxAgeSeconds?: number | null;
+}
+
+export function corsToGarage(rule: GarageCorsRule): GarageCorsWire {
+  return {
+    AllowedOrigin: rule.origins,
+    AllowedMethod: rule.methods,
+    AllowedHeader: rule.headers,
+    ExposeHeader: rule.exposeHeaders,
+    MaxAgeSeconds: rule.maxAge,
+  };
+}
+
+export function corsFromGarage(wire: GarageCorsWire | undefined): GarageCorsRule | null {
+  if (!wire) return null;
+  return {
+    origins: wire.AllowedOrigin ?? [],
+    methods: wire.AllowedMethod ?? [],
+    headers: wire.AllowedHeader ?? [],
+    exposeHeaders: wire.ExposeHeader ?? [],
+    maxAge: wire.MaxAgeSeconds ?? 0,
+  };
+}
+
 /**
  * Garage's admin API v2 (architecture 4.13 "Object storage", decision 48): buckets, their quotas
  * and access keys. The single node gets its layout the first time it is needed.
@@ -102,14 +141,44 @@ export class GarageClient {
     });
   }
 
-  async bucket(id: string): Promise<GarageBucket & { maxSize: number | null }> {
+  async bucket(
+    id: string,
+  ): Promise<
+    GarageBucket & { maxSize: number | null; website: boolean; cors: GarageCorsRule | null }
+  > {
     const info = await this.call<{
       id: string;
       bytes: number;
       objects: number;
+      websiteAccess?: boolean;
+      corsRules?: GarageCorsWire[];
       quotas: { maxSize: number | null; maxObjects: number | null };
     }>('GET', `GetBucketInfo?id=${encodeURIComponent(id)}`);
-    return { id: info.id, bytes: info.bytes, objects: info.objects, maxSize: info.quotas.maxSize };
+    return {
+      id: info.id,
+      bytes: info.bytes,
+      objects: info.objects,
+      maxSize: info.quotas.maxSize,
+      website: info.websiteAccess === true,
+      cors: corsFromGarage(info.corsRules?.[0]),
+    };
+  }
+
+  /**
+   * Public read through Garage's website endpoint (decision 111): on serves `index.html` for a
+   * folder and never lists the bucket.
+   */
+  async setWebsite(id: string, enabled: boolean): Promise<void> {
+    await this.call('POST', `UpdateBucket?id=${encodeURIComponent(id)}`, {
+      websiteAccess: enabled ? { enabled: true, indexDocument: 'index.html' } : { enabled: false },
+    });
+  }
+
+  /** The bucket's one CORS rule (Garage applies it to the S3 API and to public reads); null clears. */
+  async setCors(id: string, rule: GarageCorsRule | null): Promise<void> {
+    await this.call('POST', `UpdateBucket?id=${encodeURIComponent(id)}`, {
+      corsRules: rule ? [corsToGarage(rule)] : [],
+    });
   }
 
   /** Garage refuses to delete a bucket that holds objects. */

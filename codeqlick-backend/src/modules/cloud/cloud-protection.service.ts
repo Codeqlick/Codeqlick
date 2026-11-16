@@ -446,20 +446,21 @@ export class CloudProtectionService {
     return { type: 'redirect', location: next, cookie: this.grant(project, host, now) };
   }
 
-  /** `GET /__codeqlick/enter?ticket=`: a member's single-use ticket sets the cookie. */
+  /** `GET /__codeqlick/enter?ticket=&next=`: a member's single-use ticket sets the cookie. */
   async enter(
     headers: ProxyHeaders,
     ticket: string | undefined,
     now: number = Date.now(),
+    next: string = '/',
   ): Promise<VisitorAnswer> {
     this.assertKey(headers.key);
     const host = this.host(headers);
     const project = await this.protectedProject(headers);
-    if (!project) return { type: 'redirect', location: '/' };
+    if (!project) return { type: 'redirect', location: next };
     const claim = verifyTicket(this.ticketKey, ticket, host, now);
     if (!claim || claim.projectId !== project.id || !this.tickets.redeem(claim.id, now)) {
       return { type: 'page', status: 401, projectName: project.name, next: '/', error: 'expired' };
     }
-    return { type: 'redirect', location: '/', cookie: this.grant(project, host, now) };
+    return { type: 'redirect', location: next, cookie: this.grant(project, host, now) };
   }
 }

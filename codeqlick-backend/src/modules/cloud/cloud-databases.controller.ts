@@ -30,6 +30,14 @@ export class CloudDatabasesController {
     return this.databases.list(ctx, params.id);
   }
 
+  @Get(':databaseId')
+  get(
+    @Caller() ctx: CloudCtx,
+    @Param({ schema: databaseParamSchema }) params: DatabaseParam,
+  ): Promise<DatabaseView> {
+    return this.databases.get(ctx, params.id, params.databaseId);
+  }
+
   @Post()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   create(
