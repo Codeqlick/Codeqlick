@@ -145,7 +145,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
 
   /** Waits for the alerts and pushes still being sent (for tests). */
   async idle(): Promise<void> {
-    while (this.pending.size > 0) await Promise.all([...this.pending]);
+    while (this.pending.size > 0) await Promise.all(this.pending);
   }
 
   // ---- Background --------------------------------------------------------------------------------

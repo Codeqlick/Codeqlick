@@ -5397,7 +5397,8 @@
       "reports": "Reports",
       "takedowns": "Removals",
       "live": "Spots",
-      "suspended": "Suspended"
+      "suspended": "Suspended",
+      "add": "Add spots"
     },
     "queue": {
       "title": "Spots to review",
@@ -5466,7 +5467,47 @@
     "reasonNeeded": "Write the reason (at least 5 characters).",
     "reportedProfile": "Profile",
     "transcript": "Saved chat",
-    "noTranscript": "No saved messages."
+    "noTranscript": "No saved messages.",
+    "add": {
+      "oneTitle": "Add a spot",
+      "oneLead": "A spot the team adds itself skips the review queue and has no proposer, so nobody is emailed. Same checks as a proposal: never near schools, playgrounds or places for children.",
+      "publish": "Publish now",
+      "publishHint": "Leave it unticked to send it to the review queue instead.",
+      "create": "Add spot",
+      "importTitle": "Import a file"
+    }
+  },
+  "CruisingSpotImport": {
+    "importLead": "A CSV with a header row naming the columns name, type, lat, lng, countryCode, city, description and, optionally, bestTimes (any order, comma or semicolon separated), or a GeoJSON FeatureCollection of points whose properties carry the same fields. The type can be its English or Spanish name. Up to 500 rows and 2 MB. A row is skipped when it is invalid or when a spot of the same type lies within 100 m.",
+    "file": "File",
+    "fileHint": ".csv, .geojson or .json, up to 2 MB.",
+    "format": "Format",
+    "formatAuto": "From the file name",
+    "formatHint": "Taken from the file name (.csv, .geojson or .json) unless you choose one.",
+    "formatDetected": "Read as {format}.",
+    "formats": {
+      "csv": "CSV",
+      "geojson": "GeoJSON"
+    },
+    "check": "Check",
+    "working": "Working…",
+    "import": "Import",
+    "importCount": "Import {count, plural, one {# spot} other {# spots}}",
+    "toCreate": "Spots to create",
+    "created": "Spots created",
+    "skipped": "Rows skipped",
+    "row": "Row",
+    "name": "Name",
+    "type": "Type",
+    "place": "Place",
+    "reason": "Reason",
+    "checked": "{create, plural, =0 {Nothing to create} one {# spot to create} other {# spots to create}}, {skip, plural, =0 {nothing skipped} one {# row skipped} other {# rows skipped}}. Nothing is saved until you import.",
+    "imported": "{count, plural, =0 {No spot created} one {# spot created} other {# spots created}}, {skip, plural, =0 {nothing skipped} one {# row skipped} other {# rows skipped}}.",
+    "chooseFile": "Choose a file first.",
+    "tooBig": "The file is bigger than 2 MB.",
+    "chooseFormat": "Choose the format: the file name says neither CSV nor GeoJSON.",
+    "publish": "Publish now",
+    "publishHint": "Leave it unticked to send it to the review queue instead."
   },
   "MenuKit": {
     "title": "Your menu QR",

@@ -9,6 +9,8 @@ import {
   type CruisingSpotType,
   type CruisingSuspension,
   type CruisingTakedownReason,
+  type SpotImportFormat,
+  type SpotImportResult,
   type SpotInput,
 } from '@/lib/cruising';
 import { apiFetch } from './client';
@@ -599,6 +601,28 @@ export async function listAdminCruisingSpots(
 export function patchAdminCruisingSpot(id: string, input: Partial<SpotInput>) {
   return apiFetch<void>(`/admin/cruising/spots/${encodeURIComponent(id)}`, {
     method: 'PATCH',
+    body: input,
+    auth: 'required',
+  });
+}
+
+/** A team spot (decision 84): LIVE at once, or PENDING with `publish: false`. */
+export function createAdminCruisingSpot(input: SpotInput & { publish: boolean }) {
+  return apiFetch<{ id: string; slug: string; status: 'LIVE' | 'PENDING' }>(
+    '/admin/cruising/spots',
+    { method: 'POST', body: input, auth: 'required' },
+  );
+}
+
+/** Imports a CSV or GeoJSON file of spots (decision 84), or answers what it would do (`dryRun`). */
+export function importAdminCruisingSpots(input: {
+  format: SpotImportFormat;
+  content: string;
+  publish: boolean;
+  dryRun: boolean;
+}) {
+  return apiFetch<SpotImportResult>('/admin/cruising/spots/import', {
+    method: 'POST',
     body: input,
     auth: 'required',
   });

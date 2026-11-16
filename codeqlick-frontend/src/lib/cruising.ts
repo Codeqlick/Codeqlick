@@ -661,3 +661,50 @@ export function reportTranscript(target: unknown): TranscriptLine[] {
   }
   return lines;
 }
+
+// ---- Seeding the directory (decision 84) ---------------------------------------------------------
+
+export const SPOT_IMPORT_FORMATS = ['csv', 'geojson'] as const;
+export type SpotImportFormat = (typeof SPOT_IMPORT_FORMATS)[number];
+/** The largest file the import takes (the API's limit). */
+export const SPOT_IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+/** The most rows a file can hold (the API's limit). */
+export const SPOT_IMPORT_MAX_ROWS = 500;
+
+/** What an import answers: `items` were created, or would be on a dry run. */
+export type SpotImportResult = {
+  created: number;
+  skipped: { row: number; reason: string }[];
+  items: {
+    row: number;
+    name: string;
+    city: string;
+    countryCode: string;
+    type: CruisingSpotType;
+  }[];
+};
+
+/** The import form's state: the last check's or import's answer, or why it failed. */
+export type SpotImportState = {
+  status: 'idle' | 'success' | 'error';
+  message?: string;
+  /** The answer was a dry run ("Check"): nothing was created yet. */
+  dryRun?: boolean;
+  result?: SpotImportResult;
+};
+
+/**
+ * The format of an import: the one chosen, else the file's extension (`.csv`; `.geojson` or
+ * `.json`). Null when neither says.
+ */
+export function spotImportFormat(
+  fileName: string,
+  chosen: string | null | undefined,
+): SpotImportFormat | null {
+  const picked = SPOT_IMPORT_FORMATS.find((format) => format === chosen);
+  if (picked) return picked;
+  const extension = /\.([a-z0-9]+)$/i.exec(fileName.trim())?.[1]?.toLowerCase();
+  if (extension === 'csv') return 'csv';
+  if (extension === 'geojson' || extension === 'json') return 'geojson';
+  return null;
+}

@@ -280,6 +280,30 @@ export const adminSpotsQuerySchema = z.object({
 });
 export type AdminSpotsQuery = z.infer<typeof adminSpotsQuerySchema>;
 
+/** A team spot (decision 84): a proposal's fields, LIVE at once unless `publish` is false. */
+export const adminSpotSchema = spotSchema.extend({ publish: z.boolean().default(true) });
+export type AdminSpotInput = z.infer<typeof adminSpotSchema>;
+
+/** The largest file an import takes, in bytes of UTF-8. */
+export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
+/** The most rows an import takes. */
+export const IMPORT_MAX_ROWS = 500;
+/** The JSON body of an import: the file's text escaped in JSON, with room to spare. */
+export const IMPORT_BODY_LIMIT = 3 * IMPORT_MAX_BYTES;
+
+export const importSpotsSchema = z.object({
+  format: z.enum(['csv', 'geojson']),
+  content: z
+    .string()
+    .min(1)
+    .refine((value) => Buffer.byteLength(value, 'utf8') <= IMPORT_MAX_BYTES, {
+      message: 'The file can be up to 2 MB',
+    }),
+  publish: z.boolean().default(true),
+  dryRun: z.boolean().default(false),
+});
+export type ImportSpotsInput = z.infer<typeof importSpotsSchema>;
+
 export const rejectSpotSchema = z.object({ reason: z.string().trim().min(5).max(500) });
 export type RejectSpotInput = z.infer<typeof rejectSpotSchema>;
 

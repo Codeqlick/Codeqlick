@@ -293,3 +293,302 @@ export function pushPayload(
     tag: kind === 'favorite' ? 'cruising-favorite' : 'cruising-message',
   };
 }
+
+// ---- Seeding the directory (decision 84) ---------------------------------------------------------
+
+/** Lower-case, no accents, single spaces: how type labels are compared. */
+function fold(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[\s_-]+/g, ' ')
+    .trim();
+}
+
+/** The website's English and Spanish labels of each type (`Cruising.types` in its messages). */
+const TYPE_LABELS: Record<string, readonly string[]> = {
+  BEACH: ['Beach', 'Playa'],
+  PARK: ['Park', 'Parque'],
+  FOREST: ['Forest or woods', 'Bosque o monte'],
+  REST_AREA: ['Rest area', 'Área de descanso'],
+  SAUNA: ['Sauna'],
+  BAR_CLUB: ['Bar or club', 'Bar o discoteca'],
+  CINEMA: ['Cinema', 'Cine'],
+  OTHER: ['Other', 'Otro'],
+};
+
+const TYPE_BY_LABEL = new Map<string, string>(
+  Object.entries(TYPE_LABELS).flatMap(([type, labels]) =>
+    [type, ...labels].map((label): [string, string] => [fold(label), type]),
+  ),
+);
+
+/** The type a file names: the enum or its English or Spanish label, any case. Null: unknown. */
+export function spotTypeFromLabel(value: string): string | null {
+  return TYPE_BY_LABEL.get(fold(value)) ?? null;
+}
+
+/** A spot's fields as a file gives them, before they are checked like a proposal. */
+export interface ImportedFields {
+  name: unknown;
+  type: unknown;
+  lat: unknown;
+  lng: unknown;
+  countryCode: unknown;
+  city: unknown;
+  description: unknown;
+  bestTimes: unknown;
+}
+
+/** One row of an import: its line (CSV, header = 1) or index (GeoJSON) and its fields. */
+export interface ImportedRow {
+  row: number;
+  /** Null when the row can't even be read (a GeoJSON feature that isn't a point): see `error`. */
+  fields: ImportedFields | null;
+  error?: string;
+}
+
+export type ImportParse = { ok: true; rows: ImportedRow[] } | { ok: false; error: string };
+
+const IMPORT_COLUMNS = [
+  'name',
+  'type',
+  'lat',
+  'lng',
+  'countryCode',
+  'city',
+  'description',
+  'bestTimes',
+] as const;
+type ImportColumn = (typeof IMPORT_COLUMNS)[number];
+const REQUIRED_COLUMNS = IMPORT_COLUMNS.filter((column) => column !== 'bestTimes');
+
+const COLUMN_BY_NAME = new Map<string, ImportColumn>(
+  IMPORT_COLUMNS.map((column) => [column.toLowerCase(), column]),
+);
+
+/** A header cell or property name as a column: any case; spaces, hyphens and underscores ignored. */
+function columnOf(name: string): ImportColumn | null {
+  return (
+    COLUMN_BY_NAME.get(
+      name
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_-]+/g, ''),
+    ) ?? null
+  );
+}
+
+/** The separator of a CSV: comma or semicolon, whichever its first line has more of outside quotes. */
+function csvSeparator(text: string): ',' | ';' {
+  let commas = 0;
+  let semicolons = 0;
+  let quoted = false;
+  for (const char of text) {
+    if (char === '"') quoted = !quoted;
+    else if (!quoted && (char === '\n' || char === '\r')) break;
+    else if (!quoted && char === ',') commas += 1;
+    else if (!quoted && char === ';') semicolons += 1;
+  }
+  return semicolons > commas ? ';' : ',';
+}
+
+/**
+ * Splits CSV text into records (RFC 4180: quoted fields may hold separators, `""` and line
+ * breaks), each with the line it starts on. Blank lines are left out; a leading BOM is ignored.
+ * Null when a quote is never closed.
+ */
+export function splitCsv(text: string): { line: number; cells: string[] }[] | null {
+  const source = text.replace(/^﻿/, '');
+  const separator = csvSeparator(source);
+  const records: { line: number; cells: string[] }[] = [];
+  let cells: string[] = [];
+  let cell = '';
+  let quoted = false;
+  let line = 1;
+  let start = 1;
+  const endRecord = () => {
+    cells.push(cell);
+    if (cells.length > 1 || cells[0]!.trim() !== '') records.push({ line: start, cells });
+    cells = [];
+    cell = '';
+  };
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i]!;
+    if (quoted) {
+      if (char === '"' && source[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        if (char === '\n') line += 1;
+        cell += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === separator) {
+      cells.push(cell);
+      cell = '';
+    } else if (char === '\n' || char === '\r') {
+      if (char === '\r' && source[i + 1] === '\n') i += 1;
+      endRecord();
+      line += 1;
+      start = line;
+    } else {
+      cell += char;
+    }
+  }
+  if (quoted) return null;
+  if (cell !== '' || cells.length > 0) endRecord();
+  return records;
+}
+
+/** A coordinate as a CSV writes it: a dot or, as Spanish spreadsheets do, a comma for decimals. */
+function csvNumber(value: string): number {
+  const text = value.trim().replace(/^(-?\d+),(\d+)$/, '$1.$2');
+  return text === '' ? Number.NaN : Number(text);
+}
+
+/** The fields of a row, mapped alike for CSV and GeoJSON (type labels, upper-case country). */
+function importedFields(get: (column: ImportColumn) => unknown): ImportedFields {
+  const text = (column: ImportColumn) => {
+    const value = get(column);
+    return typeof value === 'string' ? value.trim() : value;
+  };
+  const type = text('type');
+  const country = text('countryCode');
+  const bestTimes = text('bestTimes');
+  return {
+    name: text('name'),
+    type: typeof type === 'string' ? (spotTypeFromLabel(type) ?? type) : type,
+    lat: get('lat'),
+    lng: get('lng'),
+    countryCode: typeof country === 'string' ? country.toUpperCase() : country,
+    city: text('city'),
+    description: text('description'),
+    bestTimes: bestTimes === '' || bestTimes === undefined ? null : bestTimes,
+  };
+}
+
+/**
+ * The rows of a CSV import: a header row naming the columns in any order (`bestTimes` optional),
+ * comma or semicolon separated, UTF-8 with or without BOM. Rows are numbered by line (header = 1).
+ */
+export function parseSpotsCsv(text: string): ImportParse {
+  const records = splitCsv(text);
+  if (!records) return { ok: false, error: 'A quoted field is never closed' };
+  const [header, ...data] = records;
+  if (!header) return { ok: false, error: 'The file is empty' };
+  const columns = header.cells.map((cell) => columnOf(cell));
+  const missing = REQUIRED_COLUMNS.filter((column) => !columns.includes(column));
+  if (missing.length > 0) {
+    return { ok: false, error: `The header row lacks the columns ${missing.join(', ')}` };
+  }
+  const rows = data.map(({ line, cells }): ImportedRow => {
+    const cellOf = (column: ImportColumn) => {
+      const at = columns.indexOf(column);
+      return at < 0 ? undefined : (cells[at] ?? '');
+    };
+    const fields = importedFields((column) =>
+      column === 'lat' || column === 'lng' ? csvNumber(cellOf(column) ?? '') : cellOf(column),
+    );
+    return { row: line, fields };
+  });
+  return { ok: true, rows };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The rows of a GeoJSON import: a `FeatureCollection` of `Point` features whose `properties` carry
+ * the fields (coordinates from the geometry, `[lng, lat]`). Rows are numbered by their index in
+ * `features` (from 0); a feature that isn't a point is a row with an error.
+ */
+export function parseSpotsGeojson(text: string): ImportParse {
+  let data: unknown;
+  try {
+    data = JSON.parse(text.replace(/^﻿/, ''));
+  } catch {
+    return { ok: false, error: 'The file is not valid JSON' };
+  }
+  if (!isRecord(data) || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) {
+    return { ok: false, error: 'The file is not a GeoJSON FeatureCollection' };
+  }
+  const rows = (data.features as unknown[]).map((feature, row): ImportedRow => {
+    const geometry = isRecord(feature) ? feature.geometry : undefined;
+    const coordinates = isRecord(geometry) ? geometry.coordinates : undefined;
+    if (
+      !isRecord(feature) ||
+      !isRecord(geometry) ||
+      geometry.type !== 'Point' ||
+      !Array.isArray(coordinates) ||
+      coordinates.length < 2
+    ) {
+      return { row, fields: null, error: 'Not a Point feature' };
+    }
+    const properties = isRecord(feature.properties) ? feature.properties : {};
+    const [lng, lat] = coordinates as unknown[];
+    const fields = importedFields((column) => {
+      if (column === 'lat') return lat;
+      if (column === 'lng') return lng;
+      const key = Object.keys(properties).find((name) => columnOf(name) === column);
+      return key === undefined ? undefined : properties[key];
+    });
+    return { row, fields };
+  });
+  return { ok: true, rows };
+}
+
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
+const EARTH_RADIUS_M = 6_371_000;
+const radians = (degrees: number) => (degrees * Math.PI) / 180;
+
+/** Great-circle distance in metres (haversine). */
+export function distanceMeters(a: GeoPoint, b: GeoPoint): number {
+  const dLat = radians(b.lat - a.lat);
+  const dLng = radians(b.lng - a.lng);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(radians(a.lat)) * Math.cos(radians(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/**
+ * A box holding every point within `meters` of `point` (5 % more, for rounding), for a first cut
+ * in the database (then `distanceMeters` decides). Clamped to the poles and the antimeridian: a
+ * spot just across the antimeridian is not seen (nobody cruises there).
+ */
+export function boxAround(point: GeoPoint, meters: number): Bbox {
+  const dLat = ((meters * 1.05) / EARTH_RADIUS_M) * (180 / Math.PI);
+  const cos = Math.cos(radians(point.lat));
+  const dLng = cos < 1e-6 ? 360 : dLat / cos;
+  return {
+    minLat: Math.max(-90, point.lat - dLat),
+    maxLat: Math.min(90, point.lat + dLat),
+    minLng: Math.max(-180, point.lng - dLng),
+    maxLng: Math.min(180, point.lng + dLng),
+  };
+}
+
+/** Two spots of the same type this close are the same place (decision 84). */
+export const DUPLICATE_METERS = 100;
+
+/** The first of `others` of the same type within `meters` of `spot`, or null. */
+export function findDuplicate<T extends GeoPoint & { type: string }>(
+  spot: GeoPoint & { type: string },
+  others: readonly T[],
+  meters = DUPLICATE_METERS,
+): T | null {
+  return (
+    others.find((other) => other.type === spot.type && distanceMeters(spot, other) <= meters) ??
+    null
+  );
+}

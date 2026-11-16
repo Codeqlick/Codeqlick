@@ -17,7 +17,7 @@ export const BASE_CLIENT_NAMESPACES = [
 
 /** What each section's own Client Components add, given by its layout. */
 export const APP_NAMESPACES = {
-  admin: ['SiteNews'],
+  admin: ['SiteNews', 'CruisingSpotImport'],
   citas: ['Citas'],
   cloud: ['Cloud'],
   cruising: ['Cruising'],

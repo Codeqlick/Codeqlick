@@ -5397,7 +5397,8 @@
       "reports": "Denuncias",
       "takedowns": "Retiradas",
       "live": "Lugares",
-      "suspended": "Suspendidos"
+      "suspended": "Suspendidos",
+      "add": "Añadir lugares"
     },
     "queue": {
       "title": "Lugares por revisar",
@@ -5466,7 +5467,47 @@
     "reasonNeeded": "Escribe el motivo (al menos 5 caracteres).",
     "reportedProfile": "Perfil",
     "transcript": "Chat guardado",
-    "noTranscript": "No hay mensajes guardados."
+    "noTranscript": "No hay mensajes guardados.",
+    "add": {
+      "oneTitle": "Añadir un lugar",
+      "oneLead": "Un lugar que añade el equipo no pasa por la cola de revisión ni tiene proponente, así que no se envía ningún correo. Las mismas comprobaciones que una propuesta: nunca cerca de colegios, parques infantiles ni sitios con niños.",
+      "publish": "Publicar ya",
+      "publishHint": "Desmárcalo para enviarlo a la cola de revisión.",
+      "create": "Añadir lugar",
+      "importTitle": "Importar un archivo"
+    }
+  },
+  "CruisingSpotImport": {
+    "importLead": "Un CSV con una fila de cabecera con las columnas name, type, lat, lng, countryCode, city, description y, si quieres, bestTimes (en cualquier orden, separadas por comas o por punto y coma), o un FeatureCollection GeoJSON de puntos cuyas properties llevan los mismos campos. El tipo puede ir con su nombre en inglés o en español. Hasta 500 filas y 2 MB. Se omite una fila no válida o con un lugar del mismo tipo a menos de 100 m.",
+    "file": "Archivo",
+    "fileHint": ".csv, .geojson o .json, hasta 2 MB.",
+    "format": "Formato",
+    "formatAuto": "Según el nombre del archivo",
+    "formatHint": "Se deduce del nombre del archivo (.csv, .geojson o .json) salvo que elijas uno.",
+    "formatDetected": "Se leerá como {format}.",
+    "formats": {
+      "csv": "CSV",
+      "geojson": "GeoJSON"
+    },
+    "check": "Comprobar",
+    "working": "Procesando…",
+    "import": "Importar",
+    "importCount": "Importar {count, plural, one {# lugar} other {# lugares}}",
+    "toCreate": "Lugares que se crearán",
+    "created": "Lugares creados",
+    "skipped": "Filas omitidas",
+    "row": "Fila",
+    "name": "Nombre",
+    "type": "Tipo",
+    "place": "Lugar",
+    "reason": "Motivo",
+    "checked": "{create, plural, =0 {Nada que crear} one {# lugar que crear} other {# lugares que crear}}, {skip, plural, =0 {ninguna fila omitida} one {# fila omitida} other {# filas omitidas}}. No se guarda nada hasta que importes.",
+    "imported": "{count, plural, =0 {Ningún lugar creado} one {# lugar creado} other {# lugares creados}}, {skip, plural, =0 {ninguna fila omitida} one {# fila omitida} other {# filas omitidas}}.",
+    "chooseFile": "Elige primero un archivo.",
+    "tooBig": "El archivo pasa de 2 MB.",
+    "chooseFormat": "Elige el formato: el nombre del archivo no indica ni CSV ni GeoJSON.",
+    "publish": "Publicar ya",
+    "publishHint": "Desmárcalo para enviarlo a la cola de revisión."
   },
   "MenuKit": {
     "title": "QR de tu carta",
