@@ -120,6 +120,8 @@ services:
       CLOUD_PLATFORM_DOMAINS: ${CLOUD_PLATFORM_DOMAINS:-}
       CLOUD_PLATFORM_TEAM_ID: ${CLOUD_PLATFORM_TEAM_ID:-}
       CLOUD_ROOT: /cloud
+      # Cruising's private photos and videos (architecture 4.15), on the cruising-data volume.
+      CRUISING_UPLOADS_DIR: /app/cruising-uploads
       CLOUD_URL: ${CLOUD_URL:-https://cloud.codeqlick.com}
       # Password protection (architecture 4.13): the key the hosting sites' Nginx sends; created in
       # .env by deploy/setup-cloud.sh. Protection can't be turned on while it is empty.
@@ -145,6 +147,8 @@ services:
       - /srv/codeqlick/cloud:/cloud
       # Swipe's photos: private, served only through the API (architecture 4.10).
       - swipe-data:/app/swipe-uploads
+      # Cruising's photos and videos: private, served only through the API (architecture 4.15).
+      - cruising-data:/app/cruising-uploads
     ports:
       - "127.0.0.1:${API_PORT:-4010}:4000"
 
@@ -344,6 +348,8 @@ volumes:
   uploads-data:
   # Swipe's photos (not in the public uploads, not in the backups).
   swipe-data:
+  # Cruising's photos and videos (not in the public uploads, not in the backups).
+  cruising-data:
   umami-db-data:
   cloud-pg-data:
   cloud-storage-meta:
