@@ -591,6 +591,17 @@ export function previewMessage(text: string, max = 80): string {
   return excerpt(text, max);
 }
 
+/** My favourite spots (decision 85). */
+export const FAVORITES_HREF = '/cruising/favorites';
+
+/** Whether the spot is among my favourites. */
+export function isFavorite(
+  favorites: readonly { spot: { id: string } }[],
+  spotId: string,
+): boolean {
+  return favorites.some((favorite) => favorite.spot.id === spotId);
+}
+
 /** Whether a conversation has unread messages (the API says it as a flag or a count). */
 export function isUnread(unread: boolean | number | null | undefined): boolean {
   return typeof unread === 'number' ? unread > 0 : unread === true;
