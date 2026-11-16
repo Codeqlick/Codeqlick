@@ -1,4 +1,3 @@
-import { statfs } from 'node:fs/promises';
 import {
   HttpException,
   HttpStatus,
@@ -7,24 +6,10 @@ import {
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
+import { readDiskSpace, type DiskReading } from '../../common/disk-space.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 
-export type DiskState = 'ok' | 'low' | 'full';
-
-export interface DiskReading {
-  state: DiskState;
-  totalBytes: number;
-  freeBytes: number;
-  lowBytes: number;
-  minBytes: number;
-}
-
-/** The state of a disk with `free` bytes left, against the guard's floors. */
-export function diskState(free: number, floors: { lowBytes: number; minBytes: number }): DiskState {
-  if (free < floors.minBytes) return 'full';
-  if (free < floors.lowBytes) return 'low';
-  return 'ok';
-}
+export { diskState, type DiskReading, type DiskState } from '../../common/disk-space.js';
 
 const CHECK_MS = 60_000;
 
@@ -55,17 +40,9 @@ export class CloudDiskService implements OnApplicationBootstrap, OnApplicationSh
     const root = this.config.cloudHosting?.root;
     if (!root) return null;
     try {
-      const stats = await statfs(root);
-      const floors = this.config.cloudDisk;
-      const freeBytes = stats.bavail * stats.bsize;
-      const reading: DiskReading = {
-        state: diskState(freeBytes, floors),
-        totalBytes: stats.blocks * stats.bsize,
-        freeBytes,
-        ...floors,
-      };
+      const reading = await readDiskSpace(root, this.config.cloudDisk);
       if (reading.state !== this.last?.state && reading.state !== 'ok') {
-        this.logger.warn(`Cloud's disk is ${reading.state}: ${freeBytes} bytes free`);
+        this.logger.warn(`Cloud's disk is ${reading.state}: ${reading.freeBytes} bytes free`);
       }
       this.last = reading;
       return reading;
