@@ -18,7 +18,8 @@ const ICONS: MetadataRoute.Manifest['icons'] = [
 
 /**
  * The installable app's description. On the video chat's host it is the video chat (installs as
- * its own app on phones; architecture 4.7), on Swipe's host Swipe (4.10), anywhere else the website.
+ * its own app on phones; architecture 4.7), on Swipe's host Swipe (4.10), on Cruising's host
+ * Cruising (4.15, decision 96), anywhere else the website.
  */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const host = (await headers()).get('host');
@@ -35,6 +36,36 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       background_color: '#f8f6f9',
       theme_color: '#ffffff',
       icons: ICONS,
+    };
+  }
+  if (webappForHost(host) === 'cruising') {
+    // Cruising (decision 96): opens the map full screen; the logo on ink, apart from the site's.
+    return {
+      id: '/cruising',
+      name: 'Cruising',
+      short_name: 'Cruising',
+      description: 'Cruising spots on a map, for adults (18+).',
+      start_url: '/map',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#ffffff',
+      icons: [
+        { src: '/cruising-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+        { src: '/cruising-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+        {
+          src: '/cruising-maskable-192.png',
+          sizes: '192x192',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+        {
+          src: '/cruising-maskable-512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+      ],
     };
   }
   if (webappForHost(host) === 'swipe') {

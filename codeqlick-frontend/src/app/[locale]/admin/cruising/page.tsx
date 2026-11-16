@@ -58,6 +58,7 @@ import {
   withdrawVerificationByIdAction,
 } from './actions';
 import admin from './cruising-admin.module.css';
+import { SpotExtraFields } from '@/components/cruising/SpotExtraFields';
 import { SpotImport } from './SpotImport';
 
 type PageProps = {
@@ -102,6 +103,7 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
   const tr = await getTranslations({ locale, namespace: 'Cruising.report.reasons' });
   const tt = await getTranslations({ locale, namespace: 'Cruising.types' });
   const ts = await getTranslations({ locale, namespace: 'Cruising.spotForm' });
+  const tg = await getTranslations({ locale, namespace: 'Cruising.tags' });
   const requested = firstParam(query.tab);
   const tab: Tab = TABS.find((value) => value === requested) ?? 'queue';
   const liveFilter = LIVE_FILTERS.find((value) => value === firstParam(query.status)) ?? 'LIVE';
@@ -183,6 +185,21 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
       {spot.bestTimes ? (
         <p className={styles.muted}>
           {t('bestTimes')}: {spot.bestTimes}
+        </p>
+      ) : null}
+      {spot.tags?.length ? (
+        <p className={styles.muted}>
+          {ts('tags')}: {spot.tags.map((tag) => tg(tag)).join(' · ')}
+        </p>
+      ) : null}
+      {spot.openingHours ? (
+        <p className={styles.muted}>
+          {ts('openingHours')}: {spot.openingHours}
+        </p>
+      ) : null}
+      {spot.tips ? (
+        <p className={styles.muted}>
+          {ts('tips')}: {spot.tips}
         </p>
       ) : null}
       {spot.rejectReason ? (
@@ -268,6 +285,11 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
             label={ts('bestTimes')}
             maxLength={LIMITS.bestTimes}
             defaultValue={spot.bestTimes ?? ''}
+          />
+          <SpotExtraFields
+            locale={locale}
+            idPrefix={`edit-${spot.id}`}
+            defaults={{ tags: spot.tags, openingHours: spot.openingHours, tips: spot.tips }}
           />
           <SubmitButton size="sm" variant="outline">
             {t('saveEdit')}
@@ -864,6 +886,7 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                 optionalLabel={ts('optional')}
                 maxLength={LIMITS.bestTimes}
               />
+              <SpotExtraFields locale={locale} idPrefix="add" />
               <FormCheckbox
                 id="add-publish"
                 name="publish"

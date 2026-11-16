@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { cache } from 'react';
 import { FavoriteStar } from '@/components/cruising/FavoriteStar';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
+import { SpotHours } from '@/components/cruising/SpotHours';
 import { SpotMeetups } from '@/components/cruising/SpotMeetups';
 import { SpotPresence } from '@/components/cruising/SpotPresence';
 import { SpotSafetyAlerts } from '@/components/cruising/SpotSafetyAlerts';
@@ -15,7 +16,16 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCruisingSpot, getCruisingStatus, type CruisingStatus } from '@/lib/api/cruising';
 import { getCurrentUser } from '@/lib/auth/session';
-import { countryName, excerpt, formatRating, mapHref, placeHref, SLUG } from '@/lib/cruising';
+import {
+  cleanTags,
+  countryName,
+  excerpt,
+  formatRating,
+  mapHref,
+  placeHref,
+  SLUG,
+  spotAmenities,
+} from '@/lib/cruising';
 import { parsePage } from '@/lib/format';
 import { webappAlternates, webappPath, webappUrl } from '@/lib/webapp-seo';
 import vc from '../../../videochat/videochat.module.css';
@@ -53,6 +63,8 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
 
   const t = await getTranslations({ locale, namespace: 'Cruising.spot' });
   const tt = await getTranslations({ locale, namespace: 'Cruising.types' });
+  const tg = await getTranslations({ locale, namespace: 'Cruising.tags' });
+  const tags = cleanTags(spot.tags ?? []);
   const user = await getCurrentUser();
   let status: CruisingStatus | null = null;
   if (user) {
@@ -80,6 +92,8 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
             addressCountry: spot.countryCode,
             addressLocality: spot.city,
           },
+          // Phase 5 (decision 92): what the spot offers, for search engines.
+          ...(tags.length > 0 ? { amenityFeature: spotAmenities(tags) } : {}),
         }}
       />
       <nav aria-label={t('breadcrumb')} className={vc.muted}>
@@ -113,10 +127,34 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
         <div>
           <h2 className={vc.sectionTitle}>{t('about')}</h2>
           <p className={cruising.prewrap}>{spot.description}</p>
+          {tags.length > 0 ? (
+            <>
+              <h2 className={vc.sectionTitle}>{t('tags')}</h2>
+              <ul className={cruising.tags}>
+                {tags.map((tag) => (
+                  <li key={tag} className={cruising.tag}>
+                    {tg(tag)}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
           {spot.bestTimes ? (
             <>
               <h2 className={vc.sectionTitle}>{t('bestTimes')}</h2>
               <p>{spot.bestTimes}</p>
+            </>
+          ) : null}
+          {spot.openingHours ? (
+            <>
+              <h2 className={vc.sectionTitle}>{t('openingHours')}</h2>
+              <p>{spot.openingHours}</p>
+            </>
+          ) : null}
+          {spot.tips ? (
+            <>
+              <h2 className={vc.sectionTitle}>{t('tips')}</h2>
+              <p className={cruising.prewrap}>{spot.tips}</p>
             </>
           ) : null}
           <div className={vc.warning} role="note">
@@ -149,6 +187,7 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
           <SpotMeetups locale={locale} spot={spot} status={status} />
         </>
       ) : null}
+      {status?.onboarded ? <SpotHours locale={locale} spotId={spot.id} /> : null}
 
       <SpotReviews
         locale={locale}

@@ -17,8 +17,15 @@ const noSubscribe = () => () => {};
  * "Install the app" (architecture 4.7): the browser's own prompt where it offers one, the Share →
  * Add to Home Screen steps on iPhone, nothing when already installed or not installable.
  */
-export function InstallApp({ className }: { className?: string }) {
-  const t = useTranslations('Videochat.install');
+export function InstallApp({
+  className,
+  namespace = 'Videochat.install',
+}: {
+  className?: string;
+  /** Whose texts: the video chat's (default) or Cruising's (decision 96). */
+  namespace?: 'Videochat.install' | 'Cruising.install';
+}) {
+  const t = useTranslations(namespace);
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   // iPhone in a browser tab; false on the server so hydration matches.
   const ios = useSyncExternalStore(noSubscribe, isIosNotInstalled, () => false);

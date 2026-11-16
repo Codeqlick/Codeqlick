@@ -1,5 +1,6 @@
 /** Pure rules of Cruising (architecture 4.15): slugs, coordinates, the map's box, ratings, statuses. */
 import { RESERVED_USERNAMES } from '../auth/auth.schemas.js';
+import { importedTags } from './cruising-insights.rules.js';
 
 /** Lower-case ASCII words joined by hyphens: "Playa del Inglés" becomes "playa-del-ingles". */
 export function slugify(value: string, max = 60): string {
@@ -366,6 +367,10 @@ export interface ImportedFields {
   city: unknown;
   description: unknown;
   bestTimes: unknown;
+  /** Phase 5 (decision 92). */
+  tags: unknown;
+  openingHours: unknown;
+  tips: unknown;
 }
 
 /** One row of an import: its line (CSV, header = 1) or index (GeoJSON) and its fields. */
@@ -387,9 +392,13 @@ const IMPORT_COLUMNS = [
   'city',
   'description',
   'bestTimes',
+  'tags',
+  'openingHours',
+  'tips',
 ] as const;
 type ImportColumn = (typeof IMPORT_COLUMNS)[number];
-const REQUIRED_COLUMNS = IMPORT_COLUMNS.filter((column) => column !== 'bestTimes');
+const OPTIONAL_COLUMNS: readonly ImportColumn[] = ['bestTimes', 'tags', 'openingHours', 'tips'];
+const REQUIRED_COLUMNS = IMPORT_COLUMNS.filter((column) => !OPTIONAL_COLUMNS.includes(column));
 
 const COLUMN_BY_NAME = new Map<string, ImportColumn>(
   IMPORT_COLUMNS.map((column) => [column.toLowerCase(), column]),
@@ -486,7 +495,10 @@ function importedFields(get: (column: ImportColumn) => unknown): ImportedFields 
   };
   const type = text('type');
   const country = text('countryCode');
-  const bestTimes = text('bestTimes');
+  const optional = (column: ImportColumn) => {
+    const value = text(column);
+    return value === '' || value === undefined ? null : value;
+  };
   return {
     name: text('name'),
     type: typeof type === 'string' ? (spotTypeFromLabel(type) ?? type) : type,
@@ -495,12 +507,16 @@ function importedFields(get: (column: ImportColumn) => unknown): ImportedFields 
     countryCode: typeof country === 'string' ? country.toUpperCase() : country,
     city: text('city'),
     description: text('description'),
-    bestTimes: bestTimes === '' || bestTimes === undefined ? null : bestTimes,
+    bestTimes: optional('bestTimes'),
+    tags: importedTags(get('tags')),
+    openingHours: optional('openingHours'),
+    tips: optional('tips'),
   };
 }
 
 /**
- * The rows of a CSV import: a header row naming the columns in any order (`bestTimes` optional),
+ * The rows of a CSV import: a header row naming the columns in any order (`bestTimes`, `tags`
+ * (`|`-separated, the enum or a label), `openingHours` and `tips` optional),
  * comma or semicolon separated, UTF-8 with or without BOM. Rows are numbered by line (header = 1).
  */
 export function parseSpotsCsv(text: string): ImportParse {

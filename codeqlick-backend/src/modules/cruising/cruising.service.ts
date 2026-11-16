@@ -46,6 +46,13 @@ import {
   uniqueSlug,
   type Bbox,
 } from './cruising.rules.js';
+import {
+  contributorBadges,
+  spotTimeZone,
+  type ContributorBadge,
+  type ContributorCounters,
+  type SpotTag,
+} from './cruising-insights.rules.js';
 import { CruisingMediaRepository, type MemberBadge } from './cruising-media.repository.js';
 import { mediaHidesAtOnce, normalizeMediaRef, reasonAllowedOn } from './cruising-media.rules.js';
 import {
@@ -92,6 +99,8 @@ const NICKNAME_HOLD_MS = 14 * 24 * 60 * 60 * 1000;
 /** The team's digest: checked this often, sent at most once in DIGEST_MIN_GAP_MS. */
 const DIGEST_EVERY_MS = 30 * 60 * 1000;
 const DIGEST_MIN_GAP_MS = 60 * 60 * 1000;
+/** Spots given their time zone per batch when the API starts (spots from before phase 5). */
+const TIME_ZONE_BATCH = 500;
 
 export interface CruisingStatus {
   onboarded: boolean;
@@ -120,6 +129,9 @@ export interface CruisingStatus {
     lookingFor: LookingFor[];
     showAge: boolean;
     verified: boolean;
+    /** Phase 5 (decision 93): the contributor badges and the counters they come from. */
+    badges: ContributorBadge[];
+    contributions: ContributorCounters;
   } | null;
 }
 
@@ -178,7 +190,16 @@ export interface CruisingSpotPublic extends CruisingSpotSummary {
   citySlug: string;
   description: string;
   bestTimes: string | null;
+  /** Phase 5 (decision 92). */
+  tags: SpotTag[];
+  openingHours: string | null;
+  tips: string | null;
   createdAt: string;
+}
+
+/** A review's author: the member's name, badge and cover, and their contributor badges. */
+export interface CruisingReviewAuthor extends CruisingMemberRef {
+  badges: ContributorBadge[];
 }
 
 export interface CruisingReviewView {
@@ -187,9 +208,22 @@ export interface CruisingReviewView {
   text: string | null;
   mine: boolean;
   /** Null: "Member" (an author without a nickname). */
-  author: CruisingMemberRef | null;
+  author: CruisingReviewAuthor | null;
+  /** Phase 5 (decision 93): helpful votes, and whether I gave one. */
+  helpful: { count: number; mine: boolean };
   createdAt: string;
   updatedAt: string;
+}
+
+/** The counters of a profile (zero without one). */
+export function countersOf(
+  profile: Partial<ContributorCounters> | null | undefined,
+): ContributorCounters {
+  return {
+    spotsLive: profile?.spotsLive ?? 0,
+    helpfulReceived: profile?.helpfulReceived ?? 0,
+    reviewsWritten: profile?.reviewsWritten ?? 0,
+  };
 }
 
 /** What a spot's fields become in the database: rounded coordinates and the city's slug. */
@@ -203,6 +237,10 @@ export interface SpotChanges {
   citySlug?: string;
   description?: string;
   bestTimes?: string | null;
+  tags?: SpotTag[];
+  openingHours?: string | null;
+  tips?: string | null;
+  timeZone?: string;
 }
 
 export function spotChanges(patch: SpotPatch): SpotChanges {
@@ -218,6 +256,24 @@ export function spotChanges(patch: SpotPatch): SpotChanges {
   }
   if (patch.description !== undefined) data.description = patch.description;
   if (patch.bestTimes !== undefined) data.bestTimes = patch.bestTimes?.trim() || null;
+  if (patch.tags !== undefined) data.tags = patch.tags;
+  if (patch.openingHours !== undefined) data.openingHours = patch.openingHours?.trim() || null;
+  if (patch.tips !== undefined) data.tips = patch.tips?.trim() || null;
+  return data;
+}
+
+/**
+ * A spot's changes with its time zone worked out again when it moves (decision 89): from the new
+ * coordinates, or the spot's own for the one the patch leaves alone.
+ */
+export function spotChangesAt(
+  patch: SpotPatch,
+  current: { lat: unknown; lng: unknown },
+): SpotChanges {
+  const data = spotChanges(patch);
+  if (data.lat !== undefined || data.lng !== undefined) {
+    data.timeZone = spotTimeZone(data.lat ?? Number(current.lat), data.lng ?? Number(current.lng));
+  }
   return data;
 }
 
@@ -233,6 +289,10 @@ export function newSpotFields(input: SpotInput) {
     citySlug: citySlugOf(input.city),
     description: input.description,
     bestTimes: input.bestTimes?.trim() || null,
+    tags: input.tags ?? [],
+    openingHours: input.openingHours?.trim() || null,
+    tips: input.tips?.trim() || null,
+    timeZone: spotTimeZone(input.lat, input.lng),
   };
 }
 
@@ -297,6 +357,31 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   onApplicationBootstrap(): void {
     if (this.config.isTest) return;
     this.timers.push(setInterval(() => void this.sendDigest(), DIGEST_EVERY_MS).unref());
+    void this.backfillTimeZones();
+  }
+
+  /**
+   * Gives the spots created before phase 5 their time zone (decision 89), in batches; runs when the
+   * API starts and finds nothing to do once they all have one. Returns how many it set.
+   */
+  async backfillTimeZones(): Promise<number> {
+    let done = 0;
+    try {
+      for (;;) {
+        const batch = await this.repository.spotsWithoutTimeZone(TIME_ZONE_BATCH);
+        for (const spot of batch) {
+          await this.repository.setSpotTimeZone(
+            spot.id,
+            spotTimeZone(Number(spot.lat), Number(spot.lng)),
+          );
+        }
+        done += batch.length;
+        if (batch.length < TIME_ZONE_BATCH) break;
+      }
+    } catch (error) {
+      this.logger.error(`Cruising time zones not filled in: ${String(error)}`);
+    }
+    return done;
   }
 
   onApplicationShutdown(): void {
@@ -418,6 +503,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             lookingFor: profile.lookingFor,
             showAge: profile.showAge,
             verified: profile.verificationStatus === 'APPROVED',
+            badges: contributorBadges(countersOf(profile)),
+            contributions: countersOf(profile),
           }
         : null,
     };
@@ -522,8 +609,13 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     box: Bbox,
     type?: SpotType,
     minRating?: number,
+    tags?: SpotTag[],
   ): Promise<{ items: CruisingSpotSummary[]; truncated: boolean }> {
-    const spots = await this.repository.spotsInBox(box, { type, minRating }, MAX_SPOTS_IN_BOX + 1);
+    const spots = await this.repository.spotsInBox(
+      box,
+      { type, minRating, tags },
+      MAX_SPOTS_IN_BOX + 1,
+    );
     return {
       items: spots.slice(0, MAX_SPOTS_IN_BOX).map((spot) => this.summary(spot)),
       truncated: spots.length > MAX_SPOTS_IN_BOX,
@@ -575,6 +667,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       citySlug: spot.citySlug,
       description: spot.description,
       bestTimes: spot.bestTimes,
+      tags: spot.tags,
+      openingHours: spot.openingHours,
+      tips: spot.tips,
       createdAt: spot.createdAt.toISOString(),
     };
   }
@@ -659,6 +754,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         lng: Number(spot.lng),
         description: spot.description,
         bestTimes: spot.bestTimes,
+        tags: spot.tags,
+        openingHours: spot.openingHours,
+        tips: spot.tips,
       })),
     };
   }
@@ -719,7 +817,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       throw new ConflictException('Only a pending or rejected spot can be changed');
     }
     const updated = await this.repository.updateOwnSpot(spot.id, userId, {
-      ...spotChanges(patch),
+      ...spotChangesAt(patch, spot),
       ...(spot.status === 'REJECTED' ? { status: 'PENDING' as const, rejectReason: null } : {}),
     });
     // The team decided in between: it can't be changed any more.
@@ -754,13 +852,18 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     viewerId: string,
     nickname: string | null,
     badge: MemberBadge,
+    counters: Partial<ContributorCounters> | null,
+    helpful: { count: number; mine: boolean },
   ): CruisingReviewView {
     return {
       id: review.id,
       rating: review.rating,
       text: review.text,
       mine: review.userId === viewerId,
-      author: nickname ? { nickname, ...badge } : null,
+      author: nickname
+        ? { nickname, ...badge, badges: contributorBadges(countersOf(counters)) }
+        : null,
+      helpful,
       createdAt: review.createdAt.toISOString(),
       updatedAt: review.updatedAt.toISOString(),
     };
@@ -777,7 +880,13 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     await this.liveSpot(spotId);
     const { skip, take } = pageToSkipTake(page, pageSize);
     const hidden = await this.repository.hiddenIds(userId);
-    const { items, total } = await this.repository.reviewsOfSpot(spotId, skip, take, hidden);
+    const { items, total } = await this.repository.reviewsOfSpot(
+      spotId,
+      skip,
+      take,
+      hidden,
+      userId,
+    );
     const badges = await this.mediaRepository.badges(items.map((review) => review.userId));
     return paginate(
       items.map((review) =>
@@ -786,6 +895,8 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
           userId,
           review.nickname,
           badgeFor(badges, review.userId, !!me.nickname),
+          review.counters,
+          { count: review.helpful, mine: review.helpfulMine },
         ),
       ),
       total,
@@ -824,8 +935,19 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       input.rating,
       input.text ?? null,
     );
-    const badges = await this.mediaRepository.badges([userId]);
-    return this.reviewView(review, userId, me.nickname, badgeFor(badges, userId, !!me.nickname));
+    const [badges, profile, helpful] = await Promise.all([
+      this.mediaRepository.badges([userId]),
+      this.repository.findProfile(userId),
+      this.repository.countHelpfulVotes(review.id),
+    ]);
+    return this.reviewView(
+      review,
+      userId,
+      me.nickname,
+      badgeFor(badges, userId, !!me.nickname),
+      profile,
+      { count: helpful, mine: false },
+    );
   }
 
   async deleteReview(userId: string, spotId: string): Promise<void> {
@@ -1049,6 +1171,9 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       city: spot.city,
       description: spot.description,
       bestTimes: spot.bestTimes,
+      tags: spot.tags,
+      openingHours: spot.openingHours,
+      tips: spot.tips,
       rejectReason: spot.rejectReason,
       ratingAvg: Number(spot.ratingAvg),
       ratingCount: spot.ratingCount,
@@ -1195,7 +1320,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   /** The team corrects a spot's fields. The slug stays. */
   async correctSpot(actor: AuthUser, spotId: string, patch: SpotPatch): Promise<void> {
     const spot = await this.anySpot(spotId);
-    await this.repository.updateSpot(spot.id, spotChanges(patch));
+    await this.repository.updateSpot(spot.id, spotChangesAt(patch, spot));
     await this.activity.record(actor, {
       action: 'cruising.spot_edited',
       targetId: spot.id,

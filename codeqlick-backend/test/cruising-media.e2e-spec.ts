@@ -339,6 +339,7 @@ describe('Cruising media (e2e)', () => {
         nickname: star.nick,
         verified: true,
         coverId: cover.id,
+        badges: [],
       });
 
       await request(server())

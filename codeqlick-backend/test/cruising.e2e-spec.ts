@@ -1191,6 +1191,46 @@ describe('Cruising (e2e)', () => {
         await prisma.cruisingSpot.count({ where: { name: { startsWith: 'Big ', contains: tag } } }),
       ).toBe(0);
     });
+
+    it('imports tags (enum or label, separated by |), opening hours and tips (decision 92)', async () => {
+      const content = [
+        'name,type,lat,lng,countryCode,city,description,tags,openingHours,tips',
+        [
+          `Tagged ${tag}`,
+          'PARK',
+          near(40).lat,
+          near(40).lng,
+          'ES',
+          `Seed ${tag}`,
+          'Tagged park',
+          'Nudista|night| PARKING',
+          'Summer evenings',
+          'Use the north gate',
+        ].join(','),
+        [
+          `Bad tag ${tag}`,
+          'PARK',
+          near(42).lat,
+          near(42).lng,
+          'ES',
+          `Seed ${tag}`,
+          'X',
+          'Pool',
+          '',
+          '',
+        ].join(','),
+      ].join('\n');
+      const res = await importSpots({ format: 'csv', content }).expect(200);
+      expect(res.body.created).toBe(1);
+      expect(res.body.skipped).toEqual([{ row: 3, reason: expect.stringContaining('tags') }]);
+      const row = await prisma.cruisingSpot.findFirstOrThrow({ where: { name: `Tagged ${tag}` } });
+      expect(row).toMatchObject({
+        tags: ['NUDIST', 'NIGHT', 'PARKING'],
+        openingHours: 'Summer evenings',
+        tips: 'Use the north gate',
+      });
+      expect(row.timeZone).toEqual(expect.any(String));
+    });
   });
 
   it('searches cities and spots by text, ignoring accents and case, LIVE spots only', async () => {
@@ -1296,5 +1336,80 @@ describe('Cruising (e2e)', () => {
     for (const bad of ['0', '6', '2.5', 'x']) {
       await request(server()).get(`/v1/cruising/spots?bbox=${BOX}&minRating=${bad}`).expect(400);
     }
+  });
+
+  it('keeps tags, opening hours and tips and filters the map by all the chosen tags', async () => {
+    const proposer = await member('Tagger');
+    const proposed = await request(server())
+      .post('/v1/cruising/spots')
+      .set(proposer.auth)
+      .send({
+        name: `Tagged beach ${tag}`,
+        type: 'BEACH',
+        ...at(451),
+        countryCode: 'ES',
+        city: `Playa ${tag}`,
+        description: 'A beach with tags.',
+        tags: ['NUDIST', 'PARKING', 'NUDIST'],
+        openingHours: 'All day',
+        tips: 'Walk to the far end',
+      })
+      .expect(201);
+    // The proposer edits it while it waits; the team corrects and publishes it.
+    await request(server())
+      .patch(`/v1/cruising/spots/${proposed.body.id}`)
+      .set(proposer.auth)
+      .send({ tags: ['NUDIST', 'PARKING', 'LIT'] })
+      .expect(200);
+    await request(server())
+      .patch(`/v1/admin/cruising/spots/${proposed.body.id}`)
+      .set(admin.auth)
+      .send({ tips: 'Walk to the north end', openingHours: null })
+      .expect(204);
+    await request(server())
+      .post(`/v1/admin/cruising/spots/${proposed.body.id}/approve`)
+      .set(admin.auth)
+      .expect(204);
+    const other = await liveSpot('Untagged', 452);
+    await prisma.cruisingSpot.update({ where: { id: other.id }, data: { tags: ['NUDIST'] } });
+
+    const page = await request(server())
+      .get(`/v1/cruising/spots/${proposed.body.slug}`)
+      .expect(200);
+    expect(page.body).toMatchObject({
+      tags: ['NUDIST', 'PARKING', 'LIT'],
+      openingHours: null,
+      tips: 'Walk to the north end',
+    });
+    const slugsWith = async (tags: string) =>
+      (
+        (await request(server()).get(`/v1/cruising/spots?bbox=${BOX}&tags=${tags}`).expect(200))
+          .body.items as { slug: string }[]
+      ).map((item) => item.slug);
+    expect(await slugsWith('NUDIST')).toEqual(
+      expect.arrayContaining([proposed.body.slug, other.slug]),
+    );
+    const both = await slugsWith('NUDIST,LIT');
+    expect(both).toContain(proposed.body.slug);
+    expect(both).not.toContain(other.slug);
+    await request(server()).get(`/v1/cruising/spots?bbox=${BOX}&tags=POOL`).expect(400);
+    await request(server())
+      .post('/v1/cruising/spots')
+      .set(proposer.auth)
+      .send({
+        name: `Bad tags ${tag}`,
+        type: 'BEACH',
+        ...at(453),
+        countryCode: 'ES',
+        city: `Playa ${tag}`,
+        description: 'X',
+        tags: ['POOL'],
+      })
+      .expect(400);
+    // The proposer's LIVE spots count toward the Explorer badge (decision 93).
+    expect(
+      (await prisma.cruisingProfile.findUniqueOrThrow({ where: { userId: proposer.id } }))
+        .spotsLive,
+    ).toBe(1);
   });
 });

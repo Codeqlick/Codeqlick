@@ -12,6 +12,7 @@ import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import { SWIPE_COUNTRIES } from '@/lib/countries';
 import { countryName, LIMITS, SPOT_TYPES } from '@/lib/cruising';
+import { SpotExtraFields } from './SpotExtraFields';
 
 type SpotFormProps = {
   locale: AppLocale;
@@ -24,10 +25,12 @@ type SpotFormProps = {
     >
   >;
   mode: 'create' | 'edit';
+  /** Phase 5 (decision 92): the spot's tags, opening hours and tips being edited. */
+  extras?: { tags?: readonly string[]; openingHours?: string | null; tips?: string | null };
 };
 
 /** The form to propose a spot, or to edit one that is waiting or was rejected. */
-export async function SpotForm({ locale, action, defaults = {}, mode }: SpotFormProps) {
+export async function SpotForm({ locale, action, defaults = {}, mode, extras }: SpotFormProps) {
   const t = await getTranslations({ locale, namespace: 'Cruising.spotForm' });
   const tt = await getTranslations({ locale, namespace: 'Cruising.types' });
   const countries = SWIPE_COUNTRIES.map((code) => ({
@@ -115,6 +118,7 @@ export async function SpotForm({ locale, action, defaults = {}, mode }: SpotForm
         defaultValue={defaults.bestTimes}
         optionalLabel={t('optional')}
       />
+      <SpotExtraFields locale={locale} defaults={extras} />
       {mode === 'edit' ? (
         <p className={vc.hint}>{t('editNote')}</p>
       ) : (

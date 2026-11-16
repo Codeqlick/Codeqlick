@@ -809,3 +809,139 @@
 .favoriteHereActive {
   color: var(--color-fuchsia-dark);
 }
+
+/* Phase 5: tags, busiest hours, helpful reviews and contributor badges (decisions 89, 92, 93) */
+
+.tagFilter {
+  font-size: 0.9rem;
+}
+
+.tagFilter > summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tagFilter > summary:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.tagFilterList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0 var(--space-3);
+  margin: 0;
+  padding: var(--space-2) 0 0;
+  border: 0;
+}
+
+.tagChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0 var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tagChoices > legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 600;
+}
+
+.helpfulRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.badges,
+.badgesSmall {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  vertical-align: middle;
+}
+
+.contributorBadge {
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--color-fuchsia);
+  border-radius: var(--radius-pill);
+  color: var(--color-fuchsia-dark);
+  font-family: var(--font-family-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badgesSmall .contributorBadge {
+  padding: 0 0.4rem;
+  font-size: 0.7rem;
+}
+
+.contributions {
+  margin: var(--space-4) 0;
+}
+
+.contributionList {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  padding-left: 1.2rem;
+}
+
+.hoursChart {
+  display: grid;
+  gap: var(--space-1);
+  max-width: 40rem;
+  margin: var(--space-3) 0;
+}
+
+.hoursRow {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.hoursDay {
+  color: var(--color-slate);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+}
+
+.hoursBars {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  align-items: end;
+  gap: 2px;
+  height: 2rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.hoursBar {
+  display: block;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-fuchsia-light);
+}
+
+.hoursBarEmpty {
+  background: var(--color-blush);
+}
+
+.hoursBarTop {
+  background: var(--color-fuchsia-dark);
+}
+
+.hoursScale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-slate);
+  font-family: var(--font-family-mono);
+  font-size: 0.7rem;
+}

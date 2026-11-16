@@ -181,6 +181,7 @@ model User {
   cruisingFavorites          CruisingFavorite[]
   cruisingAlerts             CruisingAlert[]
   cruisingPushSubscriptions  CruisingPushSubscription[]
+  cruisingReviewVotes        CruisingReviewVote[]
   cruisingMeetupsHosted      CruisingMeetup[]
   cruisingMeetupsAttended    CruisingMeetupAttendee[]
   cruisingTrips              CruisingTrip[]
@@ -3001,6 +3002,22 @@ enum CruisingSpotType {
   OTHER
 }
 
+/// Phase 5 (decision 92): what a spot offers or is like, any of them.
+enum CruisingSpotTag {
+  NUDIST
+  DAY
+  NIGHT
+  PARKING
+  PUBLIC_TRANSPORT
+  HARD_ACCESS
+  LIT
+  SECLUDED
+  INDOOR
+  ACCESSIBLE
+  GLORY_HOLES
+  DARKROOM
+}
+
 enum CruisingSpotStatus {
   PENDING
   LIVE
@@ -3128,6 +3145,12 @@ model CruisingProfile {
   favoriteAlerts         Boolean                    @default(true) @map("favorite_alerts")
   /// Phase 3: the daily email about favourites, for members with no push subscription.
   favoriteEmails         Boolean                    @default(false) @map("favorite_emails")
+  /// Phase 5 (decision 93): the badges' counters, kept up to date in the transactions that change
+  /// them. The member's proposed spots that are LIVE…
+  spotsLive              Int                        @default(0) @map("spots_live")
+  /// …the helpful votes their LIVE reviews received, and their LIVE reviews.
+  helpfulReceived        Int                        @default(0) @map("helpful_received")
+  reviewsWritten         Int                        @default(0) @map("reviews_written")
   createdAt              DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -3140,29 +3163,39 @@ model CruisingProfile {
 /// A place on the map. Every spot starts PENDING and only the team publishes it. It stays when the
 /// account that proposed it is deleted (createdById becomes null).
 model CruisingSpot {
-  id           String             @id @default(uuid()) @db.Uuid
+  id             String             @id @default(uuid()) @db.Uuid
   /// From the name, lower-case ASCII, -2, -3 on a clash; never changes.
-  slug         String             @unique @db.VarChar(100)
-  name         String             @db.VarChar(80)
-  type         CruisingSpotType
+  slug           String             @unique @db.VarChar(100)
+  name           String             @db.VarChar(80)
+  type           CruisingSpotType
   /// Rounded to 5 decimals.
-  lat          Decimal            @db.Decimal(8, 5)
-  lng          Decimal            @db.Decimal(8, 5)
+  lat            Decimal            @db.Decimal(8, 5)
+  lng            Decimal            @db.Decimal(8, 5)
   /// ISO 3166-1 alpha-2.
-  countryCode  String             @map("country_code") @db.VarChar(2)
-  city         String             @db.VarChar(80)
-  citySlug     String             @map("city_slug") @db.VarChar(100)
-  description  String             @db.VarChar(1000)
-  bestTimes    String?            @map("best_times") @db.VarChar(200)
-  status       CruisingSpotStatus @default(PENDING)
-  rejectReason String?            @map("reject_reason") @db.VarChar(500)
-  createdById  String?            @map("created_by_id") @db.Uuid
-  reviewedAt   DateTime?          @map("reviewed_at") @db.Timestamptz(3)
+  countryCode    String             @map("country_code") @db.VarChar(2)
+  city           String             @db.VarChar(80)
+  citySlug       String             @map("city_slug") @db.VarChar(100)
+  description    String             @db.VarChar(1000)
+  bestTimes      String?            @map("best_times") @db.VarChar(200)
+  /// Phase 5 (decision 92): structured information.
+  tags           CruisingSpotTag[]  @default([])
+  openingHours   String?            @map("opening_hours") @db.VarChar(200)
+  tips           String?            @db.VarChar(500)
+  /// Phase 5 (decision 89): the IANA time zone of the coordinates, set on create and move.
+  timeZone       String?            @map("time_zone") @db.VarChar(64)
+  /// Check-ins ever counted into the busiest hours (the chart shows from 10).
+  hourCheckIns   Int                @default(0) @map("hour_check_ins")
+  /// When the hours' weights were last multiplied by 0.98 (the nightly decay).
+  hoursDecayedAt DateTime?          @map("hours_decayed_at") @db.Timestamptz(3)
+  status         CruisingSpotStatus @default(PENDING)
+  rejectReason   String?            @map("reject_reason") @db.VarChar(500)
+  createdById    String?            @map("created_by_id") @db.Uuid
+  reviewedAt     DateTime?          @map("reviewed_at") @db.Timestamptz(3)
   /// Of the LIVE reviews, 2 decimals; recomputed with every review change.
-  ratingAvg    Decimal            @default(0) @map("rating_avg") @db.Decimal(3, 2)
-  ratingCount  Int                @default(0) @map("rating_count")
-  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ratingAvg      Decimal            @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount    Int                @default(0) @map("rating_count")
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   createdBy    User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
   reviews      CruisingReview[]
@@ -3173,8 +3206,10 @@ model CruisingSpot {
   alerts       CruisingAlert[]
   meetups      CruisingMeetup[]
   safetyAlerts CruisingSafetyAlert[]
+  hours        CruisingSpotHour[]
 
   @@index([status, lat])
+  @@index([tags], type: Gin)
   @@index([countryCode, citySlug, status])
   @@index([createdById, createdAt])
   @@map("cruising_spots")
@@ -3191,9 +3226,10 @@ model CruisingReview {
   createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  spot    CruisingSpot     @relation(fields: [spotId], references: [id], onDelete: Cascade)
-  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot    CruisingSpot         @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   reports CruisingReport[]
+  votes   CruisingReviewVote[]
 
   @@unique([spotId, userId])
   @@index([spotId, status, createdAt])
@@ -3485,6 +3521,37 @@ model CruisingPushSubscription {
 
   @@index([userId, createdAt])
   @@map("cruising_push_subscriptions")
+}
+
+/// Phase 5 (decision 89): a spot's busiest hours, in its local time. Each check-in adds one to every
+/// hour of the week it covers; a nightly job multiplies every weight by 0.98. Only counters: no
+/// person, check-in or time is kept.
+model CruisingSpotHour {
+  spotId String @map("spot_id") @db.Uuid
+  /// 0 = Monday … 6 = Sunday.
+  day    Int    @db.SmallInt
+  /// 0-23.
+  hour   Int    @db.SmallInt
+  weight Float  @default(0)
+
+  spot CruisingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@id([spotId, day, hour])
+  @@map("cruising_spot_hours")
+}
+
+/// Phase 5 (decision 93): a member found a review helpful (one per member and review, not their own).
+model CruisingReviewVote {
+  reviewId  String   @map("review_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  review CruisingReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([reviewId, userId])
+  @@index([userId])
+  @@map("cruising_review_votes")
 }
 
 // ---- Cruising phase 5: meetups, trips and safety alerts (decisions 88, 90, 91) -------------------

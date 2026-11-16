@@ -83,6 +83,9 @@ describe('parseSpotsCsv', () => {
             city: 'Madrid',
             description: 'Quiet; shady',
             bestTimes: null,
+            tags: [],
+            openingHours: null,
+            tips: null,
           },
         },
         {
@@ -110,6 +113,26 @@ describe('parseSpotsCsv', () => {
     });
     expect(parseSpotsCsv('﻿\n\n')).toMatchObject({ ok: false });
     expect(parseSpotsCsv(`${HEADER}\n"A,BEACH`)).toMatchObject({ ok: false });
+  });
+
+  it('reads the phase 5 columns: tags separated by |, as the enum or a label', () => {
+    const csv = [
+      `${HEADER},tags,opening hours,tips`,
+      'A,BEACH,1,2,ES,C,D,,nudist | PARKING|De noche|Aparcamiento,Summer only,Go left',
+      'B,BEACH,1,2,ES,C,D,,Sauna,,',
+    ].join('\n');
+    const result = parseSpotsCsv(csv);
+    expect(result.ok && result.rows[0]?.fields).toMatchObject({
+      tags: ['NUDIST', 'PARKING', 'NIGHT', 'PARKING'],
+      openingHours: 'Summer only',
+      tips: 'Go left',
+    });
+    // An unknown tag is kept for the checks to refuse; empty optional cells are null.
+    expect(result.ok && result.rows[1]?.fields).toMatchObject({
+      tags: ['Sauna'],
+      openingHours: null,
+      tips: null,
+    });
   });
 });
 
@@ -152,6 +175,9 @@ describe('parseSpotsGeojson', () => {
             city: 'Madrid',
             description: 'Shady',
             bestTimes: null,
+            tags: [],
+            openingHours: null,
+            tips: null,
           },
         },
         { row: 1, fields: null, error: 'Not a Point feature' },

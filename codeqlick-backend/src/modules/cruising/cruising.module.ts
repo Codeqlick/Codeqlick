@@ -6,6 +6,8 @@ import { CruisingCommunityController } from './cruising-community.controller.js'
 import { CruisingCommunityRepository } from './cruising-community.repository.js';
 import { CruisingCommunityService } from './cruising-community.service.js';
 import { CruisingFfmpeg } from './cruising-ffmpeg.js';
+import { CruisingInsightsController } from './cruising-insights.controller.js';
+import { CruisingInsightsService } from './cruising-insights.service.js';
 import {
   CruisingMediaAdminController,
   CruisingMediaController,
@@ -36,6 +38,7 @@ import { CruisingService } from './cruising.service.js';
     CruisingPublicController,
     CruisingController,
     CruisingSocialController,
+    CruisingInsightsController,
     CruisingCommunityController,
     CruisingMediaController,
     CruisingAdminController,
@@ -44,6 +47,7 @@ import { CruisingService } from './cruising.service.js';
   providers: [
     CruisingService,
     CruisingSocialService,
+    CruisingInsightsService,
     CruisingCommunityService,
     CruisingMediaService,
     CruisingPushService,
