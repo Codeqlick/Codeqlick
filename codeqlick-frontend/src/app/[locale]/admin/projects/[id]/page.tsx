@@ -60,6 +60,9 @@ import { ProjectVisitsPanel } from '@/components/app/ProjectVisitsPanel';
 import { getProjectVisits } from '@/lib/api/portal-site';
 import { replaceSiteFormKeyAction, saveSiteFormAction } from '../form-actions';
 import { sendSiteReportAction } from '../site-actions';
+import { setMaintenanceIncludedAction } from '../maintenance-actions';
+import { adminGetMaintenance } from '@/lib/api/maintenance';
+import { MaintenanceAdminPanel } from '@/components/app/MaintenanceAdminPanel';
 import { BriefSummary } from '@/components/app/BriefSummary';
 import { requestBriefAction } from '../brief-actions';
 import { ProjectTasks } from '@/components/app/ProjectTasks';
@@ -154,6 +157,8 @@ export default async function EditProjectPage({
   const siteNews = site
     ? await listSiteNews('admin', project.id, { pageSize: NEWS_PAGE_SIZE }).catch(() => null)
     : null;
+  const maintenance = site ? await adminGetMaintenance(project.id).catch(() => null) : null;
+  const tmt = await getTranslations({ locale, namespace: 'Maintenance' });
   const siteVisits = site
     ? await getProjectVisits(project.id, 30, 'admin').catch(() => undefined)
     : undefined;
@@ -391,6 +396,20 @@ export default async function EditProjectPage({
           </ActionForm>
         ) : null}
       </section>
+
+      {maintenance ? (
+        <section className={styles.panel} id="maintenance" aria-labelledby="maintenance-heading">
+          <h2 id="maintenance-heading" className={styles.panelTitle}>
+            {tmt('title')}
+          </h2>
+          <MaintenanceAdminPanel
+            locale={locale}
+            plan={maintenance}
+            includeAction={setMaintenanceIncludedAction.bind(null, locale, project.id, false)}
+            removeAction={setMaintenanceIncludedAction.bind(null, locale, project.id, true)}
+          />
+        </section>
+      ) : null}
 
       <section className={styles.panel} id="domain" aria-labelledby="domain-heading">
         <h2 id="domain-heading" className={styles.panelTitle}>

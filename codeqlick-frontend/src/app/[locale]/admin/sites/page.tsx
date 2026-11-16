@@ -18,6 +18,7 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
   const t = await getTranslations({ locale, namespace: 'Admin.sites' });
   const tm = await getTranslations({ locale, namespace: 'ManagedSite' });
   const tk = (key: string) => tm(key as never);
+  const tmt = await getTranslations({ locale, namespace: 'Maintenance.admin' });
   const sites = await adminListSites();
 
   return (
@@ -26,9 +27,14 @@ export default async function AdminSitesPage({ params }: { params: Promise<{ loc
         title={t('title')}
         lead={t('lead')}
         actions={
-          <Button href="/admin/sites/new" size="sm">
-            {t('new')}
-          </Button>
+          <>
+            <Button href="/admin/sites/maintenance" size="sm" variant="outline">
+              {tmt('listLink')}
+            </Button>
+            <Button href="/admin/sites/new" size="sm">
+              {t('new')}
+            </Button>
+          </>
         }
       />
       {sites.length === 0 ? (

@@ -1380,7 +1380,10 @@
           "invoice_added": "subió una factura a <target>{label}</target>",
           "invoice_paid": "marcó pagada una factura de <target>{label}</target>",
           "invoice_unpaid": "marcó pendiente una factura de <target>{label}</target>",
-          "invoice_deleted": "eliminó una factura de <target>{label}</target>"
+          "invoice_deleted": "eliminó una factura de <target>{label}</target>",
+          "maintenance_included": "incluyó sin coste el plan de mantenimiento de <target>{label}</target>",
+          "maintenance_removed": "quitó el plan de mantenimiento incluido de <target>{label}</target>",
+          "maintenance_changed": "cambió el estado del plan de mantenimiento de <target>{label}</target>"
         },
         "user": {
           "created": "creó el usuario <target>{label}</target>",
@@ -2482,7 +2485,7 @@
     }
   },
   "Plans": {
-    "title": "Plan de mantenimiento",
+    "title": "Bolsa de horas",
     "adminLead": "Una bolsa de horas al mes para este proyecto. Se descuenta con las horas registradas y te avisamos al llegar al umbral y al agotarla. El cliente ve su consumo en su área.",
     "name": "Nombre del plan",
     "namePlaceholder": "Mantenimiento básico",
@@ -2498,9 +2501,9 @@
     "used": "{used} de {total} en {month}",
     "left": "quedan {minutes}",
     "over": "{minutes} por encima",
-    "clientTitle": "Tu plan de mantenimiento",
+    "clientTitle": "Tu bolsa de horas",
     "clientLead": "Las horas de mantenimiento y mejoras incluidas cada mes, y lo que llevamos usado.",
-    "overviewTitle": "Planes de mantenimiento",
+    "overviewTitle": "Bolsas de horas",
     "usedColumn": "Consumo del mes"
   },
   "SiteForm": {
@@ -7848,6 +7851,97 @@
       "databases": "Bases de datos de Cloud",
       "buckets": "Buckets de Cloud",
       "help": "La plataforma, sus copias de seguridad y Codeqlick Cloud comparten este disco. Con menos de {low} libres hay poco espacio; con menos de {min}, Cloud rechaza despliegues, bases de datos y buckets nuevos y congela las bases de datos y los buckets hasta que vuelva a haber sitio. El monitor del servidor avisa por email al 85 % de uso."
+    }
+  },
+  "Maintenance": {
+    "title": "Plan de mantenimiento",
+    "lead": "Nos ocupamos de tu web cada mes para que tú no tengas que hacerlo.",
+    "price": "{price} al mes + IVA ({total} con IVA)",
+    "featuresTitle": "Qué incluye",
+    "features": {
+      "hosting": "Alojamiento y certificado SSL: tu web siempre en línea con HTTPS, vigilada por nosotros.",
+      "domain": "La renovación de tu dominio: vigilamos cuándo caduca y nos aseguramos contigo de que se renueve (el dominio sigue siendo tuyo y lo pagas a tu registrador).",
+      "updates": "Actualizaciones y parches de seguridad de la plantilla de tu web.",
+      "report": "El informe mensual de tu web: visitas, mensajes y tiempo en línea.",
+      "changes": "Hasta {count} cambios pequeños al mes que hacemos por ti (un texto, precios, horario, una foto…). Lo que sobre no se acumula.",
+      "priority": "Soporte prioritario: tus solicitudes pasan delante y te respondemos en un día laborable."
+    },
+    "states": {
+      "none": "No tienes el plan contratado.",
+      "pending": "Estamos esperando a que se complete el pago.",
+      "active": "Activo. Se renueva el {date}.",
+      "activeNoDate": "Activo.",
+      "ending": "Cancelado: sigue activo hasta el {date}.",
+      "pastDue": "No hemos podido cobrar el último mes. Stripe lo reintentará; revisa tu tarjeta en «Gestionar el plan».",
+      "ended": "El plan terminó. Puedes volver a contratarlo cuando quieras.",
+      "included": "Incluido por Codeqlick, sin coste para ti."
+    },
+    "statusLabels": {
+      "none": "Sin plan",
+      "pending": "Pendiente",
+      "active": "Activo",
+      "ending": "Termina pronto",
+      "pastDue": "Pago fallido",
+      "ended": "Terminado",
+      "included": "Incluido"
+    },
+    "subscribe": "Contratar el plan",
+    "manage": "Gestionar el plan",
+    "opening": "Abriendo Stripe…",
+    "terms": "Al contratarlo aceptas las <link>condiciones del plan</link>. Lo cancelas cuando quieras y sigue activo hasta el final del mes pagado.",
+    "withoutPlan": "Sin el plan tu web sigue en línea como siempre y puedes cambiarla tú desde el editor; los cambios que nos pidas se presupuestan aparte.",
+    "allowanceTitle": "Cambios de este mes",
+    "allowance": "{used} de {limit} cambios usados este mes",
+    "allowanceOver": "Ya has usado los cambios incluidos este mes: los siguientes se presupuestan aparte.",
+    "requestChange": "Pedir un cambio",
+    "invoicesTitle": "Facturas del plan",
+    "invoiceOpen": "Ver factura {number}",
+    "invoiceNoNumber": "Ver factura",
+    "invoiceStatuses": {
+      "paid": "Pagada",
+      "open": "Pendiente",
+      "void": "Anulada",
+      "uncollectible": "Impagada",
+      "draft": "Borrador"
+    },
+    "done": "¡Gracias! En cuanto Stripe confirme el pago, el plan aparecerá aquí como activo.",
+    "canceled": "No se ha completado el pago. Puedes intentarlo de nuevo cuando quieras.",
+    "error": "No hemos podido abrir Stripe. Inténtalo de nuevo en un momento.",
+    "landingTitle": "Plan de mantenimiento, opcional",
+    "landingLead": "Tu web sigue siendo tuya y puedes cambiarla tú. Si prefieres que nos ocupemos nosotros, contrátalo desde tu área de cliente cuando la tengas.",
+    "landingPrice": "{price} al mes + IVA",
+    "landingCancel": "Sin permanencia: lo cancelas cuando quieras.",
+    "admin": {
+      "lead": "El plan de mantenimiento de la web del cliente (19 € al mes + IVA con Stripe), o incluido por nosotros sin coste.",
+      "state": "Estado",
+      "since": "Desde",
+      "periodEnd": "Renovación o fin",
+      "stripeStatus": "Estado en Stripe",
+      "customer": "Cliente en Stripe",
+      "subscription": "Suscripción",
+      "includedReason": "Motivo: {reason}",
+      "reason": "Motivo",
+      "reasonHint": "Por qué se incluye gratis (p. ej. «Incluido en el proyecto a medida»).",
+      "markIncluded": "Marcar como incluido",
+      "removeIncluded": "Quitar incluido",
+      "saving": "Guardando…",
+      "included": "Incluido sin coste.",
+      "removed": "Ya no está incluido.",
+      "paid": "El cliente ya paga el plan: no se puede marcar como incluido.",
+      "off": "El plan no está a la venta (falta STRIPE_MAINTENANCE_PRICE_ID); puedes marcarlo como incluido.",
+      "listLink": "Planes de mantenimiento",
+      "listTitle": "Planes de mantenimiento",
+      "listLead": "Las webs con plan de mantenimiento, de pago o incluido, y las que lo tuvieron.",
+      "mrr": "Ingresos mensuales (MRR, sin IVA)",
+      "mrrUnknown": "No disponible (Stripe no responde)",
+      "paidCount": "De pago activos",
+      "includedCount": "Incluidos",
+      "project": "Proyecto",
+      "client": "Cliente",
+      "emptyTitle": "Todavía no hay planes",
+      "emptyBody": "Aparecerán aquí cuando un cliente contrate el plan o lo marques como incluido.",
+      "ticketIncluded": "Cambio incluido en el plan",
+      "ticketOutside": "Fuera del plan: presupuestar"
     }
   }
 }

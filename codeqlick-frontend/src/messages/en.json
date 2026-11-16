@@ -1380,7 +1380,10 @@
           "invoice_added": "uploaded an invoice to <target>{label}</target>",
           "invoice_paid": "marked an invoice of <target>{label}</target> paid",
           "invoice_unpaid": "marked an invoice of <target>{label}</target> unpaid",
-          "invoice_deleted": "deleted an invoice of <target>{label}</target>"
+          "invoice_deleted": "deleted an invoice of <target>{label}</target>",
+          "maintenance_included": "included the maintenance plan of <target>{label}</target> at no cost",
+          "maintenance_removed": "removed the included maintenance plan of <target>{label}</target>",
+          "maintenance_changed": "changed the state of the maintenance plan of <target>{label}</target>"
         },
         "user": {
           "created": "created the user <target>{label}</target>",
@@ -2482,7 +2485,7 @@
     }
   },
   "Plans": {
-    "title": "Maintenance plan",
+    "title": "Hour allowance",
     "adminLead": "A monthly hour allowance for this project. Logged hours draw it down, and you are warned at the threshold and when it is used up. The client sees the use in their area.",
     "name": "Plan name",
     "namePlaceholder": "Basic maintenance",
@@ -2498,9 +2501,9 @@
     "used": "{used} of {total} in {month}",
     "left": "{minutes} left",
     "over": "{minutes} over",
-    "clientTitle": "Your maintenance plan",
+    "clientTitle": "Your hour allowance",
     "clientLead": "The maintenance and improvement hours included each month, and how many we have used.",
-    "overviewTitle": "Maintenance plans",
+    "overviewTitle": "Hour allowances",
     "usedColumn": "This month's use"
   },
   "SiteForm": {
@@ -7848,6 +7851,97 @@
       "databases": "Cloud databases",
       "buckets": "Cloud buckets",
       "help": "The platform, its backups and Codeqlick Cloud share this disk. Under {low} free it is low; under {min} Cloud refuses new deployments, databases and buckets and freezes databases and buckets until there is room again. The server monitor emails at 85 % used."
+    }
+  },
+  "Maintenance": {
+    "title": "Maintenance plan",
+    "lead": "We look after your website every month so you don’t have to.",
+    "price": "{price} a month + VAT ({total} with VAT)",
+    "featuresTitle": "What it includes",
+    "features": {
+      "hosting": "Hosting and SSL: your website always online with HTTPS, watched by us.",
+      "domain": "Your domain’s renewal: we watch when it expires and make sure with you that it renews (the domain stays yours and you pay it to your registrar).",
+      "updates": "Updates and security fixes of your website’s template.",
+      "report": "Your website’s monthly report: visits, messages and time online.",
+      "changes": "Up to {count} small changes a month that we make for you (a text, prices, hours, a photo…). Unused ones don’t carry over.",
+      "priority": "Priority support: your requests go first and we answer within one working day."
+    },
+    "states": {
+      "none": "You don’t have the plan.",
+      "pending": "We are waiting for the payment to complete.",
+      "active": "Active. It renews on {date}.",
+      "activeNoDate": "Active.",
+      "ending": "Cancelled: it stays active until {date}.",
+      "pastDue": "We couldn’t charge last month. Stripe will retry; check your card in “Manage the plan”.",
+      "ended": "The plan ended. You can take it again whenever you like.",
+      "included": "Included by Codeqlick, at no cost to you."
+    },
+    "statusLabels": {
+      "none": "No plan",
+      "pending": "Pending",
+      "active": "Active",
+      "ending": "Ending soon",
+      "pastDue": "Payment failed",
+      "ended": "Ended",
+      "included": "Included"
+    },
+    "subscribe": "Take the plan",
+    "manage": "Manage the plan",
+    "opening": "Opening Stripe…",
+    "terms": "By taking it you accept the <link>plan’s terms</link>. Cancel it whenever you like; it stays active until the end of the paid month.",
+    "withoutPlan": "Without the plan your website stays online as always and you can change it yourself in the editor; changes you ask us for are quoted apart.",
+    "allowanceTitle": "This month’s changes",
+    "allowance": "{used} of {limit} changes used this month",
+    "allowanceOver": "You have used this month’s included changes: further ones are quoted apart.",
+    "requestChange": "Ask for a change",
+    "invoicesTitle": "The plan’s invoices",
+    "invoiceOpen": "See invoice {number}",
+    "invoiceNoNumber": "See invoice",
+    "invoiceStatuses": {
+      "paid": "Paid",
+      "open": "Due",
+      "void": "Void",
+      "uncollectible": "Unpaid",
+      "draft": "Draft"
+    },
+    "done": "Thank you! As soon as Stripe confirms the payment, the plan shows here as active.",
+    "canceled": "The payment wasn’t completed. You can try again whenever you like.",
+    "error": "We couldn’t open Stripe. Try again in a moment.",
+    "landingTitle": "Maintenance plan, optional",
+    "landingLead": "Your website stays yours and you can change it yourself. If you’d rather we looked after it, take the plan from your client area once you have it.",
+    "landingPrice": "{price} a month + VAT",
+    "landingCancel": "No minimum term: cancel whenever you like.",
+    "admin": {
+      "lead": "The maintenance plan of the client’s website (19 € a month + VAT through Stripe), or included by us at no cost.",
+      "state": "State",
+      "since": "Since",
+      "periodEnd": "Renewal or end",
+      "stripeStatus": "Status in Stripe",
+      "customer": "Stripe customer",
+      "subscription": "Subscription",
+      "includedReason": "Reason: {reason}",
+      "reason": "Reason",
+      "reasonHint": "Why it is included for free (e.g. “Included in the custom project”).",
+      "markIncluded": "Mark as included",
+      "removeIncluded": "Remove included",
+      "saving": "Saving…",
+      "included": "Included at no cost.",
+      "removed": "No longer included.",
+      "paid": "The client already pays the plan: it can’t be marked as included.",
+      "off": "The plan isn’t on sale (STRIPE_MAINTENANCE_PRICE_ID is missing); you can still mark it as included.",
+      "listLink": "Maintenance plans",
+      "listTitle": "Maintenance plans",
+      "listLead": "Websites with a maintenance plan, paid or included, and those that had one.",
+      "mrr": "Monthly recurring revenue (MRR, before VAT)",
+      "mrrUnknown": "Not available (Stripe isn’t answering)",
+      "paidCount": "Paid and active",
+      "includedCount": "Included",
+      "project": "Project",
+      "client": "Client",
+      "emptyTitle": "No plans yet",
+      "emptyBody": "They show up here when a client takes the plan or you mark it as included.",
+      "ticketIncluded": "Change included in the plan",
+      "ticketOutside": "Outside the plan: quote it"
     }
   }
 }

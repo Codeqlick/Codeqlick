@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { resolveLocale } from '@/i18n/locale';
 import { SITE_PRESETS } from '@/lib/api/types';
+import { getMaintenanceOffer } from '@/lib/api/maintenance';
+import { formatMoney } from '@/lib/format';
+import { MAINTENANCE_FEATURES } from '@/lib/maintenance';
 import { pageMetadata } from '@/lib/seo';
 import home from '../page.module.css';
 import styles from './basic-website.module.css';
@@ -38,6 +41,9 @@ export default async function BasicWebsitePage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'BasicWebsite' });
   const included = t.raw('included') as string[];
   const extras = t.raw('extras') as string[];
+  const tm = await getTranslations({ locale, namespace: 'Maintenance' });
+  // Shown only while the plan is on sale; the page works without the API (decision 110).
+  const offer = await getMaintenanceOffer().catch(() => null);
 
   return (
     <>
@@ -118,6 +124,34 @@ export default async function BasicWebsitePage({ params }: PageProps) {
           </ul>
         </div>
       </section>
+
+      {offer?.available && offer.price ? (
+        <section className={`wrap ${home.section}`} aria-labelledby="maintenance-title">
+          <Card tone="blush" className={styles.maintenance}>
+            <div>
+              <h2 id="maintenance-title" className={styles.listTitle}>
+                {tm('landingTitle')}
+              </h2>
+              <p className={styles.maintenancePrice}>
+                {tm('landingPrice', {
+                  price: formatMoney(
+                    offer.price.amountCents,
+                    offer.price.currency.toUpperCase(),
+                    locale,
+                  ),
+                })}
+              </p>
+              <p>{tm('landingLead')}</p>
+              <p className={styles.priceNote}>{tm('landingCancel')}</p>
+            </div>
+            <ul className={styles.checks}>
+              {MAINTENANCE_FEATURES.map((key) => (
+                <li key={key}>{tm(`features.${key}`, { count: offer.allowance })}</li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+      ) : null}
 
       <section className={home.soft} aria-labelledby="steps-title">
         <div className={`wrap ${home.section}`}>

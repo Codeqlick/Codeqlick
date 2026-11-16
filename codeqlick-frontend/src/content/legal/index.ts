@@ -21,6 +21,8 @@ export type LegalPage = 'legal' | 'privacy' | 'terms';
 const UPDATED = { es: '28 de octubre de 2026', en: '28 October 2026' } as const;
 /** The privacy policy changed later (newsletter; status page subscribers, decision 105). */
 const PRIVACY_UPDATED = { es: '17 de noviembre de 2026', en: '17 November 2026' } as const;
+/** The terms of sale changed later (the maintenance plan, decision 110). */
+const TERMS_UPDATED = { es: '17 de noviembre de 2026', en: '17 November 2026' } as const;
 
 export function ownerLines(owner: LegalOwner, locale: SiteLocale): string {
   const es = locale === 'es';
@@ -109,7 +111,7 @@ ${ownerLines(owner, locale)}
 
 **Boletín del blog.** Si te suscribes, guardamos tu correo electrónico y el idioma en que quieres recibirlo, y la fecha en que confirmaste la suscripción. Los usamos solo para enviarte por correo cada artículo nuevo del blog. La base legal es tu consentimiento (artículo 6.1.a del RGPD), que das al suscribirte y confirmar desde el enlace que te enviamos. Puedes darte de baja cuando quieras con el enlace que lleva cada correo. Las suscripciones que no se confirman se borran a los nueve días, aproximadamente. No enviamos publicidad.
 
-**Compra de tu web.** Si compras tu web desde su vista previa, el pago lo procesa Stripe: tú le das los datos de tu tarjeta, tu nombre, tu dirección de facturación y, si quieres, tu NIF, y nosotros no vemos ni guardamos los datos de tu tarjeta. Conservamos tu correo, el importe, la fecha y la factura que emite Stripe. La base legal es el contrato (artículo 6.1.b del RGPD) y nuestras obligaciones fiscales y contables (artículo 6.1.c).
+**Compra de tu web y plan de mantenimiento.** Si compras tu web desde su vista previa o contratas su plan de mantenimiento, el pago lo procesa Stripe: tú le das los datos de tu tarjeta, tu nombre, tu dirección de facturación y, si quieres, tu NIF, y nosotros no vemos ni guardamos los datos de tu tarjeta. Conservamos tu correo, el importe, la fecha y la factura que emite Stripe y, si tienes el plan, el estado de tu suscripción y su próxima renovación. La base legal es el contrato (artículo 6.1.b del RGPD) y nuestras obligaciones fiscales y contables (artículo 6.1.c).
 
 **Estadísticas de visitas.** Medimos las visitas con Umami, una herramienta instalada en nuestro propio servidor que no usa cookies ni guarda datos que te identifiquen: solo cuenta páginas vistas, de dónde llegan las visitas, el país, el tipo de dispositivo, el navegador y acciones como enviar un formulario o pulsar un botón, de forma agregada. Si tu navegador tiene activada la opción «No rastrear», no se registra nada.
 
@@ -134,7 +136,7 @@ Los mensajes del formulario, mientras sean necesarios para atender tu solicitud 
 Con nadie, salvo obligación legal y con estos encargados del tratamiento:
 
 - **OVHcloud**, que aloja el sitio, la base de datos y el correo en servidores de la Unión Europea.
-- **Stripe** (Stripe Payments Europe, Ltd., Irlanda), solo si compras tu web: procesa el pago y emite la factura. Stripe puede tratar datos en Estados Unidos, con las garantías del Marco de Privacidad de Datos UE-EE. UU. y cláusulas contractuales tipo ([stripe.com/es/privacy](https://stripe.com/es/privacy)).
+- **Stripe** (Stripe Payments Europe, Ltd., Irlanda), solo si compras tu web o contratas su plan de mantenimiento: procesa los pagos, la suscripción y las facturas. Stripe puede tratar datos en Estados Unidos, con las garantías del Marco de Privacidad de Datos UE-EE. UU. y cláusulas contractuales tipo ([stripe.com/es/privacy](https://stripe.com/es/privacy)).
 
 ## Tus derechos
 
@@ -163,7 +165,7 @@ ${ownerLines(owner, locale)}
 
 **Blog newsletter.** If you subscribe, we keep your email address, the language you want to receive it in and the date you confirmed the subscription. We use them only to email you each new blog post. The legal basis is your consent (article 6.1.a GDPR), which you give by subscribing and confirming through the link we send you. You can unsubscribe at any time from the link in every email. Sign-ups that are never confirmed are deleted after about nine days. We send no advertising.
 
-**Buying your website.** If you buy your website from its preview, Stripe processes the payment: you give it your card details, your name, your billing address and, if you like, your tax ID, and we never see or keep your card details. We keep your email, the amount, the date and the invoice Stripe issues. The legal basis is the contract (article 6.1.b GDPR) and our tax and accounting obligations (article 6.1.c).
+**Buying your website and its maintenance plan.** If you buy your website from its preview or take its maintenance plan, Stripe processes the payment: you give it your card details, your name, your billing address and, if you like, your tax ID, and we never see or keep your card details. We keep your email, the amount, the date and the invoice Stripe issues and, if you have the plan, the state of your subscription and its next renewal. The legal basis is the contract (article 6.1.b GDPR) and our tax and accounting obligations (article 6.1.c).
 
 **Visit statistics.** We measure visits with Umami, a tool running on our own server that uses no cookies and stores nothing that identifies you: it only counts page views, where visits come from, the country, the type of device, the browser and actions such as sending a form or clicking a button, in aggregate. If your browser has "Do Not Track" on, nothing is recorded.
 
@@ -188,7 +190,7 @@ Contact form messages, for as long as needed to handle your request or until you
 No one, unless the law requires it, and these data processors:
 
 - **OVHcloud**, which hosts the site, the database and the email on servers in the European Union.
-- **Stripe** (Stripe Payments Europe, Ltd., Ireland), only if you buy your website: it processes the payment and issues the invoice. Stripe may process data in the United States, under the EU-US Data Privacy Framework and standard contractual clauses ([stripe.com/privacy](https://stripe.com/privacy)).
+- **Stripe** (Stripe Payments Europe, Ltd., Ireland), only if you buy your website or take its maintenance plan: it processes the payments, the subscription and the invoices. Stripe may process data in the United States, under the EU-US Data Privacy Framework and standard contractual clauses ([stripe.com/privacy](https://stripe.com/privacy)).
 
 ## Your rights
 
@@ -245,6 +247,16 @@ Los textos, fotos y datos que pongas en tu web son responsabilidad tuya: deben s
 
 Mantenemos la web en línea y corregimos sin coste los fallos de la plantilla. Si algún día dejáramos de ofrecer el alojamiento, te avisaríamos con al menos tres meses de antelación y te daríamos una copia de tu web para llevarla a otro sitio.
 
+## Plan de mantenimiento
+
+Es opcional: lo que incluye la compra de tu web no cambia ni caduca si no lo contratas. Lo contratas desde tu área de cliente, para una web concreta, por el precio que se muestra antes de pagar (19 € al mes más IVA), cobrado cada mes por adelantado con Stripe, que te envía cada factura.
+
+- **Qué incluye:** el alojamiento de la web con HTTPS y su certificado, vigilada por nosotros; vigilar la caducidad de tu dominio y asegurarnos contigo de que se renueva (el dominio sigue siendo tuyo y su precio lo pagas a tu registrador); las actualizaciones y parches de seguridad de la plantilla; el informe mensual de la web; hasta 3 cambios pequeños al mes que hacemos por ti a petición (un texto, precios, horario, una foto o una sección; unos 20 minutos cada uno), y soporte prioritario, con respuesta en un día laborable.
+- **Cambios incluidos:** se piden como solicitud de cambio desde tu área de cliente, que muestra cuántos llevas en el mes natural. Los que no uses no se acumulan; los siguientes, o los trabajos más grandes, te los presupuestamos aparte antes de hacerlos.
+- **Duración y cancelación:** sin permanencia. Se renueva cada mes hasta que lo cancelas desde tu área de cliente («Gestionar el plan»); sigue activo hasta el final del mes ya pagado y no se devuelve la parte del mes en curso. Si un cobro falla, Stripe lo reintenta durante unos días; si no se puede cobrar, el plan termina. Tu web sigue en línea en cualquier caso.
+- **Desistimiento:** como consumidor, puedes desistir en los 14 días siguientes a contratarlo escribiéndonos. Al contratarlo nos pides que empecemos a prestarlo enseguida, así que te devolvemos el primer mes descontando la parte proporcional del servicio ya prestado.
+- **Cambios de precio:** te avisaremos por email con al menos un mes de antelación, y podrás cancelarlo antes de que se aplique.
+
 ## Legislación aplicable
 
 Estas condiciones se rigen por la legislación española. Si tienes cualquier duda o reclamación, escríbenos a [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}). También puedes acudir a la plataforma europea de resolución de litigios en línea: [ec.europa.eu/consumers/odr](https://ec.europa.eu/consumers/odr).`;
@@ -284,6 +296,16 @@ The texts, photos and data you put on your website are your responsibility: they
 
 We keep the website online and fix the template's faults at no cost. If we ever stopped offering hosting, we would tell you at least three months before and give you a copy of your website to take elsewhere.
 
+## Maintenance plan
+
+It is optional: what buying your website includes doesn't change or expire if you don't take it. You take it from your client area, for one website, at the price shown before paying (19 € a month plus VAT), charged each month in advance through Stripe, which emails you each invoice.
+
+- **What it includes:** hosting of the website with HTTPS and its certificate, watched by us; watching your domain's expiry and making sure with you that it renews (the domain stays yours and you pay its price to your registrar); the template's updates and security fixes; the website's monthly report; up to 3 small changes a month that we make for you on request (a text, prices, hours, a photo or a section; about 20 minutes each), and priority support, answered within one working day.
+- **Included changes:** you ask for them as a change request from your client area, which shows how many you have used in the calendar month. Unused ones don't carry over; further ones, or bigger work, are quoted apart before we do them.
+- **Term and cancelling:** no minimum term. It renews every month until you cancel it from your client area ("Manage the plan"); it stays active until the end of the month already paid, and the current month isn't refunded. If a charge fails, Stripe retries it for a few days; if it can't be charged, the plan ends. Your website stays online either way.
+- **Withdrawal:** as a consumer, you can withdraw within 14 days of taking it by writing to us. By taking it you ask us to start providing it at once, so we refund the first month minus the proportional part of the service already provided.
+- **Price changes:** we will tell you by email at least one month before, and you can cancel before they apply.
+
 ## Governing law
 
 These terms are governed by Spanish law. For any question or complaint, write to us at [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}). You can also use the European online dispute resolution platform: [ec.europa.eu/consumers/odr](https://ec.europa.eu/consumers/odr).`;
@@ -299,9 +321,9 @@ export function legalDocument(
     return {
       title: es ? 'Condiciones de contratación' : 'Terms of sale',
       description: es
-        ? 'Qué incluye la web básica que compras en codeqlick.com, su precio, el pago, la entrega y tu derecho de desistimiento.'
-        : 'What the basic website you buy on codeqlick.com includes, its price, payment, delivery and your right to cancel.',
-      updated: UPDATED[locale],
+        ? 'Qué incluye la web básica que compras en codeqlick.com, su precio, el pago, la entrega, tu derecho de desistimiento y el plan de mantenimiento opcional.'
+        : 'What the basic website you buy on codeqlick.com includes, its price, payment, delivery, your right to cancel and the optional maintenance plan.',
+      updated: TERMS_UPDATED[locale],
       markdown: termsOfSale(owner, locale),
     };
   }
