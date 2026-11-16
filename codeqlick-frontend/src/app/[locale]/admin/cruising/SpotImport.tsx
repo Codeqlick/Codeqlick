@@ -16,8 +16,10 @@ import admin from './cruising-admin.module.css';
 
 type Props = {
   action: (state: SpotImportState, formData: FormData) => Promise<SpotImportState>;
-  /** The spot types' labels, in the page's language. */
-  typeLabels: Record<CruisingSpotType, string>;
+  /** The spot types' labels, in the page's language (spots only). */
+  typeLabels?: Record<CruisingSpotType, string>;
+  /** Spots (decision 84) or, the same way, testing centres (phase 5: no type, no publish switch). */
+  kind?: 'spots' | 'health';
 };
 
 const initial: SpotImportState = { status: 'idle' };
@@ -28,8 +30,10 @@ const initial: SpotImportState = { status: 'idle' };
  * The form is sent by hand, not as a form action, so React doesn't clear the chosen file between
  * the check and the import.
  */
-export function SpotImport({ action, typeLabels }: Props) {
+export function SpotImport({ action, typeLabels, kind = 'spots' }: Props) {
   const t = useTranslations('CruisingSpotImport');
+  const health = kind === 'health';
+  const id = health ? 'health-import' : 'spot-import';
   const [state, dispatch, pending] = useActionState(action, initial);
   const [fileName, setFileName] = useState('');
   const [format, setFormat] = useState('');
@@ -61,9 +65,9 @@ export function SpotImport({ action, typeLabels }: Props) {
       {state.message ? (
         <Alert tone={state.status === 'success' ? 'success' : 'error'}>{state.message}</Alert>
       ) : null}
-      <p className={styles.muted}>{t('importLead')}</p>
+      <p className={styles.muted}>{health ? t('healthLead') : t('importLead')}</p>
       <Input
-        id="spot-import-file"
+        id={`${id}-file`}
         name="file"
         type="file"
         accept=".csv,.geojson,.json,text/csv,application/geo+json,application/json"
@@ -83,7 +87,7 @@ export function SpotImport({ action, typeLabels }: Props) {
         }}
       />
       <Select
-        id="spot-import-format"
+        id={`${id}-format`}
         name="format"
         label={t('format')}
         hint={
@@ -97,14 +101,16 @@ export function SpotImport({ action, typeLabels }: Props) {
           { value: 'geojson', label: t('formats.geojson') },
         ]}
       />
-      <Checkbox
-        id="spot-import-publish"
-        name="publish"
-        label={t('publish')}
-        hint={t('publishHint')}
-        checked={publish}
-        onChange={(event) => setPublish(event.currentTarget.checked)}
-      />
+      {health ? null : (
+        <Checkbox
+          id="spot-import-publish"
+          name="publish"
+          label={t('publish')}
+          hint={t('publishHint')}
+          checked={publish}
+          onChange={(event) => setPublish(event.currentTarget.checked)}
+        />
+      )}
       <div className={styles.actions}>
         <button
           type="submit"
@@ -122,20 +128,28 @@ export function SpotImport({ action, typeLabels }: Props) {
           className={buttonClassName({ size: 'sm' })}
           disabled={!canImport}
         >
-          {state.dryRun && result ? t('importCount', { count: result.items.length }) : t('import')}
+          {state.dryRun && result
+            ? t(health ? 'healthImportCount' : 'importCount', { count: result.items.length })
+            : t('import')}
         </button>
       </div>
       {result && result.items.length > 0 ? (
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <caption className={admin.caption}>
-              {state.dryRun ? t('toCreate') : t('created')}
+              {health
+                ? state.dryRun
+                  ? t('centersToCreate')
+                  : t('centersCreated')
+                : state.dryRun
+                  ? t('toCreate')
+                  : t('created')}
             </caption>
             <thead>
               <tr>
                 <th scope="col">{t('row')}</th>
                 <th scope="col">{t('name')}</th>
-                <th scope="col">{t('type')}</th>
+                {typeLabels ? <th scope="col">{t('type')}</th> : null}
                 <th scope="col">{t('place')}</th>
               </tr>
             </thead>
@@ -144,7 +158,9 @@ export function SpotImport({ action, typeLabels }: Props) {
                 <tr key={item.row}>
                   <td>{item.row}</td>
                   <th scope="row">{item.name}</th>
-                  <td>{typeLabels[item.type] ?? item.type}</td>
+                  {typeLabels ? (
+                    <td>{item.type ? (typeLabels[item.type] ?? item.type) : ''}</td>
+                  ) : null}
                   <td>
                     {item.city}, {item.countryCode}
                   </td>

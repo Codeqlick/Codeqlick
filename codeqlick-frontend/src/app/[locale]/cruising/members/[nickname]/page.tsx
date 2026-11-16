@@ -5,6 +5,7 @@ import { ActionForm } from '@/components/app/ActionForm';
 import styles from '@/components/cruising/Cruising.module.css';
 import { MemberContributions } from '@/components/cruising/MemberContributions';
 import { MemberGallery } from '@/components/cruising/MemberGallery';
+import { MemberHealth } from '@/components/cruising/MemberHealth';
 import { MemberName } from '@/components/cruising/MemberName';
 import { ReportDetails } from '@/components/cruising/ReportDetails';
 import { Button } from '@/components/ui/Button';
@@ -90,6 +91,7 @@ export default async function CruisingMemberPage({ params }: PageProps) {
           </ul>
         </>
       ) : null}
+      <MemberHealth locale={locale} health={member.health} />
 
       {own ? (
         <p>

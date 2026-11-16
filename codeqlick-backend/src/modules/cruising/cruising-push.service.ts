@@ -41,26 +41,42 @@ export class CruisingPushService {
     kind: PushKind,
     members: { userId: string; locale: 'en' | 'es' }[],
   ): Promise<number> {
+    // A check-in lasts hours, a safety alert a few more; the rest is worth telling for a day.
+    return this.notifyWith((locale) => pushPayload(kind, locale), members, {
+      ttl: kind === 'favorite' ? 60 * 60 : kind === 'safety' ? 6 * 60 * 60 : 24 * 60 * 60,
+    });
+  }
+
+  /**
+   * Notifies every device of the given members with the payload `payloadFor` builds in each one's
+   * language (phase 5's own notifications); returns how many the push services accepted.
+   */
+  async notifyWith(
+    payloadFor: (locale: 'en' | 'es') => object,
+    members: { userId: string; locale: 'en' | 'es' }[],
+    { ttl, urgency = 'normal' }: { ttl: number; urgency?: 'normal' | 'high' },
+  ): Promise<number> {
     const vapid = this.config.vapid;
     if (!vapid || members.length === 0) return 0;
     const locales = new Map(members.map((member) => [member.userId, member.locale]));
     const devices = await this.repository.pushSubscriptions([...locales.keys()]);
-    const options = {
-      vapidDetails: vapid,
-      // A check-in lasts hours, a safety alert a few more; the rest is worth telling for a day.
-      TTL: kind === 'favorite' ? 60 * 60 : kind === 'safety' ? 6 * 60 * 60 : 24 * 60 * 60,
-      urgency: 'normal' as const,
-    };
+    const options = { vapidDetails: vapid, TTL: ttl, urgency };
     const results = await Promise.all(
       devices.map((device) =>
         this.deliver(
           device,
-          JSON.stringify(pushPayload(kind, locales.get(device.userId) ?? 'en')),
+          JSON.stringify(payloadFor(locales.get(device.userId) ?? 'en')),
           options,
         ),
       ),
     );
     return results.filter(Boolean).length;
+  }
+
+  /** Whether any of a member's devices can be notified. */
+  async hasDevice(userId: string): Promise<boolean> {
+    if (!this.enabled) return false;
+    return (await this.repository.pushSubscriptions([userId])).length > 0;
   }
 
   /** Sends one notification (the only network call; tests replace it). */

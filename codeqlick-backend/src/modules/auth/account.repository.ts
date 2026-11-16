@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Locale, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
+import { maskEmail } from './unsubscribe-token.js';
 
 export type EmailChangeResult =
   { status: 'done'; user: User; oldEmail: string } | { status: 'invalid' } | { status: 'taken' };
@@ -131,6 +132,8 @@ export class AccountRepository {
       cruisingMedia,
       cruisingFavorites,
       cruisingAlerts,
+      cruisingContacts,
+      cruisingTimers,
       cruisingMeetups,
       cruisingMeetupsJoined,
       cruisingTrips,
@@ -359,6 +362,11 @@ export class AccountRepository {
           verifiedAt: true,
           favoriteAlerts: true,
           favoriteEmails: true,
+          healthConsentAt: true,
+          prepStatus: true,
+          lastTestedMonth: true,
+          healthVisible: true,
+          reminderMonths: true,
           suspendedUntil: true,
           suspensionReason: true,
           createdAt: true,
@@ -432,6 +440,25 @@ export class AccountRepository {
         where: { userId },
         orderBy: { createdAt: 'asc' },
         select: { channel: true, createdAt: true, spot: { select: { slug: true } } },
+      }),
+      // Phase 5: the trusted contacts (their addresses masked: they are someone else's) and timers.
+      p.cruisingTrustedContact.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { email: true, displayName: true, status: true, createdAt: true },
+      }),
+      p.cruisingTimer.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          endsAt: true,
+          message: true,
+          warnedAt: true,
+          firedAt: true,
+          endedAt: true,
+          createdAt: true,
+          spot: { select: { slug: true } },
+        },
       }),
       // Phase 5: meetups planned and joined, trips, and the safety alerts posted.
       p.cruisingMeetup.findMany({
@@ -551,6 +578,11 @@ export class AccountRepository {
             media: cruisingMedia,
             favorites: cruisingFavorites,
             alerts: cruisingAlerts,
+            trustedContacts: cruisingContacts.map((contact) => ({
+              ...contact,
+              email: maskEmail(contact.email),
+            })),
+            timers: cruisingTimers,
             meetupsPlanned: cruisingMeetups,
             meetupsJoined: cruisingMeetupsJoined,
             trips: cruisingTrips,

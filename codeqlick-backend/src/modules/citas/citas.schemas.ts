@@ -36,6 +36,7 @@ export const RESERVED_SLUGS: string[] = [
   'legal',
   'portal',
   'privacy',
+  'safety-contact',
   'services',
   'terms',
   'work',

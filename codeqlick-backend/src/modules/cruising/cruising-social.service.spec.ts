@@ -236,8 +236,25 @@ describe('CruisingSocialService', () => {
         memberSince: '2026-01-02T03:04:05.000Z',
         verified: false,
         coverId: null,
+        health: null,
         badges: [],
         contributions: { spotsLive: 0, helpfulReceived: 0, reviewsWritten: 0 },
+      });
+    });
+
+    it('shows sexual health only when it is on and the member shows it (decision 94)', async () => {
+      const health = {
+        healthConsentAt: NOW,
+        prepStatus: 'ON_PREP',
+        lastTestedMonth: '2026-09',
+        healthVisible: false,
+      };
+      t.repo.findProfileByNickname.mockResolvedValue(other(health));
+      expect((await t.service.member(ME, SECRET_NICKNAME, NOW)).health).toBeNull();
+      t.repo.findProfileByNickname.mockResolvedValue(other({ ...health, healthVisible: true }));
+      expect((await t.service.member(ME, SECRET_NICKNAME, NOW)).health).toEqual({
+        prepStatus: 'ON_PREP',
+        lastTestedMonth: '2026-09',
       });
     });
 

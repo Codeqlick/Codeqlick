@@ -29,6 +29,17 @@ describe('SpotImport', () => {
     expect(html).toMatch(/<input[^>]*id="spot-import-publish"[^>]*checked=""/);
   });
 
+  it('imports testing centres the same way, without types or the publish switch', () => {
+    const html = renderToStaticMarkup(
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <SpotImport action={() => Promise.resolve({ status: 'idle' })} kind="health" />
+      </NextIntlClientProvider>,
+    );
+    expect(html).toContain('<label for="health-import-file"');
+    expect(html).toContain('address');
+    expect(html).not.toContain('spot-import-publish');
+  });
+
   it('waits for a file before checking, and for a check before importing', () => {
     const html = render();
     const button = (intent: string) =>

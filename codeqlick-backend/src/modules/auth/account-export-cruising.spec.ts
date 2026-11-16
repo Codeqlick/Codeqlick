@@ -36,7 +36,7 @@ describe('the account export (Cruising)', () => {
     expect(data.cruising).toBeNull();
   });
 
-  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts, media, meetups, trips and safety alerts', async () => {
+  it('includes the profile, spots, reviews, reports, check-ins, messages, favourites, alerts, media, meetups, trips, safety alerts, contacts and timers', async () => {
     const profile = {
       birthYear: 1990,
       termsVersion: 'v1',
@@ -55,11 +55,32 @@ describe('the account export (Cruising)', () => {
     const alerts = [
       { channel: 'PUSH', createdAt: new Date('2026-11-16T11:00:00Z'), spot: { slug: 'the-pier' } },
     ];
+    const contacts = [
+      {
+        email: 'friend@example.com',
+        displayName: 'Ana',
+        status: 'ACCEPTED',
+        createdAt: new Date('2026-11-16T09:00:00Z'),
+      },
+    ];
+    const timers = [
+      {
+        endsAt: new Date('2026-11-16T12:00:00Z'),
+        message: 'At the pier',
+        warnedAt: null,
+        firedAt: null,
+        endedAt: new Date('2026-11-16T11:30:00Z'),
+        createdAt: new Date('2026-11-16T10:00:00Z'),
+        spot: null,
+      },
+    ];
     const meetups = [{ title: 'Sunset walk', status: 'LIVE', spot: { slug: 'the-pier' } }];
     const joined = [{ anonymous: true, meetup: { title: 'Picnic', spot: { slug: 'the-pier' } } }];
     const trips = [{ countryCode: 'ES', city: 'Madrid', listed: true }];
     const safety = [{ kind: 'THEFT', note: null, spot: { slug: 'the-pier' } }];
     const prisma = fakePrisma({
+      cruisingTrustedContact: { findMany: vi.fn().mockResolvedValue(contacts) },
+      cruisingTimer: { findMany: vi.fn().mockResolvedValue(timers) },
       cruisingProfile: { findUnique: vi.fn().mockResolvedValue(profile) },
       cruisingSpot: { findMany: vi.fn().mockResolvedValue(spots) },
       cruisingReview: { findMany: vi.fn().mockResolvedValue(reviews) },
@@ -85,6 +106,9 @@ describe('the account export (Cruising)', () => {
       media,
       favorites,
       alerts,
+      // Someone else's address is masked.
+      trustedContacts: [{ ...contacts[0], email: 'f***@example.com' }],
+      timers,
       meetupsPlanned: meetups,
       meetupsJoined: joined,
       trips,

@@ -31,6 +31,7 @@ import {
   DUPLICATE_METERS,
   extractSpotSlug,
   findDuplicate,
+  groupPlaces,
   isSuspended,
   isUniqueViolation,
   memberCanChange,
@@ -676,36 +677,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   /** Countries with their cities, most spots first. */
   async places() {
-    const rows = await this.repository.liveCityCounts();
-    const countries = new Map<
-      string,
-      { count: number; cities: Map<string, { names: Map<string, number>; count: number }> }
-    >();
-    for (const row of rows) {
-      const country = countries.get(row.countryCode) ?? { count: 0, cities: new Map() };
-      country.count += row.count;
-      const city = country.cities.get(row.citySlug) ?? { names: new Map(), count: 0 };
-      city.count += row.count;
-      city.names.set(row.city, (city.names.get(row.city) ?? 0) + row.count);
-      country.cities.set(row.citySlug, city);
-      countries.set(row.countryCode, country);
-    }
-    return {
-      countries: [...countries.entries()]
-        .map(([countryCode, country]) => ({
-          countryCode,
-          count: country.count,
-          cities: [...country.cities.entries()]
-            .map(([citySlug, city]) => ({
-              // The spelling most spots use.
-              city: [...city.names.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? citySlug,
-              citySlug,
-              count: city.count,
-            }))
-            .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city)),
-        }))
-        .sort((a, b) => b.count - a.count || a.countryCode.localeCompare(b.countryCode)),
-    };
+    return { countries: groupPlaces(await this.repository.liveCityCounts()) };
   }
 
   async cityPage(countryCode: string, citySlug: string) {

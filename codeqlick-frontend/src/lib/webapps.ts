@@ -47,6 +47,7 @@ export const SITE_SECTIONS = [
   'newsletter',
   'portal',
   'privacy',
+  'safety-contact',
   'security',
   'services',
   'terms',

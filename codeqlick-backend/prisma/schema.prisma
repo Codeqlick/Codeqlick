@@ -181,6 +181,8 @@ model User {
   cruisingFavorites          CruisingFavorite[]
   cruisingAlerts             CruisingAlert[]
   cruisingPushSubscriptions  CruisingPushSubscription[]
+  cruisingTrustedContacts    CruisingTrustedContact[]
+  cruisingTimers             CruisingTimer[]
   cruisingReviewVotes        CruisingReviewVote[]
   cruisingMeetupsHosted      CruisingMeetup[]
   cruisingMeetupsAttended    CruisingMeetupAttendee[]
@@ -3145,6 +3147,18 @@ model CruisingProfile {
   favoriteAlerts         Boolean                    @default(true) @map("favorite_alerts")
   /// Phase 3: the daily email about favourites, for members with no push subscription.
   favoriteEmails         Boolean                    @default(false) @map("favorite_emails")
+  /// Phase 5 (decision 94): sexual health, opt-in with its own explicit consent (GDPR art. 9.2.a).
+  /// Null: off. Turning it off clears every health field below.
+  healthConsentAt        DateTime?                  @map("health_consent_at") @db.Timestamptz(3)
+  prepStatus             CruisingPrepStatus?        @map("prep_status")
+  /// `YYYY-MM`, never in the future.
+  lastTestedMonth        String?                    @map("last_tested_month") @db.VarChar(7)
+  /// Off: only the member sees them; on: entered members see them on the profile.
+  healthVisible          Boolean                    @default(false) @map("health_visible")
+  /// 3 or 6: "Time for your check-up" that many months after lastTestedMonth; null: no reminder.
+  reminderMonths         Int?                       @map("reminder_months")
+  /// When the last reminder went out: one per due date.
+  healthRemindedAt       DateTime?                  @map("health_reminded_at") @db.Timestamptz(3)
   /// Phase 5 (decision 93): the badges' counters, kept up to date in the transactions that change
   /// them. The member's proposed spots that are LIVE…
   spotsLive              Int                        @default(0) @map("spots_live")
@@ -3157,6 +3171,7 @@ model CruisingProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([verificationStatus, verificationSentAt])
+  @@index([reminderMonths])
   @@map("cruising_profiles")
 }
 
@@ -3206,6 +3221,7 @@ model CruisingSpot {
   alerts       CruisingAlert[]
   meetups      CruisingMeetup[]
   safetyAlerts CruisingSafetyAlert[]
+  timers       CruisingTimer[]
   hours        CruisingSpotHour[]
 
   @@index([status, lat])
@@ -3521,6 +3537,91 @@ model CruisingPushSubscription {
 
   @@index([userId, createdAt])
   @@map("cruising_push_subscriptions")
+}
+
+/// Phase 5 (decision 94).
+enum CruisingPrepStatus {
+  ON_PREP
+  NOT_ON_PREP
+}
+
+/// Phase 5 (decision 95): a trusted contact's answer. REFUSED also means stopped later.
+enum CruisingContactStatus {
+  PENDING
+  ACCEPTED
+  REFUSED
+}
+
+/// Someone a member asked to be told when their "Check on me" timer runs out (up to 2 per member,
+/// decision 95). They accept by email (double opt-in) and can refuse or stop at any time; a REFUSED
+/// one never gets anything again. Deleted with the member's account.
+model CruisingTrustedContact {
+  id              String                @id @default(uuid()) @db.Uuid
+  userId          String                @map("user_id") @db.Uuid
+  email           String                @db.VarChar(254)
+  /// How the member is named to this contact (never the nickname).
+  displayName     String                @map("display_name") @db.VarChar(40)
+  /// The member's language when inviting: the contact's emails use it.
+  locale          Locale                @default(EN)
+  status          CruisingContactStatus @default(PENDING)
+  /// SHA-256 of the invitation link's token; cleared once used (single use).
+  inviteTokenHash String?               @unique @map("invite_token_hash") @db.VarChar(64)
+  respondedAt     DateTime?             @map("responded_at") @db.Timestamptz(3)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("cruising_trusted_contacts")
+}
+
+/// A "Check on me" timer (decision 95), 30 minutes to 6 hours. 10 minutes before endsAt the member
+/// is reminded (warnedAt); if it runs out unended, the ACCEPTED contacts are emailed once (firedAt).
+/// One active per member (endedAt and firedAt null). Deleted 7 days after it ends.
+model CruisingTimer {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  endsAt    DateTime  @map("ends_at") @db.Timestamptz(3)
+  message   String?   @db.VarChar(200)
+  /// Only when the member chose to share it: its name and an OpenStreetMap link go in the email.
+  spotId    String?   @map("spot_id") @db.Uuid
+  warnedAt  DateTime? @map("warned_at") @db.Timestamptz(3)
+  firedAt   DateTime? @map("fired_at") @db.Timestamptz(3)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spot CruisingSpot? @relation(fields: [spotId], references: [id], onDelete: SetNull)
+
+  @@index([userId, endedAt, firedAt])
+  @@index([endsAt])
+  @@index([spotId])
+  @@map("cruising_timers")
+}
+
+/// A sexual health testing centre (decision 94), curated by the team: public, no personal data.
+model CruisingHealthCenter {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(120)
+  address     String   @db.VarChar(200)
+  /// Rounded to 5 decimals.
+  lat         Decimal  @db.Decimal(8, 5)
+  lng         Decimal  @db.Decimal(8, 5)
+  /// ISO 3166-1 alpha-2.
+  countryCode String   @map("country_code") @db.VarChar(2)
+  city        String   @db.VarChar(80)
+  citySlug    String   @map("city_slug") @db.VarChar(100)
+  url         String?  @db.VarChar(300)
+  phone       String?  @db.VarChar(40)
+  free        Boolean  @default(false)
+  anonymous   Boolean  @default(false)
+  rapid       Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([countryCode, citySlug])
+  @@index([lat, lng])
+  @@map("cruising_health_centers")
 }
 
 /// Phase 5 (decision 89): a spot's busiest hours, in its local time. Each check-in adds one to every

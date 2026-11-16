@@ -862,7 +862,8 @@ export type SpotImportResult = {
     name: string;
     city: string;
     countryCode: string;
-    type: CruisingSpotType;
+    /** Spots only: testing centres (phase 5) have no type. */
+    type?: CruisingSpotType;
   }[];
 };
 

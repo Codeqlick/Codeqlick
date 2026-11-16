@@ -17,6 +17,7 @@ import { MailService } from '../mail/mail.service.js';
 import { sharesContact } from '../swipe/swipe-chat-guard.js';
 import { cruisingNoticeEmail } from './cruising-emails.js';
 import { CruisingPushService } from './cruising-push.service.js';
+import { visibleHealth } from './cruising-safety.rules.js';
 import {
   ageFromBirthYear,
   ALERT_DAY_MS,
@@ -93,6 +94,8 @@ export interface CruisingMember {
   /** Phase 4: the "Verified" badge and the cover photo. */
   verified: boolean;
   coverId: string | null;
+  /** Phase 5 (decision 94): only when the member turned sexual health on and chose to show it. */
+  health: { prepStatus: 'ON_PREP' | 'NOT_ON_PREP' | null; lastTestedMonth: string | null } | null;
   /** Phase 5 (decision 93): the contributor badges and the counters they come from. */
   badges: ContributorBadge[];
   contributions: ContributorCounters;
@@ -306,6 +309,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
       lookingFor: target.lookingFor,
       age: target.showAge ? ageFromBirthYear(target.birthYear, now) : null,
       memberSince: target.createdAt.toISOString(),
+      health: visibleHealth(target),
       badges: contributorBadges(countersOf(target)),
       contributions: countersOf(target),
     };
