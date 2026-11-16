@@ -14,6 +14,7 @@ import type { TicketStatus } from '../../generated/prisma/client.js';
 import { AccountsService, type AccountPerson } from '../accounts/accounts.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService, type MailMessage } from '../mail/mail.service.js';
+import { maintenanceMonth } from '../managed-sites/site-maintenance.js';
 import { cleanContentType, cleanFileName } from '../projects/project-file-name.js';
 import type { UploadedProjectFile } from '../projects/projects.service.js';
 import { ticketClientEmail, ticketTeamEmail } from './support-emails.js';
@@ -45,6 +46,8 @@ export interface TicketSummary {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  /** A change request under the maintenance plan: included in the month or not; null otherwise. */
+  maintenanceIncluded: boolean | null;
 }
 
 export interface TicketMessageView {
@@ -94,6 +97,7 @@ function toSummary(row: TicketSummaryRow): TicketSummary {
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     resolvedAt: row.resolvedAt?.toISOString() ?? null,
+    maintenanceIncluded: row.maintenanceIncluded,
   };
 }
 
@@ -175,21 +179,24 @@ export class SupportService {
         errors: [{ path: 'projectId', message: 'Unknown project' }],
       });
     }
-    const row = await this.repository.create({
-      clientId: accountOf(caller),
-      authorId: caller.id,
-      projectId: input.projectId ?? null,
-      type: input.type,
-      priority: input.priority,
-      title: input.title,
-      body: input.body,
-    });
+    const { row, plan } = await this.repository.create(
+      {
+        clientId: accountOf(caller),
+        authorId: caller.id,
+        projectId: input.projectId ?? null,
+        type: input.type,
+        priority: input.priority,
+        title: input.title,
+        body: input.body,
+      },
+      maintenanceMonth(new Date()).start,
+    );
     this.notify(
       ticketTeamEmail(
         this.config.leadsNotifyTo,
         { name: caller.name, email: caller.email },
         row,
-        { kind: 'opened', body: input.body },
+        { kind: 'opened', body: input.body, plan },
         this.adminLink(row.id),
         this.config.siteUrl,
       ),

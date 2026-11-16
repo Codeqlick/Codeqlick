@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import type { AppLocale } from '@/i18n/routing';
 import { failedState } from '@/lib/actions';
@@ -13,6 +14,7 @@ import {
   saveSiteDraft,
   setMySiteDomain,
 } from '@/lib/api/portal-site';
+import { maintenanceLink } from '@/lib/api/maintenance';
 import { formValues, type FormState } from '@/lib/forms';
 
 /** The trimmed text of a field, or undefined when empty. */
@@ -98,4 +100,20 @@ export async function deleteSiteMessageAction(
   }
   revalidatePath(`/${locale}/portal/projects/${projectId}/site`, 'layout');
   return { status: 'idle' };
+}
+
+/** Sends the client to Stripe: Checkout to take the maintenance plan, or the customer portal. */
+export async function maintenanceBillingAction(formData: FormData): Promise<void> {
+  const locale = formData.get('locale') === 'en' ? 'en' : 'es';
+  const projectId = String(formData.get('projectId') ?? '');
+  const kind = formData.get('kind') === 'portal' ? 'portal' : 'checkout';
+  let url: string;
+  try {
+    url = (await maintenanceLink(projectId, kind, locale)).url;
+  } catch {
+    redirect(
+      `/${locale}/portal/projects/${encodeURIComponent(projectId)}/site?maintenance=error#maintenance`,
+    );
+  }
+  redirect(url);
 }

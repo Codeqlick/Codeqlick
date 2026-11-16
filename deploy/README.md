@@ -838,6 +838,24 @@ with the same account and keys as above. It is off until `STRIPE_CLOUD_PRO_PRICE
 3. The webhook endpoint of step 3 above also gets `customer.subscription.created`,
    `customer.subscription.updated`, `customer.subscription.deleted` and `invoice.payment_failed`.
 4. `STRIPE_CLOUD_PRO_PRICE_ID=price_…` in `/srv/codeqlick/.env`, then recreate the API.
+
+### Maintenance plan for managed sites (Stripe)
+
+Clients subscribe to the maintenance plan of their website from the portal (architecture 8.2,
+decision 110), with the same account, keys and webhook endpoint as above. It is off, and hidden
+everywhere, until `STRIPE_MAINTENANCE_PRICE_ID` is set. The code never creates live Stripe objects;
+the one manual step, in **live mode** of Codeqlick's account:
+
+1. Product catalogue → Add product **"Mantenimiento web"** with a **recurring monthly** price of
+   **19,00 EUR**, tax behaviour **exclusive** (the API adds the "IVA" tax rate). Copy the price's
+   id (`price_…`).
+2. The customer portal of the Cloud steps above (Settings → Billing → Customer portal) is the one
+   it opens: card, invoices and cancelling **at the end of the period**. If it isn't active yet,
+   activate it with those options. Don't allow switching to other products.
+3. Webhook: no new events. The endpoint already sends `checkout.session.completed`,
+   `customer.subscription.created`, `customer.subscription.updated`,
+   `customer.subscription.deleted` and `invoice.payment_failed` (check they are all ticked).
+4. `STRIPE_MAINTENANCE_PRICE_ID=price_…` in `/srv/codeqlick/.env`, then recreate the API.
 ### Codeqlick Cloud's databases (cloud-pg)
 
 Managed PostgreSQL for projects (architecture 4.13 "Databases", decision 47) runs, for now, on

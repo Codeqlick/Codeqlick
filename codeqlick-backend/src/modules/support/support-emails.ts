@@ -6,7 +6,7 @@ const EXCERPT = 1500;
 const excerpt = (text: string) =>
   text.length <= EXCERPT ? text.trim() : `${text.slice(0, EXCERPT).trimEnd()}…`;
 
-type Ticket = { number: number; title: string };
+type Ticket = { number: number; title: string; maintenanceIncluded?: boolean | null };
 
 const STATUS_TITLES: Record<ApiLocale, Record<string, string>> = {
   es: {
@@ -68,15 +68,16 @@ export function ticketTeamEmail(
   to: string,
   client: { name: string; email: string },
   ticket: Ticket & { type: string; priority: string },
-  event: { kind: 'opened' | 'replied'; body: string },
+  event: { kind: 'opened' | 'replied'; body: string; plan?: boolean },
   link: string,
   siteUrl: string,
 ): MailMessage {
   const opened = event.kind === 'opened';
+  const included = ticket.maintenanceIncluded;
   return {
     to,
     replyTo: client.email,
-    subject: `${opened ? 'New support request' : 'Reply'} #${ticket.number}: ${ticket.title}`,
+    subject: `${event.plan ? '[Plan] ' : ''}${opened ? 'New support request' : 'Reply'} #${ticket.number}: ${ticket.title}`,
     ...renderEmail(
       {
         locale: 'en',
@@ -91,6 +92,18 @@ export function ticketTeamEmail(
           ? [
               ['Type', ticket.type],
               ['Priority', ticket.priority],
+              ...(event.plan
+                ? ([
+                    [
+                      'Maintenance plan',
+                      included === null || included === undefined
+                        ? 'On (priority support)'
+                        : included
+                          ? 'One of the month’s included changes'
+                          : 'Past the month’s included changes: quote it',
+                    ],
+                  ] as Array<[string, string]>)
+                : []),
             ]
           : undefined,
         quote: { title: ticket.title, body: excerpt(event.body) },
