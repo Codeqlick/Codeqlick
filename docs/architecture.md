@@ -247,6 +247,7 @@ sequenceDiagram
   Note over Web: proxy.ts refreshes cq_at with cq_rt when it has expired
 ```
 
+- **Realms (planned, section 4.18, decision 124):** accounts will belong to a realm, `CODEQLICK` or `NEOQLICK` (`User.realm`); email and username become unique per realm, the access token will carry a `rlm` claim and a global `RealmGuard` will refuse a token on routes of the other realm. Single sign-on, passkeys and emails will work per realm. Everything in this section describes the CODEQLICK realm.
 - **Access token:** JWT (HS256), 15 minutes, claims `sub`, `role`, `email`, `name` and `sid` (the session's `familyId`, which marks the current device in the sessions list).
 - **Refresh token:** 48 random bytes, base64url, 30 days. Only its SHA-256 hash is stored. Each refresh **rotates** the token (old one revoked, `replacedById` set). Presenting an already-rotated token is treated as theft: the whole `familyId` is revoked.
 - **Logout** revokes the current session.
@@ -286,6 +287,8 @@ All errors use RFC 9457 *problem details* with `Content-Type: application/proble
 Unknown errors return 500 without leaking internals; the stack goes to the logs with the request id. They are also recorded for Admin → Errors (section 4.11); an `HttpException` with a 5xx (a service not set up, the API saying it is unavailable) is a known state and is not.
 
 ### 4.5 Configuration (environment)
+
+Neoqlick's variables (`NEOQLICK_URL`, `NEOQLICK_ACCOUNT_URL`, `MAIL_FROM_NEOQLICK`, `NEOQLICK_LEGAL_*`, `NEOQLICK_VAPID_*`, …) are listed in section 4.18 and added here by PR A.
 
 | Variable | Example | Notes |
 |---|---|---|
@@ -364,6 +367,8 @@ On the host, `deploy/monitor/monitor.sh` (cron, every 5 minutes) watches the ser
 
 ### 4.7 Video chat (`modules/videochat`)
 
+> **Planned move (section 4.18, decisions 124–131):** the video chat moves to **videochat.neoqlick.com** under the Neoqlick brand, with Neoqlick accounts. Until then this section describes what runs, under Codeqlick.
+
 Codeqlick's first own web app: a random 1:1 video chat at **videochat.codeqlick.com** (spec and decisions also in the Notion roadmap row "Random video chat"). Decisions 21 and 22.
 
 - **Who:** signed-in accounts only (registration confirms the email). Explicit sexual content between consenting adults is allowed (owner's decision, 2026-11-07); minors, non-consent, recording without permission, harassment, hate and anything illegal are not. Before entering, a person gives their date of birth (checked ≥ 18, **not stored**) and accepts the rules (`VIDEOCHAT_TERMS_VERSION`; a new version asks again). `VIDEOCHAT_AGE_VERIFICATION_REQUIRED=true` also requires `ageVerifiedAt` (an age-verification provider or the team, `PUT /admin/videochat/users/:userId/age-verification`); off by default.
@@ -414,6 +419,8 @@ Codeqlick's third own web app: online bookings at **citas.codeqlick.com** for an
 - **Privacy:** pages are `noindex`; the owner sees their visitors' name, email, phone and note; the account export (`/auth/me/export`) includes the person's pages and their appointments.
 
 ### 4.10 Swipe (`modules/swipe`)
+
+> **Planned move (section 4.18, decisions 124–131):** Swipe moves to **swipe.neoqlick.com** under the Neoqlick brand, with Neoqlick accounts. Until then this section describes what runs, under Codeqlick.
 
 Codeqlick's fourth own web app, at **swipe.codeqlick.com**: adults share intimate photos of themselves, others swipe them (right likes, left skips), and two people who liked a photo of each other match and can chat. Spec in the Notion roadmap row "Swipe 18+". Decision 27. It is listed on the site's `/apps` page with an 18+ warning (owner's request, 2026-11-08); since 2026-11-09 (owner's request) its header and its favicon (the site's, which Google shows in results) carry the Codeqlick logo, and its public pages (`/`, `/rules`, `/takedown`) are indexed like the video chat's: canonical and hreflang on its own host, Open Graph image at `/{locale}/og`, `rating: adult` so SafeSearch filters it, its own sitemap and a robots.txt that keeps out `/deck`, `/photos`, `/matches`, the images and the sign-in pages, which also send `noindex`.
 
@@ -1050,6 +1057,8 @@ A `q` that is a number, with or without `#` (`^#?\d{1,9}$`), also matches the re
 
 ### 4.15 Cruising (`modules/cruising`)
 
+> **Planned move (section 4.18, decisions 124–131):** Cruising moves to **cruising.neoqlick.com** under the Neoqlick brand, with Neoqlick accounts. Until then this section describes what runs, under Codeqlick.
+
 Codeqlick's fifth own web app, at **cruising.codeqlick.com**, English and Spanish, worldwide: a directory of gay cruising spots on a map with members' reviews (phase 1), then a members' social network around it (phase 2). Owner's request, 2026-11-15, after gays-cruising.com and mispicaderos.com; the owner chose a full social network on its own subdomain. Notion roadmap rows "Cruising, phase 1 (directory)" and "Cruising, phase 2 (social)". Decision 78. Built on Swipe's patterns (4.10): the same entry, reports, removal form, team digest, emails that reveal nothing and legal texts. `cruising` joins `WEBAPPS` (web and API) and `ADULT_WEBAPPS`; it is listed on `/apps` with an 18+ warning. Phases 1 and 2 are two pull requests.
 
 #### Phase 1: directory
@@ -1153,6 +1162,8 @@ Owner's request, 2026-11-16 (after phase 5). No paid features (Stripe, decision 
 
 ### 4.16 Adult apps: shared safety, linked profiles, calls and inbox (`modules/adult`)
 
+> **Planned move (section 4.18, decisions 124–131):** the three apps move to Neoqlick (`*.neoqlick.com`) with their own accounts (realm `NEOQLICK`). The shared safety, verification and inbox described here keep working inside that realm; the verification paper will say "Neoqlick" instead of "Codeqlick", and the team still moderates from Codeqlick's admin panel.
+
 Owner's request, 2026-11-17: the three 18+ apps (`ADULT_WEBAPPS`: Cruising 4.15, Videochat 4.7, Swipe 4.10) stop being three islands. The owner chose all four parts: **shared safety, always on**; an **optional linked profile**; a **video call from a conversation**; **one inbox and one notifications bell**; and, where it overlaps, Swipe and Videochat brought to Cruising's level (installable app, verified badge, six languages). Notion roadmap rows "18+ apps: …", one per phase. Decisions 112–120.
 
 A new module `modules/adult` holds what the three share (`AdultSafetyService`, `AdultVerificationService`, `AdultInboxService`, `AdultNotificationService`, `AdultCallService`, `AdultLinkService`, each with its repository and controller). The app modules call it; it reads and writes the apps' tables only through their repositories (the layering rule stays). `AdultApp` is the enum `CRUISING · SWIPE · VIDEOCHAT`. Nothing in this section is ever shown on the main site, on the account pages or the account site (decision 108), or in the apps for everyone (Meetings, Citas, Cloud): it lives only on the three adult hosts and in the admin panel.
@@ -1242,7 +1253,185 @@ Owner's request (2026-11-17): one page in Admin that shows how the whole platfor
   - **Moderation waiting:** Cruising (spots `PENDING`, reports `OPEN`, media not reviewed yet, verification photos `PENDING`, removal requests `OPEN`), Swipe (photos `PENDING`, reports `OPEN`, verification photos `PENDING`, removal requests `OPEN`) and Videochat (reports `OPEN`, appeals `OPEN`, verification photos `PENDING`), each linked to its queue (the tab of `/admin/cruising?tab=…` and `/admin/swipe?tab=…`; `/admin/videochat`, whose page holds reports, appeals and verifications).
 - **Page:** cards with the totals (accounts, active this week, total MRR, leads this week, open support requests, disk), then sections People, Revenue, Activity and Health. Charts are the server-drawn `BarChart` (SVG `aria-hidden`, the numbers in a visually hidden table), one per weekly series: new and active accounts, new per app, purchases, leads, support opened and closed, deployments, website checks and newsletter sign-ups. The per-app totals, the revenue and the moderation counts are tables. Money is shown with `Intl.NumberFormat` in the page's language.
 
+### 4.18 Neoqlick: the 18+ apps on their own brand, domain and accounts
+
+Owner's decisions, 2026-11-17 (decisions 124–131). Status: **planned**; nothing here exists yet. Until the three pull requests below are merged, sections 4.7, 4.10, 4.15, 4.16, 6.3 and 6.5 describe what runs today.
+
+Cruising (4.15), Swipe (4.10) and Videochat (4.7) leave Codeqlick. They move to **Neoqlick**, a brand and a domain of their own (`neoqlick.com`), with a **separate user base**. The code stays one repository, one Next.js app, one API process, one PostgreSQL database and the one OVH VPS (no new server). What separates the two brands is the **realm** of an account, the host a request arrives on, and the theme.
+
+#### Goals and non-goals
+
+- A person who uses Neoqlick never sees the name, the logo, the colours, the domain or the account of Codeqlick, and a Codeqlick client never sees an 18+ app.
+- A Neoqlick account cannot open anything of Codeqlick (portal, Cloud, Citas, Meetings, admin) and the reverse, even with a valid token: the API refuses it.
+- Layout components, hierarchy, the app menu, the design system (6.6) and the products' behaviour do not change.
+- Out of scope: new features in the apps, a second database, a second API deployment, a second admin panel (moderation stays where it is, see "Admin and moderation"). There are no payments in the 18+ apps.
+
+#### Hosts and routing
+
+| Host | What it is | Realm |
+|---|---|---|
+| `neoqlick.com`, `www.neoqlick.com` (301 to the apex) | The portal: presents the three apps, the company details and contact, the legal pages | none (public, no sign-in) |
+| `cruising.neoqlick.com`, `swipe.neoqlick.com`, `videochat.neoqlick.com` | The apps, as today | NEOQLICK |
+| `account.neoqlick.com` | Neoqlick's account host (sign-in, sign-up, settings, single sign-on) | NEOQLICK |
+| `api.neoqlick.com` | The same API container as `api.codeqlick.com`; it only appears in Neoqlick's email headers (see Emails) | both |
+| `stats.neoqlick.com` | The same Umami container as `stats.codeqlick.com`, with its own website id | none |
+| `cruising.codeqlick.com`, `swipe.codeqlick.com`, `videochat.codeqlick.com` | **Permanent redirects** (301) to the same path and query on the new host, kept for at least 12 months | none |
+
+- **One host table.** `lib/webapps.ts` and `lib/account-host.ts` (6.3, 6.5) get a common `lib/hosts.ts` that classifies every host as `{ brand: 'codeqlick' | 'neoqlick', kind: 'site' | 'app' | 'account' | 'portal' }` from the request's host and two variables: `SITE_URL` (Codeqlick's main host, as now) and `NEOQLICK_URL` (`https://neoqlick.com`; unset where there are no Neoqlick hosts, see Rollout). The first label decides the app, as today (`webappForHost`); the rest of the host decides the brand, so a new Neoqlick app needs no new rule. Requests by IP address are never redirected, as today.
+- **Apps.** `WEBAPPS` (in `lib/webapps.ts` and the API's `common/webapps.ts`) is split in two lists: `CODEQLICK_APPS` = `meetings`, `citas`, `cloud` and `NEOQLICK_APPS` = `cruising`, `swipe`, `videochat`. `ADULT_WEBAPPS` becomes an alias of `NEOQLICK_APPS` until PR C removes it. Route folders do not move (`app/[locale]/cruising` …): on `cruising.neoqlick.com`, `/{locale}/map` is still the route `/{locale}/cruising/map`, as 6.3 describes. The proxy's rules (rewrite to the app's route, sign-in pages to the account host, the main site's sections to the main host, old addresses with the app's name redirected to the short ones) apply per brand: a Neoqlick app's "main host" is `neoqlick.com` and its "account host" is `account.neoqlick.com`.
+- **The portal** is a host kind of its own: `/{locale}/…` is rewritten to `/{locale}/neoqlick/…` (route folder `app/[locale]/neoqlick`, like `account`). Pages: `/` (the three apps as cards with an "18+" warning, a one-line description and "Open"; a company block with the trade name, the operator's details from the legal variables and `hello@neoqlick.com`; links to the legal pages), `/legal`, `/privacy` (the account-level policy), `/terms` (the account's terms) and `/safety-contact` (moves here from the Codeqlick site: it is the trusted-contact page of Cruising's safety alerts, 4.15). There is no contact form and no lead flow: the contact is the email address. Indexed, `rating: adult` like the apps, in the six languages (`en`, `es`, `fr`, `de`, `it`, `pt`). `robots.txt` and `sitemap.xml` are per host.
+- **Codeqlick's hosts forget the apps.** On `codeqlick.com` the routes `/{locale}/cruising|swipe|videochat/…` redirect (301) to the matching address on the Neoqlick host. The `/apps` page, the sitemap, `llms.txt`, the footer, the header, the account site's `/apps` list and the apps menu stop listing the three apps, and `switcherApps` has no adult entries any more (the "+18" tag and its rule go with them): `/apps` and "Other Codeqlick apps" list Meetings, Citas and Cloud only. Codeqlick's legal texts (terms, privacy, legal notice) drop their Cruising, Swipe and Videochat paragraphs in PR C; the Neoqlick texts carry them from PR B.
+- **No cross-links.** Nothing on a Neoqlick host links to a Codeqlick host or the reverse: the apps' "Other apps" list shows the other two Neoqlick apps and "My account" is `account.neoqlick.com`.
+
+#### Brand and theme (decision 125)
+
+- **Name and mark.** The brand is **Neoqlick**, the wordmark `neoqlick` in lowercase, Montserrat SemiBold converted to paths (SVG). Logo concept D, "Connection": two overlapping circles and their lens in a 64×64 viewBox: circles `cx=24` and `cx=40`, `cy=32`, `r=18`; lens `M32 16.1 A18 18 0 0 1 32 47.9 A18 18 0 0 1 32 16.1 Z`; violet `#7C3AED` (left), coral `#FF5A7A` (right), grape `#2B0F4D` (lens); on dark backgrounds the violet is lavender `#A78BFA`. The asset pack (logo SVG and PNG, favicon, avatars) is copied into `codeqlick-frontend/public/neoqlick/` by PR B. `components/brand/Logo.tsx` takes the brand (from the host) and draws either mark; `AppHeader`, `AppFooter`, the OG images and the emails use it.
+- **Tokens.** A second theme in `styles/neoqlick.css`, active under `<html data-brand="neoqlick">` (the root layout sets the attribute from the host). PR B first renames Codeqlick's colour tokens to brand-neutral names (`--color-fuchsia*` become `--color-brand`, `--color-brand-dark`, `--color-brand-light`; a mechanical search and replace with no visual change), then the theme overrides them. Proposed values, checked for WCAG AA contrast in the PR (a unit test computes the pairs):
+
+  | Token | Codeqlick | Neoqlick |
+  |---|---|---|
+  | `--color-brand` (buttons, links, focus) | `#D9177E` | `#7C3AED` |
+  | `--color-brand-dark` (hover, eyebrows) | `#A80F5E` | `#5B21B6` |
+  | `--color-brand-light` (accents on dark) | `#FF7DBE` | `#A78BFA` |
+  | `--color-accent` (new: the mark's second colour, badges and highlights; text on it is ink, never white) | none | `#FF5A7A` |
+  | `--color-ink` (text, dark sections) | `#14101F` | `#160F2B` |
+  | `--color-night` (new: dark surfaces) | none | `#1A1033` |
+  | `--color-blush` (soft backgrounds) | `#FCEAF3` | a pale violet tint (`#F3EEFE`, proposal) |
+  | `--color-slate`, lines, status colours | unchanged | unchanged |
+
+  Spacing, radius, the type scale, button sizes (36/44/52 px) and the mobile rules of 6.6 are the same.
+- **Typography (the spec's choice).** UI text keeps IBM Plex Sans and the code and label font JetBrains Mono, so the apps' density and layouts hold. **Display headings** on Neoqlick hosts use **Montserrat** (SemiBold and Bold, latin subset, self-hosted in `src/assets/fonts`, OFL, like the other fonts) to match the wordmark; the theme overrides `--font-family-display`, so no component changes. Space Grotesk is not loaded on Neoqlick hosts. The OG image fonts in `public/og-fonts` gain Montserrat.
+- **Per-host metadata.** The root layout and `pageMetadata` take the brand from the host: site name, title suffix (" · Neoqlick"), favicon (the pack's), `theme-color`, OG image and manifest. `app/manifest.ts` already answers per host: on a Neoqlick app it returns the app's name, `theme_color` `#7C3AED`, `background_color` white (the apps' layouts are light) and the pack's icons. The apps' icons in `public/` (`cruising-192.png`, `swipe-512.png`…) are replaced by Neoqlick ones; none may carry the Codeqlick mark.
+- **No Codeqlick left (decision 125).** The messages of the three apps and of the Neoqlick account pages, the legal texts (`src/content/legal/cruising*`, `adult-safety.ts`, the Swipe and Videochat texts) and every email say "Neoqlick" and `hello@neoqlick.com`; "Codeqlick safety alerts" becomes "Neoqlick safety alerts"; the verification photo's paper says the app's name, **"Neoqlick"** and the date (4.16). A unit test walks those messages in the six languages, the legal texts, the manifests and the email layout and fails when `codeqlick` (any case) appears; another renders the Neoqlick hosts' metadata and checks it.
+
+#### Realms: a separate user base in the same database (decision 124)
+
+**Data model** (`codeqlick-backend/prisma/schema.prisma`, one migration):
+
+- New enum `Realm { CODEQLICK NEOQLICK }`. `User.realm Realm @default(CODEQLICK)`: every existing account becomes a CODEQLICK one. It is set at creation and **never changes** (no endpoint writes it; a database trigger refuses an update).
+- `User.email @unique` becomes `@@unique([realm, email])` and `User.username @unique` becomes `@@unique([realm, username])` (stored lower-cased, as now). The same email can have one account in each realm, with different passwords, sessions and data. Every lookup by email or username takes the realm (`findUnique({ where: { realm_email: { realm, email } } })`); the repositories' signatures change, so the compiler finds every caller.
+- Check constraint `users_realm_role_check`: `realm = 'CODEQLICK' OR role = 'CLIENT'`. A NEOQLICK account is never an `ADMIN`; its `CLIENT` role only means "no staff rights" (it has no client project, so no portal). Nothing else in `Role` changes.
+- `SsoCode.realm Realm` (copied from the user; the exchange checks it). Sessions, passkeys, password-reset and email-change tokens, challenges and the other account tables need no column: their `userId` carries the realm.
+- `User.termsVersion String?` and `User.termsAcceptedAt DateTime?`: for NEOQLICK accounts, the version of the account terms accepted at sign-up (see Legal). Unused for CODEQLICK accounts.
+- The 18+ tables (`Cruising*`, `Swipe*`, `Videochat*`, `Adult*`) are unchanged and keep their foreign keys to `User`. The rule "they only reference NEOQLICK users" is enforced by the guards below and checked by an integration test (a query that must return no row), not by a foreign key.
+
+**Access token and guards.**
+
+- The access token gains the claim `rlm` (`CODEQLICK` or `NEOQLICK`) next to `sub`, `role`, `email`, `name` and `sid` (4.3). A token without `rlm` (issued before the release, 15 minutes at most) is read as CODEQLICK. The same `JWT_ACCESS_SECRET` signs both: the claim is part of the signed payload. Sign-in and refresh take the realm from the user row.
+- **`RealmGuard`** (`common/guards/realm.guard.ts`, global, after `JwtAuthGuard`) with the decorator `@Realm(...)` (`common/decorators/realm.decorator.ts`): `@Realm('NEOQLICK')` on a controller or handler accepts only NEOQLICK sessions, `@Realm('ANY')` accepts both, and **no decorator means CODEQLICK only (fail closed)**. Every existing route (portal, admin, Cloud, Citas, Meetings, leads, newsletter, search, stats…) keeps refusing NEOQLICK tokens without being touched, and a new route is safe by default. A wrong realm answers `403 Wrong account type`. Cloud API tokens (`cqk_…`) are CODEQLICK by construction.
+- `@Realm('NEOQLICK')`: the member routes of `modules/cruising`, `modules/swipe`, `modules/videochat` (its WebSocket ticket included) and `modules/adult` (`/adult/*`, `/adult/verification`…). `@Realm('ANY')`: the account routes of `modules/auth` (`/auth/me`, `/auth/password`, `/auth/email`, sessions, two-step verification, passkeys, `/auth/me/export`, account deletion, `/auth/sso/codes`). `/auth/apps` answers per realm: a NEOQLICK account lists the apps it uses and never the portal or the admin.
+- **Public account routes** (`/auth/login`, `register`, `password-reset/*`, passkey `login/options` and `login/verify`, `confirm-email`, `register/confirm`, `/auth/sso/exchange`) read the realm from the header **`X-Realm: NEOQLICK`** (anything else, or absent: CODEQLICK). The BFF sets it from the host kind; a visitor who sends it by hand only chooses which user base to authenticate against and still needs the credentials. `register` for NEOQLICK also requires `acceptTerms: true` (recorded as `termsVersion` and `termsAcceptedAt`) and accepts only a `signupApp` of `NEOQLICK_APPS` (the reverse for CODEQLICK).
+- **Target checks.** Services that act on a user id (admin routes, the 18+ moderation, the shared safety and verification services of 4.16) load the user with its realm and answer 404 when it is not the realm the route works on: `/admin/users/:id` and the Codeqlick admin search only find CODEQLICK accounts; the 18+ admin routes only find NEOQLICK ones. This keeps one realm's admin tools off the other's people.
+- **Realm-aware features.** `AdultBannedEmail` (decision 120) and `ADULT_BAN_HASH_KEY` are NEOQLICK-only. Disposable-email and breached-password checks, Turnstile, throttling and the new-device email apply to both. The newsletter, the weekly digest and the monthly report skip NEOQLICK accounts. The admin overview (4.17) counts people per realm and shows the 18+ figures under "Neoqlick". `/admin/users` lists CODEQLICK accounts only.
+
+**Passkeys.** The WebAuthn relying party is per realm: CODEQLICK keeps `WEBAUTHN_RP_ID=codeqlick.com`; NEOQLICK uses `WEBAUTHN_RP_ID_NEOQLICK=neoqlick.com` and `WEBAUTHN_ORIGINS_NEOQLICK` (default: `NEOQLICK_URL`, `NEOQLICK_ACCOUNT_URL` and each Neoqlick app's host). The service picks the pair from the user's realm (registration) or the header's (sign-in). In development each account host needs its own RP ID (`account.localhost`, `account.neoqlick.localhost`); the tests set both.
+
+**Single sign-on** (4.3, decision 108) is the same mechanism, per realm:
+- `SSO_CLIENTS` becomes a map by realm: CODEQLICK `site`, `meetings`, `citas`, `cloud`; NEOQLICK `cruising`, `swipe`, `videochat`. A code is issued and exchanged only for a client of the account's realm, and the exchange also checks `SsoCode.realm`.
+- The website derives hosts by brand: `account.neoqlick.com` gives `<app>.neoqlick.com`; the callback is still `<protocol>//<client host>/{locale}/auth/callback`. The cookies keep their names (`cq_at`, `cq_rt`, `cq_sso_*`) and stay host-only, so nothing is shared between the two brands. PKCE, `state`, the 60 s single-use code and the failure page are unchanged. The portal host has no session.
+- A Neoqlick app's proxy sends `/login` and `/register` to `account.neoqlick.com`; an `/authorize` request for a client of the other realm shows the error page.
+
+#### The account host of Neoqlick
+
+`account.neoqlick.com` is the account site of 6.5 for the NEOQLICK realm: same code and pages (overview, profile, security, privacy, notifications, apps), the six languages, the Neoqlick theme and logo, no mention of Codeqlick. The proxy classifies it as `{ brand: 'neoqlick', kind: 'account' }`, and the BFF sends `X-Realm: NEOQLICK` on every call it makes there. What differs from the Codeqlick account site:
+- Sign-in, sign-up, passkeys, password reset, two-step verification, the devices list, "sign out everywhere", data export and account deletion work on NEOQLICK accounts only (a CODEQLICK password does not sign in here, and the reverse). Deleting the account deletes the person's 18+ data, as today (4.15, 4.16).
+- Sign-up asks for the email, a password, an optional `@username`, the Turnstile check, the acceptance of the account terms and privacy policy (`/terms` and `/privacy` of the portal host, in a new tab) and that the person is 18 or older. Each app still asks for its own entry (date of birth, rules, consent) the first time.
+- `/apps` lists the three Neoqlick apps. There are no portal, admin, Cloud, Citas or Meetings entries.
+- Emails link to `NEOQLICK_ACCOUNT_URL` (below).
+
+#### Emails (decision 128)
+
+- **Sender.** `MAIL_FROM_NEOQLICK=Neoqlick <hello@neoqlick.com>` (Reply-To the same address), through OVH's SMTP with the mailbox's own credentials (`SMTP_USER_NEOQLICK`, `SMTP_PASSWORD_NEOQLICK`; host and port as Codeqlick's). The owner creates the mailbox `hello@neoqlick.com` in OVH. `MailService` takes a `brand` with each message, derived from the recipient's realm and never from a request, and picks the sender, the SMTP login, the `EHLO` name and the `Message-ID` domain (`neoqlick.com`) from it. `no-reply@` is not used: a second mailbox is not needed.
+- **DNS** on `neoqlick.com` (OVH zone): MX of the mailbox, SPF (`v=spf1 include:mx.ovh.com ~all`, as OVH documents), DKIM (the key OVH gives for the mailbox) and DMARC (`v=DMARC1; p=none; rua=mailto:hello@neoqlick.com`, raised to `quarantine` after two clean weeks). `deploy/check-email-dns.sh` takes a domain argument and checks both domains.
+- **Layout.** `modules/mail/email-layout.ts` takes the brand and renders the Neoqlick header (logo PNG `public/email/neoqlick-logo.png`, served by the website at `NEOQLICK_URL/email/neoqlick-logo.png`), the violet button, the night footer, "Neoqlick" and `hello@neoqlick.com`; the plain-text part follows. Links use `NEOQLICK_ACCOUNT_URL` and the apps' hosts. It serves the emails of the three apps (4.15, 4.16: alerts, member digests, trusted-contact invitations, verification results, sanctions, appeals) and the account emails of a NEOQLICK user (welcome, confirmation, reset, email change, new device).
+- **Optional emails** (Cruising and Swipe alerts) carry `List-Unsubscribe` to `NEOQLICK_PUBLIC_API_URL/email/unsubscribe?token=…` (`https://api.neoqlick.com/v1`) and a visible link to `NEOQLICK_URL/{locale}/email/unsubscribe`. The portal host serves `/email/unsubscribe` (the same page and route handler, per brand). The token format and key are the same; the user id decides the realm.
+- **The team's own emails** (the 18+ digest, new reports) go to the owner's Codeqlick address and are for the team, not for Neoqlick users.
+- **New variables** (4.5), all optional while `NEOQLICK_URL` is unset: `NEOQLICK_URL`, `NEOQLICK_ACCOUNT_URL` (default: `NEOQLICK_URL` with `account.`), `NEOQLICK_PUBLIC_API_URL`, `MAIL_FROM_NEOQLICK`, `SMTP_USER_NEOQLICK`, `SMTP_PASSWORD_NEOQLICK`, `WEBAUTHN_RP_ID_NEOQLICK`, `WEBAUTHN_ORIGINS_NEOQLICK`, `NEOQLICK_TERMS_VERSION`, `NEOQLICK_TRADE_NAME`, `NEOQLICK_LEGAL_OWNER_NAME` / `_TAX_ID` / `_ADDRESS`, `NEOQLICK_VAPID_PUBLIC_KEY` / `_PRIVATE_KEY` / `_SUBJECT`, `NEOQLICK_UMAMI_WEBSITE_ID`; `CORS_ORIGINS` gains `NEOQLICK_URL`. The realm column and guards work without them.
+
+#### Push, PWA and ads
+
+- **Web Push.** Neoqlick has its own VAPID key pair and subject (`NEOQLICK_VAPID_SUBJECT=mailto:hello@neoqlick.com`), so push services see Neoqlick as the sender. The three apps' push services (`CruisingPushSubscription`, `SwipePushSubscription`, `VideochatPushSubscription`) sign with it; Codeqlick's pair stays for Codeqlick's own notifications. Notification texts and icons say "Neoqlick" or the app's name and use the pack's icons.
+- **Service workers and manifests** are per origin, so the new hosts register their own (`/cruising-sw.js`, `/swipe-sw.js`, `/videochat-sw.js`, caches named `neoqlick-…`). Installed copies of the old origins do not move (they are test installs).
+- **Ads (ExoClick).** The three sites must be registered again in ExoClick for the new domains (owner task); each gets its own site, zone ids and verification tag. The ids in `lib/videochat-ads.ts` and the verification tags are replaced when the owner provides them; an empty id still shows nothing, so the apps can launch before the ads. The CSP rules for ExoClick (6.4) follow the hosts: they apply to the three Neoqlick app hosts (brand plus app) and no longer to `*.codeqlick.com`.
+
+#### Legal (decision 129)
+
+- **Operator.** The apps' legal notice, terms and privacy policies name **"Neoqlick"** as the trade name of the owner, a sole trader: "Neoqlick, trade name of <name>, tax ID, address, hello@neoqlick.com". The data come from `NEOQLICK_LEGAL_OWNER_NAME`, `NEOQLICK_LEGAL_OWNER_TAX_ID` and `NEOQLICK_LEGAL_OWNER_ADDRESS` (and `NEOQLICK_TRADE_NAME`, default `Neoqlick`). When one of them is unset it falls back to the matching `LEGAL_OWNER_*`, so the owner's data are filled in once. Like the Codeqlick legal pages, the Neoqlick ones render only when a legal holder name is set. If a company is created later (Notion, "Neoqlick"), only the variables change.
+- **Texts.** `src/content/legal/` keeps the apps' texts (`cruising*`, `adult-safety.ts`, the Swipe and Videochat rules) and gains the portal's `/legal`, `/privacy` and `/terms` (account data, sessions and security logs, cookies and storage, ads, data subjects' rights, the 18+ rule). All are rewritten for the new operator and address; the processors listed stay those the apps already use (OVHcloud as host, no new ones). New versions: `CRUISING_TERMS_VERSION` and the Swipe and Videochat versions move to a new value, and `NEOQLICK_TERMS_VERSION` is new. All accounts are new, so nobody is asked twice.
+- **Acceptance** at sign-up on `account.neoqlick.com` (account terms and privacy) and at each app's entry (rules, terms, consent, as today). Codeqlick's own legal texts lose the 18+ paragraphs in PR C.
+
+#### Admin and moderation (decision 126)
+
+The team's moderation stays in Codeqlick's admin panel (`/admin/cruising`, `/admin/swipe`, `/admin/videochat`, `/admin/adult`, and the image routes `/{locale}/admin/<app>/…` on `codeqlick.com`). The owner is the same person and a second admin panel would double the work.
+
+- **Who.** A **CODEQLICK `ADMIN`** (with two-step verification, as always). The 18+ admin controllers have no `@Realm`, so they require a CODEQLICK session; they read and write NEOQLICK data through the apps' repositories, and every handler that receives a user id runs the target check (NEOQLICK only). The admin's own account is never part of the 18+ data.
+- **What an admin sees.** Members of the 18+ apps by nickname, `@username` and the data the moderation tools already show. A NEOQLICK account's email appears only where moderation needs it (a person's page, sanctions, appeals, as today) and never in `/admin/users` or the global admin search. Every action goes to the activity log as now (targets `adult`, `cruising`, `swipe`, `videochat`).
+- **The owner and the apps.** To use the apps (testing, or as a member) the owner needs a **NEOQLICK account** of their own, created at `account.neoqlick.com`. It may use the same email address (accounts are unique per realm), but it is a different account with its own password and passkeys, and it cannot open the admin panel. A NEOQLICK `ADMIN` does not exist (database constraint); a staff role for Neoqlick is a new decision if the team grows.
+- **Branding in the admin.** The 18+ admin pages carry "Neoqlick" in their titles so it is clear which brand's people they show, and the figures of 4.17 show a separate "Neoqlick" block.
+
+#### Redirects and removal from Codeqlick (decision 130)
+
+- **Nginx.** The three old app server blocks (`/etc/nginx/sites-available/<app>.codeqlick.com.conf`, made by the apps' helper; the video chat's also has `/ws`) are replaced by redirect-only blocks that keep their certificates: `return 301 https://<app>.neoqlick.com$request_uri;`. They stay for **at least 12 months** (until 2027-11-17) and certbot keeps renewing them. `/ws` is not redirected (a WebSocket client does not follow a redirect): old pages are gone, so nothing connects; the block answers 410 for it.
+- **Service workers of the old hosts.** Browsers refuse a redirect for a service worker script, so on the old hosts `/cruising-sw.js`, `/swipe-sw.js` and `/videochat-sw.js` answer 200 with a tiny script that unregisters the worker and clears its caches (`deploy/nginx/legacy-sw-unregister.js`); every other path answers 301.
+- **The helper and the deploy.** `deploy/webapp-site.sh` (the helper `codeqlick-webapp-site`) gains a `redirect` mode and a domain option. `deploy/deploy.sh` publishes only the hosts of `CODEQLICK_APPS` (under `codeqlick.com`) and of `NEOQLICK_APPS` (under `neoqlick.com`), so a release never recreates an old block. `docker-compose.prod.yml` gives the web and api containers the new variables.
+- **Search engines.** The 301 passes the old addresses' ranking on; Cruising's sitemap (`GET /cruising/sitemap`), the canonical and hreflang links use the new host. Codeqlick's sitemap and `llms.txt` drop the three apps.
+- **Old sessions.** The apps' `cq_at` / `cq_rt` cookies belong to the old hosts and are never sent to the new ones; nothing is migrated (see Cut-over).
+
+#### Deploy: DNS, Nginx, certificates
+
+`deploy/setup-neoqlick.sh` (the owner runs it once with sudo, like `setup-account-site.sh`, after the release of PR C is on the server):
+1. Reinstalls the helper (`codeqlick-webapp-site`) and keeps the deploy user's sudo rule.
+2. DNS through OVH's API (the team's keys manage the `neoqlick.com` zone): `A` records for `@`, `www`, `account`, `api`, `stats`, `cruising`, `swipe` and `videochat` to `SITES_SERVER_IP` (and `AAAA` if the server has one). Existing records are never overwritten. The mail records of Emails are set by hand in OVH.
+3. Nginx sites from templates (`deploy/nginx/neoqlick.com.conf`, `neoqlick-app.conf.template` for the three apps with the video chat's `/ws` block, `account.neoqlick.com`, `api.neoqlick.com`, `stats.neoqlick.com`): pages to the web on `127.0.0.1:3010`, `/ws` and `api.` to `127.0.0.1:4010`. Each is checked with `nginx -t` and removed again if Nginx refuses it; an existing site is never changed (a dated copy is kept), like the account script.
+4. Let's Encrypt certificates for each name (`certbot --nginx`).
+5. Replaces the three old app blocks with the redirect blocks and the service worker scripts above (a dated copy is kept).
+
+It is safe to run again. The OVH mailbox, SPF/DKIM/DMARC, the ExoClick sites and the Turnstile hostnames (Cloudflare lists the hosts a widget works on: `neoqlick.com` and its subdomains are added) are **owner tasks**, listed in `deploy/README.md` ("Neoqlick").
+
+#### Cut-over and data cleanup (decision 127)
+
+Production holds only test data in the 18+ apps (2 Cruising profiles, 2 Videochat, 1 Swipe, the owner's tests). Nothing is migrated: **at cut-over the 18+ data of CODEQLICK accounts is deleted, with the uploaded files.**
+
+`codeqlick-backend/src/scripts/neoqlick-cleanup.ts` (run with `docker compose exec api node dist/scripts/neoqlick-cleanup.js`; `--dry-run` by default, `--apply` to delete; one transaction for the database, files removed after the commit; prints counts):
+1. Counts and, with `--apply`, deletes every row of the 18+ tables: all `Cruising*`, `Swipe*`, `Videochat*` and `Adult*` tables (profiles, spots, reviews, check-ins, conversations and messages, matches, photos, likes, reports, blocks, sanctions, appeals, favourites, alerts, trips, meetups, rooms, push subscriptions, verifications, suspensions, banned-email hashes), and the `ActivityLog` rows whose `targetType` is `adult`, `cruising`, `swipe` or `videochat`.
+2. Deletes the files: everything under `CRUISING_UPLOADS_DIR` (including `incoming/`), `SWIPE_UPLOADS_DIR` and the shared verification photos folder (`adult.storage`); the folders stay, empty.
+3. Lists the CODEQLICK accounts with `signupApp` in `cruising`, `swipe` or `videochat`, role `CLIENT` and no client project, ticket or other data (they exist only to use the apps). With `--apply --delete-app-accounts` it deletes them (their sessions cascade); without the flag they stay as plain Codeqlick accounts. The owner's admin account stays in any case.
+4. Sets `User.signupApp` to null for the accounts that stay.
+
+Order: PR A's migration (adds `realm`, every row CODEQLICK) and deploy, with no visible change; PR B and PR C deploy; the owner runs `setup-neoqlick.sh` right after, because between the PR C deploy and the script the old hosts redirect to hosts without certificates; then the cleanup with `--dry-run`, then `--apply`; the owner creates their NEOQLICK account. The cleanup is idempotent. The script and its test are removed in a later PR once the cut-over is done.
+
+#### Rollout
+
+| PR | Scope | Visible effect |
+|---|---|---|
+| **A. Backend realms** (`feat/neoqlick-realms`) | Migration (`Realm`, `User.realm`, composite uniques, check constraint, trigger, `SsoCode.realm`, `termsVersion`, `termsAcceptedAt`); `RealmGuard` and `@Realm`; `X-Realm` on the public account routes; `rlm` in the token; per-realm SSO clients, passkey RP, mail brand and sender, push VAPID and legal variables; target checks; the cleanup script; configuration and `.env.example`; sections 4.5 and 5 | None for users: everything is CODEQLICK |
+| **B. Frontend Neoqlick** (`feat/neoqlick-frontend`) | `lib/hosts.ts`; the portal; the Neoqlick account host; theme, Montserrat, logo and the asset pack in `public/`; per-host metadata, manifests and OG images; messages and legal texts without Codeqlick (six languages); the email logo; unit and browser tests | Neoqlick hosts work locally and in tests; production has no DNS for them yet |
+| **C. Codeqlick clean-up, redirects and deploy** (`feat/neoqlick-cleanup`) | The apps leave `codeqlick.com` (menus, `/apps`, sitemap, `llms.txt`, footer, the account site's `/apps`, legal paragraphs, `switcherApps`); redirects in the proxy; `deploy/setup-neoqlick.sh`, Nginx templates and redirect blocks, helper changes, `docker-compose.prod.yml`, `deploy/README.md`, CI | The cut-over, once the owner runs the script |
+
+Local development: `*.neoqlick.localhost:3000` (browsers resolve it) with `NEOQLICK_URL=http://neoqlick.localhost:3000`. **Staging** has no Neoqlick hosts, like it has no account host: its website leaves `NEOQLICK_URL` unset and the 18+ routes answer 404 there; the browser tests run Neoqlick against the local dev stack.
+
+#### Tests per PR
+
+- **A (Vitest unit and e2e).** The realm guard matrix: a CODEQLICK token on a NEOQLICK route and the reverse give 403, `ANY` passes both, an undecorated route refuses NEOQLICK (a test lists every controller and fails when an 18+ controller lacks `@Realm`, in the style of `throttle-coverage.spec.ts`); a token without `rlm` is CODEQLICK; the same email registers in both realms and signs in separately; reset, confirmation and passkey flows per realm; an SSO code of one realm is refused for the other's client; a NEOQLICK `ADMIN` is refused by the database; the 18+ admin routes reject a CODEQLICK target and `/admin/users/:id` a NEOQLICK one; emails use the Neoqlick sender and layout for NEOQLICK users (a snapshot with no `codeqlick`); the cleanup script on a seeded database (dry run counts, apply deletes rows and files, idempotent); the integrity query (no 18+ row references a CODEQLICK user).
+- **B (Vitest unit, Playwright).** Table tests of `lib/hosts.ts`; proxy routing per host kind (portal, account, apps, redirects of the old routes); the SSO flow from `cruising.neoqlick.localhost` to `account.neoqlick.localhost` and back; the no-Codeqlick test of messages, legal texts, manifests, metadata and emails in the six languages; the contrast test of the theme; the messages test keeps the six languages complete; browser tests: sign-up, sign-in, a passkey (virtual authenticator), entering an app, the portal's links, the theme on a page.
+- **C.** Proxy tests that `/{locale}/cruising…` on `codeqlick.com` redirect; sitemap, `llms.txt`, `/apps` and menus no longer list the apps (updating `app-menus.test.ts`, `sitemap.test.ts` and the apps-list tests); `nginx -t` on the templates and shellcheck on the new script in CI; after the deploy a manual check list in `deploy/README.md`: each new host answers 200 with a valid certificate, each old host answers 301 to the right path, the three old service worker URLs answer 200, an email reaches a mailbox with SPF, DKIM and DMARC passing.
+
+#### Risks (decision 131)
+
+- **A route without `@Realm` that should accept NEOQLICK** fails closed (403): the browser tests and the controller coverage test find it, and nothing leaks. The opposite mistake (an 18+ route marked `ANY`) is what the matrix test and the review look for.
+- **A lookup by email that forgets the realm** could sign someone into the wrong realm. The composite unique makes `findUnique({ where: { email } })` fail to compile, and a CI grep for `findFirst({ where: { email` without `realm` covers the rest.
+- **Two accounts, one person.** The owner's CODEQLICK and NEOQLICK accounts are unrelated and cannot be merged. Intended (decision 124).
+- **Email deliverability** of a new domain: SPF, DKIM, DMARC and a slow start (the volume is small). Until the mailbox works, a NEOQLICK sign-up cannot confirm its email, so PR C is not deployed before `check-email-dns.sh` passes.
+- **Search ranking** moves with the 301: kept for 12 months at least, then reviewed in Search Console.
+- **Passkeys** registered on `codeqlick.com` do not work on Neoqlick (another relying party); irrelevant, since the accounts are new.
+- **Third-party registrations** (ExoClick, Turnstile hostnames, the OVH mailbox) are outside the repository. Turnstile is required in production, so its hostnames must be added **before** PR C is deployed; ads can follow later.
+- **One database, one API:** whoever has database access sees both realms. Acceptable on a single VPS with one operator; a legal entity or a separate database would be a later decision.
+
+**Open questions for the owner** (the spec picked a default for each): the apps' PWA icons (the pack's app icons, or the mark on night); `stats.neoqlick.com` against no analytics on Neoqlick hosts; a separate legal-holder variable set that falls back to `LEGAL_OWNER_*` until the company exists.
+
 ## 5. API contract (v1)
+
+> **Planned (section 4.18, decision 124):** public account routes (`/auth/login`, `register`, `password-reset/*`, passkey sign-in, `confirm-email`, `/auth/sso/exchange`) read the realm from the header `X-Realm: NEOQLICK` (absent: CODEQLICK); an authenticated route refuses a token of the other realm with `403 Wrong account type`, and a route without `@Realm` accepts CODEQLICK only. The routes of Cruising, Swipe, Videochat and `/adult/*` become NEOQLICK-only; the admin routes for them stay CODEQLICK `ADMIN`. The route tables below do not change until PR A.
 
 Base URL: `https://api.codeqlick.com/v1`. JSON in and out. Dates are ISO 8601 strings. Lists are paginated:
 
@@ -2280,6 +2469,8 @@ src/
 
 ### 6.3 Web apps on subdomains (`lib/webapps.ts`)
 
+> **Planned change (section 4.18, decisions 124–131):** Cruising, Swipe and Videochat move to `<app>.neoqlick.com` and leave `WEBAPPS` for `NEOQLICK_APPS`; a host table (`lib/hosts.ts`) decides the brand of every host, and the `/apps` page, the apps menu and `switcherApps` of this section stop listing them. Until it is built, this section is how it works.
+
 Besides client work, Codeqlick runs its own web apps, each on `<app>.codeqlick.com` and served by this same app under `/[locale]/<app>` with the same accounts. `WEBAPPS` lists them (now `videochat`, `meetings`, `citas`, `swipe`, `cruising` and `cloud`). On its host an app's addresses don't repeat its name: `videochat.codeqlick.com/es/room` is the route `/es/videochat/room` (owner's request, 2026-11-08). The proxy, before anything else: on an app's host, `/{locale}/…` is rewritten to the route `/{locale}/<app>/…` (the browser keeps the short address), the sign-in addresses (`login`, `register`, `forgot-password`, `reset-password`, `confirm-email`) go to the account host (single sign-on, section 4.3) and `auth/…` (the callback) is served as it is, the main site's sections (`SITE_SECTIONS` in `lib/webapps.ts`, kept in sync with the folders by a test) and the other apps go to the main host, and the old addresses with the app's name (`/{locale}/<app>/…`) are redirected to the short ones on navigations (images and form posts to them are just served); on the main host, `/{locale}/<app>/…` goes to the app's host without the app's name. In the code links keep the route (`/videochat/room`): each app's layout sets `WebappProvider` on its own host, and the `Link` and `useRouter` of `i18n/navigation` then write the short address. Server-side redirects and sign-in `next` values with the route still work through the redirect. Emails and notifications link to the short addresses. Cookies are per host, so a person signs in on the app's host too. Locally the app opens at `http://videochat.localhost:3000` (browsers resolve `*.localhost`). Requests by IP address (Next.js calling itself) are never redirected. A new app needs its name in `WEBAPPS` (here and in the API's `common/webapps.ts`), its pages and its card on the main site's `/apps` page (links go to `/{locale}/<app>`, which the proxy sends to the app's host). Its subdomain is published by the release itself: after `deploy/deploy.sh` restarts the stack, it runs the root helper `codeqlick-webapp-site` (installed once by `deploy/setup-webapps.sh`, the deploy user may run it with sudo and nothing else) for every app in the API's `WEBAPPS` whose Nginx site has no certificate: DNS `A` record through OVH's API, an Nginx site from the helper's template (pages to the web, `/ws` to the API's `/v1/<app>/ws`) and the certificate (decision 25).
 
 **Apps menu** (owner's choice 2026-11-09): every app's menu drawer (below) ends its sections with "Other Codeqlick apps", listing the other Codeqlick apps with a one-line description, plus "See all apps" (`/{locale}/apps` on the main host); links are absolute (`webappUrl`), each tagged for Umami (`app-switcher`, `from`, `to`). `switcherApps` in `lib/webapps.ts` decides the list: inside an app for everyone (Meetings, Citas) only the apps for everyone; inside an 18+ app (`ADULT_WEBAPPS`: videochat, swipe, cruising) every other app, the 18+ ones last with a "+18" tag. So a booking page or a meeting never points at explicit content. (Until decision 107 it was an "Apps" `<details>` button in the header, `components/layout/AppSwitcher`, now removed.)
@@ -2369,6 +2560,8 @@ Owner's request (2026-11-17): the same protective headers on every host the webs
 **security.txt and the security page:** section 6.2.
 
 ### 6.5 Account site (`account.codeqlick.com`, decision 108)
+
+> **Planned (section 4.18, decision 124):** Neoqlick gets its own account host, `account.neoqlick.com`, running this same site for the separate NEOQLICK realm. Everything below describes the Codeqlick one (realm CODEQLICK); the `/apps` list here will drop the 18+ apps.
 
 One account site for the whole platform (owner's request 2026-11-17). Its host is a host kind of its own in `src/proxy.ts` (`lib/account-host.ts`), not a web app: it isn't in `WEBAPPS`, has no entry of its own in the apps menu and speaks all six languages (`en`, `es`, `fr`, `de`, `it`, `pt`, like Cruising; decision 103: the account namespaces `Account`, `AccountSite`, `TwoFactor`, `Passkeys`, `Sessions` and `ConfirmEmail` are translated into French, German, Italian and Portuguese too, kept complete by the messages test). Locally it opens at `http://account.localhost:3000`.
 
@@ -3022,3 +3215,11 @@ Changes that touch neither app (only `deploy/` or docs) run no app CI (only Attr
 | 121 | Local service pages: four services × ten Spanish cities, each with copy written for the city, no address, reviews or case studies; one path scheme, statically listed | Owner's request (2026-11-17). "Service + city" searches are how local businesses look for a supplier, and a page per pair is what ranks for them; search engines treat pages that only swap the name as doorway pages, so each city gets its own context and per-service sentence, checked for duplicates by a test. Codeqlick works remotely, so claiming a local address would be false; `ProfessionalService` with `areaServed` says where it works without one |
 | 122 | One admin overview of the whole platform (people, revenue, activity, health), 12 Madrid weeks of aggregates computed in SQL and cached 10 minutes; MRR from amounts stored by Stripe's webhook, not from live Stripe calls | Owner's request (2026-11-17). The figures were spread over each app's admin and Stripe's dashboard. Reading Stripe on every visit would tie the page to Stripe's availability and rate limits, and the prices were only known in memory, so the subscription's monthly amount before VAT is kept on the row the webhook already writes (one nullable column on `cloud_teams` and on `client_projects`); the maintenance plans paid before are filled with decision 110's 1 900 cents, PRO teams fill in at their next renewal and are shown as unpriced until then. Aggregates only, as decision 101, so no person's data leaves its app's admin |
 | 123 | One design system for the website and the apps: type, spacing, radius and width tokens, three button sizes (36/44/52 px, 44 px touch areas) and the mobile rules of section 6.6, rolled out in four pull requests without changing colours, fonts, logo, tone or the order of content | Owner's request (2026-11-17) after a design audit: about 40 font sizes, five card types, three "danger" buttons, 52 px default buttons, 176 px gaps between sections on phones and touch targets of 23 px made the site and the apps feel like different products. Fixing sizes and states keeps the identity people know |
+| 124 | Neoqlick accounts are a separate user base in the same API and database: `User.realm` (`CODEQLICK` or `NEOQLICK`), email and username unique per realm, a `rlm` claim in the access token, SSO codes and clients per realm, and a global `RealmGuard` where a route without `@Realm` accepts CODEQLICK only | Owner's decision (2026-11-17). The 18+ apps must not share people, sessions or accounts with Codeqlick, but a second API or database would be a second deployment on the one VPS; a realm column and a fail-closed guard separate them with one code base, and a missing decorator can only refuse, never leak |
+| 125 | The 18+ apps carry the Neoqlick brand: logo "Connection" (violet `#7C3AED`, coral `#FF5A7A`), its own theme tokens on its hosts, Montserrat for display headings (the spec's choice, to match the wordmark; IBM Plex Sans and JetBrains Mono stay), and no Codeqlick name, logo or domain on Neoqlick hosts, emails, push, manifests, OG images or legal texts, enforced by a test | Owner's decision (2026-11-17). Colours become brand-neutral tokens so the same components serve both brands; keeping the UI fonts keeps the layouts and density of 6.6 |
+| 126 | Moderation of the 18+ apps stays in Codeqlick's admin panel, by a CODEQLICK `ADMIN`, with a realm check on every target user; a NEOQLICK account is never an admin (database check) and the owner uses the apps with a NEOQLICK account of their own | One person runs both brands and a second admin panel would double the work; the target check keeps each realm's tools off the other's people |
+| 127 | At cut-over the existing 18+ data of CODEQLICK accounts and the uploaded files are deleted by a one-off script (`neoqlick-cleanup`, dry run by default); nothing is migrated | Owner's decision (2026-11-17). Production holds only test data in the apps, and moving it between realms would add code that runs once |
+| 128 | Neoqlick sends email as `Neoqlick <hello@neoqlick.com>` through OVH's SMTP with its own mailbox, SPF, DKIM and DMARC, a Neoqlick layout, and an `api.neoqlick.com` host for `List-Unsubscribe`; push uses its own VAPID pair and subject | Owner's decision (2026-11-17). Users and mail providers must see only Neoqlick; one mailbox (no separate `no-reply@`) is enough at this volume |
+| 129 | Legal: the operator is "Neoqlick", trade name of the owner (sole trader), from `NEOQLICK_LEGAL_*` variables that fall back to `LEGAL_OWNER_*`; new terms and privacy versions on the Neoqlick hosts, accepted at sign-up | Owner's decision (2026-11-17). The same variables mechanism as the site's legal pages; a later company changes only the values |
+| 130 | The old `*.codeqlick.com` app hosts answer 301 to the same path on the new hosts for at least 12 months, done in Nginx (with 410 for `/ws` and self-unregistering service worker scripts); the apps leave codeqlick.com's menus, `/apps`, sitemap, footer and legal texts | Owner's decision (2026-11-17). A redirect in Nginx works even when the app is down and keeps the apps' search ranking; a redirected service worker script is refused by browsers, so the old workers are told to unregister |
+| 131 | Neoqlick ships in three pull requests: A backend realms (no visible change), B frontend hosts, theme and account, C Codeqlick clean-up, redirects, deploy script; staging has no Neoqlick hosts | Each step can be deployed and rolled back on its own, and the cut-over (DNS, certificates, redirects) happens once, when the owner runs `deploy/setup-neoqlick.sh` |
