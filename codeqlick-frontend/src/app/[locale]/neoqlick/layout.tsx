@@ -9,8 +9,14 @@ import { requestHostClass } from '@/lib/request-brand';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
-// Adults only, like the apps: Google's label (architecture 4.18).
-export const metadata: Metadata = { other: { rating: 'adult' } };
+// Adults only, like the apps: Google's label (architecture 4.18). Plus the ownership check of
+// Neoqlick's own ExoClick site for neoqlick.com.
+export const metadata: Metadata = {
+  other: {
+    rating: 'adult',
+    '6a97888e-site-verification': 'f4c1803b4bcbb7d3aa7e48ad92bd5004',
+  },
+};
 
 /**
  * Neoqlick's portal (architecture 4.18): `neoqlick.com`, which presents the three apps, the
