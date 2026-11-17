@@ -3888,7 +3888,7 @@
       "removed": "Contact removed.",
       "error": "Could not remove it. Try again.",
       "since": "Contacts since {date}",
-      "anonymous": "No nickname",
+      "anonymous": "No username",
       "interests": "Interests",
       "refresh": "Refresh",
       "group": "Group"
@@ -3921,13 +3921,13 @@
     "verification": {
       "title": "Verified badge",
       "status": {
-        "NONE": "Optional: verify your profile and whoever talks to you sees a badge next to your nickname.",
+        "NONE": "Optional: verify your profile and whoever talks to you sees a badge next to your username.",
         "PENDING": "We are reviewing your photo. We'll tell you by email.",
-        "APPROVED": "Your profile is verified in all of Codeqlick's 18+ apps: others see the badge next to your nickname.",
+        "APPROVED": "Your profile is verified in all of Codeqlick's 18+ apps: others see the badge next to your username.",
         "REJECTED": "We couldn't approve your photo. Send another one following the instructions."
       },
       "lead": "Take a photo holding a paper that reads “{nickname}”, “Codeqlick” and today's date, with your face visible. Only the team sees it, and we keep it privately while the verification stands.",
-      "nicknameFirst": "Choose your nickname above and save it first.",
+      "nicknameFirst": "Choose your username above and save it first.",
       "pick": "Choose the photo",
       "consent": "It's me, and I send it to verify my profile.",
       "send": "Send for review",
@@ -4026,7 +4026,7 @@
       "reason": "Reason (the person will see it)",
       "profile": "Profile",
       "email": "Email",
-      "nickname": "Nickname",
+      "nickname": "Username",
       "gender": "Gender",
       "seeking": "Wants to meet",
       "anyone": "Anyone",
@@ -4125,7 +4125,7 @@
       "back": "Back to moderation",
       "empty": "No suspicious accounts right now.",
       "score": "{score} points",
-      "noNickname": "No nickname",
+      "noNickname": "No username",
       "joined": "In the video chat since {date}",
       "reasonsLabel": "Reasons",
       "reasons": {
@@ -4697,7 +4697,7 @@
       "how2Title": "Swipe",
       "how2": "Right or ♥ to like, left or ✕ to skip. On a computer, with the arrow keys.",
       "how3Title": "Share yours, if you want",
-      "how3": "Send a verification photo holding a paper with your nickname. Once we approve it you can upload up to 10 photos. We review each one before it goes live.",
+      "how3": "Send a verification photo holding a paper with your username. Once we approve it you can upload up to 10 photos. We review each one before it goes live.",
       "safetyTitle": "Safety",
       "safety1": "We review every photo before it goes live. Only the person who uploads it may appear, and they must clearly be an adult.",
       "safety2": "Any photo can be reported. A report for a minor or missing consent hides it at once.",
@@ -4808,7 +4808,7 @@
       "blurPhotos": "Blur photos until I tap them",
       "blurPhotosHint": "Handy if you use Swipe with people around.",
       "emailAlerts": "Email me about matches, «me encanta» and messages",
-      "emailAlertsHint": "Emails never show photos, nicknames or messages. The team's notices (verification, photos) always reach you.",
+      "emailAlertsHint": "Emails never show photos, usernames or messages. The team's notices (verification, photos) always reach you.",
       "nicknameTaken": "That username is taken. Try another one.",
       "nicknameReserved": "That name can't be used. Try another one."
     },
@@ -4821,7 +4821,7 @@
         "REJECTED": "We didn't approve your verification photo. Send another one following the steps."
       },
       "lead": "Take a photo holding a paper that reads “{nickname}”, “Codeqlick” and today's date. Your face must be clear, or a mark that also shows on your photos (a tattoo, for example). Only the team sees it.",
-      "nicknameFirst": "First choose your nickname in your profile and save it.",
+      "nicknameFirst": "First choose your username in your profile and save it.",
       "pick": "Choose the photo",
       "consent": "It's me, I am 18 or over, and I send it to verify my account.",
       "send": "Send for review",
@@ -4829,7 +4829,7 @@
       "shared": "One verification for all of Codeqlick's 18+ apps (Cruising, Swipe and Videochat): the badge shows in the three. We keep the photo privately while it stands (only the team sees it) and delete it if the verification is withdrawn or lost, if you replace it or if you delete your account.",
       "errors": {
         "notAllowed": "You can't send it right now.",
-        "conflict": "You already have a photo waiting or approved, or you haven't chosen a nickname yet."
+        "conflict": "You already have a photo waiting or approved, or you haven't chosen a username yet."
       }
     },
     "photos": {
@@ -4915,7 +4915,7 @@
       "rule8Title": "Don't copy",
       "rule8": "Don't take screenshots of or share other people's photos outside Swipe.",
       "privacyTitle": "Your data",
-      "privacy": "Of your date of birth we only keep the year, for the age filter. Your photos are stored without camera data or location, with your nickname as a watermark, and are only seen inside Swipe. You can delete any photo whenever you like, and deleting your account deletes them all.",
+      "privacy": "Of your date of birth we only keep the year, for the age filter. Your photos are stored without camera data or location, with your username as a watermark, and are only seen inside Swipe. You can delete any photo whenever you like, and deleting your account deletes them all.",
       "takedownTitle": "Removing photos",
       "takedown": "If you find a photo of you that you didn't upload, or a photo that shouldn't be here, anyone can ask us to remove it, without an account. It is hidden at once when you give its reference, and we answer within 24 hours.",
       "takedownLink": "Ask for a photo to be removed",
@@ -5027,7 +5027,7 @@
     },
     "verifications": {
       "title": "Verification photos",
-      "lead": "Check the nickname, “Swipe” and a recent date can be read, and the person clearly looks adult.",
+      "lead": "Check the username, “Swipe” and a recent date can be read, and the person clearly looks adult.",
       "alt": "Verification photo",
       "check": "It must read “{nickname}”, “Swipe” and a recent date.",
       "note": "Note for the person (optional)"
@@ -5433,7 +5433,7 @@
       "back": "Back to my spots",
       "alertsTitle": "Emails",
       "alertsLabel": "Email me when a spot of mine is published or a message waits unread",
-      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a nickname or a message.",
+      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a username or a message.",
       "alertsSave": "Save",
       "alertsSaving": "Saving…",
       "alertsSaved": "Saved.",
@@ -5501,9 +5501,9 @@
     "me": {
       "title": "My profile",
       "lead": "What other members see, your check-in, your emails and the people you blocked.",
-      "leadNew": "Choose a nickname to check in at spots and to message other members. Nobody sees your name or email.",
+      "leadNew": "Choose a username to check in at spots and to message other members. Nobody sees your name or email.",
       "profileTitle": "Profile",
-      "nickname": "Nickname",
+      "nickname": "Username",
       "nicknameHint": "3 to 20 characters: lower-case letters, numbers and underscores. You can change it later.",
       "bio": "About you",
       "bioHint": "Up to 160 characters. Text only: no photos, phone numbers, emails or links.",
@@ -5525,7 +5525,7 @@
       "ending": "Ending…",
       "alertsTitle": "Emails",
       "alertsLabel": "Email me when a spot of mine is published or a message waits unread",
-      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a nickname or a message.",
+      "alertsHint": "The team's decisions (a rejection, a suspension) are always emailed. Emails never name a spot, a username or a message.",
       "blocksTitle": "Blocked members",
       "blocksLead": "Blocked members and you can't see each other in any of Codeqlick's 18+ apps. Unblocking lifts it in all three.",
       "blocksEmpty": "You haven't blocked anyone.",
@@ -5535,8 +5535,8 @@
       "unblocked": "Unblocked.",
       "blockedDone": "Blocked. You can't see each other any more and the conversation was deleted.",
       "nicknameInvalid": "Use 3 to 20 characters: lower-case letters, numbers and underscores.",
-      "nicknameTaken": "That nickname is taken. Try another.",
-      "nicknameRefused": "That nickname isn't allowed. Try another.",
+      "nicknameTaken": "That username is taken. Try another.",
+      "nicknameRefused": "That username isn't allowed. Try another.",
       "bioLong": "Use 160 characters or fewer.",
       "countryInvalid": "Choose a country from the list.",
       "notAllowed": "You need to enter Cruising and not be suspended to change your profile.",
@@ -5546,7 +5546,7 @@
       "nicknameVerifiedNote": "If you change it, your Verified badge is removed until you verify again.",
       "contributions": "Your contributions",
       "tourTitle": "Getting started",
-      "tourLead": "The short tour you saw after entering: your nickname, favourite spots, notifications and your photos.",
+      "tourLead": "The short tour you saw after entering: your username, favourite spots, notifications and your photos.",
       "tourReopen": "Show the tour again",
       "languageTitle": "Language",
       "languageLead": "The language of Cruising's emails and of the notifications on your devices. Emails from the rest of Codeqlick come in English when Spanish isn't chosen.",
@@ -5569,7 +5569,7 @@
       "completeDone": "Your profile is complete.",
       "missingLead": "Missing:",
       "gaps": {
-        "nickname": "A nickname",
+        "nickname": "A username",
         "photo": "A photo",
         "bio": "A bio",
         "lookingFor": "What you're looking for",
@@ -5588,7 +5588,7 @@
       "hours": "{count, plural, one {# hour} other {# hours}}",
       "duration": "For how long?",
       "anonymous": "Anonymous",
-      "anonymousHint": "You count in the total but your nickname isn't listed.",
+      "anonymousHint": "You count in the total but your username isn't listed.",
       "anonymousNote": "(anonymous)",
       "checkIn": "I'm here",
       "renew": "Renew my check-in",
@@ -5600,8 +5600,8 @@
       "ended": "Your check-in ended.",
       "checkedIn": "You are checked in.",
       "privacy": "A check-in is only this spot and a time. Your position is never asked for or stored.",
-      "needNickname": "Choose a nickname to check in and to see who is here.",
-      "chooseNickname": "Choose a nickname",
+      "needNickname": "Choose a username to check in and to see who is here.",
+      "chooseNickname": "Choose a username",
       "error": "We couldn't do it. Try again.",
       "gone": "This spot isn't available any more.",
       "tooManyToday": "You've reached today's limit of check-ins. Try again tomorrow.",
@@ -5676,12 +5676,12 @@
     },
     "verified": {
       "label": "Verified",
-      "help": "The team checked a photo of this person holding their nickname: the profile is theirs and they are an adult"
+      "help": "The team checked a photo of this person holding their username: the profile is theirs and they are an adult"
     },
     "verification": {
       "title": "Verification",
       "lead": "Optional: get the Verified badge, so other members know your profile is yours and that you are an adult. You send one photo of yourself, once, and it counts for all of Codeqlick's 18+ apps (Cruising, Swipe and Videochat).",
-      "step1": "A paper with your nickname, \"Codeqlick\" and today's date",
+      "step1": "A paper with your username, \"Codeqlick\" and today's date",
       "step2": "You holding it, your face visible",
       "step3": "Well lit and sharp",
       "privacy": "Only the team sees this photo. While the verification stands we keep it privately; it is deleted if the verification is withdrawn or lost, if you replace it, or if you delete your account. We don't ask for an identity document, and the badge doesn't mean one was checked.",
@@ -5692,13 +5692,13 @@
       "sending": "Sending…",
       "sent": "Sent. The team will review it and we will email you.",
       "pending": "Your photo is waiting for the team's review. We will email you when it is done.",
-      "approved": "The team approved your photo: your profile shows the Verified badge in all of Codeqlick's 18+ apps. If the name on your paper stops being one of your names in these apps, for example when you change your nickname, the badge is removed and you need to verify again.",
+      "approved": "The team approved your photo: your profile shows the Verified badge in all of Codeqlick's 18+ apps. If the name on your paper stops being one of your names in these apps, for example when you change your username, the badge is removed and you need to verify again.",
       "rejected": "The team couldn't approve your photo.",
       "rejectedNote": "Reason: {note}",
       "errors": {
         "invalid": "That doesn't look like a photo we can use. Use a JPEG, PNG or WebP image.",
         "notAllowed": "You can't send it right now.",
-        "conflict": "You already have a photo waiting or approved, or you haven't chosen a nickname yet.",
+        "conflict": "You already have a photo waiting or approved, or you haven't chosen a username yet.",
         "tooLarge": "The photo is too large.",
         "tooManyToday": "Too many photos sent today. Try again tomorrow.",
         "error": "Something went wrong. Try again."
@@ -5855,7 +5855,7 @@
       "imGoing": "I’m going",
       "notGoing": "I’m not going any more",
       "anonymous": "Anonymous",
-      "anonymousHint": "You count in the total but your nickname isn’t listed.",
+      "anonymousHint": "You count in the total but your username isn’t listed.",
       "youAreGoing": "You’re going.",
       "youAreGoingAnonymous": "You’re going (anonymous).",
       "saving": "Saving…",
@@ -5881,8 +5881,8 @@
       "planning": "Planning…",
       "planned": "Your meetup is planned.",
       "refused": "For your safety, phone numbers, emails, links and other apps can’t be shared here. Check the time too.",
-      "needNickname": "Choose a nickname to plan meetups and say you’re going.",
-      "chooseNickname": "Choose a nickname",
+      "needNickname": "Choose a username to plan meetups and say you’re going.",
+      "chooseNickname": "Choose a username",
       "tooManyThisWeek": "You can plan 3 meetups a week. Try again in a few days.",
       "notAllowed": "You need to enter Cruising and not be suspended to do this.",
       "spotGone": "This spot isn’t available any more.",
@@ -5970,7 +5970,7 @@
       "alreadyVoted": "You already said something about this alert.",
       "ended": "This alert has ended.",
       "postOpen": "Post a safety alert",
-      "postLead": "Warn other members about what is happening here now. Your nickname is never shown with it. It lasts 6 hours (a closed place, 7 days); confirmations make it last longer.",
+      "postLead": "Warn other members about what is happening here now. Your username is never shown with it. It lasts 6 hours (a closed place, 7 days); confirmations make it last longer.",
       "kind": "What is it?",
       "kindPlaceholder": "Choose one",
       "note": "Note",
@@ -6056,7 +6056,7 @@
       "revoked": "{nickname} can no longer see your private album.",
       "error": "Something went wrong. Try again.",
       "gone": "You can only share it with a member you have a conversation with.",
-      "needNickname": "Choose your nickname in your profile first.",
+      "needNickname": "Choose your username in your profile first.",
       "theirsOpen": "Private album of {nickname} ({count})"
     },
     "rooms": {
@@ -6065,7 +6065,7 @@
       "cityLink": "{city}, {country}",
       "roomTitle": "Chat of {city}, {country}",
       "roomLead": "Members who have entered talk here about the city. Be kind: no contact details, links or photos, and nothing about anyone who isn't here.",
-      "chooseNickname": "Choose a nickname in your profile to post here.",
+      "chooseNickname": "Choose a username in your profile to post here.",
       "listLabel": "Messages in {city}",
       "empty": "Nobody has written in {city} yet. Say hi.",
       "you": "You",
@@ -6076,7 +6076,7 @@
       "rules": "Text only, up to 500 characters. Phone numbers, emails, links and other apps are never allowed here. Messages are kept 7 days. You can report any message.",
       "gone": "This chat is no longer available.",
       "refusal": {
-        "nickname": "Choose a nickname in your profile to post here.",
+        "nickname": "Choose a username in your profile to post here.",
         "newAccount": "You can post once your account is 24 hours old. You can read the chat meanwhile.",
         "muted": "The team has muted you from the city chats.",
         "mutedUntil": "The team has muted you from the city chats until {date}.",
@@ -6085,7 +6085,7 @@
       "errors": {
         "contact": "Phone numbers, emails, links and other apps can't be shared in the city chats.",
         "refused": "You can't post right now: your account is new, muted or suspended.",
-        "nickname": "Choose a nickname in your profile first.",
+        "nickname": "Choose a username in your profile first.",
         "rate": "You are posting too fast. Wait a moment.",
         "gone": "This chat is no longer available.",
         "session": "Your session has expired. Reload the page and sign in again.",
@@ -6112,8 +6112,8 @@
       "toggle": "Tour steps",
       "saving": "One moment…",
       "error": "That didn't work. Try again.",
-      "nicknameTitle": "Choose a nickname",
-      "nicknameLead": "Your nickname is how others see you. You need one to check in, review spots and send messages. Never use your real name.",
+      "nicknameTitle": "Choose a username",
+      "nicknameLead": "Your username is how others see you. You need one to check in, review spots and send messages. Never use your real name.",
       "nicknameDone": "You are {nickname}. You can change it whenever you want.",
       "countryHint": "We suggest spots in your country.",
       "favoritesTitle": "Save your favourite spots",
@@ -6128,7 +6128,7 @@
       "addPhoto": "Add a photo",
       "verify": "Get verified",
       "verifiedAlready": "You are already verified.",
-      "profileNeedsNickname": "Choose a nickname first (step 1) to add photos or get verified."
+      "profileNeedsNickname": "Choose a username first (step 1) to add photos or get verified."
     },
     "notifications": {
       "title": "Notifications",
@@ -6179,7 +6179,7 @@
       "sent": "Wink sent.",
       "tooMany": "You've reached today's limit of 30 winks. Try again tomorrow.",
       "notFound": "This member isn't available.",
-      "needNickname": "Choose a nickname first.",
+      "needNickname": "Choose a username first.",
       "notAllowed": "You need to enter Cruising and not be suspended to wink.",
       "error": "Something went wrong. Try again."
     },
@@ -6417,7 +6417,7 @@
   "CruisingSafety": {
     "contacts": {
       "title": "Trusted contacts",
-      "lead": "Up to 2 people outside the app who get an email if your safety timer runs out. They first get an invitation from \"Codeqlick safety alerts\" and must accept it. The emails never mention Cruising or your nickname: they name you as you choose here.",
+      "lead": "Up to 2 people outside the app who get an email if your safety timer runs out. They first get an invitation from \"Codeqlick safety alerts\" and must accept it. The emails never mention Cruising or your username: they name you as you choose here.",
       "loadError": "We couldn't load your contacts. Try again later.",
       "namedAs": "They know you as {name}",
       "statuses": {
@@ -6433,7 +6433,7 @@
       "email": "Their email",
       "emailHint": "They get one invitation and, if they accept, only the alerts of your timer.",
       "displayName": "Your name for them",
-      "displayNameHint": "How the emails name you, up to 40 characters: your first name, for example. Never your nickname.",
+      "displayNameHint": "How the emails name you, up to 40 characters: your first name, for example. Never your username.",
       "add": "Send the invitation",
       "adding": "Sending…",
       "added": "Invitation sent. Your timer can alert them once they accept.",
