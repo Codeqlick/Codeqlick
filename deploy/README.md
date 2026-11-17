@@ -176,6 +176,100 @@ people to a host that isn't there, so run it right after the deploy. No variable
 API's `ACCOUNT_URL` defaults to `SITE_URL` with `account.`, and the website derives the account host
 from the request's host. Staging has no account host and sets `ACCOUNT_SSO=false` for its website.
 
+### Neoqlick cut-over (neoqlick.com, architecture 4.18, decisions 124-131)
+
+Cruising, Swipe and Videochat move to **Neoqlick** (`*.neoqlick.com`), with their own accounts
+(realm `NEOQLICK`). Same server, same containers, same database: the realm and the host decide the
+brand. Two scripts do the server side; neither runs by itself, and neither touches DNS, the deploy
+or other projects' sites (`/srv/domfeliu`, `/srv/circlesfera*`).
+
+| Script | When | What |
+|---|---|---|
+| `sudo ./deploy/setup-neoqlick.sh` | Once, after the DNS exists | Checks that every host resolves to `SITES_SERVER_IP` (fails naming the missing ones, changing nothing), writes the Nginx sites from `deploy/nginx/*neoqlick*.template`, checks `nginx -t` (removes the new sites if refused), reloads and gets one Let's Encrypt certificate per site. Never changes an existing site. `--dry-run` only reports; `--render DIR` only writes the sites into `DIR`. |
+| `sudo ./deploy/neoqlick-cutover.sh` | At the cut-over, last | Turns the old `cruising`, `swipe` and `videochat` `.codeqlick.com` sites into redirects (301 to the same path and query on the new host), 410 on `/ws`, 200 with the self-unregistering worker script (`deploy/nginx/legacy-sw-unregister.js`) on `/<app>-sw.js`. Keeps their certificates, so redirects work over HTTPS and certbot keeps renewing them (keep them until at least 2027-11-17). Refuses to run if a certificate is missing or a new host doesn't answer (`--force` skips the answer check). `--dry-run` shows the diff; `--rollback` restores the previous sites. |
+
+The sites: `neoqlick.com` (`www.` answers a 301 to the apex), `account.`, `api.` (the same API; its
+Cloud routes answer 404), `stats.` (the same Umami), and `cruising.`, `swipe.`, `videochat.`
+(pages to the web on `127.0.0.1:3010`, `/ws` to the API's `/v1/<app>/ws`; Cruising's
+`/<locale>/cruising/api/media` takes 100 MB, like `add-cruising-upload-limits.sh`). The website
+and the API send the security headers themselves (see "Security headers"), so Nginx adds none.
+
+#### Variables (`/srv/codeqlick/.env`, template in `deploy/.env.example`)
+
+All optional while `NEOQLICK_URL` is empty; `docker-compose.prod.yml` passes them to the API.
+
+| Variable | Value |
+|---|---|
+| `NEOQLICK_URL`, `NEOQLICK_ACCOUNT_URL`, `NEOQLICK_PUBLIC_API_URL` | `https://neoqlick.com`, `https://account.neoqlick.com`, `https://api.neoqlick.com/v1` |
+| `MAIL_FROM_NEOQLICK` | `Neoqlick <hello@neoqlick.com>` |
+| `SMTP_USER_NEOQLICK`, `SMTP_PASSWORD_NEOQLICK` | The login of the mailbox `hello@neoqlick.com` in OVH. Host and port are the existing `SMTP_HOST=ssl0.ovh.net`, `SMTP_PORT=465`, `SMTP_SECURE=true` |
+| `WEBAUTHN_RP_ID_NEOQLICK`, `WEBAUTHN_ORIGINS_NEOQLICK` | `neoqlick.com`; origins optional (default: the Neoqlick hosts) |
+| `NEOQLICK_TERMS_VERSION` | Default `2026-11-17.1` |
+| `NEOQLICK_TRADE_NAME`, `NEOQLICK_LEGAL_OWNER_NAME`, `NEOQLICK_LEGAL_OWNER_TAX_ID`, `NEOQLICK_LEGAL_OWNER_ADDRESS` | The operator in the legal pages; each falls back to `LEGAL_OWNER_*`; the pages render only with a holder name |
+| `NEOQLICK_VAPID_PUBLIC_KEY`, `NEOQLICK_VAPID_PRIVATE_KEY`, `NEOQLICK_VAPID_SUBJECT` | Neoqlick's own Web Push pair (the generator command is in `deploy/.env.example`); subject `mailto:hello@neoqlick.com` |
+| `NEOQLICK_UMAMI_WEBSITE_ID` | The website id created in Umami for Neoqlick (read by the website) |
+
+The SSO clients need no variable: the code lists them by realm. The website's own variables
+(`NEOQLICK_URL`, `NEOQLICK_UMAMI_WEBSITE_ID`, the legal ones) are passed to the `web` service by the
+pull request that adds the host table to the website, not by this one.
+
+#### Owner tasks outside the server
+
+- The mailbox `hello@neoqlick.com` in OVH, and SPF, DKIM and DMARC for `neoqlick.com`
+  (`./deploy/check-email-dns.sh neoqlick.com` prints what is missing).
+- Cloudflare Turnstile: add `neoqlick.com` and its subdomains to the widget's hostnames.
+- Umami: add a website for Neoqlick and put its id in `NEOQLICK_UMAMI_WEBSITE_ID`.
+- ExoClick: register the three sites again for the new domains and send their zone ids and
+  verification tags.
+
+#### Order
+
+1. **DNS** (OVH's API or manager): `A` records `@`, `www`, `account`, `api`, `stats`, `cruising`,
+   `swipe`, `videochat` of `neoqlick.com` to `SITES_SERVER_IP`.
+2. `cd /srv/codeqlick && git pull --ff-only && ./deploy/setup-neoqlick.sh --dry-run`, then
+   `sudo ./deploy/setup-neoqlick.sh`. Run it right after the release that brings Neoqlick: from
+   that release on the old hosts' redirects point at hosts that need these certificates.
+3. **Settings** in `.env` (table above), then `docker compose -f docker-compose.prod.yml up -d api`
+   (or let the release pick them up).
+4. **Deploy** (merge to `main`, or run the Deploy workflow).
+5. The owner **creates their NEOQLICK account** at https://account.neoqlick.com.
+6. **Cleanup** of the 18+ test data of Codeqlick accounts. Take a backup first
+   (`deploy/backup/backup.sh`); there is no undo.
+   `docker compose -f docker-compose.prod.yml exec api node dist/scripts/neoqlick-cleanup.js`
+   (dry run, prints counts), then the same with `--apply`.
+7. `./deploy/neoqlick-cutover.sh --dry-run`, then `sudo ./deploy/neoqlick-cutover.sh`.
+8. The ExoClick sites and ids, once the owner has them (an empty id still shows nothing).
+
+#### Verification
+
+```bash
+for h in neoqlick.com account.neoqlick.com api.neoqlick.com cruising.neoqlick.com swipe.neoqlick.com videochat.neoqlick.com; do
+  printf '%s ' "$h"; curl -sS -o /dev/null -w '%{http_code}\n' "https://$h/"      # 200 (api: 404 is fine)
+  echo | openssl s_client -servername "$h" -connect "$h:443" 2>/dev/null | openssl x509 -noout -enddate
+done
+curl -sI https://www.neoqlick.com/es | grep -i '^location'                          # https://neoqlick.com/es
+for a in cruising swipe videochat; do
+  curl -sI "https://$a.codeqlick.com/es/x?y=1" | grep -iE '^(HTTP|location)'        # 301 to https://$a.neoqlick.com/es/x?y=1
+  curl -s -o /dev/null -w "$a-sw.js %{http_code}\n" "https://$a.codeqlick.com/$a-sw.js"   # 200
+  curl -s -o /dev/null -w "ws %{http_code}\n" "https://$a.codeqlick.com/ws"         # 410
+done
+sudo certbot certificates | grep -E 'Domains|Expiry'    # old and new names
+sudo certbot renew --dry-run                            # includes the old hosts
+```
+
+Also sign up on account.neoqlick.com and check that the confirmation email reaches a mailbox from
+`Neoqlick <hello@neoqlick.com>` with SPF, DKIM and DMARC passing.
+
+#### Rollback
+
+- The redirects: `sudo ./deploy/neoqlick-cutover.sh --rollback` puts back the sites kept as
+  `<site>.conf.bak-neoqlick-<date>` (the redirect sites stay next to them as `.redirect-<date>`),
+  checks `nginx -t` and reloads. If the release's in-app redirects (the website sends
+  `/<locale>/cruising…` on codeqlick.com to the new host) are the problem, revert that release too.
+- The new sites: remove `/etc/nginx/sites-enabled/<host>.conf` for each new host, then
+  `sudo nginx -t && sudo systemctl reload nginx`. The certificates can stay.
+- The cleanup has no undo: restore the backup taken before it.
+
 ## Updating
 
 ```bash
