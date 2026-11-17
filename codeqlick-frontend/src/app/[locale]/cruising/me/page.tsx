@@ -45,7 +45,7 @@ import { meSections, PROFILE_GAPS, profileCompleteness } from '@/lib/cruising-pr
 import { NO_GRANTS } from '@/lib/cruising-rooms';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import {
   cruisingPushSubscribeAction,
   cruisingPushUnsubscribeAction,
@@ -153,7 +153,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   return (
     <div className={styles.page}>
       <div>
-        <h1 className={vc.pageTitle}>{t('title')}</h1>
+        <h1 className={adult.pageTitle}>{t('title')}</h1>
         <p className={styles.muted}>{profile ? t('lead') : t('leadNew')}</p>
       </div>
       {firstParam(query.blocked) ? <Alert tone="success">{t('blockedDone')}</Alert> : null}
@@ -234,7 +234,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               {t('sections.profile')}
             </h2>
             <div className={panel}>
-              <ActionForm action={profileAction.bind(null, locale)} className={vc.form}>
+              <ActionForm action={profileAction.bind(null, locale)} className={adult.form}>
                 {profile ? (
                   // The name is the account's username by default (owner's feedback 2026-11-17);
                   // another one just for Cruising stays possible (decision 83).
@@ -303,7 +303,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                 {t('languageTitle')}
               </h3>
               <p className={styles.muted}>{t('languageLead')}</p>
-              <ActionForm action={accountLanguageAction.bind(null, locale)} className={vc.form}>
+              <ActionForm action={accountLanguageAction.bind(null, locale)} className={adult.form}>
                 <FormSelect
                   id="me-language-select"
                   name="language"
@@ -426,7 +426,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               <h3 id="me-favorites-title" className={card.title}>
                 {tf('title')}
               </h3>
-              <ActionForm action={favoriteSettingsAction.bind(null, locale)} className={vc.form}>
+              <ActionForm action={favoriteSettingsAction.bind(null, locale)} className={adult.form}>
                 <FormCheckbox
                   id="me-favorite-alerts"
                   name="favoriteAlerts"
@@ -451,7 +451,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               <h3 id="me-alerts" className={card.title}>
                 {t('alertsTitle')}
               </h3>
-              <ActionForm action={emailAlertsAction.bind(null, locale)} className={vc.form}>
+              <ActionForm action={emailAlertsAction.bind(null, locale)} className={adult.form}>
                 <FormCheckbox
                   id="me-email-alerts"
                   name="emailAlerts"
@@ -470,7 +470,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                 <h3 id="me-visits-title" className={card.title}>
                   {tvs('settingsTitle')}
                 </h3>
-                <ActionForm action={visitsSettingsAction.bind(null, locale)} className={vc.form}>
+                <ActionForm action={visitsSettingsAction.bind(null, locale)} className={adult.form}>
                   <FormCheckbox
                     id="me-show-visits"
                     name="showVisits"
@@ -501,7 +501,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
                       {t('checkInActive', {
                         time: formatDateTime(checkIn.expiresAt, locale),
                       })}{' '}
-                      <Link href={spotHref(checkIn.spot.slug)} className={vc.inlineLink}>
+                      <Link href={spotHref(checkIn.spot.slug)} className={adult.inlineLink}>
                         {checkIn.spot.name}
                       </Link>
                       {checkIn.anonymous ? ` · ${t('checkInAnonymous')}` : ''}

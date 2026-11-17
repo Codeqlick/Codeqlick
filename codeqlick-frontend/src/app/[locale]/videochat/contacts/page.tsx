@@ -9,6 +9,7 @@ import { getVideochatStatus, listVideochatContacts } from '@/lib/api/videochat';
 import { requireUser } from '@/lib/auth/session';
 import { isInterest } from '@/lib/videochat-interests';
 import { countryFlag, countryName } from '@/lib/videochat-options';
+import adult from '@/components/adult/adult.module.css';
 import styles from '../videochat.module.css';
 import { removeContactAction } from './actions';
 import { appPath } from '@/lib/webapp-request';
@@ -33,9 +34,9 @@ export default async function VideochatContactsPage({ params }: PageProps) {
     new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso));
 
   return (
-    <section className={styles.panel}>
-      <h1 className={styles.pageTitle}>{t('title')}</h1>
-      <p className={styles.muted}>{t('lead')}</p>
+    <section className={adult.panel}>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       {items.length === 0 ? (
         <p className={styles.empty}>{t('empty')}</p>
       ) : (
@@ -104,7 +105,7 @@ export default async function VideochatContactsPage({ params }: PageProps) {
         </ul>
       )}
       <p>
-        <Link href="/videochat/contacts" className={styles.inlineLink}>
+        <Link href="/videochat/contacts" className={adult.inlineLink}>
           {t('refresh')}
         </Link>
       </p>

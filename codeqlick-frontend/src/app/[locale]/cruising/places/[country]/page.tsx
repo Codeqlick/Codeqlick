@@ -8,7 +8,7 @@ import styles from '@/components/cruising/Cruising.module.css';
 import { getCruisingPlaces } from '@/lib/api/cruising';
 import { countryFromParam, countryName, placeHref } from '@/lib/cruising';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
-import vc from '../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = { params: Promise<{ locale: string; country: string }> };
 
@@ -49,17 +49,17 @@ export default async function CruisingCountryPage({ params }: PageProps) {
 
   return (
     <>
-      <nav aria-label={t('breadcrumb')} className={vc.muted}>
-        <Link href="/cruising/places" className={vc.inlineLink}>
+      <nav aria-label={t('breadcrumb')} className={adult.muted}>
+        <Link href="/cruising/places" className={adult.inlineLink}>
           {t('title')}
         </Link>
       </nav>
-      <h1 className={vc.pageTitle}>{t('countryTitle', { country: name })}</h1>
-      <p className={vc.muted}>{t('spots', { count: country.count })}</p>
+      <h1 className={adult.pageTitle}>{t('countryTitle', { country: name })}</h1>
+      <p className={adult.muted}>{t('spots', { count: country.count })}</p>
       <ul className={styles.cities}>
         {country.cities.map((city) => (
           <li key={city.citySlug}>
-            <Link href={placeHref(country.countryCode, city.citySlug)} className={vc.inlineLink}>
+            <Link href={placeHref(country.countryCode, city.citySlug)} className={adult.inlineLink}>
               {city.city}
             </Link>{' '}
             <span className={styles.muted}>({t('spots', { count: city.count })})</span>

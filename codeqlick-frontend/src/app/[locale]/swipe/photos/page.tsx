@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
@@ -32,7 +33,7 @@ import { listAdultBlocks } from '@/lib/api/adult';
 import { requireUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
 import { INTERESTS, MAX_INTERESTS } from '@/lib/videochat-interests';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import {
   deletePhotoAction,
   movePhotoAction,
@@ -122,9 +123,10 @@ export default async function SwipePhotosPage({ params }: PageProps) {
     .catch(() => null);
 
   return (
-    <div className={vc.landing}>
+    <div className={adult.landing}>
+      <PageHeader className={adult.panelHeader} title={t('profile.title')} />
       {stats ? (
-        <div className={vc.panel}>
+        <div className={adult.panel}>
           <WeekStats
             title={t('stats.title')}
             lead={t('stats.lead')}
@@ -138,10 +140,9 @@ export default async function SwipePhotosPage({ params }: PageProps) {
           />
         </div>
       ) : null}
-      <section className={vc.panel}>
-        <h1 className={vc.pageTitle}>{t('profile.title')}</h1>
-        <p className={vc.muted}>{t('profile.lead')}</p>
-        <ActionForm action={profileAction} className={vc.form}>
+      <section className={adult.panel}>
+        <p className={adult.muted}>{t('profile.lead')}</p>
+        <ActionForm action={profileAction} className={adult.form}>
           <input type="hidden" name="locale" value={locale} />
           <FormInput
             name="nickname"
@@ -166,7 +167,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
             legend={t('profile.seeking')}
             options={genders}
             defaultValues={profile.seeking}
-            className={vc.fieldset}
+            className={adult.fieldset}
           />
           <p className={styles.hint}>{t('profile.seekingHint')}</p>
           <FormCheckboxGroup
@@ -174,7 +175,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
             legend={t('profile.interests')}
             options={INTERESTS.map((value) => ({ value, label: ti(value) }))}
             defaultValues={profile.interests}
-            className={`${vc.fieldset} ${vc.interests}`}
+            className={`${adult.fieldset} ${adult.interests}`}
           />
           <p className={styles.hint}>{t('profile.interestsHint', { max: MAX_INTERESTS })}</p>
           <FormTextarea
@@ -203,7 +204,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
             options={countries}
             defaultValue={profile.country ?? ''}
           />
-          <fieldset className={vc.fieldset}>
+          <fieldset className={adult.fieldset}>
             <legend>{t('profile.ages')}</legend>
             <div className={styles.ageRange}>
               <FormInput
@@ -252,11 +253,11 @@ export default async function SwipePhotosPage({ params }: PageProps) {
       </section>
 
       {pushKey ? (
-        <section className={vc.panel} aria-labelledby="swipe-push">
-          <h2 id="swipe-push" className={vc.sectionTitle}>
+        <section className={adult.panel} aria-labelledby="swipe-push">
+          <h2 id="swipe-push" className={adult.sectionTitle}>
             {t('push.title')}
           </h2>
-          <p className={vc.muted}>{t('push.lead')}</p>
+          <p className={adult.muted}>{t('push.lead')}</p>
           <PushToggle
             publicKey={pushKey}
             locale={locale}
@@ -268,12 +269,12 @@ export default async function SwipePhotosPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      <section className={vc.panel} aria-labelledby="swipe-verification">
-        <h2 id="swipe-verification" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="swipe-verification">
+        <h2 id="swipe-verification" className={adult.sectionTitle}>
           {t('verification.title')}
         </h2>
         <p>{t(`verification.status.${verification.status}`)}</p>
-        <p className={vc.muted}>{t('verification.shared')}</p>
+        <p className={adult.muted}>{t('verification.shared')}</p>
         {verification.note ? <p className={styles.ok}>{verification.note}</p> : null}
         {verification.hasPhoto ? (
           // oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route
@@ -286,7 +287,9 @@ export default async function SwipePhotosPage({ params }: PageProps) {
         {verification.status === 'NONE' || verification.status === 'REJECTED' ? (
           profile.nickname ? (
             <>
-              <p className={vc.muted}>{t('verification.lead', { nickname: profile.nickname })}</p>
+              <p className={adult.muted}>
+                {t('verification.lead', { nickname: profile.nickname })}
+              </p>
               <PhotoUpload
                 action={uploadVerificationAction.bind(null, locale)}
                 label={t('verification.pick')}
@@ -295,16 +298,16 @@ export default async function SwipePhotosPage({ params }: PageProps) {
               />
             </>
           ) : (
-            <p className={vc.muted}>{t('verification.nicknameFirst')}</p>
+            <p className={adult.muted}>{t('verification.nicknameFirst')}</p>
           )
         ) : null}
       </section>
 
-      <section className={vc.panel} aria-labelledby="swipe-photos">
-        <h2 id="swipe-photos" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="swipe-photos">
+        <h2 id="swipe-photos" className={adult.sectionTitle}>
           {t('photos.title')}
         </h2>
-        <p className={vc.muted}>{t('photos.lead', { count: active.length, max: 10 })}</p>
+        <p className={adult.muted}>{t('photos.lead', { count: active.length, max: 10 })}</p>
         {status.canUpload ? (
           active.length < 10 ? (
             <PhotoUpload
@@ -319,21 +322,21 @@ export default async function SwipePhotosPage({ params }: PageProps) {
         ) : (
           <p className={styles.hint}>{t('photos.verifyFirst')}</p>
         )}
-        <div className={vc.warning} role="note">
+        <div className={adult.warning} role="note">
           {t('photos.rules')}
         </div>
         {publicPhotos.length === 0 ? (
-          <p className={vc.muted}>{t('photos.empty')}</p>
+          <p className={adult.muted}>{t('photos.empty')}</p>
         ) : (
           photoList(publicPhotos)
         )}
       </section>
 
-      <section className={vc.panel} aria-labelledby="swipe-album">
-        <h2 id="swipe-album" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="swipe-album">
+        <h2 id="swipe-album" className={adult.sectionTitle}>
           🔒 {t('album.title')}
         </h2>
-        <p className={vc.muted}>
+        <p className={adult.muted}>
           {t('album.lead', { count: activeAlbum.length, max: MAX_ALBUM_PHOTOS })}
         </p>
         {status.canUpload ? (
@@ -351,22 +354,22 @@ export default async function SwipePhotosPage({ params }: PageProps) {
           <p className={styles.hint}>{t('photos.verifyFirst')}</p>
         )}
         {albumPhotos.length === 0 ? (
-          <p className={vc.muted}>{t('album.empty')}</p>
+          <p className={adult.muted}>{t('album.empty')}</p>
         ) : (
           photoList(albumPhotos)
         )}
       </section>
       <AccountSettingsLink locale={locale} />
 
-      <section className={vc.panel} aria-labelledby="swipe-blocks">
-        <h2 id="swipe-blocks" className={vc.sectionTitle}>
+      <section className={adult.panel} aria-labelledby="swipe-blocks">
+        <h2 id="swipe-blocks" className={adult.sectionTitle}>
           {tb('title')}
         </h2>
         {blocks.length === 0 ? (
-          <p className={vc.muted}>{tb('empty')}</p>
+          <p className={adult.muted}>{tb('empty')}</p>
         ) : (
           <>
-            <p className={vc.muted}>{tb('lead')}</p>
+            <p className={adult.muted}>{tb('lead')}</p>
             <AdultBlocksList
               blocks={blocks}
               otherApp={tb('otherApp')}

@@ -1,37 +1,6 @@
-/* cloud.codeqlick.com: Codeqlick's light colours (like the website); brand tokens only. */
-
-.frame {
-  min-height: 100dvh;
-  background: var(--color-surface-app);
-  color: var(--color-ink);
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-  width: 100%;
-  max-width: var(--wrap);
-  margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-12);
-}
-
-.footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  justify-content: center;
-  padding: var(--space-6) var(--gutter);
-  border-top: 1px solid var(--color-line);
-  font-size: 0.9rem;
-}
-
-.footer a {
-  color: var(--color-slate);
-}
+/* cloud.codeqlick.com: what only this app's pages use (the frame is AppFrame); brand tokens only. */
 
 /* Landing */
-
 .landing {
   display: grid;
   /* minmax(0, …): a long line in a terminal block scrolls instead of widening the page. */
@@ -39,62 +8,15 @@
   gap: var(--space-10);
 }
 
-.hero {
-  display: grid;
-  gap: var(--space-8);
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  align-items: start;
-  padding-top: var(--space-6);
+/* The page header's own margin is the grid's gap (architecture 6.6: 24 px, 32 from 48 rem). */
+.landing > header:first-child {
+  margin-bottom: calc(var(--space-6) - var(--space-10));
 }
 
-@media (max-width: 52rem) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
+@media (min-width: 48rem) {
+  .landing > header:first-child {
+    margin-bottom: calc(var(--space-8) - var(--space-10));
   }
-}
-
-.eyebrow {
-  font-family: var(--font-family-mono);
-  font-size: 0.85rem;
-  color: var(--color-fuchsia-dark);
-  margin: 0 0 var(--space-3);
-}
-
-.heroTitle {
-  overflow-wrap: anywhere;
-  font-family: var(--font-family-display);
-  font-size: var(--text-h1);
-  line-height: 1.1;
-  margin: 0 0 var(--space-4);
-}
-
-.heroLead {
-  font-size: var(--text-lead);
-  color: var(--color-slate);
-  margin: 0 0 var(--space-6);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.card {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-6);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: var(--color-white);
-  min-width: 0;
-}
-
-.cardTitle {
-  font-family: var(--font-family-display);
-  font-size: 1.2rem;
-  margin: 0;
 }
 
 .checks {
@@ -141,12 +63,6 @@
   color: #b9b3c4;
 }
 
-.sectionTitle {
-  font-family: var(--font-family-display);
-  font-size: var(--text-h2);
-  margin: 0 0 var(--space-4);
-}
-
 .muted {
   color: var(--color-slate);
   margin: 0;
@@ -173,7 +89,6 @@
 }
 
 /* Console */
-
 .grid {
   display: grid;
   gap: var(--space-4);
@@ -228,13 +143,23 @@
 }
 
 .tab {
-  padding: var(--space-1) var(--space-3);
+  /* 36 px to the eye, 44 px on touch screens (architecture 6.6). */
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-4);
   border-radius: 999px;
   border: 1px solid var(--color-line);
   color: var(--color-slate);
   text-decoration: none;
   font-size: 0.9rem;
   background: var(--color-white);
+}
+
+@media (pointer: coarse) {
+  .tab {
+    min-height: 44px;
+  }
 }
 
 .tab[aria-current='page'] {
@@ -390,7 +315,7 @@
   max-width: 24rem;
 }
 
-.filters > .actions {
+.filters > .filterActions {
   flex-basis: 100%;
 }
 
@@ -548,7 +473,6 @@
 }
 
 /* Status page notices (architecture 4.13, Notices): plain text kept with its line breaks. */
-
 .noticeBody {
   margin: 0;
   white-space: pre-line;
@@ -579,7 +503,6 @@
 }
 
 /* Web analytics and key-value store (architecture 4.13, decisions 44 and 45) */
-
 .chart {
   display: flex;
   align-items: flex-end;

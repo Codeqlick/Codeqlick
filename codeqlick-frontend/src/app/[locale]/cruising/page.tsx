@@ -1,8 +1,10 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
-import vc from '../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
+import appUi from '@/components/layout/AppPage.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
@@ -12,32 +14,38 @@ export default async function CruisingLandingPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Cruising.landing' });
 
   return (
-    <div className={vc.landing}>
-      <section className={vc.hero}>
-        <p className={`eyebrow ${vc.eyebrow}`}>{t('eyebrow')}</p>
-        <h1 className={vc.heroTitle}>{t('title')}</h1>
-        <p className={vc.heroLead}>{t('lead')}</p>
-        <div className={vc.warning} role="note">
-          <strong>{t('warningTitle')}.</strong> {t('warning')}{' '}
-          <Link href="/cruising/rules" className={vc.inlineLink}>
-            {t('rulesLink')}
-          </Link>
-        </div>
-        <div className={vc.actions}>
-          <Button href="/cruising/map">{t('openMap')}</Button>
-          <Button href="/cruising/places" variant="outline">
-            {t('browsePlaces')}
-          </Button>
-          <a className={vc.leaveLink} href="https://www.google.com" rel="noreferrer">
-            {t('leave')}
-          </a>
-        </div>
+    <div className={adult.landing}>
+      <section>
+        <PageHeader
+          variant="hero"
+          eyebrow={t('eyebrow')}
+          title={t('title')}
+          lead={t('lead')}
+          actions={
+            <>
+              <Button href="/cruising/map">{t('openMap')}</Button>
+              <Button href="/cruising/places" variant="outline">
+                {t('browsePlaces')}
+              </Button>
+              <a className={adult.leaveLink} href="https://www.google.com" rel="noreferrer">
+                {t('leave')}
+              </a>
+            </>
+          }
+        >
+          <div className={adult.warning} role="note">
+            <strong>{t('warningTitle')}.</strong> {t('warning')}{' '}
+            <Link href="/cruising/rules" className={adult.inlineLink}>
+              {t('rulesLink')}
+            </Link>
+          </div>
+        </PageHeader>
       </section>
 
-      <section className={vc.columns}>
+      <section className={adult.columns}>
         <div>
-          <h2 className={vc.sectionTitle}>{t('howTitle')}</h2>
-          <ol className={vc.steps}>
+          <h2 className={adult.sectionTitle}>{t('howTitle')}</h2>
+          <ol className={adult.steps}>
             {(['1', '2', '3'] as const).map((n) => (
               <li key={n}>
                 <strong>{t(`how${n}Title`)}</strong>
@@ -47,8 +55,8 @@ export default async function CruisingLandingPage({ params }: PageProps) {
           </ol>
         </div>
         <div>
-          <h2 className={vc.sectionTitle}>{t('safetyTitle')}</h2>
-          <ul className={vc.safety}>
+          <h2 className={adult.sectionTitle}>{t('safetyTitle')}</h2>
+          <ul className={adult.safety}>
             {(['1', '2', '3', '4'] as const).map((n) => (
               <li key={n}>{t(`safety${n}`)}</li>
             ))}
@@ -57,9 +65,9 @@ export default async function CruisingLandingPage({ params }: PageProps) {
       </section>
 
       <section>
-        <h2 className={vc.sectionTitle}>{t('joinTitle')}</h2>
-        <p className={vc.muted}>{t('join')}</p>
-        <div className={vc.actions}>
+        <h2 className={adult.sectionTitle}>{t('joinTitle')}</h2>
+        <p className={adult.muted}>{t('join')}</p>
+        <div className={appUi.actions}>
           <Button href="/cruising/new" variant="outline">
             {t('propose')}
           </Button>

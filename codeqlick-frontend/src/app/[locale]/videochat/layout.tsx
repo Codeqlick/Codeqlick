@@ -3,6 +3,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppFrame } from '@/components/layout/AppFrame';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { videochatMenu } from '@/lib/app-menus';
 import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
@@ -10,7 +12,6 @@ import { getVideochatStatus } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
-import styles from './videochat.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
@@ -81,17 +82,21 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
   return (
     <ClientMessages extra={APP_NAMESPACES.videochat}>
       <WebappProvider app={webapp}>
-        <div className={styles.frame}>
-          <AppHeader
-            app="videochat"
-            locale={locale}
-            config={videochatMenu(locale, { signedIn: Boolean(user), entered })}
-            user={user}
-            verified={verified}
-            adult
-          />
-          <main className={styles.main}>{children}</main>
-        </div>
+        <AppFrame
+          header={
+            <AppHeader
+              app="videochat"
+              locale={locale}
+              config={videochatMenu(locale, { signedIn: Boolean(user), entered })}
+              user={user}
+              verified={verified}
+              adult
+            />
+          }
+          footer={<AppFooter app="videochat" locale={locale} />}
+        >
+          {children}
+        </AppFrame>
       </WebappProvider>
     </ClientMessages>
   );

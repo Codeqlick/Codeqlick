@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
@@ -7,6 +8,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudMe, type CloudMe } from '@/lib/api/cloud';
 import { acceptTermsAction } from '../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../cloud.module.css';
 
 /** The console is the account's own: never indexed. */
@@ -30,11 +32,8 @@ export default async function ConsoleLayout({ children, params }: LayoutProps) {
   const t = await getTranslations({ locale, namespace: 'Cloud.termsGate' });
   return (
     <div className={`${styles.landing} ${styles.narrow}`}>
-      <div>
-        <h1 className={styles.heroTitle}>{t('title')}</h1>
-        <p className={styles.muted}>{t('lead')}</p>
-      </div>
-      <div className={styles.card}>
+      <PageHeader title={t('title')} lead={t('lead')} />
+      <div className={appUi.card}>
         <p>
           <Link href="/cloud/terms-of-use" target="_blank">
             {t('read')}
@@ -45,7 +44,7 @@ export default async function ConsoleLayout({ children, params }: LayoutProps) {
           className={styles.form}
         >
           <FormCheckbox name="accept" label={t('accept')} />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton pendingLabel={t('accepting')}>{t('submit')}</SubmitButton>
           </div>
         </ActionForm>

@@ -310,6 +310,12 @@
   min-width: 12rem;
 }
 
+/* Fields and buttons of a filter bar share one height, 44 px (architecture 6.6). */
+.filters :is(input, select) {
+  min-height: 44px;
+  padding-block: 0.5rem;
+}
+
 /* The search box gets room for its placeholder ("Name, email or company…"). */
 .filters > div:has(input[type='search']) {
   flex: 1 1 18rem;
@@ -746,4 +752,16 @@
 /* Cloudflare Turnstile's widget: its height kept while it loads, so the form doesn't jump. */
 .turnstile {
   min-height: 65px;
+}
+
+/* An error's message in a list: the link, mono, at most two lines (the page shows it whole). */
+.errorMessage {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-family: var(--font-family-mono);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
 }

@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Markdown } from '@/components/markdown/Markdown';
@@ -31,8 +32,7 @@ export default async function CloudTermsPage({ params }: PageProps) {
   const document = cloudTermsDocument(owner(), locale, env.CLOUD_HOSTING_DOMAIN);
   return (
     <article className={styles.docs}>
-      <h1 className={styles.heroTitle}>{document.title}</h1>
-      <p className={styles.muted}>{t('updated', { date: document.updated })}</p>
+      <PageHeader title={document.title} lead={t('updated', { date: document.updated })} />
       <Markdown anchors={{ linkLabel: tm('anchorLink') }}>{document.markdown}</Markdown>
     </article>
   );

@@ -17,6 +17,7 @@ import {
   toggleAnalyticsAction,
   unshareAnalyticsAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { AnalyticsReport } from './AnalyticsReport';
 
@@ -51,7 +52,7 @@ export async function AnalyticsTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="analytics-title">
       <div>
-        <h2 id="analytics-title" className={styles.sectionTitle}>
+        <h2 id="analytics-title" className={appUi.sectionTitle}>
           {t('project.tabs.analytics')}{' '}
           <Badge tone={report.enabled ? 'success' : 'neutral'}>
             {report.enabled ? t('analytics.on') : t('analytics.off')}
@@ -60,7 +61,7 @@ export async function AnalyticsTab(props: Props) {
         <p className={styles.muted}>{t('analytics.lead')}</p>
       </div>
 
-      <article className={`${styles.card} ${styles.narrow}`}>
+      <article className={`${appUi.card} ${styles.narrow}`}>
         <p className={styles.small}>{t('analytics.snippetHelp')}</p>
         <CopyLink
           url={report.snippet}
@@ -83,7 +84,7 @@ export async function AnalyticsTab(props: Props) {
       </article>
 
       {share ? (
-        <article className={`${styles.card} ${styles.narrow}`} aria-labelledby="share-title">
+        <article className={`${appUi.card} ${styles.narrow}`} aria-labelledby="share-title">
           <h3 id="share-title" className={styles.rowTitle}>
             {t('analytics.share.title')}{' '}
             <Badge tone={share.enabled ? 'success' : 'neutral'}>
@@ -115,7 +116,7 @@ export async function AnalyticsTab(props: Props) {
                   label={t('analytics.share.confirmNew')}
                   required
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton size="sm" variant="outline">
                     {t('analytics.share.newLink')}
                   </SubmitButton>

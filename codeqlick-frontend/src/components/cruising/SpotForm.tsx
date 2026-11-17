@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import {
   ActionForm,
   FormInput,
@@ -39,11 +39,11 @@ export async function SpotForm({ locale, action, defaults = {}, mode, extras }: 
   })).toSorted((a, b) => a.label.localeCompare(b.label, locale));
 
   return (
-    <ActionForm action={action} className={vc.form}>
+    <ActionForm action={action} className={adult.form}>
       <input type="hidden" name="locale" value={locale} />
-      <div className={vc.warning} role="note">
+      <div className={adult.warning} role="note">
         <strong>{t('safetyTitle')}.</strong> {t('safety')}{' '}
-        <Link href="/cruising/rules" target="_blank" className={vc.inlineLink}>
+        <Link href="/cruising/rules" target="_blank" className={adult.inlineLink}>
           {t('rulesLink')}
         </Link>
       </div>
@@ -81,8 +81,8 @@ export async function SpotForm({ locale, action, defaults = {}, mode, extras }: 
         defaultValue={defaults.lng}
         required={mode === 'create'}
       />
-      <p className={vc.hint}>
-        <Link href="/cruising/map" className={vc.inlineLink}>
+      <p className={adult.hint}>
+        <Link href="/cruising/map" className={adult.inlineLink}>
           {t('chooseOnMap')}
         </Link>
       </p>
@@ -120,9 +120,9 @@ export async function SpotForm({ locale, action, defaults = {}, mode, extras }: 
       />
       <SpotExtraFields locale={locale} defaults={extras} />
       {mode === 'edit' ? (
-        <p className={vc.hint}>{t('editNote')}</p>
+        <p className={adult.hint}>{t('editNote')}</p>
       ) : (
-        <p className={vc.hint}>{t('reviewNote')}</p>
+        <p className={adult.hint}>{t('reviewNote')}</p>
       )}
       <SubmitButton block pendingLabel={t('sending')}>
         {mode === 'edit' ? t('saveEdit') : t('submit')}

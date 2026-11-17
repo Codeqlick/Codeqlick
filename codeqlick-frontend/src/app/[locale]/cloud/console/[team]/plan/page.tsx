@@ -1,15 +1,16 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudBilling, getCloudTeam } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatBytes, formatWhen } from '@/lib/cloud';
 import { billingAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type PageProps = {
@@ -71,23 +72,23 @@ export default async function CloudPlanPage({ params, searchParams }: PageProps)
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>
-          {t('plan.title')}{' '}
-          <Badge tone={billing.plan === 'PRO' ? 'brand' : 'neutral'}>{billing.plan}</Badge>
-        </h1>
-        <p className={styles.muted}>{t('plan.lead')}</p>
-      </div>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}`, label: team.name }}
+        title={
+          <>
+            {t('plan.title')}{' '}
+            <Badge tone={billing.plan === 'PRO' ? 'brand' : 'neutral'}>{billing.plan}</Badge>
+          </>
+        }
+        lead={t('plan.lead')}
+      />
 
       {notice === 'done' ? <Alert tone="success">{t('plan.done')}</Alert> : null}
       {notice === 'canceled' ? <Alert tone="info">{t('plan.canceled')}</Alert> : null}
       {notice === 'error' ? <Alert tone="error">{t('plan.error')}</Alert> : null}
 
-      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="sub-title">
-        <h2 id="sub-title" className={styles.cardTitle}>
+      <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="sub-title">
+        <h2 id="sub-title" className={appUi.cardTitle}>
           {billing.plan === 'PRO' ? t('plan.proTitle') : t('plan.freeTitle')}
         </h2>
         {price ? <p>{t('plan.price', { price, vat: billing.price!.vatPercent })}</p> : null}
@@ -106,7 +107,7 @@ export default async function CloudPlanPage({ params, searchParams }: PageProps)
         {!billing.available ? (
           <p className={styles.muted}>{t('plan.unavailable')}</p>
         ) : owner ? (
-          <form action={billingAction} className={styles.actions}>
+          <form action={billingAction} className={appUi.actions}>
             <input type="hidden" name="locale" value={locale} />
             <input type="hidden" name="team" value={team.slug} />
             {billing.plan === 'FREE' ? (

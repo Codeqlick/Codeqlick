@@ -1,10 +1,10 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCloudMe, getCloudTeam, listCloudMembers } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
@@ -16,6 +16,7 @@ import {
   setRoleAction,
   setTeamTwoFactorAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { accountUrl } from '@/lib/account-links';
 
@@ -52,12 +53,10 @@ export default async function CloudMembersPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('members.title')}</h1>
-      </div>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}`, label: team.name }}
+        title={t('members.title')}
+      />
 
       <ul className={styles.list}>
         {members.items.map((member) => {
@@ -78,9 +77,9 @@ export default async function CloudMembersPage({ params }: PageProps) {
                   {member.twoFactor ? t('twoFactor.memberOn') : t('twoFactor.memberOff')}
                 </p>
               </div>
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 {canManage && !self ? (
-                  <form action={setRoleAction} className={styles.actions}>
+                  <form action={setRoleAction} className={appUi.actions}>
                     <input type="hidden" name="locale" value={locale} />
                     <input type="hidden" name="team" value={team.slug} />
                     <input type="hidden" name="userId" value={member.userId} />
@@ -122,8 +121,8 @@ export default async function CloudMembersPage({ params }: PageProps) {
         })}
       </ul>
 
-      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="two-factor-title">
-        <h2 id="two-factor-title" className={styles.cardTitle}>
+      <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="two-factor-title">
+        <h2 id="two-factor-title" className={appUi.cardTitle}>
           {t('twoFactor.title')}
         </h2>
         <p className={styles.muted}>
@@ -141,7 +140,7 @@ export default async function CloudMembersPage({ params }: PageProps) {
               action={setTeamTwoFactorAction.bind(null, locale, team.slug, !team.requireTwoFactor)}
               className={styles.form}
             >
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 <SubmitButton
                   variant={team.requireTwoFactor ? 'outline' : 'primary'}
                   pendingLabel={tc('saving')}
@@ -156,7 +155,7 @@ export default async function CloudMembersPage({ params }: PageProps) {
 
       {members.invites.length > 0 ? (
         <section aria-labelledby="pending-title">
-          <h2 id="pending-title" className={styles.sectionTitle}>
+          <h2 id="pending-title" className={appUi.sectionTitle}>
             {t('members.pending')}
           </h2>
           <ul className={styles.list}>
@@ -188,8 +187,8 @@ export default async function CloudMembersPage({ params }: PageProps) {
       ) : null}
 
       {admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="invite-title">
-          <h2 id="invite-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="invite-title">
+          <h2 id="invite-title" className={appUi.cardTitle}>
             {t('members.invite')}
           </h2>
           <ActionForm action={inviteAction.bind(null, locale, team.slug)} className={styles.form}>
@@ -209,7 +208,7 @@ export default async function CloudMembersPage({ params }: PageProps) {
                 { value: 'ADMIN', label: t('common.roles.ADMIN') },
               ]}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('members.sending')}>{t('members.send')}</SubmitButton>
             </div>
           </ActionForm>

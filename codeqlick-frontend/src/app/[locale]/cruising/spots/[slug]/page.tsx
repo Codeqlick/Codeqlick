@@ -28,7 +28,7 @@ import {
 } from '@/lib/cruising';
 import { parsePage } from '@/lib/format';
 import { webappAlternates, webappPath, webappUrl } from '@/lib/webapp-seo';
-import vc from '../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = {
   params: Promise<{ locale: string; slug: string }>;
@@ -96,20 +96,20 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
           ...(tags.length > 0 ? { amenityFeature: spotAmenities(tags) } : {}),
         }}
       />
-      <nav aria-label={t('breadcrumb')} className={vc.muted}>
-        <Link href="/cruising/places" className={vc.inlineLink}>
+      <nav aria-label={t('breadcrumb')} className={adult.muted}>
+        <Link href="/cruising/places" className={adult.inlineLink}>
           {t('places')}
         </Link>
         {' › '}
-        <Link href={placeHref(spot.countryCode)} className={vc.inlineLink}>
+        <Link href={placeHref(spot.countryCode)} className={adult.inlineLink}>
           {country}
         </Link>
         {' › '}
-        <Link href={placeHref(spot.countryCode, spot.citySlug)} className={vc.inlineLink}>
+        <Link href={placeHref(spot.countryCode, spot.citySlug)} className={adult.inlineLink}>
           {spot.city}
         </Link>
       </nav>
-      <h1 className={vc.pageTitle}>{spot.name}</h1>
+      <h1 className={adult.pageTitle}>{spot.name}</h1>
       <p className={cruising.spotMeta}>
         <span className={cruising.typeTag}>{tt(spot.type)}</span>
         <span>
@@ -125,11 +125,11 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
 
       <div className={cruising.spotLayout}>
         <div>
-          <h2 className={vc.sectionTitle}>{t('about')}</h2>
+          <h2 className={adult.sectionTitle}>{t('about')}</h2>
           <p className={cruising.prewrap}>{spot.description}</p>
           {tags.length > 0 ? (
             <>
-              <h2 className={vc.sectionTitle}>{t('tags')}</h2>
+              <h2 className={adult.sectionTitle}>{t('tags')}</h2>
               <ul className={cruising.tags}>
                 {tags.map((tag) => (
                   <li key={tag} className={cruising.tag}>
@@ -141,25 +141,25 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
           ) : null}
           {spot.bestTimes ? (
             <>
-              <h2 className={vc.sectionTitle}>{t('bestTimes')}</h2>
+              <h2 className={adult.sectionTitle}>{t('bestTimes')}</h2>
               <p>{spot.bestTimes}</p>
             </>
           ) : null}
           {spot.openingHours ? (
             <>
-              <h2 className={vc.sectionTitle}>{t('openingHours')}</h2>
+              <h2 className={adult.sectionTitle}>{t('openingHours')}</h2>
               <p>{spot.openingHours}</p>
             </>
           ) : null}
           {spot.tips ? (
             <>
-              <h2 className={vc.sectionTitle}>{t('tips')}</h2>
+              <h2 className={adult.sectionTitle}>{t('tips')}</h2>
               <p className={cruising.prewrap}>{spot.tips}</p>
             </>
           ) : null}
-          <div className={vc.warning} role="note">
+          <div className={adult.warning} role="note">
             <strong>{t('safetyTitle')}.</strong> {t('safety')}{' '}
-            <Link href="/cruising/rules" className={vc.inlineLink}>
+            <Link href="/cruising/rules" className={adult.inlineLink}>
               {t('rulesLink')}
             </Link>
           </div>
@@ -172,8 +172,8 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
             type={spot.type}
             label={t('mapLabel', { name: spot.name })}
           />
-          <p className={vc.muted}>
-            <Link href={mapHref(spot.lat, spot.lng)} className={vc.inlineLink}>
+          <p className={adult.muted}>
+            <Link href={mapHref(spot.lat, spot.lng)} className={adult.inlineLink}>
               {t('openMap')}
             </Link>
           </p>
@@ -199,7 +199,7 @@ export default async function CruisingSpotPage({ params, searchParams }: PagePro
 
       {status?.allowed ? (
         <section className={cruising.section} aria-label={t('reportTitle')}>
-          <h2 className={vc.sectionTitle}>{t('reportTitle')}</h2>
+          <h2 className={adult.sectionTitle}>{t('reportTitle')}</h2>
           <ReportDetails locale={locale} kind="correction" id={spot.id} />
           <ReportDetails locale={locale} kind="spot" id={spot.id} />
         </section>

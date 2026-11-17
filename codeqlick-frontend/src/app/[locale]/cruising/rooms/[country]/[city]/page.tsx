@@ -11,7 +11,7 @@ import { requireUser } from '@/lib/auth/session';
 import { countryFromParam, countryName, placeHref, SLUG } from '@/lib/cruising';
 import { ROOMS_HREF, roomMessagesEndpoint } from '@/lib/cruising-rooms';
 import { requestWebapp } from '@/lib/webapp-request';
-import vc from '../../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { sendRoomMessageAction } from '../../../room-actions';
 import { CruisingGate } from '../../../Gate';
 
@@ -46,20 +46,20 @@ export default async function CruisingRoomPage({ params }: PageProps) {
 
   return (
     <>
-      <nav aria-label={t('breadcrumb')} className={vc.muted}>
-        <Link href={ROOMS_HREF} className={vc.inlineLink}>
+      <nav aria-label={t('breadcrumb')} className={adult.muted}>
+        <Link href={ROOMS_HREF} className={adult.inlineLink}>
           {t('title')}
         </Link>
         {' › '}
-        <Link href={placeHref(code, citySlug)} className={vc.inlineLink}>
+        <Link href={placeHref(code, citySlug)} className={adult.inlineLink}>
           {t('cityLink', { city: city.city, country })}
         </Link>
       </nav>
-      <h1 className={vc.pageTitle}>{t('roomTitle', { city: city.city, country })}</h1>
-      <p className={vc.muted}>{t('roomLead')}</p>
+      <h1 className={adult.pageTitle}>{t('roomTitle', { city: city.city, country })}</h1>
+      <p className={adult.muted}>{t('roomLead')}</p>
       {status.profile ? null : (
-        <p className={vc.muted}>
-          <Link href="/cruising/me" className={vc.inlineLink}>
+        <p className={adult.muted}>
+          <Link href="/cruising/me" className={adult.inlineLink}>
             {t('chooseNickname')}
           </Link>
         </p>

@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Checkbox, Input, Textarea } from '@/components/ui/Field';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { ENV_IMPORT_MAX_BYTES, type EnvImportState } from '@/lib/cloud';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -133,7 +134,7 @@ export function EnvImport({ action }: Props) {
           checked={overwrite}
           onChange={(event) => setOverwrite(event.currentTarget.checked)}
         />
-        <div className={styles.actions}>
+        <div className={appUi.actions}>
           <SubmitButton variant="outline" pendingLabel={t('importing')}>
             {t('submit')}
           </SubmitButton>

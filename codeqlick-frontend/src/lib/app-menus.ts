@@ -298,3 +298,75 @@ export function isCurrentPath(pathname: string, href: string, app: Webapp): bool
     (form) => clean === form || (!home && form !== '/' && clean.startsWith(`${form}/`)),
   );
 }
+
+/** What the footer needs besides the app: the website's address and whether its legal pages exist. */
+export type AppFooterContext = {
+  locale: string;
+  /** The website's origin (`https://codeqlick.com`). */
+  siteUrl: string;
+  /** The website's legal pages exist (`LEGAL_OWNER_NAME` is set). */
+  legal: boolean;
+  /** Cloud's docs (absolute when `CLOUD_DOCS_URL` is set). */
+  docsHref?: string;
+};
+
+/**
+ * Every web app's footer links (architecture 6.6): its own pages (takedown, rules, terms) as
+ * routes, and the website's terms, privacy and contact pages as absolute links in the website's
+ * language. The website's legal pages only when they exist.
+ */
+export function appFooter(
+  app: Webapp,
+  { locale, siteUrl, legal, docsHref }: AppFooterContext,
+): AppMenuItem[] {
+  const site = `${siteUrl.replace(/\/$/, '')}/${siteLocale(locale)}`;
+  const onSite = (id: string, path: string, label: string, when = true): Entry => ({
+    id,
+    href: `${site}${path}`,
+    label,
+    external: true,
+    when,
+  });
+  const siteTerms = onSite('terms', '/terms', 'AppMenu.footer.terms', legal);
+  const sitePrivacy = onSite('privacy', '/privacy', 'AppMenu.footer.privacy', legal);
+  const contact = onSite('contact', '/contact', 'AppMenu.footer.contact');
+
+  switch (app) {
+    case 'cruising':
+    case 'swipe': {
+      const ns = app === 'cruising' ? 'Cruising' : 'Swipe';
+      return items(
+        { id: 'takedown', href: `/${app}/takedown`, label: `${ns}.footerTakedown` },
+        { id: 'rules', href: `/${app}/rules`, label: `${ns}.nav.rules` },
+        { id: 'terms', href: `/${app}/terms-of-use`, label: `${ns}.legal.terms` },
+        { id: 'privacy', href: `/${app}/privacy-policy`, label: `${ns}.legal.privacy` },
+        contact,
+      );
+    }
+    case 'videochat':
+      return items(
+        { id: 'rules', href: '/videochat/rules', label: 'Videochat.rulesLink' },
+        siteTerms,
+        sitePrivacy,
+        contact,
+      );
+    case 'cloud': {
+      const docs = docsHref ?? '/cloud/docs';
+      return items(
+        {
+          id: 'docs',
+          href: docs,
+          label: 'Cloud.nav.docs',
+          external: /^https?:/.test(docs) || undefined,
+        },
+        { id: 'terms', href: '/cloud/terms-of-use', label: 'Cloud.terms.metaTitle' },
+        { id: 'report', href: '/cloud/report', label: 'Cloud.report.title' },
+        sitePrivacy,
+        contact,
+      );
+    }
+    case 'meetings':
+    case 'citas':
+      return items(siteTerms, sitePrivacy, contact);
+  }
+}

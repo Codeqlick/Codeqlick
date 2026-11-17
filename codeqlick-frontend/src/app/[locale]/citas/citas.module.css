@@ -1,82 +1,9 @@
-/* citas.codeqlick.com: Codeqlick's light colours (like the website); brand tokens only. */
-
-.frame {
-  min-height: 100dvh;
-  background: var(--color-surface-app);
-  color: var(--color-ink);
-  display: flex;
-  flex-direction: column;
-}
-
-.main {
-  flex: 1;
-  width: 100%;
-  max-width: var(--wrap);
-  margin: 0 auto;
-  padding: var(--space-6) var(--gutter) var(--space-12);
-}
+/* citas.codeqlick.com: what only this app's pages use (the frame is AppFrame); brand tokens only. */
 
 /* Landing */
-
 .landing {
   display: grid;
   gap: var(--space-10);
-}
-
-.hero {
-  display: grid;
-  gap: var(--space-8);
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  align-items: start;
-  padding-top: var(--space-6);
-}
-
-@media (max-width: 52rem) {
-  .hero {
-    grid-template-columns: 1fr;
-  }
-}
-
-.eyebrow {
-  font-family: var(--font-family-mono);
-  font-size: 0.85rem;
-  color: var(--color-fuchsia-dark);
-  margin: 0 0 var(--space-3);
-}
-
-.heroTitle {
-  font-family: var(--font-family-display);
-  font-size: var(--text-h1);
-  line-height: 1.1;
-  margin: 0 0 var(--space-4);
-}
-
-.heroLead {
-  font-size: var(--text-lead);
-  color: var(--color-slate);
-  margin: 0 0 var(--space-6);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.card {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-6);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-lg);
-  background: var(--color-white);
-}
-
-.cardTitle {
-  font-family: var(--font-family-display);
-  font-size: 1.25rem;
-  margin: 0;
 }
 
 .form {
@@ -87,12 +14,6 @@
 .muted {
   color: var(--color-slate);
   margin: 0;
-}
-
-.sectionTitle {
-  font-family: var(--font-family-display);
-  font-size: var(--text-h2);
-  margin: 0 0 var(--space-4);
 }
 
 .pages {
@@ -150,8 +71,7 @@
   gap: var(--space-6);
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   margin: 0;
-  /* The card around the list keeps its own padding. */
-  padding: var(--space-6);
+  padding: 0;
   list-style: none;
 }
 
@@ -176,7 +96,6 @@
 }
 
 /* The owner's appointments */
-
 .appointments {
   display: grid;
   gap: var(--space-3);
@@ -227,7 +146,7 @@
   margin-bottom: var(--space-4);
 }
 
-.sectionHead .sectionTitle {
+.sectionHead h2 {
   margin: 0;
 }
 
@@ -236,7 +155,6 @@
 }
 
 /* Editor */
-
 .editor {
   display: grid;
   gap: var(--space-6);
@@ -271,16 +189,10 @@
 }
 
 /* Public booking page */
-
 .public {
   display: grid;
   gap: var(--space-8);
   max-width: 56rem;
-}
-
-.intro {
-  display: grid;
-  gap: var(--space-3);
 }
 
 .facts {
@@ -406,6 +318,7 @@
   overflow: hidden;
 }
 
+/* The public page's own footer line (the owner's contact). */
 .footer {
   display: flex;
   flex-wrap: wrap;
@@ -421,4 +334,11 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* In these grids the gap spaces the page header. */
+.notFound > header,
+.editor > header,
+.public > header {
+  margin-bottom: 0;
 }

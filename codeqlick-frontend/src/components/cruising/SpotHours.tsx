@@ -1,5 +1,5 @@
 import { getTranslations } from 'next-intl/server';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import type { AppLocale } from '@/i18n/routing';
 import { getCruisingSpotHours, type CruisingSpotHours } from '@/lib/api/cruising';
 import { busiestHourOfDay, busiestHours, hourSpan, weekdayName } from '@/lib/cruising';
@@ -25,11 +25,11 @@ export async function SpotHours({ locale, spotId }: { locale: AppLocale; spotId:
   const busiest = top[0];
   return (
     <section className={styles.section} aria-labelledby="hours-title">
-      <h2 id="hours-title" className={vc.sectionTitle}>
+      <h2 id="hours-title" className={adult.sectionTitle}>
         {t('title')}
       </h2>
       {!hours.ready || !busiest ? (
-        <p className={vc.muted}>{t('notReady')}</p>
+        <p className={adult.muted}>{t('notReady')}</p>
       ) : (
         <>
           <p>
@@ -84,7 +84,7 @@ export async function SpotHours({ locale, spotId }: { locale: AppLocale; spotId:
               );
             })}
           </ul>
-          <p className={vc.muted}>{t('note')}</p>
+          <p className={adult.muted}>{t('note')}</p>
         </>
       )}
     </section>

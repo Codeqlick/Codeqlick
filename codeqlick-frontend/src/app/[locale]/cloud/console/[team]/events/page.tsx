@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -11,6 +12,7 @@ import { getCloudTeam, listCloudEvents } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { cloudEventFilters, cloudEventFiltersQuery, formatWhen } from '@/lib/cloud';
 import { appPath } from '@/lib/webapp-request';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type PageProps = {
@@ -58,13 +60,11 @@ export default async function CloudEventsPage({ params, searchParams }: PageProp
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('events.title')}</h1>
-        <p className={styles.muted}>{t('events.lead')}</p>
-      </div>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}`, label: team.name }}
+        title={t('events.title')}
+        lead={t('events.lead')}
+      />
 
       <form method="get" className={styles.filters} aria-label={t('events.filters')}>
         <Input name="from" type="date" label={t('events.from')} defaultValue={filters.from} />
@@ -80,7 +80,7 @@ export default async function CloudEventsPage({ params, searchParams }: PageProp
           autoComplete="off"
           spellCheck={false}
         />
-        <div className={styles.actions}>
+        <div className={`${appUi.actions} ${styles.filterActions}`}>
           <SubmitButton size="sm" variant="outline">
             {t('events.apply')}
           </SubmitButton>
@@ -93,7 +93,7 @@ export default async function CloudEventsPage({ params, searchParams }: PageProp
       </form>
 
       {csv ? (
-        <div className={styles.actions}>
+        <div className={appUi.actions}>
           <a href={csv} className={buttonClassName({ variant: 'outline', size: 'sm' })}>
             {t('events.export')}
           </a>

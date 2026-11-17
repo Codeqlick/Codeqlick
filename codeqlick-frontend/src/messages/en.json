@@ -4303,7 +4303,14 @@
       "community": "Community",
       "me": "Me"
     },
-    "account": "Account"
+    "account": "Account",
+    "footer": {
+      "label": "Footer links",
+      "copyright": "© {year} Codeqlick",
+      "terms": "Terms",
+      "privacy": "Privacy",
+      "contact": "Contact"
+    }
   },
   "AdminErrors": {
     "title": "Errors",

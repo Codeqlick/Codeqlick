@@ -13,6 +13,7 @@ import type { AppLocale } from '@/i18n/routing';
 import type { CloudBucket } from '@/lib/api/cloud';
 import { CORS_METHODS } from '@/lib/cloud';
 import { saveBucketCorsAction, setBucketPublicAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -69,7 +70,7 @@ export function BucketAccess({
           )}
           className={styles.form}
         >
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <span className={styles.small}>
               {t('public.label')}:{' '}
               <strong>{bucket.public ? t('public.on') : t('public.off')}</strong>
@@ -168,7 +169,7 @@ export function BucketAccess({
               hint={t('cors.maxAgeHint')}
               defaultValue={cors ? String(cors.maxAge) : ''}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton size="sm" name="intent" value="save" pendingLabel={tg('saving')}>
                 {t('cors.save')}
               </SubmitButton>

@@ -9,7 +9,7 @@ import { requireUser } from '@/lib/auth/session';
 import { countryName, placeHref } from '@/lib/cruising';
 import { roomHref } from '@/lib/cruising-rooms';
 import { formatDateTime } from '@/lib/format';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { CruisingGate } from '../Gate';
 
 /** Behind the account: kept out of search results. */
@@ -32,10 +32,10 @@ export default async function CruisingRoomsPage({ params }: PageProps) {
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('pageTitle')}</h1>
-      <p className={vc.muted}>{t('pageLead')}</p>
+      <h1 className={adult.pageTitle}>{t('pageTitle')}</h1>
+      <p className={adult.muted}>{t('pageLead')}</p>
       <p>
-        <Link href="/cruising/places" className={vc.inlineLink}>
+        <Link href="/cruising/places" className={adult.inlineLink}>
           {t('placesLink')}
         </Link>
       </p>
@@ -46,10 +46,10 @@ export default async function CruisingRoomsPage({ params }: PageProps) {
           {rooms.map((room) => (
             <li key={`${room.countryCode}-${room.citySlug}`} className={card.card}>
               <h2 className={card.title}>
-                <Link href={roomHref(room.countryCode, room.citySlug)} className={vc.inlineLink}>
+                <Link href={roomHref(room.countryCode, room.citySlug)} className={adult.inlineLink}>
                   {room.city}
                 </Link>{' '}
-                <span className={vc.muted}>{countryName(room.countryCode, locale)}</span>
+                <span className={adult.muted}>{countryName(room.countryCode, locale)}</span>
               </h2>
               <p className={card.meta}>
                 <span>{t('count24h', { count: room.count24h })}</span>
@@ -58,7 +58,10 @@ export default async function CruisingRoomsPage({ params }: PageProps) {
                     ? t('lastAt', { date: formatDateTime(room.lastAt, locale) })
                     : t('noMessages')}
                 </span>
-                <Link href={placeHref(room.countryCode, room.citySlug)} className={vc.inlineLink}>
+                <Link
+                  href={placeHref(room.countryCode, room.citySlug)}
+                  className={adult.inlineLink}
+                >
                   {t('spotsLink')}
                 </Link>
               </p>

@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -10,6 +11,7 @@ import { getCloudTeam, listCloudAudits } from '@/lib/api/cloud';
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
 import { runAuditAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string }> };
@@ -37,14 +39,12 @@ export default async function CloudAuditsPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('audits.title')}</h1>
-        <p className={styles.muted}>{t('audits.lead')}</p>
-      </div>
-      <section className={`${styles.card} ${styles.narrow}`}>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}`, label: team.name }}
+        title={t('audits.title')}
+        lead={t('audits.lead')}
+      />
+      <section className={`${appUi.card} ${styles.narrow}`}>
         <ActionForm action={runAuditAction.bind(null, locale, team.slug)} className={styles.form}>
           <FormInput
             name="url"
@@ -54,19 +54,19 @@ export default async function CloudAuditsPage({ params }: PageProps) {
             required
             mono
           />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton pendingLabel={t('audits.running')}>{t('audits.run')}</SubmitButton>
           </div>
         </ActionForm>
       </section>
-      <div className={styles.card}>
+      <div className={appUi.card}>
         <p className={styles.muted}>{t('audits.ci')}</p>
         <pre className={styles.terminal}>
           {`npx @codeqlick/cli audit https://… --team ${team.slug} --min-score 80`}
         </pre>
       </div>
       <section aria-labelledby="recent">
-        <h2 id="recent" className={styles.sectionTitle}>
+        <h2 id="recent" className={appUi.sectionTitle}>
           {t('audits.recent')}
         </h2>
         {audits.items.length === 0 ? (

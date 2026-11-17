@@ -9,7 +9,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { getVideochatStatus } from '@/lib/api/videochat';
 import { requireUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
-import styles from '../videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { appealAction, onboardAction, ticketAction } from './actions';
 
 /** Behind the account: nothing here for search engines. */
@@ -50,8 +50,8 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
         new Date(iso),
       );
     return (
-      <section className={`${styles.panel} ${styles.suspension}`}>
-        <h1 className={styles.pageTitle}>{t('suspended.title')}</h1>
+      <section className={`${adult.panel} ${adult.suspension}`}>
+        <h1 className={adult.pageTitle}>{t('suspended.title')}</h1>
         <p>{t('suspended.body')}</p>
         <dl>
           <dt>{t('suspended.reason')}</dt>
@@ -61,15 +61,15 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
         </dl>
         {appeal ? (
           <>
-            <h2 className={styles.sectionTitle}>{t('suspended.appealTitle')}</h2>
+            <h2 className={adult.sectionTitle}>{t('suspended.appealTitle')}</h2>
             <p>{t(`suspended.appealStatus.${appeal.status}`)}</p>
-            {appeal.response ? <p className={styles.answer}>{appeal.response}</p> : null}
+            {appeal.response ? <p className={adult.answer}>{appeal.response}</p> : null}
           </>
         ) : (
           <>
-            <h2 className={styles.sectionTitle}>{t('suspended.appealTitle')}</h2>
-            <p className={styles.muted}>{t('suspended.appealLead')}</p>
-            <ActionForm action={appealAction} className={styles.form}>
+            <h2 className={adult.sectionTitle}>{t('suspended.appealTitle')}</h2>
+            <p className={adult.muted}>{t('suspended.appealLead')}</p>
+            <ActionForm action={appealAction} className={adult.form}>
               <input type="hidden" name="locale" value={locale} />
               <FormTextarea
                 name="message"
@@ -91,13 +91,13 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
 
   if (!status.onboarded) {
     return (
-      <section className={styles.panel}>
-        <h1 className={styles.pageTitle}>{t('onboarding.title')}</h1>
-        <p className={styles.muted}>{t('onboarding.lead')}</p>
-        <div className={styles.warning} role="note">
+      <section className={adult.panel}>
+        <h1 className={adult.pageTitle}>{t('onboarding.title')}</h1>
+        <p className={adult.muted}>{t('onboarding.lead')}</p>
+        <div className={adult.warning} role="note">
           <strong>{t('landing.warningTitle')}.</strong> {t('landing.warning')}
         </div>
-        <ActionForm action={onboardAction} className={styles.form}>
+        <ActionForm action={onboardAction} className={adult.form}>
           <input type="hidden" name="locale" value={locale} />
           <input type="hidden" name="termsVersion" value={status.termsVersion} />
           <FormInput
@@ -116,7 +116,7 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
             required
           />
           <p>
-            <Link href="/videochat/rules" target="_blank" className={styles.inlineLink}>
+            <Link href="/videochat/rules" target="_blank" className={adult.inlineLink}>
               {t('onboarding.readRules')}
             </Link>
           </p>
@@ -130,8 +130,8 @@ export default async function VideochatRoomPage({ params, searchParams }: PagePr
 
   if (!status.allowed) {
     return (
-      <section className={styles.panel}>
-        <h1 className={styles.pageTitle}>{t('ageVerification.title')}</h1>
+      <section className={adult.panel}>
+        <h1 className={adult.pageTitle}>{t('ageVerification.title')}</h1>
         <p>{t('ageVerification.body')}</p>
       </section>
     );

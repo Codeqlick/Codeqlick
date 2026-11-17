@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import type { AppLocale } from '@/i18n/routing';
 import type { SwipeStatus } from '@/lib/api/swipe';
 import { formatDateTime } from '@/lib/format';
-import vc from '../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { onboardAction } from './actions';
 
 /**
@@ -17,8 +17,8 @@ export async function SwipeGate({ locale, status }: { locale: AppLocale; status:
   if (status.suspended) {
     const until = status.suspension?.until;
     return (
-      <section className={vc.panel}>
-        <h1 className={vc.pageTitle}>{t('suspended.title')}</h1>
+      <section className={adult.panel}>
+        <h1 className={adult.pageTitle}>{t('suspended.title')}</h1>
         <p>{t('suspended.body')}</p>
         <dl>
           <dt>{t('suspended.reason')}</dt>
@@ -31,13 +31,13 @@ export async function SwipeGate({ locale, status }: { locale: AppLocale; status:
   }
   if (status.onboarded) return null;
   return (
-    <section className={vc.panel}>
-      <h1 className={vc.pageTitle}>{t('onboarding.title')}</h1>
-      <p className={vc.muted}>{t('onboarding.lead')}</p>
-      <div className={vc.warning} role="note">
+    <section className={adult.panel}>
+      <h1 className={adult.pageTitle}>{t('onboarding.title')}</h1>
+      <p className={adult.muted}>{t('onboarding.lead')}</p>
+      <div className={adult.warning} role="note">
         <strong>{t('landing.warningTitle')}.</strong> {t('landing.warning')}
       </div>
-      <ActionForm action={onboardAction} className={vc.form}>
+      <ActionForm action={onboardAction} className={adult.form}>
         <input type="hidden" name="locale" value={locale} />
         <input type="hidden" name="termsVersion" value={status.termsVersion} />
         <FormInput
@@ -56,15 +56,15 @@ export async function SwipeGate({ locale, status }: { locale: AppLocale; status:
           required
         />
         <p>
-          <Link href="/swipe/rules" target="_blank" className={vc.inlineLink}>
+          <Link href="/swipe/rules" target="_blank" className={adult.inlineLink}>
             {t('onboarding.readRules')}
           </Link>
           {' · '}
-          <Link href="/swipe/terms-of-use" target="_blank" className={vc.inlineLink}>
+          <Link href="/swipe/terms-of-use" target="_blank" className={adult.inlineLink}>
             {t('legal.terms')}
           </Link>
           {' · '}
-          <Link href="/swipe/privacy-policy" target="_blank" className={vc.inlineLink}>
+          <Link href="/swipe/privacy-policy" target="_blank" className={adult.inlineLink}>
             {t('legal.privacy')}
           </Link>
         </p>

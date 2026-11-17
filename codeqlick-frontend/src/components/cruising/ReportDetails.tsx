@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { reportAction } from '@/app/[locale]/cruising/actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import type { AppLocale } from '@/i18n/routing';
@@ -58,12 +58,12 @@ export async function ReportDetails({ locale, kind, id }: ReportDetailsProps) {
   return (
     <details className={styles.disclosure}>
       <summary>{correction ? t('correctionOpen') : t('open')}</summary>
-      <ActionForm action={reportAction.bind(null, locale, { kind, id })} className={vc.form}>
+      <ActionForm action={reportAction.bind(null, locale, { kind, id })} className={adult.form}>
         {correction ? (
-          <p className={vc.muted}>{t('correctionLead')}</p>
+          <p className={adult.muted}>{t('correctionLead')}</p>
         ) : (
           <>
-            <p className={vc.muted}>{t('hint')}</p>
+            <p className={adult.muted}>{t('hint')}</p>
             <FormSelect
               name="reason"
               id={`${prefix}-reason`}

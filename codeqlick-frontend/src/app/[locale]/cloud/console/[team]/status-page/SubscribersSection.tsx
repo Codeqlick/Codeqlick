@@ -8,6 +8,7 @@ import type { CloudStatusSubscriberList, CloudStatusSubscriberStatus } from '@/l
 import { formatWhen } from '@/lib/cloud';
 import { subscribersHref, SUBSCRIBER_FILTERS } from '@/lib/cloud-subscribers';
 import { deleteAllSubscribersAction, deleteSubscriberAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -32,8 +33,8 @@ export async function SubscribersSection({ locale, team, enabled, list, status }
   const base = `/cloud/console/${team}/status-page`;
 
   return (
-    <section className={`${styles.card} ${styles.form}`} aria-labelledby="subscribers-title">
-      <h2 id="subscribers-title" className={styles.cardTitle}>
+    <section className={`${appUi.card} ${styles.form}`} aria-labelledby="subscribers-title">
+      <h2 id="subscribers-title" className={appUi.cardTitle}>
         {t('title')}
       </h2>
       <p className={styles.muted}>{enabled ? t('on') : t('off')}</p>
@@ -45,7 +46,7 @@ export async function SubscribersSection({ locale, team, enabled, list, status }
         })}{' '}
         · {t('ofCap', { used, limit: list.limit })}
       </p>
-      <nav className={styles.actions} aria-label={t('filter')}>
+      <nav className={appUi.actions} aria-label={t('filter')}>
         {SUBSCRIBER_FILTERS.map((filter) => (
           <Link
             key={filter ?? 'all'}
@@ -97,7 +98,7 @@ export async function SubscribersSection({ locale, team, enabled, list, status }
             className={styles.form}
           >
             <FormCheckbox name="confirm" label={t('deleteAllConfirm')} />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton size="sm" variant="danger" pendingLabel={t('deleting')}>
                 {t('deleteAll')}
               </SubmitButton>

@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { attendanceAction, cancelMeetupAction } from '@/app/[locale]/cruising/community-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormCheckbox } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -50,7 +50,7 @@ export async function MeetupCard({
       </p>
       {showSpot ? (
         <p className={styles.meta}>
-          <Link href={spotHref(meetup.spot.slug)} className={vc.inlineLink}>
+          <Link href={spotHref(meetup.spot.slug)} className={adult.inlineLink}>
             {meetup.spot.name}
           </Link>
           {` · ${meetup.spot.city}`}
@@ -59,7 +59,7 @@ export async function MeetupCard({
       <p className={styles.meta}>
         {t('hostedBy')}{' '}
         <MemberName locale={locale} member={{ ...meetup.host, coverId: null }}>
-          <Link href={memberHref(meetup.host.nickname)} className={vc.inlineLink}>
+          <Link href={memberHref(meetup.host.nickname)} className={adult.inlineLink}>
             {meetup.host.nickname}
           </Link>
         </MemberName>
@@ -76,7 +76,7 @@ export async function MeetupCard({
           {meetup.attendees.map((attendee) => (
             <li key={attendee.nickname}>
               <MemberName locale={locale} member={{ ...attendee, coverId: null }}>
-                <Link href={memberHref(attendee.nickname)} className={vc.inlineLink}>
+                <Link href={memberHref(attendee.nickname)} className={adult.inlineLink}>
                   {attendee.nickname}
                 </Link>
               </MemberName>

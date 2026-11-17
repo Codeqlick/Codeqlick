@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -47,7 +48,7 @@ export default async function GithubSetupPage({ params, searchParams }: PageProp
   if (back) redirect(await appPath(back, locale));
   return (
     <div className={`${styles.landing} ${styles.narrow}`}>
-      <h1 className={styles.heroTitle}>GitHub</h1>
+      <PageHeader title="GitHub" />
       <Alert tone="error">{error}</Alert>
       <p>
         <Link href="/cloud/console">{t('backToConsole')}</Link>

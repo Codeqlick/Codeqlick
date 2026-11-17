@@ -3,15 +3,15 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppFrame } from '@/components/layout/AppFrame';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { cloudMenu } from '@/lib/app-menus';
 import { cloudDocsUrl } from '@/lib/cloud-docs-url';
-import { Link, WebappProvider } from '@/i18n/navigation';
+import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
-import { CloudDocsLink } from './CloudDocsLink';
-import styles from './cloud.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
@@ -43,27 +43,26 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 export default async function CloudLayout({ children, params }: LayoutProps) {
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
-  const t = await getTranslations({ locale, namespace: 'Cloud' });
   const user = await getCurrentUser();
+  const docsHref = cloudDocsUrl(locale);
   const webapp = (await requestWebapp()) === 'cloud' ? 'cloud' : null;
 
   return (
     <ClientMessages extra={APP_NAMESPACES.cloud}>
       <WebappProvider app={webapp}>
-        <div className={styles.frame}>
-          <AppHeader
-            app="cloud"
-            locale={locale}
-            config={cloudMenu(locale, { signedIn: Boolean(user) }, cloudDocsUrl(locale))}
-            user={user}
-          />
-          <main className={styles.main}>{children}</main>
-          <footer className={styles.footer}>
-            <CloudDocsLink locale={locale}>{t('nav.docs')}</CloudDocsLink>
-            <Link href="/cloud/terms-of-use">{t('terms.metaTitle')}</Link>
-            <Link href="/cloud/report">{t('report.title')}</Link>
-          </footer>
-        </div>
+        <AppFrame
+          header={
+            <AppHeader
+              app="cloud"
+              locale={locale}
+              config={cloudMenu(locale, { signedIn: Boolean(user) }, docsHref)}
+              user={user}
+            />
+          }
+          footer={<AppFooter app="cloud" locale={locale} docsHref={docsHref} />}
+        >
+          {children}
+        </AppFrame>
       </WebappProvider>
     </ClientMessages>
   );

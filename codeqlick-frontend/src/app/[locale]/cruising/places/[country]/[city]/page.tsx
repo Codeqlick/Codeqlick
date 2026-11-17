@@ -28,7 +28,7 @@ import {
 } from '@/lib/cruising';
 import { roomHref } from '@/lib/cruising-rooms';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
-import vc from '../../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = { params: Promise<{ locale: string; country: string; city: string }> };
 
@@ -107,27 +107,27 @@ export default async function CruisingCityPage({ params }: PageProps) {
 
   return (
     <>
-      <nav aria-label={t('breadcrumb')} className={vc.muted}>
-        <Link href="/cruising/places" className={vc.inlineLink}>
+      <nav aria-label={t('breadcrumb')} className={adult.muted}>
+        <Link href="/cruising/places" className={adult.inlineLink}>
           {t('title')}
         </Link>
         {' › '}
-        <Link href={placeHref(city.countryCode)} className={vc.inlineLink}>
+        <Link href={placeHref(city.countryCode)} className={adult.inlineLink}>
           {country}
         </Link>
       </nav>
-      <h1 className={vc.pageTitle}>{t('cityTitle', { city: city.city, country })}</h1>
-      <p className={vc.muted}>{t('spots', { count: city.items.length })}</p>
+      <h1 className={adult.pageTitle}>{t('cityTitle', { city: city.city, country })}</h1>
+      <p className={adult.muted}>{t('spots', { count: city.items.length })}</p>
       {presence ? (
         <section className={styles.activeSection} aria-labelledby="active-now-title">
-          <h2 id="active-now-title" className={vc.sectionTitle}>
+          <h2 id="active-now-title" className={adult.sectionTitle}>
             {t('activeTitle')}
           </h2>
           {active.length > 0 ? (
             <ul className={styles.activeList}>
               {active.map((spot) => (
                 <li key={spot.id}>
-                  <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
+                  <Link href={spotHref(spot.slug)} className={adult.inlineLink}>
                     {spot.name}
                   </Link>{' '}
                   <span className={styles.hereBadge}>{t('hereNow', { count: spot.here })}</span>
@@ -135,13 +135,13 @@ export default async function CruisingCityPage({ params }: PageProps) {
               ))}
             </ul>
           ) : (
-            <p className={vc.muted}>{t('activeNone')}</p>
+            <p className={adult.muted}>{t('activeNone')}</p>
           )}
         </section>
       ) : null}
       {status?.allowed ? (
         <p>
-          <Link href={roomHref(city.countryCode, city.citySlug)} className={vc.inlineLink}>
+          <Link href={roomHref(city.countryCode, city.citySlug)} className={adult.inlineLink}>
             {t('roomLink', { city: city.city })}
           </Link>
         </p>
@@ -155,12 +155,12 @@ export default async function CruisingCityPage({ params }: PageProps) {
           status={status}
         />
       ) : null}
-      <h2 className={vc.sectionTitle}>{t('spotsTitle')}</h2>
+      <h2 className={adult.sectionTitle}>{t('spotsTitle')}</h2>
       <ul className={card.grid}>
         {city.items.map((spot) => (
           <li key={spot.id} className={card.card}>
             <h2 className={card.title}>
-              <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
+              <Link href={spotHref(spot.slug)} className={adult.inlineLink}>
                 {spot.name}
               </Link>
             </h2>

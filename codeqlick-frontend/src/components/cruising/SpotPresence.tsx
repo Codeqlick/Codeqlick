@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { checkInAction, endCheckInAction } from '@/app/[locale]/cruising/actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormCheckbox, FormSelect } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -48,7 +48,7 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
 
   return (
     <section className={styles.section} aria-labelledby="presence-title">
-      <h2 id="presence-title" className={vc.sectionTitle}>
+      <h2 id="presence-title" className={adult.sectionTitle}>
         {t('title')}
       </h2>
       <div className={styles.presence}>
@@ -60,7 +60,7 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
                 {presence.members.map((member) => (
                   <li key={member.nickname}>
                     <MemberName locale={locale} member={member}>
-                      <Link href={memberHref(member.nickname)} className={vc.inlineLink}>
+                      <Link href={memberHref(member.nickname)} className={adult.inlineLink}>
                         {member.nickname}
                       </Link>
                     </MemberName>
@@ -91,7 +91,7 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
                 </ActionForm>
               </>
             ) : null}
-            <ActionForm action={checkInAction.bind(null, locale, spot.id)} className={vc.form}>
+            <ActionForm action={checkInAction.bind(null, locale, spot.id)} className={adult.form}>
               <FormSelect
                 id="checkin-hours"
                 name="hours"
@@ -109,7 +109,7 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
                 {here ? t('renew') : t('checkIn')}
               </SubmitButton>
             </ActionForm>
-            <p className={vc.muted}>{t('privacy')}</p>
+            <p className={adult.muted}>{t('privacy')}</p>
             <h3 className={styles.subTitle}>{tt('title')}</h3>
             <TimerPanel
               locale={locale}
@@ -118,9 +118,9 @@ export async function SpotPresence({ locale, spot, status }: SpotPresenceProps) 
             />
           </>
         ) : (
-          <p className={vc.muted}>
+          <p className={adult.muted}>
             {t('needNickname')}{' '}
-            <Link href="/cruising/me" className={vc.inlineLink}>
+            <Link href="/cruising/me" className={adult.inlineLink}>
               {t('chooseNickname')}
             </Link>
           </p>

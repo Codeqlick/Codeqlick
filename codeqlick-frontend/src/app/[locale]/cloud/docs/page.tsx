@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -32,8 +33,7 @@ export default async function CloudDocsPage({ params }: PageProps) {
   const tm = await getTranslations({ locale, namespace: 'Markdown' });
   return (
     <article className={styles.docs}>
-      <p className={`eyebrow ${styles.eyebrow}`}>{t('landing.eyebrow')}</p>
-      <h1 className={styles.heroTitle}>{t('nav.docs')}</h1>
+      <PageHeader eyebrow={t('landing.eyebrow')} title={t('nav.docs')} />
       <Markdown copyCode={{ copy: tm('copy'), copied: tm('copied'), failed: tm('copyFailed') }}>
         {cloudDocs(locale, env.CLOUD_HOSTING_DOMAIN, env.PUBLIC_API_URL)}
       </Markdown>

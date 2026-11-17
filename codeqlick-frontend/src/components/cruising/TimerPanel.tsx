@@ -4,7 +4,7 @@ import {
   extendTimerAction,
   startTimerAction,
 } from '@/app/[locale]/cruising/safety-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormCheckbox, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -41,7 +41,7 @@ export async function TimerPanel({ locale, spot, idPrefix }: TimerPanelProps) {
   try {
     [timer, contacts] = await Promise.all([getMyTimer(), listTrustedContacts()]);
   } catch {
-    return <p className={vc.muted}>{t('loadError')}</p>;
+    return <p className={adult.muted}>{t('loadError')}</p>;
   }
   const accepted = contacts.filter((contact) => contact.status === 'ACCEPTED').length;
   /** "30 minutes", "2 hours", "1 h 30 min". */
@@ -68,13 +68,13 @@ export async function TimerPanel({ locale, spot, idPrefix }: TimerPanelProps) {
           ranOutLabel={t('ranOut')}
         />
         {timer.message ? (
-          <p className={vc.muted}>{t('yourMessage', { message: timer.message })}</p>
+          <p className={adult.muted}>{t('yourMessage', { message: timer.message })}</p>
         ) : null}
-        <p className={vc.muted}>
+        <p className={adult.muted}>
           {timer.spot ? (
             <>
               {t('sharing')}{' '}
-              <Link href={spotHref(timer.spot.slug)} className={vc.inlineLink}>
+              <Link href={spotHref(timer.spot.slug)} className={adult.inlineLink}>
                 {timer.spot.name}
               </Link>
             </>
@@ -108,9 +108,9 @@ export async function TimerPanel({ locale, spot, idPrefix }: TimerPanelProps) {
 
   if (accepted === 0) {
     return (
-      <p className={vc.muted}>
+      <p className={adult.muted}>
         {contacts.length > 0 ? t('waitingContact') : t('needContact')}{' '}
-        <Link href="/cruising/me#safety-contacts" className={vc.inlineLink}>
+        <Link href="/cruising/me#safety-contacts" className={adult.inlineLink}>
           {t('manageContacts')}
         </Link>
       </p>
@@ -118,8 +118,8 @@ export async function TimerPanel({ locale, spot, idPrefix }: TimerPanelProps) {
   }
 
   return (
-    <ActionForm action={startTimerAction.bind(null, locale)} className={vc.form}>
-      <p className={vc.muted}>{t('lead', { count: accepted })}</p>
+    <ActionForm action={startTimerAction.bind(null, locale)} className={adult.form}>
+      <p className={adult.muted}>{t('lead', { count: accepted })}</p>
       <FormSelect
         id={`${idPrefix}-minutes`}
         name="minutes"

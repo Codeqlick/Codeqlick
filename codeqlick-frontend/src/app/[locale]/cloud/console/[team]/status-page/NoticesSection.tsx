@@ -22,6 +22,7 @@ import {
   deleteNoticeAction,
   editNoticeAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -44,14 +45,14 @@ export async function NoticesSection(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="notices-title">
       <div>
-        <h2 id="notices-title" className={styles.sectionTitle}>
+        <h2 id="notices-title" className={appUi.sectionTitle}>
           {t('notices.title')}
         </h2>
         <p className={styles.muted}>{t('notices.lead')}</p>
       </div>
 
       <section className={styles.form} aria-labelledby="notices-open">
-        <h3 id="notices-open" className={styles.cardTitle}>
+        <h3 id="notices-open" className={appUi.cardTitle}>
           {t('notices.open')}
         </h3>
         {props.open.length === 0 ? (
@@ -72,11 +73,8 @@ export async function NoticesSection(props: Props) {
           <p className={styles.muted}>{t('notices.noMonitors')}</p>
         ) : (
           <>
-            <section
-              className={`${styles.card} ${styles.narrow}`}
-              aria-labelledby="notice-incident"
-            >
-              <h3 id="notice-incident" className={styles.cardTitle}>
+            <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="notice-incident">
+              <h3 id="notice-incident" className={appUi.cardTitle}>
                 {t('notices.newIncident')}
               </h3>
               <ActionForm
@@ -116,7 +114,7 @@ export async function NoticesSection(props: Props) {
                   required
                   maxLength={2000}
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton pendingLabel={t('notices.creating')}>
                     {t('notices.createIncident')}
                   </SubmitButton>
@@ -125,10 +123,10 @@ export async function NoticesSection(props: Props) {
             </section>
 
             <section
-              className={`${styles.card} ${styles.narrow}`}
+              className={`${appUi.card} ${styles.narrow}`}
               aria-labelledby="notice-maintenance"
             >
-              <h3 id="notice-maintenance" className={styles.cardTitle}>
+              <h3 id="notice-maintenance" className={appUi.cardTitle}>
                 {t('notices.newMaintenance')}
               </h3>
               <ActionForm
@@ -173,7 +171,7 @@ export async function NoticesSection(props: Props) {
                   required
                   maxLength={2000}
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton pendingLabel={t('notices.creating')}>
                     {t('notices.createMaintenance')}
                   </SubmitButton>
@@ -185,7 +183,7 @@ export async function NoticesSection(props: Props) {
       ) : null}
 
       <section className={styles.form} aria-labelledby="notices-past">
-        <h3 id="notices-past" className={styles.cardTitle}>
+        <h3 id="notices-past" className={appUi.cardTitle}>
           {t('notices.past')}
         </h3>
         {props.past.items.length === 0 ? (
@@ -234,7 +232,7 @@ async function NoticeCard({
   const id = (field: string) => `notice-${notice.id}-${field}`;
 
   return (
-    <article className={styles.card}>
+    <article className={appUi.card}>
       <p className={styles.rowTitle}>
         {notice.title}
         <Badge tone="neutral">{t(`notices.kinds.${notice.kind}`)}</Badge>
@@ -310,7 +308,7 @@ async function NoticeCard({
               required
               maxLength={2000}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton size="sm" pendingLabel={t('notices.creating')}>
                 {t('notices.send')}
               </SubmitButton>
@@ -366,7 +364,7 @@ async function NoticeCard({
               defaultValue={toDateTimeInput(notice.endsAt)}
               required
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton size="sm" pendingLabel={t('notices.saving')}>
                 {t('notices.save')}
               </SubmitButton>
@@ -383,7 +381,7 @@ async function NoticeCard({
             className={styles.form}
           >
             <FormCheckbox id={id('confirm')} name="confirm" label={t('notices.deleteConfirm')} />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton size="sm" variant="danger" pendingLabel={t('notices.deleting')}>
                 {t('notices.delete')}
                 <span className="visually-hidden"> — {notice.title}</span>

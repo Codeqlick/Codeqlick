@@ -315,7 +315,8 @@ export function SwipeDeck({
         </div>
       )}
       {notice ? <output className={styles.notice}>{notice}</output> : null}
-      <p className={styles.keysHint}>{t('keysHint')}</p>
+      {/* The keys only help while there is a card to decide on. */}
+      {card ? <p className={styles.keysHint}>{t('keysHint')}</p> : null}
     </div>
   );
 }

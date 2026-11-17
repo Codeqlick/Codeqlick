@@ -10,7 +10,7 @@ import { getCruisingStatus, listCruisingFavorites } from '@/lib/api/cruising';
 import { requireUser } from '@/lib/auth/session';
 import { formatRating, spotHref } from '@/lib/cruising';
 import { formatDate } from '@/lib/format';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { favoriteAction } from '../actions';
 import { CruisingGate } from '../Gate';
 
@@ -33,10 +33,10 @@ export default async function CruisingFavoritesPage({ params }: PageProps) {
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       <p>
-        <Link href="/cruising/me#me-favorites" className={vc.inlineLink}>
+        <Link href="/cruising/me#me-favorites" className={adult.inlineLink}>
           {t('alertsLink')}
         </Link>
       </p>
@@ -47,7 +47,7 @@ export default async function CruisingFavoritesPage({ params }: PageProps) {
           {favorites.map(({ spot, here, savedAt }) => (
             <li key={spot.id} className={card.card}>
               <h2 className={card.title}>
-                <Link href={spotHref(spot.slug)} className={vc.inlineLink}>
+                <Link href={spotHref(spot.slug)} className={adult.inlineLink}>
                   {spot.name}
                 </Link>
               </h2>

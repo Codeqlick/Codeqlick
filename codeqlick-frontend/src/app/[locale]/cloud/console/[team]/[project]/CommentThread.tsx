@@ -12,6 +12,7 @@ import {
   replyCommentAction,
   resolveCommentThreadAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { MentionPicker } from './MentionPicker';
 
@@ -59,7 +60,7 @@ export function CommentThread({
     </>
   );
   return (
-    <article className={styles.card} aria-label={t('threadLabel', { path: thread.path })}>
+    <article className={appUi.card} aria-label={t('threadLabel', { path: thread.path })}>
       <p className={styles.rowTitle}>
         <span className={styles.mono}>{thread.deploymentShort}</span>
         <span className={`${styles.mono} ${styles.small}`}>{thread.path}</span>
@@ -126,14 +127,14 @@ export function CommentThread({
           required
         />
         <MentionPicker members={members} textareaId={replyId} legend={t('mention')} />
-        <div className={styles.actions}>
+        <div className={appUi.actions}>
           <SubmitButton size="sm" pendingLabel={t('sending')}>
             {t('send')}
           </SubmitButton>
         </div>
       </ActionForm>
 
-      <div className={styles.actions}>
+      <div className={appUi.actions}>
         <form action={resolveCommentThreadAction}>
           {hidden}
           <input type="hidden" name="id" value={thread.id} />

@@ -3,12 +3,13 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppFrame } from '@/components/layout/AppFrame';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { citasMenu } from '@/lib/app-menus';
 import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
-import styles from './citas.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
@@ -35,10 +36,12 @@ export default async function CitasLayout({ children, params }: LayoutProps) {
   return (
     <ClientMessages extra={APP_NAMESPACES.citas}>
       <WebappProvider app={webapp}>
-        <div className={styles.frame}>
-          <AppHeader app="citas" locale={locale} config={citasMenu()} user={user} />
-          <main className={styles.main}>{children}</main>
-        </div>
+        <AppFrame
+          header={<AppHeader app="citas" locale={locale} config={citasMenu()} user={user} />}
+          footer={<AppFooter app="citas" locale={locale} />}
+        >
+          {children}
+        </AppFrame>
       </WebappProvider>
     </ClientMessages>
   );

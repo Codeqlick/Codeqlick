@@ -12,6 +12,7 @@ import {
   deleteBucketAction,
   deleteBucketKeyAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { BucketAccess } from './BucketAccess';
 
@@ -47,7 +48,7 @@ export async function StorageTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="storage-title">
       <div>
-        <h2 id="storage-title" className={styles.sectionTitle}>
+        <h2 id="storage-title" className={appUi.sectionTitle}>
           {t('project.tabs.storage')}
         </h2>
         <p className={styles.muted}>{t('storage.lead')}</p>
@@ -58,7 +59,7 @@ export async function StorageTab(props: Props) {
         <>
           {data.items.length === 0 ? <p className={styles.muted}>{t('storage.empty')}</p> : null}
           {data.items.map((bucket) => (
-            <article key={bucket.id} className={styles.card}>
+            <article key={bucket.id} className={appUi.card}>
               <p className={`${styles.rowTitle} ${styles.mono}`}>{bucket.name}</p>
               <p className={styles.small}>
                 {bucket.sizeBytes === null
@@ -136,7 +137,7 @@ export async function StorageTab(props: Props) {
                         name="write"
                         label={t('storage.canWrite')}
                       />
-                      <div className={styles.actions}>
+                      <div className={appUi.actions}>
                         <SubmitButton size="sm" pendingLabel={t('storage.creating')}>
                           {t('storage.createKey')}
                         </SubmitButton>
@@ -162,8 +163,8 @@ export async function StorageTab(props: Props) {
             </article>
           ))}
           {props.admin ? (
-            <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="bucket-new">
-              <h3 id="bucket-new" className={styles.cardTitle}>
+            <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="bucket-new">
+              <h3 id="bucket-new" className={appUi.cardTitle}>
                 {t('storage.newTitle')}
               </h3>
               <ActionForm
@@ -180,7 +181,7 @@ export async function StorageTab(props: Props) {
                   spellCheck={false}
                   mono
                 />
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <SubmitButton pendingLabel={t('storage.creating')}>
                     {t('storage.create')}
                   </SubmitButton>
@@ -188,7 +189,7 @@ export async function StorageTab(props: Props) {
               </ActionForm>
             </section>
           ) : null}
-          <details className={styles.card}>
+          <details className={appUi.card}>
             <summary>{t('storage.howTo')}</summary>
             <p className={styles.small}>
               {t('storage.settings', { endpoint: data.endpoint ?? '', region: data.region ?? '' })}

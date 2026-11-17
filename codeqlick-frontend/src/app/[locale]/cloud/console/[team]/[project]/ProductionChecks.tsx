@@ -7,6 +7,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { getCloudProductionChecks } from '@/lib/api/cloud';
 import { formatWhen, scoreTone, type ProtectionMode } from '@/lib/cloud';
 import { saveProductionChecksAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type SettingsProps = {
@@ -25,11 +26,8 @@ export async function ProductionChecksCard(props: SettingsProps) {
   const t = await getTranslations({ locale: props.locale, namespace: 'Cloud.productionChecks' });
   const checks = await getCloudProductionChecks(props.projectId).catch(() => null);
   return (
-    <section
-      className={`${styles.card} ${styles.narrow}`}
-      aria-labelledby="production-checks-title"
-    >
-      <h2 id="production-checks-title" className={styles.cardTitle}>
+    <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="production-checks-title">
+      <h2 id="production-checks-title" className={appUi.cardTitle}>
         {t('title')}
       </h2>
       <p className={styles.muted}>{t('lead')}</p>
@@ -68,7 +66,7 @@ export async function ProductionChecksCard(props: SettingsProps) {
                 label={t('label')}
                 defaultChecked={checks.enabled}
               />
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 <SubmitButton pendingLabel={t('saving')}>{t('save')}</SubmitButton>
               </div>
             </ActionForm>
@@ -99,8 +97,8 @@ export async function ProductionChecksSummary({
   const t = await getTranslations({ locale, namespace: 'Cloud.productionChecks' });
   const last = checks.items[0];
   return (
-    <section className={styles.card} aria-labelledby="production-summary-title">
-      <h2 id="production-summary-title" className={styles.cardTitle}>
+    <section className={appUi.card} aria-labelledby="production-summary-title">
+      <h2 id="production-summary-title" className={appUi.cardTitle}>
         {t('summaryTitle')}
       </h2>
       {last ? (

@@ -3,11 +3,13 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { APP_NAMESPACES, ClientMessages } from '@/i18n/ClientMessages';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { AppFrame } from '@/components/layout/AppFrame';
+import { AppFooter } from '@/components/layout/AppFooter';
 import { Button } from '@/components/ui/Button';
 import { cruisingMenu } from '@/lib/app-menus';
 import { CruisingServiceWorker } from '@/components/cruising/CruisingServiceWorker';
 import { NotificationBell } from '@/components/cruising/NotificationBell';
-import { Link, WebappProvider } from '@/i18n/navigation';
+import { WebappProvider } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { CRUISING_LOCALES, OG_LOCALES } from '@/i18n/routing';
 import { getCruisingStatus } from '@/lib/api/cruising';
@@ -16,7 +18,6 @@ import { notificationsEndpoint } from '@/lib/cruising-notifications';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
-import vc from '../videochat/videochat.module.css';
 
 type LayoutProps = { children: ReactNode; params: Promise<{ locale: string }> };
 
@@ -100,50 +101,35 @@ export default async function CruisingLayout({ children, params }: LayoutProps) 
       <WebappProvider app={webapp}>
         {/* The offline page and the app shell (decision 96), on Cruising's own host only. */}
         {webapp ? <CruisingServiceWorker /> : null}
-        <div className={vc.frame}>
-          <AppHeader
-            app="cruising"
-            locale={locale}
-            config={cruisingMenu(locale, { signedIn: Boolean(user), entered })}
-            user={user}
-            verified={verified}
-            adult
-            locales={CRUISING_LOCALES}
-            action={
-              <Button href="/cruising/new" size="sm">
-                {t('nav.propose')}
-              </Button>
-            }
-            bell={
-              entered ? (
-                <NotificationBell
-                  initial={unread}
-                  endpoint={notificationsEndpoint(locale, webapp === 'cruising')}
-                />
-              ) : null
-            }
-          />
-          <main className={vc.main}>{children}</main>
-          <footer className={`${vc.main} ${vc.footer}`}>
-            <p className={vc.muted}>
-              <Link href="/cruising/takedown" className={vc.inlineLink}>
-                {t('footerTakedown')}
-              </Link>
-              {' · '}
-              <Link href="/cruising/rules" className={vc.inlineLink}>
-                {t('nav.rules')}
-              </Link>
-              {' · '}
-              <Link href="/cruising/terms-of-use" className={vc.inlineLink}>
-                {t('legal.terms')}
-              </Link>
-              {' · '}
-              <Link href="/cruising/privacy-policy" className={vc.inlineLink}>
-                {t('legal.privacy')}
-              </Link>
-            </p>
-          </footer>
-        </div>
+        <AppFrame
+          header={
+            <AppHeader
+              app="cruising"
+              locale={locale}
+              config={cruisingMenu(locale, { signedIn: Boolean(user), entered })}
+              user={user}
+              verified={verified}
+              adult
+              locales={CRUISING_LOCALES}
+              action={
+                <Button href="/cruising/new" size="sm">
+                  {t('nav.propose')}
+                </Button>
+              }
+              bell={
+                entered ? (
+                  <NotificationBell
+                    initial={unread}
+                    endpoint={notificationsEndpoint(locale, webapp === 'cruising')}
+                  />
+                ) : null
+              }
+            />
+          }
+          footer={<AppFooter app="cruising" locale={locale} />}
+        >
+          {children}
+        </AppFrame>
       </WebappProvider>
     </ClientMessages>
   );

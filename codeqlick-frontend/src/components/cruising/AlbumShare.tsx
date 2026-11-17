@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { albumGrantAction } from '@/app/[locale]/cruising/room-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
@@ -27,9 +27,9 @@ export async function AlbumShare({ locale, nickname, shared }: AlbumShareProps) 
       <summary>{shared ? t('revokeOpen') : t('shareOpen')}</summary>
       <ActionForm
         action={albumGrantAction.bind(null, locale, nickname, !shared)}
-        className={vc.form}
+        className={adult.form}
       >
-        <p className={vc.muted}>
+        <p className={adult.muted}>
           {shared ? t('revokeLead', { nickname }) : t('shareLead', { nickname })}
         </p>
         <SubmitButton
@@ -57,16 +57,16 @@ export async function AlbumGrantsPanel({
     <>
       <h3 className={styles.albumTitle}>{t('givenTitle')}</h3>
       {grants.given.length === 0 ? (
-        <p className={vc.muted}>{t('givenEmpty')}</p>
+        <p className={adult.muted}>{t('givenEmpty')}</p>
       ) : (
         <ul className={styles.grantList} aria-label={t('givenTitle')}>
           {grants.given.map((grant) => (
             <li key={grant.nickname} className={styles.grantItem}>
               <span>
-                <Link href={memberHref(grant.nickname)} className={vc.inlineLink}>
+                <Link href={memberHref(grant.nickname)} className={adult.inlineLink}>
                   {grant.nickname}
                 </Link>{' '}
-                <span className={vc.muted}>
+                <span className={adult.muted}>
                   {t('since', { date: formatDate(grant.at, locale) })}
                 </span>
               </span>
@@ -86,10 +86,10 @@ export async function AlbumGrantsPanel({
             {grants.received.map((grant) => (
               <li key={grant.nickname} className={styles.grantItem}>
                 <span>
-                  <Link href={memberHref(grant.nickname)} className={vc.inlineLink}>
+                  <Link href={memberHref(grant.nickname)} className={adult.inlineLink}>
                     {grant.nickname}
                   </Link>{' '}
-                  <span className={vc.muted}>
+                  <span className={adult.muted}>
                     {t('since', { date: formatDate(grant.at, locale) })}
                   </span>
                 </span>

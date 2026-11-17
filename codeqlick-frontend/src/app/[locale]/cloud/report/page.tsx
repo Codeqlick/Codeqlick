@@ -1,9 +1,11 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect, FormTextarea } from '@/components/app/ActionForm';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { resolveLocale } from '@/i18n/locale';
 import { reportAction } from '../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -24,11 +26,8 @@ export default async function CloudReportPage({ params }: PageProps) {
 
   return (
     <div className={`${styles.landing} ${styles.narrow}`}>
-      <div>
-        <h1 className={styles.heroTitle}>{t('title')}</h1>
-        <p className={styles.muted}>{t('lead')}</p>
-      </div>
-      <div className={styles.card}>
+      <PageHeader title={t('title')} lead={t('lead')} />
+      <div className={appUi.card}>
         <ActionForm action={reportAction.bind(null, locale)} className={styles.form}>
           <FormInput name="url" type="url" label={t('url')} required placeholder="https://" />
           <FormSelect
@@ -57,7 +56,7 @@ export default async function CloudReportPage({ params }: PageProps) {
             <label htmlFor="website">Website</label>
             <input id="website" name="website" tabIndex={-1} autoComplete="off" />
           </div>
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton pendingLabel={t('sending')}>{t('send')}</SubmitButton>
           </div>
         </ActionForm>

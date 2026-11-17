@@ -34,6 +34,15 @@ test('an owner publishes a booking page and a visitor books a time', async ({
     await signIn(host, owner, '/es/citas');
     await expect(host).toHaveURL(`${base}/es`);
 
+    // Signed in: the compact header, the features folded away, the frame's footer, and with no
+    // page yet one "New booking page" (the empty state's).
+    await expect(host.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(host.getByText('Cómo funciona', { exact: true })).toBeVisible();
+    await expect(host.getByText('Tu página, tu enlace')).toBeHidden();
+    await expect(
+      host.getByRole('contentinfo').getByRole('link', { name: 'Contacto' }),
+    ).toBeVisible();
+    await expect(host.getByRole('link', { name: 'Nueva página de reservas' })).toHaveCount(1);
     await host.getByRole('link', { name: 'Nueva página de reservas' }).click();
     await host.getByLabel('Nombre del servicio').fill(`Corte ${tag}`);
     await host.getByLabel('Enlace de la página').fill(`corte-${tag}`.toLowerCase());

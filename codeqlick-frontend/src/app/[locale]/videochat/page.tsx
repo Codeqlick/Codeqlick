@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { getTranslations } from 'next-intl/server';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +9,7 @@ import { getVideochatOnline } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
 import { SITE_NAME, SOCIAL_LINKS } from '@/lib/site';
 import { webappOrigin, webappUrl } from '@/lib/webapp-seo';
+import adult from '@/components/adult/adult.module.css';
 import styles from './videochat.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -68,45 +70,51 @@ export default async function VideochatLandingPage({ params }: PageProps) {
   const faq = t.raw('faq') as Question[];
 
   return (
-    <div className={styles.landing}>
+    <div className={adult.landing}>
       <JsonLd data={structuredData(locale, meta('metaSuffix'), meta('metaDescription'), faq)} />
-      <section className={styles.hero}>
-        <p className={`eyebrow ${styles.eyebrow}`}>{t('eyebrow')}</p>
-        {online !== null ? (
-          <p className={styles.online} aria-live="polite">
-            {t('online', { count: online })}
-          </p>
-        ) : null}
-        <h1 className={styles.heroTitle}>{t('title')}</h1>
-        <p className={styles.heroLead}>{t('lead')}</p>
-
-        <div className={styles.warning} role="note">
-          <strong>{t('warningTitle')}.</strong> {t('warning')}
-        </div>
-
-        <div className={styles.actions}>
-          {user ? (
-            <Button href="/videochat/room">{t('enter')}</Button>
-          ) : (
+      <section>
+        <PageHeader
+          variant="hero"
+          eyebrow={t('eyebrow')}
+          status={
+            online !== null ? (
+              <p className={styles.online} aria-live="polite">
+                {t('online', { count: online })}
+              </p>
+            ) : null
+          }
+          title={t('title')}
+          lead={t('lead')}
+          actions={
             <>
-              <Button href={`/login?next=${encodeURIComponent(room)}`}>{t('signIn')}</Button>
-              <Button href="/register" variant="outline">
-                {t('createAccount')}
-              </Button>
+              {user ? (
+                <Button href="/videochat/room">{t('enter')}</Button>
+              ) : (
+                <>
+                  <Button href={`/login?next=${encodeURIComponent(room)}`}>{t('signIn')}</Button>
+                  <Button href="/register" variant="outline">
+                    {t('createAccount')}
+                  </Button>
+                </>
+              )}
+              <a className={adult.leaveLink} href="https://www.google.com" rel="noreferrer">
+                {t('leave')}
+              </a>
             </>
-          )}
-          <a className={styles.leaveLink} href="https://www.google.com" rel="noreferrer">
-            {t('leave')}
-          </a>
-        </div>
-        {user ? null : <p className={styles.note}>{t('accountNote')}</p>}
+          }
+        >
+          <div className={adult.warning} role="note">
+            <strong>{t('warningTitle')}.</strong> {t('warning')}
+          </div>
+        </PageHeader>
+        {user ? null : <p className={adult.note}>{t('accountNote')}</p>}
         <InstallApp className={styles.install} />
       </section>
 
-      <section className={styles.columns}>
+      <section className={adult.columns}>
         <div>
-          <h2 className={styles.sectionTitle}>{t('howTitle')}</h2>
-          <ol className={styles.steps}>
+          <h2 className={adult.sectionTitle}>{t('howTitle')}</h2>
+          <ol className={adult.steps}>
             {(['1', '2', '3'] as const).map((n) => (
               <li key={n}>
                 <strong>{t(`how${n}Title`)}</strong>
@@ -116,8 +124,8 @@ export default async function VideochatLandingPage({ params }: PageProps) {
           </ol>
         </div>
         <div>
-          <h2 className={styles.sectionTitle}>{t('safetyTitle')}</h2>
-          <ul className={styles.safety}>
+          <h2 className={adult.sectionTitle}>{t('safetyTitle')}</h2>
+          <ul className={adult.safety}>
             {(['1', '2', '3', '4'] as const).map((n) => (
               <li key={n}>{t(`safety${n}`)}</li>
             ))}
@@ -126,7 +134,7 @@ export default async function VideochatLandingPage({ params }: PageProps) {
       </section>
 
       <section>
-        <h2 className={styles.sectionTitle}>{t('featuresTitle')}</h2>
+        <h2 className={adult.sectionTitle}>{t('featuresTitle')}</h2>
         <ul className={styles.features}>
           {features.map((feature) => (
             <li key={feature.title}>
@@ -138,7 +146,7 @@ export default async function VideochatLandingPage({ params }: PageProps) {
       </section>
 
       <section>
-        <h2 className={styles.sectionTitle}>{t('faqTitle')}</h2>
+        <h2 className={adult.sectionTitle}>{t('faqTitle')}</h2>
         <div className={styles.faq}>
           {faq.map(({ q, a }) => (
             <details key={q} className={styles.faqItem}>

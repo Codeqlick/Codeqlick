@@ -31,6 +31,7 @@ import {
   saveGitAction,
   saveRebuildAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 import { EnvImport } from './EnvImport';
 import { GitBuildFields } from './GitBuildFields';
@@ -89,7 +90,7 @@ export async function GitTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="git-title">
       <div>
-        <h2 id="git-title" className={styles.sectionTitle}>
+        <h2 id="git-title" className={appUi.sectionTitle}>
           {t('project.tabs.git')}
         </h2>
         <p className={styles.muted}>{t('git.lead')}</p>
@@ -98,7 +99,7 @@ export async function GitTab(props: Props) {
       {props.github === 'error' ? <Alert tone="error">{t('git.connectError')}</Alert> : null}
 
       {git.repo ? (
-        <div className={styles.card}>
+        <div className={appUi.card}>
           <p className={styles.rowTitle}>
             <span className={styles.mono}>{git.repo}</span>
             <Badge tone="success">{t('git.branchBadge', { branch: git.branch })}</Badge>
@@ -118,8 +119,8 @@ export async function GitTab(props: Props) {
       ) : null}
 
       {git.repo ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="rebuild-title">
-          <h3 id="rebuild-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="rebuild-title">
+          <h3 id="rebuild-title" className={appUi.cardTitle}>
             {t('git.rebuild.title')}
           </h3>
           <p className={styles.small}>{t('git.rebuild.lead', { branch: git.branch })}</p>
@@ -189,7 +190,7 @@ export async function GitTab(props: Props) {
                   label: weekdayName(day, props.locale),
                 }))}
               />
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 <SubmitButton variant="outline">{t('git.rebuild.save')}</SubmitButton>
               </div>
             </ActionForm>
@@ -198,15 +199,15 @@ export async function GitTab(props: Props) {
       ) : null}
 
       {props.admin && team.installations.length === 0 ? (
-        <div className={styles.card}>
+        <div className={appUi.card}>
           <p className={styles.muted}>{t('git.connectLead')}</p>
           {connectForm(t('git.connect'), 'primary')}
         </div>
       ) : null}
 
       {props.admin && team.installations.length > 0 ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="settings-title">
-          <h3 id="settings-title" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="settings-title">
+          <h3 id="settings-title" className={appUi.cardTitle}>
             {t('git.settings')}
           </h3>
           <ActionForm
@@ -250,7 +251,7 @@ export async function GitTab(props: Props) {
               label={t('git.onlyRootChanges')}
               defaultChecked={git.onlyRootChanges}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton>{t('git.save')}</SubmitButton>
             </div>
           </ActionForm>
@@ -259,8 +260,8 @@ export async function GitTab(props: Props) {
         </section>
       ) : null}
 
-      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="hooks-title">
-        <h3 id="hooks-title" className={styles.cardTitle}>
+      <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="hooks-title">
+        <h3 id="hooks-title" className={appUi.cardTitle}>
           {t('hooks.title')}
         </h3>
         <p className={styles.small}>{t('hooks.lead')}</p>
@@ -308,7 +309,7 @@ export async function GitTab(props: Props) {
                           label={t('hooks.confirmDelete', { name: hook.name })}
                           required
                         />
-                        <div className={styles.actions}>
+                        <div className={appUi.actions}>
                           <SubmitButton
                             size="sm"
                             variant="danger"
@@ -349,7 +350,7 @@ export async function GitTab(props: Props) {
               maxLength={200}
               mono
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton variant="outline" pendingLabel={t('hooks.creating')}>
                 {t('hooks.create')}
               </SubmitButton>
@@ -358,8 +359,8 @@ export async function GitTab(props: Props) {
         ) : null}
       </section>
 
-      <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="env-title">
-        <h3 id="env-title" className={styles.cardTitle}>
+      <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="env-title">
+        <h3 id="env-title" className={appUi.cardTitle}>
           {t('git.env')}
         </h3>
         <p className={styles.small}>{t('git.envLead')}</p>
@@ -432,7 +433,7 @@ export async function GitTab(props: Props) {
                 spellCheck={false}
               />
             </div>
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton variant="outline">{t('git.saveEnv')}</SubmitButton>
             </div>
           </ActionForm>

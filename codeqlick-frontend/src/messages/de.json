@@ -143,7 +143,14 @@
       "community": "Community",
       "me": "Ich"
     },
-    "account": "Konto"
+    "account": "Konto",
+    "footer": {
+      "label": "Links in der Fußzeile",
+      "copyright": "© {year} Codeqlick",
+      "terms": "Bedingungen",
+      "privacy": "Datenschutz",
+      "contact": "Kontakt"
+    }
   },
   "LocaleSwitcher": {
     "label": "Sprache",

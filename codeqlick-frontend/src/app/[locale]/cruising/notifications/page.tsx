@@ -27,7 +27,7 @@ import {
   type NotificationView,
 } from '@/lib/cruising-notifications';
 import { firstParam, formatDateTime } from '@/lib/format';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { startConversationAction } from '../actions';
 import { CruisingGate } from '../Gate';
 import { markAllReadAction, winkAction } from '../notifications-actions';
@@ -66,8 +66,8 @@ export default async function CruisingNotificationsPage({ params, searchParams }
 
   return (
     <>
-      <h1 className={vc.pageTitle}>{t('title')}</h1>
-      <p className={vc.muted}>{t('lead')}</p>
+      <h1 className={adult.pageTitle}>{t('title')}</h1>
+      <p className={adult.muted}>{t('lead')}</p>
       <nav aria-label={t('viewsLabel')}>
         <ul className={styles.notificationTabs}>
           {tabs.map((tab) => (
@@ -134,15 +134,15 @@ async function NotificationRow({
       <span>
         {item.read ? null : <span className={styles.srOnly}>{t('unread')} </span>}
         {href ? (
-          <Link href={href} className={vc.inlineLink}>
+          <Link href={href} className={adult.inlineLink}>
             {text}
           </Link>
         ) : (
           text
         )}
-        {item.spot ? <span className={vc.muted}> · {item.spot.name}</span> : null}
+        {item.spot ? <span className={adult.muted}> · {item.spot.name}</span> : null}
       </span>
-      <time dateTime={item.at} className={vc.muted}>
+      <time dateTime={item.at} className={adult.muted}>
         {formatDateTime(item.at, locale)}
       </time>
     </li>
@@ -155,10 +155,10 @@ async function WinksView({ locale, hasNickname }: { locale: AppLocale; hasNickna
   const winks = await listCruisingWinks().catch(() => []);
   return (
     <section aria-labelledby="winks-title">
-      <h2 id="winks-title" className={vc.sectionTitle}>
+      <h2 id="winks-title" className={adult.sectionTitle}>
         {t('title')}
       </h2>
-      <p className={vc.muted}>{t('lead')}</p>
+      <p className={adult.muted}>{t('lead')}</p>
       {winks.length === 0 ? (
         <p>{t('empty')}</p>
       ) : (
@@ -167,18 +167,18 @@ async function WinksView({ locale, hasNickname }: { locale: AppLocale; hasNickna
             <li key={wink.nickname} className={`${card.card} ${styles.notificationItem}`}>
               <span>
                 <MemberName locale={locale} member={{ ...wink, coverId: null }}>
-                  <Link href={memberHref(wink.nickname)} className={vc.inlineLink}>
+                  <Link href={memberHref(wink.nickname)} className={adult.inlineLink}>
                     {wink.nickname}
                   </Link>
                 </MemberName>{' '}
-                <time dateTime={wink.at} className={vc.muted}>
+                <time dateTime={wink.at} className={adult.muted}>
                   {formatDateTime(wink.at, locale)}
                 </time>
               </span>
               {hasNickname ? (
                 <span className={styles.profileActions}>
                   {wink.mutual ? (
-                    <span className={vc.muted}>{t('mutual')}</span>
+                    <span className={adult.muted}>{t('mutual')}</span>
                   ) : (
                     <ActionForm action={winkAction.bind(null, locale, wink.nickname)}>
                       <SubmitButton variant="outline" size="sm" pendingLabel={t('sending')}>
@@ -206,13 +206,13 @@ async function VisitorsView({ locale }: { locale: AppLocale }) {
   const visits = await getCruisingVisits().catch(() => ({ showVisits: false, items: [] }));
   return (
     <section aria-labelledby="visitors-title">
-      <h2 id="visitors-title" className={vc.sectionTitle}>
+      <h2 id="visitors-title" className={adult.sectionTitle}>
         {t('title')}
       </h2>
       {!visits.showVisits ? (
         <p>
           {t('off')}{' '}
-          <Link href="/cruising/me#me-visits" className={vc.inlineLink}>
+          <Link href="/cruising/me#me-visits" className={adult.inlineLink}>
             {t('turnOn')}
           </Link>
         </p>
@@ -220,16 +220,16 @@ async function VisitorsView({ locale }: { locale: AppLocale }) {
         <p>{t('empty')}</p>
       ) : (
         <>
-          <p className={vc.muted}>{t('lead')}</p>
+          <p className={adult.muted}>{t('lead')}</p>
           <ul className={styles.notificationList}>
             {visits.items.map((visitor) => (
               <li key={visitor.nickname} className={`${card.card} ${styles.notificationItem}`}>
                 <MemberName locale={locale} member={{ ...visitor, coverId: null }}>
-                  <Link href={memberHref(visitor.nickname)} className={vc.inlineLink}>
+                  <Link href={memberHref(visitor.nickname)} className={adult.inlineLink}>
                     {visitor.nickname}
                   </Link>
                 </MemberName>
-                <time dateTime={visitor.at} className={vc.muted}>
+                <time dateTime={visitor.at} className={adult.muted}>
                   {formatDateTime(visitor.at, locale)}
                 </time>
               </li>

@@ -4,7 +4,7 @@ import {
   removeContactAction,
   saveHealthAction,
 } from '@/app/[locale]/cruising/safety-actions';
-import vc from '@/app/[locale]/videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { ActionForm, FormCheckbox, FormInput, FormSelect } from '@/components/app/ActionForm';
 import { Alert } from '@/components/ui/Alert';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -32,7 +32,7 @@ export async function SafetyPanels({
   locale,
   checkInSpot,
   part,
-  className = vc.panel,
+  className = adult.panel,
 }: {
   locale: AppLocale;
   /** My check-in's spot: the timer can share it. */
@@ -57,16 +57,16 @@ export async function SafetyPanels({
   if (part === 'health') {
     return (
       <section id="health" className={className} aria-labelledby="me-health">
-        <h3 id="me-health" className={vc.sectionTitle}>
+        <h3 id="me-health" className={adult.sectionTitle}>
           {th('title')}
         </h3>
-        <p className={vc.muted}>{th('lead')}</p>
+        <p className={adult.muted}>{th('lead')}</p>
         {health === null ? (
           <Alert tone="error">{th('loadError')}</Alert>
         ) : (
           <ActionForm
             action={saveHealthAction.bind(null, locale, health.enabled)}
-            className={vc.form}
+            className={adult.form}
           >
             <FormCheckbox
               id="health-enabled"
@@ -129,7 +129,7 @@ export async function SafetyPanels({
           </ActionForm>
         )}
         <p>
-          <Link href="/cruising/health" className={vc.inlineLink}>
+          <Link href="/cruising/health" className={adult.inlineLink}>
             {th('findCenter')}
           </Link>
         </p>
@@ -140,18 +140,18 @@ export async function SafetyPanels({
   return (
     <>
       <section id="timer" className={className} aria-labelledby="me-timer">
-        <h3 id="me-timer" className={vc.sectionTitle}>
+        <h3 id="me-timer" className={adult.sectionTitle}>
           {tt('title')}
         </h3>
-        <p className={vc.muted}>{tt('intro')}</p>
+        <p className={adult.muted}>{tt('intro')}</p>
         <TimerPanel locale={locale} spot={checkInSpot} idPrefix="me-timer" />
       </section>
 
       <section id="safety-contacts" className={className} aria-labelledby="me-contacts">
-        <h3 id="me-contacts" className={vc.sectionTitle}>
+        <h3 id="me-contacts" className={adult.sectionTitle}>
           {tc('title')}
         </h3>
-        <p className={vc.muted}>{tc('lead')}</p>
+        <p className={adult.muted}>{tc('lead')}</p>
         {contacts === null ? (
           <Alert tone="error">{tc('loadError')}</Alert>
         ) : (
@@ -162,7 +162,7 @@ export async function SafetyPanels({
                   <li key={contact.id} className={styles.contactItem}>
                     <span className={styles.contactName}>
                       <strong>{contact.email}</strong>
-                      <span className={vc.muted}>
+                      <span className={adult.muted}>
                         {tc('namedAs', { name: contact.displayName })}
                       </span>
                       <span>
@@ -174,7 +174,7 @@ export async function SafetyPanels({
                       </span>
                     </span>
                     {contact.status === 'REFUSED' ? (
-                      <span className={vc.muted}>{tc('refusedNote')}</span>
+                      <span className={adult.muted}>{tc('refusedNote')}</span>
                     ) : (
                       <ActionForm action={removeContactAction.bind(null, locale, contact.id)}>
                         <SubmitButton variant="outline" size="sm" pendingLabel={tc('removing')}>
@@ -189,7 +189,7 @@ export async function SafetyPanels({
               <p>{tc('empty')}</p>
             )}
             {active < MAX_TRUSTED_CONTACTS ? (
-              <ActionForm action={addContactAction.bind(null, locale)} className={vc.form}>
+              <ActionForm action={addContactAction.bind(null, locale)} className={adult.form}>
                 <FormInput
                   id="contact-email"
                   name="email"
@@ -211,7 +211,7 @@ export async function SafetyPanels({
                 <SubmitButton pendingLabel={tc('adding')}>{tc('add')}</SubmitButton>
               </ActionForm>
             ) : (
-              <p className={vc.muted}>{tc('max', { count: MAX_TRUSTED_CONTACTS })}</p>
+              <p className={adult.muted}>{tc('max', { count: MAX_TRUSTED_CONTACTS })}</p>
             )}
           </>
         )}

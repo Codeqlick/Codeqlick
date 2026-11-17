@@ -24,7 +24,7 @@ import { requireUser } from '@/lib/auth/session';
 import { memberHref, messagesEndpoint } from '@/lib/cruising';
 import { hasGiven, hasReceived, NO_GRANTS } from '@/lib/cruising-rooms';
 import { appPath, requestWebapp } from '@/lib/webapp-request';
-import vc from '../../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 import { blockConversationAction, leaveConversationAction, sendMessageAction } from '../../actions';
 import { CruisingGate } from '../../Gate';
 
@@ -69,11 +69,11 @@ export default async function CruisingChatPage({ params }: PageProps) {
   return (
     <>
       <p>
-        <Link href="/cruising/messages" className={vc.inlineLink}>
+        <Link href="/cruising/messages" className={adult.inlineLink}>
           {t('back')}
         </Link>
       </p>
-      <h1 className={vc.pageTitle}>
+      <h1 className={adult.pageTitle}>
         <MemberName locale={locale} member={conversation.partner}>
           <Link href={memberHref(partner)} className={styles.convName}>
             {partner}
@@ -105,8 +105,11 @@ export default async function CruisingChatPage({ params }: PageProps) {
         <AlbumShare locale={locale} nickname={partner} shared={hasGiven(grants, partner)} />
         <details className={styles.disclosure}>
           <summary>{t('leave')}</summary>
-          <ActionForm action={leaveConversationAction.bind(null, locale, id)} className={vc.form}>
-            <p className={vc.muted}>{t('leaveLead', { nickname: partner })}</p>
+          <ActionForm
+            action={leaveConversationAction.bind(null, locale, id)}
+            className={adult.form}
+          >
+            <p className={adult.muted}>{t('leaveLead', { nickname: partner })}</p>
             <SubmitButton variant="outline" size="sm" pendingLabel={t('leaving')}>
               {t('leaveConfirm')}
             </SubmitButton>
@@ -114,8 +117,11 @@ export default async function CruisingChatPage({ params }: PageProps) {
         </details>
         <details className={styles.disclosure}>
           <summary>{t('block')}</summary>
-          <ActionForm action={blockConversationAction.bind(null, locale, id)} className={vc.form}>
-            <p className={vc.muted}>{t('blockLead', { nickname: partner })}</p>
+          <ActionForm
+            action={blockConversationAction.bind(null, locale, id)}
+            className={adult.form}
+          >
+            <p className={adult.muted}>{t('blockLead', { nickname: partner })}</p>
             <SubmitButton variant="outline" size="sm" pendingLabel={t('blocking')}>
               {t('blockConfirm')}
             </SubmitButton>

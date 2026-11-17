@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -10,6 +11,7 @@ import { getCloudTeam, listCloudMembers, listCloudMonitors } from '@/lib/api/clo
 import { isApiError } from '@/lib/api/errors';
 import { formatWhen } from '@/lib/cloud';
 import { createMonitorAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string; team: string }> };
@@ -38,16 +40,15 @@ export default async function CloudMonitorsPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <div>
-        <p className={styles.small}>
-          <Link href={`/cloud/console/${team.slug}`}>← {team.name}</Link>
-        </p>
-        <h1 className={styles.heroTitle}>{t('monitors.title')}</h1>
-        <p className={styles.muted}>{t('monitors.lead')}</p>
+      <PageHeader
+        back={{ href: `/cloud/console/${team.slug}`, label: team.name }}
+        title={t('monitors.title')}
+        lead={t('monitors.lead')}
+      >
         <p className={styles.spacedSmall}>
           <Link href={`/cloud/console/${team.slug}/status-page`}>{t('statusPage.title')}</Link>
         </p>
-      </div>
+      </PageHeader>
 
       {monitors.length === 0 ? (
         <p className={styles.muted}>{t('monitors.empty')}</p>
@@ -88,8 +89,8 @@ export default async function CloudMonitorsPage({ params }: PageProps) {
       )}
 
       {admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="new-monitor">
-          <h2 id="new-monitor" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="new-monitor">
+          <h2 id="new-monitor" className={appUi.cardTitle}>
             {t('monitors.newTitle')}
           </h2>
           <ActionForm
@@ -177,7 +178,7 @@ export default async function CloudMonitorsPage({ params }: PageProps) {
               }))}
               defaultValues={members.items.slice(0, 1).map((m) => m.userId)}
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('monitors.creating')}>
                 {t('monitors.create')}
               </SubmitButton>

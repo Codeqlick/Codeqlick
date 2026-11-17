@@ -19,7 +19,7 @@ import { firstParam } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappPath } from '@/lib/webapp-seo';
 import styles from '@/components/cruising/Cruising.module.css';
-import vc from '../../videochat/videochat.module.css';
+import adult from '@/components/adult/adult.module.css';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -77,7 +77,7 @@ export default async function CruisingMapPage({ params, searchParams }: PageProp
           <summary>{t('help')}</summary>
           <p>
             {t('lead')}{' '}
-            <Link href="/cruising/rules" className={vc.inlineLink}>
+            <Link href="/cruising/rules" className={adult.inlineLink}>
               {t('rulesLink')}
             </Link>
           </p>

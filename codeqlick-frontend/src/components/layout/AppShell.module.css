@@ -196,18 +196,40 @@
     font-size: 0.65rem;
   }
 
-  /* With the search button: logo over the area's name, the button beside both. */
+  /*
+   * With the search button (admin): the top row keeps the logo and the account controls, and the
+   * button (44 px) starts the tabs' row, so nothing overlaps the language switcher.
+   */
+  .sidebar:has(.search) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'logo logo user'
+      'area area user'
+      'search nav nav';
+    row-gap: 0.15rem;
+  }
+
   .brandRow:has(.search) {
-    display: grid;
-    grid-template-columns: auto auto;
-    justify-content: start;
-    align-items: center;
-    column-gap: 0.5rem;
+    display: contents;
+  }
+
+  .brandRow:has(.search) > :first-child {
+    grid-area: logo;
+  }
+
+  .brandRow:has(.search) > .area {
+    grid-area: area;
   }
 
   .search {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-area: search;
+    align-self: start;
+    margin-top: 0.35rem;
+  }
+
+  .sidebar:has(.search) .nav {
+    margin: 0.35rem -1rem 0 0;
+    padding-left: 0;
   }
 
   .userBox {

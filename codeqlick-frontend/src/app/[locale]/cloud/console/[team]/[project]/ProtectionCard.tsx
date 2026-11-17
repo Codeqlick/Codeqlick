@@ -13,6 +13,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { getCloudProtection, type CloudProtectionBypass } from '@/lib/api/cloud';
 import { formatWhen, PROTECTION_DAYS, PROTECTION_MODES } from '@/lib/cloud';
 import { generateBypassAction, revokeBypassAction, saveProtectionAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -53,8 +54,8 @@ export async function ProtectionCard(props: Props) {
   const t = await getTranslations({ locale: props.locale, namespace: 'Cloud' });
   const protection = await getCloudProtection(props.projectId).catch(() => null);
   return (
-    <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="protection-title">
-      <h2 id="protection-title" className={styles.cardTitle}>
+    <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="protection-title">
+      <h2 id="protection-title" className={appUi.cardTitle}>
         {t('protection.title')}
       </h2>
       <p className={styles.muted}>{t('protection.lead')}</p>
@@ -122,7 +123,7 @@ export async function ProtectionCard(props: Props) {
                   label: t('protection.daysValue', { count: days }),
                 }))}
               />
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 <SubmitButton pendingLabel={t('protection.saving')}>
                   {t('protection.save')}
                 </SubmitButton>
@@ -209,7 +210,7 @@ function BypassRow({
                 required
               />
             ) : null}
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton variant="outline" pendingLabel={t('protection.bypass.generating')}>
                 {bypass ? t('protection.bypass.regenerate') : t('protection.bypass.generate')}
               </SubmitButton>
@@ -227,7 +228,7 @@ function BypassRow({
                 hint={t('protection.bypass.revokeWarning')}
                 required
               />
-              <div className={styles.actions}>
+              <div className={appUi.actions}>
                 <SubmitButton
                   variant="danger"
                   size="sm"

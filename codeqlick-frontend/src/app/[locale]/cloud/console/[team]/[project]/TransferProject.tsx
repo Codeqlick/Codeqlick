@@ -5,6 +5,7 @@ import type { AppLocale } from '@/i18n/routing';
 import { getCloudMe } from '@/lib/api/cloud';
 import { transferTargets } from '@/lib/cloud';
 import { transferProjectAction } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 type Props = {
@@ -26,10 +27,10 @@ export async function TransferProject(props: Props) {
 
   return (
     <section
-      className={`${styles.card} ${styles.narrow} ${styles.danger}`}
+      className={`${appUi.card} ${styles.narrow} ${styles.danger}`}
       aria-labelledby="transfer-title"
     >
-      <h2 id="transfer-title" className={styles.cardTitle}>
+      <h2 id="transfer-title" className={appUi.cardTitle}>
         {t('project.transfer.title')}
       </h2>
       <p className={styles.muted}>{t('project.transfer.lead')}</p>
@@ -71,7 +72,7 @@ export async function TransferProject(props: Props) {
             spellCheck={false}
             required
           />
-          <div className={styles.actions}>
+          <div className={appUi.actions}>
             <SubmitButton variant="danger" pendingLabel={t('project.transfer.moving')}>
               {t('project.transfer.submit')}
             </SubmitButton>

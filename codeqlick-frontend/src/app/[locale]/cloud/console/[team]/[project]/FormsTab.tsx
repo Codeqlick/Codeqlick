@@ -29,6 +29,7 @@ import {
   toggleFormAction,
   toggleSpamFilterAction,
 } from '../../../actions';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from '../../../cloud.module.css';
 
 /** The HTML a page pastes: a plain form posting to the endpoint, with the honeypot. */
@@ -85,14 +86,14 @@ export async function FormsTab(props: Props) {
   return (
     <section className={styles.landing} aria-labelledby="forms-title">
       <div>
-        <h2 id="forms-title" className={styles.sectionTitle}>
+        <h2 id="forms-title" className={appUi.sectionTitle}>
           {t('project.tabs.forms')}
         </h2>
         <p className={styles.muted}>{t('forms.lead')}</p>
       </div>
       {forms.length === 0 ? <p className={styles.muted}>{t('forms.empty')}</p> : null}
       {forms.map((form) => (
-        <article key={form.id} className={styles.card}>
+        <article key={form.id} className={appUi.card}>
           <p className={styles.rowTitle}>
             {form.name}
             <Badge tone={form.enabled ? 'success' : 'neutral'}>
@@ -116,7 +117,7 @@ export async function FormsTab(props: Props) {
             <p className={styles.small}>{t('forms.snippetHelp')}</p>
           </details>
           {props.admin ? (
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <form action={toggleFormAction}>
                 {hidden(form)}
                 <input type="hidden" name="enabled" value={form.enabled ? 'off' : 'on'} />
@@ -150,8 +151,8 @@ export async function FormsTab(props: Props) {
       ))}
 
       {props.admin ? (
-        <section className={`${styles.card} ${styles.narrow}`} aria-labelledby="new-form">
-          <h3 id="new-form" className={styles.cardTitle}>
+        <section className={`${appUi.card} ${styles.narrow}`} aria-labelledby="new-form">
+          <h3 id="new-form" className={appUi.cardTitle}>
             {t('forms.newTitle')}
           </h3>
           <ActionForm
@@ -181,7 +182,7 @@ export async function FormsTab(props: Props) {
               hint={t('forms.spamFilterHint')}
               defaultChecked
             />
-            <div className={styles.actions}>
+            <div className={appUi.actions}>
               <SubmitButton pendingLabel={t('forms.creating')}>{t('forms.create')}</SubmitButton>
             </div>
           </ActionForm>
@@ -217,10 +218,10 @@ async function Submissions(props: Props & { form: CloudForm }) {
         <p className={styles.small}>
           <Link href={`${props.base}?tab=forms`}>← {t('project.tabs.forms')}</Link>
         </p>
-        <h2 id="submissions-title" className={styles.sectionTitle}>
+        <h2 id="submissions-title" className={appUi.sectionTitle}>
           {props.form.name}
         </h2>
-        <nav className={styles.actions} aria-label={t('forms.views')}>
+        <nav className={appUi.actions} aria-label={t('forms.views')}>
           <Link
             href={viewHref('inbox')}
             className={buttonClassName({ variant: spamView ? 'outline' : 'primary', size: 'sm' })}
@@ -237,8 +238,8 @@ async function Submissions(props: Props & { form: CloudForm }) {
           </Link>
         </nav>
         {spamView ? <p className={styles.muted}>{t('forms.spamNote')}</p> : null}
-        <div className={styles.actions}>
-          <form method="get" className={styles.actions}>
+        <div className={appUi.actions}>
+          <form method="get" className={appUi.actions}>
             <input type="hidden" name="tab" value="forms" />
             <input type="hidden" name="form" value={props.form.id} />
             {spamView ? <input type="hidden" name="view" value="spam" /> : null}
@@ -271,7 +272,7 @@ async function Submissions(props: Props & { form: CloudForm }) {
         <>
           <ul className={styles.list}>
             {list.items.map((submission) => (
-              <li key={submission.id} className={styles.card}>
+              <li key={submission.id} className={appUi.card}>
                 <p className={styles.small}>
                   {formatWhen(submission.createdAt, props.locale)}
                   {submission.page ? ` · ${submission.page}` : ''}
@@ -296,7 +297,7 @@ async function Submissions(props: Props & { form: CloudForm }) {
                     </div>
                   ))}
                 </dl>
-                <div className={styles.actions}>
+                <div className={appUi.actions}>
                   <form action={markSubmissionSpamAction}>
                     <input type="hidden" name="locale" value={props.locale} />
                     <input type="hidden" name="project" value={props.projectId} />

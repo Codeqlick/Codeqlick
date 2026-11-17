@@ -1,9 +1,11 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Button } from '@/components/ui/Button';
 import { resolveLocale } from '@/i18n/locale';
 import { getCurrentUser } from '@/lib/auth/session';
 import { cloudDocsUrl } from '@/lib/cloud-docs-url';
 import { env } from '@/lib/env';
+import appUi from '@/components/layout/AppPage.module.css';
 import styles from './cloud.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -21,26 +23,29 @@ export default async function CloudLandingPage({ params }: PageProps) {
 
   return (
     <div className={styles.landing}>
-      <section className={styles.hero}>
-        <div>
-          <p className={`eyebrow ${styles.eyebrow}`}>{t('landing.eyebrow')}</p>
-          <h1 className={styles.heroTitle}>{t('landing.title')}</h1>
-          <p className={styles.heroLead}>{t('landing.lead')}</p>
-          <div className={styles.actions}>
-            {user ? (
-              <Button href="/cloud/console">{t('landing.start')}</Button>
-            ) : (
-              <Button href={`/register?next=/${locale}/cloud/console`}>
-                {t('landing.createAccount')}
+      <section className={appUi.split}>
+        <PageHeader
+          variant="hero"
+          eyebrow={t('landing.eyebrow')}
+          title={t('landing.title')}
+          lead={t('landing.lead')}
+          actions={
+            <>
+              {user ? (
+                <Button href="/cloud/console">{t('landing.start')}</Button>
+              ) : (
+                <Button href={`/register?next=/${locale}/cloud/console`}>
+                  {t('landing.createAccount')}
+                </Button>
+              )}
+              <Button href={cloudDocsUrl(locale)} variant="outline">
+                {t('landing.docs')}
               </Button>
-            )}
-            <Button href={cloudDocsUrl(locale)} variant="outline">
-              {t('landing.docs')}
-            </Button>
-          </div>
-        </div>
-        <div className={styles.card}>
-          <h2 className={styles.cardTitle}>{t('landing.planTitle')}</h2>
+            </>
+          }
+        />
+        <div className={appUi.card}>
+          <h2 className={appUi.cardTitle}>{t('landing.planTitle')}</h2>
           <ul className={styles.checks}>
             {plan.map((item) => (
               <li key={item}>{item}</li>
@@ -50,7 +55,7 @@ export default async function CloudLandingPage({ params }: PageProps) {
       </section>
 
       <section aria-labelledby="how-title">
-        <h2 id="how-title" className={styles.sectionTitle}>
+        <h2 id="how-title" className={appUi.sectionTitle}>
           {t('landing.howTitle')}
         </h2>
         <pre className={styles.terminal}>
@@ -64,8 +69,8 @@ export default async function CloudLandingPage({ params }: PageProps) {
       <section>
         <ul className={styles.features}>
           {features.map((feature) => (
-            <li key={feature.title} className={styles.card}>
-              <h2 className={styles.cardTitle}>{feature.title}</h2>
+            <li key={feature.title} className={appUi.card}>
+              <h2 className={appUi.cardTitle}>{feature.title}</h2>
               <p className={styles.muted}>{feature.body}</p>
             </li>
           ))}

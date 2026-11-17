@@ -1,0 +1,129 @@
+/* The page header (architecture 6.6): title outside cards, 24 px (32 from 48 rem) to the content. */
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-6);
+  margin: 0 0 var(--space-6);
+}
+
+@media (min-width: 48rem) {
+  .header {
+    margin-bottom: var(--space-8);
+  }
+}
+
+.text {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+
+.hero {
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: var(--space-6);
+  padding-top: var(--space-6);
+  /* A landing's hero sits in a grid whose gap spaces it. */
+  margin-bottom: 0;
+}
+
+@media (min-width: 48rem) {
+  .hero {
+    margin-bottom: 0;
+  }
+}
+
+.extra {
+  margin-top: var(--space-3);
+}
+
+.hero .extra {
+  margin-top: var(--space-6);
+}
+
+.extra > :last-child {
+  margin-bottom: 0;
+}
+
+.hero .text {
+  flex: none;
+  width: 100%;
+  max-width: var(--measure);
+}
+
+.hero .actions {
+  width: 100%;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  margin: calc(var(--space-3) * -1) 0 var(--space-1);
+  color: var(--color-slate);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--color-fuchsia-dark);
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-3);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--text-h1);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.lead {
+  max-width: var(--measure);
+  margin-top: var(--space-3);
+  font-size: var(--text-lead);
+  line-height: 1.5;
+  color: var(--color-slate);
+}
+
+.lead > p {
+  margin: 0;
+}
+
+.lead > p + p {
+  margin-top: var(--space-2);
+}
+
+.hero .lead {
+  margin-top: var(--space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Under 30 rem the actions stack at full width (architecture 6.6). */
+@media (max-width: 30rem) {
+  .actions {
+    flex: 1 1 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

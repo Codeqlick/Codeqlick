@@ -1,3 +1,4 @@
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Alert } from '@/components/ui/Alert';
@@ -25,7 +26,7 @@ export default async function CitasCancelPage({ params, searchParams }: PageProp
   if (!appointment) {
     return (
       <div className={styles.notFound}>
-        <h1 className={styles.heroTitle}>{t('title')}</h1>
+        <PageHeader title={t('title')} />
         <Alert tone="error">{t('notFound')}</Alert>
       </div>
     );
@@ -47,14 +48,16 @@ export default async function CitasCancelPage({ params, searchParams }: PageProp
 
   return (
     <div className={styles.public}>
-      <section className={styles.intro}>
-        <p className={styles.eyebrow}>{appointment.ownerName}</p>
-        <h1 className={styles.heroTitle}>{appointment.title}</h1>
-        <ul className={styles.facts}>
-          <li>{when}</li>
-          {appointment.location ? <li>{appointment.location}</li> : null}
-        </ul>
-      </section>
+      <PageHeader
+        eyebrow={appointment.ownerName}
+        title={appointment.title}
+        meta={
+          <ul className={styles.facts}>
+            <li>{when}</li>
+            {appointment.location ? <li>{appointment.location}</li> : null}
+          </ul>
+        }
+      />
       {appointment.status === 'CANCELLED' ? (
         <>
           <Alert tone="info">{t('already')}</Alert>
