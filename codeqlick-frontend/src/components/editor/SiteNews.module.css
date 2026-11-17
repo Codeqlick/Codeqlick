@@ -85,7 +85,7 @@
 }
 
 .help summary:focus-visible {
-  outline: 3px solid var(--color-brand);
+  outline: 3px solid var(--color-fuchsia);
   outline-offset: 2px;
 }
 
@@ -145,7 +145,7 @@
 }
 
 .body a {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .visuallyHidden {

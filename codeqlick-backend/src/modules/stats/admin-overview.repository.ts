@@ -14,11 +14,6 @@ export interface OverviewWeekRow {
 /** Everything counted "now", one row (see the query for each column). */
 export interface OverviewTotalsRow {
   accounts: number;
-  /** NEOQLICK accounts (architecture 4.18); `accounts` counts CODEQLICK ones. */
-  neoqlickAccounts: number;
-  cruising: number;
-  swipe: number;
-  videochat: number;
   cloud: number;
   citas: number;
   meetings: number;
@@ -36,18 +31,6 @@ export interface OverviewTotalsRow {
   cspOpen: number;
   monitorsWatched: number;
   monitorsDown: number;
-  cruisingSpots: number;
-  cruisingReports: number;
-  cruisingMedia: number;
-  cruisingVerifications: number;
-  cruisingTakedowns: number;
-  swipePhotos: number;
-  swipeReports: number;
-  swipeVerifications: number;
-  swipeTakedowns: number;
-  videochatReports: number;
-  videochatAppeals: number;
-  videochatVerifications: number;
 }
 
 /**
@@ -55,9 +38,7 @@ export interface OverviewTotalsRow {
  * (Monday) with tagged templates only (every value a bound parameter). Nothing here returns a
  * person: only counts and sums.
  *
- * "People" are CODEQLICK accounts with role CLIENT (the team's ADMIN accounts are left out);
- * NEOQLICK accounts are counted apart (`neoqlickAccounts`), and the 18+ apps' figures count the
- * profiles of either realm (after the cut-over only NEOQLICK accounts have any). A portal client
+ * "People" are accounts with role CLIENT (the team's ADMIN accounts are left out). A portal client
  * is `CLIENT_WHERE` of `users/account-kind.ts` (decision 29) written in SQL, and active, like the
  * dashboard's "clients"; an e2e test checks both agree.
  */
@@ -71,11 +52,10 @@ export class AdminOverviewRepository {
     const [weeks, active, totals] = await this.prisma.$transaction([
       this.prisma.$queryRaw<OverviewWeekRow[]>`
         WITH bounds AS (SELECT (${from}::date)::timestamp AT TIME ZONE ${tz} AS since),
-        people AS (SELECT id, created_at FROM users WHERE role = 'CLIENT' AND realm = 'CODEQLICK'),
-        everyone AS (SELECT id FROM users WHERE role = 'CLIENT'),
+        people AS (SELECT id, created_at FROM users WHERE role = 'CLIENT'),
         portal AS (
           SELECT u.id, u.created_at FROM users u
-          WHERE u.role = 'CLIENT' AND u.realm = 'CODEQLICK' AND u.is_active
+          WHERE u.role = 'CLIENT' AND u.is_active
             AND (
               u.registered_at IS NULL
               OR u.member_of_id IS NOT NULL
@@ -88,12 +68,6 @@ export class AdminOverviewRepository {
         ),
         events AS (
           SELECT 'accounts' AS metric, created_at AS at, 0 AS amount FROM people
-          UNION ALL SELECT 'cruising', c.created_at, 0
-            FROM cruising_profiles c JOIN everyone ON everyone.id = c.user_id
-          UNION ALL SELECT 'swipe', s.created_at, 0
-            FROM swipe_profiles s JOIN everyone ON everyone.id = s.user_id
-          UNION ALL SELECT 'videochat', v.created_at, 0
-            FROM videochat_profiles v JOIN everyone ON everyone.id = v.user_id
           UNION ALL SELECT 'cloud', min(m.created_at), 0
             FROM cloud_members m JOIN people ON people.id = m.user_id GROUP BY m.user_id
           UNION ALL SELECT 'citas', min(b.created_at), 0
@@ -123,12 +97,11 @@ export class AdminOverviewRepository {
         SELECT to_char(date_trunc('week', s.created_at AT TIME ZONE ${tz}), 'YYYY-MM-DD') AS week,
                count(DISTINCT s.user_id)::int AS total
         FROM sessions s
-        JOIN users u ON u.id = s.user_id AND u.role = 'CLIENT' AND u.realm = 'CODEQLICK'
+        JOIN users u ON u.id = s.user_id AND u.role = 'CLIENT'
         WHERE s.created_at >= (${from}::date)::timestamp AT TIME ZONE ${tz}
         GROUP BY 1`,
       this.prisma.$queryRaw<OverviewTotalsRow[]>`
-        WITH people AS (SELECT id FROM users WHERE role = 'CLIENT' AND realm = 'CODEQLICK'),
-        everyone AS (SELECT id FROM users WHERE role = 'CLIENT'),
+        WITH people AS (SELECT id FROM users WHERE role = 'CLIENT'),
         pro AS (
           SELECT subscription_amount_cents AS amount FROM cloud_teams
           WHERE subscription_status IN ('active', 'trialing', 'past_due')
@@ -140,14 +113,6 @@ export class AdminOverviewRepository {
         )
         SELECT
           (SELECT count(*) FROM people)::int AS accounts,
-          (SELECT count(*) FROM users WHERE role = 'CLIENT' AND realm = 'NEOQLICK')::int
-            AS "neoqlickAccounts",
-          (SELECT count(*) FROM cruising_profiles c JOIN everyone ON everyone.id = c.user_id)::int
-            AS cruising,
-          (SELECT count(*) FROM swipe_profiles s JOIN everyone ON everyone.id = s.user_id)::int
-            AS swipe,
-          (SELECT count(*) FROM videochat_profiles v JOIN everyone ON everyone.id = v.user_id)::int
-            AS videochat,
           (SELECT count(DISTINCT m.user_id) FROM cloud_members m
             JOIN people ON people.id = m.user_id)::int AS cloud,
           (SELECT count(DISTINCT b.owner_id) FROM booking_pages b
@@ -155,7 +120,7 @@ export class AdminOverviewRepository {
           (SELECT count(DISTINCT r.owner_id) FROM meeting_rooms r
             JOIN people ON people.id = r.owner_id)::int AS meetings,
           (SELECT count(*) FROM users u
-            WHERE u.role = 'CLIENT' AND u.realm = 'CODEQLICK' AND u.is_active
+            WHERE u.role = 'CLIENT' AND u.is_active
               AND (
                 u.registered_at IS NULL
                 OR u.member_of_id IS NOT NULL
@@ -183,27 +148,7 @@ export class AdminOverviewRepository {
             AS "cspOpen",
           (SELECT count(*) FROM site_monitors WHERE enabled)::int AS "monitorsWatched",
           (SELECT count(*) FROM site_monitors WHERE enabled AND status = 'DOWN')::int
-            AS "monitorsDown",
-          (SELECT count(*) FROM cruising_spots WHERE status = 'PENDING')::int AS "cruisingSpots",
-          (SELECT count(*) FROM cruising_reports WHERE status = 'OPEN')::int AS "cruisingReports",
-          (SELECT count(*) FROM cruising_media
-            WHERE reviewed_at IS NULL AND status IN ('LIVE', 'HIDDEN', 'PROCESSING'))::int
-            AS "cruisingMedia",
-          (SELECT count(*) FROM cruising_profiles WHERE verification_status = 'PENDING')::int
-            AS "cruisingVerifications",
-          (SELECT count(*) FROM cruising_takedowns WHERE status = 'OPEN')::int
-            AS "cruisingTakedowns",
-          (SELECT count(*) FROM swipe_photos WHERE status = 'PENDING')::int AS "swipePhotos",
-          (SELECT count(*) FROM swipe_reports WHERE status = 'OPEN')::int AS "swipeReports",
-          (SELECT count(*) FROM swipe_profiles WHERE verification_status = 'PENDING')::int
-            AS "swipeVerifications",
-          (SELECT count(*) FROM swipe_takedowns WHERE status = 'OPEN')::int AS "swipeTakedowns",
-          (SELECT count(*) FROM videochat_reports WHERE status = 'OPEN')::int
-            AS "videochatReports",
-          (SELECT count(*) FROM videochat_appeals WHERE status = 'OPEN')::int
-            AS "videochatAppeals",
-          (SELECT count(*) FROM videochat_profiles WHERE verification_status = 'PENDING')::int
-            AS "videochatVerifications"`,
+            AS "monitorsDown"`,
     ]);
     return { weeks, active, totals: totals[0]! };
   }

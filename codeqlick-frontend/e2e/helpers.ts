@@ -81,100 +81,15 @@ export async function signIn(page: Page, user: { email: string; password: string
 export async function apiLogin(
   request: APIRequestContext,
   user: { email: string; password: string },
-  realm?: 'NEOQLICK',
 ): Promise<string> {
-  const headers = realm ? { ...realmHeaders(realm), ...anonymousIp() } : undefined;
-  let login = await request.post(`${API_URL}/auth/login`, { data: user, headers });
+  let login = await request.post(`${API_URL}/auth/login`, { data: user });
   if (login.status() === 429) {
     test.info().setTimeout(test.info().timeout + 65_000);
     await new Promise((resolve) => setTimeout(resolve, 61_000));
-    login = await request.post(`${API_URL}/auth/login`, { data: user, headers });
+    login = await request.post(`${API_URL}/auth/login`, { data: user });
   }
   expect(login.ok()).toBeTruthy();
   return ((await login.json()) as { accessToken: string }).accessToken;
-}
-
-/**
- * Neoqlick's hosts (architecture 4.18): http://localhost:3001 → http://cruising.neoqlick.localhost:3001
- * (browsers resolve *.localhost). Without `name`, the portal.
- */
-export function neoqlickUrl(name = '', base = process.env.E2E_BASE_URL ?? 'http://localhost:3001') {
-  const url = new URL(base);
-  url.hostname = `${name ? `${name}.` : ''}neoqlick.${url.hostname}`;
-  return url.origin;
-}
-
-/** The account host of Neoqlick. */
-export function neoqlickAccountUrl(path = '', base?: string) {
-  return `${neoqlickUrl('account', base)}${path}`;
-}
-
-/** The header that makes a public account route work on Neoqlick's user base. */
-export function realmHeaders(realm: 'NEOQLICK') {
-  return { 'X-Realm': realm };
-}
-
-/**
- * A made-up client address for a request to the API (it trusts one proxy hop): the sign-up and
- * sign-in limits are per IP, and these set-up calls would otherwise share one bucket.
- */
-export function anonymousIp() {
-  const octet = () => 1 + Math.floor(Math.random() * 253);
-  return { 'X-Forwarded-For': `10.${octet()}.${octet()}.${octet()}` };
-}
-
-export type NeoqlickUser = { email: string; password: string; name: string };
-
-/**
- * A new Neoqlick account (a separate user base): it signs up through the API like the account
- * host's form does (terms accepted) and confirms the emailed link. Returns its access token.
- */
-export async function createNeoqlickUser(
-  request: APIRequestContext,
-  user: NeoqlickUser,
-): Promise<string> {
-  const headers = { ...realmHeaders('NEOQLICK'), ...anonymousIp() };
-  const registered = await request.post(`${API_URL}/auth/register`, {
-    headers,
-    data: {
-      name: user.name,
-      email: user.email,
-      password: user.password,
-      locale: 'es',
-      acceptPrivacy: true,
-      acceptTerms: true,
-    },
-  });
-  expect(registered.ok()).toBeTruthy();
-  const mail = await mailTo(user.email, /Confirma/);
-  const token = new URL(linkIn(mail, 'http')).searchParams.get('token');
-  const confirmed = await request.post(`${API_URL}/auth/register/confirm`, {
-    headers,
-    data: { token },
-  });
-  expect(confirmed.ok()).toBeTruthy();
-  return ((await confirmed.json()) as { accessToken: string }).accessToken;
-}
-
-/** The id of the account an access token belongs to. */
-export async function accountId(request: APIRequestContext, token: string): Promise<string> {
-  const me = await request.get(`${API_URL}/auth/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  expect(me.ok()).toBeTruthy();
-  return ((await me.json()) as { id: string }).id;
-}
-
-/** Deletes a Neoqlick account (the team's tools only reach Codeqlick's): the account's own deletion. */
-export async function deleteNeoqlickUser(request: APIRequestContext, user: NeoqlickUser) {
-  const headers = { ...realmHeaders('NEOQLICK'), ...anonymousIp() };
-  const login = await request.post(`${API_URL}/auth/login`, { headers, data: user });
-  if (!login.ok()) return;
-  const { accessToken } = (await login.json()) as { accessToken: string };
-  await request.delete(`${API_URL}/auth/me`, {
-    headers: { ...headers, Authorization: `Bearer ${accessToken}` },
-    data: { password: user.password },
-  });
 }
 
 /** Where the API writes the emails it sends (MAIL_OUTBOX_DIR, tests only). */

@@ -65,8 +65,6 @@ services:
       SITE_URL: ${SITE_URL}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?set JWT_ACCESS_SECRET in .env}
       CREDENTIALS_SECRET: ${CREDENTIALS_SECRET:?set CREDENTIALS_SECRET in .env}
-      # Keys the email hashes kept after serious 18+ suspensions (architecture 4.16, decision 120).
-      ADULT_BAN_HASH_KEY: ${ADULT_BAN_HASH_KEY:-}
       SMTP_HOST: ${SMTP_HOST:?set SMTP_HOST in .env}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -100,40 +98,13 @@ services:
       OVH_APPLICATION_SECRET: ${OVH_APPLICATION_SECRET:-}
       OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
       OVH_NIC_HANDLE: ${OVH_NIC_HANDLE:-}
-      # Video chat (architecture 4.7): the page allowed to open its WebSocket, coturn's shared
-      # secret and the STUN/TURN URLs browsers get. Without TURN, calls behind strict NATs fail.
-      VIDEOCHAT_ORIGINS: ${VIDEOCHAT_URL:-https://videochat.codeqlick.com}
-      # Meetings (architecture 4.8): the page allowed to open its WebSocket (same TURN as above).
+      # Meetings (architecture 4.8): the page allowed to open its WebSocket, coturn's shared secret
+      # and the STUN/TURN URLs browsers get. Without TURN, calls behind strict NATs fail.
       MEETINGS_ORIGINS: ${MEETINGS_URL:-https://meetings.codeqlick.com}
-      VIDEOCHAT_AGE_VERIFICATION_REQUIRED: ${VIDEOCHAT_AGE_VERIFICATION_REQUIRED:-false}
       TURN_SECRET: ${TURN_SECRET:-}
       TURN_URLS: ${TURN_URLS:-}
-      # "Someone is waiting" notifications (Web Push); off while the keys are empty.
-      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
-      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
-      # Neoqlick, the 18+ apps' own brand and accounts (architecture 4.18). All optional: the API
-      # treats an empty value as unset (the two with defaults carry them here), so nothing changes until the owner fills them in at the
-      # cut-over (deploy/README.md, "Neoqlick cut-over").
-      NEOQLICK_URL: ${NEOQLICK_URL:-}
-      NEOQLICK_ACCOUNT_URL: ${NEOQLICK_ACCOUNT_URL:-}
-      NEOQLICK_PUBLIC_API_URL: ${NEOQLICK_PUBLIC_API_URL:-}
-      MAIL_FROM_NEOQLICK: ${MAIL_FROM_NEOQLICK:-}
-      SMTP_USER_NEOQLICK: ${SMTP_USER_NEOQLICK:-}
-      SMTP_PASSWORD_NEOQLICK: ${SMTP_PASSWORD_NEOQLICK:-}
-      WEBAUTHN_RP_ID_NEOQLICK: ${WEBAUTHN_RP_ID_NEOQLICK:-}
-      WEBAUTHN_ORIGINS_NEOQLICK: ${WEBAUTHN_ORIGINS_NEOQLICK:-}
-      NEOQLICK_TERMS_VERSION: ${NEOQLICK_TERMS_VERSION:-2026-11-17.1}
-      NEOQLICK_TRADE_NAME: ${NEOQLICK_TRADE_NAME:-}
-      NEOQLICK_LEGAL_OWNER_NAME: ${NEOQLICK_LEGAL_OWNER_NAME:-}
-      NEOQLICK_LEGAL_OWNER_TAX_ID: ${NEOQLICK_LEGAL_OWNER_TAX_ID:-}
-      NEOQLICK_LEGAL_OWNER_ADDRESS: ${NEOQLICK_LEGAL_OWNER_ADDRESS:-}
-      NEOQLICK_VAPID_PUBLIC_KEY: ${NEOQLICK_VAPID_PUBLIC_KEY:-}
-      NEOQLICK_VAPID_PRIVATE_KEY: ${NEOQLICK_VAPID_PRIVATE_KEY:-}
-      NEOQLICK_VAPID_SUBJECT: ${NEOQLICK_VAPID_SUBJECT:-mailto:hello@neoqlick.com}
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
-      # Neoqlick's widget is in its own Cloudflare account: its own secret (off for Neoqlick while empty).
-      TURNSTILE_SECRET_KEY_NEOQLICK: ${TURNSTILE_SECRET_KEY_NEOQLICK:-}
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
       # IndexNow submissions for posts and case studies (architecture 4.1); off unless true.
       INDEXNOW_ENABLED: ${INDEXNOW_ENABLED:-false}
@@ -144,8 +115,6 @@ services:
       CLOUD_PLATFORM_DOMAINS: ${CLOUD_PLATFORM_DOMAINS:-}
       CLOUD_PLATFORM_TEAM_ID: ${CLOUD_PLATFORM_TEAM_ID:-}
       CLOUD_ROOT: /cloud
-      # Cruising's private photos and videos (architecture 4.15), on the cruising-data volume.
-      CRUISING_UPLOADS_DIR: /app/cruising-uploads
       CLOUD_URL: ${CLOUD_URL:-https://cloud.codeqlick.com}
       # Password protection (architecture 4.13): the key the hosting sites' Nginx sends; created in
       # .env by deploy/setup-cloud.sh. Protection can't be turned on while it is empty.
@@ -169,10 +138,6 @@ services:
     volumes:
       - uploads-data:/app/uploads
       - /srv/codeqlick/cloud:/cloud
-      # Swipe's photos: private, served only through the API (architecture 4.10).
-      - swipe-data:/app/swipe-uploads
-      # Cruising's photos and videos: private, served only through the API (architecture 4.15).
-      - cruising-data:/app/cruising-uploads
     ports:
       - "127.0.0.1:${API_PORT:-4010}:4000"
 
@@ -206,36 +171,29 @@ services:
       LEGAL_OWNER_NAME: ${LEGAL_OWNER_NAME:-}
       LEGAL_OWNER_TAX_ID: ${LEGAL_OWNER_TAX_ID:-}
       LEGAL_OWNER_ADDRESS: ${LEGAL_OWNER_ADDRESS:-}
-      # Neoqlick (architecture 4.18): its hosts exist only where NEOQLICK_URL is set.
-      NEOQLICK_URL: ${NEOQLICK_URL:-}
-      NEOQLICK_UMAMI_WEBSITE_ID: ${NEOQLICK_UMAMI_WEBSITE_ID:-}
-      NEOQLICK_TRADE_NAME: ${NEOQLICK_TRADE_NAME:-}
-      NEOQLICK_LEGAL_OWNER_NAME: ${NEOQLICK_LEGAL_OWNER_NAME:-}
-      NEOQLICK_LEGAL_OWNER_TAX_ID: ${NEOQLICK_LEGAL_OWNER_TAX_ID:-}
-      NEOQLICK_LEGAL_OWNER_ADDRESS: ${NEOQLICK_LEGAL_OWNER_ADDRESS:-}
       # Cloudflare Turnstile's public site key: the sign-in and sign-up widget; off while empty.
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
-      TURNSTILE_SITE_KEY_NEOQLICK: ${TURNSTILE_SITE_KEY_NEOQLICK:-}
       # The strict Content Security Policy: report-only while false, enforced when true
       # (architecture 6.4, decision 109; deploy/README.md, "Security headers").
       CSP_ENFORCE: ${CSP_ENFORCE:-false}
     ports:
       - "127.0.0.1:${WEB_PORT:-3010}:3000"
 
-  # STUN/TURN for the video chat (architecture 4.7): relays a call's media when the two browsers
-  # can't reach each other directly. Host network (it needs a public UDP port range); credentials
-  # are short-lived HMACs of TURN_SECRET made by the API. Firewall: 3478/udp+tcp and the range.
-  # Off until the video chat is set up: deploy/setup-videochat.sh adds COMPOSE_PROFILES=videochat
-  # to .env, so a release before that (no TURN_SECRET yet) doesn't fail.
+  # STUN/TURN for Meetings (architecture 4.8): relays a call's media when the two browsers can't
+  # reach each other directly. Host network (it needs a public UDP port range); credentials are
+  # short-lived HMACs of TURN_SECRET made by the API. Firewall: 3478/udp+tcp and the range.
+  # Off until deploy/setup-coturn.sh adds COMPOSE_PROFILES=turn to .env, so a release before that
+  # (no TURN_SECRET yet) doesn't fail. (The profile was called `videochat` until the 18+ apps left;
+  # deploy.sh renames it in .env.)
   coturn:
     image: coturn/coturn:4.18.0-alpine
-    profiles: [videochat]
+    profiles: [turn]
     restart: unless-stopped
     network_mode: host
     command:
       - --listening-port=3478
       - --external-ip=${SITES_SERVER_IP:-}
-      - --realm=videochat.codeqlick.com
+      - --realm=meetings.codeqlick.com
       - --use-auth-secret
       - --static-auth-secret=${TURN_SECRET:-}
       - --min-port=49160
@@ -384,10 +342,6 @@ volumes:
   db-data:
   # Images uploaded from the admin panel.
   uploads-data:
-  # Swipe's photos (not in the public uploads, not in the backups).
-  swipe-data:
-  # Cruising's photos and videos (not in the public uploads, not in the backups).
-  cruising-data:
   umami-db-data:
   cloud-pg-data:
   cloud-storage-meta:

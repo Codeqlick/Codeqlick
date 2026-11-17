@@ -3,9 +3,9 @@
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
-import { compressPhoto } from '@/components/swipe/compress';
 import styles from '@/components/app/app.module.css';
 import { buttonClassName } from '@/components/ui/buttonStyles';
+import { compressPhoto } from '@/lib/compress-photo';
 
 type AvatarUploadProps = {
   action: (formData: FormData) => Promise<{ ok: true } | { ok: false; message: string }>;

@@ -6,8 +6,8 @@ import type { Webapp } from '@/lib/webapps';
 
 export type Locale = 'en' | 'es';
 
-/** An account's language (decision 103): the website's two plus Cruising's four. */
-export type AccountLocale = 'en' | 'es' | 'fr' | 'de' | 'it' | 'pt';
+/** An account's language: the website's two. */
+export type AccountLocale = 'en' | 'es';
 
 export type Role = 'ADMIN' | 'CLIENT';
 
@@ -659,7 +659,7 @@ export type AccountActivity = {
 
 /** A part of the platform the caller uses (`GET /auth/apps`). */
 export type AccountApp = {
-  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas' | 'videochat' | 'swipe' | 'cruising';
+  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas';
   count: number;
 };
 
@@ -696,9 +696,6 @@ export const ACTIVITY_TARGETS = [
   'settings',
   'booking',
   'account',
-  'videochat',
-  'swipe',
-  'adult',
   'site_news',
   'newsletter',
 ] as const;

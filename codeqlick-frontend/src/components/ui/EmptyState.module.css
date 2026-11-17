@@ -20,14 +20,6 @@
   line-height: 0;
 }
 
-/* The brand's symbol (`--brand-symbol`, set by the theme), 40 px. */
-.symbol {
-  display: block;
-  width: 40px;
-  height: 40px;
-  background: var(--brand-symbol) center / contain no-repeat;
-}
-
 .title {
   margin: 0;
   font-size: 1.25rem;

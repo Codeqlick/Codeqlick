@@ -33,7 +33,7 @@
 
 .secondary {
   justify-self: center;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -129,14 +129,14 @@
 
 .checks li::before {
   content: '✓';
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
 }
 
 .plus li::before {
   content: '+';
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .plus li {

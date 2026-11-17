@@ -24,7 +24,7 @@
 }
 
 .banner:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
   background: var(--color-blush);
   color: var(--color-ink);
 }
@@ -33,14 +33,14 @@
   flex: none;
   padding: 0.2rem 0.65rem;
   border-radius: var(--radius-pill);
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
 }
 
 .bannerArrow {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   transition: transform var(--transition-base);
 }
 
@@ -68,7 +68,7 @@
   padding: 0.75rem;
   border-radius: var(--radius-md);
   background: var(--color-blush);
-  color: var(--color-brand);
+  color: var(--color-fuchsia);
 }
 
 .intro {
@@ -111,8 +111,8 @@
   top: 0.55em;
   width: 0.85rem;
   height: 0.45rem;
-  border-left: 2.5px solid var(--color-brand);
-  border-bottom: 2.5px solid var(--color-brand);
+  border-left: 2.5px solid var(--color-fuchsia);
+  border-bottom: 2.5px solid var(--color-fuchsia);
   transform: rotate(-45deg);
 }
 
@@ -128,11 +128,11 @@
 
 .processLink {
   /* The section is blush: the regular fuchsia only reaches 4.2:1 on it (WCAG AA needs 4.5). */
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-weight: 600;
   text-decoration: none;
   /* Fuchsia on blush is 4.2:1; the darker fuchsia passes AA. */
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .processLink:hover {
@@ -163,7 +163,7 @@
 }
 
 .breadcrumb a {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   text-decoration: none;
 }
 
@@ -175,7 +175,7 @@
 .remote {
   max-width: 44rem;
   padding-left: var(--space-4);
-  border-left: 3px solid var(--color-brand);
+  border-left: 3px solid var(--color-fuchsia);
   color: var(--color-slate);
 }
 
@@ -218,7 +218,7 @@
 }
 
 .steps li::marker {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-family: var(--font-family-mono);
   font-weight: 600;
 }
@@ -266,7 +266,7 @@
 }
 
 .pill:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
   background: var(--color-blush);
   color: var(--color-ink);
 }

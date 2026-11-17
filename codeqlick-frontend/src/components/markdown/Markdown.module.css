@@ -40,7 +40,7 @@
   margin-left: 0.35em;
   font-family: var(--font-family-mono);
   font-weight: 500;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   text-decoration: none;
   opacity: 0;
   transition: opacity var(--transition-fast);
@@ -64,14 +64,14 @@
   margin-left: 0;
   margin-right: 0;
   padding: 0.25rem 0 0.25rem 1.25rem;
-  border-left: 4px solid var(--color-brand);
+  border-left: 4px solid var(--color-fuchsia);
   color: var(--color-slate);
 }
 
 .markdown code {
   font-size: 0.9em;
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   padding: 0.1em 0.35em;
   border-radius: 4px;
 }
@@ -118,18 +118,18 @@
 }
 
 .copyButton:hover {
-  border-color: var(--color-brand-light);
+  border-color: var(--color-fuchsia-light);
   color: var(--color-white);
 }
 
 .copyButton:focus-visible {
-  outline: 2px solid var(--color-brand-light);
+  outline: 2px solid var(--color-fuchsia-light);
   outline-offset: 2px;
 }
 
 .copyButton[data-status='copied'] {
-  border-color: var(--color-brand-light);
-  color: var(--color-brand-light);
+  border-color: var(--color-fuchsia-light);
+  color: var(--color-fuchsia-light);
 }
 
 /* With a mouse: shown on hover, on keyboard focus and while it reports a copy. On touch screens

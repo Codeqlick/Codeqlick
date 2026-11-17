@@ -35,7 +35,7 @@
   letter-spacing: 0.08em;
   line-height: 1.6;
   text-transform: uppercase;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .links,
@@ -59,7 +59,7 @@
 }
 
 .link:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -72,7 +72,7 @@
 }
 
 .email:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .social {
@@ -99,8 +99,8 @@
 }
 
 .pill:hover {
-  border-color: var(--color-brand);
-  color: var(--color-brand-dark);
+  border-color: var(--color-fuchsia);
+  color: var(--color-fuchsia-dark);
 }
 
 /* Copyright, tagline (away from the logo, as the brand asks) and legal links. */

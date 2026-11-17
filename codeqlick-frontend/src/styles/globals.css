@@ -50,11 +50,11 @@ button {
 
 /* Base typography */
 a {
-  color: var(--color-brand);
+  color: var(--color-fuchsia);
 }
 
 a:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 h1,
@@ -75,7 +75,7 @@ p {
 }
 
 ::selection {
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
 }
 
@@ -87,7 +87,7 @@ kbd {
 
 /* Focus */
 :focus-visible {
-  outline: 3px solid var(--color-brand);
+  outline: 3px solid var(--color-fuchsia);
   outline-offset: 3px;
   border-radius: var(--radius-sm);
 }
@@ -150,7 +150,7 @@ html[data-app-menu-open] {
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .lead {

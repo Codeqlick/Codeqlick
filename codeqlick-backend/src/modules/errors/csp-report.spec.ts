@@ -55,12 +55,12 @@ describe('cspViolations', () => {
       parse([
         {
           type: 'csp-violation',
-          url: 'https://swipe.codeqlick.com/en/deck',
+          url: 'https://citas.codeqlick.com/en/book',
           user_agent: 'Chrome',
           body: {
-            documentURL: 'https://swipe.codeqlick.com/en/deck',
+            documentURL: 'https://citas.codeqlick.com/en/book',
             effectiveDirective: 'frame-src',
-            blockedURL: 'https://ads.example/zone?id=1',
+            blockedURL: 'https://frames.example/zone?id=1',
             disposition: 'enforce',
           },
         },
@@ -69,8 +69,8 @@ describe('cspViolations', () => {
     );
     expect(violations).toHaveLength(1);
     expect(violations[0]).toMatchObject({
-      message: 'frame-src blocked https://ads.example',
-      path: '/en/deck',
+      message: 'frame-src blocked https://frames.example',
+      path: '/en/book',
       userAgent: 'Chrome',
     });
     expect(violations[0]!.sample).toBe('disposition: enforce');

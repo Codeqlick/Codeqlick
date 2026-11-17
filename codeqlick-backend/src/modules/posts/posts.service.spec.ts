@@ -50,13 +50,7 @@ function post(
   } as AdminPostRecord;
 }
 
-const actor = {
-  id: 'a1',
-  email: 'admin@codeqlick.com',
-  name: 'Admin',
-  role: 'ADMIN',
-  realm: 'CODEQLICK',
-} as const;
+const actor = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as const;
 
 describe('PostsService', () => {
   let repository: {

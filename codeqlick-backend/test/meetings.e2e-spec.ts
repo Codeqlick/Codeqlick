@@ -316,11 +316,4 @@ describe('Meetings (e2e)', () => {
     await seventh.next('full');
     expect(await seventh.closed()).toBe(4409);
   });
-
-  it('leaves the video chat socket working beside it', async () => {
-    const tab = await Tab.open(wsUrl.replace('/meetings/', '/videochat/'), 'http://localhost:3000');
-    tabs.push(tab);
-    tab.send({ type: 'auth', ticket: 'x'.repeat(20) });
-    expect((await tab.next('error')).code).toBe('invalid-ticket');
-  });
 });

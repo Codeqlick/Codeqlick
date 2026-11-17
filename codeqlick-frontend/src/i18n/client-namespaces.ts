@@ -15,19 +15,11 @@ export const BASE_CLIENT_NAMESPACES = [
   'WebsiteCheck',
 ] as const;
 
-/** The base namespaces on Neoqlick's hosts (architecture 4.18): the base minus the website's own (booking, calculator, contact, newsletter, website check). */
-export const NEOQLICK_CLIENT_NAMESPACES = BASE_CLIENT_NAMESPACES.filter(
-  (name) => !['Book', 'Calculator', 'Contact', 'Newsletter', 'WebsiteCheck'].includes(name),
-);
-
 /** What each section's own Client Components add, given by its layout. */
 export const APP_NAMESPACES = {
-  admin: ['SiteNews', 'CruisingSpotImport'],
+  admin: ['SiteNews'],
   citas: ['Citas'],
   cloud: ['Cloud'],
-  cruising: ['Cruising'],
   meetings: ['Meetings'],
   portal: ['SiteEditor', 'SiteNews'],
-  swipe: ['Swipe', 'Videochat'],
-  videochat: ['Videochat'],
 } as const;

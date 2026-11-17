@@ -11,7 +11,7 @@ import type { CloudRepository } from './cloud.repository.js';
 import type { CloudStorage } from './cloud.storage.js';
 
 const ctx = {
-  user: { id: 'u1', email: 'ada@codeqlick.test', name: 'Ada', role: 'CLIENT', realm: 'CODEQLICK' },
+  user: { id: 'u1', email: 'ada@codeqlick.test', name: 'Ada', role: 'CLIENT' },
   ip: '127.0.0.1',
 } as unknown as CloudCtx;
 

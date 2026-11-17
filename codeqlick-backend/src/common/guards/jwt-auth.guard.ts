@@ -79,8 +79,6 @@ export class JwtAuthGuard implements CanActivate {
       email: payload.email,
       name: typeof payload.name === 'string' ? payload.name : '',
       role: payload.role,
-      // Tokens issued before realms existed carry no claim: they are CODEQLICK accounts.
-      realm: payload.rlm === 'NEOQLICK' ? 'NEOQLICK' : 'CODEQLICK',
       sessionId: typeof payload.sid === 'string' ? payload.sid : undefined,
       accountId: typeof payload.acc === 'string' ? payload.acc : payload.sub,
     };

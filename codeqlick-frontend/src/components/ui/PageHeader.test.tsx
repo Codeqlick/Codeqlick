@@ -44,16 +44,16 @@ describe('PageHeader', () => {
 
   it("shows a landing's status line between the eyebrow and the title", () => {
     const html = renderToStaticMarkup(
-      <PageHeader eyebrow="Videochat" status={<p>12 online</p>} title="Meet people" />,
+      <PageHeader eyebrow="Meetings" status={<p>12 online</p>} title="Meet people" />,
     );
-    expect(text(html)).toBe('|Videochat|12 online|Meet people|');
+    expect(text(html)).toBe('|Meetings|12 online|Meet people|');
   });
 
   it('marks the hero variant and keeps the caller’s class and title id', () => {
     const hero = renderToStaticMarkup(
-      <PageHeader variant="hero" title="Swipe" titleId="t" className="mine" />,
+      <PageHeader variant="hero" title="Citas" titleId="t" className="mine" />,
     );
-    const page = renderToStaticMarkup(<PageHeader title="Swipe" />);
+    const page = renderToStaticMarkup(<PageHeader title="Citas" />);
     const classOf = (html: string) => html.match(/^<header class="([^"]*)"/)?.[1].split(' ') ?? [];
     expect(classOf(hero)).toHaveLength(3);
     expect(classOf(hero)).toContain('mine');

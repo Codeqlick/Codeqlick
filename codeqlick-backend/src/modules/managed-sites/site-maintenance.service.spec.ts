@@ -16,20 +16,8 @@ import type { StripeClient, StripeEvent, StripeSubscription } from './stripe.cli
 
 const PROJECT = '11111111-1111-4111-8111-111111111111';
 const CLIENT = '22222222-2222-4222-8222-222222222222';
-const client: AuthUser = {
-  id: CLIENT,
-  email: 'marta@x.test',
-  name: 'Marta',
-  role: 'CLIENT',
-  realm: 'CODEQLICK',
-};
-const admin: AuthUser = {
-  id: 'admin',
-  email: 'luis@x.test',
-  name: 'Luis',
-  role: 'ADMIN',
-  realm: 'CODEQLICK',
-};
+const client: AuthUser = { id: CLIENT, email: 'marta@x.test', name: 'Marta', role: 'CLIENT' };
+const admin: AuthUser = { id: 'admin', email: 'luis@x.test', name: 'Luis', role: 'ADMIN' };
 
 function projectRow(overrides: Partial<MaintenanceProject> = {}): MaintenanceProject {
   return {

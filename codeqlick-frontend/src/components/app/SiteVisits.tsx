@@ -150,7 +150,7 @@ export async function SiteVisits({ visits, locale }: { visits: Visits; locale: A
             series={[
               {
                 label: t('visitors'),
-                color: 'var(--color-brand)',
+                color: 'var(--color-fuchsia)',
                 values: bars.map((bar) => bar.visitors),
               },
             ]}

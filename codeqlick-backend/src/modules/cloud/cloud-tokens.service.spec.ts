@@ -7,7 +7,7 @@ import type { CloudTokensRepository } from './cloud-tokens.repository.js';
 import { CloudTokensService, sha256 } from './cloud-tokens.service.js';
 
 const ctx: CloudCtx = {
-  user: { id: 'user-1', email: 'dev@example.com', name: 'Dev', role: 'CLIENT', realm: 'CODEQLICK' },
+  user: { id: 'user-1', email: 'dev@example.com', name: 'Dev', role: 'CLIENT' },
   ip: '203.0.113.7',
 };
 
@@ -132,7 +132,6 @@ describe('CloudTokensService access level', () => {
         role: 'CLIENT',
         isActive: true,
         registeredAt: new Date(),
-        realm: 'CODEQLICK',
       },
     });
     const user = await service.resolve(token, '203.0.113.7');

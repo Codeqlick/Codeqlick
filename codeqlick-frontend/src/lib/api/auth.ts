@@ -205,8 +205,6 @@ export function register(input: {
   password: string;
   locale: AccountLocale;
   acceptPrivacy: true;
-  /** Neoqlick's sign-up (architecture 4.18): the account terms, recorded with their version. */
-  acceptTerms?: true;
   website?: string;
   app?: Webapp;
   captcha?: string;

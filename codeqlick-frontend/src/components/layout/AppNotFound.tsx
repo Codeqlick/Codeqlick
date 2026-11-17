@@ -10,7 +10,7 @@ import { AppFooter } from './AppFooter';
 import { AppFrame } from './AppFrame';
 import { AppHeader } from './AppHeader';
 
-/** The apps whose frame needs nothing but the session (no 18+ entry state). */
+/** The apps whose frame needs nothing but the session. */
 export const NOT_FOUND_APPS = ['cloud', 'citas', 'meetings'] as const satisfies readonly Webapp[];
 export type NotFoundApp = (typeof NOT_FOUND_APPS)[number];
 

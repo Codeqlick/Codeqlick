@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { AppConfigService } from '../../config/app-config.service.js';
-import type { RealmName } from '../../common/realm.js';
 
 const SITEVERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 const TIMEOUT_MS = 5_000;
@@ -19,12 +18,8 @@ export class CaptchaService {
 
   constructor(private readonly config: AppConfigService) {}
 
-  async verify(
-    token: string | undefined,
-    ip: string | null | undefined,
-    realm: RealmName = 'CODEQLICK',
-  ): Promise<void> {
-    const secret = this.config.turnstileSecretFor(realm);
+  async verify(token: string | undefined, ip: string | null | undefined): Promise<void> {
+    const secret = this.config.turnstileSecret;
     if (!secret) return;
     if (!token) throw new BadRequestException({ errors: [CAPTCHA_ERROR] });
     const body = new URLSearchParams({ secret, response: token });

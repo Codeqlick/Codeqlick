@@ -46,7 +46,7 @@
   height: 2rem;
   border-radius: 50%;
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-size: 1.35rem;
   line-height: 1;
 }
@@ -56,7 +56,7 @@
 }
 
 .question:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .answer {

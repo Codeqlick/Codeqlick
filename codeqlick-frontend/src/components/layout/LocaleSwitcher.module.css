@@ -24,113 +24,13 @@
 }
 
 .option:hover {
-  color: var(--color-brand);
+  color: var(--color-fuchsia);
 }
 
 .active,
 .active:hover {
   background: var(--color-ink);
   color: var(--color-white);
-}
-
-/* Cruising's six languages (decision 103): a menu, each language by its own name. */
-.menu {
-  position: relative;
-  display: inline-block;
-  border: 1.5px solid var(--color-line-strong);
-  border-radius: var(--radius-pill);
-}
-
-.summary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 2rem;
-  padding: 0 0.75rem;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-family-mono);
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  color: var(--color-ink);
-  cursor: pointer;
-  list-style: none;
-}
-
-.summary::-webkit-details-marker {
-  display: none;
-}
-
-.summary::after {
-  content: '▾';
-  font-size: 0.7rem;
-}
-
-.summary:hover {
-  color: var(--color-brand);
-}
-
-.list {
-  position: absolute;
-  z-index: 20;
-  top: calc(100% + 0.35rem);
-  right: 0;
-  min-width: 10rem;
-  margin: 0;
-  padding: 0.35rem;
-  list-style: none;
-  background: var(--color-white);
-  border: 1px solid var(--color-line-strong);
-  border-radius: 0.75rem;
-  box-shadow: 0 8px 24px rgb(20 16 31 / 12%);
-}
-
-.item {
-  display: block;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
-  color: var(--color-ink);
-  text-decoration: none;
-}
-
-.item:hover {
-  background: var(--color-blush);
-  color: var(--color-brand);
-}
-
-.current,
-.current:hover {
-  background: var(--color-ink);
-  color: var(--color-white);
-}
-
-/* Cruising's languages inside an app's menu drawer (decision 107): every one at hand. */
-.wrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-  padding: 0 0.9rem;
-  border: 1.5px solid var(--color-line-strong);
-  border-radius: var(--radius-pill);
-  color: var(--color-ink);
-  font-size: 0.9rem;
-  text-decoration: none;
-}
-
-.chip:hover {
-  color: var(--color-brand-dark);
-  border-color: var(--color-brand-light);
-}
-
-.chip.active,
-.chip.active:hover {
-  border-color: var(--color-ink);
 }
 
 /* EN | ES inside an app's menu drawer: touch-sized options. */

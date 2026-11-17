@@ -1,14 +1,13 @@
 /**
  * Next.js 16 proxy (formerly middleware): web apps on their subdomains (`src/lib/webapps.ts`),
  * next-intl locale routing + token refresh + route protection for /{locale}/portal,
- * /{locale}/admin and /{locale}/videochat/room, and token refresh without protection for
+ * /{locale}/admin, and token refresh without protection for
  * /{locale}/meetings (guests welcome). The refresh/forwarding mechanics are
  * documented and implemented in `src/lib/auth/refresh.ts`.
  */
 import createMiddleware from 'next-intl/middleware';
-import { defineRouting } from 'next-intl/routing';
 import { NextRequest, NextResponse } from 'next/server';
-import { SITE_LOCALES, routing } from './i18n/routing';
+import { routing } from './i18n/routing';
 import { ACCESS_COOKIE, REFRESH_COOKIE } from './lib/auth/constants';
 import {
   apiBaseUrl,
@@ -30,38 +29,11 @@ import {
   mainHostOf,
   routeAccount,
 } from './lib/account-host';
-import { classifyHost } from './lib/hosts';
-import { hostApp, localeRedirect, requestLocales } from './lib/locales';
 import { cspHeaders, makeNonce, type CspContext } from './lib/security-headers';
 import { SSO_COOKIE_MAX_AGE, routeSignIn, ssoClientForHost, startSso } from './lib/sso';
-import {
-  appsOfBrand,
-  legacyAppHostRedirect,
-  routePortal,
-  routeWebapp,
-  webappForHost,
-  webappHost,
-} from './lib/webapps';
+import { WEBAPPS, routeWebapp, webappForHost, webappHost } from './lib/webapps';
 
-// Cruising speaks six languages, every other host two (decision 103): each has its own locale
-// routing, so a visitor's browser language or cookie never sends the website to /fr.
-const cruisingI18nRouting = createMiddleware(routing);
-const siteI18nRouting = createMiddleware(
-  defineRouting({
-    locales: SITE_LOCALES,
-    defaultLocale: 'en',
-    localePrefix: 'always',
-    alternateLinks: false,
-  }),
-);
-
-/** next-intl's routing for a request, by the languages its host and path speak. */
-function handleI18nRouting(request: NextRequest): NextResponse {
-  const host =
-    request.headers.get('x-forwarded-host')?.split(',')[0]?.trim() || request.headers.get('host');
-  const all = requestLocales(request.nextUrl.pathname, hostApp(host)).length > SITE_LOCALES.length;
-  return (all ? cruisingI18nRouting : siteI18nRouting)(request);
-}
+const i18nRouting = createMiddleware(routing);
 
 /** The visitor's host and protocol (behind Nginx the request URL says http://localhost). */
 function visitorAddress(request: NextRequest): { host: string; protocol: string } {
@@ -90,10 +62,9 @@ export default async function proxy(request: NextRequest) {
 function cspContext(request: NextRequest): CspContext {
   const { host, protocol } = visitorAddress(request);
   // The account host (decision 108) is its own kind: named `account` like an app's first label.
-  const { brand, kind } = classifyHost(host);
-  const app = isAccountHost(host) ? 'account' : kind === 'portal' ? 'portal' : webappForHost(host);
+  const app = isAccountHost(host) ? 'account' : webappForHost(host);
   const mainHost = mainHostOf(host);
-  const sockets = [process.env.VIDEOCHAT_WS_URL, process.env.MEETINGS_WS_URL].flatMap((url) => {
+  const sockets = [process.env.MEETINGS_WS_URL].flatMap((url) => {
     try {
       return url ? [new URL(url).origin] : [];
     } catch {
@@ -107,7 +78,7 @@ function cspContext(request: NextRequest): CspContext {
     siteOrigins: [
       mainHost,
       accountHostFor(host),
-      ...appsOfBrand(brand).map((name) => webappHost(name, mainHost)),
+      ...WEBAPPS.map((name) => webappHost(name, mainHost)),
     ].map((name) => `${protocol}//${name}`),
     sockets,
   };
@@ -173,30 +144,6 @@ async function route(request: NextRequest): Promise<NextResponse> {
   const dest = request.headers.get('sec-fetch-dest');
   const navigation =
     request.method === 'GET' && dest !== 'image' && request.headers.get('host') === host;
-  // Neoqlick's hosts (architecture 4.18): `www` goes to the apex, and a name that is none of its
-  // hosts (an unknown subdomain) is not served at all.
-  const { brand, kind } = classifyHost(host);
-  if (brand === 'neoqlick' && !isIpHost(host)) {
-    if (host.toLowerCase().startsWith('www.')) {
-      return NextResponse.redirect(
-        new URL(`${pathname}${search}`, `${protocol}//${mainHostOf(host)}`),
-        301,
-      );
-    }
-    if (kind === 'site') return new NextResponse('Not found', { status: 404 });
-  }
-  // The 18+ apps' old hosts (`cruising.codeqlick.com`…): Nginx redirects them (decision 130); this
-  // is the safety net for a request that reaches the website on one of them.
-  const legacy = legacyAppHostRedirect(pathname, search, host, protocol);
-  if (legacy) return NextResponse.redirect(legacy, 301);
-  // A language this host doesn't speak (/fr on the website): the same page in English.
-  const english = localeRedirect(pathname, hostApp(host));
-  if (english) {
-    const target = new URL(english, `${protocol}//${host}`);
-    target.search = search;
-    return NextResponse.redirect(target, 308);
-  }
-
   // Single sign-on (decision 108): signing in, up and recovering an account happen on the
   // account host; every other host starts the flow or sends the page there. Staging has no
   // account host and turns it off (ACCOUNT_SSO=false).
@@ -228,16 +175,14 @@ async function route(request: NextRequest): Promise<NextResponse> {
   const webapp =
     sso && isAccountHost(host)
       ? routeAccount(pathname, host, protocol, navigation)
-      : kind === 'portal'
-        ? routePortal(pathname, host, protocol, navigation)
-        : routeWebapp(pathname, host, protocol, navigation);
+      : routeWebapp(pathname, host, protocol, navigation);
   if (webapp.action === 'redirect') {
     const target = new URL(webapp.to, `${protocol}//${host}`);
     target.search = search;
     return NextResponse.redirect(target);
   }
   if (webapp.action === 'rewrite') {
-    // On an app's host, /es/room is the route /es/videochat/room (on the account host, /es/security
+    // On an app's host, /es/room is the route /es/meetings/room (on the account host, /es/security
     // is /es/account/security): the rest runs on the route.
     const url = request.nextUrl.clone();
     url.pathname = webapp.to;
@@ -290,17 +235,17 @@ async function handle(request: NextRequest): Promise<NextResponse> {
   const optional = !locale && isOptionalSessionPath(pathname);
 
   // Public pages: locale routing only.
-  if (!locale && !optional) return handleI18nRouting(request);
+  if (!locale && !optional) return i18nRouting(request);
 
   const accessToken = request.cookies.get(ACCESS_COOKIE)?.value;
-  if (accessToken && !needsRefresh(accessToken)) return handleI18nRouting(request);
+  if (accessToken && !needsRefresh(accessToken)) return i18nRouting(request);
 
   // An access token that is close to expiry but not expired yet is still usable as a fallback.
   const stillValid = Boolean(accessToken) && !needsRefresh(accessToken, Date.now() / 1000, 0);
 
   const refreshToken = request.cookies.get(REFRESH_COOKIE)?.value;
   if (!refreshToken) {
-    if (stillValid || !locale) return handleI18nRouting(request);
+    if (stillValid || !locale) return i18nRouting(request);
     return NextResponse.redirect(loginRedirectUrl(request.url, locale, pathname, search));
   }
 
@@ -312,10 +257,10 @@ async function handle(request: NextRequest): Promise<NextResponse> {
     clientHeaders(request.headers),
   );
   if (!tokens) {
-    if (stillValid) return handleI18nRouting(request);
+    if (stillValid) return i18nRouting(request);
     const response = locale
       ? NextResponse.redirect(loginRedirectUrl(request.url, locale, pathname, search))
-      : handleI18nRouting(request);
+      : i18nRouting(request);
     clearTokenCookies(response);
     return response;
   }
@@ -324,7 +269,7 @@ async function handle(request: NextRequest): Promise<NextResponse> {
   request.cookies.set(ACCESS_COOKIE, tokens.accessToken);
   request.cookies.set(REFRESH_COOKIE, tokens.refreshToken);
 
-  const intlResponse = handleI18nRouting(request);
+  const intlResponse = i18nRouting(request);
   const response = withForwardedRequestHeaders(intlResponse, request.headers);
   setTokenCookies(response, tokens, isSecureCookieEnv());
   return response;
@@ -332,11 +277,5 @@ async function handle(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   // Everything except API routes, Next internals and files with an extension (favicon.ico, ...).
-  // Also the video upload of Cruising (`/{locale}/cruising/api/media`): the proxy buffers a request
-  // body up to `experimental.proxyClientMaxBodySize` and cuts the rest, so a 100 MB video must
-  // reach its route handler without passing here (the handler streams it to the API). The route
-  // is called by its own address, so it needs no rewrite; it checks the session itself.
-  matcher: [
-    '/((?!api|site-draft|_next|_vercel|(?:en|es|fr|de|it|pt)/cruising/api/media$|.*\\..*).*)',
-  ],
+  matcher: ['/((?!api|site-draft|_next|_vercel|.*\\..*).*)'],
 };

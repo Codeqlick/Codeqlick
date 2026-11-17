@@ -3,7 +3,7 @@
 # /srv/codeqlick-staging, with its own `.env` (template: deploy/.env.staging.example):
 #   ./deploy/staging.sh <branch> [--with-data]
 # Only what a release can break runs here: database, API and website. Every email lands in Mailpit
-# (nothing is ever sent), and Stripe, OVH, Umami, the site builder and the video chat stay off.
+# (nothing is ever sent), and Stripe, OVH, Umami, the site builder and coturn stay off.
 name: codeqlick-staging
 
 services:

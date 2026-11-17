@@ -10,10 +10,6 @@ const secret = 'test-secret-test-secret-test-secret-test-secret';
 const config = {
   jwtAccessSecret: secret,
   siteUrl: 'https://codeqlick.com',
-  siteUrlFor: (realm: string) =>
-    realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
-  accountUrlFor: (realm: string) =>
-    realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
 } as AppConfigService;
 const userId = '7d3c3c1e-3c9b-4a43-9a43-2f0f2f8f1a01';
 

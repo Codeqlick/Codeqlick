@@ -76,9 +76,7 @@ describe('Codeqlick Cloud events: filters and CSV export (e2e)', () => {
       .send({ name: 'Events', slug: team, ...terms })
       .expect(201);
     const teamRow = await prisma.cloudTeam.findUniqueOrThrow({ where: { slug: team } });
-    const mateRow = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: mate.email } },
-    });
+    const mateRow = await prisma.user.findUniqueOrThrow({ where: { email: mate.email } });
     await prisma.cloudMember.create({
       data: {
         teamId: teamRow.id,

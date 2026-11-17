@@ -7,12 +7,8 @@
  * An app is named by its subdomain's first label (`webappForHost`); any app not named here gets
  * the defaults, so a new entry of WEBAPPS needs nothing in this file.
  */
-import { EXOCLICK_HOSTS } from './videochat-ads';
-
 /** Cloudflare Turnstile on sign-in and sign-up (architecture 4.3): its script, frame and checks. */
 export const TURNSTILE = 'https://challenges.cloudflare.com';
-/** OpenStreetMap's tile server: Cruising's map pictures (architecture 4.15). */
-export const OSM_TILES = 'https://tile.openstreetmap.org';
 /** Where Server Actions send people off the site (Checkout, the customer portal, the GitHub App). */
 export const FORM_TARGETS = [
   'https://checkout.stripe.com',
@@ -24,21 +20,17 @@ export const CSP_REPORT_PATH = '/api/csp-report';
 /** The group name of `report-to` and `Reporting-Endpoints`. */
 export const CSP_REPORT_GROUP = 'csp';
 
-/** Apps whose pages show ExoClick's ad zones (architecture 4.7, 4.10). */
-export const ADS_APPS: readonly string[] = ['videochat', 'swipe'];
-/** Apps that make calls: camera, microphone and screen sharing (architecture 4.7, 4.8). */
-export const CALL_APPS: readonly string[] = ['videochat', 'meetings'];
-/** The app whose map may locate the device (architecture 4.15). */
-export const LOCATING_APPS: readonly string[] = ['cruising'];
+/** Apps that make calls: camera, microphone and screen sharing (architecture 4.8). */
+export const CALL_APPS: readonly string[] = ['meetings'];
 
 export interface CspContext {
-  /** The app whose host was asked (`videochat`), or null on the main site. */
+  /** The app whose host was asked (`meetings`), or null on the main site. */
   app: string | null;
-  /** The request's origin as the visitor sees it: `https://videochat.codeqlick.com`. */
+  /** The request's origin as the visitor sees it: `https://meetings.codeqlick.com`. */
   origin: string;
   /** Origins forms may post or redirect to besides this one: the main host and every app host. */
   siteOrigins: readonly string[];
-  /** WebSockets on another origin (VIDEOCHAT_WS_URL, MEETINGS_WS_URL). */
+  /** WebSockets on another origin (MEETINGS_WS_URL). */
   sockets?: readonly string[];
 }
 
@@ -48,30 +40,22 @@ const unique = (values: readonly string[]) =>
 const directives = (entries: Array<[string, readonly string[]]>) =>
   entries.map(([name, values]) => [name, ...unique(values)].join(' ')).join('; ');
 
-/** Third-party hosts of scripts, frames and connections on an app's host. */
-function thirdParties(app: string | null): string[] {
-  return app && ADS_APPS.includes(app) ? EXOCLICK_HOSTS : [];
-}
-
-/** Images: remote ones where Markdown or ads show them, the map's tiles on Cruising. */
+/** Images: remote ones where Markdown shows them (the website), the page's own elsewhere. */
 function imageSources(app: string | null): string[] {
   const base = ["'self'", 'data:', 'blob:'];
-  if (app === null || ADS_APPS.includes(app)) return [...base, 'https:'];
-  if (LOCATING_APPS.includes(app)) return [...base, OSM_TILES];
-  return base;
+  return app === null ? [...base, 'https:'] : base;
 }
 
 /** Every directive but `script-src` and the reports, shared by both policies. */
 function common(context: CspContext): Array<[string, readonly string[]]> {
-  const extra = thirdParties(context.app);
   return [
     ['default-src', ["'self'"]],
     ['style-src', ["'self'", "'unsafe-inline'"]],
     ['img-src', imageSources(context.app)],
     ['font-src', ["'self'"]],
     ['media-src', ["'self'", 'blob:']],
-    ['connect-src', ["'self'", ...(context.sockets ?? []), TURNSTILE, ...extra]],
-    ['frame-src', ["'self'", TURNSTILE, ...extra]],
+    ['connect-src', ["'self'", ...(context.sockets ?? []), TURNSTILE]],
+    ['frame-src', ["'self'", TURNSTILE]],
     ['worker-src', ["'self'"]],
     ['manifest-src', ["'self'"]],
     ['object-src', ["'none'"]],
@@ -90,15 +74,7 @@ export function strictCsp(context: CspContext, nonce: string): string {
   const [first, ...rest] = common(context);
   return directives([
     first!,
-    [
-      'script-src',
-      ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", TURNSTILE, ...thirdParties(context.app)],
-    ],
-    // ExoClick's tag puts its click handlers in attributes (`onclick`): only the hosts with ads
-    // allow inline handlers; `<script>` elements still need the nonce there.
-    ...(context.app && ADS_APPS.includes(context.app)
-      ? ([['script-src-attr', ["'unsafe-inline'"]]] as Array<[string, string[]]>)
-      : []),
+    ['script-src', ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", TURNSTILE]],
     ...rest,
     ...(https ? ([['upgrade-insecure-requests', []]] as Array<[string, string[]]>) : []),
     ['report-uri', [CSP_REPORT_PATH]],
@@ -109,11 +85,7 @@ export function strictCsp(context: CspContext, nonce: string): string {
 /** The previous policy (inline scripts allowed), enforced while the strict one is report-only. */
 export function previousCsp(context: CspContext): string {
   const [first, ...rest] = common(context);
-  return directives([
-    first!,
-    ['script-src', ["'self'", "'unsafe-inline'", TURNSTILE, ...thirdParties(context.app)]],
-    ...rest,
-  ]);
+  return directives([first!, ['script-src', ["'self'", "'unsafe-inline'", TURNSTILE]], ...rest]);
 }
 
 /**
@@ -146,12 +118,11 @@ export function makeNonce(): string {
 /** Everything a page doesn't use is off; passkeys work everywhere (decision 104). */
 export function permissionsPolicy(app: string | null): string {
   const calls = app !== null && CALL_APPS.includes(app);
-  const locates = app !== null && LOCATING_APPS.includes(app);
   return [
     'accelerometer=()',
     `camera=${calls ? '(self)' : '()'}`,
     `display-capture=${calls ? '(self)' : '()'}`,
-    `geolocation=${locates ? '(self)' : '()'}`,
+    'geolocation=()',
     'gyroscope=()',
     'magnetometer=()',
     `microphone=${calls ? '(self)' : '()'}`,

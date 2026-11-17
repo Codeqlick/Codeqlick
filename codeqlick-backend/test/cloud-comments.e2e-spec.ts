@@ -99,9 +99,7 @@ describe('Codeqlick Cloud preview comments (e2e)', () => {
       [adminUser, 'ADMIN'],
       [member, 'MEMBER'],
     ] as const) {
-      const row = await prisma.user.findUniqueOrThrow({
-        where: { realm_email: { realm: 'CODEQLICK', email: user.email } },
-      });
+      const row = await prisma.user.findUniqueOrThrow({ where: { email: user.email } });
       await prisma.cloudMember.create({
         data: {
           teamId,
@@ -113,11 +111,7 @@ describe('Codeqlick Cloud preview comments (e2e)', () => {
       });
     }
     for (const user of [owner, adminUser, member, outsider]) {
-      ids[user.email] = (
-        await prisma.user.findUniqueOrThrow({
-          where: { realm_email: { realm: 'CODEQLICK', email: user.email } },
-        })
-      ).id;
+      ids[user.email] = (await prisma.user.findUniqueOrThrow({ where: { email: user.email } })).id;
     }
     const projectId = (
       await request(server)

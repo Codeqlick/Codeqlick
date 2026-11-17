@@ -16,7 +16,7 @@
 
 .manage > summary {
   cursor: pointer;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-size: 0.875rem;
 }
 

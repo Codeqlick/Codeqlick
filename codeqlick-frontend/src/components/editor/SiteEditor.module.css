@@ -31,9 +31,9 @@
 .small {
   min-height: 40px;
   padding: 0.5rem 1.1rem;
-  border: 1.5px solid var(--color-brand);
+  border: 1.5px solid var(--color-fuchsia);
   border-radius: var(--radius-pill);
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
   font-weight: 600;
   cursor: pointer;
@@ -60,8 +60,8 @@
 }
 
 .primary:hover:not(:disabled) {
-  border-color: var(--color-brand-dark);
-  background: var(--color-brand-dark);
+  border-color: var(--color-fuchsia-dark);
+  background: var(--color-fuchsia-dark);
 }
 
 .small:hover:not(:disabled),
@@ -70,7 +70,7 @@
 }
 
 .styleButton:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
 }
 
 .primary:disabled,
@@ -82,7 +82,7 @@
 .link {
   border: 0;
   background: none;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-weight: 600;
   text-decoration: underline;
   cursor: pointer;
@@ -182,12 +182,12 @@
 }
 
 .part[open] > summary::after {
-  color: var(--color-brand);
+  color: var(--color-fuchsia);
   transform: translateY(25%) rotate(-135deg);
 }
 
 .part > summary:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .flag {
@@ -316,9 +316,9 @@ textarea.input {
 }
 
 .input:focus-visible {
-  outline: 3px solid var(--color-brand);
+  outline: 3px solid var(--color-fuchsia);
   outline-offset: 1px;
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
 }
 
 .input[aria-invalid='true'] {
@@ -443,7 +443,7 @@ textarea.input {
 }
 
 .styleButton[aria-pressed='true'] {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
   background: var(--color-blush);
 }
 
@@ -475,7 +475,7 @@ textarea.input {
 
 .noticeState[data-state='scheduled'] {
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .photoField {

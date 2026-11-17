@@ -52,7 +52,7 @@
 
 .remove:hover {
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .add {
@@ -68,7 +68,7 @@
 }
 
 .add:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
 }
 
 @media (max-width: 700px) {

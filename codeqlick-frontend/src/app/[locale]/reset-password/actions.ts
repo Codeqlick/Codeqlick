@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { cruisingLocaleOrDefault } from '@/i18n/locale';
+import { localeOrDefault } from '@/i18n/locale';
 import { confirmPasswordReset } from '@/lib/api/auth';
 import { isApiError, isBreachedPasswordError } from '@/lib/api/errors';
 import { clearAuthCookies } from '@/lib/auth/session';
@@ -17,7 +17,7 @@ export async function resetPasswordAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = cruisingLocaleOrDefault(formData.get('locale'));
+  const locale = localeOrDefault(formData.get('locale'));
   const t = await getTranslations({ locale, namespace: 'ResetPassword' });
 
   const parsed = resetPasswordSchema.safeParse({

@@ -9,13 +9,7 @@ import { PortfolioService } from './portfolio.service.js';
 
 const at = new Date('2026-11-01T09:00:00Z');
 const replacedAt = new Date('2026-11-10T12:30:00Z');
-const actor = {
-  id: 'a1',
-  email: 'admin@codeqlick.com',
-  name: 'Admin',
-  role: 'ADMIN',
-  realm: 'CODEQLICK',
-} as const;
+const actor = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as const;
 
 function item(extra: Partial<PortfolioWithTranslations> = {}): PortfolioWithTranslations {
   return {

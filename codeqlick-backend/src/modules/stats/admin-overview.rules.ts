@@ -3,11 +3,8 @@ import type { OverviewTotalsRow, OverviewWeekRow } from './admin-overview.reposi
 
 /** The admin overview's shape and how it is put together (architecture 4.17, decision 122). */
 
-/** Accounts per app: entered (a profile), a team member, a page or room owner, a portal client. */
+/** Accounts per app: a team member, a page or room owner, a portal client. */
 export interface AppCounts {
-  cruising: number;
-  swipe: number;
-  videochat: number;
   cloud: number;
   citas: number;
   meetings: number;
@@ -34,8 +31,7 @@ export interface OverviewWeek {
 export interface AdminOverview {
   generatedAt: string;
   weeks: OverviewWeek[];
-  /** `neoqlickAccounts`: the 18+ apps' own accounts (architecture 4.18); `accounts` are Codeqlick's. */
-  people: { accounts: number; neoqlickAccounts: number; apps: AppCounts };
+  people: { accounts: number; apps: AppCounts };
   revenue: {
     currency: 'eur';
     /** Cloud PRO's and the maintenance plans', a month before VAT. */
@@ -48,21 +44,10 @@ export interface AdminOverview {
     disk: { state: DiskReading['state']; totalBytes: number; freeBytes: number } | null;
     errors: { open: number; cspOpen: number };
     monitors: { watched: number; down: number };
-    moderation: {
-      cruising: {
-        spots: number;
-        reports: number;
-        media: number;
-        verifications: number;
-        takedowns: number;
-      };
-      swipe: { photos: number; reports: number; verifications: number; takedowns: number };
-      videochat: { reports: number; appeals: number; verifications: number };
-    };
   };
 }
 
-const APPS = ['cruising', 'swipe', 'videochat', 'cloud', 'citas', 'meetings', 'portal'] as const;
+const APPS = ['cloud', 'citas', 'meetings', 'portal'] as const;
 
 type Counter = 'leads' | 'deployments' | 'siteChecks' | 'newsletter';
 const COUNTERS: Record<string, Counter> = {
@@ -73,7 +58,7 @@ const COUNTERS: Record<string, Counter> = {
 };
 
 function emptyApps(): AppCounts {
-  return { cruising: 0, swipe: 0, videochat: 0, cloud: 0, citas: 0, meetings: 0, portal: 0 };
+  return { cloud: 0, citas: 0, meetings: 0, portal: 0 };
 }
 
 export function emptyWeek(start: string): OverviewWeek {
@@ -133,11 +118,7 @@ export function buildOverview(input: {
     weeks: [...weeks.values()],
     people: {
       accounts: t.accounts,
-      neoqlickAccounts: t.neoqlickAccounts,
       apps: {
-        cruising: t.cruising,
-        swipe: t.swipe,
-        videochat: t.videochat,
         cloud: t.cloud,
         citas: t.citas,
         meetings: t.meetings,
@@ -166,26 +147,6 @@ export function buildOverview(input: {
         : null,
       errors: { open: t.errorsOpen, cspOpen: t.cspOpen },
       monitors: { watched: t.monitorsWatched, down: t.monitorsDown },
-      moderation: {
-        cruising: {
-          spots: t.cruisingSpots,
-          reports: t.cruisingReports,
-          media: t.cruisingMedia,
-          verifications: t.cruisingVerifications,
-          takedowns: t.cruisingTakedowns,
-        },
-        swipe: {
-          photos: t.swipePhotos,
-          reports: t.swipeReports,
-          verifications: t.swipeVerifications,
-          takedowns: t.swipeTakedowns,
-        },
-        videochat: {
-          reports: t.videochatReports,
-          appeals: t.videochatAppeals,
-          verifications: t.videochatVerifications,
-        },
-      },
     },
   };
 }

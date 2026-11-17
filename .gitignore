@@ -20,8 +20,6 @@ next-env.d.ts
 
 # Images uploaded from the admin panel in development
 codeqlick-backend/uploads/
-codeqlick-backend/swipe-uploads/
-codeqlick-backend/cruising-uploads/
 
 # Database dumps written by the production `backup` service
 /backups/

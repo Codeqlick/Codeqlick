@@ -27,7 +27,7 @@
 }
 
 .totals > .total {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
   background: var(--color-blush);
 }
 

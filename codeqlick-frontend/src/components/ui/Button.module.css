@@ -73,12 +73,12 @@
 }
 
 .primary {
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
 }
 
 .primary:hover:not(:disabled) {
-  background: var(--color-brand-dark);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-brand) 28%, transparent);
+  background: var(--color-fuchsia-dark);
+  box-shadow: 0 6px 18px rgba(217, 23, 126, 0.28);
 }
 
 .outline {
@@ -112,7 +112,7 @@
 
 .ghost:hover:not(:disabled) {
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .danger,
@@ -149,7 +149,7 @@
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   text-decoration: underline;
   text-underline-offset: 3px;
 }

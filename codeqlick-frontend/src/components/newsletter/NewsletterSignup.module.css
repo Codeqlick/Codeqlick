@@ -29,7 +29,7 @@
 
 /* Fuchsia on blush is 4.2:1, under the 4.5:1 that text needs: links use the darker fuchsia. */
 .box a:not([class]) {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 @media (max-width: 560px) {

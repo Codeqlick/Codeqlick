@@ -122,9 +122,7 @@ describe('Codeqlick Cloud codeqlick.json rules (e2e)', () => {
       .set(outsiderAuth)
       .send({ name: 'Other', slug: `${teamSlug}-x`, ...terms })
       .expect(201);
-    const memberRow = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: member.email } },
-    });
+    const memberRow = await prisma.user.findUniqueOrThrow({ where: { email: member.email } });
     await prisma.cloudMember.create({
       data: {
         teamId: team.body.id as string,

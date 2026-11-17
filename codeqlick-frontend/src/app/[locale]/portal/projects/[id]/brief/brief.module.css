@@ -27,7 +27,7 @@
   height: 2rem;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
 }

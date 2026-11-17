@@ -2,7 +2,6 @@ import 'server-only';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
-import { requestBrand } from './request-brand';
 
 /** Size social networks expect for a large preview card. */
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
@@ -15,15 +14,6 @@ const COLORS = {
   muted: '#C9C2D1',
 };
 
-/** Neoqlick's card (architecture 4.18): night, the two circles and its lens, Montserrat. */
-const NEOQLICK = {
-  night: '#1A1033',
-  violet: '#A78BFA',
-  coral: '#FF5A7A',
-  grape: '#2B0F4D',
-  soft: '#CFC7E3',
-};
-
 type FontSpec = { name: string; file: string; weight: 400 | 500 | 700 };
 
 /** Brand fonts (OFL), as WOFF: the image renderer reads neither WOFF2 nor Google Fonts URLs. */
@@ -31,7 +21,6 @@ const FONTS: FontSpec[] = [
   { name: 'Space Grotesk', file: 'space-grotesk-latin-700-normal.woff', weight: 700 },
   { name: 'IBM Plex Sans', file: 'ibm-plex-sans-latin-400-normal.woff', weight: 400 },
   { name: 'JetBrains Mono', file: 'jetbrains-mono-latin-500-normal.woff', weight: 500 },
-  { name: 'Montserrat', file: 'montserrat-latin-700-normal.woff', weight: 700 },
 ];
 
 let fonts:
@@ -76,7 +65,6 @@ export async function renderOgImage({
   host: string;
 }): Promise<ImageResponse> {
   const text = clip(title, 140);
-  if ((await requestBrand()) === 'neoqlick') return renderNeoqlickCard({ eyebrow, text, host });
   return new ImageResponse(
     <div
       style={{
@@ -149,84 +137,6 @@ export async function renderOgImage({
       </div>
 
       <div style={{ display: 'flex', fontSize: 26, color: COLORS.muted }}>{host}</div>
-    </div>,
-    {
-      ...OG_IMAGE_SIZE,
-      fonts: await loadFonts(),
-      headers: { 'Cache-Control': 'public, max-age=3600' },
-    },
-  );
-}
-
-async function renderNeoqlickCard({
-  eyebrow,
-  text,
-  host,
-}: {
-  eyebrow: string;
-  text: string;
-  host: string;
-}): Promise<ImageResponse> {
-  return new ImageResponse(
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '64px 72px',
-        backgroundColor: NEOQLICK.night,
-        color: COLORS.white,
-        fontFamily: 'IBM Plex Sans',
-        position: 'relative',
-      }}
-    >
-      <svg
-        width="560"
-        height="320"
-        viewBox="0 0 64 64"
-        style={{ position: 'absolute', right: -40, bottom: -60, opacity: 0.16 }}
-      >
-        <circle cx="24" cy="32" r="18" fill={NEOQLICK.violet} />
-        <circle cx="40" cy="32" r="18" fill={NEOQLICK.coral} />
-      </svg>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-        <svg width="64" height="64" viewBox="0 0 64 64">
-          <circle cx="24" cy="32" r="18" fill={NEOQLICK.violet} />
-          <circle cx="40" cy="32" r="18" fill={NEOQLICK.coral} />
-          <path d="M32 16.1 A18 18 0 0 1 32 47.9 A18 18 0 0 1 32 16.1 Z" fill={NEOQLICK.grape} />
-        </svg>
-        <div style={{ fontFamily: 'Montserrat', fontWeight: 700, fontSize: 40, letterSpacing: -1 }}>
-          neoqlick
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 780 }}>
-        <div
-          style={{
-            fontFamily: 'JetBrains Mono',
-            fontWeight: 500,
-            fontSize: 24,
-            letterSpacing: 3,
-            textTransform: 'uppercase',
-            color: NEOQLICK.violet,
-          }}
-        >
-          {eyebrow}
-        </div>
-        <div
-          style={{
-            fontFamily: 'Montserrat',
-            fontWeight: 700,
-            fontSize: titleSize(text),
-            lineHeight: 1.08,
-            letterSpacing: -2,
-          }}
-        >
-          {text}
-        </div>
-      </div>
-      <div style={{ display: 'flex', fontSize: 26, color: NEOQLICK.soft }}>{host}</div>
     </div>,
     {
       ...OG_IMAGE_SIZE,

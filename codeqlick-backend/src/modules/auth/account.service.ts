@@ -14,7 +14,6 @@ import {
   type ApiLocale,
 } from '../../common/schemas/common.schemas.js';
 import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
-import type { RealmName } from '../../common/realm.js';
 import { accountOf, type AuthUser } from '../../common/types/auth-user.js';
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { User } from '../../generated/prisma/client.js';
@@ -26,12 +25,10 @@ import {
   emailChangedNoticeEmail,
 } from './account-emails.js';
 import { CloudTeamsService } from '../cloud/cloud-teams.service.js';
-import { AdultSafetyService } from '../adult/adult-safety.service.js';
-import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { AccountRepository } from './account.repository.js';
 import { AvatarStorage, processAvatar } from './avatar.storage.js';
 import { normalizeUsername, UsernameService } from './username.service.js';
-import { brandOf, hashRefreshToken, toAuthUser } from './auth.service.js';
+import { hashRefreshToken, toAuthUser } from './auth.service.js';
 import { PasswordService } from './password.service.js';
 
 /** How long the link that confirms a new email works. */
@@ -48,7 +45,7 @@ export interface AccountActivity {
 }
 
 export interface AccountApp {
-  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas' | 'videochat' | 'swipe' | 'cruising';
+  app: 'admin' | 'portal' | 'cloud' | 'meetings' | 'citas';
   count: number;
 }
 
@@ -65,8 +62,6 @@ export class AccountService {
     private readonly avatars: AvatarStorage,
     private readonly usernames: UsernameService,
     private readonly cloud: CloudTeamsService,
-    private readonly adultSafety: AdultSafetyService,
-    private readonly adultVerification: AdultVerificationService,
   ) {}
 
   /** Sets the profile photo (re-encoded to a 256×256 WebP); the old file is deleted. */
@@ -117,10 +112,7 @@ export class AccountService {
 
   /** Chooses, changes or (null) removes the caller's username. */
   async setUsername(userId: string, username: string | null): Promise<AuthUser> {
-    const user = await this.usernames.claim(userId, username);
-    // The name on the 18+ apps' verification paper must still be one of the account's (113).
-    await this.adultVerification.nameChanged(userId);
-    return user;
+    return this.usernames.claim(userId, username);
   }
 
   /** Emails a confirmation link to the new address; the account keeps its email until then. */
@@ -139,7 +131,7 @@ export class AccountService {
         errors: [{ path: 'email', message: 'This is already your email' }],
       });
     }
-    if (await this.repository.emailTaken(user.realm, email)) {
+    if (await this.repository.emailTaken(email)) {
       throw new ConflictException('This email already has an account');
     }
 
@@ -150,7 +142,7 @@ export class AccountService {
       hashRefreshToken(token),
       new Date(Date.now() + EMAIL_CHANGE_TTL_HOURS * 3_600_000),
     );
-    const link = `${this.config.accountUrlFor(user.realm)}/${input.locale}/confirm-email?token=${token}`;
+    const link = `${this.config.accountUrl}/${input.locale}/confirm-email?token=${token}`;
     this.send(
       emailChangeConfirmEmail(
         user,
@@ -158,15 +150,14 @@ export class AccountService {
         link,
         input.locale,
         EMAIL_CHANGE_TTL_HOURS,
-        this.config.siteUrlFor(user.realm),
-        brandOf(user.realm),
+        this.config.siteUrl,
       ),
     );
   }
 
   /** The emailed link: the account moves to the new address and every session ends. */
-  async confirmEmailChange(realm: RealmName, token: string): Promise<{ email: string }> {
-    const result = await this.repository.confirmEmailChange(hashRefreshToken(token), realm);
+  async confirmEmailChange(token: string): Promise<{ email: string }> {
+    const result = await this.repository.confirmEmailChange(hashRefreshToken(token));
     if (result.status === 'invalid') {
       throw new BadRequestException('This link is invalid or has expired');
     }
@@ -186,8 +177,7 @@ export class AccountService {
         oldEmail,
         user.email,
         toApiLocale(user.locale),
-        this.config.siteUrlFor(user.realm),
-        brandOf(user.realm),
+        this.config.siteUrl,
       ),
     );
     return { email: user.email };
@@ -199,7 +189,7 @@ export class AccountService {
     const account = user.role === 'CLIENT' ? accountOf(caller) : null;
     return {
       exportedAt: new Date().toISOString(),
-      by: user.realm === 'NEOQLICK' ? 'Neoqlick' : 'Codeqlick',
+      by: 'Codeqlick',
       ...(await this.repository.export(user.id, account)),
     };
   }
@@ -224,24 +214,10 @@ export class AccountService {
       { ...toAuthUser(user), name: 'Deleted account', email: '' },
       { action: 'account.deleted', targetId: user.id, details: { role: user.role } },
     );
-    // 18+ apps (decision 120): an email hash stays after a serious suspension; the photo goes.
-    // The banned-email hash is Neoqlick's alone (architecture 4.18): a Codeqlick account keeps none.
-    if (user.realm === 'NEOQLICK') {
-      await this.adultSafety.beforeAccountDeletion(user.id, user.email);
-    } else {
-      await this.adultVerification.forgetPhoto(user.id);
-    }
     await this.repository.delete(user.id);
     await this.avatars.remove(user.avatarKey);
     if (user.registeredAt) {
-      this.send(
-        accountDeletedEmail(
-          user,
-          toApiLocale(user.locale),
-          this.config.siteUrlFor(user.realm),
-          brandOf(user.realm),
-        ),
-      );
+      this.send(accountDeletedEmail(user, toApiLocale(user.locale), this.config.siteUrl));
     }
   }
 
@@ -261,21 +237,11 @@ export class AccountService {
   async apps(caller: AuthUser): Promise<{ items: AccountApp[] }> {
     const usage = await this.repository.appsUsage(caller.id, accountOf(caller));
     const items: AccountApp[] = [];
-    if (caller.realm === 'NEOQLICK') {
-      // Neoqlick's people see their three apps and nothing of the website (architecture 4.18).
-      if (usage.videochat > 0) items.push({ app: 'videochat', count: 0 });
-      if (usage.swipe > 0) items.push({ app: 'swipe', count: 0 });
-      if (usage.cruising > 0) items.push({ app: 'cruising', count: 0 });
-      return { items };
-    }
     if (caller.role === 'ADMIN') items.push({ app: 'admin', count: 0 });
     if (caller.role === 'CLIENT') items.push({ app: 'portal', count: usage.projects });
     if (usage.teams > 0) items.push({ app: 'cloud', count: usage.teams });
     if (usage.rooms > 0) items.push({ app: 'meetings', count: usage.rooms });
     if (usage.pages > 0) items.push({ app: 'citas', count: usage.pages });
-    if (usage.videochat > 0) items.push({ app: 'videochat', count: 0 });
-    if (usage.swipe > 0) items.push({ app: 'swipe', count: 0 });
-    if (usage.cruising > 0) items.push({ app: 'cruising', count: 0 });
     return { items };
   }
 

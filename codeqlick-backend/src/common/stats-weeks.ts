@@ -1,6 +1,6 @@
 /**
  * Weekly statistics' shared rules: Monday-to-Sunday weeks in Europe/Madrid and a 10-minute cache
- * (Cruising's statistics, decision 101, and the admin overview, decision 122). Pure.
+ * (the admin overview, decision 122). Pure.
  */
 
 /** Weeks are counted in the studio's time zone, Monday to Sunday, like the other statistics. */

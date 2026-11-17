@@ -11,7 +11,7 @@
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .list {
@@ -38,10 +38,10 @@
 }
 
 .list a:hover {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   text-decoration: underline;
 }
 
 .list li::marker {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }

@@ -7,7 +7,7 @@ import { AVATAR_FILE, AvatarStorage } from './avatar.storage.js';
 
 const fileParamSchema = z.object({ file: z.string().regex(AVATAR_FILE) });
 
-/** Profile photos, public: they are shown wherever the account appears outside the 18+ apps. */
+/** Profile photos, public: they are shown wherever the account appears. */
 @ApiTags('auth')
 @Controller('avatars')
 export class AvatarsController {

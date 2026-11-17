@@ -26,9 +26,6 @@ export const CLIENT_WHERE: Prisma.UserWhereInput = {
 /** Signed up from the app, or uses it. */
 export function appWhere(app: Webapp): Prisma.UserWhereInput {
   const uses: Record<Webapp, Prisma.UserWhereInput> = {
-    videochat: { videochatProfile: { isNot: null } },
-    swipe: { swipeProfile: { isNot: null } },
-    cruising: { cruisingProfile: { isNot: null } },
     meetings: { meetingRooms: { some: {} } },
     citas: { bookingPages: { some: {} } },
     cloud: { cloudMemberships: { some: {} } },
@@ -41,9 +38,6 @@ const ANY_APP_WHERE: Prisma.UserWhereInput = { OR: WEBAPPS.map(appWhere) };
 // Said without NOT: `NOT (signup_app = 'x')` is NULL, not true, for accounts without one.
 const NO_APP_WHERE: Prisma.UserWhereInput = {
   signupApp: null,
-  videochatProfile: { is: null },
-  swipeProfile: { is: null },
-  cruisingProfile: { is: null },
   meetingRooms: { none: {} },
   bookingPages: { none: {} },
   cloudMemberships: { none: {} },
@@ -58,9 +52,6 @@ export function kindWhere(kind: AccountKind): Prisma.UserWhereInput {
 
 /** What the kind and the apps of an account are worked out from. */
 export const USAGE_INCLUDE = {
-  videochatProfile: { select: { userId: true } },
-  swipeProfile: { select: { userId: true } },
-  cruisingProfile: { select: { userId: true } },
   _count: {
     select: {
       members: true,
@@ -80,9 +71,6 @@ export type UserWithUsage = Prisma.UserGetPayload<{ include: typeof USAGE_INCLUD
 /** The apps the account signed up from or uses, in the order of WEBAPPS. */
 export function appsOf(user: UserWithUsage): Webapp[] {
   const uses: Record<Webapp, boolean> = {
-    videochat: user.videochatProfile !== null,
-    swipe: user.swipeProfile !== null,
-    cruising: user.cruisingProfile !== null,
     meetings: user._count.meetingRooms > 0,
     citas: user._count.bookingPages > 0,
     cloud: user._count.cloudMemberships > 0,

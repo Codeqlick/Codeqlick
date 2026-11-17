@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { neoqlickUrl } from './helpers';
 
 /*
  * The Content Security Policy (architecture 6.4) on the main pages of every host: no violation,
@@ -9,19 +8,12 @@ import { neoqlickUrl } from './helpers';
 
 const PAGES: Record<string, string[]> = {
   '': ['/en', '/es/blog', '/en/contact', '/en/login', '/en/register', '/en/security', '/en/apps'],
-  videochat: ['/en', '/en/rules'],
   meetings: ['/en'],
   citas: ['/en'],
-  swipe: ['/en', '/en/rules'],
-  cruising: ['/en', '/en/map', '/en/places'],
   cloud: ['/en', '/en/docs'],
 };
 
-const AD_NETWORK = /\b(magsrv|exoclick|exosrv|exdynsrv|realsrv|bkcdn)\.(com|net)\b/;
-
 function hostUrl(baseURL: string | undefined, app: string): string {
-  // The 18+ apps live on Neoqlick's hosts (architecture 4.18).
-  if (['videochat', 'swipe', 'cruising'].includes(app)) return neoqlickUrl(app, baseURL);
   const url = new URL(baseURL ?? 'http://localhost:3001');
   if (app) url.hostname = `${app}.${url.hostname}`;
   return url.origin;
@@ -58,9 +50,6 @@ for (const [app, paths] of Object.entries(PAGES)) {
         .poll(() => page.evaluate(() => 'next' in window && Boolean((window as never)['next'])))
         .toBe(true);
     }
-    // ExoClick's tag (video chat, Swipe) tries `eval` and video ads from its CDN, which the
-    // previous policy blocked too: that is the ad network's, not ours.
-    const ours = violations.filter((text) => !AD_NETWORK.test(text));
-    expect(ours).toEqual([]);
+    expect(violations).toEqual([]);
   });
 }

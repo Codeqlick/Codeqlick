@@ -3,13 +3,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import type { ActivityRepository } from './activity.repository.js';
 import { ActivityService, contentLabel, publishVerb } from './activity.service.js';
 
-const actor: AuthUser = {
-  id: 'a1',
-  email: 'ada@codeqlick.com',
-  name: 'Ada',
-  role: 'ADMIN',
-  realm: 'CODEQLICK',
-};
+const actor: AuthUser = { id: 'a1', email: 'ada@codeqlick.com', name: 'Ada', role: 'ADMIN' };
 
 describe('ActivityService', () => {
   it('stores the actor name, the target type and the label at the time', async () => {

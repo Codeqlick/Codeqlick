@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/app/PageHeader';
 import styles from '@/components/app/app.module.css';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card, CardLink } from '@/components/ui/Card';
-import { resolveCruisingLocale } from '@/i18n/locale';
+import { resolveLocale } from '@/i18n/locale';
 import { accountPath } from '@/lib/account-links';
 import { accountApps, getTwoFactorStatus, listPasskeys, listSessions } from '@/lib/api/auth';
 import { requireUser } from '@/lib/auth/session';
@@ -14,7 +14,7 @@ export default async function AccountOverviewPage({
 }: {
   params: Promise<{ locale: string }>;
 }) {
-  const locale = resolveCruisingLocale((await params).locale);
+  const locale = resolveLocale((await params).locale);
   const user = await requireUser(locale);
   const t = await getTranslations({ locale, namespace: 'AccountSite' });
   const ta = await getTranslations({ locale, namespace: 'Account' });

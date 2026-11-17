@@ -105,7 +105,7 @@ describe('Single sign-on (e2e)', () => {
 
   it('signs a client host in with a code and its PKCE verifier, as a session of its own', async () => {
     const { verifier, challenge } = pkce();
-    const { code, expiresIn } = await newCode(account, 'cloud', challenge);
+    const { code, expiresIn } = await newCode(account, 'meetings', challenge);
     expect(expiresIn).toBe(60);
     expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/);
 
@@ -113,9 +113,9 @@ describe('Single sign-on (e2e)', () => {
     const row = await prisma.ssoCode.findUniqueOrThrow({
       where: { codeHash: hashRefreshToken(code) },
     });
-    expect(row).toMatchObject({ client: 'cloud', codeChallenge: challenge, usedAt: null });
+    expect(row).toMatchObject({ client: 'meetings', codeChallenge: challenge, usedAt: null });
 
-    const tokens = (await exchange('cloud', code, verifier).expect(200)).body as Tokens;
+    const tokens = (await exchange('meetings', code, verifier).expect(200)).body as Tokens;
     expect(tokens.user.email).toBe(email);
     expect(tokens.refreshToken).not.toBe(account.refreshToken);
     await request(server()).get('/v1/auth/me').set(bearer(tokens)).expect(200);
@@ -124,8 +124,8 @@ describe('Single sign-on (e2e)', () => {
     const list = await sessions(account);
     const accountSession = list.find((session) => session.current);
     expect(accountSession).toMatchObject({ client: null, parentId: null });
-    const cruising = list.find((session) => session.client === 'cloud');
-    expect(cruising?.parentId).toBe(accountSession?.id);
+    const appTokens = list.find((session) => session.client === 'meetings');
+    expect(appTokens?.parentId).toBe(accountSession?.id);
 
     // A refresh keeps the client and the parent.
     const refreshed = (
@@ -136,7 +136,7 @@ describe('Single sign-on (e2e)', () => {
     ).body as Tokens;
     const after = await sessions(refreshed);
     expect(after.find((session) => session.current)).toMatchObject({
-      client: 'cloud',
+      client: 'meetings',
       parentId: accountSession?.id,
     });
 
@@ -153,10 +153,10 @@ describe('Single sign-on (e2e)', () => {
 
   it('refuses a reused code and signs out the session it gave', async () => {
     const { verifier, challenge } = pkce();
-    const { code } = await newCode(account, 'meetings', challenge);
-    const tokens = (await exchange('meetings', code, verifier).expect(200)).body as Tokens;
+    const { code } = await newCode(account, 'citas', challenge);
+    const tokens = (await exchange('citas', code, verifier).expect(200)).body as Tokens;
 
-    const again = await exchange('meetings', code, verifier).expect(400);
+    const again = await exchange('citas', code, verifier).expect(400);
     expect(again.body.detail).toBe('Invalid or expired code');
     await request(server())
       .post('/v1/auth/refresh')
@@ -174,7 +174,7 @@ describe('Single sign-on (e2e)', () => {
     expect((await exchange('meetings', expired.code, verifier)).status).toBe(400);
 
     const other = await newCode(account, 'citas', challenge);
-    await exchange('meetings', other.code, verifier).expect(400);
+    await exchange('cloud', other.code, verifier).expect(400);
 
     await request(server())
       .post('/v1/auth/sso/codes')
@@ -207,17 +207,11 @@ describe('Single sign-on (e2e)', () => {
   it('refuses the exchange once the account is inactive', async () => {
     const { verifier, challenge } = pkce();
     const { code } = await newCode(account, 'site', challenge);
-    await prisma.user.update({
-      where: { realm_email: { realm: 'CODEQLICK', email } },
-      data: { isActive: false },
-    });
+    await prisma.user.update({ where: { email }, data: { isActive: false } });
     try {
       expect((await exchange('site', code, verifier)).status).toBe(400);
     } finally {
-      await prisma.user.update({
-        where: { realm_email: { realm: 'CODEQLICK', email } },
-        data: { isActive: true },
-      });
+      await prisma.user.update({ where: { email }, data: { isActive: true } });
     }
   });
 
@@ -265,14 +259,14 @@ describe('Single sign-on (e2e)', () => {
   });
 
   it('signing a device out from the list also ends the apps it signed in', async () => {
-    const cruising = await ssoSession('cloud');
+    const appTokens = await ssoSession('meetings');
     const mine = (await sessions(account)).find((session) => session.current)!;
     // Any session of the account may do it, the app's own too.
     await request(server())
       .delete(`/v1/auth/sessions/${mine.id}`)
-      .set(bearer(cruising))
+      .set(bearer(appTokens))
       .expect(204);
-    for (const tokens of [account, cruising]) {
+    for (const tokens of [account, appTokens]) {
       expect(await signedOut(tokens)).toBe(true);
     }
   });
@@ -281,7 +275,7 @@ describe('Single sign-on (e2e)', () => {
     account = (await request(server()).post('/v1/auth/login').send({ email, password }).expect(200))
       .body as Tokens;
     const site = await ssoSession('site');
-    const videochat = await ssoSession('citas');
+    const cloudTokens = await ssoSession('cloud');
     // Another device of the same account stays signed in.
     const other = (
       await request(server()).post('/v1/auth/login').send({ email, password }).expect(200)
@@ -290,11 +284,11 @@ describe('Single sign-on (e2e)', () => {
     // From an app's session it climbs to the account session first.
     await request(server())
       .post('/v1/auth/sessions/revoke-device')
-      .set(bearer(videochat))
-      .send({ refreshToken: videochat.refreshToken })
+      .set(bearer(cloudTokens))
+      .send({ refreshToken: cloudTokens.refreshToken })
       .expect(204);
 
-    for (const tokens of [account, site, videochat]) {
+    for (const tokens of [account, site, cloudTokens]) {
       expect(await signedOut(tokens)).toBe(true);
     }
     const left = await sessions(other);
@@ -310,9 +304,9 @@ describe('Single sign-on (e2e)', () => {
 
     // "Sign out of all devices" ends the last one too.
     account = other;
-    const cruising = await ssoSession('cloud');
+    const appTokens = await ssoSession('meetings');
     await request(server()).post('/v1/auth/sessions/revoke-all').set(bearer(other)).expect(204);
-    for (const tokens of [other, cruising]) {
+    for (const tokens of [other, appTokens]) {
       expect(await signedOut(tokens)).toBe(true);
     }
     const activity = await request(server()).get('/v1/auth/activity').set(bearer(other));

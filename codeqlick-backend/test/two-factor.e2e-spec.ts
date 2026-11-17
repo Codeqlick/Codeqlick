@@ -56,9 +56,7 @@ describe('Two-step verification (e2e)', () => {
     const setup = await request(server).post('/v1/auth/2fa/setup').set(auth).expect(200);
     const secret = setup.body.secret as string;
     expect(setup.body.otpauthUrl).toContain(`secret=${secret}`);
-    const stored = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email } },
-    });
+    const stored = await prisma.user.findUniqueOrThrow({ where: { email } });
     expect(stored.totpSecret).not.toContain(secret);
 
     await request(server)
@@ -122,9 +120,7 @@ describe('Two-step verification (e2e)', () => {
 
     const plain = await login().expect(200);
     expect(plain.body.accessToken).toBeTruthy();
-    const after = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email } },
-    });
+    const after = await prisma.user.findUniqueOrThrow({ where: { email } });
     expect(after).toMatchObject({ totpSecret: null, totpEnabledAt: null, totpRecoveryHashes: [] });
   });
 });

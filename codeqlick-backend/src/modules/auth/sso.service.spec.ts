@@ -16,15 +16,9 @@ const caller: AuthUser = {
   email: 'ada@example.com',
   name: 'Ada',
   role: 'CLIENT',
-  realm: 'CODEQLICK',
   sessionId: 'family-account',
 };
-const activeUser = {
-  id: 'user-1',
-  isActive: true,
-  registeredAt: new Date('2026-01-01'),
-  realm: 'CODEQLICK' as const,
-};
+const activeUser = { id: 'user-1', isActive: true, registeredAt: new Date('2026-01-01') };
 const liveFamily = { familyId: 'family-account', userId: 'user-1', parentFamilyId: null };
 
 describe('PKCE (S256)', () => {
@@ -79,42 +73,19 @@ describe('SsoService', () => {
 
   describe('createCode', () => {
     it('stores only the hash of a fresh code, bound to client, challenge and session', async () => {
-      const { code, expiresIn } = await service.createCode(caller, 'cloud', CHALLENGE, NOW);
+      const { code, expiresIn } = await service.createCode(caller, 'meetings', CHALLENGE, NOW);
 
       expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/);
       expect(expiresIn).toBe(SSO_CODE_TTL_SECONDS);
       expect(codes.create).toHaveBeenCalledWith({
         codeHash: hashRefreshToken(code),
         userId: 'user-1',
-        client: 'cloud',
-        realm: 'CODEQLICK',
+        client: 'meetings',
         codeChallenge: CHALLENGE,
         parentFamilyId: 'family-account',
         expiresAt: new Date(NOW.getTime() + 60_000),
       });
       expect(JSON.stringify(codes.create.mock.calls)).not.toContain(code);
-    });
-
-    it("issues a code only for a client of the account's own realm (architecture 4.18)", async () => {
-      // A Codeqlick account can't ask for a Neoqlick app's code.
-      await expect(service.createCode(caller, 'cruising', CHALLENGE, NOW)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
-      // And a Neoqlick account can't ask for Codeqlick's.
-      const neo = { ...caller, realm: 'NEOQLICK' as const };
-      sessions.findUserById.mockResolvedValue({ ...activeUser, realm: 'NEOQLICK' });
-      await expect(service.createCode(neo, 'site', CHALLENGE, NOW)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
-      await expect(service.createCode(neo, 'cloud', CHALLENGE, NOW)).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
-      expect(codes.create).not.toHaveBeenCalled();
-
-      await service.createCode(neo, 'cruising', CHALLENGE, NOW);
-      expect(codes.create).toHaveBeenCalledWith(
-        expect.objectContaining({ client: 'cruising', realm: 'NEOQLICK' }),
-      );
     });
 
     it('refuses an API token or an access token without a session', async () => {
@@ -141,7 +112,7 @@ describe('SsoService', () => {
 
     it("refuses an app's own session: only the account host's issues codes", async () => {
       sessions.findLiveFamily.mockResolvedValueOnce({ ...liveFamily, parentFamilyId: 'other' });
-      await expect(service.createCode(caller, 'meetings', CHALLENGE, NOW)).rejects.toBeInstanceOf(
+      await expect(service.createCode(caller, 'citas', CHALLENGE, NOW)).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
     });
@@ -161,7 +132,7 @@ describe('SsoService', () => {
   describe('exchange', () => {
     const spentCode = {
       id: 'code-1',
-      client: 'cloud',
+      client: 'meetings',
       codeChallenge: CHALLENGE,
       parentFamilyId: 'family-account',
       userId: 'user-1',
@@ -172,44 +143,22 @@ describe('SsoService', () => {
     it('gives a new session of the client, linked to the account session', async () => {
       codes.spend.mockResolvedValue({ status: 'spent', code: spentCode });
 
-      const tokens = await service.exchange(
-        'CODEQLICK',
-        'cloud',
-        'c'.repeat(43),
-        VERIFIER,
-        {},
-        NOW,
-      );
+      const tokens = await service.exchange('meetings', 'c'.repeat(43), VERIFIER, {}, NOW);
 
-      expect(codes.spend).toHaveBeenCalledWith(
-        hashRefreshToken('c'.repeat(43)),
-        'cloud',
-        'CODEQLICK',
-        NOW,
-      );
+      expect(codes.spend).toHaveBeenCalledWith(hashRefreshToken('c'.repeat(43)), 'meetings', NOW);
       expect(auth.startSsoSession).toHaveBeenCalledWith(
         activeUser,
-        { client: 'cloud', parentFamilyId: 'family-account' },
+        { client: 'meetings', parentFamilyId: 'family-account' },
         {},
       );
       expect(codes.setFamily).toHaveBeenCalledWith('code-1', 'family-app');
       expect(tokens.accessToken).toBe('at');
     });
 
-    it('refuses a client of the other realm before looking the code up', async () => {
-      await expect(
-        service.exchange('NEOQLICK', 'cloud', 'c'.repeat(43), VERIFIER, {}, NOW),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      await expect(
-        service.exchange('CODEQLICK', 'cruising', 'c'.repeat(43), VERIFIER, {}, NOW),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(codes.spend).not.toHaveBeenCalled();
-    });
-
     it('refuses an unknown, expired or other client’s code', async () => {
       codes.spend.mockResolvedValue({ status: 'invalid' });
       await expect(
-        service.exchange('CODEQLICK', 'cloud', 'c'.repeat(43), VERIFIER, {}, NOW),
+        service.exchange('meetings', 'c'.repeat(43), VERIFIER, {}, NOW),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(auth.startSsoSession).not.toHaveBeenCalled();
     });
@@ -220,7 +169,7 @@ describe('SsoService', () => {
         code: { ...spentCode, familyId: 'family-app' },
       });
       await expect(
-        service.exchange('CODEQLICK', 'cloud', 'c'.repeat(43), VERIFIER, {}, NOW),
+        service.exchange('meetings', 'c'.repeat(43), VERIFIER, {}, NOW),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(sessions.revokeFamily).toHaveBeenCalledWith('family-app');
     });
@@ -228,14 +177,7 @@ describe('SsoService', () => {
     it('refuses a wrong verifier (the code is spent anyway)', async () => {
       codes.spend.mockResolvedValue({ status: 'spent', code: spentCode });
       await expect(
-        service.exchange(
-          'CODEQLICK',
-          'cloud',
-          'c'.repeat(43),
-          `${VERIFIER.slice(0, -1)}A`,
-          {},
-          NOW,
-        ),
+        service.exchange('meetings', 'c'.repeat(43), `${VERIFIER.slice(0, -1)}A`, {}, NOW),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(auth.startSsoSession).not.toHaveBeenCalled();
     });
@@ -244,7 +186,7 @@ describe('SsoService', () => {
       codes.spend.mockResolvedValue({ status: 'spent', code: spentCode });
       sessions.findLiveFamily.mockResolvedValueOnce(null);
       await expect(
-        service.exchange('CODEQLICK', 'cloud', 'c'.repeat(43), VERIFIER, {}, NOW),
+        service.exchange('meetings', 'c'.repeat(43), VERIFIER, {}, NOW),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       codes.spend.mockResolvedValue({
@@ -252,7 +194,7 @@ describe('SsoService', () => {
         code: { ...spentCode, user: { ...activeUser, isActive: false } },
       });
       await expect(
-        service.exchange('CODEQLICK', 'cloud', 'c'.repeat(43), VERIFIER, {}, NOW),
+        service.exchange('meetings', 'c'.repeat(43), VERIFIER, {}, NOW),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(auth.startSsoSession).not.toHaveBeenCalled();
     });

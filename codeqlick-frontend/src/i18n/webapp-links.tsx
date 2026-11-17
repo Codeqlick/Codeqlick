@@ -6,7 +6,7 @@ import { Link as IntlLink, useRouter as useIntlRouter } from './intl-navigation'
 
 /**
  * The web app whose host is serving the page, if any. Its layout provides it, so links written as
- * the app's routes (`/videochat/room`) point to the host's short addresses (`/room`).
+ * the app's routes (`/meetings/rooms`) point to the host's short addresses (`/room`).
  */
 const WebappContext = createContext<Webapp | null>(null);
 

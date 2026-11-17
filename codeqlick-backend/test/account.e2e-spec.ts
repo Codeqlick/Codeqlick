@@ -74,9 +74,7 @@ describe('Own account: name, email, export, deletion (e2e)', () => {
       .send({ name: 'Ana María', locale: 'es' })
       .expect(200);
     expect(res.body).toMatchObject({ name: 'Ana María', email: people.ana });
-    const user = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: people.ana } },
-    });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: people.ana } });
     expect(user.locale).toBe('ES');
   });
 
@@ -112,9 +110,7 @@ describe('Own account: name, email, export, deletion (e2e)', () => {
     // The old address is told, the link is spent and every session has ended.
     expect(sent.some((m) => m.to === people.ana && /ha cambiado/.test(m.subject))).toBe(true);
     await request(server).post('/v1/auth/email/confirm').send({ token }).expect(400);
-    const user = await prisma.user.findUniqueOrThrow({
-      where: { realm_email: { realm: 'CODEQLICK', email: newEmail } },
-    });
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: newEmail } });
     expect(await prisma.session.count({ where: { userId: user.id, revokedAt: null } })).toBe(0);
     people.ana = newEmail;
   });

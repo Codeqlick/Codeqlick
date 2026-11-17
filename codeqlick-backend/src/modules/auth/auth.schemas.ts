@@ -35,7 +35,7 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 const signupFields = {
   name: z.string().trim().min(1).max(120),
   password: z.string().min(12).max(256),
-  /** Language of their account (Cruising's six; the rest of the platform writes in EN or ES). */
+  /** Language of their account. */
   locale: accountLocaleSchema,
   /** They read and accept the privacy policy. */
   acceptPrivacy: z.literal(true),
@@ -48,13 +48,8 @@ export const registerSchema = z
     email: z.email().max(254),
     /** Honeypot: humans never see this field, bots fill it in. */
     website: z.string().max(500).optional(),
-    /**
-     * Signed up from one of the web apps: the emailed links lead back to it. The realm decides
-     * which: Codeqlick's apps on its account host, Neoqlick's (4.18) with `X-Realm: NEOQLICK`.
-     */
+    /** Signed up from one of Codeqlick's web apps: the emailed links lead back to it. */
     app: z.enum(WEBAPPS).optional(),
-    /** Neoqlick's sign-up (`X-Realm: NEOQLICK`): the account terms and being 18 or older. */
-    acceptTerms: z.literal(true).optional(),
     /** Cloudflare Turnstile's token (required while TURNSTILE_SECRET_KEY is set). */
     captcha: z.string().max(4096).optional(),
   })
@@ -169,9 +164,6 @@ export const RESERVED_USERNAMES = new Set([
   'info',
   'contact',
   'contacto',
-  'videochat',
-  'swipe',
-  'cruising',
   'meetings',
   'citas',
   'portal',

@@ -88,8 +88,6 @@ export class CloudTokensService implements ApiTokenResolver {
     if (!row) return null;
     if (row.expiresAt && row.expiresAt <= now) return null;
     if (!row.user.isActive || !row.user.registeredAt) return null;
-    // Cloud is Codeqlick's: a token of any other account type is refused (architecture 4.18).
-    if (row.user.realm !== 'CODEQLICK') return null;
     if (!row.lastUsedAt || now.getTime() - row.lastUsedAt.getTime() > TOUCH_EVERY_MS) {
       await this.tokens.touch(row.id, now, ip?.slice(0, 45) ?? null);
     }
@@ -98,7 +96,6 @@ export class CloudTokensService implements ApiTokenResolver {
       email: row.user.email,
       name: row.user.name,
       role: row.user.role,
-      realm: 'CODEQLICK',
       via: 'token',
       token: { id: row.id, name: row.name, teamId: row.teamId, readOnly: row.readOnly },
     };

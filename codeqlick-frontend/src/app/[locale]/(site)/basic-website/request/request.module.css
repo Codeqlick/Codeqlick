@@ -74,13 +74,13 @@
 }
 
 .style:has(input:checked) {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
   box-shadow: 0 0 0 4px var(--color-blush);
   transform: none;
 }
 
 .style:has(input:focus-visible) {
-  outline: 3px solid var(--color-brand);
+  outline: 3px solid var(--color-fuchsia);
   outline-offset: 2px;
 }
 
@@ -103,7 +103,7 @@
 }
 
 .style input:checked {
-  background: var(--color-brand)
+  background: var(--color-fuchsia)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
     center / 70% no-repeat;
 }
@@ -148,7 +148,7 @@
 .choice input {
   width: 1.1rem;
   height: 1.1rem;
-  accent-color: var(--color-brand);
+  accent-color: var(--color-fuchsia);
 }
 
 /* "Not sure yet": no name to type. */

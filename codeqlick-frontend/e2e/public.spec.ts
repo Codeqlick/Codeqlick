@@ -38,10 +38,7 @@ test.describe('public site', () => {
     expect(response?.status()).toBe(404);
   });
 
-  test('the apps page lists Codeqlick’s apps only, and the sitemap no 18+ page', async ({
-    page,
-    request,
-  }) => {
+  test('the apps page lists Codeqlick’s apps only', async ({ page }) => {
     await page.goto('/en/apps');
     const apps = page.getByRole('region', { name: 'Codeqlick apps' });
     await expect(apps.getByRole('heading', { level: 2 })).toHaveText([
@@ -49,11 +46,20 @@ test.describe('public site', () => {
       'Citas',
       'Codeqlick Cloud',
     ]);
-    await expect(
-      page.locator('a[href*="cruising"], a[href*="swipe"], a[href*="videochat"]'),
-    ).toHaveCount(0);
-    const sitemap = await (await request.get('/sitemap.xml')).text();
-    expect(sitemap).not.toMatch(/cruising|swipe|videochat|neoqlick/i);
+  });
+
+  test('nothing of Neoqlick, Cruising, Swipe or Videochat is left in the pages or the sitemap', async ({
+    page,
+    request,
+  }) => {
+    const gone = /neoqlick|cruising|swipe|videochat/i;
+    for (const path of ['/en', '/es', '/en/apps', '/en/legal', '/en/privacy', '/en/terms']) {
+      const response = await page.goto(path);
+      if (response?.status() !== 200) continue;
+      expect(await page.content(), path).not.toMatch(gone);
+    }
+    expect(await (await request.get('/sitemap.xml')).text()).not.toMatch(gone);
+    expect(await (await request.get('/robots.txt')).text()).not.toMatch(gone);
   });
 
   test('llms.txt maps the website for AI assistants', async ({ request }) => {

@@ -13,7 +13,7 @@
 .eyebrow {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   margin: 0;
 }
 
@@ -41,7 +41,7 @@
 }
 
 .error {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-size: 0.85rem;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .input:focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--color-fuchsia);
   outline-offset: 1px;
 }
 
@@ -117,7 +117,7 @@
   height: 0.75rem;
   margin-top: 0.35rem;
   border-radius: 50%;
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
@@ -180,7 +180,7 @@
   width: 4.5rem;
   height: 4.5rem;
   border-radius: 50%;
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
   font-family: var(--font-family-display);
   font-size: 1.6rem;
@@ -206,7 +206,7 @@
 .chip {
   padding: 0 0.4rem;
   border-radius: var(--radius-pill);
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   font-size: 0.75rem;
 }
 
@@ -256,7 +256,7 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  border: 1.5px solid var(--color-brand);
+  border: 1.5px solid var(--color-fuchsia);
   border-radius: var(--radius-md);
   background: var(--color-blush);
 }
@@ -341,7 +341,7 @@
 }
 
 .mine strong {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .chatForm {
@@ -383,7 +383,7 @@
 .switch input {
   width: 1.1rem;
   height: 1.1rem;
-  accent-color: var(--color-brand);
+  accent-color: var(--color-fuchsia);
 }
 
 .dock {
@@ -419,7 +419,7 @@
   margin-left: var(--space-1);
   padding: 0 0.3rem;
   border-radius: var(--radius-pill);
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
   font-size: 0.75rem;
 }

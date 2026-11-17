@@ -15,11 +15,10 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 vi.mock('@/lib/env', () => ({
-  env: { SITE_URL: 'https://codeqlick.com', NEOQLICK_URL: undefined },
+  env: { SITE_URL: 'https://codeqlick.com' },
   get legalOwner() {
     return state.legal ? { name: 'Codeqlick' } : null;
   },
-  neoqlickLegalOwner: undefined,
 }));
 vi.mock('next-intl/server', () => ({
   getTranslations: async () => (key: string, values?: Record<string, unknown>) => {
@@ -54,28 +53,11 @@ describe('AppFooter', () => {
     expect(html).toContain('<nav aria-label="Footer links">');
   });
 
-  it("gives Cruising its own legal pages as routes and the website's contact", async () => {
-    expect(links(await render({ app: 'cruising', locale: 'es' }))).toEqual([
-      [en.Cruising.footerTakedown, '/cruising/takedown', true],
-      [en.Cruising.nav.rules, '/cruising/rules', true],
-      [en.Cruising.legal.terms, '/cruising/terms-of-use', true],
-      [en.Cruising.legal.privacy, '/cruising/privacy-policy', true],
-      ['Contact', 'https://codeqlick.com/es/contact', false],
-    ]);
-  });
-
-  it("gives Citas, Meetings and Videochat the website's terms, privacy and contact", async () => {
+  it("gives Citas and Meetings the website's terms, privacy and contact", async () => {
     expect(links(await render({ app: 'citas', locale: 'en' }))).toEqual([
       ['Terms', 'https://codeqlick.com/en/terms', false],
       ['Privacy', 'https://codeqlick.com/en/privacy', false],
       ['Contact', 'https://codeqlick.com/en/contact', false],
-    ]);
-    const videochat = links(await render({ app: 'videochat', locale: 'en' }));
-    expect(videochat.map(([label]) => label)).toEqual([
-      en.Videochat.rulesLink,
-      'Terms',
-      'Privacy',
-      'Contact',
     ]);
   });
 

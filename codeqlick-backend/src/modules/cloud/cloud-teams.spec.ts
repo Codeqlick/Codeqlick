@@ -39,7 +39,6 @@ function ctx(tokenTeamId?: string): CloudCtx {
       email: 'ada@codeqlick.test',
       name: 'Ada',
       role: 'CLIENT',
-      realm: 'CODEQLICK',
       ...(tokenTeamId
         ? {
             via: 'token' as const,

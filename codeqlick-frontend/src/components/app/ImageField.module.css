@@ -29,7 +29,7 @@
 .progress {
   width: 100%;
   height: 0.5rem;
-  accent-color: var(--color-brand);
+  accent-color: var(--color-fuchsia);
 }
 
 .preview {

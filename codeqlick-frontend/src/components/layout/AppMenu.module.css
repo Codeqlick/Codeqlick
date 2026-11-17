@@ -17,24 +17,12 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  /* Room between the "18+" badge and the bell (8 px more than the bar's gap). */
-  margin-right: var(--space-2);
 }
 
 .brandApp {
   font-family: var(--font-family-mono);
   font-size: 0.85rem;
-  color: var(--color-brand-dark);
-}
-
-.adultBadge {
-  font-family: var(--font-family-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-brand);
-  color: var(--color-white);
+  color: var(--color-fuchsia-dark);
 }
 
 .actions {
@@ -42,12 +30,6 @@
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
-}
-
-@media (max-width: 40rem) {
-  .action {
-    display: none;
-  }
 }
 
 @media (max-width: 22rem) {
@@ -85,8 +67,8 @@
 .trigger:hover,
 .close:hover,
 .trigger[aria-expanded='true'] {
-  color: var(--color-brand-dark);
-  border-color: var(--color-brand-light);
+  color: var(--color-fuchsia-dark);
+  border-color: var(--color-fuchsia-light);
 }
 
 /* The drawer: a modal <dialog> on the right, full height, at most 360px wide. */
@@ -205,13 +187,13 @@
 .item:hover,
 .appItem:hover {
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .item[aria-current='page'] {
-  border-left-color: var(--color-brand);
+  border-left-color: var(--color-fuchsia);
   background: var(--color-blush);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
   font-weight: 600;
 }
 
@@ -291,22 +273,6 @@
   overflow-wrap: anywhere;
 }
 
-.verified {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-family: var(--font-family-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-brand-dark);
-}
-
-.verified svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  fill: var(--color-brand);
-}
-
 .cardButtons {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
@@ -320,7 +286,7 @@
   justify-content: center;
   min-height: 2.75rem;
   padding: 0 var(--space-3);
-  border: 1.5px solid var(--color-brand);
+  border: 1.5px solid var(--color-fuchsia);
   border-radius: var(--radius-pill);
   font-size: 0.95rem;
   font-weight: 600;
@@ -329,23 +295,23 @@
 }
 
 .cardPrimary {
-  background: var(--color-brand);
+  background: var(--color-fuchsia);
   color: var(--color-white);
 }
 
 .cardPrimary:hover,
 .cardPrimary[aria-current='page'] {
-  border-color: var(--color-brand-dark);
-  background: var(--color-brand-dark);
+  border-color: var(--color-fuchsia-dark);
+  background: var(--color-fuchsia-dark);
 }
 
 .cardSecondary {
   background: var(--color-white);
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .cardSecondary:hover {
-  background: var(--color-brand-light);
-  border-color: var(--color-brand-light);
+  background: var(--color-fuchsia-light);
+  border-color: var(--color-fuchsia-light);
   color: var(--color-ink);
 }

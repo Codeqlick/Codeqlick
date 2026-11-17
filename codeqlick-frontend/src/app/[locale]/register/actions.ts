@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { cruisingLocaleOrDefault } from '@/i18n/locale';
+import { localeOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
 import { acceptInvitation, confirmSignup, register } from '@/lib/api/auth';
 import {
@@ -15,11 +15,10 @@ import type { AuthTokens } from '@/lib/api/types';
 import { safeNextPath, setAuthCookies } from '@/lib/auth/session';
 import { siteLocale } from '@/i18n/routing';
 import { webappUrl } from '@/lib/webapp-seo';
-import { appsOfBrand, type Webapp } from '@/lib/webapps';
+import { WEBAPPS, type Webapp } from '@/lib/webapps';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { registerSchema } from '@/lib/schemas/auth';
-import { requestBrand } from '@/lib/request-brand';
 
 /** What the form keeps after an error: never the passwords. */
 function kept(formData: FormData) {
@@ -56,7 +55,7 @@ async function failure(locale: AppLocale, error: unknown, formData: FormData): P
  * they are signed in at once; otherwise the API emails the link that confirms it.
  */
 export async function registerAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const locale = cruisingLocaleOrDefault(formData.get('locale'));
+  const locale = localeOrDefault(formData.get('locale'));
   const invitation = formString(formData, 'invitation');
   const parsed = registerSchema.safeParse({
     name: formString(formData, 'name'),
@@ -74,24 +73,6 @@ export async function registerAction(_previous: FormState, formData: FormData): 
     };
   }
   const { name, email, password } = parsed.data;
-
-  // Neoqlick's sign-up also needs the terms and the confirmation of being 18 or older.
-  const neoqlick = (await requestBrand()) === 'neoqlick';
-  if (neoqlick && !invitation) {
-    const adult = formData.get('confirmAdult') === 'on';
-    const terms = formData.get('acceptTerms') === 'on';
-    if (!adult || !terms) {
-      const tv = await getTranslations({ locale, namespace: 'Validation' });
-      return {
-        status: 'error',
-        fieldErrors: {
-          ...(adult ? {} : { confirmAdult: tv('adult') }),
-          ...(terms ? {} : { acceptTerms: tv('terms') }),
-        },
-        values: kept(formData),
-      };
-    }
-  }
 
   if (invitation) {
     let tokens: AuthTokens;
@@ -120,10 +101,9 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       password,
       locale,
       acceptPrivacy: true,
-      ...(neoqlick ? { acceptTerms: true as const } : {}),
       website: formString(formData, 'website'),
       // From an app's host, or on the account host the app the sign-up started from (decision 108).
-      app: (await requestWebapp()) ?? (await formApp(formData)),
+      app: (await requestWebapp()) ?? formApp(formData),
       captcha: formString(formData, 'captcha') || undefined,
     });
   } catch (error) {
@@ -133,9 +113,9 @@ export async function registerAction(_previous: FormState, formData: FormData): 
 }
 
 /** The app a form names (`app`), when it is one of ours. */
-async function formApp(formData: FormData): Promise<Webapp | undefined> {
+function formApp(formData: FormData): Webapp | undefined {
   const value = formString(formData, 'app');
-  return appsOfBrand(await requestBrand()).find((app) => app === value);
+  return WEBAPPS.find((app) => app === value);
 }
 
 /**
@@ -147,7 +127,7 @@ export async function confirmSignupAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const locale = cruisingLocaleOrDefault(formData.get('locale'));
+  const locale = localeOrDefault(formData.get('locale'));
   let tokens: AuthTokens;
   try {
     tokens = await confirmSignup(formString(formData, 'token'));
@@ -155,7 +135,7 @@ export async function confirmSignupAction(
     return failure(locale, error, formData);
   }
   await setAuthCookies(tokens);
-  const app = await formApp(formData);
-  if (app) redirect(webappUrl(app, app === 'cruising' ? locale : siteLocale(locale), '/login'));
+  const app = formApp(formData);
+  if (app) redirect(webappUrl(app, siteLocale(locale), '/login'));
   redirect(await homeAfterSignIn(locale, tokens.user.role));
 }

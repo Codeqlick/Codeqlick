@@ -12,7 +12,7 @@ import type { Subscription } from 'rxjs';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { clientIp, ownUpgrade, rejectUpgrade, WS_PATHS } from '../../common/websocket/websocket.js';
-import { WindowLimiter } from '../videochat/matchmaker.js';
+import { WindowLimiter } from '../../common/websocket/window-limiter.js';
 import {
   clientMessageSchema,
   MEETING_MAX_PEOPLE,

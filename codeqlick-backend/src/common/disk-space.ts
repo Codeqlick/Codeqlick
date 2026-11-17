@@ -25,7 +25,7 @@ export function diskState(free: number, floors: DiskFloors): DiskState {
 
 /**
  * Reads the free space of the disk holding `path` against the floors. Shared by Cloud's disk guard
- * and by everything else that must not fill the single server (Cruising's media uploads).
+ * and by everything else that must not fill the single server.
  */
 export async function readDiskSpace(path: string, floors: DiskFloors): Promise<DiskReading> {
   const stats = await statfs(path);

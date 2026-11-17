@@ -92,9 +92,6 @@ jobs:
           # Passkeys are used on the account host only (decision 108): its own name as relying
           # party, since browsers don't take `localhost` for account.localhost.
           WEBAUTHN_RP_ID: account.localhost
-          # Neoqlick's user base and hosts (architecture 4.18): *.neoqlick.localhost.
-          NEOQLICK_URL: http://neoqlick.localhost:3000
-          WEBAUTHN_RP_ID_NEOQLICK: account.neoqlick.localhost
           SEED_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
           SITE_BUILDER_URL: http://127.0.0.1:4100
@@ -116,12 +113,8 @@ jobs:
           API_URL: http://localhost:4000/v1
           SITE_URL: http://localhost:3000
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
-          # Neoqlick's hosts (*.neoqlick.localhost resolve in the browser): the portal and its apps.
-          NEOQLICK_URL: http://neoqlick.localhost:3000
-          # The video chat test opens http://videochat.localhost:3000 (the API's default allowed
-          # origin there) and its socket goes straight to the API (also allowed by the CSP).
-          VIDEOCHAT_WS_URL: ws://localhost:4000/v1/videochat/ws
-          # Same for the meetings, at http://meetings.localhost:3000.
+          # The meetings test opens http://meetings.localhost:3000 and its socket goes straight to
+          # the API (also allowed by the CSP).
           MEETINGS_WS_URL: ws://localhost:4000/v1/meetings/ws
           # The strict Content Security Policy enforced, so every flow below runs under it and a
           # script without the nonce fails the build (architecture 6.4; e2e/csp.spec.ts).

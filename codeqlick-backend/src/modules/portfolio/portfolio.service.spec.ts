@@ -43,13 +43,7 @@ function item(extra: Partial<AdminPortfolioRecord> = {}): AdminPortfolioRecord {
   } as AdminPortfolioRecord;
 }
 
-const actor = {
-  id: 'a1',
-  email: 'admin@codeqlick.com',
-  name: 'Admin',
-  role: 'ADMIN',
-  realm: 'CODEQLICK',
-} as const;
+const actor = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as const;
 
 describe('PortfolioService old slugs', () => {
   let repository: {

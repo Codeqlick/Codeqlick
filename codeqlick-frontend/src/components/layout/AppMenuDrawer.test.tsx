@@ -7,7 +7,7 @@ import { AppMenuDrawer, AppMenuLink } from './AppMenuDrawer';
 
 // The app's navigation pulls in Next.js's router, which doesn't load under Vitest: a plain link and
 // a path the test sets are enough here.
-const nav = vi.hoisted(() => ({ pathname: '/map' }));
+const nav = vi.hoisted(() => ({ pathname: '/console' }));
 vi.mock('@/i18n/navigation', () => ({
   usePathname: () => nav.pathname,
   Link: ({ href, children, ...props }: ComponentProps<'a'> & { href: string }) => (
@@ -29,12 +29,12 @@ function menu() {
         <Link href="/login">Sign in</Link>
         <Link href="/register">Create account</Link>
       </section>
-      <nav aria-label="cruising">
-        <AppMenuLink href="/cruising/map" app="cruising">
-          Map
+      <nav aria-label="cloud">
+        <AppMenuLink href="/cloud/console" app="cloud">
+          Console
         </AppMenuLink>
-        <AppMenuLink href="/cruising/places" app="cruising">
-          Places
+        <AppMenuLink href="/cloud/docs" app="cloud">
+          Docs
         </AppMenuLink>
       </nav>
     </AppMenuDrawer>
@@ -50,7 +50,7 @@ function render() {
 }
 
 beforeEach(() => {
-  nav.pathname = '/map';
+  nav.pathname = '/console';
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -116,7 +116,7 @@ describe('AppMenuDrawer', () => {
   it('closes when the page changes', () => {
     const { trigger, dialog } = render();
     act(() => trigger.click());
-    nav.pathname = '/places';
+    nav.pathname = '/docs';
     act(() => root.render(menu()));
     expect(dialog.open).toBe(false);
   });
@@ -143,7 +143,7 @@ describe('AppMenuDrawer', () => {
         >
           <section aria-label="Your account">
             <p>Ana Gil</p>
-            <Link href="/cruising/me">My profile</Link>
+            <Link href="/cloud/console">My profile</Link>
             <a href="https://codeqlick.com/es/portal/account">My account</a>
           </section>
         </AppMenuDrawer>,
@@ -163,8 +163,8 @@ describe('AppMenuDrawer', () => {
 
   it('marks the current page', () => {
     const { dialog } = render();
-    const [map, places] = dialog.querySelectorAll('nav a');
-    expect(map!.getAttribute('aria-current')).toBe('page');
-    expect(places!.hasAttribute('aria-current')).toBe(false);
+    const [console, docs] = dialog.querySelectorAll('nav a');
+    expect(console!.getAttribute('aria-current')).toBe('page');
+    expect(docs!.hasAttribute('aria-current')).toBe(false);
   });
 });

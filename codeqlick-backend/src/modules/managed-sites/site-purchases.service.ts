@@ -231,7 +231,7 @@ export class SitePurchasesService {
   private async makeSite(purchaseId: string, leadId: string, email: string | null): Promise<void> {
     const admin = await this.repository.teamAdmin();
     if (!admin) throw new Error('There is no active admin to make it as');
-    const actor: AuthUser = { ...admin, role: 'ADMIN', realm: 'CODEQLICK' };
+    const actor: AuthUser = { ...admin, role: 'ADMIN' };
     let lead = await this.leads.get(leadId);
     if (lead.clientId) throw new Error('The lead was already a client');
     if (!lead.email) {

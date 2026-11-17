@@ -20,7 +20,7 @@
 }
 
 .trigger:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-fuchsia);
   color: var(--color-ink);
 }
 
@@ -117,8 +117,8 @@
 }
 
 .close:hover {
-  border-color: var(--color-brand);
-  color: var(--color-brand-dark);
+  border-color: var(--color-fuchsia);
+  color: var(--color-fuchsia-dark);
 }
 
 .message {
@@ -168,7 +168,7 @@
 
 .active {
   background: var(--color-blush);
-  box-shadow: inset 3px 0 0 var(--color-brand);
+  box-shadow: inset 3px 0 0 var(--color-fuchsia);
 }
 
 .label {
@@ -178,7 +178,7 @@
 }
 
 .active .label {
-  color: var(--color-brand-dark);
+  color: var(--color-fuchsia-dark);
 }
 
 .sublabel {

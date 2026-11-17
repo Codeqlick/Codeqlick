@@ -45,7 +45,7 @@ export async function ProjectVisitsPanel({
           series={[
             {
               label: t('visitors'),
-              color: 'var(--color-brand)',
+              color: 'var(--color-fuchsia)',
               values: visits.daily.map((day) => day.visitors),
             },
           ]}

@@ -8,10 +8,6 @@ const NOW = new Date('2026-11-18T12:00:00Z');
 function totals(over: Partial<OverviewTotalsRow> = {}): OverviewTotalsRow {
   const zero = {
     accounts: 0,
-    neoqlickAccounts: 0,
-    cruising: 0,
-    swipe: 0,
-    videochat: 0,
     cloud: 0,
     citas: 0,
     meetings: 0,
@@ -29,18 +25,6 @@ function totals(over: Partial<OverviewTotalsRow> = {}): OverviewTotalsRow {
     cspOpen: 0,
     monitorsWatched: 0,
     monitorsDown: 0,
-    cruisingSpots: 0,
-    cruisingReports: 0,
-    cruisingMedia: 0,
-    cruisingVerifications: 0,
-    cruisingTakedowns: 0,
-    swipePhotos: 0,
-    swipeReports: 0,
-    swipeVerifications: 0,
-    swipeTakedowns: 0,
-    videochatReports: 0,
-    videochatAppeals: 0,
-    videochatVerifications: 0,
   };
   return { ...zero, ...over };
 }
@@ -94,7 +78,7 @@ describe('AdminOverviewService (decision 122)', () => {
       data({
         weeks: [
           { metric: 'accounts', week: '2026-11-16', total: 4, amount: 0 },
-          { metric: 'cruising', week: '2026-11-16', total: 2, amount: 0 },
+          { metric: 'meetings', week: '2026-11-16', total: 2, amount: 0 },
           { metric: 'portal', week: '2026-11-09', total: 1, amount: 0 },
           { metric: 'cloud', week: '2026-11-09', total: 3, amount: 0 },
           { metric: 'purchases', week: '2026-11-09', total: 2, amount: 79_860 },
@@ -117,7 +101,7 @@ describe('AdminOverviewService (decision 122)', () => {
     const { weeks } = await service.overview(NOW);
     const last = weeks.at(-1)!;
     expect(last.accounts).toEqual({ new: 4, active: 3 });
-    expect(last.apps.cruising).toBe(2);
+    expect(last.apps.meetings).toBe(2);
     expect(last.support).toEqual({ opened: 3, closed: 1 });
     expect(last.deployments).toBe(9);
     const before = weeks.at(-2)!;
