@@ -2,7 +2,7 @@ import type { CruisingLegalTexts } from '../cruising';
 
 /** Cruising's terms of use and privacy policy in Portuguese. */
 export const pt: CruisingLegalTexts = {
-  updated: '16 de novembro de 2026',
+  updated: '17 de novembro de 2026',
   owner: {
     owner: 'Titular',
     taxId: 'Número fiscal (NIF)',
@@ -44,7 +44,7 @@ Precisas de uma conta com um e-mail verificado e de entrar no Cruising com a tua
 - Os membros que entraram no Cruising e estão **verificados** podem carregar fotos e vídeos **de si próprios** no seu perfil. É permitido conteúdo sexual de si próprio entre adultos, e só os membros que entraram no Cruising o podem ver.
 - **Ninguém com menos de 18 anos** pode aparecer, e nada pode ser ilegal. Não pode aparecer ninguém que não tenha dado o seu consentimento, e as imagens têm de ser tuas. Marcas uma caixa de consentimento em cada carregamento.
 - As fotos e os vídeos são **publicados antes de a equipa os rever**; a equipa revê-os depois e remove o que viola estes termos, bloqueando a imagem para que não possa ser carregada novamente. Podemos suspender a conta.
-- A **verificação** é uma foto tua com o teu nome de utilizador, revista pela equipa e eliminada depois. O selo «Verificado» significa apenas que a equipa verificou essa foto: não que tenha sido verificado um documento de identidade.
+- A **verificação** é uma foto tua com o teu nome de utilizador, «Codeqlick» e a data, revista pela equipa e guardada em privado enquanto a verificação se mantiver (ver «Segurança entre as apps 18+ da Codeqlick»). O selo «Verificado» significa apenas que a equipa verificou essa foto: não que tenha sido verificado um documento de identidade.
 - O que carregas continua a ser teu e concedes-nos uma autorização gratuita e não exclusiva para o guardar e mostrar no Cruising até o eliminares.
 
 ## Como te comportas
@@ -87,7 +87,7 @@ Usar o Cruising pode revelar aspetos da tua **vida sexual ou orientação sexual
 - **Locais:** os que propões (nome, tipo, localização, descrição, horários) associados à tua conta, para que os possas ver e editar e para que os possamos moderar.
 - **Avaliações e denúncias:** as que escreves e fazes.
 - **Fotos e vídeos (dados de categoria especial):** os que carregas no teu perfil, com o teu **consentimento explícito** em cada carregamento (artigo 9.º, n.º 2, alínea a)). Removemos os seus metadados (localização, câmara). São guardados em servidores na União Europeia (OVHcloud), **fora das cópias de segurança**, e só os membros que entraram no Cruising os podem ver, nunca os motores de pesquisa.
-- **Foto de verificação:** a que nos envias com o teu nome de utilizador; só a equipa a vê e é **eliminada assim que é revista**: só guardamos a decisão.
+- **Foto de verificação:** a que nos envias com o teu nome de utilizador, «Codeqlick» e a data; só a equipa a vê. Se aprovada, é **guardada em privado enquanto a verificação se mantiver** e eliminada quando é retirada ou perdida, substituída ou quando eliminas a tua conta; uma rejeitada é eliminada de imediato. A verificação é partilhada com as outras apps 18+ da Codeqlick (ver a última secção).
 - **Saúde sexual (dados de saúde, categoria especial):** só se a ativares, com o seu **próprio consentimento explícito** (artigo 9.º, n.º 2, alínea a)), separado do da entrada: se tomas PrEP, o mês do teu último teste e com que frequência te lembramos do teu rastreio. Por defeito só tu os vês; se escolheres mostrá-los, os membros que entraram no Cruising veem-nos no teu perfil. Desativá-la **elimina-os** de imediato. Os lembretes dizem apenas «Está na hora do teu check-up».
 - **Contactos de confiança e temporizador de segurança:** o e-mail de até 2 pessoas que escolhes, o nome com que te identificas perante elas e se aceitaram (interesse legítimo na tua segurança, artigo 6.º, n.º 1, alínea f); cada contacto dá o seu próprio consentimento ao aceitar por e-mail e pode deixar de o ser a qualquer momento). De um temporizador guardamos a hora de fim, a tua mensagem e, só se escolheres partilhá-lo, o local. Se não o terminares a tempo, os teus contactos que aceitaram recebem um único e-mail com esse nome, a tua mensagem, a hora e o local partilhado; nunca o teu nome de utilizador nem o que é o Cruising.
 - **Segurança:** o endereço IP e o navegador de cada sessão (interesse legítimo, artigo 6.º, n.º 1, alínea f)).
@@ -107,7 +107,7 @@ Os locais publicados são vistos por qualquer pessoa, sem o teu nome. As avalia�
 
 ## Durante quanto tempo os guardamos
 
-Enquanto tiveres a conta. As tuas fotos e vídeos, até os eliminares a eles ou à conta; os ficheiros desaparecem do servidor no prazo de 6 horas. A foto de verificação é eliminada assim que é revista. Os temporizadores, 7 dias depois de terminarem. Quando eliminas a conta, o teu perfil, as tuas avaliações, as tuas denúncias, os dados de saúde, os contactos de confiança e os temporizadores são eliminados; os locais que propuseste continuam publicados sem o teu nome. As cópias de segurança são eliminadas ao fim de 14 dias.
+Enquanto tiveres a conta. As tuas fotos e vídeos, até os eliminares a eles ou à conta; os ficheiros desaparecem do servidor no prazo de 6 horas. A foto de verificação, se aprovada, é guardada enquanto a verificação se mantiver; uma rejeitada é eliminada de imediato. Os temporizadores, 7 dias depois de terminarem. Quando eliminas a conta, o teu perfil, as tuas avaliações, as tuas denúncias, os dados de saúde, os contactos de confiança e os temporizadores são eliminados; os locais que propuseste continuam publicados sem o teu nome. As cópias de segurança são eliminadas ao fim de 14 dias.
 
 ## Os teus direitos
 

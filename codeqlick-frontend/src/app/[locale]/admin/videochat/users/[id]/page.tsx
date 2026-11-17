@@ -1,21 +1,20 @@
 import { getTranslations } from 'next-intl/server';
 import { ActionForm, FormInput, FormSelect } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { AdultOverviewPanel } from '@/components/adult/AdultOverviewPanel';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { getAdultUserOverview } from '@/lib/api/adult';
 import { getVideochatUser, SUSPENSION_DURATIONS } from '@/lib/api/videochat';
+import { categoryOptions, type AdultCategory } from '@/lib/adult';
 import { formatDateTime } from '@/lib/format';
 import { countryName, languageName } from '@/lib/videochat-options';
-import {
-  ageVerifiedAction,
-  liftSuspensionAction,
-  revokeVerificationAction,
-  suspendUserAction,
-} from '../../actions';
+import { withdrawVerificationAction } from '../../../adult/actions';
+import { ageVerifiedAction, liftSuspensionAction, suspendUserAction } from '../../actions';
 
 type PageProps = { params: Promise<{ locale: string; id: string }> };
 
@@ -28,7 +27,12 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
   const tg = await getTranslations({ locale, namespace: 'Videochat.genders' });
   const back = { href: '/admin/videochat', label: tu('back') };
 
-  const person = await getVideochatUser(id);
+  const tcat = await getTranslations({ locale, namespace: 'AdminAdult.categories' });
+  const ta = await getTranslations({ locale, namespace: 'AdminAdult' });
+  const [person, adult] = await Promise.all([
+    getVideochatUser(id),
+    getAdultUserOverview(id).catch(() => null),
+  ]);
   if (!person) {
     return (
       <>
@@ -44,6 +48,7 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
     value,
     label: t(`durations.${value}`),
   }));
+  const categories = categoryOptions((c: AdultCategory) => tcat(c), ta('appliesInAll'));
   const facts: Array<[string, string]> = [
     [tu('email'), person.user.email],
     [tu('nickname'), profile.nickname ?? none],
@@ -112,7 +117,7 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
             </SubmitButton>
           </ActionForm>
           {person.photoVerification === 'APPROVED' ? (
-            <ActionForm action={revokeVerificationAction.bind(null, locale, id)}>
+            <ActionForm action={withdrawVerificationAction.bind(null, locale, id)}>
               <SubmitButton size="sm" variant="outline">
                 {tu('revokeBadge')}
               </SubmitButton>
@@ -124,7 +129,15 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
           <h3 className={styles.updateTitle}>
             {suspension ? tu('changeSuspension') : tu('suspend')}
           </h3>
+          <p className={styles.muted}>{ta('suspend.perAppLead')}</p>
           <div className={styles.row}>
+            <FormSelect
+              name="category"
+              label={ta('suspend.category')}
+              options={categories}
+              defaultValue="HARASSMENT"
+              required
+            />
             <FormInput name="reason" label={tu('reason')} maxLength={500} required />
             <FormSelect
               name="duration"
@@ -140,6 +153,15 @@ export default async function AdminVideochatUserPage({ params }: PageProps) {
           </div>
         </ActionForm>
       </section>
+
+      {adult ? (
+        <>
+          <AdultOverviewPanel locale={locale} data={adult} />
+          <p>
+            <Link href={`/admin/adult/users/${id}`}>{ta('openPage')}</Link>
+          </p>
+        </>
+      ) : null}
 
       <section className={styles.panel}>
         <h2 className={styles.panelTitle}>{tu('profile')}</h2>

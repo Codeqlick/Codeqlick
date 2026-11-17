@@ -49,6 +49,12 @@ export async function SwipeGate({ locale, status }: { locale: AppLocale; status:
           required
         />
         <FormCheckbox name="acceptTerms" label={t('onboarding.accept')} required />
+        <FormCheckbox
+          name="consentSpecialData"
+          label={t('onboarding.consent')}
+          hint={t('onboarding.consentHint')}
+          required
+        />
         <p>
           <Link href="/swipe/rules" target="_blank" className={vc.inlineLink}>
             {t('onboarding.readRules')}

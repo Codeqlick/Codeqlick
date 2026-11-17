@@ -2,7 +2,7 @@ import type { CruisingLegalTexts } from '../cruising';
 
 /** Cruising's terms of use and privacy policy in Spanish. */
 export const es: CruisingLegalTexts = {
-  updated: '16 de noviembre de 2026',
+  updated: '17 de noviembre de 2026',
   owner: {
     owner: 'Titular',
     taxId: 'NIF',
@@ -45,7 +45,7 @@ Necesitas una cuenta verificada por correo y entrar en Cruising con tu fecha de 
 - Los miembros que han entrado y están **verificados** pueden subir a su perfil fotos y vídeos **de sí mismos**. Se permite el contenido sexual propio entre personas adultas, que solo ven los miembros que han entrado.
 - **Nadie menor de 18 años** puede aparecer, y nada que sea ilegal. No puede aparecer nadie que no haya dado su consentimiento ni imágenes que no sean tuyas. Marcas una casilla de consentimiento en cada subida.
 - Las fotos y los vídeos se **publican antes de que el equipo los revise**; el equipo los revisa después y retira lo que incumpla estas condiciones, bloqueando la imagen para que no vuelva a subirse. Podemos suspender la cuenta.
-- La **verificación** es una foto tuya con tu apodo, que revisa el equipo y se borra después. La insignia «Verificado» solo significa que el equipo comprobó esa foto: no que se haya comprobado un documento de identidad.
+- La **verificación** es una foto tuya con tu apodo, «Codeqlick» y la fecha, que revisa el equipo y se guarda en privado mientras la verificación siga vigente (véase «Seguridad entre las apps +18 de Codeqlick»). La insignia «Verificado» solo significa que el equipo comprobó esa foto: no que se haya comprobado un documento de identidad.
 - Sigues siendo autor de lo que subes y nos das permiso, no exclusivo y gratuito, para guardarlo y mostrarlo en Cruising mientras no lo borres.
 
 ## Cómo te comportas
@@ -88,7 +88,7 @@ Usar Cruising puede revelar aspectos de tu **vida sexual u orientación sexual**
 - **Lugares:** los que propones (nombre, tipo, ubicación, descripción, horas) con tu cuenta, para que puedas verlos y editarlos y para moderarlos.
 - **Opiniones y denuncias:** las que escribes y las que haces.
 - **Fotos y vídeos (datos de categoría especial):** los que subes a tu perfil, con tu **consentimiento explícito** en cada subida (artículo 9.2.a). Les quitamos los metadatos (ubicación, cámara). Se guardan en servidores de la Unión Europea (OVHcloud), **fuera de las copias de seguridad**, y los ven solo los miembros que han entrado, nunca los buscadores.
-- **Foto de verificación:** la que nos envías con tu apodo; solo la ve el equipo y se **borra en cuanto se revisa**: solo conservamos la decisión.
+- **Foto de verificación:** la que nos envías con tu apodo, «Codeqlick» y la fecha; solo la ve el equipo. Si se aprueba, se **guarda en privado mientras la verificación siga vigente** y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; una rechazada se borra al momento. La verificación se comparte con las otras apps +18 de Codeqlick (véase la última sección).
 - **Salud sexual (datos de salud, categoría especial):** solo si la activas, con su **propio consentimiento explícito** (artículo 9.2.a), distinto del de la entrada: si tomas PrEP, el mes de tu última prueba y cada cuánto quieres que te recordemos la revisión. Por defecto solo los ves tú; si eliges mostrarlos, los ven los miembros que han entrado en tu perfil. Al desactivarla se **borran** en el momento. Los recordatorios solo dicen «Es hora de tu revisión».
 - **Contactos de confianza y temporizador de seguridad:** el correo y el nombre con el que te presentas a hasta 2 personas que eliges, y si han aceptado (interés legítimo en tu seguridad, artículo 6.1.f; cada contacto da su propio consentimiento al aceptar por correo y puede dejarlo cuando quiera). Del temporizador guardamos la hora de fin, tu mensaje y, solo si eliges compartirlo, el lugar. Si no lo terminas a tiempo, enviamos a tus contactos que aceptaron un único correo con ese nombre, tu mensaje, la hora y el lugar compartido; nunca tu apodo ni qué es Cruising.
 - **Seguridad:** la dirección IP y el navegador de cada sesión (interés legítimo, artículo 6.1.f).
@@ -108,7 +108,7 @@ Los lugares publicados los ve cualquiera, sin tu nombre. Las opiniones solo las 
 
 ## Cuánto tiempo los guardamos
 
-Mientras tengas la cuenta. Tus fotos y vídeos, hasta que los borres tú o borres la cuenta; los archivos desaparecen del servidor en un máximo de 6 horas. La foto de verificación se borra al revisarla. Los temporizadores, 7 días después de terminar. Al borrar la cuenta se borran tu perfil, tus opiniones, tus denuncias, tus datos de salud, tus contactos de confianza y tus temporizadores; los lugares que propusiste siguen publicados sin tu nombre. Las copias de seguridad se eliminan a los 14 días.
+Mientras tengas la cuenta. Tus fotos y vídeos, hasta que los borres tú o borres la cuenta; los archivos desaparecen del servidor en un máximo de 6 horas. La foto de verificación, si se aprueba, se guarda mientras la verificación siga vigente; una rechazada se borra al momento. Los temporizadores, 7 días después de terminar. Al borrar la cuenta se borran tu perfil, tus opiniones, tus denuncias, tus datos de salud, tus contactos de confianza y tus temporizadores; los lugares que propusiste siguen publicados sin tu nombre. Las copias de seguridad se eliminan a los 14 días.
 
 ## Tus derechos
 

@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import type { AppLocale } from '@/i18n/routing';
+import type { AuthUser } from '@/lib/api/types';
 import type { AppMenuConfig } from '@/lib/app-menus';
 import type { Webapp } from '@/lib/webapps';
 import { APP_MESSAGES, AppMenu } from './AppMenu';
@@ -11,7 +12,10 @@ type AppHeaderProps = {
   app: Webapp;
   locale: AppLocale;
   config: AppMenuConfig;
-  signedIn: boolean;
+  /** The signed-in person (the menu's avatar and user card), or null. */
+  user: AuthUser | null;
+  /** The app's "verified" badge on the user card (Cruising, Swipe, Videochat). */
+  verified?: boolean;
   /** The "18+" badge next to the wordmark (Videochat, Swipe, Cruising). */
   adult?: boolean;
   /** The app's call to action, shown from 40rem up (Cruising's "Propose a spot"). */
@@ -23,13 +27,15 @@ type AppHeaderProps = {
 
 /**
  * Every web app's header (decision 107): the Codeqlick logo, the app's wordmark and badge, and on
- * the right only its call to action, its bell and the ☰ button of the menu drawer.
+ * the right only its call to action, its bell and the ☰ button of the menu drawer (with the
+ * person's avatar when signed in).
  */
 export async function AppHeader({
   app,
   locale,
   config,
-  signedIn,
+  user,
+  verified,
   adult = false,
   action,
   bell,
@@ -47,7 +53,14 @@ export async function AppHeader({
       <div className={styles.actions}>
         {action ? <div className={styles.action}>{action}</div> : null}
         {bell}
-        <AppMenu app={app} locale={locale} config={config} signedIn={signedIn} locales={locales} />
+        <AppMenu
+          app={app}
+          locale={locale}
+          config={config}
+          user={user}
+          verified={verified}
+          locales={locales}
+        />
       </div>
     </header>
   );

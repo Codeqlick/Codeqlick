@@ -23,7 +23,7 @@ import { Public } from '../../common/decorators/public.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import { privateImage } from '../swipe/swipe.controller.js';
 import { MAX_UPLOAD_BYTES } from '../swipe/swipe.schemas.js';
-import { VideochatVerificationService } from './videochat-verification.service.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { VideochatGateway } from './videochat.gateway.js';
 import { VideochatPushService } from './videochat-push.service.js';
 import {
@@ -58,7 +58,7 @@ export class VideochatController {
     private readonly videochat: VideochatService,
     private readonly push: VideochatPushService,
     private readonly gateway: VideochatGateway,
-    private readonly verification: VideochatVerificationService,
+    private readonly verification: AdultVerificationService,
   ) {}
 
   /** My figures: calls, likes received and new contacts this week and the week before. */
@@ -76,18 +76,20 @@ export class VideochatController {
   })
   // No storage option: the file stays in memory until it has been checked and re-encoded.
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } }))
-  uploadVerification(
+  async uploadVerification(
     @CurrentUser() user: AuthUser,
     @UploadedFile() file: { buffer: Buffer } | undefined,
   ): Promise<VideochatStatus> {
-    return this.verification.upload(user.id, file?.buffer);
+    // The account's one verification (architecture 4.16): answers like `POST /adult/verification`.
+    await this.verification.upload(user.id, 'VIDEOCHAT', file?.buffer);
+    return this.videochat.status(user.id);
   }
 
   /** My photo while it waits for review. */
   @Get('verification/file')
   @Header('Cache-Control', 'private, no-store')
   async verificationFile(@CurrentUser() user: AuthUser): Promise<StreamableFile> {
-    return privateImage(await this.verification.file(user.id));
+    return privateImage(await this.verification.myFile(user.id));
   }
 
   /** Mutual contacts and whether each is in the video chat now. */

@@ -43,6 +43,7 @@ async function person(browser: Browser, base: string, user: { email: string; pas
   await expect(page).toHaveURL(`${base}/es/room`);
   await page.getByLabel('Fecha de nacimiento').fill('1994-03-15');
   await page.getByLabel(/Tengo 18 años o más/).check();
+  await page.getByLabel(/Consiento que Codeqlick trate datos/).check();
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByRole('button', { name: 'Activar cámara y empezar' })).toBeVisible();
   return page;
@@ -426,7 +427,7 @@ test('a person gets the verified badge from a photo the team approves', async ({
     await admin.goto('/es/admin/videochat');
     const item = admin.locator('article').filter({ hasText: `kim_${tag}` });
     await expect(item.getByRole('img', { name: 'Foto de verificación' })).toBeVisible();
-    await item.getByRole('button', { name: 'Aprobar insignia' }).click();
+    await item.getByRole('button', { name: 'Aprobar', exact: true }).click();
     await expect(item).toBeHidden();
 
     await kim.reload();

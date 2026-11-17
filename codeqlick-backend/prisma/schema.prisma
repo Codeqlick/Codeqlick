@@ -218,6 +218,13 @@ model User {
   cloudDeployHooks           CloudDeployHook[]
   cloudStatusNotices         CloudStatusNotice[]
   cloudStatusNoticeUpdates   CloudStatusNoticeUpdate[]
+  adultVerification          AdultVerification?          @relation("AdultVerified")
+  adultVerificationsDecided  AdultVerification[]         @relation("AdultVerificationDecider")
+  adultSuspensions           AdultSuspension[]           @relation("AdultSuspended")
+  adultSuspensionsMade       AdultSuspension[]           @relation("AdultSuspensionBy")
+  adultSuspensionsLifted     AdultSuspension[]           @relation("AdultSuspensionLiftedBy")
+  adultSuspensionReviews     AdultSuspensionReview[]     @relation("AdultSuspensionReviewed")
+  adultSuspensionReviewsMade AdultSuspensionReview[]     @relation("AdultSuspensionReviewer")
 
   @@map("users")
 }
@@ -616,6 +623,8 @@ model ClientProject {
   maintenanceCustomerId         String?           @unique @map("maintenance_customer_id")
   maintenancePeriodEnd          DateTime?         @map("maintenance_period_end") @db.Timestamptz(3)
   maintenanceCancelAtPeriodEnd  Boolean           @default(false) @map("maintenance_cancel_at_period_end")
+  /// What the plan bills a month before VAT, in cents, kept by the webhook (decision 122's MRR).
+  maintenanceAmountCents        Int?              @map("maintenance_amount_cents")
   /// When the plan last turned on.
   maintenanceSince              DateTime?         @map("maintenance_since") @db.Timestamptz(3)
   /// Given for free by the team, with why.
@@ -1467,6 +1476,9 @@ model VideochatProfile {
   /// End of a timed suspension; null with suspendedAt: until the team lifts it.
   suspendedUntil     DateTime?                   @map("suspended_until") @db.Timestamptz(3)
   suspensionReason   String?                     @map("suspension_reason")
+  /// Architecture 4.16 (decision 114): the category the team chose (a report reason); null when
+  /// automatic or older.
+  suspensionCategory String?                     @map("suspension_category") @db.VarChar(20)
   /// Public profile shown to partners (never the account name) and the matching filters.
   nickname           String?
   gender             VideochatGender?
@@ -1547,9 +1559,11 @@ model VideochatReport {
 
 /// Two people who blocked each other are never matched again (either direction).
 model VideochatBlock {
-  blockerId String   @map("blocker_id") @db.Uuid
-  blockedId String   @map("blocked_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  blockerId String    @map("blocker_id") @db.Uuid
+  blockedId String    @map("blocked_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Architecture 4.16 (decision 112): the app where the block was made; null on older rows.
+  sourceApp AdultApp? @map("source_app")
 
   blocker User @relation("VideochatBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
   blocked User @relation("VideochatBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
@@ -1836,6 +1850,8 @@ model SwipeProfile {
   /// End of a timed suspension; null with suspendedAt: until the team lifts it.
   suspendedUntil     DateTime?               @map("suspended_until") @db.Timestamptz(3)
   suspensionReason   String?                 @map("suspension_reason")
+  /// Architecture 4.16 (decision 114): the category the team chose; null when older.
+  suspensionCategory String?                 @map("suspension_category") @db.VarChar(20)
   createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -1960,9 +1976,11 @@ model SwipeReport {
 
 /// Either direction: they never see each other's photos again.
 model SwipeBlock {
-  blockerId String   @map("blocker_id") @db.Uuid
-  blockedId String   @map("blocked_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  blockerId String    @map("blocker_id") @db.Uuid
+  blockedId String    @map("blocked_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Architecture 4.16 (decision 112): the app where the block was made; null on older rows.
+  sourceApp AdultApp? @map("source_app")
 
   blocker User @relation("SwipeBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
   blocked User @relation("SwipeBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
@@ -2208,6 +2226,8 @@ model CloudTeam {
   subscriptionStatus      String?                 @map("subscription_status") @db.VarChar(30)
   currentPeriodEnd        DateTime?               @map("current_period_end") @db.Timestamptz(3)
   cancelAtPeriodEnd       Boolean                 @default(false) @map("cancel_at_period_end")
+  /// What the PRO subscription bills a month before VAT, in cents, kept by the webhook (decision 122).
+  subscriptionAmountCents Int?                    @map("subscription_amount_cents")
   /// The Madrid month (`YYYY-MM`) whose analytics limit the owners were told about.
   analyticsOverLimitMonth String?                 @map("analytics_over_limit_month") @db.VarChar(7)
   /// Every member needs two-step verification to use the team (architecture 4.13, decision 57).
@@ -3310,6 +3330,8 @@ model CruisingProfile {
   /// Null with suspendedAt set: until lifted.
   suspendedUntil         DateTime?                  @map("suspended_until") @db.Timestamptz(3)
   suspensionReason       String?                    @map("suspension_reason") @db.VarChar(500)
+  /// Architecture 4.16 (decision 114): the category the team chose; null when older.
+  suspensionCategory     String?                    @map("suspension_category") @db.VarChar(20)
   /// Phase 2: unique, 3-20 of a-z, 0-9 and _, lower case; needed for check-ins and messages.
   nickname               String?                    @unique @db.VarChar(20)
   bio                    String                     @default("") @db.VarChar(160)
@@ -3677,9 +3699,11 @@ model CruisingMessage {
 
 /// Either direction: they never see each other again (check-ins, reviews, profiles, conversations).
 model CruisingBlock {
-  blockerId String   @map("blocker_id") @db.Uuid
-  blockedId String   @map("blocked_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  blockerId String    @map("blocker_id") @db.Uuid
+  blockedId String    @map("blocked_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Architecture 4.16 (decision 112): the app where the block was made; null on older rows.
+  sourceApp AdultApp? @map("source_app")
 
   blocker User @relation("CruisingBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
   blocked User @relation("CruisingBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
@@ -4147,4 +4171,128 @@ model CloudComment {
 
   @@index([threadId, createdAt])
   @@map("cloud_comments")
+}
+
+// ---- The 18+ apps together: shared safety (architecture 4.16, phase 1, decisions 112-120) -------
+
+/// The three 18+ apps (`ADULT_WEBAPPS`).
+enum AdultApp {
+  CRUISING
+  SWIPE
+  VIDEOCHAT
+}
+
+enum AdultVerificationStatus {
+  NONE
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// The suspension categories shared in the three apps (decision 114).
+enum AdultSuspensionCategory {
+  MINOR
+  NON_CONSENSUAL
+  ILLEGAL
+}
+
+/// A per-app suspension from a serious report, listed once for the team when phase 1 shipped.
+enum AdultSuspensionReviewStatus {
+  PENDING
+  SHARED
+  KEPT
+}
+
+/// One verification per account (decision 113): a photo of the person holding a paper with their
+/// name in the app they send it from, "Codeqlick" and the date. APPROVED gives the badge in the
+/// three apps; the approved photo is kept privately while the verification stands.
+model AdultVerification {
+  userId          String                  @id @map("user_id") @db.Uuid
+  status          AdultVerificationStatus @default(NONE)
+  sourceApp       AdultApp?               @map("source_app")
+  /// The name on the paper: the account's username or its Cruising nickname.
+  verifiedName    String?                 @map("verified_name") @db.VarChar(40)
+  /// File of the photo in `SWIPE_UPLOADS_DIR/verification/` (private), while pending or approved.
+  photoKey        String?                 @map("photo_key")
+  note            String?                 @db.VarChar(500)
+  sentAt          DateTime?               @map("sent_at") @db.Timestamptz(3)
+  decidedAt       DateTime?               @map("decided_at") @db.Timestamptz(3)
+  decidedById     String?                 @map("decided_by_id") @db.Uuid
+  /// Photos sent in the day that began at triesSince (5 a day).
+  tries           Int                     @default(0)
+  triesSince      DateTime?               @map("tries_since") @db.Timestamptz(3)
+  withdrawnAt     DateTime?               @map("withdrawn_at") @db.Timestamptz(3)
+  withdrawnReason String?                 @map("withdrawn_reason") @db.VarChar(500)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User  @relation("AdultVerified", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User? @relation("AdultVerificationDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, sentAt])
+  @@map("adult_verifications")
+}
+
+/// A MINOR, NON_CONSENSUAL or ILLEGAL suspension decided by the team: it applies in the three apps
+/// with the same end (decision 114). Active while not lifted and `until` is null or in the future.
+/// It is also written into the person's profile in each app (and into a profile created later), so
+/// every existing "is suspended" check of the apps sees it.
+model AdultSuspension {
+  id         String                  @id @default(uuid()) @db.Uuid
+  userId     String                  @map("user_id") @db.Uuid
+  category   AdultSuspensionCategory
+  sourceApp  AdultApp                @map("source_app")
+  /// The report it acted on, in the source app's table (not a relation: three tables).
+  reportId   String?                 @map("report_id") @db.Uuid
+  reason     String                  @db.VarChar(500)
+  /// Null: permanent.
+  until      DateTime?               @db.Timestamptz(3)
+  byId       String?                 @map("by_id") @db.Uuid
+  createdAt  DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  liftedAt   DateTime?               @map("lifted_at") @db.Timestamptz(3)
+  liftedById String?                 @map("lifted_by_id") @db.Uuid
+  liftReason String?                 @map("lift_reason") @db.VarChar(500)
+
+  user     User  @relation("AdultSuspended", fields: [userId], references: [id], onDelete: Cascade)
+  by       User? @relation("AdultSuspensionBy", fields: [byId], references: [id], onDelete: SetNull)
+  liftedBy User? @relation("AdultSuspensionLiftedBy", fields: [liftedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("adult_suspensions")
+}
+
+/// Kept when an account with an active shared suspension is deleted (decision 120): only a keyed
+/// hash of its normalised email, the category and the dates. Deleted hourly once expired.
+model AdultBannedEmail {
+  id        String                  @id @default(uuid()) @db.Uuid
+  /// HMAC-SHA256 (hex) of the normalised email, keyed with ADULT_BAN_HASH_KEY.
+  emailHash String                  @map("email_hash") @db.VarChar(64)
+  category  AdultSuspensionCategory
+  createdAt DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt DateTime                @map("expires_at") @db.Timestamptz(3)
+
+  @@index([emailHash])
+  @@index([expiresAt])
+  @@map("adult_banned_emails")
+}
+
+/// Phase 1's migration: an active per-app suspension whose report was MINOR, NON_CONSENSUAL or
+/// ILLEGAL, listed once so the team shares it in the three apps or leaves it per app.
+model AdultSuspensionReview {
+  app         AdultApp
+  userId      String                      @map("user_id") @db.Uuid
+  suspendedAt DateTime                    @map("suspended_at") @db.Timestamptz(3)
+  category    AdultSuspensionCategory
+  reportId    String?                     @map("report_id") @db.Uuid
+  status      AdultSuspensionReviewStatus @default(PENDING)
+  decidedById String?                     @map("decided_by_id") @db.Uuid
+  decidedAt   DateTime?                   @map("decided_at") @db.Timestamptz(3)
+  createdAt   DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user      User  @relation("AdultSuspensionReviewed", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User? @relation("AdultSuspensionReviewer", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@id([app, userId, suspendedAt])
+  @@index([status])
+  @@map("adult_suspension_reviews")
 }

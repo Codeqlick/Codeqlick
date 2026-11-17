@@ -14,7 +14,7 @@ export async function GET(
   if (kind === 'file') return fetchCruisingFile(`/cruising/media/${id}/file`, request);
   if (kind === 'poster') return fetchCruisingFile(`/cruising/media/${id}/poster`, request);
   if (kind === 'verification') {
-    return fetchCruisingFile(`/admin/cruising/verifications/${id}/file`, request);
+    return fetchCruisingFile(`/admin/adult/verifications/${id}/file`, request);
   }
   return new Response(null, { status: 404 });
 }

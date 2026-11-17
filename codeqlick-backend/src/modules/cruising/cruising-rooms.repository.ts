@@ -11,7 +11,7 @@ export interface RoomKey {
 
 const authorSelect = {
   cruisingProfile: {
-    select: { nickname: true, verificationStatus: true },
+    select: { nickname: true },
   },
 } as const;
 

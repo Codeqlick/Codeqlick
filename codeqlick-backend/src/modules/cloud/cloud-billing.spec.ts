@@ -18,7 +18,15 @@ describe('Cloud billing', () => {
         id: 'sub_1',
         status: 'active',
         cancel_at_period_end: true,
-        items: { data: [{ current_period_end: 1_800_000_000 }] },
+        items: {
+          data: [
+            {
+              current_period_end: 1_800_000_000,
+              quantity: 1,
+              price: { unit_amount: 12_000, recurring: { interval: 'year', interval_count: 1 } },
+            },
+          ],
+        },
       }),
     ).toEqual({
       plan: 'PRO',
@@ -26,6 +34,7 @@ describe('Cloud billing', () => {
       subscriptionStatus: 'active',
       currentPeriodEnd: new Date(1_800_000_000_000),
       cancelAtPeriodEnd: true,
+      subscriptionAmountCents: 1000,
     });
   });
 });

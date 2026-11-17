@@ -32,6 +32,15 @@ export const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32),
   /** Encrypts the access clients share (project credentials). Unset: derived from JWT_ACCESS_SECRET. */
   CREDENTIALS_SECRET: z.string().min(32).optional(),
+  /**
+   * Keys the hash of a deleted account's email after a serious 18+ suspension (architecture 4.16,
+   * decision 120). Unset: derived from CREDENTIALS_SECRET (or JWT_ACCESS_SECRET). Changing it makes
+   * the stored hashes match nothing.
+   */
+  ADULT_BAN_HASH_KEY: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(32).optional(),
+  ),
   JWT_ACCESS_TTL: z.coerce.number().int().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   SMTP_HOST: z.string().min(1).default('localhost'),
@@ -50,7 +59,7 @@ export const envSchema = z.object({
   /** Cruising's photos and videos (architecture 4.15, phase 4): private, never served by name. */
   CRUISING_UPLOADS_DIR: z.string().min(1).default('./cruising-uploads'),
   /** Version of Cruising's rules, terms and privacy policy (architecture 4.15); a new value asks every member to accept again. */
-  CRUISING_TERMS_VERSION: z.string().min(1).max(40).default('2026-11-16.1'),
+  CRUISING_TERMS_VERSION: z.string().min(1).max(40).default('2026-11-17.1'),
   SEED_ADMIN_EMAIL: optionalString,
   SEED_ADMIN_PASSWORD: optionalString,
   SEED_ADMIN_NAME: optionalString,

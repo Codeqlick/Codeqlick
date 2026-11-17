@@ -7,6 +7,9 @@ import {
   FormTextarea,
 } from '@/components/app/ActionForm';
 import styles from '@/components/app/app.module.css';
+import { AdultVerificationQueue } from '@/components/adult/AdultVerificationQueue';
+import { AlsoReported } from '@/components/adult/AlsoReported';
+import { ReviewSuspensions } from '@/components/adult/ReviewSuspensions';
 import { PageHeader } from '@/components/app/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/Badge';
 import { buttonClassName } from '@/components/ui/buttonStyles';
@@ -21,7 +24,6 @@ import {
   listAdminCruisingSpots,
   listAdminCruisingSuspensions,
   listAdminCruisingTakedowns,
-  listAdminCruisingVerifications,
   type AdminCruisingSpot,
 } from '@/lib/api/cruising';
 import { reportedCommunityTarget } from '@/lib/cruising-community';
@@ -56,10 +58,9 @@ import {
   roomMuteAction,
   spotAction,
   takedownAction,
-  verificationAction,
-  withdrawVerificationAction,
   withdrawVerificationByIdAction,
 } from './actions';
+import { withdrawVerificationAction } from '../adult/actions';
 import admin from './cruising-admin.module.css';
 import { SpotExtraFields } from '@/components/cruising/SpotExtraFields';
 import { SpotImport } from './SpotImport';
@@ -481,52 +482,10 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
         </section>
       ) : null}
 
+      {tab === 'verifications' ? <AdultVerificationQueue locale={locale} /> : null}
+
       {tab === 'verifications' ? (
         <section className={styles.panel}>
-          <h2 className={styles.panelTitle}>{t('verifications.title')}</h2>
-          <p className={styles.muted}>{t('verifications.lead')}</p>
-          {(await listAdminCruisingVerifications()).map((item) => (
-            <article key={item.userId} className={admin.item}>
-              {/* oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route */}
-              <img
-                className={admin.preview}
-                src={adminFile('verification', item.userId)}
-                alt={t('verifications.alt')}
-              />
-              <div className={admin.body}>
-                <p>
-                  <strong>{item.nickname ?? item.name}</strong> · {item.name} · {item.email}
-                </p>
-                <p className={styles.muted}>
-                  {t('verifications.memberSince', { date: formatDate(item.memberSince, locale) })} ·{' '}
-                  {t('sent', { date: formatDateTime(item.sentAt, locale) })}
-                </p>
-                <p className={styles.muted}>
-                  {t('verifications.check', { nickname: item.nickname ?? '' })}
-                </p>
-                <ActionForm
-                  action={verificationAction.bind(null, locale, item.userId)}
-                  className={styles.form}
-                >
-                  <FormInput
-                    id={`verification-note-${item.userId}`}
-                    name="note"
-                    label={t('verifications.note')}
-                    hint={t('verifications.noteHint')}
-                    maxLength={LIMITS.rejectReason}
-                  />
-                  <div className={styles.actions}>
-                    <SubmitButton size="sm" name="decision" value="approve">
-                      {t('verifications.approve')}
-                    </SubmitButton>
-                    <SubmitButton size="sm" variant="outline" name="decision" value="reject">
-                      {t('verifications.reject')}
-                    </SubmitButton>
-                  </div>
-                </ActionForm>
-              </div>
-            </article>
-          ))}
           <h3 className={styles.panelTitle}>{t('verifications.withdrawTitle')}</h3>
           <p className={styles.muted}>{t('verifications.withdrawLead')}</p>
           <ActionForm
@@ -697,12 +656,21 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
                   ) : null}
                   {report.reported ? (
                     <p className={styles.muted}>
-                      {t('reported')}: {report.reported.name ?? '—'} · {report.reported.email ?? ''}
+                      {t('reported')}:{' '}
+                      {report.reported.userId ? (
+                        <Link href={`/admin/adult/users/${report.reported.userId}`}>
+                          {report.reported.name ?? '—'}
+                        </Link>
+                      ) : (
+                        (report.reported.name ?? '—')
+                      )}{' '}
+                      · {report.reported.email ?? ''}
                       {report.reported.verified ? ` · ${t('media.verified')}` : ''}
                       {report.reported.userId ? ` · ${report.reported.userId}` : ''}
                       {report.reported.reports === undefined
                         ? ''
-                        : ` · ${t('reportsAgainst', { count: report.reported.reports })}`}
+                        : ` · ${t('reportsAgainst', { count: report.reported.reports })}`}{' '}
+                      <AlsoReported data={report.reported.alsoReported} />
                     </p>
                   ) : null}
                   {report.reported?.roomMutedUntil ? (
@@ -1016,6 +984,8 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
         </>
       ) : null}
 
+      {tab === 'suspended' ? <ReviewSuspensions locale={locale} /> : null}
+
       {tab === 'suspended' ? (
         <section className={styles.panel}>
           <h2 className={styles.panelTitle}>{t('tabs.suspended')}</h2>
@@ -1023,7 +993,10 @@ export default async function AdminCruisingPage({ params, searchParams }: PagePr
             <article key={item.userId} className={admin.item}>
               <div className={admin.body}>
                 <p>
-                  <strong>{item.nickname ?? item.name}</strong> · {item.email}
+                  <Link href={`/admin/adult/users/${item.userId}`}>
+                    <strong>{item.nickname ?? item.name}</strong>
+                  </Link>{' '}
+                  · {item.email}
                 </p>
                 <p className={styles.muted}>
                   {item.reason ?? '—'} ·{' '}

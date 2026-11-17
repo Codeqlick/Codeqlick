@@ -72,7 +72,7 @@ const TRIP_MEETUPS = 10;
 /** A member as lists name them. */
 type ProfileBits = {
   nickname: string | null;
-  verificationStatus: string;
+  user: { adultVerification: { status: string } | null };
   suspendedAt: Date | null;
   suspendedUntil: Date | null;
 } | null;
@@ -288,12 +288,17 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
       attending: mine ? { anonymous: mine.anonymous } : null,
       host: {
         nickname: host?.nickname ?? '—',
-        verified: host?.verificationStatus === 'APPROVED',
+        verified: host?.user.adultVerification?.status === 'APPROVED',
       },
       attendees: visible.flatMap((attendee) => {
         const profile = attendee.user.cruisingProfile;
         return !attendee.anonymous && named(profile, now)
-          ? [{ nickname: profile.nickname, verified: profile.verificationStatus === 'APPROVED' }]
+          ? [
+              {
+                nickname: profile.nickname,
+                verified: profile.user.adultVerification?.status === 'APPROVED',
+              },
+            ]
           : [];
       }),
     };
@@ -595,7 +600,7 @@ export class CruisingCommunityService implements OnApplicationBootstrap, OnAppli
           ? [
               {
                 nickname: profile.nickname,
-                verified: profile.verificationStatus === 'APPROVED',
+                verified: profile.user.adultVerification?.status === 'APPROVED',
                 from: formatDay(row.startsOn),
                 to: formatDay(row.endsOn),
               },

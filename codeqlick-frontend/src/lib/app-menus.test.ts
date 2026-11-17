@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import en from '../messages/en.json';
 import {
+  accountSettingsHref,
+  accountSiteOrigin,
   citasMenu,
   cloudMenu,
   cruisingMenu,
@@ -26,6 +28,7 @@ function labels(config: AppMenuConfig): string[] {
       ...section.items.map((item) => item.label),
     ]),
     ...config.footer.map((item) => item.label),
+    ...(config.profile ? [config.profile.label] : []),
   ];
 }
 
@@ -56,7 +59,8 @@ describe('cruisingMenu', () => {
     expect(shape(cruisingMenu('en', { signedIn: true, entered: true }))).toEqual({
       discover: ['map', 'places', 'meetups', 'health'],
       community: ['messages', 'rooms', 'favorites', 'trips', 'notifications'],
-      me: ['profile', 'my-spots', 'propose'],
+      // The profile is on the user card now, not in the list.
+      me: ['my-spots', 'propose'],
     });
   });
 
@@ -74,7 +78,6 @@ describe('cruisingMenu', () => {
       '/cruising/meetups',
       '/cruising/rooms',
       '/cruising/messages',
-      '/cruising/me',
     ]) {
       expect(hrefs).toContain(href);
     }
@@ -132,6 +135,95 @@ describe('the other apps', () => {
       cloudMenu('en', { signedIn: true }, '/cloud/docs'),
     ];
     for (const key of configs.flatMap(labels)) expect(typeof message(key), key).toBe('string');
+  });
+});
+
+describe('the user card', () => {
+  const profile = (config: AppMenuConfig) =>
+    config.profile ? [config.profile.href, config.profile.label] : null;
+
+  it('signed out: no profile, sign in and sign up', () => {
+    for (const config of [
+      cruisingMenu('es', { signedIn: false }),
+      swipeMenu('es', { signedIn: false }),
+      videochatMenu('es', { signedIn: false }),
+      cloudMenu('es', { signedIn: false }, '/cloud/docs'),
+      meetingsMenu(),
+      citasMenu(),
+    ]) {
+      expect(config.profile).toBeNull();
+      expect(config.registerHref).toBe('/register');
+      expect(config.signInHref).toMatch(/^\/login\?next=/);
+    }
+  });
+
+  it('the 18+ apps: the entry screen before entering, the profile after', () => {
+    const before = { signedIn: true, entered: false };
+    const after = { signedIn: true, entered: true };
+    expect(profile(cruisingMenu('es', before))).toEqual([
+      '/cruising/me',
+      'AppMenu.card.completeProfile',
+    ]);
+    expect(profile(cruisingMenu('es', after))).toEqual(['/cruising/me', 'AppMenu.card.profile']);
+    expect(profile(swipeMenu('es', before))).toEqual([
+      '/swipe/deck',
+      'AppMenu.card.completeProfile',
+    ]);
+    expect(profile(swipeMenu('es', after))).toEqual(['/swipe/photos', 'AppMenu.card.profile']);
+    expect(profile(videochatMenu('es', before))).toEqual([
+      '/videochat/room',
+      'AppMenu.card.completeProfile',
+    ]);
+    expect(profile(videochatMenu('es', after))).toEqual([
+      '/videochat/settings',
+      'AppMenu.card.profile',
+    ]);
+  });
+
+  it('Cloud: the console; Meetings and Citas: no profile of their own', () => {
+    expect(profile(cloudMenu('es', { signedIn: true }, '/cloud/docs'))).toEqual([
+      '/cloud/console',
+      'Cloud.nav.console',
+    ]);
+    expect(meetingsMenu().profile).toBeNull();
+    expect(citasMenu().profile).toBeNull();
+  });
+
+  it("My account: the portal's (the admin's for the team) until the account site is on", () => {
+    const site = 'https://codeqlick.com';
+    expect(accountSettingsHref('es', 'CLIENT', site, null)).toBe(
+      'https://codeqlick.com/es/portal/account',
+    );
+    expect(accountSettingsHref('en', 'ADMIN', `${site}/`, null)).toBe(
+      'https://codeqlick.com/en/admin/account',
+    );
+    // The website speaks English and Spanish only.
+    expect(accountSettingsHref('fr', 'CLIENT', site, null)).toBe(
+      'https://codeqlick.com/en/portal/account',
+    );
+    const origin = accountSiteOrigin(site, 'true');
+    expect(origin).toBe('https://account.codeqlick.com');
+    expect(accountSettingsHref('fr', 'ADMIN', site, origin)).toBe(
+      'https://account.codeqlick.com/fr',
+    );
+    expect(accountSiteOrigin('https://www.codeqlick.com', 'true')).toBe(
+      'https://account.codeqlick.com',
+    );
+    expect(accountSiteOrigin(site, undefined)).toBeNull();
+    expect(accountSiteOrigin(site, 'false')).toBeNull();
+  });
+
+  it('only uses messages that exist', () => {
+    const configs = [
+      cruisingMenu('en', { signedIn: true }),
+      swipeMenu('en', { signedIn: true }),
+      videochatMenu('en', { signedIn: true }),
+    ];
+    for (const key of configs.flatMap(labels)) expect(typeof message(key), key).toBe('string');
+    for (const key of ['openFor', 'label', 'account', 'verified', 'register']) {
+      const path = key === 'openFor' ? `AppMenu.${key}` : `AppMenu.card.${key}`;
+      expect(typeof message(path), path).toBe('string');
+    }
   });
 });
 

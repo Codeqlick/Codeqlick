@@ -132,7 +132,12 @@ describe('Video chat (e2e)', () => {
       .set(users[key]!.auth)
       // Each person from their own address: onboarding is limited per IP.
       .set('X-Forwarded-For', `10.7.0.${Object.keys(users).indexOf(key) + 1}`)
-      .send({ birthDate: '1995-05-20', acceptTerms: true, termsVersion: VIDEOCHAT_TERMS_VERSION })
+      .send({
+        birthDate: '1995-05-20',
+        acceptTerms: true,
+        consentSpecialData: true,
+        termsVersion: VIDEOCHAT_TERMS_VERSION,
+      })
       .expect(200);
   const connect = async (key: string): Promise<Tab> => {
     const { body } = await request(server())
@@ -163,6 +168,7 @@ describe('Video chat (e2e)', () => {
       .send({
         birthDate: under18.toISOString().slice(0, 10),
         acceptTerms: true,
+        consentSpecialData: true,
         termsVersion: VIDEOCHAT_TERMS_VERSION,
       })
       .expect(403);
@@ -531,7 +537,7 @@ describe('Video chat (e2e)', () => {
     await request(server())
       .post(`/v1/admin/videochat/users/${users.ana!.id}/suspend`)
       .set(users.admin!.auth)
-      .send({ reason: 'Spam links', duration: '24h' })
+      .send({ reason: 'Spam links', duration: '24h', category: 'SPAM' })
       .expect(204);
     const { body: status } = await me();
     const until = new Date(status.suspension.until as string).getTime();
@@ -1083,7 +1089,12 @@ describe('Video chat (e2e)', () => {
       .set(users.admin!.auth)
       .expect(200);
     expect(queue.body.items).toContainEqual(
-      expect.objectContaining({ userId: users.kim!.id, nickname: nick('Kim') }),
+      // The one queue of the 18+ apps (architecture 4.16): the name on the paper is the username.
+      expect.objectContaining({
+        userId: users.kim!.id,
+        verifiedName: nick('Kim'),
+        sourceApp: 'VIDEOCHAT',
+      }),
     );
     await request(server())
       .get(`/v1/admin/videochat/verifications/${users.kim!.id}/file`)

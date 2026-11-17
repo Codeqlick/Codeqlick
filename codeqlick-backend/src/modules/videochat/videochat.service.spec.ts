@@ -12,6 +12,19 @@ import {
 } from './videochat.schemas.js';
 import { isSuspended, TICKET_TTL_MS, VideochatService } from './videochat.service.js';
 import type { UsernameService } from '../auth/username.service.js';
+import type { AdultAdminService } from '../adult/adult-admin.service.js';
+import type { AdultSafetyService } from '../adult/adult-safety.service.js';
+import type { AdultVerificationService } from '../adult/adult-verification.service.js';
+
+/** The shared safety (architecture 4.16): no shared suspension, no verification. */
+const adultSafety = {
+  sharedState: vi.fn().mockResolvedValue(null),
+  checkEntry: vi.fn().mockResolvedValue(undefined),
+  reapply: vi.fn().mockResolvedValue(undefined),
+} as unknown as AdultSafetyService;
+const adultVerification = {
+  view: vi.fn().mockResolvedValue({ status: 'NONE', note: null }),
+} as unknown as AdultVerificationService;
 
 function service(
   profile: object | null = { termsVersion: VIDEOCHAT_TERMS_VERSION, suspendedAt: null },
@@ -30,6 +43,9 @@ function service(
       {} as MailService,
       {} as ActivityService,
       {} as UsernameService,
+      adultSafety,
+      adultVerification,
+      {} as AdultAdminService,
     ),
     repository,
   };
@@ -51,7 +67,12 @@ describe('VideochatService', () => {
     await expect(
       svc.onboard(
         'u1',
-        { birthDate: '2010-01-01', acceptTerms: true, termsVersion: VIDEOCHAT_TERMS_VERSION },
+        {
+          birthDate: '2010-01-01',
+          acceptTerms: true,
+          consentSpecialData: true,
+          termsVersion: VIDEOCHAT_TERMS_VERSION,
+        },
         new Date('2026-11-07T00:00:00Z'),
       ),
     ).rejects.toMatchObject({ status: 403 });
@@ -61,7 +82,12 @@ describe('VideochatService', () => {
   it('refuses an outdated version of the rules', async () => {
     const { svc } = service(null);
     await expect(
-      svc.onboard('u1', { birthDate: '1990-01-01', acceptTerms: true, termsVersion: 'old' }),
+      svc.onboard('u1', {
+        birthDate: '1990-01-01',
+        acceptTerms: true,
+        consentSpecialData: true,
+        termsVersion: 'old',
+      }),
     ).rejects.toMatchObject({ status: 409 });
   });
 
@@ -96,6 +122,9 @@ describe('VideochatService', () => {
       {} as MailService,
       {} as ActivityService,
       {} as UsernameService,
+      adultSafety,
+      adultVerification,
+      {} as AdultAdminService,
     );
     expect(await strict.status('u1')).toMatchObject({ onboarded: true, allowed: false });
     await expect(strict.issueTicket('u1')).rejects.toMatchObject({ status: 403 });

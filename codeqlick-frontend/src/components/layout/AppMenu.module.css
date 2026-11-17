@@ -68,6 +68,17 @@
   cursor: pointer;
 }
 
+/* Signed in, the ☰ button also holds the person's avatar (32px), still 44px tall. */
+.triggerUser {
+  width: auto;
+  gap: var(--space-1);
+  padding: 0 0.3rem 0 0.6rem;
+}
+
+.triggerAvatar {
+  display: inline-flex;
+}
+
 .trigger:hover,
 .close:hover,
 .trigger[aria-expanded='true'] {
@@ -176,8 +187,7 @@
   list-style: none;
 }
 
-.item,
-.signIn {
+.item {
   display: flex;
   align-items: center;
   min-height: 2.75rem;
@@ -245,14 +255,104 @@
   border-top: 1px solid var(--color-line);
 }
 
-.signIn {
-  justify-content: center;
-  border: 1.5px solid var(--color-ink);
-  border-radius: var(--radius-pill);
-  font-weight: 600;
+/* The user card at the top of the drawer: who is signed in and their two buttons, or signing in. */
+.card {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-4) var(--space-3) 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-blush);
 }
 
-.signIn:hover {
-  background: var(--color-ink);
+.cardWho {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.cardText {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.cardName {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.cardUsername {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: 0.85rem;
+  color: var(--color-slate);
+  overflow-wrap: anywhere;
+}
+
+.verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-fuchsia-dark);
+}
+
+.verified svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: var(--color-fuchsia);
+}
+
+.cardButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-2);
+}
+
+.cardPrimary,
+.cardSecondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-3);
+  border: 1.5px solid var(--color-fuchsia);
+  border-radius: var(--radius-pill);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}
+
+.cardPrimary {
+  background: var(--color-fuchsia);
   color: var(--color-white);
+}
+
+.cardPrimary:hover,
+.cardPrimary[aria-current='page'] {
+  border-color: var(--color-fuchsia-dark);
+  background: var(--color-fuchsia-dark);
+}
+
+.cardSecondary {
+  background: var(--color-white);
+  color: var(--color-fuchsia-dark);
+}
+
+.cardSecondary:hover {
+  background: var(--color-fuchsia-light);
+  border-color: var(--color-fuchsia-light);
+  color: var(--color-ink);
 }

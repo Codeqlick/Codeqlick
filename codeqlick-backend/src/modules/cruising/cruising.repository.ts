@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  AdultApp,
   CruisingConversation,
   CruisingProfile,
   CruisingReportStatus,
@@ -11,6 +12,13 @@ import type {
   Prisma,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type {
+  AdultAppStore,
+  AppEntry,
+  AppPersonOverview,
+  Db,
+  ProfileSuspension,
+} from '../adult/adult-app-store.js';
 import { conversationPair, roundRating, type Bbox } from './cruising.rules.js';
 import type { SpotTag } from './cruising-insights.rules.js';
 import { ADMIN_LIST_LIMIT, MAX_LIST_ROWS, MESSAGES_PAGE } from './cruising.schemas.js';
@@ -168,7 +176,7 @@ export async function deleteUserRecomputingRatings(
 }
 
 @Injectable()
-export class CruisingRepository {
+export class CruisingRepository implements AdultAppStore {
   constructor(private readonly prisma: PrismaService) {}
 
   // ---- Profiles ----------------------------------------------------------------------------------
@@ -841,7 +849,7 @@ export class CruisingRepository {
 
   /** When the newest thing waiting for the team arrived (null: nothing waiting). */
   async newestPendingAt(): Promise<Date | null> {
-    const [spot, report, takedown, media, verification] = await Promise.all([
+    const [spot, report, takedown, media] = await Promise.all([
       this.prisma.cruisingSpot.findFirst({
         where: { status: 'PENDING' },
         orderBy: { updatedAt: 'desc' },
@@ -862,18 +870,12 @@ export class CruisingRepository {
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true },
       }),
-      this.prisma.cruisingProfile.findFirst({
-        where: { verificationStatus: 'PENDING' },
-        orderBy: { verificationSentAt: 'desc' },
-        select: { verificationSentAt: true },
-      }),
     ]);
     const times = [
       spot?.updatedAt,
       report?.createdAt,
       takedown?.createdAt,
       media?.createdAt,
-      verification?.verificationSentAt,
     ].filter((time): time is Date => !!time);
     return times.length ? new Date(Math.max(...times.map((time) => time.getTime()))) : null;
   }
@@ -911,7 +913,8 @@ export class CruisingRepository {
         where: { reviewedAt: null, status: { in: ['LIVE', 'HIDDEN', 'PROCESSING'] } },
       }),
       this.prisma.cruisingMedia.count({ where: { status: 'LIVE' } }),
-      this.prisma.cruisingProfile.count({ where: { verificationStatus: 'PENDING' } }),
+      // The one verification queue of the 18+ apps (architecture 4.16).
+      this.prisma.adultVerification.count({ where: { status: 'PENDING' } }),
     ]);
     return {
       members,
@@ -929,7 +932,7 @@ export class CruisingRepository {
     };
   }
 
-  // ---- Blocks (phase 2) --------------------------------------------------------------------------
+  // ---- Blocks (phase 2; shared in the three 18+ apps, architecture 4.16) -------------------------
 
   /** The people hidden from `userId`: those they blocked and those who blocked them. */
   async hiddenIds(userId: string): Promise<string[]> {
@@ -942,44 +945,178 @@ export class CruisingRepository {
     ];
   }
 
-  /** My blocks, newest first, with the nickname of each person blocked. */
-  blocksMade(userId: string) {
-    return this.prisma.cruisingBlock.findMany({
-      where: { blockerId: userId },
-      orderBy: { createdAt: 'desc' },
-      take: MAX_LIST_ROWS,
-      select: {
-        createdAt: true,
-        blocked: { select: { cruisingProfile: { select: { nickname: true } } } },
+  // ---- The shared safety's view of Cruising (AdultAppStore, architecture 4.16) --------------------
+
+  readonly app = 'CRUISING' as const;
+
+  /**
+   * Blocks `blockedId` for `blockerId` and deletes the conversation between them and the private
+   * albums they shared with each other (decision 99), inside the shared block's transaction.
+   */
+  async applyBlock(db: Db, blockerId: string, blockedId: string, sourceApp: AdultApp) {
+    await db.cruisingBlock.upsert({
+      where: { blockerId_blockedId: { blockerId, blockedId } },
+      create: { blockerId, blockedId, sourceApp },
+      update: {},
+    });
+    await this.clearBetween(db, blockerId, blockedId);
+  }
+
+  async clearBetween(db: Db, a: string, b: string): Promise<void> {
+    const [userAId, userBId] = conversationPair(a, b);
+    await db.cruisingConversation.deleteMany({ where: { userAId, userBId } });
+    await db.cruisingAlbumGrant.deleteMany({
+      where: { ownerId: { in: [userAId, userBId] }, granteeId: { in: [userAId, userBId] } },
+    });
+  }
+
+  async removeBlock(db: Db, blockerId: string, blockedId: string): Promise<boolean> {
+    const { count } = await db.cruisingBlock.deleteMany({ where: { blockerId, blockedId } });
+    return count > 0;
+  }
+
+  suspensionState(db: Db, userId: string) {
+    return db.cruisingProfile.findUnique({
+      where: { userId },
+      select: { suspendedAt: true, suspendedUntil: true },
+    });
+  }
+
+  async setSuspension(db: Db, userId: string, suspension: ProfileSuspension): Promise<void> {
+    await db.cruisingProfile.update({
+      where: { userId },
+      data: {
+        suspendedAt: suspension.at,
+        suspendedUntil: suspension.until,
+        suspensionReason: suspension.reason,
+        suspensionCategory: suspension.category,
+      },
+    });
+    // A suspended member can't be "here": the check-in ends with the suspension.
+    await db.cruisingCheckIn.updateMany({
+      where: { userId, expiresAt: { gt: suspension.at } },
+      data: { expiresAt: suspension.at },
+    });
+  }
+
+  async clearSuspensionAt(db: Db, userId: string, at: Date): Promise<void> {
+    await db.cruisingProfile.updateMany({
+      where: { userId, suspendedAt: at },
+      data: {
+        suspendedAt: null,
+        suspendedUntil: null,
+        suspensionReason: null,
+        suspensionCategory: null,
       },
     });
   }
 
-  /**
-   * Blocks `blockedId` for `blockerId` and deletes the conversation between them and the private
-   * albums they shared with each other (decision 99), together.
-   */
-  async block(blockerId: string, blockedId: string): Promise<void> {
-    const [userAId, userBId] = conversationPair(blockerId, blockedId);
-    await this.prisma.$transaction([
-      this.prisma.cruisingBlock.upsert({
-        where: { blockerId_blockedId: { blockerId, blockedId } },
-        create: { blockerId, blockedId },
-        update: {},
-      }),
-      this.prisma.cruisingConversation.deleteMany({ where: { userAId, userBId } }),
-      this.prisma.cruisingAlbumGrant.deleteMany({
-        where: { ownerId: { in: [userAId, userBId] }, granteeId: { in: [userAId, userBId] } },
-      }),
-    ]);
+  async entryOf(userId: string): Promise<AppEntry | null> {
+    const profile = await this.prisma.cruisingProfile.findUnique({
+      where: { userId },
+      select: { termsVersion: true, suspendedAt: true, suspendedUntil: true, nickname: true },
+    });
+    return profile
+      ? {
+          termsVersion: profile.termsVersion,
+          suspendedAt: profile.suspendedAt,
+          suspendedUntil: profile.suspendedUntil,
+          name: profile.nickname,
+        }
+      : null;
   }
 
-  /** Lifts my block; false when there was none. */
-  async unblock(blockerId: string, blockedId: string): Promise<boolean> {
-    const { count } = await this.prisma.cruisingBlock.deleteMany({
-      where: { blockerId, blockedId },
+  async namesOf(userIds: string[]): Promise<Map<string, string>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.prisma.cruisingProfile.findMany({
+      where: { userId: { in: userIds }, nickname: { not: null } },
+      select: { userId: true, nickname: true },
     });
-    return count > 0;
+    return new Map(rows.map((row) => [row.userId, row.nickname as string]));
+  }
+
+  async overviewOf(userId: string): Promise<AppPersonOverview> {
+    const [profile, received, reportsMade] = await Promise.all([
+      this.prisma.cruisingProfile.findUnique({
+        where: { userId },
+        select: {
+          createdAt: true,
+          nickname: true,
+          suspendedAt: true,
+          suspendedUntil: true,
+          suspensionReason: true,
+          suspensionCategory: true,
+        },
+      }),
+      this.prisma.cruisingReport.groupBy({
+        by: ['status', 'reason'],
+        where: { reportedId: userId },
+        _count: { _all: true },
+      }),
+      this.prisma.cruisingReport.count({ where: { reporterId: userId } }),
+    ]);
+    return {
+      enteredAt: profile?.createdAt ?? null,
+      name: profile?.nickname ?? null,
+      reportsReceived: received.map((row) => ({
+        status: row.status,
+        reason: row.reason,
+        count: row._count._all,
+      })),
+      reportsMade,
+      suspension: profile?.suspendedAt
+        ? {
+            since: profile.suspendedAt,
+            until: profile.suspendedUntil,
+            reason: profile.suspensionReason,
+            category: profile.suspensionCategory,
+          }
+        : null,
+    };
+  }
+
+  async reportCountsOf(userIds: string[]) {
+    const counts = new Map<string, { open: number; total: number }>();
+    if (userIds.length === 0) return counts;
+    const rows = await this.prisma.cruisingReport.groupBy({
+      by: ['reportedId', 'status'],
+      where: { reportedId: { in: userIds } },
+      _count: { _all: true },
+    });
+    for (const row of rows) {
+      if (!row.reportedId) continue;
+      const entry = counts.get(row.reportedId) ?? { open: 0, total: 0 };
+      entry.total += row._count._all;
+      if (row.status === 'OPEN') entry.open += row._count._all;
+      counts.set(row.reportedId, entry);
+    }
+    return counts;
+  }
+
+  blocksMadeBy(userId: string) {
+    return this.prisma.cruisingBlock.findMany({
+      where: { blockerId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: { blockedId: true, sourceApp: true, createdAt: true },
+    });
+  }
+
+  async blockersOf(userId: string): Promise<string[]> {
+    const rows = await this.prisma.cruisingBlock.findMany({
+      where: { blockedId: userId },
+      select: { blockerId: true },
+    });
+    return rows.map((row) => row.blockerId);
+  }
+
+  async digestCounts(): Promise<Array<[string, number]>> {
+    const overview = await this.overview(new Date());
+    return [
+      ['Spots to review', overview.pendingSpots],
+      ['Reports', overview.openReports],
+      ['Removal requests', overview.openTakedowns],
+      ['New photos and videos', overview.newMedia],
+    ];
   }
 
   // ---- Check-ins (phase 2) -----------------------------------------------------------------------
