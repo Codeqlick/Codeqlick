@@ -11,7 +11,7 @@ describe("Cruising's legal texts in its six languages (decision 103)", () => {
       expect(document.title).not.toBe('');
       expect(document.markdown).toContain('Owner Name');
       expect(document.markdown).toContain('X1234567Z');
-      expect(document.markdown).toContain('hello@codeqlick.com');
+      expect(document.markdown).toContain('hello@neoqlick.com');
       expect(document.markdown).not.toContain('${');
       if (locale !== 'en') {
         expect(document.markdown).not.toBe(cruisingLegalDocument(page, OWNER, 'en').markdown);

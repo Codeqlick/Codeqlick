@@ -120,7 +120,9 @@ describe('EmptyState', () => {
         action={<button type="button">Add a trip</button>}
       />,
     );
-    expect(html).toContain('<span class="icon" aria-hidden="true"><svg');
+    expect(html).toContain(
+      '<span class="icon" aria-hidden="true"><span class="symbol"></span></span>',
+    );
     expect(text(html)).toBe('|No trips yet|Announce one from a city page.|Add a trip|');
     expect(html).toContain('<h2 class="title">No trips yet</h2>');
   });

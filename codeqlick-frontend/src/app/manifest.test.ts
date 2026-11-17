@@ -11,11 +11,14 @@ function onHost(host: string) {
   headers.mockResolvedValue(new Headers({ host }));
 }
 
-afterEach(() => headers.mockReset());
+afterEach(() => {
+  headers.mockReset();
+  vi.unstubAllEnvs();
+});
 
 describe('the web app manifest', () => {
   it('installs Cruising on its host, opening the map (decision 96)', async () => {
-    onHost('cruising.codeqlick.com');
+    onHost('cruising.neoqlick.com');
     const result = await manifest();
     expect(result).toMatchObject({
       id: '/cruising',
@@ -23,7 +26,7 @@ describe('the web app manifest', () => {
       short_name: 'Cruising',
       start_url: '/map',
       display: 'standalone',
-      theme_color: '#ffffff',
+      theme_color: '#7c3aed',
     });
     const icons = result.icons ?? [];
     expect(icons.map((icon) => `${icon.sizes} ${icon.purpose}`)).toEqual([
@@ -38,15 +41,38 @@ describe('the web app manifest', () => {
     }
   });
 
-  it('keeps the other hosts’ own manifests', async () => {
+  it('keeps the website’s own manifest on its host, and the apps’ for the 18+ apps', async () => {
     onHost('codeqlick.com');
-    expect((await manifest()).name).not.toBe('Cruising');
-    onHost('swipe.codeqlick.com');
+    expect((await manifest()).name).toBe('Codeqlick');
+    onHost('swipe.neoqlick.com');
     expect((await manifest()).name).toBe('Swipe');
+    onHost('videochat.neoqlick.com');
+    expect((await manifest()).name).toBe('Neoqlick Videochat');
   });
 
-  it('has the offline page and the service worker the app needs', () => {
+  it('is Neoqlick’s, with no Codeqlick, on its portal and account hosts', async () => {
+    vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com');
+    for (const host of [
+      'neoqlick.com',
+      'account.neoqlick.com',
+      'cruising.neoqlick.com',
+      'swipe.neoqlick.com',
+      'videochat.neoqlick.com',
+    ]) {
+      onHost(host);
+      const result = await manifest();
+      expect(JSON.stringify(result), host).not.toMatch(/codeqlick/i);
+      expect(result.theme_color, host).toBe('#7c3aed');
+      for (const icon of result.icons ?? []) {
+        expect(icon.src, host).toMatch(/^\/neoqlick\//);
+      }
+    }
+  });
+
+  it('has the offline page the app needs', () => {
     expect(existsSync(join(process.cwd(), 'public', 'cruising-offline.html'))).toBe(true);
-    expect(existsSync(join(process.cwd(), 'public', 'cruising-apple-touch-icon.png'))).toBe(true);
+    expect(
+      existsSync(join(process.cwd(), 'public', 'neoqlick', 'png', 'apple-touch-icon.png')),
+    ).toBe(true);
   });
 });

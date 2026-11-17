@@ -144,6 +144,8 @@ services:
       API_URL: http://api:4000/v1
       SITE_URL: http://localhost:${WEB_PORT:-3000}
       NEXT_PUBLIC_SITE_URL: http://localhost:${WEB_PORT:-3000}
+      # Neoqlick's hosts in development: neoqlick.localhost, cruising.neoqlick.localhost…
+      NEOQLICK_URL: http://neoqlick.localhost:${WEB_PORT:-3000}
       # The video chat's browsers open the API's WebSocket directly in development.
       VIDEOCHAT_WS_URL: ws://localhost:${API_PORT:-4000}/v1/videochat/ws
       MEETINGS_WS_URL: ws://localhost:${API_PORT:-4000}/v1/meetings/ws

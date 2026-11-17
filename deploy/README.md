@@ -209,9 +209,7 @@ All optional while `NEOQLICK_URL` is empty; `docker-compose.prod.yml` passes the
 | `NEOQLICK_VAPID_PUBLIC_KEY`, `NEOQLICK_VAPID_PRIVATE_KEY`, `NEOQLICK_VAPID_SUBJECT` | Neoqlick's own Web Push pair (the generator command is in `deploy/.env.example`); subject `mailto:hello@neoqlick.com` |
 | `NEOQLICK_UMAMI_WEBSITE_ID` | The website id created in Umami for Neoqlick (read by the website) |
 
-The SSO clients need no variable: the code lists them by realm. The website's own variables
-(`NEOQLICK_URL`, `NEOQLICK_UMAMI_WEBSITE_ID`, the legal ones) are passed to the `web` service by the
-pull request that adds the host table to the website, not by this one.
+The SSO clients need no variable: the code lists them by realm. The `web` service receives `NEOQLICK_URL`, `NEOQLICK_UMAMI_WEBSITE_ID`, `NEOQLICK_TRADE_NAME` and the three `NEOQLICK_LEGAL_OWNER_*` variables (empty means unset: with no `NEOQLICK_URL` the website has no Neoqlick hosts and with no holder name the legal pages and their links are hidden).
 
 #### Owner tasks outside the server
 

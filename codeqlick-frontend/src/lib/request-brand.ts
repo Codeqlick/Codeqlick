@@ -5,8 +5,13 @@ import { brandOfHost, classifyHost, type Brand, type HostClass } from './hosts';
 
 /** The visitor's host (behind Nginx and Server Actions' own fetches `X-Forwarded-Host` has it). */
 export async function requestHost(): Promise<string | null> {
-  const incoming = await headers();
-  return incoming.get('x-forwarded-host')?.split(',')[0]?.trim() || incoming.get('host');
+  try {
+    const incoming = await headers();
+    return incoming.get('x-forwarded-host')?.split(',')[0]?.trim() || incoming.get('host');
+  } catch {
+    // Outside a request (the build, a unit test) there is no host: Codeqlick's, as before.
+    return null;
+  }
 }
 
 /** The brand of the request's host (`neoqlick` on Neoqlick's hosts, else `codeqlick`). */

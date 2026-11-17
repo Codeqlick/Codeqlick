@@ -93,7 +93,7 @@ describe('addresses', () => {
   });
 
   it('writes the watermark', () => {
-    expect(watermarkText('ana_22')).toBe('@ana_22 · cruising.codeqlick.com');
+    expect(watermarkText('ana_22')).toBe('@ana_22 · cruising.neoqlick.com');
   });
 
   it('checks ids and references', () => {
@@ -144,10 +144,10 @@ describe('the file proxy', () => {
   });
 
   it('accepts uploads from this site only', () => {
-    expect(sameOrigin('https://cruising.codeqlick.com', 'cruising.codeqlick.com')).toBe(true);
-    expect(sameOrigin('https://evil.example', 'cruising.codeqlick.com')).toBe(false);
-    expect(sameOrigin('not a url', 'cruising.codeqlick.com')).toBe(false);
-    expect(sameOrigin(null, 'cruising.codeqlick.com')).toBe(true);
+    expect(sameOrigin('https://cruising.neoqlick.com', 'cruising.neoqlick.com')).toBe(true);
+    expect(sameOrigin('https://evil.example', 'cruising.neoqlick.com')).toBe(false);
+    expect(sameOrigin('not a url', 'cruising.neoqlick.com')).toBe(false);
+    expect(sameOrigin(null, 'cruising.neoqlick.com')).toBe(true);
   });
 });
 

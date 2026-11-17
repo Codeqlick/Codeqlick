@@ -15,6 +15,8 @@ import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
 import { WEBAPPS } from '@/lib/webapps';
 import { homeAfterSignIn } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
+import { portalUrl } from '@/lib/portal-links';
+import { requestBrand } from '@/lib/request-brand';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
 import { registerAction } from './actions';
@@ -58,6 +60,7 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
   const next = safeNextPath(firstParam(query.next), locale);
   if (user) redirect(next ?? (await homeAfterSignIn(locale, user.role)));
   const app = WEBAPPS.find((name) => name === firstParam(query.app));
+  const neoqlick = (await requestBrand()) === 'neoqlick';
   const sent = firstParam(query.sent);
   const token = firstParam(query.invitation);
   const invited = token ? await signupInvitation(token).catch(() => null) : null;
@@ -126,14 +129,35 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
                   autoComplete="new-password"
                   required
                 />
+                {neoqlick ? (
+                  <>
+                    <FormCheckbox name="confirmAdult" label={t('confirmAdult')} required />
+                    <FormCheckbox
+                      name="acceptTerms"
+                      label={t.rich('acceptTerms', {
+                        link: (chunks) => (
+                          <a href={portalUrl(locale, '/terms')} target="_blank" rel="noopener">
+                            {chunks}
+                          </a>
+                        ),
+                      })}
+                      required
+                    />
+                  </>
+                ) : null}
                 <FormCheckbox
                   name="acceptPrivacy"
                   label={t.rich('acceptPrivacy', {
-                    link: (chunks) => (
-                      <Link href="/privacy" target="_blank">
-                        {chunks}
-                      </Link>
-                    ),
+                    link: (chunks) =>
+                      neoqlick ? (
+                        <a href={portalUrl(locale, '/privacy')} target="_blank" rel="noopener">
+                          {chunks}
+                        </a>
+                      ) : (
+                        <Link href="/privacy" target="_blank">
+                          {chunks}
+                        </Link>
+                      ),
                   })}
                   required
                 />

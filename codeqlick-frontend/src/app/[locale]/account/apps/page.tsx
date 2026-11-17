@@ -8,6 +8,8 @@ import { accountApps } from '@/lib/api/auth';
 import type { AccountApp } from '@/lib/api/types';
 import { requireUser } from '@/lib/auth/session';
 import { env } from '@/lib/env';
+import { portalUrl } from '@/lib/portal-links';
+import { requestBrand } from '@/lib/request-brand';
 import { webappUrl } from '@/lib/webapp-seo';
 import { ADULT_WEBAPPS, WEBAPPS } from '@/lib/webapps';
 
@@ -18,12 +20,13 @@ export default async function AccountAppsPage({ params }: { params: Promise<{ lo
   const t = await getTranslations({ locale, namespace: 'AccountSite' });
   const tapps = await getTranslations({ locale, namespace: 'AppSwitcher' });
   const { items } = await accountApps();
-  const site = siteLocale(locale);
+  const neoqlick = (await requestBrand()) === 'neoqlick';
+  const site = neoqlick ? locale : siteLocale(locale);
 
   const describe = (item: AccountApp) => {
     const app = WEBAPPS.find((name) => name === item.app);
     if (app) {
-      const appLocale = app === 'cruising' ? locale : site;
+      const appLocale = app === 'cruising' ? locale : siteLocale(locale);
       const path = app === 'cloud' ? '/console' : '';
       return {
         name: tapps(`apps.${app}.name`),
@@ -62,7 +65,7 @@ export default async function AccountAppsPage({ params }: { params: Promise<{ lo
         })}
       </ul>
       <p>
-        <a href={`${env.SITE_URL}/${site}/apps`}>{tapps('all')}</a>
+        <a href={neoqlick ? portalUrl(locale) : `${env.SITE_URL}/${site}/apps`}>{tapps('all')}</a>
       </p>
     </div>
   );

@@ -28,7 +28,7 @@
 
   /* Display headings use Montserrat (set on <html> by the root layout). */
   --font-family-display:
-    var(--font-display), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    var(--font-display-neoqlick), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --shadow-sm: 0 1px 2px rgba(22, 15, 43, 0.06);
   --shadow-md: 0 6px 24px rgba(22, 15, 43, 0.08);

@@ -5,10 +5,10 @@ import { cruisingLegalDocument } from './cruising';
 import { swipeLegalDocument } from './swipe';
 
 const OWNER = { name: 'Owner Name', taxId: 'X1234567Z', address: 'Calle 1, Madrid' };
-const MAIL = 'hello@codeqlick.com';
+const MAIL = 'hello@neoqlick.com';
 const LINK = `[${MAIL}](mailto:${MAIL})`;
 
-describe("the 'Safety across Codeqlick's 18+ apps' section (decision 119)", () => {
+describe("the 'Safety across Neoqlick's 18+ apps' section (decision 119)", () => {
   it.each(routing.locales)('exists in %s for the terms and the privacy policy', (locale) => {
     for (const kind of ['terms', 'privacy'] as const) {
       const section = adultSafetySection(kind, locale, MAIL);
@@ -47,7 +47,7 @@ describe("the 'Safety across Codeqlick's 18+ apps' section (decision 119)", () =
     expect(text).toContain('kept privately while the verification stands');
     for (const locale of routing.locales) {
       const privacy = cruisingLegalDocument('cruising-privacy', OWNER, locale).markdown;
-      expect(privacy).toContain('Codeqlick');
+      expect(privacy).toContain('Neoqlick');
     }
   });
 });
