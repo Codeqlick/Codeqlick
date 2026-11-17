@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const css = readFileSync(join(process.cwd(), 'src/styles/neoqlick.css'), 'utf8');
+const css = readFileSync(join(process.cwd(), 'public/neoqlick/theme.css'), 'utf8');
 
 function token(name: string): string {
   const match = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`).exec(css);

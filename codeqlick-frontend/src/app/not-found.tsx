@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { ClientMessages } from '@/i18n/ClientMessages';
 import { cruisingLocaleOrDefault, localeOrDefault } from '@/i18n/locale';
+import { NeoqlickThemeLink } from '@/components/neoqlick/NeoqlickThemeLink';
 import { NeoqlickNotFound } from '@/components/neoqlick/NeoqlickNotFound';
 import { requestBrand, requestHostClass } from '@/lib/request-brand';
 import { requestWebapp } from '@/lib/webapp-request';
@@ -40,6 +41,7 @@ export default async function RootNotFound() {
         />
       </head>
       <body>
+        {brand === 'neoqlick' ? <NeoqlickThemeLink /> : null}
         {brand === 'neoqlick' ? (
           <ClientMessages locale={locale}>
             <NeoqlickNotFound

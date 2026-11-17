@@ -10,6 +10,7 @@ import { OG_LOCALES, SITE_LOCALES } from '@/i18n/routing';
 import { env } from '@/lib/env';
 import { localeAlternates } from '@/lib/seo';
 import { fontVariablesFor } from '../fonts';
+import { NeoqlickThemeLink } from '@/components/neoqlick/NeoqlickThemeLink';
 import { BRANDS } from '@/lib/brand';
 import { requestBrand } from '@/lib/request-brand';
 
@@ -62,6 +63,7 @@ export default async function LocaleLayout({ children, params }: LayoutProps) {
   return (
     <html lang={locale} className={await fontVariablesFor(brand)} data-brand={brand}>
       <body>
+        {brand === 'neoqlick' ? <NeoqlickThemeLink /> : null}
         <ClientMessages>{children}</ClientMessages>
         <ErrorReporter />
       </body>

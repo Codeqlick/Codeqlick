@@ -1,10 +1,22 @@
 /*
+ * Served from public/, not bundled: Next.js links a bundled stylesheet on every page of the
+ * layout it is imported from, and Codeqlick's pages must not carry Neoqlick's name (decision
+ * 125). The layouts link this file only on Neoqlick's hosts (`NeoqlickThemeLink`).
+ *
  * Neoqlick's theme (architecture 4.18, decision 125), aligned with the owner's approved social kit:
  * the same token names as Codeqlick's with the other brand's values, active under
  * <html data-brand="neoqlick"> (set from the host by the root layout). Spacing, the type scale,
  * button sizes and the mobile rules stay as they are. Contrast of every pair is checked by
  * src/styles/neoqlick-theme.test.ts (WCAG AA).
  */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/neoqlick/fonts/montserrat-latin-wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root[data-brand='neoqlick'] {
   --color-brand: #7c3aed; /* violet: buttons, links, focus; white text on it passes AA (5.7:1) */
   --color-brand-dark: #5b21b6; /* hover, eyebrows on light backgrounds */
@@ -26,9 +38,9 @@
   /* Cards and panels are rounder than Codeqlick's (the kit's 28 px, as the largest token). */
   --radius-lg: 24px;
 
-  /* Display headings use Montserrat (set on <html> by the root layout). */
+  /* Display headings use Montserrat (self-hosted, declared above). */
   --font-family-display:
-    var(--font-display-neoqlick), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --shadow-sm: 0 1px 2px rgba(22, 15, 43, 0.06);
   --shadow-md: 0 6px 24px rgba(22, 15, 43, 0.08);
