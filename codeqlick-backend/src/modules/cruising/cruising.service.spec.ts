@@ -329,6 +329,18 @@ describe('CruisingService', () => {
       expect(t.repo.updateProfile).toHaveBeenCalledWith(ME, { emailAlerts: false });
     });
 
+    it('lets only admins take a reserved nickname, like usernames', async () => {
+      t.repo.findProfile.mockResolvedValue(profile());
+      await expect(t.service.updateProfile(ME, { nickname: 'codeqlick' }, NOW)).rejects.toThrow(
+        'This nickname is not available',
+      );
+      const asAdmin = await t.service
+        .updateProfile(ME, { nickname: 'codeqlick' }, NOW, 'ADMIN')
+        .then(() => null)
+        .catch((error: Error) => error.message);
+      expect(asAdmin).not.toBe('This nickname is not available');
+    });
+
     it('ends the onboarding tour once, and reopens it (decision 102)', async () => {
       t.repo.findProfile.mockResolvedValue(profile());
       expect((await t.service.status(ME, NOW)).onboardingDone).toBe(false);

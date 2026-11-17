@@ -10,7 +10,7 @@ import { SUSPENSION_DURATIONS, ageOn } from '../videochat/videochat.schemas.js';
 import { SPOT_TAGS } from './cruising-insights.rules.js';
 import { MEDIA_ALBUMS } from './cruising-media.rules.js';
 import { ROOM_MESSAGE_MAX } from './cruising-rooms.rules.js';
-import { isReservedNickname, parseBbox } from './cruising.rules.js';
+import { parseBbox } from './cruising.rules.js';
 
 export { ageOn, COUNTRIES, SAFE_CHAT_MESSAGES, SUSPENSION_DURATIONS, TRANSCRIPT_LINES };
 export { suspensionEnd, type SuspensionDuration } from '../videochat/videochat.schemas.js';
@@ -105,13 +105,15 @@ export type LookingFor = z.infer<typeof lookingForSchema>;
 /** 3-20 characters of a-z, 0-9 and `_`, lower-cased on save. */
 export const NICKNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
-/** A nickname someone chooses: its format and the reserved words (they pose as the team). */
+/**
+ * A nickname someone chooses: its format. The reserved words (they pose as the team) are checked by
+ * the service, which knows who is asking: the team's admins may take them, like usernames.
+ */
 export const nicknameSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .regex(NICKNAME_PATTERN, 'Nicknames have 3 to 20 characters: a-z, 0-9 and _')
-  .refine((value) => !isReservedNickname(value), { message: 'This nickname is not available' });
+  .regex(NICKNAME_PATTERN, 'Nicknames have 3 to 20 characters: a-z, 0-9 and _');
 
 /** A nickname someone looks up: anything unknown is a 404, not a 400. */
 export const nicknameLookupSchema = z.string().trim().toLowerCase().min(1).max(40);

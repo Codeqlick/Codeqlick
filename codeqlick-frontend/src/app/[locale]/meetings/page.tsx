@@ -35,7 +35,7 @@ export default async function MeetingsLandingPage({ params }: PageProps) {
     <div className={styles.landing}>
       <section className={styles.hero}>
         <div>
-          <p className={styles.eyebrow}>{t('landing.eyebrow')}</p>
+          <p className={`eyebrow ${styles.eyebrow}`}>{t('landing.eyebrow')}</p>
           <h1 className={styles.heroTitle}>{t('landing.title')}</h1>
           <p className={styles.heroLead}>{t('landing.lead')}</p>
           {user ? null : (

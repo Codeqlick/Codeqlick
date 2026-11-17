@@ -47,6 +47,13 @@
   gap: 1.25rem;
 }
 
+/* Seven demos: four columns on wide screens, so the last row isn't one card alone. */
+@media (min-width: 1200px) {
+  .demos {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .demo {
   display: flex;
   flex-direction: column;

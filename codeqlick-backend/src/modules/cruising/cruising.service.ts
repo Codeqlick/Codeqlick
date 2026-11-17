@@ -39,6 +39,7 @@ import {
   extractSpotSlug,
   findDuplicate,
   groupPlaces,
+  isReservedNickname,
   isSuspended,
   isUniqueViolation,
   memberCanChange,
@@ -534,8 +535,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     userId: string,
     input: ProfileInput,
     now = new Date(),
+    role: AuthUser['role'] = 'CLIENT',
   ): Promise<CruisingStatus> {
     const current = await this.enteredProfile(userId);
+    // Reserved words pose as the team or the platform: only the team's admins may take them, as
+    // with usernames (the account's username check lets admins through too).
+    if (input.nickname !== undefined && role !== 'ADMIN' && isReservedNickname(input.nickname)) {
+      throw new BadRequestException('This nickname is not available');
+    }
     const data: ProfileChanges = {};
     if (input.emailAlerts !== undefined) data.emailAlerts = input.emailAlerts;
     if (input.favoriteAlerts !== undefined) data.favoriteAlerts = input.favoriteAlerts;

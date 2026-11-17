@@ -7,8 +7,12 @@
   max-width: 300px;
 }
 
-/* No ad yet (or none served): no reserved box and no label, the zone takes no space. */
-.ad:not(:has(ins > *)) .label {
+/* No reserved room (nor the "Ad" label) until the network fills the zone. */
+.ad:has(> ins:empty) {
+  gap: 0;
+}
+
+.ad:has(> ins:empty) > .label {
   display: none;
 }
 

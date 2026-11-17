@@ -14,7 +14,7 @@ export default async function CruisingLandingPage({ params }: PageProps) {
   return (
     <div className={vc.landing}>
       <section className={vc.hero}>
-        <p className={vc.eyebrow}>{t('eyebrow')}</p>
+        <p className={`eyebrow ${vc.eyebrow}`}>{t('eyebrow')}</p>
         <h1 className={vc.heroTitle}>{t('title')}</h1>
         <p className={vc.heroLead}>{t('lead')}</p>
         <div className={vc.warning} role="note">
@@ -53,11 +53,6 @@ export default async function CruisingLandingPage({ params }: PageProps) {
               <li key={n}>{t(`safety${n}`)}</li>
             ))}
           </ul>
-          <p>
-            <Link href="/cruising/takedown" className={vc.inlineLink}>
-              {t('takedownLink')}
-            </Link>
-          </p>
         </div>
       </section>
 
