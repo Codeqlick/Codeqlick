@@ -14,7 +14,6 @@ import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { PhotoUpload } from '@/components/swipe/PhotoUpload';
 import swipeStyles from '@/components/swipe/Swipe.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import { AdZone } from '@/components/videochat/AdZone';
 import { InstallApp } from '@/components/videochat/InstallApp';
 import { PushToggle } from '@/components/videochat/PushToggle';
 import { Link } from '@/i18n/navigation';
@@ -235,7 +234,6 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
         </Link>
       </p>
       <AccountSettingsLink locale={locale} />
-      <AdZone zone="pages" className={styles.subsection} />
     </section>
   );
 }

@@ -26,9 +26,11 @@ type AdZoneProps = { className?: string } & (
 );
 
 /**
- * One ExoClick zone (architecture 4.7, 4.10): a labelled 300x250 box. The loader is added once per
- * page; each mount asks it to fill the zones on the page, so client-side navigation refills them
- * too. Renders nothing while the zone has no ID.
+ * One ExoClick zone (architecture 4.7, 4.10): up to a 300x250 box, labelled and sized only once an
+ * ad fills it (empty, it takes no space). The loader is added once per page; each mount asks it to
+ * fill the zones on the page, so client-side navigation refills them too. Renders nothing while
+ * the zone has no ID. Only on landing and feed pages, never on settings, profile or verification
+ * pages (see `src/lib/ad-placement.test.ts`).
  */
 export function AdZone(props: AdZoneProps) {
   const { className } = props;

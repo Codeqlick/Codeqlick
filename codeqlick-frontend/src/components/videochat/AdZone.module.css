@@ -5,7 +5,11 @@
   margin-inline: auto;
   width: 100%;
   max-width: 300px;
-  min-height: calc(250px + 1.25rem);
+}
+
+/* No ad yet (or none served): no reserved box and no label, the zone takes no space. */
+.ad:not(:has(ins > *)) .label {
+  display: none;
 }
 
 .label {

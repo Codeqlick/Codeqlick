@@ -33,6 +33,19 @@ export function isAbort(error: unknown): boolean {
   return name === 'AbortError' || code === 'ERROR_CEREMONY_ABORTED';
 }
 
+/**
+ * Whether a failed sign-in ceremony shows the "couldn't sign in with that passkey" message.
+ * - `autofill`: the silent conditional-UI request the login page starts by itself. It fails or is
+ *   aborted for many reasons nobody asked about (no passkeys, autofill unsupported, the button or a
+ *   navigation aborting it, a domain the browser refuses): never shown.
+ * - `button`: the person clicked "Sign in with a passkey". Shown unless they cancelled it
+ *   (NotAllowedError / AbortError).
+ */
+export function showsPasskeySignInError(error: unknown, source: 'autofill' | 'button'): boolean {
+  if (source === 'autofill') return false;
+  return passkeyErrorKind(error) !== 'cancelled';
+}
+
 /** Largest WebAuthn response the website passes on to the API. */
 const MAX_RESPONSE_LENGTH = 100_000;
 
