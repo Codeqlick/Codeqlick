@@ -125,7 +125,7 @@ src/
     support/                 Support requests: clients open and answer them in the portal, the team in the admin panel
     media/                   Image uploads (admin) stored on disk and served publicly
     saved-replies/           Reusable texts for lead replies and project comments
-    stats/                   Admin dashboard numbers and the public site's visits (Umami)
+    stats/                   Admin dashboard numbers, the platform overview (section 4.17) and the public site's visits (Umami)
     search/                  Admin search across leads, users, projects, requests, proposals, posts and case studies (section 4.14)
 prisma/
   schema.prisma
@@ -821,7 +821,7 @@ Owner's choice (2026-11-13). A team moves to **PRO** (the limits of `CLOUD_PLANS
 
 - **Price:** a recurring monthly price made in Stripe's dashboard, named by `STRIPE_CLOUD_PRO_PRICE_ID`; its amount and currency are read from Stripe (cached an hour) and shown in the console, plus IVA (the same tax rate as decision 20, `SITE_VAT_PERCENT`). Without Stripe's keys or that price the team's **Plan** page says paid plans aren't available yet and nothing else changes.
 - **Upgrade:** a team's owners press "Upgrade to PRO": `POST /v1/cloud/teams/:team/billing/checkout` makes a Checkout Session in subscription mode (the team's Stripe customer, made once with the owner's email and the team's id in its metadata; `client_reference_id` and metadata name the team) and the console sends them there. Stripe's webhook (`POST /v1/payments/stripe`, the same endpoint as decision 20, which tells them apart by the session's mode and metadata) makes the team `PRO` when the session completes.
-- **Subscription state** (`CloudTeam`: `stripeCustomerId`, `stripeSubscriptionId`, `subscriptionStatus`, `currentPeriodEnd`, `cancelAtPeriodEnd`), kept by the webhook's `customer.subscription.created|updated|deleted`: `active` and `trialing` are PRO; `past_due` stays PRO while Stripe retries (the owners are emailed on `invoice.payment_failed`); `canceled`, `unpaid` and `incomplete_expired` go back to FREE. The event's subscription is read again from Stripe before acting, so events arriving out of order don't matter.
+- **Subscription state** (`CloudTeam`: `stripeCustomerId`, `stripeSubscriptionId`, `subscriptionStatus`, `currentPeriodEnd`, `cancelAtPeriodEnd`, `subscriptionAmountCents`: what the subscription bills a month before VAT, for the admin overview's MRR, section 4.17), kept by the webhook's `customer.subscription.created|updated|deleted`: `active` and `trialing` are PRO; `past_due` stays PRO while Stripe retries (the owners are emailed on `invoice.payment_failed`); `canceled`, `unpaid` and `incomplete_expired` go back to FREE. The event's subscription is read again from Stripe before acting, so events arriving out of order don't matter.
 - **Managing it:** `POST /v1/cloud/teams/:team/billing/portal` opens Stripe's customer portal (card, invoices, cancel at the end of the period). Owners only; admins and members see the plan.
 - **Going back to FREE** deletes nothing: what is over the free limits keeps working but nothing more can be added (a 409 names the limit), and the monthly limits (builds, analytics, form submissions) apply at once.
 - **Console:** the team's **Plan** page: the plan, its limits side by side, the price, the subscription's state and next renewal, and the buttons. Admin → Cloud shows each team's plan.
@@ -1202,6 +1202,30 @@ A separate phase (decision 118), done last so its translations cover phases 1–
 5. **PWA and six languages for Swipe and Videochat.**
 
 Each phase is its own pull request (phase 1 may split into API and web) with its Notion row.
+
+### 4.17 Admin overview (`modules/stats`)
+
+Owner's request (2026-11-17): one page in Admin that shows how the whole platform is doing (people, money, activity and health) without opening each app's admin. Decision 122.
+
+- **Where:** `/[locale]/admin/overview`, the first entry of the admin menu ("Overview" / "Resumen"); the dashboard (`/admin`) stays as it is. ADMIN only (the two-step verification rule for admins applies as to every admin route).
+- **Weeks:** the last 12 weeks, oldest first, the current one last, Monday to Sunday in Europe/Madrid (`start` is the Monday, `yyyy-mm-dd`), every week present (zeros included); the same bucketing as Cruising's statistics (decision 101), shared code. Totals are counts now.
+- **How:** aggregates only, no person, email or name is ever returned; each figure is counted in PostgreSQL with tagged `$queryRaw` templates (values are bound parameters, nothing is built as a string) in one transaction; the answer is kept 10 minutes in the API's memory (`generatedAt` says when it was computed).
+- **People:**
+  - **Accounts:** people's accounts (role `CLIENT`; the team's `ADMIN` accounts are not counted), all of them and new per week (`users.created_at`).
+  - **Active per week:** distinct accounts with a session row created that week (a sign-in, or a refresh of the session, which makes a new row: section 4.3). Session rows are deleted 30 days after they expire (`TokenCleanupService`), so weeks more than about 8 weeks back undercount; the page says so.
+  - **Per app:** Cruising, Swipe and Videochat (a profile: the person entered the app), Cloud (member of at least one team), Citas (owns at least one booking page), Meetings (owns at least one room) and the portal's clients (`CLIENT_WHERE` of decision 29, the same rule as the dashboard's "clients", written again in SQL; an e2e test keeps both in step). The total per app now, and new per week: the profile's creation, or the person's first membership, page or room; for clients, the account's creation.
+- **Revenue** (from the database only; no Stripe call, so the page works with Stripe down or off; all prices are in euros):
+  - **Cloud PRO:** teams whose `subscriptionStatus` is `active`, `trialing` or `past_due` (they are PRO, decision 46).
+  - **Maintenance plans** (decision 110): projects whose `maintenanceStatus` is `ACTIVE` or `PAST_DUE` and not marked included, and apart those marked included (they pay nothing).
+  - **MRR:** what those subscriptions bill a month before VAT, summed: Cloud PRO's, the maintenance plans' and the total. Stripe's price was only read live (cached an hour), so the amount is now **stored** when the webhook syncs a subscription: `CloudTeam.subscriptionAmountCents` and `ClientProject.maintenanceAmountCents`, `null` until then. It is each item's `price.unit_amount × quantity`, brought to a month (`interval` `month` divided by `interval_count`; `year` ÷ 12; `week` × 52 ÷ 12; `day` × 365 ÷ 12; rounded to the cent). The migration fills the maintenance plans already paid with decision 110's price (1 900 cents); Cloud PRO's price was never written down, so a PRO team synced before this change has no amount until its next subscription event (Stripe sends `customer.subscription.updated` at every renewal, so within a month). Those are counted in `unpriced` and the page says the MRR leaves them out.
+  - **Website purchases** (decision 20): `PAID` purchases per week by `paidAt`, their number and the total charged (`amountCents`, VAT included, as Stripe charged it).
+- **Activity per week:** leads that came in (`leads.created_at`, every source), support requests opened (`created_at`) and resolved or closed (`resolved_at`), Cloud deployments made (`cloud_deployments.created_at`; rows deleted by Cloud's cleanup are not counted), website checks run (`site_audits.created_at`, section 4.12) and newsletter sign-ups confirmed (`confirmed_at`). Totals now: support requests still open and newsletter subscribers `ACTIVE`.
+- **Health** (now):
+  - **Disk:** the disk guard's reading (decision 49: `state`, `totalBytes`, `freeBytes`) of the disk holding `CLOUD_ROOT`, or of `UPLOADS_DIR` when Cloud's hosting isn't set up (the same disk on the single server); `null` when it can't be read.
+  - **Errors** (section 4.11): open groups (`resolvedAt` null) of the API and the website, and apart the open CSP report groups (source `CSP`, decision 109).
+  - **Uptime:** the server monitor (`deploy/monitor/monitor.sh`) keeps no history in the database (only its alert state, on the host), so codeqlick.com's uptime isn't shown; what is stored is the client sites' monitors (`SiteMonitor`): how many are watched and how many are `DOWN` now, linked to Admin → Monitoring.
+  - **Moderation waiting:** Cruising (spots `PENDING`, reports `OPEN`, media not reviewed yet, verification photos `PENDING`, removal requests `OPEN`), Swipe (photos `PENDING`, reports `OPEN`, verification photos `PENDING`, removal requests `OPEN`) and Videochat (reports `OPEN`, appeals `OPEN`, verification photos `PENDING`), each linked to its queue (the tab of `/admin/cruising?tab=…` and `/admin/swipe?tab=…`; `/admin/videochat`, whose page holds reports, appeals and verifications).
+- **Page:** cards with the totals (accounts, active this week, total MRR, leads this week, open support requests, disk), then sections People, Revenue, Activity and Health. Charts are the server-drawn `BarChart` (SVG `aria-hidden`, the numbers in a visually hidden table), one per weekly series: new and active accounts, new per app, purchases, leads, support opened and closed, deployments, website checks and newsletter sign-ups. The per-app totals, the revenue and the moderation counts are tables. Money is shown with `Intl.NumberFormat` in the page's language.
 
 ## 5. API contract (v1)
 
@@ -1635,6 +1659,7 @@ Team routes take the team's `slug`; project routes the project's `id`. Not a mem
 | GET | `/admin/stats` | `{ leads: { new, total, lostReasons }, posts: { published, drafts, scheduled }, portfolio: { published }, projects: { active }, clients, support: { active }, proposals: { sent }, drafts: { pending }, bookings: { upcoming }, links: { broken } }` (`clients`: active client accounts, decision 29, without people who only use our web apps; `support.active`: requests not resolved or closed; `proposals.sent`: waiting for the client's answer) |
 | GET | `/admin/search` | `?q` (trimmed, 2–100 characters; `400` otherwise) `&locale=en\|es` (default `en`: the language of post and case-study titles) → `AdminSearch`: up to 5 matches per kind, most recently changed first, only kinds with matches, in the order `lead`, `user`, `project`, `ticket`, `proposal`, `post`, `caseStudy` (section 4.14). 120/min per IP |
 | GET | `/admin/stats/timeline` | `?months=12` (1–36) → `{ months: [{ month: 'yyyy-mm', leads, leadsWon, posts, caseStudies }] }`: oldest first, every month present; leads by the month they came in, posts and case studies by the month they went live; months in Madrid time |
+| GET | `/admin/overview` | `AdminOverview` (shape below): the whole platform's people, revenue, activity and health, 12 Madrid weeks plus totals now, aggregates only, cached 10 min (section 4.17, decision 122) |
 | GET / POST | `/admin/proposals` | GET `?status&clientId&page&pageSize` → `Paginated<Proposal>`, latest activity first. POST `{ clientId, projectId?, title, summary, terms?, validUntil?, items: [{ description, quantity, unitPrice }] }` (1–100 items, cents) → `201 Proposal` `DRAFT` |
 | GET / PUT / DELETE | `/admin/proposals/:id` | `Proposal` / the same body without `clientId` (drafts only; items replaced) / `204` (drafts only); 409 otherwise |
 | POST | `/admin/proposals/:id/send` | Draft → `SENT`; emails the client in their language with a link to `SITE_URL/{locale}/portal/proposals/:id` → `Proposal & { clientNotified }`; 400 when `validUntil` has passed |
@@ -1834,6 +1859,44 @@ interface Invoice {
   paidAt: string | null;
   project: { id: string; name: string } | null;
 }
+
+interface AdminOverview {
+  generatedAt: string;
+  /** 12 weeks, oldest first; `start` the Monday (yyyy-mm-dd, Europe/Madrid). */
+  weeks: {
+    start: string;
+    accounts: { new: number; active: number };
+    apps: AppCounts; // new per app that week
+    purchases: { count: number; amountCents: number };
+    leads: number;
+    support: { opened: number; closed: number };
+    deployments: number;
+    siteChecks: number;
+    newsletter: number; // sign-ups confirmed
+  }[];
+  people: { accounts: number; apps: AppCounts };
+  revenue: {
+    currency: 'eur';
+    mrrCents: number; // cloudPro.mrrCents + maintenance.mrrCents, before VAT
+    cloudPro: { active: number; mrrCents: number; unpriced: number };
+    maintenance: { paid: number; included: number; mrrCents: number; unpriced: number };
+  };
+  activity: { supportOpen: number; newsletterActive: number };
+  health: {
+    disk: { state: 'ok' | 'low' | 'full'; totalBytes: number; freeBytes: number } | null;
+    errors: { open: number; cspOpen: number };
+    monitors: { watched: number; down: number };
+    moderation: {
+      cruising: { spots: number; reports: number; media: number; verifications: number; takedowns: number };
+      swipe: { photos: number; reports: number; verifications: number; takedowns: number };
+      videochat: { reports: number; appeals: number; verifications: number };
+    };
+  };
+}
+type AppCounts = {
+  cruising: number; swipe: number; videochat: number; cloud: number;
+  citas: number; meetings: number; portal: number;
+};
 
 interface MaintenanceView {
   // The plan can be bought (Stripe's keys and STRIPE_MAINTENANCE_PRICE_ID set, price readable).
@@ -2158,6 +2221,7 @@ src/
 - **Legal pages:** `/[locale]/legal` (legal notice, LSSI-CE) and `/[locale]/privacy` (GDPR, cookies), written in `src/content/legal` for a private individual as owner. They render, and the footer, sitemap and contact form link to them, only when `LEGAL_OWNER_NAME` is set (`LEGAL_OWNER_TAX_ID` and `LEGAL_OWNER_ADDRESS` are optional); otherwise they are a 404.
 - **Newsletter (section 4.14):** `components/newsletter/NewsletterSignup` sits at the end of the blog index and of each post (EN/ES): "Get new posts by email", an email field and a privacy checkbox linking `/[locale]/privacy`, with the honeypot and the 3 s rule of the contact form. Its Server Action calls `POST /v1/newsletter` (forwarding the visitor's IP) and shows "Check your inbox to confirm"; field errors (`email: disposable`) show on the field. `/[locale]/newsletter/confirm?token=` shows a button whose Server Action calls `POST /v1/newsletter/confirm` (so a mail scanner cannot confirm) and shows done or "this link has expired" with the form to ask again; `/[locale]/newsletter/unsubscribe?token=` shows a button whose Server Action calls `POST /v1/newsletter/unsubscribe` (a GET never changes anything). Both pages are `noindex`. Admin → Newsletter shows the three counts, the list with status and search and a delete button (typing to confirm is not needed: it only removes a sign-up); the post editor has the "Email it to subscribers" checkbox, disabled with the sending date once sent. The privacy policy (`content/legal`) says what the newsletter keeps and why, and no longer says that no newsletters are sent.
 - **FAQ:** `components/content/Faq` renders questions from messages (`Faq.items`) as `<details>` (no script) with `FAQPage` structured data: all of them on /services, five on /contact. Answers follow the wiki's Client Engagement and Services pages; there are no prices or durations, because those depend on each proposal.
+- **Admin overview (section 4.17, decision 122):** `/[locale]/admin/overview`, first in the admin menu, a Server Component that reads `GET /v1/admin/overview` (`lib/api/overview.ts`, `auth: 'required'`); the week labels, sums and money come from `lib/admin-overview.ts` (pure, unit-tested), the texts from the `AdminOverview` messages (EN/ES). Charts are `components/app/BarChart`; nothing runs in the browser.
 - **Lead board** (`/[locale]/admin/leads/board`): the six stages as columns, each with a line on what it means (spam stays in the list). Cards show a lost lead's reason and flag a follow-up date that has arrived, the 50 most recent leads per column. Cards move by drag and drop or with their "Move to" menu (keyboard and touch); the change shows at once (`useOptimistic`) and a Server Action PATCHes the lead. Each column's header counts the open leads whose follow-up date has arrived ("N por seguir hoy").
 - **Admin search (section 4.14, decision 59):** finds any lead, user, project, request, proposal, post or case study from one box.
   - **Opening:** a search button at the top of the admin bar (`AppShell`'s brand row, given by the admin layout as a `search` slot; the portal has none) with the shortcut shown next to it (`Ctrl K`, or `⌘K` on Apple devices, read after mount); on phones only its icon, with an `aria-label`. Ctrl+K or Cmd+K toggles the dialog anywhere in the admin panel, even while typing in another field (the shortcut types nothing; the browser's own Ctrl+K is prevented). Not rendered while the admin still has to turn on two-step verification (the layout then shows only the account page).
@@ -2610,8 +2674,9 @@ to `POST /v1/forms/:key` (a project's `SiteForm`).
     `past_due` → `PAST_DUE`, still on while Stripe retries; `incomplete` → `PENDING`; `canceled`,
     `unpaid`, `incomplete_expired` and `paused` → `CANCELED`), `maintenanceSubscriptionStatus`
     (Stripe's own word), `maintenanceSubscriptionId`, `maintenancePeriodEnd` (the latest
-    `items.data[].current_period_end`) and `maintenanceCancelAtPeriodEnd`; `maintenanceSince` is
-    set when it turns on. An event of an older subscription never touches a newer one that is on.
+    `items.data[].current_period_end`), `maintenanceCancelAtPeriodEnd` and
+    `maintenanceAmountCents` (what it bills a month before VAT, for the admin overview's MRR,
+    section 4.17); `maintenanceSince` is set when it turns on. An event of an older subscription never touches a newer one that is on.
   - **Emails** (plain text and the branded HTML): to the active people of the client account, each
     in their language, and to the team inbox (in English): "your plan is active" when it turns on,
     "we couldn't charge the plan" on `invoice.payment_failed` (with a button to the card, whose
@@ -2878,3 +2943,4 @@ Changes that touch neither app (only `deploy/` or docs) run no app CI (only Attr
 | 119 | Cross-app safety rests on legitimate interest (art. 6.1.f) and the explicit consent at entry, which now names it (art. 9.2.a); linked profiles on a separate consent (art. 6.1.a and 9.2.a); the three terms versions move | Safety sharing is what members expect and must not be optional for someone who could abuse it; linking is a choice, so it is consented to apart and can be withdrawn at any time. A lawyer should confirm tying cross-app safety to entry for art. 9 data |
 | 120 | Deleting an account with an active MINOR, NON_CONSENSUAL or ILLEGAL shared suspension keeps an HMAC-SHA256 of its normalised email for the suspension's length (2 years if permanent), and entering any adult app with a matching email is refused | Owner's decision (2026-11-17). Without it, deleting the account and registering again undoes the gravest suspensions; a keyed hash with an end date keeps nothing readable (legitimate interest in safety, art. 6.1.f) |
 | 121 | Local service pages: four services × ten Spanish cities, each with copy written for the city, no address, reviews or case studies; one path scheme, statically listed | Owner's request (2026-11-17). "Service + city" searches are how local businesses look for a supplier, and a page per pair is what ranks for them; search engines treat pages that only swap the name as doorway pages, so each city gets its own context and per-service sentence, checked for duplicates by a test. Codeqlick works remotely, so claiming a local address would be false; `ProfessionalService` with `areaServed` says where it works without one |
+| 122 | One admin overview of the whole platform (people, revenue, activity, health), 12 Madrid weeks of aggregates computed in SQL and cached 10 minutes; MRR from amounts stored by Stripe's webhook, not from live Stripe calls | Owner's request (2026-11-17). The figures were spread over each app's admin and Stripe's dashboard. Reading Stripe on every visit would tie the page to Stripe's availability and rate limits, and the prices were only known in memory, so the subscription's monthly amount before VAT is kept on the row the webhook already writes (one nullable column on `cloud_teams` and on `client_projects`); the maintenance plans paid before are filled with decision 110's 1 900 cents, PRO teams fill in at their next renewal and are shown as unpriced until then. Aggregates only, as decision 101, so no person's data leaves its app's admin |
