@@ -42,7 +42,6 @@ import {
   groupPlaces,
   isReservedNickname,
   isSuspended,
-  isReservedNickname,
   isUniqueViolation,
   memberCanChange,
   nextSpotStatus,
