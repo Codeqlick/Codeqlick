@@ -11,7 +11,8 @@ import type { Bbox } from './cruising.rules.js';
 /** What names a member in a list: the nickname, the badge and whether they are suspended. */
 const memberSelect = {
   nickname: true,
-  verificationStatus: true,
+  // The account's verification gives the badge in the three 18+ apps (architecture 4.16).
+  user: { select: { adultVerification: { select: { status: true } } } },
   suspendedAt: true,
   suspendedUntil: true,
 } as const;

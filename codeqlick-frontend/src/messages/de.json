@@ -129,6 +129,15 @@
     "title": "Menü",
     "home": "Start",
     "signIn": "Anmelden",
+    "openFor": "Menü — {name}",
+    "card": {
+      "label": "Dein Konto",
+      "profile": "Mein Profil",
+      "completeProfile": "Profil vervollständigen",
+      "account": "Mein Konto",
+      "verified": "Verifiziert",
+      "register": "Konto erstellen"
+    },
     "sections": {
       "discover": "Entdecken",
       "community": "Community",
@@ -329,7 +338,7 @@
       "birthDate": "Geburtsdatum",
       "birthDateHint": "Wir prüfen, dass du mindestens 18 bist. Wir speichern nur das Jahr.",
       "accept": "Ich bin mindestens 18 und akzeptiere die Regeln und Nutzungsbedingungen von Cruising",
-      "consent": "Ich willige ein, dass Codeqlick für die Nutzung von Cruising Daten verarbeitet, die meine sexuelle Orientierung oder mein Sexualleben offenbaren können",
+      "consent": "Ich willige ein, dass Codeqlick für die Nutzung von Cruising Daten verarbeitet, die meine sexuelle Orientierung oder mein Sexualleben offenbaren können, und dass Sicherheitsmaßnahmen (Sperren, schwere Sperrungen, Verifizierung) in allen 18+-Apps von Codeqlick gelten",
       "consentHint": "Besondere Kategorien personenbezogener Daten (Art. 9 Abs. 2 lit. a DSGVO). Du kannst deine Einwilligung jederzeit widerrufen, indem du dein Konto löschst.",
       "readRules": "Regeln lesen",
       "submit": "Weiter",
@@ -339,7 +348,8 @@
       "mustConsent": "Wir brauchen deine ausdrückliche Einwilligung, um weiterzumachen.",
       "underage": "Cruising ist nur für Personen ab 18 Jahren.",
       "rulesChanged": "Die Regeln haben sich geändert: Lade die Seite neu und lies sie.",
-      "error": "Wir konnten es nicht speichern. Versuch es noch einmal."
+      "error": "Wir konnten es nicht speichern. Versuch es noch einmal.",
+      "notAllowed": "Dieses Konto kann die 18+-Apps von Codeqlick nicht nutzen; schreib an hello@codeqlick.com"
     },
     "suspended": {
       "title": "Dein Zugang zu Cruising ist gesperrt",
@@ -697,7 +707,7 @@
       "alertsLabel": "Schick mir eine E-Mail, wenn ein Ort von mir veröffentlicht wird oder eine Nachricht ungelesen wartet",
       "alertsHint": "Entscheidungen des Teams (eine Ablehnung, eine Sperre) werden immer per E-Mail geschickt. E-Mails nennen nie einen Ort, einen Nickname oder eine Nachricht.",
       "blocksTitle": "Blockierte Mitglieder",
-      "blocksLead": "Blockierte Mitglieder und du könnt euch nirgends mehr sehen. Heb die Blockierung auf, um das zu ändern.",
+      "blocksLead": "Blockierte Mitglieder und du könnt euch in keiner der 18+-Apps von Codeqlick sehen. Hebst du die Blockierung auf, gilt das in allen drei.",
       "blocksEmpty": "Du hast niemanden blockiert.",
       "blockedOn": "blockiert am {date}",
       "unblock": "Blockierung aufheben",
@@ -722,6 +732,8 @@
       "languageLead": "Die Sprache der E-Mails von Cruising und der Benachrichtigungen auf deinen Geräten. E-Mails vom Rest von Codeqlick kommen auf Englisch, wenn nicht Spanisch gewählt ist.",
       "languageLabel": "Sprache der E-Mails und Benachrichtigungen",
       "languageInvalid": "Wähle eine Sprache aus der Liste.",
+      "blockedOnIn": "blockiert in {app} am {date}",
+      "blockOtherApp": "Ein Mitglied einer anderen 18+-App",
       "sectionsLabel": "Profilbereiche",
       "sections": {
         "profile": "Profil",
@@ -848,11 +860,11 @@
     },
     "verification": {
       "title": "Verifizierung",
-      "lead": "Optional: Hol dir das Abzeichen „Verifiziert“, damit andere Mitglieder wissen, dass dein Profil dir gehört und du volljährig bist. Du schickst einmalig ein Foto von dir.",
-      "step1": "Ein Zettel mit deinem Nickname, „Cruising“ und dem heutigen Datum",
+      "lead": "Optional: Hol dir das Abzeichen „Verifiziert“, damit andere Mitglieder wissen, dass dein Profil dir gehört und du volljährig bist. Du schickst einmalig ein Foto von dir, und es gilt für alle 18+-Apps von Codeqlick (Cruising, Swipe und Videochat).",
+      "step1": "Ein Zettel mit deinem Nickname, „Codeqlick“ und dem heutigen Datum",
       "step2": "Du hältst ihn in der Hand, dein Gesicht ist zu sehen",
       "step3": "Gut beleuchtet und scharf",
-      "privacy": "Nur das Team sieht dieses Foto. Es wird gelöscht, sobald es geprüft ist; nur die Entscheidung wird gespeichert. Wir verlangen keinen Ausweis, und das Abzeichen bedeutet nicht, dass einer geprüft wurde.",
+      "privacy": "Nur das Team sieht dieses Foto. Solange die Verifizierung besteht, bewahren wir es privat auf; es wird gelöscht, wenn die Verifizierung zurückgezogen wird oder verloren geht, wenn du sie ersetzt oder dein Konto löschst. Wir verlangen keinen Ausweis, und das Abzeichen bedeutet nicht, dass einer geprüft wurde.",
       "fileLabel": "Dein Verifizierungsfoto",
       "preview": "Vorschau deines Verifizierungsfotos",
       "send": "Zur Prüfung senden",
@@ -860,7 +872,7 @@
       "sending": "Wird gesendet…",
       "sent": "Gesendet. Das Team prüft es und wir schicken dir eine E-Mail.",
       "pending": "Dein Foto wartet auf die Prüfung durch das Team. Wir schicken dir eine E-Mail, wenn sie erledigt ist.",
-      "approved": "Das Team hat dein Foto freigegeben: Dein Profil zeigt das Abzeichen „Verifiziert“. Wenn du deinen Nickname änderst, wird das Abzeichen entfernt und du musst dich erneut verifizieren.",
+      "approved": "Das Team hat dein Foto freigegeben: Dein Profil zeigt das Abzeichen „Verifiziert“ in allen 18+-Apps von Codeqlick. Wenn der Name auf deinem Zettel keiner deiner Namen in diesen Apps mehr ist, zum Beispiel weil du deinen Nickname änderst, wird das Abzeichen entfernt und du musst dich erneut verifizieren.",
       "rejected": "Das Team konnte dein Foto nicht freigeben.",
       "rejectedNote": "Grund: {note}",
       "errors": {

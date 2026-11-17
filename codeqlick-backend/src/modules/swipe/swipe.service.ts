@@ -19,10 +19,13 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { UsernameService } from '../auth/username.service.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { AdultAdminService, type AlsoReported } from '../adult/adult-admin.service.js';
+import { AdultSafetyService } from '../adult/adult-safety.service.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
+import { isSeriousCategory, type SuspensionCategory } from '../adult/adult.rules.js';
 import { sharesContact } from './swipe-chat-guard.js';
 import {
   swipeAlertEmail,
-  swipeDigestEmail,
   swipeNoticeEmail,
   takedownEmail,
   type SwipeNotice,
@@ -60,7 +63,6 @@ import {
   type SwipeProfileInput,
   type TakedownDecision,
   type TakedownInput,
-  type VerificationDecision,
 } from './swipe.schemas.js';
 import { SwipeStorage } from './swipe.storage.js';
 
@@ -76,9 +78,6 @@ const UNREAD_AFTER_MS = 15 * 60 * 1000;
 /** …checked this often, for chats active in the last week. */
 const UNREAD_EVERY_MS = 10 * 60 * 1000;
 const UNREAD_LOOKBACK_MS = 7 * DAY_MS;
-/** The team's digest: checked this often, sent at most once in DIGEST_MIN_GAP_MS. */
-const DIGEST_EVERY_MS = 30 * 60 * 1000;
-const DIGEST_MIN_GAP_MS = 60 * 60 * 1000;
 /** A chat's partner gets at most one push about new messages in this time. */
 const MESSAGE_PUSH_GAP_MS = 2 * 60 * 1000;
 /** Photos watermarked per background run. */
@@ -240,7 +239,6 @@ export interface PhotoFile {
 export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(SwipeService.name);
   private timers: NodeJS.Timeout[] = [];
-  private lastDigestAt = 0;
   private readonly messagePushedAt = new Map<string, number>();
 
   constructor(
@@ -251,6 +249,9 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly push: SwipePushService,
     private readonly config: AppConfigService,
     private readonly usernames: UsernameService,
+    private readonly safety: AdultSafetyService,
+    private readonly verification: AdultVerificationService,
+    private readonly adultAdmin: AdultAdminService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -265,8 +266,8 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     }, CLEANUP_FIRST_MS).unref();
     this.timers.push(
       first,
+      // The team's digest is the one of the three 18+ apps (AdultAdminService, architecture 4.16).
       setInterval(() => void this.emailUnread(), UNREAD_EVERY_MS).unref(),
-      setInterval(() => void this.sendDigest(), DIGEST_EVERY_MS).unref(),
     );
   }
 
@@ -338,34 +339,6 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return sent;
   }
 
-  /** The team's digest, when something new is waiting since the last one (at most hourly). */
-  async sendDigest(now = new Date()): Promise<boolean> {
-    if (!this.config.leadsNotifyTo) return false;
-    if (now.getTime() - this.lastDigestAt < DIGEST_MIN_GAP_MS) return false;
-    try {
-      const newest = await this.repository.newestPendingAt();
-      if (!newest || newest.getTime() <= this.lastDigestAt) return false;
-      const overview = await this.repository.overview(now);
-      this.lastDigestAt = now.getTime();
-      this.sendMail(
-        swipeDigestEmail(
-          this.config.leadsNotifyTo,
-          {
-            verifications: overview.pendingVerifications,
-            photos: overview.pendingPhotos,
-            reports: overview.openReports,
-            takedowns: overview.openTakedowns,
-          },
-          this.config.siteUrl,
-        ),
-      );
-      return true;
-    } catch (error) {
-      this.logger.error(`Swipe digest failed: ${String(error)}`);
-      return false;
-    }
-  }
-
   /** Burns the watermark into photos stored before it existed. */
   async watermarkStored(): Promise<number> {
     let done = 0;
@@ -409,7 +382,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
   // ---- Status and profile ------------------------------------------------------------------------
 
   async status(userId: string, now = new Date()): Promise<SwipeStatus> {
-    return this.statusOf(await this.repository.findProfile(userId), now);
+    return this.statusOf(userId, await this.repository.findProfile(userId), now);
   }
 
   private async superLikesLeft(userId: string, now: Date): Promise<number> {
@@ -420,20 +393,30 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return Math.max(0, SUPER_LIKES_PER_DAY - used);
   }
 
-  private async statusOf(profile: SwipeProfile | null, now: Date): Promise<SwipeStatus> {
+  private async statusOf(
+    userId: string,
+    profile: SwipeProfile | null,
+    now: Date,
+  ): Promise<SwipeStatus> {
     const onboarded = !!profile && profile.termsVersion === SWIPE_TERMS_VERSION;
-    const suspended = isSuspended(profile, now);
+    // A shared suspension (architecture 4.16) counts even before the person entered Swipe.
+    const shared = isSuspended(profile, now) ? null : await this.safety.sharedState(userId, now);
+    const suspended = isSuspended(profile, now) || !!shared;
+    // The account's one verification for the three 18+ apps (decision 113).
+    const verification = await this.verification.view(userId);
     return {
       onboarded,
       termsVersion: SWIPE_TERMS_VERSION,
       acceptedTermsVersion: profile?.termsVersion ?? null,
       suspended,
-      suspension: suspended
-        ? {
-            reason: profile?.suspensionReason ?? null,
-            until: profile?.suspendedUntil?.toISOString() ?? null,
-          }
-        : null,
+      suspension: shared
+        ? { reason: shared.reason, until: shared.until?.toISOString() ?? null }
+        : suspended
+          ? {
+              reason: profile?.suspensionReason ?? null,
+              until: profile?.suspendedUntil?.toISOString() ?? null,
+            }
+          : null,
       allowed: onboarded && !suspended,
       profile: profile
         ? {
@@ -452,12 +435,12 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
           }
         : null,
       verification: {
-        status: profile?.verificationStatus ?? 'NONE',
-        note: profile?.verificationNote ?? null,
-        hasPhoto: !!profile?.verificationKey,
+        status: verification.status,
+        note: verification.note,
+        hasPhoto: verification.hasPhoto,
       },
       canUpload:
-        onboarded && !suspended && profile?.verificationStatus === 'APPROVED' && !!profile.nickname,
+        onboarded && !suspended && verification.status === 'APPROVED' && !!profile?.nickname,
       superLikesLeft: profile ? await this.superLikesLeft(profile.userId, now) : 0,
     };
   }
@@ -470,14 +453,14 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     if (ageOn(input.birthDate, now) < SWIPE_MIN_AGE) {
       throw new ForbiddenException('Swipe is only for people aged 18 or over');
     }
+    const user = await this.repository.findUser(userId);
+    // An email kept after a serious suspension can't enter (decision 120).
+    if (user) await this.safety.checkEntry(user.email, now);
     const birthYear = Number(input.birthDate.slice(0, 4));
-    const profile = await this.repository.saveOnboarding(
-      userId,
-      SWIPE_TERMS_VERSION,
-      birthYear,
-      now,
-    );
-    return this.statusOf(profile, now);
+    await this.repository.saveOnboarding(userId, SWIPE_TERMS_VERSION, birthYear, now);
+    // A shared suspension in force applies here too, from the first visit (decision 114).
+    await this.safety.reapply(userId, now, ['SWIPE']);
+    return this.status(userId, now);
   }
 
   /** A person who may use Swipe now, or the reason they can't. */
@@ -518,7 +501,9 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       emailAlerts: input.emailAlerts,
       blurPhotos: input.blurPhotos,
     });
-    return this.statusOf(profile, now);
+    // A new name may no longer be the one on the verification paper (decision 113).
+    await this.verification.nameChanged(userId, now);
+    return this.statusOf(userId, profile, now);
   }
 
   // ---- Uploads -----------------------------------------------------------------------------------
@@ -545,26 +530,17 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return image;
   }
 
-  /** The verification photo: the person holding a paper with their nickname and today's date. */
+  /**
+   * The verification photo, now the account's one for the three 18+ apps (architecture 4.16):
+   * `POST /swipe/verification` answers like `POST /adult/verification` for one release.
+   */
   async uploadVerification(
     userId: string,
     data: Buffer | undefined,
     now = new Date(),
   ): Promise<SwipeStatus> {
-    const profile = await this.allowedProfile(userId, now);
-    if (!profile.nickname) throw new ConflictException('Choose your nickname first');
-    if (profile.verificationStatus === 'APPROVED')
-      throw new ConflictException('You are verified already');
-    const image = await this.prepareUpload(userId, data, now);
-    const key = await this.storage.write(image.data);
-    const updated = await this.repository.updateProfile(userId, {
-      verificationStatus: 'PENDING',
-      verificationKey: key,
-      verificationNote: null,
-      verificationSentAt: now,
-    });
-    await this.storage.remove(profile.verificationKey);
-    return this.statusOf(updated, now);
+    await this.verification.upload(userId, 'SWIPE', data, now);
+    return this.status(userId, now);
   }
 
   /** Refuses when the public photos or the album are full. */
@@ -586,7 +562,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     inAlbum = false,
   ): Promise<MyPhotoView> {
     const profile = await this.allowedProfile(userId, now);
-    if (profile.verificationStatus !== 'APPROVED' || !profile.nickname) {
+    if (!(await this.verification.isVerified(userId)) || !profile.nickname) {
       throw new ForbiddenException('Your verification photo must be approved first');
     }
     await this.checkRoom(userId, inAlbum);
@@ -699,10 +675,9 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return this.openFile(photo.storageKey);
   }
 
-  async verificationFile(userId: string): Promise<PhotoFile> {
-    const profile = await this.repository.findProfile(userId);
-    if (!profile?.verificationKey) throw new NotFoundException('No verification photo');
-    return this.openFile(profile.verificationKey);
+  /** My verification photo while it waits (the account's one, architecture 4.16). */
+  verificationFile(userId: string): Promise<PhotoFile> {
+    return this.verification.myFile(userId);
   }
 
   private async openFile(key: string): Promise<PhotoFile> {
@@ -740,8 +715,8 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
           gender: Gender | null;
           interests: string[];
           bio: string | null;
-          verificationStatus: string;
         } | null;
+        adultVerification: { status: string } | null;
       };
     },
     lovesYou: boolean,
@@ -755,7 +730,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       gender: photo.owner.swipeProfile?.gender ?? null,
       interests: knownInterests(photo.owner.swipeProfile?.interests),
       bio: photo.owner.swipeProfile?.bio ?? null,
-      verified: photo.owner.swipeProfile?.verificationStatus === 'APPROVED',
+      verified: photo.owner.adultVerification?.status === 'APPROVED',
       lovesYou,
     };
   }
@@ -849,7 +824,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
             gender: partner.swipeProfile?.gender ?? null,
             interests: knownInterests(partner.swipeProfile?.interests),
             bio: partner.swipeProfile?.bio ?? null,
-            verified: partner.swipeProfile?.verificationStatus === 'APPROVED',
+            verified: partner.adultVerification?.status === 'APPROVED',
             photoId: photos.get(partner.id) ?? null,
             albumPhotos: albums.get(partner.id) ?? 0,
           },
@@ -932,7 +907,8 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
   /** Blocks the other person of a match: the match ends and neither sees the other again. */
   async blockMatch(userId: string, matchId: string): Promise<void> {
     const { partnerId } = await this.myMatch(userId, matchId);
-    await this.repository.block(userId, partnerId);
+    // Shared in the three 18+ apps (decision 112).
+    await this.safety.block(userId, partnerId, 'SWIPE');
   }
 
   // ---- Reports and removal requests --------------------------------------------------------------
@@ -972,7 +948,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
           at: message.createdAt.toISOString(),
         }),
       );
-      await this.repository.block(userId, partnerId);
+      await this.safety.block(userId, partnerId, 'SWIPE');
     }
 
     const report = await this.repository.createReport({
@@ -1029,53 +1005,6 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     return this.repository.overview(now);
   }
 
-  async pendingVerifications() {
-    return (await this.repository.pendingVerifications()).map((profile) => ({
-      userId: profile.userId,
-      nickname: profile.nickname,
-      name: profile.user.name,
-      email: profile.user.email,
-      memberSince: profile.user.createdAt.toISOString(),
-      sentAt: profile.verificationSentAt?.toISOString() ?? null,
-    }));
-  }
-
-  async decideVerification(
-    actor: AuthUser,
-    userId: string,
-    input: VerificationDecision,
-  ): Promise<void> {
-    const profile = await this.repository.findProfile(userId);
-    if (!profile || profile.verificationStatus !== 'PENDING') {
-      throw new NotFoundException('No verification waiting for review');
-    }
-    const user = await this.repository.findUser(userId);
-    if (input.approve) {
-      await this.repository.updateProfile(userId, {
-        verificationStatus: 'APPROVED',
-        verificationNote: input.note || null,
-        verifiedAt: new Date(),
-      });
-    } else {
-      await this.repository.updateProfile(userId, {
-        verificationStatus: 'REJECTED',
-        verificationNote: input.note || null,
-        verificationKey: null,
-      });
-      await this.storage.remove(profile.verificationKey);
-    }
-    void this.notifyUser(
-      userId,
-      input.approve ? 'verification-approved' : 'verification-rejected',
-      input.note || null,
-    );
-    await this.activity.record(actor, {
-      action: input.approve ? 'swipe.verification_approved' : 'swipe.verification_rejected',
-      targetId: userId,
-      targetLabel: profile.nickname ?? user?.email ?? userId,
-    });
-  }
-
   async photos(status: 'PENDING' | 'LIVE' | 'REJECTED' | 'HIDDEN') {
     const photos = await this.repository.photosByStatus(status);
     const counts = await this.repository.reportCounts([...new Set(photos.map((p) => p.ownerId))]);
@@ -1097,8 +1026,12 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
         email: photo.owner.email,
         memberSince: photo.owner.createdAt.toISOString(),
         nickname: photo.owner.swipeProfile?.nickname ?? null,
-        verifiedAt: photo.owner.swipeProfile?.verifiedAt?.toISOString() ?? null,
-        hasVerificationPhoto: !!photo.owner.swipeProfile?.verificationKey,
+        // The account's verification and its kept photo, to compare uploads with (decision 113).
+        verifiedAt:
+          photo.owner.adultVerification?.status === 'APPROVED'
+            ? (photo.owner.adultVerification.decidedAt?.toISOString() ?? null)
+            : null,
+        hasVerificationPhoto: !!photo.owner.adultVerification?.photoKey,
         reports: counts.get(photo.owner.id) ?? 0,
       },
     }));
@@ -1178,8 +1111,10 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
 
   async reports(status: 'OPEN' | 'DISMISSED' | 'ACTIONED') {
     const reports = await this.repository.reports(status);
-    const counts = await this.repository.reportCounts([
-      ...new Set(reports.map((r) => r.reportedId)),
+    const people = [...new Set(reports.map((r) => r.reportedId))];
+    const [counts, elsewhere] = await Promise.all([
+      this.repository.reportCounts(people),
+      this.adultAdmin.alsoReported('SWIPE', people),
     ]);
     return reports.map((report) => ({
       id: report.id,
@@ -1204,6 +1139,7 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
         nickname: report.reported.swipeProfile?.nickname ?? null,
         suspended: isSuspended(report.reported.swipeProfile),
         reports: counts.get(report.reported.id) ?? 0,
+        alsoReported: elsewhere.get(report.reported.id) ?? (null as AlsoReported | null),
       },
     }));
   }
@@ -1252,11 +1188,18 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
       );
     }
     if (input.suspend) {
+      // The report's reason is the category (or the moderator's choice): MINOR, NON_CONSENSUAL
+      // and ILLEGAL are shared in the three 18+ apps (decision 114).
       await this.suspend(
         actor,
         report.reportedId,
-        { duration: input.suspend, reason: `Report: ${report.reason}` },
+        {
+          duration: input.suspend,
+          reason: `Report: ${report.reason}`,
+          category: input.category ?? report.reason,
+        },
         now,
+        report.id,
       );
     }
     await this.repository.closeReport(report.id, 'ACTIONED', actor.id, now);
@@ -1344,36 +1287,70 @@ export class SwipeService implements OnApplicationBootstrap, OnApplicationShutdo
     );
   }
 
+  /**
+   * The team suspends someone, with a category: MINOR, NON_CONSENSUAL and ILLEGAL are shared in
+   * the three 18+ apps with the same end (decision 114); the others stay in Swipe.
+   */
   async suspend(
     actor: AuthUser,
     userId: string,
-    input: SuspendUserInput,
+    input: SuspendUserInput & { category: SuspensionCategory },
     now = new Date(),
+    reportId: string | null = null,
   ): Promise<void> {
     const profile = await this.repository.findProfile(userId);
     if (!profile) throw new NotFoundException('Not a Swipe member');
+    if (isSeriousCategory(input.category)) {
+      await this.safety.suspend(
+        actor,
+        userId,
+        {
+          category: input.category,
+          sourceApp: 'SWIPE',
+          reason: input.reason,
+          duration: input.duration,
+          reportId,
+        },
+        now,
+      );
+      return;
+    }
     await this.repository.updateProfile(userId, {
       suspendedAt: now,
       suspendedUntil: suspensionEnd(input.duration, now),
       suspensionReason: input.reason,
+      suspensionCategory: input.category,
     });
     const user = await this.repository.findUser(userId);
     await this.activity.record(actor, {
       action: 'swipe.suspended',
       targetId: userId,
       targetLabel: user?.email ?? userId,
-      details: { duration: input.duration, reason: input.reason },
+      details: { duration: input.duration, reason: input.reason, category: input.category },
     });
   }
 
-  async unsuspend(actor: AuthUser, userId: string, now = new Date()): Promise<void> {
+  /** Lifts Swipe's suspension; a shared one is lifted in the three apps (with a reason). */
+  async unsuspend(
+    actor: AuthUser,
+    userId: string,
+    now = new Date(),
+    reason = 'Lifted from Swipe moderation',
+  ): Promise<void> {
     const profile = await this.repository.findProfile(userId);
     if (!profile || !isSuspended(profile, now)) throw new NotFoundException('Not suspended');
+    if (await this.safety.isSharedInProfile(userId, profile.suspendedAt, now)) {
+      await this.safety.lift(actor, userId, reason, now);
+      return;
+    }
     await this.repository.updateProfile(userId, {
       suspendedAt: null,
       suspendedUntil: null,
       suspensionReason: null,
+      suspensionCategory: null,
     });
+    // A shared suspension still in force shows again.
+    await this.safety.reapply(userId, now, ['SWIPE']);
     const user = await this.repository.findUser(userId);
     await this.activity.record(actor, {
       action: 'swipe.unsuspended',

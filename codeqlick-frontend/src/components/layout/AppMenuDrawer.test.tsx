@@ -2,6 +2,7 @@
 import { act, type ComponentProps } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Link } from '@/i18n/navigation';
 import { AppMenuDrawer, AppMenuLink } from './AppMenuDrawer';
 
 // The app's navigation pulls in Next.js's router, which doesn't load under Vitest: a plain link and
@@ -24,6 +25,10 @@ let root: Root;
 function menu() {
   return (
     <AppMenuDrawer openLabel="Menu" closeLabel="Close menu" title="Menu">
+      <section aria-label="Your account">
+        <Link href="/login">Sign in</Link>
+        <Link href="/register">Create account</Link>
+      </section>
       <nav aria-label="cruising">
         <AppMenuLink href="/cruising/map" app="cruising">
           Map
@@ -116,9 +121,49 @@ describe('AppMenuDrawer', () => {
     expect(dialog.open).toBe(false);
   });
 
+  it('shows the user card first in the drawer, with its buttons', () => {
+    const { dialog } = render();
+    const card = dialog.querySelector('section[aria-label="Your account"]')!;
+    expect(card).not.toBeNull();
+    expect(dialog.querySelector('a')!.closest('section')).toBe(card);
+    expect([...card.querySelectorAll('a')].map((link) => link.textContent)).toEqual([
+      'Sign in',
+      'Create account',
+    ]);
+  });
+
+  it('signed in: the avatar sits in the one trigger, named after the person', () => {
+    act(() =>
+      root.render(
+        <AppMenuDrawer
+          openLabel="Menu — Ana Gil"
+          closeLabel="Close menu"
+          title="Menu"
+          avatar={<span className="avatar">AG</span>}
+        >
+          <section aria-label="Your account">
+            <p>Ana Gil</p>
+            <Link href="/cruising/me">My profile</Link>
+            <a href="https://codeqlick.com/es/portal/account">My account</a>
+          </section>
+        </AppMenuDrawer>,
+      ),
+    );
+    const triggers = container.querySelectorAll('button[aria-haspopup="dialog"]');
+    expect(triggers).toHaveLength(1);
+    const trigger = triggers[0] as HTMLButtonElement;
+    expect(trigger.getAttribute('aria-label')).toBe('Menu — Ana Gil');
+    const avatar = trigger.querySelector('.avatar')!;
+    expect(avatar.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(container.querySelectorAll('dialog')).toHaveLength(1);
+    act(() => trigger.click());
+    const links = [...container.querySelectorAll('dialog a')].map((link) => link.textContent);
+    expect(links).toEqual(['My profile', 'My account']);
+  });
+
   it('marks the current page', () => {
     const { dialog } = render();
-    const [map, places] = dialog.querySelectorAll('a');
+    const [map, places] = dialog.querySelectorAll('nav a');
     expect(map!.getAttribute('aria-current')).toBe('page');
     expect(places!.hasAttribute('aria-current')).toBe(false);
   });

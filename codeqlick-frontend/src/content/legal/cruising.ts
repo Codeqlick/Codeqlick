@@ -6,6 +6,7 @@ import { es } from './cruising-texts/es';
 import { fr } from './cruising-texts/fr';
 import { it } from './cruising-texts/it';
 import { pt } from './cruising-texts/pt';
+import { adultSafetySection } from './adult-safety';
 import type { LegalDocument, LegalOwner } from './index';
 
 /** Cruising's own terms of use and privacy policy (architecture 4.15). */
@@ -46,10 +47,15 @@ export function cruisingLegalDocument(
     locale,
   };
   const text = page === 'cruising-terms' ? texts.terms : texts.privacy;
+  const safety = adultSafetySection(
+    page === 'cruising-terms' ? 'terms' : 'privacy',
+    locale,
+    context.mail,
+  );
   return {
     title: text.title,
     description: text.description,
     updated: texts.updated,
-    markdown: text.markdown(context),
+    markdown: `${text.markdown(context)}\n\n${safety}`,
   };
 }

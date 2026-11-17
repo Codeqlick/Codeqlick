@@ -16,6 +16,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { privateImage } from './swipe.controller.js';
 import {
   photosQuerySchema,
@@ -45,16 +46,20 @@ import { SwipeService } from './swipe.service.js';
 @Roles('ADMIN')
 @Controller('admin/swipe')
 export class SwipeAdminController {
-  constructor(private readonly swipe: SwipeService) {}
+  constructor(
+    private readonly swipe: SwipeService,
+    private readonly verification: AdultVerificationService,
+  ) {}
 
   @Get('overview')
   overview() {
     return this.swipe.overview();
   }
 
+  /** The one queue of the 18+ apps (architecture 4.16): `/admin/adult/verifications`. */
   @Get('verifications')
-  async verifications() {
-    return { items: await this.swipe.pendingVerifications() };
+  verifications() {
+    return this.verification.pending();
   }
 
   @Get('verifications/:userId/file')
@@ -62,7 +67,7 @@ export class SwipeAdminController {
   async verificationFile(
     @Param({ schema: userIdParamSchema }) params: UserIdParam,
   ): Promise<StreamableFile> {
-    return privateImage(await this.swipe.verificationFile(params.userId));
+    return privateImage(await this.verification.adminFile(params.userId));
   }
 
   @Post('verifications/:userId')
@@ -72,7 +77,7 @@ export class SwipeAdminController {
     @Param({ schema: userIdParamSchema }) params: UserIdParam,
     @Body({ schema: verificationDecisionSchema }) body: VerificationDecision,
   ): Promise<void> {
-    return this.swipe.decideVerification(user, params.userId, body);
+    return this.verification.decide(user, params.userId, body);
   }
 
   @Get('photos')

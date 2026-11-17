@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { videochatMenu } from '@/lib/app-menus';
 import { WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { getVideochatStatus } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
@@ -62,6 +63,18 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
   const locale = resolveLocale((await params).locale);
   setRequestLocale(locale);
   const user = await getCurrentUser();
+  // The menu's user card: the profile once entered (with a profile), and the verified badge.
+  let entered = false;
+  let verified = false;
+  if (user) {
+    try {
+      const status = await getVideochatStatus();
+      entered = status.allowed && status.profile !== null;
+      verified = status.verification.status === 'APPROVED';
+    } catch {
+      // The frame still works when the video chat's state can't be read.
+    }
+  }
 
   const webapp = (await requestWebapp()) === 'videochat' ? 'videochat' : null;
 
@@ -72,8 +85,9 @@ export default async function VideochatLayout({ children, params }: LayoutProps)
           <AppHeader
             app="videochat"
             locale={locale}
-            config={videochatMenu(locale, { signedIn: Boolean(user) })}
-            signedIn={Boolean(user)}
+            config={videochatMenu(locale, { signedIn: Boolean(user), entered })}
+            user={user}
+            verified={verified}
             adult
           />
           <main className={styles.main}>{children}</main>

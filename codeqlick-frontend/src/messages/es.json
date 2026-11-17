@@ -1338,6 +1338,7 @@
         "booking": "Llamadas",
         "videochat": "Videochat",
         "swipe": "Swipe",
+        "adult": "Apps +18",
         "site_news": "Noticias",
         "newsletter": "Newsletter"
       },
@@ -1505,6 +1506,14 @@
           "published": "publicó la noticia <target>{label}</target>",
           "unpublished": "despublicó la noticia <target>{label}</target>",
           "deleted": "eliminó la noticia <target>{label}</target>"
+        },
+        "adult": {
+          "suspension": "suspendió a <target>{label}</target> en las tres apps +18",
+          "suspension_lifted": "levantó la suspensión de <target>{label}</target> en las apps +18",
+          "verification_decided": "decidió la verificación de <target>{label}</target> en las apps +18",
+          "verification_withdrawn": "retiró la verificación de <target>{label}</target> en las apps +18",
+          "banned_email_deleted": "borró un hash de email bloqueado de las apps +18",
+          "suspension_kept": "dejó una suspensión solo en su app"
         },
         "newsletter": {
           "subscriber_deleted": "borró a un suscriptor del boletín"
@@ -3505,7 +3514,11 @@
       "invalidDate": "Escribe una fecha de nacimiento válida.",
       "mustAccept": "Tienes que aceptar las normas para entrar.",
       "rulesChanged": "Las normas han cambiado: léelas y acéptalas de nuevo.",
-      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
+      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar el videochat, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick",
+      "consentHint": "Datos de categoría especial (RGPD art. 9.2.a). Puedes retirar tu consentimiento cuando quieras borrando tu cuenta.",
+      "mustConsent": "Necesitamos tu consentimiento explícito para entrar.",
+      "notAllowed": "Esta cuenta no puede usar las apps +18 de Codeqlick; escribe a hello@codeqlick.com"
     },
     "suspended": {
       "title": "Tu acceso está suspendido",
@@ -3646,7 +3659,7 @@
     },
     "rules": {
       "title": "Normas del videochat",
-      "updated": "Versión del 7 de noviembre de 2026",
+      "updated": "Versión del 17 de noviembre de 2026",
       "intro": "El videochat de Codeqlick es un servicio para adultos. Al entrar aceptas estas normas. Si las incumples, suspendemos tu acceso.",
       "sections": [
         {
@@ -3674,7 +3687,15 @@
           "body": "No podemos impedir que alguien grabe su pantalla con otro dispositivo. No muestres lo que no quieras que se vea fuera de la llamada y no compartas datos personales."
         },
         {
-          "title": "7. Contacto",
+          "title": "7. Seguridad entre las apps +18 de Codeqlick",
+          "body": "Codeqlick tiene tres apps +18 con la misma cuenta: Cruising, Swipe y el videochat. Un bloqueo en una vale en las tres, en los dos sentidos. Una suspensión por menores, contenido sin consentimiento o contenido ilegal vale en las tres con la misma fecha de fin, y además te impide entrar en una app que no habías usado. Una sola verificación da la insignia de «Verificado» en las tres; su foto se guarda en privado mientras la verificación siga vigente (solo la ve el equipo) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta (el videochat la borraba al revisarla). Si borras tu cuenta mientras tienes una suspensión grave, guardamos un hash con clave de tu correo, no el correo, durante lo que dure la suspensión o 2 años si era permanente, para que esa cuenta no pueda volver a entrar en las apps +18; escribe a hello@codeqlick.com si crees que es un error. Al moderar, el equipo ve las denuncias y las suspensiones de una persona en las tres apps. No se comparte nada más entre ellas."
+        },
+        {
+          "title": "8. Por qué lo tratamos y tu consentimiento",
+          "body": "Base jurídica: nuestro interés legítimo en proteger a los miembros y evitar abusos (artículo 6.1.f del RGPD). El equilibrio se sostiene porque un miembro espera razonablemente que quien ha sido expulsado por contenido sexual con menores no siga en una app hermana con la misma cuenta; solo se comparten medidas de seguridad y solo los moderadores ven el historial. Como usar estas apps puede revelar tu vida sexual u orientación sexual (artículo 9), también se apoya en el consentimiento explícito que das al entrar (artículo 9.2.a), que incluye que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick. Puedes retirarlo borrando tu cuenta o escribiendo a hello@codeqlick.com."
+        },
+        {
+          "title": "9. Contacto",
           "body": "Para denunciar contenido, recurrir una suspensión o cualquier duda: hello@codeqlick.com."
         }
       ],
@@ -3821,15 +3842,17 @@
       "status": {
         "NONE": "Opcional: verifica tu perfil y quien hable contigo verá una insignia junto a tu apodo.",
         "PENDING": "Estamos revisando tu foto. Te avisaremos por email.",
-        "APPROVED": "Tu perfil está verificado: los demás ven la insignia junto a tu apodo.",
+        "APPROVED": "Tu perfil está verificado en todas las apps +18 de Codeqlick: los demás ven la insignia junto a tu apodo.",
         "REJECTED": "No hemos podido aprobar tu foto. Envía otra siguiendo las instrucciones."
       },
-      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Videochat» y la fecha de hoy, con tu cara a la vista. Solo la ve el equipo y la borramos en cuanto la revisamos.",
+      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Codeqlick» y la fecha de hoy, con tu cara a la vista. Solo la ve el equipo y la guardamos en privado mientras la verificación siga vigente.",
       "nicknameFirst": "Primero elige tu apodo arriba y guárdalo.",
       "pick": "Elige la foto",
       "consent": "Soy yo y la envío para verificar mi perfil.",
       "send": "Enviar para revisar",
-      "alt": "Tu foto de verificación"
+      "alt": "Tu foto de verificación",
+      "shared": "Una sola verificación para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
+      "notAllowed": "No puedes enviarla ahora mismo."
     },
     "stats": {
       "title": "Tu semana",
@@ -3838,6 +3861,18 @@
       "likes": "Likes recibidos",
       "contacts": "Contactos nuevos",
       "previous": "{count} la semana anterior"
+    },
+    "blocks": {
+      "title": "Miembros bloqueados",
+      "lead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
+      "empty": "No has bloqueado a nadie.",
+      "blockedOn": "bloqueado el {date}",
+      "blockedOnIn": "bloqueado en {app} el {date}",
+      "otherApp": "Un miembro de otra app +18",
+      "unblock": "Desbloquear",
+      "unblocking": "Desbloqueando…",
+      "unblocked": "Desbloqueado en las tres apps +18.",
+      "error": "No hemos podido desbloquear. Inténtalo de nuevo."
     }
   },
   "AdminVideochat": {
@@ -4173,6 +4208,15 @@
     "title": "Menú",
     "home": "Inicio",
     "signIn": "Iniciar sesión",
+    "openFor": "Menú — {name}",
+    "card": {
+      "label": "Tu cuenta",
+      "profile": "Mi perfil",
+      "completeProfile": "Completa tu perfil",
+      "account": "Mi cuenta",
+      "verified": "Verificado",
+      "register": "Crear cuenta"
+    },
     "sections": {
       "discover": "Descubrir",
       "community": "Comunidad",
@@ -4592,7 +4636,11 @@
       "mustAccept": "Tienes que aceptar las normas para entrar.",
       "underage": "Swipe es solo para mayores de 18 años.",
       "rulesChanged": "Las normas han cambiado: vuelve a cargar la página y léelas.",
-      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
+      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Swipe, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick",
+      "consentHint": "Datos de categoría especial (RGPD art. 9.2.a). Puedes retirar tu consentimiento cuando quieras borrando tu cuenta.",
+      "mustConsent": "Necesitamos tu consentimiento explícito para entrar.",
+      "notAllowed": "Esta cuenta no puede usar las apps +18 de Codeqlick; escribe a hello@codeqlick.com"
     },
     "suspended": {
       "title": "Tu cuenta está suspendida en Swipe",
@@ -4687,15 +4735,20 @@
       "status": {
         "NONE": "Para subir fotos, primero envía una foto de verificación.",
         "PENDING": "Estamos revisando tu foto de verificación. Te avisaremos aquí.",
-        "APPROVED": "Verificada. Ya puedes subir fotos.",
+        "APPROVED": "Verificada en todas las apps +18 de Codeqlick. Ya puedes subir fotos.",
         "REJECTED": "No hemos aprobado tu foto de verificación. Envía otra siguiendo las instrucciones."
       },
-      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Swipe» y la fecha de hoy. Tiene que verse bien tu cara o una marca que luego se vea en tus fotos (un tatuaje, por ejemplo). Solo la ve el equipo.",
+      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Codeqlick» y la fecha de hoy. Tiene que verse bien tu cara o una marca que luego se vea en tus fotos (un tatuaje, por ejemplo). Solo la ve el equipo.",
       "nicknameFirst": "Primero elige tu apodo en tu perfil y guárdalo.",
       "pick": "Elige la foto",
       "consent": "Soy yo, soy mayor de 18 años y la envío para verificar mi cuenta.",
       "send": "Enviar para revisar",
-      "alt": "Tu foto de verificación"
+      "alt": "Tu foto de verificación",
+      "shared": "Una sola verificación para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
+      "errors": {
+        "notAllowed": "No puedes enviarla ahora mismo.",
+        "conflict": "Ya tienes una foto pendiente o aprobada, o todavía no has elegido apodo."
+      }
     },
     "photos": {
       "title": "Mis fotos",
@@ -4783,7 +4836,9 @@
       "privacy": "De tu fecha de nacimiento solo guardamos el año, para el filtro de edad. Tus fotos se guardan sin los datos de la cámara ni la ubicación, con tu apodo como marca de agua, y solo se ven dentro de Swipe. Puedes borrar cualquier foto cuando quieras, y si borras tu cuenta se borran todas.",
       "takedownTitle": "Retirada de fotos",
       "takedown": "Si encuentras una foto tuya que no has subido tú, o una foto que no debería estar aquí, cualquiera puede pedir que la retiremos, sin cuenta. Se oculta al momento si indicas su referencia, y respondemos en 24 horas.",
-      "takedownLink": "Pedir la retirada de una foto"
+      "takedownLink": "Pedir la retirada de una foto",
+      "rule9Title": "Entre las apps +18",
+      "rule9": "Swipe comparte sus medidas de seguridad con Cruising y Videochat, con la misma cuenta: un bloqueo, una suspensión por menores, falta de consentimiento o contenido ilegal, y la verificación valen en las tres. Consulta las condiciones de uso y la política de privacidad."
     },
     "takedown": {
       "title": "Pedir la retirada de una foto",
@@ -4850,6 +4905,18 @@
       "matchHint": "Álbum privado: {count, plural, one {# foto} other {# fotos}}",
       "alt": "Foto del álbum privado de {nickname}",
       "open": "Ver el álbum"
+    },
+    "blocks": {
+      "title": "Miembros bloqueados",
+      "lead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
+      "empty": "No has bloqueado a nadie.",
+      "blockedOn": "bloqueado el {date}",
+      "blockedOnIn": "bloqueado en {app} el {date}",
+      "otherApp": "Un miembro de otra app +18",
+      "unblock": "Desbloquear",
+      "unblocking": "Desbloqueando…",
+      "unblocked": "Desbloqueado en las tres apps +18.",
+      "error": "No hemos podido desbloquear. Inténtalo de nuevo."
     }
   },
   "AdminSwipe": {
@@ -5008,7 +5075,7 @@
       "birthDate": "Fecha de nacimiento",
       "birthDateHint": "Comprobamos que tienes 18 años o más. Solo guardamos el año.",
       "accept": "Tengo 18 años o más y acepto las normas y las condiciones de uso de Cruising",
-      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Cruising",
+      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Cruising, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick",
       "consentHint": "Datos de categoría especial (RGPD art. 9.2.a). Puedes retirar tu consentimiento cuando quieras borrando tu cuenta.",
       "readRules": "Leer las normas",
       "submit": "Continuar",
@@ -5018,7 +5085,8 @@
       "mustConsent": "Necesitamos tu consentimiento explícito para continuar.",
       "underage": "Cruising es solo para mayores de 18 años.",
       "rulesChanged": "Las normas han cambiado: recarga la página y léelas.",
-      "error": "No hemos podido guardarlo. Inténtalo de nuevo."
+      "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
+      "notAllowed": "Esta cuenta no puede usar las apps +18 de Codeqlick; escribe a hello@codeqlick.com"
     },
     "suspended": {
       "title": "Tu acceso a Cruising está suspendido",
@@ -5376,7 +5444,7 @@
       "alertsLabel": "Avisarme por correo cuando se publique un lugar mío o me esperen mensajes sin leer",
       "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un apodo ni un mensaje.",
       "blocksTitle": "Miembros bloqueados",
-      "blocksLead": "Los miembros bloqueados y tú no os veis en ningún sitio. Desbloquea para deshacerlo.",
+      "blocksLead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
       "blocksEmpty": "No has bloqueado a nadie.",
       "blockedOn": "bloqueado el {date}",
       "unblock": "Desbloquear",
@@ -5401,6 +5469,8 @@
       "languageLead": "El idioma de los correos de Cruising y de las notificaciones en tus dispositivos. Los correos del resto de Codeqlick llegan en inglés si no eliges español.",
       "languageLabel": "Idioma de los correos y las notificaciones",
       "languageInvalid": "Elige un idioma de la lista.",
+      "blockedOnIn": "bloqueado en {app} el {date}",
+      "blockOtherApp": "Un miembro de otra app +18",
       "sectionsLabel": "Secciones del perfil",
       "sections": {
         "profile": "Perfil",
@@ -5527,11 +5597,11 @@
     },
     "verification": {
       "title": "Verificación",
-      "lead": "Opcional: consigue la insignia de Verificado, para que los demás miembros sepan que tu perfil es tuyo y que eres adulto. Envías una sola foto tuya, una vez.",
-      "step1": "Un papel con tu apodo, «Cruising» y la fecha de hoy",
+      "lead": "Opcional: consigue la insignia de Verificado, para que los demás miembros sepan que tu perfil es tuyo y que eres adulto. Envías una sola foto tuya, una vez, y vale para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat).",
+      "step1": "Un papel con tu apodo, «Codeqlick» y la fecha de hoy",
       "step2": "Tú sujetándolo, con la cara visible",
       "step3": "Con buena luz y nítida",
-      "privacy": "Solo el equipo ve esta foto. Se borra en cuanto se revisa; solo se conserva la decisión. No pedimos ningún documento de identidad, y la insignia no significa que se haya comprobado uno.",
+      "privacy": "Solo el equipo ve esta foto. Mientras la verificación siga vigente la guardamos en privado; se borra si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta. No pedimos ningún documento de identidad, y la insignia no significa que se haya comprobado uno.",
       "fileLabel": "Tu foto de verificación",
       "preview": "Vista previa de tu foto de verificación",
       "send": "Enviar para revisión",
@@ -5539,7 +5609,7 @@
       "sending": "Enviando…",
       "sent": "Enviada. El equipo la revisará y te escribiremos por correo.",
       "pending": "Tu foto espera la revisión del equipo. Te escribiremos por correo cuando esté lista.",
-      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado. Si cambias de apodo, se retira la insignia y tendrás que verificarte de nuevo.",
+      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado en todas las apps +18 de Codeqlick. Si el nombre de tu papel deja de ser uno de tus nombres en estas apps, por ejemplo al cambiar de apodo, se retira la insignia y tendrás que verificarte de nuevo.",
       "rejected": "El equipo no ha podido aprobar tu foto.",
       "rejectedNote": "Motivo: {note}",
       "errors": {
@@ -8104,6 +8174,121 @@
       "emptyBody": "Aparecerán aquí cuando un cliente contrate el plan o lo marques como incluido.",
       "ticketIncluded": "Cambio incluido en el plan",
       "ticketOutside": "Fuera del plan: presupuestar"
+    }
+  },
+  "AdminAdult": {
+    "title": "Entre las apps +18",
+    "lead": "Cruising, Swipe y Videochat con una cuenta: suspensiones compartidas, verificación e historial.",
+    "back": "Volver",
+    "done": "Hecho.",
+    "required": "Obligatorio.",
+    "notFound": "Esta persona no ha entrado en ninguna de las tres apps +18.",
+    "openPage": "Abrir la ficha entre las apps +18",
+    "alsoReported": "También denunciado en {apps} ({count} abiertas)",
+    "appliesInAll": "vale en las tres apps +18",
+    "categories": {
+      "MINOR": "Menor de edad",
+      "NON_CONSENSUAL": "Contenido sin consentimiento",
+      "ILLEGAL": "Contenido ilegal",
+      "HARASSMENT": "Acoso",
+      "HATE": "Odio o discriminación",
+      "SPAM": "Spam o estafa",
+      "STOLEN": "Fotos robadas o suplantación",
+      "DANGER": "Peligro",
+      "WRONG_INFO": "Información errónea",
+      "OTHER": "Otro"
+    },
+    "durations": {
+      "24h": "24 horas",
+      "7d": "7 días",
+      "30d": "30 días",
+      "permanent": "Permanente"
+    },
+    "queue": {
+      "title": "Verificación (compartida)",
+      "lead": "Una sola cola para Cruising, Swipe y Videochat: decidir aquí decide en las tres apps. El papel debe mostrar el nombre de la persona en la app desde la que lo envió, «Codeqlick» y la fecha.",
+      "empty": "No hay nada pendiente.",
+      "alt": "Foto de verificación",
+      "sentFrom": "Enviada desde {app}.",
+      "check": "El papel debe decir «{name}», «Codeqlick» y la fecha.",
+      "names": "Nombres en las apps: {names}",
+      "note": "Nota para la persona (opcional)",
+      "approve": "Aprobar",
+      "reject": "Rechazar"
+    },
+    "review": {
+      "title": "Revisar para todas las apps +18",
+      "lead": "Suspensiones anteriores a las categorías cuya denuncia era por menor, falta de consentimiento o contenido ilegal. Compártela para que valga en las tres apps, o déjala en su app.",
+      "where": "En {app}",
+      "report": "Denuncia: {reason}",
+      "share": "Compartir en las tres apps",
+      "keep": "Dejar en su app"
+    },
+    "panel": {
+      "title": "Entre las apps +18",
+      "lead": "Lo que hizo la persona en cada app, denuncias, suspensiones y la única verificación. Solo lo ven los administradores.",
+      "entered": "Entró el {date}",
+      "notEntered": "No ha entrado",
+      "nameHere": "Nombre aquí: {name}",
+      "received": "Denuncias recibidas: {open} abiertas · {actioned} atendidas · {dismissed} descartadas",
+      "made": "Denuncias hechas: {count}",
+      "suspended": "Suspendido",
+      "shared": "Compartida",
+      "since": "desde el {date}",
+      "until": "hasta el {date}",
+      "blockedBy": "Bloqueado por {count, plural, one {# persona} other {# personas}}",
+      "sharedTitle": "Suspensiones compartidas",
+      "noShared": "Ninguna.",
+      "active": "Activa",
+      "lifted": "Levantada",
+      "from": "desde {app}",
+      "by": "por {name}",
+      "liftedOn": "levantada el {date} por {name}",
+      "verificationTitle": "Verificación",
+      "noVerification": "Sin verificación.",
+      "verifiedName": "nombre en el papel: {name}",
+      "sent": "enviada el {date}",
+      "decided": "decidida el {date}",
+      "verificationStatus": {
+        "NONE": "Ninguna",
+        "PENDING": "Pendiente",
+        "APPROVED": "Aprobada",
+        "REJECTED": "Rechazada"
+      }
+    },
+    "actions": {
+      "title": "Acciones para las tres apps"
+    },
+    "suspend": {
+      "title": "Suspender en las tres apps",
+      "lead": "Solo categorías graves: la suspensión vale en Cruising, Swipe y Videochat con la misma fecha de fin, termina lo que la persona esté haciendo en directo y retira su verificación. Para otros motivos, suspende en la app.",
+      "perAppLead": "Una categoría de menor, sin consentimiento o ilegal vale en las tres apps +18; las demás, solo aquí.",
+      "category": "Categoría",
+      "sourceApp": "App donde empezó",
+      "duration": "Duración",
+      "reason": "Motivo (lo recibe la persona)",
+      "submit": "Suspender en las tres apps"
+    },
+    "lift": {
+      "title": "Levantar la suspensión compartida",
+      "lead": "Se levanta en las tres apps y queda registrada con tu motivo.",
+      "reason": "Motivo",
+      "submit": "Levantar en las tres apps"
+    },
+    "withdraw": {
+      "title": "Retirar la verificación",
+      "lead": "Se retira en las tres apps: se borra la foto y se avisa a la persona por email.",
+      "reason": "Motivo (opcional)",
+      "submit": "Retirar en las tres apps"
+    },
+    "bannedEmail": {
+      "title": "Borrar un correo vetado",
+      "lead": "Tras una apelación aceptada por email: borra el hash con clave que se guarda tras una suspensión grave, para que esa dirección pueda volver a entrar en las apps +18. La acción queda registrada.",
+      "email": "Correo electrónico",
+      "submit": "Borrar",
+      "invalid": "Escribe un correo válido.",
+      "notFound": "Ningún correo vetado coincide.",
+      "done": "Borrado."
     }
   },
   "AdminOverview": {

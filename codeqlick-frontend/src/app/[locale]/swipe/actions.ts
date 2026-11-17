@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
 import type { AppLocale } from '@/i18n/routing';
+import { entryRefusal } from '@/lib/adult-entry';
+import { uploadAdultVerification, unblockAdult } from '@/lib/api/adult';
 import { isApiError } from '@/lib/api/errors';
 import {
   blockSwipeMatch,
@@ -27,7 +29,6 @@ import {
   unmatchSwipe,
   unsubscribeSwipePush,
   uploadSwipePhoto,
-  uploadSwipeVerification,
   voteSwipe,
   type SwipeCard,
   type SwipeCountry,
@@ -74,11 +75,19 @@ export async function onboardAction(_previous: FormState, formData: FormData): P
   if (formData.get('acceptTerms') !== 'on') {
     return { status: 'error', fieldErrors: { acceptTerms: t('mustAccept') }, values };
   }
+  if (formData.get('consentSpecialData') !== 'on') {
+    return { status: 'error', fieldErrors: { consentSpecialData: t('mustConsent') }, values };
+  }
   try {
-    await onboardSwipe({ birthDate, acceptTerms: true, termsVersion });
+    await onboardSwipe({
+      birthDate,
+      acceptTerms: true,
+      consentSpecialData: true,
+      termsVersion,
+    });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
-    if (status === 403) return { status: 'error', message: t('underage'), values };
+    if (status === 403) return { status: 'error', message: entryRefusal(error, t), values };
     if (status === 409) return { status: 'error', message: t('rulesChanged'), values };
     return { status: 'error', message: t('error'), values };
   }
@@ -193,8 +202,11 @@ async function upload(
   formData: FormData,
   send: (file: File) => Promise<unknown>,
   fullMessage: 'tooMany' | 'albumFull' = 'tooMany',
+  /** The shared verification photo: its own refusals (no nickname yet, already sent, not allowed). */
+  verification = false,
 ): Promise<UploadResult> {
   const t = await getTranslations({ locale, namespace: 'Swipe.upload' });
+  const tv = await getTranslations({ locale, namespace: 'Swipe.verification.errors' });
   const file = formData.get('file');
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: t('noFile') };
   if (file.size > MAX_FILE_BYTES) return { ok: false, message: t('tooBig') };
@@ -207,6 +219,8 @@ async function upload(
       const blocked = isApiError(error) && /removed/i.test(error.detail ?? '');
       return { ok: false, message: blocked ? t('blocked') : t('notImage') };
     }
+    if (verification && status === 403) return { ok: false, message: tv('notAllowed') };
+    if (verification && status === 409) return { ok: false, message: tv('conflict') };
     if (status === 403) return { ok: false, message: t('notVerified') };
     if (status === 409) return { ok: false, message: t(fullMessage) };
     if (status === 429) return { ok: false, message: t('tooManyToday') };
@@ -216,12 +230,39 @@ async function upload(
   return { ok: true };
 }
 
-/** Sends the verification photo (the person with a paper showing their nickname and the date). */
+/**
+ * Sends the verification photo (the person with a paper showing their nickname, "Codeqlick" and
+ * the date): one verification for the three 18+ apps (POST /adult/verification?app=SWIPE).
+ */
 export async function uploadVerificationAction(
   locale: AppLocale,
   formData: FormData,
 ): Promise<UploadResult> {
-  return upload(locale, formData, uploadSwipeVerification);
+  return upload(
+    locale,
+    formData,
+    (file) => uploadAdultVerification('SWIPE', file),
+    'tooMany',
+    true,
+  );
+}
+
+/** Lifts a block in the three 18+ apps (DELETE /adult/blocks/:ref). */
+export async function unblockAction(
+  locale: AppLocale,
+  ref: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Swipe.blocks' });
+  if (!ref || ref.length > 200) return { status: 'error', message: t('error') };
+  try {
+    await unblockAdult(ref);
+  } catch {
+    return { status: 'error', message: t('error') };
+  }
+  refresh(locale, 'photos');
+  return { status: 'success', message: t('unblocked') };
 }
 
 /** Sends a photo for review. */

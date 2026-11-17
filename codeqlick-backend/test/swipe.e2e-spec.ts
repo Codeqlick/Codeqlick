@@ -59,10 +59,12 @@ describe('Swipe (e2e)', () => {
   }
 
   const onboard = (who: Person, birthDate = '1990-01-01') =>
-    request(server())
-      .put('/v1/swipe/me')
-      .set(who.auth)
-      .send({ birthDate, acceptTerms: true, termsVersion: SWIPE_TERMS_VERSION });
+    request(server()).put('/v1/swipe/me').set(who.auth).send({
+      birthDate,
+      acceptTerms: true,
+      consentSpecialData: true,
+      termsVersion: SWIPE_TERMS_VERSION,
+    });
 
   const upload = async (who: Person, path: string, seed: number, status: number) =>
     request(server())
@@ -137,10 +139,12 @@ describe('Swipe (e2e)', () => {
   it('asks for 18+ and the current rules before anything else', async () => {
     await request(server()).get('/v1/swipe/deck').set(carla.auth).expect(409);
     await onboard(carla, '2015-05-05').expect(403);
-    const old = await request(server())
-      .put('/v1/swipe/me')
-      .set(carla.auth)
-      .send({ birthDate: '1990-01-01', acceptTerms: true, termsVersion: '2000-01-01' });
+    const old = await request(server()).put('/v1/swipe/me').set(carla.auth).send({
+      birthDate: '1990-01-01',
+      acceptTerms: true,
+      consentSpecialData: true,
+      termsVersion: '2000-01-01',
+    });
     expect(old.status).toBe(409);
     const ok = await onboard(carla).expect(200);
     expect(ok.body).toMatchObject({ onboarded: true, allowed: true, canUpload: false });
@@ -401,7 +405,7 @@ describe('Swipe (e2e)', () => {
     await request(server())
       .post(`/v1/admin/swipe/users/${carla.id}/suspend`)
       .set(admin.auth)
-      .send({ reason: 'Spam', duration: '24h' })
+      .send({ reason: 'Spam', duration: '24h', category: 'SPAM' })
       .expect(204);
     const me = await request(server()).get('/v1/swipe/me').set(carla.auth).expect(200);
     expect(me.body).toMatchObject({ suspended: true, allowed: false });
@@ -420,7 +424,8 @@ describe('Swipe (e2e)', () => {
     await onboard(fran, '1990-01-01').expect(200);
     await uploader(eva, nick('Eva'), 'WOMAN', 11);
     await uploader(fran, nick('Fran'), 'MAN', 12);
-    expect(sent.map((mail) => mail.subject)).toContain('You can upload your photos now — Swipe');
+    // One verification for the three 18+ apps: the email names none of them (architecture 4.16).
+    expect(sent.map((mail) => mail.subject)).toContain("You are verified in Codeqlick's 18+ apps");
 
     // The profile keeps the sentence, the country and the filters; the year comes from entry.
     const saved = await request(server())

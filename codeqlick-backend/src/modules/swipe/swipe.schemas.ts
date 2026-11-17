@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { localeSchema } from '../../common/schemas/common.schemas.js';
+import { SUSPENSION_CATEGORIES } from '../adult/adult.rules.js';
 import {
   INTERESTS,
   MAX_INTERESTS,
@@ -19,7 +20,7 @@ export {
 } from '../videochat/videochat.schemas.js';
 
 /** Version of Swipe's rules; bump it to ask everyone to accept them again. */
-export const SWIPE_TERMS_VERSION = '2026-11-08.2';
+export const SWIPE_TERMS_VERSION = '2026-11-17.1';
 export const SWIPE_MIN_AGE = 18;
 
 /** Photos a person can have that aren't rejected or removed (pending or live). */
@@ -116,6 +117,11 @@ export const onboardingSchema = z.object({
   /** YYYY-MM-DD. Checked (18+) and not stored. */
   birthDate: z.iso.date(),
   acceptTerms: z.literal(true),
+  /**
+   * Explicit consent to special category data (sex life and sexual orientation, GDPR art. 9.2.a),
+   * which names the safety measures shared by Codeqlick's 18+ apps (architecture 4.16).
+   */
+  consentSpecialData: z.literal(true),
   termsVersion: z.string().min(1).max(40),
 });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
@@ -235,6 +241,8 @@ export const reportActionSchema = z.object({
   blockImage: z.boolean().default(false),
   /** Suspends the reported person; null: no suspension. */
   suspend: z.enum(SUSPENSION_DURATIONS).nullable().default(null),
+  /** The suspension's category; the report's reason when left out (architecture 4.16). */
+  category: z.enum(SUSPENSION_CATEGORIES).optional(),
 });
 export type ReportActionInput = z.infer<typeof reportActionSchema>;
 
@@ -253,6 +261,8 @@ export type TakedownDecision = z.infer<typeof takedownDecisionSchema>;
 export const suspendUserSchema = z.object({
   reason: z.string().trim().min(1).max(500),
   duration: z.enum(SUSPENSION_DURATIONS),
+  /** Required (decision 114): MINOR, NON_CONSENSUAL and ILLEGAL apply in the three 18+ apps. */
+  category: z.enum(SUSPENSION_CATEGORIES),
 });
 export type SuspendUserInput = z.infer<typeof suspendUserSchema>;
 

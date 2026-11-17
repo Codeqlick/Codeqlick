@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AdultModule } from '../adult/adult.module.js';
 import { MulterModule } from '@nestjs/platform-express';
 import { AppConfigService } from '../../config/app-config.service.js';
 import { CruisingAdminController } from './cruising-admin.controller.js';
@@ -50,6 +51,8 @@ import { CruisingService } from './cruising.service.js';
 /** Cruising at cruising.codeqlick.com (architecture 4.15). */
 @Module({
   imports: [
+    // The shared safety of the 18+ apps (architecture 4.16).
+    AdultModule,
     // Uploads (up to 100 MB videos) are written to the private work folder as they arrive, never
     // held in memory; the service deletes each one or moves it into the transcoding queue.
     MulterModule.registerAsync({

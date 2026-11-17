@@ -36,12 +36,7 @@ export default async function MeetingsLayout({ children, params }: LayoutProps) 
     <ClientMessages extra={APP_NAMESPACES.meetings}>
       <WebappProvider app={webapp}>
         <div className={styles.frame}>
-          <AppHeader
-            app="meetings"
-            locale={locale}
-            config={meetingsMenu()}
-            signedIn={Boolean(user)}
-          />
+          <AppHeader app="meetings" locale={locale} config={meetingsMenu()} user={user} />
           <main className={styles.main}>{children}</main>
         </div>
       </WebappProvider>

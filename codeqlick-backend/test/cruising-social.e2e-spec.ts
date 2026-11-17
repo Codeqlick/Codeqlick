@@ -268,7 +268,7 @@ describe('Cruising social (e2e)', () => {
     const suspended = await request(server())
       .post(`/v1/admin/cruising/users/${dani.id}/suspend`)
       .set(admin.auth)
-      .send({ duration: '24h' });
+      .send({ duration: '24h', category: 'HARASSMENT' });
     expect(suspended.status).toBe(204);
     const afterSuspension = await request(server())
       .get(`/v1/cruising/spots/${spot.id}/presence`)

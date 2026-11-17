@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
+import { unblockAdult, uploadAdultVerification } from '@/lib/api/adult';
 import { isApiError } from '@/lib/api/errors';
 import {
   GENDERS,
@@ -12,7 +13,6 @@ import {
   setVideochatPeakAlerts,
   subscribeVideochatPush,
   unsubscribeVideochatPush,
-  uploadVideochatVerification,
   type Gender,
   type Interest,
   type PushSubscriptionInput,
@@ -140,7 +140,10 @@ export async function peakAlertsAction(on: boolean): Promise<{ ok: boolean }> {
 /** The photo is shrunk in the browser first: anything bigger is not a phone photo. */
 const MAX_VERIFICATION_BYTES = 5 * 1024 * 1024;
 
-/** Sends the verification photo (the person with a paper showing their nickname and the date). */
+/**
+ * Sends the verification photo (the person with a paper showing their nickname, "Codeqlick" and
+ * the date): one verification for the three 18+ apps (POST /adult/verification?app=VIDEOCHAT).
+ */
 export async function uploadVerificationAction(
   locale: AppLocale,
   formData: FormData,
@@ -151,17 +154,35 @@ export async function uploadVerificationAction(
   if (file.size > MAX_VERIFICATION_BYTES) return { ok: false, message: t('tooBig') };
   if (formData.get('consent') !== 'on') return { ok: false, message: t('mustConsent') };
   try {
-    await uploadVideochatVerification(file);
+    await uploadAdultVerification('VIDEOCHAT', file);
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
     if (status === 400) return { ok: false, message: t('notImage') };
-    if (status === 409) {
+    if (status === 409 || status === 403) {
       const tv = await getTranslations({ locale, namespace: 'Videochat.verification' });
-      return { ok: false, message: tv('nicknameFirst') };
+      return { ok: false, message: status === 403 ? tv('notAllowed') : tv('nicknameFirst') };
     }
     if (status === 429) return { ok: false, message: t('tooManyToday') };
     return { ok: false, message: t('error') };
   }
   revalidatePath(`/${locale}/videochat/settings`);
   return { ok: true };
+}
+
+/** Lifts a block in the three 18+ apps (DELETE /adult/blocks/:ref). */
+export async function unblockAction(
+  locale: AppLocale,
+  ref: string,
+  _previous: FormState,
+  _formData: FormData,
+): Promise<FormState> {
+  const t = await getTranslations({ locale, namespace: 'Videochat.blocks' });
+  if (!ref || ref.length > 200) return { status: 'error', message: t('error') };
+  try {
+    await unblockAdult(ref);
+  } catch {
+    return { status: 'error', message: t('error') };
+  }
+  revalidatePath(`/${locale}/videochat/settings`);
+  return { status: 'success', message: t('unblocked') };
 }
