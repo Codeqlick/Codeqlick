@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { asAdmin } from './helpers';
+import { createNeoqlickUser, neoqlickUrl, runTag } from './helpers';
 
 /*
- * The web apps' menu drawer (decision 107) on a phone, on Cruising's own host (cruising.localhost):
+ * The web apps' menu drawer (decision 107) on a phone, on Cruising's own host (cruising.neoqlick.localhost):
  * the header keeps only the logo and the ☰ button, the drawer opens as a modal, closes with Escape
  * (focus back on the button) and on following a link, and marks the page it led to. The user card
  * at the top offers signing in and up to a visitor, and the profile and the account once signed in.
@@ -15,9 +15,7 @@ test.use({
 });
 
 function cruisingUrl(baseURL: string | undefined): string {
-  const url = new URL(baseURL ?? 'http://localhost:3001');
-  url.hostname = `cruising.${url.hostname}`;
-  return url.origin;
+  return neoqlickUrl('cruising', baseURL);
 }
 
 test('the Cruising menu opens on a phone and navigates', async ({ page, baseURL }) => {
@@ -68,10 +66,18 @@ test('the Cruising menu opens on a phone and navigates', async ({ page, baseURL 
 test('signed in, the Cruising menu shows the avatar and the user card', async ({
   page,
   context,
+  request,
   baseURL,
 }) => {
   const base = cruisingUrl(baseURL);
-  await asAdmin(context, base);
+  // A Neoqlick account: the 18+ apps only know that user base (architecture 4.18).
+  const tag = runTag();
+  const token = await createNeoqlickUser(request, {
+    name: `Menu ${tag}`,
+    email: `e2e-menu-${tag}@codeqlick.test`,
+    password: `menu-pass-${tag}-0`,
+  });
+  await context.addCookies([{ name: 'cq_at', value: token, url: base, httpOnly: true }]);
   await page.goto(`${base}/es`);
 
   const trigger = page.getByRole('banner').getByRole('button', { name: /^Menú — / });

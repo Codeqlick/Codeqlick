@@ -1,8 +1,8 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { adminHeaders, API_URL, apiLogin, runTag } from './helpers';
+import { API_URL, createNeoqlickUser, neoqlickUrl, runTag } from './helpers';
 
 /*
- * Cruising's onboarding tour (decision 102) on the map, on Cruising's own host (cruising.localhost):
+ * Cruising's onboarding tour (decision 102) on the map, on Cruising's own host (cruising.neoqlick.localhost):
  * a compact panel over the map that leaves the map in view on a desktop and on a phone, one primary
  * action per step ("Guardar y seguir" saves the nickname and moves on), folds down to its header,
  * and "Saltar" ends it for good.
@@ -10,21 +10,15 @@ import { adminHeaders, API_URL, apiLogin, runTag } from './helpers';
 test.use({ launchOptions: { executablePath: process.env.E2E_CHROMIUM_PATH || undefined } });
 
 function cruisingUrl(baseURL: string | undefined): string {
-  const url = new URL(baseURL ?? 'http://localhost:3001');
-  url.hostname = `cruising.${url.hostname}`;
-  return url.origin;
+  return neoqlickUrl('cruising', baseURL);
 }
 
 /** A new account that has entered Cruising (age and terms) but not done the tour; its token. */
 async function newMember(request: APIRequestContext): Promise<string> {
   const tag = runTag();
   const member = { email: `e2e-tour-${tag}@codeqlick.test`, password: `tour-pass-${tag}-0` };
-  const created = await request.post(`${API_URL}/admin/users`, {
-    headers: adminHeaders(),
-    data: { ...member, name: `Tour ${tag}`, role: 'CLIENT', locale: 'es' },
-  });
-  expect(created.ok()).toBeTruthy();
-  const token = await apiLogin(request, member);
+  // Neoqlick's accounts are a user base of their own (architecture 4.18).
+  const token = await createNeoqlickUser(request, { ...member, name: `Tour ${tag}` });
   const headers = { Authorization: `Bearer ${token}` };
   const status = await request.get(`${API_URL}/cruising/me`, { headers });
   const { termsVersion } = (await status.json()) as { termsVersion: string };

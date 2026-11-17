@@ -1,9 +1,16 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
-import { adminHeaders, API_URL, asAdmin, runTag, signIn } from './helpers';
+import {
+  asAdmin,
+  createNeoqlickUser,
+  deleteNeoqlickUser,
+  neoqlickUrl,
+  runTag,
+  signIn,
+} from './helpers';
 import { testPng } from './images';
 
 /*
- * The video chat on its own host (videochat.localhost: browsers send *.localhost to this machine)
+ * The video chat on its own host (videochat.neoqlick.localhost: browsers send *.localhost to this machine)
  * with two real browsers and a fake camera: sign in there, confirm 18+, set a nickname, get
  * paired, see each other's video, chat, and move on with Esc.
  */
@@ -16,9 +23,7 @@ test.use({
 });
 
 function videochatUrl(baseURL: string | undefined): string {
-  const url = new URL(baseURL ?? 'http://localhost:3001');
-  url.hostname = `videochat.${url.hostname}`;
-  return url.origin;
+  return neoqlickUrl('videochat', baseURL);
 }
 
 /** The people's browsers of the running test, closed before their accounts are deleted. */
@@ -43,7 +48,7 @@ async function person(browser: Browser, base: string, user: { email: string; pas
   await expect(page).toHaveURL(`${base}/es/room`);
   await page.getByLabel('Fecha de nacimiento').fill('1994-03-15');
   await page.getByLabel(/Tengo 18 años o más/).check();
-  await page.getByLabel(/Consiento que Codeqlick trate datos/).check();
+  await page.getByLabel(/Consiento que Neoqlick trate datos/).check();
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page.getByRole('button', { name: 'Activar cámara y empezar' })).toBeVisible();
   return page;
@@ -74,21 +79,7 @@ test('two people meet in the video chat, talk and move on', async ({
     email: `e2e-vc-${name}-${tag}@codeqlick.test`,
     password: `videochat-pass-${tag}-0`,
   }));
-  const ids: string[] = [];
-  for (const user of users) {
-    const response = await request.post(`${API_URL}/admin/users`, {
-      headers: adminHeaders(),
-      data: {
-        email: user.email,
-        name: user.name,
-        role: 'CLIENT',
-        password: user.password,
-        locale: 'es',
-      },
-    });
-    expect(response.ok()).toBeTruthy();
-    ids.push(((await response.json()) as { id: string }).id);
-  }
+  for (const user of users) await createNeoqlickUser(request, user);
 
   try {
     const [ana, ben] = [
@@ -149,9 +140,7 @@ test('two people meet in the video chat, talk and move on', async ({
     await expect(ana.getByText('Hay 1 persona más esperando', { exact: false })).toBeVisible();
   } finally {
     await leave();
-    for (const id of ids) {
-      await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
-    }
+    for (const user of users) await deleteNeoqlickUser(request, user);
   }
 });
 
@@ -168,21 +157,7 @@ test('two people who like each other become contacts and call each other', async
     email: `e2e-vc-${name}-${tag}@codeqlick.test`,
     password: `videochat-pass-${tag}-0`,
   }));
-  const ids: string[] = [];
-  for (const user of users) {
-    const response = await request.post(`${API_URL}/admin/users`, {
-      headers: adminHeaders(),
-      data: {
-        email: user.email,
-        name: user.name,
-        role: 'CLIENT',
-        password: user.password,
-        locale: 'es',
-      },
-    });
-    expect(response.ok()).toBeTruthy();
-    ids.push(((await response.json()) as { id: string }).id);
-  }
+  for (const user of users) await createNeoqlickUser(request, user);
 
   try {
     const [cai, dan] = [
@@ -229,9 +204,7 @@ test('two people who like each other become contacts and call each other', async
     await expect(cai.getByRole('button', { name: 'Pantalla completa' })).toBeVisible();
   } finally {
     await leave();
-    for (const id of ids) {
-      await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
-    }
+    for (const user of users) await deleteNeoqlickUser(request, user);
   }
 });
 
@@ -244,21 +217,7 @@ test('three contacts meet in a group call', async ({ browser, request, baseURL }
     email: `e2e-vc-${name}-${tag}@codeqlick.test`,
     password: `videochat-pass-${tag}-0`,
   }));
-  const ids: string[] = [];
-  for (const user of users) {
-    const response = await request.post(`${API_URL}/admin/users`, {
-      headers: adminHeaders(),
-      data: {
-        email: user.email,
-        name: user.name,
-        role: 'CLIENT',
-        password: user.password,
-        locale: 'es',
-      },
-    });
-    expect(response.ok()).toBeTruthy();
-    ids.push(((await response.json()) as { id: string }).id);
-  }
+  for (const user of users) await createNeoqlickUser(request, user);
 
   /** Remote videos playing in a group call (own camera not counted). */
   const remoteVideos = (page: Page) =>
@@ -338,9 +297,7 @@ test('three contacts meet in a group call', async ({ browser, request, baseURL }
     await expect.poll(() => remoteVideos(eva)).toBe(1);
   } finally {
     await leave();
-    for (const id of ids) {
-      await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
-    }
+    for (const user of users) await deleteNeoqlickUser(request, user);
   }
 });
 
@@ -351,7 +308,7 @@ test('the video chat installs as its own app', async ({ page, baseURL }) => {
   expect(manifest?.ok()).toBe(true);
   expect(await manifest?.json()).toMatchObject({
     id: '/videochat',
-    name: 'Codeqlick Videochat',
+    name: 'Neoqlick Videochat',
     start_url: '/',
     display: 'standalone',
   });
@@ -362,7 +319,7 @@ test('the video chat installs as its own app', async ({ page, baseURL }) => {
   // The studio's own site keeps its own manifest.
   const studio = await page.goto(`${baseURL ?? 'http://localhost:3001'}/manifest.webmanifest`);
   const studioManifest = (await studio?.json()) as { name?: string } | undefined;
-  expect(studioManifest?.name).not.toBe('Codeqlick Videochat');
+  expect(studioManifest?.name).not.toBe('Neoqlick Videochat');
 });
 
 test('the team sees the video chat statistics', async ({ page, context, baseURL }) => {
@@ -391,15 +348,11 @@ test('a person gets the verified badge from a photo the team approves', async ({
   const tag = runTag();
   const base = videochatUrl(baseURL);
   const user = {
+    name: 'Kim',
     email: `e2e-vc-kim-${tag}@codeqlick.test`,
     password: `videochat-pass-${tag}-9`,
   };
-  const created = await request.post(`${API_URL}/admin/users`, {
-    headers: adminHeaders(),
-    data: { email: user.email, name: 'Kim', role: 'CLIENT', password: user.password, locale: 'es' },
-  });
-  expect(created.ok()).toBeTruthy();
-  const id = ((await created.json()) as { id: string }).id;
+  await createNeoqlickUser(request, user);
 
   try {
     const kim = await person(browser, base, user);
@@ -438,6 +391,6 @@ test('a person gets the verified badge from a photo the team approves', async ({
     await expect(kim.getByTitle('Perfil verificado por el equipo')).toBeVisible();
   } finally {
     await leave();
-    await request.delete(`${API_URL}/admin/users/${id}`, { headers: adminHeaders() });
+    await deleteNeoqlickUser(request, user);
   }
 });

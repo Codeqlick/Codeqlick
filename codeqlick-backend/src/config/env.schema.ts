@@ -206,7 +206,9 @@ export const envSchema = z.object({
   /** Pages allowed to open the video chat's WebSocket (its Origin header), comma-separated. */
   VIDEOCHAT_ORIGINS: z
     .string()
-    .default('http://videochat.localhost:3000,http://localhost:3000')
+    .default(
+      'http://videochat.localhost:3000,http://videochat.neoqlick.localhost:3000,http://localhost:3000',
+    )
     .transform((value) =>
       value
         .split(',')

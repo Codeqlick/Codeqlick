@@ -1,9 +1,16 @@
 import { expect, test, type APIRequestContext, type BrowserContext } from '@playwright/test';
-import { adminHeaders, API_URL, apiLogin, runTag } from './helpers';
+import {
+  accountId,
+  adminHeaders,
+  API_URL,
+  createNeoqlickUser,
+  neoqlickUrl,
+  runTag,
+} from './helpers';
 
 /*
  * Cruising's profile pages (architecture 4.15, "Profile pages") on Cruising's own host
- * (cruising.localhost): a member with a review, a published spot and a meetup, seen by another
+ * (cruising.neoqlick.localhost): a member with a review, a published spot and a meetup, seen by another
  * member (header, actions, the "⋯" menu, the sub-nav and its sections), then the viewer's own
  * /me (how others see them, what's missing, the sections and the older anchors).
  */
@@ -12,9 +19,7 @@ test.use({
 });
 
 function cruisingUrl(baseURL: string | undefined): string {
-  const url = new URL(baseURL ?? 'http://localhost:3001');
-  url.hostname = `cruising.${url.hostname}`;
-  return url.origin;
+  return neoqlickUrl('cruising', baseURL);
 }
 
 type Member = { id: string; nickname: string; auth: { Authorization: string } };
@@ -28,13 +33,8 @@ async function cruisingMember(
 ): Promise<Member> {
   const email = `e2e-cruising-profile-${name}-${tag}@codeqlick.test`;
   const password = `cruising-pass-${tag}-0`;
-  const created = await request.post(`${API_URL}/admin/users`, {
-    headers: adminHeaders(),
-    data: { email, name, role: 'CLIENT', password, locale: 'es' },
-  });
-  expect(created.ok()).toBeTruthy();
-  const { id } = (await created.json()) as { id: string };
-  const accessToken = await apiLogin(request, { email, password });
+  const accessToken = await createNeoqlickUser(request, { email, name, password });
+  const id = await accountId(request, accessToken);
   const auth = { Authorization: `Bearer ${accessToken}` };
   const status = await request.get(`${API_URL}/cruising/me`, { headers: auth });
   const { termsVersion } = (await status.json()) as { termsVersion: string };
