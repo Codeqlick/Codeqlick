@@ -243,6 +243,17 @@ describe('Cruising phase 5 (e2e)', () => {
       .set(carla.auth);
     expect(city.body.items.map((item: { id: string }) => item.id)).toContain(id);
 
+    // A profile lists the meetups its member hosts or goes to without being anonymous.
+    const profileMeetups = (who: { nick: string }) =>
+      request(server()).get('/v1/cruising/meetups').query({ member: who.nick }).set(carla.auth);
+    for (const who of [host, ana]) {
+      const listed = await profileMeetups(who);
+      expect(listed.status).toBe(200);
+      expect(listed.body.items.map((item: { id: string }) => item.id)).toContain(id);
+    }
+    expect((await profileMeetups(bea)).body.items).toHaveLength(0);
+    expect((await profileMeetups({ nick: `nobody_${tag}` })).status).toBe(404);
+
     // Blocks hide both ways: the host's meetups disappear for someone they blocked, and someone
     // who blocked an attendee doesn't see them going.
     await request(server())
@@ -264,6 +275,7 @@ describe('Cruising phase 5 (e2e)', () => {
       .query({ spotId: spot.id })
       .set(carla.auth);
     expect(hidden.body.items).toHaveLength(0);
+    expect((await profileMeetups(host)).status).toBe(404);
     expect(
       (
         await request(server())

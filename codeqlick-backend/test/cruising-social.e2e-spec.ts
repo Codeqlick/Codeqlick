@@ -135,6 +135,55 @@ describe('Cruising social (e2e)', () => {
     await app?.close();
   });
 
+  it("uses the account's username as the Cruising name, and shares a chosen one with the account", async () => {
+    const enter = (who: Person) =>
+      request(server())
+        .put('/v1/cruising/me')
+        .set(who.auth)
+        .send({
+          birthDate: '1990-01-01',
+          acceptTerms: true,
+          consentSpecialData: true,
+          termsVersion: version,
+        })
+        .expect(200);
+    const short = tag.slice(0, 6);
+
+    // An account with a username enters: Cruising takes it.
+    const named = await person('UNamed');
+    await prisma.user.update({ where: { id: named.id }, data: { username: `named_${short}` } });
+    expect((await enter(named)).body.profile).toMatchObject({ nickname: `named_${short}` });
+
+    // Taken in Cruising by another member: the person chooses one, as before.
+    const holder = await person('UHolder');
+    await prisma.cruisingProfile.create({
+      data: {
+        userId: holder.id,
+        birthYear: 1990,
+        termsVersion: version,
+        acceptedAt: new Date(),
+        nickname: `taken_${short}`,
+      },
+    });
+    const late = await person('ULate');
+    await prisma.user.update({ where: { id: late.id }, data: { username: `taken_${short}` } });
+    expect((await enter(late)).body.profile).toBeNull();
+
+    // No username yet: the Cruising name chosen becomes the account's username too.
+    const fresh = await person('UFresh');
+    await enter(fresh);
+    expect(
+      (await request(server()).get('/v1/cruising/me').set(fresh.auth)).body.profile,
+    ).toBeNull();
+    await request(server())
+      .patch('/v1/cruising/profile')
+      .set(fresh.auth)
+      .send({ nickname: `fresh_${short}` })
+      .expect(200);
+    const account = await prisma.user.findUniqueOrThrow({ where: { id: fresh.id } });
+    expect(account.username).toBe(`fresh_${short}`);
+  });
+
   it('sets a nickname once and shows profiles only to members with a nickname', async () => {
     const ana = await member('Ana');
     const bea = await member('Bea', false);
@@ -1001,6 +1050,29 @@ describe('Cruising social (e2e)', () => {
       reviewsWritten: 25,
     });
 
+    // The profile's tabs: the author's reviews (with their votes), not to someone blocked.
+    const activity = await request(server())
+      .get(`/v1/cruising/members/${author.nick}/activity`)
+      .set(voter.auth)
+      .expect(200);
+    expect(activity.body.reviews).toEqual([
+      expect.objectContaining({
+        id: older.body.id,
+        rating: 4,
+        text: 'Older and helpful',
+        helpful: 1,
+        spot: expect.objectContaining({ slug: spot.slug }),
+      }),
+    ]);
+    expect(activity.body.spots).toEqual([]);
+    expect(
+      (
+        await request(server())
+          .get(`/v1/cruising/members/${author.nick}/activity`)
+          .set(stranger.auth)
+      ).status,
+    ).toBe(404);
+
     // Deleting the review takes its votes and counts with it.
     await request(server())
       .delete(`/v1/cruising/spots/${spot.id}/review`)
@@ -1034,6 +1106,15 @@ describe('Cruising social (e2e)', () => {
       .set(admin.auth)
       .expect(204);
     expect(await spotsLive()).toBe(1);
+    // The proposer's profile lists the LIVE spot.
+    const viewer = await member('SpotSeer');
+    const listed = await request(server())
+      .get(`/v1/cruising/members/${proposer.nick}/activity`)
+      .set(viewer.auth)
+      .expect(200);
+    expect(listed.body.spots).toEqual([
+      expect.objectContaining({ id: spot.id, slug: spot.slug, city: `Social ${tag}` }),
+    ]);
     await request(server())
       .post(`/v1/admin/cruising/spots/${spot.id}/hide`)
       .set(admin.auth)

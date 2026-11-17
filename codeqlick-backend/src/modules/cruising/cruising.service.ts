@@ -22,6 +22,7 @@ import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { AdultAdminService, type AlsoReported } from '../adult/adult-admin.service.js';
+import { UsernameService } from '../auth/username.service.js';
 import { AdultSafetyService } from '../adult/adult-safety.service.js';
 import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { isSeriousCategory } from '../adult/adult.rules.js';
@@ -76,6 +77,7 @@ import { CruisingRepository } from './cruising.repository.js';
 import {
   ageOn,
   CRUISING_MIN_AGE,
+  NICKNAME_PATTERN,
   HIDE_AT_ONCE,
   IMPORT_MAX_ROWS,
   MAX_SPOTS_IN_BOX,
@@ -366,6 +368,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     private readonly safety: AdultSafetyService,
     private readonly verification: AdultVerificationService,
     private readonly adultAdmin: AdultAdminService,
+    private readonly usernames: UsernameService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -456,11 +459,65 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   // ---- Status and entry --------------------------------------------------------------------------
 
   async status(userId: string, now = new Date()): Promise<CruisingStatus> {
-    const [profile, locale] = await Promise.all([
+    const [found, locale] = await Promise.all([
       this.repository.findProfile(userId),
       this.repository.accountLocale(userId),
     ]);
+    // A member who entered before names were shared gets the account's username now.
+    const profile =
+      found && !found.nickname && found.termsVersion === this.termsVersion
+        ? await this.adoptUsername(userId, found, now)
+        : found;
     return { ...(await this.statusOf(userId, profile, now)), locale: toAccountLocale(locale) };
+  }
+
+  /**
+   * The account's username becomes the Cruising name of a member without one (owner's feedback
+   * 2026-11-17): only when it fits Cruising's rules (no `.`), isn't reserved (the team's accounts
+   * may use reserved names), and no other member has it or holds it under decision 83's 14 days.
+   * Otherwise the member chooses one, as before. Returns the profile as it now is.
+   */
+  private async adoptUsername(
+    userId: string,
+    profile: CruisingProfile,
+    now: Date,
+  ): Promise<CruisingProfile> {
+    if (profile.nickname) return profile;
+    const account = await this.repository.accountName(userId);
+    const name = account?.username;
+    if (!name || !NICKNAME_PATTERN.test(name)) return profile;
+    if (account.role !== 'ADMIN' && isReservedNickname(name)) return profile;
+    const since = new Date(now.getTime() - NICKNAME_HOLD_MS);
+    const [owner, heldFor] = await Promise.all([
+      this.repository.findProfileByNickname(name),
+      this.repository.nicknameReservedFor(name, since),
+    ]);
+    if ((owner && owner.userId !== userId) || (heldFor !== null && heldFor !== userId)) {
+      return profile;
+    }
+    try {
+      return await this.repository.updateProfile(userId, { nickname: name });
+    } catch (error) {
+      // Someone took it at the same moment: the member chooses one.
+      if (isUniqueViolation(error)) return profile;
+      throw error;
+    }
+  }
+
+  /**
+   * A member whose account has no username yet gives it the Cruising name they chose, so it
+   * serves every app (the account's rules: free as a username and not reserved). Best effort: the
+   * Cruising name is saved either way.
+   */
+  private async shareNameWithAccount(userId: string, nickname: string): Promise<void> {
+    const account = await this.repository.accountName(userId);
+    if (!account || account.username) return;
+    if ((await this.usernames.problem(userId, nickname)) !== null) return;
+    try {
+      await this.usernames.claim(userId, nickname);
+    } catch (error) {
+      this.logger.warn(`Cruising name not shared with the account: ${String(error)}`);
+    }
   }
 
   private async statusOf(
@@ -528,7 +585,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     await this.repository.saveOnboarding(userId, this.termsVersion, birthYear, now);
     // A shared suspension in force applies here too, from the first visit (decision 114).
     await this.safety.reapply(userId, now, ['CRUISING']);
-    return this.statusOf(userId, await this.repository.findProfile(userId), now);
+    const entered = await this.repository.findProfile(userId);
+    // The account's username is the Cruising name by default (owner's feedback 2026-11-17).
+    const profile = entered ? await this.adoptUsername(userId, entered, now) : entered;
+    return this.statusOf(userId, profile, now);
   }
 
   async updateProfile(
@@ -585,6 +645,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       // The badge (and a photo waiting for review) is about the name on the paper: when it is no
       // longer one of the account's names it goes, in the three 18+ apps (decisions 87 and 113).
       if (data.nickname !== undefined) await this.verification.nameChanged(userId, now);
+      if (data.nickname) await this.shareNameWithAccount(userId, data.nickname);
       return this.statusOf(userId, saved, now);
     } catch (error) {
       // Two people saving the same nickname together: the unique index settles it.

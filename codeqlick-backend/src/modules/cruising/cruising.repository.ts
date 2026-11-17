@@ -255,6 +255,11 @@ export class CruisingRepository implements AdultAppStore {
     return this.prisma.user.findUnique({ where: { id: userId }, select: recipientSelect });
   }
 
+  /** The account's username and role: the Cruising name by default (owner's feedback 2026-11-17). */
+  accountName(id: string) {
+    return this.prisma.user.findUnique({ where: { id }, select: { username: true, role: true } });
+  }
+
   findUser(id: string) {
     return this.prisma.user.findUnique({ where: { id }, select: personSelect });
   }
@@ -362,6 +367,36 @@ export class CruisingRepository implements AdultAppStore {
     return this.prisma.cruisingSpot.findMany({
       where: { createdById: userId },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /** A member's proposed spots that are LIVE, newest first (their profile's "Spots"). */
+  liveSpotsBy(userId: string, take: number) {
+    return this.prisma.cruisingSpot.findMany({
+      where: { createdById: userId, status: 'LIVE' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take,
+      select: { ...spotSummarySelect, city: true, countryCode: true },
+    });
+  }
+
+  /**
+   * A member's LIVE reviews of LIVE spots, newest first (their profile's "Reviews"), each with its
+   * spot and its helpful votes.
+   */
+  liveReviewsBy(userId: string, take: number) {
+    return this.prisma.cruisingReview.findMany({
+      where: { userId, status: 'LIVE', spot: { status: 'LIVE' } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take,
+      select: {
+        id: true,
+        rating: true,
+        text: true,
+        createdAt: true,
+        spot: { select: { slug: true, name: true, city: true, countryCode: true } },
+        _count: { select: { votes: true } },
+      },
     });
   }
 

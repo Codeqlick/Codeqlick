@@ -4,6 +4,7 @@ import {
   isAbort,
   isWebAuthnResponse,
   passkeyErrorKind,
+  showsPasskeySignInError,
   suggestedPasskeyName,
 } from './passkeys';
 
@@ -76,5 +77,32 @@ describe('passkey names', () => {
       'Chrome en macOS',
     );
     expect(suggestedPasskeyName(null)).toBe('');
+  });
+});
+
+describe('showsPasskeySignInError', () => {
+  const errors = [
+    { name: 'NotAllowedError' },
+    { name: 'AbortError', code: 'ERROR_CEREMONY_ABORTED' },
+    { name: 'SecurityError' },
+    { name: 'NotSupportedError' },
+    new TypeError('Failed to fetch'),
+    undefined,
+  ];
+
+  it('never shows a message for the silent autofill request', () => {
+    for (const error of errors) expect(showsPasskeySignInError(error, 'autofill')).toBe(false);
+  });
+
+  it('shows nothing when the person cancels the button ceremony', () => {
+    expect(showsPasskeySignInError({ name: 'NotAllowedError' }, 'button')).toBe(false);
+    expect(showsPasskeySignInError({ name: 'AbortError' }, 'button')).toBe(false);
+    expect(showsPasskeySignInError({ code: 'ERROR_CEREMONY_ABORTED' }, 'button')).toBe(false);
+  });
+
+  it('shows the message for real failures after the button', () => {
+    expect(showsPasskeySignInError({ name: 'SecurityError' }, 'button')).toBe(true);
+    expect(showsPasskeySignInError({ name: 'NotSupportedError' }, 'button')).toBe(true);
+    expect(showsPasskeySignInError(new Error('boom'), 'button')).toBe(true);
   });
 });

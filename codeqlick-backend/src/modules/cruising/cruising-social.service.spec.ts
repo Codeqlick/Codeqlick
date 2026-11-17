@@ -67,6 +67,8 @@ function build() {
     findProfile: vi.fn().mockResolvedValue(profile()),
     findProfileByNickname: vi.fn().mockResolvedValue(other()),
     hiddenIds: vi.fn().mockResolvedValue([]),
+    liveReviewsBy: vi.fn().mockResolvedValue([]),
+    liveSpotsBy: vi.fn().mockResolvedValue([]),
     findSpot: vi.fn().mockResolvedValue({
       id: SPOT,
       slug: 'cove',
@@ -345,6 +347,76 @@ describe('CruisingSocialService', () => {
       await expect(t.service.member(ME, 'me_myself', NOW)).resolves.toMatchObject({
         nickname: 'me_myself',
       });
+    });
+  });
+
+  describe("a profile's reviews and spots", () => {
+    it('lists the LIVE reviews and spots of the member', async () => {
+      t.repo.liveReviewsBy.mockResolvedValue([
+        {
+          id: 'review-1',
+          rating: 4,
+          text: 'Nice',
+          createdAt: NOW,
+          spot: { slug: 'cove', name: SECRET_NAME, city: 'Madrid', countryCode: 'ES' },
+          _count: { votes: 3 },
+        },
+      ]);
+      t.repo.liveSpotsBy.mockResolvedValue([
+        {
+          id: SPOT,
+          slug: 'cove',
+          name: SECRET_NAME,
+          type: 'PARK',
+          lat: '40.40000',
+          lng: '-3.70000',
+          ratingAvg: '4.50',
+          ratingCount: 2,
+          city: 'Madrid',
+          countryCode: 'ES',
+        },
+      ]);
+      const activity = await t.service.activity(ME, SECRET_NICKNAME, NOW);
+      expect(t.repo.liveReviewsBy).toHaveBeenCalledWith(OTHER, 20);
+      expect(t.repo.liveSpotsBy).toHaveBeenCalledWith(OTHER, 20);
+      expect(activity).toEqual({
+        reviews: [
+          {
+            id: 'review-1',
+            rating: 4,
+            text: 'Nice',
+            createdAt: NOW.toISOString(),
+            helpful: 3,
+            spot: { slug: 'cove', name: SECRET_NAME, city: 'Madrid', countryCode: 'ES' },
+          },
+        ],
+        spots: [
+          {
+            id: SPOT,
+            slug: 'cove',
+            name: SECRET_NAME,
+            type: 'PARK',
+            lat: 40.4,
+            lng: -3.7,
+            ratingAvg: 4.5,
+            ratingCount: 2,
+            city: 'Madrid',
+            countryCode: 'ES',
+          },
+        ],
+      });
+    });
+
+    it('answers 404 like the profile, and needs my nickname', async () => {
+      t.repo.hiddenIds.mockResolvedValue([OTHER]);
+      await expect(t.service.activity(ME, SECRET_NICKNAME, NOW)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      t.repo.findProfile.mockResolvedValue(profile({ nickname: null }));
+      await expect(t.service.activity(ME, SECRET_NICKNAME, NOW)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(t.repo.liveReviewsBy).not.toHaveBeenCalled();
     });
   });
 

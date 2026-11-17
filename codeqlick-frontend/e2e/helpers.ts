@@ -1,7 +1,13 @@
 import { createHmac } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, type BrowserContext, type Page } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type BrowserContext,
+  type Page,
+} from '@playwright/test';
 
 export const API_URL = process.env.E2E_API_URL ?? 'http://localhost:4000/v1';
 export const ADMIN = {
@@ -66,6 +72,24 @@ export async function signIn(page: Page, user: { email: string; password: string
     test.info().setTimeout(test.info().timeout + 65_000);
     await page.waitForTimeout(61_000);
   }
+}
+
+/**
+ * Signs a person in through the API and returns their access token. Like `signIn`, it waits out
+ * the API's 5 logins a minute per IP (shared by every flow) when it is told to.
+ */
+export async function apiLogin(
+  request: APIRequestContext,
+  user: { email: string; password: string },
+): Promise<string> {
+  let login = await request.post(`${API_URL}/auth/login`, { data: user });
+  if (login.status() === 429) {
+    test.info().setTimeout(test.info().timeout + 65_000);
+    await new Promise((resolve) => setTimeout(resolve, 61_000));
+    login = await request.post(`${API_URL}/auth/login`, { data: user });
+  }
+  expect(login.ok()).toBeTruthy();
+  return ((await login.json()) as { accessToken: string }).accessToken;
 }
 
 /** Where the API writes the emails it sends (MAIL_OUTBOX_DIR, tests only). */

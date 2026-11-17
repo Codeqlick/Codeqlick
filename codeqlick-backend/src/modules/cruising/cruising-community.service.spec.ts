@@ -93,6 +93,9 @@ function build() {
       .fn()
       .mockResolvedValue({ id: SPOT, slug: 'cove', name: SECRET_NAME, status: 'LIVE' }),
     hiddenIds: vi.fn().mockResolvedValue([]),
+    findProfileByNickname: vi
+      .fn()
+      .mockResolvedValue(profile({ userId: HOST, nickname: 'the_host' })),
     citySpots: vi.fn().mockResolvedValue([]),
     hereAt: vi.fn().mockResolvedValue(new Map()),
   };
@@ -271,6 +274,32 @@ describe('CruisingCommunityService: meetups', () => {
       [],
       100,
     );
+  });
+
+  it("lists a member's profile meetups: hosted or joined without being anonymous", async () => {
+    const { service, community, repo } = build();
+    await service.meetups(ME, { member: 'the_host' }, NOW);
+    expect(repo.findProfileByNickname).toHaveBeenCalledWith('the_host');
+    expect(community.upcomingMeetups).toHaveBeenCalledWith({ publicMemberId: HOST }, NOW, [], 100);
+  });
+
+  it("answers 404 for an unknown, suspended or blocked member's meetups", async () => {
+    const { service, community, repo } = build();
+    repo.findProfileByNickname.mockResolvedValueOnce(null);
+    await expect(service.meetups(ME, { member: 'nobody' }, NOW)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    repo.findProfileByNickname.mockResolvedValueOnce(
+      profile({ userId: HOST, nickname: 'the_host', suspendedAt: NOW, suspendedUntil: null }),
+    );
+    await expect(service.meetups(ME, { member: 'the_host' }, NOW)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    repo.hiddenIds.mockResolvedValueOnce([HOST]);
+    await expect(service.meetups(ME, { member: 'the_host' }, NOW)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(community.upcomingMeetups).not.toHaveBeenCalled();
   });
 
   it('refuses joining when full, over, my own, or hosted by someone hidden', async () => {

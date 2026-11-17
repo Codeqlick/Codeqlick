@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { adminHeaders, API_URL, runTag } from './helpers';
+import { adminHeaders, API_URL, apiLogin, runTag } from './helpers';
 
 /*
  * Cruising's onboarding tour (decision 102) on the map, on Cruising's own host (cruising.localhost):
@@ -24,9 +24,7 @@ async function newMember(request: APIRequestContext): Promise<string> {
     data: { ...member, name: `Tour ${tag}`, role: 'CLIENT', locale: 'es' },
   });
   expect(created.ok()).toBeTruthy();
-  const login = await request.post(`${API_URL}/auth/login`, { data: member });
-  expect(login.ok()).toBeTruthy();
-  const token = ((await login.json()) as { accessToken: string }).accessToken;
+  const token = await apiLogin(request, member);
   const headers = { Authorization: `Bearer ${token}` };
   const status = await request.get(`${API_URL}/cruising/me`, { headers });
   const { termsVersion } = (await status.json()) as { termsVersion: string };
@@ -93,9 +91,9 @@ test('one action per step, foldable, and "Saltar" ends it', async ({
   const tour = page.getByRole('region', { name: 'Te damos la bienvenida a Cruising' });
 
   // Step 1: the nickname form has no button of its own; "Guardar y seguir" saves and moves on.
-  await expect(tour.getByRole('heading', { name: 'Elige un apodo' })).toBeVisible();
+  await expect(tour.getByRole('heading', { name: 'Elige un nombre de usuario' })).toBeVisible();
   await expect(tour.getByRole('button', { name: 'Siguiente' })).toHaveCount(0);
-  await tour.getByLabel('Apodo').fill(`tour_${runTag()}`);
+  await tour.getByLabel('Nombre de usuario').fill(`tour_${runTag()}`);
   await tour.getByRole('button', { name: 'Guardar y seguir' }).click();
   const favourites = tour.getByRole('heading', { name: 'Guarda tus sitios favoritos' });
   await expect(favourites).toBeFocused();

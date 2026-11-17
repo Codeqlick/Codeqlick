@@ -406,7 +406,9 @@ test('a person gets the verified badge from a photo the team approves', async ({
     await kim.goto('/es/settings');
     // Her week is there from the start (nothing yet).
     await expect(kim.getByRole('heading', { name: 'Tu semana' })).toBeVisible();
-    await expect(kim.getByText('Primero elige tu apodo arriba y guárdalo.')).toBeVisible();
+    await expect(
+      kim.getByText('Primero elige tu nombre de usuario arriba y guárdalo.'),
+    ).toBeVisible();
     await kim.getByLabel('Nombre de usuario').fill(`kim_${tag}`);
     await kim.getByRole('button', { name: 'Guardar' }).click();
     await expect(kim.getByText('Guardado.', { exact: false })).toBeVisible();

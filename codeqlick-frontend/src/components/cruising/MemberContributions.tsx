@@ -13,6 +13,8 @@ type MemberContributionsProps = {
   /** The heading: "Contributions" on a profile, "Your contributions" in /me. */
   title: string;
   own?: boolean;
+  /** The heading's level, to keep the page's outline (h2 by default). */
+  headingLevel?: 'h2' | 'h3';
 };
 
 /**
@@ -25,13 +27,14 @@ export async function MemberContributions({
   contributions,
   title,
   own = false,
+  headingLevel: Heading = 'h2',
 }: MemberContributionsProps) {
   if (!contributions) return null;
   const t = await getTranslations({ locale, namespace: 'Cruising.badges' });
   const earned = cleanBadges(badges);
   return (
     <section aria-label={title} className={styles.contributions}>
-      <h2 className={styles.subTitle}>{title}</h2>
+      <Heading className={styles.subTitle}>{title}</Heading>
       {earned.length > 0 ? (
         <p>
           <ContributorBadges badges={earned} labels={await contributorLabels(locale)} size="md" />
