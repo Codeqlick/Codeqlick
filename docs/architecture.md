@@ -1381,10 +1381,10 @@ The team's moderation stays in Codeqlick's admin panel (`/admin/cruising`, `/adm
 
 `deploy/setup-neoqlick.sh` (the owner runs it once with sudo, like `setup-account-site.sh`, after the release of PR C is on the server):
 1. Reinstalls the helper (`codeqlick-webapp-site`) and keeps the deploy user's sudo rule.
-2. DNS through OVH's API (the team's keys manage the `neoqlick.com` zone): `A` records for `@`, `www`, `account`, `api`, `stats`, `cruising`, `swipe` and `videochat` to `SITES_SERVER_IP` (and `AAAA` if the server has one). Existing records are never overwritten. The mail records of Emails are set by hand in OVH.
+2. DNS: the script does not create records. The `A` records for `@`, `www`, `account`, `api`, `stats`, `cruising`, `swipe` and `videochat` to `SITES_SERVER_IP` are created beforehand through OVH's API (the team's keys manage the `neoqlick.com` zone); the script checks that each host resolves to the server and stops, naming the missing ones, before changing anything. The mail records of Emails are set by hand in OVH.
 3. Nginx sites from templates (`deploy/nginx/neoqlick.com.conf`, `neoqlick-app.conf.template` for the three apps with the video chat's `/ws` block, `account.neoqlick.com`, `api.neoqlick.com`, `stats.neoqlick.com`): pages to the web on `127.0.0.1:3010`, `/ws` and `api.` to `127.0.0.1:4010`. Each is checked with `nginx -t` and removed again if Nginx refuses it; an existing site is never changed (a dated copy is kept), like the account script.
 4. Let's Encrypt certificates for each name (`certbot --nginx`).
-5. Replaces the three old app blocks with the redirect blocks and the service worker scripts above (a dated copy is kept).
+5. The redirect blocks and the service worker scripts above are a separate script, `deploy/neoqlick-cutover.sh`, run at the cut-over (after the cleanup), not by `setup-neoqlick.sh`: it replaces the three old app blocks (a dated copy is kept, `--rollback` restores it), keeps their certificates and refuses to run while a new host has no certificate or doesn't answer. The service worker script is `deploy/nginx/legacy-sw-unregister.js`, served by Nginx (the app has no part in it).
 
 It is safe to run again. The OVH mailbox, SPF/DKIM/DMARC, the ExoClick sites and the Turnstile hostnames (Cloudflare lists the hosts a widget works on: `neoqlick.com` and its subdomains are added) are **owner tasks**, listed in `deploy/README.md` ("Neoqlick").
 

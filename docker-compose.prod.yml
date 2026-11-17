@@ -111,6 +111,25 @@ services:
       # "Someone is waiting" notifications (Web Push); off while the keys are empty.
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      # Neoqlick, the 18+ apps' own brand and accounts (architecture 4.18). All optional: the API
+      # treats an empty value as unset (the two with defaults carry them here), so nothing changes until the owner fills them in at the
+      # cut-over (deploy/README.md, "Neoqlick cut-over").
+      NEOQLICK_URL: ${NEOQLICK_URL:-}
+      NEOQLICK_ACCOUNT_URL: ${NEOQLICK_ACCOUNT_URL:-}
+      NEOQLICK_PUBLIC_API_URL: ${NEOQLICK_PUBLIC_API_URL:-}
+      MAIL_FROM_NEOQLICK: ${MAIL_FROM_NEOQLICK:-}
+      SMTP_USER_NEOQLICK: ${SMTP_USER_NEOQLICK:-}
+      SMTP_PASSWORD_NEOQLICK: ${SMTP_PASSWORD_NEOQLICK:-}
+      WEBAUTHN_RP_ID_NEOQLICK: ${WEBAUTHN_RP_ID_NEOQLICK:-}
+      WEBAUTHN_ORIGINS_NEOQLICK: ${WEBAUTHN_ORIGINS_NEOQLICK:-}
+      NEOQLICK_TERMS_VERSION: ${NEOQLICK_TERMS_VERSION:-2026-11-17.1}
+      NEOQLICK_TRADE_NAME: ${NEOQLICK_TRADE_NAME:-}
+      NEOQLICK_LEGAL_OWNER_NAME: ${NEOQLICK_LEGAL_OWNER_NAME:-}
+      NEOQLICK_LEGAL_OWNER_TAX_ID: ${NEOQLICK_LEGAL_OWNER_TAX_ID:-}
+      NEOQLICK_LEGAL_OWNER_ADDRESS: ${NEOQLICK_LEGAL_OWNER_ADDRESS:-}
+      NEOQLICK_VAPID_PUBLIC_KEY: ${NEOQLICK_VAPID_PUBLIC_KEY:-}
+      NEOQLICK_VAPID_PRIVATE_KEY: ${NEOQLICK_VAPID_PRIVATE_KEY:-}
+      NEOQLICK_VAPID_SUBJECT: ${NEOQLICK_VAPID_SUBJECT:-mailto:hello@neoqlick.com}
       # Cloudflare Turnstile on sign-up and sign-in (architecture 4.3); off while empty.
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
