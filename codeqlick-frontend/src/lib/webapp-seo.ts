@@ -3,11 +3,16 @@ import type { Metadata } from 'next';
 import { routing } from '@/i18n/routing';
 import { appLocales } from '@/lib/locales';
 import { env } from '@/lib/env';
-import { webappHost, type Webapp } from '@/lib/webapps';
+import { NEOQLICK_APPS, webappHost, type Webapp } from '@/lib/webapps';
 
-/** The web app's own origin next to SITE_URL: https://codeqlick.com → https://videochat.codeqlick.com */
+/**
+ * The web app's own origin: Neoqlick's apps next to NEOQLICK_URL (https://neoqlick.com →
+ * https://cruising.neoqlick.com), where there are Neoqlick hosts; every other app next to SITE_URL
+ * (https://codeqlick.com → https://meetings.codeqlick.com).
+ */
 export function webappOrigin(app: Webapp): string {
-  const site = new URL(env.SITE_URL);
+  const neoqlick = NEOQLICK_APPS.some((name) => name === app) && env.NEOQLICK_URL;
+  const site = new URL(neoqlick || env.SITE_URL);
   return `${site.protocol}//${webappHost(app, site.host)}`;
 }
 

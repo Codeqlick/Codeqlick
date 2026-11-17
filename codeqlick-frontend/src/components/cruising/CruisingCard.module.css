@@ -30,13 +30,13 @@
 
 /* Something new (an unread conversation or notification). */
 .unread {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
   background: var(--color-blush);
 }
 
 /* Fuchsia on blush is under 4.5:1: links on an unread card use the darker fuchsia. */
 .unread a {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .title {

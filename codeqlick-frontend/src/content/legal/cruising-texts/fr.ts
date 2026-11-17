@@ -16,7 +16,7 @@ export const fr: CruisingLegalTexts = {
       'Qui peut utiliser Cruising, ce qu’on peut y contribuer, comment nous modérons et comment partir.',
     markdown: (c) => `## Qui fournit le service
 
-Cruising (cruising.codeqlick.com) est un service de :
+Cruising (cruising.neoqlick.com) est un service de :
 
 ${c.ownerLines}
 
@@ -45,7 +45,7 @@ Tu as besoin d’un compte avec une adresse e-mail vérifiée et, pour entrer da
 - Les membres qui sont entrés et sont **vérifiés** peuvent publier sur leur profil des photos et des vidéos **d’eux-mêmes**. Le contenu sexuel de soi-même entre adultes est autorisé, et seuls les membres qui sont entrés peuvent le voir.
 - **Aucune personne de moins de 18 ans** ne peut y apparaître, et rien ne peut être illégal. Personne n’ayant pas donné son consentement ne peut y apparaître, et les images doivent être les tiennes. Tu coches une case de consentement à chaque envoi.
 - Les photos et vidéos sont **publiées avant que l’équipe ne les vérifie** ; l’équipe les vérifie ensuite et retire ce qui enfreint ces conditions, en bloquant l’image pour qu’elle ne puisse pas être renvoyée. Nous pouvons suspendre le compte.
-- La **vérification** consiste en une photo de toi avec ton nom d’utilisateur, « Codeqlick » et la date, examinée par l’équipe et conservée en privé tant que la vérification est valable (voir « Sécurité entre les applications 18+ de Codeqlick »). Le badge « Vérifié » signifie seulement que l’équipe a contrôlé cette photo : pas qu’une pièce d’identité a été vérifiée.
+- La **vérification** consiste en une photo de toi avec ton nom d’utilisateur, « Neoqlick » et la date, examinée par l’équipe et conservée en privé tant que la vérification est valable (voir « Sécurité entre les applications 18+ de Neoqlick »). Le badge « Vérifié » signifie seulement que l’équipe a contrôlé cette photo : pas qu’une pièce d’identité a été vérifiée.
 - Tu restes propriétaire de ce que tu publies et tu nous accordes une autorisation gratuite et non exclusive de le conserver et de l’afficher dans Cruising jusqu’à ce que tu le supprimes.
 
 ## Ton comportement
@@ -54,7 +54,7 @@ Respecte les autres, le lieu et la loi de l’endroit où tu te trouves. Pas de 
 
 ## Modération, signalements et retrait
 
-Tu peux signaler n’importe quel lieu, avis, profil, photo ou vidéo. Un signalement pour un mineur, un consentement manquant, des images volées ou un contenu illégal le masque immédiatement jusqu’à ce que nous l’examinions. N’importe qui, même sans compte, peut nous demander de retirer un lieu sur [cruising.codeqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown) ; lorsqu’il s’agit d’un mineur ou de quelque chose d’illégal et que le lien est fourni, nous le masquons immédiatement, et nous répondons toujours dans les 24 heures. Un lieu retiré par la modération ne peut pas être proposé à nouveau. Si nous retirons quelque chose qui t’appartient ou suspendons ton compte, nous t’envoyons le motif par e-mail et tu peux y répondre pour nous demander de réexaminer la décision (règlement sur les services numériques).
+Tu peux signaler n’importe quel lieu, avis, profil, photo ou vidéo. Un signalement pour un mineur, un consentement manquant, des images volées ou un contenu illégal le masque immédiatement jusqu’à ce que nous l’examinions. N’importe qui, même sans compte, peut nous demander de retirer un lieu sur [cruising.neoqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown) ; lorsqu’il s’agit d’un mineur ou de quelque chose d’illégal et que le lien est fourni, nous le masquons immédiatement, et nous répondons toujours dans les 24 heures. Un lieu retiré par la modération ne peut pas être proposé à nouveau. Si nous retirons quelque chose qui t’appartient ou suspendons ton compte, nous t’envoyons le motif par e-mail et tu peux y répondre pour nous demander de réexaminer la décision (règlement sur les services numériques).
 
 ## Ce que nous ne garantissons pas
 
@@ -88,7 +88,7 @@ Utiliser Cruising peut révéler des aspects de ta **vie sexuelle ou de ton orie
 - **Lieux :** ceux que tu proposes (nom, type, emplacement, description, horaires) avec ton compte, pour que tu puisses les voir et les modifier et pour que nous puissions les modérer.
 - **Avis et signalements :** ceux que tu rédiges et que tu fais.
 - **Photos et vidéos (catégorie particulière de données) :** celles que tu publies sur ton profil, avec ton **consentement explicite** à chaque envoi (article 9.2.a). Nous supprimons leurs métadonnées (localisation, appareil photo). Elles sont stockées sur des serveurs situés dans l’Union européenne (OVHcloud), **hors des sauvegardes**, et seuls les membres qui sont entrés peuvent les voir, jamais les moteurs de recherche.
-- **Photo de vérification :** celle que tu nous envoies avec ton nom d’utilisateur, « Codeqlick » et la date ; seule l’équipe la voit. Si elle est approuvée, elle est **conservée en privé tant que la vérification est valable** et supprimée quand elle est retirée ou perdue, remplacée ou quand tu supprimes ton compte ; une photo refusée est supprimée immédiatement. La vérification est partagée avec les autres applications 18+ de Codeqlick (voir la dernière section).
+- **Photo de vérification :** celle que tu nous envoies avec ton nom d’utilisateur, « Neoqlick » et la date ; seule l’équipe la voit. Si elle est approuvée, elle est **conservée en privé tant que la vérification est valable** et supprimée quand elle est retirée ou perdue, remplacée ou quand tu supprimes ton compte ; une photo refusée est supprimée immédiatement. La vérification est partagée avec les autres applications 18+ de Neoqlick (voir la dernière section).
 - **Santé sexuelle (données de santé, catégorie particulière) :** uniquement si tu l’actives, avec son **propre consentement explicite** (article 9.2.a), distinct de celui de l’entrée : si tu prends la PrEP, le mois de ton dernier test et à quelle fréquence te rappeler ton dépistage. Par défaut, toi seul les vois ; si tu choisis de les afficher, les membres qui sont entrés les voient sur ton profil. Désactiver cette option les **supprime** immédiatement. Les rappels disent seulement « C’est l’heure de ton dépistage ».
 - **Contacts de confiance et minuteur de sécurité :** l’adresse e-mail de 2 personnes au maximum que tu choisis, le nom que tu te donnes pour elles, et si elles ont accepté (intérêt légitime pour ta sécurité, article 6.1.f ; chaque contact donne son propre consentement en acceptant par e-mail et peut arrêter à tout moment). D’un minuteur, nous conservons son heure de fin, ton message et, seulement si tu choisis de le partager, le lieu. Si tu ne l’arrêtes pas à temps, tes contacts qui ont accepté reçoivent un seul e-mail avec ce nom, ton message, l’heure et le lieu partagé ; jamais ton nom d’utilisateur ni ce qu’est Cruising.
 - **Sécurité :** l’adresse IP et le navigateur de chaque session (intérêt légitime, article 6.1.f).

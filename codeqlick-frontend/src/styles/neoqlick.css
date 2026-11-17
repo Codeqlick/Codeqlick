@@ -1,0 +1,46 @@
+/*
+ * Neoqlick's theme (architecture 4.18, decision 125), aligned with the owner's approved social kit:
+ * the same token names as Codeqlick's with the other brand's values, active under
+ * <html data-brand="neoqlick"> (set from the host by the root layout). Spacing, the type scale,
+ * button sizes and the mobile rules stay as they are. Contrast of every pair is checked by
+ * src/styles/neoqlick-theme.test.ts (WCAG AA).
+ */
+:root[data-brand='neoqlick'] {
+  --color-brand: #7c3aed; /* violet: buttons, links, focus; white text on it passes AA (5.7:1) */
+  --color-brand-dark: #5b21b6; /* hover, eyebrows on light backgrounds */
+  --color-brand-light: #a78bfa; /* lavender: violet on dark backgrounds */
+  --color-accent: #ff5a7a; /* coral: the mark's second colour; text on it is ink, never white */
+  --color-accent-text: #e23c63; /* coral for text and icons on white or lilac */
+  --color-accent-soft: #ffd1db; /* highlight on violet backgrounds */
+  --color-grape: #2b0f4d; /* the lens of the mark */
+  --color-ink: #160f2b; /* text, dark sections */
+  --color-night: #1a1033; /* dark surfaces */
+  --color-night-card: #251a45; /* cards on dark */
+  --color-night-line: #34285a; /* their border */
+  --color-blush: #f1ecfd; /* lilac: tint, soft backgrounds, cards on white */
+  --color-slate: #4a4560; /* body text on light */
+  --color-muted-on-ink: #cfc7e3; /* body text on dark */
+  --color-ink-hover: #2d2147;
+  --brand-symbol: url('/neoqlick/svg/neoqlick-symbol.svg');
+
+  /* Cards and panels are rounder than Codeqlick's (the kit's 28 px, as the largest token). */
+  --radius-lg: 24px;
+
+  /* Display headings use Montserrat (set on <html> by the root layout). */
+  --font-family-display:
+    var(--font-display), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --shadow-sm: 0 1px 2px rgba(22, 15, 43, 0.06);
+  --shadow-md: 0 6px 24px rgba(22, 15, 43, 0.08);
+}
+
+/* Montserrat ExtraBold for page titles, Bold for the rest (the kit). */
+:root[data-brand='neoqlick'] h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+:root[data-brand='neoqlick'] h2,
+:root[data-brand='neoqlick'] h3 {
+  font-weight: 700;
+}

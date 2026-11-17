@@ -1,0 +1,56 @@
+{
+  "Metadata": {
+    "siteName": "Neoqlick",
+    "defaultTitle": "Neoqlick — Apps für Erwachsene (18+)",
+    "description": "Neoqlick entwickelt und betreibt Cruising, Swipe und Videochat: Apps für Erwachsene (18+) mit einem einzigen Neoqlick-Konto für alle.",
+    "ogTitle": "Neoqlick — Apps für Erwachsene (18+)"
+  },
+  "Common": {
+    "homeLabel": "Neoqlick Startseite"
+  },
+  "Login": {
+    "metaDescription": "Melde dich bei deinem Neoqlick-Konto an, um Cruising, Swipe und Videochat zu nutzen.",
+    "subtitle": "Nutze dein Neoqlick-Konto in Cruising, Swipe und Videochat.",
+    "backToSite": "Zurück zu Neoqlick"
+  },
+  "Register": {
+    "metaDescription": "Erstelle dein Neoqlick-Konto für Erwachsene (18+) und nutze Cruising, Swipe und Videochat mit einer Anmeldung.",
+    "subtitle": "Ein Konto für Cruising, Swipe und Videochat. Du musst mindestens 18 Jahre alt sein.",
+    "backToSite": "Zurück zu Neoqlick"
+  },
+  "ResetPassword": {
+    "welcomeTitle": "Willkommen bei Neoqlick"
+  },
+  "Account": {
+    "deleteHasProjects": "Dein Konto hat Projekte bei uns, mit Verträgen und Rechnungen, deshalb schließen wir es für dich: Öffne eine Support-Anfrage oder schreib an hello@neoqlick.com, dann erledigen wir das.",
+    "yourDataBody": "Lade als Datei (JSON) alles herunter, was wir über dich speichern: dein Konto, deine Sitzungen und deine Daten in Cruising, Swipe und Videochat.",
+    "deleteBody": "Dein Konto und alles, was daran hängt (deine Profile, Nachrichten und Fotos in Cruising, Swipe und Videochat …), wird gelöscht. Das kann nicht rückgängig gemacht werden. Du erhältst eine Bestätigungs-E-Mail."
+  },
+  "AccountSite": {
+    "overview": {
+      "lead": "Ein Neoqlick-Konto für alle Apps. Melde dich hier einmal an, und jede App kennt dich.",
+      "apps": "{count, plural, =0 {Du nutzt noch keine App.} one {Du nutzt # Neoqlick-App.} other {Du nutzt # Neoqlick-Apps.}}"
+    },
+    "profile": {
+      "lead": "So erscheinst du bei Neoqlick: In den Apps wird nur dein Benutzername angezeigt."
+    },
+    "clients": {
+      "account": "Neoqlick-Konto",
+      "site": "neoqlick.com"
+    }
+  },
+  "Passkeys": {
+    "lead": "Melde dich mit Fingerabdruck, Gesicht oder Displaysperre an statt mit Passwort und Code. Ein Passkey liegt auf deinem Gerät oder in deinem Passwort-Manager und funktioniert nur bei Neoqlick."
+  },
+  "Error": {
+    "body": "Bitte versuch es noch einmal. Wenn das Problem bleibt, schreib an hello@neoqlick.com."
+  },
+  "AppSwitcher": {
+    "label": "Weitere Neoqlick-Apps"
+  },
+  "AppMenu": {
+    "footer": {
+      "copyright": "© {year} Neoqlick"
+    }
+  }
+}

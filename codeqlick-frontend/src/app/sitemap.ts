@@ -12,6 +12,9 @@ import { getBookingSlots } from '@/lib/api/bookings';
 import { legalOwner } from '@/lib/env';
 import { absoluteUrl } from '@/lib/seo';
 import { appLocales } from '@/lib/locales';
+import { env, neoqlickLegalOwner } from '@/lib/env';
+import { classifyHost } from '@/lib/hosts';
+import { routing } from '@/i18n/routing';
 import { webappForHost } from '@/lib/webapps';
 import { WEBAPP_PUBLIC_PATHS, webappUrl } from '@/lib/webapp-seo';
 
@@ -77,7 +80,22 @@ async function cruisingPaths(): Promise<{ path: string; lastModified?: string }[
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Generated per request: a build-time sitemap has no API to read the content slugs from.
   await connection();
-  const app = webappForHost((await headers()).get('host'));
+  const host = (await headers()).get('host');
+  // Neoqlick's portal: its home and legal pages in six languages (architecture 4.18).
+  if (classifyHost(host).kind === 'portal' && env.NEOQLICK_URL) {
+    const paths = neoqlickLegalOwner ? ['', '/legal', '/privacy', '/terms'] : [''];
+    const url = (locale: string, path: string) => `${env.NEOQLICK_URL}/${locale}${path}`;
+    return paths.flatMap((path) =>
+      routing.locales.map((locale) => ({
+        url: url(locale, path),
+        priority: path === '' ? 1 : 0.4,
+        alternates: {
+          languages: Object.fromEntries(routing.locales.map((l) => [l, url(l, path)])),
+        },
+      })),
+    );
+  }
+  const app = webappForHost(host);
   const appPaths = app ? WEBAPP_PUBLIC_PATHS[app] : undefined;
   // A web app's host that is meant for search lists only its own public pages.
   if (app && appPaths) {

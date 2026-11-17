@@ -464,7 +464,9 @@
     "domain": "Escribe un dominio como peluqueria-ana.com.",
     "confirmMismatch": "No coincide: escríbelo tal cual.",
     "website": "Escribe la dirección de tu web, como tuweb.com.",
-    "breachedPassword": "Esta contraseña aparece en una filtración de datos, así que es de las primeras que se prueban. Elige otra."
+    "breachedPassword": "Esta contraseña aparece en una filtración de datos, así que es de las primeras que se prueban. Elige otra.",
+    "terms": "Tienes que aceptar las condiciones de uso.",
+    "adult": "Debes tener 18 años o más."
   },
   "Login": {
     "metaTitle": "Iniciar sesión",
@@ -522,7 +524,9 @@
     "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
     "error": "Ahora mismo no podemos crear tu cuenta. Vuelve a intentarlo.",
     "captcha": "No hemos podido comprobar que eres una persona. Espera a que termine la verificación y vuelve a intentarlo.",
-    "disposableEmail": "No aceptamos correos temporales. Usa tu correo de siempre."
+    "disposableEmail": "No aceptamos correos temporales. Usa tu correo de siempre.",
+    "acceptTerms": "He leído y acepto las <link>condiciones de uso</link>",
+    "confirmAdult": "Tengo 18 años o más"
   },
   "TwoFactorLogin": {
     "title": "Verificación en dos pasos",
@@ -3488,7 +3492,7 @@
     }
   },
   "Videochat": {
-    "metaTitle": "Videochat aleatorio gratis para adultos (+18) | Codeqlick",
+    "metaTitle": "Videochat aleatorio gratis para adultos (+18) | Neoqlick",
     "metaDescription": "Videochat con desconocidos al azar, gratis y sin descargar nada. Cámara a cámara desde el móvil o el ordenador, con filtros, contactos y cuentas verificadas.",
     "brand": "videochat",
     "homeLabel": "Inicio del videochat",
@@ -3597,10 +3601,10 @@
       "mustAccept": "Tienes que aceptar las normas para entrar.",
       "rulesChanged": "Las normas han cambiado: léelas y acéptalas de nuevo.",
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
-      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar el videochat, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick",
+      "consent": "Consiento que Neoqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar el videochat, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Neoqlick",
       "consentHint": "Datos de categoría especial (RGPD art. 9.2.a). Puedes retirar tu consentimiento cuando quieras borrando tu cuenta.",
       "mustConsent": "Necesitamos tu consentimiento explícito para entrar.",
-      "notAllowed": "Esta cuenta no puede usar las apps +18 de Codeqlick; escribe a hello@codeqlick.com"
+      "notAllowed": "Esta cuenta no puede usar las apps +18 de Neoqlick; escribe a hello@neoqlick.com"
     },
     "suspended": {
       "title": "Tu acceso está suspendido",
@@ -3626,7 +3630,7 @@
     },
     "ageVerification": {
       "title": "Falta verificar tu edad",
-      "body": "Para usar el videochat hay que verificar la edad. Escríbenos a hello@codeqlick.com y te explicamos cómo."
+      "body": "Para usar el videochat hay que verificar la edad. Escríbenos a hello@neoqlick.com y te explicamos cómo."
     },
     "room": {
       "startTitle": "¿Todo listo?",
@@ -3742,7 +3746,7 @@
     "rules": {
       "title": "Normas del videochat",
       "updated": "Versión del 17 de noviembre de 2026",
-      "intro": "El videochat de Codeqlick es un servicio para adultos. Al entrar aceptas estas normas. Si las incumples, suspendemos tu acceso.",
+      "intro": "El videochat de Neoqlick es un servicio para adultos. Al entrar aceptas estas normas. Si las incumples, suspendemos tu acceso.",
       "sections": [
         {
           "title": "1. Solo mayores de 18 años",
@@ -3769,20 +3773,20 @@
           "body": "No podemos impedir que alguien grabe su pantalla con otro dispositivo. No muestres lo que no quieras que se vea fuera de la llamada y no compartas datos personales."
         },
         {
-          "title": "7. Seguridad entre las apps +18 de Codeqlick",
-          "body": "Codeqlick tiene tres apps +18 con la misma cuenta: Cruising, Swipe y el videochat. Un bloqueo en una vale en las tres, en los dos sentidos. Una suspensión por menores, contenido sin consentimiento o contenido ilegal vale en las tres con la misma fecha de fin, y además te impide entrar en una app que no habías usado. Una sola verificación da la insignia de «Verificado» en las tres; su foto se guarda en privado mientras la verificación siga vigente (solo la ve el equipo) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta (el videochat la borraba al revisarla). Si borras tu cuenta mientras tienes una suspensión grave, guardamos un hash con clave de tu correo, no el correo, durante lo que dure la suspensión o 2 años si era permanente, para que esa cuenta no pueda volver a entrar en las apps +18; escribe a hello@codeqlick.com si crees que es un error. Al moderar, el equipo ve las denuncias y las suspensiones de una persona en las tres apps. No se comparte nada más entre ellas."
+          "title": "7. Seguridad entre las apps +18 de Neoqlick",
+          "body": "Neoqlick tiene tres apps +18 con la misma cuenta: Cruising, Swipe y el videochat. Un bloqueo en una vale en las tres, en los dos sentidos. Una suspensión por menores, contenido sin consentimiento o contenido ilegal vale en las tres con la misma fecha de fin, y además te impide entrar en una app que no habías usado. Una sola verificación da la insignia de «Verificado» en las tres; su foto se guarda en privado mientras la verificación siga vigente (solo la ve el equipo) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta (el videochat la borraba al revisarla). Si borras tu cuenta mientras tienes una suspensión grave, guardamos un hash con clave de tu correo, no el correo, durante lo que dure la suspensión o 2 años si era permanente, para que esa cuenta no pueda volver a entrar en las apps +18; escribe a hello@neoqlick.com si crees que es un error. Al moderar, el equipo ve las denuncias y las suspensiones de una persona en las tres apps. No se comparte nada más entre ellas."
         },
         {
           "title": "8. Por qué lo tratamos y tu consentimiento",
-          "body": "Base jurídica: nuestro interés legítimo en proteger a los miembros y evitar abusos (artículo 6.1.f del RGPD). El equilibrio se sostiene porque un miembro espera razonablemente que quien ha sido expulsado por contenido sexual con menores no siga en una app hermana con la misma cuenta; solo se comparten medidas de seguridad y solo los moderadores ven el historial. Como usar estas apps puede revelar tu vida sexual u orientación sexual (artículo 9), también se apoya en el consentimiento explícito que das al entrar (artículo 9.2.a), que incluye que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick. Puedes retirarlo borrando tu cuenta o escribiendo a hello@codeqlick.com."
+          "body": "Base jurídica: nuestro interés legítimo en proteger a los miembros y evitar abusos (artículo 6.1.f del RGPD). El equilibrio se sostiene porque un miembro espera razonablemente que quien ha sido expulsado por contenido sexual con menores no siga en una app hermana con la misma cuenta; solo se comparten medidas de seguridad y solo los moderadores ven el historial. Como usar estas apps puede revelar tu vida sexual u orientación sexual (artículo 9), también se apoya en el consentimiento explícito que das al entrar (artículo 9.2.a), que incluye que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Neoqlick. Puedes retirarlo borrando tu cuenta o escribiendo a hello@neoqlick.com."
         },
         {
           "title": "9. Contacto",
-          "body": "Para denunciar contenido, recurrir una suspensión o cualquier duda: hello@codeqlick.com."
+          "body": "Para denunciar contenido, recurrir una suspensión o cualquier duda: hello@neoqlick.com."
         }
       ],
       "metaTitle": "Normas del videochat para adultos",
-      "metaDescription": "Las normas del videochat aleatorio de Codeqlick: solo mayores de 18 años, consentimiento siempre, nada de grabar sin permiso, reportes y suspensiones."
+      "metaDescription": "Las normas del videochat aleatorio de Neoqlick: solo mayores de 18 años, consentimiento siempre, nada de grabar sin permiso, reportes y suspensiones."
     },
     "settingsLink": "Tu perfil",
     "genders": {
@@ -3794,7 +3798,7 @@
       "title": "Tu perfil y filtros",
       "lead": "Lo que ve la otra persona durante la llamada y con quién quieres coincidir. Todo es gratis.",
       "nickname": "Nombre de usuario",
-      "nicknameHint": "Tu @usuario de Codeqlick: es el mismo en todas las apps y nadie más puede tenerlo. Déjalo vacío para no mostrar ningún nombre. Nunca mostramos tu nombre real ni tu email.",
+      "nicknameHint": "Tu @usuario de Neoqlick: es el mismo en todas las apps y nadie más puede tenerlo. Déjalo vacío para no mostrar ningún nombre. Nunca mostramos tu nombre real ni tu email.",
       "nicknameInvalid": "Usa de 3 a 20 letras sin acentos, números, puntos o guiones bajos, empezando y terminando por letra o número.",
       "gender": "Género",
       "genderNone": "Prefiero no decirlo",
@@ -3894,7 +3898,7 @@
       "refresh": "Actualizar",
       "group": "Grupo"
     },
-    "metaSuffix": "Codeqlick Videochat",
+    "metaSuffix": "Neoqlick Videochat",
     "ogEyebrow": "Videochat · solo +18",
     "ogTitle": "Videochat aleatorio gratis: conoce a alguien nuevo, cara a cara",
     "group": {
@@ -3924,16 +3928,16 @@
       "status": {
         "NONE": "Opcional: verifica tu perfil y quien hable contigo verá una insignia junto a tu nombre de usuario.",
         "PENDING": "Estamos revisando tu foto. Te avisaremos por email.",
-        "APPROVED": "Tu perfil está verificado en todas las apps +18 de Codeqlick: los demás ven la insignia junto a tu nombre de usuario.",
+        "APPROVED": "Tu perfil está verificado en todas las apps +18 de Neoqlick: los demás ven la insignia junto a tu nombre de usuario.",
         "REJECTED": "No hemos podido aprobar tu foto. Envía otra siguiendo las instrucciones."
       },
-      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Codeqlick» y la fecha de hoy, con tu cara a la vista. Solo la ve el equipo y la guardamos en privado mientras la verificación siga vigente.",
+      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Neoqlick» y la fecha de hoy, con tu cara a la vista. Solo la ve el equipo y la guardamos en privado mientras la verificación siga vigente.",
       "nicknameFirst": "Primero elige tu nombre de usuario arriba y guárdalo.",
       "pick": "Elige la foto",
       "consent": "Soy yo y la envío para verificar mi perfil.",
       "send": "Enviar para revisar",
       "alt": "Tu foto de verificación",
-      "shared": "Una sola verificación para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
+      "shared": "Una sola verificación para todas las apps +18 de Neoqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
       "notAllowed": "No puedes enviarla ahora mismo."
     },
     "stats": {
@@ -3946,7 +3950,7 @@
     },
     "blocks": {
       "title": "Miembros bloqueados",
-      "lead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
+      "lead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Neoqlick. Al desbloquear se deshace en las tres.",
       "empty": "No has bloqueado a nadie.",
       "blockedOn": "bloqueado el {date}",
       "blockedOnIn": "bloqueado en {app} el {date}",
@@ -4670,7 +4674,7 @@
   "Swipe": {
     "metaTitle": "Swipe +18",
     "metaDescription": "Fotos íntimas de adultos que las comparten por voluntad propia. Desliza, da like y haz match. Solo para mayores de 18.",
-    "metaSuffix": "Codeqlick Swipe",
+    "metaSuffix": "Neoqlick Swipe",
     "ogEyebrow": "Swipe · solo +18",
     "ogTitle": "Desliza fotos de adultos, da like y haz match",
     "brand": "swipe",
@@ -4727,10 +4731,10 @@
       "underage": "Swipe es solo para mayores de 18 años.",
       "rulesChanged": "Las normas han cambiado: vuelve a cargar la página y léelas.",
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
-      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Swipe, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick",
+      "consent": "Consiento que Neoqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Swipe, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Neoqlick",
       "consentHint": "Datos de categoría especial (RGPD art. 9.2.a). Puedes retirar tu consentimiento cuando quieras borrando tu cuenta.",
       "mustConsent": "Necesitamos tu consentimiento explícito para entrar.",
-      "notAllowed": "Esta cuenta no puede usar las apps +18 de Codeqlick; escribe a hello@codeqlick.com"
+      "notAllowed": "Esta cuenta no puede usar las apps +18 de Neoqlick; escribe a hello@neoqlick.com"
     },
     "suspended": {
       "title": "Tu cuenta está suspendida en Swipe",
@@ -4788,7 +4792,7 @@
       "title": "Mi perfil",
       "lead": "Así te ven los demás en tus fotos. Nunca mostramos tu nombre ni tu correo.",
       "nickname": "Nombre de usuario",
-      "nicknameHint": "Tu @usuario de Codeqlick: es el mismo en todas las apps y nadie más puede tenerlo. Escríbelo en el papel de la foto de verificación.",
+      "nicknameHint": "Tu @usuario de Neoqlick: es el mismo en todas las apps y nadie más puede tenerlo. Escríbelo en el papel de la foto de verificación.",
       "nicknameInvalid": "Usa de 3 a 20 letras sin acentos, números, puntos o guiones bajos, empezando y terminando por letra o número.",
       "gender": "Género",
       "genderNone": "Prefiero no decirlo",
@@ -4826,16 +4830,16 @@
       "status": {
         "NONE": "Para subir fotos, primero envía una foto de verificación.",
         "PENDING": "Estamos revisando tu foto de verificación. Te avisaremos aquí.",
-        "APPROVED": "Verificada en todas las apps +18 de Codeqlick. Ya puedes subir fotos.",
+        "APPROVED": "Verificada en todas las apps +18 de Neoqlick. Ya puedes subir fotos.",
         "REJECTED": "No hemos aprobado tu foto de verificación. Envía otra siguiendo las instrucciones."
       },
-      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Codeqlick» y la fecha de hoy. Tiene que verse bien tu cara o una marca que luego se vea en tus fotos (un tatuaje, por ejemplo). Solo la ve el equipo.",
+      "lead": "Hazte una foto sujetando un papel en el que se lea «{nickname}», «Neoqlick» y la fecha de hoy. Tiene que verse bien tu cara o una marca que luego se vea en tus fotos (un tatuaje, por ejemplo). Solo la ve el equipo.",
       "nicknameFirst": "Primero elige tu nombre de usuario en tu perfil y guárdalo.",
       "pick": "Elige la foto",
       "consent": "Soy yo, soy mayor de 18 años y la envío para verificar mi cuenta.",
       "send": "Enviar para revisar",
       "alt": "Tu foto de verificación",
-      "shared": "Una sola verificación para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
+      "shared": "Una sola verificación para todas las apps +18 de Neoqlick (Cruising, Swipe y Videochat): la insignia aparece en las tres. Guardamos la foto en privado mientras siga vigente (solo la ve el equipo) y la borramos si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta.",
       "errors": {
         "notAllowed": "No puedes enviarla ahora mismo.",
         "conflict": "Ya tienes una foto pendiente o aprobada, o todavía no has elegido nombre de usuario."
@@ -4948,7 +4952,7 @@
       "submit": "Enviar la solicitud",
       "sending": "Enviando…",
       "sent": "Recibido. Te hemos enviado un correo de confirmación y te responderemos en 24 horas.",
-      "error": "No hemos podido enviarla. Inténtalo de nuevo o escribe a hello@codeqlick.com."
+      "error": "No hemos podido enviarla. Inténtalo de nuevo o escribe a hello@neoqlick.com."
     },
     "legal": {
       "terms": "Condiciones de uso",
@@ -4999,7 +5003,7 @@
     },
     "blocks": {
       "title": "Miembros bloqueados",
-      "lead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
+      "lead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Neoqlick. Al desbloquear se deshace en las tres.",
       "empty": "No has bloqueado a nadie.",
       "blockedOn": "bloqueado el {date}",
       "blockedOnIn": "bloqueado en {app} el {date}",
@@ -5094,7 +5098,7 @@
   "Cruising": {
     "metaTitle": "Cruising +18: mapa de lugares de ligue, con opiniones",
     "metaDescription": "Directorio mundial de lugares de cruising gay en un mapa, con opiniones de personas adultas. Solo mayores de 18, la seguridad primero y cada lugar revisado.",
-    "metaSuffix": "Codeqlick Cruising",
+    "metaSuffix": "Neoqlick Cruising",
     "ogEyebrow": "Cruising · solo +18",
     "ogTitle": "Un mapa de lugares de cruising, con opiniones y respeto",
     "brand": "cruising",
@@ -5165,7 +5169,7 @@
       "birthDate": "Fecha de nacimiento",
       "birthDateHint": "Comprobamos que tienes 18 años o más. Solo guardamos el año.",
       "accept": "Tengo 18 años o más y acepto las normas y las condiciones de uso de Cruising",
-      "consent": "Consiento que Codeqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Cruising, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Codeqlick",
+      "consent": "Consiento que Neoqlick trate datos que pueden revelar mi orientación sexual o mi vida sexual, para usar Cruising, y que las medidas de seguridad (bloqueos, suspensiones graves, verificación) valen en todas las apps +18 de Neoqlick",
       "consentHint": "Datos de categoría especial (RGPD art. 9.2.a). Puedes retirar tu consentimiento cuando quieras borrando tu cuenta.",
       "readRules": "Leer las normas",
       "submit": "Continuar",
@@ -5176,7 +5180,7 @@
       "underage": "Cruising es solo para mayores de 18 años.",
       "rulesChanged": "Las normas han cambiado: recarga la página y léelas.",
       "error": "No hemos podido guardarlo. Inténtalo de nuevo.",
-      "notAllowed": "Esta cuenta no puede usar las apps +18 de Codeqlick; escribe a hello@codeqlick.com"
+      "notAllowed": "Esta cuenta no puede usar las apps +18 de Neoqlick; escribe a hello@neoqlick.com"
     },
     "suspended": {
       "title": "Tu acceso a Cruising está suspendido",
@@ -5535,7 +5539,7 @@
       "alertsLabel": "Avisarme por correo cuando se publique un lugar mío o me esperen mensajes sin leer",
       "alertsHint": "Las decisiones del equipo (un rechazo, una suspensión) siempre se envían por correo. Los correos nunca nombran un lugar, un nombre de usuario ni un mensaje.",
       "blocksTitle": "Miembros bloqueados",
-      "blocksLead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Codeqlick. Al desbloquear se deshace en las tres.",
+      "blocksLead": "Los miembros bloqueados y tú no os veis en ninguna de las apps +18 de Neoqlick. Al desbloquear se deshace en las tres.",
       "blocksEmpty": "No has bloqueado a nadie.",
       "blockedOn": "bloqueado el {date}",
       "unblock": "Desbloquear",
@@ -5557,7 +5561,7 @@
       "tourLead": "El recorrido corto que viste al entrar: tu nombre de usuario, tus sitios favoritos, las notificaciones y tus fotos.",
       "tourReopen": "Ver el recorrido otra vez",
       "languageTitle": "Idioma",
-      "languageLead": "El idioma de los correos de Cruising y de las notificaciones en tus dispositivos. Los correos del resto de Codeqlick llegan en inglés si no eliges español.",
+      "languageLead": "El idioma de los correos de Cruising y de las notificaciones en tus dispositivos. Los correos del resto de Neoqlick llegan en inglés si no eliges español.",
       "languageLabel": "Idioma de los correos y las notificaciones",
       "languageInvalid": "Elige un idioma de la lista.",
       "blockedOnIn": "bloqueado en {app} el {date}",
@@ -5585,7 +5589,7 @@
         "verification": "La verificación"
       },
       "dataTitle": "Tus datos y tu cuenta",
-      "dataLead": "Descarga lo que Codeqlick guarda sobre ti, Cruising incluido, o cambia tu correo, tu contraseña y cómo inicias sesión.",
+      "dataLead": "Descarga lo que Neoqlick guarda sobre ti, Cruising incluido, o cambia tu correo, tu contraseña y cómo inicias sesión.",
       "dataExport": "Descargar mis datos",
       "accountSettings": "Ajustes de la cuenta",
       "yourName": "Tu nombre de usuario: @{nickname}",
@@ -5690,8 +5694,8 @@
     },
     "verification": {
       "title": "Verificación",
-      "lead": "Opcional: consigue la insignia de Verificado, para que los demás miembros sepan que tu perfil es tuyo y que eres adulto. Envías una sola foto tuya, una vez, y vale para todas las apps +18 de Codeqlick (Cruising, Swipe y Videochat).",
-      "step1": "Un papel con tu nombre de usuario, «Codeqlick» y la fecha de hoy",
+      "lead": "Opcional: consigue la insignia de Verificado, para que los demás miembros sepan que tu perfil es tuyo y que eres adulto. Envías una sola foto tuya, una vez, y vale para todas las apps +18 de Neoqlick (Cruising, Swipe y Videochat).",
+      "step1": "Un papel con tu nombre de usuario, «Neoqlick» y la fecha de hoy",
       "step2": "Tú sujetándolo, con la cara visible",
       "step3": "Con buena luz y nítida",
       "privacy": "Solo el equipo ve esta foto. Mientras la verificación siga vigente la guardamos en privado; se borra si se retira o se pierde la verificación, si la sustituyes o si borras tu cuenta. No pedimos ningún documento de identidad, y la insignia no significa que se haya comprobado uno.",
@@ -5702,7 +5706,7 @@
       "sending": "Enviando…",
       "sent": "Enviada. El equipo la revisará y te escribiremos por correo.",
       "pending": "Tu foto espera la revisión del equipo. Te escribiremos por correo cuando esté lista.",
-      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado en todas las apps +18 de Codeqlick. Si el nombre de tu papel deja de ser uno de tus nombres en estas apps, por ejemplo al cambiar de nombre de usuario, se retira la insignia y tendrás que verificarte de nuevo.",
+      "approved": "El equipo ha aprobado tu foto: tu perfil muestra la insignia de Verificado en todas las apps +18 de Neoqlick. Si el nombre de tu papel deja de ser uno de tus nombres en estas apps, por ejemplo al cambiar de nombre de usuario, se retira la insignia y tendrás que verificarte de nuevo.",
       "rejected": "El equipo no ha podido aprobar tu foto.",
       "rejectedNote": "Motivo: {note}",
       "errors": {
@@ -6437,7 +6441,7 @@
   "CruisingSafety": {
     "contacts": {
       "title": "Contactos de confianza",
-      "lead": "Hasta 2 personas de fuera de la app que reciben un email si tu temporizador de seguridad se agota. Primero reciben una invitación de «Alertas de seguridad de Codeqlick» y tienen que aceptarla. Los emails nunca mencionan Cruising ni tu nombre de usuario: te nombran como elijas aquí.",
+      "lead": "Hasta 2 personas de fuera de la app que reciben un email si tu temporizador de seguridad se agota. Primero reciben una invitación de «Alertas de seguridad de Neoqlick» y tienen que aceptarla. Los emails nunca mencionan Cruising ni tu nombre de usuario: te nombran como elijas aquí.",
       "loadError": "No hemos podido cargar tus contactos. Inténtalo más tarde.",
       "namedAs": "Te conoce como {name}",
       "statuses": {
@@ -6526,7 +6530,7 @@
     "enabled": "Guardar mi información de salud sexual",
     "enabledHint": "Desactivada: no guardamos nada.",
     "enabledOnHint": "Desmárcala y guarda para borrarlo todo al momento.",
-    "consent": "Doy mi consentimiento explícito para que Codeqlick guarde esta información de salud",
+    "consent": "Doy mi consentimiento explícito para que Neoqlick guarde esta información de salud",
     "consentHint": "Los datos de salud están especialmente protegidos (RGPD art. 9.2.a). Este consentimiento es distinto del que diste al entrar, y lo retiras desactivando esta opción.",
     "prep": "PrEP",
     "prepNone": "Prefiero no decirlo",
@@ -6572,13 +6576,13 @@
     "rapid": "Pruebas rápidas",
     "phone": "Teléfono:",
     "website": "Web:",
-    "note": "¿Conoces un centro que debería estar aquí o ves algo mal? Escríbenos a hello@codeqlick.com."
+    "note": "¿Conoces un centro que debería estar aquí o ves algo mal? Escríbenos a hello@neoqlick.com."
   },
   "SafetyContact": {
-    "metaTitle": "Alertas de seguridad de Codeqlick",
-    "title": "Alertas de seguridad de Codeqlick",
+    "metaTitle": "Alertas de seguridad de Neoqlick",
+    "title": "Alertas de seguridad de Neoqlick",
     "inviteLead": "Alguien te ha pedido que seas uno de sus contactos de confianza. Si aceptas, solo recibirás un email cuando uno de sus temporizadores de seguridad se agote. Puedes dejarlo cuando quieras.",
-    "stopLead": "Deja de recibir las alertas de seguridad de Codeqlick de esta persona. No volverás a recibir nada suyo.",
+    "stopLead": "Deja de recibir las alertas de seguridad de Neoqlick de esta persona. No volverás a recibir nada suyo.",
     "accept": "Aceptar",
     "refuse": "Rechazar",
     "stop": "Dejar de recibir alertas",
@@ -8487,5 +8491,50 @@
       "photos": "Fotos por revisar",
       "appeals": "Recursos"
     }
+  },
+  "Neoqlick": {
+    "heroEyebrow": "Neoqlick · +18",
+    "heroTitle": "Conecta <accent>a tu manera.</accent>",
+    "heroLead": "Tres apps para conocer gente, con una sola cuenta.",
+    "appsLabel": "Apps",
+    "open": "Abrir",
+    "openApp": "Abrir {app}",
+    "apps": {
+      "cruising": "El mapa de tu ciudad.",
+      "swipe": "Desliza, haz match y habla.",
+      "videochat": "Conoce gente al momento."
+    },
+    "safety": {
+      "eyebrow": "Tu seguridad",
+      "title": "Primero, <accent>tú.</accent>",
+      "verify": {
+        "title": "Verificación con insignia",
+        "body": "Opcional: demuestra que eres tú y gana confianza."
+      },
+      "checkin": {
+        "title": "Check-in de seguridad",
+        "body": "Avisa a un contacto si no confirmas que estás bien."
+      },
+      "block": {
+        "title": "Bloquear y denunciar",
+        "body": "En un toque, desde cualquier perfil o mensaje."
+      }
+    },
+    "accountTitle": "Una sola cuenta",
+    "accountBody": "Inicia sesión una vez y usa las tres apps.",
+    "accountCta": "Mi cuenta",
+    "companyTitle": "Quiénes somos",
+    "operator": "Neoqlick, nombre comercial de {name}",
+    "taxId": "NIF",
+    "address": "Dirección",
+    "contactTitle": "Contacto",
+    "contactBody": "Escríbenos a {email}. Leemos todo.",
+    "legalLabel": "Legal",
+    "legal": "Aviso legal",
+    "privacy": "Política de privacidad",
+    "terms": "Condiciones de uso",
+    "safetyContact": "Contacto de seguridad",
+    "adultNote": "Solo para adultos (+18).",
+    "copyright": "© {year} Neoqlick"
   }
 }

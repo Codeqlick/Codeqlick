@@ -21,7 +21,7 @@
 
 .brand {
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .ink {

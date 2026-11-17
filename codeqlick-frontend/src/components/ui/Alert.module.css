@@ -25,7 +25,7 @@
 
 .info {
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 /* Links take the message's colour: the brand fuchsia is too light on these backgrounds. */

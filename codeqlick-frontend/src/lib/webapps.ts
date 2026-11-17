@@ -8,19 +8,34 @@
  * The release publishes <name>.codeqlick.com (DNS, Nginx, certificate) by itself.
  */
 import { routing } from '@/i18n/routing';
+import { CODEQLICK_APPS, NEOQLICK_APPS, brandOfHost, type Brand } from './hosts';
 import { isCruisingOnlyLocale, localeOf } from './locales';
+
+export { CODEQLICK_APPS, NEOQLICK_APPS };
 
 export const WEBAPPS = ['videochat', 'meetings', 'citas', 'swipe', 'cruising', 'cloud'] as const;
 export type Webapp = (typeof WEBAPPS)[number];
 
-/** The 18+ apps: the other apps' "Apps" menu leaves them out (architecture 6.3). */
-export const ADULT_WEBAPPS: readonly Webapp[] = ['videochat', 'swipe', 'cruising'];
+/** The apps of a brand: Neoqlick's three, or (until PR C) every app on Codeqlick's hosts. */
+export function appsOfBrand(brand: Brand): readonly Webapp[] {
+  return brand === 'neoqlick' ? NEOQLICK_APPS : WEBAPPS;
+}
+
+/** The 18+ apps, Neoqlick's (architecture 4.18; an alias until PR C removes it). */
+export const ADULT_WEBAPPS: readonly Webapp[] = NEOQLICK_APPS;
 
 /**
- * The apps the "Apps" menu lists inside `current`: every other app from an 18+ app, only the apps
+ * The apps the "Apps" menu lists inside `current`. On a Neoqlick host the other two Neoqlick apps
+ * and nothing of Codeqlick; on Codeqlick's hosts every other app from an 18+ app, only the apps
  * for everyone from the others, so a booking page never points at explicit content.
  */
-export function switcherApps(current: Webapp): { app: Webapp; adult: boolean }[] {
+export function switcherApps(
+  current: Webapp,
+  brand: Brand = 'codeqlick',
+): { app: Webapp; adult: boolean }[] {
+  if (brand === 'neoqlick') {
+    return NEOQLICK_APPS.filter((app) => app !== current).map((app) => ({ app, adult: false }));
+  }
   const adultContext = ADULT_WEBAPPS.includes(current);
   return WEBAPPS.filter((app) => app !== current && (adultContext || !ADULT_WEBAPPS.includes(app)))
     .map((app) => ({ app, adult: ADULT_WEBAPPS.includes(app) }))
@@ -66,7 +81,8 @@ export const SITE_SECTIONS = [
 export function webappForHost(host: string | null | undefined): Webapp | null {
   if (!host) return null;
   const first = host.split(':')[0]?.split('.')[0]?.toLowerCase();
-  return WEBAPPS.find((app) => app === first) ?? null;
+  // Neoqlick's hosts have only Neoqlick's apps (`meetings.neoqlick.com` is no app).
+  return appsOfBrand(brandOfHost(host)).find((app) => app === first) ?? null;
 }
 
 /** The host of a web app next to the main site's host: codeqlick.com → videochat.codeqlick.com. */
@@ -115,7 +131,8 @@ export function routeWebapp(
       if (!redirectOld) return { action: 'pass' };
       return { action: 'redirect', to: `/${locale}${publicPath(app, rest)}` };
     }
-    if (SITE_SECTIONS.includes(section) || WEBAPPS.some((name) => name === section)) {
+    const apps = appsOfBrand(brandOfHost(host));
+    if (SITE_SECTIONS.includes(section) || apps.some((name) => name === section)) {
       const mainHost = host.slice(app.length + 1);
       // Only Cruising speaks French, German, Italian and Portuguese: elsewhere they're English.
       const path =
@@ -127,7 +144,7 @@ export function routeWebapp(
     return { action: 'rewrite', to: `/${locale}/${app}${rest === '/' ? '' : rest}` };
   }
 
-  const target = WEBAPPS.find((name) => name === section);
+  const target = appsOfBrand(brandOfHost(host)).find((name) => name === section);
   // An IP address has no subdomains: Next.js's own requests to itself (127.0.0.1) are served.
   if (!target || isIpHost(host)) return { action: 'pass' };
   const to = `/${locale}${publicPath(target, rest)}`;
@@ -150,4 +167,42 @@ export function publicPath(app: Webapp, path: string): string {
 export function appHref(app: Webapp, href: string): string {
   const short = publicPath(app, href);
   return short === '' || short.startsWith('?') || short.startsWith('#') ? `/${short}` : short;
+}
+
+/** The portal's route folder (`app/[locale]/neoqlick`), architecture 4.18. */
+export const PORTAL = 'neoqlick';
+
+/**
+ * Pages of the website's routes that the portal host serves as they are: Cruising's safety
+ * contact page (4.15) and the unsubscribe page of the optional emails (`/email/unsubscribe`).
+ */
+export const PORTAL_SHARED_PAGES = ['safety-contact', 'email'];
+
+/**
+ * Where a request goes on the portal host (`neoqlick.com`): the apps' addresses go to their hosts
+ * (without the app's name), the shared pages are served as they are, the old addresses with the
+ * folder's name go to the short ones (on navigations), and everything else is the portal's route
+ * `/{locale}/neoqlick/...` (its own 404 for what doesn't exist).
+ */
+export function routePortal(
+  pathname: string,
+  host: string,
+  protocol: string,
+  redirectOld = true,
+): WebappRoute {
+  const prefix = localeOf(pathname);
+  if (!prefix) return { action: 'pass' };
+  const { locale, section } = prefix;
+  const rest = pathname.slice(locale.length + 1);
+  if (PORTAL_SHARED_PAGES.includes(section)) return { action: 'pass' };
+  if (section === PORTAL) {
+    if (!redirectOld) return { action: 'pass' };
+    return { action: 'redirect', to: `/${locale}${rest.slice(PORTAL.length + 1)}` };
+  }
+  const target = NEOQLICK_APPS.find((name) => name === section);
+  if (target && !isIpHost(host)) {
+    const to = `/${locale}${publicPath(target, rest)}`;
+    return { action: 'redirect', to: `${protocol}//${webappHost(target, host)}${to}` };
+  }
+  return { action: 'rewrite', to: `/${locale}/${PORTAL}${rest === '/' ? '' : rest}` };
 }

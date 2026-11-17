@@ -25,3 +25,12 @@ const mono = localFont({
 
 /** Brand font variables, set on <html> by every document root (locale layout, root 404). */
 export const fontVariables = `${display.variable} ${body.variable} ${mono.variable}`;
+
+/**
+ * The font variables of a brand's pages: Neoqlick's (Montserrat for display headings, no Space
+ * Grotesk) are loaded only for its hosts, from a module imported on demand.
+ */
+export async function fontVariablesFor(brand: 'codeqlick' | 'neoqlick'): Promise<string> {
+  if (brand === 'neoqlick') return (await import('./fonts-neoqlick')).neoqlickFontVariables;
+  return fontVariables;
+}

@@ -14,7 +14,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   /* The darker fuchsia: the brand one is under 4.5:1 on white at this size. */
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   text-decoration: none;
 }
 
@@ -154,7 +154,7 @@
 }
 
 .listTable tbody tr:has(a:focus-visible) {
-  outline: 3px solid var(--color-fuchsia);
+  outline: 3px solid var(--color-brand);
   outline-offset: -3px;
 }
 
@@ -511,7 +511,7 @@
   list-style: none;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .commentForm > summary::-webkit-details-marker {
@@ -568,7 +568,7 @@
   width: fit-content;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .milestoneEdit[open] > summary {

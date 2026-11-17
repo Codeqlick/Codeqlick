@@ -67,12 +67,12 @@
 }
 
 .item:hover {
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 .item[aria-current='page'] {
-  color: var(--color-fuchsia-dark);
-  box-shadow: inset 3px 0 0 var(--color-fuchsia);
+  color: var(--color-brand-dark);
+  box-shadow: inset 3px 0 0 var(--color-brand);
   padding-left: 0.85rem;
 }
 

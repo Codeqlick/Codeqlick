@@ -13,8 +13,9 @@
  */
 import { routing, CRUISING_ONLY_LOCALES } from '@/i18n/routing';
 import { ACCOUNT, accountHostFor, isAccountHost, mainHostOf } from './account-host';
+import { brandOfHost, classifyHost, type Brand } from './hosts';
 import { localeOf } from './locales';
-import { WEBAPPS, publicPath, webappForHost, type Webapp } from './webapps';
+import { NEOQLICK_APPS, WEBAPPS, publicPath, webappForHost, type Webapp } from './webapps';
 
 /** The hosts that get sessions from the account host: the website and every web app. */
 export const SSO_CLIENTS = ['site', ...WEBAPPS] as const;
@@ -25,14 +26,25 @@ export const SSO_COOKIE_PREFIX = 'cq_sso_';
 /** How long a sign-in may take between leaving the client host and coming back. */
 export const SSO_COOKIE_MAX_AGE = 10 * 60;
 
-export function isSsoClient(value: unknown): value is SsoClient {
-  return typeof value === 'string' && (SSO_CLIENTS as readonly string[]).includes(value);
+/**
+ * Whether `value` is a client of the realm: Neoqlick's accounts sign in to its three apps only
+ * (architecture 4.18), Codeqlick's to the website and every app (until PR C).
+ */
+export function isSsoClient(value: unknown, brand: Brand = 'codeqlick'): value is SsoClient {
+  const clients: readonly string[] = brand === 'neoqlick' ? NEOQLICK_APPS : SSO_CLIENTS;
+  return typeof value === 'string' && clients.includes(value);
 }
 
-/** The client a host is: `site` for the main host, the app for an app's host, null for the account host. */
+/**
+ * The client a host is: `site` for Codeqlick's main host, the app for an app's host, null for the
+ * account host and for Neoqlick's portal (which has no session).
+ */
 export function ssoClientForHost(host: string): SsoClient | null {
-  if (isAccountHost(host)) return null;
-  return webappForHost(host) ?? 'site';
+  const { brand, kind } = classifyHost(host);
+  if (kind === 'account' || kind === 'portal') return null;
+  const app = webappForHost(host);
+  if (app) return app;
+  return brand === 'neoqlick' ? null : 'site';
 }
 
 /** A client's host next to the account host: never taken from a request's parameters. */
@@ -165,11 +177,15 @@ export type AuthorizeRequest = {
 };
 
 /** Reads an authorize request's query; null when anything is missing or malformed. */
-export function parseAuthorizeQuery(query: URLSearchParams): AuthorizeRequest | null {
+export function parseAuthorizeQuery(
+  query: URLSearchParams,
+  accountHost?: string | null,
+): AuthorizeRequest | null {
   const client = query.get('client');
   const state = query.get('state');
   const codeChallenge = query.get('code_challenge');
-  if (!isSsoClient(client) || !isValidState(state)) return null;
+  // The account host's brand decides the realm: a client of the other brand is refused.
+  if (!isSsoClient(client, brandOfHost(accountHost)) || !isValidState(state)) return null;
   if (!codeChallenge || !CHALLENGE.test(codeChallenge)) return null;
   if (query.get('code_challenge_method') !== 'S256') return null;
   return { client, state, codeChallenge, register: query.get('screen') === 'register' };
@@ -246,6 +262,8 @@ export function routeSignIn(
   const prefix = localeOf(pathname);
   if (!prefix || isAccountHost(host)) return { action: 'pass' };
   const { locale, section } = prefix;
+  // Neoqlick's portal has no session: its sign-in addresses are the account host's.
+  const portal = classifyHost(host).kind === 'portal';
   const rest = pathname.slice(locale.length + 1 + section.length + 1).replace(/\/$/, '');
   const account = (path: string, extra?: Record<string, string>) => {
     const params = new URLSearchParams(query);
@@ -258,6 +276,7 @@ export function routeSignIn(
   };
 
   if (section === 'login') {
+    if (rest === '' && portal) return account('/login');
     if (rest === '') return { action: 'start', locale, next: query.get('next'), register: false };
     return account('/login');
   }
@@ -267,6 +286,7 @@ export function routeSignIn(
       return account('/register/confirm', app && !query.get('app') ? { app } : undefined);
     }
     if (rest === '' && query.has('invitation')) return account('/register');
+    if (rest === '' && portal) return account('/register');
     if (rest === '') return { action: 'start', locale, next: query.get('next'), register: true };
     return { action: 'pass' };
   }

@@ -1,0 +1,56 @@
+{
+  "Metadata": {
+    "siteName": "Neoqlick",
+    "defaultTitle": "Neoqlick — App per adulti (18+)",
+    "description": "Neoqlick crea e gestisce Cruising, Swipe e Videochat: app per adulti (18+), con un solo account Neoqlick per tutte.",
+    "ogTitle": "Neoqlick — App per adulti (18+)"
+  },
+  "Common": {
+    "homeLabel": "Home di Neoqlick"
+  },
+  "Login": {
+    "metaDescription": "Accedi al tuo account Neoqlick per usare Cruising, Swipe e Videochat.",
+    "subtitle": "Usa il tuo account Neoqlick in Cruising, Swipe e Videochat.",
+    "backToSite": "Torna a Neoqlick"
+  },
+  "Register": {
+    "metaDescription": "Crea il tuo account Neoqlick, riservato agli adulti (18+), e usa Cruising, Swipe e Videochat con un solo accesso.",
+    "subtitle": "Un solo account per Cruising, Swipe e Videochat. Devi avere almeno 18 anni.",
+    "backToSite": "Torna a Neoqlick"
+  },
+  "ResetPassword": {
+    "welcomeTitle": "Benvenuto in Neoqlick"
+  },
+  "Account": {
+    "deleteHasProjects": "Il tuo account ha progetti con noi, con i relativi contratti e fatture, quindi lo chiudiamo noi: apri una richiesta di assistenza o scrivi a hello@neoqlick.com e ce ne occupiamo.",
+    "yourDataBody": "Scarica in un file (JSON) tutto ciò che conserviamo su di te: il tuo account, le sessioni e i tuoi dati in Cruising, Swipe e Videochat.",
+    "deleteBody": "Il tuo account e ciò che ne dipende (i tuoi profili, messaggi e foto in Cruising, Swipe e Videochat…) verranno eliminati. Non si può annullare. Riceverai un’email di conferma."
+  },
+  "AccountSite": {
+    "overview": {
+      "lead": "Un solo account Neoqlick per tutte le app. Accedi qui una volta e ogni app ti riconosce.",
+      "apps": "{count, plural, =0 {Non usi ancora nessuna app.} one {Usi # app di Neoqlick.} other {Usi # app di Neoqlick.}}"
+    },
+    "profile": {
+      "lead": "Come appari su Neoqlick: nelle app si vede solo il tuo nome utente."
+    },
+    "clients": {
+      "account": "Account Neoqlick",
+      "site": "neoqlick.com"
+    }
+  },
+  "Passkeys": {
+    "lead": "Accedi con l’impronta, il volto o il blocco schermo invece di password e codice. Una passkey si trova sul tuo dispositivo o nel tuo gestore di password e funziona solo su Neoqlick."
+  },
+  "Error": {
+    "body": "Riprova. Se il problema persiste, scrivi a hello@neoqlick.com."
+  },
+  "AppSwitcher": {
+    "label": "Altre app di Neoqlick"
+  },
+  "AppMenu": {
+    "footer": {
+      "copyright": "© {year} Neoqlick"
+    }
+  }
+}

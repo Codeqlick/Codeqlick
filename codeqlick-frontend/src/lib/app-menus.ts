@@ -1,4 +1,6 @@
 import { siteLocale } from '@/i18n/routing';
+import { CONTACT_EMAIL_NEOQLICK } from './brand';
+import type { Brand } from './hosts';
 import { appHref, type Webapp } from './webapps';
 
 /**
@@ -308,6 +310,8 @@ export type AppFooterContext = {
   legal: boolean;
   /** Cloud's docs (absolute when `CLOUD_DOCS_URL` is set). */
   docsHref?: string;
+  /** Neoqlick's hosts: `siteUrl` is the portal's, which has no contact form but an address. */
+  brand?: Brand;
 };
 
 /**
@@ -317,9 +321,11 @@ export type AppFooterContext = {
  */
 export function appFooter(
   app: Webapp,
-  { locale, siteUrl, legal, docsHref }: AppFooterContext,
+  { locale, siteUrl, legal, docsHref, brand = 'codeqlick' }: AppFooterContext,
 ): AppMenuItem[] {
-  const site = `${siteUrl.replace(/\/$/, '')}/${siteLocale(locale)}`;
+  const neoqlick = brand === 'neoqlick';
+  // Neoqlick's portal speaks six languages, the website two.
+  const site = `${siteUrl.replace(/\/$/, '')}/${neoqlick ? locale : siteLocale(locale)}`;
   const onSite = (id: string, path: string, label: string, when = true): Entry => ({
     id,
     href: `${site}${path}`,
@@ -329,7 +335,15 @@ export function appFooter(
   });
   const siteTerms = onSite('terms', '/terms', 'AppMenu.footer.terms', legal);
   const sitePrivacy = onSite('privacy', '/privacy', 'AppMenu.footer.privacy', legal);
-  const contact = onSite('contact', '/contact', 'AppMenu.footer.contact');
+  // Neoqlick has no contact form: the contact is its address (architecture 4.18).
+  const contact: Entry = neoqlick
+    ? {
+        id: 'contact',
+        href: `mailto:${CONTACT_EMAIL_NEOQLICK}`,
+        label: 'AppMenu.footer.contact',
+        external: true,
+      }
+    : onSite('contact', '/contact', 'AppMenu.footer.contact');
 
   switch (app) {
     case 'cruising':

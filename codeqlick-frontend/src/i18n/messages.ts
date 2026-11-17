@@ -38,6 +38,8 @@ export const CRUISING_NAMESPACES = [
   'CruisingSafety',
   'CruisingHealth',
   'CruisingHealthCenters',
+  // Neoqlick's portal (architecture 4.18).
+  'Neoqlick',
 ] as const;
 
 /** `messages` over `fallback`, key by key: what `messages` lacks comes from `fallback`. */
@@ -50,3 +52,54 @@ export function withFallback(messages: Messages, fallback: Messages): Messages {
   }
   return merged;
 }
+
+/** `base` with every key of `over` replacing its own: Neoqlick's wording over the shared messages. */
+export function overlay(base: Messages, over: Messages): Messages {
+  const merged: Messages = { ...base };
+  for (const [key, value] of Object.entries(over)) {
+    const current = merged[key];
+    merged[key] =
+      typeof value === 'object' && typeof current === 'object' ? overlay(current, value) : value;
+  }
+  return merged;
+}
+
+/**
+ * The namespaces Neoqlick's hosts can render (architecture 4.18): the portal, the account host,
+ * the sign-in pages and the three apps. A test walks them, with Neoqlick's wording applied, and
+ * fails when `codeqlick` appears in any language.
+ */
+export const NEOQLICK_NAMESPACES = [
+  'Common',
+  'Error',
+  'NotFound',
+  'Validation',
+  'Pagination',
+  'Markdown',
+  'Legal',
+  'Metadata',
+  'App',
+  'AppSwitcher',
+  'AppMenu',
+  'LocaleSwitcher',
+  'Login',
+  'TwoFactorLogin',
+  'Register',
+  'ForgotPassword',
+  'ResetPassword',
+  'Account',
+  'AccountSite',
+  'TwoFactor',
+  'Passkeys',
+  'Sessions',
+  'ConfirmEmail',
+  'Unsubscribe',
+  'Neoqlick',
+  'Videochat',
+  'Swipe',
+  'Cruising',
+  'CruisingSafety',
+  'CruisingHealth',
+  'CruisingHealthCenters',
+  'SafetyContact',
+] as const;

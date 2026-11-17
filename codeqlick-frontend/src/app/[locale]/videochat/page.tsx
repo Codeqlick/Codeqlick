@@ -7,7 +7,7 @@ import { InstallApp } from '@/components/videochat/InstallApp';
 import { resolveLocale } from '@/i18n/locale';
 import { getVideochatOnline } from '@/lib/api/videochat';
 import { getCurrentUser } from '@/lib/auth/session';
-import { SITE_NAME, SOCIAL_LINKS } from '@/lib/site';
+import { env } from '@/lib/env';
 import { webappOrigin, webappUrl } from '@/lib/webapp-seo';
 import adult from '@/components/adult/adult.module.css';
 import styles from './videochat.module.css';
@@ -40,9 +40,8 @@ function structuredData(locale: string, name: string, description: string, faq: 
       {
         '@type': 'Organization',
         '@id': `${webappOrigin('videochat')}#org`,
-        name: SITE_NAME,
-        url: 'https://codeqlick.com',
-        sameAs: SOCIAL_LINKS.map((link) => link.href),
+        name: 'Neoqlick',
+        url: env.NEOQLICK_URL ?? webappOrigin('videochat'),
       },
       {
         '@type': 'FAQPage',

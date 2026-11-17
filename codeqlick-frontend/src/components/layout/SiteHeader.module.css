@@ -34,7 +34,7 @@
 }
 
 .link:hover {
-  color: var(--color-fuchsia);
+  color: var(--color-brand);
 }
 
 /* The section the visitor is in: a short fuchsia bar under the link. */
@@ -46,7 +46,7 @@
   bottom: -0.45rem;
   height: 2px;
   border-radius: 2px;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   transform: scaleX(0);
   transition: transform var(--transition-fast);
 }
@@ -57,7 +57,7 @@
 }
 
 .link[aria-current='page'] {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 .nav .cta {

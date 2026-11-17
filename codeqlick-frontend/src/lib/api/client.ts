@@ -5,6 +5,7 @@ import { getLocale } from 'next-intl/server';
 import { env } from '@/lib/env';
 import { ACCESS_COOKIE } from '@/lib/auth/constants';
 import { clientHeaders } from '@/lib/auth/refresh';
+import { brandOfHost } from '@/lib/hosts';
 import { ApiError } from './errors';
 import type { ProblemDetails } from './types';
 
@@ -58,6 +59,22 @@ export function buildQuery(query: Record<string, QueryValue> | undefined): strin
   return qs ? `?${qs}` : '';
 }
 
+/**
+ * The realm of the request's host for the account routes (architecture 4.18): `NEOQLICK` on
+ * Neoqlick's hosts, nothing (the API reads it as CODEQLICK) anywhere else. Public account routes
+ * (sign-in, sign-up, password reset, passkeys, single sign-on's exchange) choose the user base
+ * by it; every other route ignores it. Outside a request (the build) there is no host.
+ */
+async function realmHeader(): Promise<'NEOQLICK' | undefined> {
+  try {
+    const incoming = await requestHeaders();
+    const host = incoming.get('x-forwarded-host')?.split(',')[0]?.trim() || incoming.get('host');
+    return brandOfHost(host) === 'neoqlick' ? 'NEOQLICK' : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function readAccessToken(): Promise<string | undefined> {
   const store = await cookies();
   return store.get(ACCESS_COOKIE)?.value || undefined;
@@ -90,6 +107,10 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new ApiError(401, { title: 'Unauthorized', detail: 'Not signed in' });
   }
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  if (path.startsWith('/auth/')) {
+    const realm = await realmHeader();
+    if (realm) headers.set('X-Realm', realm);
+  }
 
   // fetch sets the multipart Content-Type (with its boundary) itself.
   const isForm = body instanceof FormData;

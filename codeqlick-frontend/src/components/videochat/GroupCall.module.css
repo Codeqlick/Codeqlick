@@ -57,7 +57,7 @@
 
 .tileButton:hover,
 .tileButton:focus-visible {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
 }
 
 .alone {

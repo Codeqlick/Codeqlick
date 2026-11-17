@@ -9,7 +9,8 @@
  */
 import { routing } from '@/i18n/routing';
 import { isCruisingOnlyLocale, localeOf } from './locales';
-import { SITE_SECTIONS, WEBAPPS, webappForHost, type WebappRoute } from './webapps';
+import { brandOfHost } from './hosts';
+import { SITE_SECTIONS, appsOfBrand, webappForHost, type WebappRoute } from './webapps';
 
 /** The account host's first label, and its pages' route folder (`app/[locale]/account`). */
 export const ACCOUNT = 'account';
@@ -99,7 +100,10 @@ export function routeAccount(
     if (!redirectOld) return { action: 'pass' };
     return { action: 'redirect', to: `/${locale}${rest.slice(ACCOUNT.length + 1)}` };
   }
-  if (SITE_SECTIONS.includes(section) || WEBAPPS.some((app) => app === section)) {
+  if (
+    SITE_SECTIONS.includes(section) ||
+    appsOfBrand(brandOfHost(host)).some((app) => app === section)
+  ) {
     const path =
       section !== 'cruising' && isCruisingOnlyLocale(locale)
         ? `/${routing.defaultLocale}${rest}`

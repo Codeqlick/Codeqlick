@@ -106,12 +106,12 @@ export default async function AdminDashboardPage({
               series={[
                 {
                   label: t('leadsWon'),
-                  color: 'var(--color-fuchsia)',
+                  color: 'var(--color-brand)',
                   values: months.map((m) => m.leadsWon),
                 },
                 {
                   label: t('leadsOther'),
-                  color: 'var(--color-fuchsia-light)',
+                  color: 'var(--color-brand-light)',
                   values: months.map((m) => m.leads - m.leadsWon),
                 },
               ]}

@@ -2,7 +2,7 @@ import styles from './BarChart.module.css';
 
 export type BarSeries = {
   label: string;
-  /** A CSS color, e.g. `var(--color-fuchsia)`. */
+  /** A CSS color, e.g. `var(--color-brand)`. */
   color: string;
   values: number[];
 };

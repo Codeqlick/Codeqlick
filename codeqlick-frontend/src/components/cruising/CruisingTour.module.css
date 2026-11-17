@@ -19,7 +19,7 @@
   overscroll-behavior: contain;
   padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-line);
-  border-top: 3px solid var(--color-fuchsia);
+  border-top: 3px solid var(--color-brand);
   border-radius: var(--radius-lg);
   background: var(--color-white);
   color: var(--color-ink);
@@ -39,7 +39,7 @@
     max-height: 45dvh;
     padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
     border-width: 1px 0 0;
-    border-top: 3px solid var(--color-fuchsia);
+    border-top: 3px solid var(--color-brand);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 }
@@ -77,7 +77,7 @@
   padding: 0.1rem 0.5rem;
   border-radius: var(--radius-pill);
   background: var(--color-blush);
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   font-family: var(--font-family-mono);
   font-size: 0.75rem;
   font-weight: 600;
@@ -134,7 +134,7 @@
 }
 
 .stepTitle:focus-visible {
-  outline: 2px solid var(--color-fuchsia);
+  outline: 2px solid var(--color-brand);
   outline-offset: 4px;
 }
 

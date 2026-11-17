@@ -111,7 +111,7 @@ export default async function AdminVideochatStatsPage({ params, searchParams }: 
             series={[
               {
                 label: t('activeSeries'),
-                color: 'var(--color-fuchsia)',
+                color: 'var(--color-brand)',
                 values: history.days.map((day) => day.activeUsers),
               },
             ]}
@@ -127,12 +127,12 @@ export default async function AdminVideochatStatsPage({ params, searchParams }: 
             series={[
               {
                 label: t('longSeries'),
-                color: 'var(--color-fuchsia)',
+                color: 'var(--color-brand)',
                 values: history.days.map((day) => day.longCalls),
               },
               {
                 label: t('shortCalls'),
-                color: 'var(--color-fuchsia-light)',
+                color: 'var(--color-brand-light)',
                 values: history.days.map((day) => day.calls - day.longCalls),
               },
             ]}
@@ -163,7 +163,7 @@ export default async function AdminVideochatStatsPage({ params, searchParams }: 
               },
               {
                 label: t('reports'),
-                color: 'var(--color-fuchsia-dark)',
+                color: 'var(--color-brand-dark)',
                 values: history.days.map((day) => day.reports),
               },
             ]}

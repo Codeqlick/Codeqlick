@@ -24,8 +24,8 @@
 }
 
 .chip:hover {
-  border-color: var(--color-fuchsia);
-  color: var(--color-fuchsia-dark);
+  border-color: var(--color-brand);
+  color: var(--color-brand-dark);
 }
 
 .active,

@@ -15,10 +15,11 @@ vi.mock('@/i18n/navigation', () => ({
   ),
 }));
 vi.mock('@/lib/env', () => ({
-  env: { SITE_URL: 'https://codeqlick.com' },
+  env: { SITE_URL: 'https://codeqlick.com', NEOQLICK_URL: undefined },
   get legalOwner() {
     return state.legal ? { name: 'Codeqlick' } : null;
   },
+  neoqlickLegalOwner: undefined,
 }));
 vi.mock('next-intl/server', () => ({
   getTranslations: async () => (key: string, values?: Record<string, unknown>) => {

@@ -10,15 +10,25 @@ import {
   routing,
   type AppLocale,
 } from '@/i18n/routing';
+import { classifyHost } from './hosts';
 import { webappForHost, type Webapp } from './webapps';
 
-/** What a host serves for its languages: a web app, the account host (decision 108) or the site. */
-export type HostApp = Webapp | 'account' | null;
+/**
+ * What a host serves for its languages: a web app, the account host (decision 108), Neoqlick's
+ * portal (architecture 4.18) or the site.
+ */
+export type HostApp = Webapp | 'account' | 'portal' | null;
 
-/** The app of a host, or `account` for the account host, or null for the website. */
+/** The app of a host, `account` for an account host, `portal` for Neoqlick's, null for the website. */
 export function hostApp(host: string | null | undefined): HostApp {
   if (host?.split(':')[0]?.split('.')[0]?.toLowerCase() === 'account') return 'account';
+  if (classifyHost(host).kind === 'portal') return 'portal';
   return webappForHost(host);
+}
+
+/** Whether a host speaks all six languages: Cruising's, the account host's and Neoqlick's portal. */
+function speaksAll(app: HostApp): boolean {
+  return app === 'cruising' || app === 'account' || app === 'portal';
 }
 
 /** `en|es|fr|de|it|pt`, for the patterns that read a locale prefix. */
@@ -45,8 +55,10 @@ export function isCruisingOnlyLocale(locale: string): boolean {
  */
 export function requestLocales(pathname: string, app: HostApp): readonly AppLocale[] {
   const section = localeOf(pathname)?.section;
-  if (app === 'cruising' || app === 'account') return CRUISING_LOCALES;
-  if (section === 'cruising' || section === 'account') return CRUISING_LOCALES;
+  if (speaksAll(app)) return CRUISING_LOCALES;
+  if (section === 'cruising' || section === 'account' || section === 'neoqlick') {
+    return CRUISING_LOCALES;
+  }
   return SITE_LOCALES;
 }
 
@@ -62,7 +74,7 @@ export function localeRedirect(pathname: string, app: HostApp): string | null {
 
 /** The languages a host's language switcher, sitemap and hreflang list. */
 export function appLocales(app: HostApp): readonly AppLocale[] {
-  return app === 'cruising' || app === 'account' ? CRUISING_LOCALES : SITE_LOCALES;
+  return speaksAll(app) ? CRUISING_LOCALES : SITE_LOCALES;
 }
 
 /** Each language by its own name, as Cruising's language switcher lists them. */

@@ -1,5 +1,5 @@
 /*
- * Service worker of swipe.codeqlick.com (architecture 4.10): it only shows Swipe's discreet
+ * Service worker of swipe.neoqlick.com (architecture 4.10, 4.18): it only shows Swipe's discreet
  * notifications (new match, new message, «me encanta») and opens Swipe when one is tapped. No
  * caching: every photo is private and goes through the server.
  */
@@ -18,8 +18,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: typeof data.body === 'string' ? data.body : '',
-      icon: '/swipe-192.png',
-      badge: '/swipe-192.png',
+      icon: '/neoqlick/png/favicon-192.png',
+      badge: '/neoqlick/png/favicon-192.png',
       tag: typeof data.tag === 'string' ? data.tag : 'swipe',
       data: { url },
     }),

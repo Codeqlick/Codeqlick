@@ -4,7 +4,7 @@ import { isApiError } from '@/lib/api/errors';
 const BARRED = /18\+ apps/i;
 
 /**
- * What a refused entry (403) says: the neutral "this account can't use Codeqlick's 18+ apps"
+ * What a refused entry (403) says: the neutral "this account can't use Neoqlick's 18+ apps"
  * when the API says so, otherwise the app's own "only for 18 or over". `t` is the entry form's
  * translator of the app (`onboarding.notAllowed`, `onboarding.underage`).
  */

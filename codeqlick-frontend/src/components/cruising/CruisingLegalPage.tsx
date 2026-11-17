@@ -5,15 +5,14 @@ import { Markdown } from '@/components/markdown/Markdown';
 import { type LegalOwner } from '@/content/legal';
 import { cruisingLegalDocument, type CruisingLegalPage } from '@/content/legal/cruising';
 import { resolveCruisingLocale } from '@/i18n/locale';
-import { legalOwner } from '@/lib/env';
-import { SITE_NAME } from '@/lib/site';
+import { neoqlickLegalOwner } from '@/lib/env';
 import { webappAlternates } from '@/lib/webapp-seo';
 
 type PageProps = { params: Promise<{ locale: string }> };
 
-/** Until LEGAL_OWNER_NAME is set the texts name the studio. */
+/** Until a legal holder is set (NEOQLICK_LEGAL_OWNER_NAME or LEGAL_OWNER_NAME) the texts name Neoqlick. */
 function owner(): LegalOwner {
-  return legalOwner ?? { name: SITE_NAME };
+  return neoqlickLegalOwner ?? { name: 'Neoqlick' };
 }
 
 const PATHS: Record<CruisingLegalPage, string> = {

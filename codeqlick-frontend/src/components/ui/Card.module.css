@@ -28,7 +28,7 @@
 
 /* Fuchsia on blush is 4.2:1, under the 4.5:1 that text needs: links use the darker fuchsia. */
 .blush a:not([class]) {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 /* Interactive (architecture 6.6): the whole card opens its one link (`CardLink`, stretched over
@@ -43,13 +43,13 @@
 }
 
 .interactive:hover {
-  border-color: var(--color-fuchsia-light);
+  border-color: var(--color-brand-light);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
 .interactive:has(.cardLink:focus-visible) {
-  outline: 2px solid var(--color-fuchsia);
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 

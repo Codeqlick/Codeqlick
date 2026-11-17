@@ -58,7 +58,7 @@
 .tag {
   font-family: var(--font-family-mono);
   font-size: 0.8rem;
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
   white-space: nowrap;
 }
 
@@ -151,7 +151,7 @@
 }
 
 .link {
-  color: var(--color-fuchsia-dark);
+  color: var(--color-brand-dark);
 }
 
 /* Editor */
@@ -275,11 +275,11 @@
 
 .day:hover,
 .time:hover {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
 }
 
 .selected {
-  border-color: var(--color-fuchsia);
+  border-color: var(--color-brand);
   background: var(--color-blush);
 }
 

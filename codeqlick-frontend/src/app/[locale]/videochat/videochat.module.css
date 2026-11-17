@@ -183,7 +183,7 @@
 }
 
 .presence_busy {
-  background: var(--color-fuchsia-light);
+  background: var(--color-brand-light);
 }
 
 .presence_offline {
@@ -202,14 +202,14 @@
   min-height: 2.5rem;
   padding: 0 var(--space-4);
   border-radius: 999px;
-  background: var(--color-fuchsia);
+  background: var(--color-brand);
   color: var(--color-white);
   font-weight: 600;
   text-decoration: none;
 }
 
 .callButton:hover {
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
 }
 
 .callDisabled,

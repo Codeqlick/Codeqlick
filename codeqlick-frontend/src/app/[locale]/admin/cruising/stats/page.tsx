@@ -131,7 +131,7 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
             series={[
               {
                 label: t('members'),
-                color: 'var(--color-fuchsia)',
+                color: 'var(--color-brand)',
                 values: values((w) => w.members),
               },
             ]}
@@ -155,12 +155,12 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
             series={[
               {
                 label: t('spotsLive'),
-                color: 'var(--color-fuchsia)',
+                color: 'var(--color-brand)',
                 values: values((w) => w.spots.live),
               },
               {
                 label: t('spotsPending'),
-                color: 'var(--color-fuchsia-light)',
+                color: 'var(--color-brand-light)',
                 values: values((w) => w.spots.pending),
               },
               {
@@ -179,12 +179,12 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
             series={[
               {
                 label: t('checkIns'),
-                color: 'var(--color-fuchsia)',
+                color: 'var(--color-brand)',
                 values: values((w) => w.checkIns),
               },
               {
                 label: t('meetups'),
-                color: 'var(--color-fuchsia-dark)',
+                color: 'var(--color-brand-dark)',
                 values: values((w) => w.meetups),
               },
               { label: t('media'), color: 'var(--color-slate)', values: values((w) => w.media) },
@@ -204,7 +204,7 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
               },
               {
                 label: t('roomMessages'),
-                color: 'var(--color-fuchsia-light)',
+                color: 'var(--color-brand-light)',
                 values: values((w) => w.roomMessages),
               },
             ]}
@@ -218,7 +218,7 @@ export default async function AdminCruisingStatsPage({ params }: PageProps) {
             series={[
               {
                 label: t('reportsOpened'),
-                color: 'var(--color-fuchsia-dark)',
+                color: 'var(--color-brand-dark)',
                 values: values((w) => w.reportsOpened),
               },
               {

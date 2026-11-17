@@ -15,7 +15,7 @@ export const en: CruisingLegalTexts = {
     description: 'Who can use Cruising, what can be contributed, how we moderate and how to leave.',
     markdown: (c) => `## Who provides the service
 
-Cruising (cruising.codeqlick.com) is a service of:
+Cruising (cruising.neoqlick.com) is a service of:
 
 ${c.ownerLines}
 
@@ -44,7 +44,7 @@ You need an account with a verified email, and to enter Cruising with your date 
 - Members who have entered and are **verified** can upload photos and videos **of themselves** to their profile. Sexual content of oneself between adults is allowed, and only members who have entered can see it.
 - **Nobody under 18** may appear, and nothing may be illegal. Nobody who didn't consent may appear, and the pictures must be yours. You tick a consent box at each upload.
 - Photos and videos are **published before the team reviews them**; the team reviews them afterwards and removes what breaks these terms, blocking the image so it can't be uploaded again. We may suspend the account.
-- **Verification** is a photo of you with your username, "Codeqlick" and the date, reviewed by the team and kept privately while the verification stands (see "Safety across Codeqlick's 18+ apps"). The "Verified" badge only means the team checked that photo: not that an identity document was checked.
+- **Verification** is a photo of you with your username, "Neoqlick" and the date, reviewed by the team and kept privately while the verification stands (see "Safety across Neoqlick's 18+ apps"). The "Verified" badge only means the team checked that photo: not that an identity document was checked.
 - You still own what you upload and give us a free, non-exclusive permission to store it and show it in Cruising until you delete it.
 
 ## How you behave
@@ -53,7 +53,7 @@ Respect others, the place and the law where you are. No selling sex or drugs, ha
 
 ## Moderation, reports and removal
 
-You can report any place, review, profile, photo or video. A report for a minor, a missing consent, stolen pictures or illegal content hides it at once until we review it. Anyone, even without an account, can ask us to remove a place at [cruising.codeqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown); when it is about a minor or something illegal and they give the link, we hide it at once, and we always answer within 24 hours. A place removed by moderation can't be sent again. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
+You can report any place, review, profile, photo or video. A report for a minor, a missing consent, stolen pictures or illegal content hides it at once until we review it. Anyone, even without an account, can ask us to remove a place at [cruising.neoqlick.com/${c.locale}/takedown](/${c.locale}/cruising/takedown); when it is about a minor or something illegal and they give the link, we hide it at once, and we always answer within 24 hours. A place removed by moderation can't be sent again. If we remove something of yours or suspend your account, we email you the reason and you can reply to ask us to review it (Digital Services Act).
 
 ## What we don't guarantee
 
@@ -87,7 +87,7 @@ Using Cruising can reveal aspects of your **sex life or sexual orientation**, sp
 - **Places:** the ones you propose (name, type, location, description, times) with your account, so you can see and edit them and so we can moderate them.
 - **Reviews and reports:** the ones you write and make.
 - **Photos and videos (special category data):** the ones you upload to your profile, with your **explicit consent** at each upload (article 9.2.a). We strip their metadata (location, camera). They are stored on servers in the European Union (OVHcloud), **out of backups**, and only members who have entered can see them, never search engines.
-- **Verification photo:** the one you send us with your username, "Codeqlick" and the date; only the team sees it. If approved, it is **kept privately while the verification stands** and deleted when it is withdrawn or lost, replaced or when you delete your account; a rejected one is deleted at once. The verification is shared with Codeqlick's other 18+ apps (see the last section).
+- **Verification photo:** the one you send us with your username, "Neoqlick" and the date; only the team sees it. If approved, it is **kept privately while the verification stands** and deleted when it is withdrawn or lost, replaced or when you delete your account; a rejected one is deleted at once. The verification is shared with Neoqlick's other 18+ apps (see the last section).
 - **Sexual health (health data, special category):** only if you turn it on, with its **own explicit consent** (article 9.2.a), separate from entry's: whether you take PrEP, the month of your last test and how often to remind you of your check-up. By default only you see them; if you choose to show them, members who have entered see them on your profile. Turning it off **deletes** them at once. Reminders only say "Time for your check-up".
 - **Trusted contacts and the safety timer:** the email of up to 2 people you choose, the name you give yourself for them, and whether they accepted (legitimate interest in your safety, article 6.1.f; each contact gives their own consent by accepting by email and can stop at any time). Of a timer we keep its end time, your message and, only if you choose to share it, the place. If you don't end it in time, your contacts who accepted get a single email with that name, your message, the time and the shared place; never your username or what Cruising is.
 - **Security:** the IP address and browser of each session (legitimate interest, article 6.1.f).

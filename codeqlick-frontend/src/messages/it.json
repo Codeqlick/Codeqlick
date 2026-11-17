@@ -60,7 +60,9 @@
     "domain": "Scrivi un dominio come peluqueria-ana.com.",
     "confirmMismatch": "Non coincide: scrivilo esattamente.",
     "website": "Scrivi l’indirizzo del tuo sito, come iltuosito.com.",
-    "breachedPassword": "Questa password è comparsa in una violazione di dati, quindi gli attaccanti la provano per prima. Scegline un’altra."
+    "breachedPassword": "Questa password è comparsa in una violazione di dati, quindi gli attaccanti la provano per prima. Scegline un’altra.",
+    "terms": "Devi accettare le condizioni d’uso.",
+    "adult": "Devi avere almeno 18 anni."
   },
   "Pagination": {
     "label": "Paginazione",
@@ -225,7 +227,9 @@
     "rateLimited": "Troppi tentativi. Aspetta un minuto e riprova.",
     "error": "Non possiamo creare il tuo account in questo momento. Riprova.",
     "captcha": "Non siamo riusciti a verificare che sei una persona. Aspetta che il controllo finisca e riprova.",
-    "disposableEmail": "Non accettiamo indirizzi email temporanei. Usa la tua email abituale."
+    "disposableEmail": "Non accettiamo indirizzi email temporanei. Usa la tua email abituale.",
+    "acceptTerms": "Ho letto e accetto le <link>condizioni d’uso</link>",
+    "confirmAdult": "Ho 18 anni o più"
   },
   "ForgotPassword": {
     "metaTitle": "Password dimenticata",
@@ -274,7 +278,7 @@
   "Cruising": {
     "metaTitle": "Cruising +18: una mappa dei luoghi di cruising, con recensioni",
     "metaDescription": "Una guida mondiale dei luoghi di cruising gay su una mappa, con recensioni di adulti. Solo per adulti, la sicurezza prima di tutto, ogni luogo verificato.",
-    "metaSuffix": "Codeqlick Cruising",
+    "metaSuffix": "Neoqlick Cruising",
     "ogEyebrow": "Cruising · Solo 18+",
     "ogTitle": "Una mappa dei luoghi di cruising, con recensioni e rispetto",
     "brand": "cruising",
@@ -345,7 +349,7 @@
       "birthDate": "Data di nascita",
       "birthDateHint": "Controlliamo che tu abbia almeno 18 anni. Conserviamo solo l’anno.",
       "accept": "Ho almeno 18 anni e accetto le regole e i termini d’uso di Cruising",
-      "consent": "Acconsento al trattamento da parte di Codeqlick di dati che possono rivelare il mio orientamento sessuale o la mia vita sessuale, per usare Cruising, e che le misure di sicurezza (blocchi, sospensioni gravi, verifica) valgono in tutte le app 18+ di Codeqlick",
+      "consent": "Acconsento al trattamento da parte di Neoqlick di dati che possono rivelare il mio orientamento sessuale o la mia vita sessuale, per usare Cruising, e che le misure di sicurezza (blocchi, sospensioni gravi, verifica) valgono in tutte le app 18+ di Neoqlick",
       "consentHint": "Dati di categorie particolari (GDPR art. 9.2.a). Puoi revocare il consenso quando vuoi eliminando il tuo account.",
       "readRules": "Leggi le regole",
       "submit": "Continua",
@@ -356,7 +360,7 @@
       "underage": "Cruising è solo per persone di almeno 18 anni.",
       "rulesChanged": "Le regole sono cambiate: ricarica la pagina e leggile.",
       "error": "Non siamo riusciti a salvare. Riprova.",
-      "notAllowed": "Questo account non può usare le app 18+ di Codeqlick; scrivi a hello@codeqlick.com"
+      "notAllowed": "Questo account non può usare le app 18+ di Neoqlick; scrivi a hello@neoqlick.com"
     },
     "suspended": {
       "title": "Il tuo accesso a Cruising è sospeso",
@@ -715,7 +719,7 @@
       "alertsLabel": "Scrivimi quando un mio luogo viene pubblicato o un messaggio aspetta di essere letto",
       "alertsHint": "Le decisioni del team (un rifiuto, una sospensione) arrivano sempre via email. Le email non nominano mai un luogo, un nome utente o un messaggio.",
       "blocksTitle": "Membri bloccati",
-      "blocksLead": "Tu e i membri bloccati non potete vedervi in nessuna delle app 18+ di Codeqlick. Sbloccare toglie il blocco in tutte e tre.",
+      "blocksLead": "Tu e i membri bloccati non potete vedervi in nessuna delle app 18+ di Neoqlick. Sbloccare toglie il blocco in tutte e tre.",
       "blocksEmpty": "Non hai bloccato nessuno.",
       "blockedOn": "bloccato il {date}",
       "unblock": "Sblocca",
@@ -737,7 +741,7 @@
       "tourLead": "Il breve tour che hai visto dopo essere entrato: il tuo nome utente, i luoghi preferiti, le notifiche e le tue foto.",
       "tourReopen": "Mostra di nuovo il tour",
       "languageTitle": "Lingua",
-      "languageLead": "La lingua delle email di Cruising e delle notifiche sui tuoi dispositivi. Le email del resto di Codeqlick arrivano in inglese se non è scelto lo spagnolo.",
+      "languageLead": "La lingua delle email di Cruising e delle notifiche sui tuoi dispositivi. Le email del resto di Neoqlick arrivano in inglese se non è scelto lo spagnolo.",
       "languageLabel": "Lingua delle email e delle notifiche",
       "languageInvalid": "Scegli una lingua dall’elenco.",
       "blockedOnIn": "bloccato in {app} il {date}",
@@ -765,7 +769,7 @@
         "verification": "La verifica"
       },
       "dataTitle": "I tuoi dati e il tuo account",
-      "dataLead": "Scarica ciò che Codeqlick conserva su di te, Cruising incluso, oppure cambia email, password e opzioni di accesso.",
+      "dataLead": "Scarica ciò che Neoqlick conserva su di te, Cruising incluso, oppure cambia email, password e opzioni di accesso.",
       "dataExport": "Scarica i miei dati",
       "accountSettings": "Impostazioni dell'account",
       "yourName": "Il tuo nome utente: @{nickname}",
@@ -870,8 +874,8 @@
     },
     "verification": {
       "title": "Verifica",
-      "lead": "Facoltativa: ottieni il badge Verificato, così gli altri membri sanno che il profilo è tuo e che sei maggiorenne. Invii una sola foto di te, una volta, e vale per tutte le app 18+ di Codeqlick (Cruising, Swipe e Videochat).",
-      "step1": "Un foglio con il tuo nome utente, «Codeqlick» e la data di oggi",
+      "lead": "Facoltativa: ottieni il badge Verificato, così gli altri membri sanno che il profilo è tuo e che sei maggiorenne. Invii una sola foto di te, una volta, e vale per tutte le app 18+ di Neoqlick (Cruising, Swipe e Videochat).",
+      "step1": "Un foglio con il tuo nome utente, «Neoqlick» e la data di oggi",
       "step2": "Tu che lo tieni in mano, con il viso visibile",
       "step3": "Ben illuminata e nitida",
       "privacy": "Solo il team vede questa foto. Finché la verifica è valida la conserviamo in privato; viene eliminata se la verifica è ritirata o persa, se la sostituisci o se elimini il tuo account. Non chiediamo un documento d’identità, e il badge non significa che ne sia stato controllato uno.",
@@ -882,7 +886,7 @@
       "sending": "Invio…",
       "sent": "Inviata. Il team la esaminerà e ti scriveremo via email.",
       "pending": "La tua foto è in attesa della revisione del team. Ti scriveremo via email quando sarà fatto.",
-      "approved": "Il team ha approvato la tua foto: il tuo profilo mostra il badge Verificato in tutte le app 18+ di Codeqlick. Se il nome sul tuo foglio smette di essere uno dei tuoi nomi in queste app, per esempio se cambi nome utente, il badge viene rimosso e devi verificarti di nuovo.",
+      "approved": "Il team ha approvato la tua foto: il tuo profilo mostra il badge Verificato in tutte le app 18+ di Neoqlick. Se il nome sul tuo foglio smette di essere uno dei tuoi nomi in queste app, per esempio se cambi nome utente, il badge viene rimosso e devi verificarti di nuovo.",
       "rejected": "Il team non ha potuto approvare la tua foto.",
       "rejectedNote": "Motivo: {note}",
       "errors": {
@@ -1400,7 +1404,7 @@
   "CruisingSafety": {
     "contacts": {
       "title": "Contatti di fiducia",
-      "lead": "Fino a 2 persone fuori dall’app che ricevono un’email se il tuo timer di sicurezza scade. Prima ricevono un invito da «Codeqlick safety alerts» e devono accettarlo. Le email non menzionano mai Cruising né il tuo nome utente: ti chiamano come scegli qui.",
+      "lead": "Fino a 2 persone fuori dall’app che ricevono un’email se il tuo timer di sicurezza scade. Prima ricevono un invito da «Neoqlick safety alerts» e devono accettarlo. Le email non menzionano mai Cruising né il tuo nome utente: ti chiamano come scegli qui.",
       "loadError": "Non siamo riusciti a caricare i tuoi contatti. Riprova più tardi.",
       "namedAs": "Ti conoscono come {name}",
       "statuses": {
@@ -1489,7 +1493,7 @@
     "enabled": "Conserva le mie informazioni sulla salute sessuale",
     "enabledHint": "Disattivato: non conserviamo niente.",
     "enabledOnHint": "Togli la spunta e salva per eliminare tutto in una volta.",
-    "consent": "Acconsento esplicitamente a che Codeqlick conservi queste informazioni sulla salute",
+    "consent": "Acconsento esplicitamente a che Neoqlick conservi queste informazioni sulla salute",
     "consentHint": "I dati sulla salute sono particolarmente protetti (GDPR art. 9.2.a). Questo consenso è separato da quello che hai dato all’ingresso, e lo revochi disattivando questa opzione.",
     "prep": "PrEP",
     "prepNone": "Preferisco non dirlo",
@@ -1535,7 +1539,7 @@
     "rapid": "Test rapidi",
     "phone": "Telefono:",
     "website": "Sito web:",
-    "note": "Conosci un centro che dovrebbe esserci, o vedi qualcosa di sbagliato? Scrivici a hello@codeqlick.com."
+    "note": "Conosci un centro che dovrebbe esserci, o vedi qualcosa di sbagliato? Scrivici a hello@neoqlick.com."
   },
   "Account": {
     "nav": "Account",
@@ -1781,5 +1785,50 @@
     "invalidLink": "Questo link non è valido o è scaduto. Richiedi di nuovo il cambio da «Il tuo account».",
     "taken": "Questa email ha già un altro account, quindi non si può usare.",
     "rateLimited": "Troppi tentativi. Aspetta un minuto e riprova."
+  },
+  "Neoqlick": {
+    "heroEyebrow": "Neoqlick · 18+",
+    "heroTitle": "Connettiti <accent>a modo tuo.</accent>",
+    "heroLead": "Tre app per conoscere persone, con un solo account.",
+    "appsLabel": "App",
+    "open": "Apri",
+    "openApp": "Apri {app}",
+    "apps": {
+      "cruising": "La mappa della tua città.",
+      "swipe": "Scorri, fai match e parla.",
+      "videochat": "Conosci gente all’istante."
+    },
+    "safety": {
+      "eyebrow": "La tua sicurezza",
+      "title": "Prima di tutto, <accent>tu.</accent>",
+      "verify": {
+        "title": "Verifica con badge",
+        "body": "Facoltativa: dimostra che sei tu e guadagna fiducia."
+      },
+      "checkin": {
+        "title": "Check-in di sicurezza",
+        "body": "Avvisa un contatto se non confermi che stai bene."
+      },
+      "block": {
+        "title": "Blocca e segnala",
+        "body": "Con un tocco, da qualsiasi profilo o messaggio."
+      }
+    },
+    "accountTitle": "Un solo account",
+    "accountBody": "Accedi una volta e usa le tre app.",
+    "accountCta": "Il mio account",
+    "companyTitle": "Chi siamo",
+    "operator": "Neoqlick, nome commerciale di {name}",
+    "taxId": "Codice fiscale",
+    "address": "Indirizzo",
+    "contactTitle": "Contatto",
+    "contactBody": "Scrivici a {email}. Leggiamo tutto.",
+    "legalLabel": "Note legali",
+    "legal": "Note legali",
+    "privacy": "Informativa sulla privacy",
+    "terms": "Condizioni d’uso",
+    "safetyContact": "Contatto di sicurezza",
+    "adultNote": "Solo per adulti (18+).",
+    "copyright": "© {year} Neoqlick"
   }
 }

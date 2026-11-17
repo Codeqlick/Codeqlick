@@ -15,8 +15,8 @@
 }
 
 .changed {
-  border-color: var(--color-fuchsia-light);
-  border-left: 4px solid var(--color-fuchsia);
+  border-color: var(--color-brand-light);
+  border-left: 4px solid var(--color-brand);
   background: var(--color-blush);
 }
 
@@ -36,7 +36,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-white);
-  background: var(--color-fuchsia-dark);
+  background: var(--color-brand-dark);
   border-radius: var(--radius-pill);
   padding: 0.1rem var(--space-2);
 }
