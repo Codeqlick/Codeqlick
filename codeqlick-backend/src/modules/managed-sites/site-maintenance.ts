@@ -2,6 +2,7 @@
  * The maintenance plan of managed sites as Stripe sees it (architecture 8.2, decision 110).
  * Pure, tested on its own; the support module also uses the allowance.
  */
+import { monthlyAmountCents, type BilledItem } from '../../common/monthly-amount.js';
 import { madridDay, madridToUtc } from '../bookings/booking-time.js';
 
 export type MaintenanceStatus = 'NONE' | 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
@@ -39,13 +40,15 @@ export function maintenanceState(subscription: {
   id: string;
   status: string;
   cancel_at_period_end: boolean;
-  items: { data: Array<{ current_period_end: number }> };
+  items: { data: Array<{ current_period_end: number } & BilledItem> };
 }): {
   maintenanceStatus: MaintenanceStatus;
   maintenanceSubscriptionStatus: string;
   maintenanceSubscriptionId: string;
   maintenancePeriodEnd: Date | null;
   maintenanceCancelAtPeriodEnd: boolean;
+  /** A month's bill before VAT (the admin overview's MRR, decision 122). */
+  maintenanceAmountCents: number | null;
 } {
   const ends = subscription.items.data.map((item) => item.current_period_end);
   return {
@@ -54,6 +57,7 @@ export function maintenanceState(subscription: {
     maintenanceSubscriptionId: subscription.id,
     maintenancePeriodEnd: ends.length > 0 ? new Date(Math.max(...ends) * 1000) : null,
     maintenanceCancelAtPeriodEnd: subscription.cancel_at_period_end,
+    maintenanceAmountCents: monthlyAmountCents(subscription.items.data),
   };
 }
 

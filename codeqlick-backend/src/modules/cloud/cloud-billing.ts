@@ -1,3 +1,5 @@
+import { monthlyAmountCents, type BilledItem } from '../../common/monthly-amount.js';
+
 /**
  * Cloud's PRO plan as Stripe sees it (architecture 4.13 "Plans and billing", decision 46).
  * Pure, tested on its own.
@@ -15,13 +17,15 @@ export function subscriptionState(subscription: {
   id: string;
   status: string;
   cancel_at_period_end: boolean;
-  items: { data: Array<{ current_period_end: number }> };
+  items: { data: Array<{ current_period_end: number } & BilledItem> };
 }): {
   plan: 'PRO' | 'FREE';
   stripeSubscriptionId: string;
   subscriptionStatus: string;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  /** A month's bill before VAT (the admin overview's MRR, decision 122). */
+  subscriptionAmountCents: number | null;
 } {
   const ends = subscription.items.data.map((item) => item.current_period_end);
   return {
@@ -30,6 +34,7 @@ export function subscriptionState(subscription: {
     subscriptionStatus: subscription.status,
     currentPeriodEnd: ends.length > 0 ? new Date(Math.max(...ends) * 1000) : null,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    subscriptionAmountCents: monthlyAmountCents(subscription.items.data),
   };
 }
 
