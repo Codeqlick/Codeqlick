@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
-import { adminHeaders, API_URL, runTag } from './helpers';
+import { adminHeaders, API_URL, apiLogin, runTag } from './helpers';
 
 /*
  * Cruising's onboarding tour (decision 102) on the map, on Cruising's own host (cruising.localhost):
@@ -24,9 +24,7 @@ async function newMember(request: APIRequestContext): Promise<string> {
     data: { ...member, name: `Tour ${tag}`, role: 'CLIENT', locale: 'es' },
   });
   expect(created.ok()).toBeTruthy();
-  const login = await request.post(`${API_URL}/auth/login`, { data: member });
-  expect(login.ok()).toBeTruthy();
-  const token = ((await login.json()) as { accessToken: string }).accessToken;
+  const token = await apiLogin(request, member);
   const headers = { Authorization: `Bearer ${token}` };
   const status = await request.get(`${API_URL}/cruising/me`, { headers });
   const { termsVersion } = (await status.json()) as { termsVersion: string };

@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type BrowserContext } from '@playwright/test';
-import { adminHeaders, API_URL, runTag } from './helpers';
+import { adminHeaders, API_URL, apiLogin, runTag } from './helpers';
 
 /*
  * Cruising's profile pages (architecture 4.15, "Profile pages") on Cruising's own host
@@ -34,15 +34,7 @@ async function cruisingMember(
   });
   expect(created.ok()).toBeTruthy();
   const { id } = (await created.json()) as { id: string };
-  // The API allows 5 logins a minute per IP, shared with the other flows: wait it out if needed.
-  let login = await request.post(`${API_URL}/auth/login`, { data: { email, password } });
-  if (login.status() === 429) {
-    test.info().setTimeout(test.info().timeout + 65_000);
-    await new Promise((resolve) => setTimeout(resolve, 61_000));
-    login = await request.post(`${API_URL}/auth/login`, { data: { email, password } });
-  }
-  expect(login.ok()).toBeTruthy();
-  const { accessToken } = (await login.json()) as { accessToken: string };
+  const accessToken = await apiLogin(request, { email, password });
   const auth = { Authorization: `Bearer ${accessToken}` };
   const status = await request.get(`${API_URL}/cruising/me`, { headers: auth });
   const { termsVersion } = (await status.json()) as { termsVersion: string };
