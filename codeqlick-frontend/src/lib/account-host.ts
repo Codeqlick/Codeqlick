@@ -10,7 +10,13 @@
 import { routing } from '@/i18n/routing';
 import { isCruisingOnlyLocale, localeOf } from './locales';
 import { brandOfHost } from './hosts';
-import { SITE_SECTIONS, appsOfBrand, webappForHost, type WebappRoute } from './webapps';
+import {
+  NEOQLICK_APPS,
+  SITE_SECTIONS,
+  appsOfBrand,
+  webappForHost,
+  type WebappRoute,
+} from './webapps';
 
 /** The account host's first label, and its pages' route folder (`app/[locale]/account`). */
 export const ACCOUNT = 'account';
@@ -102,7 +108,9 @@ export function routeAccount(
   }
   if (
     SITE_SECTIONS.includes(section) ||
-    appsOfBrand(brandOfHost(host)).some((app) => app === section)
+    appsOfBrand(brandOfHost(host)).some((app) => app === section) ||
+    // The 18+ apps' old addresses: the main host sends them on to Neoqlick (architecture 4.18).
+    (brandOfHost(host) === 'codeqlick' && NEOQLICK_APPS.some((app) => app === section))
   ) {
     const path =
       section !== 'cruising' && isCruisingOnlyLocale(locale)

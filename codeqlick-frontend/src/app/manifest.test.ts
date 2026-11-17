@@ -18,6 +18,7 @@ afterEach(() => {
 
 describe('the web app manifest', () => {
   it('installs Cruising on its host, opening the map (decision 96)', async () => {
+    vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com');
     onHost('cruising.neoqlick.com');
     const result = await manifest();
     expect(result).toMatchObject({
@@ -41,7 +42,8 @@ describe('the web app manifest', () => {
     }
   });
 
-  it('keeps the website’s own manifest on its host, and the apps’ for the 18+ apps', async () => {
+  it('keeps the website’s own manifest on its host, and Neoqlick’s apps’ on its hosts', async () => {
+    vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com');
     onHost('codeqlick.com');
     expect((await manifest()).name).toBe('Codeqlick');
     onHost('swipe.neoqlick.com');

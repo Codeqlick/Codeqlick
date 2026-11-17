@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   appHref,
+  legacyAppHostRedirect,
   routeWebapp,
   SITE_SECTIONS,
   switcherApps,
@@ -16,24 +17,26 @@ const SHARED = ['login', 'register', 'forgot-password', 'reset-password', 'auth'
 
 describe('web apps on subdomains', () => {
   it('finds the app of a host', () => {
-    expect(webappForHost('videochat.codeqlick.com')).toBe('videochat');
-    expect(webappForHost('videochat.localhost:3000')).toBe('videochat');
     expect(webappForHost('meetings.codeqlick.com')).toBe('meetings');
-    expect(webappForHost('swipe.codeqlick.com')).toBe('swipe');
-    expect(webappForHost('cruising.codeqlick.com')).toBe('cruising');
+    expect(webappForHost('meetings.localhost:3000')).toBe('meetings');
+    expect(webappForHost('meetings.codeqlick.com')).toBe('meetings');
+    // The 18+ apps left Codeqlick (4.18): their old hosts are no app on it.
+    expect(webappForHost('cruising.codeqlick.com')).toBeNull();
+    expect(webappForHost('swipe.codeqlick.com')).toBeNull();
+    expect(webappForHost('videochat.codeqlick.com')).toBeNull();
     expect(webappForHost('codeqlick.com')).toBeNull();
     expect(webappForHost('www.codeqlick.com')).toBeNull();
     expect(webappForHost(undefined)).toBeNull();
-    expect(webappHost('videochat', 'www.codeqlick.com')).toBe('videochat.codeqlick.com');
+    expect(webappHost('meetings', 'www.codeqlick.com')).toBe('meetings.codeqlick.com');
   });
 
   it("serves the app's routes at its host's short addresses", () => {
-    const host = 'videochat.codeqlick.com';
-    expect(routeWebapp('/es', host, 'https:')).toEqual({ action: 'rewrite', to: '/es/videochat' });
-    expect(routeWebapp('/en/', host, 'https:')).toEqual({ action: 'rewrite', to: '/en/videochat' });
-    expect(routeWebapp('/es/room', host, 'https:')).toEqual({
+    const host = 'meetings.codeqlick.com';
+    expect(routeWebapp('/es', host, 'https:')).toEqual({ action: 'rewrite', to: '/es/meetings' });
+    expect(routeWebapp('/en/', host, 'https:')).toEqual({ action: 'rewrite', to: '/en/meetings' });
+    expect(routeWebapp('/es/rooms', host, 'https:')).toEqual({
       action: 'rewrite',
-      to: '/es/videochat/room',
+      to: '/es/meetings/rooms',
     });
     expect(routeWebapp('/es/abc-defg-hjk', 'meetings.codeqlick.com', 'https:')).toEqual({
       action: 'rewrite',
@@ -45,21 +48,21 @@ describe('web apps on subdomains', () => {
   });
 
   it('sends the old addresses with the app name to the short ones, on navigations only', () => {
-    const host = 'videochat.codeqlick.com';
-    expect(routeWebapp('/es/videochat', host, 'https:')).toEqual({ action: 'redirect', to: '/es' });
-    expect(routeWebapp('/es/videochat/room', host, 'https:')).toEqual({
+    const host = 'meetings.codeqlick.com';
+    expect(routeWebapp('/es/meetings', host, 'https:')).toEqual({ action: 'redirect', to: '/es' });
+    expect(routeWebapp('/es/meetings/rooms', host, 'https:')).toEqual({
       action: 'redirect',
-      to: '/es/room',
+      to: '/es/rooms',
     });
-    expect(routeWebapp('/es/videochat/room', host, 'https:', false)).toEqual({ action: 'pass' });
+    expect(routeWebapp('/es/meetings/rooms', host, 'https:', false)).toEqual({ action: 'pass' });
   });
 
   it("sends the site's other pages back to the main host", () => {
-    expect(routeWebapp('/es/blog/post', 'videochat.codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/es/blog/post', 'meetings.codeqlick.com', 'https:')).toEqual({
       action: 'redirect',
       to: 'https://codeqlick.com/es/blog/post',
     });
-    expect(routeWebapp('/es/portal', 'videochat.localhost:3000', 'http:')).toEqual({
+    expect(routeWebapp('/es/portal', 'meetings.localhost:3000', 'http:')).toEqual({
       action: 'redirect',
       to: 'http://localhost:3000/es/portal',
     });
@@ -70,20 +73,20 @@ describe('web apps on subdomains', () => {
   });
 
   it("sends the app's pages on the main host to its subdomain, without the app name", () => {
-    expect(routeWebapp('/es/videochat/room', 'codeqlick.com', 'https:')).toEqual({
+    expect(routeWebapp('/es/meetings/rooms', 'codeqlick.com', 'https:')).toEqual({
       action: 'redirect',
-      to: 'https://videochat.codeqlick.com/es/room',
+      to: 'https://meetings.codeqlick.com/es/rooms',
     });
-    expect(routeWebapp('/en/videochat', 'localhost:3000', 'http:')).toEqual({
+    expect(routeWebapp('/en/meetings', 'localhost:3000', 'http:')).toEqual({
       action: 'redirect',
-      to: 'http://videochat.localhost:3000/en',
+      to: 'http://meetings.localhost:3000/en',
     });
     expect(routeWebapp('/es/blog', 'codeqlick.com', 'https:')).toEqual({ action: 'pass' });
   });
 
   it('writes links inside an app as its short addresses', () => {
-    expect(appHref('videochat', '/videochat')).toBe('/');
-    expect(appHref('videochat', '/videochat/room')).toBe('/room');
+    expect(appHref('meetings', '/meetings')).toBe('/');
+    expect(appHref('meetings', '/meetings/rooms')).toBe('/rooms');
     expect(appHref('citas', '/citas?scope=past')).toBe('/?scope=past');
     expect(appHref('citas', '/login?next=/citas')).toBe('/login?next=/citas');
     expect(appHref('swipe', '/swiper')).toBe('/swiper');
@@ -105,32 +108,58 @@ describe('web apps on subdomains', () => {
   });
 
   it('serves app pages asked for by IP address (Next.js calling itself)', () => {
-    expect(routeWebapp('/es/videochat/room', '127.0.0.1:3000', 'http:')).toEqual({
+    expect(routeWebapp('/es/meetings/rooms', '127.0.0.1:3000', 'http:')).toEqual({
       action: 'pass',
     });
-    expect(routeWebapp('/es/videochat/room', '[::1]:3000', 'http:')).toEqual({ action: 'pass' });
+    expect(routeWebapp('/es/meetings/rooms', '[::1]:3000', 'http:')).toEqual({ action: 'pass' });
   });
 });
 
 describe('the apps menu', () => {
-  it('lists only the apps for everyone inside them', () => {
-    expect(switcherApps('meetings')).toEqual([
-      { app: 'citas', adult: false },
-      { app: 'cloud', adult: false },
-    ]);
-    expect(switcherApps('cloud')).toEqual([
-      { app: 'meetings', adult: false },
-      { app: 'citas', adult: false },
-    ]);
+  it("lists Codeqlick's other apps and never an 18+ one", () => {
+    expect(switcherApps('meetings')).toEqual([{ app: 'citas' }, { app: 'cloud' }]);
+    expect(switcherApps('cloud')).toEqual([{ app: 'meetings' }, { app: 'citas' }]);
+  });
+});
+
+describe('the 18+ apps left Codeqlick (architecture 4.18)', () => {
+  beforeEach(() => vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com'));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("sends the website's addresses of the apps to Neoqlick's hosts", () => {
+    expect(routeWebapp('/es/cruising/map', 'codeqlick.com', 'https:')).toEqual({
+      action: 'redirect',
+      to: 'https://cruising.neoqlick.com/es/map',
+    });
+    expect(routeWebapp('/en/swipe', 'codeqlick.com', 'https:')).toEqual({
+      action: 'redirect',
+      to: 'https://swipe.neoqlick.com/en',
+    });
+    expect(routeWebapp('/fr/videochat/rules', 'meetings.codeqlick.com', 'https:')).toEqual({
+      action: 'redirect',
+      to: 'https://videochat.neoqlick.com/fr/rules',
+    });
   });
 
-  it('lists every other app inside an 18+ app, the 18+ ones last', () => {
-    expect(switcherApps('videochat')).toEqual([
-      { app: 'meetings', adult: false },
-      { app: 'citas', adult: false },
-      { app: 'cloud', adult: false },
-      { app: 'swipe', adult: true },
-      { app: 'cruising', adult: true },
-    ]);
+  it('leaves them alone where there are no Neoqlick hosts (staging) and for IP addresses', () => {
+    vi.stubEnv('NEOQLICK_URL', '');
+    expect(routeWebapp('/es/cruising/map', 'codeqlick.com', 'https:')).toEqual({ action: 'pass' });
+    vi.stubEnv('NEOQLICK_URL', 'https://neoqlick.com');
+    expect(routeWebapp('/es/cruising/map', '127.0.0.1:3000', 'http:')).toEqual({ action: 'pass' });
+  });
+
+  it('redirects the old app hosts as a safety net, keeping path and query', () => {
+    expect(legacyAppHostRedirect('/es/map', '?q=1', 'cruising.codeqlick.com', 'https:')).toBe(
+      'https://cruising.neoqlick.com/es/map?q=1',
+    );
+    expect(legacyAppHostRedirect('/es/cruising/map', '', 'cruising.codeqlick.com', 'https:')).toBe(
+      'https://cruising.neoqlick.com/es/map',
+    );
+    expect(legacyAppHostRedirect('/en', '', 'swipe.codeqlick.com', 'https:')).toBe(
+      'https://swipe.neoqlick.com/en',
+    );
+    expect(legacyAppHostRedirect('/en', '', 'meetings.codeqlick.com', 'https:')).toBeNull();
+    expect(legacyAppHostRedirect('/en', '', 'cruising.neoqlick.com', 'https:')).toBeNull();
+    expect(legacyAppHostRedirect('/en', '', '127.0.0.1:3000', 'http:')).toBeNull();
   });
 });

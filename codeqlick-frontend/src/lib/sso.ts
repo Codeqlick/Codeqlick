@@ -15,10 +15,17 @@ import { routing, CRUISING_ONLY_LOCALES } from '@/i18n/routing';
 import { ACCOUNT, accountHostFor, isAccountHost, mainHostOf } from './account-host';
 import { brandOfHost, classifyHost, type Brand } from './hosts';
 import { localeOf } from './locales';
-import { NEOQLICK_APPS, WEBAPPS, publicPath, webappForHost, type Webapp } from './webapps';
+import {
+  CODEQLICK_APPS,
+  NEOQLICK_APPS,
+  WEBAPPS,
+  publicPath,
+  webappForHost,
+  type Webapp,
+} from './webapps';
 
 /** The hosts that get sessions from the account host: the website and every web app. */
-export const SSO_CLIENTS = ['site', ...WEBAPPS] as const;
+export const SSO_CLIENTS = ['site', ...WEBAPPS] as const; // the type: every app of either brand
 export type SsoClient = (typeof SSO_CLIENTS)[number];
 
 /** Prefix of the cookie that keeps one flow's state on the client host. */
@@ -28,10 +35,11 @@ export const SSO_COOKIE_MAX_AGE = 10 * 60;
 
 /**
  * Whether `value` is a client of the realm: Neoqlick's accounts sign in to its three apps only
- * (architecture 4.18), Codeqlick's to the website and every app (until PR C).
+ * (architecture 4.18), Codeqlick's to the website and its three apps.
  */
 export function isSsoClient(value: unknown, brand: Brand = 'codeqlick'): value is SsoClient {
-  const clients: readonly string[] = brand === 'neoqlick' ? NEOQLICK_APPS : SSO_CLIENTS;
+  const clients: readonly string[] =
+    brand === 'neoqlick' ? NEOQLICK_APPS : ['site', ...CODEQLICK_APPS];
   return typeof value === 'string' && clients.includes(value);
 }
 

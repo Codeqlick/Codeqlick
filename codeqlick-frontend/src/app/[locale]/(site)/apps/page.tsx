@@ -42,22 +42,6 @@ export default async function AppsPage({ params }: PageProps) {
         <ul className={styles.apps}>
           <li className={`${home.service} ${styles.card}`}>
             <div className={styles.head}>
-              <h2 className={home.serviceTitle}>{t('videochat.title')}</h2>
-              <Badge tone="danger">{t('videochat.adult')}</Badge>
-            </div>
-            <p className={home.serviceBody}>{t('videochat.body')}</p>
-            <p className={styles.warning}>{t('videochat.warning')}</p>
-            {/* A plain link: the proxy sends /{locale}/videochat to the app's own host. */}
-            <a
-              href={`/${locale}/videochat`}
-              className={buttonClassName({})}
-              data-umami-event="apps-videochat"
-            >
-              {t('videochat.open')}
-            </a>
-          </li>
-          <li className={`${home.service} ${styles.card}`}>
-            <div className={styles.head}>
               <h2 className={home.serviceTitle}>{t('meetings.title')}</h2>
               <Badge>{t('meetings.badge')}</Badge>
             </div>
@@ -96,36 +80,6 @@ export default async function AppsPage({ params }: PageProps) {
               data-umami-event="apps-cloud"
             >
               {t('cloud.open')}
-            </a>
-          </li>
-          <li className={`${home.service} ${styles.card}`}>
-            <div className={styles.head}>
-              <h2 className={home.serviceTitle}>{t('swipe.title')}</h2>
-              <Badge tone="danger">{t('swipe.adult')}</Badge>
-            </div>
-            <p className={home.serviceBody}>{t('swipe.body')}</p>
-            <p className={styles.warning}>{t('swipe.warning')}</p>
-            <a
-              href={`/${locale}/swipe`}
-              className={buttonClassName({})}
-              data-umami-event="apps-swipe"
-            >
-              {t('swipe.open')}
-            </a>
-          </li>
-          <li className={`${home.service} ${styles.card}`}>
-            <div className={styles.head}>
-              <h2 className={home.serviceTitle}>{t('cruising.title')}</h2>
-              <Badge tone="danger">{t('cruising.adult')}</Badge>
-            </div>
-            <p className={home.serviceBody}>{t('cruising.body')}</p>
-            <p className={styles.warning}>{t('cruising.warning')}</p>
-            <a
-              href={`/${locale}/cruising`}
-              className={buttonClassName({})}
-              data-umami-event="apps-cruising"
-            >
-              {t('cruising.open')}
             </a>
           </li>
         </ul>

@@ -16,7 +16,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { ACCOUNT_KINDS, type AccountKind } from '@/lib/api/types';
 import { adminListUsers } from '@/lib/api/users';
 import { firstParam, formatDate, parsePage } from '@/lib/format';
-import { WEBAPPS, type Webapp } from '@/lib/webapps';
+import { CODEQLICK_APPS, type Webapp } from '@/lib/webapps';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -40,7 +40,9 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
   const rawApp = firstParam(query.app);
   // App users of an app; on the other tabs, accounts of that tab that use it.
   const app =
-    tab === 'admin' ? undefined : (WEBAPPS.find((value) => value === rawApp) as Webapp | undefined);
+    tab === 'admin'
+      ? undefined
+      : (CODEQLICK_APPS.find((value) => value === rawApp) as Webapp | undefined);
   const q = firstParam(query.q)?.trim() || undefined;
   const users = await adminListUsers({
     page: parsePage(query.page),
@@ -84,7 +86,7 @@ export default async function AdminUsersPage({ params, searchParams }: PageProps
             name="app"
             label={t('app')}
             placeholder={tc('all')}
-            options={WEBAPPS.map((value) => ({ value, label: ta(`${value}.title`) }))}
+            options={CODEQLICK_APPS.map((value) => ({ value, label: ta(`${value}.title`) }))}
             defaultValue={app ?? ''}
           />
         )}

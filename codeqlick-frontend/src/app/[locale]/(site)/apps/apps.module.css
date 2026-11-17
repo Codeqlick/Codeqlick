@@ -21,9 +21,3 @@
   align-items: center;
   gap: var(--space-3);
 }
-
-.warning {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-slate);
-}

@@ -11,20 +11,26 @@ import { env } from '@/lib/env';
 import { portalUrl } from '@/lib/portal-links';
 import { requestBrand } from '@/lib/request-brand';
 import { webappUrl } from '@/lib/webapp-seo';
-import { ADULT_WEBAPPS, WEBAPPS } from '@/lib/webapps';
+import { appsOfBrand } from '@/lib/webapps';
 
-/** Every part of the platform the person uses, adult apps included, each with its link. */
+/** Every part of the platform the person uses on this brand, each with its link. */
 export default async function AccountAppsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = resolveCruisingLocale((await params).locale);
   await requireUser(locale);
   const t = await getTranslations({ locale, namespace: 'AccountSite' });
   const tapps = await getTranslations({ locale, namespace: 'AppSwitcher' });
-  const { items } = await accountApps();
-  const neoqlick = (await requestBrand()) === 'neoqlick';
+  const brandApps: readonly string[] = appsOfBrand(await requestBrand());
+  const { items: all } = await accountApps();
+  // The 18+ apps are Neoqlick's: a Codeqlick account never lists them (architecture 4.18).
+  const items = all.filter(
+    (item) => item.app === 'admin' || item.app === 'portal' || brandApps.includes(item.app),
+  );
+  const brand = await requestBrand();
+  const neoqlick = brand === 'neoqlick';
   const site = neoqlick ? locale : siteLocale(locale);
 
   const describe = (item: AccountApp) => {
-    const app = WEBAPPS.find((name) => name === item.app);
+    const app = appsOfBrand(brand).find((name) => name === item.app);
     if (app) {
       const appLocale = app === 'cruising' ? locale : siteLocale(locale);
       const path = app === 'cloud' ? '/console' : '';
@@ -32,7 +38,6 @@ export default async function AccountAppsPage({ params }: { params: Promise<{ lo
         name: tapps(`apps.${app}.name`),
         body: tapps(`apps.${app}.body`),
         href: webappUrl(app, appLocale, path),
-        adult: ADULT_WEBAPPS.includes(app),
       };
     }
     return {
@@ -40,7 +45,6 @@ export default async function AccountAppsPage({ params }: { params: Promise<{ lo
       body:
         item.app === 'admin' ? t('apps.adminBody') : t('apps.portalBody', { count: item.count }),
       href: `${env.SITE_URL}/${site}/${item.app}`,
-      adult: false,
     };
   };
 
@@ -56,7 +60,6 @@ export default async function AccountAppsPage({ params }: { params: Promise<{ lo
               <Card bordered>
                 <h2 className={styles.cardTitle}>
                   <a href={shown.href}>{shown.name}</a>
-                  {shown.adult ? ' · +18' : ''}
                 </h2>
                 <p className={styles.muted}>{shown.body}</p>
               </Card>

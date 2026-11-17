@@ -1577,10 +1577,10 @@
     "sending": "Envoi…",
     "changeEmailSubmit": "Envoyer le lien",
     "yourData": "Tes données personnelles",
-    "yourDataBody": "Télécharge dans un fichier (JSON) tout ce que nous conservons sur toi : ton compte, tes sessions, projets, propositions et demandes, et ton profil de chat vidéo si tu l’utilises.",
+    "yourDataBody": "Télécharge dans un fichier (JSON) tout ce que nous conservons sur toi : ton compte, tes sessions, projets, propositions et demandes.",
     "download": "Télécharger mes données",
     "deleteTitle": "Supprimer le compte",
-    "deleteBody": "Ton compte et tout ce qui en dépend (demandes, propositions, ton profil de chat vidéo…) seront supprimés. C’est irréversible. Tu recevras un e-mail de confirmation.",
+    "deleteBody": "Ton compte et tout ce qui en dépend (demandes, propositions…) seront supprimés. C’est irréversible. Tu recevras un e-mail de confirmation.",
     "deleteConfirm": "Je comprends que c’est irréversible",
     "deleteConfirmNeeded": "Coche la case pour confirmer.",
     "deleteSubmit": "Supprimer mon compte",
@@ -1605,7 +1605,7 @@
     },
     "avatar": {
       "title": "Photo de profil",
-      "lead": "Elle apparaît dans ton compte, dans Meetings quand ta caméra est coupée et sur ta page Citas. Jamais dans Videochat ni Swipe.",
+      "lead": "Elle apparaît dans ton compte, dans Meetings quand ta caméra est coupée et sur ta page Citas.",
       "pick": "Choisir une photo",
       "change": "Changer la photo",
       "remove": "Supprimer la photo",
@@ -1641,7 +1641,7 @@
       "apps": "{count, plural, =0 {Tu n’utilises encore aucune appli.} one {Tu utilises # partie de Codeqlick.} other {Tu utilises # parties de Codeqlick.}}"
     },
     "profile": {
-      "lead": "Comment tu apparais sur Codeqlick (jamais dans les applis 18+, où seul ton nom d’utilisateur s’affiche).",
+      "lead": "Comment tu apparais sur Codeqlick.",
       "languageTitle": "Langue de nos e-mails",
       "languageBody": "Les e-mails que nous t’envoyons sont rédigés dans cette langue.",
       "languageLabel": "Langue"

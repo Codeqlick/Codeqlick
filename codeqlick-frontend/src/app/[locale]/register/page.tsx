@@ -12,7 +12,7 @@ import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { signupInvitation } from '@/lib/api/auth';
 import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
-import { WEBAPPS } from '@/lib/webapps';
+import { appsOfBrand } from '@/lib/webapps';
 import { homeAfterSignIn } from '@/lib/webapp-request';
 import { env } from '@/lib/env';
 import { turnstileSiteKey } from '@/lib/turnstile';
@@ -60,8 +60,9 @@ export default async function RegisterPage({ params, searchParams }: PageProps) 
   const query = await searchParams;
   const next = safeNextPath(firstParam(query.next), locale);
   if (user) redirect(next ?? (await homeAfterSignIn(locale, user.role)));
-  const app = WEBAPPS.find((name) => name === firstParam(query.app));
-  const neoqlick = (await requestBrand()) === 'neoqlick';
+  const brand = await requestBrand();
+  const app = appsOfBrand(brand).find((name) => name === firstParam(query.app));
+  const neoqlick = brand === 'neoqlick';
   const siteKey = turnstileSiteKey(neoqlick ? 'neoqlick' : 'codeqlick', {
     codeqlick: env.TURNSTILE_SITE_KEY,
     neoqlick: env.TURNSTILE_SITE_KEY_NEOQLICK,

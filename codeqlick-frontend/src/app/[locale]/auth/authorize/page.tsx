@@ -12,7 +12,8 @@ import { createSsoCode } from '@/lib/api/auth';
 import { isApiError } from '@/lib/api/errors';
 import { getCurrentUser } from '@/lib/auth/session';
 import { callbackUrl, parseAuthorizeQuery } from '@/lib/sso';
-import { WEBAPPS } from '@/lib/webapps';
+import { brandOfHost } from '@/lib/hosts';
+import { appsOfBrand } from '@/lib/webapps';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -33,6 +34,7 @@ export default async function AuthorizePage({ params, searchParams }: PageProps)
   const incoming = await headers();
   const host = incoming.get('x-forwarded-host')?.split(',')[0]?.trim() || incoming.get('host');
   if (!isAccountHost(host) || !host) notFound();
+  const brand = brandOfHost(host);
 
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(await searchParams)) {
@@ -59,7 +61,7 @@ export default async function AuthorizePage({ params, searchParams }: PageProps)
   const self = `/${locale}/authorize?${query.toString()}`;
   const signIn = (): never => {
     if (!authorize.register) redirect(`/${locale}/login?next=${encodeURIComponent(self)}`);
-    const app = WEBAPPS.find((name) => name === authorize.client);
+    const app = appsOfBrand(brand).find((name) => name === authorize.client);
     redirect(`/${locale}/register?next=${encodeURIComponent(self)}${app ? `&app=${app}` : ''}`);
   };
 

@@ -622,10 +622,10 @@
     "sending": "Enviando…",
     "changeEmailSubmit": "Enviar enlace",
     "yourData": "Tus datos personales",
-    "yourDataBody": "Descarga en un archivo (JSON) todo lo que guardamos de ti: tu cuenta, tus sesiones, tus proyectos, propuestas y peticiones, y tu perfil del videochat si lo usas.",
+    "yourDataBody": "Descarga en un archivo (JSON) todo lo que guardamos de ti: tu cuenta, tus sesiones, tus proyectos, propuestas y peticiones.",
     "download": "Descargar mis datos",
     "deleteTitle": "Eliminar cuenta",
-    "deleteBody": "Se borrará tu cuenta y lo que cuelga de ella (peticiones, propuestas, tu perfil del videochat…). No se puede deshacer. Te llegará un correo de confirmación.",
+    "deleteBody": "Se borrará tu cuenta y lo que cuelga de ella (peticiones, propuestas…). No se puede deshacer. Te llegará un correo de confirmación.",
     "deleteConfirm": "Entiendo que no se puede deshacer",
     "deleteConfirmNeeded": "Marca la casilla para confirmar.",
     "deleteSubmit": "Eliminar mi cuenta",
@@ -650,7 +650,7 @@
     },
     "avatar": {
       "title": "Foto de perfil",
-      "lead": "Sale en tu cuenta, en Meetings cuando tienes la cámara apagada y en tu página de Citas. Nunca en Videochat ni en Swipe.",
+      "lead": "Sale en tu cuenta, en Meetings cuando tienes la cámara apagada y en tu página de Citas.",
       "pick": "Elegir foto",
       "change": "Cambiar foto",
       "remove": "Quitar foto",
@@ -686,7 +686,7 @@
       "apps": "{count, plural, =0 {Aún no usas ninguna app.} one {Usas # parte de Codeqlick.} other {Usas # partes de Codeqlick.}}"
     },
     "profile": {
-      "lead": "Cómo apareces en Codeqlick (nunca en las apps +18, donde solo se ve tu nombre de usuario).",
+      "lead": "Cómo apareces en Codeqlick.",
       "languageTitle": "Idioma de nuestros correos",
       "languageBody": "Los correos que te enviamos van en este idioma.",
       "languageLabel": "Idioma"
@@ -4216,13 +4216,6 @@
     "title": "Lo que construimos para nosotros",
     "lead": "Además de hacer webs y aplicaciones para nuestros clientes, creamos y mantenemos nuestras propias aplicaciones web. Entras a todas con tu cuenta de Codeqlick.",
     "listLabel": "Aplicaciones de Codeqlick",
-    "videochat": {
-      "title": "Videochat",
-      "adult": "+18",
-      "body": "Habla por vídeo con una persona al azar y, si no hay química, pasa a la siguiente. Con filtros por intereses, país e idioma, y contactos mutuos.",
-      "warning": "Solo para mayores de 18 años: puede haber contenido para adultos. Necesitas una cuenta verificada de Codeqlick.",
-      "open": "Abrir el videochat"
-    },
     "meetings": {
       "title": "Meetings",
       "badge": "Para todos",
@@ -4235,25 +4228,11 @@
       "body": "Tu página de reservas con un enlace: publica tus horas libres y tus clientes eligen cita sin llamarte y sin cuenta. Con correos de confirmación, calendario y videollamada opcional.",
       "open": "Abrir Citas"
     },
-    "swipe": {
-      "title": "Swipe",
-      "adult": "+18",
-      "body": "Desliza fotos íntimas de adultos que las comparten porque quieren: a la derecha si te gusta, a la izquierda si no. Si os gustáis los dos, hay match y podéis hablar. Revisamos cada foto antes de publicarla.",
-      "warning": "Solo para mayores de 18 años: hay desnudos y contenido sexual explícito. Necesitas una cuenta verificada de Codeqlick.",
-      "open": "Abrir Swipe"
-    },
     "cloud": {
       "title": "Codeqlick Cloud",
       "badge": "Para developers",
       "body": "Despliega webs estáticas desde tu terminal con una orden: una dirección de vista previa por despliegue, vuelta atrás al instante, tus dominios con HTTPS, equipos y tokens de API para tu CI. Plan gratuito.",
       "open": "Abrir Cloud"
-    },
-    "cruising": {
-      "title": "Cruising",
-      "adult": "+18",
-      "body": "Un mapa mundial de lugares de cruising para hombres gais y bisexuales, con opiniones de otras personas adultas. Cada lugar se revisa antes de publicarse, y la seguridad y el respeto van primero.",
-      "warning": "Solo adultos (+18): trata de sexualidad adulta. Puedes ver el mapa sin cuenta; para proponer y opinar necesitas una cuenta de Codeqlick verificada.",
-      "open": "Abrir Cruising"
     }
   },
   "AppSwitcher": {

@@ -15,7 +15,7 @@ import type { AuthTokens } from '@/lib/api/types';
 import { safeNextPath, setAuthCookies } from '@/lib/auth/session';
 import { siteLocale } from '@/i18n/routing';
 import { webappUrl } from '@/lib/webapp-seo';
-import { WEBAPPS, type Webapp } from '@/lib/webapps';
+import { appsOfBrand, type Webapp } from '@/lib/webapps';
 import { homeAfterSignIn, requestWebapp } from '@/lib/webapp-request';
 import { formString, zodFieldErrors, type FormState } from '@/lib/forms';
 import { registerSchema } from '@/lib/schemas/auth';
@@ -123,7 +123,7 @@ export async function registerAction(_previous: FormState, formData: FormData): 
       ...(neoqlick ? { acceptTerms: true as const } : {}),
       website: formString(formData, 'website'),
       // From an app's host, or on the account host the app the sign-up started from (decision 108).
-      app: (await requestWebapp()) ?? formApp(formData),
+      app: (await requestWebapp()) ?? (await formApp(formData)),
       captcha: formString(formData, 'captcha') || undefined,
     });
   } catch (error) {
@@ -133,9 +133,9 @@ export async function registerAction(_previous: FormState, formData: FormData): 
 }
 
 /** The app a form names (`app`), when it is one of ours. */
-function formApp(formData: FormData): Webapp | undefined {
+async function formApp(formData: FormData): Promise<Webapp | undefined> {
   const value = formString(formData, 'app');
-  return WEBAPPS.find((app) => app === value);
+  return appsOfBrand(await requestBrand()).find((app) => app === value);
 }
 
 /**
@@ -155,7 +155,7 @@ export async function confirmSignupAction(
     return failure(locale, error, formData);
   }
   await setAuthCookies(tokens);
-  const app = formApp(formData);
+  const app = await formApp(formData);
   if (app) redirect(webappUrl(app, app === 'cruising' ? locale : siteLocale(locale), '/login'));
   redirect(await homeAfterSignIn(locale, tokens.user.role));
 }
