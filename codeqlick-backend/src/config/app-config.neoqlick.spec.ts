@@ -48,6 +48,21 @@ describe('AppConfigService and Neoqlick', () => {
     expect(c.webappUrl('citas')).toBe('https://citas.codeqlick.com');
   });
 
+  it("allows the video chat's WebSocket from Neoqlick's host next to the configured one", () => {
+    const c = config({
+      NEOQLICK_URL: 'https://neoqlick.com',
+      VIDEOCHAT_ORIGINS: 'https://videochat.codeqlick.com',
+    });
+    expect(c.videochatOrigins).toEqual([
+      'https://videochat.codeqlick.com',
+      'https://videochat.neoqlick.com',
+    ]);
+    expect(c.webappUrl('videochat')).toBe('https://videochat.neoqlick.com');
+    expect(
+      config({ VIDEOCHAT_ORIGINS: 'https://videochat.codeqlick.com' }).videochatOrigins,
+    ).toEqual(['https://videochat.codeqlick.com']);
+  });
+
   it('gives passkeys a relying party per realm', () => {
     const production = config({
       NODE_ENV: 'production',

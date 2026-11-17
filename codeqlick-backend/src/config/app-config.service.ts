@@ -424,7 +424,10 @@ export class AppConfigService {
 
   /** Origins allowed to open the video chat's WebSocket. */
   get videochatOrigins(): string[] {
-    return this.get('VIDEOCHAT_ORIGINS');
+    const configured = this.get('VIDEOCHAT_ORIGINS');
+    // Neoqlick's video chat follows NEOQLICK_URL, like CORS (architecture 4.18).
+    const neoqlick = this.neoqlickUrl?.replace('://', '://videochat.');
+    return neoqlick && !configured.includes(neoqlick) ? [...configured, neoqlick] : configured;
   }
 
   /** The video chat needs a verified age (not only a declared one). */
@@ -442,11 +445,17 @@ export class AppConfigService {
    * site's address with the app's subdomain (`https://citas.codeqlick.com`).
    */
   webappUrl(app: Webapp): string {
-    const origins =
-      app === 'meetings' ? this.meetingsOrigins : app === 'videochat' ? this.videochatOrigins : [];
     // Neoqlick's apps live under Neoqlick's host (4.18) when it is set.
-    const base = isNeoqlickApp(app) ? this.siteUrlFor('NEOQLICK') : this.siteUrl;
-    return origins[0] ?? base.replace('://', `://${app}.`);
+    if (isNeoqlickApp(app)) {
+      const neoqlick = this.siteUrlFor('NEOQLICK');
+      return app === 'videochat' && !this.neoqlickUrl
+        ? (this.videochatOrigins[0] ?? neoqlick.replace('://', `://${app}.`))
+        : neoqlick.replace('://', `://${app}.`);
+    }
+    return (
+      (app === 'meetings' ? this.meetingsOrigins[0] : undefined) ??
+      this.siteUrl.replace('://', `://${app}.`)
+    );
   }
 
   /** STUN/TURN for calls (video chat, meetings): the URLs and coturn's shared secret (TURN needs both). */
