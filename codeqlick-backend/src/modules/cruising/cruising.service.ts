@@ -21,10 +21,13 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { AdultAdminService, type AlsoReported } from '../adult/adult-admin.service.js';
+import { AdultSafetyService } from '../adult/adult-safety.service.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
+import { isSeriousCategory } from '../adult/adult.rules.js';
 import { sharesContact } from '../swipe/swipe-chat-guard.js';
 import {
   cruisingAlertEmail,
-  cruisingDigestEmail,
   cruisingNoticeEmail,
   cruisingTakedownEmail,
   type CruisingNotice,
@@ -104,9 +107,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** A nickname someone left stays theirs this long (decision 83). */
 const NICKNAME_HOLD_MS = 14 * 24 * 60 * 60 * 1000;
-/** The team's digest: checked this often, sent at most once in DIGEST_MIN_GAP_MS. */
-const DIGEST_EVERY_MS = 30 * 60 * 1000;
-const DIGEST_MIN_GAP_MS = 60 * 60 * 1000;
 /** Spots given their time zone per batch when the API starts (spots from before phase 5). */
 const TIME_ZONE_BATCH = 500;
 
@@ -333,10 +333,6 @@ interface ProfileChanges {
   lookingFor?: LookingFor[];
   showAge?: boolean;
   onboardingDoneAt?: Date | null;
-  verificationStatus?: 'NONE';
-  verificationKey?: null;
-  verificationNote?: null;
-  verifiedAt?: null;
 }
 
 /** The badge of a member for a viewer: no cover for a viewer who can't open profiles (no nickname). */
@@ -356,7 +352,6 @@ export function badgeFor(
 export class CruisingService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(CruisingService.name);
   private timers: NodeJS.Timeout[] = [];
-  private lastDigestAt = 0;
 
   constructor(
     private readonly repository: CruisingRepository,
@@ -367,11 +362,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     private readonly config: AppConfigService,
     private readonly notifications: CruisingNotificationsService,
     private readonly rooms: CruisingRoomsRepository,
+    private readonly safety: AdultSafetyService,
+    private readonly verification: AdultVerificationService,
+    private readonly adultAdmin: AdultAdminService,
   ) {}
 
   onApplicationBootstrap(): void {
     if (this.config.isTest) return;
-    this.timers.push(setInterval(() => void this.sendDigest(), DIGEST_EVERY_MS).unref());
+    // The team's digest is the one of the three 18+ apps (AdultAdminService, architecture 4.16).
     void this.backfillTimeZones();
   }
 
@@ -412,35 +410,6 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   }
 
   // ---- Background --------------------------------------------------------------------------------
-
-  /** The team's digest, when something new is waiting since the last one (at most hourly). */
-  async sendDigest(now = new Date()): Promise<boolean> {
-    if (!this.config.leadsNotifyTo) return false;
-    if (now.getTime() - this.lastDigestAt < DIGEST_MIN_GAP_MS) return false;
-    try {
-      const newest = await this.repository.newestPendingAt();
-      if (!newest || newest.getTime() <= this.lastDigestAt) return false;
-      const overview = await this.repository.overview(now);
-      this.lastDigestAt = now.getTime();
-      this.sendMail(
-        cruisingDigestEmail(
-          this.config.leadsNotifyTo,
-          {
-            spots: overview.pendingSpots,
-            reports: overview.openReports,
-            takedowns: overview.openTakedowns,
-            media: overview.newMedia,
-            verifications: overview.pendingVerifications,
-          },
-          this.config.siteUrl,
-        ),
-      );
-      return true;
-    } catch (error) {
-      this.logger.error(`Cruising digest failed: ${String(error)}`);
-      return false;
-    }
-  }
 
   private alert(kind: 'minor-report' | 'takedown', id: string): void {
     if (!this.config.leadsNotifyTo) return;
@@ -490,27 +459,38 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       this.repository.findProfile(userId),
       this.repository.accountLocale(userId),
     ]);
-    return { ...this.statusOf(profile, now), locale: toAccountLocale(locale) };
+    return { ...(await this.statusOf(userId, profile, now)), locale: toAccountLocale(locale) };
   }
 
-  private statusOf(profile: CruisingProfile | null, now: Date): CruisingStatus {
+  private async statusOf(
+    userId: string,
+    profile: CruisingProfile | null,
+    now: Date,
+  ): Promise<CruisingStatus> {
     const onboarded = !!profile && profile.termsVersion === this.termsVersion;
-    const suspended = isSuspended(profile, now);
+    // A shared suspension (architecture 4.16) counts even before the person entered Cruising.
+    const shared = isSuspended(profile, now) ? null : await this.safety.sharedState(userId, now);
+    const suspended = isSuspended(profile, now) || !!shared;
+    // The account's one verification for the three 18+ apps (decision 113).
+    const verification = await this.verification.view(userId);
+    const verified = verification.status === 'APPROVED';
     return {
       onboarded,
       termsVersion: this.termsVersion,
       acceptedTermsVersion: profile?.termsVersion ?? null,
       suspended,
-      suspension: suspended
-        ? {
-            reason: profile?.suspensionReason ?? null,
-            until: profile?.suspendedUntil?.toISOString() ?? null,
-          }
-        : null,
+      suspension: shared
+        ? { reason: shared.reason, until: shared.until?.toISOString() ?? null }
+        : suspended
+          ? {
+              reason: profile?.suspensionReason ?? null,
+              until: profile?.suspendedUntil?.toISOString() ?? null,
+            }
+          : null,
       allowed: onboarded && !suspended,
       emailAlerts: profile?.emailAlerts ?? true,
-      verified: profile?.verificationStatus === 'APPROVED',
-      verification: verificationState(profile),
+      verified,
+      verification: verificationState(verification),
       favoriteAlerts: profile?.favoriteAlerts ?? true,
       favoriteEmails: profile?.favoriteEmails ?? false,
       pushPublicKey: this.config.vapid?.publicKey ?? null,
@@ -522,7 +502,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             country: profile.country,
             lookingFor: profile.lookingFor,
             showAge: profile.showAge,
-            verified: profile.verificationStatus === 'APPROVED',
+            verified,
             badges: contributorBadges(countersOf(profile)),
             contributions: countersOf(profile),
           }
@@ -540,9 +520,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       throw new ForbiddenException('Cruising is only for people aged 18 or over');
     }
     if (age > 120) throw new BadRequestException('Check the date of birth');
+    const user = await this.repository.findUser(userId);
+    // An email kept after a serious suspension can't enter (decision 120).
+    if (user) await this.safety.checkEntry(user.email, now);
     const birthYear = Number(input.birthDate.slice(0, 4));
-    const profile = await this.repository.saveOnboarding(userId, this.termsVersion, birthYear, now);
-    return this.statusOf(profile, now);
+    await this.repository.saveOnboarding(userId, this.termsVersion, birthYear, now);
+    // A shared suspension in force applies here too, from the first visit (decision 114).
+    await this.safety.reapply(userId, now, ['CRUISING']);
+    return this.statusOf(userId, await this.repository.findProfile(userId), now);
   }
 
   async updateProfile(
@@ -584,21 +569,16 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
         throw new ConflictException('This nickname is taken');
       }
       data.nickname = input.nickname;
-      // The badge (and a photo waiting for review) is about the old nickname: it goes, and the
-      // member sends a new photo with the new one (decision 87).
-      if (current.verificationStatus === 'APPROVED' || current.verificationStatus === 'PENDING') {
-        data.verificationStatus = 'NONE';
-        data.verificationKey = null;
-        data.verificationNote = null;
-        data.verifiedAt = null;
-      }
     }
     try {
       const saved =
         changing && current.nickname
           ? await this.repository.updateProfileChangingNickname(userId, data, current.nickname, now)
           : await this.repository.updateProfile(userId, data);
-      return this.statusOf(saved, now);
+      // The badge (and a photo waiting for review) is about the name on the paper: when it is no
+      // longer one of the account's names it goes, in the three 18+ apps (decisions 87 and 113).
+      if (data.nickname !== undefined) await this.verification.nameChanged(userId, now);
+      return this.statusOf(userId, saved, now);
     } catch (error) {
       // Two people saving the same nickname together: the unique index settles it.
       if (isUniqueViolation(error)) throw new ConflictException('This nickname is taken');
@@ -1441,8 +1421,13 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   async reports(status: 'OPEN' | 'DISMISSED' | 'ACTIONED') {
     const reports = await this.repository.reports(status);
-    const counts = await this.repository.reportCounts([
+    const people = [
       ...new Set(reports.flatMap((report) => (report.reportedId ? [report.reportedId] : []))),
+    ];
+    const [counts, verified, elsewhere] = await Promise.all([
+      this.repository.reportCounts(people),
+      this.verification.verifiedAmong(people),
+      this.adultAdmin.alsoReported('CRUISING', people),
     ]);
     return reports.map((report) => ({
       id: report.id,
@@ -1499,9 +1484,10 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
             name: report.reported.name,
             email: report.reported.email,
             nickname: report.reported.cruisingProfile?.nickname ?? null,
-            verified: report.reported.cruisingProfile?.verificationStatus === 'APPROVED',
+            verified: verified.has(report.reported.id),
             suspended: isSuspended(report.reported.cruisingProfile),
             reports: counts.get(report.reported.id) ?? 0,
+            alsoReported: elsewhere.get(report.reported.id) ?? (null as AlsoReported | null),
             roomMutedUntil: report.reported.cruisingProfile?.roomMutedUntil?.toISOString() ?? null,
           }
         : null,
@@ -1613,11 +1599,18 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       await this.withdrawIfVerified(actor, report.reportedId);
     }
     if (input.suspend && report.reportedId) {
+      // The report's reason is the category (or the moderator's): MINOR, NON_CONSENSUAL and
+      // ILLEGAL are shared in the three 18+ apps (decision 114).
       await this.suspend(
         actor,
         report.reportedId,
-        { duration: input.suspend, reason: input.reason || `Report: ${report.reason}` },
+        {
+          duration: input.suspend,
+          reason: input.reason || `Report: ${report.reason}`,
+          category: input.category ?? report.reason,
+        },
         now,
+        report.id,
       );
     }
     await this.repository.closeReport(report.id, 'ACTIONED', actor.id, now);
@@ -1635,8 +1628,7 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
 
   /** Takes the badge away when the person has it (nothing to withdraw is fine here). */
   private async withdrawIfVerified(actor: AuthUser, userId: string): Promise<void> {
-    const profile = await this.repository.findProfile(userId);
-    if (profile?.verificationStatus === 'APPROVED') {
+    if (await this.verification.isVerified(userId)) {
       await this.media.withdrawVerification(actor, userId);
     }
   }
@@ -1650,7 +1642,12 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   ): Promise<void> {
     const { ownerId } = await this.media.remove(actor, mediaId, input, now);
     if (input.suspend) {
-      await this.suspend(actor, ownerId, { duration: input.suspend, reason: input.reason }, now);
+      await this.suspend(
+        actor,
+        ownerId,
+        { duration: input.suspend, reason: input.reason, category: input.category },
+        now,
+      );
     }
   }
 
@@ -1744,14 +1741,33 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
     userId: string,
     input: SuspendUserInput,
     now = new Date(),
+    reportId: string | null = null,
   ): Promise<void> {
     const profile = await this.repository.findProfile(userId);
     if (!profile) throw new NotFoundException('Not a Cruising member');
+    if (isSeriousCategory(input.category)) {
+      // Shared in the three 18+ apps with the same end (decision 114): the check-in ends, the
+      // verification goes and the email names no app.
+      await this.safety.suspend(
+        actor,
+        userId,
+        {
+          category: input.category,
+          sourceApp: 'CRUISING',
+          reason: input.reason || `Category: ${input.category}`,
+          duration: input.duration,
+          reportId,
+        },
+        now,
+      );
+      return;
+    }
     const until = suspensionEnd(input.duration, now);
     await this.repository.updateProfile(userId, {
       suspendedAt: now,
       suspendedUntil: until,
       suspensionReason: input.reason || null,
+      suspensionCategory: input.category,
     });
     // A suspended member can't be "here": the check-in ends with the suspension.
     await this.repository.endCheckIns(userId, now);
@@ -1761,19 +1777,32 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
       action: 'cruising.suspended',
       targetId: userId,
       targetLabel: user?.email ?? userId,
-      details: { duration: input.duration, reason: input.reason ?? null },
+      details: { duration: input.duration, reason: input.reason ?? null, category: input.category },
     });
     await this.notifyMember(userId, 'suspended', input.reason || null, until);
   }
 
-  async unsuspend(actor: AuthUser, userId: string, now = new Date()): Promise<void> {
+  /** Lifts Cruising's suspension; a shared one is lifted in the three apps (with a reason). */
+  async unsuspend(
+    actor: AuthUser,
+    userId: string,
+    now = new Date(),
+    reason = 'Lifted from Cruising moderation',
+  ): Promise<void> {
     const profile = await this.repository.findProfile(userId);
     if (!profile || !isSuspended(profile, now)) throw new NotFoundException('Not suspended');
+    if (await this.safety.isSharedInProfile(userId, profile.suspendedAt, now)) {
+      await this.safety.lift(actor, userId, reason, now);
+      return;
+    }
     await this.repository.updateProfile(userId, {
       suspendedAt: null,
       suspendedUntil: null,
       suspensionReason: null,
+      suspensionCategory: null,
     });
+    // A shared suspension still in force shows again.
+    await this.safety.reapply(userId, now, ['CRUISING']);
     const user = await this.repository.findUser(userId);
     await this.activity.record(actor, {
       action: 'cruising.unsuspended',
@@ -1783,12 +1812,14 @@ export class CruisingService implements OnApplicationBootstrap, OnApplicationShu
   }
 
   async suspensions(now = new Date()) {
-    return (await this.repository.suspendedProfiles(now)).map((profile) => ({
+    const profiles = await this.repository.suspendedProfiles(now);
+    const verified = await this.verification.verifiedAmong(profiles.map((row) => row.userId));
+    return profiles.map((profile) => ({
       userId: profile.user.id,
       name: profile.user.name,
       email: profile.user.email,
       nickname: profile.nickname,
-      verified: profile.verificationStatus === 'APPROVED',
+      verified: verified.has(profile.userId),
       reason: profile.suspensionReason,
       until: profile.suspendedUntil?.toISOString() ?? null,
       suspendedAt: profile.suspendedAt?.toISOString() ?? null,

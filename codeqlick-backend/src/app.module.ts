@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { ActivityModule } from './modules/activity/activity.module.js';
+import { AdultModule } from './modules/adult/adult.module.js';
 import { SiteFormsModule } from './modules/site-forms/site-forms.module.js';
 import { ManagedSitesModule } from './modules/managed-sites/managed-sites.module.js';
 import { DomainsModule } from './modules/domains/domains.module.js';
@@ -91,6 +92,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     CitasModule,
     SwipeModule,
     CruisingModule,
+    AdultModule,
     SiteAuditsModule,
     CloudModule,
     NewsletterModule,

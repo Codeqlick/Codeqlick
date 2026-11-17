@@ -7,6 +7,9 @@ import type { ActivityService } from '../activity/activity.service.js';
 import type { MailService } from '../mail/mail.service.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
 import type { CruisingMediaService } from './cruising-media.service.js';
+import type { AdultAdminService } from '../adult/adult-admin.service.js';
+import type { AdultSafetyService } from '../adult/adult-safety.service.js';
+import type { AdultVerificationService } from '../adult/adult-verification.service.js';
 import type { CruisingRoomsRepository } from './cruising-rooms.repository.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingService } from './cruising.service.js';
@@ -255,6 +258,9 @@ function build() {
       notifyMany: vi.fn().mockResolvedValue(undefined),
     } as unknown as CruisingNotificationsService,
     {} as unknown as CruisingRoomsRepository,
+    {} as unknown as AdultSafetyService,
+    {} as unknown as AdultVerificationService,
+    {} as unknown as AdultAdminService,
   );
   return { service, repo, activity };
 }

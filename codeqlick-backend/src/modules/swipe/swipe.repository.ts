@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  AdultApp,
+  AdultVerificationStatus,
   Prisma,
   SwipeGender,
   SwipeMatch,
@@ -9,9 +11,15 @@ import type {
   SwipeReportReason,
   SwipeReportStatus,
   SwipeTakedownStatus,
-  SwipeVerificationStatus,
 } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import type {
+  AdultAppStore,
+  AppEntry,
+  AppPersonOverview,
+  Db,
+  ProfileSuspension,
+} from '../adult/adult-app-store.js';
 
 const personSelect = { id: true, name: true, email: true } as const;
 
@@ -20,9 +28,12 @@ export function notSuspended(now: Date): Prisma.SwipeProfileWhereInput {
   return { OR: [{ suspendedAt: null }, { suspendedUntil: { lt: now } }] };
 }
 
+/** The account's verification (architecture 4.16): APPROVED shows the badge. */
+type Verified = { adultVerification: { status: AdultVerificationStatus } | null };
+
 export type MatchWithPeople = SwipeMatch & {
-  userA: { id: string; swipeProfile: PartnerProfile | null };
-  userB: { id: string; swipeProfile: PartnerProfile | null };
+  userA: { id: string; swipeProfile: PartnerProfile | null } & Verified;
+  userB: { id: string; swipeProfile: PartnerProfile | null } & Verified;
   messages: { text: string; senderId: string; createdAt: Date }[];
 };
 
@@ -31,7 +42,6 @@ export interface PartnerProfile {
   gender: SwipeGender | null;
   interests: string[];
   bio: string | null;
-  verificationStatus: SwipeVerificationStatus;
 }
 
 const cardProfileSelect = {
@@ -39,10 +49,15 @@ const cardProfileSelect = {
   gender: true,
   interests: true,
   bio: true,
-  verificationStatus: true,
 } as const;
 
-const partnerSelect = { id: true, swipeProfile: { select: cardProfileSelect } } as const;
+const verifiedSelect = { adultVerification: { select: { status: true } } } as const;
+
+const partnerSelect = {
+  id: true,
+  swipeProfile: { select: cardProfileSelect },
+  ...verifiedSelect,
+} as const;
 
 /** What the deck filters on: whom they want to see, ages and country. */
 export interface DeckFilter {
@@ -62,7 +77,7 @@ const recipientSelect = {
 } as const;
 
 @Injectable()
-export class SwipeRepository {
+export class SwipeRepository implements AdultAppStore {
   constructor(private readonly prisma: PrismaService) {}
 
   // ---- Profiles ----------------------------------------------------------------------------------
@@ -167,9 +182,9 @@ export class SwipeRepository {
           select: {
             ...personSelect,
             createdAt: true,
-            swipeProfile: {
-              select: { nickname: true, gender: true, verifiedAt: true, verificationKey: true },
-            },
+            swipeProfile: { select: { nickname: true, gender: true } },
+            // The kept verification photo, to compare uploads with it (decision 113).
+            adultVerification: { select: { status: true, decidedAt: true, photoKey: true } },
           },
         },
         reviewedBy: { select: { id: true, name: true } },
@@ -219,7 +234,9 @@ export class SwipeRepository {
       },
       orderBy: { createdAt: 'desc' },
       take,
-      include: { owner: { select: { swipeProfile: { select: cardProfileSelect } } } },
+      include: {
+        owner: { select: { swipeProfile: { select: cardProfileSelect }, ...verifiedSelect } },
+      },
     });
   }
 
@@ -298,7 +315,7 @@ export class SwipeRepository {
       orderBy: { createdAt: 'desc' },
       include: {
         photo: {
-          include: { owner: { select: { id: true, swipeProfile: { select: cardProfileSelect } } } },
+          include: { owner: { select: partnerSelect } },
         },
       },
     });
@@ -450,18 +467,167 @@ export class SwipeRepository {
     });
   }
 
-  /** A block, which also ends any match between them. */
-  async block(blockerId: string, blockedId: string): Promise<void> {
-    const [userAId, userBId] =
-      blockerId < blockedId ? [blockerId, blockedId] : [blockedId, blockerId];
-    await this.prisma.$transaction([
-      this.prisma.swipeBlock.upsert({
-        where: { blockerId_blockedId: { blockerId, blockedId } },
-        create: { blockerId, blockedId },
-        update: {},
+  // ---- The shared safety's view of Swipe (AdultAppStore, architecture 4.16) -----------------------
+
+  readonly app = 'SWIPE' as const;
+
+  /** A block (shared in the three 18+ apps), which also ends any match between them. */
+  async applyBlock(db: Db, blockerId: string, blockedId: string, sourceApp: AdultApp) {
+    await db.swipeBlock.upsert({
+      where: { blockerId_blockedId: { blockerId, blockedId } },
+      create: { blockerId, blockedId, sourceApp },
+      update: {},
+    });
+    await this.clearBetween(db, blockerId, blockedId);
+  }
+
+  /** The match between two people goes, with its chat. */
+  async clearBetween(db: Db, a: string, b: string): Promise<void> {
+    const [userAId, userBId] = a < b ? [a, b] : [b, a];
+    await db.swipeMatch.deleteMany({ where: { userAId, userBId } });
+  }
+
+  async removeBlock(db: Db, blockerId: string, blockedId: string): Promise<boolean> {
+    const { count } = await db.swipeBlock.deleteMany({ where: { blockerId, blockedId } });
+    return count > 0;
+  }
+
+  suspensionState(db: Db, userId: string) {
+    return db.swipeProfile.findUnique({
+      where: { userId },
+      select: { suspendedAt: true, suspendedUntil: true },
+    });
+  }
+
+  async setSuspension(db: Db, userId: string, suspension: ProfileSuspension): Promise<void> {
+    await db.swipeProfile.update({
+      where: { userId },
+      data: {
+        suspendedAt: suspension.at,
+        suspendedUntil: suspension.until,
+        suspensionReason: suspension.reason,
+        suspensionCategory: suspension.category,
+      },
+    });
+  }
+
+  async clearSuspensionAt(db: Db, userId: string, at: Date): Promise<void> {
+    await db.swipeProfile.updateMany({
+      where: { userId, suspendedAt: at },
+      data: {
+        suspendedAt: null,
+        suspendedUntil: null,
+        suspensionReason: null,
+        suspensionCategory: null,
+      },
+    });
+  }
+
+  /** Swipe's name is the account's username (the profile's nickname mirrors it). */
+  async entryOf(userId: string): Promise<AppEntry | null> {
+    const profile = await this.prisma.swipeProfile.findUnique({
+      where: { userId },
+      select: { termsVersion: true, suspendedAt: true, suspendedUntil: true, nickname: true },
+    });
+    return profile
+      ? {
+          termsVersion: profile.termsVersion,
+          suspendedAt: profile.suspendedAt,
+          suspendedUntil: profile.suspendedUntil,
+          name: profile.nickname,
+        }
+      : null;
+  }
+
+  async namesOf(userIds: string[]): Promise<Map<string, string>> {
+    if (userIds.length === 0) return new Map();
+    const rows = await this.prisma.swipeProfile.findMany({
+      where: { userId: { in: userIds }, nickname: { not: null } },
+      select: { userId: true, nickname: true },
+    });
+    return new Map(rows.map((row) => [row.userId, row.nickname as string]));
+  }
+
+  async overviewOf(userId: string): Promise<AppPersonOverview> {
+    const [profile, received, reportsMade] = await Promise.all([
+      this.prisma.swipeProfile.findUnique({
+        where: { userId },
+        select: {
+          createdAt: true,
+          nickname: true,
+          suspendedAt: true,
+          suspendedUntil: true,
+          suspensionReason: true,
+          suspensionCategory: true,
+        },
       }),
-      this.prisma.swipeMatch.deleteMany({ where: { userAId, userBId } }),
+      this.prisma.swipeReport.groupBy({
+        by: ['status', 'reason'],
+        where: { reportedId: userId },
+        _count: { _all: true },
+      }),
+      this.prisma.swipeReport.count({ where: { reporterId: userId } }),
     ]);
+    return {
+      enteredAt: profile?.createdAt ?? null,
+      name: profile?.nickname ?? null,
+      reportsReceived: received.map((row) => ({
+        status: row.status,
+        reason: row.reason,
+        count: row._count._all,
+      })),
+      reportsMade,
+      suspension: profile?.suspendedAt
+        ? {
+            since: profile.suspendedAt,
+            until: profile.suspendedUntil,
+            reason: profile.suspensionReason,
+            category: profile.suspensionCategory,
+          }
+        : null,
+    };
+  }
+
+  async reportCountsOf(userIds: string[]) {
+    const counts = new Map<string, { open: number; total: number }>();
+    if (userIds.length === 0) return counts;
+    const rows = await this.prisma.swipeReport.groupBy({
+      by: ['reportedId', 'status'],
+      where: { reportedId: { in: userIds } },
+      _count: { _all: true },
+    });
+    for (const row of rows) {
+      const entry = counts.get(row.reportedId) ?? { open: 0, total: 0 };
+      entry.total += row._count._all;
+      if (row.status === 'OPEN') entry.open += row._count._all;
+      counts.set(row.reportedId, entry);
+    }
+    return counts;
+  }
+
+  blocksMadeBy(userId: string) {
+    return this.prisma.swipeBlock.findMany({
+      where: { blockerId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: { blockedId: true, sourceApp: true, createdAt: true },
+    });
+  }
+
+  async blockersOf(userId: string): Promise<string[]> {
+    const rows = await this.prisma.swipeBlock.findMany({
+      where: { blockedId: userId },
+      select: { blockerId: true },
+    });
+    return rows.map((row) => row.blockerId);
+  }
+
+  async digestCounts(): Promise<Array<[string, number]>> {
+    const overview = await this.overview(new Date());
+    return [
+      ['Photos', overview.pendingPhotos],
+      ['Reports', overview.openReports],
+      ['Removal requests', overview.openTakedowns],
+    ];
   }
 
   /** The first live photo of each person, for the matches list. */
@@ -590,15 +756,6 @@ export class SwipeRepository {
 
   // ---- Admin -------------------------------------------------------------------------------------
 
-  pendingVerifications() {
-    return this.prisma.swipeProfile.findMany({
-      where: { verificationStatus: 'PENDING' },
-      orderBy: { verificationSentAt: 'asc' },
-      take: 200,
-      include: { user: { select: { ...personSelect, createdAt: true } } },
-    });
-  }
-
   suspendedProfiles(now: Date) {
     return this.prisma.swipeProfile.findMany({
       where: {
@@ -624,12 +781,7 @@ export class SwipeRepository {
 
   /** When the newest thing waiting for the team arrived (null: nothing waiting). */
   async newestPendingAt(): Promise<Date | null> {
-    const [verification, photo, report, takedown] = await Promise.all([
-      this.prisma.swipeProfile.findFirst({
-        where: { verificationStatus: 'PENDING' },
-        orderBy: { verificationSentAt: 'desc' },
-        select: { verificationSentAt: true },
-      }),
+    const [photo, report, takedown] = await Promise.all([
       this.prisma.swipePhoto.findFirst({
         where: { status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
@@ -646,12 +798,9 @@ export class SwipeRepository {
         select: { createdAt: true },
       }),
     ]);
-    const times = [
-      verification?.verificationSentAt,
-      photo?.createdAt,
-      report?.createdAt,
-      takedown?.createdAt,
-    ].filter((time): time is Date => !!time);
+    const times = [photo?.createdAt, report?.createdAt, takedown?.createdAt].filter(
+      (time): time is Date => !!time,
+    );
     return times.length ? new Date(Math.max(...times.map((time) => time.getTime()))) : null;
   }
 
@@ -700,8 +849,12 @@ export class SwipeRepository {
       matches,
     ] = await Promise.all([
       this.prisma.swipeProfile.count(),
-      this.prisma.swipeProfile.count({ where: { verificationStatus: 'APPROVED' } }),
-      this.prisma.swipeProfile.count({ where: { verificationStatus: 'PENDING' } }),
+      // The account's verification (architecture 4.16): Swipe members who may upload…
+      this.prisma.swipeProfile.count({
+        where: { user: { adultVerification: { is: { status: 'APPROVED' } } } },
+      }),
+      // …and the one queue of the 18+ apps.
+      this.prisma.adultVerification.count({ where: { status: 'PENDING' } }),
       this.prisma.swipePhoto.count({ where: { status: 'PENDING' } }),
       this.prisma.swipePhoto.count({ where: { status: 'LIVE' } }),
       this.prisma.swipeReport.count({ where: { status: 'OPEN' } }),

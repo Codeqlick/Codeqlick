@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { SUSPENSION_CATEGORIES } from '../adult/adult.rules.js';
 
 /** Version of the rules and terms people accept; bump it to ask everyone to accept them again. */
-export const VIDEOCHAT_TERMS_VERSION = '2026-11-07';
+export const VIDEOCHAT_TERMS_VERSION = '2026-11-17.1';
 
 /** Minimum age to use the video chat. */
 export const VIDEOCHAT_MIN_AGE = 18;
@@ -34,6 +35,11 @@ export const onboardingSchema = z.object({
   /** YYYY-MM-DD. Checked (18+) and not stored. */
   birthDate: z.iso.date(),
   acceptTerms: z.literal(true),
+  /**
+   * Explicit consent to special category data (sex life and sexual orientation, GDPR art. 9.2.a),
+   * which names the safety measures shared by Codeqlick's 18+ apps (architecture 4.16).
+   */
+  consentSpecialData: z.literal(true),
   termsVersion: z.string().min(1).max(40),
 });
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
@@ -151,6 +157,8 @@ export function suspensionEnd(duration: SuspensionDuration, now: Date): Date | n
 export const suspendSchema = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
   duration: z.enum(SUSPENSION_DURATIONS).default('permanent'),
+  /** The suspension's category; the report's reason when left out (architecture 4.16). */
+  category: z.enum(SUSPENSION_CATEGORIES).optional(),
 });
 export type SuspendInput = z.infer<typeof suspendSchema>;
 
@@ -159,12 +167,16 @@ export const bulkReportsSchema = z.object({
   ids: z.array(z.uuid()).min(1).max(100),
   action: z.enum(['dismiss', 'suspend']),
   duration: z.enum(SUSPENSION_DURATIONS).default('permanent'),
+  /** The suspensions' category; the most serious report reason of each person when left out. */
+  category: z.enum(SUSPENSION_CATEGORIES).optional(),
 });
 export type BulkReportsInput = z.infer<typeof bulkReportsSchema>;
 
 export const suspendUserSchema = z.object({
   reason: z.string().trim().min(1).max(500),
   duration: z.enum(SUSPENSION_DURATIONS),
+  /** Required (decision 114): MINOR, NON_CONSENSUAL and ILLEGAL apply in the three 18+ apps. */
+  category: z.enum(SUSPENSION_CATEGORIES),
 });
 export type SuspendUserInput = z.infer<typeof suspendUserSchema>;
 

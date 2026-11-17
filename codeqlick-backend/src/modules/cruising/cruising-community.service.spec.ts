@@ -36,15 +36,19 @@ const profile = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-const member = (nickname: string, over: Record<string, unknown> = {}) => ({
-  cruisingProfile: {
-    nickname,
-    verificationStatus: 'NONE',
-    suspendedAt: null,
-    suspendedUntil: null,
-    ...over,
-  },
-});
+const member = (nickname: string, over: Record<string, unknown> = {}) => {
+  const { verificationStatus = 'NONE', ...rest } = over;
+  return {
+    cruisingProfile: {
+      nickname,
+      // The account's one verification (architecture 4.16).
+      user: { adultVerification: { status: verificationStatus } },
+      suspendedAt: null,
+      suspendedUntil: null,
+      ...rest,
+    },
+  };
+};
 
 const meetupRow = (over: Record<string, unknown> = {}) => ({
   id: MEETUP,

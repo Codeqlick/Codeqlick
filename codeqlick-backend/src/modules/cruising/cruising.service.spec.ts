@@ -14,6 +14,9 @@ import type { MailMessage, MailService } from '../mail/mail.service.js';
 import { deleteUserRecomputingRatings, recomputeSpotRating } from './cruising.repository.js';
 import type { CruisingMediaRepository } from './cruising-media.repository.js';
 import type { CruisingMediaService } from './cruising-media.service.js';
+import type { AdultAdminService } from '../adult/adult-admin.service.js';
+import type { AdultSafetyService } from '../adult/adult-safety.service.js';
+import type { AdultVerificationService } from '../adult/adult-verification.service.js';
 import type { CruisingRoomsRepository } from './cruising-rooms.repository.js';
 import type { CruisingRepository } from './cruising.repository.js';
 import { CruisingService, newSpotFields, spotChanges } from './cruising.service.js';
@@ -196,6 +199,22 @@ function build() {
     countOpenReportsOnRoomMessage: vi.fn().mockResolvedValue(0),
     closeOpenReportsOnRoomMessage: vi.fn().mockResolvedValue(undefined),
   };
+  // The shared safety of the 18+ apps (architecture 4.16).
+  const safety = {
+    sharedState: vi.fn().mockResolvedValue(null),
+    checkEntry: vi.fn().mockResolvedValue(undefined),
+    reapply: vi.fn().mockResolvedValue(undefined),
+    suspend: vi.fn().mockResolvedValue(undefined),
+    lift: vi.fn().mockResolvedValue(undefined),
+    isSharedInProfile: vi.fn().mockResolvedValue(false),
+  };
+  const verification = {
+    view: vi.fn().mockResolvedValue({ status: 'NONE', note: null }),
+    isVerified: vi.fn().mockResolvedValue(false),
+    verifiedAmong: vi.fn().mockResolvedValue(new Set()),
+    nameChanged: vi.fn().mockResolvedValue(undefined),
+  };
+  const adultAdmin = { alsoReported: vi.fn().mockResolvedValue(new Map()) };
   const service = new CruisingService(
     repo as unknown as CruisingRepository,
     mediaRepo as unknown as CruisingMediaRepository,
@@ -205,8 +224,23 @@ function build() {
     config as unknown as AppConfigService,
     notifications as unknown as CruisingNotificationsService,
     rooms as unknown as CruisingRoomsRepository,
+    safety as unknown as AdultSafetyService,
+    verification as unknown as AdultVerificationService,
+    adultAdmin as unknown as AdultAdminService,
   );
-  return { service, repo, sent, activity, config, media, mediaRepo, notifications, rooms };
+  return {
+    service,
+    repo,
+    sent,
+    activity,
+    config,
+    media,
+    mediaRepo,
+    notifications,
+    rooms,
+    safety,
+    verification,
+  };
 }
 
 /** Lets the emails sent without waiting (fire and forget) settle. */
@@ -1175,11 +1209,19 @@ describe('CruisingService', () => {
         SPOT,
         expect.objectContaining({ status: 'REMOVED', rejectReason: 'Minors involved' }),
       );
-      expect(t.repo.updateProfile).toHaveBeenCalledWith(OTHER, {
-        suspendedAt: NOW,
-        suspendedUntil: new Date(NOW.getTime() + 7 * 24 * 3600_000),
-        suspensionReason: 'Minors involved',
-      });
+      // A MINOR report: the suspension is shared in the three 18+ apps (decision 114).
+      expect(t.safety.suspend).toHaveBeenCalledWith(
+        admin,
+        OTHER,
+        expect.objectContaining({
+          category: 'MINOR',
+          sourceApp: 'CRUISING',
+          reason: 'Minors involved',
+          duration: '7d',
+          reportId: 'report-1',
+        }),
+        NOW,
+      );
       expect(t.repo.closeReport).toHaveBeenCalledWith('report-1', 'ACTIONED', admin.id, NOW);
     });
 
@@ -1261,18 +1303,48 @@ describe('CruisingService', () => {
 
   describe('suspensions', () => {
     it('suspends, records it and emails the person with the reason', async () => {
-      await t.service.suspend(admin, OTHER, { duration: '24h', reason: 'Spam' }, NOW);
+      await t.service.suspend(
+        admin,
+        OTHER,
+        { duration: '24h', reason: 'Spam', category: 'SPAM' },
+        NOW,
+      );
       expect(t.repo.updateProfile).toHaveBeenCalledWith(OTHER, {
         suspendedAt: NOW,
         suspendedUntil: new Date(NOW.getTime() + 24 * 3600_000),
         suspensionReason: 'Spam',
+        suspensionCategory: 'SPAM',
       });
+      expect(t.safety.suspend).not.toHaveBeenCalled();
       await settle();
       expect(t.sent[0]?.text).toContain('Spam');
     });
 
+    it('shares a MINOR, NON_CONSENSUAL or ILLEGAL one in the three 18+ apps (114)', async () => {
+      await t.service.suspend(
+        admin,
+        OTHER,
+        { duration: '7d', reason: 'Looks under 18', category: 'MINOR' },
+        NOW,
+        'report-1',
+      );
+      expect(t.safety.suspend).toHaveBeenCalledWith(
+        admin,
+        OTHER,
+        {
+          category: 'MINOR',
+          sourceApp: 'CRUISING',
+          reason: 'Looks under 18',
+          duration: '7d',
+          reportId: 'report-1',
+        },
+        NOW,
+      );
+      expect(t.repo.updateProfile).not.toHaveBeenCalled();
+    });
+
     it('a permanent suspension has no end', async () => {
-      await t.service.suspend(admin, OTHER, { duration: 'permanent' }, NOW);
+      await t.service.suspend(admin, OTHER, { duration: 'permanent', category: 'OTHER' }, NOW);
       expect(t.repo.updateProfile).toHaveBeenCalledWith(
         OTHER,
         expect.objectContaining({ suspendedUntil: null }),
@@ -1281,9 +1353,9 @@ describe('CruisingService', () => {
 
     it('answers 404 for somebody who is not a member', async () => {
       t.repo.findProfile.mockResolvedValue(null);
-      await expect(t.service.suspend(admin, OTHER, { duration: '7d' }, NOW)).rejects.toBeInstanceOf(
-        NotFoundException,
-      );
+      await expect(
+        t.service.suspend(admin, OTHER, { duration: '7d', category: 'SPAM' }, NOW),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('lifts a suspension and answers 404 when there is none', async () => {
@@ -1296,7 +1368,16 @@ describe('CruisingService', () => {
         suspendedAt: null,
         suspendedUntil: null,
         suspensionReason: null,
+        suspensionCategory: null,
       });
+    });
+
+    it('lifting a shared suspension lifts it in the three apps', async () => {
+      t.repo.findProfile.mockResolvedValue(profile({ suspendedAt: NOW }));
+      t.safety.isSharedInProfile.mockResolvedValue(true);
+      await t.service.unsuspend(admin, OTHER, NOW, 'Wrong report');
+      expect(t.safety.lift).toHaveBeenCalledWith(admin, OTHER, 'Wrong report', NOW);
+      expect(t.repo.updateProfile).not.toHaveBeenCalled();
     });
   });
 
@@ -1673,7 +1754,7 @@ describe('CruisingService', () => {
 
   describe('suspensions (phase 2)', () => {
     it('end the check-in of the person suspended', async () => {
-      await t.service.suspend(admin, OTHER, { duration: '30d' }, NOW);
+      await t.service.suspend(admin, OTHER, { duration: '30d', category: 'HARASSMENT' }, NOW);
       expect(t.repo.endCheckIns).toHaveBeenCalledWith(OTHER, NOW);
     });
 
@@ -1689,37 +1770,6 @@ describe('CruisingService', () => {
       ]);
       const [row] = await t.service.suspensions(NOW);
       expect(row).toMatchObject({ userId: OTHER, nickname: 'pier_fan', until: null });
-    });
-  });
-
-  describe('the team digest', () => {
-    it('sends nothing when nothing is waiting', async () => {
-      expect(await t.service.sendDigest(NOW)).toBe(false);
-      expect(t.sent).toHaveLength(0);
-    });
-
-    it('sends the counts once, and at most hourly', async () => {
-      t.repo.newestPendingAt.mockResolvedValue(new Date(NOW.getTime() - 60_000));
-      expect(await t.service.sendDigest(NOW)).toBe(true);
-      await settle();
-      expect(t.sent).toHaveLength(1);
-      expect(t.sent[0]?.to).toBe('team@codeqlick.com');
-      expect(t.sent[0]?.subject).toBe('Cruising: 3 waiting for review');
-      expect(t.sent[0]?.text).toContain('https://codeqlick.com/es/admin/cruising');
-      // Something newer, but within the hour.
-      t.repo.newestPendingAt.mockResolvedValue(new Date(NOW.getTime() + 60_000));
-      expect(await t.service.sendDigest(new Date(NOW.getTime() + 30 * 60_000))).toBe(false);
-      // After the hour, with something new.
-      t.repo.newestPendingAt.mockResolvedValue(new Date(NOW.getTime() + 61 * 60_000));
-      expect(await t.service.sendDigest(new Date(NOW.getTime() + 62 * 60_000))).toBe(true);
-      // Nothing new since the last one.
-      t.repo.newestPendingAt.mockResolvedValue(new Date(NOW.getTime() + 61 * 60_000));
-      expect(await t.service.sendDigest(new Date(NOW.getTime() + 130 * 60_000))).toBe(false);
-    });
-
-    it('survives a failing query', async () => {
-      t.repo.newestPendingAt.mockRejectedValue(new Error('db down'));
-      expect(await t.service.sendDigest(NOW)).toBe(false);
     });
   });
 
