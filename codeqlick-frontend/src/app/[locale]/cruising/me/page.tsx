@@ -43,7 +43,6 @@ import {
 } from '@/lib/cruising';
 import { meSections, PROFILE_GAPS, profileCompleteness } from '@/lib/cruising-profile';
 import { NO_GRANTS } from '@/lib/cruising-rooms';
-import { env } from '@/lib/env';
 import { firstParam, formatDate, formatDateTime } from '@/lib/format';
 import { requestWebapp } from '@/lib/webapp-request';
 import vc from '../../videochat/videochat.module.css';
@@ -60,6 +59,7 @@ import {
 import { CruisingGate } from '../Gate';
 import { visitsSettingsAction } from '../notifications-actions';
 import { accountLanguageAction, reopenTourAction } from '../onboarding-actions';
+import { accountUrl } from '@/lib/account-links';
 
 /** Behind the account: kept out of search results. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
@@ -77,7 +77,7 @@ type PageProps = {
 export default async function CruisingMePage({ params, searchParams }: PageProps) {
   const locale = resolveCruisingLocale((await params).locale);
   const query = await searchParams;
-  const user = await requireUser(locale, `/${locale}/cruising/me`);
+  await requireUser(locale, `/${locale}/cruising/me`);
   const status = await getCruisingStatus();
   const gate = await CruisingGate({ locale, status });
   if (gate) return gate;
@@ -124,10 +124,9 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   // Every block of the page is the shared Cruising card, as a settings panel.
   const panel = `${card.card} ${card.panel}`;
   const sections = meSections(Boolean(profile?.nickname));
-  // The account itself (email, password, sign-in, the data download) lives on the main site.
-  const accountBase = `${env.SITE_URL.replace(/\/$/, '')}/${siteLocale(locale)}/${
-    user.role === 'ADMIN' ? 'admin' : 'portal'
-  }/account`;
+  // The account itself (email, password, sign-in, the data download) lives on the account site.
+  const accountSettings = accountUrl(locale);
+  const accountExport = accountUrl(locale, '/export');
 
   return (
     <div className={styles.page}>
@@ -550,12 +549,12 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
               <p className={styles.muted}>{t('dataLead')}</p>
               <ul className={styles.linkList}>
                 <li>
-                  <a href={`${accountBase}/export`} className={styles.link}>
+                  <a href={accountExport} className={styles.link}>
                     {t('dataExport')}
                   </a>
                 </li>
                 <li>
-                  <a href={accountBase} className={styles.link}>
+                  <a href={accountSettings} className={styles.link}>
                     {t('accountSettings')}
                   </a>
                 </li>

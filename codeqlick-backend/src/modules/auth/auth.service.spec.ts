@@ -118,6 +118,7 @@ describe('AuthService', () => {
       jwtAccessTtl: 900,
       refreshTokenTtlDays: 30,
       siteUrl: 'https://codeqlick.com',
+      accountUrl: 'https://account.codeqlick.com',
       jwtAccessSecret: 'unit-test-secret-unit-test-secret-1234',
     } as AppConfigService;
 
@@ -221,11 +222,11 @@ describe('AuthService', () => {
       expect(message.subject).toBe('Nuevo inicio de sesión en tu cuenta — Codeqlick');
       expect(message.text).toContain('Safari en iOS');
       expect(message.text).toContain('203.0.113.7');
-      expect(message.text).toContain('https://codeqlick.com/es/portal/account');
-      expect(message.text).toContain('https://codeqlick.com/es/forgot-password');
+      expect(message.text).toContain('https://account.codeqlick.com/es/security');
+      expect(message.text).toContain('https://account.codeqlick.com/es/forgot-password');
     });
 
-    it('links admins to their own account page', async () => {
+    it('links admins to the account site too', async () => {
       const user = makeUser({ role: 'ADMIN' });
       repository.findUserByEmail.mockResolvedValue(user);
 
@@ -234,7 +235,7 @@ describe('AuthService', () => {
       const message = mail.send.mock.calls[0]?.[0] as { subject: string; text: string };
       expect(message.subject).toBe('New sign-in to your account — Codeqlick');
       expect(message.text).toContain('Firefox on Linux');
-      expect(message.text).toContain('https://codeqlick.com/en/admin/account');
+      expect(message.text).toContain('https://account.codeqlick.com/en/security');
     });
 
     it('stays quiet for a browser and system the account already uses, whatever the version', async () => {
@@ -420,7 +421,7 @@ describe('AuthService', () => {
       const message = mail.send.mock.calls[0]?.[0] as { to: string; subject: string; text: string };
       expect(message.to).toBe(user.email);
       expect(message.subject).toContain('Restablece');
-      const token = /https:\/\/codeqlick\.com\/es\/reset-password\?token=([\w-]+)/.exec(
+      const token = /https:\/\/account\.codeqlick\.com\/es\/reset-password\?token=([\w-]+)/.exec(
         message.text,
       )?.[1];
       expect(token).toBeDefined();
@@ -468,9 +469,10 @@ describe('AuthService', () => {
       const message = mail.send.mock.calls[0]?.[0] as { to: string; subject: string; text: string };
       expect(message.to).toBe(user.email);
       expect(message.subject).toContain('Welcome');
-      const token = /https:\/\/codeqlick\.com\/en\/reset-password\?token=([\w-]+)&welcome=1/.exec(
-        message.text,
-      )?.[1];
+      const token =
+        /https:\/\/account\.codeqlick\.com\/en\/reset-password\?token=([\w-]+)&welcome=1/.exec(
+          message.text,
+        )?.[1];
       expect(token).toBeDefined();
       expect(hashRefreshToken(token as string)).toBe(tokenHash);
     });

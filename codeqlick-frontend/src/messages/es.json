@@ -661,6 +661,87 @@
       "error": "No hemos podido guardarla. Inténtalo de nuevo."
     }
   },
+  "AccountSite": {
+    "title": "Cuenta",
+    "settingsLink": "Ajustes de la cuenta",
+    "nav": {
+      "overview": "Resumen",
+      "profile": "Perfil",
+      "security": "Seguridad",
+      "privacy": "Privacidad",
+      "notifications": "Notificaciones",
+      "apps": "Tus apps"
+    },
+    "overview": {
+      "title": "Hola, {name}",
+      "lead": "Una sola cuenta de Codeqlick para la web, tus proyectos y todas las apps. Entra aquí una vez y todas las apps te reconocen.",
+      "profile": "Tu foto, nombre, nombre de usuario y el idioma de nuestros correos.",
+      "security": "Verificación en dos pasos {twoFactor, select, on {activada} other {desactivada}} · {passkeys, plural, =0 {sin llaves de acceso} one {# llave de acceso} other {# llaves de acceso}} · {sessions, plural, one {# sesión abierta} other {# sesiones abiertas}}.",
+      "privacy": "Descarga tus datos o elimina tu cuenta.",
+      "notifications": "Todos los correos y avisos de todas las apps, en un solo sitio.",
+      "apps": "{count, plural, =0 {Aún no usas ninguna app.} one {Usas # parte de Codeqlick.} other {Usas # partes de Codeqlick.}}"
+    },
+    "profile": {
+      "lead": "Cómo apareces en Codeqlick (nunca en las apps +18, donde solo se ve tu nombre de usuario).",
+      "languageTitle": "Idioma de nuestros correos",
+      "languageBody": "Los correos que te enviamos van en este idioma.",
+      "languageLabel": "Idioma"
+    },
+    "security": {
+      "lead": "Tu contraseña, correo, verificación en dos pasos, llaves de acceso y dónde tienes la sesión abierta.",
+      "signOutTitle": "Cerrar sesión en todas partes",
+      "signOutBody": "Cerrar sesión en este dispositivo cierra tu cuenta aquí y todas las apps que abriste con ella en este navegador. Cerrar sesión en todos los dispositivos cierra todas las sesiones de tu cuenta, también esta.",
+      "signOutDevice": "Cerrar sesión en este dispositivo en todas partes",
+      "signOutAll": "Cerrar sesión en todos los dispositivos",
+      "activityTitle": "Actividad reciente",
+      "activityEmpty": "Nada todavía.",
+      "actions": {
+        "registered": "Cuenta creada",
+        "password_changed": "Contraseña cambiada",
+        "email_changed": "Correo cambiado",
+        "two_factor_enabled": "Verificación en dos pasos activada",
+        "two_factor_disabled": "Verificación en dos pasos desactivada",
+        "sessions_revoked": "Sesiones cerradas",
+        "username_changed": "Nombre de usuario cambiado",
+        "passkey_added": "Llave de acceso añadida",
+        "passkey_renamed": "Llave de acceso renombrada",
+        "passkey_deleted": "Llave de acceso eliminada",
+        "other": "Cambio en la cuenta"
+      }
+    },
+    "privacy": {
+      "lead": "Lo que guardamos sobre ti, en un archivo, y cerrar tu cuenta."
+    },
+    "notifications": {
+      "lead": "Todos los correos y avisos opcionales, app por app. Las notificaciones de cada dispositivo se activan dentro de cada app.",
+      "none": "Ninguna de las apps que usas envía correos opcionales.",
+      "cruisingEmailAlerts": "Correos sobre mis mensajes y mis sitios",
+      "cruisingFavoriteEmails": "Un correo diario sobre mis sitios favoritos",
+      "cruisingFavoriteAlerts": "Notificaciones sobre mis sitios favoritos",
+      "cruisingShowVisits": "Ver quién visita mi perfil (y que otros vean mis visitas)",
+      "swipeEmailAlerts": "Correos sobre nuevos matches y mensajes",
+      "videochatPeakAlerts": "Avisos cuando hay mucha gente conectada",
+      "push": "Las notificaciones push se activan o desactivan en cada dispositivo, dentro de cada app."
+    },
+    "apps": {
+      "lead": "Todo lo que usas con esta cuenta. Entrar una vez las abre todas.",
+      "none": "Aún no usas ninguna app.",
+      "admin": "Panel de administración",
+      "adminBody": "El panel del equipo.",
+      "portal": "Portal de clientes",
+      "portalBody": "{count, plural, =0 {Tus propuestas, facturas y solicitudes de soporte.} one {# proyecto, tus propuestas, facturas y solicitudes de soporte.} other {# proyectos, tus propuestas, facturas y solicitudes de soporte.}}"
+    },
+    "clients": {
+      "account": "Cuenta de Codeqlick",
+      "site": "codeqlick.com"
+    },
+    "failed": {
+      "title": "No se completó el inicio de sesión",
+      "body": "El enlace de inicio de sesión caducó o ya se usó (por ejemplo, al volver atrás o en otra pestaña). Inténtalo de nuevo: si sigues con la sesión abierta en tu cuenta, tarda un segundo.",
+      "retry": "Intentar de nuevo",
+      "invalid": "Este enlace de inicio de sesión no es válido. Vuelve a la app e inicia sesión de nuevo."
+    }
+  },
   "TwoFactor": {
     "title": "Verificación en dos pasos",
     "offBody": "Pide un código de una app de autenticación (como Google Authenticator, 1Password o Microsoft Authenticator) cada vez que inicias sesión, además de la contraseña.",
@@ -4221,7 +4302,8 @@
       "discover": "Descubrir",
       "community": "Comunidad",
       "me": "Yo"
-    }
+    },
+    "account": "Cuenta"
   },
   "AdminErrors": {
     "title": "Errores",

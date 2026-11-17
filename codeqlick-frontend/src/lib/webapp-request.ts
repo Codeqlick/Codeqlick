@@ -2,6 +2,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import type { Role } from '@/lib/api/types';
 import { homeForRole } from '@/lib/auth/session';
+import { ACCOUNT, isAccountHost } from '@/lib/account-host';
 import { publicPath, webappForHost, type Webapp } from '@/lib/webapps';
 
 /** The web app whose host this request came to (videochat.codeqlick.com → videochat), or null. */
@@ -15,7 +16,13 @@ export async function requestWebapp(): Promise<Webapp | null> {
  */
 export async function homeAfterSignIn(locale: string, role: Role): Promise<string> {
   const app = await requestWebapp();
-  return app ? `/${locale}` : homeForRole(locale, role);
+  // The account host's home is its overview (decision 108).
+  return app || (await onAccountHost()) ? `/${locale}` : homeForRole(locale, role);
+}
+
+/** Whether this request came to the account host (account.codeqlick.com, decision 108). */
+export async function onAccountHost(): Promise<boolean> {
+  return isAccountHost((await headers()).get('host'));
 }
 
 /**
@@ -23,6 +30,10 @@ export async function homeAfterSignIn(locale: string, role: Role): Promise<strin
  * for redirects: a Server Action's redirect doesn't pass through the proxy's redirect of old addresses.
  */
 export async function appPath(path: string, locale: string): Promise<string> {
+  if ((await onAccountHost()) && path.startsWith(`/${locale}/${ACCOUNT}`)) {
+    const rest = path.slice(locale.length + ACCOUNT.length + 2);
+    if (rest === '' || rest.startsWith('/') || rest.startsWith('?')) return `/${locale}${rest}`;
+  }
   const app = await requestWebapp();
   if (!app || !path.startsWith(`/${locale}/`)) return path;
   return `/${locale}${publicPath(app, path.slice(locale.length + 1))}`;

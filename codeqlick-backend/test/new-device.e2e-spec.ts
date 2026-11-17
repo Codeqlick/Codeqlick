@@ -64,7 +64,7 @@ describe('New-device sign-in email (e2e)', () => {
     expect(mine()).toHaveLength(1);
     expect(mine()[0]?.subject).toBe('Nuevo inicio de sesión en tu cuenta — Codeqlick');
     expect(mine()[0]?.text).toContain('Firefox en Linux');
-    expect(mine()[0]?.text).toContain('/es/portal/account');
+    expect(mine()[0]?.text).toContain('account.localhost:3000/es/security');
 
     // Same browser and system, newer version: known.
     await signIn(FIREFOX_LINUX.replaceAll('140.0', '141.0'));

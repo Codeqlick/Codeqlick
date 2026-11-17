@@ -713,4 +713,31 @@ export class AccountRepository {
           : null,
     };
   }
+
+  /** The caller's own account activity (`account.*`), newest first. */
+  ownActivity(userId: string, take: number) {
+    return this.prisma.activityLog.findMany({
+      where: { actorId: userId, action: { startsWith: 'account.' } },
+      orderBy: { createdAt: 'desc' },
+      take,
+      select: { action: true, createdAt: true, details: true },
+    });
+  }
+
+  /**
+   * How much of each part of the platform the person uses (decision 108, the account site's
+   * "Your apps"): rows they own in each app, read only.
+   */
+  async appsUsage(userId: string, accountId: string) {
+    const [projects, teams, rooms, pages, videochat, swipe, cruising] = await Promise.all([
+      this.prisma.clientProject.count({ where: { clientId: accountId } }),
+      this.prisma.cloudMember.count({ where: { userId } }),
+      this.prisma.meetingRoom.count({ where: { ownerId: userId } }),
+      this.prisma.bookingPage.count({ where: { ownerId: userId } }),
+      this.prisma.videochatProfile.count({ where: { userId } }),
+      this.prisma.swipeProfile.count({ where: { userId } }),
+      this.prisma.cruisingProfile.count({ where: { userId } }),
+    ]);
+    return { projects, teams, rooms, pages, videochat, swipe, cruising };
+  }
 }

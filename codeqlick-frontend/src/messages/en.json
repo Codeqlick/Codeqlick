@@ -661,6 +661,87 @@
       "error": "We couldn't save it. Try again."
     }
   },
+  "AccountSite": {
+    "title": "Account",
+    "settingsLink": "Account settings",
+    "nav": {
+      "overview": "Overview",
+      "profile": "Profile",
+      "security": "Security",
+      "privacy": "Privacy",
+      "notifications": "Notifications",
+      "apps": "Your apps"
+    },
+    "overview": {
+      "title": "Hi, {name}",
+      "lead": "One Codeqlick account for the website, your projects and every app. Sign in here once and every app knows you.",
+      "profile": "Your photo, name, username and the language of our emails.",
+      "security": "Two-step verification {twoFactor, select, on {on} other {off}} · {passkeys, plural, =0 {no passkeys} one {# passkey} other {# passkeys}} · {sessions, plural, one {# session} other {# sessions}} signed in.",
+      "privacy": "Download your data or delete your account.",
+      "notifications": "Every email and alert of every app, in one place.",
+      "apps": "{count, plural, =0 {You don't use any app yet.} one {You use # part of Codeqlick.} other {You use # parts of Codeqlick.}}"
+    },
+    "profile": {
+      "lead": "How you appear across Codeqlick (never in the 18+ apps, where only your username shows).",
+      "languageTitle": "Language of our emails",
+      "languageBody": "The emails we send you are written in this language.",
+      "languageLabel": "Language"
+    },
+    "security": {
+      "lead": "Your password, email, two-step verification, passkeys and where you're signed in.",
+      "signOutTitle": "Sign out everywhere",
+      "signOutBody": "Signing out of this device ends your account here and every app you opened with it in this browser. Signing out of all devices ends every session of your account, this one too.",
+      "signOutDevice": "Sign out of this device everywhere",
+      "signOutAll": "Sign out of all devices",
+      "activityTitle": "Recent activity",
+      "activityEmpty": "Nothing yet.",
+      "actions": {
+        "registered": "Account created",
+        "password_changed": "Password changed",
+        "email_changed": "Email changed",
+        "two_factor_enabled": "Two-step verification turned on",
+        "two_factor_disabled": "Two-step verification turned off",
+        "sessions_revoked": "Devices signed out",
+        "username_changed": "Username changed",
+        "passkey_added": "Passkey added",
+        "passkey_renamed": "Passkey renamed",
+        "passkey_deleted": "Passkey removed",
+        "other": "Account change"
+      }
+    },
+    "privacy": {
+      "lead": "What we keep about you, as a file, and closing your account."
+    },
+    "notifications": {
+      "lead": "Every optional email and alert, app by app. Turning on notifications on a device happens in each app.",
+      "none": "None of the apps you use sends optional emails.",
+      "cruisingEmailAlerts": "Emails about my messages and my spots",
+      "cruisingFavoriteEmails": "A daily email about my favourite spots",
+      "cruisingFavoriteAlerts": "Notifications about my favourite spots",
+      "cruisingShowVisits": "Show who visits my profile (and let others see my visits)",
+      "swipeEmailAlerts": "Emails about new matches and messages",
+      "videochatPeakAlerts": "Alerts when many people are online",
+      "push": "Push notifications are turned on or off on each device, inside each app."
+    },
+    "apps": {
+      "lead": "Everything you use with this account. One sign-in opens all of them.",
+      "none": "You don't use any app yet.",
+      "admin": "Admin panel",
+      "adminBody": "The team's panel.",
+      "portal": "Client portal",
+      "portalBody": "{count, plural, =0 {Your proposals, invoices and support requests.} one {# project, your proposals, invoices and support requests.} other {# projects, your proposals, invoices and support requests.}}"
+    },
+    "clients": {
+      "account": "Codeqlick account",
+      "site": "codeqlick.com"
+    },
+    "failed": {
+      "title": "Signing in didn't finish",
+      "body": "The sign-in link expired or was already used (for example after going back, or in another tab). Try again: if you are still signed in to your account it takes a second.",
+      "retry": "Try again",
+      "invalid": "This sign-in link is not valid. Go back to the app and sign in again."
+    }
+  },
   "TwoFactor": {
     "title": "Two-step verification",
     "offBody": "Ask for a code from an authenticator app (such as Google Authenticator, 1Password or Microsoft Authenticator) every time you sign in, in addition to your password.",
@@ -4221,7 +4302,8 @@
       "discover": "Discover",
       "community": "Community",
       "me": "Me"
-    }
+    },
+    "account": "Account"
   },
   "AdminErrors": {
     "title": "Errors",

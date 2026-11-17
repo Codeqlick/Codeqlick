@@ -45,7 +45,7 @@ type AppMenuProps = {
  * decision 108) as soon as that is switched on with `ACCOUNT_SSO=true`, else at the portal's.
  */
 function myAccountHref(locale: AppLocale, user: AuthUser): string {
-  const origin = accountSiteOrigin(env.SITE_URL, process.env.ACCOUNT_SSO);
+  const origin = accountSiteOrigin(env.SITE_URL, env.ACCOUNT_SSO);
   return accountSettingsHref(locale, user.role, env.SITE_URL, origin);
 }
 

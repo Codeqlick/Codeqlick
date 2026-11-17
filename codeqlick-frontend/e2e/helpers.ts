@@ -9,6 +9,14 @@ export const ADMIN = {
   password: process.env.E2E_ADMIN_PASSWORD ?? 'change-me-please-123',
 };
 
+/**
+ * The account host next to the site under test (decision 108): http://localhost:3000 →
+ * http://account.localhost:3000 (browsers resolve *.localhost).
+ */
+export function accountUrl(path = '', base = process.env.E2E_BASE_URL ?? 'http://localhost:3001') {
+  return `${base.replace('://', '://account.')}${path}`;
+}
+
 /** A tag that keeps each run's data apart (emails, names). */
 export const runTag = () => Math.random().toString(36).slice(2, 8);
 
@@ -40,7 +48,12 @@ export async function signIn(page: Page, user: { email: string; password: string
     await page.getByLabel('Correo electrónico').fill(user.email);
     await page.getByLabel('Contraseña', { exact: true }).fill(user.password);
     await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-    const signedIn = page.waitForURL((url) => !url.pathname.endsWith('/login'));
+    // Single sign-on (decision 108) goes on through `authorize` and the callback: wait for the
+    // page it lands on, so the next navigation doesn't cut that chain short.
+    const signedIn = page.waitForURL(
+      (url) => !/\/(login|authorize|auth\/callback)$/.test(url.pathname),
+      { waitUntil: 'load' },
+    );
     const toldToWait = rateLimited.waitFor();
     // Whichever comes second is dropped: keep its later failure from going unhandled.
     for (const pending of [signedIn, toldToWait]) pending.catch(() => {});

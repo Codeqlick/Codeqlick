@@ -256,6 +256,25 @@ export class AuthController {
     await this.auth.revokeOtherSessions(user, body.refreshToken);
   }
 
+  /** "Sign out of this device everywhere" (decision 108): this browser's account and app sessions. */
+  @ApiBearerAuth()
+  @Post('sessions/revoke-device')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeDevice(
+    @CurrentUser() user: AuthUser,
+    @Body({ schema: logoutSchema }) body: LogoutInput,
+  ): Promise<void> {
+    await this.auth.revokeDevice(user, body.refreshToken);
+  }
+
+  /** "Sign out of all devices": every session of the account, this one included. */
+  @ApiBearerAuth()
+  @Post('sessions/revoke-all')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeAllSessions(@CurrentUser() user: AuthUser): Promise<void> {
+    await this.auth.revokeAllSessions(user);
+  }
+
   @ApiBearerAuth()
   @Delete('sessions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)

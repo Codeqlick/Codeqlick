@@ -21,6 +21,9 @@ export const RESERVED_SLUGS: string[] = [
   'register',
   'forgot-password',
   'reset-password',
+  // Single sign-on's callback (decision 108) and the account host's name.
+  'auth',
+  'account',
   // The main site's sections: the frontend's `SITE_SECTIONS`.
   ...WEBAPPS,
   'about',

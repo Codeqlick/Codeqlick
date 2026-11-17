@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import { AccountPage } from '@/components/app/AccountPage';
 import { AdminSearch } from '@/components/app/AdminSearch';
 import { AppShell } from '@/components/layout/AppShell';
 import { Alert } from '@/components/ui/Alert';
+import { buttonClassName } from '@/components/ui/buttonStyles';
+import { accountUrl } from '@/lib/account-links';
 import { getTwoFactorStatus } from '@/lib/api/auth';
 import type { AdminSearchKind } from '@/lib/api/types';
 import { resolveLocale } from '@/i18n/locale';
@@ -26,8 +27,8 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
   const tf = await getTranslations({ locale, namespace: 'TwoFactor' });
   const twoFactor = await getTwoFactorStatus();
 
-  // The API refuses admin calls until two-step verification is on: only the account page,
-  // with the setup, is shown until then (whatever admin URL was opened).
+  // The API refuses admin calls until two-step verification is on: only a notice is shown until
+  // then (whatever admin URL was opened), with the way to the account site's setup (decision 108).
   if (twoFactor.required && !twoFactor.enabled) {
     return (
       <AppShell
@@ -37,7 +38,11 @@ export default async function AdminLayout({ children, params }: LayoutProps) {
         items={[{ href: '/admin/account', label: ta('nav') }]}
       >
         <Alert tone="info">{tf('requiredNotice')}</Alert>
-        <AccountPage locale={locale} />
+        <p>
+          <a className={buttonClassName({})} href={accountUrl(locale, '/security#two-factor')}>
+            {tf('start')}
+          </a>
+        </p>
       </AppShell>
     );
   }

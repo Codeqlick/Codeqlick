@@ -125,7 +125,9 @@ describe('Clients create their own account (e2e)', () => {
       .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'videochat' })
       .expect(202);
     const text = to(email).at(-1)?.text ?? '';
-    expect(text).toContain('http://videochat.localhost:3000/en/register/confirm?token=');
+    expect(text).toMatch(
+      /http:\/\/account\.localhost:3000\/en\/register\/confirm\?token=[\w-]+&app=videochat/,
+    );
     await request(app.getHttpServer())
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.23')

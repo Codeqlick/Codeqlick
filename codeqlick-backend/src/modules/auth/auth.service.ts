@@ -58,6 +58,8 @@ export interface Preferences {
   weeklyDigest: boolean;
   /** The monthly report of their managed website (clients). */
   monthlyReport: boolean;
+  /** The language of their emails (read only here: `PATCH /auth/me` changes it). */
+  locale?: ApiLocale;
 }
 
 export interface TwoFactorStatus {
@@ -108,6 +110,16 @@ export interface ActiveSession {
   lastActiveAt: string;
   /** Whether this is the session the request was made with. */
   current: boolean;
+  /** Single sign-on (decision 108): the app or website it belongs to; null on the account host. */
+  client: string | null;
+  /** The account session it came from (its family id), or null. */
+  parentId: string | null;
+}
+
+/** What a single sign-on session is for (decision 108). */
+export interface SsoSessionInfo {
+  client: string;
+  parentFamilyId: string;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -207,7 +219,12 @@ export class AuthService {
     }
 
     const nextToken = this.generateRefreshToken();
-    const next = this.buildSession(session.userId, nextToken, session.familyId, client);
+    // A single sign-on session keeps its app and its parent across rotations (decision 108).
+    const sso =
+      session.client && session.parentFamilyId
+        ? { client: session.client, parentFamilyId: session.parentFamilyId }
+        : undefined;
+    const next = this.buildSession(session.userId, nextToken, session.familyId, client, sso);
     const rotated = await this.repository.rotateSession(session.id, next);
     if (!rotated) {
       // Lost a race against another refresh with the same token: same as reuse.
@@ -232,6 +249,8 @@ export class AuthService {
       ip: row.ip,
       lastActiveAt: row.createdAt.toISOString(),
       current: row.familyId === currentFamilyId,
+      client: row.client,
+      parentId: row.parentFamilyId,
     }));
   }
 
@@ -263,10 +282,43 @@ export class AuthService {
     });
   }
 
+  /**
+   * "Sign out of this device everywhere" (decision 108): the account session of this browser (the
+   * one owning `refreshToken`, or its parent when it is an app's) and every session made from it.
+   */
+  async revokeDevice(user: AuthUser, refreshToken: string): Promise<void> {
+    const session = await this.repository.findSessionByTokenHash(hashRefreshToken(refreshToken));
+    if (!session || session.userId !== user.id || session.revokedAt) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    await this.repository.revokeUserFamily(user.id, session.parentFamilyId ?? session.familyId);
+    await this.activity.record(user, {
+      action: 'account.sessions_revoked',
+      targetId: user.id,
+      targetLabel: user.email,
+      details: { scope: 'device' },
+    });
+  }
+
+  /** "Sign out of all devices": every session of the account, this one included. */
+  async revokeAllSessions(user: AuthUser): Promise<void> {
+    await this.repository.revokeAllFamilies(user.id);
+    await this.activity.record(user, {
+      action: 'account.sessions_revoked',
+      targetId: user.id,
+      targetLabel: user.email,
+      details: { scope: 'all' },
+    });
+  }
+
   /** The caller's own email preferences. */
   async preferences(userId: string): Promise<Preferences> {
     const user = await this.activeUser(userId);
-    return { weeklyDigest: user.weeklyDigest, monthlyReport: user.monthlyReport };
+    return {
+      weeklyDigest: user.weeklyDigest,
+      monthlyReport: user.monthlyReport,
+      locale: toApiLocale(user.locale),
+    };
   }
 
   async updatePreferences(userId: string, input: Partial<Preferences>): Promise<Preferences> {
@@ -339,7 +391,7 @@ export class AuthService {
       new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60_000),
     );
 
-    const link = `${this.config.siteUrl}/${locale}/reset-password?token=${token}`;
+    const link = `${this.config.accountUrl}/${locale}/reset-password?token=${token}`;
     const message = passwordResetEmail(
       user,
       link,
@@ -368,7 +420,7 @@ export class AuthService {
       hashRefreshToken(token),
       new Date(Date.now() + INVITATION_TTL_DAYS * DAY_MS),
     );
-    const link = `${this.config.siteUrl}/${locale}/reset-password?token=${token}&welcome=1`;
+    const link = `${this.config.accountUrl}/${locale}/reset-password?token=${token}&welcome=1`;
     await this.mail.send(
       invitationEmail(user, link, locale, INVITATION_TTL_DAYS, this.config.siteUrl),
     );
@@ -397,7 +449,7 @@ export class AuthService {
       hashRefreshToken(token),
       new Date(Date.now() + INVITATION_TTL_DAYS * DAY_MS),
     );
-    return `${this.config.siteUrl}/${locale}/register?invitation=${token}`;
+    return `${this.config.accountUrl}/${locale}/register?invitation=${token}`;
   }
 
   /**
@@ -414,8 +466,10 @@ export class AuthService {
     await this.breaches.assertNotBreached(input.password, 'password');
     const existing = await this.repository.findUserByEmail(email);
     const site = this.config.siteUrl;
-    // From a web app (architecture 6.3), the links open on its host so the person ends up there.
-    const linkBase = input.app ? this.config.webappUrl(input.app) : site;
+    // Signing in and up happens on the account host (decision 108); from a web app the
+    // confirmation then sends the person on to it (`app`).
+    const linkBase = this.config.accountUrl;
+    const appParam = input.app ? `&app=${input.app}` : '';
     // Only Cruising speaks FR, DE, IT and PT (decision 103): its links keep them, the emails and
     // every other page fall back to English.
     const mailLocale = siteLocale(input.locale);
@@ -426,7 +480,8 @@ export class AuthService {
       message = alreadyRegisteredEmail(
         existing,
         {
-          login: `${linkBase}/${linkLocale}/login`,
+          // Their app's (or the website's) sign-in: it goes through the account host and back.
+          login: `${input.app ? this.config.webappUrl(input.app) : site}/${linkLocale}/login`,
           reset: `${linkBase}/${linkLocale}/forgot-password`,
         },
         mailLocale,
@@ -446,7 +501,7 @@ export class AuthService {
       });
       message = signupConfirmEmail(
         { name: input.name, email },
-        `${linkBase}/${linkLocale}/register/confirm?token=${token}`,
+        `${linkBase}/${linkLocale}/register/confirm?token=${token}${appParam}`,
         mailLocale,
         SIGNUP_TTL_HOURS,
         site,
@@ -662,12 +717,13 @@ export class AuthService {
   private sendNewDeviceEmail(user: User, client: ClientInfo): void {
     const locale = toApiLocale(user.locale);
     const site = this.config.siteUrl;
-    const accountUrl = `${site}/${locale}/${user.role === 'ADMIN' ? 'admin' : 'portal'}/account`;
+    const account = this.config.accountUrl;
+    const accountUrl = `${account}/${locale}/security`;
     const message = newDeviceSignInEmail(
       user,
       { at: new Date(), ...describeUserAgent(client.userAgent), ip: client.ip ?? null },
       accountUrl,
-      `${site}/${locale}/forgot-password`,
+      `${account}/${locale}/forgot-password`,
       locale,
       site,
     );
@@ -677,11 +733,31 @@ export class AuthService {
     });
   }
 
-  /** New session family for a completed sign-in. */
-  private async startSession(user: User, client: ClientInfo): Promise<AuthTokens> {
-    const refreshToken = this.generateRefreshToken();
+  /**
+   * A new session family for an app's host, from a single sign-on code the account host issued
+   * (decision 108). Not an interactive sign-in: no new-device email.
+   */
+  async startSsoSession(
+    user: User,
+    sso: SsoSessionInfo,
+    client: ClientInfo = {},
+  ): Promise<{ tokens: AuthTokens; familyId: string }> {
     const familyId = randomUUID();
-    await this.repository.createSession(this.buildSession(user.id, refreshToken, familyId, client));
+    const tokens = await this.startSession(user, client, sso, familyId);
+    return { tokens, familyId };
+  }
+
+  /** New session family for a completed sign-in. */
+  private async startSession(
+    user: User,
+    client: ClientInfo,
+    sso?: SsoSessionInfo,
+    familyId: string = randomUUID(),
+  ): Promise<AuthTokens> {
+    const refreshToken = this.generateRefreshToken();
+    await this.repository.createSession(
+      this.buildSession(user.id, refreshToken, familyId, client, sso),
+    );
     return this.issueTokens(user, refreshToken, familyId);
   }
 
@@ -716,8 +792,11 @@ export class AuthService {
     refreshToken: string,
     familyId: string,
     client: ClientInfo,
+    sso?: SsoSessionInfo,
   ): CreateSessionData {
     return {
+      client: sso?.client ?? null,
+      parentFamilyId: sso?.parentFamilyId ?? null,
       id: randomUUID(),
       userId,
       tokenHash: hashRefreshToken(refreshToken),

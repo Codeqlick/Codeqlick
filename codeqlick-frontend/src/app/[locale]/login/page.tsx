@@ -12,7 +12,8 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { getCurrentUser, safeNextPath } from '@/lib/auth/session';
-import { homeAfterSignIn, shortNext } from '@/lib/webapp-request';
+import { homeAfterSignIn, onAccountHost, shortNext } from '@/lib/webapp-request';
+import { siteLocale } from '@/i18n/routing';
 import { env } from '@/lib/env';
 import { firstParam } from '@/lib/format';
 import { pageMetadata } from '@/lib/seo';
@@ -49,6 +50,7 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
 
   const user = await getCurrentUser();
   const query = await searchParams;
+  const accountHost = await onAccountHost();
   if (user) {
     redirect(
       (await shortNext(safeNextPath(firstParam(query.next), locale), locale)) ??
@@ -109,12 +111,28 @@ export default async function LoginPage({ params, searchParams }: PageProps) {
             <Link href="/forgot-password">{t('forgot')}</Link>
           </p>
           <p>
-            {t('noAccount')} <Link href="/register">{t('register')}</Link>
+            {t('noAccount')}{' '}
+            <Link
+              href={
+                query.next
+                  ? `/register?next=${encodeURIComponent(firstParam(query.next) ?? '')}`
+                  : '/register'
+              }
+            >
+              {t('register')}
+            </Link>
           </p>
         </Card>
-        <Link href="/" className={styles.back}>
-          ← {t('backToSite')}
-        </Link>
+        {/* On the account host, "back" is the website (its own home needs a session). */}
+        {accountHost ? (
+          <a href={`${env.SITE_URL}/${siteLocale(locale)}`} className={styles.back}>
+            ← {t('backToSite')}
+          </a>
+        ) : (
+          <Link href="/" className={styles.back}>
+            ← {t('backToSite')}
+          </Link>
+        )}
       </div>
     </main>
   );
