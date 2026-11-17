@@ -37,7 +37,14 @@ describe('maintenance plan', () => {
         status: 'active',
         cancel_at_period_end: true,
         items: {
-          data: [{ current_period_end: 1_800_000_000 }, { current_period_end: 1_800_000_100 }],
+          data: [
+            {
+              current_period_end: 1_800_000_000,
+              quantity: 1,
+              price: { unit_amount: 1900, recurring: { interval: 'month', interval_count: 1 } },
+            },
+            { current_period_end: 1_800_000_100 },
+          ],
         },
       }),
     ).toEqual({
@@ -46,7 +53,24 @@ describe('maintenance plan', () => {
       maintenanceSubscriptionId: 'sub_1',
       maintenancePeriodEnd: new Date(1_800_000_100_000),
       maintenanceCancelAtPeriodEnd: true,
+      // An item without a price: nothing reliable to add up.
+      maintenanceAmountCents: null,
     });
+    expect(
+      maintenanceState({
+        id: 'sub_3',
+        status: 'active',
+        cancel_at_period_end: false,
+        items: {
+          data: [
+            {
+              current_period_end: 1_800_000_000,
+              price: { unit_amount: 1900, recurring: { interval: 'month', interval_count: 1 } },
+            },
+          ],
+        },
+      }).maintenanceAmountCents,
+    ).toBe(1900);
     expect(
       maintenanceState({
         id: 'sub_2',

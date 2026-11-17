@@ -28,19 +28,24 @@ export async function Faq({
   keys = FAQ_KEYS,
   headingId = 'faq-title',
   title,
+  questions,
 }: {
   locale: AppLocale;
   keys?: readonly FaqKey[];
   headingId?: string;
   /** Replaces the default heading. */
   title?: string;
+  /** Questions written elsewhere (the local service pages' content), instead of `keys`. */
+  questions?: readonly { q: string; a: string }[];
 }) {
   const t = await getTranslations({ locale, namespace: 'Faq' });
-  const items = keys.map((key) => ({
-    key,
-    question: t(`items.${key}.q`),
-    answer: t(`items.${key}.a`),
-  }));
+  const items = questions
+    ? questions.map((item) => ({ key: item.q, question: item.q, answer: item.a }))
+    : keys.map((key) => ({
+        key: key as string,
+        question: t(`items.${key}.q`),
+        answer: t(`items.${key}.a`),
+      }));
 
   return (
     <section className={styles.faq} aria-labelledby={headingId}>

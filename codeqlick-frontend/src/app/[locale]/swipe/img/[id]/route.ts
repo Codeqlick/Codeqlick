@@ -8,7 +8,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (id === 'verification') return fetchSwipeImage('/swipe/verification/file');
+  if (id === 'verification') return fetchSwipeImage('/adult/verification/file');
   if (!UUID.test(id)) return new Response(null, { status: 404 });
   return fetchSwipeImage(`/swipe/photos/${id}/file`);
 }

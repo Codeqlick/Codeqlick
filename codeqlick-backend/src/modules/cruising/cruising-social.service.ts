@@ -14,6 +14,7 @@ import { toAccountLocale, type AccountLocale } from '../../common/schemas/common
 import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingProfile } from '../../generated/prisma/client.js';
 import { MailService } from '../mail/mail.service.js';
+import { AdultSafetyService } from '../adult/adult-safety.service.js';
 import { sharesContact } from '../swipe/swipe-chat-guard.js';
 import { cruisingNoticeEmail } from './cruising-emails.js';
 import type { NotificationKind } from './cruising-notifications.rules.js';
@@ -154,6 +155,7 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
     private readonly push: CruisingPushService,
     private readonly notifications: CruisingNotificationsService,
     private readonly winks: CruisingWinksService,
+    private readonly safety: AdultSafetyService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -676,39 +678,41 @@ export class CruisingSocialService implements OnApplicationBootstrap, OnApplicat
 
   // ---- Blocks ------------------------------------------------------------------------------------
 
-  /** My blocks, newest first. */
+  /**
+   * My blocks, newest first, by nickname: the ones made in any of the 18+ apps of people with a
+   * Cruising nickname (`GET /adult/blocks` lists them all, architecture 4.16).
+   */
   async blocks(userId: string): Promise<{ items: { nickname: string; createdAt: string }[] }> {
     await this.entered(userId);
-    const rows = await this.repository.blocksMade(userId);
+    const { items } = await this.safety.blocks(userId, 'CRUISING');
     return {
-      items: rows.flatMap((row) => {
-        const nickname = row.blocked.cruisingProfile?.nickname;
-        return nickname ? [{ nickname, createdAt: row.createdAt.toISOString() }] : [];
-      }),
+      items: items.flatMap((row) =>
+        row.name ? [{ nickname: row.name, createdAt: row.createdAt }] : [],
+      ),
     };
   }
 
-  /** Blocks a member both ways and deletes the conversation with them. */
+  /** Blocks a member both ways, in the three 18+ apps (decision 112). */
   async block(userId: string, nickname: string): Promise<void> {
     await this.entered(userId);
     const target = await this.repository.findProfileByNickname(nickname);
     if (!target) throw new NotFoundException('Member not found');
     if (target.userId === userId) throw new BadRequestException('You cannot block yourself');
-    await this.repository.block(userId, target.userId);
+    await this.safety.block(userId, target.userId, 'CRUISING');
   }
 
   /** Blocks the other person of a conversation: it is deleted and neither sees the other again. */
   async blockConversation(userId: string, conversationId: string): Promise<void> {
     await this.entered(userId);
     const { partnerId } = await this.mine(userId, conversationId);
-    await this.repository.block(userId, partnerId);
+    await this.safety.block(userId, partnerId, 'CRUISING');
   }
 
-  /** Lifts my block. */
+  /** Lifts my block, in the three 18+ apps. */
   async unblock(userId: string, nickname: string): Promise<void> {
     await this.entered(userId);
     const target = await this.repository.findProfileByNickname(nickname);
-    if (!target || !(await this.repository.unblock(userId, target.userId))) {
+    if (!target || !(await this.safety.unblock(userId, target.userId))) {
       throw new NotFoundException('No such block');
     }
   }

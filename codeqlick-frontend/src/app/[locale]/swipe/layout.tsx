@@ -6,6 +6,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { swipeMenu } from '@/lib/app-menus';
 import { Link, WebappProvider } from '@/i18n/navigation';
 import { resolveLocale } from '@/i18n/locale';
+import { getSwipeStatus } from '@/lib/api/swipe';
 import { getCurrentUser } from '@/lib/auth/session';
 import { requestWebapp } from '@/lib/webapp-request';
 import { webappAlternates, webappOrigin, webappPath } from '@/lib/webapp-seo';
@@ -58,6 +59,18 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'Swipe' });
   const user = await getCurrentUser();
+  // The menu's user card: the profile once entered (with a profile), and the verified badge.
+  let entered = false;
+  let verified = false;
+  if (user) {
+    try {
+      const status = await getSwipeStatus();
+      entered = status.allowed && status.profile !== null;
+      verified = status.verification.status === 'APPROVED';
+    } catch {
+      // The frame still works when Swipe's state can't be read.
+    }
+  }
 
   const webapp = (await requestWebapp()) === 'swipe' ? 'swipe' : null;
 
@@ -68,8 +81,9 @@ export default async function SwipeLayout({ children, params }: LayoutProps) {
           <AppHeader
             app="swipe"
             locale={locale}
-            config={swipeMenu(locale, { signedIn: Boolean(user) })}
-            signedIn={Boolean(user)}
+            config={swipeMenu(locale, { signedIn: Boolean(user), entered })}
+            user={user}
+            verified={verified}
             adult
           />
           <main className={vc.main}>{children}</main>

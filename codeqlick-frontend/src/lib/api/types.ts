@@ -698,6 +698,7 @@ export const ACTIVITY_TARGETS = [
   'account',
   'videochat',
   'swipe',
+  'adult',
   'site_news',
   'newsletter',
 ] as const;

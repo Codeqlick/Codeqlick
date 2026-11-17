@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AdultEvents } from '../adult/adult-events.js';
+import type { AdultVerificationService } from '../adult/adult-verification.service.js';
 import type { CruisingNotificationsService } from './cruising-notifications.service.js';
 import type { AppConfigService } from '../../config/app-config.service.js';
 import type { ActivityService } from '../activity/activity.service.js';
@@ -128,6 +130,13 @@ async function setup() {
     notify: vi.fn().mockResolvedValue(undefined),
     notifyMany: vi.fn().mockResolvedValue(undefined),
   };
+  // The account's one verification of the 18+ apps (architecture 4.16).
+  const verification = {
+    upload: vi.fn().mockResolvedValue({ status: 'PENDING' }),
+    view: vi.fn().mockResolvedValue({ status: 'NONE', note: null }),
+    withdraw: vi.fn().mockResolvedValue(undefined),
+  };
+  const events = new AdultEvents();
   const service = new CruisingMediaService(
     media as unknown as CruisingMediaRepository,
     repo as unknown as CruisingRepository,
@@ -137,6 +146,8 @@ async function setup() {
     mail as unknown as MailService,
     config as unknown as AppConfigService,
     notifications as unknown as CruisingNotificationsService,
+    verification as unknown as AdultVerificationService,
+    events,
   );
   /** A file as multer leaves it in the work folder. */
   const received = async (data: Buffer) => {
@@ -157,6 +168,8 @@ async function setup() {
     received,
     workFiles,
     notifications,
+    verification,
+    events,
   };
 }
 
@@ -331,63 +344,27 @@ describe('CruisingMediaService', () => {
     });
   });
 
-  describe('verification', () => {
-    it('needs a nickname and is sent once (409)', async () => {
-      t.repo.findProfile.mockResolvedValue(profile({ nickname: null, verificationStatus: 'NONE' }));
-      expect(
-        await status(t.service.uploadVerification(ME, await t.received(await png('#00a')), NOW)),
-      ).toBe(409);
-      t.repo.findProfile.mockResolvedValue(profile({ verificationStatus: 'PENDING' }));
-      expect(
-        await status(t.service.uploadVerification(ME, await t.received(await png('#00a')), NOW)),
-      ).toBe(409);
+  describe('verification (one per account, architecture 4.16)', () => {
+    it('hands the photo to the shared verification and deletes the received file', async () => {
+      const file = await t.received(await png('#00a'));
+      expect(await t.service.uploadVerification(ME, file, NOW)).toEqual({ status: 'PENDING' });
+      expect(t.verification.upload).toHaveBeenCalledWith(ME, 'CRUISING', expect.any(Buffer), NOW);
       expect(await t.workFiles()).toEqual([]);
     });
 
-    it('stores the photo PENDING, 5 a day', async () => {
-      t.repo.findProfile.mockResolvedValue(profile({ verificationStatus: 'NONE' }));
-      expect(
-        await t.service.uploadVerification(ME, await t.received(await png('#00a')), NOW),
-      ).toEqual({
-        status: 'PENDING',
-      });
-      expect(t.repo.updateProfile).toHaveBeenCalledWith(
-        ME,
-        expect.objectContaining({ verificationStatus: 'PENDING', verificationTries: 1 }),
-      );
-      t.repo.findProfile.mockResolvedValue(
-        profile({
-          verificationStatus: 'REJECTED',
-          verificationTries: 5,
-          verificationTriesSince: NOW,
-        }),
-      );
-      expect(
-        await status(t.service.uploadVerification(ME, await t.received(await png('#00a')), NOW)),
-      ).toBe(429);
-    });
-
-    it('deletes the photo once decided and emails the member, approved or not', async () => {
-      const key = await t.storage.write(Buffer.from('photo'));
-      t.repo.findProfile.mockResolvedValue(
-        profile({ verificationStatus: 'PENDING', verificationKey: key }),
-      );
-      const admin = { id: 'admin', email: 'a@x', name: 'A', role: 'ADMIN' as const };
-      await t.service.decideVerification(admin, ME, { approve: true }, NOW);
+    it('writes a decision in the notification centre of Cruising members only', async () => {
+      t.service.onApplicationBootstrap();
+      t.events.verification.next({ userId: ME, status: 'APPROVED' });
+      await new Promise((resolve) => setImmediate(resolve));
       expect(t.notifications.notify).toHaveBeenCalledWith(ME, 'VERIFICATION_DECIDED', {
         status: 'APPROVED',
       });
-      expect(t.repo.updateProfile).toHaveBeenCalledWith(
-        ME,
-        expect.objectContaining({
-          verificationStatus: 'APPROVED',
-          verificationKey: null,
-          verifiedAt: NOW,
-        }),
-      );
-      expect(await t.storage.size(key)).toBeUndefined();
-      expect(t.sent).toHaveLength(1);
-      expect(JSON.stringify(t.sent[0])).not.toContain('pier_fan');
+      t.notifications.notify.mockClear();
+      t.repo.findProfile.mockResolvedValue(null);
+      t.events.verification.next({ userId: 'someone-else', status: 'REJECTED' });
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(t.notifications.notify).not.toHaveBeenCalled();
+      t.service.onApplicationShutdown();
     });
   });
 

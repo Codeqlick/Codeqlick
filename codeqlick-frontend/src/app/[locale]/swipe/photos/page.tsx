@@ -10,6 +10,7 @@ import {
   FormTextarea,
 } from '@/components/app/ActionForm';
 import { WeekStats } from '@/components/app/WeekStats';
+import { AdultBlocksList } from '@/components/adult/AdultBlocksList';
 import { PhotoUpload } from '@/components/swipe/PhotoUpload';
 import styles from '@/components/swipe/Swipe.module.css';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -27,6 +28,7 @@ import {
   SWIPE_COUNTRIES,
   SWIPE_GENDERS,
 } from '@/lib/api/swipe';
+import { listAdultBlocks } from '@/lib/api/adult';
 import { requireUser } from '@/lib/auth/session';
 import { formatDate } from '@/lib/format';
 import { INTERESTS, MAX_INTERESTS } from '@/lib/videochat-interests';
@@ -39,6 +41,7 @@ import {
   swipePushSubscribeAction,
   swipePushUnsubscribeAction,
   uploadPhotoAction,
+  unblockAction,
   uploadVerificationAction,
 } from '../actions';
 import { SwipeGate } from '../Gate';
@@ -60,7 +63,11 @@ export default async function SwipePhotosPage({ params }: PageProps) {
   if (!status.profile) redirect(await appPath(`/${locale}/swipe/deck`, locale));
   const t = await getTranslations({ locale, namespace: 'Swipe' });
   const ti = await getTranslations({ locale, namespace: 'Videochat.interests' });
-  const photos = await listMySwipePhotos();
+  const tb = await getTranslations({ locale, namespace: 'Swipe.blocks' });
+  const [photos, blocks] = await Promise.all([
+    listMySwipePhotos(),
+    listAdultBlocks('SWIPE').catch(() => []),
+  ]);
   const profile = status.profile;
   const genders = SWIPE_GENDERS.map((value) => ({ value, label: t(`genders.${value}`) }));
   const verification = status.verification;
@@ -266,6 +273,7 @@ export default async function SwipePhotosPage({ params }: PageProps) {
           {t('verification.title')}
         </h2>
         <p>{t(`verification.status.${verification.status}`)}</p>
+        <p className={vc.muted}>{t('verification.shared')}</p>
         {verification.note ? <p className={styles.ok}>{verification.note}</p> : null}
         {verification.hasPhoto ? (
           // oxlint-disable-next-line nextjs/no-img-element -- private image through the BFF route
@@ -349,6 +357,33 @@ export default async function SwipePhotosPage({ params }: PageProps) {
         )}
       </section>
       <AccountSettingsLink locale={locale} />
+
+      <section className={vc.panel} aria-labelledby="swipe-blocks">
+        <h2 id="swipe-blocks" className={vc.sectionTitle}>
+          {tb('title')}
+        </h2>
+        {blocks.length === 0 ? (
+          <p className={vc.muted}>{tb('empty')}</p>
+        ) : (
+          <>
+            <p className={vc.muted}>{tb('lead')}</p>
+            <AdultBlocksList
+              blocks={blocks}
+              otherApp={tb('otherApp')}
+              blockedOn={(date) => tb('blockedOn', { date })}
+              blockedIn={(app, date) => tb('blockedOnIn', { app, date })}
+              date={(iso) => formatDate(iso, locale)}
+              action={(block) => (
+                <ActionForm action={unblockAction.bind(null, locale, block.ref)}>
+                  <SubmitButton variant="ghost" size="sm" pendingLabel={tb('unblocking')}>
+                    {tb('unblock')}
+                  </SubmitButton>
+                </ActionForm>
+              )}
+            />
+          </>
+        )}
+      </section>
     </div>
   );
 }

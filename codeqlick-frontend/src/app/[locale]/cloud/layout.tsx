@@ -55,7 +55,7 @@ export default async function CloudLayout({ children, params }: LayoutProps) {
             app="cloud"
             locale={locale}
             config={cloudMenu(locale, { signedIn: Boolean(user) }, cloudDocsUrl(locale))}
-            signedIn={Boolean(user)}
+            user={user}
           />
           <main className={styles.main}>{children}</main>
           <footer className={styles.footer}>

@@ -25,6 +25,8 @@ import {
   emailChangedNoticeEmail,
 } from './account-emails.js';
 import { CloudTeamsService } from '../cloud/cloud-teams.service.js';
+import { AdultSafetyService } from '../adult/adult-safety.service.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { AccountRepository } from './account.repository.js';
 import { AvatarStorage, processAvatar } from './avatar.storage.js';
 import { normalizeUsername, UsernameService } from './username.service.js';
@@ -62,6 +64,8 @@ export class AccountService {
     private readonly avatars: AvatarStorage,
     private readonly usernames: UsernameService,
     private readonly cloud: CloudTeamsService,
+    private readonly adultSafety: AdultSafetyService,
+    private readonly adultVerification: AdultVerificationService,
   ) {}
 
   /** Sets the profile photo (re-encoded to a 256×256 WebP); the old file is deleted. */
@@ -111,8 +115,11 @@ export class AccountService {
   }
 
   /** Chooses, changes or (null) removes the caller's username. */
-  setUsername(userId: string, username: string | null): Promise<AuthUser> {
-    return this.usernames.claim(userId, username);
+  async setUsername(userId: string, username: string | null): Promise<AuthUser> {
+    const user = await this.usernames.claim(userId, username);
+    // The name on the 18+ apps' verification paper must still be one of the account's (113).
+    await this.adultVerification.nameChanged(userId);
+    return user;
   }
 
   /** Emails a confirmation link to the new address; the account keeps its email until then. */
@@ -214,6 +221,8 @@ export class AccountService {
       { ...toAuthUser(user), name: 'Deleted account', email: '' },
       { action: 'account.deleted', targetId: user.id, details: { role: user.role } },
     );
+    // 18+ apps (decision 120): an email hash stays after a serious suspension; the photo goes.
+    await this.adultSafety.beforeAccountDeletion(user.id, user.email);
     await this.repository.delete(user.id);
     await this.avatars.remove(user.avatarKey);
     if (user.registeredAt) {

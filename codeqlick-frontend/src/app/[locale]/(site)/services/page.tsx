@@ -7,6 +7,7 @@ import { resolveLocale } from '@/i18n/locale';
 import { pageMetadata } from '@/lib/seo';
 import home from '../page.module.css';
 import { ContactCta } from './ContactCta';
+import { HubLinks } from './LocalLinks';
 import styles from './services.module.css';
 
 type PageProps = { params: Promise<{ locale: string }> };
@@ -28,6 +29,7 @@ export default async function ServicesPage({ params }: PageProps) {
   const t = await getTranslations({ locale, namespace: 'Services' });
   const th = await getTranslations({ locale, namespace: 'Home' });
   const tw = await getTranslations({ locale, namespace: 'BasicWebsite' });
+  const tl = await getTranslations({ locale, namespace: 'LocalSeo' });
 
   return (
     <>
@@ -62,6 +64,10 @@ export default async function ServicesPage({ params }: PageProps) {
             ))}
           </ul>
         </div>
+      </div>
+
+      <div className={`wrap ${home.section}`}>
+        <HubLinks locale={locale} title={tl('nearYouTitle')} lead={tl('nearYouLead')} />
       </div>
 
       <div className={`wrap ${home.section}`}>

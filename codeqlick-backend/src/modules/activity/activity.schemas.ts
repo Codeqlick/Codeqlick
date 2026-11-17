@@ -18,6 +18,8 @@ export const ACTIVITY_TARGETS = [
   'videochat',
   'swipe',
   'cruising',
+  /** The 18+ apps' shared safety (architecture 4.16). */
+  'adult',
   'cloud',
   'site_news',
   'newsletter',
@@ -192,6 +194,12 @@ export const ACTIVITY_ACTIONS = [
   'site_news.unpublished',
   'site_news.deleted',
   'newsletter.subscriber_deleted',
+  'adult.suspension',
+  'adult.suspension_lifted',
+  'adult.verification_decided',
+  'adult.verification_withdrawn',
+  'adult.banned_email_deleted',
+  'adult.suspension_kept',
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

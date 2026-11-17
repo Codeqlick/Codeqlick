@@ -729,12 +729,12 @@ describe('Cruising (e2e)', () => {
     await request(server())
       .post(`/v1/admin/cruising/users/${hana.id}/suspend`)
       .set(admin.auth)
-      .send({ duration: 'permanent' })
+      .send({ duration: 'permanent', category: 'DANGER' })
       .expect(204);
     await request(server())
       .post(`/v1/admin/cruising/users/${admin.id}/suspend`)
       .set(admin.auth)
-      .send({ duration: '24h' })
+      .send({ duration: '24h', category: 'SPAM' })
       .expect(404);
     await request(server())
       .delete(`/v1/admin/cruising/users/${hana.id}/suspension`)

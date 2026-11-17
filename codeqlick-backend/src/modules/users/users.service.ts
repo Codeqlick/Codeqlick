@@ -12,6 +12,7 @@ import { pageToSkipTake, paginate, type Paginated } from '../../common/types/pag
 import { toApiLocale, toDbLocale, type ApiLocale } from '../../common/schemas/common.schemas.js';
 import type { Prisma, User } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
+import { AdultSafetyService } from '../adult/adult-safety.service.js';
 import type { SignupReason } from '../auth/auth-emails.js';
 import { AuthService } from '../auth/auth.service.js';
 import { PasswordBreachService } from '../auth/password-breach.service.js';
@@ -83,6 +84,7 @@ export class UsersService {
     private readonly auth: AuthService,
     private readonly activity: ActivityService,
     private readonly breaches: PasswordBreachService,
+    private readonly adultSafety: AdultSafetyService,
   ) {}
 
   async list(query: ListUsersQuery): Promise<Paginated<AdminUser>> {
@@ -234,6 +236,8 @@ export class UsersService {
     if (owns.projects > 0) {
       throw new ConflictException('This account still owns projects: delete them first');
     }
+    // 18+ apps (decision 120): an email hash stays after a serious suspension; the photo goes.
+    await this.adultSafety.beforeAccountDeletion(id, user.email);
     await this.repository.delete(id);
     await this.activity.record(actor, {
       action: 'user.deleted',

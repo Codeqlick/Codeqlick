@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 import { connection } from 'next/server';
 import { SERVICE_SLUGS } from '@/components/content/services';
+import { localSeoPaths } from '@/content/local-seo';
 import { SITE_LOCALES } from '@/i18n/routing';
 import { listCruisingSitemap } from '@/lib/api/cruising';
 import { listPortfolio } from '@/lib/api/portfolio';
@@ -21,6 +22,8 @@ const STATIC_PATHS = [
   '/basic-website/request',
   '/website-check',
   ...Object.values(SERVICE_SLUGS).map((slug) => `/services/${slug}`),
+  // The local service pages and the web design hub (decision 121).
+  ...localSeoPaths(),
   '/work',
   '/blog',
   '/about',

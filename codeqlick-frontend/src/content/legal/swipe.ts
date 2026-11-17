@@ -1,11 +1,12 @@
 import type { SiteLocale } from '@/i18n/routing';
 import { CONTACT_EMAIL } from '@/lib/site';
+import { adultSafetySection } from './adult-safety';
 import { type LegalDocument, type LegalOwner, ownerLines } from './index';
 
 /** Swipe's own terms of use and privacy policy (architecture 4.10). */
 export type SwipeLegalPage = 'swipe-terms' | 'swipe-privacy';
 
-const UPDATED = { es: '8 de noviembre de 2026', en: '8 November 2026' } as const;
+const UPDATED = { es: '17 de noviembre de 2026', en: '17 November 2026' } as const;
 const MAIL = `[${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL})`;
 
 function terms(owner: LegalOwner, locale: SiteLocale): string {
@@ -22,7 +23,7 @@ Swipe contiene desnudos y contenido sexual explícito. Para entrar declaras que 
 
 ## Tu cuenta
 
-Necesitas una cuenta verificada por correo. Eres responsable de lo que hagas con ella. Antes de subir fotos nos envías una foto tuya con un papel con tu apodo, «Swipe» y la fecha; el equipo la revisa y solo la ve el equipo.
+Necesitas una cuenta verificada por correo. Eres responsable de lo que hagas con ella. Antes de subir fotos nos envías una foto tuya con un papel con tu apodo, «Codeqlick» y la fecha; el equipo la revisa y solo la ve el equipo. Es una sola verificación para las tres apps +18 de Codeqlick y la foto se guarda en privado mientras siga vigente.
 
 ## Lo que subes
 
@@ -63,7 +64,7 @@ Swipe contains nudity and explicit sexual content. By entering you declare that 
 
 ## Your account
 
-You need an account with a verified email. You are responsible for what you do with it. Before uploading photos you send us a photo of yourself holding a paper with your nickname, "Swipe" and the date; the team reviews it and only the team sees it.
+You need an account with a verified email. You are responsible for what you do with it. Before uploading photos you send us a photo of yourself holding a paper with your nickname, "Codeqlick" and the date; the team reviews it and only the team sees it. It is one verification for all three of Codeqlick's 18+ apps and the photo is kept privately while it stands.
 
 ## What you upload
 
@@ -101,14 +102,14 @@ ${ownerLines(owner, locale)}
 
 ## Datos especialmente protegidos
 
-Las fotos íntimas y lo que indicas sobre a quién quieres ver revelan aspectos de tu **vida sexual u orientación sexual**, datos de categoría especial (artículo 9 del RGPD). Solo los tratamos con tu **consentimiento explícito** (artículo 9.2.a), que das al marcar la casilla de consentimiento al subir cada foto y al rellenar tu perfil. Puedes retirarlo cuando quieras borrando la foto, el dato o tu cuenta.
+Las fotos íntimas y lo que indicas sobre a quién quieres ver revelan aspectos de tu **vida sexual u orientación sexual**, datos de categoría especial (artículo 9 del RGPD). Solo los tratamos con tu **consentimiento explícito** (artículo 9.2.a), que das al entrar en Swipe y al marcar la casilla de consentimiento al subir cada foto y al rellenar tu perfil. Puedes retirarlo cuando quieras borrando la foto, el dato o tu cuenta.
 
 ## Qué datos tratamos y para qué
 
 - **Cuenta:** nombre, correo, contraseña (cifrada) e idioma, para darte acceso (artículo 6.1.b).
 - **Edad:** compruebas tu fecha de nacimiento al entrar, pero **solo guardamos el año**, para el filtro de edad.
 - **Perfil:** apodo, género, a quién quieres ver, intereses, una frase, país (opcional) y tus filtros y preferencias.
-- **Foto de verificación:** solo para comprobar que eres tú y que eres adulto; solo la ve el equipo.
+- **Foto de verificación:** solo para comprobar que eres tú y que eres adulto; solo la ve el equipo. Si se aprueba, se guarda en privado mientras la verificación siga vigente (y la usamos para comparar las fotos nuevas que subes) y se borra cuando se retira o se pierde, se sustituye o borras tu cuenta; la verificación se comparte con las otras apps +18 de Codeqlick.
 - **Fotos:** las guardamos sin metadatos (sin datos de la cámara ni ubicación), con una marca de agua, y una huella para impedir que una foto retirada se vuelva a subir.
 - **Actividad:** los «me gusta» y «me encanta», los matches, los mensajes, las denuncias y las solicitudes de retirada.
 - **Avisos:** si los activas, la suscripción de tu dispositivo para las notificaciones.
@@ -124,7 +125,7 @@ Tus fotos publicadas las ven otros miembros adultos de Swipe, con tu apodo, gén
 
 ## Cuánto tiempo los guardamos
 
-Mientras tengas la cuenta. Las fotos que borras y las rechazadas se eliminan del servidor en menos de 6 horas; la verificación rechazada, al momento. Al terminar un match se borra su chat. Al borrar tu cuenta se borra todo (los archivos, en menos de 6 horas), salvo la huella de las fotos retiradas por infringir las normas, que guardamos para que no vuelvan a subirse. Las copias de seguridad se eliminan a los 14 días.
+Mientras tengas la cuenta. Las fotos que borras y las rechazadas se eliminan del servidor en menos de 6 horas; la verificación rechazada, al momento, y la aprobada, cuando se retira o se pierde, se sustituye o borras tu cuenta. Al terminar un match se borra su chat. Al borrar tu cuenta se borra todo (los archivos, en menos de 6 horas), salvo la huella de las fotos retiradas por infringir las normas, que guardamos para que no vuelvan a subirse. Las copias de seguridad se eliminan a los 14 días.
 
 ## Tus derechos
 
@@ -140,14 +141,14 @@ ${ownerLines(owner, locale)}
 
 ## Specially protected data
 
-Intimate photos and what you say about whom you want to see reveal your **sex life or sexual orientation**, special category data (article 9 GDPR). We only process them with your **explicit consent** (article 9.2.a), which you give by ticking the consent box when uploading each photo and by filling in your profile. You can withdraw it at any time by deleting the photo, the detail or your account.
+Intimate photos and what you say about whom you want to see reveal your **sex life or sexual orientation**, special category data (article 9 GDPR). We only process them with your **explicit consent** (article 9.2.a), which you give when you enter Swipe, by ticking the consent box when uploading each photo and by filling in your profile. You can withdraw it at any time by deleting the photo, the detail or your account.
 
 ## What data we process and why
 
 - **Account:** name, email, password (hashed) and language, to give you access (article 6.1.b).
 - **Age:** you confirm your date of birth when you enter, but **we only keep the year**, for the age filter.
 - **Profile:** nickname, gender, whom you want to see, interests, a sentence, country (optional) and your filters and preferences.
-- **Verification photo:** only to check that it is you and that you are an adult; only the team sees it.
+- **Verification photo:** only to check that it is you and that you are an adult; only the team sees it. If approved, it is kept privately while the verification stands (and we use it to compare the new photos you upload) and deleted when it is withdrawn or lost, replaced or when you delete your account; the verification is shared with Codeqlick's other 18+ apps.
 - **Photos:** stored without metadata (no camera data or location), with a watermark, and a fingerprint so a removed photo can't be uploaded again.
 - **Activity:** likes and «me encanta», matches, messages, reports and removal requests.
 - **Notifications:** if you turn them on, your device's subscription.
@@ -163,7 +164,7 @@ Your published photos are seen by other adult Swipe members, with your nickname,
 
 ## How long we keep it
 
-While you have the account. Photos you delete and rejected ones are erased from the server within 6 hours; a rejected verification, at once. Ending a match deletes its chat. Deleting your account deletes everything (files within 6 hours), except the fingerprint of photos removed for breaking the rules, kept so they can't be uploaded again. Backups are deleted after 14 days.
+While you have the account. Photos you delete and rejected ones are erased from the server within 6 hours; a rejected verification, at once, and an approved one when it is withdrawn or lost, replaced or when you delete your account. Ending a match deletes its chat. Deleting your account deletes everything (files within 6 hours), except the fingerprint of photos removed for breaking the rules, kept so they can't be uploaded again. Backups are deleted after 14 days.
 
 ## Your rights
 
@@ -187,7 +188,7 @@ export function swipeLegalDocument(
           ? 'Quién puede usar Swipe, qué se puede subir, cómo moderamos y cómo darte de baja.'
           : 'Who can use Swipe, what can be uploaded, how we moderate and how to leave.',
         updated: UPDATED[locale],
-        markdown: terms(owner, locale),
+        markdown: `${terms(owner, locale)}\n\n${adultSafetySection('terms', locale, MAIL)}`,
       }
     : {
         title: es ? 'Política de privacidad de Swipe' : 'Swipe privacy policy',
@@ -195,6 +196,6 @@ export function swipeLegalDocument(
           ? 'Qué datos trata Swipe, con qué base legal, cuánto tiempo y cómo ejercer tus derechos.'
           : 'What data Swipe handles, on what legal basis, for how long and how to use your rights.',
         updated: UPDATED[locale],
-        markdown: privacy(owner, locale),
+        markdown: `${privacy(owner, locale)}\n\n${adultSafetySection('privacy', locale, MAIL)}`,
       };
 }

@@ -157,7 +157,15 @@ describe('Maintenance plan of managed sites (e2e)', () => {
         customer: `cus_${tag}`,
         cancel_at_period_end: cancel,
         metadata: { kind: 'site-maintenance', projectId: ids.project },
-        items: { data: [{ current_period_end: 1_900_000_000 }] },
+        items: {
+          data: [
+            {
+              current_period_end: 1_900_000_000,
+              quantity: 1,
+              price: { unit_amount: 1900, recurring: { interval: 'month', interval_count: 1 } },
+            },
+          ],
+        },
       }) as unknown as StripeSubscription;
 
     // The landing's offer and the card before anything.
@@ -300,6 +308,8 @@ describe('Maintenance plan of managed sites (e2e)', () => {
     expect(sent.some((m) => /No hemos podido cobrar/.test(m.subject))).toBe(true);
     const pastDue = await prisma.clientProject.findUniqueOrThrow({ where: { id: ids.project } });
     expect(pastDue.maintenanceStatus).toBe('PAST_DUE');
+    // The month's bill before VAT is kept for the admin overview's MRR (decision 122).
+    expect(pastDue.maintenanceAmountCents).toBe(1900);
 
     // Cancelled: ended, emails; changes are no longer counted.
     subscriptions.set(`sub_${tag}`, subscription('canceled'));

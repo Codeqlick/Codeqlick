@@ -7,12 +7,14 @@ import type { Webapp } from '@/lib/webapps';
 import styles from './AppMenu.module.css';
 
 type AppMenuDrawerProps = {
-  /** The ☰ button's accessible name ("Menu"). */
+  /** The ☰ button's accessible name ("Menu", or "Menu — <name>" when signed in). */
   openLabel: string;
   /** The close button's accessible name ("Close menu"). */
   closeLabel: string;
   /** The panel's visible title, which also names the dialog. */
   title: string;
+  /** The signed-in person's small avatar, shown in the ☰ button (decorative: the name is in its label). */
+  avatar?: ReactNode;
   /** The panel's contents, rendered on the server. */
   children: ReactNode;
 };
@@ -22,7 +24,13 @@ type AppMenuDrawerProps = {
  * the focus, makes the page inert and closes it on Escape. A click on the backdrop, the close
  * button, a followed link or any navigation close it too; the focus goes back to the ☰ button.
  */
-export function AppMenuDrawer({ openLabel, closeLabel, title, children }: AppMenuDrawerProps) {
+export function AppMenuDrawer({
+  openLabel,
+  closeLabel,
+  title,
+  avatar,
+  children,
+}: AppMenuDrawerProps) {
   const dialogId = useId();
   const titleId = useId();
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -86,7 +94,7 @@ export function AppMenuDrawer({ openLabel, closeLabel, title, children }: AppMen
       <button
         ref={triggerRef}
         type="button"
-        className={styles.trigger}
+        className={avatar ? `${styles.trigger} ${styles.triggerUser}` : styles.trigger}
         aria-label={openLabel}
         aria-expanded={open}
         aria-controls={dialogId}
@@ -102,6 +110,11 @@ export function AppMenuDrawer({ openLabel, closeLabel, title, children }: AppMen
             strokeLinecap="round"
           />
         </svg>
+        {avatar ? (
+          <span className={styles.triggerAvatar} aria-hidden="true">
+            {avatar}
+          </span>
+        ) : null}
       </button>
       <dialog
         ref={dialogRef}

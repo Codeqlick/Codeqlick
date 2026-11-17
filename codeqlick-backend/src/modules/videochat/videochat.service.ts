@@ -18,6 +18,10 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { UsernameService } from '../auth/username.service.js';
 import { ActivityService, type ActivityActor } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { AdultAdminService, type AlsoReported } from '../adult/adult-admin.service.js';
+import { AdultSafetyService } from '../adult/adult-safety.service.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
+import { isSeriousCategory, mostSerious, type SuspensionCategory } from '../adult/adult.rules.js';
 import { WindowLimiter, type MatchPrefs } from './matchmaker.js';
 import { addDays, madridDay } from './videochat-stats.service.js';
 import { appealResolvedEmail, minorReportEmail } from './videochat-emails.js';
@@ -260,16 +264,25 @@ export class VideochatService {
     private readonly mail: MailService,
     private readonly activity: ActivityService,
     private readonly usernames: UsernameService,
+    private readonly safety: AdultSafetyService,
+    private readonly verification: AdultVerificationService,
+    private readonly adultAdmin: AdultAdminService,
   ) {}
 
   async status(userId: string, now: Date = new Date()): Promise<VideochatStatus> {
     const profile = await this.repository.findProfile(userId);
     const onboarded = profile?.termsVersion === VIDEOCHAT_TERMS_VERSION;
-    const suspended = isSuspended(profile, now);
+    // A shared suspension (architecture 4.16) counts even before the person entered.
+    const shared = isSuspended(profile, now) ? null : await this.safety.sharedState(userId, now);
+    const suspended = isSuspended(profile, now) || !!shared;
+    // The account's one verification for the three 18+ apps (decision 113).
+    const verification = await this.verification.view(userId);
     const ageVerificationRequired = this.config.videochatAgeVerificationRequired;
     const ageVerified = Boolean(profile?.ageVerifiedAt);
-    let suspension: VideochatStatus['suspension'] = null;
-    if (suspended && profile) {
+    let suspension: VideochatStatus['suspension'] = shared
+      ? { reason: shared.reason, until: shared.until?.toISOString() ?? null, appeal: null }
+      : null;
+    if (suspended && profile && !shared) {
       const sanction = await this.repository.latestSuspension(userId);
       suspension = {
         reason: profile.suspensionReason,
@@ -295,10 +308,7 @@ export class VideochatService {
       profile: profile ? settingsOf(profile) : null,
       pushPublicKey: this.config.vapid?.publicKey ?? null,
       peakAlerts: profile?.peakAlerts ?? false,
-      verification: {
-        status: profile?.verificationStatus ?? 'NONE',
-        note: profile?.verificationNote ?? null,
-      },
+      verification: { status: verification.status, note: verification.note },
     };
   }
 
@@ -329,7 +339,10 @@ export class VideochatService {
       input.nickname === null
         ? null
         : ((await this.usernames.claim(userId, input.nickname, 'nickname')).username ?? null);
-    return settingsOf(await this.repository.saveSettings(userId, { ...input, nickname }));
+    const saved = settingsOf(await this.repository.saveSettings(userId, { ...input, nickname }));
+    // A new name may no longer be the one on the verification paper (decision 113).
+    await this.verification.nameChanged(userId);
+    return saved;
   }
 
   /** A suspended person asks the team to lift it; one appeal per suspension. */
@@ -356,7 +369,12 @@ export class VideochatService {
     if (age < VIDEOCHAT_MIN_AGE) {
       throw new ForbiddenException(`The video chat is only for people aged ${VIDEOCHAT_MIN_AGE}+`);
     }
+    const user = await this.repository.findUser(userId);
+    // An email kept after a serious suspension can't enter (decision 120).
+    if (user) await this.safety.checkEntry(user.email, now);
     await this.repository.saveOnboarding(userId, input.termsVersion, now);
+    // A shared suspension in force applies here too, from the first visit (decision 114).
+    await this.safety.reapply(userId, now, ['VIDEOCHAT']);
     return this.status(userId);
   }
 
@@ -433,8 +451,9 @@ export class VideochatService {
     return this.repository.blockedUserIds(userId);
   }
 
+  /** A block from a call: shared in the three 18+ apps (decision 112). */
   block(blockerId: string, blockedId: string): Promise<void> {
-    return this.repository.block(blockerId, blockedId);
+    return this.safety.block(blockerId, blockedId, 'VIDEOCHAT');
   }
 
   /** "I like them"; true when they had liked me too (we are contacts now). */
@@ -463,7 +482,7 @@ export class VideochatService {
           country: profile?.country ?? null,
           language: profile?.language ?? null,
           interests: knownInterests(profile?.interests),
-          verified: profile?.verificationStatus === 'APPROVED',
+          verified: row.to.adultVerification?.status === 'APPROVED',
           ...presence(row.toId),
           since: row.createdAt.toISOString(),
         };
@@ -532,9 +551,10 @@ export class VideochatService {
   async listReports(status: 'OPEN' | 'DISMISSED' | 'ACTIONED'): Promise<ReportView[]> {
     const reports = await this.repository.listReports(status);
     const people = [...new Set(reports.map((report) => report.reportedId))];
-    const [counts, histories] = await Promise.all([
+    const [counts, histories, elsewhere] = await Promise.all([
       this.repository.reportCounts(people, new Date(Date.now() - 30 * DAY_MS)),
       this.repository.reportHistories(people),
+      this.adultAdmin.alsoReported('VIDEOCHAT', people),
     ]);
     return reports.map((report) => ({
       id: report.id,
@@ -559,6 +579,7 @@ export class VideochatService {
           : null,
         recentReports: counts.get(report.reportedId) ?? 0,
         history: historyView(histories.get(report.reportedId)),
+        alsoReported: elsewhere.get(report.reportedId) ?? (null as AlsoReported | null),
       },
     }));
   }
@@ -572,6 +593,7 @@ export class VideochatService {
     ids: string[],
     action: 'dismiss' | 'suspend',
     duration: SuspensionDuration,
+    category?: SuspensionCategory,
   ): Promise<{ done: number; skipped: number }> {
     const unique = [...new Set(ids)];
     const reports = (await this.repository.findReports(unique)).filter(
@@ -596,11 +618,12 @@ export class VideochatService {
       for (const [userId, theirs] of byPerson) {
         const first = theirs[0]!;
         const reasons = [...new Set(theirs.map((report) => report.reason))].join(', ');
-        await this.suspendUser(admin, {
+        await this.suspendWithCategory(admin, {
           userId,
           reason: `Report: ${reasons}`,
           duration,
           reportId: first.id,
+          category: category ?? mostSerious(theirs.map((report) => report.reason)) ?? first.reason,
           now,
         });
         for (const report of theirs) {
@@ -628,14 +651,18 @@ export class VideochatService {
     id: string,
     reason: string | undefined,
     duration: SuspensionDuration,
+    category?: SuspensionCategory,
   ): Promise<void> {
     const report = await this.findReport(id);
     const now = new Date();
-    await this.suspendUser(admin, {
+    // The report's reason is the category (or the moderator's): a serious one is what shares an
+    // automatic suspension in the three 18+ apps once the team reviewed it (decision 114).
+    await this.suspendWithCategory(admin, {
       userId: report.reportedId,
       reason: reason ?? `Report: ${report.reason}`,
       duration,
       reportId: report.id,
+      category: category ?? report.reason,
       now,
     });
     await this.repository.reviewReport(id, 'ACTIONED', admin.id, now);
@@ -647,11 +674,52 @@ export class VideochatService {
     userId: string,
     reason: string,
     duration: SuspensionDuration,
+    category: SuspensionCategory,
   ): Promise<void> {
     if (!(await this.repository.findProfile(userId))) {
       throw new NotFoundException('That account has not joined the video chat');
     }
-    await this.suspendUser(admin, { userId, reason, duration, reportId: null, now: new Date() });
+    await this.suspendWithCategory(admin, {
+      userId,
+      reason,
+      duration,
+      reportId: null,
+      category,
+      now: new Date(),
+    });
+  }
+
+  /**
+   * A suspension by the team: MINOR, NON_CONSENSUAL and ILLEGAL are shared in the three 18+ apps
+   * (decision 114); the other categories stay in the video chat.
+   */
+  private async suspendWithCategory(
+    admin: AuthUser,
+    input: {
+      userId: string;
+      reason: string;
+      duration: SuspensionDuration;
+      reportId: string | null;
+      category: string;
+      now: Date;
+    },
+  ): Promise<void> {
+    if (isSeriousCategory(input.category)) {
+      await this.safety.suspend(
+        admin,
+        input.userId,
+        {
+          category: input.category,
+          sourceApp: 'VIDEOCHAT',
+          reason: input.reason,
+          duration: input.duration,
+          reportId: input.reportId,
+        },
+        input.now,
+      );
+      return;
+    }
+    await this.suspendUser(admin, input);
   }
 
   /** Records that the team checked the person's age by hand (or clears it). */
@@ -681,9 +749,16 @@ export class VideochatService {
     userId: string,
     reason: string | null = null,
   ): Promise<void> {
+    const profile = await this.repository.findProfile(userId);
+    // The shared suspension is lifted in the three apps from here too (decision 114).
+    if (profile && (await this.safety.isSharedInProfile(userId, profile.suspendedAt))) {
+      await this.safety.lift(admin, userId, reason ?? 'Lifted from video chat moderation');
+      return;
+    }
     if (!(await this.repository.unsuspend(userId, admin.id, reason))) {
       throw new NotFoundException('That account is not suspended');
     }
+    await this.safety.reapply(userId, new Date(), ['VIDEOCHAT']);
     await this.activity.record(admin, {
       action: 'videochat.unsuspended',
       targetId: userId,
@@ -724,7 +799,13 @@ export class VideochatService {
       throw new ConflictException('This appeal was already resolved');
     }
     if (accepted) {
-      await this.repository.unsuspend(appeal.userId, admin.id, 'Appeal accepted');
+      // An appeal of a shared suspension is decided once, for the three apps (decision 114).
+      const profile = await this.repository.findProfile(appeal.userId);
+      if (profile && (await this.safety.isSharedInProfile(appeal.userId, profile.suspendedAt))) {
+        await this.safety.lift(admin, appeal.userId, 'Appeal accepted');
+      } else {
+        await this.repository.unsuspend(appeal.userId, admin.id, 'Appeal accepted');
+      }
     }
     await this.activity.record(admin, {
       action: accepted ? 'videochat.appeal_accepted' : 'videochat.appeal_rejected',
@@ -750,6 +831,7 @@ export class VideochatService {
     if (!user || !profile)
       throw new NotFoundException('That account has not joined the video chat');
     const person = (p: Person): Person => ({ id: p.id, name: p.name, email: p.email });
+    const verification = await this.verification.view(userId);
     return {
       user: { ...person(user), createdAt: user.createdAt.toISOString() },
       profile: settingsOf(profile),
@@ -761,7 +843,7 @@ export class VideochatService {
           }
         : null,
       ageVerified: Boolean(profile.ageVerifiedAt),
-      photoVerification: profile.verificationStatus,
+      photoVerification: verification.status,
       onboardedAt: profile.adultConfirmedAt.toISOString(),
       reportsReceived: user.videochatReportsGot.map((report) => ({
         id: report.id,
@@ -805,6 +887,7 @@ export class VideochatService {
       reason: string;
       duration: SuspensionDuration;
       reportId: string | null;
+      category?: string | null;
       now: Date;
     },
   ): Promise<void> {
@@ -816,6 +899,7 @@ export class VideochatService {
       now: input.now,
       byId: actor.id,
       reportId: input.reportId,
+      category: input.category ?? null,
     });
     this.suspensions.next(input.userId);
     await this.activity.record(actor, {

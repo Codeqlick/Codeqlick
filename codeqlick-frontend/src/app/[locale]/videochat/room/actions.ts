@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import { localeOrDefault } from '@/i18n/locale';
+import { entryRefusal } from '@/lib/adult-entry';
 import { isApiError } from '@/lib/api/errors';
 import {
   appealVideochatSuspension,
@@ -26,12 +27,20 @@ export async function onboardAction(_previous: FormState, formData: FormData): P
   if (formData.get('acceptTerms') !== 'on') {
     return { status: 'error', fieldErrors: { acceptTerms: t('mustAccept') }, values };
   }
+  if (formData.get('consentSpecialData') !== 'on') {
+    return { status: 'error', fieldErrors: { consentSpecialData: t('mustConsent') }, values };
+  }
 
   try {
-    await onboardVideochat({ birthDate, acceptTerms: true, termsVersion });
+    await onboardVideochat({
+      birthDate,
+      acceptTerms: true,
+      consentSpecialData: true,
+      termsVersion,
+    });
   } catch (error) {
     const status = isApiError(error) ? error.status : 0;
-    if (status === 403) return { status: 'error', message: t('underage'), values };
+    if (status === 403) return { status: 'error', message: entryRefusal(error, t), values };
     if (status === 400) {
       return { status: 'error', fieldErrors: { birthDate: t('invalidDate') }, values };
     }

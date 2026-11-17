@@ -594,6 +594,50 @@ export class AccountRepository {
         select: { action: true, targetLabel: true, tokenName: true, ip: true, createdAt: true },
       }),
     ]);
+    // Architecture 4.16: what the three 18+ apps share (never the verification photo).
+    const blockSelect = {
+      where: { blockerId: userId },
+      orderBy: { createdAt: 'asc' as const },
+      select: { blockedId: true, sourceApp: true, createdAt: true },
+    };
+    const [adultVerification, adultSuspensions, adultBlocks] = await Promise.all([
+      p.adultVerification.findUnique({
+        where: { userId },
+        select: {
+          status: true,
+          sourceApp: true,
+          sentAt: true,
+          decidedAt: true,
+          withdrawnAt: true,
+          createdAt: true,
+        },
+      }),
+      p.adultSuspension.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          category: true,
+          sourceApp: true,
+          reason: true,
+          until: true,
+          createdAt: true,
+          liftedAt: true,
+        },
+      }),
+      Promise.all([
+        p.cruisingBlock.findMany(blockSelect),
+        p.swipeBlock.findMany(blockSelect),
+        p.videochatBlock.findMany(blockSelect),
+      ]),
+    ]);
+    // A block is in the three tables: one row per person blocked, with the app it was made in.
+    const blocks = new Map<string, { sourceApp: string | null; createdAt: Date }>();
+    for (const row of adultBlocks.flat()) {
+      const seen = blocks.get(row.blockedId);
+      if (!seen || (!seen.sourceApp && row.sourceApp)) {
+        blocks.set(row.blockedId, { sourceApp: row.sourceApp, createdAt: row.createdAt });
+      }
+    }
     return {
       user,
       sessions,
@@ -655,6 +699,14 @@ export class AccountRepository {
             notifications: cruisingNotifications,
           }
         : null,
+      adult:
+        adultVerification || adultSuspensions.length > 0 || blocks.size > 0
+          ? {
+              verification: adultVerification,
+              suspensions: adultSuspensions,
+              blocks: [...blocks.values()],
+            }
+          : null,
       cloud:
         cloudTeams.length + cloudTokens.length + cloudEvents.length > 0
           ? { teams: cloudTeams, tokens: cloudTokens, events: cloudEvents }

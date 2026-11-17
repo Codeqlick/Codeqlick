@@ -14,6 +14,7 @@ import { AlbumGrantsPanel } from '@/components/cruising/AlbumShare';
 import { MediaManager } from '@/components/cruising/MediaManager';
 import { SafetyPanels } from '@/components/cruising/SafetyPanels';
 import { MemberContributions } from '@/components/cruising/MemberContributions';
+import { AdultBlocksList } from '@/components/adult/AdultBlocksList';
 import { VerificationUpload } from '@/components/cruising/VerificationUpload';
 import { VerifiedBadge } from '@/components/cruising/VerifiedBadge';
 import { PushToggle } from '@/components/videochat/PushToggle';
@@ -23,12 +24,8 @@ import { Link } from '@/i18n/navigation';
 import { resolveCruisingLocale } from '@/i18n/locale';
 import { CRUISING_LOCALES, siteLocale } from '@/i18n/routing';
 import { LOCALE_NAMES } from '@/lib/locales';
-import {
-  getCruisingStatus,
-  getMyCruisingCheckIn,
-  getMyCruisingMedia,
-  listCruisingBlocks,
-} from '@/lib/api/cruising';
+import { getCruisingStatus, getMyCruisingCheckIn, getMyCruisingMedia } from '@/lib/api/cruising';
+import { listAdultBlocks } from '@/lib/api/adult';
 import { getCruisingAlbumGrants } from '@/lib/api/cruising-rooms';
 import { getCruisingVisits } from '@/lib/api/cruising-notifications';
 import { requireUser } from '@/lib/auth/session';
@@ -87,7 +84,7 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
   const tvs = await getTranslations({ locale, namespace: 'Cruising.visits' });
   const [checkIn, blocks, media, grants, visits] = await Promise.all([
     profile ? getMyCruisingCheckIn().catch(() => null) : Promise.resolve(null),
-    listCruisingBlocks().catch(() => []),
+    listAdultBlocks('CRUISING').catch(() => []),
     profile?.nickname ? getMyCruisingMedia().catch(() => null) : Promise.resolve(null),
     profile?.nickname
       ? getCruisingAlbumGrants().catch(() => NO_GRANTS)
@@ -410,23 +407,20 @@ export default async function CruisingMePage({ params, searchParams }: PageProps
           ) : (
             <>
               <p className={vc.muted}>{t('blocksLead')}</p>
-              <ul className={styles.blockList}>
-                {blocks.map((block) => (
-                  <li key={block.nickname} className={styles.blockItem}>
-                    <span>
-                      <strong>{block.nickname}</strong>{' '}
-                      <span className={styles.muted}>
-                        {t('blockedOn', { date: formatDate(block.createdAt, locale) })}
-                      </span>
-                    </span>
-                    <ActionForm action={unblockAction.bind(null, locale, block.nickname)}>
-                      <SubmitButton variant="outline" size="sm" pendingLabel={t('unblocking')}>
-                        {t('unblock')}
-                      </SubmitButton>
-                    </ActionForm>
-                  </li>
-                ))}
-              </ul>
+              <AdultBlocksList
+                blocks={blocks}
+                otherApp={t('blockOtherApp')}
+                blockedOn={(date) => t('blockedOn', { date })}
+                blockedIn={(app, date) => t('blockedOnIn', { app, date })}
+                date={(iso) => formatDate(iso, locale)}
+                action={(block) => (
+                  <ActionForm action={unblockAction.bind(null, locale, block.ref)}>
+                    <SubmitButton variant="outline" size="sm" pendingLabel={t('unblocking')}>
+                      {t('unblock')}
+                    </SubmitButton>
+                  </ActionForm>
+                )}
+              />
             </>
           )}
         </section>

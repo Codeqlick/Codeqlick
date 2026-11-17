@@ -32,6 +32,7 @@ import {
   type SpotInput,
 } from '@/lib/cruising';
 import type { MemberHealth as MemberHealthView } from '@/lib/cruising-safety';
+import type { AlsoReportedData } from '@/lib/adult';
 import type { AppLocale } from '@/i18n/routing';
 import { apiFetch } from './client';
 import { isApiError } from './errors';
@@ -573,25 +574,10 @@ export function blockCruisingConversation(conversationId: string) {
   });
 }
 
-export async function listCruisingBlocks(): Promise<{ nickname: string; createdAt: string }[]> {
-  return (
-    await apiFetch<{ items: { nickname: string; createdAt: string }[] }>('/cruising/blocks', {
-      auth: 'required',
-    })
-  ).items;
-}
-
 export function blockCruisingMember(nickname: string) {
   return apiFetch<void>('/cruising/blocks', {
     method: 'POST',
     body: { nickname },
-    auth: 'required',
-  });
-}
-
-export function unblockCruisingMember(nickname: string) {
-  return apiFetch<void>(`/cruising/blocks/${encodeURIComponent(nickname)}`, {
-    method: 'DELETE',
     auth: 'required',
   });
 }
@@ -661,6 +647,8 @@ export type AdminCruisingReport = {
         userId?: string;
         reports?: number;
         verified?: boolean;
+        /** Reported in other 18+ apps too (architecture 4.16). */
+        alsoReported?: AlsoReportedData;
         /** Phase 6: when the person's mute from the city rooms ends (null: not muted or for good). */
         roomMutedUntil?: string | null;
       })
@@ -716,15 +704,6 @@ export type AdminMedia = MediaTarget & {
   createdAt: string;
   openReports: number;
   owner: AdminMediaOwner;
-};
-
-export type AdminVerification = {
-  userId: string;
-  nickname: string | null;
-  name: string;
-  email: string;
-  memberSince: string;
-  sentAt: string;
 };
 
 export function getAdminCruisingOverview() {
@@ -864,18 +843,6 @@ export function liftCruisingSuspension(userId: string) {
 }
 
 // ---- Phase 4: verification and media -------------------------------------------------------------
-
-/** My verification photo (a JPEG/PNG/WebP of me with a paper showing my nickname and the date). */
-export function uploadCruisingVerification(file: File) {
-  const form = new FormData();
-  form.set('file', file, file.name || 'verification.jpg');
-  return apiFetch<{ status: 'PENDING' }>('/cruising/verification', {
-    method: 'POST',
-    body: form,
-    auth: 'required',
-    signal: AbortSignal.timeout(30_000),
-  });
-}
 
 export type MyMediaList = {
   items: MyMedia[];
@@ -1052,30 +1019,6 @@ export function removeCruisingMedia(
   return apiFetch<void>(`/admin/cruising/media/${encodeURIComponent(id)}/remove`, {
     method: 'POST',
     body: input,
-    auth: 'required',
-  });
-}
-
-export async function listAdminCruisingVerifications(): Promise<AdminVerification[]> {
-  return (
-    await apiFetch<{ items: AdminVerification[] }>('/admin/cruising/verifications', {
-      auth: 'required',
-    })
-  ).items;
-}
-
-export function decideCruisingVerification(userId: string, approve: boolean, note?: string) {
-  return apiFetch<void>(`/admin/cruising/verifications/${encodeURIComponent(userId)}`, {
-    method: 'POST',
-    body: { approve, note },
-    auth: 'required',
-  });
-}
-
-/** Withdraws a member's badge (they are emailed). */
-export function withdrawCruisingVerification(userId: string) {
-  return apiFetch<void>(`/admin/cruising/users/${encodeURIComponent(userId)}/verification`, {
-    method: 'DELETE',
     auth: 'required',
   });
 }

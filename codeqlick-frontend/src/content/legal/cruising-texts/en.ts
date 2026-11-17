@@ -2,7 +2,7 @@ import type { CruisingLegalTexts } from '../cruising';
 
 /** Cruising's terms of use and privacy policy in English (the source of the other languages). */
 export const en: CruisingLegalTexts = {
-  updated: '16 November 2026',
+  updated: '17 November 2026',
   owner: {
     owner: 'Owner',
     taxId: 'Tax ID',
@@ -44,7 +44,7 @@ You need an account with a verified email, and to enter Cruising with your date 
 - Members who have entered and are **verified** can upload photos and videos **of themselves** to their profile. Sexual content of oneself between adults is allowed, and only members who have entered can see it.
 - **Nobody under 18** may appear, and nothing may be illegal. Nobody who didn't consent may appear, and the pictures must be yours. You tick a consent box at each upload.
 - Photos and videos are **published before the team reviews them**; the team reviews them afterwards and removes what breaks these terms, blocking the image so it can't be uploaded again. We may suspend the account.
-- **Verification** is a photo of you with your nickname, reviewed by the team and deleted afterwards. The "Verified" badge only means the team checked that photo: not that an identity document was checked.
+- **Verification** is a photo of you with your nickname, "Codeqlick" and the date, reviewed by the team and kept privately while the verification stands (see "Safety across Codeqlick's 18+ apps"). The "Verified" badge only means the team checked that photo: not that an identity document was checked.
 - You still own what you upload and give us a free, non-exclusive permission to store it and show it in Cruising until you delete it.
 
 ## How you behave
@@ -87,7 +87,7 @@ Using Cruising can reveal aspects of your **sex life or sexual orientation**, sp
 - **Places:** the ones you propose (name, type, location, description, times) with your account, so you can see and edit them and so we can moderate them.
 - **Reviews and reports:** the ones you write and make.
 - **Photos and videos (special category data):** the ones you upload to your profile, with your **explicit consent** at each upload (article 9.2.a). We strip their metadata (location, camera). They are stored on servers in the European Union (OVHcloud), **out of backups**, and only members who have entered can see them, never search engines.
-- **Verification photo:** the one you send us with your nickname; only the team sees it and it is **deleted as soon as it is reviewed**: we only keep the decision.
+- **Verification photo:** the one you send us with your nickname, "Codeqlick" and the date; only the team sees it. If approved, it is **kept privately while the verification stands** and deleted when it is withdrawn or lost, replaced or when you delete your account; a rejected one is deleted at once. The verification is shared with Codeqlick's other 18+ apps (see the last section).
 - **Sexual health (health data, special category):** only if you turn it on, with its **own explicit consent** (article 9.2.a), separate from entry's: whether you take PrEP, the month of your last test and how often to remind you of your check-up. By default only you see them; if you choose to show them, members who have entered see them on your profile. Turning it off **deletes** them at once. Reminders only say "Time for your check-up".
 - **Trusted contacts and the safety timer:** the email of up to 2 people you choose, the name you give yourself for them, and whether they accepted (legitimate interest in your safety, article 6.1.f; each contact gives their own consent by accepting by email and can stop at any time). Of a timer we keep its end time, your message and, only if you choose to share it, the place. If you don't end it in time, your contacts who accepted get a single email with that name, your message, the time and the shared place; never your nickname or what Cruising is.
 - **Security:** the IP address and browser of each session (legitimate interest, article 6.1.f).
@@ -107,7 +107,7 @@ Published places are seen by anyone, without your name. Reviews are seen only by
 
 ## How long we keep it
 
-As long as you have the account. Your photos and videos, until you delete them or the account; the files are gone from the server within 6 hours. The verification photo is deleted once reviewed. Timers, 7 days after they end. When you delete the account, your profile, reviews, reports, health data, trusted contacts and timers are deleted; the places you proposed stay published without your name. Backups are removed after 14 days.
+As long as you have the account. Your photos and videos, until you delete them or the account; the files are gone from the server within 6 hours. The verification photo, if approved, is kept while the verification stands; a rejected one is deleted at once. Timers, 7 days after they end. When you delete the account, your profile, reviews, reports, health data, trusted contacts and timers are deleted; the places you proposed stay published without your name. Backups are removed after 14 days.
 
 ## Your rights
 

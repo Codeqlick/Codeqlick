@@ -9,6 +9,7 @@ import {
   FormSelect,
 } from '@/components/app/ActionForm';
 import { WeekStats } from '@/components/app/WeekStats';
+import { AdultBlocksList } from '@/components/adult/AdultBlocksList';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { PhotoUpload } from '@/components/swipe/PhotoUpload';
 import swipeStyles from '@/components/swipe/Swipe.module.css';
@@ -26,10 +27,12 @@ import {
   MAX_INTERESTS,
 } from '@/lib/api/videochat';
 import { ADULT_INTERESTS } from '@/lib/videochat-interests';
+import { listAdultBlocks } from '@/lib/api/adult';
 import { requireUser } from '@/lib/auth/session';
+import { formatDate } from '@/lib/format';
 import { countryOptions, languageOptions } from '@/lib/videochat-options';
 import styles from '../videochat.module.css';
-import { settingsAction, uploadVerificationAction } from './actions';
+import { settingsAction, unblockAction, uploadVerificationAction } from './actions';
 import { appPath } from '@/lib/webapp-request';
 import { AccountSettingsLink } from '@/components/account/AccountSettingsLink';
 
@@ -52,7 +55,9 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
   const genders = GENDERS.map((value) => ({ value, label: tg(value) }));
   const tv = await getTranslations({ locale, namespace: 'Videochat' });
   const verification = status.verification;
+  const tb = await getTranslations({ locale, namespace: 'Videochat.blocks' });
   const stats = await getVideochatWeekStats().catch(() => null);
+  const blocks = await listAdultBlocks('VIDEOCHAT').catch(() => []);
 
   return (
     <section className={styles.panel}>
@@ -154,6 +159,7 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
           {verification.status === 'APPROVED' ? <VerifiedBadge label={tv('verified')} /> : null}
         </h2>
         <p>{tv(`verification.status.${verification.status}`)}</p>
+        <p className={styles.muted}>{tv('verification.shared')}</p>
         {verification.note && verification.status === 'REJECTED' ? (
           <p className={styles.muted}>{verification.note}</p>
         ) : null}
@@ -182,6 +188,32 @@ export default async function VideochatSettingsPage({ params }: PageProps) {
             <p className={styles.muted}>{tv('verification.nicknameFirst')}</p>
           )
         ) : null}
+      </section>
+      <section className={styles.subsection} aria-labelledby="videochat-blocks">
+        <h2 id="videochat-blocks" className={styles.sectionTitle}>
+          {tb('title')}
+        </h2>
+        {blocks.length === 0 ? (
+          <p className={styles.muted}>{tb('empty')}</p>
+        ) : (
+          <>
+            <p className={styles.muted}>{tb('lead')}</p>
+            <AdultBlocksList
+              blocks={blocks}
+              otherApp={tb('otherApp')}
+              blockedOn={(date) => tb('blockedOn', { date })}
+              blockedIn={(app, date) => tb('blockedOnIn', { app, date })}
+              date={(iso) => formatDate(iso, locale)}
+              action={(block) => (
+                <ActionForm action={unblockAction.bind(null, locale, block.ref)}>
+                  <SubmitButton variant="ghost" size="sm" pendingLabel={tb('unblocking')}>
+                    {tb('unblock')}
+                  </SubmitButton>
+                </ActionForm>
+              )}
+            />
+          </>
+        )}
       </section>
       {status.pushPublicKey ? (
         <section className={styles.subsection} aria-labelledby="videochat-push">

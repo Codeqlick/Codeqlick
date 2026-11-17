@@ -12,6 +12,7 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { open, readFile } from 'node:fs/promises';
+import type { Subscription } from 'rxjs';
 import type { ReadStream } from 'node:fs';
 import { toAccountLocale } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -19,6 +20,8 @@ import { AppConfigService } from '../../config/app-config.service.js';
 import type { CruisingMedia, CruisingProfile } from '../../generated/prisma/client.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { AdultEvents, type AdultVerificationEvent } from '../adult/adult-events.js';
+import { AdultVerificationService } from '../adult/adult-verification.service.js';
 import { isBlockedImage, processImage, watermark } from '../swipe/swipe-image.js';
 import { newRef } from '../swipe/swipe.service.js';
 import { detectImageType } from '../media/image-type.js';
@@ -39,7 +42,6 @@ import {
   reorder,
   UPLOADS_PER_DAY,
   useDailyAllowance,
-  VERIFICATIONS_PER_DAY,
   videoLengthAllowed,
   type ByteRange,
   type MediaAlbum,
@@ -51,7 +53,7 @@ import { CruisingMediaStorage } from './cruising-media.storage.js';
 import { CruisingNotificationsService } from './cruising-notifications.service.js';
 import { isSuspended } from './cruising.rules.js';
 import { CruisingRepository } from './cruising.repository.js';
-import type { MediaPatch, VerificationDecision } from './cruising.schemas.js';
+import type { MediaPatch } from './cruising.schemas.js';
 
 /** The orphan cleanup: first run a minute after start, then every 6 hours. */
 const CLEANUP_FIRST_MS = 60_000;
@@ -114,12 +116,9 @@ export type MediaFileResult = MediaFile | { unsatisfiable: true; size: number };
 
 /** The badge's state as `/me` and the media list show it. */
 export function verificationState(
-  profile: Pick<CruisingProfile, 'verificationStatus' | 'verificationNote'> | null,
+  verification: { status: VerificationState['status']; note: string | null } | null,
 ): VerificationState {
-  return {
-    status: profile?.verificationStatus ?? 'NONE',
-    note: profile?.verificationNote ?? null,
-  };
+  return { status: verification?.status ?? 'NONE', note: verification?.note ?? null };
 }
 
 /**
@@ -131,6 +130,7 @@ export function verificationState(
 export class CruisingMediaService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(CruisingMediaService.name);
   private timers: NodeJS.Timeout[] = [];
+  private subscription?: Subscription;
   /** Videos waiting for the transcoder: one runs at a time. */
   private readonly queue: string[] = [];
   private draining: Promise<void> | null = null;
@@ -144,9 +144,14 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     private readonly mail: MailService,
     private readonly config: AppConfigService,
     private readonly notifications: CruisingNotificationsService,
+    private readonly verification: AdultVerificationService,
+    private readonly events: AdultEvents,
   ) {}
 
   onApplicationBootstrap(): void {
+    this.subscription = this.events.verification.subscribe(
+      (event) => void this.verificationNotice(event),
+    );
     if (this.config.isTest) return;
     void this.resumeQueue();
     const first = setTimeout(() => {
@@ -157,6 +162,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
   }
 
   onApplicationShutdown(): void {
+    this.subscription?.unsubscribe();
     for (const timer of this.timers) clearTimeout(timer);
   }
 
@@ -336,11 +342,12 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     }
   }
 
-  // ---- Verification ------------------------------------------------------------------------------
+  // ---- Verification (the account's one for the three 18+ apps, architecture 4.16) -----------------
 
   /**
-   * The verification photo: the member holding a paper with their nickname, "Cruising" and the
-   * date. Once; only the team sees it, and it is deleted once reviewed. 5 a day.
+   * The verification photo, sent from Cruising: the member holding a paper with their nickname,
+   * "Codeqlick" and the date. `POST /cruising/verification` answers like `POST /adult/verification`
+   * for one release.
    */
   async uploadVerification(
     userId: string,
@@ -348,40 +355,9 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     now = new Date(),
   ): Promise<{ status: 'PENDING' }> {
     try {
-      const profile = await this.allowed(userId, now);
-      if (!profile.nickname) throw new ConflictException('Choose your nickname first');
-      if (profile.verificationStatus === 'APPROVED') {
-        throw new ConflictException('You are verified already');
-      }
-      if (profile.verificationStatus === 'PENDING') {
-        throw new ConflictException('Your verification photo is waiting for the team');
-      }
       if (!file) throw new BadRequestException('Send the photo in a multipart field called "file"');
       if (file.size > MAX_PHOTO_BYTES) throw new PayloadTooLargeException('Photos up to 10 MB');
-      const allowance = useDailyAllowance(
-        profile.verificationTries,
-        profile.verificationTriesSince,
-        VERIFICATIONS_PER_DAY,
-        now,
-      );
-      if (!allowance) {
-        throw new HttpException(
-          'Too many verification photos today: try again tomorrow',
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-      const image = await processImage(await readFile(file.path));
-      if (!image) throw new BadRequestException('Only PNG, JPEG and WebP photos are accepted');
-      const key = await this.storage.write(image.data);
-      await this.repository.updateProfile(userId, {
-        verificationStatus: 'PENDING',
-        verificationKey: key,
-        verificationNote: null,
-        verificationSentAt: now,
-        verificationTries: allowance.count,
-        verificationTriesSince: allowance.since,
-      });
-      await this.storage.remove(profile.verificationKey);
+      await this.verification.upload(userId, 'CRUISING', await readFile(file.path), now);
       return { status: 'PENDING' };
     } finally {
       await this.storage.removePath(file?.path);
@@ -390,79 +366,31 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
 
   /** My verification photo while it waits. */
   async myVerificationFile(userId: string): Promise<MediaFile> {
-    const profile = await this.repository.findProfile(userId);
-    const key = profile?.verificationKey;
-    const size = key ? await this.storage.size(key) : undefined;
-    if (!key || size === undefined) throw new NotFoundException('No verification photo');
-    return { stream: this.storage.read(key), contentType: 'image/webp', size, range: null };
+    const { stream, size } = await this.verification.myFile(userId);
+    return { stream, contentType: 'image/webp', size, range: null };
   }
 
-  async pendingVerifications() {
-    return (await this.media.pendingVerifications()).map((profile) => ({
-      userId: profile.userId,
-      nickname: profile.nickname,
-      name: profile.user.name,
-      email: profile.user.email,
-      memberSince: profile.user.createdAt.toISOString(),
-      sentAt: profile.verificationSentAt?.toISOString() ?? null,
-    }));
-  }
-
+  /** For the team: the photo waiting, or the approved one kept while it stands. */
   async verificationFile(userId: string): Promise<MediaFile> {
-    return this.myVerificationFile(userId);
+    const { stream, size } = await this.verification.adminFile(userId);
+    return { stream, contentType: 'image/webp', size, range: null };
   }
 
-  /** Approves or rejects a verification photo; the photo is deleted either way. */
-  async decideVerification(
-    actor: AuthUser,
-    userId: string,
-    input: VerificationDecision,
-    now = new Date(),
-  ): Promise<void> {
-    const profile = await this.repository.findProfile(userId);
-    if (!profile || profile.verificationStatus !== 'PENDING') {
-      throw new NotFoundException('No verification waiting for review');
-    }
-    await this.repository.updateProfile(userId, {
-      verificationStatus: input.approve ? 'APPROVED' : 'REJECTED',
-      verificationNote: input.note || null,
-      verificationKey: null,
-      verifiedAt: input.approve ? now : null,
-    });
-    await this.storage.remove(profile.verificationKey);
-    await this.activity.record(actor, {
-      action: input.approve ? 'cruising.verification_approved' : 'cruising.verification_rejected',
-      targetId: userId,
-      targetLabel: profile.nickname ?? userId,
-    });
-    await this.notify(
-      userId,
-      input.approve ? 'verification-approved' : 'verification-rejected',
-      input.note || null,
-    );
-    await this.notifications.notify(userId, 'VERIFICATION_DECIDED', {
-      status: input.approve ? 'APPROVED' : 'REJECTED',
-    });
+  /** Takes the "Verified" badge away in the three apps (on a report or a suspension). */
+  async withdrawVerification(actor: AuthUser, userId: string, reason: string | null = null) {
+    await this.verification.withdraw(actor, userId, reason);
   }
 
-  /** Takes the "Verified" badge away (on a report or a suspension); the member is told. */
-  async withdrawVerification(actor: AuthUser, userId: string): Promise<void> {
-    const profile = await this.repository.findProfile(userId);
-    if (!profile || profile.verificationStatus !== 'APPROVED') {
-      throw new NotFoundException('Not verified');
+  /** The decision (or a withdrawal) also lands in Cruising's notification centre (decision 98). */
+  private async verificationNotice(event: AdultVerificationEvent): Promise<void> {
+    try {
+      if (!(await this.repository.findProfile(event.userId))) return;
+      await this.notifications.notify(event.userId, 'VERIFICATION_DECIDED', {
+        status: event.status,
+      });
+    } catch (error) {
+      this.logger.error(`Verification notification not written: ${String(error)}`);
     }
-    await this.repository.updateProfile(userId, {
-      verificationStatus: 'NONE',
-      verificationNote: null,
-      verifiedAt: null,
-    });
-    await this.activity.record(actor, {
-      action: 'cruising.verification_revoked',
-      targetId: userId,
-      targetLabel: profile.nickname ?? userId,
-    });
-    await this.notify(userId, 'verification-withdrawn');
-    await this.notifications.notify(userId, 'VERIFICATION_DECIDED', { status: 'WITHDRAWN' });
   }
 
   // ---- My media ----------------------------------------------------------------------------------
@@ -485,12 +413,12 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
   }
 
   async myMedia(userId: string) {
-    const profile = await this.entered(userId);
+    await this.entered(userId);
     const items = await this.media.mediaOf(userId);
     const coverId = coverOf(items);
     return {
       items: items.map((item) => this.myView(item, coverId)),
-      verification: verificationState(profile),
+      verification: verificationState(await this.verification.view(userId)),
       limits: { photos: MAX_PHOTOS, videos: MAX_VIDEOS, perDay: UPLOADS_PER_DAY },
     };
   }
@@ -823,7 +751,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
         name: item.owner.name,
         email: item.owner.email,
         nickname: item.owner.cruisingProfile?.nickname ?? null,
-        verified: item.owner.cruisingProfile?.verificationStatus === 'APPROVED',
+        verified: item.owner.adultVerification?.status === 'APPROVED',
         suspended: isSuspended(item.owner.cruisingProfile, now),
       },
     }));
@@ -892,11 +820,8 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
     });
     await this.notify(item.ownerId, 'media-removed', input.reason);
     await this.notifications.notify(item.ownerId, 'MEDIA_REMOVED', {}, now);
-    if (
-      input.withdrawVerification &&
-      item.owner.cruisingProfile?.verificationStatus === 'APPROVED'
-    ) {
-      await this.withdrawVerification(actor, item.ownerId);
+    if (input.withdrawVerification && item.owner.adultVerification?.status === 'APPROVED') {
+      await this.withdrawVerification(actor, item.ownerId, input.reason);
     }
     return { ownerId: item.ownerId };
   }
