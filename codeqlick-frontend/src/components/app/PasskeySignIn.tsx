@@ -12,7 +12,7 @@ import { useEffect, useState, useSyncExternalStore, useTransition } from 'react'
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import type { PasskeyLoginOptions } from '@/lib/api/types';
-import { isAbort, passkeyErrorKind } from '@/lib/passkeys';
+import { showsPasskeySignInError } from '@/lib/passkeys';
 import styles from './PasskeySignIn.module.css';
 
 export type PasskeySignInLabels = { or: string; button: string; pending: string; failed: string };
@@ -45,30 +45,33 @@ export function PasskeySignIn({
   const failed = labels.failed;
 
   // Conditional UI: the browser offers the account's passkeys in the email field's suggestions.
-  // The props come from the server and don't change while the page is open: this runs once.
+  // The props come from the server and don't change while the page is open: this runs once (twice
+  // in dev strict mode, where the first run is cancelled before it starts a ceremony). It is
+  // silent: whatever stops it (no passkeys, no autofill, the button, leaving the page) shows
+  // nothing; only a passkey the person picked can end in a message.
   useEffect(() => {
     if (!supported) return;
     let active = true;
     void (async () => {
-      if (!(await browserSupportsWebAuthnAutofill())) return;
-      const challenge = await getOptions();
-      if (!challenge || !active) return;
       let response: AuthenticationResponseJSON;
+      let challengeId: string;
       try {
+        if (!(await browserSupportsWebAuthnAutofill()) || !active) return;
+        const challenge = await getOptions();
+        if (!challenge || !active) return;
+        challengeId = challenge.challengeId;
         response = await startAuthentication({
           optionsJSON: challenge.options as unknown as PublicKeyCredentialRequestOptionsJSON,
           useBrowserAutofill: true,
         });
       } catch (caught) {
-        // Aborted by the button (or by leaving the page), or no suitable field: nothing to say.
-        if (active && !isAbort(caught) && passkeyErrorKind(caught) === 'failed') {
-          setError(failed);
-        }
+        if (active && showsPasskeySignInError(caught, 'autofill')) setError(failed);
         return;
       }
+      if (!active) return;
       startTransition(async () => {
         // On success the action redirects and nothing comes back.
-        const result = await signIn(challenge.challengeId, response);
+        const result = await signIn(challengeId, response);
         if (result?.error) setError(result.error);
       });
     })();
@@ -92,7 +95,7 @@ export function PasskeySignIn({
           optionsJSON: challenge.options as unknown as PublicKeyCredentialRequestOptionsJSON,
         });
       } catch (caught) {
-        if (passkeyErrorKind(caught) !== 'cancelled') setError(labels.failed);
+        if (showsPasskeySignInError(caught, 'button')) setError(labels.failed);
         return;
       }
       const result = await signIn(challenge.challengeId, response);
