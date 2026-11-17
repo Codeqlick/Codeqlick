@@ -57,10 +57,12 @@ import {
   type CruisingSpotSummary,
   type CruisingStatus,
 } from './cruising.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 /** What anyone can do: browse the map, the spots and the places, and ask for a removal. */
 @ApiTags('cruising')
 @Public()
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingPublicController {
   constructor(private readonly cruising: CruisingService) {}
@@ -118,6 +120,7 @@ export class CruisingPublicController {
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingController {
   constructor(private readonly cruising: CruisingService) {}

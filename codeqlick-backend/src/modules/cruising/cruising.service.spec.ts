@@ -30,7 +30,13 @@ const OTHER = '22222222-2222-4222-8222-222222222222';
 const SPOT = '33333333-3333-4333-8333-333333333333';
 const REVIEW = '44444444-4444-4444-8444-444444444444';
 const SECRET_NAME = 'Secret Cove Of Dreams';
-const admin: AuthUser = { id: 'a0', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' };
+const admin: AuthUser = {
+  id: 'a0',
+  email: 'admin@codeqlick.com',
+  name: 'Admin',
+  role: 'ADMIN',
+  realm: 'CODEQLICK',
+};
 
 const profile = (over: Record<string, unknown> = {}) => ({
   userId: ME,
@@ -176,6 +182,10 @@ function build() {
     cruisingTermsVersion: VERSION,
     leadsNotifyTo: 'team@codeqlick.com',
     siteUrl: 'https://codeqlick.com',
+    siteUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+    accountUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
   const mediaRepo = {

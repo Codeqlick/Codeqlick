@@ -43,6 +43,7 @@ function makeUser(overrides: Partial<User> = {}): User {
     passwordHash: '$argon2id$stub',
     name: 'Ada',
     role: 'CLIENT',
+    realm: 'CODEQLICK',
     locale: 'ES',
     isActive: true,
     totpSecret: null,
@@ -182,9 +183,15 @@ describe('PasskeyService', () => {
       jwtAccessTtl: 900,
       refreshTokenTtlDays: 30,
       siteUrl: 'http://localhost:3000',
+      siteUrlFor: (realm: string) =>
+        realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+      accountUrlFor: (realm: string) =>
+        realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
       webauthnRpId: 'localhost',
       webauthnOrigins: ['http://localhost:3000', 'http://cruising.localhost:3000'],
-    } as AppConfigService;
+      webauthnRpIdFor: () => 'localhost',
+      webauthnOriginsFor: () => ['http://localhost:3000', 'http://cruising.localhost:3000'],
+    } as unknown as AppConfigService;
     const jwt = { signAsync: vi.fn().mockResolvedValue('access-token') };
     const auth = new AuthService(
       authRepository as unknown as AuthRepository,
@@ -325,7 +332,7 @@ describe('PasskeyService', () => {
 
   describe('login', () => {
     it('returns discoverable options and the challenge id', async () => {
-      const result = await service.loginOptions();
+      const result = await service.loginOptions('CODEQLICK');
       expect(result.challengeId).toBe('c0c0c0c0-0000-4000-8000-000000000003');
       expect(result.options.rpId).toBe('localhost');
       expect(result.options.userVerification).toBe('required');
@@ -342,6 +349,7 @@ describe('PasskeyService', () => {
       asserted(4);
 
       const tokens = await service.login(
+        'CODEQLICK',
         'c0c0c0c0-0000-4000-8000-000000000003',
         authenticationResponse(),
         { userAgent: 'Mozilla/5.0 (Macintosh) Chrome/131.0', ip: '203.0.113.9' },
@@ -367,7 +375,11 @@ describe('PasskeyService', () => {
     it('refuses a used or expired challenge', async () => {
       repository.consumeLoginChallenge.mockResolvedValue(null);
       await expect(
-        service.login('c0c0c0c0-0000-4000-8000-000000000003', authenticationResponse()),
+        service.login(
+          'CODEQLICK',
+          'c0c0c0c0-0000-4000-8000-000000000003',
+          authenticationResponse(),
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(repository.findByCredentialId).not.toHaveBeenCalled();
     });
@@ -375,7 +387,11 @@ describe('PasskeyService', () => {
     it('refuses an unknown passkey', async () => {
       repository.findByCredentialId.mockResolvedValue(null);
       await expect(
-        service.login('c0c0c0c0-0000-4000-8000-000000000003', authenticationResponse()),
+        service.login(
+          'CODEQLICK',
+          'c0c0c0c0-0000-4000-8000-000000000003',
+          authenticationResponse(),
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
@@ -384,6 +400,7 @@ describe('PasskeyService', () => {
       asserted(1);
       await expect(
         service.login(
+          'CODEQLICK',
           'c0c0c0c0-0000-4000-8000-000000000003',
           authenticationResponse(b64('someone-else')),
         ),
@@ -397,7 +414,11 @@ describe('PasskeyService', () => {
       });
       asserted(7);
       await expect(
-        service.login('c0c0c0c0-0000-4000-8000-000000000003', authenticationResponse()),
+        service.login(
+          'CODEQLICK',
+          'c0c0c0c0-0000-4000-8000-000000000003',
+          authenticationResponse(),
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(authRepository.createSession).not.toHaveBeenCalled();
     });
@@ -409,7 +430,11 @@ describe('PasskeyService', () => {
       });
       asserted(0);
       await expect(
-        service.login('c0c0c0c0-0000-4000-8000-000000000003', authenticationResponse()),
+        service.login(
+          'CODEQLICK',
+          'c0c0c0c0-0000-4000-8000-000000000003',
+          authenticationResponse(),
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(authRepository.createSession).not.toHaveBeenCalled();
     });
@@ -418,7 +443,11 @@ describe('PasskeyService', () => {
       repository.findByCredentialId.mockResolvedValue({ ...makePasskey(), user: makeUser() });
       webauthn.verifyAuthenticationResponse.mockRejectedValue(new Error('bad signature'));
       await expect(
-        service.login('c0c0c0c0-0000-4000-8000-000000000003', authenticationResponse()),
+        service.login(
+          'CODEQLICK',
+          'c0c0c0c0-0000-4000-8000-000000000003',
+          authenticationResponse(),
+        ),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });

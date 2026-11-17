@@ -11,6 +11,7 @@ import {
   Query,
   StreamableFile,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -47,11 +48,14 @@ import {
   type UserIdParam,
   type WithdrawVerificationInput,
 } from './adult.schemas.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /** What a member of the 18+ apps shares across them: the verification and the blocks (4.16). */
 @ApiTags('adult')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('adult')
 export class AdultController {
   constructor(
@@ -115,6 +119,7 @@ export class AdultController {
 @ApiTags('admin: adult')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/adult')
 export class AdultAdminController {
   constructor(

@@ -160,4 +160,61 @@ describe('renderEmail', () => {
     );
     expect(text).toBe('Only this.');
   });
+
+  describe("Neoqlick's emails (architecture 4.18)", () => {
+    const neo = 'https://neoqlick.com';
+    const content = {
+      brand: 'neoqlick' as const,
+      locale: 'es' as const,
+      preheader: 'Abre el enlace en tu cuenta de Codeqlick.',
+      title: 'Confirma tu email — Codeqlick',
+      greeting: 'Hola Ada:',
+      intro: ['Para crear tu cuenta de Codeqlick, confirma que este correo es tuyo:'],
+      quote: { title: 'Alertas de seguridad de Codeqlick', body: 'El equipo de Codeqlick' },
+      details: [['Codeqlick', 'Ada']] as Array<[string, string]>,
+      button: { label: 'Abrir Codeqlick', url: 'https://neoqlick.com/es/confirm' },
+      outro: ['Gracias por usar Codeqlick.'],
+      note: 'Si no has sido tú, ignora este correo de Codeqlick.',
+      unsubscribeUrl: 'https://neoqlick.com/es/email/unsubscribe?token=abc',
+    };
+
+    it('never says Codeqlick, in the text or the HTML', () => {
+      for (const locale of ['en', 'es', 'fr', 'de', 'it', 'pt'] as const) {
+        const rendered = renderEmail({ ...content, locale }, neo);
+        expect(rendered.text.toLowerCase()).not.toContain('codeqlick');
+        expect(rendered.html.toLowerCase()).not.toContain('codeqlick');
+        expect(rendered.text).toContain('Neoqlick');
+        expect(rendered.text).toContain('hello@neoqlick.com');
+      }
+    });
+
+    it('has its own header, colours and footer', () => {
+      const { html } = renderEmail(content, neo);
+      expect(html).toContain('https://neoqlick.com/email/neoqlick-logo.png');
+      expect(html).toContain('#7C3AED');
+      expect(html).toContain('Montserrat');
+      expect(html).toContain('mailto:hello@neoqlick.com');
+      expect(html).not.toContain('#D9177E');
+      expect(html).not.toContain('Space Grotesk');
+      expect(html).not.toContain('Redefining information technology in society');
+    });
+
+    it('marks the message so MailService sends it from Neoqlick', () => {
+      expect(renderEmail(content, neo).brand).toBe('neoqlick');
+      expect(renderEmail({ ...content, brand: undefined }, siteUrl)).not.toHaveProperty('brand');
+    });
+
+    it("leaves a link's address as it was given", () => {
+      const { text } = renderEmail(content, neo);
+      expect(text).toContain('https://neoqlick.com/es/confirm');
+    });
+
+    it("keeps Codeqlick's emails as they were", () => {
+      const { html, text } = renderEmail({ locale: 'en', preheader: 'x', intro: ['Hi'] }, siteUrl);
+      expect(html).toContain('https://codeqlick.com/email/logo.png');
+      expect(html).toContain('#D9177E');
+      expect(html).toContain('hello@codeqlick.com');
+      expect(text).toContain('The Codeqlick team');
+    });
+  });
 });

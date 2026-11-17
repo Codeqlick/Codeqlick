@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { RealmName } from '../../common/realm.js';
 import type { Locale, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { deleteUserRecomputingRatings } from '../cruising/cruising.repository.js';
@@ -16,8 +17,9 @@ export class AccountRepository {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  emailTaken(email: string): Promise<boolean> {
-    return this.prisma.user.count({ where: { email } }).then((count) => count > 0);
+  /** Whether `email` has an account in `realm` (the other realm's accounts don't count). */
+  emailTaken(realm: RealmName, email: string): Promise<boolean> {
+    return this.prisma.user.count({ where: { realm, email } }).then((count) => count > 0);
   }
 
   updateProfile(
@@ -36,9 +38,12 @@ export class AccountRepository {
     return new Set(rows.map((row) => row.avatarKey as string));
   }
 
-  /** Who holds a username now, if anyone. */
-  usernameOwner(username: string): Promise<{ id: string } | null> {
-    return this.prisma.user.findUnique({ where: { username }, select: { id: true } });
+  /** Who holds a username in `realm` now, if anyone. */
+  usernameOwner(realm: RealmName, username: string): Promise<{ id: string } | null> {
+    return this.prisma.user.findUnique({
+      where: { realm_username: { realm, username } },
+      select: { id: true },
+    });
   }
 
   /** Replaces the user's pending email change with this one. */
@@ -59,7 +64,7 @@ export class AccountRepository {
    * signs in again with the new address). Refused when the token is unknown, used or expired, or
    * when the address got an account meanwhile.
    */
-  confirmEmailChange(tokenHash: string): Promise<EmailChangeResult> {
+  confirmEmailChange(tokenHash: string, realm: RealmName): Promise<EmailChangeResult> {
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();
       const token = await tx.emailChangeToken.findUnique({
@@ -69,7 +74,13 @@ export class AccountRepository {
       if (!token || token.usedAt || token.expiresAt <= now || !token.user.isActive) {
         return { status: 'invalid' as const };
       }
-      if ((await tx.user.count({ where: { email: token.newEmail } })) > 0) {
+      // A link of the other realm's account host doesn't work here.
+      if (token.user.realm !== realm) {
+        return { status: 'invalid' as const };
+      }
+      if (
+        (await tx.user.count({ where: { realm: token.user.realm, email: token.newEmail } })) > 0
+      ) {
         return { status: 'taken' as const };
       }
       await tx.emailChangeToken.update({ where: { id: token.id }, data: { usedAt: now } });

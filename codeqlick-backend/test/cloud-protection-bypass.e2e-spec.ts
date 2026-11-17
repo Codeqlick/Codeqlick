@@ -84,7 +84,9 @@ describe('Codeqlick Cloud protection bypass for automation (e2e)', () => {
       [adminUser, 'ADMIN'],
       [member, 'MEMBER'],
     ] as const) {
-      const row = await prisma.user.findUniqueOrThrow({ where: { email: user.email } });
+      const row = await prisma.user.findUniqueOrThrow({
+        where: { realm_email: { realm: 'CODEQLICK', email: user.email } },
+      });
       await prisma.cloudMember.create({
         data: {
           teamId: team.body.id as string,

@@ -62,8 +62,9 @@ export interface ProjectFilter {
 export class ProjectsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** A Codeqlick account: a NEOQLICK one is never a project's client (architecture 4.18). */
   findUserById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.findFirst({ where: { id, realm: 'CODEQLICK' } });
   }
 
   async list(
@@ -356,6 +357,8 @@ export class ProjectsRepository {
     return this.prisma.user.findMany({
       where: {
         role: 'CLIENT',
+        // The weekly summary is for Codeqlick's clients, never for Neoqlick's accounts (4.18).
+        realm: 'CODEQLICK',
         isActive: true,
         weeklyDigest: true,
         // Not someone who hasn't made the account theirs yet (decision 17).
@@ -367,8 +370,8 @@ export class ProjectsRepository {
   }
 
   findClient(id: string): Promise<(ClientRef & { role: string }) | null> {
-    return this.prisma.user.findUnique({
-      where: { id },
+    return this.prisma.user.findFirst({
+      where: { id, realm: 'CODEQLICK' },
       select: { ...clientSelect.select, role: true },
     });
   }

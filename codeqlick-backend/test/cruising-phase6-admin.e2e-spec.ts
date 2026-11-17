@@ -18,6 +18,10 @@ import {
 } from '../src/modules/cruising/cruising-stats.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
+
 const tag = randomUUID().slice(0, 8);
 const password = 'cruising-phase6-password-1';
 const HOUR = 60 * 60 * 1000;
@@ -51,8 +55,12 @@ describe('Cruising phase 6: statistics and onboarding (e2e)', () => {
     made += 1;
     const email = `e2e-cruising-p6-${name.toLowerCase()}-${tag}@codeqlick.test`;
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    const user = await prisma.user.create({ data: { email, name, role, passwordHash } });
-    const token = await app.get(JwtService).signAsync({ sub: user.id, email, name, role });
+    const user = await prisma.user.create({
+      data: { email, name, role, realm: realmOf(role), passwordHash },
+    });
+    const token = await app
+      .get(JwtService)
+      .signAsync({ sub: user.id, email, name, role, rlm: realmOf(role) });
     const nick = `${name.toLowerCase().slice(0, 6)}_${tag.slice(0, 6)}_${made}`;
     return { id: user.id, email, nick, auth: { Authorization: `Bearer ${token}` } };
   }

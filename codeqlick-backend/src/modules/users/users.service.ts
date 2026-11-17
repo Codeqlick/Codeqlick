@@ -61,6 +61,7 @@ export function toAdminUser(user: UserWithUsage): AdminUser {
     name: user.name,
     username: user.username,
     role: user.role,
+    realm: user.realm,
     isActive: user.isActive,
     locale: toApiLocale(user.locale),
     weeklyDigest: user.weeklyDigest,

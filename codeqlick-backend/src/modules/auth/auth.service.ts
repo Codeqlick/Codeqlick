@@ -16,7 +16,9 @@ import {
   type ApiLocale,
 } from '../../common/schemas/common.schemas.js';
 import { DISPOSABLE_EMAIL_ERROR, isDisposableEmail } from '../../common/disposable-email.js';
+import type { RealmName } from '../../common/realm.js';
 import type { AccessTokenPayload, AuthUser } from '../../common/types/auth-user.js';
+import { appsOfRealm } from '../../common/webapps.js';
 import { describeUserAgent, deviceKey } from '../../common/user-agent.js';
 import type { User } from '../../generated/prisma/client.js';
 import { AuthRepository, type CreateSessionData } from './auth.repository.js';
@@ -136,14 +138,25 @@ export function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+/** Which brand's emails an account gets: Neoqlick's realm writes as Neoqlick (architecture 4.18). */
+export function brandOf(realm: RealmName): 'codeqlick' | 'neoqlick' {
+  return realm === 'NEOQLICK' ? 'neoqlick' : 'codeqlick';
+}
+
 export function toAuthUser(
-  user: Pick<User, 'id' | 'email' | 'name' | 'role'> & {
+  user: Pick<User, 'id' | 'email' | 'name' | 'role' | 'realm'> & {
     memberOfId?: string | null;
     username?: string | null;
     avatarKey?: string | null;
   },
 ): AuthUser {
-  const base: AuthUser = { id: user.id, email: user.email, name: user.name, role: user.role };
+  const base: AuthUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    realm: user.realm,
+  };
   if (user.username !== undefined) base.username = user.username;
   if (user.avatarKey !== undefined) base.avatar = user.avatarKey;
   // Clients act for a client account: their own, or their company's.
@@ -173,8 +186,13 @@ export class AuthService {
     ).toString('base64');
   }
 
-  async login(email: string, password: string, client: ClientInfo = {}): Promise<LoginResult> {
-    const user = await this.repository.findUserByEmail(email.trim().toLowerCase());
+  async login(
+    realm: RealmName,
+    email: string,
+    password: string,
+    client: ClientInfo = {},
+  ): Promise<LoginResult> {
+    const user = await this.repository.findUserByEmail(realm, email.trim().toLowerCase());
     if (!user) {
       await this.passwords.verifyDummy(password);
       throw new UnauthorizedException('Invalid email or password');
@@ -375,8 +393,8 @@ export class AuthService {
    * Emails a reset link when `email` belongs to an active account. It never tells the caller
    * whether it does, and the email is sent in the background so timing doesn't either.
    */
-  async requestPasswordReset(email: string, locale: ApiLocale): Promise<void> {
-    const user = await this.repository.findUserByEmail(email.trim().toLowerCase());
+  async requestPasswordReset(realm: RealmName, email: string, locale: ApiLocale): Promise<void> {
+    const user = await this.repository.findUserByEmail(realm, email.trim().toLowerCase());
     if (!user || !user.isActive) return;
     if (!user.registeredAt) {
       // Never registered: what they need is the invitation to create the account.
@@ -391,13 +409,14 @@ export class AuthService {
       new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60_000),
     );
 
-    const link = `${this.config.accountUrl}/${locale}/reset-password?token=${token}`;
+    const link = `${this.config.accountUrlFor(realm)}/${locale}/reset-password?token=${token}`;
     const message = passwordResetEmail(
       user,
       link,
       locale,
       PASSWORD_RESET_TTL_MINUTES,
-      this.config.siteUrl,
+      this.config.siteUrlFor(realm),
+      brandOf(realm),
     );
     this.mail.send(message).catch((error: unknown) => {
       const reason = error instanceof Error ? error.message : String(error);
@@ -456,24 +475,26 @@ export class AuthService {
    * Self-registration (decision 17): emails the link that confirms it, or, when the email already
    * has an account, says so. Never tells the caller which happened.
    */
-  async register(input: RegisterInput): Promise<void> {
+  async register(realm: RealmName, input: RegisterInput): Promise<void> {
     if (input.website && input.website.trim() !== '') return;
+    this.assertSignupFields(realm, input);
     const email = input.email.trim().toLowerCase();
     if (isDisposableEmail(email)) {
       throw new BadRequestException({ errors: [DISPOSABLE_EMAIL_ERROR] });
     }
     // Before looking the email up: the answer must not depend on whether it has an account.
     await this.breaches.assertNotBreached(input.password, 'password');
-    const existing = await this.repository.findUserByEmail(email);
-    const site = this.config.siteUrl;
+    const existing = await this.repository.findUserByEmail(realm, email);
+    const site = this.config.siteUrlFor(realm);
     // Signing in and up happens on the account host (decision 108); from a web app the
     // confirmation then sends the person on to it (`app`).
-    const linkBase = this.config.accountUrl;
+    const linkBase = this.config.accountUrlFor(realm);
     const appParam = input.app ? `&app=${input.app}` : '';
-    // Only Cruising speaks FR, DE, IT and PT (decision 103): its links keep them, the emails and
-    // every other page fall back to English.
+    // Only Cruising, and Neoqlick as a whole, speak FR, DE, IT and PT (decisions 103, 124): their
+    // links keep them, the emails and every other page fall back to English.
     const mailLocale = siteLocale(input.locale);
-    const linkLocale = input.app === 'cruising' ? input.locale : mailLocale;
+    const linkLocale = realm === 'NEOQLICK' || input.app === 'cruising' ? input.locale : mailLocale;
+    const brand = brandOf(realm);
     let message;
     if (existing?.registeredAt) {
       if (!existing.isActive) return;
@@ -486,18 +507,21 @@ export class AuthService {
         },
         mailLocale,
         site,
+        brand,
       );
     } else {
       if (existing && !existing.isActive) return;
       const token = this.generateRefreshToken();
       await this.repository.createSignupToken({
         email,
+        realm,
         name: input.name,
         passwordHash: await this.passwords.hash(input.password),
         locale: toDbLocale(input.locale),
         tokenHash: hashRefreshToken(token),
         expiresAt: new Date(Date.now() + SIGNUP_TTL_HOURS * 3_600_000),
         app: input.app ?? null,
+        termsVersion: realm === 'NEOQLICK' ? this.config.neoqlickTermsVersion : null,
       });
       message = signupConfirmEmail(
         { name: input.name, email },
@@ -505,6 +529,7 @@ export class AuthService {
         mailLocale,
         SIGNUP_TTL_HOURS,
         site,
+        brand,
       );
     }
     this.mail.send(message).catch((error: unknown) => {
@@ -513,9 +538,31 @@ export class AuthService {
     });
   }
 
+  /**
+   * What a realm's sign-up form must carry (architecture 4.18): Neoqlick's accepts only its own
+   * apps and needs the account terms; Codeqlick's the reverse.
+   */
+  private assertSignupFields(realm: RealmName, input: RegisterInput): void {
+    const errors: Array<{ path: string; message: string }> = [];
+    if (input.app && !appsOfRealm(realm).includes(input.app)) {
+      errors.push({ path: 'app', message: 'This app belongs to another account type' });
+    }
+    if (realm === 'NEOQLICK' && input.acceptTerms !== true) {
+      errors.push({
+        path: 'acceptTerms',
+        message: 'Accept the terms and confirm you are 18 or older',
+      });
+    }
+    if (errors.length > 0) throw new BadRequestException({ errors });
+  }
+
   /** The emailed link of a self-registration: the account is theirs and they are signed in. */
-  async confirmSignup(token: string, client: ClientInfo = {}): Promise<AuthTokens> {
-    const user = await this.repository.confirmSignup(hashRefreshToken(token));
+  async confirmSignup(
+    realm: RealmName,
+    token: string,
+    client: ClientInfo = {},
+  ): Promise<AuthTokens> {
+    const user = await this.repository.confirmSignup(hashRefreshToken(token), realm);
     if (!user) throw new BadRequestException('This link is invalid or has expired');
     await this.activity.record(toAuthUser(user), {
       action: 'account.registered',
@@ -526,19 +573,20 @@ export class AuthService {
   }
 
   /** Who an invitation is for, to fill in the sign-up form. */
-  async invitation(token: string): Promise<{ email: string; name: string }> {
-    const user = await this.repository.findInvitation(hashRefreshToken(token));
+  async invitation(realm: RealmName, token: string): Promise<{ email: string; name: string }> {
+    const user = await this.repository.findInvitation(hashRefreshToken(token), realm);
     if (!user) throw new BadRequestException('This invitation is invalid or has expired');
     return { email: user.email, name: user.name };
   }
 
   /** Accepts the team's invitation: the account is theirs at once and they are signed in. */
   async acceptInvitation(
+    realm: RealmName,
     input: AcceptInvitationInput,
     client: ClientInfo = {},
   ): Promise<AuthTokens> {
     await this.breaches.assertNotBreached(input.password, 'password');
-    const user = await this.repository.acceptInvitation(hashRefreshToken(input.token), {
+    const user = await this.repository.acceptInvitation(hashRefreshToken(input.token), realm, {
       name: input.name,
       passwordHash: await this.passwords.hash(input.password),
       locale: toDbLocale(input.locale),
@@ -554,10 +602,10 @@ export class AuthService {
   }
 
   /** Sets a new password with the token from the email and signs the user out everywhere. */
-  async confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+  async confirmPasswordReset(realm: RealmName, token: string, newPassword: string): Promise<void> {
     // Before the token is spent, so the person can try another password with the same link.
     await this.breaches.assertNotBreached(newPassword, 'newPassword');
-    const done = await this.repository.resetPassword(hashRefreshToken(token), () =>
+    const done = await this.repository.resetPassword(hashRefreshToken(token), realm, () =>
       this.passwords.hash(newPassword),
     );
     if (!done) throw new BadRequestException('This reset link is invalid or has expired');
@@ -565,6 +613,7 @@ export class AuthService {
 
   /** Second step of a login with two-step verification: the code finishes the sign-in. */
   async verifyTwoFactor(
+    realm: RealmName,
     challengeToken: string,
     code: string,
     client: ClientInfo = {},
@@ -579,7 +628,7 @@ export class AuthService {
       throw new UnauthorizedException('The sign-in expired, start again');
     }
     const user = await this.repository.findUserById(payload.sub);
-    if (!user || !user.isActive || !user.totpEnabledAt) {
+    if (!user || !user.isActive || !user.totpEnabledAt || user.realm !== realm) {
       throw new UnauthorizedException('The sign-in expired, start again');
     }
     if (!(await this.checkSecondFactor(user, code))) {
@@ -608,7 +657,14 @@ export class AuthService {
     if (user.totpEnabledAt) throw new ConflictException('Two-step verification is already on');
     const secret = generateTotpSecret();
     await this.repository.setPendingTotp(user.id, this.secrets.seal(secret));
-    return { secret, otpauthUrl: otpauthUri(secret, user.email, 'Codeqlick') };
+    return {
+      secret,
+      otpauthUrl: otpauthUri(
+        secret,
+        user.email,
+        user.realm === 'NEOQLICK' ? 'Neoqlick' : 'Codeqlick',
+      ),
+    };
   }
 
   /** Confirms the setup with a first code. Returns the recovery codes: shown once, never again. */
@@ -716,8 +772,8 @@ export class AuthService {
 
   private sendNewDeviceEmail(user: User, client: ClientInfo): void {
     const locale = toApiLocale(user.locale);
-    const site = this.config.siteUrl;
-    const account = this.config.accountUrl;
+    const site = this.config.siteUrlFor(user.realm);
+    const account = this.config.accountUrlFor(user.realm);
     const accountUrl = `${account}/${locale}/security`;
     const message = newDeviceSignInEmail(
       user,
@@ -726,6 +782,7 @@ export class AuthService {
       `${account}/${locale}/forgot-password`,
       locale,
       site,
+      brandOf(user.realm),
     );
     this.mail.send(message).catch((error: unknown) => {
       const reason = error instanceof Error ? error.message : String(error);
@@ -771,6 +828,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: user.role,
+      rlm: user.realm,
       sid: familyId,
       ...(user.memberOfId ? { acc: user.memberOfId } : {}),
     };

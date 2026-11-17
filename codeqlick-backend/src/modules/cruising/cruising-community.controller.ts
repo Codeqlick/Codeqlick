@@ -38,6 +38,7 @@ import {
   type CruisingVisitorView,
 } from './cruising-community.service.js';
 import { placeParamsSchema, type PlaceParams } from './cruising.schemas.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 /**
  * Cruising's phase 5 (architecture 4.15): meetups (decision 88), trips (decision 90) and safety
@@ -46,6 +47,7 @@ import { placeParamsSchema, type PlaceParams } from './cruising.schemas.js';
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingCommunityController {
   constructor(private readonly community: CruisingCommunityService) {}

@@ -89,6 +89,7 @@ export function takedownEmail(
     subject: `${subject} — Swipe`,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: body,
         title: copy[`${stage}Title`],
@@ -232,6 +233,7 @@ export function swipeNoticeEmail(
     subject: `${text.subject} — Swipe`,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: text.body,
         title: text.subject,

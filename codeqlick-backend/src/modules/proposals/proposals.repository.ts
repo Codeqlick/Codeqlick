@@ -79,7 +79,7 @@ export class ProposalsRepository {
   findClient(id: string) {
     // The company's main account, not one of its people.
     return this.prisma.user.findFirst({
-      where: { id, role: 'CLIENT', memberOfId: null },
+      where: { id, role: 'CLIENT', memberOfId: null, realm: 'CODEQLICK' },
       select: { id: true },
     });
   }

@@ -77,8 +77,12 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
       .send({ name: 'Ops', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
       .expect(201);
     const teamId = created.body.id as string;
-    const ownerRow = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
-    const memberRow = await prisma.user.findUniqueOrThrow({ where: { email: member.email } });
+    const ownerRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: owner.email } },
+    });
+    const memberRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: member.email } },
+    });
     await prisma.cloudMember.create({
       data: {
         teamId,
@@ -457,7 +461,9 @@ describe('Codeqlick Cloud status page notices (e2e)', () => {
       .send({ name: 'Alerts', slug: team, acceptTerms: true, termsVersion: CLOUD_TERMS_VERSION })
       .expect(201);
     const teamId = created.body.id as string;
-    const ownerRow = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
+    const ownerRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: owner.email } },
+    });
     const beat = async (name: string) =>
       (
         await request(server)

@@ -1,5 +1,5 @@
 import type { ApiLocale } from '../../common/schemas/common.schemas.js';
-import { renderEmail } from '../mail/email-layout.js';
+import { renderEmail, type MailBrand } from '../mail/email-layout.js';
 import type { MailMessage } from '../mail/mail.service.js';
 
 /** "Forgot my password" email with the reset link, in the language the request came from. */
@@ -9,6 +9,8 @@ export function passwordResetEmail(
   locale: ApiLocale,
   ttlMinutes: number,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -16,6 +18,7 @@ export function passwordResetEmail(
     subject: es ? 'Restablece tu contraseña — Codeqlick' : 'Reset your password — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? `El enlace para elegir una contraseña nueva caduca en ${ttlMinutes} minutos.`
@@ -44,6 +47,8 @@ export function invitationEmail(
   locale: ApiLocale,
   ttlDays: number,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -53,6 +58,7 @@ export function invitationEmail(
       : 'Welcome to Codeqlick — choose your password',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? 'Tu cuenta está lista: elige tu contraseña para entrar.'
@@ -91,6 +97,8 @@ export function signupInvitationEmail(
   ttlDays: number,
   reason: SignupReason,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   const why = {
@@ -109,6 +117,7 @@ export function signupInvitationEmail(
     subject: es ? 'Crea tu cuenta en Codeqlick' : 'Create your Codeqlick account',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? 'Elige tu contraseña y entra a tu área de cliente.'
@@ -133,6 +142,8 @@ export function signupConfirmEmail(
   locale: ApiLocale,
   ttlHours: number,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -140,6 +151,7 @@ export function signupConfirmEmail(
     subject: es ? 'Confirma tu email — Codeqlick' : 'Confirm your email — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? 'Un paso más para crear tu cuenta.'
@@ -167,6 +179,8 @@ export function alreadyRegisteredEmail(
   urls: { login: string; reset: string },
   locale: ApiLocale,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -174,6 +188,7 @@ export function alreadyRegisteredEmail(
     subject: es ? 'Ya tienes una cuenta en Codeqlick' : 'You already have a Codeqlick account',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? 'Entra con tu email y contraseña.'
@@ -224,6 +239,8 @@ export function newDeviceSignInEmail(
   resetUrl: string,
   locale: ApiLocale,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   const unknown = es ? 'Desconocido' : 'Unknown';
@@ -240,6 +257,7 @@ export function newDeviceSignInEmail(
       : 'New sign-in to your account — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? `Alguien ha entrado en tu cuenta de Codeqlick desde ${device}.`
@@ -290,6 +308,8 @@ export function passkeyAddedEmail(
   accountUrl: string,
   locale: ApiLocale,
   siteUrl: string,
+  /** Neoqlick's accounts get Neoqlick's email (architecture 4.18). */
+  brand?: MailBrand,
 ): MailMessage {
   const es = locale === 'es';
   return {
@@ -299,6 +319,7 @@ export function passkeyAddedEmail(
       : 'A passkey was added to your account — Codeqlick',
     ...renderEmail(
       {
+        brand,
         locale,
         preheader: es
           ? `Tu cuenta de Codeqlick tiene una llave de acceso nueva: ${passkey.name}.`

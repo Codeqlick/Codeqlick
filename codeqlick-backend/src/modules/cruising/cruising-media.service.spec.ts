@@ -62,6 +62,10 @@ async function setup() {
     cruisingUploadsDir: dir,
     cloudDisk: { lowBytes: 0, minBytes: 0 },
     siteUrl: 'https://codeqlick.com',
+    siteUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+    accountUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
   const storage = new CruisingMediaStorage(config as unknown as AppConfigService);

@@ -12,6 +12,7 @@ import {
   Req,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -48,6 +49,8 @@ import {
   type VerificationDecision,
 } from './cruising.schemas.js';
 import { CruisingService } from './cruising.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 const fileBody = {
   schema: {
@@ -92,6 +95,7 @@ export function sendMediaFile(res: Response, result: MediaFileResult): void {
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingMediaController {
   constructor(private readonly media: CruisingMediaService) {}
@@ -167,6 +171,8 @@ export class CruisingMediaController {
   }
 
   /** The photo or video (range requests), to who may see it; else 404. */
+  // The admin panel shows moderators the same images through this route (architecture 4.18).
+  @Realm('NEOQLICK', 'ADMIN')
   @Get('media/:id/file')
   @Throttle({ default: { limit: 600, ttl: 60_000 } })
   async file(
@@ -179,6 +185,7 @@ export class CruisingMediaController {
   }
 
   /** A video's poster frame. */
+  @Realm('NEOQLICK', 'ADMIN')
   @Get('media/:id/poster')
   @Throttle({ default: { limit: 600, ttl: 60_000 } })
   async poster(
@@ -195,6 +202,7 @@ export class CruisingMediaController {
 @ApiTags('admin: cruising')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/cruising')
 export class CruisingMediaAdminController {
   constructor(

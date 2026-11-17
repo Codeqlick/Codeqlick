@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { RealmName } from '../../common/realm.js';
 import type { Prisma, Session, User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -22,8 +23,9 @@ export type SessionWithUser = Session & { user: User };
 export class AuthRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findUserByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { email } });
+  /** The account of `email` in `realm`: the same email can have one in each (architecture 4.18). */
+  findUserByEmail(realm: RealmName, email: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { realm_email: { realm, email } } });
   }
 
   setPreferences(id: string, data: { weeklyDigest?: boolean; monthlyReport?: boolean }) {
@@ -107,7 +109,9 @@ export class AuthRepository {
   /** A self-registration to confirm, replacing earlier unconfirmed ones for the email. */
   async createSignupToken(data: Prisma.SignupTokenCreateInput): Promise<void> {
     await this.prisma.$transaction([
-      this.prisma.signupToken.deleteMany({ where: { email: data.email, usedAt: null } }),
+      this.prisma.signupToken.deleteMany({
+        where: { realm: data.realm ?? 'CODEQLICK', email: data.email, usedAt: null },
+      }),
       this.prisma.signupToken.create({ data }),
     ]);
   }
@@ -116,26 +120,33 @@ export class AuthRepository {
    * Spends a sign-up token: the email's account is created, or the unregistered one the team
    * prepared becomes theirs. Null when the token can't be used or the email is registered already.
    */
-  async confirmSignup(tokenHash: string): Promise<User | null> {
+  async confirmSignup(tokenHash: string, realm: RealmName): Promise<User | null> {
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();
       const token = await tx.signupToken.findUnique({ where: { tokenHash } });
-      if (!token) return null;
+      // A link of the other realm's sign-up doesn't work here.
+      if (!token || token.realm !== realm) return null;
       const spent = await tx.signupToken.updateMany({
         where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
       });
       if (spent.count !== 1) return null;
-      const existing = await tx.user.findUnique({ where: { email: token.email } });
+      const existing = await tx.user.findUnique({
+        where: { realm_email: { realm: token.realm, email: token.email } },
+      });
       const own = { name: token.name, passwordHash: token.passwordHash, locale: token.locale };
       if (!existing) {
         return tx.user.create({
           data: {
             ...own,
             email: token.email,
+            realm: token.realm,
             role: 'CLIENT',
             registeredAt: now,
             signupApp: token.app,
+            ...(token.realm === 'NEOQLICK' && token.termsVersion
+              ? { termsVersion: token.termsVersion, termsAcceptedAt: now }
+              : {}),
           },
         });
       }
@@ -145,12 +156,13 @@ export class AuthRepository {
   }
 
   /** The unregistered account an invitation token is for, while it can be used. */
-  async findInvitation(tokenHash: string) {
+  async findInvitation(tokenHash: string, realm: RealmName) {
     const token = await this.prisma.passwordResetToken.findUnique({
       where: { tokenHash },
       include: { user: true },
     });
     if (!token || token.usedAt || token.expiresAt <= new Date()) return null;
+    if (token.user.realm !== realm) return null;
     if (token.user.registeredAt || !token.user.isActive) return null;
     return token.user;
   }
@@ -158,6 +170,7 @@ export class AuthRepository {
   /** Spends an invitation token: the account becomes theirs with the name and password chosen. */
   async acceptInvitation(
     tokenHash: string,
+    realm: RealmName,
     data: { name: string; passwordHash: string; locale: Prisma.UserUpdateInput['locale'] },
   ): Promise<User | null> {
     return this.prisma.$transaction(async (tx) => {
@@ -166,7 +179,8 @@ export class AuthRepository {
         where: { tokenHash },
         include: { user: true },
       });
-      if (!token || token.user.registeredAt || !token.user.isActive) return null;
+      if (!token || token.user.realm !== realm) return null;
+      if (token.user.registeredAt || !token.user.isActive) return null;
       const spent = await tx.passwordResetToken.updateMany({
         where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },
@@ -180,14 +194,19 @@ export class AuthRepository {
    * Spends a reset token: marks it used (only if unused and not expired), stores the new password
    * hash and revokes every session of the user. Returns false when the token can't be used.
    */
-  async resetPassword(tokenHash: string, hashPassword: () => Promise<string>): Promise<boolean> {
+  async resetPassword(
+    tokenHash: string,
+    realm: RealmName,
+    hashPassword: () => Promise<string>,
+  ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();
       const token = await tx.passwordResetToken.findUnique({
         where: { tokenHash },
         include: { user: true },
       });
-      if (!token || !token.user.isActive) return false;
+      // A link emailed by the other realm's account host doesn't work here.
+      if (!token || !token.user.isActive || token.user.realm !== realm) return false;
       // Conditional update: two requests with the same token can't both win.
       const spent = await tx.passwordResetToken.updateMany({
         where: { id: token.id, usedAt: null, expiresAt: { gt: now } },

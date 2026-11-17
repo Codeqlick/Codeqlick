@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -8,11 +8,14 @@ import { suggestionsQuerySchema, type SuggestionsQuery } from './cruising-onboar
 import { CruisingOnboardingService } from './cruising-onboarding.service.js';
 import { CruisingStatsService, type CruisingStats } from './cruising-stats.service.js';
 import type { CruisingSpotSummary } from './cruising.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /** Cruising phase 6 (architecture 4.15): the onboarding's suggested spots (decision 102). */
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingOnboardingController {
   constructor(private readonly onboarding: CruisingOnboardingService) {}
@@ -31,6 +34,7 @@ export class CruisingOnboardingController {
 @ApiTags('admin: cruising')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/cruising')
 export class CruisingStatsAdminController {
   constructor(private readonly statistics: CruisingStatsService) {}

@@ -78,6 +78,8 @@ export class SearchRepository {
   users({ q, take }: SearchTerms): Promise<UserHit[]> {
     return this.prisma.user.findMany({
       where: {
+        // The 18+ apps' accounts are never found from here (architecture 4.18).
+        realm: 'CODEQLICK',
         OR: [
           { name: contains(q) },
           { email: contains(q) },

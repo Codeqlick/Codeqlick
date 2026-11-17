@@ -70,7 +70,8 @@ export class EmailPreferencesService {
     const claim = verifyUnsubscribeToken(token, this.config.jwtAccessSecret);
     const user = claim ? await this.repository.findUserById(claim.userId) : null;
     const locale: ApiLocale = user ? toApiLocale(user.locale) : 'en';
-    const site = this.config.siteUrl.replace(/\/+$/, '');
+    // The user's realm decides the host the page is on (architecture 4.18).
+    const site = this.config.siteUrlFor(user?.realm ?? 'CODEQLICK').replace(/\/+$/, '');
     return `${site}/${locale}/email/unsubscribe?token=${encodeURIComponent(token)}`;
   }
 

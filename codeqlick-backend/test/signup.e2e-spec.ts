@@ -122,11 +122,11 @@ describe('Clients create their own account (e2e)', () => {
     await request(app.getHttpServer())
       .post('/v1/auth/register')
       .set('X-Forwarded-For', '203.0.113.23')
-      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'videochat' })
+      .send({ name: 'Eva', email, password, locale: 'en', acceptPrivacy: true, app: 'cloud' })
       .expect(202);
     const text = to(email).at(-1)?.text ?? '';
     expect(text).toMatch(
-      /http:\/\/account\.localhost:3000\/en\/register\/confirm\?token=[\w-]+&app=videochat/,
+      /http:\/\/account\.localhost:3000\/en\/register\/confirm\?token=[\w-]+&app=cloud/,
     );
     await request(app.getHttpServer())
       .post('/v1/auth/register')
@@ -140,13 +140,15 @@ describe('Clients create their own account (e2e)', () => {
       .post('/v1/auth/register/confirm')
       .send({ token })
       .expect(200);
-    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-    expect(user.signupApp).toBe('videochat');
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email } },
+    });
+    expect(user.signupApp).toBe('cloud');
     const shown = await request(app.getHttpServer())
       .get(`/v1/admin/users/${user.id}`)
       .set(auth)
       .expect(200);
-    expect(shown.body).toMatchObject({ kind: 'app', apps: ['videochat'], signupApp: 'videochat' });
+    expect(shown.body).toMatchObject({ kind: 'app', apps: ['cloud'], signupApp: 'cloud' });
   });
 
   it('tells clients apart from the people who use our web apps', async () => {
@@ -226,7 +228,9 @@ describe('Clients create their own account (e2e)', () => {
     expect(drafted.body.client).toMatchObject({ created: true, registered: false });
     // Preparing it sends nobody anything, and nobody can sign in to it.
     expect(to(lead).length).toBe(before);
-    const placeholder = await prisma.user.findUniqueOrThrow({ where: { email: lead } });
+    const placeholder = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: lead } },
+    });
     expect(placeholder.registeredAt).toBeNull();
 
     // Sending the proposal carries the invitation instead of the portal link.

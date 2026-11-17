@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import * as argon2 from 'argon2';
 import sharp from 'sharp';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,6 +21,14 @@ import { SWIPE_TERMS_VERSION } from '../src/modules/swipe/swipe.schemas.js';
 import { VIDEOCHAT_TERMS_VERSION } from '../src/modules/videochat/videochat.schemas.js';
 import { VideochatService } from '../src/modules/videochat/videochat.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const PASSWORD = 'e2e-adult-password-1';
+let hashed: Promise<string> | undefined;
+/** One real hash for every member, so one can delete their own account. */
+const passwordHash = () => (hashed ??= argon2.hash(PASSWORD, { type: argon2.argon2id }));
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
 
 const tag = randomUUID().slice(0, 6);
 const HOUR = 60 * 60 * 1000;
@@ -55,11 +64,18 @@ describe('18+ apps: shared safety (e2e, architecture 4.16 phase 1)', () => {
     const name = `${label.toLowerCase().slice(0, 5)}_${tag}_${made}`;
     const address = email ?? `e2e-adult-${name}@codeqlick.test`;
     const user = await prisma.user.create({
-      data: { email: address, name: label, role, passwordHash: 'x', username: name },
+      data: {
+        email: address,
+        name: label,
+        role,
+        realm: realmOf(role),
+        passwordHash: await passwordHash(),
+        username: name,
+      },
     });
     const token = await app
       .get(JwtService)
-      .signAsync({ sub: user.id, email: address, name: label, role });
+      .signAsync({ sub: user.id, email: address, name: label, role, rlm: realmOf(role) });
     return {
       id: user.id,
       email: address,
@@ -549,7 +565,13 @@ describe('18+ apps: shared safety (e2e, architecture 4.16 phase 1)', () => {
           duration: 'permanent',
         })
         .expect(204);
-      await request(server()).delete(`/v1/admin/users/${jo.id}`).set(admin.auth).expect(204);
+      // A Neoqlick account is deleted by its owner: Codeqlick's admin panel doesn't know it.
+      await request(server()).delete(`/v1/admin/users/${jo.id}`).set(admin.auth).expect(404);
+      await request(server())
+        .delete('/v1/auth/me')
+        .set(jo.auth)
+        .send({ password: PASSWORD })
+        .expect(204);
 
       const key = app.get(AppConfigService).adultBanHashKey;
       const ban = await prisma.adultBannedEmail.findFirstOrThrow({
@@ -609,7 +631,11 @@ describe('18+ apps: shared safety (e2e, architecture 4.16 phase 1)', () => {
 
     it('a deleted account without a serious suspension leaves nothing', async () => {
       const lu = await member('Lu', ['SWIPE']);
-      await request(server()).delete(`/v1/admin/users/${lu.id}`).set(admin.auth).expect(204);
+      await request(server())
+        .delete('/v1/auth/me')
+        .set(lu.auth)
+        .send({ password: PASSWORD })
+        .expect(204);
       expect(
         await prisma.adultBannedEmail.count({
           where: { emailHash: emailHash(app.get(AppConfigService).adultBanHashKey, lu.email) },

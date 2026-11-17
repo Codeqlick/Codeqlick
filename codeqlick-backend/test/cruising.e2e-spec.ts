@@ -13,6 +13,10 @@ import { Role } from '../src/generated/prisma/client.js';
 import { MailService, type MailMessage } from '../src/modules/mail/mail.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
+/** The 18+ apps' members are NEOQLICK accounts (architecture 4.18); the admins are CODEQLICK ones. */
+const realmOf = (role: Role): 'CODEQLICK' | 'NEOQLICK' =>
+  role === Role.ADMIN ? 'CODEQLICK' : 'NEOQLICK';
+
 const tag = randomUUID().slice(0, 8);
 const password = 'cruising-password-1';
 
@@ -42,8 +46,12 @@ describe('Cruising (e2e)', () => {
   async function person(name: string, role: Role = Role.CLIENT): Promise<Person> {
     const email = `e2e-cruising-${name.toLowerCase()}-${tag}@codeqlick.test`;
     const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-    const user = await prisma.user.create({ data: { email, name, role, passwordHash } });
-    const token = await app.get(JwtService).signAsync({ sub: user.id, email, name, role });
+    const user = await prisma.user.create({
+      data: { email, name, role, realm: realmOf(role), passwordHash },
+    });
+    const token = await app
+      .get(JwtService)
+      .signAsync({ sub: user.id, email, name, role, rlm: realmOf(role) });
     return { id: user.id, email, auth: { Authorization: `Bearer ${token}` } };
   }
 
@@ -889,6 +897,7 @@ describe('Cruising (e2e)', () => {
     // Deleting the account (the password is needed).
     const login = await request(server())
       .post('/v1/auth/login')
+      .set('X-Realm', 'NEOQLICK')
       .send({ email: ines.email, password })
       .expect(200);
     await request(server())

@@ -263,7 +263,14 @@ export class CloudCommentsService {
       throw expired;
     }
     const ctx: CloudCtx = {
-      user: { id: user.id, email: user.email, name: user.name, role: user.role, via: 'session' },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        realm: 'CODEQLICK',
+        via: 'session',
+      },
       ip,
     };
     const membership = await this.teams.accessById(ctx, project.teamId);

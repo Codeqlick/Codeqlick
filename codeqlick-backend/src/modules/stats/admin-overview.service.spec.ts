@@ -8,6 +8,7 @@ const NOW = new Date('2026-11-18T12:00:00Z');
 function totals(over: Partial<OverviewTotalsRow> = {}): OverviewTotalsRow {
   const zero = {
     accounts: 0,
+    neoqlickAccounts: 0,
     cruising: 0,
     swipe: 0,
     videochat: 0,

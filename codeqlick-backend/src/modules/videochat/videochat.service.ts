@@ -306,7 +306,7 @@ export class VideochatService {
       ageVerified,
       allowed: onboarded && !suspended && (ageVerified || !ageVerificationRequired),
       profile: profile ? settingsOf(profile) : null,
-      pushPublicKey: this.config.vapid?.publicKey ?? null,
+      pushPublicKey: this.config.neoqlickVapid?.publicKey ?? null,
       peakAlerts: profile?.peakAlerts ?? false,
       verification: { status: verification.status, note: verification.note },
     };
@@ -819,7 +819,7 @@ export class VideochatService {
           { to: appeal.user.email, name: appeal.user.name, locale },
           { accepted, response: response ?? null },
           this.config.webappUrl('videochat'),
-          this.config.siteUrl,
+          this.config.siteUrlFor('NEOQLICK'),
         ),
       )
       .catch((error: unknown) => this.logger.error(`Appeal email not sent: ${String(error)}`));

@@ -141,6 +141,10 @@ function build() {
     isTest: true,
     cruisingTermsVersion: VERSION,
     siteUrl: 'https://codeqlick.com',
+    siteUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://neoqlick.com' : 'https://codeqlick.com',
+    accountUrlFor: (realm: string) =>
+      realm === 'NEOQLICK' ? 'https://account.neoqlick.com' : 'https://account.codeqlick.com',
     webappUrl: () => 'https://cruising.codeqlick.com',
   };
   const mediaRepo = { badges: vi.fn().mockResolvedValue(new Map()) };

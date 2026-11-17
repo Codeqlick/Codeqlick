@@ -23,6 +23,7 @@ export function contactInviteEmail(
     subject: copy.subject(displayName),
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: copy.intro(displayName)[0],
         title: copy.title,
@@ -60,6 +61,7 @@ export function contactAlertEmail(
     subject: copy.subject(alert.displayName),
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: copy.intro(alert.displayName)[0],
         title: copy.title,
@@ -94,6 +96,7 @@ export function memberSafetyEmail(
     subject: `${text.subject} — Cruising`,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: text.body,
         title: text.subject,

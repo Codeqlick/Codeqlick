@@ -322,7 +322,7 @@ export class CruisingMediaService implements OnApplicationBootstrap, OnApplicati
           notice,
           note,
           this.config.webappUrl('cruising'),
-          this.config.siteUrl,
+          this.config.siteUrlFor('NEOQLICK'),
         ),
       );
     } catch (error) {

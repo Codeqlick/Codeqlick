@@ -170,7 +170,9 @@ describe('Codeqlick Cloud deploy hooks (e2e)', () => {
       [admin, 'ADMIN'],
       [member, 'MEMBER'],
     ] as const) {
-      const user = await prisma.user.findUniqueOrThrow({ where: { email: who.email } });
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { realm_email: { realm: 'CODEQLICK', email: who.email } },
+      });
       await prisma.cloudMember.create({
         data: {
           teamId,
@@ -181,7 +183,9 @@ describe('Codeqlick Cloud deploy hooks (e2e)', () => {
         },
       });
     }
-    const ownerRow = await prisma.user.findUniqueOrThrow({ where: { email: owner.email } });
+    const ownerRow = await prisma.user.findUniqueOrThrow({
+      where: { realm_email: { realm: 'CODEQLICK', email: owner.email } },
+    });
     await prisma.cloudGitInstallation.create({
       data: {
         installationId: BigInt(INSTALLATION),

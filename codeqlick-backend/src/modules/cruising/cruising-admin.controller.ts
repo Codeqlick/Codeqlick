@@ -9,6 +9,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -40,11 +41,13 @@ import {
   type UserIdParam,
 } from './cruising.schemas.js';
 import { CruisingService, type ImportResult } from './cruising.service.js';
+import { NeoqlickTargetGuard } from '../../common/guards/realm-target.guard.js';
 
 /** Cruising's moderation: spots to review, reports, removal requests and suspensions. */
 @ApiTags('admin: cruising')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@UseGuards(NeoqlickTargetGuard)
 @Controller('admin/cruising')
 export class CruisingAdminController {
   constructor(private readonly cruising: CruisingService) {}

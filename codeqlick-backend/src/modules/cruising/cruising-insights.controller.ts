@@ -6,11 +6,13 @@ import { Roles } from '../../common/decorators/roles.decorator.js';
 import { idParamSchema, type IdParam } from '../../common/schemas/common.schemas.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { CruisingInsightsService, type CruisingSpotHours } from './cruising-insights.service.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 /** Cruising phase 5 (architecture 4.15): busiest hours and helpful reviews, for entered members. */
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingInsightsController {
   constructor(private readonly insights: CruisingInsightsService) {}

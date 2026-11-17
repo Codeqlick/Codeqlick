@@ -72,7 +72,13 @@ function post(slug: string, extra: Partial<NewsletterPost> = {}): NewsletterPost
   } as unknown as NewsletterPost;
 }
 
-const admin = { id: 'a1', email: 'admin@codeqlick.com', name: 'Admin', role: 'ADMIN' } as AuthUser;
+const admin = {
+  id: 'a1',
+  email: 'admin@codeqlick.com',
+  name: 'Admin',
+  role: 'ADMIN',
+  realm: 'CODEQLICK',
+} as AuthUser;
 
 describe('NewsletterService', () => {
   let repository: Record<string, ReturnType<typeof vi.fn>>;

@@ -196,6 +196,7 @@ export function adultNoticeEmail(
     subject: text.subject,
     ...renderEmail(
       {
+        brand: 'neoqlick',
         locale,
         preheader: text.body,
         title: text.subject,

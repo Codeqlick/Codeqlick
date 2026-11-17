@@ -20,6 +20,7 @@ import {
   type CruisingWinkView,
 } from './cruising-winks.service.js';
 import { nicknameParamSchema, type NicknameParam } from './cruising.schemas.js';
+import { Realm } from '../../common/decorators/realm.decorator.js';
 
 /**
  * Cruising phase 6 (architecture 4.15): winks and profile visits (decision 97) and the
@@ -28,6 +29,7 @@ import { nicknameParamSchema, type NicknameParam } from './cruising.schemas.js';
 @ApiTags('cruising')
 @ApiBearerAuth()
 @Roles('CLIENT', 'ADMIN')
+@Realm('NEOQLICK')
 @Controller('cruising')
 export class CruisingNotificationsController {
   constructor(

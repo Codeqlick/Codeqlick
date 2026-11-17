@@ -27,7 +27,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
 try {
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   const admin = await prisma.user.upsert({
-    where: { email },
+    where: { realm_email: { realm: 'CODEQLICK', email } },
     create: { email, name, passwordHash, role: Role.ADMIN, isActive: true },
     update: { name, passwordHash, role: Role.ADMIN, isActive: true },
   });
